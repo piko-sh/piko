@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package asset_resolver implements the email asset resolver port
-// using the registry service. It fetches email assets (images, files)
-// from the registry, applies transformation profiles (resizing, format
-// conversion), and returns ready-to-embed attachments with Content-ID
-// set for inline references.
+// Package asset_resolver implements the email asset resolver port using the registry
+// service. It fetches email assets (images, files) from the registry, applies
+// transformation profiles (resizing, format conversion), and returns ready-to-embed
+// attachments with Content-ID set for inline references.
 //
-// Variant selection uses a progressive fallback: exact match first,
-// then relaxing density, dimensions, profile, and finally falling
-// back to the source or any available variant.
+// Variant selection uses a progressive fallback: exact match first, then relaxing
+// density, dimensions, profile, and finally falling back to the source or any available
+// variant.
 //
 // All methods are safe for concurrent use.
 package asset_resolver

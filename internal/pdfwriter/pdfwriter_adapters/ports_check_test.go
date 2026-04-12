@@ -18,7 +18,11 @@
 
 package pdfwriter_adapters
 
-import "piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
+import (
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
+)
 
-var _ pdfwriter_domain.LayoutPort = (*LayouterAdapter)(nil)
-var _ pdfwriter_domain.TemplateRunnerPort = (*TemplateRunnerAdapter)(nil)
+var (
+	_ pdfwriter_domain.LayoutPort = (*LayouterAdapter)(nil)
+	_ pdfwriter_domain.TemplateRunnerPort = (*TemplateRunnerAdapter)(nil)
+)

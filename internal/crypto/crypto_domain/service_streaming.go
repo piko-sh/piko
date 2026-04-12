@@ -29,21 +29,19 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// EncryptStream encrypts a data stream using the specified key, or the active
-// key if keyID is empty. The caller writes plaintext to the returned
-// WriteCloser, and encrypted data is written to the provided output Writer.
+// EncryptStream encrypts a data stream using the specified key, or the active key if
+// keyID is empty. The caller writes plaintext to the returned WriteCloser, and encrypted
+// data is written to the provided output Writer.
 //
-// Designed for encrypting large files without loading them entirely into memory.
-// Memory usage remains constant (O(chunk_size) ~64KB) regardless of stream size.
+// Designed for encrypting large files without loading them entirely into memory. Memory
+// usage remains constant (O(chunk_size) ~64KB) regardless of stream size.
 //
-// The encrypted output uses the v2 streaming envelope format:
-// [Version 0x02][Header Length][JSON Header][Chunked Encrypted Data]
-// This format is distinct from the v1 string-based envelope format and is
-// optimised for streaming large data.
+// The encrypted output uses the v2 streaming envelope format: [Version 0x02][Header
+// Length][JSON Header][Chunked Encrypted Data] This format is distinct from the v1
+// string-based envelope format and is optimised for streaming large data.
 //
 // Takes output (io.Writer) which receives the encrypted data.
-// Takes keyID (string) which specifies the encryption key, or empty for the
-// active key.
+// Takes keyID (string) which specifies the encryption key, or empty for the active key.
 //
 // Returns io.WriteCloser which accepts plaintext data to be encrypted.
 // Returns error when the encryption stream cannot be initialised.
@@ -98,10 +96,10 @@ func (s *cryptoService) EncryptStream(ctx context.Context, output io.Writer, key
 
 // DecryptStream decrypts a data stream.
 //
-// The caller reads plaintext from the returned ReadCloser. Automatically detects
-// and parses the v2 streaming envelope format, extracting metadata and setting up
-// the decryption pipeline. Suitable for decrypting large files with constant
-// memory usage (O(chunk_size) ~64KB).
+// The caller reads plaintext from the returned ReadCloser. Automatically detects and
+// parses the v2 streaming envelope format, extracting metadata and setting up the
+// decryption pipeline. Suitable for decrypting large files with constant memory usage
+// (O(chunk_size) ~64KB).
 //
 // Takes input (io.Reader) which provides the encrypted data stream.
 //

@@ -38,8 +38,10 @@ import (
 	"piko.sh/piko/tests/testutil"
 )
 
-var blackholeArtefact *registry_dto.ArtefactMeta
-var blackholeArtefacts []*registry_dto.ArtefactMeta
+var (
+	blackholeArtefact *registry_dto.ArtefactMeta
+	blackholeArtefacts []*registry_dto.ArtefactMeta
+)
 
 func newTestDB(t testing.TB, path string) *sql.DB {
 	t.Helper()

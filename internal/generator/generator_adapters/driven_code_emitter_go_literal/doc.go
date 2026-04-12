@@ -16,16 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_code_emitter_go_literal implements the code emitter that
-// translates Piko's annotated AST into executable Go source code.
+// Package driven_code_emitter_go_literal implements the code emitter that translates
+// Piko's annotated AST into executable Go source code.
 //
-// It uses Go's ast package to construct type-safe AST nodes, which are
-// then formatted and written as source files. Static template nodes
-// (those without dynamic bindings) are hoisted to package-level
-// variables and initialised once, reducing runtime allocations and
-// improving rendering performance.
+// It uses Go's ast package to construct type-safe AST nodes, which are then formatted and
+// written as source files. Static template nodes (those without dynamic bindings) are
+// hoisted to package-level variables and initialised once, reducing runtime allocations
+// and improving rendering performance.
 //
-// Each emitter instance is designed for single-threaded use during a
-// code generation operation. The factory that creates them is safe for
-// concurrent use.
+// Each emitter instance is designed for single-threaded use during a code generation
+// operation. The factory that creates them is safe for concurrent use.
 package driven_code_emitter_go_literal

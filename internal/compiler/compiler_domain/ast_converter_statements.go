@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// convertStatement converts an esbuild statement to a tdewolff statement.
-// It uses specialised converters based on the type of statement.
+// convertStatement converts an esbuild statement to a tdewolff statement. It uses
+// specialised converters based on the type of statement.
 //
 // Takes statement (js_ast.Stmt) which is the esbuild statement to convert.
 //
@@ -56,8 +56,8 @@ func (c *ASTConverter) convertStatement(statement js_ast.Stmt) (parsejs.IStmt, e
 //
 // Takes statement (js_ast.Stmt) which is the statement to convert.
 //
-// Returns parsejs.IStmt which is the converted statement, or nil if the
-// statement type is not simple.
+// Returns parsejs.IStmt which is the converted statement, or nil if the statement type is
+// not simple.
 func (c *ASTConverter) tryConvertSimpleStmt(statement js_ast.Stmt) parsejs.IStmt {
 	switch s := statement.Data.(type) {
 	case *js_ast.SBreak:
@@ -75,8 +75,8 @@ func (c *ASTConverter) tryConvertSimpleStmt(statement js_ast.Stmt) parsejs.IStmt
 
 // convertSBreak converts a break statement to a branch statement.
 //
-// Takes s (*js_ast.SBreak) which is the break statement to convert. If the
-// statement has a label, the label name is resolved and included.
+// Takes s (*js_ast.SBreak) which is the break statement to convert. If the statement has
+// a label, the label name is resolved and included.
 //
 // Returns parsejs.IStmt which is the converted branch statement.
 func (c *ASTConverter) convertSBreak(s *js_ast.SBreak) parsejs.IStmt {
@@ -106,13 +106,12 @@ func (c *ASTConverter) convertSContinue(s *js_ast.SContinue) parsejs.IStmt {
 	return &parsejs.BranchStmt{Type: parsejs.ContinueToken, Label: label}
 }
 
-// tryConvertDeclStmt handles declaration statements (functions, classes,
-// variables, imports).
+// tryConvertDeclStmt handles declaration statements (functions, classes, variables,
+// imports).
 //
 // Takes statement (js_ast.Stmt) which is the statement to convert.
 //
-// Returns parsejs.IStmt which is the converted statement, or nil if not a
-// declaration.
+// Returns parsejs.IStmt which is the converted statement, or nil if not a declaration.
 // Returns bool which indicates whether the statement was a declaration type.
 // Returns error when the conversion fails.
 func (c *ASTConverter) tryConvertDeclStmt(statement js_ast.Stmt) (parsejs.IStmt, bool, error) {
@@ -137,8 +136,8 @@ func (c *ASTConverter) tryConvertDeclStmt(statement js_ast.Stmt) (parsejs.IStmt,
 	}
 }
 
-// tryConvertControlFlowStmt handles control flow statements (if, for, while,
-// switch, try).
+// tryConvertControlFlowStmt handles control flow statements (if, for, while, switch,
+// try).
 //
 // Takes statement (js_ast.Stmt) which is the statement to convert.
 //
@@ -179,8 +178,8 @@ func (c *ASTConverter) tryConvertControlFlowStmt(statement js_ast.Stmt) (parsejs
 	}
 }
 
-// convertExpressionStmt handles expression-based statements such as expr,
-// return, block, and throw.
+// convertExpressionStmt handles expression-based statements such as expr, return, block,
+// and throw.
 //
 // Takes statement (js_ast.Stmt) which is the statement to convert.
 //
@@ -328,8 +327,8 @@ func (c *ASTConverter) convertSDoWhile(s *js_ast.SDoWhile) (parsejs.IStmt, error
 	return &parsejs.DoWhileStmt{Cond: test, Body: body}, nil
 }
 
-// convertSLabel converts a labelled statement, such as "loop: for(...)" or
-// "outer: while(...)".
+// convertSLabel converts a labelled statement, such as "loop: for(...)" or "outer:
+// while(...)".
 //
 // Takes s (*js_ast.SLabel) which is the labelled statement to convert.
 //
@@ -446,8 +445,7 @@ func (c *ASTConverter) convertSFunction(s *js_ast.SFunction) (parsejs.IStmt, err
 // Takes s (*js_ast.SClass) which contains the class statement to convert.
 //
 // Returns parsejs.IStmt which is the converted class declaration.
-// Returns error when the extends clause or class properties cannot be
-// converted.
+// Returns error when the extends clause or class properties cannot be converted.
 func (c *ASTConverter) convertSClass(s *js_ast.SClass) (parsejs.IStmt, error) {
 	var extends parsejs.IExpr
 	if s.Class.ExtendsOrNil.Data != nil {
@@ -531,11 +529,10 @@ func (c *ASTConverter) convertSFor(s *js_ast.SFor) (parsejs.IStmt, error) {
 
 // convertForInit converts the init part of a for loop.
 //
-// Takes initStmt (js_ast.Stmt) which is the initialisation statement to
-// convert.
+// Takes initStmt (js_ast.Stmt) which is the initialisation statement to convert.
 //
-// Returns parsejs.IExpr which is the converted expression, or nil if the
-// statement cannot be converted.
+// Returns parsejs.IExpr which is the converted expression, or nil if the statement cannot
+// be converted.
 func (c *ASTConverter) convertForInit(initStmt js_ast.Stmt) parsejs.IExpr {
 	if initStmt.Data == nil {
 		return nil
@@ -681,8 +678,7 @@ func (c *ASTConverter) convertSTry(s *js_ast.STry) (parsejs.IStmt, error) {
 
 // convertSSwitch converts a switch statement.
 //
-// Takes s (*js_ast.SSwitch) which contains the switch test expression and
-// cases.
+// Takes s (*js_ast.SSwitch) which contains the switch test expression and cases.
 //
 // Returns parsejs.IStmt which is the converted switch statement.
 // Returns error when converting the test expression or any case clause fails.
@@ -776,8 +772,8 @@ func (c *ASTConverter) convertSImport(s *js_ast.SImport) (parsejs.IStmt, error) 
 //
 // Takes s (*js_ast.SImport) which contains the import statement to process.
 //
-// Returns []parsejs.Alias which contains the resolved import aliases, or nil
-// if there are no named imports.
+// Returns []parsejs.Alias which contains the resolved import aliases, or nil if there are
+// no named imports.
 func (c *ASTConverter) buildImportList(s *js_ast.SImport) []parsejs.Alias {
 	if s.Items == nil {
 		return nil
@@ -873,8 +869,7 @@ func (c *ASTConverter) buildNamespaceImport(s *js_ast.SImport, modulePath string
 
 // convertSExportDefault converts an export default statement.
 //
-// Takes s (*js_ast.SExportDefault) which is the export default statement to
-// convert.
+// Takes s (*js_ast.SExportDefault) which is the export default statement to convert.
 //
 // Returns parsejs.IStmt which is the converted statement.
 // Returns error when the conversion fails.
@@ -896,8 +891,7 @@ func (c *ASTConverter) convertSExportDefault(s *js_ast.SExportDefault) (parsejs.
 // Takes v (*js_ast.SClass) which contains the class to convert.
 //
 // Returns parsejs.IStmt which is the converted export statement.
-// Returns error when the extends clause or class properties cannot be
-// converted.
+// Returns error when the extends clause or class properties cannot be converted.
 func (c *ASTConverter) convertExportDefaultClass(v *js_ast.SClass) (parsejs.IStmt, error) {
 	var extends parsejs.IExpr
 	if v.Class.ExtendsOrNil.Data != nil {
@@ -995,8 +989,8 @@ func (c *ASTConverter) convertExportDefaultExpr(v *js_ast.SExpr) (parsejs.IStmt,
 
 // getLocalTokenType returns the token type for a local declaration kind.
 //
-// Takes kind (js_ast.LocalKind) which specifies the declaration kind (const,
-// let, or var).
+// Takes kind (js_ast.LocalKind) which specifies the declaration kind (const, let, or
+// var).
 //
 // Returns parsejs.TokenType which is the corresponding token type.
 func getLocalTokenType(kind js_ast.LocalKind) parsejs.TokenType {

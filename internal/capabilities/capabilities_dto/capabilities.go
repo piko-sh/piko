@@ -18,8 +18,8 @@
 
 package capabilities_dto
 
-// Capability represents a named feature that can be checked and used.
-// It implements fmt.Stringer.
+// Capability represents a named feature that can be checked and used. It implements
+// fmt.Stringer.
 type Capability string
 
 const (
@@ -44,20 +44,20 @@ const (
 	// CapabilityMinifySVG identifies the SVG minification capability.
 	CapabilityMinifySVG Capability = "minify-svg"
 
-	// CapabilityCopyJS is a passthrough capability that copies JavaScript
-	// without transformation, used to produce readable non-minified variants.
+	// CapabilityCopyJS is a passthrough capability that copies JavaScript without
+	// transformation, used to produce readable non-minified variants.
 	CapabilityCopyJS Capability = "copy-js"
 
-	// CapabilityVideoTranscode is the capability for converting video files
-	// between different formats.
+	// CapabilityVideoTranscode is the capability for converting video files between
+	// different formats.
 	CapabilityVideoTranscode Capability = "video-transcode"
 
-	// CapabilityVideoThumbnail is the capability for extracting thumbnail images
-	// from videos.
+	// CapabilityVideoThumbnail is the capability for extracting thumbnail images from
+	// videos.
 	CapabilityVideoThumbnail Capability = "video-thumbnail"
 
-	// CapabilityTranspileTypeScript identifies the TypeScript-to-JavaScript
-	// transpilation capability.
+	// CapabilityTranspileTypeScript identifies the TypeScript-to-JavaScript transpilation
+	// capability.
 	CapabilityTranspileTypeScript Capability = "transpile-typescript"
 )
 

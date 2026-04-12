@@ -55,7 +55,7 @@ func main() {
 	}
 
 	result := map[string]any{
-		"updated_rows":                     updatedRows,
+		"updated_rows":                   updatedRows,
 		"fetch_by_priority_and_statuses": fetched,
 	}
 

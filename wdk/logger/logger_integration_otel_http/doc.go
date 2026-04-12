@@ -16,10 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package logger_integration_otel_http registers the HTTP and HTTPS
-// OTLP protocols for OpenTelemetry trace and metric export.
+// Package logger_integration_otel_http registers the HTTP and HTTPS OTLP protocols for
+// OpenTelemetry trace and metric export.
 //
-// Importing the package makes the "http" and "https" protocols available. It
-// creates OTLP trace and metric exporters over HTTP, with support for TLS
-// configuration and custom headers.
+// Importing the package makes the "http" and "https" protocols available. It creates OTLP
+// trace and metric exporters over HTTP, with support for TLS configuration and custom
+// headers.
 package logger_integration_otel_http

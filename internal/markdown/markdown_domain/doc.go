@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package markdown_domain orchestrates the transformation of Markdown content
-// into structured build artefacts.
+// Package markdown_domain orchestrates the transformation of Markdown content into
+// structured build artefacts.
 //
-// The [MarkdownService] drives a multi-step pipeline that parses raw Markdown,
-// extracts frontmatter metadata via [MarkdownParserPort], transforms the
-// piko-native markdown AST into Piko's internal template AST format, and
-// produces a ProcessedMarkdown DTO containing the page AST, excerpt AST, and
-// structured metadata.
+// The [MarkdownService] drives a multi-step pipeline that parses raw Markdown, extracts
+// frontmatter metadata via [MarkdownParserPort], transforms the piko-native markdown AST
+// into Piko's internal template AST format, and produces a ProcessedMarkdown DTO
+// containing the page AST, excerpt AST, and structured metadata.
 //
 // # Processing pipeline
 //
@@ -38,7 +37,7 @@
 //
 // # Shortcode support
 //
-// Fenced code blocks with the "piko" info string are treated as component
-// shortcodes. The syntax ` ```piko ComponentName prop="value" ` creates
-// an inline component invocation within markdown content.
+// Fenced code blocks with the "piko" info string are treated as component shortcodes. The
+// syntax ` ```piko ComponentName prop="value" ` creates an inline component invocation
+// within markdown content.
 package markdown_domain

@@ -26,14 +26,14 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// runWatchLoop executes a periodic update loop for gRPC watch streams.
-// It handles ticker management, context cancellation, and error reporting.
+// runWatchLoop executes a periodic update loop for gRPC watch streams. It handles ticker
+// management, context cancellation, and error reporting.
 //
 // Takes intervalMs (int64) which is the requested polling interval.
 // Takes sendUpdate (func(...)) which fetches and sends the actual data.
 // Takes modeName (string) which describes the update type for error messages.
-// Takes clk (clock.Clock) which provides time operations; nil defaults to the
-// real system clock.
+// Takes clk (clock.Clock) which provides time operations; nil defaults to the real system
+// clock.
 //
 // Returns error when the context is cancelled or an update fails.
 func runWatchLoop(ctx context.Context, intervalMs int64, sendUpdate func() error, modeName string, clk clock.Clock) error {

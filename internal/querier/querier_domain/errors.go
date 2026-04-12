@@ -26,16 +26,16 @@ import (
 )
 
 var (
-	// ErrMissingEnginePort is returned when a querier service is created
-	// without an engine adapter.
+	// ErrMissingEnginePort is returned when a querier service is created without an engine
+	// adapter.
 	ErrMissingEnginePort = errors.New("querier service requires an engine port")
 
-	// ErrMissingEmitterPort is returned when a querier service is created
-	// without a code emitter adapter.
+	// ErrMissingEmitterPort is returned when a querier service is created without a code
+	// emitter adapter.
 	ErrMissingEmitterPort = errors.New("querier service requires a code emitter port")
 
-	// ErrMissingFileReaderPort is returned when a querier service is created
-	// without a file reader adapter.
+	// ErrMissingFileReaderPort is returned when a querier service is created without a file
+	// reader adapter.
 	ErrMissingFileReaderPort = errors.New("querier service requires a file reader port")
 )
 
@@ -61,7 +61,8 @@ type CatalogueError struct {
 //
 // Takes filename (string) which specifies the migration file path.
 // Takes line (int) which specifies the one-based line number of the error.
-// Takes migrationIndex (int) which specifies the zero-based position in the replay sequence.
+// Takes migrationIndex (int) which specifies the zero-based position in the replay
+// sequence.
 // Takes message (string) which specifies the human-readable error description.
 // Takes cause (error) which specifies the underlying error that triggered this failure.
 //
@@ -93,8 +94,7 @@ func (e *CatalogueError) Unwrap() error {
 	return e.Cause
 }
 
-// QueryAnalysisError wraps one or more SourceError diagnostics from query
-// analysis.
+// QueryAnalysisError wraps one or more SourceError diagnostics from query analysis.
 type QueryAnalysisError struct {
 	// Filename holds the path of the query file that produced the diagnostics.
 	Filename string
@@ -103,11 +103,11 @@ type QueryAnalysisError struct {
 	Diagnostics []querier_dto.SourceError
 }
 
-// NewQueryAnalysisError creates a new query analysis error wrapping
-// diagnostics.
+// NewQueryAnalysisError creates a new query analysis error wrapping diagnostics.
 //
 // Takes filename (string) which specifies the query file path.
-// Takes diagnostics ([]querier_dto.SourceError) which specifies the analysis errors found.
+// Takes diagnostics ([]querier_dto.SourceError) which specifies the analysis errors
+// found.
 //
 // Returns *QueryAnalysisError which holds the error wrapping all diagnostics.
 func NewQueryAnalysisError(filename string, diagnostics []querier_dto.SourceError) *QueryAnalysisError {
@@ -124,8 +124,7 @@ func (e *QueryAnalysisError) Error() string {
 	return fmt.Sprintf("found %d analysis errors in %s", len(e.Diagnostics), e.Filename)
 }
 
-// DirectiveSyntaxError represents a malformed piko. directive in a SQL
-// query file.
+// DirectiveSyntaxError represents a malformed piko. directive in a SQL query file.
 type DirectiveSyntaxError struct {
 	// Filename holds the path of the query file containing the malformed directive.
 	Filename string
@@ -143,8 +142,7 @@ type DirectiveSyntaxError struct {
 	Column int
 }
 
-// NewDirectiveSyntaxError creates a new directive syntax error with source
-// location.
+// NewDirectiveSyntaxError creates a new directive syntax error with source location.
 //
 // Takes filename (string) which specifies the query file path.
 // Takes line (int) which specifies the one-based line number.

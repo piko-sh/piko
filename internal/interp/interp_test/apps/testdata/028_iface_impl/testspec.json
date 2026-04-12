@@ -1,0 +1,4 @@
+{
+  "description": "Interface in one file, struct + methods in another, dispatch through interface in a third",
+  "expected": "circle area=78.54 square area=16.00 total=94.54"
+}

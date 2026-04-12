@@ -35,8 +35,8 @@ const (
 	// attributeKeyStatus is the metric attribute key for the operation outcome.
 	attributeKeyStatus = "status"
 
-	// attributeKeyDurationMS is the logging attribute key for operation duration
-	// in milliseconds.
+	// attributeKeyDurationMS is the logging attribute key for operation duration in
+	// milliseconds.
 	attributeKeyDurationMS = "duration_ms"
 
 	// opVerify is the operation name for verification metrics.
@@ -65,8 +65,7 @@ var (
 
 // metricAttributes creates metric attributes from key-value pairs.
 //
-// Takes keyVals (...string) which are alternating key-value pairs for
-// attributes.
+// Takes keyVals (...string) which are alternating key-value pairs for attributes.
 //
 // Returns metric.MeasurementOption which contains the constructed attributes.
 func metricAttributes(keyVals ...string) metric.MeasurementOption {

@@ -56,38 +56,40 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-const pdfLayouterCSSReset = `*, *::before, *::after {
-  box-sizing: border-box;
-}
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed,
-figure, figcaption, footer, header, hgroup,
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  vertical-align: baseline;
-}
-body {
-  line-height: 1.4;
-}
-img {
-  max-width: 100%;
-  max-height: 100%;
-}
-a {
-  text-decoration: none;
-}
-`
+const (
+	pdfLayouterCSSReset = `*, *::before, *::after {
+	  box-sizing: border-box;
+	}
+	html, body, div, span, applet, object, iframe,
+	h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+	a, abbr, acronym, address, big, cite, code,
+	del, dfn, em, img, ins, kbd, q, s, samp,
+	small, strike, strong, sub, sup, tt, var,
+	b, u, i, center,
+	dl, dt, dd, ol, ul, li,
+	fieldset, form, label, legend,
+	table, caption, tbody, tfoot, thead, tr, th, td,
+	article, aside, canvas, details, embed,
+	figure, figcaption, footer, header, hgroup,
+	menu, nav, output, ruby, section, summary,
+	time, mark, audio, video {
+	  margin: 0;
+	  padding: 0;
+	  border: 0;
+	  vertical-align: baseline;
+	}
+	body {
+	  line-height: 1.4;
+	}
+	img {
+	  max-width: 100%;
+	  max-height: 100%;
+	}
+	a {
+	  text-decoration: none;
+	}
+	`
+)
 
 type pdfHarness struct {
 	t               *testing.T
@@ -102,124 +104,126 @@ type pdfHarness struct {
 	pageHelper      *browserpkg.PageHelper
 }
 
-var serverMainTemplate = template.Must(template.New("main.go").Parse(`package main
+var (
+	serverMainTemplate = template.Must(template.New("main.go").Parse(`package main
 
-import (
-	"context"
-	"crypto/sha256"
-	"fmt"
-	"math/rand/v2"
-	"os"
-	"strconv"
+	import (
+		"context"
+		"crypto/sha256"
+		"fmt"
+		"math/rand/v2"
+		"os"
+		"strconv"
 
-	"piko.sh/piko"
-	"piko.sh/piko/wdk/pdf"
-	_ "{{.ModuleName}}/dist"
-)
-
-const cssResetWithNotoSans = ` + "`" + `{{.CSSReset}}` + "`" + `
-
-func main() {
-	if os.Getenv("PIKO_EXTRACT_PDF") == "1" {
-		extractPdf()
-		return
-	}
-
-	portString := os.Getenv("PIKO_TEST_PORT")
-	if portString == "" {
-		portString = "8080"
-	}
-	port, _ := strconv.Atoi(portString)
-
-	server := piko.New(
-		piko.WithCSSReset(piko.WithCSSResetPKOverride(cssResetWithNotoSans)),
+		"piko.sh/piko"
+		"piko.sh/piko/wdk/pdf"
+		_ "{{.ModuleName}}/dist"
 	)
-	server.Configure(piko.PublicConfig{
-		BaseDir:        ".",
-		PagesSourceDir: "pages",
-		Port:           port,
-	})
 
-	fmt.Printf("Test server starting on port %s\n", portString)
-	if err := server.Run(piko.RunModeProd); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
-		os.Exit(1)
-	}
-}
+	const cssResetWithNotoSans = ` + "`" + `{{.CSSReset}}` + "`" + `
 
-func extractPdf() {
-	manifestPath := os.Getenv("PIKO_MANIFEST_PATH")
-	pdfPath := os.Getenv("PIKO_PDF_PATH")
-
-	var serviceOpts []pdf.ServiceOption
-	if os.Getenv("PIKO_FONT_REGULAR_ONLY") == "1" {
-		serviceOpts = append(serviceOpts, pdf.WithExcludeDefaultBold())
-	}
-	if variableFontPath := os.Getenv("PIKO_FONT_VARIABLE_PATH"); variableFontPath != "" {
-		variableFontData, readErr := os.ReadFile(variableFontPath)
-		if readErr != nil {
-			fmt.Fprintf(os.Stderr, "reading variable font: %v\n", readErr)
-			os.Exit(1)
+	func main() {
+		if os.Getenv("PIKO_EXTRACT_PDF") == "1" {
+			extractPdf()
+			return
 		}
-		serviceOpts = append(serviceOpts, pdf.WithExcludeDefaultBold())
-		serviceOpts = append(serviceOpts, pdf.WithVariableFont(
-			"NotoSans", 100, 900, 0, variableFontData,
-		))
-	}
 
-	service, err := pdf.NewServiceFromManifest(context.Background(), manifestPath, serviceOpts...)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "PDF service creation failed: %v\n", err)
-		os.Exit(1)
-	}
-
-	builder := service.NewRender().Template(pdfPath)
-	if extraCSS := os.Getenv("PIKO_EXTRA_CSS"); extraCSS != "" {
-		builder.Stylesheet(extraCSS)
-	}
-
-	userPassword := os.Getenv("PIKO_ENCRYPT_USER_PASSWORD")
-	ownerPassword := os.Getenv("PIKO_ENCRYPT_OWNER_PASSWORD")
-	if userPassword != "" {
-		registry := pdf.NewTransformerRegistry()
-		var encryptOptions []pdf.EncryptOption
-		if seed := os.Getenv("PIKO_ENCRYPT_TEST_SEED"); seed != "" {
-			seedSum := sha256.Sum256([]byte(seed))
-			encryptOptions = append(encryptOptions, pdf.WithEncryptRandomSource(rand.NewChaCha8(seedSum)))
+		portString := os.Getenv("PIKO_TEST_PORT")
+		if portString == "" {
+			portString = "8080"
 		}
-		if regErr := registry.Register(pdf.NewEncryptTransformer(encryptOptions...)); regErr != nil {
-			fmt.Fprintf(os.Stderr, "registering encrypt transformer: %v\n", regErr)
-			os.Exit(1)
-		}
-		builder.Watermark("CONFIDENTIAL")
-		builder.Transformations(registry, pdf.TransformConfig{
-			EnabledTransformers: []string{"pdf-encrypt"},
-			TransformerOptions: map[string]any{
-				"pdf-encrypt": pdf.EncryptionOptions{
-					Algorithm:     "aes-256",
-					UserPassword:  userPassword,
-					OwnerPassword: ownerPassword,
-					Permissions:   0xFFFFF0C4,
-				},
-			},
+		port, _ := strconv.Atoi(portString)
+
+		server := piko.New(
+			piko.WithCSSReset(piko.WithCSSResetPKOverride(cssResetWithNotoSans)),
+		)
+		server.Configure(piko.PublicConfig{
+			BaseDir:        ".",
+			PagesSourceDir: "pages",
+			Port:           port,
 		})
-	}
 
-	result, err := builder.Do(context.Background())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "PDF rendering failed: %v\n", err)
-		os.Exit(1)
-	}
-
-	if dumpPath := os.Getenv("PIKO_LAYOUT_DUMP_PATH"); dumpPath != "" && result.LayoutDump != "" {
-		if writeErr := os.WriteFile(dumpPath, []byte(result.LayoutDump), 0644); writeErr != nil {
-			fmt.Fprintf(os.Stderr, "writing layout dump: %v\n", writeErr)
+		fmt.Printf("Test server starting on port %s\n", portString)
+		if err := server.Run(piko.RunModeProd); err != nil {
+			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+			os.Exit(1)
 		}
 	}
 
-	os.Stdout.Write(result.Content)
-}
-`))
+	func extractPdf() {
+		manifestPath := os.Getenv("PIKO_MANIFEST_PATH")
+		pdfPath := os.Getenv("PIKO_PDF_PATH")
+
+		var serviceOpts []pdf.ServiceOption
+		if os.Getenv("PIKO_FONT_REGULAR_ONLY") == "1" {
+			serviceOpts = append(serviceOpts, pdf.WithExcludeDefaultBold())
+		}
+		if variableFontPath := os.Getenv("PIKO_FONT_VARIABLE_PATH"); variableFontPath != "" {
+			variableFontData, readErr := os.ReadFile(variableFontPath)
+			if readErr != nil {
+				fmt.Fprintf(os.Stderr, "reading variable font: %v\n", readErr)
+				os.Exit(1)
+			}
+			serviceOpts = append(serviceOpts, pdf.WithExcludeDefaultBold())
+			serviceOpts = append(serviceOpts, pdf.WithVariableFont(
+				"NotoSans", 100, 900, 0, variableFontData,
+			))
+		}
+
+		service, err := pdf.NewServiceFromManifest(context.Background(), manifestPath, serviceOpts...)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "PDF service creation failed: %v\n", err)
+			os.Exit(1)
+		}
+
+		builder := service.NewRender().Template(pdfPath)
+		if extraCSS := os.Getenv("PIKO_EXTRA_CSS"); extraCSS != "" {
+			builder.Stylesheet(extraCSS)
+		}
+
+		userPassword := os.Getenv("PIKO_ENCRYPT_USER_PASSWORD")
+		ownerPassword := os.Getenv("PIKO_ENCRYPT_OWNER_PASSWORD")
+		if userPassword != "" {
+			registry := pdf.NewTransformerRegistry()
+			var encryptOptions []pdf.EncryptOption
+			if seed := os.Getenv("PIKO_ENCRYPT_TEST_SEED"); seed != "" {
+				seedSum := sha256.Sum256([]byte(seed))
+				encryptOptions = append(encryptOptions, pdf.WithEncryptRandomSource(rand.NewChaCha8(seedSum)))
+			}
+			if regErr := registry.Register(pdf.NewEncryptTransformer(encryptOptions...)); regErr != nil {
+				fmt.Fprintf(os.Stderr, "registering encrypt transformer: %v\n", regErr)
+				os.Exit(1)
+			}
+			builder.Watermark("CONFIDENTIAL")
+			builder.Transformations(registry, pdf.TransformConfig{
+				EnabledTransformers: []string{"pdf-encrypt"},
+				TransformerOptions: map[string]any{
+					"pdf-encrypt": pdf.EncryptionOptions{
+						Algorithm:     "aes-256",
+						UserPassword:  userPassword,
+						OwnerPassword: ownerPassword,
+						Permissions:   0xFFFFF0C4,
+					},
+				},
+			})
+		}
+
+		result, err := builder.Do(context.Background())
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "PDF rendering failed: %v\n", err)
+			os.Exit(1)
+		}
+
+		if dumpPath := os.Getenv("PIKO_LAYOUT_DUMP_PATH"); dumpPath != "" && result.LayoutDump != "" {
+			if writeErr := os.WriteFile(dumpPath, []byte(result.LayoutDump), 0644); writeErr != nil {
+				fmt.Fprintf(os.Stderr, "writing layout dump: %v\n", writeErr)
+			}
+		}
+
+		os.Stdout.Write(result.Content)
+	}
+	`))
+)
 
 func buildNotoSansCSSReset() string {
 	var builder strings.Builder

@@ -23,21 +23,19 @@ import (
 	"crypto/x509"
 )
 
-// TLSAdapterConfig holds the TLS settings needed by the HTTP server adapter
-// to wrap a plain TCP listener in TLS. When nil on the adapter, the server
-// uses plain HTTP.
+// TLSAdapterConfig holds the TLS settings needed by the HTTP server adapter to wrap a
+// plain TCP listener in TLS. When nil on the adapter, the server uses plain HTTP.
 type TLSAdapterConfig struct {
-	// GetCertificate returns the server certificate dynamically, supporting
-	// hot-reload and ACME. It receives the ClientHelloInfo containing the
-	// SNI server name.
+	// GetCertificate returns the server certificate dynamically, supporting hot-reload and
+	// ACME. It receives the ClientHelloInfo containing the SNI server name.
 	GetCertificate func(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
-	// ClientCAs is the pool of certificate authorities for verifying client
-	// certificates in mTLS mode. Nil when client auth is not required.
+	// ClientCAs is the pool of certificate authorities for verifying client certificates in
+	// mTLS mode. Nil when client auth is not required.
 	ClientCAs *x509.CertPool
 
-	// NextProtos lists ALPN protocol identifiers in preference order.
-	// Typically ["h2", "http/1.1"] for HTTP/2 support.
+	// NextProtos lists ALPN protocol identifiers in preference order. Typically ["h2",
+	// "http/1.1"] for HTTP/2 support.
 	NextProtos []string
 
 	// ClientAuth is the client certificate verification mode for mTLS.

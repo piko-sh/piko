@@ -18,8 +18,8 @@
 
 package tui_domain
 
-// SinglePaneLayout renders the focused panel full-width. It is the fallback
-// layout used on terminals too narrow for any multi-pane variant.
+// SinglePaneLayout renders the focused panel full-width. It is the fallback layout used
+// on terminals too narrow for any multi-pane variant.
 type SinglePaneLayout struct{}
 
 // NewSinglePaneLayout returns the canonical single-pane layout.
@@ -43,11 +43,10 @@ func (*SinglePaneLayout) MaxPanes() int { return 1 }
 //
 // Takes width (int) which is the layout area width.
 // Takes height (int) which is the layout area height.
-// Takes paneCount (int) which is the candidate pane count; values > 1 are
-// truncated to 1.
+// Takes paneCount (int) which is the candidate pane count; values > 1 are truncated to 1.
 //
-// Returns []PaneRect with at most one rectangle. An empty slice is returned
-// when the layout area is too small to render anything.
+// Returns []PaneRect with at most one rectangle. An empty slice is returned when the
+// layout area is too small to render anything.
 func (*SinglePaneLayout) Allocate(width, height, paneCount int) []PaneRect {
 	if paneCount <= 0 || width < MinSinglePaneWidth || height < MinPaneHeight {
 		return nil
@@ -59,8 +58,8 @@ func (*SinglePaneLayout) Allocate(width, height, paneCount int) []PaneRect {
 //
 // Takes panes ([]RenderedPane) which holds the pre-rendered pane bodies.
 //
-// Returns string which is the rendered layout. An empty string is returned
-// when there are no panes.
+// Returns string which is the rendered layout. An empty string is returned when there are
+// no panes.
 func (*SinglePaneLayout) Compose(panes []RenderedPane, _, _ int) string {
 	if len(panes) == 0 {
 		return ""

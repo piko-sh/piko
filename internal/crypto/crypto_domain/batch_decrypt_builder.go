@@ -44,8 +44,8 @@ func (b *BatchDecryptBuilder) Items(ciphertexts []string) *BatchDecryptBuilder {
 
 // Do executes the batch decryption operation.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns []string which contains the decrypted plaintext values.
 // Returns error when decryption fails for any value.

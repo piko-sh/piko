@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package spamdetect_adapters groups concrete implementations of the
-// Detector port defined in spamdetect_domain.
+// Package spamdetect_adapters groups concrete implementations of the Detector port
+// defined in spamdetect_domain.
 //
-// Implementations live in subpackages keyed by adapter family; the
-// zero-dependency built-in detectors are in [builtin_detectors].
+// Implementations live in subpackages keyed by adapter family; the zero-dependency
+// built-in detectors are in [builtin_detectors].
 package spamdetect_adapters

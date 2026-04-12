@@ -25,10 +25,12 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 )
 
-// modulePathCaches is a two-level cache: moduleName -> (path -> resolvedPath).
-// Using two levels with string keys allows sync.Map to use its optimised string
-// path, avoiding allocations on cache hits.
-var modulePathCaches sync.Map
+var (
+	// modulePathCaches is a two-level cache: moduleName -> (path -> resolvedPath). Using two
+	// levels with string keys allows sync.Map to use its optimised string path, avoiding
+	// allocations on cache hits.
+	modulePathCaches sync.Map
+)
 
 // ClearModulePathCaches resets the module path resolution caches.
 //
@@ -37,19 +39,18 @@ func ClearModulePathCaches() {
 	modulePathCaches = sync.Map{}
 }
 
-// ResolveModulePath resolves module-aliased paths (starting with "@/") to
-// their full path by prepending the module name.
+// ResolveModulePath resolves module-aliased paths (starting with "@/") to their full path
+// by prepending the module name.
 //
-// Does not return errors. If the path starts with @ but moduleName is empty, it
-// returns the path unchanged, degrading gracefully rather than causing runtime
-// panics. The error surfaces later during registry lookup where it can be properly
-// logged.
+// Does not return errors. If the path starts with @ but moduleName is empty, it returns
+// the path unchanged, degrading gracefully rather than causing runtime panics. The error
+// surfaces later during registry lookup where it can be properly logged.
 //
 // Takes path (string) which is the path to resolve, possibly module-aliased.
 // Takes moduleName (string) which is the module name to prepend.
 //
-// Returns string which is the resolved full path, or the original path if no
-// resolution is needed.
+// Returns string which is the resolved full path, or the original path if no resolution
+// is needed.
 func ResolveModulePath(path, moduleName string) string {
 	if !strings.HasPrefix(path, resolver_adapters.ModuleAliasPrefix) {
 		return path
@@ -78,10 +79,9 @@ func ResolveModulePath(path, moduleName string) string {
 
 // lookupCachedPath retrieves a cached resolved path for a module alias.
 //
-// This helper supports dynamic src attributes (e.g., :src="item.Icon")
-// where the @ alias path is only known at runtime and cannot be resolved
-// during generation. Results are cached to avoid repeated string
-// allocations for the same paths.
+// This helper supports dynamic src attributes (e.g., :src="item.Icon") where the @ alias
+// path is only known at runtime and cannot be resolved during generation. Results are
+// cached to avoid repeated string allocations for the same paths.
 //
 // Takes moduleName (string) which identifies the module's cache.
 // Takes path (string) which is the potentially aliased path to look up.

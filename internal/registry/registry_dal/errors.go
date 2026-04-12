@@ -18,25 +18,27 @@
 
 package registry_dal
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrArtefactNotFound is returned when an artefact cannot be found by ID.
 	ErrArtefactNotFound = errors.New("artefact not found")
 
-	// ErrBlobReferenceNotFound is returned when a blob reference cannot be found
-	// by storage key.
+	// ErrBlobReferenceNotFound is returned when a blob reference cannot be found by storage
+	// key.
 	ErrBlobReferenceNotFound = errors.New("blob reference not found")
 
-	// ErrSearchUnsupported is returned when a search query type is not supported
-	// by the backend.
+	// ErrSearchUnsupported is returned when a search query type is not supported by the
+	// backend.
 	ErrSearchUnsupported = errors.New("search query type not supported")
 
-	// ErrTransactionFailed is returned when a transaction cannot be committed or
-	// rolled back.
+	// ErrTransactionFailed is returned when a transaction cannot be committed or rolled
+	// back.
 	ErrTransactionFailed = errors.New("transaction failed")
 
-	// ErrDatabaseClosed is returned when operations are attempted on a closed
-	// database connection.
+	// ErrDatabaseClosed is returned when operations are attempted on a closed database
+	// connection.
 	ErrDatabaseClosed = errors.New("database connection is closed")
 )

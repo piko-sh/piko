@@ -40,8 +40,8 @@ const (
 	// maxSMTPPort is the highest valid TCP port number.
 	maxSMTPPort = 65535
 
-	// defaultCallsPerSecond is the conservative default rate limit for SMTP servers.
-	// This is a safe starting point for most general-purpose SMTP servers.
+	// defaultCallsPerSecond is the conservative default rate limit for SMTP servers. This is
+	// a safe starting point for most general-purpose SMTP servers.
 	defaultCallsPerSecond = 10.0
 
 	// defaultBurst is the maximum number of SMTP calls allowed in a single burst.
@@ -54,12 +54,10 @@ const (
 	statusError = "error"
 )
 
-// SMTPProvider wraps an SMTP client and manages a persistent connection.
-// It reuses the connection for multiple sends and implements
-// email.ProviderPort and io.Closer.
+// SMTPProvider wraps an SMTP client and manages a persistent connection. It reuses the
+// connection for multiple sends and implements email.ProviderPort and io.Closer.
 type SMTPProvider struct {
-	// rateLimiter controls the rate of email sending to avoid exceeding
-	// provider limits.
+	// rateLimiter controls the rate of email sending to avoid exceeding provider limits.
 	rateLimiter *email_domain.ProviderRateLimiter
 
 	// client is the cached SMTP connection; nil when not connected.
@@ -102,18 +100,20 @@ type SMTPProviderArgs struct {
 	Port int
 }
 
-var _ email_domain.EmailProviderPort = (*SMTPProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*SMTPProvider)(nil)
+var (
+	_ email_domain.EmailProviderPort = (*SMTPProvider)(nil)
+
+	_ provider_domain.ProviderMetadata = (*SMTPProvider)(nil)
+)
 
 // NewSMTPProvider creates a new SMTP email provider with the given settings.
 //
-// The provider is prepared but does not establish a connection until the
-// first Send call. A conservative default rate limit is applied, suitable
-// for most shared SMTP servers.
+// The provider is prepared but does not establish a connection until the first Send call.
+// A conservative default rate limit is applied, suitable for most shared SMTP servers.
 //
 // Takes arguments (SMTPProviderArgs) which specifies the SMTP server settings.
-// Takes opts (...email_domain.ProviderOption) which provides optional
-// rate limit configuration.
+// Takes opts (...email_domain.ProviderOption) which provides optional rate limit
+// configuration.
 //
 // Returns *SMTPProvider which is the configured provider ready for use.
 // Returns error when the host is empty or port is invalid.
@@ -157,14 +157,14 @@ func (p *SMTPProvider) GetProviderMetadata() map[string]any {
 	}
 }
 
-// Send constructs and sends an email over a persistent SMTP connection.
-// If the connection is not active, it will be established automatically.
+// Send constructs and sends an email over a persistent SMTP connection. If the connection
+// is not active, it will be established automatically.
 //
-// Takes params (*email_dto.SendParams) which specifies the email recipients,
-// subject, and body content.
+// Takes params (*email_dto.SendParams) which specifies the email recipients, subject, and
+// body content.
 //
-// Returns error when rate limiting fails, message building fails, the SMTP
-// client cannot connect, or the email transmission fails.
+// Returns error when rate limiting fails, message building fails, the SMTP client cannot
+// connect, or the email transmission fails.
 func (p *SMTPProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
 	ctx, l := logger.From(ctx, log)
 	startTime := time.Now()
@@ -210,8 +210,8 @@ func (p *SMTPProvider) Send(ctx context.Context, params *email_dto.SendParams) e
 	return nil
 }
 
-// Close ends the persistent SMTP connection.
-// This should be called during application shutdown.
+// Close ends the persistent SMTP connection. This should be called during application
+// shutdown.
 //
 // Returns error when the connection fails to close cleanly.
 //
@@ -233,9 +233,9 @@ func (p *SMTPProvider) Close(ctx context.Context) error {
 	return nil
 }
 
-// SupportsBulkSending indicates that the generic SMTP protocol does not have
-// a native bulk sending API. The provider will send emails one by one over its
-// persistent connection.
+// SupportsBulkSending indicates that the generic SMTP protocol does not have a native
+// bulk sending API. The provider will send emails one by one over its persistent
+// connection.
 //
 // Returns bool which is always false for this provider.
 func (*SMTPProvider) SupportsBulkSending() bool {
@@ -244,8 +244,8 @@ func (*SMTPProvider) SupportsBulkSending() bool {
 
 // SendBulk sends multiple emails by calling Send individually.
 //
-// Because this provider uses a persistent connection, this is still highly
-// efficient. Errors are collected into a MultiError.
+// Because this provider uses a persistent connection, this is still highly efficient.
+// Errors are collected into a MultiError.
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
@@ -309,17 +309,16 @@ func (*SMTPProvider) Name() string {
 	return "EmailProvider (SMTP)"
 }
 
-// Check implements the healthprobe_domain.Probe interface and performs health
-// checks on the SMTP provider. For liveness it verifies configuration, and
-// for readiness it checks the client connection.
+// Check implements the healthprobe_domain.Probe interface and performs health checks on
+// the SMTP provider. For liveness it verifies configuration, and for readiness it checks
+// the client connection.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
 // Returns healthprobe_dto.Status which contains the health state and details.
 //
-// Safe for concurrent use; uses mutex protection when checking connection
-// state.
+// Safe for concurrent use; uses mutex protection when checking connection state.
 func (p *SMTPProvider) Check(_ context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -366,9 +365,9 @@ func (p *SMTPProvider) Check(_ context.Context, checkType healthprobe_dto.CheckT
 	}
 }
 
-// getClient provides a thread-safe way to get a connected mail.Client.
-// If the client is not connected or the connection has been lost, it will
-// attempt to establish a new persistent connection.
+// getClient provides a thread-safe way to get a connected mail.Client. If the client is
+// not connected or the connection has been lost, it will attempt to establish a new
+// persistent connection.
 //
 // Returns *mail.Client which is a connected and healthy SMTP client.
 // Returns error when the client cannot be created or the connection fails.
@@ -409,17 +408,13 @@ func (p *SMTPProvider) getClient(ctx context.Context) (*mail.Client, error) {
 	return p.client, nil
 }
 
-// buildMessage constructs a mail message from the given send
-// parameters.
+// buildMessage constructs a mail message from the given send parameters.
 //
-// This helper keeps the logic for creating the MIME message in one
-// place.
+// This helper keeps the logic for creating the MIME message in one place.
 //
-// Takes params (*email_dto.SendParams) which contains the email
-// details.
+// Takes params (*email_dto.SendParams) which contains the email details.
 //
-// Returns *mail.Msg which is the constructed message ready for
-// sending.
+// Returns *mail.Msg which is the constructed message ready for sending.
 // Returns error when validation fails or attachments cannot be added.
 func (p *SMTPProvider) buildMessage(params *email_dto.SendParams) (*mail.Msg, error) {
 	if err := p.validateMessageParams(params); err != nil {
@@ -442,14 +437,11 @@ func (p *SMTPProvider) buildMessage(params *email_dto.SendParams) (*mail.Msg, er
 	return message, nil
 }
 
-// validateMessageParams checks that the required fields are present in
-// SendParams.
+// validateMessageParams checks that the required fields are present in SendParams.
 //
-// Takes params (*email_dto.SendParams) which contains the email parameters to
-// validate.
+// Takes params (*email_dto.SendParams) which contains the email parameters to validate.
 //
-// Returns error when no recipients are specified or when both body fields are
-// empty.
+// Returns error when no recipients are specified or when both body fields are empty.
 func (*SMTPProvider) validateMessageParams(params *email_dto.SendParams) error {
 	if len(params.To) == 0 {
 		return email_domain.ErrRecipientRequired
@@ -460,8 +452,7 @@ func (*SMTPProvider) validateMessageParams(params *email_dto.SendParams) error {
 	return nil
 }
 
-// setMessageAddresses configures the From, To, Cc, and Bcc addresses for the
-// message.
+// setMessageAddresses configures the From, To, Cc, and Bcc addresses for the message.
 //
 // Takes message (*mail.Message) which is the message to configure.
 // Takes params (*email_dto.SendParams) which provides the address values.
@@ -493,8 +484,8 @@ func (p *SMTPProvider) setMessageAddresses(message *mail.Msg, params *email_dto.
 	return nil
 }
 
-// setMessageBody sets the message body content on the given mail message.
-// It handles plain text, HTML, or both formats together.
+// setMessageBody sets the message body content on the given mail message. It handles
+// plain text, HTML, or both formats together.
 //
 // Takes message (*mail.Message) which is the message to set the body on.
 // Takes params (*email_dto.SendParams) which provides the body content.
@@ -509,8 +500,8 @@ func (*SMTPProvider) setMessageBody(message *mail.Msg, params *email_dto.SendPar
 	}
 }
 
-// addMessageAttachments adds all attachments to the message, handling
-// CID-embedded images separately.
+// addMessageAttachments adds all attachments to the message, handling CID-embedded images
+// separately.
 //
 // Takes message (*mail.Message) which receives the attachments.
 // Takes params (*email_dto.SendParams) which provides the attachments to add.

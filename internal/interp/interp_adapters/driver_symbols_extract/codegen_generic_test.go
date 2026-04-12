@@ -19,7 +19,10 @@
 package driver_symbols_extract
 
 import (
+	"bytes"
+	"go/ast"
 	"go/parser"
+	"go/printer"
 	gotoken "go/token"
 	"go/types"
 	"strings"
@@ -261,6 +264,12 @@ func TestExtractKeyValTypes(t *testing.T) {
 		{"map[int]bool", "int", "bool"},
 		{"map[string]float64", "string", "float64"},
 
+		{"map[[4]byte]string", "[4]byte", "string"},
+		{"map[[16]byte]int", "[16]byte", "int"},
+
+		{"map[string]map[int]bool", "string", "map[int]bool"},
+		{"map[[4]byte]map[int]string", "[4]byte", "map[int]string"},
+
 		{"int", "", "int"},
 		{"[]string", "", "[]string"},
 	}
@@ -310,6 +319,38 @@ func TestParseTypeExprMap(t *testing.T) {
 
 	expression := parseTypeExpr("map[string]int")
 	require.NotNil(t, expression)
+}
+
+func renderTypeExpr(t *testing.T, expression ast.Expr) string {
+	t.Helper()
+	var buffer bytes.Buffer
+	err := printer.Fprint(&buffer, gotoken.NewFileSet(), expression)
+	require.NoError(t, err)
+	return buffer.String()
+}
+
+func TestParseTypeExprArrayKeyedMap(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		input  string
+		expect string
+	}{
+		{"map[string]int", "map[string]int"},
+		{"map[[4]byte]string", "map[[4]byte]string"},
+		{"map[[16]byte]int", "map[[16]byte]int"},
+		{"map[string]map[int]bool", "map[string]map[int]bool"},
+		{"map[[4]byte]map[int]string", "map[[4]byte]map[int]string"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			t.Parallel()
+			expression := parseTypeExpr(tt.input)
+			require.NotNil(t, expression)
+			require.Equal(t, tt.expect, renderTypeExpr(t, expression))
+		})
+	}
 }
 
 func TestParseTypeExprPointer(t *testing.T) {

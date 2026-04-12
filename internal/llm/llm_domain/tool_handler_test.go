@@ -247,7 +247,7 @@ func TestToolLoop_SingleRound(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Hello, world!", response.Content())
 
-	assert.Equal(t, int64(2), atomic.LoadInt64(&provider.CompleteCallCount))
+	assert.Equal(t, int64(2), provider.CompleteCallCount.Load())
 }
 
 func TestToolLoop_MultipleRounds(t *testing.T) {
@@ -274,7 +274,7 @@ func TestToolLoop_MultipleRounds(t *testing.T) {
 	response, err := b.Do(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, "done after 3 rounds", response.Content())
-	assert.Equal(t, int64(4), atomic.LoadInt64(&provider.CompleteCallCount))
+	assert.Equal(t, int64(4), provider.CompleteCallCount.Load())
 }
 
 func TestToolLoop_MaxRoundsGuard(t *testing.T) {
@@ -299,7 +299,7 @@ func TestToolLoop_MaxRoundsGuard(t *testing.T) {
 	response, err := b.Do(context.Background())
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(4), atomic.LoadInt64(&provider.CompleteCallCount))
+	assert.Equal(t, int64(4), provider.CompleteCallCount.Load())
 
 	assert.True(t, response.HasToolCalls())
 }
@@ -358,7 +358,7 @@ func TestToolLoop_NoHandlers_NoLoop(t *testing.T) {
 	response, err := b.Do(context.Background())
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&provider.CompleteCallCount))
+	assert.Equal(t, int64(1), provider.CompleteCallCount.Load())
 	assert.True(t, response.HasToolCalls())
 }
 

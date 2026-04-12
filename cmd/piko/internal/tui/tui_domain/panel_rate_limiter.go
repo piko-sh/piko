@@ -36,12 +36,11 @@ const (
 	// rateLimiterRefreshTimeout caps the rate-limiter status RPC fetch.
 	rateLimiterRefreshTimeout = 5 * time.Second
 
-	// rateLimiterHistorySize bounds the allowed/denied history kept
-	// for the detail-pane chart.
+	// rateLimiterHistorySize bounds the allowed/denied history kept for the detail-pane
+	// chart.
 	rateLimiterHistorySize = 600
 
-	// rateLimiterTitle is the panel title shown in the centre and
-	// detail headings.
+	// rateLimiterTitle is the panel title shown in the centre and detail headings.
 	rateLimiterTitle = "Rate limiter"
 )
 
@@ -64,8 +63,7 @@ type RateLimiterPanel struct {
 	// clock supplies time for tests; defaults to the real clock.
 	clock clock.Clock
 
-	// provider supplies the rate-limiter status fetched on each
-	// refresh.
+	// provider supplies the rate-limiter status fetched on each refresh.
 	provider RateLimiterInspector
 
 	// err holds the last refresh error, or nil after success.
@@ -74,36 +72,37 @@ type RateLimiterPanel struct {
 	// status holds the most recent status snapshot.
 	status *RateLimiterStatus
 
-	// allowedHistory holds per-refresh deltas of the allowed counter
-	// for the detail-pane chart.
+	// allowedHistory holds per-refresh deltas of the allowed counter for the detail-pane
+	// chart.
 	allowedHistory *HistoryRing
 
-	// deniedHistory holds per-refresh deltas of the denied counter
-	// for the detail-pane chart.
+	// deniedHistory holds per-refresh deltas of the denied counter for the detail-pane
+	// chart.
 	deniedHistory *HistoryRing
 
 	BasePanel
 
-	// prevAllowed is the allowed counter at the previous refresh,
-	// used to compute the per-refresh delta pushed into allowedHistory.
+	// prevAllowed is the allowed counter at the previous refresh, used to compute the
+	// per-refresh delta pushed into allowedHistory.
 	prevAllowed int64
 
-	// prevDenied is the denied counter at the previous refresh,
-	// used to compute the per-refresh delta pushed into deniedHistory.
+	// prevDenied is the denied counter at the previous refresh, used to compute the
+	// per-refresh delta pushed into deniedHistory.
 	prevDenied int64
 
-	// stateMutex guards status / err / history for safe concurrent
-	// reads.
+	// stateMutex guards status / err / history for safe concurrent reads.
 	stateMutex sync.RWMutex
 }
 
-var _ Panel = (*RateLimiterPanel)(nil)
+var (
+	_ Panel = (*RateLimiterPanel)(nil)
+)
 
 // NewRateLimiterPanel constructs a RateLimiterPanel.
 //
 // Takes provider (RateLimiterInspector) which supplies the status RPC port.
-// Takes c (clock.Clock) which yields the current time; nil falls back
-// to the real system clock.
+// Takes c (clock.Clock) which yields the current time; nil falls back to the real system
+// clock.
 //
 // Returns *RateLimiterPanel ready to register with the model.
 func NewRateLimiterPanel(provider RateLimiterInspector, c clock.Clock) *RateLimiterPanel {
@@ -150,8 +149,8 @@ func (p *RateLimiterPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// View renders the panel. Falls back to a "feature disabled" hint
-// when the server does not expose the rate-limiter inspector service.
+// View renders the panel. Falls back to a "feature disabled" hint when the server does
+// not expose the rate-limiter inspector service.
 //
 // Takes width (int) which is the allocated panel width.
 // Takes height (int) which is the allocated panel height.
@@ -193,8 +192,8 @@ func (p *RateLimiterPanel) DetailView(width, height int) string {
 	return RenderDetailBodyWithChart(nil, body, series, "Throughput", width, height)
 }
 
-// rateLimiterSnapshot bundles all values rendered together so they can
-// be read under a single lock acquisition.
+// rateLimiterSnapshot bundles all values rendered together so they can be read under a
+// single lock acquisition.
 type rateLimiterSnapshot struct {
 	// status is the cached status snapshot.
 	status *RateLimiterStatus
@@ -209,8 +208,8 @@ type rateLimiterSnapshot struct {
 	denied []float64
 }
 
-// snapshot reads status, err, and both history rings under stateMutex
-// so renders cannot race against concurrent handleStatus writes.
+// snapshot reads status, err, and both history rings under stateMutex so renders cannot
+// race against concurrent handleStatus writes.
 //
 // Returns rateLimiterSnapshot which bundles the cached values.
 //

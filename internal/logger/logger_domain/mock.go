@@ -25,8 +25,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// MockLogger is a test double that implements the Logger interface,
-// discarding all log output for testing code that needs a logger.
+// MockLogger is a test double that implements the Logger interface, discarding all log
+// output for testing code that needs a logger.
 type MockLogger struct {
 	// ctx holds the context for this logger instance.
 	ctx context.Context
@@ -110,36 +110,35 @@ func (m *MockLogger) Span(ctx context.Context, _ string, _ ...slog.Attr) (contex
 // ReportError does nothing as a mock for testing.
 func (*MockLogger) ReportError(_ trace.Span, _ error, _ string, _ ...Attr) {}
 
-// RunInSpan executes the provided function with the mock logger, ignoring span
-// creation.
+// RunInSpan executes the provided function with the mock logger, ignoring span creation.
 //
 // Takes ctx (context.Context) which is passed through to the function.
-// Takes operation (func(context.Context, Logger) error) which is the function
-// to execute within the mock span.
+// Takes operation (func(context.Context, Logger) error) which is the function to execute
+// within the mock span.
 //
 // Returns error which is the error returned by operation.
 func (m *MockLogger) RunInSpan(ctx context.Context, _ string, operation func(context.Context, Logger) error, _ ...Attr) error {
 	return operation(WithLogger(ctx, m), m)
 }
 
-// AddSpanLifecycleHook is a no-op implementation that stores the hook for
-// potential test verification.
+// AddSpanLifecycleHook is a no-op implementation that stores the hook for potential test
+// verification.
 //
 // Takes hook (SpanLifecycleHook) which is stored for later inspection.
 func (m *MockLogger) AddSpanLifecycleHook(hook SpanLifecycleHook) {
 	m.hooks = append(m.hooks, hook)
 }
 
-// WithoutAutoCaller returns this MockLogger unchanged because
-// MockLogger does not log anything and auto-caller has no effect.
+// WithoutAutoCaller returns this MockLogger unchanged because MockLogger does not log
+// anything and auto-caller has no effect.
 //
 // Returns Logger which is this same MockLogger instance.
 func (m *MockLogger) WithoutAutoCaller() Logger {
 	return m
 }
 
-// WithSpanContext returns this MockLogger unchanged because
-// MockLogger does not track context.
+// WithSpanContext returns this MockLogger unchanged because MockLogger does not track
+// context.
 //
 // Returns Logger which is this same MockLogger instance.
 func (m *MockLogger) WithSpanContext(_ context.Context) Logger {

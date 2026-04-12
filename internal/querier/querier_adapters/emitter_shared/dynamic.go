@@ -26,14 +26,14 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// BuildDynamicDeclarations generates the params struct and any ORDER BY enum
-// declarations needed for a dynamic query.
+// BuildDynamicDeclarations generates the params struct and any ORDER BY enum declarations
+// needed for a dynamic query.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes mappings (*querier_dto.TypeMappingTable) which holds the SQL-to-Go type mappings.
 // Takes tracker (*ImportTracker) which tracks required imports for the generated file.
-// Takes orderDirectionEmitted (*bool) which tracks whether
-// the shared OrderDirection type has already been emitted.
+// Takes orderDirectionEmitted (*bool) which tracks whether the shared OrderDirection type
+// has already been emitted.
 //
 // Returns []ast.Decl which holds the params struct and any enum declarations.
 func BuildDynamicDeclarations(
@@ -60,12 +60,12 @@ func BuildDynamicDeclarations(
 	return declarations
 }
 
-// BuildDynamicParamsStruct constructs the exported {QueryName}Params struct
-// containing all parameters.
+// BuildDynamicParamsStruct constructs the exported {QueryName}Params struct containing
+// all parameters.
 //
 // Required parameters are value types, optional parameters are pointer types,
-// limit/offset are int, and sortable parameters produce an enum field plus a
-// direction companion field.
+// limit/offset are int, and sortable parameters produce an enum field plus a direction
+// companion field.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes mappings (*querier_dto.TypeMappingTable) which holds the SQL-to-Go type mappings.
@@ -109,11 +109,11 @@ func BuildDynamicParamsStruct(
 	return goastutil.GenDeclType(query.Name+"Params", goastutil.StructType(fields...))
 }
 
-// BuildParamsInitStatements generates inline default and clamping statements
-// for limit parameters operating directly on the params argument.
+// BuildParamsInitStatements generates inline default and clamping statements for limit
+// parameters operating directly on the params argument.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the
-// analysed query containing the parameters.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query containing the
+// parameters.
 //
 // Returns []ast.Stmt which holds the default-value and max-clamping if statements.
 func BuildParamsInitStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
@@ -155,13 +155,13 @@ func BuildParamsInitStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	return statements
 }
 
-// FindSortableParameter returns the first sortable parameter from the query,
-// or nil if none exists.
+// FindSortableParameter returns the first sortable parameter from the query, or nil if
+// none exists.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query to search.
 //
-// Returns *querier_dto.QueryParameter which holds the first
-// sortable parameter, or nil if none exists.
+// Returns *querier_dto.QueryParameter which holds the first sortable parameter, or nil if
+// none exists.
 func FindSortableParameter(query *querier_dto.AnalysedQuery) *querier_dto.QueryParameter {
 	for i := range query.Parameters {
 		if query.Parameters[i].Kind == querier_dto.ParameterDirectiveSortable {
@@ -171,8 +171,8 @@ func FindSortableParameter(query *querier_dto.AnalysedQuery) *querier_dto.QueryP
 	return nil
 }
 
-// BuildDynamicMethodParams constructs the parameter field list for a dynamic
-// query method: (ctx context.Context, params {QueryName}Params).
+// BuildDynamicMethodParams constructs the parameter field list for a dynamic query
+// method: (ctx context.Context, params {QueryName}Params).
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 //
@@ -184,16 +184,16 @@ func BuildDynamicMethodParams(query *querier_dto.AnalysedQuery) *ast.FieldList {
 	)
 }
 
-// BuildDynamicQueryArgs constructs the argument expressions for a dynamic
-// query's database call.
+// BuildDynamicQueryArgs constructs the argument expressions for a dynamic query's
+// database call.
 //
-// All parameters come from the params struct. Sortable parameters are excluded
-// since they are not SQL bind parameters.
+// All parameters come from the params struct. Sortable parameters are excluded since they
+// are not SQL bind parameters.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 //
-// Returns []ast.Expr which holds the context, SQL constant,
-// and parameter field access expressions.
+// Returns []ast.Expr which holds the context, SQL constant, and parameter field access
+// expressions.
 func BuildDynamicQueryArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
 	arguments := []ast.Expr{
 		goastutil.CachedIdent(IdentCtx),
@@ -212,13 +212,13 @@ func BuildDynamicQueryArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
 	return arguments
 }
 
-// BuildSortableDynamicQueryArgs constructs query args for a sortable query,
-// using the local "query" variable instead of the SQL constant.
+// BuildSortableDynamicQueryArgs constructs query args for a sortable query, using the
+// local "query" variable instead of the SQL constant.
 //
 // Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 //
-// Returns []ast.Expr which holds the context, local query
-// variable, and parameter field access expressions.
+// Returns []ast.Expr which holds the context, local query variable, and parameter field
+// access expressions.
 func BuildSortableDynamicQueryArgs(query *querier_dto.AnalysedQuery) []ast.Expr {
 	arguments := []ast.Expr{
 		goastutil.CachedIdent(IdentCtx),
@@ -302,16 +302,15 @@ func BuildOrderDirectionType() []ast.Decl {
 	return []ast.Decl{typeDecl, constDecl}
 }
 
-// BuildSortableQueryInit constructs the query variable initialisation and
-// conditional ORDER BY append for sortable queries.
+// BuildSortableQueryInit constructs the query variable initialisation and conditional
+// ORDER BY append for sortable queries.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the
-// analysed query definition.
-// Takes sortParameter (querier_dto.QueryParameter) which
-// holds the sortable parameter definition.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
+// Takes sortParameter (querier_dto.QueryParameter) which holds the sortable parameter
+// definition.
 //
-// Returns []ast.Stmt which holds the query variable
-// definition and ORDER BY if statements.
+// Returns []ast.Stmt which holds the query variable definition and ORDER BY if
+// statements.
 func BuildSortableQueryInit(query *querier_dto.AnalysedQuery, sortParameter querier_dto.QueryParameter) []ast.Stmt {
 	sqlConstantName := SnakeToCamelCase(query.Name)
 	return append(
@@ -320,22 +319,22 @@ func BuildSortableQueryInit(query *querier_dto.AnalysedQuery, sortParameter quer
 	)
 }
 
-// BuildSortableQueryAppend appends ORDER BY to an existing query variable,
-// assuming the variable already exists from a prior definition.
+// BuildSortableQueryAppend appends ORDER BY to an existing query variable, assuming the
+// variable already exists from a prior definition.
 //
-// Takes sortParameter (querier_dto.QueryParameter) which is the sortable
-// parameter providing column and direction.
+// Takes sortParameter (querier_dto.QueryParameter) which is the sortable parameter
+// providing column and direction.
 //
 // Returns []ast.Stmt which contains the conditional ORDER BY append.
 func BuildSortableQueryAppend(sortParameter querier_dto.QueryParameter) []ast.Stmt {
 	return buildSortableOrderByAppend(sortParameter)
 }
 
-// buildSortableOrderByAppend constructs the conditional ORDER BY append
-// statements that operate on an existing "query" local variable.
+// buildSortableOrderByAppend constructs the conditional ORDER BY append statements that
+// operate on an existing "query" local variable.
 //
-// Takes sortParameter (querier_dto.QueryParameter) which provides the
-// column and direction for sorting.
+// Takes sortParameter (querier_dto.QueryParameter) which provides the column and
+// direction for sorting.
 //
 // Returns []ast.Stmt which contains the conditional ORDER BY append.
 func buildSortableOrderByAppend(sortParameter querier_dto.QueryParameter) []ast.Stmt {

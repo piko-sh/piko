@@ -29,60 +29,62 @@ import (
 	"strings"
 )
 
-// frameworkCoreJS is the source of the core Piko frontend module
-// (ppframework.core.es.min.js). Available in every build flavour
-// including WebAssembly, where the heavier embed.FS in
-// embedded_frontend_templates.go is excluded behind `//go:build !js` to
-// keep the WASM binary lean (no source maps, no pre-compressed
-// variants; just the runtime source the playground iframe needs).
-//
-//go:embed built/ppframework.core.es.min.js
-var frameworkCoreJS string
+var (
+	// frameworkCoreJS is the source of the core Piko frontend module
+	// (ppframework.core.es.min.js). Available in every build flavour including WebAssembly,
+	// where the heavier embed.FS in embedded_frontend_templates.go is excluded behind
+	// `//go:build !js` to keep the WASM binary lean (no source maps, no pre-compressed
+	// variants; just the runtime source the playground iframe needs).
+	//
+	//go:embed built/ppframework.core.es.min.js
+	frameworkCoreJS string
 
-// frameworkCoreJSSRI is the build-time-fixed SHA-256 SRI hash of the
-// embedded core runtime. ValidateRuntimeSourceIntegrity asserts that the
-// embedded bytes match this hash on first call so a tampered or
-// out-of-date bundle fails-closed before a consumer ever serves it.
-//
-//go:embed built/ppframework.core.es.min.js.sri
-var frameworkCoreJSSRI string
+	// frameworkCoreJSSRI is the build-time-fixed SHA-256 SRI hash of the embedded core
+	// runtime. ValidateRuntimeSourceIntegrity asserts that the embedded bytes match this
+	// hash on first call so a tampered or out-of-date bundle fails-closed before a consumer
+	// ever serves it.
+	//
+	//go:embed built/ppframework.core.es.min.js.sri
+	frameworkCoreJSSRI string
 
-// frameworkComponentsJS is the source of the components extension module
-// (ppframework.components.es.js). Compiled component classes import
-// PPElement, dom, makeReactive from this module.
-//
-//go:embed built/ppframework.components.es.js
-var frameworkComponentsJS string
+	// frameworkComponentsJS is the source of the components extension module
+	// (ppframework.components.es.js). Compiled component classes import PPElement, dom,
+	// makeReactive from this module.
+	//
+	//go:embed built/ppframework.components.es.js
+	frameworkComponentsJS string
 
-// frameworkComponentsJSSRI is the build-time-fixed SHA-256 SRI hash of
-// the embedded components runtime. See frameworkCoreJSSRI.
-//
-//go:embed built/ppframework.components.es.js.sri
-var frameworkComponentsJSSRI string
+	// frameworkComponentsJSSRI is the build-time-fixed SHA-256 SRI hash of the embedded
+	// components runtime. See frameworkCoreJSSRI.
+	//
+	//go:embed built/ppframework.components.es.js.sri
+	frameworkComponentsJSSRI string
+)
 
 // FrameworkRuntimeSource exposes an embedded framework module source.
 //
-// Callers within the binary (e.g. the WASM playground iframe assembler)
-// receive the source paired with its SRI attribute so consumers can
-// fail-closed if the embedded bytes do not match the build-time SRI
-// hash, ensuring tampered or stale bundles never reach a browser.
+// Callers within the binary (e.g. the WASM playground iframe assembler) receive the
+// source paired with its SRI attribute so consumers can fail-closed if the embedded bytes
+// do not match the build-time SRI hash, ensuring tampered or stale bundles never reach a
+// browser.
 type FrameworkRuntimeSource struct {
 	// Source is the JavaScript source as embedded.
 	Source string
 
-	// SRI is the SubResource Integrity attribute value the consumer
-	// should put on the <script integrity="..."> tag.
+	// SRI is the SubResource Integrity attribute value the consumer should put on the
+	// <script integrity="..."> tag.
 	SRI string
 }
 
-// errFrameworkRuntimeIntegrity is returned when an embedded runtime
-// source does not match its build-time SRI hash. The error chains the
-// resource name so the operator can locate the tampered file.
-var errFrameworkRuntimeIntegrity = errors.New("framework runtime integrity check failed")
+var (
+	// errFrameworkRuntimeIntegrity is returned when an embedded runtime source does not
+	// match its build-time SRI hash. The error chains the resource name so the operator can
+	// locate the tampered file.
+	errFrameworkRuntimeIntegrity = errors.New("framework runtime integrity check failed")
+)
 
-// FrameworkCore returns the core runtime source paired with its SRI
-// attribute. The returned source has been verified against its embedded
-// SRI hash on the first call.
+// FrameworkCore returns the core runtime source paired with its SRI attribute. The
+// returned source has been verified against its embedded SRI hash on the first call.
 //
 // Returns FrameworkRuntimeSource which is the verified core runtime.
 // Returns error when the embedded bytes do not match the build-time SRI.
@@ -90,28 +92,26 @@ func FrameworkCore() (FrameworkRuntimeSource, error) {
 	return verifyFrameworkSource("ppframework.core.es.min.js", frameworkCoreJS, frameworkCoreJSSRI)
 }
 
-// FrameworkComponents returns the components runtime source paired with
-// its SRI attribute. See FrameworkCore.
+// FrameworkComponents returns the components runtime source paired with its SRI
+// attribute. See FrameworkCore.
 //
-// Returns FrameworkRuntimeSource which is the verified components
-// runtime.
+// Returns FrameworkRuntimeSource which is the verified components runtime.
 // Returns error when the embedded bytes do not match the build-time SRI.
 func FrameworkComponents() (FrameworkRuntimeSource, error) {
 	return verifyFrameworkSource("ppframework.components.es.js", frameworkComponentsJS, frameworkComponentsJSSRI)
 }
 
-// verifyFrameworkSource computes a SHA-256 SRI for source and compares
-// against the embedded value (stripped of any "sha384-" / "sha256-"
-// prefix and surrounding whitespace). The SRI files in built/ may use
-// either sha256 or sha384; this verifier accepts either prefix and
-// recomputes accordingly.
+// verifyFrameworkSource computes a SHA-256 SRI for source and compares against the
+// embedded value (stripped of any "sha384-" / "sha256-" prefix and surrounding
+// whitespace). The SRI files in built/ may use either sha256 or sha384; this verifier
+// accepts either prefix and recomputes accordingly.
 //
 // Takes resource (string) which names the resource for error reporting.
 // Takes source (string) which is the embedded JavaScript content.
 // Takes sriEntry (string) which is the build-time fixed SRI hash.
 //
-// Returns FrameworkRuntimeSource which exposes source plus the verified
-// SRI attribute value.
+// Returns FrameworkRuntimeSource which exposes source plus the verified SRI attribute
+// value.
 // Returns error when the source does not match the embedded hash.
 func verifyFrameworkSource(resource, source, sriEntry string) (FrameworkRuntimeSource, error) {
 	expected := strings.TrimSpace(sriEntry)
@@ -142,12 +142,12 @@ func verifyFrameworkSource(resource, source, sriEntry string) (FrameworkRuntimeS
 	return FrameworkRuntimeSource{Source: source, SRI: expected}, nil
 }
 
-// verifySRI computes the digest of source using factory and compares it
-// against the base64-encoded expected hash.
+// verifySRI computes the digest of source using factory and compares it against the
+// base64-encoded expected hash.
 //
 // Takes source (string) which is the content to hash.
-// Takes expectedBase64 (string) which is the base64-encoded expected
-// digest (no algorithm prefix).
+// Takes expectedBase64 (string) which is the base64-encoded expected digest (no algorithm
+// prefix).
 // Takes factory which constructs a fresh hash.Hash.
 //
 // Returns bool which is true when the digest matches.

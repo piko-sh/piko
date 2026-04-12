@@ -27,8 +27,8 @@ import (
 )
 
 type surveyListNode struct {
-	Value int
 	Next  *surveyListNode
+	Value int
 }
 
 func (surveyListNode) Length(head *surveyListNode) int {
@@ -57,7 +57,9 @@ func TestSurveyRecursiveNativeMethodDispatch(t *testing.T) {
 	})
 
 	result, err := service.Eval(context.Background(), `
-import "ll"
+import (
+	"ll"
+)
 head := ll.Make()
 var zero ll.Node
 zero.Length(head)
@@ -479,7 +481,9 @@ func TestSurveyRecursiveFunctionType(t *testing.T) {
 	})
 
 	_, err := service.Eval(context.Background(), `
-import "ff"
+import (
+	"ff"
+)
 var zero ff.F
 _ = zero
 _ = ff.Identity

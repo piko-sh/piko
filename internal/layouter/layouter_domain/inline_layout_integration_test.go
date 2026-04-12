@@ -26,7 +26,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const integrationEpsilon = 0.001
+const (
+	integrationEpsilon = 0.001
+)
 
 func TestLayoutTextRun(t *testing.T) {
 	fm := &mockFontMetrics{}

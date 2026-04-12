@@ -28,12 +28,18 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// formatBool is the fmt verb for boolean values.
-const formatBool = "%t"
+const (
+	// formatBool is the fmt verb for boolean values.
+	formatBool = "%t"
+)
 
-var _ provider_domain.ResourceDescriptor = (*service)(nil)
-var _ provider_domain.SubResourceDescriptor = (*service)(nil)
-var _ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*service)(nil)
+
+	_ provider_domain.SubResourceDescriptor = (*service)(nil)
+
+	_ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+)
 
 // ResourceType returns the CLI resource name for the LLM service.
 //
@@ -42,8 +48,7 @@ func (*service) ResourceType() string {
 	return "llm"
 }
 
-// ResourceListColumns returns column definitions for the LLM provider list
-// table.
+// ResourceListColumns returns column definitions for the LLM provider list table.
 //
 // Returns []provider_domain.ColumnDefinition which describes each column.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
@@ -57,11 +62,10 @@ func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	}
 }
 
-// ResourceListProviders returns all registered LLM providers as list rows,
-// sorted alphabetically by name.
+// ResourceListProviders returns all registered LLM providers as list rows, sorted
+// alphabetically by name.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// LLM provider.
+// Returns []provider_domain.ProviderListEntry which contains one entry per LLM provider.
 //
 // Safe for concurrent use. Uses a read lock to access the provider map.
 func (s *service) ResourceListProviders(_ context.Context) []provider_domain.ProviderListEntry {
@@ -96,8 +100,7 @@ func (s *service) ResourceListProviders(_ context.Context) []provider_domain.Pro
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a single named
-// LLM provider.
+// ResourceDescribeProvider returns detailed information for a single named LLM provider.
 //
 // Takes name (string) which identifies the provider to describe.
 //
@@ -164,8 +167,7 @@ func (*service) ResourceSubResourceName() string {
 	return "models"
 }
 
-// ResourceSubResourceColumns returns column definitions for the model
-// sub-resource table.
+// ResourceSubResourceColumns returns column definitions for the model sub-resource table.
 //
 // Returns []provider_domain.ColumnDefinition which describes each column.
 func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition {
@@ -180,8 +182,7 @@ func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition 
 //
 // Takes providerName (string) which identifies the provider.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// model.
+// Returns []provider_domain.ProviderListEntry which contains one entry per model.
 // Returns error when the provider is not found or models cannot be listed.
 //
 // Safe for concurrent use.
@@ -216,11 +217,10 @@ func (s *service) ResourceListSubResources(ctx context.Context, providerName str
 
 // ResourceDescribeType returns a service-level overview of the LLM system.
 //
-// Returns *provider_domain.ProviderDetail which contains provider counts and
-// default provider information.
+// Returns *provider_domain.ProviderDetail which contains provider counts and default
+// provider information.
 //
-// Safe for concurrent use. Locks the service and embedding service mutexes
-// independently.
+// Safe for concurrent use. Locks the service and embedding service mutexes independently.
 func (s *service) ResourceDescribeType(_ context.Context) *provider_domain.ProviderDetail {
 	s.mu.RLock()
 	providerCount := len(s.providers)
@@ -256,8 +256,8 @@ func (s *service) ResourceDescribeType(_ context.Context) *provider_domain.Provi
 	}
 }
 
-// appendLLMConfigSection appends a Configuration section when the provider
-// exposes metadata.
+// appendLLMConfigSection appends a Configuration section when the provider exposes
+// metadata.
 //
 // Takes sections ([]provider_domain.InfoSection) which is the current list.
 // Takes provider (LLMProviderPort) which is the provider to inspect.

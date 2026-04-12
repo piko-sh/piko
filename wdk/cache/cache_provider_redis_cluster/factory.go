@@ -29,41 +29,39 @@ type Config struct {
 	// Registry is the encoding registry for cache values; required.
 	Registry *cache.EncodingRegistry
 
-	// KeyRegistry is an optional encoding registry for complex key types such as
-	// structs. If nil, keys are encoded using fmt.Sprintf, which works for simple
-	// types like strings and integers.
+	// KeyRegistry is an optional encoding registry for complex key types such as structs. If
+	// nil, keys are encoded using fmt.Sprintf, which works for simple types like strings and
+	// integers.
 	KeyRegistry *cache.EncodingRegistry
 
-	// Namespace is a prefix added to all keys (e.g., "myapp:").
-	// Recommended to prevent key collisions with other applications
-	// sharing the cluster.
+	// Namespace is a prefix added to all keys (e.g., "myapp:"). Recommended to prevent key
+	// collisions with other applications sharing the cluster.
 	Namespace string
 
-	// Password is the credential used to connect to Redis.
-	// Empty string means no password is needed.
+	// Password is the credential used to connect to Redis. Empty string means no password is
+	// needed.
 	Password string
 
 	// IndexPrefix is the prefix for RediSearch index names; default is "index:".
 	IndexPrefix string
 
-	// Addrs is the list of seed nodes for the cluster
-	// (e.g., ["localhost:7000", "localhost:7001"]).
-	// REQUIRED: At least one address must be provided.
+	// Addrs is the list of seed nodes for the cluster (e.g., ["localhost:7000",
+	// "localhost:7001"]). REQUIRED: At least one address must be provided.
 	Addrs []string
 
-	// AtomicOperationTimeout specifies the timeout for atomic operations such as
-	// Compute. Default is 5 seconds.
+	// AtomicOperationTimeout specifies the timeout for atomic operations such as Compute.
+	// Default is 5 seconds.
 	AtomicOperationTimeout time.Duration
 
 	// OperationTimeout is the maximum time for standard operations. Default is 2s.
 	OperationTimeout time.Duration
 
-	// DefaultTTL specifies how long cache entries are kept before they expire;
-	// defaults to 1 hour.
+	// DefaultTTL specifies how long cache entries are kept before they expire; defaults to 1
+	// hour.
 	DefaultTTL time.Duration
 
-	// BulkOperationTimeout is the maximum time for bulk operations such as
-	// BulkGet and BulkSet. Default is 10 seconds.
+	// BulkOperationTimeout is the maximum time for bulk operations such as BulkGet and
+	// BulkSet. Default is 10 seconds.
 	BulkOperationTimeout time.Duration
 
 	// FlushTimeout is the longest time allowed for flush operations. Default is 30s.
@@ -72,22 +70,21 @@ type Config struct {
 	// SearchTimeout is the time limit for FT.SEARCH operations; default is 5 seconds.
 	SearchTimeout time.Duration
 
-	// MaxComputeRetries is the maximum number of retries when an optimistic lock
-	// fails. Default is 10.
+	// MaxComputeRetries is the maximum number of retries when an optimistic lock fails.
+	// Default is 10.
 	MaxComputeRetries int
 
 	// MaxRedirects is the maximum number of cluster slot redirects. Default: 3.
 	MaxRedirects int
 
-	// AllowUnsafeFLUSHDB permits InvalidateAll to use FLUSHDB when Namespace is
-	// empty. WARNING: In cluster mode, this clears ALL data on ALL master nodes.
+	// AllowUnsafeFLUSHDB permits InvalidateAll to use FLUSHDB when Namespace is empty.
+	// WARNING: In cluster mode, this clears ALL data on ALL master nodes.
 	AllowUnsafeFLUSHDB bool
 
 	// ReadOnly enables reading from replica nodes.
 	ReadOnly bool
 
-	// RouteByLatency enables routing of read requests to the node with
-	// the lowest latency.
+	// RouteByLatency enables routing of read requests to the node with the lowest latency.
 	RouteByLatency bool
 
 	// RouteRandomly enables random routing of read requests across cluster nodes.

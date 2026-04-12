@@ -27,8 +27,7 @@ import (
 
 // connect establishes a gRPC connection using the global options.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes opts (*GlobalOptions) which provides the endpoint and timeout.
 //
 // Returns *provider_grpc.Connection which holds gRPC service clients.

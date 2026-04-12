@@ -35,11 +35,12 @@ import (
 	"piko.sh/piko/internal/wal/wal_domain"
 )
 
-var _ cache_domain.ProviderPort[any, any] = (*OtterAdapter[any, any])(nil)
+var (
+	_ cache_domain.ProviderPort[any, any] = (*OtterAdapter[any, any])(nil)
+)
 
-// TagIndex maps tags to cache keys for the in-memory Otter cache. It keeps a
-// reverse index so that all keys with a given tag can be found and removed
-// together.
+// TagIndex maps tags to cache keys for the in-memory Otter cache. It keeps a reverse
+// index so that all keys with a given tag can be found and removed together.
 //
 // For tokenised full-text search, use InvertedIndex instead.
 type TagIndex[K comparable] struct {
@@ -87,12 +88,11 @@ func (ti *TagIndex[K]) Add(key K, tags []string) {
 	ti.keyToTags[key] = tagSet
 }
 
-// Invalidate finds all keys associated with the given tags,
-// removes them from the index, and returns the list of keys to be
-// invalidated from the main cache.
+// Invalidate finds all keys associated with the given tags, removes them from the index,
+// and returns the list of keys to be invalidated from the main cache.
 //
-// Takes tags ([]string) which contains the tags whose associated
-// keys should be invalidated.
+// Takes tags ([]string) which contains the tags whose associated keys should be
+// invalidated.
 //
 // Returns []K which contains the keys that were invalidated.
 //
@@ -177,8 +177,8 @@ func (ti *TagIndex[K]) Get(tag string) map[K]struct{} {
 	return nil
 }
 
-// AddSingle links a single key with a single tag, without changing other tags
-// the key may have.
+// AddSingle links a single key with a single tag, without changing other tags the key may
+// have.
 //
 // Takes tag (string) which is the tag to link.
 // Takes key (K) which identifies the item to tag.
@@ -199,8 +199,8 @@ func (ti *TagIndex[K]) AddSingle(tag string, key K) {
 	ti.keyToTags[key][tag] = struct{}{}
 }
 
-// RemoveSingle removes a single tag from a key, without affecting other tags
-// the key may have.
+// RemoveSingle removes a single tag from a key, without affecting other tags the key may
+// have.
 //
 // Takes tag (string) which is the tag to disassociate.
 // Takes key (K) which identifies the item to untag.
@@ -239,8 +239,7 @@ func (ti *TagIndex[K]) Clear() {
 //
 // Takes key (K) which identifies the item to look up.
 //
-// Returns []string which contains the tags for the key, or nil if the key has
-// no tags.
+// Returns []string which contains the tags for the key, or nil if the key has no tags.
 //
 // Safe for concurrent use.
 func (ti *TagIndex[K]) GetTags(key K) []string {
@@ -255,8 +254,8 @@ func (ti *TagIndex[K]) GetTags(key K) []string {
 	return slices.Collect(maps.Keys(tagSet))
 }
 
-// OtterAdapter is a driven adapter that uses the maypok86/otter/v2 library to
-// provide caching. It implements io.Closer.
+// OtterAdapter is a driven adapter that uses the maypok86/otter/v2 library to provide
+// caching. It implements io.Closer.
 type OtterAdapter[K comparable, V any] struct {
 	// wal is the write-ahead log for persistence. Nil if persistence is disabled.
 	wal wal_domain.WAL[K, V]
@@ -285,17 +284,17 @@ type OtterAdapter[K comparable, V any] struct {
 	// tagIndex maps tags to cache keys for tag-based invalidation.
 	tagIndex *TagIndex[K]
 
-	// snapshotThreshold is the number of WAL entries before a checkpoint is made.
-	// When this limit is reached, a snapshot is saved and the WAL is cleared.
+	// snapshotThreshold is the number of WAL entries before a checkpoint is made. When this
+	// limit is reached, a snapshot is saved and the WAL is cleared.
 	snapshotThreshold int
 
-	// checkpointMu coordinates checkpoint and write operations. Writes acquire
-	// RLock, checkpoint acquires Lock, ensuring the snapshot contains all WAL
-	// entries before truncation.
+	// checkpointMu coordinates checkpoint and write operations. Writes acquire RLock,
+	// checkpoint acquires Lock, ensuring the snapshot contains all WAL entries before
+	// truncation.
 	checkpointMu sync.RWMutex
 
-	// closeOnce guards single execution of Close to prevent double-checkpoint
-	// and double-close on the WAL or snapshot store.
+	// closeOnce guards single execution of Close to prevent double-checkpoint and
+	// double-close on the WAL or snapshot store.
 	closeOnce sync.Once
 
 	// walEnabled indicates whether write-ahead log persistence is active.
@@ -314,8 +313,8 @@ func (a *OtterAdapter[K, V]) GetIfPresent(_ context.Context, key K) (V, bool, er
 	return v, ok, nil
 }
 
-// Get retrieves a value from the cache, loading it via the provided loader
-// if not present.
+// Get retrieves a value from the cache, loading it via the provided loader if not
+// present.
 //
 // Takes key (K) which identifies the cache entry to retrieve.
 // Takes loader (Loader[K, V]) which loads the value if not found in cache.
@@ -328,8 +327,8 @@ func (a *OtterAdapter[K, V]) Get(ctx context.Context, key K, loader cache_dto.Lo
 
 // Set stores a value in the cache with optional tags.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but
-// not checked, as in-memory operations are non-blocking.
+// Takes ctx (context.Context) which is accepted for interface conformance but not
+// checked, as in-memory operations are non-blocking.
 // Takes key (K) which identifies the cache entry.
 // Takes value (V) which is the data to store.
 // Takes tags (...string) which are optional labels for grouping entries.
@@ -375,8 +374,8 @@ func (a *OtterAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ...st
 //
 // Returns error when the operation fails.
 //
-// Safe for concurrent use. Uses a read lock during WAL operations to allow
-// concurrent reads while ensuring checkpoint consistency.
+// Safe for concurrent use. Uses a read lock during WAL operations to allow concurrent
+// reads while ensuring checkpoint consistency.
 func (a *OtterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl time.Duration, tags ...string) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -415,14 +414,14 @@ func (a *OtterAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, ttl
 
 // Invalidate removes a key from the cache.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but
-// not checked, as in-memory operations are non-blocking.
+// Takes ctx (context.Context) which is accepted for interface conformance but not
+// checked, as in-memory operations are non-blocking.
 // Takes key (K) which identifies the cache entry to invalidate.
 //
 // Returns error which is always nil for the in-memory adapter.
 //
-// Safe for concurrent use. Uses a read lock during WAL operations
-// to allow concurrent invalidations while blocking checkpoints.
+// Safe for concurrent use. Uses a read lock during WAL operations to allow concurrent
+// invalidations while blocking checkpoints.
 func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -450,13 +449,12 @@ func (a *OtterAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	return nil
 }
 
-// Compute computes and atomically updates the value in the cache using the
-// provided function.
+// Compute computes and atomically updates the value in the cache using the provided
+// function.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes computeFunction (func(...)) which receives the old value and
-// whether it was found, and returns the new value and action to
-// perform.
+// Takes computeFunction (func(...)) which receives the old value and whether it was
+// found, and returns the new value and action to perform.
 //
 // Returns V which is the computed value.
 // Returns bool which indicates whether the value exists in the cache.
@@ -487,11 +485,9 @@ func (a *OtterAdapter[K, V]) ComputeIfAbsent(_ context.Context, key K, computeFu
 // ComputeIfPresent updates a value only if the key is present.
 //
 // Takes key (K) which identifies the entry to update.
-// Takes computeFunction (func(...)) which computes the new value
-// from the old value.
+// Takes computeFunction (func(...)) which computes the new value from the old value.
 //
-// Returns V which is the computed value, or the zero value if the key was
-// absent.
+// Returns V which is the computed value, or the zero value if the key was absent.
 // Returns bool which is true if the key was present and the value was updated.
 // Returns error which is always nil for the in-memory adapter.
 func (a *OtterAdapter[K, V]) ComputeIfPresent(_ context.Context, key K, computeFunction func(oldValue V) (newValue V, action cache_dto.ComputeAction)) (V, bool, error) {
@@ -527,8 +523,8 @@ func (a *OtterAdapter[K, V]) ComputeWithTTL(_ context.Context, key K, computeFun
 	return value, present, nil
 }
 
-// BulkGet retrieves multiple values from the cache, loading any missing ones
-// using the bulk loader.
+// BulkGet retrieves multiple values from the cache, loading any missing ones using the
+// bulk loader.
 //
 // Takes keys ([]K) which specifies the cache keys to retrieve.
 // Takes bulkLoader (BulkLoader) which loads values for keys not in the cache.
@@ -539,17 +535,16 @@ func (a *OtterAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoader c
 	return a.client.BulkGet(ctx, keys, bulkLoader)
 }
 
-// BulkSet stores multiple key-value pairs in the cache with optional tags.
-// Optimised to batch index updates for better performance.
+// BulkSet stores multiple key-value pairs in the cache with optional tags. Optimised to
+// batch index updates for better performance.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
-// Takes tags (...string) which specifies optional tags to associate with each
-// key.
+// Takes tags (...string) which specifies optional tags to associate with each key.
 //
 // Returns error when the operation fails, though currently always returns nil.
 //
-// Safe for concurrent use. Uses a read lock during WAL-enabled operations to
-// coordinate with checkpointing.
+// Safe for concurrent use. Uses a read lock during WAL-enabled operations to coordinate
+// with checkpointing.
 func (a *OtterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ...string) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -595,8 +590,8 @@ func (a *OtterAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ..
 
 // InvalidateByTags removes all entries with matching tags from the cache.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but
-// not checked, as in-memory operations are non-blocking.
+// Takes ctx (context.Context) which is accepted for interface conformance but not
+// checked, as in-memory operations are non-blocking.
 // Takes tags (...string) which specifies the tags to match for invalidation.
 //
 // Returns int which is the number of keys that were invalidated.
@@ -624,13 +619,13 @@ func (a *OtterAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...strin
 
 // InvalidateAll clears all entries from the cache.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but
-// not checked, as in-memory operations are non-blocking.
+// Takes ctx (context.Context) which is accepted for interface conformance but not
+// checked, as in-memory operations are non-blocking.
 //
 // Returns error which is always nil for the in-memory adapter.
 //
-// Safe for concurrent use. The operation is protected by a read lock during
-// WAL operations.
+// Safe for concurrent use. The operation is protected by a read lock during WAL
+// operations.
 func (a *OtterAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -668,11 +663,10 @@ func (a *OtterAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoad
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (Loader[K, V]) which loads the fresh value.
 //
-// Returns <-chan cache_dto.LoadResult[V] which delivers the
-// refresh result.
+// Returns <-chan cache_dto.LoadResult[V] which delivers the refresh result.
 //
-// Safe for concurrent use. Spawns a goroutine that converts
-// the otter result channel into a DTO result channel.
+// Safe for concurrent use. Spawns a goroutine that converts the otter result channel into
+// a DTO result channel.
 func (a *OtterAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dto.Loader[K, V]) <-chan cache_dto.LoadResult[V] {
 	otterResultChan := a.client.Refresh(ctx, key, loader)
 
@@ -720,8 +714,7 @@ func (a *OtterAdapter[K, V]) Values() iter.Seq[V] {
 //
 // Takes key (K) which identifies the entry to retrieve.
 //
-// Returns cache_dto.Entry[K, V] which contains the entry with
-// metadata.
+// Returns cache_dto.Entry[K, V] which contains the entry with metadata.
 // Returns bool which indicates whether the key was found.
 // Returns error which is always nil for the in-memory adapter.
 func (a *OtterAdapter[K, V]) GetEntry(_ context.Context, key K) (cache_dto.Entry[K, V], bool, error) {
@@ -736,8 +729,7 @@ func (a *OtterAdapter[K, V]) GetEntry(_ context.Context, key K) (cache_dto.Entry
 //
 // Takes key (K) which identifies the entry to probe.
 //
-// Returns cache_dto.Entry[K, V] which contains the entry with
-// metadata.
+// Returns cache_dto.Entry[K, V] which contains the entry with metadata.
 // Returns bool which indicates whether the key was found.
 // Returns error which is always nil for the in-memory adapter.
 func (a *OtterAdapter[K, V]) ProbeEntry(_ context.Context, key K) (cache_dto.Entry[K, V], bool, error) {
@@ -757,8 +749,7 @@ func (a *OtterAdapter[K, V]) EstimatedSize() int {
 
 // Stats returns cache statistics.
 //
-// Returns cache_dto.Stats which contains counts for hits, misses, and
-// evictions.
+// Returns cache_dto.Stats which contains counts for hits, misses, and evictions.
 func (a *OtterAdapter[K, V]) Stats() cache_dto.Stats {
 	otterStats := a.client.Stats()
 
@@ -772,12 +763,12 @@ func (a *OtterAdapter[K, V]) Stats() cache_dto.Stats {
 	}
 }
 
-// maybeCheckpoint checks if the WAL entry count has reached the snapshot
-// threshold and if so, creates a snapshot and truncates the WAL. This compacts
-// the WAL to prevent unbounded growth.
+// maybeCheckpoint checks if the WAL entry count has reached the snapshot threshold and if
+// so, creates a snapshot and truncates the WAL. This compacts the WAL to prevent
+// unbounded growth.
 //
-// Safe for concurrent use. Acquires a write lock that blocks all writes during
-// the checkpoint operation to ensure snapshot consistency.
+// Safe for concurrent use. Acquires a write lock that blocks all writes during the
+// checkpoint operation to ensure snapshot consistency.
 func (a *OtterAdapter[K, V]) maybeCheckpoint() {
 	if !a.walEnabled || a.wal == nil || a.snapshot == nil {
 		return
@@ -801,11 +792,11 @@ func (a *OtterAdapter[K, V]) maybeCheckpoint() {
 	a.performCheckpointLocked()
 }
 
-// performCheckpointLocked creates a snapshot of the current cache state and
-// truncates the WAL.
+// performCheckpointLocked creates a snapshot of the current cache state and truncates the
+// WAL.
 //
-// Called when the WAL entry count exceeds the snapshot threshold. Caller must
-// hold checkpointMu write lock.
+// Called when the WAL entry count exceeds the snapshot threshold. Caller must hold
+// checkpointMu write lock.
 func (a *OtterAdapter[K, V]) performCheckpointLocked() {
 	ctx := context.Background()
 	ctx, l := logger_domain.From(ctx, log)
@@ -828,8 +819,8 @@ func (a *OtterAdapter[K, V]) performCheckpointLocked() {
 
 // collectSnapshotEntries collects all current cache entries for snapshotting.
 //
-// Returns []wal_domain.Entry[K, V] which contains all current
-// cache entries with their tags and timestamps.
+// Returns []wal_domain.Entry[K, V] which contains all current cache entries with their
+// tags and timestamps.
 func (a *OtterAdapter[K, V]) collectSnapshotEntries() []wal_domain.Entry[K, V] {
 	entries := make([]wal_domain.Entry[K, V], 0, a.client.EstimatedSize())
 	nowNano := time.Now().UnixNano()
@@ -854,15 +845,15 @@ func (a *OtterAdapter[K, V]) collectSnapshotEntries() []wal_domain.Entry[K, V] {
 
 // Close releases all resources held by the cache.
 //
-// closeOnce guarantees that the final checkpoint and underlying store
-// closes happen exactly once; subsequent invocations return the captured
-// error without re-running the close path.
+// closeOnce guarantees that the final checkpoint and underlying store closes happen
+// exactly once; subsequent invocations return the captured error without re-running the
+// close path.
 //
-// Takes ctx (context.Context) which is accepted for interface conformance but
-// not checked, as in-memory operations are non-blocking.
+// Takes ctx (context.Context) which is accepted for interface conformance but not
+// checked, as in-memory operations are non-blocking.
 //
-// Returns error which contains any joined errors from closing the WAL and
-// snapshot store; nil when the cache is purely in-memory.
+// Returns error which contains any joined errors from closing the WAL and snapshot store;
+// nil when the cache is purely in-memory.
 func (a *OtterAdapter[K, V]) Close(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)
 
@@ -876,17 +867,16 @@ func (a *OtterAdapter[K, V]) Close(ctx context.Context) error {
 	return closeErr
 }
 
-// closePersistenceLocked finalises the WAL by checkpointing any pending
-// entries, closing the WAL and snapshot store, and joining any errors from
-// the two closes.
+// closePersistenceLocked finalises the WAL by checkpointing any pending entries, closing
+// the WAL and snapshot store, and joining any errors from the two closes.
 //
 // Takes l (logger_domain.Logger) which receives warnings about close failures.
 //
-// Returns error which is the joined set of WAL/snapshot close errors, or
-// nil when both close cleanly.
+// Returns error which is the joined set of WAL/snapshot close errors, or nil when both
+// close cleanly.
 //
-// Concurrency: acquires checkpointMu while flushing pending WAL entries before
-// closing the WAL and snapshot stores.
+// Concurrency: acquires checkpointMu while flushing pending WAL entries before closing
+// the WAL and snapshot stores.
 func (a *OtterAdapter[K, V]) closePersistenceLocked(l logger_domain.Logger) error {
 	a.checkpointMu.Lock()
 	if a.wal != nil && a.snapshot != nil && a.wal.EntryCount() > 0 {
@@ -913,8 +903,7 @@ func (a *OtterAdapter[K, V]) closePersistenceLocked(l logger_domain.Logger) erro
 // SetExpiresAfter sets the expiration duration for a key.
 //
 // Takes key (K) which identifies the cache entry to update.
-// Takes expiresAfter (time.Duration) which specifies how long until the key
-// expires.
+// Takes expiresAfter (time.Duration) which specifies how long until the key expires.
 //
 // Returns error which is always nil for the in-memory adapter.
 func (a *OtterAdapter[K, V]) SetExpiresAfter(_ context.Context, key K, expiresAfter time.Duration) error {
@@ -946,8 +935,8 @@ func (a *OtterAdapter[K, V]) WeightedSize() uint64 {
 // SetRefreshableAfter sets the duration after which a key becomes refreshable.
 //
 // Takes key (K) which identifies the cache entry to configure.
-// Takes refreshableAfter (time.Duration) which specifies when the key becomes
-// eligible for refresh.
+// Takes refreshableAfter (time.Duration) which specifies when the key becomes eligible
+// for refresh.
 //
 // Returns error which is always nil for the in-memory adapter.
 func (a *OtterAdapter[K, V]) SetRefreshableAfter(_ context.Context, key K, refreshableAfter time.Duration) error {
@@ -973,13 +962,12 @@ func newTagIndex[K comparable]() *TagIndex[K] {
 	return NewTagIndex[K]()
 }
 
-// actionToOp converts a ComputeAction to its corresponding otter.ComputeOp
-// value.
+// actionToOp converts a ComputeAction to its corresponding otter.ComputeOp value.
 //
 // Takes action (cache_dto.ComputeAction) which is the action to convert.
 //
-// Returns otter.ComputeOp which is the mapped operation. Unknown actions
-// return CancelOp by default.
+// Returns otter.ComputeOp which is the mapped operation. Unknown actions return CancelOp
+// by default.
 func actionToOp(action cache_dto.ComputeAction) otter.ComputeOp {
 	switch action {
 	case cache_dto.ComputeActionSet:

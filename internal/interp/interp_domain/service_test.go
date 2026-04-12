@@ -126,10 +126,10 @@ func TestServicePackageLevelVarInit(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "variable with literal init",
@@ -281,7 +281,9 @@ func TestServiceChannelDirectionTypes(t *testing.T) {
 	})
 
 	source := `package main
-import "testpkg"
+import (
+	"testpkg"
+)
 
 func run() int {
 	ch := make(chan int, 1)

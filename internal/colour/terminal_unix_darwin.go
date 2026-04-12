@@ -22,5 +22,6 @@ package colour
 
 import "golang.org/x/sys/unix"
 
-// ioctlGetTermios holds the ioctl request code for retrieving terminal attributes on Darwin.
+// ioctlGetTermios holds the ioctl request code for retrieving terminal attributes on
+// Darwin.
 const ioctlGetTermios = unix.TIOCGETA

@@ -25,11 +25,10 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// DetailView renders the detail-pane body for the history entry under
-// the cursor, or a panel-level summary when nothing is selected.
+// DetailView renders the detail-pane body for the history entry under the cursor, or a
+// panel-level summary when nothing is selected.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *WatchdogHistoryPanel) DetailView(width, height int) string {
@@ -37,8 +36,8 @@ func (p *WatchdogHistoryPanel) DetailView(width, height int) string {
 	return RenderDetailBody(p.theme, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target.
 //
 // Returns inspector.DetailBody describing the selected history entry or the overview.
 func (p *WatchdogHistoryPanel) buildDetailBody() inspector.DetailBody {
@@ -50,8 +49,7 @@ func (p *WatchdogHistoryPanel) buildDetailBody() inspector.DetailBody {
 	return p.historyOverviewDetailBody()
 }
 
-// watchdogHistoryEntryDetailBody renders detail for a single startup
-// history entry.
+// watchdogHistoryEntryDetailBody renders detail for a single startup history entry.
 //
 // Takes e (WatchdogStartupEntry) which is the entry to render.
 // Takes c (clock.Clock) which supplies the current time for duration calculations.

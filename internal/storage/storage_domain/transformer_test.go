@@ -41,7 +41,9 @@ type mockTransformer struct {
 	priority          int
 }
 
-var _ storage_domain.StreamTransformerPort = (*mockTransformer)(nil)
+var (
+	_ storage_domain.StreamTransformerPort = (*mockTransformer)(nil)
+)
 
 func (m *mockTransformer) Name() string                      { return m.name }
 func (m *mockTransformer) Type() storage_dto.TransformerType { return m.ttype }

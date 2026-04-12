@@ -36,56 +36,58 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_testparser"
 )
 
-var knowledgeBase = []llm_domain.Document{
-	{
-		ID:      "doc-piko-overview",
-		Content: "Piko is a Go web framework that uses hexagonal architecture. It supports server-side rendering, caching, and background jobs. Piko applications are built using a modular WDK (Web Development Kit) system.",
-		Metadata: map[string]any{
-			"source": "docs/overview.md",
-			"topic":  "architecture",
+var (
+	knowledgeBase = []llm_domain.Document{
+		{
+			ID:      "doc-piko-overview",
+			Content: "Piko is a Go web framework that uses hexagonal architecture. It supports server-side rendering, caching, and background jobs. Piko applications are built using a modular WDK (Web Development Kit) system.",
+			Metadata: map[string]any{
+				"source": "docs/overview.md",
+				"topic":  "architecture",
+			},
 		},
-	},
-	{
-		ID:      "doc-cache-system",
-		Content: "Piko's cache system supports multiple providers: in-memory (Otter), Redis, and Valkey. Caches are created using NewCacheBuilder with typed keys and values. The cache supports TTL, search indexing, and vector fields for similarity search.",
-		Metadata: map[string]any{
-			"source": "docs/cache.md",
-			"topic":  "caching",
+		{
+			ID:      "doc-cache-system",
+			Content: "Piko's cache system supports multiple providers: in-memory (Otter), Redis, and Valkey. Caches are created using NewCacheBuilder with typed keys and values. The cache supports TTL, search indexing, and vector fields for similarity search.",
+			Metadata: map[string]any{
+				"source": "docs/cache.md",
+				"topic":  "caching",
+			},
 		},
-	},
-	{
-		ID:      "doc-llm-service",
-		Content: "The LLM service provides completions, streaming, and embeddings. Providers like OpenAI, Anthropic, Gemini, Mistral, and Ollama can be registered. The service supports RAG via vector stores, cost tracking with budgets, and response caching.",
-		Metadata: map[string]any{
-			"source": "docs/llm.md",
-			"topic":  "llm",
+		{
+			ID:      "doc-llm-service",
+			Content: "The LLM service provides completions, streaming, and embeddings. Providers like OpenAI, Anthropic, Gemini, Mistral, and Ollama can be registered. The service supports RAG via vector stores, cost tracking with budgets, and response caching.",
+			Metadata: map[string]any{
+				"source": "docs/llm.md",
+				"topic":  "llm",
+			},
 		},
-	},
-	{
-		ID:      "doc-vector-search",
-		Content: "Vector search in Piko uses HNSW (Hierarchical Navigable Small World) graphs for approximate nearest neighbour search. Embeddings are generated via the LLM service and stored in the vector store. Supported metrics are cosine similarity, euclidean distance, and dot product.",
-		Metadata: map[string]any{
-			"source": "docs/vector-search.md",
-			"topic":  "search",
+		{
+			ID:      "doc-vector-search",
+			Content: "Vector search in Piko uses HNSW (Hierarchical Navigable Small World) graphs for approximate nearest neighbour search. Embeddings are generated via the LLM service and stored in the vector store. Supported metrics are cosine similarity, euclidean distance, and dot product.",
+			Metadata: map[string]any{
+				"source": "docs/vector-search.md",
+				"topic":  "search",
+			},
 		},
-	},
-	{
-		ID:      "doc-rate-limiter",
-		Content: "Piko includes a rate limiter that supports fixed-window counters and token bucket algorithms. Rate limits are stored in the cache system. Configuration is per-route or global.",
-		Metadata: map[string]any{
-			"source": "docs/rate-limiter.md",
-			"topic":  "middleware",
+		{
+			ID:      "doc-rate-limiter",
+			Content: "Piko includes a rate limiter that supports fixed-window counters and token bucket algorithms. Rate limits are stored in the cache system. Configuration is per-route or global.",
+			Metadata: map[string]any{
+				"source": "docs/rate-limiter.md",
+				"topic":  "middleware",
+			},
 		},
-	},
-	{
-		ID:      "doc-deployment",
-		Content: "Piko applications can be deployed as standalone binaries, Docker containers, or WebAssembly modules. The framework supports SQLite for local development and PostgreSQL for production. Configuration can be loaded from environment variables, Vault, or cloud secret managers.",
-		Metadata: map[string]any{
-			"source": "docs/deployment.md",
-			"topic":  "deployment",
+		{
+			ID:      "doc-deployment",
+			Content: "Piko applications can be deployed as standalone binaries, Docker containers, or WebAssembly modules. The framework supports SQLite for local development and PostgreSQL for production. Configuration can be loaded from environment variables, Vault, or cloud secret managers.",
+			Metadata: map[string]any{
+				"source": "docs/deployment.md",
+				"topic":  "deployment",
+			},
 		},
-	},
-}
+	}
+)
 
 func TestRAG_FullPipeline(t *testing.T) {
 

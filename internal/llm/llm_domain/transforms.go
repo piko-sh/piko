@@ -25,7 +25,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// FrontmatterOption configures the behaviour of [ExtractFrontmatter].
+// FrontmatterOption configures the behaviour of ExtractFrontmatter.
 type FrontmatterOption func(*frontmatterConfig)
 
 // frontmatterConfig holds settings for extracting frontmatter fields.
@@ -37,8 +37,8 @@ type frontmatterConfig struct {
 	keys []string
 }
 
-// StripFrontmatter returns a TransformFunc that removes YAML frontmatter
-// delimited by "---" from the beginning of document content.
+// StripFrontmatter returns a TransformFunc that removes YAML frontmatter delimited by
+// "---" from the beginning of document content.
 //
 // Returns TransformFunc which removes YAML frontmatter from documents.
 func StripFrontmatter() TransformFunc {
@@ -48,8 +48,8 @@ func StripFrontmatter() TransformFunc {
 	}
 }
 
-// WithFrontmatterKeys restricts extraction to the named keys. By default all
-// top-level frontmatter keys are extracted.
+// WithFrontmatterKeys restricts extraction to the named keys. By default all top-level
+// frontmatter keys are extracted.
 //
 // Takes keys (...string) which specifies the frontmatter keys to extract.
 //
@@ -58,9 +58,9 @@ func WithFrontmatterKeys(keys ...string) FrontmatterOption {
 	return func(c *frontmatterConfig) { c.keys = keys }
 }
 
-// WithFrontmatterPrefix prepends a string to each extracted metadata key.
-// For example, WithFrontmatterPrefix("doc_") turns a frontmatter key "title"
-// into the metadata key "doc_title".
+// WithFrontmatterPrefix prepends a string to each extracted metadata key. For example,
+// WithFrontmatterPrefix("doc_") turns a frontmatter key "title" into the metadata key
+// "doc_title".
 //
 // Takes prefix (string) which is prepended to each key.
 //
@@ -69,9 +69,9 @@ func WithFrontmatterPrefix(prefix string) FrontmatterOption {
 	return func(c *frontmatterConfig) { c.prefix = prefix }
 }
 
-// ExtractFrontmatter returns a TransformFunc that parses YAML frontmatter,
-// merges the extracted keys into the document's metadata, and strips the
-// frontmatter from the content.
+// ExtractFrontmatter returns a TransformFunc that parses YAML frontmatter, merges the
+// extracted keys into the document's metadata, and strips the frontmatter from the
+// content.
 //
 // When no frontmatter is found, the document is returned unchanged.
 //
@@ -79,9 +79,9 @@ func WithFrontmatterPrefix(prefix string) FrontmatterOption {
 //
 // Returns TransformFunc which processes documents to extract their frontmatter.
 //
-// By default all top-level string, numeric, and boolean values are extracted.
-// Use [WithFrontmatterKeys] to restrict which keys are extracted and
-// [WithFrontmatterPrefix] to namespace metadata keys.
+// By default all top-level string, numeric, and boolean values are extracted. Use
+// WithFrontmatterKeys to restrict which keys are extracted and WithFrontmatterPrefix to
+// namespace metadata keys.
 func ExtractFrontmatter(opts ...FrontmatterOption) TransformFunc {
 	var config frontmatterConfig
 	for _, o := range opts {
@@ -110,17 +110,17 @@ func ExtractFrontmatter(opts ...FrontmatterOption) TransformFunc {
 	}
 }
 
-// PrependChunkContext returns a [TransformFunc] intended for use as a
-// post-split transform. It reads the "doc_title" and "heading" metadata keys
-// and prepends them to the chunk content so that the embedding model can use
-// the surrounding context for better semantic matching.
+// PrependChunkContext returns a TransformFunc intended for use as a post-split transform.
+// It reads the "doc_title" and "heading" metadata keys and prepends them to the chunk
+// content so that the embedding model can use the surrounding context for better semantic
+// matching.
 //
-// For example, a chunk with doc_title "Your First Page" and heading "Add a
-// simple template" would have "Your First Page > Add a simple template\n\n"
-// prepended to its content.
+// For example, a chunk with doc_title "Your First Page" and heading "Add a simple
+// template" would have "Your First Page > Add a simple template\n\n" prepended to its
+// content.
 //
-// Chunks that already start with a markdown heading (# ...) or have no
-// contextual metadata are returned unchanged.
+// Chunks that already start with a markdown heading (# ...) or have no contextual
+// metadata are returned unchanged.
 //
 // Returns TransformFunc which prepends contextual metadata to chunk content.
 func PrependChunkContext() TransformFunc {
@@ -163,13 +163,13 @@ func PrependChunkContext() TransformFunc {
 	}
 }
 
-// mergeFrontmatterMetadata merges parsed frontmatter values into the document
-// metadata map, applying key filtering and prefixing.
+// mergeFrontmatterMetadata merges parsed frontmatter values into the document metadata
+// map, applying key filtering and prefixing.
 //
 // Takes metadata (map[string]any) which is the existing document metadata.
 // Takes parsed (map[string]any) which contains the parsed frontmatter values.
-// Takes keySet (map[string]struct{}) which restricts which keys to merge;
-// an empty set means all keys are included.
+// Takes keySet (map[string]struct{}) which restricts which keys to merge; an empty set
+// means all keys are included.
 // Takes prefix (string) which is prepended to each metadata key.
 //
 // Returns map[string]any which is the merged metadata map.
@@ -190,13 +190,12 @@ func mergeFrontmatterMetadata(metadata, parsed map[string]any, keySet map[string
 	return metadata
 }
 
-// extractRawFrontmatter splits markdown content into raw YAML frontmatter and
-// the remaining body.
+// extractRawFrontmatter splits markdown content into raw YAML frontmatter and the
+// remaining body.
 //
 // Takes content (string) which is the markdown text to parse.
 //
-// Returns raw (string) which is the extracted YAML frontmatter without
-// delimiters.
+// Returns raw (string) which is the extracted YAML frontmatter without delimiters.
 // Returns body (string) which is the remaining content after the frontmatter.
 // Returns ok (bool) which is false if no frontmatter delimiters are found.
 func extractRawFrontmatter(content string) (raw, body string, ok bool) {
@@ -212,8 +211,8 @@ func extractRawFrontmatter(content string) (raw, body string, ok bool) {
 	return strings.TrimSpace(yamlBlock), strings.TrimLeft(after, "\n"), true
 }
 
-// stripFrontmatter removes YAML frontmatter from markdown content.
-// Frontmatter is delimited by "---" at the start and a closing "\n---".
+// stripFrontmatter removes YAML frontmatter from markdown content. Frontmatter is
+// delimited by "---" at the start and a closing "\n---".
 //
 // Takes markdown (string) which is the content to process.
 //

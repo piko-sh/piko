@@ -31,7 +31,9 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-var extractAndEncode = inspector_domain.ExtractAndEncodeForTest
+var (
+	extractAndEncode = inspector_domain.ExtractAndEncodeForTest
+)
 
 func setupEncoderTest(t *testing.T, sources map[string]string) *inspector_dto.TypeData {
 	t.Helper()

@@ -32,19 +32,19 @@ type hoverTarget struct {
 	// identifier is the identifier under the cursor; always set.
 	identifier *ast.Ident
 
-	// selector holds the selector expression when hovering over a qualified
-	// identifier such as time.Time; nil if hovering over a simple identifier.
+	// selector holds the selector expression when hovering over a qualified identifier such
+	// as time.Time; nil if hovering over a simple identifier.
 	selector *ast.SelectorExpr
 }
 
-// findHoverTarget finds the hover target at the given position.
-// It detects both simple identifiers and selector expressions.
+// findHoverTarget finds the hover target at the given position. It detects both simple
+// identifiers and selector expressions.
 //
 // Takes file (*ast.File) which contains the parsed source to search.
 // Takes position (token.Pos) which specifies the position to find the target at.
 //
-// Returns *hoverTarget which is the found target, or nil if no target exists
-// at the position.
+// Returns *hoverTarget which is the found target, or nil if no target exists at the
+// position.
 func findHoverTarget(file *ast.File, position token.Pos) *hoverTarget {
 	var target *hoverTarget
 
@@ -69,15 +69,13 @@ func findHoverTarget(file *ast.File, position token.Pos) *hoverTarget {
 	return target
 }
 
-// matchSelectorExpr checks if a node is a selector expression at the given
-// position.
+// matchSelectorExpr checks if a node is a selector expression at the given position.
 //
 // Takes n (ast.Node) which is the node to check.
 // Takes position (token.Pos) which is the position to match against.
 //
-// Returns *hoverTarget which contains the matched identifier and selector, or
-// nil if the node is not a selector expression or the position does not fall
-// within it.
+// Returns *hoverTarget which contains the matched identifier and selector, or nil if the
+// node is not a selector expression or the position does not fall within it.
 func matchSelectorExpr(n ast.Node, position token.Pos) *hoverTarget {
 	selectorExpression, ok := n.(*ast.SelectorExpr)
 	if !ok {
@@ -109,9 +107,8 @@ func matchSelectorExpr(n ast.Node, position token.Pos) *hoverTarget {
 // Takes position (token.Pos) which is the position to match against.
 // Takes existing (*hoverTarget) which must be nil for a match to be returned.
 //
-// Returns *hoverTarget which holds the matched identifier, or nil if the node
-// is not an identifier, the position is outside the identifier, or existing is
-// not nil.
+// Returns *hoverTarget which holds the matched identifier, or nil if the node is not an
+// identifier, the position is outside the identifier, or existing is not nil.
 func matchSimpleIdent(n ast.Node, position token.Pos, existing *hoverTarget) *hoverTarget {
 	identifier, ok := n.(*ast.Ident)
 	if !ok {
@@ -128,8 +125,8 @@ func matchSimpleIdent(n ast.Node, position token.Pos, existing *hoverTarget) *ho
 	return nil
 }
 
-// buildImportMap builds a map from import alias or name to package path.
-// For example: {"fmt": "fmt", "t": "time"} where "t" is an alias for "time".
+// buildImportMap builds a map from import alias or name to package path. For example:
+// {"fmt": "fmt", "t": "time"} where "t" is an alias for "time".
 //
 // Takes file (*ast.File) which contains the parsed Go source file.
 //
@@ -161,18 +158,16 @@ func buildImportMap(file *ast.File) map[string]string {
 	return imports
 }
 
-// getQualifiedHoverContent returns hover content for a qualified name
-// (pkg.Name).
+// getQualifiedHoverContent returns hover content for a qualified name (pkg.Name).
 //
 // Takes pkgAlias (string) which is the package alias used in the source file.
 // Takes name (string) which is the symbol name within that package.
-// Takes file (*ast.File) which provides the import declarations for resolving
-// the alias.
-// Takes stdlibData (*inspector_dto.TypeData) which contains type and function
-// definitions for standard library packages.
+// Takes file (*ast.File) which provides the import declarations for resolving the alias.
+// Takes stdlibData (*inspector_dto.TypeData) which contains type and function definitions
+// for standard library packages.
 //
-// Returns string which contains the formatted hover content, or an empty
-// string when the package or symbol cannot be found.
+// Returns string which contains the formatted hover content, or an empty string when the
+// package or symbol cannot be found.
 func getQualifiedHoverContent(pkgAlias, name string, file *ast.File, stdlibData *inspector_dto.TypeData) string {
 	if stdlibData == nil {
 		return ""
@@ -204,11 +199,11 @@ func getQualifiedHoverContent(pkgAlias, name string, file *ast.File, stdlibData 
 //
 // Takes pkgAlias (string) which is the package alias used in the import.
 // Takes file (*ast.File) which provides the AST to extract import mappings.
-// Takes stdlibData (*inspector_dto.TypeData) which contains standard library
-// type information.
+// Takes stdlibData (*inspector_dto.TypeData) which contains standard library type
+// information.
 //
-// Returns string which contains the formatted hover content, or an empty
-// string when the package cannot be found.
+// Returns string which contains the formatted hover content, or an empty string when the
+// package cannot be found.
 func getPackageHoverContent(pkgAlias string, file *ast.File, stdlibData *inspector_dto.TypeData) string {
 	if stdlibData == nil {
 		return ""
@@ -237,8 +232,8 @@ func getPackageHoverContent(pkgAlias string, file *ast.File, stdlibData *inspect
 // Takes packagePath (string) which specifies the package path for display.
 // Takes typ (*inspector_dto.Type) which provides the type information.
 //
-// Returns string which contains the formatted hover content with the type
-// definition and method count.
+// Returns string which contains the formatted hover content with the type definition and
+// method count.
 func formatTypeHover(packagePath string, typ *inspector_dto.Type) string {
 	var builder strings.Builder
 	builder.WriteString("```go\n")
@@ -256,11 +251,9 @@ func formatTypeHover(packagePath string, typ *inspector_dto.Type) string {
 // formatFunctionHover formats hover content for a function.
 //
 // Takes packagePath (string) which specifies the package import path.
-// Takes inspectedFunction (*inspector_dto.Function) which provides
-// the function details.
+// Takes inspectedFunction (*inspector_dto.Function) which provides the function details.
 //
-// Returns string which contains the formatted hover content as a Markdown
-// code block.
+// Returns string which contains the formatted hover content as a Markdown code block.
 func formatFunctionHover(packagePath string, inspectedFunction *inspector_dto.Function) string {
 	var builder strings.Builder
 	builder.WriteString("```go\n")
@@ -273,13 +266,12 @@ func formatFunctionHover(packagePath string, inspectedFunction *inspector_dto.Fu
 // getHoverContent returns hover content for a simple identifier.
 //
 // Takes name (string) which specifies the identifier to look up.
-// Takes file (*ast.File) which provides the AST for local type and function
-// lookup.
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library
-// type information.
+// Takes file (*ast.File) which provides the AST for local type and function lookup.
+// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
+// information.
 //
-// Returns string which contains the hover content, or an empty string if no
-// content is found.
+// Returns string which contains the hover content, or an empty string if no content is
+// found.
 func getHoverContent(name string, file *ast.File, stdlibData *inspector_dto.TypeData) string {
 	if content := findLocalTypeContent(name, file); content != "" {
 		return content
@@ -296,14 +288,14 @@ func getHoverContent(name string, file *ast.File, stdlibData *inspector_dto.Type
 	return findStdlibTypeContent(name, stdlibData)
 }
 
-// findLocalTypeContent searches for a local type declaration with the given
-// name in an AST file.
+// findLocalTypeContent searches for a local type declaration with the given name in an
+// AST file.
 //
 // Takes name (string) which specifies the type name to find.
 // Takes file (*ast.File) which provides the AST to search.
 //
-// Returns string which contains a Markdown code block with the type
-// declaration, or an empty string if not found.
+// Returns string which contains a Markdown code block with the type declaration, or an
+// empty string if not found.
 func findLocalTypeContent(name string, file *ast.File) string {
 	for _, declaration := range file.Decls {
 		genDecl, ok := declaration.(*ast.GenDecl)
@@ -323,14 +315,13 @@ func findLocalTypeContent(name string, file *ast.File) string {
 	return ""
 }
 
-// findLocalFunctionContent searches for a local function declaration with the
-// given name.
+// findLocalFunctionContent searches for a local function declaration with the given name.
 //
 // Takes name (string) which specifies the function name to find.
 // Takes file (*ast.File) which provides the parsed AST to search.
 //
-// Returns string which contains a formatted code block with the function
-// signature if found, or an empty string if no match exists.
+// Returns string which contains a formatted code block with the function signature if
+// found, or an empty string if no match exists.
 func findLocalFunctionContent(name string, file *ast.File) string {
 	for _, declaration := range file.Decls {
 		funcDecl, ok := declaration.(*ast.FuncDecl)
@@ -347,11 +338,11 @@ func findLocalFunctionContent(name string, file *ast.File) string {
 // findStdlibTypeContent searches stdlib packages for a type matching the name.
 //
 // Takes name (string) which specifies the type name to search for.
-// Takes stdlibData (*inspector_dto.TypeData) which provides the stdlib type
-// data to search through.
+// Takes stdlibData (*inspector_dto.TypeData) which provides the stdlib type data to
+// search through.
 //
-// Returns string which contains the formatted hover content for the matching
-// type, or an empty string if stdlibData is nil or no match is found.
+// Returns string which contains the formatted hover content for the matching type, or an
+// empty string if stdlibData is nil or no match is found.
 func findStdlibTypeContent(name string, stdlibData *inspector_dto.TypeData) string {
 	if stdlibData == nil {
 		return ""

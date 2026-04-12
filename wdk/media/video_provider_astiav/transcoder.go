@@ -32,8 +32,7 @@ import (
 	"piko.sh/piko/wdk/media"
 )
 
-// transcodePipeline holds the FFmpeg contexts needed for a
-// transcode operation.
+// transcodePipeline holds the FFmpeg contexts needed for a transcode operation.
 type transcodePipeline struct {
 	// inputCtx is the input media container context.
 	inputCtx *astiav.FormatContext
@@ -47,8 +46,7 @@ type transcodePipeline struct {
 	// encoderCtx is the codec context used for encoding.
 	encoderCtx *astiav.CodecContext
 
-	// videoStreamIndex is the zero-based index of the video
-	// stream being transcoded.
+	// videoStreamIndex is the zero-based index of the video stream being transcoded.
 	videoStreamIndex int
 }
 
@@ -74,16 +72,13 @@ func (p *Provider) runTranscode(ctx context.Context, input io.Reader, output io.
 	return p.executeTranscodePipeline(ctx, pipeline)
 }
 
-// initialiseTranscodePipeline sets up all FFmpeg contexts
-// required for transcoding.
+// initialiseTranscodePipeline sets up all FFmpeg contexts required for transcoding.
 //
 // Takes input (io.Reader) which provides the source video data.
 // Takes output (io.Writer) which receives the transcoded data.
-// Takes spec (media.TranscodeSpec) which defines the transcode
-// settings.
+// Takes spec (media.TranscodeSpec) which defines the transcode settings.
 //
-// Returns *transcodePipeline which holds the initialised FFmpeg
-// contexts.
+// Returns *transcodePipeline which holds the initialised FFmpeg contexts.
 // Returns error when any context creation step fails.
 func (p *Provider) initialiseTranscodePipeline(
 	ctx context.Context, input io.Reader, output io.Writer, spec media.TranscodeSpec,
@@ -145,11 +140,9 @@ func (pl *transcodePipeline) free(ctx context.Context) {
 	StreamsClosed.Add(ctx, 1)
 }
 
-// executeTranscodePipeline runs the decode-encode loop and
-// writes the output trailer.
+// executeTranscodePipeline runs the decode-encode loop and writes the output trailer.
 //
-// Takes pl (*transcodePipeline) which holds the FFmpeg contexts
-// for the operation.
+// Takes pl (*transcodePipeline) which holds the FFmpeg contexts for the operation.
 //
 // Returns error when the transcode loop or trailer write fails.
 func (p *Provider) executeTranscodePipeline(ctx context.Context, pl *transcodePipeline) error {
@@ -168,19 +161,13 @@ func (p *Provider) executeTranscodePipeline(ctx context.Context, pl *transcodePi
 
 // runTranscodeLoop executes the main decode-encode loop.
 //
-// Takes inputCtx (*astiav.FormatContext) which provides the
-// input media stream.
-// Takes outputCtx (*astiav.FormatContext) which receives the
-// transcoded output.
-// Takes decoderCtx (*astiav.CodecContext) which decodes input
-// packets.
-// Takes encoderCtx (*astiav.CodecContext) which encodes frames
-// for output.
-// Takes videoStreamIndex (int) which identifies which stream
-// to process.
+// Takes inputCtx (*astiav.FormatContext) which provides the input media stream.
+// Takes outputCtx (*astiav.FormatContext) which receives the transcoded output.
+// Takes decoderCtx (*astiav.CodecContext) which decodes input packets.
+// Takes encoderCtx (*astiav.CodecContext) which encodes frames for output.
+// Takes videoStreamIndex (int) which identifies which stream to process.
 //
-// Returns error when reading, decoding, encoding, or writing
-// fails.
+// Returns error when reading, decoding, encoding, or writing fails.
 func (p *Provider) runTranscodeLoop(
 	ctx context.Context,
 	inputCtx *astiav.FormatContext,
@@ -207,23 +194,16 @@ func (p *Provider) runTranscodeLoop(
 	return nil
 }
 
-// decodeEncodeAndFlush runs the packet reading, decoding,
-// encoding, and flush stages.
+// decodeEncodeAndFlush runs the packet reading, decoding, encoding, and flush stages.
 //
-// Takes inputCtx (*astiav.FormatContext) which provides the
-// input media stream.
-// Takes outputCtx (*astiav.FormatContext) which receives the
-// transcoded output.
-// Takes decoderCtx (*astiav.CodecContext) which decodes input
-// packets.
-// Takes encoderCtx (*astiav.CodecContext) which encodes frames
-// for output.
-// Takes videoStreamIndex (int) which identifies which stream to
-// process.
+// Takes inputCtx (*astiav.FormatContext) which provides the input media stream.
+// Takes outputCtx (*astiav.FormatContext) which receives the transcoded output.
+// Takes decoderCtx (*astiav.CodecContext) which decodes input packets.
+// Takes encoderCtx (*astiav.CodecContext) which encodes frames for output.
+// Takes videoStreamIndex (int) which identifies which stream to process.
 //
 // Returns int64 which is the total number of frames processed.
-// Returns error when reading, decoding, encoding, or flushing
-// fails.
+// Returns error when reading, decoding, encoding, or flushing fails.
 func (p *Provider) decodeEncodeAndFlush(
 	ctx context.Context,
 	inputCtx *astiav.FormatContext,
@@ -256,18 +236,14 @@ func (p *Provider) decodeEncodeAndFlush(
 	return frameCount, nil
 }
 
-// buildFrameProcessor returns a closure that scales, timestamps,
-// and encodes each decoded frame.
+// buildFrameProcessor returns a closure that scales, timestamps, and encodes each decoded
+// frame.
 //
-// Takes outputCtx (*astiav.FormatContext) which receives the
-// encoded packets.
-// Takes encoderCtx (*astiav.CodecContext) which encodes the
-// processed frames.
-// Takes frameCount (*int64) which is incremented for each frame
-// processed.
+// Takes outputCtx (*astiav.FormatContext) which receives the encoded packets.
+// Takes encoderCtx (*astiav.CodecContext) which encodes the processed frames.
+// Takes frameCount (*int64) which is incremented for each frame processed.
 //
-// Returns func(*astiav.Frame) error which processes a single
-// decoded frame.
+// Returns func(*astiav.Frame) error which processes a single decoded frame.
 func (p *Provider) buildFrameProcessor(
 	ctx context.Context,
 	outputCtx *astiav.FormatContext,
@@ -297,22 +273,16 @@ func (p *Provider) buildFrameProcessor(
 	}
 }
 
-// readAndDecodePackets reads packets from the input and decodes
-// video packets, calling processFrame for each decoded frame.
+// readAndDecodePackets reads packets from the input and decodes video packets, calling
+// processFrame for each decoded frame.
 //
-// Takes inputCtx (*astiav.FormatContext) which provides the
-// input media stream.
-// Takes decoderCtx (*astiav.CodecContext) which decodes video
-// packets.
-// Takes videoStreamIndex (int) which identifies the target
-// stream.
-// Takes packet (*astiav.Packet) which is the reusable packet
-// buffer.
-// Takes processFrame (func(*astiav.Frame) error) which handles
-// each decoded frame.
+// Takes inputCtx (*astiav.FormatContext) which provides the input media stream.
+// Takes decoderCtx (*astiav.CodecContext) which decodes video packets.
+// Takes videoStreamIndex (int) which identifies the target stream.
+// Takes packet (*astiav.Packet) which is the reusable packet buffer.
+// Takes processFrame (func(*astiav.Frame) error) which handles each decoded frame.
 //
-// Returns error when reading or decoding fails, or when the
-// context is cancelled.
+// Returns error when reading or decoding fails, or when the context is cancelled.
 func (p *Provider) readAndDecodePackets(
 	ctx context.Context,
 	inputCtx *astiav.FormatContext,
@@ -362,8 +332,8 @@ func (p *Provider) readAndDecodePackets(
 	}
 }
 
-// createOutputFormatContext creates an output format context for writing
-// transcoded video.
+// createOutputFormatContext creates an output format context for writing transcoded
+// video.
 //
 // Takes output (io.Writer) which receives the transcoded video data.
 // Takes spec (media.TranscodeSpec) which defines the output format settings.
@@ -426,15 +396,13 @@ func (*Provider) createOutputFormatContext(
 	return outputFormatContext, nil
 }
 
-// writeEncodedPacket writes an encoded packet to the output
-// stream, rescaling timestamps and recording metrics.
+// writeEncodedPacket writes an encoded packet to the output stream, rescaling timestamps
+// and recording metrics.
 //
-// Takes outputCtx (*astiav.FormatContext) which receives the
-// written packet.
-// Takes encoderCtx (*astiav.CodecContext) which provides the
-// encoder time base for timestamp rescaling.
-// Takes encodedPacket (*astiav.Packet) which is the packet to
-// write.
+// Takes outputCtx (*astiav.FormatContext) which receives the written packet.
+// Takes encoderCtx (*astiav.CodecContext) which provides the encoder time base for
+// timestamp rescaling.
+// Takes encodedPacket (*astiav.Packet) which is the packet to write.
 //
 // Returns error when the interleaved write fails.
 func writeEncodedPacket(
@@ -456,13 +424,11 @@ func writeEncodedPacket(
 	return nil
 }
 
-// recordTranscodeLoopMetrics records frame count and FPS
-// metrics after the transcode loop completes.
+// recordTranscodeLoopMetrics records frame count and FPS metrics after the transcode loop
+// completes.
 //
-// Takes frameCount (int64) which is the number of frames
-// processed.
-// Takes duration (time.Duration) which is the elapsed time for
-// the transcode loop.
+// Takes frameCount (int64) which is the number of frames processed.
+// Takes duration (time.Duration) which is the elapsed time for the transcode loop.
 func recordTranscodeLoopMetrics(ctx context.Context, frameCount int64, duration time.Duration) {
 	fps := float64(frameCount) / duration.Seconds()
 	FramesProcessedCount.Add(ctx, frameCount)

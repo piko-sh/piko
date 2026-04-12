@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -66,10 +65,10 @@ func TestMockDelayedPublisher_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ScheduleCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.StartCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.StopCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PendingCountCallCount))
+	assert.Equal(t, int64(goroutines), m.ScheduleCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.StartCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.StopCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.PendingCountCallCount.Load())
 }
 
 func TestMockDelayedPublisher_Schedule(t *testing.T) {
@@ -82,7 +81,7 @@ func TestMockDelayedPublisher_Schedule(t *testing.T) {
 		err := m.Schedule(context.Background(), &Task{})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ScheduleCallCount))
+		assert.Equal(t, int64(1), m.ScheduleCallCount.Load())
 	})
 
 	t.Run("delegates to ScheduleFunc", func(t *testing.T) {
@@ -127,7 +126,7 @@ func TestMockDelayedPublisher_Start(t *testing.T) {
 		m := &MockDelayedPublisher{}
 		m.Start(context.Background())
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.StartCallCount))
+		assert.Equal(t, int64(1), m.StartCallCount.Load())
 	})
 
 	t.Run("delegates to StartFunc", func(t *testing.T) {
@@ -154,7 +153,7 @@ func TestMockDelayedPublisher_Stop(t *testing.T) {
 		m := &MockDelayedPublisher{}
 		m.Stop()
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.StopCallCount))
+		assert.Equal(t, int64(1), m.StopCallCount.Load())
 	})
 
 	t.Run("delegates to StopFunc", func(t *testing.T) {
@@ -182,7 +181,7 @@ func TestMockDelayedPublisher_PendingCount(t *testing.T) {
 		got := m.PendingCount()
 
 		assert.Equal(t, 0, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PendingCountCallCount))
+		assert.Equal(t, int64(1), m.PendingCountCallCount.Load())
 	})
 
 	t.Run("delegates to PendingCountFunc", func(t *testing.T) {

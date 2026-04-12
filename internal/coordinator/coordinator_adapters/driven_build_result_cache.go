@@ -35,15 +35,17 @@ const (
 	defaultCacheSize = 5
 )
 
-// buildResultCache implements BuildResultCachePort using the cache hexagon. It
-// provides fast access to recent builds, useful for development servers where
-// it can offer a quick undo by caching file states from moments before.
+// buildResultCache implements BuildResultCachePort using the cache hexagon. It provides
+// fast access to recent builds, useful for development servers where it can offer a quick
+// undo by caching file states from moments before.
 type buildResultCache struct {
 	// cache is the underlying cache instance from the cache hexagon.
 	cache cache_domain.Cache[string, *annotator_dto.ProjectAnnotationResult]
 }
 
-var _ coordinator_domain.BuildResultCachePort = (*buildResultCache)(nil)
+var (
+	_ coordinator_domain.BuildResultCachePort = (*buildResultCache)(nil)
+)
 
 // Get retrieves a build result from the cache by its key.
 //
@@ -78,12 +80,11 @@ func (c *buildResultCache) Get(ctx context.Context, key string) (*annotator_dto.
 
 // Set stores a build result in the cache with the given key.
 //
-// If the key already exists, its value is updated. If the cache is at capacity,
-// the least recently used item is evicted before adding the new entry.
+// If the key already exists, its value is updated. If the cache is at capacity, the least
+// recently used item is evicted before adding the new entry.
 //
 // Takes key (string) which identifies the cache entry.
-// Takes result (*annotator_dto.ProjectAnnotationResult) which is the value
-// to store.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which is the value to store.
 //
 // Returns error when the operation fails.
 func (c *buildResultCache) Set(ctx context.Context, key string, result *annotator_dto.ProjectAnnotationResult) error {
@@ -122,14 +123,12 @@ func (c *buildResultCache) Close() {
 	_ = c.cache.Close(context.Background())
 }
 
-// NewBuildResultCache creates a new cache for build results, backed by the
-// cache hexagon.
+// NewBuildResultCache creates a new cache for build results, backed by the cache hexagon.
 //
-// Takes cacheService (cache_domain.Service) which provides the
-// cache infrastructure.
+// Takes cacheService (cache_domain.Service) which provides the cache infrastructure.
 //
-// Returns coordinator_domain.BuildResultCachePort which provides build result
-// caching with LRU eviction.
+// Returns coordinator_domain.BuildResultCachePort which provides build result caching
+// with LRU eviction.
 // Returns error when the cache cannot be created.
 func NewBuildResultCache(ctx context.Context, cacheService cache_domain.Service) (coordinator_domain.BuildResultCachePort, error) {
 	c, err := cache_domain.NewCacheBuilder[string, *annotator_dto.ProjectAnnotationResult](cacheService).

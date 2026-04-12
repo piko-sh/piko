@@ -16,33 +16,29 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pml_domain defines the core interfaces and domain models for
-// the PikoML transformation engine.
+// Package pml_domain defines the core interfaces and domain models for the PikoML
+// transformation engine.
 //
-// PikoML (Piko Markup Language) transforms custom <pml-*> components into
-// email-safe HTML with responsive CSS. Defines the contracts ([Transformer],
-// [ComponentRegistry], [Component], [MediaQueryCollector],
-// [MSOConditionalCollector]) between the transformation engine, component
-// implementations, and validation logic, plus supporting types like
-// [TransformationContext] and [StyleManager].
+// PikoML (Piko Markup Language) transforms custom <pml-*> components into email-safe HTML
+// with responsive CSS. Defines the contracts ([Transformer], [ComponentRegistry],
+// [Component], [MediaQueryCollector], [MSOConditionalCollector]) between the
+// transformation engine, component implementations, and validation logic, plus supporting
+// types like [TransformationContext] and [StyleManager].
 //
 // # Transformation pipeline
 //
 // The engine performs a two-pass transformation:
 //
-//  1. Autowrap Pass: Ensures structural validity using post-order
-//     traversal, wrapping loose content components into implicit
-//     <pml-row><pml-col> layout structures
-//  2. Transform Pass: Recursively converts PikoML components to
-//     email-safe HTML
+//  1. Autowrap Pass: Ensures structural validity using post-order traversal, wrapping
+//     loose content components into implicit <pml-row><pml-col> layout structures
+//  2. Transform Pass: Recursively converts PikoML components to email-safe HTML
 //
-// Components receive a [TransformationContext] with access to
-// configuration, computed styles (via [StyleManager]), parent
-// context, and collectors for responsive CSS and MSO conditionals.
+// Components receive a [TransformationContext] with access to configuration, computed
+// styles (via [StyleManager]), parent context, and collectors for responsive CSS and MSO
+// conditionals.
 //
 // # Email rendering
 //
-// For email contexts, use TransformForEmail which initialises an
-// [EmailAssetRegistry] to collect CID embedding requests from
-// <pml-img> tags.
+// For email contexts, use TransformForEmail which initialises an [EmailAssetRegistry] to
+// collect CID embedding requests from <pml-img> tags.
 package pml_domain

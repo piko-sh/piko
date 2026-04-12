@@ -16,20 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package spamdetect_provider_builtin_detectors provides the built-in
-// spam detection detectors: honeypot, gibberish, link density,
-// blocklist, timing, and repetition.
+// Package spamdetect_provider_builtin_detectors provides the built-in spam detection
+// detectors: honeypot, gibberish, link density, blocklist, timing, and repetition.
 //
-// The detectors operate on schema-annotated form fields with no
-// external service dependency and are suitable for production
-// deployments. The repetition detector requires a cache backend; the
-// others are stateless.
+// The detectors operate on schema-annotated form fields with no external service
+// dependency and are suitable for production deployments. The repetition detector
+// requires a cache backend; the others are stateless.
 //
-// Use [RegisterDefaults] to register all six with a service instance,
-// or construct and register them individually with their respective
-// [NewHoneypotDetector], [NewGibberishDetector], [NewLinkDensityDetector],
-// [NewBlocklistDetector], [NewTimingDetector], and [NewRepetitionDetector]
-// constructors.
+// Use [RegisterDefaults] to register all six with a service instance, or construct and
+// register them individually with their respective [NewHoneypotDetector],
+// [NewGibberishDetector], [NewLinkDensityDetector], [NewBlocklistDetector],
+// [NewTimingDetector], and [NewRepetitionDetector] constructors.
 //
 // # Thread safety
 //

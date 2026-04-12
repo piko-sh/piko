@@ -27,38 +27,36 @@ import (
 	"strings"
 )
 
-// summaryEntry holds the details of a single configuration field for summary
-// output.
+// summaryEntry holds the details of a single configuration field for summary output.
 type summaryEntry struct {
-	// KeyPath is the full dot-separated path to the field within the config
-	// struct (e.g. "Network.Port").
+	// KeyPath is the full dot-separated path to the field within the config struct (e.g.
+	// "Network.Port").
 	KeyPath string
 
-	// Value is the final resolved value of the field. It holds strings, ints,
-	// bools, and other types.
+	// Value is the final resolved value of the field. It holds strings, ints, bools, and
+	// other types.
 	Value any
 
 	// Source is the name of the source that provided the final value.
 	Source string
 
-	// Tag holds the struct tag for the field. Used to check for metadata
-	// like `summary:"hide"` to redact sensitive values.
+	// Tag holds the struct tag for the field. Used to check for metadata like
+	// `summary:"hide"` to redact sensitive values.
 	Tag reflect.StructTag
 }
 
-// Summarise creates a readable string of all configuration fields that were
-// set by a source other than 'default'. It groups the fields by their source
-// (file, env, flag, etc.) and can hide sensitive values.
+// Summarise creates a readable string of all configuration fields that were set by a
+// source other than 'default'. It groups the fields by their source (file, env, flag,
+// etc.) and can hide sensitive values.
 //
-// A field can be marked to hide its value in the summary by adding the struct
-// tag `summary:"hide"`.
+// A field can be marked to hide its value in the summary by adding the struct tag
+// `summary:"hide"`.
 //
-// Takes ctx (*LoadContext) which provides the configuration target and field
-// source mappings to summarise.
+// Takes ctx (*LoadContext) which provides the configuration target and field source
+// mappings to summarise.
 //
 // Returns string which contains the formatted summary of user-set values.
-// Returns error when ctx is nil, ctx.Target is nil, or a field path cannot be
-// resolved.
+// Returns error when ctx is nil, ctx.Target is nil, or a field path cannot be resolved.
 func Summarise(ctx *LoadContext) (string, error) {
 	if ctx == nil || ctx.Target == nil {
 		return "", errors.New("invalid LoadContext provided")
@@ -104,11 +102,10 @@ func Summarise(ctx *LoadContext) (string, error) {
 
 // formatSummary builds the final output string from the sorted entries.
 //
-// Takes entries ([]summaryEntry) which contains the configuration entries to
-// format.
+// Takes entries ([]summaryEntry) which contains the configuration entries to format.
 //
-// Returns string which is the formatted summary with source groupings and
-// sensitive values hidden.
+// Returns string which is the formatted summary with source groupings and sensitive
+// values hidden.
 func formatSummary(entries []summaryEntry) string {
 	var builder strings.Builder
 	builder.WriteString("--- Applied Configuration Summary ---\n")
@@ -133,16 +130,16 @@ func formatSummary(entries []summaryEntry) string {
 	return builder.String()
 }
 
-// getFieldAndValueByPath navigates a struct using a dot-separated path and
-// returns the StructField and Value for the final field.
+// getFieldAndValueByPath navigates a struct using a dot-separated path and returns the
+// StructField and Value for the final field.
 //
 // Takes v (reflect.Value) which is the struct value to navigate.
 // Takes path (string) which is the dot-separated path to the target field.
 //
 // Returns *reflect.StructField which describes the final field in the path.
 // Returns reflect.Value which is the value of the final field.
-// Returns error when the path is empty, a path part is not a struct, a field
-// is not found, or a pointer in the path is nil.
+// Returns error when the path is empty, a path part is not a struct, a field is not
+// found, or a pointer in the path is nil.
 func getFieldAndValueByPath(v reflect.Value, path string) (*reflect.StructField, reflect.Value, error) {
 	if path == "" {
 		return nil, reflect.Value{}, errors.New("empty path")

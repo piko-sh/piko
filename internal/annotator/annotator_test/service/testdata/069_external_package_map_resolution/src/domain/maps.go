@@ -179,8 +179,8 @@ var DeepConfig = DeepConfigType{
 		Street: "456 High St",
 		City:   "Manchester",
 		Country: Country{
-			Name: "United Kingdom",
-			Code: "UK",
+			Name:    "United Kingdom",
+			Code:    "UK",
 			Regions: nil,
 		},
 	},

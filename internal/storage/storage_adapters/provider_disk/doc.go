@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_disk implements the storage provider port using
-// the local filesystem with atomic writes and safedisk sandboxing.
+// Package provider_disk implements the storage provider port using the local filesystem
+// with atomic writes and safedisk sandboxing.
 //
-// Writes use a temporary file plus rename to prevent data corruption
-// from partial writes, and all filesystem operations are sandboxed
-// with safedisk to prevent path traversal attacks. The package
-// supports both Unix and Windows platforms via platform-specific disk
-// space monitoring.
+// Writes use a temporary file plus rename to prevent data corruption from partial writes,
+// and all filesystem operations are sandboxed with safedisk to prevent path traversal
+// attacks. The package supports both Unix and Windows platforms via platform-specific
+// disk space monitoring.
 //
 // All methods are safe for concurrent use.
 package provider_disk

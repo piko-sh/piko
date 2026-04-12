@@ -16,6 +16,6 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_schema_orchestrator_sqlite provides embedded SQLite migration
-// files for the piko orchestrator database.
+// Package db_schema_orchestrator_sqlite provides embedded SQLite migration files for the
+// piko orchestrator database.
 package db_schema_orchestrator_sqlite

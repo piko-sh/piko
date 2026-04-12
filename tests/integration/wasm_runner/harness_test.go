@@ -30,7 +30,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"piko.sh/piko/wdk/json"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/caller"
@@ -43,10 +42,13 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/wasm/wasm_dto"
+	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/logger"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 type testCase struct {
 	Name string
@@ -212,7 +214,9 @@ func loadSources(t *testing.T, srcDir string) map[string]string {
 	return sources
 }
 
-var csrfTokenRegex = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
+var (
+	csrfTokenRegex = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
+)
 
 func normaliseHTML(html []byte) []byte {
 	return csrfTokenRegex.ReplaceAll(html, []byte(`<meta name="csrf-$1" content="[NORMALIZED]">`))

@@ -28,24 +28,25 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// memoryFileHashCache is a thread-safe, in-memory implementation of
-// FileHashCachePort that provides stat-then-read optimisation without
-// persistent storage. It is best suited for development mode where cache
-// lifetime matches process lifetime.
+// memoryFileHashCache is a thread-safe, in-memory implementation of FileHashCachePort
+// that provides stat-then-read optimisation without persistent storage. It is best suited
+// for development mode where cache lifetime matches process lifetime.
 type memoryFileHashCache struct {
-	// cache maps file paths to their cached entries. Paths are absolute and
-	// cleaned using filepath.Clean.
+	// cache maps file paths to their cached entries. Paths are absolute and cleaned using
+	// filepath.Clean.
 	cache map[string]cacheEntry
 
 	// mu guards access to the cache map for safe concurrent reads and writes.
 	mu sync.RWMutex
 }
 
-var _ coordinator_domain.FileHashCachePort = (*memoryFileHashCache)(nil)
+var (
+	_ coordinator_domain.FileHashCachePort = (*memoryFileHashCache)(nil)
+)
 
-// Get retrieves the cached hash for a file if its modification time matches.
-// This uses a "stat-then-read" pattern by letting the caller check the cache
-// using only file metadata (ModTime from os.Stat).
+// Get retrieves the cached hash for a file if its modification time matches. This uses a
+// "stat-then-read" pattern by letting the caller check the cache using only file metadata
+// (ModTime from os.Stat).
 //
 // Takes path (string) which specifies the file path to look up.
 // Takes modTime (time.Time) which is the current modification time to compare.
@@ -56,8 +57,8 @@ func (m *memoryFileHashCache) Get(ctx context.Context, path string, modTime time
 	return getFromFileHashCache(ctx, &m.mu, m.cache, "MemoryFileHashCache.Get", path, modTime)
 }
 
-// Set stores or updates the cached hash for a file with its modification time.
-// Call this after computing a new hash from the file's content.
+// Set stores or updates the cached hash for a file with its modification time. Call this
+// after computing a new hash from the file's content.
 //
 // Takes path (string) which is the file path to cache.
 // Takes modTime (time.Time) which is the file's modification time.
@@ -66,8 +67,8 @@ func (m *memoryFileHashCache) Set(ctx context.Context, path string, modTime time
 	setInFileHashCache(ctx, &m.mu, m.cache, "MemoryFileHashCache.Set", path, modTime, hash)
 }
 
-// Load performs no operation for the in-memory cache.
-// It exists to satisfy the FileHashCachePort interface.
+// Load performs no operation for the in-memory cache. It exists to satisfy the
+// FileHashCachePort interface.
 //
 // Returns error when the operation fails, though this always returns nil.
 func (*memoryFileHashCache) Load(ctx context.Context) error {
@@ -80,8 +81,8 @@ func (*memoryFileHashCache) Load(ctx context.Context) error {
 	return nil
 }
 
-// Persist does nothing for the in-memory cache.
-// It satisfies the FileHashCachePort interface.
+// Persist does nothing for the in-memory cache. It satisfies the FileHashCachePort
+// interface.
 //
 // Returns error which is always nil for this implementation.
 func (*memoryFileHashCache) Persist(ctx context.Context) error {
@@ -94,11 +95,11 @@ func (*memoryFileHashCache) Persist(ctx context.Context) error {
 	return nil
 }
 
-// NewMemoryFileHashCache creates a new in-memory file hash cache.
-// The cache starts empty and is filled as hashes are calculated.
+// NewMemoryFileHashCache creates a new in-memory file hash cache. The cache starts empty
+// and is filled as hashes are calculated.
 //
-// Returns coordinator_domain.FileHashCachePort which provides the cache
-// interface for file hash operations.
+// Returns coordinator_domain.FileHashCachePort which provides the cache interface for
+// file hash operations.
 func NewMemoryFileHashCache() coordinator_domain.FileHashCachePort {
 	return &memoryFileHashCache{
 		cache: make(map[string]cacheEntry),

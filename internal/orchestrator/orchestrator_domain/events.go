@@ -18,33 +18,34 @@
 
 package orchestrator_domain
 
-import "time"
+import (
+	"time"
+)
 
 const (
-	// TopicTaskCompleted is the event topic published when a task completes or
-	// fails. The task dispatcher uses this topic to signal completion for
-	// observability and workflow tracking.
+	// TopicTaskCompleted is the event topic published when a task completes or fails. The
+	// task dispatcher uses this topic to signal completion for observability and workflow
+	// tracking.
 	TopicTaskCompleted = "task.completed.v1"
 
-	// TopicTaskDispatchHigh is the Watermill topic for distributing
-	// high-priority tasks using competing-consumer semantics, processed
-	// by more handlers (default 10) for higher throughput.
+	// TopicTaskDispatchHigh is the Watermill topic for distributing high-priority tasks
+	// using competing-consumer semantics, processed by more handlers (default 10) for higher
+	// throughput.
 	TopicTaskDispatchHigh = "task.dispatch.high.v1"
 
-	// TopicTaskDispatchNormal is the Watermill topic for distributing
-	// normal-priority tasks using competing-consumer semantics, processed
-	// by fewer handlers (default 5) than high priority.
+	// TopicTaskDispatchNormal is the Watermill topic for distributing normal-priority tasks
+	// using competing-consumer semantics, processed by fewer handlers (default 5) than high
+	// priority.
 	TopicTaskDispatchNormal = "task.dispatch.normal.v1"
 
-	// TopicTaskDispatchLow is the Watermill message topic for distributing
-	// low-priority tasks. Tasks published here use competing-consumer semantics
-	// and are processed by the fewest handlers (default 2).
+	// TopicTaskDispatchLow is the Watermill message topic for distributing low-priority
+	// tasks. Tasks published here use competing-consumer semantics and are processed by the
+	// fewest handlers (default 2).
 	TopicTaskDispatchLow = "task.dispatch.low.v1"
 )
 
-// CompletionEvent represents a task completion notification (success or
-// failure). It is published to the event bus for observability and workflow
-// tracking.
+// CompletionEvent represents a task completion notification (success or failure). It is
+// published to the event bus for observability and workflow tracking.
 type CompletionEvent struct {
 	// CompletedAt is when the task finished.
 	CompletedAt time.Time `json:"completedAt"`

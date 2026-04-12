@@ -48,9 +48,8 @@ func GetLoggerForPackage(f *LogFactory, name string) Logger {
 	return f.getLoggerForPackage(name)
 }
 
-var DetectEnvironment = detectEnvironment
-
 var (
+	DetectEnvironment            = detectEnvironment
 	NewRuntimeStackTraceProvider = newRuntimeStackTraceProvider
 	NewMockStackTraceProvider    = newMockStackTraceProvider
 	NewLifecycleManager          = newLifecycleManager

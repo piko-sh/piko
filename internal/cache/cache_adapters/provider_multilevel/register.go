@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 )
 
-// createMultiLevelAdapterGeneric is a helper that creates a multi-level adapter
-// with type-erased parameters and returns it as an interface{}.
-// The builder will type-assert it back to Cache[K, V].
+// createMultiLevelAdapterGeneric is a helper that creates a multi-level adapter with
+// type-erased parameters and returns it as an interface{}. The builder will type-assert
+// it back to Cache[K, V].
 //
 // Takes name (string) which identifies the adapter.
 // Takes l1 (any) which is the first level cache with baked-in types.

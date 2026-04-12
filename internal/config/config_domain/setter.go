@@ -28,20 +28,18 @@ import (
 	"time"
 )
 
-// setField assigns a string value to a struct field, converting it to the
-// appropriate type. It handles pointer dereferencing, unmarshalling, and
-// various primitive types including strings, integers, floats, booleans,
-// slices, and maps.
+// setField assigns a string value to a struct field, converting it to the appropriate
+// type. It handles pointer dereferencing, unmarshalling, and various primitive types
+// including strings, integers, floats, booleans, slices, and maps.
 //
-// When the field has an "overwrite" tag set to "false" and already contains a
-// non-zero value, the field is left unchanged.
+// When the field has an "overwrite" tag set to "false" and already contains a non-zero
+// value, the field is left unchanged.
 //
 // Takes field (reflect.Value) which is the target field to set.
 // Takes configValue (string) which is the string value to convert and assign.
 // Takes tags (reflect.StructTag) which provides struct field metadata.
 //
-// Returns error when the value cannot be parsed or the field type is
-// unsupported.
+// Returns error when the value cannot be parsed or the field type is unsupported.
 func setField(field reflect.Value, configValue string, tags reflect.StructTag) error {
 	if overwriteTag := tags.Get("overwrite"); overwriteTag == "false" && !field.IsZero() {
 		return nil
@@ -84,8 +82,7 @@ func setField(field reflect.Value, configValue string, tags reflect.StructTag) e
 	return nil
 }
 
-// tryUnmarshal attempts to decode value into field using standard unmarshaler
-// interfaces.
+// tryUnmarshal attempts to decode value into field using standard unmarshaler interfaces.
 //
 // Takes field (reflect.Value) which is the target field to unmarshal into.
 // Takes configValue (string) which is the string value to decode.
@@ -109,13 +106,12 @@ func tryUnmarshal(field reflect.Value, configValue string) (bool, error) {
 	return false, nil
 }
 
-// isUnmarshaler checks whether a value implements a known unmarshaler
-// interface.
+// isUnmarshaler checks whether a value implements a known unmarshaler interface.
 //
 // Takes value (reflect.Value) which is the value to check.
 //
-// Returns bool which is true if the value implements TextUnmarshaler,
-// Unmarshaler, or BinaryUnmarshaler.
+// Returns bool which is true if the value implements TextUnmarshaler, Unmarshaler, or
+// BinaryUnmarshaler.
 func isUnmarshaler(value reflect.Value) bool {
 	if !value.CanAddr() {
 		return false
@@ -129,8 +125,8 @@ func isUnmarshaler(value reflect.Value) bool {
 
 // setIntField sets an integer field from a string value.
 //
-// When the field type is time.Duration, parses the value as a duration string.
-// Otherwise, parses the value as a base-10 integer.
+// When the field type is time.Duration, parses the value as a duration string. Otherwise,
+// parses the value as a base-10 integer.
 //
 // Takes field (reflect.Value) which is the integer field to set.
 // Takes configValue (string) which is the string value to parse.
@@ -183,12 +179,11 @@ func setFloatField(field reflect.Value, configValue string) error {
 	return nil
 }
 
-// setSliceField fills a slice field from a string value by splitting it with a
-// delimiter.
+// setSliceField fills a slice field from a string value by splitting it with a delimiter.
 //
-// For byte slices, assigns the string directly as bytes. For other slice types,
-// splits the value by the delimiter tag (or comma by default) and converts each
-// part using setField.
+// For byte slices, assigns the string directly as bytes. For other slice types, splits
+// the value by the delimiter tag (or comma by default) and converts each part using
+// setField.
 //
 // Takes field (reflect.Value) which is the slice field to fill.
 // Takes configValue (string) which is the string to split and parse.

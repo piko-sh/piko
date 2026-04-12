@@ -16,20 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package migration_sql implements MigrationExecutorPort using
-// database/sql. It handles migration history tracking, advisory
-// locking, and per-migration transaction wrapping for both SQLite and
-// PostgreSQL via dialect-specific configuration.
+// Package migration_sql implements MigrationExecutorPort using database/sql. It handles
+// migration history tracking, advisory locking, and per-migration transaction wrapping
+// for both SQLite and PostgreSQL via dialect-specific configuration.
 //
-// The executor assumes the database/sql driver supports multi-statement
-// execution in a single ExecContext call. Known compatible drivers
-// include lib/pq and pgx/stdlib for PostgreSQL, and modernc.org/sqlite
-// and mattn/go-sqlite3 for SQLite. If a driver does not support this,
-// individual migration files must contain a single statement each.
+// The executor assumes the database/sql driver supports multi-statement execution in a
+// single ExecContext call. Known compatible drivers include lib/pq and pgx/stdlib for
+// PostgreSQL, and modernc.org/sqlite and mattn/go-sqlite3 for SQLite. If a driver does
+// not support this, individual migration files must contain a single statement each.
 //
-// Migrations using the -- piko:no-transaction directive bypass
-// transaction wrapping. If the process crashes after the SQL executes
-// but before the history record is committed, the migration will not
-// be recorded and will be treated as pending on the next run. For this
-// reason, no-transaction migrations must be idempotent.
+// Migrations using the -- piko:no-transaction directive bypass transaction wrapping. If
+// the process crashes after the SQL executes but before the history record is committed,
+// the migration will not be recorded and will be treated as pending on the next run. For
+// this reason, no-transaction migrations must be idempotent.
 package migration_sql

@@ -795,14 +795,12 @@ func TestResolveIPScoped_Nil(t *testing.T) {
 
 func TestResolveIPScoped_True(t *testing.T) {
 	t.Parallel()
-	value := true
-	assert.True(t, resolveIPScoped(&value))
+	assert.True(t, resolveIPScoped(new(true)))
 }
 
 func TestResolveIPScoped_False(t *testing.T) {
 	t.Parallel()
-	value := false
-	assert.False(t, resolveIPScoped(&value))
+	assert.False(t, resolveIPScoped(new(false)))
 }
 
 type mockRegistrationService struct {

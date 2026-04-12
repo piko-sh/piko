@@ -23,19 +23,18 @@ import (
 	"strings"
 )
 
-// BuildReverseDependencyMapFromGraph creates a map from import-relative paths
-// to the project-relative paths of components that depend on them.
+// BuildReverseDependencyMapFromGraph creates a map from import-relative paths to the
+// project-relative paths of components that depend on them.
 //
-// For example, if pages/login.pk imports components/card.pk, the returned map
-// will contain: "components/card.pk" -> ["pages/login.pk"].
+// For example, if pages/login.pk imports components/card.pk, the returned map will
+// contain: "components/card.pk" -> ["pages/login.pk"].
 //
-// Takes graph (*ComponentGraph) which provides the parsed components and their
-// imports.
-// Takes projectRoot (string) which is the absolute path to the project root,
-// used to convert SourcePath to relative paths.
+// Takes graph (*ComponentGraph) which provides the parsed components and their imports.
+// Takes projectRoot (string) which is the absolute path to the project root, used to
+// convert SourcePath to relative paths.
 //
-// Returns map[string][]string which maps each import-relative path to the list
-// of project-relative paths of components that depend on it.
+// Returns map[string][]string which maps each import-relative path to the list of
+// project-relative paths of components that depend on it.
 func BuildReverseDependencyMapFromGraph(
 	graph *ComponentGraph,
 	projectRoot string,
@@ -58,18 +57,16 @@ func BuildReverseDependencyMapFromGraph(
 	return reverseDeps
 }
 
-// GetTransitiveDependents performs a breadth-first search through the reverse
-// dependency map to find all components transitively affected by a change to
-// the component at changedPath.
+// GetTransitiveDependents performs a breadth-first search through the reverse dependency
+// map to find all components transitively affected by a change to the component at
+// changedPath.
 //
-// Takes reverseDeps (map[string][]string) which maps each path to the paths of
-// components that depend on it.
-// Takes changedPath (string) which is the project-relative path of the changed
-// component.
+// Takes reverseDeps (map[string][]string) which maps each path to the paths of components
+// that depend on it.
+// Takes changedPath (string) which is the project-relative path of the changed component.
 //
-// Returns []string which contains the project-relative paths of all
-// transitively affected components, not including changedPath itself. Safe for
-// cyclic graphs.
+// Returns []string which contains the project-relative paths of all transitively affected
+// components, not including changedPath itself. Safe for cyclic graphs.
 func GetTransitiveDependents(
 	reverseDeps map[string][]string,
 	changedPath string,
@@ -95,12 +92,11 @@ func GetTransitiveDependents(
 	return affected
 }
 
-// FilterEntryPointsByRelativePaths returns only the entry points whose paths
-// match the given project-relative paths. Each relative path is prefixed with
-// moduleName + "/" before matching against EntryPoint.Path.
+// FilterEntryPointsByRelativePaths returns only the entry points whose paths match the
+// given project-relative paths. Each relative path is prefixed with moduleName + "/"
+// before matching against EntryPoint.Path.
 //
-// Takes entryPoints ([]EntryPoint) which is the full set of entry points to
-// filter.
+// Takes entryPoints ([]EntryPoint) which is the full set of entry points to filter.
 // Takes relPaths ([]string) which contains the project-relative paths to keep.
 // Takes moduleName (string) which is prepended to each relPath for matching.
 //
@@ -127,13 +123,13 @@ func FilterEntryPointsByRelativePaths(
 	return filtered
 }
 
-// extractImportRelativePath gets the relative path from a piko import path by
-// stripping the module name prefix (everything before the first slash).
+// extractImportRelativePath gets the relative path from a piko import path by stripping
+// the module name prefix (everything before the first slash).
 //
 // Takes importPath (string) which is the full import path to process.
 //
-// Returns string which is the part after the first slash, or the original path
-// if no slash is found.
+// Returns string which is the part after the first slash, or the original path if no
+// slash is found.
 func extractImportRelativePath(importPath string) string {
 	parts := strings.SplitN(importPath, "/", 2)
 	if len(parts) > 1 {

@@ -34,13 +34,13 @@ func TestBuiltinAppendVariants(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(3), "append_int_result", `s := []int{1}; s = append(s, 2, 3); s[2]`},
-		{"b", "append_string", `s := []string{"a"}; s = append(s, "b"); s[1]`},
-		{float64(2.5), "append_float", `s := []float64{1.0}; s = append(s, 2.5); s[1]`},
-		{false, "append_bool", `s := []bool{true}; s = append(s, false); s[1]`},
-		{int64(5), "append_len", `s := []int{1}; s = append(s, 2, 3, 4, 5); len(s)`},
-		{int64(42), "append_empty", `s := make([]int, 0); s = append(s, 42); s[0]`},
-		{int64(10), "append_to_nil", `var s []int; s = append(s, 10); s[0]`},
+		{expect: int64(3), name: "append_int_result", code: `s := []int{1}; s = append(s, 2, 3); s[2]`},
+		{expect: "b", name: "append_string", code: `s := []string{"a"}; s = append(s, "b"); s[1]`},
+		{expect: float64(2.5), name: "append_float", code: `s := []float64{1.0}; s = append(s, 2.5); s[1]`},
+		{expect: false, name: "append_bool", code: `s := []bool{true}; s = append(s, false); s[1]`},
+		{expect: int64(5), name: "append_len", code: `s := []int{1}; s = append(s, 2, 3, 4, 5); len(s)`},
+		{expect: int64(42), name: "append_empty", code: `s := make([]int, 0); s = append(s, 42); s[0]`},
+		{expect: int64(10), name: "append_to_nil", code: `var s []int; s = append(s, 10); s[0]`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -50,9 +50,9 @@ func TestBuiltinCap(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(5), "cap_make_slice", `s := make([]int, 3, 5); cap(s)`},
-		{int64(3), "cap_literal", `s := []int{1, 2, 3}; cap(s)`},
-		{int64(10), "cap_channel", `ch := make(chan int, 10); cap(ch)`},
+		{expect: int64(5), name: "cap_make_slice", code: `s := make([]int, 3, 5); cap(s)`},
+		{expect: int64(3), name: "cap_literal", code: `s := []int{1, 2, 3}; cap(s)`},
+		{expect: int64(10), name: "cap_channel", code: `ch := make(chan int, 10); cap(ch)`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -62,12 +62,12 @@ func TestBuiltinCopy(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(6), "copy_full", `
+		{expect: int64(6), name: "copy_full", code: `
 src := []int{1, 2, 3}
 dst := make([]int, 3)
 copy(dst, src)
 dst[0] + dst[1] + dst[2]`},
-		{int64(2), "copy_partial", `
+		{expect: int64(2), name: "copy_partial", code: `
 src := []int{1, 2, 3}
 dst := make([]int, 2)
 n := copy(dst, src)
@@ -81,8 +81,8 @@ func TestBuiltinClear(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(0), "clear_slice", `s := []int{1, 2, 3}; clear(s); s[0]`},
-		{int64(0), "clear_map", `m := map[string]int{"a": 1, "b": 2}; clear(m); len(m)`},
+		{expect: int64(0), name: "clear_slice", code: `s := []int{1, 2, 3}; clear(s); s[0]`},
+		{expect: int64(0), name: "clear_map", code: `m := map[string]int{"a": 1, "b": 2}; clear(m); len(m)`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -92,8 +92,8 @@ func TestBuiltinDelete(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(1), "delete_existing", `m := map[string]int{"a": 1, "b": 2}; delete(m, "a"); len(m)`},
-		{int64(2), "delete_nonexistent", `m := map[string]int{"a": 1, "b": 2}; delete(m, "z"); len(m)`},
+		{expect: int64(1), name: "delete_existing", code: `m := map[string]int{"a": 1, "b": 2}; delete(m, "a"); len(m)`},
+		{expect: int64(2), name: "delete_nonexistent", code: `m := map[string]int{"a": 1, "b": 2}; delete(m, "z"); len(m)`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -103,21 +103,21 @@ func TestMapCommaOkExtended(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{true, "map_comma_ok_exists", `
+		{expect: true, name: "map_comma_ok_exists", code: `
 m := map[string]int{"key": 42}
 _, ok := m["key"]
 ok`},
-		{false, "map_comma_ok_missing", `
+		{expect: false, name: "map_comma_ok_missing", code: `
 m := map[string]int{"key": 42}
 _, ok := m["other"]
 ok`},
-		{int64(42), "map_comma_ok_value", `
+		{expect: int64(42), name: "map_comma_ok_value", code: `
 m := map[string]int{"key": 42}
 v, ok := m["key"]
 result := 0
 if ok { result = v }
 result`},
-		{"hello", "map_string_value_comma_ok", `
+		{expect: "hello", name: "map_string_value_comma_ok", code: `
 m := map[int]string{1: "hello"}
 v, ok := m[1]
 result := ""
@@ -132,13 +132,13 @@ func TestMethodExpressions(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "method_expr_call", `
+		{expect: int64(42), name: "method_expr_call", code: `
 type Num struct { V int }
 func (n Num) Value() int { return n.V }
 x := Num{V: 42}
 f := Num.Value
 f(x)`},
-		{int64(10), "method_expr_pointer", `
+		{expect: int64(10), name: "method_expr_pointer", code: `
 type Box struct { V int }
 func (b *Box) Get() int { return b.V }
 b := &Box{V: 10}
@@ -153,9 +153,9 @@ func TestSliceOperationsExtended(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{"hello", "slice_string_set_get", `s := make([]string, 2); s[0] = "hello"; s[0]`},
-		{true, "slice_bool_set_get", `s := make([]bool, 2); s[0] = true; s[0]`},
-		{false, "slice_bool_default", `s := make([]bool, 2); s[1]`},
+		{expect: "hello", name: "slice_string_set_get", code: `s := make([]string, 2); s[0] = "hello"; s[0]`},
+		{expect: true, name: "slice_bool_set_get", code: `s := make([]bool, 2); s[0] = true; s[0]`},
+		{expect: false, name: "slice_bool_default", code: `s := make([]bool, 2); s[1]`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -165,9 +165,9 @@ func TestMapIntKeys(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(30), "map_int_int", `m := map[int]int{1: 10}; m[2] = 20; m[1] + m[2]`},
-		{int64(99), "map_int_overwrite", `m := map[int]int{1: 10}; m[1] = 99; m[1]`},
-		{int64(3), "map_int_len", `m := map[int]int{}; m[1] = 1; m[2] = 2; m[3] = 3; len(m)`},
+		{expect: int64(30), name: "map_int_int", code: `m := map[int]int{1: 10}; m[2] = 20; m[1] + m[2]`},
+		{expect: int64(99), name: "map_int_overwrite", code: `m := map[int]int{1: 10}; m[1] = 99; m[1]`},
+		{expect: int64(3), name: "map_int_len", code: `m := map[int]int{}; m[1] = 1; m[2] = 2; m[3] = 3; len(m)`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -177,16 +177,16 @@ func TestIndirectCalls(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "call_func_var", `
+		{expect: int64(42), name: "call_func_var", code: `
 f := func(x int) int { return x * 2 }
 f(21)`},
-		{int64(31), "call_func_in_slice", `
+		{expect: int64(31), name: "call_func_in_slice", code: `
 fns := []func(int) int{
 	func(x int) int { return x + 1 },
 	func(x int) int { return x * 2 },
 }
 fns[0](10) + fns[1](10)`},
-		{int64(15), "call_func_from_map", `
+		{expect: int64(15), name: "call_func_from_map", code: `
 m := map[string]func(int) int{
 	"double": func(x int) int { return x * 2 },
 	"add5":   func(x int) int { return x + 5 },
@@ -201,11 +201,11 @@ func TestSelectStatements(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "select_send", `
+		{expect: int64(42), name: "select_send", code: `
 ch := make(chan int, 1)
 select { case ch <- 42: }
 <-ch`},
-		{int64(-1), "select_default", `
+		{expect: int64(-1), name: "select_default", code: `
 ch := make(chan int)
 x := 0
 select {
@@ -215,7 +215,7 @@ default:
 	x = -1
 }
 x`},
-		{int64(42), "select_recv_value", `
+		{expect: int64(42), name: "select_recv_value", code: `
 ch := make(chan int, 1)
 ch <- 42
 x := 0
@@ -233,12 +233,12 @@ func TestCompoundAssignExtended(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{"hello world", "compound_string_concat", `s := "hello"; s += " world"; s`},
-		{int64(0xFF), "compound_bitor", `x := 0xF0; x |= 0x0F; x`},
-		{int64(0x0F), "compound_bitand", `x := 0xFF; x &= 0x0F; x`},
-		{int64(16), "compound_shl", `x := 1; x <<= 4; x`},
-		{int64(4), "compound_shr", `x := 16; x >>= 2; x`},
-		{int64(0xF0), "compound_xor", `x := 0xFF; x ^= 0x0F; x`},
+		{expect: "hello world", name: "compound_string_concat", code: `s := "hello"; s += " world"; s`},
+		{expect: int64(0xFF), name: "compound_bitor", code: `x := 0xF0; x |= 0x0F; x`},
+		{expect: int64(0x0F), name: "compound_bitand", code: `x := 0xFF; x &= 0x0F; x`},
+		{expect: int64(16), name: "compound_shl", code: `x := 1; x <<= 4; x`},
+		{expect: int64(4), name: "compound_shr", code: `x := 16; x >>= 2; x`},
+		{expect: int64(0xF0), name: "compound_xor", code: `x := 0xFF; x ^= 0x0F; x`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -248,13 +248,13 @@ func TestInterfaceMethodCalls(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "interface_method_call", `
+		{expect: int64(42), name: "interface_method_call", code: `
 type Getter interface { Get() int }
 type Box struct { V int }
 func (b Box) Get() int { return b.V }
 var g Getter = Box{V: 42}
 g.Get()`},
-		{"hello", "interface_string_method", `
+		{expect: "hello", name: "interface_string_method", code: `
 type Stringer interface { String() string }
 type Name struct { S string }
 func (n Name) String() string { return n.S }
@@ -269,13 +269,13 @@ func TestCrossBankMoves(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"any_to_int", `var x any = 42; x.(int)`, int(42)},
-		{"any_to_string", `var x any = "hello"; x.(string)`, "hello"},
-		{"any_to_float", `var x any = 3.14; x.(float64)`, float64(3.14)},
+		{name: "any_to_int", code: `var x any = 42; x.(int)`, expect: int(42)},
+		{name: "any_to_string", code: `var x any = "hello"; x.(string)`, expect: "hello"},
+		{name: "any_to_float", code: `var x any = 3.14; x.(float64)`, expect: float64(3.14)},
 	}
 
 	for _, tt := range tests {
@@ -332,20 +332,20 @@ func TestNativeFastpathExtended(t *testing.T) {
 	})
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"strings_Replace", "import \"strings\"\nstrings.Replace(\"aaa\", \"a\", \"b\", 2)", "bba"},
-		{"strings_ToTitle", "import \"strings\"\nstrings.ToTitle(\"hello world\")", "HELLO WORLD"},
-		{"strings_TrimLeft", "import \"strings\"\nstrings.TrimLeft(\"  hello\", \" \")", "hello"},
-		{"strings_TrimRight", "import \"strings\"\nstrings.TrimRight(\"hello  \", \" \")", "hello"},
+		{name: "strings_Replace", code: "import \"strings\"\nstrings.Replace(\"aaa\", \"a\", \"b\", 2)", expect: "bba"},
+		{name: "strings_ToTitle", code: "import \"strings\"\nstrings.ToTitle(\"hello world\")", expect: "HELLO WORLD"},
+		{name: "strings_TrimLeft", code: "import \"strings\"\nstrings.TrimLeft(\"  hello\", \" \")", expect: "hello"},
+		{name: "strings_TrimRight", code: "import \"strings\"\nstrings.TrimRight(\"hello  \", \" \")", expect: "hello"},
 
-		{"strconv_Atoi", "import \"strconv\"\nv, _ := strconv.Atoi(\"42\")\nv", int64(42)},
-		{"strconv_ParseBool", "import \"strconv\"\nv, _ := strconv.ParseBool(\"true\")\nv", true},
+		{name: "strconv_Atoi", code: "import \"strconv\"\nv, _ := strconv.Atoi(\"42\")\nv", expect: int64(42)},
+		{name: "strconv_ParseBool", code: "import \"strconv\"\nv, _ := strconv.ParseBool(\"true\")\nv", expect: true},
 
-		{"fmt_Sprintf_int", "import \"fmt\"\nfmt.Sprintf(\"%d\", 42)", "42"},
+		{name: "fmt_Sprintf_int", code: "import \"fmt\"\nfmt.Sprintf(\"%d\", 42)", expect: "42"},
 	}
 
 	for _, tt := range tests {
@@ -363,8 +363,8 @@ func TestBuildTagFiltering(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "basic_eval", `42`},
-		{int64(3), "simple_addition", `1 + 2`},
+		{expect: int64(42), name: "basic_eval", code: `42`},
+		{expect: int64(3), name: "simple_addition", code: `1 + 2`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -374,12 +374,12 @@ func TestGoDispatchCompositeOps(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(60), "range_sum", `sum := 0; for _, v := range []int{10, 20, 30} { sum += v }; sum`},
-		{int64(2), "range_index", `last := 0; for i := range []int{10, 20, 30} { last = i }; last`},
-		{"hi", "slice_string", `s := make([]string, 1); s[0] = "hi"; s[0]`},
-		{int64(30), "map_int_int", `m := map[int]int{1: 10}; m[2] = 20; m[1] + m[2]`},
-		{int64(42), "addr_deref", `x := 42; p := &x; *p`},
-		{int64(20), "addr_modify", `x := 10; p := &x; *p = 20; x`},
+		{expect: int64(60), name: "range_sum", code: `sum := 0; for _, v := range []int{10, 20, 30} { sum += v }; sum`},
+		{expect: int64(2), name: "range_index", code: `last := 0; for i := range []int{10, 20, 30} { last = i }; last`},
+		{expect: "hi", name: "slice_string", code: `s := make([]string, 1); s[0] = "hi"; s[0]`},
+		{expect: int64(30), name: "map_int_int", code: `m := map[int]int{1: 10}; m[2] = 20; m[1] + m[2]`},
+		{expect: int64(42), name: "addr_deref", code: `x := 42; p := &x; *p`},
+		{expect: int64(20), name: "addr_modify", code: `x := 10; p := &x; *p = 20; x`},
 	}
 
 	runEvalTable(t, []Option{WithForceGoDispatch()}, tests)
@@ -389,7 +389,7 @@ func TestGoDispatchControlFlow(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(10), "switch_multi_case", `
+		{expect: int64(10), name: "switch_multi_case", code: `
 x := 3
 y := 0
 switch x {
@@ -399,7 +399,7 @@ case 4, 5:
 	y = 20
 }
 y`},
-		{"other", "type_switch_default", `
+		{expect: "other", name: "type_switch_default", code: `
 var x any = 3.14
 result := ""
 switch x.(type) {
@@ -411,24 +411,24 @@ default:
 	result = "other"
 }
 result`},
-		{int64(42), "map_comma_ok", `
+		{expect: int64(42), name: "map_comma_ok", code: `
 m := map[string]int{"a": 42}
 v, ok := m["a"]
 result := 0
 if ok { result = v }
 result`},
-		{int64(6), "compound_selector", `
+		{expect: int64(6), name: "compound_selector", code: `
 type S struct { X int }
 s := S{X: 3}
 s.X *= 2
 s.X`},
-		{int64(42), "interface_method", `
+		{expect: int64(42), name: "interface_method", code: `
 type Getter interface { Get() int }
 type Box struct { V int }
 func (b Box) Get() int { return b.V }
 var g Getter = Box{V: 42}
 g.Get()`},
-		{int64(21), "multi_return", `
+		{expect: int64(21), name: "multi_return", code: `
 func swap(a, b int) (int, int) { return b, a }
 x, y := swap(1, 2)
 x*10 + y`},
@@ -441,13 +441,13 @@ func TestGoDispatchNamedReturns(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "named_return", `
+		{expect: int64(42), name: "named_return", code: `
 func f() (result int) {
 	result = 42
 	return
 }
 f()`},
-		{int64(30), "named_return_multi", `
+		{expect: int64(30), name: "named_return_multi", code: `
 func f() (a int, b int) {
 	a = 10
 	b = 20
@@ -464,7 +464,7 @@ func TestGoDispatchClosures(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(3), "counter_closure", `
+		{expect: int64(3), name: "counter_closure", code: `
 func makeCounter() func() int {
 	n := 0
 	return func() int {
@@ -476,14 +476,14 @@ c := makeCounter()
 c()
 c()
 c()`},
-		{int64(42), "captured_var", `
+		{expect: int64(42), name: "captured_var", code: `
 func f() int {
 	x := 42
 	g := func() int { return x }
 	return g()
 }
 f()`},
-		{int64(42), "func_var_call", `
+		{expect: int64(42), name: "func_var_call", code: `
 f := func(x int) int { return x * 2 }
 f(21)`},
 	}
@@ -495,14 +495,14 @@ func TestGoDispatchDefer(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(10), "defer_named_return", `
+		{expect: int64(10), name: "defer_named_return", code: `
 func f() (x int) {
 	defer func() { x += 10 }()
 	x = 0
 	return
 }
 f()`},
-		{"", "recover_from_panic", `
+		{expect: "", name: "recover_from_panic", code: `
 func f() string {
 	defer func() { recover() }()
 	panic("boom")

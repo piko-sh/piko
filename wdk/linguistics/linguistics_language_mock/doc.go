@@ -16,8 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_language_mock registers the mock stemmer,
-// phonetic encoder, and stop words provider as a single blank
-// import for testing. It is a convenience wrapper around the
-// individual mock linguistics sub-packages.
+// Package linguistics_language_mock registers the mock stemmer, phonetic encoder, and
+// stop words provider as a single blank import for testing. It is a convenience wrapper
+// around the individual mock linguistics sub-packages.
 package linguistics_language_mock

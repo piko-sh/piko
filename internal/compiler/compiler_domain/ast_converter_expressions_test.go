@@ -21,9 +21,9 @@ package compiler_domain
 import (
 	"testing"
 
-	parsejs "github.com/tdewolff/parse/v2/js"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	parsejs "github.com/tdewolff/parse/v2/js"
 	"piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/js_ast"
 	"piko.sh/piko/internal/esbuild/logger"

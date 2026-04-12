@@ -25,9 +25,9 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// MockTypeQuerier is a test double for TypeQuerier that implements all of its
-// public methods using overridable function fields. When a function field is
-// nil, a sensible zero value is returned.
+// MockTypeQuerier is a test double for TypeQuerier that implements all of its public
+// methods using overridable function fields. When a function field is nil, a sensible
+// zero value is returned.
 //
 // Usage:
 //
@@ -40,16 +40,16 @@ type MockTypeQuerier struct {
 	// ResolveExprToNamedTypeFunc is called by ResolveExprToNamedType when set.
 	ResolveExprToNamedTypeFunc func(expression goast.Expr, importerPackagePath, importerFilePath string) (*inspector_dto.Type, string)
 
-	// ResolveExprToNamedTypeWithMemoizationFunc is the mock implementation for
-	// resolving type expressions to named types with caching.
+	// ResolveExprToNamedTypeWithMemoizationFunc is the mock implementation for resolving
+	// type expressions to named types with caching.
 	ResolveExprToNamedTypeWithMemoizationFunc func(ctx context.Context, typeExpr goast.Expr, importerPackagePath, importerFilePath string) (*inspector_dto.Type, string)
 
 	// ResolveToUnderlyingASTFunc is called by ResolveToUnderlyingAST when set.
 	ResolveToUnderlyingASTFunc func(typeExpr goast.Expr, currentFilePath string) goast.Expr
 
-	// ResolveToUnderlyingASTWithContextFunc is called by
-	// ResolveToUnderlyingASTWithContext to resolve a type expression to its
-	// underlying AST representation; nil uses the default behaviour.
+	// ResolveToUnderlyingASTWithContextFunc is called by ResolveToUnderlyingASTWithContext
+	// to resolve a type expression to its underlying AST representation; nil uses the
+	// default behaviour.
 	ResolveToUnderlyingASTWithContextFunc func(ctx context.Context, typeExpr goast.Expr, currentFilePath string) (goast.Expr, string)
 
 	// GetAllSymbolsFunc is the mock implementation for GetAllSymbols.
@@ -61,19 +61,18 @@ type MockTypeQuerier struct {
 	// GetTypeHierarchyIndexFunc is the mock function for GetTypeHierarchyIndex.
 	GetTypeHierarchyIndexFunc func() *TypeHierarchyIndex
 
-	// FindFieldInfoFunc is called by FindFieldInfo when set; returns field
-	// metadata for the given base type and field name.
+	// FindFieldInfoFunc is called by FindFieldInfo when set; returns field metadata for the
+	// given base type and field name.
 	FindFieldInfoFunc func(ctx context.Context, baseType goast.Expr, fieldName, importerPackagePath, importerFilePath string) *inspector_dto.FieldInfo
 
 	// FindFieldTypeFunc is called by FindFieldType to resolve field types.
 	FindFieldTypeFunc func(baseType goast.Expr, fieldName, importerPackagePath, importerFilePath string) goast.Expr
 
-	// FindFuncSignatureFunc is called by FindFuncSignature when set; returns nil
-	// otherwise.
+	// FindFuncSignatureFunc is called by FindFuncSignature when set; returns nil otherwise.
 	FindFuncSignatureFunc func(pkgAlias, functionName, importerPackagePath, importerFilePath string) *inspector_dto.FunctionSignature
 
-	// FindFuncReturnTypeFunc is called by FindFuncReturnType to resolve
-	// a function's return type; nil means return nil.
+	// FindFuncReturnTypeFunc is called by FindFuncReturnType to resolve a function's return
+	// type; nil means return nil.
 	FindFuncReturnTypeFunc func(pkgAlias, functionName, importerPackagePath, importerFilePath string) goast.Expr
 
 	// FindFuncInfoFunc is called by FindFuncInfo to look up function metadata.
@@ -82,8 +81,8 @@ type MockTypeQuerier struct {
 	// FindMethodSignatureFunc is called by FindMethodSignature when set.
 	FindMethodSignatureFunc func(baseType goast.Expr, methodName, importerPackagePath, importerFilePath string) *inspector_dto.FunctionSignature
 
-	// FindMethodReturnTypeFunc is called by FindMethodReturnType to return the
-	// result type of a method call; nil means return nil.
+	// FindMethodReturnTypeFunc is called by FindMethodReturnType to return the result type
+	// of a method call; nil means return nil.
 	FindMethodReturnTypeFunc func(baseType goast.Expr, methodName, importerPackagePath, importerFilePath string) goast.Expr
 
 	// FindMethodInfoFunc is called by FindMethodInfo to look up method details.
@@ -98,26 +97,25 @@ type MockTypeQuerier struct {
 	// FindPackageVariableTypeFunc is called by FindPackageVariableType when set.
 	FindPackageVariableTypeFunc func(pkgAlias, varName, importerPackagePath, importerFilePath string) string
 
-	// GetAllPackagesFunc is called by GetAllPackages when set; returns all
-	// packages.
+	// GetAllPackagesFunc is called by GetAllPackages when set; returns all packages.
 	GetAllPackagesFunc func() map[string]*inspector_dto.Package
 
 	// FindRenderReturnTypeFunc is the mock implementation for FindRenderReturnType.
 	FindRenderReturnTypeFunc func(componentPackagePath, componentFilePath string) goast.Expr
 
-	// GetImportsForFileFunc is called by GetImportsForFile to return the import
-	// map for a file; nil uses an empty map.
+	// GetImportsForFileFunc is called by GetImportsForFile to return the import map for a
+	// file; nil uses an empty map.
 	GetImportsForFileFunc func(importerPackagePath, importerFilePath string) map[string]string
 
-	// FindPropsTypeFunc is called by FindPropsType to look up the Props type
-	// expression for a given file path; nil means return nil.
+	// FindPropsTypeFunc is called by FindPropsType to look up the Props type expression for
+	// a given file path; nil means return nil.
 	FindPropsTypeFunc func(filePath string) goast.Expr
 
 	// GetAllFieldsAndMethodsFunc is called by GetAllFieldsAndMethods when set.
 	GetAllFieldsAndMethodsFunc func(baseType goast.Expr, importerPackagePath, importerFilePath string) []string
 
-	// FindFileWithImportAliasFunc is called by FindFileWithImportAlias to find a
-	// file using the given import alias; nil uses default behaviour.
+	// FindFileWithImportAliasFunc is called by FindFileWithImportAlias to find a file using
+	// the given import alias; nil uses default behaviour.
 	FindFileWithImportAliasFunc func(packagePath, alias, canonicalPath string) string
 
 	// FindPackagePathForTypeDTOFunc is the mock implementation for
@@ -127,33 +125,29 @@ type MockTypeQuerier struct {
 	// DebugFunc is called by Debug when set; nil means Debug returns nil.
 	DebugFunc func(importerPackagePath, importerFilePath string) []string
 
-	// PackagePathForFileFunc provides a custom implementation for
-	// PackagePathForFile; returns "" if nil.
+	// PackagePathForFileFunc provides a custom implementation for PackagePathForFile;
+	// returns "" if nil.
 	PackagePathForFileFunc func(filePath string) string
 
-	// GetFilesForPackageFunc is called by GetFilesForPackage to return file paths
-	// for a package; nil means GetFilesForPackage returns nil.
+	// GetFilesForPackageFunc is called by GetFilesForPackage to return file paths for a
+	// package; nil means GetFilesForPackage returns nil.
 	GetFilesForPackageFunc func(packagePath string) []string
 
 	// DebugDTOFunc is called by DebugDTO when set; nil uses the default behaviour.
 	DebugDTOFunc func() map[string][]string
 
-	// DebugPackageDTOFunc is called when DebugPackageDTO is invoked; nil returns
-	// nil.
+	// DebugPackageDTOFunc is called when DebugPackageDTO is invoked; nil returns nil.
 	DebugPackageDTOFunc func(packagePath string) []string
 }
 
-// ResolveExprToNamedType delegates to ResolveExprToNamedTypeFunc if
-// set, otherwise returns (nil, "").
+// ResolveExprToNamedType delegates to ResolveExprToNamedTypeFunc if set, otherwise
+// returns (nil, "").
 //
 // Takes expression (goast.Expr) which is the expression to resolve.
-// Takes importerPackagePath (string) which is the package path of the
-// importer.
-// Takes importerFilePath (string) which is the file path of the
-// importer.
+// Takes importerPackagePath (string) which is the package path of the importer.
+// Takes importerFilePath (string) which is the file path of the importer.
 //
-// Returns *inspector_dto.Type which is the resolved named type, or
-// nil.
+// Returns *inspector_dto.Type which is the resolved named type, or nil.
 // Returns string which is the type name, or empty if not resolved.
 func (m *MockTypeQuerier) ResolveExprToNamedType(expression goast.Expr, importerPackagePath, importerFilePath string) (*inspector_dto.Type, string) {
 	if m.ResolveExprToNamedTypeFunc != nil {
@@ -163,8 +157,7 @@ func (m *MockTypeQuerier) ResolveExprToNamedType(expression goast.Expr, importer
 }
 
 // ResolveExprToNamedTypeWithMemoization delegates to
-// ResolveExprToNamedTypeWithMemoizationFunc if set, otherwise returns
-// (nil, "").
+// ResolveExprToNamedTypeWithMemoizationFunc if set, otherwise returns (nil, "").
 //
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 // Takes importerPackagePath (string) which is the package path of the importer.
@@ -179,8 +172,8 @@ func (m *MockTypeQuerier) ResolveExprToNamedTypeWithMemoization(ctx context.Cont
 	return nil, ""
 }
 
-// ResolveToUnderlyingAST delegates to ResolveToUnderlyingASTFunc if set,
-// otherwise returns typeExpr unchanged.
+// ResolveToUnderlyingAST delegates to ResolveToUnderlyingASTFunc if set, otherwise
+// returns typeExpr unchanged.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 // Takes currentFilePath (string) which is the path of the file being analysed.
@@ -193,9 +186,8 @@ func (m *MockTypeQuerier) ResolveToUnderlyingAST(typeExpr goast.Expr, currentFil
 	return typeExpr
 }
 
-// ResolveToUnderlyingASTWithContext delegates to
-// ResolveToUnderlyingASTWithContextFunc if set, otherwise returns
-// (typeExpr, "").
+// ResolveToUnderlyingASTWithContext delegates to ResolveToUnderlyingASTWithContextFunc if
+// set, otherwise returns (typeExpr, "").
 //
 // Takes typeExpr (goast.Expr) which is the type expression to resolve.
 // Takes currentFilePath (string) which is the path to the current file.
@@ -211,8 +203,8 @@ func (m *MockTypeQuerier) ResolveToUnderlyingASTWithContext(ctx context.Context,
 
 // GetAllSymbols delegates to GetAllSymbolsFunc if set, otherwise returns nil.
 //
-// Returns []inspector_dto.WorkspaceSymbol which contains all workspace symbols,
-// or nil if GetAllSymbolsFunc is not set.
+// Returns []inspector_dto.WorkspaceSymbol which contains all workspace symbols, or nil if
+// GetAllSymbolsFunc is not set.
 func (m *MockTypeQuerier) GetAllSymbols() []inspector_dto.WorkspaceSymbol {
 	if m.GetAllSymbolsFunc != nil {
 		return m.GetAllSymbolsFunc()
@@ -220,11 +212,11 @@ func (m *MockTypeQuerier) GetAllSymbols() []inspector_dto.WorkspaceSymbol {
 	return nil
 }
 
-// GetImplementationIndex delegates to GetImplementationIndexFunc if set,
-// otherwise returns nil.
+// GetImplementationIndex delegates to GetImplementationIndexFunc if set, otherwise
+// returns nil.
 //
-// Returns *ImplementationIndex which provides the implementation index, or nil
-// if no function is configured.
+// Returns *ImplementationIndex which provides the implementation index, or nil if no
+// function is configured.
 func (m *MockTypeQuerier) GetImplementationIndex() *ImplementationIndex {
 	if m.GetImplementationIndexFunc != nil {
 		return m.GetImplementationIndexFunc()
@@ -232,8 +224,8 @@ func (m *MockTypeQuerier) GetImplementationIndex() *ImplementationIndex {
 	return nil
 }
 
-// GetTypeHierarchyIndex delegates to GetTypeHierarchyIndexFunc if set,
-// otherwise returns nil.
+// GetTypeHierarchyIndex delegates to GetTypeHierarchyIndexFunc if set, otherwise returns
+// nil.
 //
 // Returns *TypeHierarchyIndex which is the type hierarchy index, or nil.
 func (m *MockTypeQuerier) GetTypeHierarchyIndex() *TypeHierarchyIndex {
@@ -247,12 +239,11 @@ func (m *MockTypeQuerier) GetTypeHierarchyIndex() *TypeHierarchyIndex {
 //
 // Takes baseType (goast.Expr) which is the type expression to search within.
 // Takes fieldName (string) which is the name of the field to find.
-// Takes importerPackagePath (string) which is the package path
-// of the importing code.
+// Takes importerPackagePath (string) which is the package path of the importing code.
 // Takes importerFilePath (string) which is the file path of the importing code.
 //
-// Returns *inspector_dto.FieldInfo which contains the field details, or nil if
-// not found or no delegate function is set.
+// Returns *inspector_dto.FieldInfo which contains the field details, or nil if not found
+// or no delegate function is set.
 func (m *MockTypeQuerier) FindFieldInfo(ctx context.Context, baseType goast.Expr, fieldName, importerPackagePath, importerFilePath string) *inspector_dto.FieldInfo {
 	if m.FindFieldInfoFunc != nil {
 		return m.FindFieldInfoFunc(ctx, baseType, fieldName, importerPackagePath, importerFilePath)
@@ -275,16 +266,15 @@ func (m *MockTypeQuerier) FindFieldType(baseType goast.Expr, fieldName, importer
 	return nil
 }
 
-// FindFuncSignature delegates to FindFuncSignatureFunc if set, otherwise
-// returns nil.
+// FindFuncSignature delegates to FindFuncSignatureFunc if set, otherwise returns nil.
 //
 // Takes pkgAlias (string) which specifies the package alias to search.
 // Takes functionName (string) which specifies the function name to find.
 // Takes importerPackagePath (string) which specifies the importing package path.
 // Takes importerFilePath (string) which specifies the importing file path.
 //
-// Returns *inspector_dto.FunctionSignature which is the function signature,
-// or nil if FindFuncSignatureFunc is not set.
+// Returns *inspector_dto.FunctionSignature which is the function signature, or nil if
+// FindFuncSignatureFunc is not set.
 func (m *MockTypeQuerier) FindFuncSignature(pkgAlias, functionName, importerPackagePath, importerFilePath string) *inspector_dto.FunctionSignature {
 	if m.FindFuncSignatureFunc != nil {
 		return m.FindFuncSignatureFunc(pkgAlias, functionName, importerPackagePath, importerFilePath)
@@ -292,8 +282,7 @@ func (m *MockTypeQuerier) FindFuncSignature(pkgAlias, functionName, importerPack
 	return nil
 }
 
-// FindFuncReturnType delegates to FindFuncReturnTypeFunc if set, otherwise
-// returns nil.
+// FindFuncReturnType delegates to FindFuncReturnTypeFunc if set, otherwise returns nil.
 //
 // Takes pkgAlias (string) which specifies the package alias to look up.
 // Takes functionName (string) which specifies the function name to find.
@@ -315,8 +304,8 @@ func (m *MockTypeQuerier) FindFuncReturnType(pkgAlias, functionName, importerPac
 // Takes importerPackagePath (string) which provides the importing package path.
 // Takes importerFilePath (string) which provides the importing file path.
 //
-// Returns *inspector_dto.Function which contains the function information,
-// or nil if FindFuncInfoFunc is not set.
+// Returns *inspector_dto.Function which contains the function information, or nil if
+// FindFuncInfoFunc is not set.
 func (m *MockTypeQuerier) FindFuncInfo(pkgAlias, functionName, importerPackagePath, importerFilePath string) *inspector_dto.Function {
 	if m.FindFuncInfoFunc != nil {
 		return m.FindFuncInfoFunc(pkgAlias, functionName, importerPackagePath, importerFilePath)
@@ -324,16 +313,15 @@ func (m *MockTypeQuerier) FindFuncInfo(pkgAlias, functionName, importerPackagePa
 	return nil
 }
 
-// FindMethodSignature delegates to FindMethodSignatureFunc if set, otherwise
-// returns nil.
+// FindMethodSignature delegates to FindMethodSignatureFunc if set, otherwise returns nil.
 //
 // Takes baseType (goast.Expr) which is the type to search for methods on.
 // Takes methodName (string) which is the name of the method to find.
 // Takes importerPackagePath (string) which is the package path of the caller.
 // Takes importerFilePath (string) which is the file path of the caller.
 //
-// Returns *inspector_dto.FunctionSignature which is the method signature,
-// or nil if the delegate is not set.
+// Returns *inspector_dto.FunctionSignature which is the method signature, or nil if the
+// delegate is not set.
 func (m *MockTypeQuerier) FindMethodSignature(baseType goast.Expr, methodName, importerPackagePath, importerFilePath string) *inspector_dto.FunctionSignature {
 	if m.FindMethodSignatureFunc != nil {
 		return m.FindMethodSignatureFunc(baseType, methodName, importerPackagePath, importerFilePath)
@@ -341,16 +329,15 @@ func (m *MockTypeQuerier) FindMethodSignature(baseType goast.Expr, methodName, i
 	return nil
 }
 
-// FindMethodReturnType delegates to FindMethodReturnTypeFunc if set,
-// otherwise returns nil.
+// FindMethodReturnType delegates to FindMethodReturnTypeFunc if set, otherwise returns
+// nil.
 //
 // Takes baseType (goast.Expr) which is the type to search for methods on.
 // Takes methodName (string) which is the name of the method to find.
 // Takes importerPackagePath (string) which is the package path of the importer.
 // Takes importerFilePath (string) which is the file path of the importer.
 //
-// Returns goast.Expr which is the return type of the method, or nil if not
-// found.
+// Returns goast.Expr which is the return type of the method, or nil if not found.
 func (m *MockTypeQuerier) FindMethodReturnType(baseType goast.Expr, methodName, importerPackagePath, importerFilePath string) goast.Expr {
 	if m.FindMethodReturnTypeFunc != nil {
 		return m.FindMethodReturnTypeFunc(baseType, methodName, importerPackagePath, importerFilePath)
@@ -358,16 +345,15 @@ func (m *MockTypeQuerier) FindMethodReturnType(baseType goast.Expr, methodName, 
 	return nil
 }
 
-// FindMethodInfo delegates to FindMethodInfoFunc if set, otherwise returns
-// nil.
+// FindMethodInfo delegates to FindMethodInfoFunc if set, otherwise returns nil.
 //
 // Takes baseType (goast.Expr) which is the type expression to search.
 // Takes methodName (string) which is the name of the method to find.
 // Takes importerPackagePath (string) which is the package path of the importer.
 // Takes importerFilePath (string) which is the file path of the importer.
 //
-// Returns *inspector_dto.Method which contains the method information, or nil
-// if FindMethodInfoFunc is not set or the method is not found.
+// Returns *inspector_dto.Method which contains the method information, or nil if
+// FindMethodInfoFunc is not set or the method is not found.
 func (m *MockTypeQuerier) FindMethodInfo(baseType goast.Expr, methodName, importerPackagePath, importerFilePath string) *inspector_dto.Method {
 	if m.FindMethodInfoFunc != nil {
 		return m.FindMethodInfoFunc(baseType, methodName, importerPackagePath, importerFilePath)
@@ -375,8 +361,8 @@ func (m *MockTypeQuerier) FindMethodInfo(baseType goast.Expr, methodName, import
 	return nil
 }
 
-// ResolvePackageAlias delegates to ResolvePackageAliasFunc if set, otherwise
-// returns an empty string.
+// ResolvePackageAlias delegates to ResolvePackageAliasFunc if set, otherwise returns an
+// empty string.
 //
 // Takes aliasToResolve (string) which is the package alias to resolve.
 // Takes importerPackagePath (string) which is the package path of the importer.
@@ -390,8 +376,7 @@ func (m *MockTypeQuerier) ResolvePackageAlias(aliasToResolve, importerPackagePat
 	return ""
 }
 
-// FindPackageVariable delegates to FindPackageVariableFunc if set,
-// otherwise returns nil.
+// FindPackageVariable delegates to FindPackageVariableFunc if set, otherwise returns nil.
 //
 // Takes pkgAlias (string) which identifies the package by its import alias.
 // Takes varName (string) which specifies the variable name to find.
@@ -407,8 +392,8 @@ func (m *MockTypeQuerier) FindPackageVariable(pkgAlias, varName, importerPackage
 	return nil
 }
 
-// FindPackageVariableType delegates to FindPackageVariableTypeFunc if set,
-// otherwise returns an empty string.
+// FindPackageVariableType delegates to FindPackageVariableTypeFunc if set, otherwise
+// returns an empty string.
 //
 // Takes pkgAlias (string) which specifies the package alias to search.
 // Takes varName (string) which specifies the variable name to find.
@@ -423,11 +408,10 @@ func (m *MockTypeQuerier) FindPackageVariableType(pkgAlias, varName, importerPac
 	return ""
 }
 
-// GetAllPackages delegates to GetAllPackagesFunc if set, otherwise returns
-// an empty map.
+// GetAllPackages delegates to GetAllPackagesFunc if set, otherwise returns an empty map.
 //
-// Returns map[string]*inspector_dto.Package which contains all known packages
-// keyed by their import path.
+// Returns map[string]*inspector_dto.Package which contains all known packages keyed by
+// their import path.
 func (m *MockTypeQuerier) GetAllPackages() map[string]*inspector_dto.Package {
 	if m.GetAllPackagesFunc != nil {
 		return m.GetAllPackagesFunc()
@@ -435,13 +419,11 @@ func (m *MockTypeQuerier) GetAllPackages() map[string]*inspector_dto.Package {
 	return map[string]*inspector_dto.Package{}
 }
 
-// FindRenderReturnType delegates to FindRenderReturnTypeFunc if set,
-// otherwise returns nil.
+// FindRenderReturnType delegates to FindRenderReturnTypeFunc if set, otherwise returns
+// nil.
 //
-// Takes componentPackagePath (string) which specifies the package path of the
-// component.
-// Takes componentFilePath (string) which specifies the file path of the
-// component.
+// Takes componentPackagePath (string) which specifies the package path of the component.
+// Takes componentFilePath (string) which specifies the file path of the component.
 //
 // Returns goast.Expr which is the render return type expression, or nil if
 // FindRenderReturnTypeFunc is not set.
@@ -452,8 +434,8 @@ func (m *MockTypeQuerier) FindRenderReturnType(componentPackagePath, componentFi
 	return nil
 }
 
-// GetImportsForFile delegates to GetImportsForFileFunc if set, otherwise
-// returns an empty map.
+// GetImportsForFile delegates to GetImportsForFileFunc if set, otherwise returns an empty
+// map.
 //
 // Takes importerPackagePath (string) which specifies the package path of the file.
 // Takes importerFilePath (string) which specifies the file path to query.
@@ -478,15 +460,15 @@ func (m *MockTypeQuerier) FindPropsType(filePath string) goast.Expr {
 	return nil
 }
 
-// GetAllFieldsAndMethods delegates to GetAllFieldsAndMethodsFunc if set,
-// otherwise returns nil.
+// GetAllFieldsAndMethods delegates to GetAllFieldsAndMethodsFunc if set, otherwise
+// returns nil.
 //
 // Takes baseType (goast.Expr) which is the type to query for members.
 // Takes importerPackagePath (string) which is the package path of the importer.
 // Takes importerFilePath (string) which is the file path of the importer.
 //
-// Returns []string which contains the field and method names, or nil if
-// no function is set.
+// Returns []string which contains the field and method names, or nil if no function is
+// set.
 func (m *MockTypeQuerier) GetAllFieldsAndMethods(baseType goast.Expr, importerPackagePath, importerFilePath string) []string {
 	if m.GetAllFieldsAndMethodsFunc != nil {
 		return m.GetAllFieldsAndMethodsFunc(baseType, importerPackagePath, importerFilePath)
@@ -494,8 +476,8 @@ func (m *MockTypeQuerier) GetAllFieldsAndMethods(baseType goast.Expr, importerPa
 	return nil
 }
 
-// FindFileWithImportAlias delegates to FindFileWithImportAliasFunc if set,
-// otherwise returns an empty string.
+// FindFileWithImportAlias delegates to FindFileWithImportAliasFunc if set, otherwise
+// returns an empty string.
 //
 // Takes packagePath (string) which specifies the package path to search.
 // Takes alias (string) which specifies the import alias to match.
@@ -509,8 +491,8 @@ func (m *MockTypeQuerier) FindFileWithImportAlias(packagePath, alias, canonicalP
 	return ""
 }
 
-// FindPackagePathForTypeDTO delegates to FindPackagePathForTypeDTOFunc if set,
-// otherwise returns an empty string.
+// FindPackagePathForTypeDTO delegates to FindPackagePathForTypeDTOFunc if set, otherwise
+// returns an empty string.
 //
 // Takes target (*inspector_dto.Type) which specifies the type to look up.
 //
@@ -524,13 +506,10 @@ func (m *MockTypeQuerier) FindPackagePathForTypeDTO(target *inspector_dto.Type) 
 
 // Debug delegates to DebugFunc if set, otherwise returns nil.
 //
-// Takes importerPackagePath (string) which specifies the package path of the
-// importer.
-// Takes importerFilePath (string) which specifies the file path of the
-// importer.
+// Takes importerPackagePath (string) which specifies the package path of the importer.
+// Takes importerFilePath (string) which specifies the file path of the importer.
 //
-// Returns []string which contains debug information, or nil if DebugFunc is
-// not set.
+// Returns []string which contains debug information, or nil if DebugFunc is not set.
 func (m *MockTypeQuerier) Debug(importerPackagePath, importerFilePath string) []string {
 	if m.DebugFunc != nil {
 		return m.DebugFunc(importerPackagePath, importerFilePath)
@@ -538,8 +517,8 @@ func (m *MockTypeQuerier) Debug(importerPackagePath, importerFilePath string) []
 	return nil
 }
 
-// PackagePathForFile delegates to PackagePathForFileFunc if set, otherwise
-// returns an empty string.
+// PackagePathForFile delegates to PackagePathForFileFunc if set, otherwise returns an
+// empty string.
 //
 // Takes filePath (string) which is the path to the file to look up.
 //
@@ -551,8 +530,7 @@ func (m *MockTypeQuerier) PackagePathForFile(filePath string) string {
 	return ""
 }
 
-// GetFilesForPackage delegates to GetFilesForPackageFunc if set, otherwise
-// returns nil.
+// GetFilesForPackage delegates to GetFilesForPackageFunc if set, otherwise returns nil.
 //
 // Takes packagePath (string) which specifies the package import path.
 //
@@ -566,8 +544,8 @@ func (m *MockTypeQuerier) GetFilesForPackage(packagePath string) []string {
 
 // DebugDTO delegates to DebugDTOFunc if set, otherwise returns nil.
 //
-// Returns map[string][]string which contains debug information, or nil if
-// DebugDTOFunc is not set.
+// Returns map[string][]string which contains debug information, or nil if DebugDTOFunc is
+// not set.
 func (m *MockTypeQuerier) DebugDTO() map[string][]string {
 	if m.DebugDTOFunc != nil {
 		return m.DebugDTOFunc()

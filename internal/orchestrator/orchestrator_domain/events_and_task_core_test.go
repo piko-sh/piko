@@ -625,11 +625,11 @@ func TestTaskProcessingCore_Stats(t *testing.T) {
 	assert.Equal(t, int64(0), ps.FatalFailed)
 	assert.Equal(t, int64(0), ps.Retried)
 
-	atomic.AddInt64(&core.TasksDispatched, 10)
-	atomic.AddInt64(&core.TasksCompleted, 7)
-	atomic.AddInt64(&core.TasksFailed, 2)
-	atomic.AddInt64(&core.TasksFatalFailed, 1)
-	atomic.AddInt64(&core.TasksRetried, 1)
+	core.TasksDispatched.Add(10)
+	core.TasksCompleted.Add(7)
+	core.TasksFailed.Add(2)
+	core.TasksFatalFailed.Add(1)
+	core.TasksRetried.Add(1)
 
 	ps = core.Stats()
 	assert.Equal(t, int64(10), ps.Dispatched)
@@ -791,7 +791,7 @@ func TestTaskProcessingCore_PublishCompletionEvent_Success(t *testing.T) {
 
 	core.PublishCompletionEvent(context.Background(), task, nil, 500*time.Millisecond)
 
-	assert.Equal(t, 1, int(atomic.LoadInt64(&eventBus.PublishCallCount)))
+	assert.Equal(t, 1, int(eventBus.PublishCallCount.Load()))
 	assert.Equal(t, TopicTaskCompleted, capturedTopic)
 	assert.Equal(t, "success", capturedEvent.Payload["status"])
 	assert.Equal(t, "task-1", capturedEvent.Payload["taskId"])
@@ -815,7 +815,7 @@ func TestTaskProcessingCore_PublishCompletionEvent_Failure(t *testing.T) {
 
 	core.PublishCompletionEvent(context.Background(), task, taskErr, 1*time.Second)
 
-	assert.Equal(t, 1, int(atomic.LoadInt64(&eventBus.PublishCallCount)))
+	assert.Equal(t, 1, int(eventBus.PublishCallCount.Load()))
 	assert.Equal(t, "failure", capturedEvent.Payload["status"])
 	assert.Equal(t, "execution failed", capturedEvent.Payload["error"])
 }
@@ -850,7 +850,7 @@ func TestTaskProcessingCore_HandleTaskSuccess(t *testing.T) {
 	_, loaded := core.InFlightTasks.Load(task.ID)
 	assert.False(t, loaded, "task should be removed from in-flight")
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksCompleted))
+	assert.Equal(t, int64(1), core.TasksCompleted.Load())
 }
 
 func TestTaskProcessingCore_HandleTaskFailure_NoRetriesLeft(t *testing.T) {
@@ -881,7 +881,7 @@ func TestTaskProcessingCore_HandleTaskFailure_NoRetriesLeft(t *testing.T) {
 
 	assert.Equal(t, StatusFailed, task.Status)
 	assert.Equal(t, "permanent failure", task.LastError)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksFailed))
+	assert.Equal(t, int64(1), core.TasksFailed.Load())
 }
 
 func TestTaskProcessingCore_HandleTaskFailure_WithRetries(t *testing.T) {
@@ -913,12 +913,12 @@ func TestTaskProcessingCore_HandleTaskFailure_WithRetries(t *testing.T) {
 
 	assert.Equal(t, StatusRetrying, task.Status)
 	assert.Equal(t, "temporary failure", task.LastError)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksRetried))
+	assert.Equal(t, int64(1), core.TasksRetried.Load())
 
 	_, loaded := core.InFlightTasks.Load(task.ID)
 	assert.False(t, loaded, "task should be removed from in-flight")
 
-	assert.Equal(t, 1, int(atomic.LoadInt64(&delayedPub.ScheduleCallCount)))
+	assert.Equal(t, 1, int(delayedPub.ScheduleCallCount.Load()))
 }
 
 func TestTaskProcessingCore_HandleExecutionResult_Success(t *testing.T) {
@@ -1675,9 +1675,9 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError(t *testing.T) {
 	assert.Equal(t, StatusFailed, task.Status, "fatal error should mark task as failed, not retrying")
 	assert.True(t, task.IsFatal, "task.IsFatal should be true for fatal errors")
 	assert.Contains(t, task.LastError, "parse error: invalid syntax")
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksFailed))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksFatalFailed))
-	assert.Equal(t, int64(0), atomic.LoadInt64(&core.TasksRetried), "fatal errors should not trigger retries")
+	assert.Equal(t, int64(1), core.TasksFailed.Load())
+	assert.Equal(t, int64(1), core.TasksFatalFailed.Load())
+	assert.Equal(t, int64(0), core.TasksRetried.Load(), "fatal errors should not trigger retries")
 
 	_, loaded := core.InFlightTasks.Load(task.ID)
 	assert.False(t, loaded, "task should be removed from in-flight after fatal failure")
@@ -1712,9 +1712,9 @@ func TestTaskProcessingCore_HandleTaskFailure_FatalError_FirstAttempt(t *testing
 	assert.Equal(t, StatusFailed, task.Status)
 	assert.True(t, task.IsFatal, "task.IsFatal should be true even when retries would be exhausted")
 	assert.Contains(t, task.LastError, "parse error: unexpected token")
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksFailed))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksFatalFailed))
-	assert.Equal(t, int64(0), atomic.LoadInt64(&core.TasksRetried))
+	assert.Equal(t, int64(1), core.TasksFailed.Load())
+	assert.Equal(t, int64(1), core.TasksFatalFailed.Load())
+	assert.Equal(t, int64(0), core.TasksRetried.Load())
 
 	_, loaded := core.InFlightTasks.Load(task.ID)
 	assert.False(t, loaded, "task should be removed from in-flight")
@@ -1749,13 +1749,13 @@ func TestTaskProcessingCore_HandleTaskFailure_NonFatalError_StillRetries(t *test
 
 	assert.False(t, task.IsFatal, "non-fatal error should not set IsFatal")
 	assert.Equal(t, StatusRetrying, task.Status, "non-fatal error with retries remaining should set status to retrying")
-	assert.Equal(t, int64(1), atomic.LoadInt64(&core.TasksRetried))
-	assert.Equal(t, int64(0), atomic.LoadInt64(&core.TasksFatalFailed), "non-fatal errors should not increment TasksFatalFailed")
+	assert.Equal(t, int64(1), core.TasksRetried.Load())
+	assert.Equal(t, int64(0), core.TasksFatalFailed.Load(), "non-fatal errors should not increment TasksFatalFailed")
 
 	_, loaded := core.InFlightTasks.Load(task.ID)
 	assert.False(t, loaded, "task should be removed from in-flight after scheduling retry")
 
-	assert.Equal(t, 1, int(atomic.LoadInt64(&delayedPub.ScheduleCallCount)))
+	assert.Equal(t, 1, int(delayedPub.ScheduleCallCount.Load()))
 }
 
 func TestTaskProcessingCore_Stats_IncludesFatalFailed(t *testing.T) {
@@ -1764,7 +1764,7 @@ func TestTaskProcessingCore_Stats_IncludesFatalFailed(t *testing.T) {
 	config := DefaultDispatcherConfig()
 	core := NewTaskProcessingCore(config, nil, nil, nil)
 
-	atomic.StoreInt64(&core.TasksFatalFailed, 2)
+	core.TasksFatalFailed.Store(2)
 
 	ps := core.Stats()
 	assert.Equal(t, int64(2), ps.FatalFailed, "Stats() should return TasksFatalFailed in FatalFailed field")

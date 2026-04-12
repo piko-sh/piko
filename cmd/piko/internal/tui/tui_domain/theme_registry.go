@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	// ThemeClassic is the legacy ANSI 256 palette preserved for visual
-	// continuity with prior releases.
+	// ThemeClassic is the legacy ANSI 256 palette preserved for visual continuity with prior
+	// releases.
 	ThemeClassic = "piko-classic"
 
 	// ThemeDark is the modern hex palette tuned for dark terminals.
@@ -38,18 +38,17 @@ const (
 	// ThemeLight is the modern hex palette tuned for light terminals.
 	ThemeLight = "piko-light"
 
-	// ThemeMono is a grayscale palette with a single accent for accessible
-	// or low-colour environments.
+	// ThemeMono is a grayscale palette with a single accent for accessible or low-colour
+	// environments.
 	ThemeMono = "piko-mono"
 
-	// ThemeNoColor strips all colours; selected automatically when the
-	// NO_COLOR environment variable is set.
+	// ThemeNoColor strips all colours; selected automatically when the NO_COLOR environment
+	// variable is set.
 	ThemeNoColor = "piko-no-color"
 
-	// DefaultThemeName is the theme used when no explicit choice is made.
-	// During the migration window this stays as ThemeClassic so existing
-	// users see no visual change; flip to ThemeDark when the migration is
-	// complete.
+	// DefaultThemeName is the theme used when no explicit choice is made. During the
+	// migration window this stays as ThemeClassic so existing users see no visual change;
+	// flip to ThemeDark when the migration is complete.
 	DefaultThemeName = ThemeClassic
 )
 
@@ -75,9 +74,8 @@ func NewThemeRegistry() *ThemeRegistry {
 	}
 }
 
-// Register adds a theme to the registry. Registering a theme whose name
-// already exists panics so configuration errors surface at start-up rather
-// than at render time.
+// Register adds a theme to the registry. Registering a theme whose name already exists
+// panics so configuration errors surface at start-up rather than at render time.
 //
 // Takes theme (*Theme) which is the entry to register.
 //
@@ -92,8 +90,7 @@ func (r *ThemeRegistry) Register(theme *Theme) {
 	r.themes[theme.Name] = *theme
 }
 
-// Get returns the theme with the given name and a flag indicating whether
-// the lookup hit.
+// Get returns the theme with the given name and a flag indicating whether the lookup hit.
 //
 // Takes name (string) which is the registered theme identifier.
 //
@@ -109,9 +106,8 @@ func (r *ThemeRegistry) Get(name string) (Theme, bool) {
 	return t, ok
 }
 
-// Default returns the registry's configured default theme. If the configured
-// default is missing the function panics: callers always need a usable
-// theme to render with.
+// Default returns the registry's configured default theme. If the configured default is
+// missing the function panics: callers always need a usable theme to render with.
 //
 // Returns Theme which is the registered default.
 //
@@ -127,8 +123,8 @@ func (r *ThemeRegistry) Default() Theme {
 	return t
 }
 
-// SetDefault changes the registry's default theme name. The named theme must
-// already be registered.
+// SetDefault changes the registry's default theme name. The named theme must already be
+// registered.
 //
 // Takes name (string) which is the theme to use as the default.
 //
@@ -163,18 +159,17 @@ func (r *ThemeRegistry) Names() []string {
 }
 
 var (
-	// globalThemeRegistryOnce ensures the singleton registry is initialised
-	// at most once.
+	// globalThemeRegistryOnce ensures the singleton registry is initialised at most once.
 	globalThemeRegistryOnce sync.Once
 
-	// globalThemeRegistryRef is the package-level registry initialised with
-	// the built-in themes on first access.
+	// globalThemeRegistryRef is the package-level registry initialised with the built-in
+	// themes on first access.
 	globalThemeRegistryRef *ThemeRegistry
 )
 
-// paletteSpec is a flat list of colour role strings used to compose a
-// Palette. The 18 fields appear in the same order as the Palette struct
-// fields so a paletteSpec literal reads top-to-bottom in the same shape.
+// paletteSpec is a flat list of colour role strings used to compose a Palette. The 18
+// fields appear in the same order as the Palette struct fields so a paletteSpec literal
+// reads top-to-bottom in the same shape.
 type paletteSpec struct {
 	// Background is the deepest layer colour string.
 	Background string
@@ -243,58 +238,60 @@ type builtInThemeSpec struct {
 	IsDark bool
 }
 
-// builtInThemes is the canonical list of palettes registered on first
-// access of GlobalThemeRegistry. Adding a new built-in is a single row
-// here rather than a new builder function.
-var builtInThemes = []builtInThemeSpec{
-	{
-		Name:   ThemeClassic,
-		IsDark: true,
-		Spec: paletteSpec{
-			Background: "234", Surface: "235", SurfaceHigh: "235", SurfaceLow: "234",
-			Foreground: "252", ForegroundDim: "240", ForegroundMuted: "238",
-			Border: "238", BorderFocused: "39", Cursor: "39",
-			Primary: "39", PrimarySoft: "32", Accent: "214", AccentSoft: "172",
-			Success: "42", Warning: "214", Danger: "196", Info: "39",
+var (
+	// builtInThemes is the canonical list of palettes registered on first access of
+	// GlobalThemeRegistry. Adding a new built-in is a single row here rather than a new
+	// builder function.
+	builtInThemes = []builtInThemeSpec{
+		{
+			Name:   ThemeClassic,
+			IsDark: true,
+			Spec: paletteSpec{
+				Background: "234", Surface: "235", SurfaceHigh: "235", SurfaceLow: "234",
+				Foreground: "252", ForegroundDim: "240", ForegroundMuted: "238",
+				Border: "238", BorderFocused: "39", Cursor: "39",
+				Primary: "39", PrimarySoft: "32", Accent: "214", AccentSoft: "172",
+				Success: "42", Warning: "214", Danger: "196", Info: "39",
+			},
 		},
-	},
-	{
-		Name:   ThemeDark,
-		IsDark: true,
-		Spec: paletteSpec{
-			Background: "#0e0f14", Surface: "#1a1d24", SurfaceHigh: "#232831", SurfaceLow: "#15171d",
-			Foreground: "#d6d8dc", ForegroundDim: "#6c7281", ForegroundMuted: "#4a505d",
-			Border: "#383e4a", BorderFocused: "#7aa2f7", Cursor: "#7aa2f7",
-			Primary: "#7aa2f7", PrimarySoft: "#5277c5", Accent: "#e0af68", AccentSoft: "#b58950",
-			Success: "#9ece6a", Warning: "#ff9e64", Danger: "#f7768e", Info: "#7dcfff",
+		{
+			Name:   ThemeDark,
+			IsDark: true,
+			Spec: paletteSpec{
+				Background: "#0e0f14", Surface: "#1a1d24", SurfaceHigh: "#232831", SurfaceLow: "#15171d",
+				Foreground: "#d6d8dc", ForegroundDim: "#6c7281", ForegroundMuted: "#4a505d",
+				Border: "#383e4a", BorderFocused: "#7aa2f7", Cursor: "#7aa2f7",
+				Primary: "#7aa2f7", PrimarySoft: "#5277c5", Accent: "#e0af68", AccentSoft: "#b58950",
+				Success: "#9ece6a", Warning: "#ff9e64", Danger: "#f7768e", Info: "#7dcfff",
+			},
 		},
-	},
-	{
-		Name:   ThemeLight,
-		IsDark: false,
-		Spec: paletteSpec{
-			Background: "#f7f8fb", Surface: "#eef0f4", SurfaceHigh: "#dde1e9", SurfaceLow: "#fafbfd",
-			Foreground: "#21262d", ForegroundDim: "#5e6470", ForegroundMuted: "#8a90a0",
-			Border: "#cdd2db", BorderFocused: "#3a5fcd", Cursor: "#3a5fcd",
-			Primary: "#3a5fcd", PrimarySoft: "#5b7fe6", Accent: "#b06f1c", AccentSoft: "#cf8e3a",
-			Success: "#3a8c3a", Warning: "#a86a17", Danger: "#c92443", Info: "#0a7099",
+		{
+			Name:   ThemeLight,
+			IsDark: false,
+			Spec: paletteSpec{
+				Background: "#f7f8fb", Surface: "#eef0f4", SurfaceHigh: "#dde1e9", SurfaceLow: "#fafbfd",
+				Foreground: "#21262d", ForegroundDim: "#5e6470", ForegroundMuted: "#8a90a0",
+				Border: "#cdd2db", BorderFocused: "#3a5fcd", Cursor: "#3a5fcd",
+				Primary: "#3a5fcd", PrimarySoft: "#5b7fe6", Accent: "#b06f1c", AccentSoft: "#cf8e3a",
+				Success: "#3a8c3a", Warning: "#a86a17", Danger: "#c92443", Info: "#0a7099",
+			},
 		},
-	},
-	{
-		Name:   ThemeMono,
-		IsDark: true,
-		Spec: paletteSpec{
-			Background: "#0a0a0a", Surface: "#181818", SurfaceHigh: "#262626", SurfaceLow: "#0f0f0f",
-			Foreground: "#e6e6e6", ForegroundDim: "#9a9a9a", ForegroundMuted: "#5e5e5e",
-			Border: "#3a3a3a", BorderFocused: "#bfbfbf", Cursor: "#ffffff",
-			Primary: "#ffffff", PrimarySoft: "#cccccc", Accent: "#e0af68", AccentSoft: "#b58950",
-			Success: "#bfbfbf", Warning: "#e0af68", Danger: "#ffffff", Info: "#cccccc",
+		{
+			Name:   ThemeMono,
+			IsDark: true,
+			Spec: paletteSpec{
+				Background: "#0a0a0a", Surface: "#181818", SurfaceHigh: "#262626", SurfaceLow: "#0f0f0f",
+				Foreground: "#e6e6e6", ForegroundDim: "#9a9a9a", ForegroundMuted: "#5e5e5e",
+				Border: "#3a3a3a", BorderFocused: "#bfbfbf", Cursor: "#ffffff",
+				Primary: "#ffffff", PrimarySoft: "#cccccc", Accent: "#e0af68", AccentSoft: "#b58950",
+				Success: "#bfbfbf", Warning: "#e0af68", Danger: "#ffffff", Info: "#cccccc",
+			},
 		},
-	},
-}
+	}
+)
 
-// GlobalThemeRegistry returns the singleton ThemeRegistry, initialising the
-// built-in themes on the first call.
+// GlobalThemeRegistry returns the singleton ThemeRegistry, initialising the built-in
+// themes on the first call.
 //
 // Returns *ThemeRegistry which is the package-wide registry.
 func GlobalThemeRegistry() *ThemeRegistry {
@@ -302,17 +299,16 @@ func GlobalThemeRegistry() *ThemeRegistry {
 		globalThemeRegistryRef = NewThemeRegistry()
 		for i := range builtInThemes {
 			entry := &builtInThemes[i]
-			palette := paletteFromSpec(&entry.Spec)
-			globalThemeRegistryRef.Register(new(buildTheme(&palette, entry.Name, entry.IsDark)))
+			globalThemeRegistryRef.Register(new(buildTheme(new(paletteFromSpec(&entry.Spec)), entry.Name, entry.IsDark)))
 		}
 		globalThemeRegistryRef.Register(new(buildNoColorTheme()))
 	})
 	return globalThemeRegistryRef
 }
 
-// buildThemeByName returns the built-in theme registered under name. Used
-// by tests; returns the no-colour theme when name is unknown so the
-// helper is safe to call before initialisation.
+// buildThemeByName returns the built-in theme registered under name. Used by tests;
+// returns the no-colour theme when name is unknown so the helper is safe to call before
+// initialisation.
 //
 // Takes name (string) which is the requested built-in identifier.
 //
@@ -330,9 +326,8 @@ func buildThemeByName(name string) Theme {
 	return buildNoColorTheme()
 }
 
-// buildClassicTheme returns the classic ANSI palette. Retained as a
-// thin wrapper for tests; production code should use the global
-// registry.
+// buildClassicTheme returns the classic ANSI palette. Retained as a thin wrapper for
+// tests; production code should use the global registry.
 //
 // Returns Theme rendered with the legacy ANSI palette.
 func buildClassicTheme() Theme { return buildThemeByName(ThemeClassic) }
@@ -352,8 +347,8 @@ func buildLightTheme() Theme { return buildThemeByName(ThemeLight) }
 // Returns Theme suitable for limited-colour terminals.
 func buildMonoTheme() Theme { return buildThemeByName(ThemeMono) }
 
-// paletteFromSpec converts a string-keyed palette specification into a
-// fully-populated Palette by applying lipgloss.Color to each role.
+// paletteFromSpec converts a string-keyed palette specification into a fully-populated
+// Palette by applying lipgloss.Color to each role.
 //
 // Takes spec (*paletteSpec) which holds the colour strings.
 //
@@ -381,9 +376,8 @@ func paletteFromSpec(spec *paletteSpec) Palette {
 	}
 }
 
-// buildNoColorTheme returns a palette where every role is NoColor. Used when
-// the NO_COLOR environment variable is set or when the user explicitly
-// requests a colourless TUI.
+// buildNoColorTheme returns a palette where every role is NoColor. Used when the NO_COLOR
+// environment variable is set or when the user explicitly requests a colourless TUI.
 //
 // Returns Theme rendered without any colour application.
 func buildNoColorTheme() Theme {

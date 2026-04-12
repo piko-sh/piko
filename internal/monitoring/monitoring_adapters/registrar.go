@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
 
-// noopSpanProcessor is a span processor that does nothing. It is used as the
-// default when no OTEL SDK factories are provided.
+// noopSpanProcessor is a span processor that does nothing. It is used as the default when
+// no OTEL SDK factories are provided.
 type noopSpanProcessor struct{}
 
 // Shutdown is a no-op that always returns nil.
@@ -39,8 +39,8 @@ func (*noopSpanProcessor) Shutdown(context.Context) error { return nil }
 // Returns error which is always nil.
 func (*noopSpanProcessor) ForceFlush(context.Context) error { return nil }
 
-// noopMetricReader is a metric reader that does nothing. It is used as the
-// default when no OTEL SDK factories are provided.
+// noopMetricReader is a metric reader that does nothing. It is used as the default when
+// no OTEL SDK factories are provided.
 type noopMetricReader struct{}
 
 // Shutdown is a no-op that always returns nil.
@@ -48,8 +48,8 @@ type noopMetricReader struct{}
 // Returns error which is always nil.
 func (*noopMetricReader) Shutdown(context.Context) error { return nil }
 
-// noopMetricsCollector collects no metrics. It is used as the default when no
-// OTEL SDK factories are provided.
+// noopMetricsCollector collects no metrics. It is used as the default when no OTEL SDK
+// factories are provided.
 type noopMetricsCollector struct{}
 
 // Start is a no-op that returns immediately.
@@ -60,14 +60,13 @@ func (*noopMetricsCollector) Stop() {}
 
 // Reader returns a no-op metric reader.
 //
-// Returns monitoring_domain.MetricReader which is a no-op
-// reader.
+// Returns monitoring_domain.MetricReader which is a no-op reader.
 func (*noopMetricsCollector) Reader() monitoring_domain.MetricReader {
 	return &noopMetricReader{}
 }
 
-// DefaultServiceFactories returns noop service factories. When the OTEL SDK is
-// required, use piko.WithMonitoringOtelFactories() with the factories from
+// DefaultServiceFactories returns noop service factories. When the OTEL SDK is required,
+// use piko.WithMonitoringOtelFactories() with the factories from
 // logger_otel_sdk.OtelServiceFactories() instead.
 //
 // Returns monitoring_domain.ServiceFactories which contains noop factories.

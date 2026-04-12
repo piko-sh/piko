@@ -22,7 +22,7 @@
 
 #include "textflag.h"
 
-// func normaliseF32SSE(v []float32)
+// normaliseF32SSE rescales f32 vector in place so the L2 norm is 1 using SSE.
 TEXT ·normaliseF32SSE(SB), NOSPLIT, $0-24
 	MOVQ    v_base+0(FP), SI
 	MOVQ    v_len+8(FP), CX
@@ -99,7 +99,7 @@ normsse_write_tail_loop:
 normsse_done:
 	RET
 
-// func normaliseF32AVX2(v []float32)
+// normaliseF32AVX2 rescales f32 vector in place so the L2 norm is 1 using AVX2.
 TEXT ·normaliseF32AVX2(SB), NOSPLIT, $0-24
 	MOVQ    v_base+0(FP), SI
 	MOVQ    v_len+8(FP), CX

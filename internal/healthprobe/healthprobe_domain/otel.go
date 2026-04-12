@@ -30,8 +30,8 @@ var (
 	// HealthCheckErrorCount is a metric counter that tracks health check failures.
 	HealthCheckErrorCount metric.Int64Counter
 
-	// DrainSignalledCount tracks the number of times the drain signal was sent
-	// during shutdown.
+	// DrainSignalledCount tracks the number of times the drain signal was sent during
+	// shutdown.
 	DrainSignalledCount metric.Int64Counter
 )
 

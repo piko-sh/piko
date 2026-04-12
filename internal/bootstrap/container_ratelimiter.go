@@ -26,15 +26,17 @@ import (
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_domain"
 )
 
-// providerNoop is the store name used when falling back to no-op rate limiting.
-const providerNoop = "noop"
+const (
+	// providerNoop is the store name used when falling back to no-op rate limiting.
+	providerNoop = "noop"
+)
 
-// GetRateLimiter returns the centralised rate limiter, initialising it lazily.
-// It attempts to create cache-backed stores; if the cache is unavailable, it
-// falls back to no-op stores with a warning.
+// GetRateLimiter returns the centralised rate limiter, initialising it lazily. It
+// attempts to create cache-backed stores; if the cache is unavailable, it falls back to
+// no-op stores with a warning.
 //
-// Returns *ratelimiter_domain.Limiter which provides token bucket and fixed
-// window rate limiting.
+// Returns *ratelimiter_domain.Limiter which provides token bucket and fixed window rate
+// limiting.
 // Returns error when the limiter could not be initialised.
 func (c *Container) GetRateLimiter() (*ratelimiter_domain.Limiter, error) {
 	c.rateLimiterOnce.Do(func() {
@@ -43,8 +45,8 @@ func (c *Container) GetRateLimiter() (*ratelimiter_domain.Limiter, error) {
 	return c.rateLimiter, c.rateLimiterErr
 }
 
-// createRateLimiter sets up the centralised rate limiter with cache-backed
-// stores, falling back to no-op stores if the cache service is unavailable.
+// createRateLimiter sets up the centralised rate limiter with cache-backed stores,
+// falling back to no-op stores if the cache service is unavailable.
 func (c *Container) createRateLimiter() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 

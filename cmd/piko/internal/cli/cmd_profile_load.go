@@ -36,8 +36,7 @@ import (
 )
 
 const (
-	// loadMaxIdleConnDuration is the maximum idle connection
-	// lifetime for the HTTP client.
+	// loadMaxIdleConnDuration is the maximum idle connection lifetime for the HTTP client.
 	loadMaxIdleConnDuration = 90 * time.Second
 
 	// loadReadTimeout is the HTTP read timeout.
@@ -49,12 +48,11 @@ const (
 	// loadLatencyChBuffer is the buffer size for the latency sampling channel.
 	loadLatencyChBuffer = 4096
 
-	// loadSampleRate is the sampling rate for latencies in
-	// continuous mode (every Nth request).
+	// loadSampleRate is the sampling rate for latencies in continuous mode (every Nth
+	// request).
 	loadSampleRate = 100
 
-	// loadLiveMetricsWindow is the ring buffer size for latency
-	// percentile computation.
+	// loadLiveMetricsWindow is the ring buffer size for latency percentile computation.
 	loadLiveMetricsWindow = 4000
 
 	// loadMillisPerSec converts seconds to milliseconds.
@@ -75,12 +73,10 @@ const (
 	// loadErrorLogPerms is the file permission for the error log.
 	loadErrorLogPerms = 0o640
 
-	// httpStatusOKMin is the lower bound (inclusive) of
-	// successful HTTP status codes.
+	// httpStatusOKMin is the lower bound (inclusive) of successful HTTP status codes.
 	httpStatusOKMin = 200
 
-	// httpStatusOKMax is the upper bound (exclusive) of
-	// successful HTTP status codes.
+	// httpStatusOKMax is the upper bound (exclusive) of successful HTTP status codes.
 	httpStatusOKMax = 300
 )
 
@@ -89,8 +85,7 @@ type metricsMessage struct {
 	// rps is the current requests per second.
 	rps float64
 
-	// meanLatencyMs is the cumulative mean latency in
-	// milliseconds since the test started.
+	// meanLatencyMs is the cumulative mean latency in milliseconds since the test started.
 	meanLatencyMs float64
 
 	// total is the cumulative number of completed requests.
@@ -102,8 +97,8 @@ type metricsMessage struct {
 	// bytesReceived is the cumulative response bytes read.
 	bytesReceived int64
 
-	// Latency percentiles in milliseconds, computed from a sliding window
-	// of sampled requests.
+	// Latency percentiles in milliseconds, computed from a sliding window of sampled
+	// requests.
 	p50Ms float64
 
 	// p80Ms is the 80th percentile latency in milliseconds.
@@ -139,13 +134,12 @@ type loadConfig struct {
 	// headers are HTTP headers sent with every request.
 	headers map[string]string
 
-	// metricsCh receives periodic live metrics snapshots when non-nil and
-	// metricsInterval is positive.
+	// metricsCh receives periodic live metrics snapshots when non-nil and metricsInterval is
+	// positive.
 	metricsCh chan<- metricsMessage
 
-	// errorCh receives error records for failed requests when non-nil.
-	// Sends are non-blocking; records are silently dropped if the
-	// channel buffer is full.
+	// errorCh receives error records for failed requests when non-nil. Sends are
+	// non-blocking; records are silently dropped if the channel buffer is full.
 	errorCh chan<- loadErrorRecord
 
 	// url is the target URL to send requests to.
@@ -157,26 +151,26 @@ type loadConfig struct {
 	// concurrency is the number of concurrent HTTP workers.
 	concurrency int
 
-	// maxRequests is the total number of requests to send. Zero means
-	// unlimited (run until the context is cancelled).
+	// maxRequests is the total number of requests to send. Zero means unlimited (run until
+	// the context is cancelled).
 	maxRequests int
 
-	// metricsInterval controls how often live metrics are emitted. Zero
-	// disables live metrics.
+	// metricsInterval controls how often live metrics are emitted. Zero disables live
+	// metrics.
 	metricsInterval time.Duration
 }
 
 // loadResult holds the aggregated results of a load test run.
 type loadResult struct {
-	// latencies is a sorted slice of per-request latencies. In baseline mode
-	// every request is recorded; in continuous mode latencies are sampled.
+	// latencies is a sorted slice of per-request latencies. In baseline mode every request
+	// is recorded; in continuous mode latencies are sampled.
 	latencies []time.Duration
 
 	// totalRequests is the number of requests that completed (success or failure).
 	totalRequests int64
 
-	// failedRequests is the number of requests that returned a non-2xx status
-	// or encountered a transport error.
+	// failedRequests is the number of requests that returned a non-2xx status or encountered
+	// a transport error.
 	failedRequests int64
 
 	// duration is the wall-clock time the load test ran for.
@@ -226,27 +220,24 @@ func (r *loadResult) meanLatency() time.Duration {
 	return total / time.Duration(len(r.latencies))
 }
 
-// loadWorkerState holds the shared mutable state accessed by load
-// worker goroutines.
+// loadWorkerState holds the shared mutable state accessed by load worker goroutines.
 type loadWorkerState struct {
-	// completedCount is the total number of requests that
-	// have finished, whether successful or not.
+	// completedCount is the total number of requests that have finished, whether successful
+	// or not.
 	completedCount atomic.Int64
 
-	// failedCount is the number of requests that returned a
-	// non-2xx status or encountered a transport error.
+	// failedCount is the number of requests that returned a non-2xx status or encountered a
+	// transport error.
 	failedCount atomic.Int64
 
-	// bytesCount is the cumulative response body bytes
-	// received across all workers.
+	// bytesCount is the cumulative response body bytes received across all workers.
 	bytesCount atomic.Int64
 
-	// sampleCounter is a monotonically increasing counter
-	// used to decide which requests are sampled for latency.
+	// sampleCounter is a monotonically increasing counter used to decide which requests are
+	// sampled for latency.
 	sampleCounter atomic.Int64
 
-	// remaining tracks how many requests are left to send
-	// in baseline (fixed-count) mode.
+	// remaining tracks how many requests are left to send in baseline (fixed-count) mode.
 	remaining atomic.Int64
 }
 
@@ -280,37 +271,33 @@ type liveMetricsParams struct {
 	interval time.Duration
 }
 
-// latencyWindow manages a ring buffer of latency samples and provides
-// sorted percentile computation.
+// latencyWindow manages a ring buffer of latency samples and provides sorted percentile
+// computation.
 type latencyWindow struct {
-	// ring is the fixed-size circular buffer of latency
-	// samples.
+	// ring is the fixed-size circular buffer of latency samples.
 	ring []time.Duration
 
-	// sortBuf is a reusable scratch buffer for sorting the
-	// current window contents without mutating ring.
+	// sortBuf is a reusable scratch buffer for sorting the current window contents without
+	// mutating ring.
 	sortBuf []time.Duration
 
-	// writePos is the next write index into ring, wrapping
-	// modulo the buffer capacity.
+	// writePos is the next write index into ring, wrapping modulo the buffer capacity.
 	writePos int
 
-	// filled is the number of valid samples currently held
-	// in ring, capped at the buffer capacity.
+	// filled is the number of valid samples currently held in ring, capped at the buffer
+	// capacity.
 	filled int
 }
 
-// drain reads all available samples from latencyChannel into the ring
-// buffer.
+// drain reads all available samples from latencyChannel into the ring buffer.
 //
-// Takes latencyChannel (<-chan time.Duration) which provides latency
-// samples.
+// Takes latencyChannel (<-chan time.Duration) which provides latency samples.
 func (w *latencyWindow) drain(latencyChannel <-chan time.Duration) {
 	drainLatencyRing(latencyChannel, w.ring, &w.writePos, &w.filled)
 }
 
-// percentiles returns latency percentiles in milliseconds from the current
-// window contents.
+// percentiles returns latency percentiles in milliseconds from the current window
+// contents.
 //
 // Returns p50 (float64) which is the 50th percentile latency in milliseconds.
 // Returns p80 (float64) which is the 80th percentile latency in milliseconds.
@@ -329,11 +316,9 @@ func (w *latencyWindow) percentiles() (p50, p80, p99, p100 float64) {
 		latencyPercentileMs(w.sortBuf, loadP100)
 }
 
-// newLoadClient creates a fasthttp client configured for the
-// load test.
+// newLoadClient creates a fasthttp client configured for the load test.
 //
-// Takes concurrency (int) which is the maximum number of
-// concurrent connections per host.
+// Takes concurrency (int) which is the maximum number of concurrent connections per host.
 //
 // Returns *fasthttp.Client which is the configured HTTP client.
 func newLoadClient(concurrency int) *fasthttp.Client {
@@ -349,11 +334,9 @@ func newLoadClient(concurrency int) *fasthttp.Client {
 	}
 }
 
-// newLoadTemplate creates the template request that workers
-// copy per-iteration.
+// newLoadTemplate creates the template request that workers copy per-iteration.
 //
-// Takes loadConfiguration (loadConfig) which provides the target URL and
-// headers.
+// Takes loadConfiguration (loadConfig) which provides the target URL and headers.
 //
 // Returns *fasthttp.Request which is the reusable template.
 func newLoadTemplate(loadConfiguration loadConfig) *fasthttp.Request {
@@ -367,14 +350,11 @@ func newLoadTemplate(loadConfiguration loadConfig) *fasthttp.Request {
 	return templateReq
 }
 
-// collectWorkerLatencies merges and sorts per-worker latency
-// slices.
+// collectWorkerLatencies merges and sorts per-worker latency slices.
 //
-// Takes results ([]workerResult) which holds per-worker
-// latency recordings.
+// Takes results ([]workerResult) which holds per-worker latency recordings.
 //
-// Returns []time.Duration which is the merged and sorted
-// latency slice.
+// Returns []time.Duration which is the merged and sorted latency slice.
 func collectWorkerLatencies(results []workerResult) []time.Duration {
 	total := 0
 	for _, wr := range results {
@@ -388,11 +368,11 @@ func collectWorkerLatencies(results []workerResult) []time.Duration {
 	return latencies
 }
 
-// reportTransportError sends a transport error record to the
-// error channel if it is non-nil, without blocking.
+// reportTransportError sends a transport error record to the error channel if it is
+// non-nil, without blocking.
 //
-// Takes loadConfiguration (loadConfig) which provides the error channel and
-// current phase.
+// Takes loadConfiguration (loadConfig) which provides the error channel and active phase
+// label.
 // Takes err (error) which is the transport error to report.
 func reportTransportError(loadConfiguration loadConfig, err error) {
 	if loadConfiguration.errorCh == nil {
@@ -409,11 +389,11 @@ func reportTransportError(loadConfiguration loadConfig, err error) {
 	}
 }
 
-// reportStatusError sends a non-2xx status error record to the
-// error channel if it is non-nil, without blocking.
+// reportStatusError sends a non-2xx status error record to the error channel if it is
+// non-nil, without blocking.
 //
-// Takes loadConfiguration (loadConfig) which provides the error channel and
-// current phase.
+// Takes loadConfiguration (loadConfig) which provides the error channel and active phase
+// label.
 // Takes statusCode (int) which is the non-2xx HTTP status code.
 func reportStatusError(loadConfiguration loadConfig, statusCode int) {
 	if loadConfiguration.errorCh == nil {
@@ -430,17 +410,16 @@ func reportStatusError(loadConfiguration loadConfig, statusCode int) {
 	}
 }
 
-// runLoad executes an HTTP load test according to loadConfiguration using
-// fasthttp for minimal per-request allocation.
+// runLoad executes an HTTP load test according to loadConfiguration using fasthttp for
+// minimal per-request allocation.
 //
 // Takes loadConfiguration (loadConfig) which configures the load generator.
 //
 // Returns *loadResult which contains the aggregated test results.
 //
-// Spawns loadConfiguration.concurrency worker goroutines that send HTTP requests
-// in parallel. An additional goroutine emits live metrics when
-// loadConfiguration.metricsInterval is positive. All goroutines finish before
-// returning.
+// Spawns loadConfiguration.concurrency worker goroutines that send HTTP requests in
+// parallel. An additional goroutine emits live metrics when
+// loadConfiguration.metricsInterval is positive. All goroutines finish before returning.
 func runLoad(ctx context.Context, loadConfiguration loadConfig) *loadResult {
 	client := newLoadClient(loadConfiguration.concurrency)
 	templateReq := newLoadTemplate(loadConfiguration)
@@ -496,17 +475,14 @@ func runLoad(ctx context.Context, loadConfiguration loadConfig) *loadResult {
 // runLoadWorker is the per-goroutine request loop.
 //
 // Takes client (*fasthttp.Client) which sends requests.
-// Takes templateReq (*fasthttp.Request) which is copied for
-// each iteration.
+// Takes templateReq (*fasthttp.Request) which is copied for each iteration.
 // Takes loadConfiguration (loadConfig) which configures request behaviour.
 // Takes state (*loadWorkerState) which holds shared counters.
-// Takes baseline (bool) which, when true, limits the worker
-// to a fixed number of requests.
-// Takes latencyCh (chan time.Duration) which receives sampled
-// latencies for live metrics.
+// Takes baseline (bool) which, when true, limits the worker to a fixed number of
+// requests.
+// Takes latencyCh (chan time.Duration) which receives sampled latencies for live metrics.
 //
-// Returns []time.Duration which holds the latencies recorded
-// by this worker.
+// Returns []time.Duration which holds the latencies recorded by this worker.
 func runLoadWorker(
 	ctx context.Context,
 	client *fasthttp.Client,
@@ -539,19 +515,16 @@ func runLoadWorker(
 	return localLatencies
 }
 
-// executeAndTimeRequest sends a single request and returns its
-// elapsed time if shouldTime is true.
+// executeAndTimeRequest sends a single request and returns its elapsed time if shouldTime
+// is true.
 //
 // Takes client (*fasthttp.Client) which sends the request.
-// Takes templateReq (*fasthttp.Request) which is the request
-// template.
+// Takes templateReq (*fasthttp.Request) which is the request template.
 // Takes loadConfiguration (loadConfig) which configures error reporting.
 // Takes state (*loadWorkerState) which holds shared counters.
-// Takes shouldTime (bool) which, when true, measures the
-// request latency.
+// Takes shouldTime (bool) which, when true, measures the request latency.
 //
-// Returns time.Duration which is the elapsed time, or zero on
-// failure.
+// Returns time.Duration which is the elapsed time, or zero on failure.
 // Returns bool which is true when the request succeeded.
 func executeAndTimeRequest(
 	client *fasthttp.Client,
@@ -576,8 +549,7 @@ func executeAndTimeRequest(
 	return elapsed, ok
 }
 
-// trySendLatency attempts a non-blocking send of a latency
-// sample.
+// trySendLatency attempts a non-blocking send of a latency sample.
 //
 // Takes latencyChannel (chan time.Duration) which receives the sample.
 // Takes d (time.Duration) which is the latency to send.
@@ -591,19 +563,16 @@ func trySendLatency(latencyChannel chan time.Duration, d time.Duration) {
 	}
 }
 
-// executeLoadRequest sends a single HTTP request using the
-// template, updates counters, and reports errors.
+// executeLoadRequest sends a single HTTP request using the template, updates counters,
+// and reports errors.
 //
 // Takes client (*fasthttp.Client) which sends the request.
-// Takes templateReq (*fasthttp.Request) which is the request
-// template.
+// Takes templateReq (*fasthttp.Request) which is the request template.
 // Takes loadConfiguration (loadConfig) which configures error reporting.
 // Takes state (*loadWorkerState) which holds shared counters.
 //
-// Returns time.Duration which is the elapsed time, or zero on
-// transport error.
-// Returns bool which is true when the request completed
-// without a transport error.
+// Returns time.Duration which is the elapsed time, or zero on transport error.
+// Returns bool which is true when the request completed without a transport error.
 func executeLoadRequest(
 	client *fasthttp.Client,
 	templateReq *fasthttp.Request,
@@ -641,11 +610,9 @@ func executeLoadRequest(
 	return time.Since(reqStart), true
 }
 
-// newLatencyWindow creates a latency window with the given
-// capacity.
+// newLatencyWindow creates a latency window with the given capacity.
 //
-// Takes capacity (int) which is the maximum number of samples
-// the ring buffer can hold.
+// Takes capacity (int) which is the maximum number of samples the ring buffer can hold.
 //
 // Returns *latencyWindow which is the initialised window.
 func newLatencyWindow(capacity int) *latencyWindow {
@@ -655,8 +622,8 @@ func newLatencyWindow(capacity int) *latencyWindow {
 	}
 }
 
-// emitLiveMetrics periodically reads the atomic counters and sends a
-// metricsMessage on params.metricsChannel.
+// emitLiveMetrics periodically reads the atomic counters and sends a metricsMessage on
+// params.metricsChannel.
 //
 // Takes params (liveMetricsParams) which groups all required state.
 func emitLiveMetrics(ctx context.Context, params liveMetricsParams) {
@@ -684,17 +651,14 @@ func emitLiveMetrics(ctx context.Context, params liveMetricsParams) {
 	}
 }
 
-// buildMetricsSnapshot computes a single metricsMessage from the
-// current counter values and latency window.
+// buildMetricsSnapshot computes a single metricsMessage from the current counter values
+// and latency window.
 //
-// Takes params (liveMetricsParams) which provides the atomic
-// counters and start time.
-// Takes window (*latencyWindow) which holds the sampled
-// latencies.
+// Takes params (liveMetricsParams) which provides the atomic counters and start time.
+// Takes window (*latencyWindow) which holds the sampled latencies.
 // Takes now (time.Time) which is the current tick time.
 // Takes previousTime (time.Time) which is the previous tick time.
-// Takes previousCompleted (int64) which is the completed count at
-// the previous tick.
+// Takes previousCompleted (int64) which is the completed count at the previous tick.
 //
 // Returns metricsMessage which is the computed snapshot.
 func buildMetricsSnapshot(
@@ -732,15 +696,13 @@ func buildMetricsSnapshot(
 	}
 }
 
-// drainLatencyRing reads all available latency samples from the
-// channel into the ring buffer.
+// drainLatencyRing reads all available latency samples from the channel into the ring
+// buffer.
 //
-// Takes latencyCh (<-chan time.Duration) which provides
-// latency samples.
+// Takes latencyCh (<-chan time.Duration) which provides latency samples.
 // Takes ring ([]time.Duration) which is the circular buffer.
 // Takes writePos (*int) which tracks the next write index.
-// Takes filled (*int) which tracks the number of valid
-// samples in ring.
+// Takes filled (*int) which tracks the number of valid samples in ring.
 func drainLatencyRing(latencyCh <-chan time.Duration, ring []time.Duration, writePos, filled *int) {
 	if latencyCh == nil {
 		return
@@ -759,14 +721,13 @@ func drainLatencyRing(latencyCh <-chan time.Duration, ring []time.Duration, writ
 	}
 }
 
-// latencyPercentileMs returns the percentile value in milliseconds
-// from a sorted slice of durations.
+// latencyPercentileMs returns the percentile value in milliseconds from a sorted slice of
+// durations.
 //
 // Takes sorted ([]time.Duration) which is the sorted latency samples.
 // Takes p (float64) which is the percentile value from 0 to 100.
 //
-// Returns float64 which is the latency in milliseconds, or 0 if
-// the slice is empty.
+// Returns float64 which is the latency in milliseconds, or 0 if the slice is empty.
 func latencyPercentileMs(sorted []time.Duration, p float64) float64 {
 	if len(sorted) == 0 {
 		return 0
@@ -778,8 +739,8 @@ func latencyPercentileMs(sorted []time.Duration, p float64) float64 {
 	return float64(sorted[index]) / float64(time.Millisecond)
 }
 
-// writeErrorLog drains errorChannel and writes each record as a JSON line to
-// errors.jsonl in the given sandbox. It returns when errorChannel is closed.
+// writeErrorLog drains errorChannel and writes each record as a JSON line to errors.jsonl
+// in the given sandbox. It returns when errorChannel is closed.
 //
 // Takes errorChannel (<-chan loadErrorRecord) which provides error records.
 // Takes sandbox (safedisk.Sandbox) which scopes file writes.

@@ -27,29 +27,48 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// TypeNormaliser converts engine-specific type names to structured SQLType
-// values. This is satisfied by any EnginePort implementation.
+// TypeNormaliser converts engine-specific type names to structured SQLType values.
+// Satisfied by any EnginePort implementation.
 type TypeNormaliser interface {
+	// NormaliseTypeName converts a raw SQL type name to a structured SQLType.
+	//
+	// Takes name (string) which is the raw type name as reported by the engine.
+	// Takes modifiers (...int) which carry optional precision or scale values.
+	//
+	// Returns querier_dto.SQLType which is the structured representation.
 	NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType
 }
 
 const (
+	// schemaMain is the SQLite default schema name.
 	schemaMain = "main"
 
+	// hiddenVirtualColumn marks a generated column stored as a virtual expression in PRAGMA
+	// table_xinfo output.
 	hiddenVirtualColumn = 2
 
+	// hiddenStoredColumn marks a generated column whose value is stored on disk in PRAGMA
+	// table_xinfo output.
 	hiddenStoredColumn = 3
 )
 
-// PragmaIntrospectionProvider implements CatalogueProviderPort by querying
-// a live SQLite database using PRAGMA commands.
+// PragmaIntrospectionProvider implements CatalogueProviderPort by querying a live SQLite
+// database using PRAGMA commands.
 type PragmaIntrospectionProvider struct {
+	// database is the SQLite connection used to issue PRAGMA queries.
 	database *sql.DB
 
+	// typeNormaliser converts raw SQLite type strings to structured SQLType values.
 	typeNormaliser TypeNormaliser
 }
 
 // NewPragmaIntrospectionProvider creates a new PRAGMA-based catalogue provider.
+//
+// Takes database (*sql.DB) which is the SQLite connection to introspect.
+// Takes typeNormaliser (TypeNormaliser) which converts raw type names to structured
+// SQLType values.
+//
+// Returns *PragmaIntrospectionProvider which is ready to build catalogues.
 func NewPragmaIntrospectionProvider(
 	database *sql.DB,
 	typeNormaliser TypeNormaliser,
@@ -61,6 +80,13 @@ func NewPragmaIntrospectionProvider(
 }
 
 // BuildCatalogue introspects the SQLite database and builds a schema catalogue.
+//
+// Takes ctx (context.Context) which controls cancellation of the PRAGMA queries.
+//
+// Returns *querier_dto.Catalogue which describes tables, views, and indexes.
+// Returns []querier_dto.SourceError which lists per-object diagnostics, always nil for
+// the SQLite provider.
+// Returns error when a PRAGMA or introspection query fails.
 func (provider *PragmaIntrospectionProvider) BuildCatalogue(
 	ctx context.Context,
 ) (*querier_dto.Catalogue, []querier_dto.SourceError, error) {
@@ -111,6 +137,12 @@ func (provider *PragmaIntrospectionProvider) BuildCatalogue(
 	return catalogue, nil, nil
 }
 
+// listTables returns the names of user tables in the SQLite database.
+//
+// Takes ctx (context.Context) which controls cancellation of the query.
+//
+// Returns []string which contains user table names in alphabetical order.
+// Returns error when the catalogue query fails.
 func (provider *PragmaIntrospectionProvider) listTables(
 	ctx context.Context,
 ) ([]string, error) {
@@ -132,6 +164,12 @@ func (provider *PragmaIntrospectionProvider) listTables(
 	return names, rows.Err()
 }
 
+// listViews returns the names of user views in the SQLite database.
+//
+// Takes ctx (context.Context) which controls cancellation of the query.
+//
+// Returns []string which contains view names in alphabetical order.
+// Returns error when the catalogue query fails.
 func (provider *PragmaIntrospectionProvider) listViews(
 	ctx context.Context,
 ) ([]string, error) {
@@ -153,6 +191,13 @@ func (provider *PragmaIntrospectionProvider) listViews(
 	return names, rows.Err()
 }
 
+// introspectTable builds a Table descriptor for the named table.
+//
+// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
+// Takes tableName (string) which identifies the table to introspect.
+//
+// Returns *querier_dto.Table which describes columns, primary key, and indexes.
+// Returns error when a PRAGMA query fails.
 func (provider *PragmaIntrospectionProvider) introspectTable(
 	ctx context.Context,
 	tableName string,
@@ -176,6 +221,13 @@ func (provider *PragmaIntrospectionProvider) introspectTable(
 	}, nil
 }
 
+// introspectView builds a View descriptor for the named view.
+//
+// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
+// Takes viewName (string) which identifies the view to introspect.
+//
+// Returns *querier_dto.View which describes the view columns.
+// Returns error when a PRAGMA query fails.
 func (provider *PragmaIntrospectionProvider) introspectView(
 	ctx context.Context,
 	viewName string,
@@ -192,6 +244,14 @@ func (provider *PragmaIntrospectionProvider) introspectView(
 	}, nil
 }
 
+// introspectColumns lists columns and primary key fields for a table or view.
+//
+// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
+// Takes tableName (string) which identifies the table or view to introspect.
+//
+// Returns []querier_dto.Column which describes each column.
+// Returns []string which contains primary key column names in order.
+// Returns error when the PRAGMA query fails.
 func (provider *PragmaIntrospectionProvider) introspectColumns(
 	ctx context.Context,
 	tableName string,
@@ -249,6 +309,13 @@ func (provider *PragmaIntrospectionProvider) introspectColumns(
 	return columns, primaryKeyColumns, rows.Err()
 }
 
+// introspectIndexes lists indexes defined on the named table.
+//
+// Takes ctx (context.Context) which controls cancellation of PRAGMA queries.
+// Takes tableName (string) which identifies the table to introspect.
+//
+// Returns []querier_dto.Index which describes each index and its columns.
+// Returns error when a PRAGMA query fails.
 func (provider *PragmaIntrospectionProvider) introspectIndexes(
 	ctx context.Context,
 	tableName string,
@@ -290,6 +357,13 @@ func (provider *PragmaIntrospectionProvider) introspectIndexes(
 	return indexes, indexRows.Err()
 }
 
+// introspectIndexColumns lists the columns referenced by the named index.
+//
+// Takes ctx (context.Context) which controls cancellation of the PRAGMA query.
+// Takes indexName (string) which identifies the index to introspect.
+//
+// Returns []string which contains index column names in declaration order.
+// Returns error when the PRAGMA query fails.
 func (provider *PragmaIntrospectionProvider) introspectIndexColumns(
 	ctx context.Context,
 	indexName string,
@@ -317,6 +391,12 @@ func (provider *PragmaIntrospectionProvider) introspectIndexColumns(
 	return columnNames, rows.Err()
 }
 
+// quoteIdentifier wraps a SQL identifier in double quotes and escapes inner quotes for
+// safe PRAGMA interpolation.
+//
+// Takes identifier (string) which is the raw identifier to quote.
+//
+// Returns string which is the double-quoted identifier.
 func quoteIdentifier(identifier string) string {
 	return "\"" + strings.ReplaceAll(identifier, "\"", "\"\"") + "\""
 }

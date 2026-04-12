@@ -18,7 +18,11 @@
 
 package captcha_provider_turnstile
 
-import "go.opentelemetry.io/otel"
+import (
+	"go.opentelemetry.io/otel"
+)
 
-// tracer is the package-level OTel tracer for the captcha_provider_turnstile package.
-var tracer = otel.Tracer("piko/wdk/captcha/captcha_provider_turnstile")
+var (
+	// tracer is the package-level OTel tracer for the captcha_provider_turnstile package.
+	tracer = otel.Tracer("piko/wdk/captcha/captcha_provider_turnstile")
+)

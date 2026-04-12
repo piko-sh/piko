@@ -26,13 +26,15 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// ThematicBreak implements the Component interface for the <pml-hr> tag.
-// It renders a horizontal line separator with Outlook email client support.
+// ThematicBreak implements the Component interface for the <pml-hr> tag. It renders a
+// horizontal line separator with Outlook email client support.
 type ThematicBreak struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*ThematicBreak)(nil)
+var (
+	_ pml_domain.Component = (*ThematicBreak)(nil)
+)
 
 const (
 	// defaultBorderColor is the default border colour for thematic breaks.
@@ -51,8 +53,8 @@ const (
 	defaultHRAlign = "center"
 )
 
-// NewThematicBreak creates a new ThematicBreak component instance.
-// A ThematicBreak renders a horizontal line separator with styling control.
+// NewThematicBreak creates a new ThematicBreak component instance. A ThematicBreak
+// renders a horizontal line separator with styling control.
 //
 // Returns *ThematicBreak which is a configured component ready for use.
 func NewThematicBreak() *ThematicBreak {
@@ -68,8 +70,8 @@ func (*ThematicBreak) TagName() string {
 	return "pml-hr"
 }
 
-// IsEndingTag returns true because ThematicBreak is a void element and cannot
-// have children.
+// IsEndingTag returns true because ThematicBreak is a void element and cannot have
+// children.
 //
 // Returns bool which is always true for this element type.
 func (*ThematicBreak) IsEndingTag() bool {
@@ -85,8 +87,8 @@ func (*ThematicBreak) AllowedParents() []string {
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which contains the
-// attribute definitions keyed by attribute name.
+// Returns map[string]pml_domain.AttributeDefinition which contains the attribute
+// definitions keyed by attribute name.
 func (*ThematicBreak) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		AttrAlign: {
@@ -164,18 +166,15 @@ func (*ThematicBreak) DefaultAttributes() map[string]string {
 	}
 }
 
-// Transform converts the <pml-hr> node into its final HTML structure for use
-// in emails. The output is more complex than a simple <hr> tag to ensure that
-// padding and alignment work well across all email clients, including Outlook.
+// Transform converts the <pml-hr> node into its final HTML structure for use in emails.
+// The output is more complex than a simple <hr> tag to ensure that padding and alignment
+// work well across all email clients, including Outlook.
 //
 // Takes node (*ast_domain.TemplateNode) which is the <pml-hr> node to convert.
-// Takes ctx (*pml_domain.TransformationContext) which provides styles and
-// diagnostics.
+// Takes ctx (*pml_domain.TransformationContext) which provides styles and diagnostics.
 //
-// Returns *ast_domain.TemplateNode which contains the HTML structure for email
-// clients.
-// Returns []*pml_domain.Error which contains any issues found during the
-// conversion.
+// Returns *ast_domain.TemplateNode which contains the HTML structure for email clients.
+// Returns []*pml_domain.Error which contains any issues found during the conversion.
 func (*ThematicBreak) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
 	styles := ctx.StyleManager
 	pStyles := buildHRParagraphStyles(styles)
@@ -201,11 +200,11 @@ func (*ThematicBreak) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.T
 
 // buildHRParagraphStyles creates the style map for a horizontal rule paragraph.
 //
-// Takes styles (*pml_domain.StyleManager) which holds the style settings for
-// border, width, and alignment.
+// Takes styles (*pml_domain.StyleManager) which holds the style settings for border,
+// width, and alignment.
 //
-// Returns map[string]string which contains the CSS properties for the
-// horizontal rule paragraph.
+// Returns map[string]string which contains the CSS properties for the horizontal rule
+// paragraph.
 func buildHRParagraphStyles(styles *pml_domain.StyleManager) map[string]string {
 	pStyles := map[string]string{
 		CSSFontSize: "1px",
@@ -228,10 +227,9 @@ func buildHRParagraphStyles(styles *pml_domain.StyleManager) map[string]string {
 
 // applyHRAlignment sets the margin style based on the given alignment.
 //
-// Takes pStyles (map[string]string) which holds the paragraph style properties
-// to modify.
-// Takes align (string) which sets the alignment: "left", "right", or "centre"
-// (the default).
+// Takes pStyles (map[string]string) which holds the paragraph style properties to modify.
+// Takes align (string) which sets the alignment: "left", "right", or "centre" (the
+// default).
 func applyHRAlignment(pStyles map[string]string, align string) {
 	switch align {
 	case "left":
@@ -241,16 +239,16 @@ func applyHRAlignment(pStyles map[string]string, align string) {
 	}
 }
 
-// renderOutlookHRTable creates a table that shows the horizontal rule in
-// Outlook email clients.
+// renderOutlookHRTable creates a table that shows the horizontal rule in Outlook email
+// clients.
 //
-// Takes styles (*pml_domain.StyleManager) which provides the CSS styles for
-// the horizontal rule.
-// Takes ctx (*pml_domain.TransformationContext) which provides the context
-// for width calculations.
+// Takes styles (*pml_domain.StyleManager) which provides the CSS styles for the
+// horizontal rule.
+// Takes ctx (*pml_domain.TransformationContext) which provides the context for width
+// calculations.
 //
-// Returns *ast_domain.TemplateNode which contains the raw HTML wrapped in
-// Outlook conditional comments.
+// Returns *ast_domain.TemplateNode which contains the raw HTML wrapped in Outlook
+// conditional comments.
 func renderOutlookHRTable(styles *pml_domain.StyleManager, ctx *pml_domain.TransformationContext) *ast_domain.TemplateNode {
 	widthString := mustGetStyle(styles, CSSWidth)
 	alignString := mustGetStyle(styles, CSSAlign)
@@ -264,8 +262,8 @@ func renderOutlookHRTable(styles *pml_domain.StyleManager, ctx *pml_domain.Trans
 	return NewRawHTMLNode(fmt.Sprintf("<!--[if mso | IE]>%s<![endif]-->", tableHTML))
 }
 
-// buildOutlookHRTableHTML builds the HTML table string for a horizontal rule
-// in Outlook email clients.
+// buildOutlookHRTableHTML builds the HTML table string for a horizontal rule in Outlook
+// email clients.
 //
 // Takes align (string) which sets the table alignment.
 // Takes borderStyle (string) which sets the border style (e.g. "solid").
@@ -289,8 +287,8 @@ func buildOutlookHRTableHTML(align, borderStyle, borderWidth, borderColor string
 	)
 }
 
-// getOutlookHRWidth works out the pixel width for an Outlook horizontal rule
-// table, adjusting for any padding that has been set.
+// getOutlookHRWidth works out the pixel width for an Outlook horizontal rule table,
+// adjusting for any padding that has been set.
 //
 // Takes width (string) which is the desired width in pixels or as a percent.
 // Takes styles (*pml_domain.StyleManager) which gives access to CSS styles.

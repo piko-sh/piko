@@ -26,14 +26,14 @@ import (
 )
 
 const (
-	// fallbackImageDimension holds the default width and height returned
-	// when no inner resolver is available.
+	// fallbackImageDimension holds the default width and height returned when no inner
+	// resolver is available.
 	fallbackImageDimension = 100
 )
 
-// SVGImageResolver wraps an inner ImageResolverPort and returns actual
-// intrinsic dimensions for SVG sources by parsing the root <svg>
-// element. Non-SVG sources are delegated to the inner resolver.
+// SVGImageResolver wraps an inner ImageResolverPort and returns actual intrinsic
+// dimensions for SVG sources by parsing the root <svg> element. Non-SVG sources are
+// delegated to the inner resolver.
 type SVGImageResolver struct {
 	// inner holds the delegate resolver used for non-SVG sources.
 	inner layouter_domain.ImageResolverPort
@@ -42,11 +42,12 @@ type SVGImageResolver struct {
 	svgData pdfwriter_domain.SVGDataPort
 }
 
-var _ layouter_domain.ImageResolverPort = (*SVGImageResolver)(nil)
+var (
+	_ layouter_domain.ImageResolverPort = (*SVGImageResolver)(nil)
+)
 
-// NewSVGImageResolver creates a resolver that extracts SVG intrinsic
-// dimensions for SVG sources and delegates all other sources to the
-// inner resolver.
+// NewSVGImageResolver creates a resolver that extracts SVG intrinsic dimensions for SVG
+// sources and delegates all other sources to the inner resolver.
 //
 // Takes inner (ImageResolverPort) which handles non-SVG sources.
 // Takes svgData (SVGDataPort) which provides raw SVG markup.
@@ -58,8 +59,8 @@ func NewSVGImageResolver(inner layouter_domain.ImageResolverPort, svgData pdfwri
 
 // GetImageDimensions returns intrinsic width and height for the given source.
 //
-// For SVG sources, it parses the root <svg> element to extract
-// width/height/viewBox. For other sources, delegates to the inner resolver.
+// For SVG sources, it parses the root <svg> element to extract width/height/viewBox. For
+// other sources, delegates to the inner resolver.
 //
 // Takes source (string) which is the image source path or data URI.
 //
@@ -76,12 +77,10 @@ func (r *SVGImageResolver) GetImageDimensions(ctx context.Context, source string
 	return fallbackImageDimension, fallbackImageDimension, nil
 }
 
-// trySVGDimensions attempts to extract intrinsic dimensions
-// from an SVG source by fetching the SVG data and parsing
-// the root element.
+// trySVGDimensions attempts to extract intrinsic dimensions from an SVG source by
+// fetching the SVG data and parsing the root element.
 //
-// Takes source (string) which is the image source path or
-// data URI.
+// Takes source (string) which is the image source path or data URI.
 //
 // Returns width (float64) which is the SVG intrinsic width.
 // Returns height (float64) which is the SVG intrinsic height.

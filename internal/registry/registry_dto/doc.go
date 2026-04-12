@@ -18,10 +18,10 @@
 
 // Package registry_dto defines data transfer objects for the artefact registry.
 //
-// It defines the core types for representing artefacts, variants, profiles,
-// and their metadata. These types cross architectural boundaries and carry no
-// business logic, making the package safe to import from any layer.
+// It defines the core types for representing artefacts, variants, profiles, and their
+// metadata. These types cross architectural boundaries and carry no business logic,
+// making the package safe to import from any layer.
 //
-// Several types use hybrid storage strategies (fixed-size arrays with map
-// fallback) to optimise for common cases whilst remaining JSON-serialisable.
+// Several types use hybrid storage strategies (fixed-size arrays with map fallback) to
+// optimise for common cases whilst remaining JSON-serialisable.
 package registry_dto

@@ -25,13 +25,12 @@ import (
 	"sync"
 )
 
-// Config describes JSON encoding behaviour. When the sonic provider is
-// active, all fields are honoured; with the stdlib fallback, only
-// EscapeHTML is respected and the remaining fields are silently ignored.
+// Config describes JSON encoding behaviour. When the sonic provider is active, all fields
+// are honoured; with the stdlib fallback, only EscapeHTML is respected and the remaining
+// fields are silently ignored.
 type Config struct {
-	// CopyString copies decoded strings instead of referencing the source
-	// buffer, preventing memory issues when decoded objects outlive the
-	// original JSON data. Sonic-only.
+	// CopyString copies decoded strings instead of referencing the source buffer, preventing
+	// memory issues when decoded objects outlive the original JSON data. Sonic-only.
 	CopyString bool
 
 	// UseInt64 decodes JSON numbers as int64 when possible. Sonic-only.
@@ -62,9 +61,8 @@ type API interface {
 	NewDecoder(r io.Reader) Decoder
 }
 
-// lazyAPI defers provider resolution until first use. This allows frozen
-// configs created in init() to pick up whichever provider is active when
-// the first request arrives.
+// lazyAPI defers provider resolution until first use. This allows frozen configs created
+// in init() to pick up whichever provider is active when the first request arrives.
 type lazyAPI struct {
 	// inner holds the resolved concrete API after first use.
 	inner API
@@ -76,8 +74,7 @@ type lazyAPI struct {
 	config Config
 }
 
-// Marshal serialises v into JSON bytes, resolving the
-// provider on first call.
+// Marshal serialises v into JSON bytes, resolving the provider on first call.
 //
 // Takes v (any) which is the value to serialise.
 //
@@ -87,8 +84,7 @@ func (l *lazyAPI) Marshal(v any) ([]byte, error) {
 	return l.resolve().Marshal(v)
 }
 
-// Unmarshal deserialises JSON data into v, resolving
-// the provider on first call.
+// Unmarshal deserialises JSON data into v, resolving the provider on first call.
 //
 // Takes data ([]byte) which is the raw JSON input.
 // Takes v (any) which is the target to populate.
@@ -98,8 +94,8 @@ func (l *lazyAPI) Unmarshal(data []byte, v any) error {
 	return l.resolve().Unmarshal(data, v)
 }
 
-// MarshalIndent serialises v into indented JSON bytes,
-// resolving the provider on first call.
+// MarshalIndent serialises v into indented JSON bytes, resolving the provider on first
+// call.
 //
 // Takes v (any) which is the value to serialise.
 // Takes prefix (string) which is prepended to each line.
@@ -111,8 +107,8 @@ func (l *lazyAPI) MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 	return l.resolve().MarshalIndent(v, prefix, indent)
 }
 
-// NewEncoder creates a streaming JSON encoder writing
-// to w, resolving the provider on first call.
+// NewEncoder creates a streaming JSON encoder writing to w, resolving the provider on
+// first call.
 //
 // Takes w (io.Writer) which receives the encoded JSON.
 //
@@ -121,8 +117,8 @@ func (l *lazyAPI) NewEncoder(w io.Writer) Encoder {
 	return l.resolve().NewEncoder(w)
 }
 
-// NewDecoder creates a streaming JSON decoder reading
-// from r, resolving the provider on first call.
+// NewDecoder creates a streaming JSON decoder reading from r, resolving the provider on
+// first call.
 //
 // Takes r (io.Reader) which supplies the raw JSON.
 //
@@ -131,8 +127,7 @@ func (l *lazyAPI) NewDecoder(r io.Reader) Decoder {
 	return l.resolve().NewDecoder(r)
 }
 
-// resolve initialises the concrete API on first call
-// using [FreezeImpl].
+// resolve initialises the concrete API on first call using FreezeImpl.
 //
 // Returns API which is the resolved provider.
 func (l *lazyAPI) resolve() API {
@@ -148,8 +143,7 @@ type stdAPI struct {
 	escapeHTML bool
 }
 
-// Marshal serialises v into JSON bytes using the stdlib
-// encoder.
+// Marshal serialises v into JSON bytes using the stdlib encoder.
 //
 // Takes v (any) which is the value to serialise.
 //
@@ -169,8 +163,7 @@ func (s *stdAPI) Marshal(v any) ([]byte, error) {
 	return result, nil
 }
 
-// Unmarshal deserialises JSON data into v using the
-// stdlib decoder.
+// Unmarshal deserialises JSON data into v using the stdlib decoder.
 //
 // Takes data ([]byte) which is the raw JSON input.
 // Takes v (any) which is the target to populate.
@@ -180,8 +173,7 @@ func (*stdAPI) Unmarshal(data []byte, v any) error {
 	return stdjson.Unmarshal(data, v)
 }
 
-// MarshalIndent serialises v into indented JSON bytes
-// using the stdlib encoder.
+// MarshalIndent serialises v into indented JSON bytes using the stdlib encoder.
 //
 // Takes v (any) which is the value to serialise.
 // Takes prefix (string) which is prepended to each line.
@@ -193,8 +185,7 @@ func (*stdAPI) MarshalIndent(v any, prefix, indent string) ([]byte, error) {
 	return stdjson.MarshalIndent(v, prefix, indent)
 }
 
-// NewEncoder creates a streaming stdlib JSON encoder
-// writing to w.
+// NewEncoder creates a streaming stdlib JSON encoder writing to w.
 //
 // Takes w (io.Writer) which receives the encoded JSON.
 //
@@ -205,8 +196,7 @@ func (s *stdAPI) NewEncoder(w io.Writer) Encoder {
 	return encoder
 }
 
-// NewDecoder creates a streaming stdlib JSON decoder
-// reading from r.
+// NewDecoder creates a streaming stdlib JSON decoder reading from r.
 //
 // Takes r (io.Reader) which supplies the raw JSON.
 //

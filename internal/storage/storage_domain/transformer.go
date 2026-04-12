@@ -33,52 +33,49 @@ import (
 )
 
 const (
-	// metadataKeyTransformers is the metadata key used to store the transformer
-	// chain applied to an object. The value is a JSON array of transformer names
-	// in the order they were applied.
+	// metadataKeyTransformers is the metadata key used to store the transformer chain
+	// applied to an object. The value is a JSON array of transformer names in the order they
+	// were applied.
 	metadataKeyTransformers = "x-piko-transformers"
 )
 
-var _ StorageProviderPort = (*TransformerWrapper)(nil)
+var (
+	_ StorageProviderPort = (*TransformerWrapper)(nil)
+)
 
-// StreamTransformerPort defines the interface for stream transformers.
-// Transformers wrap an io.Reader to apply on-the-fly transformations like
-// compression or encryption.
+// StreamTransformerPort defines the interface for stream transformers. Transformers wrap
+// an io.Reader to apply on-the-fly transformations like compression or encryption.
 type StreamTransformerPort interface {
-	// Name returns the unique name of this transformer (e.g. "zstd",
-	// "aes-256-gcm").
+	// Name returns the unique name of this transformer (e.g. "zstd", "aes-256-gcm").
 	Name() string
 
-	// Type returns the transformer's category, such as compression, encryption,
-	// or custom.
+	// Type returns the transformer's category, such as compression, encryption, or custom.
 	//
 	// Returns storage_dto.TransformerType which indicates the kind of transformer.
 	Type() storage_dto.TransformerType
 
-	// Priority returns the execution order for this filter. Lower values run first
-	// during write operations.
+	// Priority returns the execution order for this filter. Lower values run first during
+	// write operations.
 	//
-	// Returns int which indicates priority. Recommended ranges: 100-199 for
-	// compression, 200-299 for encryption, 300+ for custom filters.
+	// Returns int which indicates priority. Recommended ranges: 100-199 for compression,
+	// 200-299 for encryption, 300+ for custom filters.
 	Priority() int
 
-	// Transform wraps a reader to apply the forward transformation such as
-	// compression or encryption. It is used during upload operations.
+	// Transform wraps a reader to apply the forward transformation such as compression or
+	// encryption. It is used during upload operations.
 	//
 	// Takes input (io.Reader) which provides the data to transform.
-	// Takes options (any) which is sourced from
-	// TransformConfig.TransformerOptions[Name()].
+	// Takes options (any) which is sourced from TransformConfig.TransformerOptions[Name()].
 	//
 	// Returns io.Reader which provides the transformed data stream.
 	// Returns error when the transformation cannot be applied.
 	Transform(ctx context.Context, input io.Reader, options any) (io.Reader, error)
 
-	// Reverse wraps a reader to apply the reverse transformation, such as
-	// decompress or decrypt. It is used during download operations.
+	// Reverse wraps a reader to apply the reverse transformation, such as decompress or
+	// decrypt. It is used during download operations.
 	//
 	// Takes input (io.Reader) which provides the data to transform.
-	// Takes options (any) which is sourced from
-	// TransformConfig.TransformerOptions[Name()].
+	// Takes options (any) which is sourced from TransformConfig.TransformerOptions[Name()].
 	//
 	// Returns io.Reader which provides the reverse-transformed data.
 	// Returns error when the transformation cannot be applied.
@@ -104,8 +101,8 @@ func NewTransformerRegistry() *TransformerRegistry {
 //
 // Takes transformer (StreamTransformerPort) which is the transformer to add.
 //
-// Returns error when transformer is nil, has an empty name, or a transformer
-// with the same name is already registered.
+// Returns error when transformer is nil, has an empty name, or a transformer with the
+// same name is already registered.
 func (r *TransformerRegistry) Register(transformer StreamTransformerPort) error {
 	if transformer == nil {
 		return errTransformerNil
@@ -157,8 +154,8 @@ func (r *TransformerRegistry) GetNames() []string {
 	return names
 }
 
-// TransformerChain represents an ordered sequence of transformers to be applied
-// to a stream.
+// TransformerChain represents an ordered sequence of transformers to be applied to a
+// stream.
 type TransformerChain struct {
 	// config holds transformer options keyed by transformer name.
 	config *storage_dto.TransformConfig
@@ -167,17 +164,15 @@ type TransformerChain struct {
 	transformers []StreamTransformerPort
 }
 
-// NewTransformerChain creates and sorts a new transformer chain based on a
-// configuration.
+// NewTransformerChain creates and sorts a new transformer chain based on a configuration.
 //
 // When config is nil, returns an empty but valid chain.
 //
 // Takes registry (*TransformerRegistry) which provides available transformers.
-// Takes config (*storage_dto.TransformConfig) which specifies which
-// transformers to enable.
+// Takes config (*storage_dto.TransformConfig) which specifies which transformers to
+// enable.
 //
-// Returns *TransformerChain which contains the sorted transformers ready for
-// use.
+// Returns *TransformerChain which contains the sorted transformers ready for use.
 // Returns error when the registry is nil or a transformer cannot be resolved.
 func NewTransformerChain(registry *TransformerRegistry, config *storage_dto.TransformConfig) (*TransformerChain, error) {
 	if registry == nil {
@@ -214,8 +209,8 @@ func (c *TransformerChain) IsEmpty() bool {
 	return len(c.transformers) == 0
 }
 
-// Transform applies all transformers in forward, priority order for uploads.
-// Data flows from original through each transformer in sequence to storage.
+// Transform applies all transformers in forward, priority order for uploads. Data flows
+// from original through each transformer in sequence to storage.
 //
 // Takes input (io.Reader) which provides the original data to transform.
 //
@@ -240,9 +235,9 @@ func (c *TransformerChain) Transform(ctx context.Context, input io.Reader) (io.R
 	return current, nil
 }
 
-// Reverse applies all transformers in reverse priority order for downloads.
-// Data flows from storage through each transformer in descending priority,
-// ending with the original format.
+// Reverse applies all transformers in reverse priority order for downloads. Data flows
+// from storage through each transformer in descending priority, ending with the original
+// format.
 //
 // Takes input (io.Reader) which provides the data to reverse-transform.
 //
@@ -255,8 +250,7 @@ func (c *TransformerChain) Reverse(ctx context.Context, input io.Reader) (io.Rea
 
 	ctx, l := logger_domain.From(ctx, log)
 	current := input
-	for i := len(c.transformers) - 1; i >= 0; i-- {
-		transformer := c.transformers[i]
+	for _, transformer := range slices.Backward(c.transformers) {
 		options := c.config.TransformerOptions[transformer.Name()]
 		reversed, err := transformer.Reverse(ctx, current, options)
 		if err != nil {
@@ -268,12 +262,10 @@ func (c *TransformerChain) Reverse(ctx context.Context, input io.Reader) (io.Rea
 	return current, nil
 }
 
-// TransformerWrapper decorates a StorageProviderPort to add transparent,
-// on-the-fly data transformation such as compression or encryption.
-// It implements StorageProviderPort.
+// TransformerWrapper decorates a StorageProviderPort to add transparent, on-the-fly data
+// transformation such as compression or encryption. It implements StorageProviderPort.
 type TransformerWrapper struct {
-	// provider is the underlying storage provider that handles actual data
-	// operations.
+	// provider is the underlying storage provider that handles actual data operations.
 	provider StorageProviderPort
 
 	// registry holds the available transformers used to create chains.
@@ -294,8 +286,7 @@ type TransformerWrapper struct {
 // transformation settings.
 // Takes providerName (string) which identifies the storage provider.
 //
-// Returns *TransformerWrapper which wraps the provider with transformation
-// capabilities.
+// Returns *TransformerWrapper which wraps the provider with transformation capabilities.
 func NewTransformerWrapper(provider StorageProviderPort, registry *TransformerRegistry, defaultConfig *storage_dto.TransformConfig, providerName string) *TransformerWrapper {
 	return &TransformerWrapper{
 		provider:      provider,
@@ -314,8 +305,8 @@ func (tw *TransformerWrapper) Unwrap() StorageProviderPort {
 
 // GetProviderType forwards the provider type query through the wrapper chain.
 //
-// Returns string which is the type from the inner provider, or "unknown" if
-// no layer implements ProviderMetadata.
+// Returns string which is the type from the inner provider, or "unknown" if no layer
+// implements ProviderMetadata.
 func (tw *TransformerWrapper) GetProviderType() string {
 	if meta, ok := tw.provider.(provider_domain.ProviderMetadata); ok {
 		return meta.GetProviderType()
@@ -325,8 +316,8 @@ func (tw *TransformerWrapper) GetProviderType() string {
 
 // GetProviderMetadata forwards the metadata query through the wrapper chain.
 //
-// Returns map[string]any which is the metadata from the inner provider, or nil
-// if no layer implements ProviderMetadata.
+// Returns map[string]any which is the metadata from the inner provider, or nil if no
+// layer implements ProviderMetadata.
 func (tw *TransformerWrapper) GetProviderMetadata() map[string]any {
 	if meta, ok := tw.provider.(provider_domain.ProviderMetadata); ok {
 		return meta.GetProviderMetadata()
@@ -334,16 +325,15 @@ func (tw *TransformerWrapper) GetProviderMetadata() map[string]any {
 	return nil
 }
 
-// Put intercepts the Put operation, applying the configured transformations
-// to the data stream before passing it to the underlying storage provider.
-// It automatically stores the transformer chain in object metadata for
-// automatic reversal on Get.
+// Put intercepts the Put operation, applying the configured transformations to the data
+// stream before passing it to the underlying storage provider. It automatically stores
+// the transformer chain in object metadata for automatic reversal on Get.
 //
-// Takes params (*storage_dto.PutParams) which specifies the object key, reader,
-// and optional transform configuration.
+// Takes params (*storage_dto.PutParams) which specifies the object key, reader, and
+// optional transform configuration.
 //
-// Returns error when creating the transformer chain fails, transformation
-// fails, or the underlying provider returns an error.
+// Returns error when creating the transformer chain fails, transformation fails, or the
+// underlying provider returns an error.
 func (tw *TransformerWrapper) Put(ctx context.Context, params *storage_dto.PutParams) error {
 	ctx, l := logger_domain.From(ctx, log)
 	config := tw.resolveConfig(params.TransformConfig)
@@ -394,10 +384,10 @@ func (tw *TransformerWrapper) Put(ctx context.Context, params *storage_dto.PutPa
 	return tw.provider.Put(ctx, &modifiedParams)
 }
 
-// Get intercepts the Get operation, first retrieving the raw data from the
-// underlying provider, then applying the reverse transformations before
-// returning the stream to the caller. It automatically detects and applies
-// transformers from object metadata if available.
+// Get intercepts the Get operation, first retrieving the raw data from the underlying
+// provider, then applying the reverse transformations before returning the stream to the
+// caller. It automatically detects and applies transformers from object metadata if
+// available.
 //
 // Takes params (storage_dto.GetParams) which specifies what object to retrieve.
 //
@@ -421,9 +411,9 @@ func (tw *TransformerWrapper) Get(ctx context.Context, params storage_dto.GetPar
 	return tw.applyReverseTransformations(ctx, params, rawReader, config)
 }
 
-// transformedReadCloser wraps a transformed reader and its cleanup resources.
-// It implements io.ReadCloser, ensuring the original reader and any background
-// goroutines are properly released when closed.
+// transformedReadCloser wraps a transformed reader and its cleanup resources. It
+// implements io.ReadCloser, ensuring the original reader and any background goroutines
+// are properly released when closed.
 type transformedReadCloser struct {
 	// reader holds the transformed content for reading.
 	reader io.Reader
@@ -455,8 +445,7 @@ func (r *transformedReadCloser) Close() error {
 	return r.closer.Close()
 }
 
-// Stat passes the call directly to the underlying provider without
-// transformation.
+// Stat passes the call directly to the underlying provider without transformation.
 //
 // Takes params (storage_dto.GetParams) which specifies the object to query.
 //
@@ -470,8 +459,7 @@ func (tw *TransformerWrapper) Stat(ctx context.Context, params storage_dto.GetPa
 	return info, nil
 }
 
-// Copy passes the call directly to the underlying provider without
-// transformation.
+// Copy passes the call directly to the underlying provider without transformation.
 //
 // Takes srcRepo (string) which identifies the source repository.
 // Takes srcKey (string) which identifies the source object.
@@ -528,8 +516,7 @@ func (tw *TransformerWrapper) GetHash(ctx context.Context, params storage_dto.Ge
 
 // PresignURL passes the call directly to the underlying provider.
 //
-// Takes params (storage_dto.PresignParams) which specifies the presigning
-// options.
+// Takes params (storage_dto.PresignParams) which specifies the presigning options.
 //
 // Returns string which is the presigned URL for the requested resource.
 // Returns error when the underlying provider fails to generate the URL.
@@ -543,8 +530,7 @@ func (tw *TransformerWrapper) PresignURL(ctx context.Context, params storage_dto
 
 // PresignDownloadURL passes the call directly to the underlying provider.
 //
-// Takes params (storage_dto.PresignDownloadParams) which specifies the download
-// options.
+// Takes params (storage_dto.PresignDownloadParams) which specifies the download options.
 //
 // Returns string which is the presigned URL for downloading.
 // Returns error when the underlying provider fails to generate the URL.
@@ -558,8 +544,8 @@ func (tw *TransformerWrapper) PresignDownloadURL(ctx context.Context, params sto
 
 // Close passes the call directly to the underlying provider.
 //
-// Takes ctx (context.Context) which carries cancellation and tracing
-// for the close operation.
+// Takes ctx (context.Context) which carries cancellation and tracing for the close
+// operation.
 //
 // Returns error when the underlying provider fails to close.
 func (tw *TransformerWrapper) Close(ctx context.Context) error {
@@ -578,13 +564,11 @@ func (tw *TransformerWrapper) SupportsMultipart() bool {
 
 // PutMany applies transformations to each object in the batch.
 //
-// Takes params (*storage_dto.PutManyParams) which contains the objects to
-// upload.
+// Takes params (*storage_dto.PutManyParams) which contains the objects to upload.
 //
-// Returns *storage_dto.BatchResult which contains the upload results for each
-// object.
-// Returns error when the transformer chain cannot be created or when any
-// object transformation fails.
+// Returns *storage_dto.BatchResult which contains the upload results for each object.
+// Returns error when the transformer chain cannot be created or when any object
+// transformation fails.
 //
 // Transformers are applied per-object, not to the entire batch.
 func (tw *TransformerWrapper) PutMany(ctx context.Context, params *storage_dto.PutManyParams) (*storage_dto.BatchResult, error) {
@@ -629,8 +613,8 @@ func (tw *TransformerWrapper) PutMany(ctx context.Context, params *storage_dto.P
 	return tw.provider.PutMany(ctx, &transformedParams)
 }
 
-// RemoveMany passes through to the underlying provider without transformation,
-// as deletions do not need transformation.
+// RemoveMany passes through to the underlying provider without transformation, as
+// deletions do not need transformation.
 //
 // Takes params (storage_dto.RemoveManyParams) which specifies items to remove.
 //
@@ -679,8 +663,8 @@ func (tw *TransformerWrapper) SupportsPresignedURLs() bool {
 	return tw.provider.SupportsPresignedURLs()
 }
 
-// Rename renames a blob from oldKey to newKey. Transformers do not affect
-// rename operations.
+// Rename renames a blob from oldKey to newKey. Transformers do not affect rename
+// operations.
 //
 // Takes repo (string) which identifies the target repository.
 // Takes oldKey (string) which specifies the current blob key.
@@ -694,8 +678,7 @@ func (tw *TransformerWrapper) Rename(ctx context.Context, repo string, oldKey, n
 	return nil
 }
 
-// Exists checks if a blob exists. Transformers do not affect exists
-// operations.
+// Exists checks if a blob exists. Transformers do not affect exists operations.
 //
 // Takes params (storage_dto.GetParams) which specifies the blob to check.
 //
@@ -713,8 +696,8 @@ func (tw *TransformerWrapper) Exists(ctx context.Context, params storage_dto.Get
 //
 // Takes params (storage_dto.GetParams) which specifies the object to query.
 //
-// Returns *storage_dto.TransformConfig which contains the transformer chain,
-// or nil if no metadata is found or if parsing fails.
+// Returns *storage_dto.TransformConfig which contains the transformer chain, or nil if no
+// metadata is found or if parsing fails.
 func (tw *TransformerWrapper) retrieveTransformerConfig(
 	ctx context.Context, params storage_dto.GetParams,
 ) *storage_dto.TransformConfig {
@@ -751,15 +734,14 @@ func (tw *TransformerWrapper) retrieveTransformerConfig(
 	}
 }
 
-// applyReverseTransformations creates and applies a transformer chain to
-// reverse transformations.
+// applyReverseTransformations creates and applies a transformer chain to reverse
+// transformations.
 //
-// Takes params (storage_dto.GetParams) which provides the key and other
-// retrieval parameters.
-// Takes rawReader (io.ReadCloser) which supplies the transformed data to
+// Takes params (storage_dto.GetParams) which provides the key and other retrieval
+// parameters.
+// Takes rawReader (io.ReadCloser) which supplies the transformed data to reverse.
+// Takes config (*storage_dto.TransformConfig) which specifies which transformations to
 // reverse.
-// Takes config (*storage_dto.TransformConfig) which specifies which
-// transformations to reverse.
 //
 // Returns io.ReadCloser which provides the reversed data stream.
 // Returns error when the transformer chain cannot be created or reversal fails.

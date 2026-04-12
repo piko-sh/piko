@@ -24,8 +24,8 @@ import (
 
 // SimplePageAST returns a sample template AST for testing purposes.
 //
-// Returns *ast_domain.TemplateAST which contains a basic page structure with
-// a container div, heading, paragraph, and comment node.
+// Returns *ast_domain.TemplateAST which contains a basic page structure with a container
+// div, heading, paragraph, and comment node.
 func SimplePageAST() *ast_domain.TemplateAST {
 	return &ast_domain.TemplateAST{
 		RootNodes: []*ast_domain.TemplateNode{

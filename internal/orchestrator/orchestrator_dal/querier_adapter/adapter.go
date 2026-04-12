@@ -36,18 +36,18 @@ import (
 )
 
 const (
-	// maxTransactionTimeout is the maximum duration a RunAtomic transaction
-	// may hold before being cancelled.
+	// maxTransactionTimeout is the maximum duration a RunAtomic transaction may hold before
+	// being cancelled.
 	maxTransactionTimeout = 30 * time.Second
 )
 
 var (
-	// errDALNotInitialised is returned when a transaction is attempted but the
-	// DAL has not been initialised with a sql.DB connection.
+	// errDALNotInitialised is returned when a transaction is attempted but the DAL has not
+	// been initialised with a sql.DB connection.
 	errDALNotInitialised = errors.New("cannot create transaction: DAL not initialised with a sql.DB connection")
 
-	// errTaskPoolAssertFailed is returned when a value from the task pool
-	// cannot be asserted to *Task.
+	// errTaskPoolAssertFailed is returned when a value from the task pool cannot be asserted
+	// to *Task.
 	errTaskPoolAssertFailed = errors.New("failed to get task from pool: type assertion failed")
 
 	// log is the package-level logger for the querier_adapter package.
@@ -60,37 +60,36 @@ var (
 	_ orchestrator_domain.OrchestratorInspector = (*Adapter)(nil)
 )
 
-// Adapter wraps the code-generated Queries struct to satisfy
-// OrchestratorDALWithTx and TaskStore. It manages transactions, JSON
-// serialisation, and timestamp conversion between the domain layer and
-// the SQLite storage layer.
+// Adapter wraps the code-generated Queries struct to satisfy OrchestratorDALWithTx and
+// TaskStore. It manages transactions, JSON serialisation, and timestamp conversion
+// between the domain layer and the SQLite storage layer.
 type Adapter struct {
 	// db is the database connection for running queries.
 	db orchestrator_db.DBTX
 
-	// sqlDB holds the database connection for health checks, transaction
-	// creation, and closing; nil when not set up.
+	// sqlDB holds the database connection for health checks, transaction creation, and
+	// closing; nil when not set up.
 	sqlDB *sql.DB
 
 	// queries holds the code-generated database operations.
 	queries *orchestrator_db.Queries
 
-	// inTransaction is true when this Adapter is a transaction-scoped clone
-	// created by withTransaction. It prevents nested transactions.
+	// inTransaction is true when this Adapter is a transaction-scoped clone created by
+	// withTransaction. It prevents nested transactions.
 	inTransaction bool
 }
 
 // New creates a new Adapter wrapping the given database connection.
 //
-// If db is a *sql.DB, it is used directly for transactions and health checks.
-// If db implements sqlDBProvider (e.g. PreparedDBTX), the provider is used
-// for transaction creation.
+// If db is a *sql.DB, it is used directly for transactions and health checks. If db
+// implements sqlDBProvider (e.g. PreparedDBTX), the provider is used for transaction
+// creation.
 //
-// Takes db (orchestrator_db.DBTX) which provides the database connection or
-// transaction to use for queries.
+// Takes db (orchestrator_db.DBTX) which provides the database connection or transaction
+// to use for queries.
 //
-// Returns orchestrator_dal.OrchestratorDALWithTx which is the configured
-// adapter ready for use.
+// Returns orchestrator_dal.OrchestratorDALWithTx which is the configured adapter ready
+// for use.
 func New(db orchestrator_db.DBTX) orchestrator_dal.OrchestratorDALWithTx {
 	queries := orchestrator_db.New(db)
 
@@ -125,15 +124,14 @@ func (*Adapter) Close() error {
 
 // RunAtomic executes fn within a serialisable transaction.
 //
-// The provided TaskStore is scoped to the transaction, so all reads and writes
-// through it are atomic. If fn returns an error (or panics), all mutations are
-// rolled back.
+// The provided TaskStore is scoped to the transaction, so all reads and writes through it
+// are atomic. If fn returns an error (or panics), all mutations are rolled back.
 //
 // Takes fn which receives a transactional TaskStore. The caller MUST use this
 // transactional store for all operations that should be atomic.
 //
-// Returns error when fn returns an error, the transaction fails to begin, or
-// the commit fails.
+// Returns error when fn returns an error, the transaction fails to begin, or the commit
+// fails.
 func (a *Adapter) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore orchestrator_domain.TaskStore) error) error {
 	if a.inTransaction {
 		return cache_domain.ErrNestedTransactionUnsupported
@@ -174,11 +172,10 @@ func (a *Adapter) CreateTask(ctx context.Context, task *orchestrator_domain.Task
 // CreateTasks inserts a batch of tasks into the database using the generated
 // CreateTasksBatch method with automatic chunking.
 //
-// Takes tasks ([]*orchestrator_domain.Task) which is the batch of tasks to
-// insert.
+// Takes tasks ([]*orchestrator_domain.Task) which is the batch of tasks to insert.
 //
-// Returns error when the transaction cannot start, a task cannot be
-// serialised, or the batch insert fails.
+// Returns error when the transaction cannot start, a task cannot be serialised, or the
+// batch insert fails.
 func (a *Adapter) CreateTasks(ctx context.Context, tasks []*orchestrator_domain.Task) error {
 	if len(tasks) == 0 {
 		return nil
@@ -242,10 +239,10 @@ func (a *Adapter) UpdateTask(ctx context.Context, task *orchestrator_domain.Task
 	})
 }
 
-// CreateTaskWithDedup creates a task with deduplication support. If the task
-// has a DeduplicationKey set, it checks for existing active tasks with the
-// same key and returns ErrDuplicateTask if one exists; when DeduplicationKey
-// is empty it behaves identically to CreateTask.
+// CreateTaskWithDedup creates a task with deduplication support. If the task has a
+// DeduplicationKey set, it checks for existing active tasks with the same key and returns
+// ErrDuplicateTask if one exists; when DeduplicationKey is empty it behaves identically
+// to CreateTask.
 //
 // Takes task (*orchestrator_domain.Task) which is the task to create.
 //
@@ -277,16 +274,16 @@ func (a *Adapter) CreateTaskWithDedup(ctx context.Context, task *orchestrator_do
 	})
 }
 
-// FetchAndMarkDueTasks atomically fetches due tasks and marks them as
-// processing. The fetch and mark happen within a single transaction to
-// prevent multiple workers from picking up the same task.
+// FetchAndMarkDueTasks atomically fetches due tasks and marks them as processing. The
+// fetch and mark happen within a single transaction to prevent multiple workers from
+// picking up the same task.
 //
-// Takes priority (orchestrator_domain.TaskPriority) which filters tasks by
-// their priority level.
+// Takes priority (orchestrator_domain.TaskPriority) which filters tasks by their priority
+// level.
 // Takes limit (int) which specifies the maximum number of tasks to fetch.
 //
-// Returns []*orchestrator_domain.Task which contains the fetched tasks marked
-// as processing.
+// Returns []*orchestrator_domain.Task which contains the fetched tasks marked as
+// processing.
 // Returns error when the fetch or mark operation fails.
 func (a *Adapter) FetchAndMarkDueTasks(ctx context.Context, priority orchestrator_domain.TaskPriority, limit int) ([]*orchestrator_domain.Task, error) {
 	var domainTasks []*orchestrator_domain.Task
@@ -332,15 +329,14 @@ func (a *Adapter) FetchAndMarkDueTasks(ctx context.Context, priority orchestrato
 	return domainTasks, nil
 }
 
-// convertFetchedRowsToDomain converts database rows to domain tasks and
-// collects their IDs for subsequent marking.
+// convertFetchedRowsToDomain converts database rows to domain tasks and collects their
+// IDs for subsequent marking.
 //
-// Takes fetchedRows ([]orchestrator_db.FetchDueTasksRow) which contains the
-// rows to convert.
+// Takes fetchedRows ([]orchestrator_db.FetchDueTasksRow) which contains the rows to
+// convert.
 //
 // Returns []string which contains the task IDs.
-// Returns []*orchestrator_domain.Task which contains the converted domain
-// tasks.
+// Returns []*orchestrator_domain.Task which contains the converted domain tasks.
 // Returns error when a row cannot be converted.
 func convertFetchedRowsToDomain(fetchedRows []orchestrator_db.FetchDueTasksRow) ([]string, []*orchestrator_domain.Task, error) {
 	taskIDs := make([]string, len(fetchedRows))
@@ -359,8 +355,8 @@ func convertFetchedRowsToDomain(fetchedRows []orchestrator_db.FetchDueTasksRow) 
 	return taskIDs, domainTasks, nil
 }
 
-// GetWorkflowStatus checks if all tasks in a workflow are complete by
-// querying whether any non-terminal tasks remain.
+// GetWorkflowStatus checks if all tasks in a workflow are complete by querying whether
+// any non-terminal tasks remain.
 //
 // Takes workflowID (string) which identifies the workflow to check.
 //
@@ -375,8 +371,7 @@ func (a *Adapter) GetWorkflowStatus(ctx context.Context, workflowID string) (boo
 	return !row.HasIncomplete, nil
 }
 
-// PromoteScheduledTasks moves scheduled tasks that are ready to run to pending
-// status.
+// PromoteScheduledTasks moves scheduled tasks that are ready to run to pending status.
 //
 // Returns int which is the number of tasks promoted.
 // Returns error when the database transaction fails.
@@ -414,16 +409,14 @@ func (a *Adapter) PendingTaskCount(ctx context.Context) (int64, error) {
 	return int64(result.Count), nil
 }
 
-// RecoverStaleTasks resets PROCESSING tasks that have exceeded the stale
-// threshold. Tasks are marked as RETRYING if they have attempts remaining,
-// or FAILED if they have exceeded max retries.
+// RecoverStaleTasks resets PROCESSING tasks that have exceeded the stale threshold. Tasks
+// are marked as RETRYING if they have attempts remaining, or FAILED if they have exceeded
+// max retries.
 //
-// Takes staleThreshold (time.Duration) which defines how long a task can be in
-// PROCESSING before being considered stuck.
-// Takes maxRetries (int) which is the maximum retry attempts before marking
-// FAILED.
-// Takes recoveryError (string) which is the error message to record on
-// recovered tasks.
+// Takes staleThreshold (time.Duration) which defines how long a task can be in PROCESSING
+// before being considered stuck.
+// Takes maxRetries (int) which is the maximum retry attempts before marking FAILED.
+// Takes recoveryError (string) which is the error message to record on recovered tasks.
 //
 // Returns int which is the count of tasks recovered.
 // Returns error when the recovery operation fails.
@@ -455,11 +448,11 @@ func (a *Adapter) RecoverStaleTasks(ctx context.Context, staleThreshold time.Dur
 	return int(rowsAffected), nil
 }
 
-// GetStaleProcessingTaskCount returns the count of tasks stuck in PROCESSING
-// longer than the threshold.
+// GetStaleProcessingTaskCount returns the count of tasks stuck in PROCESSING longer than
+// the threshold.
 //
-// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is
-// considered stuck.
+// Takes staleThreshold (time.Duration) which defines when a PROCESSING task is considered
+// stuck.
 //
 // Returns int64 which is the count of stale tasks.
 // Returns error when the count cannot be retrieved.
@@ -474,8 +467,7 @@ func (a *Adapter) GetStaleProcessingTaskCount(ctx context.Context, staleThreshol
 	return int64(result.Count), nil
 }
 
-// UpdateTaskHeartbeat updates the updated_at timestamp for a task in
-// PROCESSING status.
+// UpdateTaskHeartbeat updates the updated_at timestamp for a task in PROCESSING status.
 //
 // Takes taskID (string) which identifies the task to update.
 //
@@ -488,20 +480,17 @@ func (a *Adapter) UpdateTaskHeartbeat(ctx context.Context, taskID string) error 
 	})
 }
 
-// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for
-// recovery. SQLite uses transaction-based claiming since it does not support
-// FOR UPDATE SKIP LOCKED, so the method fetches candidate stale tasks and
-// attempts to claim each one individually, collecting only those where the
-// claim succeeds.
+// ClaimStaleTasksForRecovery atomically claims stale PROCESSING tasks for recovery.
+// SQLite uses transaction-based claiming since it does not support FOR UPDATE SKIP
+// LOCKED, so the method fetches candidate stale tasks and attempts to claim each one
+// individually, collecting only those where the claim succeeds.
 //
 // Takes nodeID (string) which identifies the node claiming the tasks.
-// Takes staleThreshold (time.Duration) which defines when a task is considered
-// stale.
+// Takes staleThreshold (time.Duration) which defines when a task is considered stale.
 // Takes leaseTimeout (time.Duration) which sets how long the claim is valid.
 // Takes batchLimit (int) which limits the number of tasks to claim per call.
 //
-// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed
-// tasks.
+// Returns []orchestrator_domain.RecoveryClaimedTask which contains the claimed tasks.
 // Returns error when the claim operation fails.
 func (a *Adapter) ClaimStaleTasksForRecovery(
 	ctx context.Context, nodeID string, staleThreshold time.Duration, leaseTimeout time.Duration, batchLimit int,
@@ -555,9 +544,9 @@ func (a *Adapter) ClaimStaleTasksForRecovery(
 	return claimed, nil
 }
 
-// RecoverClaimedTasks recovers all tasks previously claimed by this node.
-// Tasks are set to RETRYING if they have attempts remaining, or FAILED
-// otherwise, and the lease is cleared.
+// RecoverClaimedTasks recovers all tasks previously claimed by this node. Tasks are set
+// to RETRYING if they have attempts remaining, or FAILED otherwise, and the lease is
+// cleared.
 //
 // Takes nodeID (string) which identifies the node that claimed the tasks.
 // Takes maxRetries (int) which sets the maximum retries before marking FAILED.
@@ -639,12 +628,10 @@ func (a *Adapter) CreateWorkflowReceipt(ctx context.Context, id, workflowID, nod
 	})
 }
 
-// ResolveWorkflowReceipts marks all pending receipts for a workflow as
-// resolved.
+// ResolveWorkflowReceipts marks all pending receipts for a workflow as resolved.
 //
 // Takes workflowID (string) which identifies the completed workflow.
-// Takes errorMessage (string) which contains any error from workflow
-// completion.
+// Takes errorMessage (string) which contains any error from workflow completion.
 //
 // Returns int which is the count of receipts resolved.
 // Returns error when the resolution fails.
@@ -680,8 +667,8 @@ func (a *Adapter) ResolveWorkflowReceipts(ctx context.Context, workflowID string
 //
 // Takes nodeID (string) which identifies the node to query.
 //
-// Returns []orchestrator_domain.PendingReceipt which contains the pending
-// receipts for the node.
+// Returns []orchestrator_domain.PendingReceipt which contains the pending receipts for
+// the node.
 // Returns error when the database query fails.
 func (a *Adapter) GetPendingReceiptsByNode(ctx context.Context, nodeID string) ([]orchestrator_domain.PendingReceipt, error) {
 	rows, err := a.queries.GetPendingReceiptsByNode(ctx, nodeID)
@@ -725,8 +712,7 @@ func (a *Adapter) GetPendingReceiptsByWorkflow(ctx context.Context, workflowID s
 	return result, nil
 }
 
-// CleanupOldResolvedReceipts deletes resolved receipts older than the
-// specified time.
+// CleanupOldResolvedReceipts deletes resolved receipts older than the specified time.
 //
 // Takes olderThan (time.Time) which is the cutoff for deletion.
 //
@@ -809,8 +795,8 @@ func (a *Adapter) ListFailedTasks(ctx context.Context) ([]*orchestrator_domain.T
 
 // ListTaskSummary returns task counts grouped by status.
 //
-// Returns []orchestrator_domain.TaskSummary which contains one entry per
-// status with its count.
+// Returns []orchestrator_domain.TaskSummary which contains one entry per status with its
+// count.
 // Returns error when the database query fails.
 func (a *Adapter) ListTaskSummary(ctx context.Context) ([]orchestrator_domain.TaskSummary, error) {
 	rows, err := a.queries.ListTaskStatusCounts(ctx)
@@ -833,8 +819,8 @@ func (a *Adapter) ListTaskSummary(ctx context.Context) ([]orchestrator_domain.Ta
 //
 // Takes limit (int32) which specifies the maximum number of tasks to return.
 //
-// Returns []orchestrator_domain.TaskListItem which contains the tasks ordered
-// by update time descending.
+// Returns []orchestrator_domain.TaskListItem which contains the tasks ordered by update
+// time descending.
 // Returns error when the database query fails.
 func (a *Adapter) ListRecentTasks(ctx context.Context, limit int32) ([]orchestrator_domain.TaskListItem, error) {
 	rows, err := a.queries.ListRecentTasks(ctx, limit)
@@ -860,14 +846,12 @@ func (a *Adapter) ListRecentTasks(ctx context.Context, limit int32) ([]orchestra
 	return results, nil
 }
 
-// ListWorkflowSummary returns workflow-level aggregates ordered by most
-// recently updated.
+// ListWorkflowSummary returns workflow-level aggregates ordered by most recently updated.
 //
-// Takes limit (int32) which specifies the maximum number of workflows to
-// return.
+// Takes limit (int32) which specifies the maximum number of workflows to return.
 //
-// Returns []orchestrator_domain.WorkflowSummary which contains one entry per
-// workflow with task counts by status.
+// Returns []orchestrator_domain.WorkflowSummary which contains one entry per workflow
+// with task counts by status.
 // Returns error when the database query fails.
 func (a *Adapter) ListWorkflowSummary(ctx context.Context, limit int32) ([]orchestrator_domain.WorkflowSummary, error) {
 	rows, err := a.queries.ListWorkflowSummary(ctx, limit)
@@ -891,8 +875,8 @@ func (a *Adapter) ListWorkflowSummary(ctx context.Context, limit int32) ([]orche
 	return results, nil
 }
 
-// derefInt32AsInt64 returns the value behind a nullable int32 pointer as
-// int64, defaulting to zero when nil.
+// derefInt32AsInt64 returns the value behind a nullable int32 pointer as int64,
+// defaulting to zero when nil.
 //
 // Takes value (*int32) which may be nil.
 //
@@ -904,17 +888,15 @@ func derefInt32AsInt64(value *int32) int64 {
 	return int64(*value)
 }
 
-// runInTransaction executes fn within a transaction using the generated
-// Queries struct.
+// runInTransaction executes fn within a transaction using the generated Queries struct.
 //
-// If the adapter is already inside a transaction (inTransaction == true), it
-// reuses the existing queries to avoid deadlocking on SQLite's single-writer
-// lock.
+// If the adapter is already inside a transaction (inTransaction == true), it reuses the
+// existing queries to avoid deadlocking on SQLite's single-writer lock.
 //
 // Takes fn which is the callback executed inside the transaction.
 //
-// Returns error when the transaction fails to begin, fn returns an error, or
-// the commit fails.
+// Returns error when the transaction fails to begin, fn returns an error, or the commit
+// fails.
 func (a *Adapter) runInTransaction(ctx context.Context, fn func(ctx context.Context, qtx *orchestrator_db.Queries) error) error {
 	if a.inTransaction {
 		return fn(ctx, a.queries)
@@ -954,19 +936,17 @@ func (a *Adapter) beginTxDB() (*sql.DB, error) {
 	return nil, errDALNotInitialised
 }
 
-// withTransaction is an internal helper that executes a function
-// within a database transaction, providing a transaction-scoped
-// Adapter clone.
+// withTransaction is an internal helper that executes a function within a database
+// transaction, providing a transaction-scoped Adapter clone.
 //
-// If transactionFunction panics, the deferred rollback runs before the
-// panic propagates so no half-committed state is left behind.
+// If transactionFunction panics, the deferred rollback runs before the panic propagates
+// so no half-committed state is left behind.
 //
-// Takes transactionFunction which is the function to execute
-// within the transaction scope.
+// Takes transactionFunction which is the function to execute within the transaction
+// scope.
 //
-// Returns error when the DAL has no database connection, when
-// beginning the transaction fails, when transactionFunction
-// returns an error, or when commit fails.
+// Returns error when the DAL has no database connection, when beginning the transaction
+// fails, when transactionFunction returns an error, or when commit fails.
 func (a *Adapter) withTransaction(ctx context.Context, transactionFunction func(ctx context.Context, dal orchestrator_dal.OrchestratorDAL) error) error {
 	if a.sqlDB == nil {
 		return errDALNotInitialised
@@ -1003,14 +983,12 @@ func (a *Adapter) withTransaction(ctx context.Context, transactionFunction func(
 	return nil
 }
 
-// buildCreateTaskParams marshals task fields and builds database creation
+// buildCreateTaskParams marshals task fields and builds database creation parameters.
+//
+// Takes task (*orchestrator_domain.Task) which provides the task data to convert.
+//
+// Returns orchestrator_db.CreateTaskParams which contains the database-ready task
 // parameters.
-//
-// Takes task (*orchestrator_domain.Task) which provides the task data to
-// convert.
-//
-// Returns orchestrator_db.CreateTaskParams which contains the database-ready
-// task parameters.
 // Returns error when the payload or config cannot be marshalled to JSON.
 func buildCreateTaskParams(task *orchestrator_domain.Task) (orchestrator_db.CreateTaskParams, error) {
 	payloadBytes, err := json.Marshal(task.Payload)
@@ -1042,11 +1020,10 @@ func buildCreateTaskParams(task *orchestrator_domain.Task) (orchestrator_db.Crea
 
 // buildUpdateTaskParams converts a task into database update parameters.
 //
-// Takes task (*orchestrator_domain.Task) which provides the task data to
-// convert.
+// Takes task (*orchestrator_domain.Task) which provides the task data to convert.
 //
-// Returns orchestrator_db.UpdateTaskParams which contains the serialised task
-// fields ready for database update.
+// Returns orchestrator_db.UpdateTaskParams which contains the serialised task fields
+// ready for database update.
 // Returns error when marshalling the payload, config, or result fails.
 func buildUpdateTaskParams(task *orchestrator_domain.Task) (orchestrator_db.UpdateTaskParams, error) {
 	payloadBytes, err := json.Marshal(task.Payload)
@@ -1088,16 +1065,14 @@ func buildUpdateTaskParams(task *orchestrator_domain.Task) (orchestrator_db.Upda
 	}, nil
 }
 
-// convertDBTaskToDomain converts a database task row to a domain task. It
-// obtains a task from the pool and populates it with the database values.
+// convertDBTaskToDomain converts a database task row to a domain task. It obtains a task
+// from the pool and populates it with the database values.
 //
-// Takes dbTask (*orchestrator_db.FetchDueTasksRow) which is the database row
-// to convert.
+// Takes dbTask (*orchestrator_db.FetchDueTasksRow) which is the database row to convert.
 //
-// Returns *orchestrator_domain.Task which is the populated domain task from
-// the pool.
-// Returns error when the pool returns an invalid type or JSON unmarshalling
-// fails for payload, config, or result fields.
+// Returns *orchestrator_domain.Task which is the populated domain task from the pool.
+// Returns error when the pool returns an invalid type or JSON unmarshalling fails for
+// payload, config, or result fields.
 func convertDBTaskToDomain(dbTask *orchestrator_db.FetchDueTasksRow) (*orchestrator_domain.Task, error) {
 	pooledTask, ok := orchestrator_domain.TaskPool.Get().(*orchestrator_domain.Task)
 	if !ok {

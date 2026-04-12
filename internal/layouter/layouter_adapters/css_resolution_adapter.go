@@ -56,28 +56,27 @@ const (
 	cssBorderWidth1px = "1px"
 )
 
-// CSSResolutionAdapter implements StylesheetPort by delegating CSS parsing,
-// selector matching, and cascade resolution to the premailer, then converting
-// the resolved property maps into ComputedStyle values.
+// CSSResolutionAdapter implements StylesheetPort by delegating CSS parsing, selector
+// matching, and cascade resolution to the premailer, then converting the resolved
+// property maps into ComputedStyle values.
 type CSSResolutionAdapter struct {
-	// rootFontSize is the root font size in points used
-	// for rem unit resolution.
+	// rootFontSize is the root font size in points used for rem unit resolution.
 	rootFontSize float64
 
-	// viewportWidth is the viewport width in points used
-	// for vw and vmin/vmax unit resolution.
+	// viewportWidth is the viewport width in points used for vw and vmin/vmax unit
+	// resolution.
 	viewportWidth float64
 
-	// viewportHeight is the viewport height in points used
-	// for vh and vmin/vmax unit resolution.
+	// viewportHeight is the viewport height in points used for vh and vmin/vmax unit
+	// resolution.
 	viewportHeight float64
 }
 
-// NewCSSResolutionAdapter creates a new CSS resolution adapter
-// with the given root font size in points.
+// NewCSSResolutionAdapter creates a new CSS resolution adapter with the given root font
+// size in points.
 //
-// Takes rootFontSize (float64) which specifies the root font
-// size; values <= 0 fall back to defaultRootFontSize.
+// Takes rootFontSize (float64) which specifies the root font size; values <= 0 fall back
+// to defaultRootFontSize.
 //
 // Returns a pointer to the initialised adapter.
 func NewCSSResolutionAdapter(rootFontSize float64) *CSSResolutionAdapter {
@@ -87,28 +86,26 @@ func NewCSSResolutionAdapter(rootFontSize float64) *CSSResolutionAdapter {
 	return &CSSResolutionAdapter{rootFontSize: rootFontSize}
 }
 
-// SetViewportDimensions configures the viewport dimensions
-// used for resolving vw, vh, vmin, and vmax units.
+// SetViewportDimensions configures the viewport dimensions used for resolving vw, vh,
+// vmin, and vmax units.
 //
-// Takes width (float64) which specifies the viewport width
-// in points.
+// Takes width (float64) which specifies the viewport width in points.
 //
-// Takes height (float64) which specifies the viewport height
-// in points.
+// Takes height (float64) which specifies the viewport height in points.
 func (a *CSSResolutionAdapter) SetViewportDimensions(width, height float64) {
 	a.viewportWidth = width
 	a.viewportHeight = height
 }
 
-// ResolveStyles resolves CSS styles for every node in the AST by delegating
-// CSS parsing and cascade resolution to the premailer, then converting the
-// resolved property maps into ComputedStyle values with inheritance.
+// ResolveStyles resolves CSS styles for every node in the AST by delegating CSS parsing
+// and cascade resolution to the premailer, then converting the resolved property maps
+// into ComputedStyle values with inheritance.
 //
-// Takes tree (*ast_domain.TemplateAST) which is the parsed template AST to
-// resolve styles for.
+// Takes tree (*ast_domain.TemplateAST) which is the parsed template AST to resolve styles
+// for.
 // Takes styling (string) which is the raw CSS text from style elements.
-// Takes additionalStylesheets ([]string) which provides extra stylesheet
-// sources to apply.
+// Takes additionalStylesheets ([]string) which provides extra stylesheet sources to
+// apply.
 //
 // Returns the computed StyleMap, PseudoStyleMap, and nil error on success.
 func (a *CSSResolutionAdapter) ResolveStyles(
@@ -147,8 +144,8 @@ func (a *CSSResolutionAdapter) ResolveStyles(
 	return styleMap, pseudoStyleMap, nil
 }
 
-// buildCombinedCSS concatenates the user-agent stylesheet, additional
-// stylesheets, and component styling into a single CSS string.
+// buildCombinedCSS concatenates the user-agent stylesheet, additional stylesheets, and
+// component styling into a single CSS string.
 //
 // Takes styling (string) which is the component's own CSS.
 // Takes additionalStylesheets ([]string) which provides extra CSS sources.
@@ -168,18 +165,17 @@ func (*CSSResolutionAdapter) buildCombinedCSS(styling string, additionalStyleshe
 	return builder.String()
 }
 
-// resolveSubtree recursively resolves styles for a node and its children,
-// applying presentational attributes, premailer-resolved CSS properties,
-// and inheritance.
+// resolveSubtree recursively resolves styles for a node and its children, applying
+// presentational attributes, premailer-resolved CSS properties, and inheritance.
 //
 // Takes node (*ast_domain.TemplateNode) which is the current node.
-// Takes parentStyle (*layouter_domain.ComputedStyle) which is the parent's
-// computed style, or nil for root nodes.
-// Takes resolved (*premailer.ResolvedProperties) which holds the CSS
-// properties from the premailer.
+// Takes parentStyle (*layouter_domain.ComputedStyle) which is the parent's computed
+// style, or nil for root nodes.
+// Takes resolved (*premailer.ResolvedProperties) which holds the CSS properties from the
+// premailer.
 // Takes styleMap (layouter_domain.StyleMap) which accumulates resolved styles.
-// Takes pseudoStyleMap (layouter_domain.PseudoStyleMap) which accumulates
-// pseudo-element styles.
+// Takes pseudoStyleMap (layouter_domain.PseudoStyleMap) which accumulates pseudo-element
+// styles.
 // Takes parentMap (map) which maps each node to its parent.
 func (a *CSSResolutionAdapter) resolveSubtree(
 	ctx context.Context,
@@ -232,15 +228,14 @@ func (a *CSSResolutionAdapter) resolveSubtree(
 	}
 }
 
-// buildNodeProperties merges presentational HTML attributes with CSS
-// properties from the premailer. Presentational attributes have the lowest
-// priority: any CSS property overrides them.
+// buildNodeProperties merges presentational HTML attributes with CSS properties from the
+// premailer. Presentational attributes have the lowest priority: any CSS property
+// overrides them.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
-// Takes cssProps (map[string]string) which contains the premailer-resolved
-// CSS properties, or nil if the node had no matching rules.
-// Takes parentMap (map) which maps each node to its parent for ancestor
-// lookups.
+// Takes cssProps (map[string]string) which contains the premailer-resolved CSS
+// properties, or nil if the node had no matching rules.
+// Takes parentMap (map) which maps each node to its parent for ancestor lookups.
 //
 // Returns map[string]string which contains the merged property map.
 func buildNodeProperties(
@@ -273,14 +268,14 @@ func buildNodeProperties(
 // pseudo-elements from the premailer-resolved pseudo-element properties.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element.
-// Takes elementStyle (*layouter_domain.ComputedStyle) which is the element's
-// own resolved style for inheritance.
-// Takes resolved (*premailer.ResolvedProperties) which holds the resolved
-// pseudo-element properties.
-// Takes pseudoStyleMap (layouter_domain.PseudoStyleMap) which accumulates
-// pseudo-element styles.
-// Takes resolutionContext (layouter_domain.ResolutionContext) which provides
-// unit resolution values.
+// Takes elementStyle (*layouter_domain.ComputedStyle) which is the element's own resolved
+// style for inheritance.
+// Takes resolved (*premailer.ResolvedProperties) which holds the resolved pseudo-element
+// properties.
+// Takes pseudoStyleMap (layouter_domain.PseudoStyleMap) which accumulates pseudo-element
+// styles.
+// Takes resolutionContext (layouter_domain.ResolutionContext) which provides unit
+// resolution values.
 func (*CSSResolutionAdapter) resolvePseudoElements(
 	node *ast_domain.TemplateNode,
 	elementStyle *layouter_domain.ComputedStyle,
@@ -308,13 +303,12 @@ func (*CSSResolutionAdapter) resolvePseudoElements(
 	}
 }
 
-// parsePseudoType converts a pseudo-element name string to the domain
-// PseudoType enum.
+// parsePseudoType converts a pseudo-element name string to the domain PseudoType enum.
 //
 // Takes name (string) which is the pseudo-element name ("before" or "after").
 //
-// Returns layouter_domain.PseudoType which is the corresponding enum value,
-// or PseudoNone for unrecognised names.
+// Returns layouter_domain.PseudoType which is the corresponding enum value, or PseudoNone
+// for unrecognised names.
 func parsePseudoType(name string) layouter_domain.PseudoType {
 	switch name {
 	case "before":
@@ -326,14 +320,13 @@ func parsePseudoType(name string) layouter_domain.PseudoType {
 	}
 }
 
-// getAttributeValue returns the value of the named attribute on the node,
-// or an empty string if not found.
+// getAttributeValue returns the value of the named attribute on the node, or an empty
+// string if not found.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to inspect.
 // Takes name (string) which is the attribute name to look up.
 //
-// Returns string which is the attribute value, or empty if the attribute
-// is not present.
+// Returns string which is the attribute value, or empty if the attribute is not present.
 func getAttributeValue(node *ast_domain.TemplateNode, name string) string {
 	for index := range node.Attributes {
 		if node.Attributes[index].Name == name {
@@ -343,14 +336,13 @@ func getAttributeValue(node *ast_domain.TemplateNode, name string) string {
 	return ""
 }
 
-// mapPresentationalAttributes maps HTML presentational attributes to their
-// CSS equivalents. These are applied before CSS rules so that any CSS rule
-// (including the user-agent stylesheet) overrides them.
+// mapPresentationalAttributes maps HTML presentational attributes to their CSS
+// equivalents. These are applied before CSS rules so that any CSS rule (including the
+// user-agent stylesheet) overrides them.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element node to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
-// Takes parentMap (map) which maps each node to its parent for ancestor
-// lookups.
+// Takes parentMap (map) which maps each node to its parent for ancestor lookups.
 func mapPresentationalAttributes(
 	node *ast_domain.TemplateNode,
 	properties map[string]string,
@@ -368,8 +360,8 @@ func mapPresentationalAttributes(
 	mapFontElementAttributes(node, properties, tagName)
 }
 
-// mapDimensionAttributes maps HTML width and height attributes to CSS
-// width and height properties for elements that support them.
+// mapDimensionAttributes maps HTML width and height attributes to CSS width and height
+// properties for elements that support them.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -393,9 +385,8 @@ func mapDimensionAttributes(
 	}
 }
 
-// normaliseDimensionValue converts an HTML dimension attribute value to a
-// CSS length. Bare numbers get a "px" suffix; percentage values are returned
-// as-is.
+// normaliseDimensionValue converts an HTML dimension attribute value to a CSS length.
+// Bare numbers get a "px" suffix; percentage values are returned as-is.
 //
 // Takes value (string) which is the raw HTML dimension attribute value.
 //
@@ -410,8 +401,8 @@ func normaliseDimensionValue(value string) string {
 	return value
 }
 
-// mapAlignAttribute maps the HTML align attribute to the appropriate CSS
-// property depending on the element type.
+// mapAlignAttribute maps the HTML align attribute to the appropriate CSS property
+// depending on the element type.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -444,8 +435,8 @@ func mapAlignAttribute(
 	}
 }
 
-// mapValignAttribute maps the HTML valign attribute to the CSS vertical-align
-// property for table-related elements.
+// mapValignAttribute maps the HTML valign attribute to the CSS vertical-align property
+// for table-related elements.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -466,9 +457,9 @@ func mapValignAttribute(
 	}
 }
 
-// mapTableBorderAttribute maps the HTML border attribute on table elements
-// to CSS border properties. For td/th cells, it walks up the parent chain
-// to find the ancestor table's border attribute.
+// mapTableBorderAttribute maps the HTML border attribute on table elements to CSS border
+// properties. For td/th cells, it walks up the parent chain to find the ancestor table's
+// border attribute.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -524,8 +515,8 @@ func mapTableBorderAttribute(
 	}
 }
 
-// mapBgcolourAttribute maps the HTML bgcolor attribute to the CSS
-// background-color property.
+// mapBgcolourAttribute maps the HTML bgcolor attribute to the CSS background-color
+// property.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -546,8 +537,8 @@ func mapBgcolourAttribute(
 	}
 }
 
-// mapCellpaddingAttribute maps the HTML cellpadding attribute from an
-// ancestor table to CSS padding on td/th cells.
+// mapCellpaddingAttribute maps the HTML cellpadding attribute from an ancestor table to
+// CSS padding on td/th cells.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -584,8 +575,8 @@ func mapCellpaddingAttribute(
 	properties["padding-left"] = paddingCSS
 }
 
-// mapCellspacingAttribute maps the HTML cellspacing attribute to the CSS
-// border-spacing property.
+// mapCellspacingAttribute maps the HTML cellspacing attribute to the CSS border-spacing
+// property.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -611,8 +602,8 @@ func mapCellspacingAttribute(
 	properties["border-spacing"] = cellspacingValue + cssPxSuffix
 }
 
-// mapFontElementAttributes maps the HTML color and size attributes on the
-// legacy font element to CSS properties.
+// mapFontElementAttributes maps the HTML color and size attributes on the legacy font
+// element to CSS properties.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to inspect.
 // Takes properties (map[string]string) which is the property map to populate.
@@ -637,13 +628,13 @@ func mapFontElementAttributes(
 	}
 }
 
-// mapFontSizeToCSS converts an HTML font size attribute value (1-7) to a
-// CSS absolute font size keyword.
+// mapFontSizeToCSS converts an HTML font size attribute value (1-7) to a CSS absolute
+// font size keyword.
 //
 // Takes size (string) which is the HTML font size value.
 //
-// Returns string which is the CSS absolute font size keyword, or empty
-// for unrecognised values.
+// Returns string which is the CSS absolute font size keyword, or empty for unrecognised
+// values.
 func mapFontSizeToCSS(size string) string {
 	switch size {
 	case "1":
@@ -665,15 +656,15 @@ func mapFontSizeToCSS(size string) string {
 	}
 }
 
-// findAncestorByTag walks the parent chain to find the nearest ancestor
-// element with the given tag name.
+// findAncestorByTag walks the parent chain to find the nearest ancestor element with the
+// given tag name.
 //
 // Takes node (*ast_domain.TemplateNode) which is the starting node.
 // Takes tagName (string) which is the tag name to search for.
 // Takes parentMap (map) which maps each node to its parent.
 //
-// Returns *ast_domain.TemplateNode which is the matched ancestor, or nil
-// if no matching ancestor is found.
+// Returns *ast_domain.TemplateNode which is the matched ancestor, or nil if no matching
+// ancestor is found.
 func findAncestorByTag(
 	node *ast_domain.TemplateNode,
 	tagName string,

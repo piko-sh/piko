@@ -18,43 +18,48 @@
 
 package llm_provider_voyage
 
-import "errors"
+import (
+	"errors"
+)
 
-// DefaultBaseURL is the default Voyage AI API endpoint.
-const DefaultBaseURL = "https://api.voyageai.com"
+const (
+
+	// DefaultBaseURL is the default Voyage AI API endpoint.
+	DefaultBaseURL = "https://api.voyageai.com"
+)
 
 // Config holds configuration for the Voyage AI embedding provider.
 type Config struct {
 	// APIKey is the Voyage AI API key. Required.
 	APIKey string
 
-	// BaseURL specifies a custom API endpoint. Leave empty to use the
-	// default Voyage AI endpoint.
+	// BaseURL specifies a custom API endpoint. Leave empty to use the default Voyage AI
+	// endpoint.
 	BaseURL string
 
-	// DefaultModel is the embedding model to use when not specified in a
-	// request. Defaults to "voyage-3.5" if empty.
+	// DefaultModel is the embedding model to use when not specified in a request. Defaults
+	// to "voyage-3.5" if empty.
 	DefaultModel string
 
-	// EmbeddingDimensions overrides the default vector dimension for the
-	// configured model. When zero, the dimension is resolved from a
-	// built-in lookup table.
+	// EmbeddingDimensions overrides the default vector dimension for the configured model.
+	// When zero, the dimension is resolved from a built-in lookup table.
 	EmbeddingDimensions int
 }
 
-// voyageEmbeddingDimensions maps known Voyage models to their default vector
-// dimensions.
-var voyageEmbeddingDimensions = map[string]int{
-	"voyage-3.5":       1024,
-	"voyage-3.5-lite":  512,
-	"voyage-4":         1024,
-	"voyage-4-lite":    512,
-	"voyage-4-large":   2048,
-	"voyage-3-large":   1024,
-	"voyage-code-3":    1024,
-	"voyage-finance-2": 1024,
-	"voyage-law-2":     1024,
-}
+var (
+	// voyageEmbeddingDimensions maps known Voyage models to their default vector dimensions.
+	voyageEmbeddingDimensions = map[string]int{
+		"voyage-3.5":       1024,
+		"voyage-3.5-lite":  512,
+		"voyage-4":         1024,
+		"voyage-4-lite":    512,
+		"voyage-4-large":   2048,
+		"voyage-3-large":   1024,
+		"voyage-code-3":    1024,
+		"voyage-finance-2": 1024,
+		"voyage-law-2":     1024,
+	}
+)
 
 // Validate reports whether the configuration is valid.
 //

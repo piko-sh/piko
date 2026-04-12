@@ -26,22 +26,36 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// TypeNormaliser converts engine-specific type names to structured SQLType
-// values. This is satisfied by any EnginePort implementation.
+// TypeNormaliser converts engine-specific type names to structured SQLType values. This
+// is satisfied by any EnginePort implementation.
 type TypeNormaliser interface {
+	// NormaliseTypeName converts a raw engine type to a SQLType.
+	//
+	// Takes name (string) which is the engine-specific type name.
+	// Takes modifiers (...int) which carries precision, scale, or length modifiers in
+	// declaration order.
+	//
+	// Returns querier_dto.SQLType which is the normalised type.
 	NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType
 }
 
-// PgIntrospectionProvider implements CatalogueProviderPort by querying
-// a live PostgreSQL database using pg_catalog and information_schema.
+// PgIntrospectionProvider implements CatalogueProviderPort by querying a live PostgreSQL
+// database using pg_catalog and information_schema.
 type PgIntrospectionProvider struct {
+	// database is the live PostgreSQL connection pool.
 	database *sql.DB
 
+	// typeNormaliser converts engine-specific type names to SQLType.
 	typeNormaliser TypeNormaliser
 }
 
-// NewPgIntrospectionProvider creates a new PostgreSQL introspection-based
-// catalogue provider.
+// NewPgIntrospectionProvider creates a PostgreSQL catalogue provider.
+//
+// Takes database (*sql.DB) which is the live connection pool.
+// Takes typeNormaliser (TypeNormaliser) which converts engine type names to SQLType
+// values.
+//
+// Returns *PgIntrospectionProvider which is ready to introspect.
 func NewPgIntrospectionProvider(
 	database *sql.DB,
 	typeNormaliser TypeNormaliser,
@@ -52,9 +66,16 @@ func NewPgIntrospectionProvider(
 	}
 }
 
-// BuildCatalogue introspects the PostgreSQL database and builds a schema
-// catalogue covering tables, views, indexes, enums, composite types,
-// functions, and extensions.
+// BuildCatalogue introspects the database and builds a catalogue.
+//
+// Covers tables, views, indexes, enums, composite types, functions, and extensions.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+//
+// Returns *querier_dto.Catalogue which holds the introspected schema.
+// Returns []querier_dto.SourceError which is always nil for this provider (reserved for
+// future per-object error reporting).
+// Returns error when any introspection query fails.
 func (provider *PgIntrospectionProvider) BuildCatalogue(
 	ctx context.Context,
 ) (*querier_dto.Catalogue, []querier_dto.SourceError, error) {
@@ -82,6 +103,13 @@ func (provider *PgIntrospectionProvider) BuildCatalogue(
 	return catalogue, nil, nil
 }
 
+// populateSchema introspects every object kind in a single schema.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes catalogue (*querier_dto.Catalogue) which receives the schema.
+// Takes schemaName (string) which is the target schema name.
+//
+// Returns error when any introspection query for the schema fails.
 func (provider *PgIntrospectionProvider) populateSchema(
 	ctx context.Context,
 	catalogue *querier_dto.Catalogue,
@@ -121,6 +149,12 @@ func (provider *PgIntrospectionProvider) populateSchema(
 	return nil
 }
 
+// listSchemas returns user schemas, excluding the built-in ones.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+//
+// Returns []string which lists the discovered schema names.
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) listSchemas(
 	ctx context.Context,
 ) ([]string, error) {
@@ -145,6 +179,12 @@ func (provider *PgIntrospectionProvider) listSchemas(
 	return names, rows.Err()
 }
 
+// introspectTables fills the schema's Tables map.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schema (*querier_dto.Schema) which receives the tables.
+//
+// Returns error when listing or introspecting any table fails.
 func (provider *PgIntrospectionProvider) introspectTables(
 	ctx context.Context,
 	schema *querier_dto.Schema,
@@ -165,6 +205,13 @@ func (provider *PgIntrospectionProvider) introspectTables(
 	return nil
 }
 
+// listTables returns base and foreign table names for the schema.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the target schema.
+//
+// Returns []string which lists the discovered table names.
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) listTables(
 	ctx context.Context,
 	schemaName string,
@@ -191,6 +238,14 @@ func (provider *PgIntrospectionProvider) listTables(
 	return names, rows.Err()
 }
 
+// introspectTable builds the Table DTO for a single relation.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+// Takes tableName (string) which identifies the table.
+//
+// Returns *querier_dto.Table which carries columns, keys, indexes.
+// Returns error when any sub-query fails.
 func (provider *PgIntrospectionProvider) introspectTable(
 	ctx context.Context,
 	schemaName string,
@@ -230,6 +285,14 @@ func (provider *PgIntrospectionProvider) introspectTable(
 	}, nil
 }
 
+// introspectColumns lists ordered columns for a table or view.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+// Takes tableName (string) which identifies the relation.
+//
+// Returns []querier_dto.Column which holds the column DTOs.
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) introspectColumns(
 	ctx context.Context,
 	schemaName string,
@@ -254,6 +317,14 @@ func (provider *PgIntrospectionProvider) introspectColumns(
 	return columns, rows.Err()
 }
 
+// queryColumns runs the information_schema.columns query.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+// Takes tableName (string) which identifies the relation.
+//
+// Returns *sql.Rows which the caller must close.
+// Returns error when the query fails to dispatch.
 func (provider *PgIntrospectionProvider) queryColumns(
 	ctx context.Context,
 	schemaName string,
@@ -278,30 +349,48 @@ func (provider *PgIntrospectionProvider) queryColumns(
 		schemaName, tableName)
 }
 
+// columnRow mirrors the information_schema.columns row layout.
 type columnRow struct {
+	// columnName is the column's identifier.
 	columnName string
 
+	// udtName is the underlying PostgreSQL type name.
 	udtName string
 
+	// isNullable is "YES" or "NO" per information_schema.
 	isNullable string
 
+	// isGenerated is "ALWAYS" or "NEVER" per information_schema.
 	isGenerated string
 
+	// generationExpression carries the generation expression text.
 	generationExpression string
 
+	// isIdentity is "YES" or "NO" per information_schema.
 	isIdentity string
 
+	// identityGeneration is "ALWAYS", "BY DEFAULT", or empty.
 	identityGeneration string
 
+	// columnDefault is the column default expression, if any.
 	columnDefault sql.NullString
 
+	// characterMaximumLength is the declared length for char types.
 	characterMaximumLength sql.NullInt64
 
+	// numericPrecision is the declared precision for numeric types.
 	numericPrecision sql.NullInt64
 
+	// numericScale is the declared scale for numeric types.
 	numericScale sql.NullInt64
 }
 
+// scanColumn decodes one column row and normalises its SQL type.
+//
+// Takes rows (*sql.Rows) which is positioned on the row to scan.
+//
+// Returns querier_dto.Column which is the decoded column DTO.
+// Returns error when scanning fails.
 func (provider *PgIntrospectionProvider) scanColumn(rows *sql.Rows) (querier_dto.Column, error) {
 	var row columnRow
 
@@ -340,6 +429,11 @@ func (provider *PgIntrospectionProvider) scanColumn(rows *sql.Rows) (querier_dto
 	return column, nil
 }
 
+// buildTypeModifiers collects declared precision and scale modifiers.
+//
+// Takes row (columnRow) which is the scanned information_schema row.
+//
+// Returns []int which lists the modifiers in declaration order.
 func buildTypeModifiers(row columnRow) []int {
 	var modifiers []int
 	if row.characterMaximumLength.Valid {
@@ -354,12 +448,24 @@ func buildTypeModifiers(row columnRow) []int {
 	return modifiers
 }
 
+// constraintEntry holds the columns covered by a single constraint.
 type constraintEntry struct {
+	// Name is the constraint identifier.
 	Name string
 
+	// Columns lists the participating columns in ordinal order.
 	Columns []string
 }
 
+// introspectConstraints returns primary-key and unique constraints.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+// Takes tableName (string) which identifies the relation.
+//
+// Returns []string which lists primary-key columns in order.
+// Returns []constraintEntry which lists unique constraints.
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) introspectConstraints(
 	ctx context.Context,
 	schemaName string,
@@ -405,6 +511,14 @@ func (provider *PgIntrospectionProvider) introspectConstraints(
 	return primaryKeyColumns, uniqueConstraints, nil
 }
 
+// queryConstraints runs the pg_constraint join query.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+// Takes tableName (string) which identifies the relation.
+//
+// Returns *sql.Rows which the caller must close.
+// Returns error when the query fails to dispatch.
 func (provider *PgIntrospectionProvider) queryConstraints(
 	ctx context.Context,
 	schemaName string,
@@ -426,6 +540,17 @@ func (provider *PgIntrospectionProvider) queryConstraints(
 		schemaName, tableName)
 }
 
+// assembleConstraintResults flattens scan maps into ordered slices.
+//
+// Takes primaryKeyColumnMap (map[int]string) which maps ordinal to primary-key column
+// name.
+// Takes uniqueConstraintMap (map[string][]string) which maps unique constraint name to
+// its columns.
+// Takes uniqueConstraintOrder ([]string) which preserves discovery order for unique
+// constraints.
+//
+// Returns []string which is the primary-key column list in order.
+// Returns []constraintEntry which is the unique constraint list.
 func assembleConstraintResults(
 	primaryKeyColumnMap map[int]string,
 	uniqueConstraintMap map[string][]string,
@@ -447,14 +572,26 @@ func assembleConstraintResults(
 	return primaryKeyColumns, uniqueConstraints
 }
 
+// indexEntry holds the columns and flags for a single discovered index.
 type indexEntry struct {
+	// columns lists the indexed columns in declaration order.
 	columns []string
 
+	// isUnique reports whether the index enforces uniqueness.
 	isUnique bool
 
+	// isPrimary reports whether the index backs a primary key.
 	isPrimary bool
 }
 
+// introspectIndexes lists indexes covering the table.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+// Takes tableName (string) which identifies the relation.
+//
+// Returns []querier_dto.Index which holds the discovered indexes.
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) introspectIndexes(
 	ctx context.Context,
 	schemaName string,
@@ -498,6 +635,14 @@ func (provider *PgIntrospectionProvider) introspectIndexes(
 	return assembleIndexResults(indexMap, indexOrder), nil
 }
 
+// queryIndexes runs the pg_index join query.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+// Takes tableName (string) which identifies the relation.
+//
+// Returns *sql.Rows which the caller must close.
+// Returns error when the query fails to dispatch.
 func (provider *PgIntrospectionProvider) queryIndexes(
 	ctx context.Context,
 	schemaName string,
@@ -520,6 +665,12 @@ func (provider *PgIntrospectionProvider) queryIndexes(
 		schemaName, tableName)
 }
 
+// assembleIndexResults flattens the index map into ordered DTOs.
+//
+// Takes indexMap (map[string]*indexEntry) which maps index name to its scanned entry.
+// Takes indexOrder ([]string) which preserves discovery order.
+//
+// Returns []querier_dto.Index which is the ordered DTO list.
 func assembleIndexResults(
 	indexMap map[string]*indexEntry,
 	indexOrder []string,

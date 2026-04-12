@@ -18,10 +18,10 @@
 
 package ast_domain
 
-// Parses HTML templates into TemplateAST structures by tokenizing input and
-// building a tree of nodes with directives and expressions. Handles element
-// parsing, attribute processing, directive recognition, text interpolation, and
-// string interning for performance optimisation.
+// Parses HTML templates into TemplateAST structures by tokenizing input and building a
+// tree of nodes with directives and expressions. Handles element parsing, attribute
+// processing, directive recognition, text interpolation, and string interning for
+// performance optimisation.
 
 import (
 	"bytes"
@@ -39,22 +39,20 @@ import (
 )
 
 const (
-	// textPartPreallocCapacity is the initial slice capacity for TextPart slices.
-	// Sized for the common pattern: literal-expr-literal-expr.
+	// textPartPreallocCapacity is the initial slice capacity for TextPart slices. Sized for
+	// the common pattern: literal-expr-literal-expr.
 	textPartPreallocCapacity = 4
 )
 
 var (
-	// flagDirectives defines directives that are treated as boolean flags.
-	// If the attribute is present, its value is considered "true" unless
-	// explicitly set to "false".
-	flagDirectives = map[DirectiveType]bool{
+	// flagDirectives defines directives that are treated as boolean flags. If the attribute
+	// is present, its value is considered "true" unless explicitly set to "false".
+	flagDirectives = map[DirectiveType]bool{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		DirectiveScaffold: true,
 	}
 
-	// internedStrings contains pre-allocated strings for common tag and attribute
-	// names. Using interning reduces allocations when parsing templates with
-	// repeated elements.
+	// internedStrings contains pre-allocated strings for common tag and attribute names.
+	// Using interning reduces allocations when parsing templates with repeated elements.
 	internedStrings = map[string]string{
 		"div": "div", "span": "span", "p": "p", "a": "a", "img": "img",
 		"ul": "ul", "ol": "ol", "li": "li", "table": "table", "tr": "tr",
@@ -87,13 +85,11 @@ var (
 		"aria-label": "aria-label", "aria-hidden": "aria-hidden", "aria-expanded": "aria-expanded",
 	}
 
-	// svgCaseSensitiveAttrs is the set of SVG attribute names that
-	// must preserve their original case, sourced from the HTML spec's
-	// "adjust SVG attributes" step.
+	// svgCaseSensitiveAttrs is the set of SVG attribute names that must preserve their
+	// original case, sourced from the HTML spec's "adjust SVG attributes" step.
 	//
-	// All other attributes on SVG elements are lowercased for
-	// performance so the renderer can use exact string comparison
-	// instead of equalFold.
+	// All other attributes on SVG elements are lowercased for performance so the renderer
+	// can use exact string comparison instead of equalFold.
 	svgCaseSensitiveAttrs = map[string]struct{}{
 		"attributeName":       {},
 		"attributeType":       {},
@@ -152,8 +148,7 @@ var (
 		"zoomAndPan":          {},
 	}
 
-	// interpolationScannerPool provides pooled scanner instances to reduce
-	// allocations.
+	// interpolationScannerPool provides pooled scanner instances to reduce allocations.
 	interpolationScannerPool = sync.Pool{
 		New: func() any {
 			return &interpolationScanner{}
@@ -163,15 +158,15 @@ var (
 
 // ParseOptions configures the behaviour of the HTML parser.
 type ParseOptions struct {
-	// RawMode treats all attributes as plain HTML attributes and skips directive
-	// parsing. Useful when formatting rendered HTML output that contains p-key
-	// attributes with values that are not valid expressions.
+	// RawMode treats all attributes as plain HTML attributes and skips directive parsing.
+	// Useful when formatting rendered HTML output that contains p-key attributes with values
+	// that are not valid expressions.
 	RawMode bool
 }
 
-// Parser transforms raw HTML input into a preliminary TemplateAST. It uses a
-// high-performance HTML lexer to tokenise the input and build a tree structure,
-// keeping directive expressions as raw strings at this stage.
+// Parser transforms raw HTML input into a TemplateAST. It uses a high-performance HTML
+// lexer to tokenise the input and build a tree structure, keeping directive expressions
+// as raw strings at this stage.
 type Parser struct {
 	// tree holds the template AST being built during parsing.
 	tree *TemplateAST
@@ -194,14 +189,14 @@ type Parser struct {
 	// startCol is the starting column in the source file for offset calculations.
 	startCol int
 
-	// lowerBuf is a scratch buffer for lowercasing tag names and attribute
-	// names without allocating. 64 bytes covers all standard HTML names.
+	// lowerBuf is a scratch buffer for lowercasing tag names and attribute names without
+	// allocating. 64 bytes covers all standard HTML names.
 	lowerBuf [64]byte
 }
 
-// toLower lowercases src into the parser's scratch buffer and returns the
-// result as a byte slice. If src is longer than the scratch buffer, it falls
-// back to bytes.ToLower which allocates.
+// toLower lowercases src into the parser's scratch buffer and returns the result as a
+// byte slice. If src is longer than the scratch buffer, it falls back to bytes.ToLower
+// which allocates.
 //
 // Takes src ([]byte) which is the byte slice to lowercase.
 //
@@ -221,14 +216,13 @@ func (p *Parser) toLower(src []byte) []byte {
 	return dst
 }
 
-// adjustLocation converts a position within a template to a position
-// in the original source file.
+// adjustLocation converts a position within a template to a position in the original
+// source file.
 //
 // Takes line (int) which is the line number within the template.
 // Takes column (int) which is the column number within the template.
 //
-// Returns Location which holds the line, column, and offset in the original
-// source file.
+// Returns Location which holds the line, column, and offset in the original source file.
 func (p *Parser) adjustLocation(line, column int) Location {
 	finalLine := p.startLine + line - 1
 
@@ -295,8 +289,8 @@ func (p *Parser) processText(data []byte) {
 	}
 }
 
-// handleRawText processes text within elements like textarea or script,
-// where the content should be kept as-is without parsing.
+// handleRawText processes text within elements like textarea or script, where the content
+// should be kept as-is without parsing.
 //
 // Takes data ([]byte) which contains the raw text to process.
 func (p *Parser) handleRawText(data []byte) {
@@ -360,8 +354,8 @@ type interpolationScanner struct {
 	tokenStartOffset int
 }
 
-// handleInterpolatedText parses text that contains `{{...}}` expressions and
-// builds a RichText node.
+// handleInterpolatedText parses text that contains `{{...}}` expressions and builds a
+// RichText node.
 //
 // Takes data ([]byte) which contains the text with interpolation expressions.
 func (p *Parser) handleInterpolatedText(data []byte) {
@@ -450,8 +444,8 @@ func (s *interpolationScanner) scanAllParts() ([]TextPart, bool) {
 
 // scanExpressionPart finds and processes a single `{{...}}` block.
 //
-// Takes openDelimOffset (int) which is the byte offset to the opening
-// delimiter within the current data slice.
+// Takes openDelimOffset (int) which is the byte offset to the opening delimiter within
+// the current data slice.
 //
 // Returns TextPart which contains the parsed expression or literal text.
 // Returns int which is the number of bytes read from the input.
@@ -552,8 +546,7 @@ func (p *Parser) processElement() {
 	}
 }
 
-// processEndTag handles an end tag token by removing the top node from the
-// stack.
+// processEndTag handles an end tag token by removing the top node from the stack.
 func (p *Parser) processEndTag() {
 	tagName := string(p.toLower(p.lexer.Text()))
 	if skipTopWrapper(tagName) {
@@ -579,8 +572,8 @@ func (p *Parser) processEndTag() {
 	}
 }
 
-// detectFormattingHint checks how a node is laid out in the source code and
-// sets PreferredFormat to keep the user's chosen style.
+// detectFormattingHint checks how a node is laid out in the source code and sets
+// PreferredFormat to keep the user's chosen style.
 //
 // Takes node (*TemplateNode) which is the element node to check.
 //
@@ -675,10 +668,9 @@ func (p *Parser) processComment() {
 	p.currentParent().Children = append(p.currentParent().Children, node)
 }
 
-// processForeignToken handles SVGToken and MathToken by re-parsing the raw
-// XML content with encoding/xml and building a TemplateNode tree. This
-// supports Piko directives (p-if, p-show, etc.) and dynamic attributes on
-// SVG/MathML elements.
+// processForeignToken handles SVGToken and MathToken by re-parsing the raw XML content
+// with encoding/xml and building a TemplateNode tree. This supports Piko directives
+// (p-if, p-show, etc.) and dynamic attributes on SVG/MathML elements.
 func (p *Parser) processForeignToken() {
 	data := p.lexer.Text()
 	line, column := p.lexer.TokenLine(), p.lexer.TokenCol()
@@ -725,8 +717,7 @@ func (p *Parser) processForeignToken() {
 
 // collectDirectivesAndAttrs goes through the attributes of an element.
 //
-// Takes tn (*TemplateNode) which receives the collected directives and
-// attributes.
+// Takes tn (*TemplateNode) which receives the collected directives and attributes.
 //
 // Returns isVoidTag (bool) which indicates whether the element is a void tag.
 func (p *Parser) collectDirectivesAndAttrs(tn *TemplateNode) (isVoidTag bool) {
@@ -811,8 +802,8 @@ func (p *Parser) processAttribute(tn *TemplateNode) {
 	}
 }
 
-// unquoteAttrVal extracts the attribute value, removes surrounding quotes if
-// present, and finds its exact position in the source.
+// unquoteAttrVal extracts the attribute value, removes surrounding quotes if present, and
+// finds its exact position in the source.
 //
 // Returns string which is the attribute value with quotes removed.
 // Returns Location which is the exact position of the value in the source.
@@ -834,8 +825,8 @@ func (p *Parser) unquoteAttrVal() (string, Location) {
 	return string(valBytes), p.adjustLocation(relLine, relCol)
 }
 
-// consumeUntilTagClose reads tokens from the lexer until it finds the end of
-// the current start tag.
+// consumeUntilTagClose reads tokens from the lexer until it finds the end of the current
+// start tag.
 func (p *Parser) consumeUntilTagClose() {
 	for {
 		tt := p.lexer.Next()
@@ -845,8 +836,8 @@ func (p *Parser) consumeUntilTagClose() {
 	}
 }
 
-// ParseAndTransform is the main entry point for the AST pipeline. It parses
-// the template source, validates it, and applies all transformation passes.
+// ParseAndTransform is the main entry point for the AST pipeline. It parses the template
+// source, validates it, and applies all transformation passes.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes raw (string) which contains the template source to parse.
@@ -868,10 +859,8 @@ func ParseAndTransform(ctx context.Context, raw string, sourcePath string) (*Tem
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes raw (string) which contains the template content to parse.
-// Takes sourcePath (string) which identifies the source file for error
-// messages.
-// Takes startLocation (*Location) which offsets all line and column
-// numbers if set.
+// Takes sourcePath (string) which identifies the source file for error messages.
+// Takes startLocation (*Location) which offsets all line and column numbers if set.
 //
 // Returns *TemplateAST which contains the parsed template structure.
 // Returns error when the template has invalid syntax.
@@ -884,10 +873,8 @@ func Parse(ctx context.Context, raw string, sourcePath string, startLocation *Lo
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes raw (string) which contains the template content to parse.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
-// Takes startLocation (*Location) which optionally offsets all
-// generated locations.
-// Takes opts (*ParseOptions) which configures parser behaviour; nil uses
-// defaults.
+// Takes startLocation (*Location) which optionally offsets all generated locations.
+// Takes opts (*ParseOptions) which configures parser behaviour; nil uses defaults.
 //
 // Returns *TemplateAST which contains the parsed template structure.
 // Returns error when parsing fails due to invalid syntax.
@@ -928,13 +915,13 @@ func ParseWithOptions(ctx context.Context, raw string, sourcePath string, startL
 	return p.tree, nil
 }
 
-// normaliseForeignAttrName preserves SVG-spec case-sensitive attribute names
-// and lowercases everything else for fast comparison at runtime.
+// normaliseForeignAttrName preserves SVG-spec case-sensitive attribute names and
+// lowercases everything else for fast comparison at runtime.
 //
 // Takes raw (string) which is the attribute name to normalise.
 //
-// Returns string which is the original name if it is case-sensitive per the
-// SVG spec, or the lowercased name otherwise.
+// Returns string which is the original name if it is case-sensitive per the SVG spec, or
+// the lowercased name otherwise.
 func normaliseForeignAttrName(raw string) string {
 	if _, ok := svgCaseSensitiveAttrs[raw]; ok {
 		return raw
@@ -1021,15 +1008,14 @@ func newTextNode(textContent string, location Location) *TemplateNode {
 	}
 }
 
-// collapseWhitespace extracts text from a byte slice and replaces any group of
-// whitespace characters with a single space.
+// collapseWhitespace extracts text from a byte slice and replaces any group of whitespace
+// characters with a single space.
 //
 // Takes data ([]byte) which is the source bytes to process.
 // Takes start (int) which is the position of the first byte to include.
 // Takes end (int) which is the position after the last byte to include.
 //
-// Returns string which is the text with whitespace groups replaced by single
-// spaces.
+// Returns string which is the text with whitespace groups replaced by single spaces.
 func collapseWhitespace(data []byte, start, end int) string {
 	var b strings.Builder
 	b.Grow(end - start)
@@ -1060,8 +1046,8 @@ func collapseWhitespace(data []byte, start, end int) string {
 	return collapsedText
 }
 
-// hasAttribute returns true if the node has an HTML attribute with the given
-// name (case-insensitive comparison).
+// hasAttribute returns true if the node has an HTML attribute with the given name
+// (case-insensitive comparison).
 //
 // Takes node (*TemplateNode) which is the node to search.
 // Takes name (string) which is the attribute name to look for.
@@ -1076,8 +1062,7 @@ func hasAttribute(node *TemplateNode, name string) bool {
 	return false
 }
 
-// newElementNode creates an element TemplateNode with the given tag name and
-// location.
+// newElementNode creates an element TemplateNode with the given tag name and location.
 //
 // Takes tagName (string) which specifies the HTML element tag name.
 // Takes location (Location) which specifies the source location of the element.
@@ -1098,13 +1083,11 @@ func newElementNode(tagName string, location Location) *TemplateNode {
 	}
 }
 
-// buildForeignElementNode creates a TemplateNode from an XML start element,
-// classifying each attribute as a directive, dynamic binding, or static
-// attribute.
+// buildForeignElementNode creates a TemplateNode from an XML start element, classifying
+// each attribute as a directive, dynamic binding, or static attribute.
 //
 // Takes element (xml.StartElement) which provides the tag name and attributes.
-// Takes baseLocation (Location) which provides the source location for all parsed
-// items.
+// Takes baseLocation (Location) which provides the source location for all parsed items.
 //
 // Returns *TemplateNode which is the fully populated element node.
 func buildForeignElementNode(element xml.StartElement, baseLocation Location) *TemplateNode {
@@ -1118,8 +1101,8 @@ func buildForeignElementNode(element xml.StartElement, baseLocation Location) *T
 	return node
 }
 
-// classifyForeignAttribute adds a single XML attribute to the node as either
-// a directive, dynamic attribute, or static HTML attribute.
+// classifyForeignAttribute adds a single XML attribute to the node as either a directive,
+// dynamic attribute, or static HTML attribute.
 //
 // Takes node (*TemplateNode) which receives the classified attribute.
 // Takes attr (xml.Attr) which is the attribute to classify.
@@ -1146,13 +1129,12 @@ func classifyForeignAttribute(node *TemplateNode, attr xml.Attr, baseLocation Lo
 	}
 }
 
-// isRawTextParent checks if the given node needs its text content treated as
-// raw text.
+// isRawTextParent checks if the given node needs its text content treated as raw text.
 //
 // Takes node (*TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node is a pre, code, or textarea element,
-// or if it has contenteditable set.
+// Returns bool which is true if the node is a pre, code, or textarea element, or if it
+// has contenteditable set.
 func isRawTextParent(node *TemplateNode) bool {
 	return node.TagName == "pre" || node.TagName == "code" || node.TagName == "textarea" || node.IsContentEditable
 }
@@ -1161,14 +1143,13 @@ func isRawTextParent(node *TemplateNode) bool {
 //
 // Takes r (rune) which is the character to check.
 //
-// Returns bool which is true if r is a space, tab, newline, or carriage
-// return.
+// Returns bool which is true if r is a space, tab, newline, or carriage return.
 func isSpace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\n' || r == '\r'
 }
 
-// skipTopWrapper reports whether a tag is a top-level document wrapper that
-// should be skipped during processing.
+// skipTopWrapper reports whether a tag is a top-level document wrapper that should be
+// skipped during processing.
 //
 // Takes tagName (string) which is the HTML tag name to check.
 //
@@ -1231,9 +1212,9 @@ func interpretDirective(key []byte, value string, location Location) (Directive,
 
 // handleFlagDirective sets a directive's raw expression to a boolean string.
 //
-// When the value is empty or "true", it sets the expression to "true". When the
-// value is "false", it sets it to "false". Any other value is left unchanged so
-// it can be parsed as a dynamic expression.
+// When the value is empty or "true", it sets the expression to "true". When the value is
+// "false", it sets it to "false". Any other value is left unchanged so it can be parsed
+// as a dynamic expression.
 //
 // Takes d (*Directive) which is the directive to process.
 func handleFlagDirective(d *Directive) {
@@ -1248,15 +1229,14 @@ func handleFlagDirective(d *Directive) {
 	}
 }
 
-// parsePrefixedDirective checks for and parses directive prefixes such as
-// p-on:, p-event:, and p-bind: from an attribute name.
+// parsePrefixedDirective checks for and parses directive prefixes such as p-on:,
+// p-event:, and p-bind: from an attribute name.
 //
 // Takes key ([]byte) which is the attribute name to check for a prefix.
 // Takes value (string) which is the expression value for the directive.
 // Takes location (Location) which specifies where the directive appears.
 //
-// Returns Directive which contains the parsed directive with its type and
-// argument.
+// Returns Directive which contains the parsed directive with its type and argument.
 // Returns bool which is true when a prefixed directive was found.
 func parsePrefixedDirective(key []byte, value string, location Location) (Directive, bool) {
 	d := Directive{

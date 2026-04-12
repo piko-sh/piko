@@ -24,16 +24,14 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// scanMigrationReadOnlyOverrides scans migration content for
-// piko.readonly directives preceding CREATE FUNCTION
-// statements.
+// scanMigrationReadOnlyOverrides scans migration content for piko.readonly directives
+// preceding CREATE FUNCTION statements.
 //
 // Takes content (string) which is the migration SQL content.
-// Takes commentPrefix (string) which is the SQL comment
-// prefix (e.g. "--").
+// Takes commentPrefix (string) which is the SQL comment prefix (e.g. "--").
 //
-// Returns map[string]*bool which maps lowercase function
-// names to their read-only override values.
+// Returns map[string]*bool which maps lowercase function names to their read-only
+// override values.
 func scanMigrationReadOnlyOverrides(content string, commentPrefix string) map[string]*bool {
 	result := make(map[string]*bool)
 	lines := strings.Split(content, "\n")
@@ -65,14 +63,12 @@ func scanMigrationReadOnlyOverrides(content string, commentPrefix string) map[st
 	return result
 }
 
-// parseReadOnlyDirectiveValue parses a piko.readonly
-// directive from a comment body.
+// parseReadOnlyDirectiveValue parses a piko.readonly directive from a comment body.
 //
 // Takes comment (string) which is the comment body text.
 //
 // Returns readOnly (bool) which is the parsed boolean value.
-// Returns matched (bool) which is true if a valid directive
-// was found.
+// Returns matched (bool) which is true if a valid directive was found.
 func parseReadOnlyDirectiveValue(comment string) (readOnly bool, matched bool) {
 	if !strings.HasPrefix(comment, "piko.readonly") {
 		return false, false
@@ -91,13 +87,13 @@ func parseReadOnlyDirectiveValue(comment string) (readOnly bool, matched bool) {
 	return false, false
 }
 
-// extractCreateFunctionName extracts the function name from
-// a CREATE FUNCTION or CREATE PROCEDURE statement line.
+// extractCreateFunctionName extracts the function name from a CREATE FUNCTION or CREATE
+// PROCEDURE statement line.
 //
 // Takes line (string) which is the SQL statement line.
 //
-// Returns string which is the lowercase function name, or
-// empty if the line is not a CREATE FUNCTION statement.
+// Returns string which is the lowercase function name, or empty if the line is not a
+// CREATE FUNCTION statement.
 func extractCreateFunctionName(line string) string {
 	upper := strings.ToUpper(line)
 	words := strings.Fields(upper)
@@ -114,14 +110,12 @@ func extractCreateFunctionName(line string) string {
 	return cleanFunctionName(originalWords[functionIndex+1])
 }
 
-// findFunctionKeywordIndex returns the index of FUNCTION
-// or PROCEDURE in a CREATE statement's uppercased words.
+// findFunctionKeywordIndex returns the index of FUNCTION or PROCEDURE in a CREATE
+// statement's uppercased words.
 //
-// Takes upperWords ([]string) which holds the uppercased
-// tokens of the statement.
+// Takes upperWords ([]string) which holds the uppercased tokens of the statement.
 //
-// Returns int which is the index of the keyword, or -1 if
-// not found.
+// Returns int which is the index of the keyword, or -1 if not found.
 func findFunctionKeywordIndex(upperWords []string) int {
 	if len(upperWords) < 2 || upperWords[0] != "CREATE" {
 		return -1
@@ -135,13 +129,12 @@ func findFunctionKeywordIndex(upperWords []string) int {
 	return -1
 }
 
-// cleanFunctionName strips parentheses, schema prefixes,
-// and quotes from a raw function name token.
+// cleanFunctionName strips parentheses, schema prefixes, and quotes from a raw function
+// name token.
 //
 // Takes raw (string) which is the raw function name token.
 //
-// Returns string which is the cleaned, lowercase function
-// name.
+// Returns string which is the cleaned, lowercase function name.
 func cleanFunctionName(raw string) string {
 	name := raw
 	if index := strings.IndexByte(name, '('); index >= 0 {
@@ -154,14 +147,12 @@ func cleanFunctionName(raw string) string {
 	return strings.ToLower(name)
 }
 
-// applyMigrationReadOnlyOverride sets the data access level
-// on a CREATE FUNCTION mutation if a matching read-only
-// override exists.
+// applyMigrationReadOnlyOverride sets the data access level on a CREATE FUNCTION mutation
+// if a matching read-only override exists.
 //
-// Takes mutation (*querier_dto.CatalogueMutation) which is
-// the mutation to update.
-// Takes overrides (map[string]*bool) which maps function
-// names to their read-only override values.
+// Takes mutation (*querier_dto.CatalogueMutation) which is the mutation to update.
+// Takes overrides (map[string]*bool) which maps function names to their read-only
+// override values.
 func applyMigrationReadOnlyOverride(
 	mutation *querier_dto.CatalogueMutation,
 	overrides map[string]*bool,

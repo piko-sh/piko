@@ -22,8 +22,7 @@ package llm_dto
 type Role string
 
 const (
-	// RoleSystem is a system message that sets the behaviour or context for the
-	// assistant.
+	// RoleSystem is a system message that sets the behaviour or context for the assistant.
 	RoleSystem Role = "system"
 
 	// RoleUser is a message role that marks the message as coming from the user.
@@ -41,8 +40,8 @@ type Message struct {
 	// Name is an optional participant name for multi-participant conversations.
 	Name *string
 
-	// ToolCallID identifies which tool call this message responds to.
-	// Only set for tool role messages.
+	// ToolCallID identifies which tool call this message responds to. Only set for tool role
+	// messages.
 	ToolCallID *string
 
 	// Role identifies who sent the message (system, user, assistant, or tool).
@@ -51,20 +50,18 @@ type Message struct {
 	// Content is the text content of the message.
 	Content string
 
-	// ContentParts holds multi-modal content such as text and images.
-	// When set, takes priority over Content for providers that support
-	// vision.
+	// ContentParts holds multi-modal content such as text and images. When set, takes
+	// priority over Content for providers that support vision.
 	ContentParts []ContentPart
 
-	// ToolCalls holds tool or function calls made by the assistant.
-	// Only filled for assistant messages that include tool calls.
+	// ToolCalls holds tool or function calls made by the assistant. Only filled for
+	// assistant messages that include tool calls.
 	ToolCalls []ToolCall
 }
 
 // NewSystemMessage creates a new system message with the given content.
 //
-// Takes content (string) which sets the system prompt or context for the
-// conversation.
+// Takes content (string) which sets the system prompt or context for the conversation.
 //
 // Returns Message which is set up with the system role.
 func NewSystemMessage(content string) Message {
@@ -112,9 +109,8 @@ func NewToolResultMessage(toolCallID, content string) Message {
 	}
 }
 
-// NewUserMessageWithImages creates a new user message with text and image
-// content parts. This enables vision and multi-modal requests where images
-// are sent alongside text.
+// NewUserMessageWithImages creates a new user message with text and image content parts.
+// This enables vision and multi-modal requests where images are sent alongside text.
 //
 // Takes text (string) which is the text content of the message.
 // Takes images (...ContentPart) which are additional image content parts.
@@ -130,9 +126,8 @@ func NewUserMessageWithImages(text string, images ...ContentPart) Message {
 	}
 }
 
-// NewUserMessageWithImageURL creates a new user message with text and an image
-// URL. This is a convenience method for simple vision requests with a single
-// image.
+// NewUserMessageWithImageURL creates a new user message with text and an image URL. This
+// is a convenience method for simple vision requests with a single image.
 //
 // Takes text (string) which is the text content of the message.
 // Takes imageURL (string) which is the URL of the image to include.
@@ -142,9 +137,8 @@ func NewUserMessageWithImageURL(text, imageURL string) Message {
 	return NewUserMessageWithImages(text, ImageURLPart(imageURL))
 }
 
-// NewUserMessageWithImageData creates a user message with text and inline
-// image data. This is a convenience method for simple vision requests with a
-// single inline image.
+// NewUserMessageWithImageData creates a user message with text and inline image data.
+// This is a convenience method for simple vision requests with a single inline image.
 //
 // Takes text (string) which is the text content of the message.
 // Takes mimeType (string) which specifies the MIME type (e.g. "image/png").

@@ -16,11 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_dto defines data transfer objects for the storage
-// module.
+// Package storage_dto defines data transfer objects for the storage module.
 //
-// It contains structured parameter types for storage operations so
-// that new optional parameters can be added without changing method
-// signatures. It has no external dependencies beyond the standard
-// library.
+// It contains structured parameter types for storage operations so that new optional
+// parameters can be added without changing method signatures. It has no external
+// dependencies beyond the standard library.
 package storage_dto

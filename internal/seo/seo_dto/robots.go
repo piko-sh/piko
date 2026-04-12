@@ -22,32 +22,29 @@ import (
 	"strings"
 )
 
-// RobotsTxtContent represents the contents of a robots.txt file in a
-// structured form. It contains one or more rule groups, where each group
-// applies to specific user agents.
+// RobotsTxtContent represents the contents of a robots.txt file in a structured form. It
+// contains one or more rule groups, where each group applies to specific user agents.
 type RobotsTxtContent struct {
 	// Groups holds rule sets, each applying to one or more user agents.
 	Groups []RobotGroup
 }
 
-// RobotGroup represents a User-agent section with its rules in a robots.txt
-// file.
+// RobotGroup represents a User-agent section with its rules in a robots.txt file.
 type RobotGroup struct {
-	// UserAgents is the list of user agent names this group applies
-	// to, where "*" matches all bots (e.g., "Googlebot", "Bingbot",
-	// "GPTBot").
+	// UserAgents is the list of user agent names this group applies to, where "*" matches
+	// all bots (e.g., "Googlebot", "Bingbot", "GPTBot").
 	UserAgents []string
 
 	// Disallow is a list of URL path patterns that crawlers must not visit.
 	Disallow []string
 
-	// Allow is a list of URL path patterns that crawlers may access, even when a
-	// broader Disallow rule would block them.
+	// Allow is a list of URL path patterns that crawlers may access, even when a broader
+	// Disallow rule would block them.
 	Allow []string
 }
 
-// RenderToString converts the structured robots.txt content into the standard
-// text format required by the robots.txt specification.
+// RenderToString converts the structured robots.txt content into the standard text format
+// required by the robots.txt specification.
 //
 // Takes sitemapURL (string) which is appended at the end if not empty.
 //
@@ -87,8 +84,8 @@ func (r *RobotsTxtContent) RenderToString(sitemapURL string) string {
 }
 
 var (
-	// AIBots is the list of known AI crawler bots that should be blocked when
-	// BlockAiBots is enabled.
+	// AIBots is the list of known AI crawler bots that should be blocked when BlockAiBots is
+	// enabled.
 	AIBots = []string{
 		"GPTBot",
 		"ChatGPT-User",
@@ -107,8 +104,8 @@ var (
 		"Omigili",
 	}
 
-	// NonSEOBots is the list of known web scrapers and crawlers that are not
-	// search engine bots.
+	// NonSEOBots is the list of known web scrapers and crawlers that are not search engine
+	// bots.
 	NonSEOBots = []string{
 		"AhrefsBot",
 		"SemrushBot",

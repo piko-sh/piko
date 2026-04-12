@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file focuses on extracting and converting field, method, and signature
-// information from the `go/types` representation into a portable DTO format.
+// This file focuses on extracting and converting field, method, and signature information
+// from the `go/types` representation into a portable DTO format.
 
 import (
 	"cmp"
@@ -36,21 +36,23 @@ import (
 	"piko.sh/piko/internal/mem"
 )
 
-// compositeElementName is the name given to element type parts in composite
-// types such as slices, arrays, channels, and pointers.
-const compositeElementName = "element"
+const (
+	// compositeElementName is the name given to element type parts in composite types such
+	// as slices, arrays, channels, and pointers.
+	compositeElementName = "element"
 
-// maxPregenRoles is the number of pre-generated role strings for each prefix.
-// Functions with more parameters than this fall back to fmt.Sprintf.
-const maxPregenRoles = 16
+	// maxPregenRoles is the number of pre-generated role strings for each prefix. Functions
+	// with more parameters than this fall back to fmt.Sprintf.
+	maxPregenRoles = 16
+)
 
-// canHavePromotedMethods reports whether an underlying type could contribute
-// methods beyond explicit ones declared on the named type. This is true for
-// interfaces (which define methods directly on the underlying type) and
-// structs with embedded fields (which promote methods from embedded types).
+// canHavePromotedMethods reports whether an underlying type could contribute methods
+// beyond explicit ones declared on the named type. This is true for interfaces (which
+// define methods directly on the underlying type) and structs with embedded fields (which
+// promote methods from embedded types).
 //
-// Takes underlying (types.Type) which is the underlying type to inspect for
-// promotable methods.
+// Takes underlying (types.Type) which is the underlying type to inspect for promotable
+// methods.
 //
 // Returns bool which is true when the type has methods that could be promoted.
 func canHavePromotedMethods(underlying types.Type) bool {
@@ -68,9 +70,9 @@ func canHavePromotedMethods(underlying types.Type) bool {
 }
 
 var (
-	// emptyCompositeParts is a shared sentinel for types with no composite parts.
-	// Safe to share because callers never append to it - composite parts are
-	// always set via extractCompositeParts which returns a new slice.
+	// emptyCompositeParts is a shared sentinel for types with no composite parts. Safe to
+	// share because callers never append to it - composite parts are always set via
+	// extractCompositeParts which returns a new slice.
 	emptyCompositeParts = []*inspector_dto.CompositePart{}
 
 	// emptyMethods is a shared sentinel for types with no methods.
@@ -79,15 +81,16 @@ var (
 	// emptyFields is a shared sentinel for types with no fields.
 	emptyFields = []*inspector_dto.Field{}
 
-	// paramRoles holds pre-generated role strings like "param_0" to avoid
-	// fmt.Sprintf per parameter/result. resultRoles and genericArgRoles follow
-	// the same pattern.
+	// paramRoles holds pre-generated role strings like "param_0" to avoid fmt.Sprintf per
+	// parameter/result. resultRoles and genericArgRoles follow the same pattern.
 	paramRoles [maxPregenRoles]string
 
-	// resultRoles holds pre-generated role strings like "result_0" for function return values.
+	// resultRoles holds pre-generated role strings like "result_0" for function return
+	// values.
 	resultRoles [maxPregenRoles]string
 
-	// genericArgRoles holds pre-generated role strings like "generic_arg_0" for type parameters.
+	// genericArgRoles holds pre-generated role strings like "generic_arg_0" for type
+	// parameters.
 	genericArgRoles [maxPregenRoles]string
 )
 
@@ -99,11 +102,10 @@ func init() {
 	}
 }
 
-// roleString returns a pre-generated role string for common prefixes,
-// falling back to fmt.Sprintf for uncommon prefixes or large indices.
+// roleString returns a pre-generated role string for common prefixes, falling back to
+// fmt.Sprintf for uncommon prefixes or large indices.
 //
-// Takes prefix (string) which is the role prefix such as "param" or
-// "result".
+// Takes prefix (string) which is the role prefix such as "param" or "result".
 // Takes index (int) which is the zero-based position of the element.
 //
 // Returns string which is the role string in "prefix_index" format.
@@ -125,14 +127,13 @@ func roleString(prefix string, index int) string {
 	return fmt.Sprintf("%s_%d", prefix, index)
 }
 
-// extractFields encodes all exported fields of a given named type if it
-// is a struct.
+// extractFields encodes all exported fields of a given named type if it is a struct.
 //
 // Takes named (*types.Named) which is the type to extract fields from.
 // Takes qualifier (types.Qualifier) which formats package names in types.
 //
-// Returns []*inspector_dto.Field which contains the exported fields, or nil
-// for non-struct types to avoid allocation.
+// Returns []*inspector_dto.Field which contains the exported fields, or nil for
+// non-struct types to avoid allocation.
 func (s *encoder) extractFields(named *types.Named, qualifier types.Qualifier) []*inspector_dto.Field {
 	underlyingStruct, isStruct := named.Underlying().(*types.Struct)
 	if !isStruct {
@@ -163,17 +164,15 @@ func (s *encoder) extractFields(named *types.Named, qualifier types.Qualifier) [
 	return fields
 }
 
-// extractMethods finds and serialises all exported methods for a given named
-// type.
+// extractMethods finds and serialises all exported methods for a given named type.
 //
 // Takes named (*types.Named) which is the type to extract methods from.
-// Takes qualifier (types.Qualifier) which formats package names in type
-// strings.
-// Takes cleaningCtx (*cleaningContext) which provides context for cleaning
-// type representations.
+// Takes qualifier (types.Qualifier) which formats package names in type strings.
+// Takes cleaningCtx (*cleaningContext) which provides context for cleaning type
+// representations.
 //
-// Returns []*inspector_dto.Method which contains the serialised method
-// definitions, or nil if the type has no methods.
+// Returns []*inspector_dto.Method which contains the serialised method definitions, or
+// nil if the type has no methods.
 func (s *encoder) extractMethods(named *types.Named, qualifier types.Qualifier, cleaningCtx *cleaningContext) []*inspector_dto.Method {
 	if named.NumMethods() == 0 && !canHavePromotedMethods(named.Underlying()) {
 		return emptyMethods
@@ -216,8 +215,8 @@ func (s *encoder) extractMethods(named *types.Named, qualifier types.Qualifier, 
 // Takes cleaningCtx (*cleaningContext) which provides type parameter context.
 // Takes processedMethods (map[string]bool) which tracks methods already seen.
 //
-// Returns *inspector_dto.Method which is the built method DTO, or nil if the
-// selection is not valid or should be skipped.
+// Returns *inspector_dto.Method which is the built method DTO, or nil if the selection is
+// not valid or should be skipped.
 func (s *encoder) processMethodSelection(
 	selection *types.Selection,
 	typ types.Type,
@@ -251,22 +250,24 @@ func (s *encoder) processMethodSelection(
 	return buildMethodDTO(method, resolvedSig, qualifier, s.allPackages, s.arena)
 }
 
-// getStringerInterface returns a lazily initialised interface type
-// representing fmt.Stringer.
-var getStringerInterface = sync.OnceValue(func() *types.Interface {
-	stringMethod := types.NewFunc(token.NoPos, nil, "String",
-		types.NewSignatureType(nil, nil, nil, nil,
-			types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.String])), false),
-	)
-	return types.NewInterfaceType([]*types.Func{stringMethod}, nil).Complete()
-})
+var (
+	// getStringerInterface returns a lazily initialised interface type representing
+	// fmt.Stringer.
+	getStringerInterface = sync.OnceValue(func() *types.Interface {
+		stringMethod := types.NewFunc(token.NoPos, nil, "String",
+			types.NewSignatureType(nil, nil, nil, nil,
+				types.NewTuple(types.NewVar(token.NoPos, nil, "", types.Typ[types.String])), false),
+		)
+		return types.NewInterfaceType([]*types.Func{stringMethod}, nil).Complete()
+	})
+)
 
-// isSimpleGenericComposite checks if a type is a simple composite that
-// contains generics and should be treated as a generic placeholder rather
-// than keeping the composite structure.
+// isSimpleGenericComposite checks if a type is a simple composite that contains generics
+// and should be treated as a generic placeholder rather than keeping the composite
+// structure.
 //
-// Slices and arrays like []T or [5]T are treated as generic placeholders.
-// Maps, channels, and pointers keep their composite structure.
+// Slices and arrays like []T or [5]T are treated as generic placeholders. Maps, channels,
+// and pointers keep their composite structure.
 //
 // Takes t (types.Type) which is the type to check.
 //
@@ -282,15 +283,15 @@ func isSimpleGenericComposite(t types.Type) bool {
 	}
 }
 
-// containsGenericPlaceholder checks whether a type contains a generic type
+// containsGenericPlaceholder checks whether a type contains an uninstantiated type
 // parameter.
 //
-// It looks through composite types such as slices, arrays, maps, channels, and
-// pointers to find any type parameters.
+// It looks through composite types such as slices, arrays, maps, channels, and pointers
+// to find any type parameters.
 //
 // Takes t (types.Type) which is the type to check.
 //
-// Returns bool which is true if the type contains a generic placeholder.
+// Returns bool which is true if the type contains an uninstantiated type parameter.
 func containsGenericPlaceholder(t types.Type) bool {
 	switch typ := t.(type) {
 	case *types.TypeParam:
@@ -312,13 +313,13 @@ func containsGenericPlaceholder(t types.Type) bool {
 	}
 }
 
-// namedTypeContainsGenericPlaceholder checks if a named type has any type
-// arguments that contain generic placeholders.
+// namedTypeContainsGenericPlaceholder checks if a named type has any type arguments that
+// contain uninstantiated type parameters.
 //
 // Takes typ (*types.Named) which is the named type to check.
 //
-// Returns bool which is true if any type argument contains a generic
-// placeholder.
+// Returns bool which is true if any type argument contains an uninstantiated type
+// parameter.
 func namedTypeContainsGenericPlaceholder(typ *types.Named) bool {
 	if typ.TypeArgs() == nil || typ.TypeArgs().Len() == 0 {
 		return false
@@ -331,14 +332,13 @@ func namedTypeContainsGenericPlaceholder(typ *types.Named) bool {
 	return false
 }
 
-// buildFieldDTO converts a struct field into a field DTO for output.
-// It picks the right helper based on whether the field uses a generic type
-// parameter or a standard type.
+// buildFieldDTO converts a struct field into a field DTO for output. It picks the right
+// helper based on whether the field uses a generic type parameter or a standard type.
 //
 // Takes field (*types.Var) which is the struct field to convert.
 // Takes rawTag (string) which is the raw struct tag for the field.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// their concrete types.
+// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to their
+// concrete types.
 // Takes ownerPackagePath (string) which is the package path of the owning struct.
 // Takes ownerTypeName (string) which is the name of the owning struct type.
 // Takes qualifier (types.Qualifier) which formats package references.
@@ -362,8 +362,8 @@ func (s *encoder) buildFieldDTO(
 	return s.buildStandardFieldDTO(field, rawTag, smap, ownerPackagePath, ownerTypeName, qualifier)
 }
 
-// buildGenericPlaceholderFieldDTO builds a Field DTO for simple generic
-// placeholder fields like `Value T`.
+// buildGenericPlaceholderFieldDTO builds a Field DTO for fields whose type is an
+// uninstantiated type parameter such as `Value T`.
 //
 // Takes field (*types.Var) which is the field variable to process.
 // Takes rawTag (string) which is the raw struct tag for the field.
@@ -371,7 +371,7 @@ func (s *encoder) buildFieldDTO(
 // Takes ownerTypeName (string) which is the name of the owning type.
 // Takes qualifier (types.Qualifier) which formats package names in types.
 //
-// Returns *inspector_dto.Field which represents the generic placeholder field.
+// Returns *inspector_dto.Field which represents the uninstantiated type parameter field.
 func (s *encoder) buildGenericPlaceholderFieldDTO(
 	field *types.Var,
 	rawTag string,
@@ -395,16 +395,15 @@ func (s *encoder) buildGenericPlaceholderFieldDTO(
 
 // buildStandardFieldDTO builds a Field DTO for non-placeholder struct fields.
 //
-// It performs type substitution for generic fields, resolves underlying types,
-// and extracts position information for LSP support.
+// It performs type substitution for generic fields, resolves underlying types, and
+// extracts position information for LSP support.
 //
-// Takes field (*types.Var) which is the field to analyse.
-// Takes rawTag (string) which is the raw struct tag for the field.
-// Takes smap (map[*types.TypeParam]types.Type) which maps type parameters to
-// concrete types for generic substitution.
-// Takes ownerPackagePath (string) which is the package path of the declaring type.
-// Takes ownerTypeName (string) which is the name of the declaring type.
-// Takes qualifier (types.Qualifier) which formats package names in type strings.
+// Takes field (*types.Var) which is the field to analyse. Takes rawTag (string) which is
+// the raw struct tag for the field. Takes smap (map[*types.TypeParam]types.Type) which
+// maps type parameters to concrete types for generic substitution. Takes ownerPackagePath
+// (string) which is the package path of the declaring type. Takes ownerTypeName (string)
+// which is the name of the declaring type. Takes qualifier (types.Qualifier) which
+// formats package names in type strings.
 //
 // Returns *inspector_dto.Field which contains the fully analysed field metadata.
 func (s *encoder) buildStandardFieldDTO(
@@ -454,8 +453,8 @@ func (s *encoder) buildStandardFieldDTO(
 // extractPositionInfoFromVar gets file location details from a types.Var field.
 //
 // Takes field (*types.Var) which is the field to get position data from.
-// Takes allPackages (map[string]*packages.Package) which holds package data
-// used to find the file position.
+// Takes allPackages (map[string]*packages.Package) which holds package data used to find
+// the file position.
 //
 // Returns filePath (string) which is the path to the file containing the field.
 // Returns line (int) which is the line number of the field.
@@ -473,14 +472,12 @@ func extractPositionInfoFromVar(field *types.Var, allPackages map[string]*packag
 	return extractPositionFromPackage(pkg, field.Pos(), allPackages)
 }
 
-// resolvePackageForField finds the package that owns a field.
-// For embedded fields or fields of built-in types, it looks at the field type
-// to find the package.
+// resolvePackageForField finds the package that owns a field. For embedded fields or
+// fields of built-in types, it looks at the field type to find the package.
 //
 // Takes field (*types.Var) which is the field to find the package for.
 //
-// Returns *types.Package which is the owning package, or nil if it cannot be
-// found.
+// Returns *types.Package which is the owning package, or nil if it cannot be found.
 func resolvePackageForField(field *types.Var) *types.Package {
 	if field.Pkg() != nil {
 		return field.Pkg()
@@ -499,14 +496,12 @@ func resolvePackageForField(field *types.Var) *types.Package {
 	return namedObj.Pkg()
 }
 
-// extractPositionFromPackage gets file position details from a package's file
-// set.
+// extractPositionFromPackage gets file position details from a package's file set.
 //
-// Takes pkg (*types.Package) which identifies the package containing the
-// position.
+// Takes pkg (*types.Package) which identifies the package containing the position.
 // Takes position (token.Pos) which specifies the position to look up.
-// Takes allPackages (map[string]*packages.Package) which provides access to
-// loaded package data including file sets.
+// Takes allPackages (map[string]*packages.Package) which provides access to loaded
+// package data including file sets.
 //
 // Returns filePath (string) which is the full path to the source file.
 // Returns line (int) which is the line number, starting from one.
@@ -526,17 +521,16 @@ func extractPositionFromPackage(pkg *types.Package, position token.Pos, allPacka
 	return filePos.Filename, filePos.Line, filePos.Column
 }
 
-// determineFieldCanonicalPath finds the canonical import path for a field's
-// type. It tries the declaring package path first and falls back to the base
-// named package path if needed.
+// determineFieldCanonicalPath finds the canonical import path for a field's type. It
+// tries the declaring package path first and falls back to the base named package path if
+// needed.
 //
-// Takes initialFieldType (types.Type) which is the original type before any
-// substitution.
-// Takes fieldTypeAfterSubst (types.Type) which is the type after generic
-// substitution has been applied.
+// Takes initialFieldType (types.Type) which is the original type before any substitution.
+// Takes fieldTypeAfterSubst (types.Type) which is the type after generic substitution has
+// been applied.
 //
-// Returns string which is the canonical import path. Uses the declaring
-// package path unless it is empty or the type is an alias.
+// Returns string which is the canonical import path. Uses the declaring package path
+// unless it is empty or the type is an alias.
 func determineFieldCanonicalPath(initialFieldType, fieldTypeAfterSubst types.Type) string {
 	_, isAlias := initialFieldType.(*types.Alias)
 	declaringPath := declaringPackagePath(fieldTypeAfterSubst)
@@ -550,11 +544,10 @@ func determineFieldCanonicalPath(initialFieldType, fieldTypeAfterSubst types.Typ
 	return canonicalPath
 }
 
-// finaliseFieldPackagePath decides whether a package path should be included in
-// the final DTO.
+// finaliseFieldPackagePath decides whether a package path should be included in the final
+// DTO.
 //
-// Takes initialFieldType (types.Type) which is the type to check for package
-// path needs.
+// Takes initialFieldType (types.Type) which is the type to check for package path needs.
 // Takes canonicalPath (string) which is the extracted package path.
 //
 // Returns string which is the package path to use, or empty if none is needed.
@@ -583,8 +576,8 @@ func finaliseFieldPackagePath(initialFieldType types.Type, canonicalPath string)
 	return canonicalPath
 }
 
-// mapComponentsArePrimitive checks whether both the key and value of a map
-// type are primitive.
+// mapComponentsArePrimitive checks whether both the key and value of a map type are
+// primitive.
 //
 // Takes mapType (*types.Map) which specifies the map type to check.
 //
@@ -595,16 +588,15 @@ func mapComponentsArePrimitive(mapType *types.Map) bool {
 	return keyIsPrimitive && valueIsPrimitive
 }
 
-// isTypeEffectivelyPrimitive checks if a type is a primitive or an alias to a
-// primitive.
+// isTypeEffectivelyPrimitive checks if a type is a primitive or an alias to a primitive.
 //
-// This includes direct primitives and aliases that resolve to primitives, but
-// not named types like structs.
+// This includes direct primitives and aliases that resolve to primitives, but not named
+// types like structs.
 //
 // Takes typ (types.Type) which is the type to check.
 //
-// Returns bool which is true if the type is a primitive or an alias that
-// resolves to a primitive.
+// Returns bool which is true if the type is a primitive or an alias that resolves to a
+// primitive.
 func isTypeEffectivelyPrimitive(typ types.Type) bool {
 	if goastutil.IsPrimitive(typ) {
 		return true
@@ -622,8 +614,8 @@ func isTypeEffectivelyPrimitive(typ types.Type) bool {
 //
 // Takes typ (types.Type) which is the type to classify.
 //
-// Returns inspector_dto.CompositeType which shows the category, such as map,
-// slice, array, channel, pointer, signature, or generic.
+// Returns inspector_dto.CompositeType which shows the category, such as map, slice,
+// array, channel, pointer, signature, or generic.
 func getCompositeType(typ types.Type) inspector_dto.CompositeType {
 	if typ == nil {
 		return inspector_dto.CompositeTypeNone
@@ -663,19 +655,19 @@ func isCompositeType(typ types.Type) bool {
 
 // buildCompositePart constructs a single composite part from a type.
 //
-// This contains the canonical logic for building one composite part,
-// replacing all duplicated code from the old extractCompositeParts.
+// This contains the canonical logic for building one composite part, replacing all
+// duplicated code from the old extractCompositeParts.
 //
 // Takes typ (types.Type) which is the type to build a composite part from.
 // Takes role (string) which describes the role of this part.
 // Takes partType (string) which specifies the kind of composite part.
 // Takes index (int) which is the position of this part.
 // Takes qualifier (types.Qualifier) which formats package names in output.
-// Takes allPackages (map[string]*packages.Package) which provides package
-// lookup for internal type detection.
+// Takes allPackages (map[string]*packages.Package) which provides package lookup for
+// internal type detection.
 //
-// Returns *inspector_dto.CompositePart which contains the type metadata
-// including underlying type info, package path, and nested composite parts.
+// Returns *inspector_dto.CompositePart which contains the type metadata including
+// underlying type info, package path, and nested composite parts.
 func buildCompositePart(
 	typ types.Type,
 	role string,
@@ -718,17 +710,16 @@ func buildCompositePart(
 	return cp
 }
 
-// extractCompositeParts extracts the parts of a composite type such as map,
-// slice, or signature.
+// extractCompositeParts extracts the parts of a composite type such as map, slice, or
+// signature.
 //
 // Takes typ (types.Type) which is the type to extract composite parts from.
-// Takes qualifier (types.Qualifier) which formats package names in type
-// strings.
-// Takes allPackages (map[string]*packages.Package) which provides access to
-// all loaded packages for cross-package type resolution.
+// Takes qualifier (types.Qualifier) which formats package names in type strings.
+// Takes allPackages (map[string]*packages.Package) which provides access to all loaded
+// packages for cross-package type resolution.
 //
-// Returns []*inspector_dto.CompositePart which contains the extracted parts
-// sorted by role, or nil if the type is nil or has no composite parts.
+// Returns []*inspector_dto.CompositePart which contains the extracted parts sorted by
+// role, or nil if the type is nil or has no composite parts.
 func extractCompositeParts(typ types.Type, qualifier types.Qualifier, allPackages map[string]*packages.Package, arena *encoderArena) []*inspector_dto.CompositePart {
 	if typ == nil {
 		return nil
@@ -746,17 +737,16 @@ func extractCompositeParts(typ types.Type, qualifier types.Qualifier, allPackage
 	return parts
 }
 
-// extractUnderlyingCompositeParts extracts the parts from a composite type
-// based on its kind.
+// extractUnderlyingCompositeParts extracts the parts from a composite type based on its
+// kind.
 //
 // Takes underlying (types.Type) which is the type to extract parts from.
-// Takes qualifier (types.Qualifier) which formats package names in type
-// strings.
-// Takes allPackages (map[string]*packages.Package) which provides package data
-// for type lookup.
+// Takes qualifier (types.Qualifier) which formats package names in type strings.
+// Takes allPackages (map[string]*packages.Package) which provides package data for type
+// lookup.
 //
-// Returns []*inspector_dto.CompositePart which contains the extracted parts,
-// or nil when the type is not a known composite type.
+// Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
+// the type is not a known composite type.
 func extractUnderlyingCompositeParts(underlying types.Type, qualifier types.Qualifier, allPackages map[string]*packages.Package, arena *encoderArena) []*inspector_dto.CompositePart {
 	switch t := underlying.(type) {
 	case *types.Map:
@@ -779,18 +769,15 @@ func extractUnderlyingCompositeParts(underlying types.Type, qualifier types.Qual
 	}
 }
 
-// extractSignatureParts gets the parameter and result parts from a function
-// signature.
+// extractSignatureParts gets the parameter and result parts from a function signature.
 //
-// Takes sig (*types.Signature) which is the function signature to extract
-// parts from.
-// Takes qualifier (types.Qualifier) which formats package names in type
-// strings.
-// Takes allPackages (map[string]*packages.Package) which provides access to
-// all loaded packages for type resolution.
+// Takes sig (*types.Signature) which is the function signature to extract parts from.
+// Takes qualifier (types.Qualifier) which formats package names in type strings.
+// Takes allPackages (map[string]*packages.Package) which provides access to all loaded
+// packages for type resolution.
 //
-// Returns []*inspector_dto.CompositePart which contains the parameter and
-// result parts from the signature.
+// Returns []*inspector_dto.CompositePart which contains the parameter and result parts
+// from the signature.
 func extractSignatureParts(sig *types.Signature, qualifier types.Qualifier, allPackages map[string]*packages.Package, arena *encoderArena) []*inspector_dto.CompositePart {
 	var parts []*inspector_dto.CompositePart
 	parts = appendTupleParts(parts, sig.Params(), "param", qualifier, allPackages, arena)
@@ -798,8 +785,8 @@ func extractSignatureParts(sig *types.Signature, qualifier types.Qualifier, allP
 	return parts
 }
 
-// appendTupleParts adds composite parts for each element in a tuple, such as
-// function parameters or results.
+// appendTupleParts adds composite parts for each element in a tuple, such as function
+// parameters or results.
 //
 // Takes parts ([]*inspector_dto.CompositePart) which is the slice to append to.
 // Takes tuple (*types.Tuple) which holds the tuple elements to process.
@@ -807,8 +794,8 @@ func extractSignatureParts(sig *types.Signature, qualifier types.Qualifier, allP
 // Takes qualifier (types.Qualifier) which formats package names in types.
 // Takes allPackages (map[string]*packages.Package) which provides package data.
 //
-// Returns []*inspector_dto.CompositePart which holds the original parts plus
-// new parts for each tuple element.
+// Returns []*inspector_dto.CompositePart which holds the original parts plus new parts
+// for each tuple element.
 func appendTupleParts(
 	parts []*inspector_dto.CompositePart,
 	tuple *types.Tuple,
@@ -834,8 +821,8 @@ func appendTupleParts(
 // Takes qualifier (types.Qualifier) which formats package names in type strings.
 // Takes allPackages (map[string]*packages.Package) which provides package data.
 //
-// Returns []*inspector_dto.CompositePart which contains the original parts plus
-// any generic argument parts.
+// Returns []*inspector_dto.CompositePart which contains the original parts plus any
+// generic argument parts.
 func appendGenericArgParts(
 	parts []*inspector_dto.CompositePart,
 	typ types.Type,
@@ -858,8 +845,7 @@ func appendGenericArgParts(
 //
 // Takes typ (types.Type) which is the type to check.
 //
-// Returns string which is the package path, or empty if the type is nil or
-// primitive.
+// Returns string which is the package path, or empty if the type is nil or primitive.
 func determineCompositePackagePath(typ types.Type) string {
 	if typ == nil {
 		return ""
@@ -876,14 +862,13 @@ func determineCompositePackagePath(typ types.Type) string {
 	return canonicalPath
 }
 
-// shouldSkipMethod checks whether a method should be skipped during
-// serialisation.
+// shouldSkipMethod checks whether a method should be skipped during serialisation.
 //
 // Takes method (*types.Func) which is the method to check.
 // Takes processed (map[string]bool) which tracks methods already processed.
 //
-// Returns bool which is true when the method is unexported, already processed,
-// or has type parameters.
+// Returns bool which is true when the method is unexported, already processed, or has
+// type parameters.
 func shouldSkipMethod(method *types.Func, processed map[string]bool) bool {
 	if !method.Exported() || processed[method.Name()] {
 		return true
@@ -902,11 +887,11 @@ func shouldSkipMethod(method *types.Func, processed map[string]bool) bool {
 // Takes method (*types.Func) which is the method to convert.
 // Takes resolvedSig (*types.Signature) which is the resolved type signature.
 // Takes qualifier (types.Qualifier) which formats package names in types.
-// Takes allPackages (map[string]*packages.Package) which provides package data
-// for position lookup.
+// Takes allPackages (map[string]*packages.Package) which provides package data for
+// position lookup.
 //
-// Returns *inspector_dto.Method which contains the method metadata and where
-// it is defined.
+// Returns *inspector_dto.Method which contains the method metadata and where it is
+// defined.
 func buildMethodDTO(method *types.Func, resolvedSig *types.Signature, qualifier types.Qualifier, allPackages map[string]*packages.Package, arena *encoderArena) *inspector_dto.Method {
 	typeString, underlyingTypeString := determineMethodReturnTypeStrings(resolvedSig, qualifier)
 	declaringPackagePath, declaringTypeName := determineMethodDeclaringType(method)
@@ -932,13 +917,12 @@ func buildMethodDTO(method *types.Func, resolvedSig *types.Signature, qualifier 
 	return m
 }
 
-// extractPositionInfoFromFunc gets the source file location for a function.
-// This works like encoder.extractPositionInfo but is standalone for use in
-// pure functions.
+// extractPositionInfoFromFunc gets the source file location for a function. This works
+// like encoder.extractPositionInfo but is standalone for use in pure functions.
 //
 // Takes typeFunction (*types.Func) which is the function to get the position from.
-// Takes allPackages (map[string]*packages.Package) which provides file set
-// access to find positions.
+// Takes allPackages (map[string]*packages.Package) which provides file set access to find
+// positions.
 //
 // Returns filePath (string) which is the path to the source file.
 // Returns line (int) which is the line number in the source file.
@@ -958,16 +942,16 @@ func extractPositionInfoFromFunc(typeFunction *types.Func, allPackages map[strin
 	return "", 0, 0
 }
 
-// determineMethodReturnTypeStrings gets the type strings for the first return
-// value of a method.
+// determineMethodReturnTypeStrings gets the type strings for the first return value of a
+// method.
 //
 // Takes sig (*types.Signature) which provides the method signature to check.
 // Takes qualifier (types.Qualifier) which controls how types are displayed.
 //
-// Returns typeString (string) which is the type name of the first return value,
-// or empty if there are no return values.
-// Returns underlyingTypeString (string) which is the underlying type name of the
-// first return value, or empty if there are no return values.
+// Returns typeString (string) which is the type name of the first return value, or empty
+// if there are no return values.
+// Returns underlyingTypeString (string) which is the underlying type name of the first
+// return value, or empty if there are no return values.
 func determineMethodReturnTypeStrings(sig *types.Signature, qualifier types.Qualifier) (typeString, underlyingTypeString string) {
 	if sig.Results().Len() == 0 {
 		return "", ""
@@ -1006,15 +990,13 @@ func determineMethodDeclaringType(method *types.Func) (packagePath, typeName str
 	return packagePath, typeName
 }
 
-// resolveMethodPackagePath finds the package path for a method's declaring type.
-// It handles the case where the type's package is nil, such as built-in types
-// like error.
+// resolveMethodPackagePath finds the package path for a method's declaring type. It
+// handles the case where the type's package is nil, such as built-in types like error.
 //
 // Takes rn (*types.Named) which is the named type that declares the method.
 // Takes method (*types.Func) which is the method to find the path for.
 //
-// Returns string which is the package path, or a resolved path for built-in
-// types.
+// Returns string which is the package path, or a resolved path for built-in types.
 func resolveMethodPackagePath(rn *types.Named, method *types.Func) string {
 	if rn.Obj().Pkg() != nil {
 		return rn.Obj().Pkg().Path()
@@ -1024,8 +1006,7 @@ func resolveMethodPackagePath(rn *types.Named, method *types.Func) string {
 
 // resolveBuiltinTypePackagePath finds the package path for a type name.
 //
-// Takes typeString (string) which is the type name, possibly with a
-// package prefix.
+// Takes typeString (string) which is the type name, possibly with a package prefix.
 // Takes method (*types.Func) which provides the fallback package when needed.
 //
 // Returns string which is the package path, or the type name for built-in types.
@@ -1047,11 +1028,10 @@ func resolveBuiltinTypePackagePath(typeString string, method *types.Func) string
 // encodeSignature converts a function signature into a DTO format.
 //
 // Takes sig (*types.Signature) which is the function signature to convert.
-// Takes qualifier (types.Qualifier) which formats package names in type
-// strings.
+// Takes qualifier (types.Qualifier) which formats package names in type strings.
 //
-// Returns inspector_dto.FunctionSignature which contains the encoded
-// parameters and results.
+// Returns inspector_dto.FunctionSignature which contains the encoded parameters and
+// results.
 func encodeSignature(sig *types.Signature, qualifier types.Qualifier) inspector_dto.FunctionSignature {
 	return inspector_dto.FunctionSignature{
 		Params:     encodeTuple(sig.Params(), sig.Variadic(), qualifier),
@@ -1062,8 +1042,7 @@ func encodeSignature(sig *types.Signature, qualifier types.Qualifier) inspector_
 
 // encodeTupleNames extracts parameter names from a types.Tuple.
 //
-// Takes tuple (*types.Tuple) which contains the parameters to extract names
-// from.
+// Takes tuple (*types.Tuple) which contains the parameters to extract names from.
 //
 // Returns []string which contains the parameter names, or nil for empty tuples.
 func encodeTupleNames(tuple *types.Tuple) []string {
@@ -1077,17 +1056,15 @@ func encodeTupleNames(tuple *types.Tuple) []string {
 	return names
 }
 
-// encodeTuple converts a tuple of parameters or results into a slice of type
+// encodeTuple converts a tuple of parameters or results into a slice of type strings.
+//
+// Takes tuple (*types.Tuple) which contains the parameters or results to convert.
+// Takes isVariadic (bool) which shows whether the last parameter is variadic.
+// Takes qualifier (types.Qualifier) which controls how package names appear in type
 // strings.
 //
-// Takes tuple (*types.Tuple) which contains the parameters or results to
-// convert.
-// Takes isVariadic (bool) which shows whether the last parameter is variadic.
-// Takes qualifier (types.Qualifier) which controls how package names appear in
-// type strings.
-//
-// Returns []string which contains the type names, or nil for empty tuples to
-// avoid allocation.
+// Returns []string which contains the type names, or nil for empty tuples to avoid
+// allocation.
 func encodeTuple(tuple *types.Tuple, isVariadic bool, qualifier types.Qualifier) []string {
 	if tuple == nil || tuple.Len() == 0 {
 		return nil
@@ -1112,13 +1089,12 @@ func encodeTuple(tuple *types.Tuple, isVariadic bool, qualifier types.Qualifier)
 	return typeVar
 }
 
-// encodeVariadicType formats a variadic parameter type (e.g., "...int").
-// Uses a pre-allocated buffer and zero-copy conversion to avoid allocations.
+// encodeVariadicType formats a variadic parameter type (e.g., "...int"). Uses a
+// pre-allocated buffer and zero-copy conversion to avoid allocations.
 //
-// Takes elemType (types.Type) which is the element type of the variadic
-// parameter.
-// Takes qualifier (types.Qualifier) which controls how package names appear
-// in the output.
+// Takes elemType (types.Type) which is the element type of the variadic parameter.
+// Takes qualifier (types.Qualifier) which controls how package names appear in the
+// output.
 //
 // Returns string which is the formatted variadic type string.
 func encodeVariadicType(elemType types.Type, qualifier types.Qualifier) string {
@@ -1129,15 +1105,15 @@ func encodeVariadicType(elemType types.Type, qualifier types.Qualifier) string {
 	return mem.String(b)
 }
 
-// resolveSignatureForSelection finds the correct signature for a selected
-// method. It handles type arguments for methods from generic embedded types.
+// resolveSignatureForSelection finds the correct signature for a selected method. It
+// handles type arguments for methods from generic embedded types.
 //
 // Takes selection (*types.Selection) which identifies the selected method.
 // Takes rootReceiver (types.Type) which is the root type for promoted lookups.
 // Takes cleaningCtx (*cleaningContext) which provides context for cleaning.
 //
-// Returns *types.Signature which is the resolved signature, or nil if the
-// selection type is not a signature.
+// Returns *types.Signature which is the resolved signature, or nil if the selection type
+// is not a signature.
 func resolveSignatureForSelection(selection *types.Selection, rootReceiver types.Type, cleaningCtx *cleaningContext) *types.Signature {
 	sig, ok := selection.Type().(*types.Signature)
 	if !ok {
@@ -1155,14 +1131,13 @@ func resolveSignatureForSelection(selection *types.Selection, rootReceiver types
 	return sig
 }
 
-// resolveSignatureFromInstantiatedReceiver handles signature resolution for
-// methods declared on an instantiated generic type.
+// resolveSignatureFromInstantiatedReceiver handles signature resolution for methods
+// declared on an instantiated generic type.
 //
-// Takes selection (*types.Selection) which provides the method
-// selection to resolve.
+// Takes selection (*types.Selection) which provides the method selection to resolve.
 // Takes originalSig (*types.Signature) which is the original method signature.
-// Takes cleaningCtx (*cleaningContext) which provides context for cleaning
-// annotated type parameters.
+// Takes cleaningCtx (*cleaningContext) which provides context for cleaning annotated type
+// parameters.
 //
 // Returns *types.Signature which is the resolved signature with type arguments
 // substituted, or nil if resolution fails.
@@ -1199,16 +1174,16 @@ func resolveSignatureFromInstantiatedReceiver(selection *types.Selection, origin
 	return nil
 }
 
-// resolveSignatureFromPromotedReceiver handles signature resolution for methods
-// promoted through an embedded field that is a generic type with type arguments.
+// resolveSignatureFromPromotedReceiver handles signature resolution for methods promoted
+// through an embedded field that is a generic type with type arguments.
 //
 // Takes selection (*types.Selection) which identifies the method selection.
-// Takes originalSig (*types.Signature) which is the signature before type
-// argument replacement.
+// Takes originalSig (*types.Signature) which is the signature before type argument
+// replacement.
 // Takes rootReceiver (types.Type) which is the receiver type to resolve from.
 //
-// Returns *types.Signature which is the resolved signature with type arguments
-// replaced, or nil if resolution fails.
+// Returns *types.Signature which is the resolved signature with type arguments replaced,
+// or nil if resolution fails.
 func resolveSignatureFromPromotedReceiver(selection *types.Selection, originalSig *types.Signature, rootReceiver types.Type) *types.Signature {
 	definingReceiver := findDirectReceiver(selection, rootReceiver)
 	if definingReceiver == nil {
@@ -1228,15 +1203,15 @@ func resolveSignatureFromPromotedReceiver(selection *types.Selection, originalSi
 	return nil
 }
 
-// findDirectReceiver walks through the embedding path to find the type that
-// defines a method.
+// findDirectReceiver walks through the embedding path to find the type that defines a
+// method.
 //
 // Takes selection (*types.Selection) which provides the method selection with its
 // embedding path indices.
 // Takes rootReceiver (types.Type) which is the starting type to walk from.
 //
-// Returns types.Type which is the type that directly defines the method, or
-// nil if the embedding path is broken.
+// Returns types.Type which is the type that directly defines the method, or nil if the
+// embedding path is broken.
 func findDirectReceiver(selection *types.Selection, rootReceiver types.Type) types.Type {
 	indices := selection.Index()
 	if len(indices) <= 1 {

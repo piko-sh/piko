@@ -62,12 +62,11 @@ const (
 )
 
 var (
-	// ErrCaptchaDisabled is returned when captcha verification is attempted but
-	// the captcha service is disabled.
+	// ErrCaptchaDisabled is returned when captcha verification is attempted but the captcha
+	// service is disabled.
 	ErrCaptchaDisabled = captcha_dto.ErrCaptchaDisabled
 
-	// ErrVerificationFailed is returned when the captcha token fails provider
-	// verification.
+	// ErrVerificationFailed is returned when the captcha token fails provider verification.
 	ErrVerificationFailed = captcha_dto.ErrVerificationFailed
 
 	// ErrTokenMissing is returned when no captcha token is provided.
@@ -76,20 +75,19 @@ var (
 	// ErrTokenExpired is returned when the captcha token has exceeded its TTL.
 	ErrTokenExpired = captcha_dto.ErrTokenExpired
 
-	// ErrProviderUnavailable is returned when the captcha provider cannot be
-	// reached or is not configured.
+	// ErrProviderUnavailable is returned when the captcha provider cannot be reached or is
+	// not configured.
 	ErrProviderUnavailable = captcha_dto.ErrProviderUnavailable
 
-	// ErrScoreBelowThreshold is returned when the captcha score is below the
-	// configured minimum threshold.
+	// ErrScoreBelowThreshold is returned when the captcha score is below the configured
+	// minimum threshold.
 	ErrScoreBelowThreshold = captcha_dto.ErrScoreBelowThreshold
 )
 
 // GetDefaultService returns the global captcha service instance.
 //
 // Returns ServicePort which is the configured captcha service.
-// Returns error when the framework is not initialised or the service
-// cannot be created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetDefaultService() (ServicePort, error) {
 	return bootstrap.GetCaptchaService()
 }

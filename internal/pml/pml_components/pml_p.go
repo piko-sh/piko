@@ -26,13 +26,15 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// Paragraph implements the pml_domain.Component interface for the <pml-p> tag.
-// It is the primary component for displaying text and raw HTML content.
+// Paragraph implements the pml_domain.Component interface for the <pml-p> tag. It is the
+// primary component for displaying text and raw HTML content.
 type Paragraph struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*Paragraph)(nil)
+var (
+	_ pml_domain.Component = (*Paragraph)(nil)
+)
 
 const (
 	// defaultParagraphAlign is the default text alignment for paragraphs.
@@ -70,9 +72,8 @@ func (*Paragraph) TagName() string {
 	return "pml-p"
 }
 
-// IsEndingTag returns true because the transformer should not recurse into
-// Paragraph's children, which are treated as raw HTML content (e.g., <b>, <i>,
-// <a> tags).
+// IsEndingTag returns true because the transformer should not recurse into Paragraph's
+// children, which are treated as raw HTML content (e.g., <b>, <i>, <a> tags).
 //
 // Returns bool which is always true for Paragraph elements.
 func (*Paragraph) IsEndingTag() bool {
@@ -88,8 +89,8 @@ func (*Paragraph) AllowedParents() []string {
 
 // AllowedAttributes defines all valid attributes for the component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which contains the
-// attribute names mapped to their type definitions.
+// Returns map[string]pml_domain.AttributeDefinition which contains the attribute names
+// mapped to their type definitions.
 func (*Paragraph) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		AttrAlign:                    NewEnumAttributeDefinition([]string{"left", "right", ValueCentre, "justify"}),
@@ -136,13 +137,12 @@ func (*Paragraph) DefaultAttributes() map[string]string {
 
 // GetStyleTargets returns the style target mappings for paragraph attributes.
 //
-// In this model, all typography styles apply to the main content container
-// (div). Padding and background are also defined as container styles, which
-// signals to the parent pml-col that it should read these attributes and
-// apply them to the wrapping td element.
+// In this model, all typography styles apply to the main content container (div). Padding
+// and background are also defined as container styles, which signals to the parent
+// pml-col that it should read these attributes and apply them to the wrapping td element.
 //
-// Returns []pml_domain.StyleTarget which lists the attribute-to-target
-// mappings for rendering.
+// Returns []pml_domain.StyleTarget which lists the attribute-to-target mappings for
+// rendering.
 func (*Paragraph) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: AttrAlign, Target: TargetContainer},
@@ -171,14 +171,12 @@ func (*Paragraph) GetStyleTargets() []pml_domain.StyleTarget {
 
 // Transform converts a pml-p node into its final, email-safe HTML structure.
 //
-// It renders a single div element with typography styles. It does not handle
-// padding; that is the responsibility of the parent pml-col component. When
-// a height style is present, the output is wrapped in an Outlook-compatible
-// height wrapper.
+// It renders a single div element with typography styles. It does not handle padding;
+// that is the responsibility of the parent pml-col component. When a height style is
+// present, the output is wrapped in an Outlook-compatible height wrapper.
 //
 // Takes node (*ast_domain.TemplateNode) which is the pml-p node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides styles and
-// diagnostics.
+// Takes ctx (*pml_domain.TransformationContext) which provides styles and diagnostics.
 //
 // Returns *ast_domain.TemplateNode which is the transformed div or wrapper.
 // Returns []*pml_domain.Error which contains any diagnostics from the context.
@@ -235,15 +233,13 @@ func (*Paragraph) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Trans
 	return divNode, ctx.Diagnostics()
 }
 
-// buildParagraphDataAttributes appends optional data-pml attributes to the
-// given attribute slice. These attributes communicate alignment, per-side
-// padding overrides, and container background colour to the parent pml-col
-// component.
+// buildParagraphDataAttributes appends optional data-pml attributes to the given
+// attribute slice. These attributes communicate alignment, per-side padding overrides,
+// and container background colour to the parent pml-col component.
 //
-// Takes styles (*pml_domain.StyleManager) which provides the resolved style
-// values.
-// Takes divAttrs ([]ast_domain.HTMLAttribute) which is the base attribute
-// slice to extend.
+// Takes styles (*pml_domain.StyleManager) which provides the resolved style values.
+// Takes divAttrs ([]ast_domain.HTMLAttribute) which is the base attribute slice to
+// extend.
 //
 // Returns []ast_domain.HTMLAttribute which is the extended attribute slice.
 func buildParagraphDataAttributes(styles *pml_domain.StyleManager, divAttrs []ast_domain.HTMLAttribute) []ast_domain.HTMLAttribute {
@@ -271,14 +267,14 @@ func buildParagraphDataAttributes(styles *pml_domain.StyleManager, divAttrs []as
 	return divAttrs
 }
 
-// renderOutlookParagraphHeightWrapper creates a conditional table structure
-// to set a fixed height in Microsoft Outlook email clients.
+// renderOutlookParagraphHeightWrapper creates a conditional table structure to set a
+// fixed height in Microsoft Outlook email clients.
 //
 // Takes height (string) which gives the height value in pixels.
 // Takes contentNode (*ast_domain.TemplateNode) which is the content to wrap.
 //
-// Returns *ast_domain.TemplateNode which holds the wrapped content with
-// Outlook-specific conditional comments.
+// Returns *ast_domain.TemplateNode which holds the wrapped content with Outlook-specific
+// conditional comments.
 func renderOutlookParagraphHeightWrapper(height string, contentNode *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	heightPx := mustParsePixels(height)
 
@@ -295,9 +291,8 @@ func renderOutlookParagraphHeightWrapper(height string, contentNode *ast_domain.
 	return NewFragmentNode([]*ast_domain.TemplateNode{startComment, contentNode, endComment})
 }
 
-// copyBorderStyle copies a border shorthand property to the destination map,
-// falling back to reassembling from longhand properties when the shorthand is
-// not present.
+// copyBorderStyle copies a border shorthand property to the destination map, falling back
+// to reassembling from longhand properties when the shorthand is not present.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the source values.
 // Takes dest (map[string]string) which receives the border style.
@@ -333,18 +328,17 @@ func copyBorderStyle(styles *pml_domain.StyleManager, dest map[string]string, sr
 	}
 }
 
-// processInlineChildren transforms PML elements within inline content to their
-// HTML equivalents, letting pml-p contain basic PML elements like pml-br while
-// still treating most content as raw HTML.
+// processInlineChildren transforms PML elements within inline content to their HTML
+// equivalents, letting pml-p contain basic PML elements like pml-br while still treating
+// most content as raw HTML.
 //
 // Currently handles:
 //   - pml-br -> <br> (simple line break, no height support in inline context)
 //
-// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to
-// process.
+// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to process.
 //
-// Returns []*ast_domain.TemplateNode which contains the processed children with
-// PML elements converted to HTML equivalents.
+// Returns []*ast_domain.TemplateNode which contains the processed children with PML
+// elements converted to HTML equivalents.
 func processInlineChildren(children []*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
 	if len(children) == 0 {
 		return children
@@ -359,8 +353,8 @@ func processInlineChildren(children []*ast_domain.TemplateNode) []*ast_domain.Te
 	return result
 }
 
-// processInlineChild transforms a single child node, converting PML elements
-// to their HTML equivalents and processing nested children.
+// processInlineChild transforms a single child node, converting PML elements to their
+// HTML equivalents and processing nested children.
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to process.
 //

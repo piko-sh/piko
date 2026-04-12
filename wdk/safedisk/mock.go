@@ -66,8 +66,8 @@ const (
 	walkError
 )
 
-// MockFileHandle provides a mock implementation of FileHandle for testing.
-// It allows configuring errors for specific operations to test error paths.
+// MockFileHandle provides a mock implementation of FileHandle for testing. It allows
+// configuring errors for specific operations to test error paths.
 type MockFileHandle struct {
 	// ReadErr is an error injection field; set to non-nil to make Read fail.
 	ReadErr error
@@ -117,13 +117,12 @@ type MockFileHandle struct {
 	// DirEntries holds custom directory entries to return from ReadDir.
 	DirEntries []fs.DirEntry
 
-	// offset tracks the current read and write position in the buffer.
-	// Accessed atomically.
-	offset int64
+	// offset tracks the current read and write position in the buffer. Accessed atomically.
+	offset atomic.Int64
 
-	// closed indicates whether the file handle has been closed
-	// (0 open, 1 closed), accessed atomically.
-	closed int64
+	// closed indicates whether the file handle has been closed (0 open, 1 closed), accessed
+	// atomically.
+	closed atomic.Int64
 }
 
 var (
@@ -132,8 +131,8 @@ var (
 	_ Sandbox = (*MockSandbox)(nil)
 )
 
-// NewMockFileHandle creates a new mock file handle with the given name and
-// initial contents.
+// NewMockFileHandle creates a new mock file handle with the given name and initial
+// contents.
 //
 // Takes name (string) which specifies the display name of the file handle.
 // Takes absolutePath (string) which specifies the full path to the file.
@@ -174,13 +173,13 @@ func (m *MockFileHandle) Read(p []byte) (n int, err error) {
 	}
 
 	data := m.data.Bytes()
-	off := atomic.LoadInt64(&m.offset)
+	off := m.offset.Load()
 	if off >= int64(len(data)) {
 		return 0, io.EOF
 	}
 
 	n = copy(p, data[off:])
-	atomic.AddInt64(&m.offset, int64(n))
+	m.offset.Add(int64(n))
 	return n, nil
 }
 
@@ -216,7 +215,7 @@ func (m *MockFileHandle) Write(p []byte) (n int, err error) {
 		return 0, m.WriteErr
 	}
 
-	off := atomic.LoadInt64(&m.offset)
+	off := m.offset.Load()
 	data := m.data.Bytes()
 	newLen := int(off) + len(p)
 	if newLen > len(data) {
@@ -229,7 +228,7 @@ func (m *MockFileHandle) Write(p []byte) (n int, err error) {
 	}
 
 	n = len(p)
-	atomic.AddInt64(&m.offset, int64(n))
+	m.offset.Add(int64(n))
 	return n, nil
 }
 
@@ -272,8 +271,8 @@ func (m *MockFileHandle) WriteString(s string) (n int, err error) {
 // Seek sets the offset for the next Read or Write.
 //
 // Takes offset (int64) which specifies the position relative to whence.
-// Takes whence (int) which indicates the reference point: 0 for start, 1 for
-// current position, 2 for end.
+// Takes whence (int) which indicates the reference point: 0 for start, 1 for current
+// position, 2 for end.
 //
 // Returns int64 which is the new offset position.
 // Returns error when SeekErr is set on the mock.
@@ -287,7 +286,7 @@ func (m *MockFileHandle) Seek(offset int64, whence int) (int64, error) {
 	case 0:
 		newOffset = offset
 	case 1:
-		newOffset = atomic.LoadInt64(&m.offset) + offset
+		newOffset = m.offset.Load() + offset
 	case 2:
 		newOffset = int64(m.data.Len()) + offset
 	}
@@ -295,7 +294,7 @@ func (m *MockFileHandle) Seek(offset int64, whence int) (int64, error) {
 	if newOffset < 0 {
 		newOffset = 0
 	}
-	atomic.StoreInt64(&m.offset, newOffset)
+	m.offset.Store(newOffset)
 	return newOffset, nil
 }
 
@@ -372,7 +371,7 @@ func (m *MockFileHandle) Close() error {
 		return m.CloseErr
 	}
 
-	atomic.StoreInt64(&m.closed, 1)
+	m.closed.Store(1)
 	return nil
 }
 
@@ -415,7 +414,7 @@ func (m *MockFileHandle) Data() []byte {
 //
 // Returns bool which is true if the file handle has been closed.
 func (m *MockFileHandle) IsClosed() bool {
-	return atomic.LoadInt64(&m.closed) == 1
+	return m.closed.Load() == 1
 }
 
 // mockFileInfo implements fs.FileInfo for MockFileHandle.
@@ -499,8 +498,8 @@ func (m *mockDirEntry) Type() fs.FileMode { return m.info.Mode().Type() }
 // Returns error when the file information cannot be retrieved.
 func (m *mockDirEntry) Info() (fs.FileInfo, error) { return m.info, nil }
 
-// MockSandbox provides a mock implementation of Sandbox for testing.
-// It uses an in-memory file system and allows configuring errors.
+// MockSandbox provides a mock implementation of Sandbox for testing. It uses an in-memory
+// file system and allows configuring errors.
 type MockSandbox struct {
 	// OpenErr is the error to return from Open; nil means success.
 	OpenErr error
@@ -508,8 +507,8 @@ type MockSandbox struct {
 	// ReadFileErr is returned by ReadFile when set.
 	ReadFileErr error
 
-	// ReadFileLimitErr is returned by ReadFileLimit when set; allows tests
-	// to simulate read failures distinct from ReadFile.
+	// ReadFileLimitErr is returned by ReadFileLimit when set; allows tests to simulate read
+	// failures distinct from ReadFile.
 	ReadFileLimitErr error
 
 	// StatErr is the error to return from Stat; nil means success.
@@ -563,16 +562,15 @@ type MockSandbox struct {
 	// CloseErr is the error to return from Close; nil means success.
 	CloseErr error
 
-	// NextTempFileWriteErr injects a write error into the next temp file
-	// created by CreateTemp. It is cleared after use to allow single-use
-	// error injection.
+	// NextTempFileWriteErr injects a write error into the next temp file created by
+	// CreateTemp. It is cleared after use to allow single-use error injection.
 	NextTempFileWriteErr error
 
 	// NextTempFileSyncErr is the error to return from Sync on the next temp file.
 	NextTempFileSyncErr error
 
-	// NextTempFileCloseErr is the error to return from Close on the next
-	// temporary file created; nil means no error.
+	// NextTempFileCloseErr is the error to return from Close on the next temporary file
+	// created; nil means no error.
 	NextTempFileCloseErr error
 
 	// files stores the mock files by their path.
@@ -665,8 +663,8 @@ func (m *MockSandbox) Open(name string) (FileHandle, error) {
 	return NewMockFileHandle(file.name, file.absolutePath, file.Data()), nil
 }
 
-// ReadFile reads the entire contents of a file within the sandbox.
-// The mock has no size cap (returns whatever fixture bytes were registered).
+// ReadFile reads the entire contents of a file within the sandbox. The mock has no size
+// cap (returns whatever fixture bytes were registered).
 //
 // Takes name (string) which is the path of the file to read.
 //
@@ -693,9 +691,8 @@ func (m *MockSandbox) ReadFile(name string) ([]byte, error) {
 }
 
 // ReadFileLimit reads up to maxBytes from a file in the mock sandbox.
-// Returns ErrFileExceedsLimit when the stored data is larger than
-// maxBytes, ErrInvalidLimit when maxBytes is non-positive, or
-// ReadFileLimitErr when set.
+// Returns ErrFileExceedsLimit when the stored data is larger than maxBytes,
+// ErrInvalidLimit when maxBytes is non-positive, or ReadFileLimitErr when set.
 //
 // Takes name (string) which is the path of the file to read.
 // Takes maxBytes (int64) which caps the byte count.
@@ -872,8 +869,8 @@ type walkResult struct {
 // Takes flag (int) which specifies the file open flags.
 //
 // Returns FileHandle which provides access to the opened file.
-// Returns error when OpenFileErr is set, the sandbox is read-only, or the
-// file does not exist and create was not requested.
+// Returns error when OpenFileErr is set, the sandbox is read-only, or the file does not
+// exist and create was not requested.
 //
 // Safe for concurrent use.
 func (m *MockSandbox) OpenFile(name string, flag int, _ fs.FileMode) (FileHandle, error) {
@@ -918,8 +915,7 @@ func (m *MockSandbox) OpenFile(name string, flag int, _ fs.FileMode) (FileHandle
 // Takes name (string) which specifies the file path to write.
 // Takes data ([]byte) which contains the content to write.
 //
-// Returns error when WriteFileErr is set or the sandbox is in read-only
-// mode.
+// Returns error when WriteFileErr is set or the sandbox is in read-only mode.
 //
 // Safe for concurrent use.
 func (m *MockSandbox) WriteFile(name string, data []byte, _ fs.FileMode) error {
@@ -977,8 +973,7 @@ func (m *MockSandbox) Mkdir(_ string, _ fs.FileMode) error {
 // MkdirAll creates a directory and all necessary parent directories.
 //
 // Takes path (string) which specifies the directory path to create.
-// Takes perm (fs.FileMode) which sets the permission bits for created
-// directories.
+// Takes perm (fs.FileMode) which sets the permission bits for created directories.
 //
 // Returns error when MkdirAllErr is set or the sandbox is in read-only mode.
 //
@@ -1079,8 +1074,7 @@ func (m *MockSandbox) RemoveAll(path string) error {
 // Takes oldpath (string) which is the current path of the file or directory.
 // Takes newpath (string) which is the new path for the file or directory.
 //
-// Returns error when the sandbox is in read-only mode or the old path does
-// not exist.
+// Returns error when the sandbox is in read-only mode or the old path does not exist.
 //
 // Safe for concurrent use; protects file map access with a mutex.
 func (m *MockSandbox) Rename(oldpath, newpath string) error {
@@ -1115,8 +1109,8 @@ func (m *MockSandbox) Rename(oldpath, newpath string) error {
 // Takes name (string) which specifies the path to the file.
 // Takes mode (fs.FileMode) which specifies the new file permissions.
 //
-// Returns error when ChmodErr is set, the sandbox is read-only, or ChmodFunc
-// returns an error.
+// Returns error when ChmodErr is set, the sandbox is read-only, or ChmodFunc returns an
+// error.
 func (m *MockSandbox) Chmod(name string, mode fs.FileMode) error {
 	m.incrementCall("Chmod")
 
@@ -1179,8 +1173,7 @@ func (m *MockSandbox) CreateTemp(directory, pattern string) (FileHandle, error) 
 
 // MkdirTemp creates a temporary directory within the sandbox.
 //
-// Takes directory (string) which specifies the parent directory
-// for the temp folder.
+// Takes directory (string) which specifies the parent directory for the temp folder.
 // Takes pattern (string) which provides a prefix for the directory name.
 //
 // Returns string which is the path to the created temporary directory.
@@ -1259,8 +1252,7 @@ func (m *MockSandbox) incrementCall(method string) {
 //
 // Returns []string which contains all matching file paths.
 //
-// Safe for concurrent use. Uses a read lock to protect access to the
-// files map.
+// Safe for concurrent use. Uses a read lock to protect access to the files map.
 func (m *MockSandbox) collectMatchingPaths(root string) []string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -1308,8 +1300,7 @@ func (m *MockSandbox) walkSinglePath(path string, walkFunction fs.WalkDirFunc) w
 //
 // Takes path (string) which is the file path that failed to stat.
 // Takes statErr (error) which is the error returned by the Stat call.
-// Takes walkFunction (fs.WalkDirFunc) which is the callback to notify
-// of the error.
+// Takes walkFunction (fs.WalkDirFunc) which is the callback to notify of the error.
 //
 // Returns walkResult which indicates whether to continue or stop walking.
 func (*MockSandbox) handleStatError(path string, statErr error, walkFunction fs.WalkDirFunc) walkResult {
@@ -1341,8 +1332,8 @@ func sortStrings(s []string) {
 // Takes path (string) which is the file path to check.
 // Takes root (string) which is the root directory to match against.
 //
-// Returns bool which is true if path equals root, starts with root followed
-// by a separator, or if root is empty or ".".
+// Returns bool which is true if path equals root, starts with root followed by a
+// separator, or if root is empty or ".".
 func matchesRoot(path, root string) bool {
 	if root == "." || root == "" {
 		return true

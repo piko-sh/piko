@@ -30,7 +30,9 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-var _ cache_domain.ProviderPort[any, any] = (*MockAdapter[any, any])(nil)
+var (
+	_ cache_domain.ProviderPort[any, any] = (*MockAdapter[any, any])(nil)
+)
 
 // mockEntry holds an item in the mock cache's memory, including metadata.
 type mockEntry[V any] struct {
@@ -44,9 +46,9 @@ type mockEntry[V any] struct {
 	tags map[string]struct{}
 }
 
-// MockAdapter is a thread-safe, in-memory mock implementation of the
-// ProviderPort interface. It implements io.Closer and is designed for testing,
-// providing call recording, state simulation, and error injection.
+// MockAdapter is a thread-safe, in-memory mock implementation of the ProviderPort
+// interface. It implements io.Closer and is designed for testing, providing call
+// recording, state simulation, and error injection.
 type MockAdapter[K comparable, V any] struct {
 	// clock provides time operations for testing.
 	clock clock.Clock
@@ -54,8 +56,8 @@ type MockAdapter[K comparable, V any] struct {
 	// errToReturn is the error to return from mock method calls.
 	errToReturn error
 
-	// setExpiresAfterCalls records the duration passed to each SetExpiresAfter
-	// call, keyed by the argument used.
+	// setExpiresAfterCalls records the duration passed to each SetExpiresAfter call, keyed
+	// by the argument used.
 	setExpiresAfterCalls map[any]time.Duration
 
 	// storage maps keys to their mock entries for test assertions.
@@ -70,8 +72,7 @@ type MockAdapter[K comparable, V any] struct {
 	// bulkGetFunc mocks the BulkGet method.
 	bulkGetFunc func(ctx context.Context, keys []K) (map[K]V, error)
 
-	// setRefreshableAfterCalls maps tokens to durations after which they become
-	// refreshable.
+	// setRefreshableAfterCalls maps tokens to durations after which they become refreshable.
 	setRefreshableAfterCalls map[any]time.Duration
 
 	// setCalls records each call to Set with its key, value, and tags.
@@ -301,9 +302,8 @@ func (m *MockAdapter[K, V]) Invalidate(_ context.Context, key K) error {
 // Compute computes a new value atomically based on the current value.
 //
 // Takes key (K) which identifies the cache entry to compute.
-// Takes computeFunction (func(...)) which receives the current value
-// and whether it exists, and returns the new value with an action to
-// perform.
+// Takes computeFunction (func(...)) which receives the current value and whether it
+// exists, and returns the new value with an action to perform.
 //
 // Returns V which is the resulting value after the computation.
 // Returns bool which indicates whether a value exists for the key.
@@ -376,13 +376,11 @@ func (m *MockAdapter[K, V]) ComputeIfAbsent(_ context.Context, key K, computeFun
 // ComputeIfPresent updates a value only if the key is present.
 //
 // Takes key (K) which identifies the entry to update.
-// Takes computeFunction (func(...)) which computes the new value
-// from the old value.
+// Takes computeFunction (func(...)) which computes the new value from the old value.
 //
-// Returns V which is the resulting value after computation, or zero value if
-// key not found or deleted.
-// Returns bool which indicates whether the key exists with a value after the
-// operation.
+// Returns V which is the resulting value after computation, or zero value if key not
+// found or deleted.
+// Returns bool which indicates whether the key exists with a value after the operation.
 // Returns error when the operation fails.
 //
 // Safe for concurrent use; protected by a mutex.
@@ -506,8 +504,7 @@ func (m *MockAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoader ca
 
 // InvalidateByTags removes all entries with the given tags.
 //
-// Takes tags (...string) which specifies the tags whose entries should be
-// removed.
+// Takes tags (...string) which specifies the tags whose entries should be removed.
 //
 // Returns int which is the number of entries that were invalidated.
 // Returns error when the operation fails.
@@ -559,9 +556,9 @@ func (m *MockAdapter[K, V]) InvalidateAll(_ context.Context) error {
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads fresh values for the keys.
 //
-// Safe for concurrent use. Spawns a goroutine that calls
-// bulkLoader.BulkLoad to refresh the values in the background. Recovers
-// panics so a faulty loader cannot crash the host process.
+// Safe for concurrent use. Spawns a goroutine that calls bulkLoader.BulkLoad to refresh
+// the values in the background. Recovers panics so a faulty loader cannot crash the host
+// process.
 func (m *MockAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache_dto.BulkLoader[K, V]) {
 	m.mu.Lock()
 	m.bulkRefreshCalls = append(m.bulkRefreshCalls, keys)
@@ -577,12 +574,10 @@ func (m *MockAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoade
 // Takes key (K) which identifies the cache entry to refresh.
 // Takes loader (Loader[K, V]) which loads the fresh value.
 //
-// Returns <-chan cache_dto.LoadResult[V] which delivers the
-// refresh result.
+// Returns <-chan cache_dto.LoadResult[V] which delivers the refresh result.
 //
-// Safe for concurrent use. Spawns a goroutine that calls
-// loader.Load to refresh the value in the background. Recovers panics so
-// a faulty loader cannot crash the host process.
+// Safe for concurrent use. Spawns a goroutine that calls loader.Load to refresh the value
+// in the background. Recovers panics so a faulty loader cannot crash the host process.
 func (m *MockAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dto.Loader[K, V]) <-chan cache_dto.LoadResult[V] {
 	m.mu.Lock()
 	m.refreshCalls = append(m.refreshCalls, key)
@@ -600,11 +595,10 @@ func (m *MockAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache_dto
 
 // All returns an iterator over all key-value pairs.
 //
-// Returns iter.Seq2[K, V] which yields each key-value pair in the
-// cache.
+// Returns iter.Seq2[K, V] which yields each key-value pair in the cache.
 //
-// Safe for concurrent use. Takes a snapshot of the storage under
-// a read lock and iterates over the copy.
+// Safe for concurrent use. Takes a snapshot of the storage under a read lock and iterates
+// over the copy.
 func (m *MockAdapter[K, V]) All() iter.Seq2[K, V] {
 	m.mu.RLock()
 	snapshot := make(map[K]V)
@@ -653,8 +647,7 @@ func (m *MockAdapter[K, V]) Values() iter.Seq[V] {
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to retrieve.
 //
-// Returns cache_dto.Entry[K, V] which contains the entry with
-// metadata.
+// Returns cache_dto.Entry[K, V] which contains the entry with metadata.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 //
@@ -689,8 +682,7 @@ func (m *MockAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache_dto.Entr
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the entry to probe.
 //
-// Returns cache_dto.Entry[K, V] which contains the entry with
-// metadata.
+// Returns cache_dto.Entry[K, V] which contains the entry with metadata.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 //
@@ -715,8 +707,7 @@ func (m *MockAdapter[K, V]) EstimatedSize() int {
 
 // Stats returns cache statistics.
 //
-// Returns cache_dto.Stats which contains mock statistics based on recorded
-// method calls.
+// Returns cache_dto.Stats which contains mock statistics based on recorded method calls.
 func (m *MockAdapter[K, V]) Stats() cache_dto.Stats {
 	return cache_dto.Stats{
 		Hits:             uint64(len(m.getIfPresentCalls)),
@@ -785,8 +776,8 @@ func (m *MockAdapter[K, V]) SetMaximum(size uint64) {
 
 // WeightedSize returns the weighted size of all entries in the cache.
 //
-// Returns uint64 which is the total weighted size, or the storage count if no
-// weighted size has been configured.
+// Returns uint64 which is the total weighted size, or the storage count if no weighted
+// size has been configured.
 //
 // Safe for concurrent use; protected by a read lock.
 func (m *MockAdapter[K, V]) WeightedSize() uint64 {
@@ -801,8 +792,8 @@ func (m *MockAdapter[K, V]) WeightedSize() uint64 {
 // SetRefreshableAfter sets the duration after which a key becomes refreshable.
 //
 // Takes key (K) which identifies the cache entry to configure.
-// Takes refreshableAfter (time.Duration) which specifies when the key becomes
-// eligible for refresh.
+// Takes refreshableAfter (time.Duration) which specifies when the key becomes eligible
+// for refresh.
 //
 // Returns error when the operation fails.
 //
@@ -834,8 +825,7 @@ func (m *MockAdapter[K, V]) Reset() {
 	m.bulkGetFunc = nil
 }
 
-// SetError configures a generic error to be returned by methods that support
-// it.
+// SetError configures a generic error to be returned by methods that support it.
 //
 // Takes err (error) which is the error value to return from subsequent calls.
 //
@@ -945,24 +935,21 @@ func (*MockAdapter[K, V]) GetSchema() *cache_dto.SearchSchema {
 	return nil
 }
 
-// MockProviderFactory is the factory function for creating the mock adapter.
-// It accepts typed Options and returns a properly configured MockAdapter.
+// MockProviderFactory is the factory function for creating the mock adapter. It accepts
+// typed Options and returns a properly configured MockAdapter.
 //
-// Returns cache_domain.ProviderPort[K, V] which is the mock cache
-// adapter.
+// Returns cache_domain.ProviderPort[K, V] which is the mock cache adapter.
 // Returns error which is always nil for this mock factory.
 func MockProviderFactory[K comparable, V any](_ cache_dto.Options[K, V]) (cache_domain.ProviderPort[K, V], error) {
 	return NewMockAdapter[K, V](), nil
 }
 
-// WithMockClock sets a custom clock for time operations.
-// This is primarily used for testing to make time-based logic deterministic.
+// WithMockClock sets a custom clock for time operations. This is primarily used for
+// testing to make time-based logic deterministic.
 //
-// Takes c (clock.Clock) which provides deterministic time for
-// testing.
+// Takes c (clock.Clock) which provides deterministic time for testing.
 //
-// Returns MockAdapterOption[K, V] which configures the clock on
-// the adapter.
+// Returns MockAdapterOption[K, V] which configures the clock on the adapter.
 func WithMockClock[K comparable, V any](c clock.Clock) MockAdapterOption[K, V] {
 	return func(m *MockAdapter[K, V]) {
 		m.clock = c
@@ -971,8 +958,8 @@ func WithMockClock[K comparable, V any](c clock.Clock) MockAdapterOption[K, V] {
 
 // NewMockAdapter creates a new, initialised mock cache adapter.
 //
-// Takes opts (...MockAdapterOption[K, V]) which are optional
-// configuration functions for the adapter.
+// Takes opts (...MockAdapterOption[K, V]) which are optional configuration functions for
+// the adapter.
 //
 // Returns *MockAdapter[K, V] which is the initialised mock adapter.
 func NewMockAdapter[K comparable, V any](opts ...MockAdapterOption[K, V]) *MockAdapter[K, V] {

@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Analyses dependencies between partial components to determine optimal expansion order and detect circular references.
-// Builds a dependency graph and performs topological sorting to ensure partials are expanded in the correct sequence.
+// Analyses dependencies between partial components to determine optimal expansion order
+// and detect circular references. Builds a dependency graph and performs topological
+// sorting to ensure partials are expanded in the correct sequence.
 
 import (
 	"fmt"
@@ -29,9 +30,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// PartialDependencyAnalyser detects circular dependencies in partial reload
-// chains. It analyses client scripts across components to build a dependency
-// graph and detect cycles that would cause infinite reload loops.
+// PartialDependencyAnalyser detects circular dependencies in partial reload chains. It
+// analyses client scripts across components to build a dependency graph and detect cycles
+// that would cause infinite reload loops.
 type PartialDependencyAnalyser struct {
 	// dependencies maps each partial alias to the set of partials it reloads.
 	dependencies map[string]map[string]bool
@@ -52,11 +53,11 @@ type componentInfo struct {
 	location ast_domain.Location
 }
 
-// NewPartialDependencyAnalyser creates an analyser for finding circular
-// dependencies in partial reloads.
+// NewPartialDependencyAnalyser creates an analyser for finding circular dependencies in
+// partial reloads.
 //
-// Returns *PartialDependencyAnalyser which is ready to track and check
-// component dependencies.
+// Returns *PartialDependencyAnalyser which is ready to track and check component
+// dependencies.
 func NewPartialDependencyAnalyser() *PartialDependencyAnalyser {
 	return &PartialDependencyAnalyser{
 		dependencies:     make(map[string]map[string]bool),
@@ -64,8 +65,8 @@ func NewPartialDependencyAnalyser() *PartialDependencyAnalyser {
 	}
 }
 
-// AnalyseVirtualModule builds the dependency graph from all components in the
-// virtual module and returns any circular dependency diagnostics.
+// AnalyseVirtualModule builds the dependency graph from all components in the virtual
+// module and returns any circular dependency diagnostics.
 //
 // Takes virtualModule (*annotator_dto.VirtualModule) which contains all parsed
 // components.
@@ -92,11 +93,10 @@ func (pda *PartialDependencyAnalyser) AnalyseVirtualModule(
 	return pda.cyclesToDiagnostics(cycles, mainComponent)
 }
 
-// buildDependencyGraph finds partial reload dependencies from all client
-// scripts.
+// buildDependencyGraph finds partial reload dependencies from all client scripts.
 //
-// Takes virtualModule (*annotator_dto.VirtualModule) which holds the
-// components to check for reload dependencies.
+// Takes virtualModule (*annotator_dto.VirtualModule) which holds the components to check
+// for reload dependencies.
 func (pda *PartialDependencyAnalyser) buildDependencyGraph(virtualModule *annotator_dto.VirtualModule) {
 	for _, comp := range virtualModule.ComponentsByHash {
 		pda.processComponent(comp)
@@ -105,8 +105,7 @@ func (pda *PartialDependencyAnalyser) buildDependencyGraph(virtualModule *annota
 
 // processComponent extracts dependencies from a single component.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which is the component to
-// process.
+// Takes comp (*annotator_dto.VirtualComponent) which is the component to process.
 func (pda *PartialDependencyAnalyser) processComponent(
 	comp *annotator_dto.VirtualComponent,
 ) {
@@ -133,8 +132,8 @@ func (pda *PartialDependencyAnalyser) processComponent(
 
 // registerImportAliases records all import aliases from a component.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which provides the source
-// component with import statements to record.
+// Takes comp (*annotator_dto.VirtualComponent) which provides the source component with
+// import statements to record.
 func (pda *PartialDependencyAnalyser) registerImportAliases(comp *annotator_dto.VirtualComponent) {
 	for _, imp := range comp.Source.PikoImports {
 		if imp.Alias == "" || imp.Alias == "_" {
@@ -150,8 +149,8 @@ func (pda *PartialDependencyAnalyser) registerImportAliases(comp *annotator_dto.
 
 // getSourceName returns the display name for a component.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which is the component to get
-// the name for.
+// Takes comp (*annotator_dto.VirtualComponent) which is the component to get the name
+// for.
 //
 // Returns string which is the partial name if set, otherwise the hashed name.
 func (*PartialDependencyAnalyser) getSourceName(comp *annotator_dto.VirtualComponent) string {
@@ -163,11 +162,11 @@ func (*PartialDependencyAnalyser) getSourceName(comp *annotator_dto.VirtualCompo
 
 // collectImportAliases builds a set of valid import aliases.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which provides the source
-// component containing piko imports to scan.
+// Takes comp (*annotator_dto.VirtualComponent) which provides the source component
+// containing piko imports to scan.
 //
-// Returns map[string]bool which contains the non-blank, non-underscore import
-// aliases as keys.
+// Returns map[string]bool which contains the non-blank, non-underscore import aliases as
+// keys.
 func (*PartialDependencyAnalyser) collectImportAliases(comp *annotator_dto.VirtualComponent) map[string]bool {
 	importAliases := make(map[string]bool)
 	for _, imp := range comp.Source.PikoImports {
@@ -180,8 +179,7 @@ func (*PartialDependencyAnalyser) collectImportAliases(comp *annotator_dto.Virtu
 
 // recordDependencies stores which partials a component reloads.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which provides the component
-// to check.
+// Takes comp (*annotator_dto.VirtualComponent) which provides the component to check.
 // Takes sourceName (string) which identifies the source partial.
 // Takes importAliases (map[string]bool) which holds valid import aliases.
 func (pda *PartialDependencyAnalyser) recordDependencies(
@@ -202,11 +200,10 @@ func (pda *PartialDependencyAnalyser) recordDependencies(
 	}
 }
 
-// detectCycles finds all cycles in the dependency graph using depth-first
-// search.
+// detectCycles finds all cycles in the dependency graph using depth-first search.
 //
-// Returns [][]string which contains all cycles found, where each cycle is a
-// list of partial names.
+// Returns [][]string which contains all cycles found, where each cycle is a list of
+// partial names.
 func (pda *PartialDependencyAnalyser) detectCycles() [][]string {
 	var cycles [][]string
 	visited := make(map[string]bool)
@@ -246,11 +243,11 @@ func (pda *PartialDependencyAnalyser) detectCycles() [][]string {
 // cyclesToDiagnostics turns detected cycles into diagnostic messages.
 //
 // Takes cycles ([][]string) which contains the detected dependency cycles.
-// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the
-// backup source path for diagnostics.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the backup source
+// path for diagnostics.
 //
-// Returns []*ast_domain.Diagnostic which contains error diagnostics for each
-// unique cycle, or nil if no cycles exist.
+// Returns []*ast_domain.Diagnostic which contains error diagnostics for each unique
+// cycle, or nil if no cycles exist.
 func (pda *PartialDependencyAnalyser) cyclesToDiagnostics(
 	cycles [][]string,
 	mainComponent *annotator_dto.VirtualComponent,
@@ -304,8 +301,8 @@ func (pda *PartialDependencyAnalyser) cyclesToDiagnostics(
 	return diagnostics
 }
 
-// extractReloadedPartials finds all partial aliases used in reloadPartial and
-// reloadGroup calls within a client script.
+// extractReloadedPartials finds all partial aliases used in reloadPartial and reloadGroup
+// calls within a client script.
 //
 // Takes script (string) which contains the client script to parse.
 //
@@ -320,8 +317,8 @@ func extractReloadedPartials(script string) map[string]bool {
 	return result
 }
 
-// extractPartialCallsToMap finds calls to a named function that take a string
-// argument and adds those string values to the result map.
+// extractPartialCallsToMap finds calls to a named function that take a string argument
+// and adds those string values to the result map.
 //
 // Takes script (string) which contains the source code to search.
 // Takes functionName (string) which specifies the function name to look for.
@@ -355,8 +352,8 @@ func extractPartialCallsToMap(script, functionName string, result map[string]boo
 	}
 }
 
-// extractReloadGroupCallsToMap finds reloadGroup calls in a script and adds
-// the aliases to the result map.
+// extractReloadGroupCallsToMap finds reloadGroup calls in a script and adds the aliases
+// to the result map.
 //
 // Takes script (string) which contains the source code to search.
 // Takes result (map[string]bool) which stores the found aliases.
@@ -368,8 +365,8 @@ func extractReloadGroupCallsToMap(script string, result map[string]bool) {
 	}
 }
 
-// extractReloadGroupForPattern finds all matches of a pattern in the script
-// and extracts aliases from the bracketed content that follows each match.
+// extractReloadGroupForPattern finds all matches of a pattern in the script and extracts
+// aliases from the bracketed content that follows each match.
 //
 // Takes script (string) which contains the source text to search.
 // Takes pattern (string) which specifies the text to find.
@@ -398,8 +395,8 @@ func extractReloadGroupForPattern(script, pattern string, result map[string]bool
 // Takes script (string) which contains the text to search.
 // Takes startIndex (int) which is the position after the opening bracket.
 //
-// Returns int which is the position after the closing bracket, or startIndex if
-// no matching bracket is found.
+// Returns int which is the position after the closing bracket, or startIndex if no
+// matching bracket is found.
 func findMatchingBracket(script string, startIndex int) int {
 	bracketDepth := 1
 	endIndex := startIndex
@@ -420,11 +417,11 @@ func findMatchingBracket(script string, startIndex int) int {
 	return endIndex
 }
 
-// extractAliasesFromArrayToMap parses a comma-separated string and adds valid
-// aliases to a map.
+// extractAliasesFromArrayToMap parses a comma-separated string and adds valid aliases to
+// a map.
 //
-// Takes content (string) which holds comma-separated values wrapped in single
-// or double quotes.
+// Takes content (string) which holds comma-separated values wrapped in single or double
+// quotes.
 // Takes result (map[string]bool) which stores the valid aliases found.
 func extractAliasesFromArrayToMap(content string, result map[string]bool) {
 	for part := range strings.SplitSeq(content, ",") {
@@ -452,8 +449,8 @@ func extractAliasesFromArrayToMap(content string, result map[string]bool) {
 // Takes path ([]string) which is the list of nodes visited so far.
 // Takes target (string) which is the node where the cycle starts.
 //
-// Returns []string which holds the cycle from target back to itself, or nil
-// if the target is not in the path.
+// Returns []string which holds the cycle from target back to itself, or nil if the target
+// is not in the path.
 func extractCycle(path []string, target string) []string {
 	for i, node := range path {
 		if node == target {
@@ -466,9 +463,9 @@ func extractCycle(path []string, target string) []string {
 	return nil
 }
 
-// normaliseCycle rotates a cycle so it starts with the smallest element in
-// alphabetical order. This helps find duplicate cycles that are the same but
-// were found from different starting points.
+// normaliseCycle rotates a cycle so it starts with the smallest element in alphabetical
+// order. This helps find duplicate cycles that are the same but were found from different
+// starting points.
 //
 // Takes cycle ([]string) which is the cycle to put in standard form.
 //

@@ -16,16 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pikotest_domain supplies testing utilities for validating Piko
-// components and server actions without requiring a running server.
+// Package pikotest_domain supplies testing utilities for validating Piko components and
+// server actions without requiring a running server.
 //
-// It enables fast, isolated unit tests through AST-based assertions and
-// fluent request building.
+// It enables fast, isolated unit tests through AST-based assertions and fluent request
+// building.
 //
 // # Usage
 //
-// Test a component by creating a ComponentTester with its BuildAST
-// function:
+// Test a component by creating a ComponentTester with its BuildAST function:
 //
 //	func TestCustomersPage(t *testing.T) {
 //	    tester := pikotest_domain.NewComponentTester(t, customers.BuildAST)
@@ -42,6 +41,6 @@
 //
 // # Thread safety
 //
-// Testers are not safe for concurrent use. Create a new tester for
-// each test function or subtest.
+// Testers are not safe for concurrent use. Create a new tester for each test function or
+// subtest.
 package pikotest_domain

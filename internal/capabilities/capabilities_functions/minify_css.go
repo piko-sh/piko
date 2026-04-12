@@ -39,12 +39,11 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// MinifyCSS returns a capability function that minifies CSS content using
-// esbuild with support for CSS nesting lowering for broader browser
-// compatibility.
+// MinifyCSS returns a capability function that minifies CSS content using esbuild with
+// support for CSS nesting lowering for broader browser compatibility.
 //
-// Returns capabilities_domain.CapabilityFunc which processes CSS input and
-// returns minified output.
+// Returns capabilities_domain.CapabilityFunc which processes CSS input and returns
+// minified output.
 func MinifyCSS() capabilities_domain.CapabilityFunc {
 	return func(ctx context.Context, inputData io.Reader, _ capabilities_domain.CapabilityParams) (io.Reader, error) {
 		ctx, span, l := log.Span(ctx, "MinifyCSS",
@@ -100,8 +99,7 @@ func executeCSSMinification(ctx context.Context, inputData io.Reader) ([]byte, t
 	return minifiedBytes, duration, err
 }
 
-// parseAndMinifyCSS parses and minifies CSS using esbuild with nesting
-// lowering.
+// parseAndMinifyCSS parses and minifies CSS using esbuild with nesting lowering.
 //
 // Takes inputBytes ([]byte) which contains the raw CSS to parse and minify.
 //
@@ -164,8 +162,8 @@ func printMinifiedCSS(tree css_ast.AST) []byte {
 	return printed.CSS
 }
 
-// recordCSSMinificationSuccess records metrics and span attributes for a
-// successful CSS minification.
+// recordCSSMinificationSuccess records metrics and span attributes for a successful CSS
+// minification.
 //
 // Takes span (trace.Span) which receives duration and status attributes.
 // Takes minifiedBytes ([]byte) which provides the output size for metrics.

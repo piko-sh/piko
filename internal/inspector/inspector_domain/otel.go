@@ -37,8 +37,7 @@ var (
 	// BuilderBuildDuration records the time taken to build documentation.
 	BuilderBuildDuration metric.Float64Histogram
 
-	// BuilderBuildErrorCount tracks the number of errors that happen during
-	// builder builds.
+	// BuilderBuildErrorCount tracks the number of errors that happen during builder builds.
 	BuilderBuildErrorCount metric.Int64Counter
 
 	// BuilderPackageLoadCount tracks how many packages the builder has loaded.
@@ -47,8 +46,8 @@ var (
 	// BuilderPackageLoadDuration records how long it takes to load Go packages.
 	BuilderPackageLoadDuration metric.Float64Histogram
 
-	// BuilderPackageLoadErrorCount is a metric that tracks the number of package
-	// load errors encountered during building.
+	// BuilderPackageLoadErrorCount is a metric that tracks the number of package load errors
+	// encountered during building.
 	BuilderPackageLoadErrorCount metric.Int64Counter
 
 	// BuilderCacheKeyGenCount counts the number of cache keys generated.
@@ -57,8 +56,8 @@ var (
 	// BuilderCacheKeyGenDuration records the time taken to generate cache keys.
 	BuilderCacheKeyGenDuration metric.Float64Histogram
 
-	// BuilderCacheKeyGenErrorCount tracks the number of cache key generation
-	// failures in the builder.
+	// BuilderCacheKeyGenErrorCount tracks the number of cache key generation failures in the
+	// builder.
 	BuilderCacheKeyGenErrorCount metric.Int64Counter
 
 	// BuilderSourceParseCount tracks the number of source file parse operations.
@@ -67,8 +66,8 @@ var (
 	// BuilderSourceParseDuration records the time taken to parse source files.
 	BuilderSourceParseDuration metric.Float64Histogram
 
-	// BuilderSourceParseErrorCount tracks the number of source file parsing errors
-	// found by the documentation builder.
+	// BuilderSourceParseErrorCount tracks the number of source file parsing errors found by
+	// the documentation builder.
 	BuilderSourceParseErrorCount metric.Int64Counter
 
 	// BuilderCacheGetCount tracks the number of cache retrieval operations.

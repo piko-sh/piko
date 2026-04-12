@@ -40,8 +40,8 @@ var (
 	_ ItemRenderer[Resource] = (*storageRenderer)(nil)
 )
 
-// StoragePanel displays storage items and their variants.
-// It implements the Panel interface.
+// StoragePanel displays storage items and their variants. It implements the Panel
+// interface.
 type StoragePanel struct {
 	*AssetViewer[Resource]
 
@@ -89,8 +89,7 @@ func NewStoragePanel() *StoragePanel {
 
 // SetArtefacts updates the artefact list.
 //
-// Takes artefacts ([]Resource) which specifies the new list of artefacts to
-// display.
+// Takes artefacts ([]Resource) which specifies the new list of artefacts to display.
 func (p *StoragePanel) SetArtefacts(artefacts []Resource) {
 	p.artefacts = artefacts
 	p.applyStatusFilter()
@@ -217,8 +216,8 @@ func (p *StoragePanel) renderStorageEmptyState(content *strings.Builder) {
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 // Takes displayItems ([]int) which specifies which item indices to show.
-// Takes headerLines (int) which is the number of header lines to subtract
-// from the content height.
+// Takes headerLines (int) which is the number of header lines to subtract from the
+// content height.
 func (p *StoragePanel) renderStorageItems(content *strings.Builder, displayItems []int, headerLines int) {
 	RenderExpandableItems(RenderExpandableItemsConfig[Resource]{
 		Ctx:          NewScrollContext(content, p.ScrollOffset(), p.ContentHeight()-headerLines),
@@ -286,8 +285,7 @@ func (p *StoragePanel) renderArtefactMetadata(ctx *ScrollContext, artefact Resou
 
 // RenderRow renders an artefact row.
 //
-// Takes artefact (Resource) which provides the artefact data to
-// render.
+// Takes artefact (Resource) which provides the artefact data to render.
 // Takes _ (int) which is the unused line index.
 // Takes selected (bool) which indicates if this row is selected.
 // Takes _ (bool) which is the unused focused state.

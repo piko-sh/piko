@@ -61,7 +61,9 @@ type testEnv struct {
 	client *gcsstorage.Client
 }
 
-var globalEnv *testEnv
+var (
+	globalEnv *testEnv
+)
 
 func setupTestEnvironment() (*testEnv, error) {
 	server, err := fakestorage.NewServerWithOptions(fakestorage.Options{

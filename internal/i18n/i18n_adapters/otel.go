@@ -18,7 +18,9 @@
 
 package i18n_adapters
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
 var (
 	// log is the package-level logger for i18n adapter operations.

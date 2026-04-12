@@ -28,62 +28,61 @@ const (
 	// Language is the language code for this encoder.
 	Language = "german"
 
-	// DefaultMaxLength is the default maximum length for German phonetic codes.
-	// Cologne phonetic encoding has no built-in length limit, but this value caps
-	// the output for practical use.
+	// DefaultMaxLength is the default maximum length for German phonetic codes. Cologne
+	// phonetic encoding has no built-in length limit, but this value caps the output for
+	// practical use.
 	DefaultMaxLength = 10
 )
 
-// charHandler processes a character at the given position and returns the digit
-// code.
+// charHandler processes a character at the given position and returns the digit code.
 // Returns CologneSkip (0) if the character should be skipped.
 type charHandler func(word string, position int) byte
 
-// charHandlers is an array dispatch table for character processing.
-// Index is calculated as character - 'A' for uppercase letters
-// (A=0, B=1, ..., Z=25).
-var charHandlers = [latinAlphabetSize]charHandler{
-	0:  handleA,
-	1:  handleB,
-	2:  handleC,
-	3:  handleD,
-	4:  handleE,
-	5:  handleF,
-	6:  handleG,
-	7:  handleH,
-	8:  handleI,
-	9:  handleJ,
-	10: handleK,
-	11: handleL,
-	12: handleM,
-	13: handleN,
-	14: handleO,
-	15: handleP,
-	16: handleQ,
-	17: handleR,
-	18: handleS,
-	19: handleT,
-	20: handleU,
-	21: handleV,
-	22: handleW,
-	23: nil,
-	24: handleY,
-	25: handleZ,
-}
+var (
+	// charHandlers is an array dispatch table for character processing. Index is calculated
+	// as character - 'A' for uppercase letters (A=0, B=1, ..., Z=25).
+	charHandlers = [latinAlphabetSize]charHandler{
+		0:  handleA,
+		1:  handleB,
+		2:  handleC,
+		3:  handleD,
+		4:  handleE,
+		5:  handleF,
+		6:  handleG,
+		7:  handleH,
+		8:  handleI,
+		9:  handleJ,
+		10: handleK,
+		11: handleL,
+		12: handleM,
+		13: handleN,
+		14: handleO,
+		15: handleP,
+		16: handleQ,
+		17: handleR,
+		18: handleS,
+		19: handleT,
+		20: handleU,
+		21: handleV,
+		22: handleW,
+		23: nil,
+		24: handleY,
+		25: handleZ,
+	}
+)
 
-// Encoder provides phonetic encoding using the Cologne Phonetic (Koelner
-// Phonetik) algorithm. It implements the linguistics_domain.PhoneticEncoderPort
-// interface.
+// Encoder provides phonetic encoding using the Cologne Phonetic (Koelner Phonetik)
+// algorithm. It implements the linguistics_domain.PhoneticEncoderPort interface.
 //
-// The Cologne phonetics algorithm was published in 1969 by Hans Joachim Postel
-// and is optimised for matching German names and words.
+// The Cologne phonetics algorithm was published in 1969 by Hans Joachim Postel and is
+// optimised for matching German names and words.
 type Encoder struct {
 	// maxLength is the maximum length in runes of the output code.
 	maxLength int
 }
 
-// NewWithMaxLength creates a new German phonetic encoder with a custom maximum
-// code length.
+// NewWithMaxLength creates a new German phonetic encoder with a custom maximum code
+// length.
 //
 // Takes maxLength (int) which controls the maximum length of phonetic codes.
 //
@@ -100,8 +99,8 @@ func NewWithMaxLength(maxLength int) (*Encoder, error) {
 
 // Encode returns the Cologne phonetic code for a German word.
 //
-// Takes word (string) which is the word to encode phonetically. The word should
-// be normalised (umlauts expanded: ae, oe, ue) for best results.
+// Takes word (string) which is the word to encode phonetically. The word should be
+// normalised (umlauts expanded: ae, oe, ue) for best results.
 //
 // Returns string which is the phonetic code consisting of digits 0-8.
 func (e *Encoder) Encode(word string) string {
@@ -124,7 +123,9 @@ func (*Encoder) GetLanguage() string {
 	return Language
 }
 
-var _ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+var (
+	_ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+)
 
 // Factory creates a new German phonetic encoder instance. Use this with
 // linguistics_domain.RegisterPhoneticEncoderFactory for explicit registration.
@@ -156,8 +157,7 @@ func encodeCharacters(word string) []byte {
 	return code
 }
 
-// appendCharDigits appends the digit(s) for the character at the given
-// position.
+// appendCharDigits appends the digit(s) for the character at the given position.
 //
 // Takes code ([]byte) which holds the accumulated Cologne phonetic digits.
 // Takes word (string) which contains the word being encoded.
@@ -262,8 +262,7 @@ func handleP(word string, position int) byte {
 // Takes word (string) which is the word being encoded.
 // Takes position (int) which is the position of the D in the word.
 //
-// Returns byte which is CologneSZ if D precedes C, S, or Z, otherwise
-// CologneDT.
+// Returns byte which is CologneSZ if D precedes C, S, or Z, otherwise CologneDT.
 func handleD(word string, position int) byte {
 	if isFollowingChar(word, position, "CSZ") {
 		return CologneSZ
@@ -276,8 +275,7 @@ func handleD(word string, position int) byte {
 // Takes word (string) which is the word being processed.
 // Takes position (int) which is the position of T in the word.
 //
-// Returns byte which is CologneSZ if T precedes C, S, or Z, otherwise
-// CologneDT.
+// Returns byte which is CologneSZ if T precedes C, S, or Z, otherwise CologneDT.
 func handleT(word string, position int) byte {
 	if isFollowingChar(word, position, "CSZ") {
 		return CologneSZ

@@ -30,14 +30,16 @@ type VoyageProvider struct {
 	*voyageProvider
 }
 
-var _ llm.EmbeddingProviderPort = (*VoyageProvider)(nil)
+var (
+	_ llm.EmbeddingProviderPort = (*VoyageProvider)(nil)
+)
 
 // NewVoyageProvider creates a new Voyage AI embedding provider with the given
 // configuration.
 //
-// The returned provider implements llm.EmbeddingProviderPort only - it does
-// not provide chat completions. Register it alongside a separate LLM provider
-// using [piko.WithEmbeddingProvider]:
+// The returned provider implements llm.EmbeddingProviderPort only - it does not provide
+// chat completions. Register it alongside a separate LLM provider using
+// piko.WithEmbeddingProvider:
 //
 //	provider, err := llm_provider_voyage.NewVoyageProvider(
 //	    llm_provider_voyage.Config{

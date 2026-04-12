@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package interp_schema provides versioned serialisation for the
-// interpreter hexagon's compiled bytecode FlatBuffer representation.
+// Package interp_schema provides versioned serialisation for the interpreter hexagon's
+// compiled bytecode FlatBuffer representation.
 //
-// It embeds the bytecode.fbs schema file and computes a SHA-256 hash
-// at init time. This hash is prepended to every serialised bytecode
-// payload so that the cache is automatically invalidated whenever the
-// schema evolves. The sub-package interp_schema_gen contains the
-// generated FlatBuffer types that define the binary format for
-// compiled bytecode.
+// It embeds the bytecode.fbs schema file and computes a SHA-256 hash at init time. This
+// hash is prepended to every serialised bytecode payload so that the cache is
+// automatically invalidated whenever the schema evolves. The sub-package
+// interp_schema_gen contains the generated FlatBuffer types that define the binary format
+// for compiled bytecode.
 package interp_schema

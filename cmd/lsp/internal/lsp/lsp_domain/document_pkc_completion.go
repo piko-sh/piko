@@ -22,9 +22,8 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// getPKCCompletions returns completion suggestions for PKC files at the given
-// position. It dispatches to specific completion handlers based on the
-// detected trigger context.
+// getPKCCompletions returns completion suggestions for PKC files at the given position.
+// It dispatches to specific completion handlers based on the detected trigger context.
 //
 // Takes position (protocol.Position) which is the cursor position.
 //
@@ -53,8 +52,8 @@ func (d *document) getPKCCompletions(position protocol.Position) (*protocol.Comp
 	}
 }
 
-// getPKCMemberCompletions routes member access completions for PKC files based
-// on the base expression (state, this, refs).
+// getPKCMemberCompletions routes member access completions for PKC files based on the
+// base expression (state, this, refs).
 //
 // Takes base (string) which is the expression before the dot.
 // Takes prefix (string) which filters completions by substring.
@@ -78,8 +77,7 @@ func (d *document) getPKCMemberCompletions(base, prefix string) (*protocol.Compl
 //
 // Takes prefix (string) which filters by substring (case-insensitive).
 //
-// Returns *protocol.CompletionList which contains matching state property
-// completions.
+// Returns *protocol.CompletionList which contains matching state property completions.
 // Returns error which is always nil.
 func (d *document) getPKCStateFieldCompletions(prefix string) (*protocol.CompletionList, error) {
 	meta := d.getPKCMetadata()
@@ -103,8 +101,8 @@ func (d *document) getPKCStateFieldCompletions(prefix string) (*protocol.Complet
 	return &protocol.CompletionList{IsIncomplete: false, Items: items}, nil
 }
 
-// getPKCEventHandlerCompletions returns function completions for p-on:*=""
-// event handler attributes, including event placeholder variables.
+// getPKCEventHandlerCompletions returns function completions for p-on:*="" event handler
+// attributes, including event placeholder variables.
 //
 // Takes prefix (string) which filters by substring.
 //
@@ -139,8 +137,7 @@ func (d *document) getPKCEventHandlerCompletions(prefix string) (*protocol.Compl
 	return &protocol.CompletionList{IsIncomplete: false, Items: items}, nil
 }
 
-// pkcThisCompletionItem holds metadata for a this.* completion entry in PKC
-// scripts.
+// pkcThisCompletionItem holds metadata for a this.* completion entry in PKC scripts.
 type pkcThisCompletionItem struct {
 	// label string // label is the display text shown for this completion item.
 	label string
@@ -152,21 +149,23 @@ type pkcThisCompletionItem struct {
 	documentation string
 }
 
-// pkcThisCompletions defines the available this.* members in a PKC component.
-var pkcThisCompletions = []pkcThisCompletionItem{
-	{label: "onConnected", detail: "Lifecycle hook", documentation: "Called when the element is added to the DOM."},
-	{label: "onDisconnected", detail: "Lifecycle hook", documentation: "Called when the element is removed from the DOM."},
-	{label: "onUpdated", detail: "Lifecycle hook", documentation: "Called when observed attributes change."},
-	{label: "onBeforeRender", detail: "Lifecycle hook", documentation: "Called before the component renders."},
-	{label: "onAfterRender", detail: "Lifecycle hook", documentation: "Called after the component renders."},
-	{label: "onCleanup", detail: "Lifecycle hook", documentation: "Registers a cleanup function that runs when the component disconnects."},
-	{label: "refs", detail: "Element references", documentation: "Access elements with _ref or p-ref attributes."},
-	{label: "getValue", detail: "Form method", documentation: "Return the form value for this component."},
-	{label: "getName", detail: "Form method", documentation: "Return the form field name for this component."},
-	{label: "attachSlotListener", detail: "Slot method", documentation: "Attaches a listener for slot content changes. The callback is invoked immediately with initial content."},
-	{label: "getSlottedElements", detail: "Slot method", documentation: "Returns elements assigned to a named slot."},
-	{label: "hasSlotContent", detail: "Slot method", documentation: "Checks whether a slot has any assigned content."},
-}
+var (
+	// pkcThisCompletions defines the available this.* members in a PKC component.
+	pkcThisCompletions = []pkcThisCompletionItem{
+		{label: "onConnected", detail: "Lifecycle hook", documentation: "Called when the element is added to the DOM."},
+		{label: "onDisconnected", detail: "Lifecycle hook", documentation: "Called when the element is removed from the DOM."},
+		{label: "onUpdated", detail: "Lifecycle hook", documentation: "Called when observed attributes change."},
+		{label: "onBeforeRender", detail: "Lifecycle hook", documentation: "Called before the component renders."},
+		{label: "onAfterRender", detail: "Lifecycle hook", documentation: "Called after the component renders."},
+		{label: "onCleanup", detail: "Lifecycle hook", documentation: "Registers a cleanup function that runs when the component disconnects."},
+		{label: "refs", detail: "Element references", documentation: "Access elements with _ref or p-ref attributes."},
+		{label: "getValue", detail: "Form method", documentation: "Return the form value for this component."},
+		{label: "getName", detail: "Form method", documentation: "Return the form field name for this component."},
+		{label: "attachSlotListener", detail: "Slot method", documentation: "Attaches a listener for slot content changes. The callback is invoked immediately with initial content."},
+		{label: "getSlottedElements", detail: "Slot method", documentation: "Returns elements assigned to a named slot."},
+		{label: "hasSlotContent", detail: "Slot method", documentation: "Checks whether a slot has any assigned content."},
+	}
+)
 
 // getPKCThisCompletions returns completions for this.* in a PKC script block.
 //
@@ -224,8 +223,8 @@ func (d *document) getPKCRefCompletions(prefix string) (*protocol.CompletionList
 	return &protocol.CompletionList{IsIncomplete: false, Items: items}, nil
 }
 
-// getPKCDirectiveValueCompletions returns completions for directive value
-// expressions in PKC files (e.g. inside p-if="", p-text="").
+// getPKCDirectiveValueCompletions returns completions for directive value expressions in
+// PKC files (e.g. inside p-if="", p-text="").
 //
 // Takes prefix (string) which filters completions by matching substrings.
 //

@@ -49,15 +49,13 @@ func funcSig(name string, returnType querier_dto.SQLType, args ...querier_dto.Fu
 	}
 }
 
-var intType = sqlType("integer", querier_dto.TypeCategoryInteger)
-
-var textType = sqlType("text", querier_dto.TypeCategoryText)
-
-var floatType = sqlType("float8", querier_dto.TypeCategoryFloat)
-
-var boolType = sqlType("boolean", querier_dto.TypeCategoryBoolean)
-
-var unknownType = sqlType("", querier_dto.TypeCategoryUnknown)
+var (
+	intType = sqlType("integer", querier_dto.TypeCategoryInteger)
+	textType = sqlType("text", querier_dto.TypeCategoryText)
+	floatType = sqlType("float8", querier_dto.TypeCategoryFloat)
+	boolType = sqlType("boolean", querier_dto.TypeCategoryBoolean)
+	unknownType = sqlType("", querier_dto.TypeCategoryUnknown)
+)
 
 func TestNewFunctionResolver(t *testing.T) {
 	t.Parallel()

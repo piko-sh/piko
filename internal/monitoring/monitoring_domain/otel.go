@@ -45,50 +45,49 @@ var (
 	// watchdogMeter is the OpenTelemetry meter for watchdog diagnostic metrics.
 	watchdogMeter = otel.Meter("piko/internal/monitoring/monitoring_domain/watchdog")
 
-	// watchdogHeapCaptureCount tracks the total number of heap profile captures
-	// triggered by the watchdog when heap usage exceeds the configured threshold.
+	// watchdogHeapCaptureCount tracks the total number of heap profile captures triggered by
+	// the watchdog when heap usage exceeds the configured threshold.
 	watchdogHeapCaptureCount metric.Int64Counter
 
-	// watchdogGoroutineCaptureCount tracks the total number of goroutine profile
-	// captures triggered when the goroutine count exceeds the configured threshold.
+	// watchdogGoroutineCaptureCount tracks the total number of goroutine profile captures
+	// triggered when the goroutine count exceeds the configured threshold.
 	watchdogGoroutineCaptureCount metric.Int64Counter
 
-	// watchdogCaptureErrorCount tracks the total number of profile capture
-	// failures encountered by the watchdog.
+	// watchdogCaptureErrorCount tracks the total number of profile capture failures
+	// encountered by the watchdog.
 	watchdogCaptureErrorCount metric.Int64Counter
 
-	// watchdogGCPressureWarningCount tracks the total number of GC pressure
-	// warnings emitted when GCCPUFraction exceeds the configured threshold.
+	// watchdogGCPressureWarningCount tracks the total number of GC pressure warnings emitted
+	// when GCCPUFraction exceeds the configured threshold.
 	watchdogGCPressureWarningCount metric.Int64Counter
 
-	// watchdogCooldownSkipCount tracks the total number of capture attempts
-	// that were skipped because the cooldown period had not yet elapsed.
+	// watchdogCooldownSkipCount tracks the total number of capture attempts that were
+	// skipped because the cooldown period had not yet elapsed.
 	watchdogCooldownSkipCount metric.Int64Counter
 
-	// watchdogHeapHighWaterResetCount tracks the total number of times the heap
-	// high-water mark was reset back to the initial threshold after sustained
-	// low memory usage.
+	// watchdogHeapHighWaterResetCount tracks the total number of times the heap high-water
+	// mark was reset back to the initial threshold after sustained low memory usage.
 	watchdogHeapHighWaterResetCount metric.Int64Counter
 
-	// watchdogHeapHighWaterBytes records the current heap high-water mark in
-	// bytes, representing the threshold that must be exceeded before a new
-	// heap profile capture is triggered.
+	// watchdogHeapHighWaterBytes records the current heap high-water mark in bytes,
+	// representing the threshold that must be exceeded before a new heap profile capture is
+	// triggered.
 	watchdogHeapHighWaterBytes metric.Int64Gauge
 
-	// watchdogGoroutineLeakDetectionCount tracks the total number of goroutine
-	// leak detections via the Go 1.26 goroutine leak profile.
+	// watchdogGoroutineLeakDetectionCount tracks the total number of goroutine leak
+	// detections via the Go 1.26 goroutine leak profile.
 	watchdogGoroutineLeakDetectionCount metric.Int64Counter
 
-	// watchdogPreDeathSnapshotCount tracks the total number of pre-death
-	// diagnostic snapshots captured during shutdown.
+	// watchdogPreDeathSnapshotCount tracks the total number of pre-death diagnostic
+	// snapshots captured during shutdown.
 	watchdogPreDeathSnapshotCount metric.Int64Counter
 
-	// watchdogHeapTrendWarningCount tracks the total number of heap trend
-	// warnings emitted when projected growth breaches the warning horizon.
+	// watchdogHeapTrendWarningCount tracks the total number of heap trend warnings emitted
+	// when projected growth breaches the warning horizon.
 	watchdogHeapTrendWarningCount metric.Int64Counter
 
-	// watchdogHeapGrowthRateBytesPerSecond records the current heap growth
-	// rate in bytes per second from the linear regression.
+	// watchdogHeapGrowthRateBytesPerSecond records the current heap growth rate in bytes per
+	// second from the linear regression.
 	watchdogHeapGrowthRateBytesPerSecond metric.Int64Gauge
 
 	// watchdogRSSBytes records the current process RSS in bytes.
@@ -97,122 +96,115 @@ var (
 	// watchdogCgroupMemoryLimitBytes records the cgroup memory limit in bytes.
 	watchdogCgroupMemoryLimitBytes metric.Int64Gauge
 
-	// watchdogRSSCaptureCount tracks the total number of profile captures
-	// triggered by RSS approaching the cgroup memory limit.
+	// watchdogRSSCaptureCount tracks the total number of profile captures triggered by RSS
+	// approaching the cgroup memory limit.
 	watchdogRSSCaptureCount metric.Int64Counter
 
-	// watchdogNotificationSentCount tracks the total number of watchdog event
-	// notifications successfully delivered to external systems.
+	// watchdogNotificationSentCount tracks the total number of watchdog event notifications
+	// successfully delivered to external systems.
 	watchdogNotificationSentCount metric.Int64Counter
 
-	// watchdogNotificationErrorCount tracks the total number of watchdog
-	// notification delivery failures.
+	// watchdogNotificationErrorCount tracks the total number of watchdog notification
+	// delivery failures.
 	watchdogNotificationErrorCount metric.Int64Counter
 
-	// watchdogProfileUploadCount tracks the total number of profiles
-	// successfully uploaded to remote storage.
+	// watchdogProfileUploadCount tracks the total number of profiles successfully uploaded
+	// to remote storage.
 	watchdogProfileUploadCount metric.Int64Counter
 
-	// watchdogProfileUploadErrorCount tracks the total number of profile
-	// upload failures.
+	// watchdogProfileUploadErrorCount tracks the total number of profile upload failures.
 	watchdogProfileUploadErrorCount metric.Int64Counter
 
-	// watchdogLoopIterationsCount tracks the total number of evaluation loop
-	// iterations completed by the watchdog. Used as a self-heartbeat signal:
-	// absence of recent increments indicates the loop has stopped.
+	// watchdogLoopIterationsCount tracks the total number of evaluation loop iterations
+	// completed by the watchdog. Used as a self-heartbeat signal: absence of recent
+	// increments indicates the loop has stopped.
 	watchdogLoopIterationsCount metric.Int64Counter
 
-	// watchdogLoopLastTickEpochSeconds records the unix-seconds timestamp of
-	// the most recent evaluation tick. External monitoring can alert on
-	// staleness (now - last_tick > 2 * CheckInterval).
+	// watchdogLoopLastTickEpochSeconds records the unix-seconds timestamp of the most recent
+	// evaluation tick. External monitoring can alert on staleness (now - last_tick > 2 *
+	// CheckInterval).
 	watchdogLoopLastTickEpochSeconds metric.Int64Gauge
 
-	// watchdogLoopPanicCount tracks the total number of unrecovered panics
-	// in the watchdog evaluation loop. Increments at most once per process
-	// because the loop does not auto-restart -- combined with a stale
-	// heartbeat this signals "watchdog has stopped working".
+	// watchdogLoopPanicCount tracks the total number of unrecovered panics in the watchdog
+	// evaluation loop. Increments at most once per process because the loop does not
+	// auto-restart -- combined with a stale heartbeat this signals "watchdog has stopped
+	// working".
 	watchdogLoopPanicCount metric.Int64Counter
 
-	// watchdogFDPressureWarningCount tracks the total number of FD-pressure
-	// warnings emitted when the open FD count approaches the soft
-	// RLIMIT_NOFILE.
+	// watchdogFDPressureWarningCount tracks the total number of FD-pressure warnings emitted
+	// when the open FD count approaches the soft RLIMIT_NOFILE.
 	watchdogFDPressureWarningCount metric.Int64Counter
 
-	// watchdogFDCount records the current open FD count, sampled each tick
-	// when the soft limit is known.
+	// watchdogFDCount records the current open FD count, sampled each tick when the soft
+	// limit is known.
 	watchdogFDCount metric.Int64Gauge
 
-	// watchdogFDLimitSoft records the process soft FD limit; recorded once
-	// at Start because the rlimit is stable for the process.
+	// watchdogFDLimitSoft records the process soft FD limit; recorded once at Start because
+	// the rlimit is stable for the process.
 	watchdogFDLimitSoft metric.Int64Gauge
 
-	// watchdogSchedulerLatencyEventCount tracks the total number of
-	// scheduler-latency warnings emitted.
+	// watchdogSchedulerLatencyEventCount tracks the total number of scheduler-latency
+	// warnings emitted.
 	watchdogSchedulerLatencyEventCount metric.Int64Counter
 
-	// watchdogSchedulerLatencyP99Nanos records the latest scheduler latency
-	// p99 in nanoseconds, sampled each tick from runtime/metrics.
+	// watchdogSchedulerLatencyP99Nanos records the latest scheduler latency p99 in
+	// nanoseconds, sampled each tick from runtime/metrics.
 	watchdogSchedulerLatencyP99Nanos metric.Int64Gauge
 
-	// watchdogStartupHistoryReadErrorCount tracks the total number of
-	// startup-history read failures during Start. Read errors are
-	// best-effort; they do not block startup.
+	// watchdogStartupHistoryReadErrorCount tracks the total number of startup-history read
+	// failures during Start. Read errors are best-effort; they do not block startup.
 	watchdogStartupHistoryReadErrorCount metric.Int64Counter
 
-	// watchdogStartupHistoryWriteErrorCount tracks the total number of
-	// startup-history write failures during Start or Stop.
+	// watchdogStartupHistoryWriteErrorCount tracks the total number of startup-history write
+	// failures during Start or Stop.
 	watchdogStartupHistoryWriteErrorCount metric.Int64Counter
 
-	// watchdogCrashLoopDetectionCount tracks the total number of crash-loop
-	// detections at startup.
+	// watchdogCrashLoopDetectionCount tracks the total number of crash-loop detections at
+	// startup.
 	watchdogCrashLoopDetectionCount metric.Int64Counter
 
-	// watchdogUncleanShutdownCount tracks the total number of previous
-	// process runs classified as unclean exits.
+	// watchdogUncleanShutdownCount tracks the total number of previous process runs
+	// classified as unclean exits.
 	watchdogUncleanShutdownCount metric.Int64Counter
 
-	// watchdogRoutineProfileCaptureCount tracks the total number of
-	// continuous-profiling routine captures completed.
+	// watchdogRoutineProfileCaptureCount tracks the total number of continuous-profiling
+	// routine captures completed.
 	watchdogRoutineProfileCaptureCount metric.Int64Counter
 
-	// watchdogContentionDiagnosticCount tracks the total number of
-	// completed contention diagnostics.
+	// watchdogContentionDiagnosticCount tracks the total number of completed contention
+	// diagnostics.
 	watchdogContentionDiagnosticCount metric.Int64Counter
 
-	// watchdogContentionDiagnosticErrorCount tracks the total number of
-	// contention diagnostics that failed to start (cooldown,
-	// already-running, stopped, missing controller) or errored mid-run.
+	// watchdogContentionDiagnosticErrorCount tracks the total number of contention
+	// diagnostics that failed to start (cooldown, already-running, stopped, missing
+	// controller) or errored mid-run.
 	watchdogContentionDiagnosticErrorCount metric.Int64Counter
 
-	// watchdogEventEmittedCount tracks every WatchdogEvent the watchdog
-	// emits, attributed by event_type so dashboards can break the rate
-	// down per rule fired.
+	// watchdogEventEmittedCount tracks every WatchdogEvent the watchdog emits, attributed by
+	// event_type so dashboards can break the rate down per rule fired.
 	watchdogEventEmittedCount metric.Int64Counter
 
-	// watchdogEventSubscriberCount is the live count of streaming event
-	// subscribers attached to the watchdog so operators can alert on drift
-	// such as orphaned dashboards keeping channels open.
+	// watchdogEventSubscriberCount is the live count of streaming event subscribers attached
+	// to the watchdog so operators can alert on drift such as orphaned dashboards keeping
+	// channels open.
 	watchdogEventSubscriberCount metric.Int64UpDownCounter
 
-	// watchdogEventSubscriberDropCount tracks how many events were
-	// silently dropped because a subscriber's bounded channel was full.
-	// Sustained drops imply a slow or hung consumer.
+	// watchdogEventSubscriberDropCount tracks how many events were silently dropped because
+	// a subscriber's bounded channel was full. Sustained drops imply a slow or hung
+	// consumer.
 	watchdogEventSubscriberDropCount metric.Int64Counter
 
-	// watchdogSidecarDownloadCount tracks every successful sidecar fetch
-	// served by the inspector RPC. Useful for distinguishing operator
-	// activity from automated polling.
+	// watchdogSidecarDownloadCount tracks every successful sidecar fetch served by the
+	// inspector RPC. Useful for distinguishing operator activity from automated polling.
 	watchdogSidecarDownloadCount metric.Int64Counter
 
-	// watchdogSidecarDownloadErrorCount tracks failed sidecar fetches
-	// (oversize, missing, read error) so dashboards can flag corrupt or
-	// stale on-disk metadata.
+	// watchdogSidecarDownloadErrorCount tracks failed sidecar fetches (oversize, missing,
+	// read error) so dashboards can flag corrupt or stale on-disk metadata.
 	watchdogSidecarDownloadErrorCount metric.Int64Counter
 
-	// watchdogProfileFileOversizeCount tracks how many sandboxed reads
-	// (sidecar / history / profile) refused to load because the file
-	// exceeded its configured cap. Sustained increases imply disk
-	// corruption or a malicious tenant.
+	// watchdogProfileFileOversizeCount tracks how many sandboxed reads (sidecar / history /
+	// profile) refused to load because the file exceeded its configured cap. Sustained
+	// increases imply disk corruption or a malicious tenant.
 	watchdogProfileFileOversizeCount metric.Int64Counter
 )
 

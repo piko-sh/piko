@@ -43,12 +43,12 @@ const (
 	// titleKey is the PDF dictionary key for an annotation's title (/T).
 	titleKey = "T"
 
-	// resourcesKey is the PDF dictionary key for a page or form XObject
-	// resources dictionary.
+	// resourcesKey is the PDF dictionary key for a page or form XObject resources
+	// dictionary.
 	resourcesKey = "Resources"
 
-	// xobjectKey is the PDF dictionary key for the XObject sub-dictionary
-	// of a /Resources entry.
+	// xobjectKey is the PDF dictionary key for the XObject sub-dictionary of a /Resources
+	// entry.
 	xobjectKey = "XObject"
 
 	// subtypeKey is the PDF dictionary key for an XObject subtype.
@@ -60,87 +60,80 @@ const (
 	// spaceReplacement is the byte used to overwrite redacted text.
 	spaceReplacement = ' '
 
-	// defaultMaxPatternLength caps the length of a single user-supplied
-	// regex pattern (2 KiB). Pathological huge alternations are
-	// rejected before [regexp.Compile] sees them.
+	// defaultMaxPatternLength caps the length of a single user-supplied regex pattern (2
+	// KiB). Pathological huge alternations are rejected before regexp.Compile sees them.
 	defaultMaxPatternLength = 2 << 10
 
-	// defaultMaxPatternCount caps the number of patterns accepted in a
-	// single redaction operation.
+	// defaultMaxPatternCount caps the number of patterns accepted in a single redaction
+	// operation.
 	defaultMaxPatternCount = 256
 
-	// defaultCancellationCheckEvery controls how often the text matcher
-	// re-checks the context for cancellation while iterating matches.
+	// defaultCancellationCheckEvery controls how often the text matcher re-checks the
+	// context for cancellation while iterating matches.
 	defaultCancellationCheckEvery = 1024
 
-	// maxPageTreeDepth caps the recursion depth of the page-tree walk.
-	// Genuine documents rarely nest the /Pages tree more than a handful
-	// of levels; this cap defends against malformed trees that would
-	// otherwise exhaust the stack.
+	// maxPageTreeDepth caps the recursion depth of the page-tree walk. Genuine documents
+	// rarely nest the /Pages tree more than a handful of levels; this cap defends against
+	// malformed trees that would otherwise exhaust the stack.
 	maxPageTreeDepth = 256
 
-	// maxXObjectDepth caps the recursion depth when walking nested form
-	// XObjects. Form XObjects may reference each other through their own
-	// /Resources/XObject dictionaries; this cap defends against malformed
-	// or adversarial nesting.
+	// maxXObjectDepth caps the recursion depth when walking nested form XObjects. Form
+	// XObjects may reference each other through their own /Resources/XObject dictionaries;
+	// this cap defends against malformed or adversarial nesting.
 	maxXObjectDepth = 64
 )
 
-// ErrTooManyPatterns is returned when the caller supplies more
-// redaction patterns than the configured maximum.
-var ErrTooManyPatterns = errors.New("redaction: too many text patterns")
+var (
+	// ErrTooManyPatterns is returned when the caller supplies more redaction patterns than
+	// the configured maximum.
+	ErrTooManyPatterns = errors.New("redaction: too many text patterns")
 
-// ErrPatternTooLong is returned when a single redaction pattern exceeds
-// the configured maximum length.
-var ErrPatternTooLong = errors.New("redaction: pattern length exceeds limit")
+	// ErrPatternTooLong is returned when a single redaction pattern exceeds the configured
+	// maximum length.
+	ErrPatternTooLong = errors.New("redaction: pattern length exceeds limit")
 
-// stringFieldKeys lists the dictionary string keys whose values are
-// redacted on annotation objects when string-field redaction is enabled.
-//
-// /Contents holds the comment body of a text annotation; /T holds the
-// annotation's title (typically the author or label). Both are surfaced
-// to PDF readers and are common leakage paths for PII.
-var stringFieldKeys = []string{contentsKey, titleKey}
+	// stringFieldKeys lists the dictionary string keys whose values are redacted on
+	// annotation objects when string-field redaction is enabled.
+	//
+	// /Contents holds the comment body of a text annotation; /T holds the annotation's title
+	// (typically the author or label). Both are surfaced to PDF readers and are common
+	// leakage paths for PII.
+	stringFieldKeys = []string{contentsKey, titleKey}
+)
 
-// RedactionTransformer applies text pattern redaction, region redaction,
-// and metadata stripping to a PDF document.
+// RedactionTransformer applies text pattern redaction, region redaction, and metadata
+// stripping to a PDF document.
 //
 // # Coverage
 //
-// The transformer redacts the following surfaces when text patterns are
-// configured:
+// The transformer redacts the following surfaces when text patterns are configured:
 //
 //   - /Contents page content streams (text drawn on the page).
-//   - /Annots annotation /Contents and /T string values (when
-//     RedactStringFields is enabled, the default).
-//   - /ActualText and /Alt accessibility strings, where they appear
-//     inside content streams as marked-content properties (covered by the
-//     stream byte-level walk).
-//   - Form XObject content streams referenced from a page's
-//     /Resources/XObject dictionary, walked recursively with a cycle
-//     guard.
+//   - /Annots annotation /Contents and /T string values (when RedactStringFields is
+//     enabled, the default).
+//   - /ActualText and /Alt accessibility strings, where they appear inside content
+//     streams as marked-content properties (covered by the stream byte-level walk).
+//   - Form XObject content streams referenced from a page's /Resources/XObject
+//     dictionary, walked recursively with a cycle guard.
 //
 // The transformer does not currently cover the following surfaces:
 //
-//   - Image XObjects (rasterised text inside JPEG/JBIG2/CCITT streams)
-//     are out of scope; pattern matching is text-only.
-//   - Embedded fonts. If a font subset still contains the original
-//     glyph data for sensitive characters, those glyphs remain inside
-//     the font object even after the on-page text is spaced over.
-//   - /StructTreeRoot logical structure metadata. Tagged-PDF structure
-//     elements may carry a copy of the visible text; this is rare for
-//     PII leakage and is out of scope.
-//   - /JavaScript actions and embedded files attached via /Names or
-//     /EmbeddedFiles trees.
+//   - Image XObjects (rasterised text inside JPEG/JBIG2/CCITT streams) are out of scope;
+//     pattern matching is text-only.
+//   - Embedded fonts. If a font subset still contains the original glyph data for
+//     sensitive characters, those glyphs remain inside the font object even after the
+//     on-page text is spaced over.
+//   - /StructTreeRoot logical structure metadata. Tagged-PDF structure elements may carry
+//     a copy of the visible text; this is rare for PII leakage and is out of scope.
+//   - /JavaScript actions and embedded files attached via /Names or /EmbeddedFiles trees.
 //
 // # Byte-length preservation
 //
-// Matched text is overwritten with U+0020 spaces of the same byte length
-// as the original match. This preserves the on-page layout and avoids
-// having to re-encode content streams. Length itself is therefore still
-// observable: a redacted account number occupies the same number of
-// bytes as the original. Callers that need length-hiding should combine
-// redaction with region-based black bars over the same areas.
+// Matched text is overwritten with U+0020 spaces of the same byte length as the original
+// match. This preserves the on-page layout and avoids having to re-encode content
+// streams. Length itself is therefore still observable: a redacted account number
+// occupies the same number of bytes as the original. Callers that need length-hiding
+// should combine redaction with region-based black bars over the same areas.
 type RedactionTransformer struct {
 	// name is the transformer identifier.
 	name string
@@ -148,31 +141,28 @@ type RedactionTransformer struct {
 	// priority is the execution order.
 	priority int
 
-	// maxPatternLength caps the length of a single user-supplied regex
-	// pattern.
+	// maxPatternLength caps the length of a single user-supplied regex pattern.
 	maxPatternLength int
 
-	// maxPatternCount caps the number of patterns accepted in a single
-	// redaction operation.
+	// maxPatternCount caps the number of patterns accepted in a single redaction operation.
 	maxPatternCount int
 
-	// cancellationCheckEvery controls how often the matcher re-checks
-	// the context for cancellation while iterating matches.
+	// cancellationCheckEvery controls how often the matcher re-checks the context for
+	// cancellation while iterating matches.
 	cancellationCheckEvery int
 
-	// redactStringFields enables redaction of dictionary string values
-	// in annotations (/Contents, /T) and recursive form XObject content
-	// streams. Defaults to true.
+	// redactStringFields enables redaction of dictionary string values in annotations
+	// (/Contents, /T) and recursive form XObject content streams. Defaults to true.
 	redactStringFields bool
 }
 
-// Option configures a [RedactionTransformer] at construction time.
+// Option configures a RedactionTransformer at construction time.
 type Option func(*RedactionTransformer)
 
 // WithMaxPatternLength overrides the per-pattern length cap.
 //
-// Takes limit (int) which is the maximum pattern length in bytes. Values
-// less than or equal to zero are ignored.
+// Takes limit (int) which is the maximum pattern length in bytes. Values less than or
+// equal to zero are ignored.
 //
 // Returns Option which applies the override.
 func WithMaxPatternLength(limit int) Option {
@@ -183,11 +173,11 @@ func WithMaxPatternLength(limit int) Option {
 	}
 }
 
-// WithMaxPatternCount overrides the cap on the number of patterns
-// accepted per redaction call.
+// WithMaxPatternCount overrides the cap on the number of patterns accepted per redaction
+// call.
 //
-// Takes limit (int) which is the maximum pattern count. Values less
-// than or equal to zero are ignored.
+// Takes limit (int) which is the maximum pattern count. Values less than or equal to zero
+// are ignored.
 //
 // Returns Option which applies the override.
 func WithMaxPatternCount(limit int) Option {
@@ -198,11 +188,11 @@ func WithMaxPatternCount(limit int) Option {
 	}
 }
 
-// WithCancellationCheckEvery overrides how often the matcher checks the
-// context for cancellation.
+// WithCancellationCheckEvery overrides how often the matcher checks the context for
+// cancellation.
 //
-// Takes every (int) which is the check interval expressed as a match
-// count. Values less than or equal to zero are ignored.
+// Takes every (int) which is the check interval expressed as a match count. Values less
+// than or equal to zero are ignored.
 //
 // Returns Option which applies the override.
 func WithCancellationCheckEvery(every int) Option {
@@ -213,16 +203,14 @@ func WithCancellationCheckEvery(every int) Option {
 	}
 }
 
-// WithRedactStringFields toggles redaction of annotation string fields
-// (/Contents, /T) and recursive form XObject content streams.
+// WithRedactStringFields toggles redaction of annotation string fields (/Contents, /T)
+// and recursive form XObject content streams.
 //
-// Defaults to true. Callers whose content legitimately contains pattern
-// matches inside annotation titles or form XObjects (for example, a
-// stamp annotation whose text is meant to remain visible) can opt out by
-// passing false.
+// Defaults to true. Callers whose content legitimately contains pattern matches inside
+// annotation titles or form XObjects (for example, a stamp annotation whose text is meant
+// to remain visible) can opt out by passing false.
 //
-// Takes enabled (bool) which selects whether string-field redaction
-// runs.
+// Takes enabled (bool) which selects whether string-field redaction runs.
 //
 // Returns Option which applies the override.
 func WithRedactStringFields(enabled bool) Option {
@@ -231,12 +219,14 @@ func WithRedactStringFields(enabled bool) Option {
 	}
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*RedactionTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*RedactionTransformer)(nil)
+)
 
-// New creates a new redaction transformer with default name and priority.
-// Optional functional options override per-pattern length, total pattern
-// count, the cancellation check interval used during matching, and
-// whether annotation/form XObject redaction runs.
+// New creates a new redaction transformer with default name and priority. Optional
+// functional options override per-pattern length, total pattern count, the cancellation
+// check interval used during matching, and whether annotation/form XObject redaction
+// runs.
 //
 // Takes opts (...Option) which override the defaults.
 //
@@ -265,8 +255,7 @@ func (t *RedactionTransformer) Name() string { return t.name }
 
 // Type returns TransformerContent.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a content
-// transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a content transformer.
 func (*RedactionTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerContent
 }
@@ -276,8 +265,7 @@ func (*RedactionTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *RedactionTransformer) Priority() int { return t.priority }
 
-// Transform applies redaction to the PDF according to the provided
-// options.
+// Transform applies redaction to the PDF according to the provided options.
 //
 // If no redaction actions are configured (empty TextPatterns, empty Regions,
 // StripMetadata false), the PDF is returned unchanged.
@@ -334,8 +322,8 @@ func (t *RedactionTransformer) Transform(ctx context.Context, pdf []byte, option
 
 // redactPages applies text pattern and region redaction across all pages.
 //
-// Takes ctx (context.Context) which carries cancellation checked between
-// pages and during long match loops.
+// Takes ctx (context.Context) which carries cancellation checked between pages and during
+// long match loops.
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageRefs ([]int) which holds the page object numbers.
@@ -402,11 +390,10 @@ func isActive(opts *pdfwriter_dto.RedactionOptions) bool {
 	return len(opts.TextPatterns) > 0 || len(opts.Regions) > 0 || opts.StripMetadata
 }
 
-// compilePatterns compiles the text pattern strings into regular
-// expressions, rejecting input that exceeds the configured count or
-// per-pattern length caps. The caps protect against malicious huge
-// alternations that, while RE2-safe from catastrophic backtracking,
-// can still spend pathological CPU during compilation and matching.
+// compilePatterns compiles the text pattern strings into regular expressions, rejecting
+// input that exceeds the configured count or per-pattern length caps. The caps protect
+// against malicious huge alternations that, while RE2-safe from catastrophic
+// backtracking, can still spend pathological CPU during compilation and matching.
 //
 // Takes patterns ([]string) which holds the regex pattern strings.
 //
@@ -430,12 +417,13 @@ func (t *RedactionTransformer) compilePatterns(patterns []string) ([]*regexp.Reg
 	return compiled, nil
 }
 
-// groupRegionsByPage organises redaction regions into a map keyed by
-// zero-based page index.
+// groupRegionsByPage organises redaction regions into a map keyed by zero-based page
+// index.
 //
 // Takes regions ([]pdfwriter_dto.RedactionRegion) which holds the regions to group.
 //
-// Returns map[int][]pdfwriter_dto.RedactionRegion which maps page indices to their regions.
+// Returns map[int][]pdfwriter_dto.RedactionRegion which maps page indices to their
+// regions.
 func groupRegionsByPage(regions []pdfwriter_dto.RedactionRegion) map[int][]pdfwriter_dto.RedactionRegion {
 	if len(regions) == 0 {
 		return nil
@@ -447,24 +435,23 @@ func groupRegionsByPage(regions []pdfwriter_dto.RedactionRegion) map[int][]pdfwr
 	return grouped
 }
 
-// redactTextOnPage decodes the page's content streams and replaces text
-// matching any compiled pattern with spaces. When string-field redaction
-// is enabled, it also walks /Annots and /Resources/XObject form
-// references on the page.
+// redactTextOnPage decodes the page's content streams and replaces text matching any
+// compiled pattern with spaces. When string-field redaction is enabled, it also walks
+// /Annots and /Resources/XObject form references on the page.
 //
-// Takes ctx (context.Context) which is checked periodically inside the
-// match loop so callers can cancel a runaway redaction.
+// Takes ctx (context.Context) which is checked periodically inside the match loop so
+// callers can cancel a runaway redaction.
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageIndex (int) which is the zero-based page index for error messages.
 // Takes pageObjNum (int) which is the page's object number.
 // Takes patterns ([]*regexp.Regexp) which holds the compiled text patterns.
-// Takes xobjectVisited (map[int]struct{}) which records form XObject
-// objects already redacted, shared across all pages so that a form
-// XObject used by multiple pages is redacted exactly once.
+// Takes xobjectVisited (map[int]struct{}) which records form XObject objects already
+// redacted, shared across all pages so that a form XObject used by multiple pages is
+// redacted exactly once.
 //
-// Returns error when content streams cannot be read or decoded, or when
-// the supplied context is cancelled mid-stream.
+// Returns error when content streams cannot be read or decoded, or when the supplied
+// context is cancelled mid-stream.
 func (t *RedactionTransformer) redactTextOnPage(
 	ctx context.Context,
 	writer *pdfparse.Writer,
@@ -499,8 +486,8 @@ func (t *RedactionTransformer) redactTextOnPage(
 	return nil
 }
 
-// redactStreamRefs decodes each referenced content stream, applies text
-// redaction to its bytes, and writes the modified stream back.
+// redactStreamRefs decodes each referenced content stream, applies text redaction to its
+// bytes, and writes the modified stream back.
 //
 // Takes ctx (context.Context) which is checked between streams.
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
@@ -547,8 +534,8 @@ func (t *RedactionTransformer) redactStreamRefs(
 	return nil
 }
 
-// resolveContentRefs extracts object numbers from the page's /Contents
-// entry, handling both single references and arrays.
+// resolveContentRefs extracts object numbers from the page's /Contents entry, handling
+// both single references and arrays.
 //
 // Takes pageDict (pdfparse.Dict) which is the page dictionary.
 //
@@ -582,13 +569,11 @@ func resolveContentRefs(pageDict pdfparse.Dict) []int {
 	}
 }
 
-// applyTextRedaction replaces all regex matches in the stream bytes
-// with space characters. The match loop periodically re-checks the
-// context so a malicious pattern that produces many matches cannot
-// monopolise CPU after the caller has cancelled.
+// applyTextRedaction replaces all regex matches in the stream bytes with space
+// characters. The match loop periodically re-checks the context so a malicious pattern
+// that produces many matches cannot monopolise CPU after the caller has cancelled.
 //
-// Takes ctx (context.Context) which is sampled every
-// cancellationCheckEvery matches.
+// Takes ctx (context.Context) which is sampled every cancellationCheckEvery matches.
 // Takes data ([]byte) which is the stream content to redact.
 // Takes patterns ([]*regexp.Regexp) which holds the compiled text patterns.
 //
@@ -617,12 +602,11 @@ func (t *RedactionTransformer) applyTextRedaction(ctx context.Context, data []by
 
 // redactPatternMatches replaces every match of re inside result with spaceReplacement.
 //
-// Cancellation is sampled every checkEvery matches so a malicious pattern that
-// produces many matches cannot monopolise CPU after the caller has cancelled.
+// Cancellation is sampled every checkEvery matches so a malicious pattern that produces
+// many matches cannot monopolise CPU after the caller has cancelled.
 //
 // Takes ctx (context.Context) which is sampled every checkEvery matches.
-// Takes result ([]byte) which is the buffer mutated in place at every match
-// span.
+// Takes result ([]byte) which is the buffer mutated in place at every match span.
 // Takes re (*regexp.Regexp) which is the pattern matched against result.
 // Takes checkEvery (int) which is the cancellation sampling interval.
 //
@@ -642,8 +626,8 @@ func redactPatternMatches(ctx context.Context, result []byte, re *regexp.Regexp,
 	return nil
 }
 
-// redactStringValue replaces every regex match inside value with the same
-// number of U+0020 spaces, preserving byte length.
+// redactStringValue replaces every regex match inside value with the same number of
+// U+0020 spaces, preserving byte length.
 //
 // Takes value (string) which is the original string to redact.
 // Takes patterns ([]*regexp.Regexp) which holds the compiled text patterns.
@@ -662,9 +646,9 @@ func redactStringValue(value string, patterns []*regexp.Regexp) string {
 	return out
 }
 
-// redactAnnotations walks /Annots on a page and redacts any /Contents and
-// /T string values on each annotation dictionary. Annotations may be
-// inline dictionaries or indirect references; both are handled.
+// redactAnnotations walks /Annots on a page and redacts any /Contents and /T string
+// values on each annotation dictionary. Annotations may be inline dictionaries or
+// indirect references; both are handled.
 //
 // Takes ctx (context.Context) which is checked between annotations.
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
@@ -688,7 +672,7 @@ func (*RedactionTransformer) redactAnnotations(
 			return fmt.Errorf("redaction: cancelled in annotations: %w", err)
 		}
 		entry := annots[i]
-		switch entry.Type {
+		switch entry.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case pdfparse.ObjectReference:
 			ref, ok := entry.Value.(pdfparse.Ref)
 			if !ok {
@@ -709,8 +693,8 @@ func (*RedactionTransformer) redactAnnotations(
 	return nil
 }
 
-// redactDictStringFields applies redactStringValue to every dictionary
-// entry whose key is in keys and whose value is a literal or hex string.
+// redactDictStringFields applies redactStringValue to every dictionary entry whose key is
+// in keys and whose value is a literal or hex string.
 //
 // Takes dict (*pdfparse.Dict) which is mutated in place.
 // Takes patterns ([]*regexp.Regexp) which holds the compiled text patterns.
@@ -738,21 +722,20 @@ func redactDictStringFields(dict *pdfparse.Dict, patterns []*regexp.Regexp, keys
 	return changed
 }
 
-// redactPageFormXObjects walks the /Resources/XObject map of a page and,
-// for each entry whose /Subtype is /Form, redacts the form's own content
-// stream and recurses into nested form XObjects.
+// redactPageFormXObjects walks the /Resources/XObject map of a page and, for each entry
+// whose /Subtype is /Form, redacts the form's own content stream and recurses into nested
+// form XObjects.
 //
-// The visited set is shared across all pages so a form XObject used by
-// multiple pages is redacted exactly once. The set also defends against
-// cyclic /Resources/XObject references that would otherwise loop forever.
+// The visited set is shared across all pages so a form XObject used by multiple pages is
+// redacted exactly once. The set also defends against cyclic /Resources/XObject
+// references that would otherwise loop forever.
 //
 // Takes ctx (context.Context) which is checked between XObjects.
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageDict (pdfparse.Dict) which is the page dictionary.
 // Takes patterns ([]*regexp.Regexp) which holds the compiled text patterns.
-// Takes visited (map[int]struct{}) which records XObjects already
-// processed.
+// Takes visited (map[int]struct{}) which records XObjects already processed.
 //
 // Returns error when a form XObject cannot be read or context is cancelled.
 func (t *RedactionTransformer) redactPageFormXObjects(
@@ -772,12 +755,11 @@ func (t *RedactionTransformer) redactPageFormXObjects(
 	return nil
 }
 
-// collectXObjectRefs extracts object numbers from a /Resources/XObject
-// sub-dictionary, returning empty when the resources are absent or
-// malformed.
+// collectXObjectRefs extracts object numbers from a /Resources/XObject sub-dictionary,
+// returning empty when the resources are absent or malformed.
 //
-// Takes parent (pdfparse.Dict) which holds /Resources, typically a page
-// dictionary or another form XObject dictionary.
+// Takes parent (pdfparse.Dict) which holds /Resources, typically a page dictionary or
+// another form XObject dictionary.
 //
 // Returns []int which holds the XObject object numbers in document order.
 func collectXObjectRefs(parent pdfparse.Dict) []int {
@@ -800,9 +782,9 @@ func collectXObjectRefs(parent pdfparse.Dict) []int {
 	return refs
 }
 
-// redactFormXObject redacts a single form XObject's content stream and
-// recurses into its own /Resources/XObject children. Image XObjects and
-// non-form streams are skipped silently.
+// redactFormXObject redacts a single form XObject's content stream and recurses into its
+// own /Resources/XObject children. Image XObjects and non-form streams are skipped
+// silently.
 //
 // Takes ctx (context.Context) which is checked at every recursion step.
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
@@ -812,8 +794,8 @@ func collectXObjectRefs(parent pdfparse.Dict) []int {
 // Takes visited (map[int]struct{}) which records XObjects already processed.
 // Takes depth (int) which is the current recursion depth.
 //
-// Returns error when context is cancelled, the depth cap is hit, or the
-// stream cannot be redacted.
+// Returns error when context is cancelled, the depth cap is hit, or the stream cannot be
+// redacted.
 func (t *RedactionTransformer) redactFormXObject(
 	ctx context.Context,
 	writer *pdfparse.Writer,
@@ -887,8 +869,8 @@ func bytesEqual(a, b []byte) bool {
 	return true
 }
 
-// redactRegionsOnPage appends a content stream with filled black
-// rectangles for each redaction region on the page.
+// redactRegionsOnPage appends a content stream with filled black rectangles for each
+// redaction region on the page.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes pageObjNum (int) which is the page's object number.
@@ -915,8 +897,8 @@ func redactRegionsOnPage(
 	return nil
 }
 
-// buildRegionStream generates PDF content stream operators that draw
-// filled black rectangles for each redaction region.
+// buildRegionStream generates PDF content stream operators that draw filled black
+// rectangles for each redaction region.
 //
 // Takes regions ([]pdfwriter_dto.RedactionRegion) which holds the regions to draw.
 //
@@ -929,8 +911,8 @@ func buildRegionStream(regions []pdfwriter_dto.RedactionRegion) string {
 	return string(buf)
 }
 
-// appendContentStream adds a new stream object reference after any
-// existing /Contents on the page.
+// appendContentStream adds a new stream object reference after any existing /Contents on
+// the page.
 //
 // Takes pageDict (*pdfparse.Dict) which is the page dictionary to modify.
 // Takes streamObjNum (int) which is the object number of the new content stream.
@@ -954,8 +936,8 @@ func appendContentStream(pageDict *pdfparse.Dict, streamObjNum int) {
 	}
 }
 
-// stripMetadata removes the /Info dictionary from the trailer and the
-// /Metadata entry from the document catalog.
+// stripMetadata removes the /Info dictionary from the trailer and the /Metadata entry
+// from the document catalog.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer to modify.
 func stripMetadata(writer *pdfparse.Writer) {
@@ -981,8 +963,8 @@ func stripMetadata(writer *pdfparse.Writer) {
 	}
 }
 
-// collectPageRefs walks the page tree and returns object numbers for all
-// leaf Page objects in document order.
+// collectPageRefs walks the page tree and returns object numbers for all leaf Page
+// objects in document order.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 //
@@ -1014,13 +996,11 @@ func collectPageRefs(doc *pdfparse.Document) ([]int, error) {
 	return walkPageTree(doc, pagesRef.Number, visited, 0)
 }
 
-// walkPageTree recursively collects leaf Page object numbers from a Pages
-// tree node.
+// walkPageTree recursively collects leaf Page object numbers from a Pages tree node.
 //
-// The visited set records every node already entered so that cyclic
-// /Kids references skip the already-seen branch instead of recursing
-// forever. Skipped branches return no pages and no error so the rest
-// of the tree continues to be walked.
+// The visited set records every node already entered so that cyclic /Kids references skip
+// the already-seen branch instead of recursing forever. Skipped branches return no pages
+// and no error so the rest of the tree continues to be walked.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the current tree node's object number.

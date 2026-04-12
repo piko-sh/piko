@@ -31,8 +31,7 @@ import (
 // Config holds configuration for the built-in detectors.
 type Config = builtin_detectors.Config
 
-// RepetitionOption configures the repetition detector at construction
-// time.
+// RepetitionOption configures the repetition detector at construction time.
 type RepetitionOption = builtin_detectors.RepetitionOption
 
 // HoneypotDetector is the built-in honeypot detector.
@@ -53,12 +52,10 @@ type TimingDetector = builtin_detectors.TimingDetector
 // RepetitionDetector is the built-in repetition detector.
 type RepetitionDetector = builtin_detectors.RepetitionDetector
 
-// RegisterDefaults creates and registers all six built-in detectors
-// with the service.
+// RegisterDefaults creates and registers all six built-in detectors with the service.
 //
 // Takes ctx (context.Context) which is the caller context.
-// Takes service (spamdetect_domain.SpamDetectServicePort) which receives
-// the detectors.
+// Takes service (spamdetect_domain.SpamDetectServicePort) which receives the detectors.
 // Takes config (Config) which configures the built-in detectors.
 //
 // Returns error when a detector fails to create or register.
@@ -76,9 +73,8 @@ func NewHoneypotDetector() *HoneypotDetector {
 // NewGibberishDetector creates a gibberish detector.
 //
 // Takes threshold (float64) which is the gibberish ratio threshold.
-// Takes bigramAnalysers ([]linguistics_domain.BigramAnalyserPort) which
-// provide language-aware analysis. Pass nil for the built-in English
-// fallback only.
+// Takes bigramAnalysers ([]linguistics_domain.BigramAnalyserPort) which provide
+// language-aware analysis. Pass nil for the built-in English fallback only.
 //
 // Returns *GibberishDetector which is the configured detector.
 func NewGibberishDetector(threshold float64, bigramAnalysers []linguistics_domain.BigramAnalyserPort) *GibberishDetector {
@@ -106,8 +102,7 @@ func NewBlocklistDetector(patterns []string) (*BlocklistDetector, error) {
 
 // NewTimingDetector creates a timing detector.
 //
-// Takes minDuration (time.Duration) which is the minimum expected submission
-// duration.
+// Takes minDuration (time.Duration) which is the minimum expected submission duration.
 //
 // Returns *TimingDetector which is the configured detector.
 func NewTimingDetector(minDuration time.Duration) *TimingDetector {
@@ -119,8 +114,8 @@ type RepetitionEntry = builtin_detectors.RepetitionEntry
 
 // NewRepetitionDetector creates a repetition detector.
 //
-// Takes cache (cache_domain.Cache[string, RepetitionEntry]) which
-// stores content hashes. Pass nil to disable repetition detection.
+// Takes cache (cache_domain.Cache[string, RepetitionEntry]) which stores content hashes.
+// Pass nil to disable repetition detection.
 // Takes ttl (time.Duration) which is the tracking window.
 // Takes ipScoped (bool) which scopes tracking per client IP when true.
 // Takes opts (...RepetitionOption) which override defaults (e.g. clock).
@@ -135,7 +130,8 @@ func NewRepetitionDetector(
 	return builtin_detectors.NewRepetitionDetector(cache, ttl, ipScoped, opts...)
 }
 
-// WithRepetitionClock sets the clock source used for repetition
-// FirstSeen timestamps. Tests inject a mock clock for deterministic
-// behaviour.
-var WithRepetitionClock = builtin_detectors.WithRepetitionClock
+var (
+	// WithRepetitionClock sets the clock source used for repetition FirstSeen timestamps.
+	// Tests inject a mock clock for deterministic behaviour.
+	WithRepetitionClock = builtin_detectors.WithRepetitionClock
+)

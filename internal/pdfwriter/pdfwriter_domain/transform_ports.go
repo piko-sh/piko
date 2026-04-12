@@ -25,40 +25,38 @@ import (
 )
 
 // PdfTransformerPort defines the interface for a single PDF post-processing
-// transformation step. Each transformer operates on complete PDF bytes,
-// because PDF transformations (signing, encryption, linearisation) require
-// random access to the cross-reference table and object tree.
+// transformation step. Each transformer operates on complete PDF bytes, because PDF
+// transformations (signing, encryption, linearisation) require random access to the
+// cross-reference table and object tree.
 //
-// Transformers are composed into chains via PdfTransformerChain and execute
-// in ascending priority order. The pattern mirrors
-// storage_domain.StreamTransformerPort but uses []byte instead of io.Reader
-// and omits Reverse since PDF transformations are one-directional.
+// Transformers are composed into chains via PdfTransformerChain and execute in ascending
+// priority order. The pattern mirrors storage_domain.StreamTransformerPort but uses
+// []byte instead of io.Reader and omits Reverse since PDF transformations are
+// one-directional.
 type PdfTransformerPort interface {
-	// Name returns the unique identifier for this transformer (e.g.
-	// "watermark", "aes-256", "pades-b-b", "linearise").
+	// Name returns the unique identifier for this transformer (e.g. "watermark", "aes-256",
+	// "pades-b-b", "linearise").
 	Name() string
 
 	// Type returns the transformer's category for grouping and validation.
 	//
-	// Returns pdfwriter_dto.TransformerType which indicates the kind
-	// of transformation.
+	// Returns pdfwriter_dto.TransformerType which indicates the kind of transformation.
 	Type() pdfwriter_dto.TransformerType
 
 	// Priority returns the execution order where lower values run first.
 	//
-	// Recommended ranges: 100-199 for content, 200-299 for compliance,
-	// 300-399 for delivery, 400-499 for security.
+	// Recommended ranges: 100-199 for content, 200-299 for compliance, 300-399 for delivery,
+	// 400-499 for security.
 	//
 	// Returns int which indicates priority.
 	Priority() int
 
-	// Transform applies this transformation to the provided PDF bytes and
-	// returns the modified PDF bytes.
+	// Transform applies this transformation to the provided PDF bytes and returns the
+	// modified PDF bytes.
 	//
 	// Takes ctx (context.Context) which carries cancellation and tracing.
 	// Takes pdf ([]byte) which is the input PDF document.
-	// Takes options (any) which is sourced from
-	// TransformConfig.TransformerOptions[Name()].
+	// Takes options (any) which is sourced from TransformConfig.TransformerOptions[Name()].
 	//
 	// Returns []byte which is the transformed PDF.
 	// Returns error when the transformation cannot be applied.

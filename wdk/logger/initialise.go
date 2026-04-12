@@ -26,22 +26,24 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/logger/logger_adapters/driver_handlers"
-	"piko.sh/piko/internal/logrotate"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/logger/logger_dto"
+	"piko.sh/piko/internal/logrotate"
 	"piko.sh/piko/wdk/logger/logger_state"
 )
 
-// logKeyType is the log attribute key for integration type.
-const logKeyType = "type"
+const (
+	// logKeyType is the log attribute key for integration type.
+	logKeyType = "type"
+)
 
 // initialisationState holds the state that builds up during logger setup.
 type initialisationState struct {
-	// shutdownTasks holds cleanup functions called in reverse order during
-	// shutdown.
+	// shutdownTasks holds cleanup functions called in reverse order during shutdown.
 	shutdownTasks []func(context.Context) error
 
 	// handlers holds the collected slog handlers for building the core handler.
@@ -51,8 +53,8 @@ type initialisationState struct {
 	closers []io.Closer
 }
 
-// earlyInitialisationResult is returned when initialisation
-// completes early, such as when explicit handlers exist.
+// earlyInitialisationResult is returned when initialisation completes early, such as when
+// explicit handlers exist.
 type earlyInitialisationResult struct {
 	// logger is the configured logger for early initialisation output.
 	logger *slog.Logger
@@ -62,19 +64,19 @@ type earlyInitialisationResult struct {
 }
 
 // Initialise creates and configures the logging system based on the provided
-// configuration, setting up OpenTelemetry integration and configuring output
-// handlers, integrations, and notifications.
+// configuration, setting up OpenTelemetry integration and configuring output handlers,
+// integrations, and notifications.
 //
 // Takes ctx (context.Context) which controls cancellation during setup.
 // Takes logConfig (logger_dto.Config) which specifies the logging configuration.
-// Takes otelConfig (driver_handlers.OtelSetupConfig) which provides OTLP
-// exporter settings.
-// Takes otelOpts (*driver_handlers.OtelSetupOptions) which controls
-// OpenTelemetry setup behaviour.
+// Takes otelConfig (driver_handlers.OtelSetupConfig) which provides OTLP exporter
+// settings.
+// Takes otelOpts (*driver_handlers.OtelSetupOptions) which controls OpenTelemetry setup
+// behaviour.
 //
 // Returns *slog.Logger which is the configured logger.
-// Returns func(context.Context) error which is the shutdown function for
-// graceful cleanup.
+// Returns func(context.Context) error which is the shutdown function for graceful
+// cleanup.
 // Returns error when setup fails.
 func Initialise(
 	ctx context.Context, logConfig logger_dto.Config,
@@ -119,11 +121,10 @@ func Initialise(
 // Takes logConfig (logger_dto.Config) which provides the logger configuration.
 // Takes otelConfig (driver_handlers.OtelSetupConfig) which specifies OTLP exporter
 // settings.
-// Takes otelOpts (*driver_handlers.OtelSetupOptions) which controls
-// OpenTelemetry
-// setup behaviour.
-// Takes state (*initialisationState) which holds initialisation
-// state including shutdown tasks.
+// Takes otelOpts (*driver_handlers.OtelSetupOptions) which controls OpenTelemetry setup
+// behaviour.
+// Takes state (*initialisationState) which holds initialisation state including shutdown
+// tasks.
 //
 // Returns error when OpenTelemetry setup fails.
 func setupOtelIntegration(ctx context.Context, logConfig logger_dto.Config, otelConfig driver_handlers.OtelSetupConfig, otelOpts *driver_handlers.OtelSetupOptions, state *initialisationState) error {
@@ -143,8 +144,7 @@ func setupOtelIntegration(ctx context.Context, logConfig logger_dto.Config, otel
 // Takes ctx (context.Context) which controls cancellation during setup.
 // Takes logConfig (logger_dto.Config) which specifies the logging configuration.
 // Takes globalLevel (slog.Level) which sets the default log level for handlers.
-// Takes state (*initialisationState) which collects the created
-// handlers and closers.
+// Takes state (*initialisationState) which collects the created handlers and closers.
 func processOutputHandlers(ctx context.Context, logConfig logger_dto.Config, globalLevel slog.Level, state *initialisationState) {
 	for _, outConfig := range logConfig.Outputs {
 		shouldUseSource := resolveAddSource(outConfig.AddSource, logConfig.AddSource)
@@ -176,8 +176,8 @@ func resolveAddSource(outputSpecific *bool, globalDefault bool) bool {
 // processIntegrationHandlers creates handlers for each enabled integration.
 //
 // Takes logConfig (logger_dto.Config) which provides the integration settings.
-// Takes state (*initialisationState) which collects the created
-// handlers and shutdown tasks.
+// Takes state (*initialisationState) which collects the created handlers and shutdown
+// tasks.
 func processIntegrationHandlers(logConfig logger_dto.Config, state *initialisationState) {
 	for _, integrationConfig := range logConfig.Integrations {
 		if !integrationConfig.Enabled {
@@ -197,17 +197,14 @@ func processIntegrationHandlers(logConfig logger_dto.Config, state *initialisati
 	}
 }
 
-// handleNoHandlersConfigured handles the case when no output handlers were
-// configured.
+// handleNoHandlersConfigured handles the case when no output handlers were configured.
 //
 // Takes logConfig (logger_dto.Config) which provides the logger configuration.
 // Takes globalLevel (slog.Level) which specifies the minimum logging level.
-// Takes state (*initialisationState) which holds the
-// initialisation state to update.
+// Takes state (*initialisationState) which holds the initialisation state to update.
 //
-// Returns *earlyInitialisationResult which contains an early
-// result if explicit handlers exist, otherwise returns nil after
-// appending a default handler to state.
+// Returns *earlyInitialisationResult which contains an early result if explicit handlers
+// exist, otherwise returns nil after appending a default handler to state.
 func handleNoHandlersConfigured(logConfig logger_dto.Config, globalLevel slog.Level, state *initialisationState) *earlyInitialisationResult {
 	if logger_state.HasExplicitHandlers() {
 		return &earlyInitialisationResult{
@@ -225,13 +222,12 @@ func handleNoHandlersConfigured(logConfig logger_dto.Config, globalLevel slog.Le
 	return nil
 }
 
-// buildCoreHandler creates either a single handler or a multi-handler from
-// the slice.
+// buildCoreHandler creates either a single handler or a multi-handler from the slice.
 //
 // Takes handlers ([]slog.Handler) which contains the handlers to combine.
 //
-// Returns slog.Handler which is a single handler if only one is provided, or
-// a multi-handler that combines all handlers otherwise.
+// Returns slog.Handler which is a single handler if only one is provided, or a
+// multi-handler that combines all handlers otherwise.
 func buildCoreHandler(handlers []slog.Handler) slog.Handler {
 	if len(handlers) == 1 {
 		return handlers[0]
@@ -239,14 +235,13 @@ func buildCoreHandler(handlers []slog.Handler) slog.Handler {
 	return slog.NewMultiHandler(handlers...)
 }
 
-// buildCompositeShutdown creates a shutdown function that closes all writers
-// and runs shutdown tasks.
+// buildCompositeShutdown creates a shutdown function that closes all writers and runs
+// shutdown tasks.
 //
-// Takes state (*initialisationState) which holds the closers and
-// shutdown tasks to run.
+// Takes state (*initialisationState) which holds the closers and shutdown tasks to run.
 //
-// Returns func(context.Context) error which closes all writers and executes
-// shutdown tasks in reverse order, returning any combined errors.
+// Returns func(context.Context) error which closes all writers and executes shutdown
+// tasks in reverse order, returning any combined errors.
 func buildCompositeShutdown(state *initialisationState) func(context.Context) error {
 	return func(shutdownCtx context.Context) error {
 		var allErrors []error
@@ -257,8 +252,8 @@ func buildCompositeShutdown(state *initialisationState) func(context.Context) er
 			}
 		}
 
-		for i := len(state.shutdownTasks) - 1; i >= 0; i-- {
-			if err := state.shutdownTasks[i](shutdownCtx); err != nil {
+		for _, shutdownTask := range slices.Backward(state.shutdownTasks) {
+			if err := shutdownTask(shutdownCtx); err != nil {
 				allErrors = append(allErrors, err)
 			}
 		}
@@ -267,11 +262,11 @@ func buildCompositeShutdown(state *initialisationState) func(context.Context) er
 	}
 }
 
-// getEnabledIntegrationTypes returns a list of integration type names that are
-// both enabled in the config and have their adapter package imported.
+// getEnabledIntegrationTypes returns a list of integration type names that are both
+// enabled in the config and have their adapter package imported.
 //
-// Takes config (logger_dto.Config) which specifies the logger configuration
-// containing integration settings.
+// Takes config (logger_dto.Config) which specifies the logger configuration containing
+// integration settings.
 //
 // Returns []string which contains the names of available enabled integrations.
 func getEnabledIntegrationTypes(config logger_dto.Config) []string {
@@ -290,13 +285,13 @@ func getEnabledIntegrationTypes(config logger_dto.Config) []string {
 // createHandlerForIntegration creates a log handler for the given integration
 // configuration.
 //
-// Takes config (logger_dto.IntegrationConfig) which specifies the integration
-// type and its settings.
+// Takes config (logger_dto.IntegrationConfig) which specifies the integration type and
+// its settings.
 //
-// Returns slog.Handler which is the created handler, or nil if the
-// integration is unavailable.
-// Returns func(context.Context) error which is the shutdown function that
-// releases integration resources, or nil if none is needed.
+// Returns slog.Handler which is the created handler, or nil if the integration is
+// unavailable.
+// Returns func(context.Context) error which is the shutdown function that releases
+// integration resources, or nil if none is needed.
 // Returns error when the integration handler cannot be created.
 func createHandlerForIntegration(config logger_dto.IntegrationConfig) (slog.Handler, func(context.Context) error, error) {
 	integration := logger_domain.GetIntegration(config.Type)
@@ -327,23 +322,21 @@ func createHandlerForIntegration(config logger_dto.IntegrationConfig) (slog.Hand
 	return handler, nil, nil
 }
 
-// createHandlerForOutput creates a log handler for the specified output
-// configuration.
+// createHandlerForOutput creates a log handler for the specified output configuration.
 //
-// Takes ctx (context.Context) which controls the lifetime of background
-// goroutines such as log rotation.
-// Takes config (logger_dto.OutputConfig) which specifies the output type, format,
-// and optional file settings.
-// Takes addSource (bool) which controls whether source location is included in
-// log entries.
-// Takes globalLevel (slog.Level) which provides the default log level when not
-// overridden by the output configuration.
+// Takes ctx (context.Context) which controls the lifetime of background goroutines such
+// as log rotation.
+// Takes config (logger_dto.OutputConfig) which specifies the output type, format, and
+// optional file settings.
+// Takes addSource (bool) which controls whether source location is included in log
+// entries.
+// Takes globalLevel (slog.Level) which provides the default log level when not overridden
+// by the output configuration.
 //
 // Returns slog.Handler which is the configured handler ready for use.
-// Returns io.Closer which is non-nil for file outputs and must be closed when
-// logging is complete.
-// Returns error when the output type is unknown or file configuration is
-// missing.
+// Returns io.Closer which is non-nil for file outputs and must be closed when logging is
+// complete.
+// Returns error when the output type is unknown or file configuration is missing.
 func createHandlerForOutput(ctx context.Context, config logger_dto.OutputConfig, addSource bool, globalLevel slog.Level) (slog.Handler, io.Closer, error) {
 	level := globalLevel
 	if config.Level != "" {

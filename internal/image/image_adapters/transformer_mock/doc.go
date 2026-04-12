@@ -17,9 +17,8 @@
 // strip others of their rights and dignity.
 
 // Package transformer_mock is a thread-safe, in-memory test double for
-// [image_domain.TransformerPort]. It supports call recording,
-// configurable return values, and error simulation without requiring
-// real image processing libraries.
+// [image_domain.TransformerPort]. It supports call recording, configurable return values,
+// and error simulation without requiring real image processing libraries.
 //
 // # Usage
 //
@@ -32,6 +31,6 @@
 //
 // # Thread safety
 //
-// All methods on [Provider] are safe for concurrent use. Internal
-// state is protected by a sync.RWMutex.
+// All methods on [Provider] are safe for concurrent use. Internal state is protected by a
+// sync.RWMutex.
 package transformer_mock

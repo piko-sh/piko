@@ -58,8 +58,8 @@ var (
 	// HybridRevalidationDuration records how long hybrid revalidation takes.
 	HybridRevalidationDuration metric.Float64Histogram
 
-	// HybridCacheHitCount tracks the number of times the hybrid cache returns a
-	// result where the content has not changed.
+	// HybridCacheHitCount tracks the number of times the hybrid cache returns a result where
+	// the content has not changed.
 	HybridCacheHitCount metric.Int64Counter
 
 	// HybridCacheMissCount tracks hybrid cache misses (content changed, refetched).
@@ -71,8 +71,8 @@ var (
 	// CollectionEncodeCount tracks the number of encoding operations.
 	CollectionEncodeCount metric.Int64Counter
 
-	// CollectionDecodeCount tracks how many times data is converted from
-	// its stored format back into Go values.
+	// CollectionDecodeCount tracks how many times data is converted from its stored format
+	// back into Go values.
 	CollectionDecodeCount metric.Int64Counter
 )
 

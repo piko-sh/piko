@@ -30,13 +30,15 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// circuitBreakerBucketPeriod is the duration of each measurement bucket
-// for tracking failure counts.
-const circuitBreakerBucketPeriod = 10 * time.Second
+const (
+	// circuitBreakerBucketPeriod is the duration of each measurement bucket for tracking
+	// failure counts.
+	circuitBreakerBucketPeriod = 10 * time.Second
+)
 
-// circuitBreakerProvider wraps an LLMProviderPort with a Sony circuit breaker
-// so that repeated failures cause the circuit to open and fast-fail requests
-// rather than sending them to a failing provider.
+// circuitBreakerProvider wraps an LLMProviderPort with a Sony circuit breaker so that
+// repeated failures cause the circuit to open and fast-fail requests rather than sending
+// them to a failing provider.
 type circuitBreakerProvider struct {
 	// inner is the wrapped LLM provider that requests are forwarded to.
 	inner LLMProviderPort
@@ -50,8 +52,7 @@ type circuitBreakerProvider struct {
 
 // Complete sends a completion request through the circuit breaker.
 //
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion parameters.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 //
 // Returns *llm_dto.CompletionResponse which is the provider response.
 // Returns error when the circuit is open or the request fails.
@@ -67,8 +68,7 @@ func (p *circuitBreakerProvider) Complete(ctx context.Context, request *llm_dto.
 
 // Stream sends a streaming request through the circuit breaker.
 //
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion parameters.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 //
 // Returns <-chan llm_dto.StreamEvent which yields streaming events.
 // Returns error when the circuit is open or the request fails.
@@ -84,8 +84,7 @@ func (p *circuitBreakerProvider) Stream(ctx context.Context, request *llm_dto.Co
 
 // SupportsStreaming delegates to the inner provider.
 //
-// Returns bool which is true if the inner provider supports
-// streaming.
+// Returns bool which is true if the inner provider supports streaming.
 func (p *circuitBreakerProvider) SupportsStreaming() bool {
 	return p.inner.SupportsStreaming()
 }
@@ -148,16 +147,16 @@ func (p *circuitBreakerProvider) DefaultModel() string {
 	return p.inner.DefaultModel()
 }
 
-// newCircuitBreakerProvider wraps a provider with circuit breakers for both
-// Complete and Stream operations.
+// newCircuitBreakerProvider wraps a provider with circuit breakers for both Complete and
+// Stream operations.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation in circuit breaker callbacks.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation in circuit breaker callbacks.
 // Takes name (string) which identifies the provider in log messages.
 // Takes inner (LLMProviderPort) which is the provider to wrap.
 // Takes maxFailures (int) which sets the consecutive failure threshold.
-// Takes timeout (time.Duration) which specifies how long the circuit stays
-// open before attempting recovery.
+// Takes timeout (time.Duration) which specifies how long the circuit stays open before
+// attempting recovery.
 //
 // Returns LLMProviderPort which is the wrapped provider.
 func newCircuitBreakerProvider(ctx context.Context, name string, inner LLMProviderPort, maxFailures int, timeout time.Duration) LLMProviderPort {
@@ -190,14 +189,12 @@ func newCircuitBreakerProvider(ctx context.Context, name string, inner LLMProvid
 	}
 }
 
-// isCircuitBreakerExcluded returns true for errors that should not
-// count as circuit breaker failures (client-side errors, not provider
-// faults).
+// isCircuitBreakerExcluded returns true for errors that should not count as circuit
+// breaker failures (client-side errors, not provider faults).
 //
 // Takes err (error) which is the error to evaluate.
 //
-// Returns bool which is true if the error should be excluded from
-// failure counting.
+// Returns bool which is true if the error should be excluded from failure counting.
 func isCircuitBreakerExcluded(err error) bool {
 	return errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded) ||
@@ -206,13 +203,13 @@ func isCircuitBreakerExcluded(err error) bool {
 		errors.Is(err, ErrRateLimited)
 }
 
-// mapCircuitBreakerError maps gobreaker-specific errors to LLM
-// domain errors that are retryable and trigger fallback.
+// mapCircuitBreakerError maps gobreaker-specific errors to LLM domain errors that are
+// retryable and trigger fallback.
 //
 // Takes err (error) which is the gobreaker error to map.
 //
-// Returns error which is the mapped domain error, or the original
-// error if no mapping applies.
+// Returns error which is the mapped domain error, or the original error if no mapping
+// applies.
 func mapCircuitBreakerError(err error) error {
 	if errors.Is(err, gobreaker.ErrOpenState) || errors.Is(err, gobreaker.ErrTooManyRequests) {
 		return ErrProviderOverloaded

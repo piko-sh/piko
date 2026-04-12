@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package events_provider_gochannel provides an in-memory Watermill
-// pub/sub provider using Go channels. This is the default provider
-// for single-instance deployments and requires no external
-// infrastructure.
+// Package events_provider_gochannel provides an in-memory Watermill pub/sub provider
+// using Go channels. This is the default provider for single-instance deployments and
+// requires no external infrastructure.
 //
 // # Configuration
 //
@@ -43,8 +42,7 @@
 //
 // # Usage with Piko
 //
-// The GoChannel provider is used by default when no provider is
-// configured:
+// The GoChannel provider is used by default when no provider is configured:
 //
 //	app := piko.New() // Uses GoChannel by default
 //
@@ -79,6 +77,6 @@
 //
 // # Thread safety
 //
-// All methods on the provider are safe for concurrent use. The
-// provider uses internal mutexes to guard lifecycle state.
+// All methods on the provider are safe for concurrent use. The provider uses internal
+// mutexes to guard lifecycle state.
 package events_provider_gochannel

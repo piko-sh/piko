@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config_domain orchestrates reflection-based configuration loading
-// from multiple sources.
+// Package config_domain orchestrates reflection-based configuration loading from multiple
+// sources.
 //
-// It merges defaults, files (JSON, YAML), environment variables,
-// command-line flags, and pluggable resolvers for secrets, with struct
-// tag-based validation and per-field source tracking.
+// It merges defaults, files (JSON, YAML), environment variables, command-line flags, and
+// pluggable resolvers for secrets, with struct tag-based validation and per-field source
+// tracking.
 //
 // # Usage
 //
@@ -64,7 +64,7 @@
 //
 // # Thread safety
 //
-// [Loader] instances are not safe for concurrent use during Load, but multiple
-// loaders can operate independently. [SecretManager], [FlagCoordinator], and
-// [ResolverRegistry] are safe for concurrent use.
+// [Loader] instances are not safe for concurrent use during Load, but multiple loaders
+// can operate independently. [SecretManager], [FlagCoordinator], and [ResolverRegistry]
+// are safe for concurrent use.
 package config_domain

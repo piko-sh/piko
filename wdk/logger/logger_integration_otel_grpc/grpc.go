@@ -41,13 +41,12 @@ func init() {
 
 // grpcMetadataCreds wraps gRPC metadata for use as per-RPC credentials.
 type grpcMetadataCreds struct {
-	// md holds the gRPC metadata key-value pairs to attach as per-RPC
-	// credentials.
+	// md holds the gRPC metadata key-value pairs to attach as per-RPC credentials.
 	md metadata.MD
 }
 
-// GetRequestMetadata returns the gRPC metadata as a map for per-RPC
-// credentials. This implements the credentials.PerRPCCredentials interface.
+// GetRequestMetadata returns the gRPC metadata as a map for per-RPC credentials. This
+// implements the credentials.PerRPCCredentials interface.
 //
 // Returns map[string]string which contains the metadata headers.
 // Returns error which is always nil.
@@ -61,19 +60,19 @@ func (c grpcMetadataCreds) GetRequestMetadata(_ context.Context, _ ...string) (m
 	return headers, nil
 }
 
-// RequireTransportSecurity reports whether transport security is required.
-// This implements the credentials.PerRPCCredentials interface.
+// RequireTransportSecurity reports whether transport security is required. This
+// implements the credentials.PerRPCCredentials interface.
 //
 // Returns bool which is always false.
 func (grpcMetadataCreds) RequireTransportSecurity() bool {
 	return false
 }
 
-// createGrpcExporter dials the configured endpoint and creates an OTLP gRPC
-// exporter using the supplied constructor.
+// createGrpcExporter dials the configured endpoint and creates an OTLP gRPC exporter
+// using the supplied constructor.
 //
-// Takes newExporter which receives the context and the established connection
-// and returns the SDK-specific exporter.
+// Takes newExporter which receives the context and the established connection and returns
+// the SDK-specific exporter.
 //
 // Returns any which is the constructed exporter.
 // Returns io.Closer which is the gRPC connection to close on shutdown.
@@ -101,8 +100,8 @@ func createGrpcExporter(
 
 // createGrpcTraceExporter creates an OTLP trace exporter that uses gRPC.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP
-// endpoint and TLS settings.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP endpoint and
+// TLS settings.
 //
 // Returns any which is the trace exporter.
 // Returns io.Closer which is the gRPC connection to close on shutdown.
@@ -115,8 +114,8 @@ func createGrpcTraceExporter(ctx context.Context, config driver_handlers.OtelSet
 
 // createGrpcMetricExporter creates an OTLP metric exporter using gRPC.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP
-// endpoint and TLS settings.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies the OTLP endpoint and
+// TLS settings.
 //
 // Returns any which is the metric exporter.
 // Returns io.Closer which is the gRPC connection to close on shutdown.
@@ -129,8 +128,7 @@ func createGrpcMetricExporter(ctx context.Context, config driver_handlers.OtelSe
 
 // buildGrpcOptions builds gRPC dial options from OTLP settings.
 //
-// Takes config (driver_handlers.OtelSetupConfig) which specifies TLS and
-// header settings.
+// Takes config (driver_handlers.OtelSetupConfig) which specifies TLS and header settings.
 //
 // Returns []grpc.DialOption which contains the configured dial options.
 // Returns error which is always nil.

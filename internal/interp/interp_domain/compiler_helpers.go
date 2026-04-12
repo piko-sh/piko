@@ -23,9 +23,8 @@ import (
 	"go/token"
 )
 
-// activeDeclaration tracks a variable binding introduced by a
-// declaring statement whose register must survive across subsequent
-// statements.
+// activeDeclaration tracks a variable binding introduced by a declaring statement whose
+// register must survive across subsequent statements.
 type activeDeclaration struct {
 	// name is the variable name introduced by the declaration.
 	name string
@@ -34,18 +33,17 @@ type activeDeclaration struct {
 	location varLocation
 }
 
-// trackOrRestoreDeclarations updates the active declaration list
-// when the statement is a declaring statement, or restores the
-// register allocation watermark otherwise.
+// trackOrRestoreDeclarations appends each name introduced by a declaring statement to
+// active, or restores the register-allocation watermark when statement does not declare
+// any name.
 //
-// Takes statement (ast.Stmt) which is the statement to inspect.
-// Takes watermark ([NumRegisterKinds]uint32) which is the
-// register allocation watermark to restore for non-declaring
-// statements.
-// Takes active ([]activeDeclaration) which is the current list
-// of tracked declarations.
+// Takes statement (ast.Stmt) which is the statement being processed for declarations.
+// Takes watermark ([NumRegisterKinds]uint32) which is the register-allocation watermark
+// to restore when no declaration is present.
+// Takes active ([]activeDeclaration) which is the current list of tracked active
+// declarations.
 //
-// Returns the updated active declaration list.
+// Returns the updated list of active declarations.
 func (c *compiler) trackOrRestoreDeclarations(
 	statement ast.Stmt,
 	watermark [NumRegisterKinds]uint32,
@@ -61,14 +59,13 @@ func (c *compiler) trackOrRestoreDeclarations(
 	return active
 }
 
-// trackDeclaredName appends a new activeDeclaration for name if
-// it is not already tracked and exists in the current scope.
+// trackDeclaredName appends a new activeDeclaration for name when it is visible in the
+// current scope and not already tracked.
 //
-// Takes name (string) which is the variable name to track.
-// Takes active ([]activeDeclaration) which is the current list
-// of tracked declarations.
+// Takes name (string) which is the declared variable name to track.
+// Takes active ([]activeDeclaration) which is the current list of tracked declarations.
 //
-// Returns the updated active declaration list.
+// Returns the updated list of active declarations.
 func (c *compiler) trackDeclaredName(name string, active []activeDeclaration) []activeDeclaration {
 	declarationLocation, ok := c.scopes.lookupVar(name)
 	if !ok {
@@ -82,18 +79,16 @@ func (c *compiler) trackDeclaredName(name string, active []activeDeclaration) []
 	return append(active, activeDeclaration{name: name, location: declarationLocation})
 }
 
-// recycleDeadDeclarations removes declarations whose last use
-// index has been reached and recycles their registers.
+// recycleDeadDeclarations drops declarations whose last-use statement has been compiled
+// and recycles their registers, returning a filtered list (or active unchanged when
+// lastUseIndices is nil).
 //
-// Takes active ([]activeDeclaration) which is the current list
-// of tracked declarations.
-// Takes lastUseIndices (map[string]int) which maps variable
-// names to the index of their last use.
-// Takes currentIndex (int) which is the index of the current
-// statement being processed.
+// Takes active ([]activeDeclaration) which is the current list of tracked declarations.
+// Takes lastUseIndices (map[string]int) which maps each name to the index of its last
+// use.
+// Takes currentIndex (int) which is the index of the statement just compiled.
 //
-// Returns the filtered active declaration list with dead
-// entries removed.
+// Returns the filtered list of declarations whose registers must survive.
 func (c *compiler) recycleDeadDeclarations(
 	active []activeDeclaration,
 	lastUseIndices map[string]int,
@@ -111,17 +106,17 @@ func (c *compiler) recycleDeadDeclarations(
 	return remaining
 }
 
-// shouldRetainDeclaration reports whether the declaration's
-// register should be kept alive past the current statement index.
+// shouldRetainDeclaration reports whether declaration's register must survive past
+// currentIndex. Upvalue, captured, and indirect locations are always retained; otherwise
+// the decision follows the recorded last-use index.
 //
-// Takes declaration (activeDeclaration) which is the declaration
-// to evaluate.
-// Takes lastUseIndices (map[string]int) which maps variable
-// names to the index of their last use.
-// Takes currentIndex (int) which is the index of the current
-// statement being processed.
+// Takes declaration (activeDeclaration) which is the declaration whose retention is being
+// decided.
+// Takes lastUseIndices (map[string]int) which maps each name to the index of its last
+// use.
+// Takes currentIndex (int) which is the index of the statement just compiled.
 //
-// Returns true if the declaration should be retained.
+// Returns true when the declaration's register must survive past currentIndex.
 func (c *compiler) shouldRetainDeclaration(
 	declaration activeDeclaration,
 	lastUseIndices map[string]int,
@@ -139,15 +134,13 @@ func (c *compiler) shouldRetainDeclaration(
 	return false
 }
 
-// isDeclaringStatement reports whether a statement introduces
-// new variable bindings whose registers must survive across
-// subsequent statements. Short variable declarations (:=),
-// var/const/type declarations, and labelled wrappers around
-// declarations all qualify.
+// isDeclaringStatement reports whether statement introduces new variable bindings whose
+// registers must survive across subsequent statements. Short variable declarations (:=),
+// var/const/type declarations, and labelled wrappers around them all qualify.
 //
-// Takes statement (ast.Stmt) which is the statement to inspect.
+// Takes statement (ast.Stmt) which is the candidate AST statement.
 //
-// Returns true if the statement is a declaring statement.
+// Returns true when the statement introduces a new variable binding.
 func isDeclaringStatement(statement ast.Stmt) bool {
 	switch s := statement.(type) {
 	case *ast.AssignStmt:
@@ -161,13 +154,13 @@ func isDeclaringStatement(statement ast.Stmt) bool {
 	}
 }
 
-// extractDeclaredNames returns the variable names introduced by
-// a declaring statement (:= or var/const).
+// extractDeclaredNames returns the variable names introduced by a declaring statement (:=
+// or var/const), or nil for non-declaring statements. The blank identifier is filtered
+// out.
 //
-// Takes statement (ast.Stmt) which is the statement to inspect.
+// Takes statement (ast.Stmt) which is the AST statement to inspect.
 //
-// Returns the declared names, or nil for non-declaring
-// statements.
+// Returns the slice of declared non-blank variable names, or nil when none.
 func extractDeclaredNames(statement ast.Stmt) []string {
 	switch s := statement.(type) {
 	case *ast.AssignStmt:
@@ -181,14 +174,12 @@ func extractDeclaredNames(statement ast.Stmt) []string {
 	}
 }
 
-// extractShortVarDeclNames returns the variable names introduced
-// by a short variable declaration (:=).
+// extractShortVarDeclNames returns the non-blank identifiers introduced by a short
+// variable declaration (:=), or nil when statement is not a := assignment.
 //
-// Takes statement (*ast.AssignStmt) which is the assignment
-// statement to inspect.
+// Takes statement (*ast.AssignStmt) which is the AST assignment statement to inspect.
 //
-// Returns the declared names, or nil if the statement is not a
-// short variable declaration.
+// Returns the slice of non-blank declared names, or nil when not a :=.
 func extractShortVarDeclNames(statement *ast.AssignStmt) []string {
 	if statement.Tok != token.DEFINE {
 		return nil
@@ -202,14 +193,12 @@ func extractShortVarDeclNames(statement *ast.AssignStmt) []string {
 	return names
 }
 
-// extractDeclStmtNames returns the variable names introduced by
-// a var or const declaration statement.
+// extractDeclStmtNames returns the non-blank names introduced by a var or const
+// declaration statement, or nil when statement contains no value specs.
 //
-// Takes statement (*ast.DeclStmt) which is the declaration
-// statement to inspect.
+// Takes statement (*ast.DeclStmt) which is the AST declaration statement to inspect.
 //
-// Returns the declared names, or nil if no value specs are
-// found.
+// Returns the slice of non-blank declared names, or nil when no value specs.
 func extractDeclStmtNames(statement *ast.DeclStmt) []string {
 	generalDeclaration, ok := statement.Decl.(*ast.GenDecl)
 	if !ok {
@@ -228,17 +217,13 @@ func extractDeclStmtNames(statement *ast.DeclStmt) []string {
 	return names
 }
 
-// computeLastUseIndices pre-scans a statement list to determine
-// the index of the last statement that references each locally
-// declared variable.
+// computeLastUseIndices pre-scans statements to find the index of the last reference to
+// each locally declared name.
 //
-// Takes statements ([]ast.Stmt) which is the list of statements
-// to scan.
+// Takes statements ([]ast.Stmt) which is the block of statements to scan.
 //
-// Returns a map from variable name to last-use index, or nil
-// when no declarations exist or when the list contains
-// goto/label statements that invalidate forward-only liveness
-// analysis.
+// Returns a map from declared name to last-use index, or nil when no declarations exist
+// or goto/label statements invalidate the forward-only liveness assumption.
 func computeLastUseIndices(statements []ast.Stmt) map[string]int {
 	declared, hasGotoOrLabel := collectDeclaredNamesAndLabels(statements)
 	if len(declared) == 0 || hasGotoOrLabel {
@@ -247,15 +232,13 @@ func computeLastUseIndices(statements []ast.Stmt) map[string]int {
 	return scanLastUsePerVariable(statements, declared)
 }
 
-// collectDeclaredNamesAndLabels scans statements for locally
-// declared variable names and for goto/label statements that
-// invalidate forward-only liveness analysis.
+// collectDeclaredNamesAndLabels scans statements and returns the set of locally declared
+// names together with a flag that is true when any goto or labelled statement appears.
 //
-// Takes statements ([]ast.Stmt) which is the list of statements
-// to scan.
+// Takes statements ([]ast.Stmt) which is the block of statements to scan.
 //
-// Returns the set of declared names and whether any goto or
-// label statements were found.
+// Returns the set of locally declared names and a boolean that is true when any goto or
+// labelled statement appears in the block.
 func collectDeclaredNamesAndLabels(statements []ast.Stmt) (map[string]struct{}, bool) {
 	declared := make(map[string]struct{})
 	hasGotoOrLabel := false
@@ -270,12 +253,12 @@ func collectDeclaredNamesAndLabels(statements []ast.Stmt) (map[string]struct{}, 
 	return declared, hasGotoOrLabel
 }
 
-// statementHasGotoOrLabel reports whether a statement is a goto
-// branch or a labelled statement.
+// statementHasGotoOrLabel reports whether statement is a goto branch or a labelled
+// statement.
 //
-// Takes statement (ast.Stmt) which is the statement to inspect.
+// Takes statement (ast.Stmt) which is the AST statement to inspect.
 //
-// Returns true if the statement is a goto or label.
+// Returns true when the statement is a goto branch or labelled statement.
 func statementHasGotoOrLabel(statement ast.Stmt) bool {
 	switch s := statement.(type) {
 	case *ast.BranchStmt:
@@ -288,17 +271,14 @@ func statementHasGotoOrLabel(statement ast.Stmt) bool {
 	}
 }
 
-// scanLastUsePerVariable walks each statement and records the
-// index of the last statement that references each declared
-// variable name.
+// scanLastUsePerVariable walks each statement and records the index of the last statement
+// that references each name in declared.
 //
-// Takes statements ([]ast.Stmt) which is the list of statements
-// to walk.
-// Takes declared (map[string]struct{}) which is the set of
-// variable names to track.
+// Takes statements ([]ast.Stmt) which is the block of statements to scan.
+// Takes declared (map[string]struct{}) which is the set of locally declared names to
+// track.
 //
-// Returns a map from variable name to the index of the last
-// statement that references it.
+// Returns a map from declared name to the index of its last use.
 func scanLastUsePerVariable(statements []ast.Stmt, declared map[string]struct{}) map[string]int {
 	lastUse := make(map[string]int, len(declared))
 	for i, statement := range statements {

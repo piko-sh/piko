@@ -26,14 +26,18 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// healthProbeName is the identifier used when registering with the health
-// probe system.
-const healthProbeName = "CaptchaService"
+const (
 
-var _ interface {
-	Name() string
-	Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status
-} = (*captchaService)(nil)
+	// healthProbeName is the identifier used when registering with the health probe system.
+	healthProbeName = "CaptchaService"
+)
+
+var (
+	_ interface {
+		Name() string
+		Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status
+	} = (*captchaService)(nil)
+)
 
 // Name returns the service identifier for the health probe system.
 //
@@ -42,12 +46,10 @@ func (*captchaService) Name() string {
 	return healthProbeName
 }
 
-// Check performs a health check on the captcha service, checking provider
-// registration for liveness or calling the provider's HealthCheck for
-// readiness.
+// Check performs a health check on the captcha service, checking provider registration
+// for liveness or calling the provider's HealthCheck for readiness.
 //
-// Takes checkType (healthprobe_dto.CheckType) which selects liveness or
-// readiness.
+// Takes checkType (healthprobe_dto.CheckType) which selects liveness or readiness.
 //
 // Returns healthprobe_dto.Status which describes the service health state.
 func (s *captchaService) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -83,8 +85,7 @@ func (s *captchaService) checkLiveness(startTime time.Time) healthprobe_dto.Stat
 	}
 }
 
-// checkReadiness calls the default provider's HealthCheck to verify end-to-end
-// readiness.
+// checkReadiness calls the default provider's HealthCheck to verify end-to-end readiness.
 //
 // Takes startTime (time.Time) which is when the check began.
 //

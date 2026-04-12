@@ -16,17 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_provider_redis_cluster provides a distributed cache
-// provider backed by Redis Cluster.
+// Package cache_provider_redis_cluster provides a distributed cache provider backed by
+// Redis Cluster.
 //
-// It behaves like the single-node Redis provider but routes commands
-// across cluster nodes automatically. Multi-key operations may require
-// multiple round-trips when keys hash to different slots; tag
-// operations use hash tags to keep related keys co-located.
+// It behaves like the single-node Redis provider but routes commands across cluster nodes
+// automatically. Multi-key operations may require multiple round-trips when keys hash to
+// different slots; tag operations use hash tags to keep related keys co-located.
 //
-// When RediSearch is available (Redis Stack), the provider also
-// supports full-text search and structured queries.
+// When RediSearch is available (Redis Stack), the provider also supports full-text search
+// and structured queries.
 //
-// All methods are safe for concurrent use. The adapter uses
-// singleflight to deduplicate concurrent loads for the same key.
+// All methods are safe for concurrent use. The adapter uses singleflight to deduplicate
+// concurrent loads for the same key.
 package cache_provider_redis_cluster

@@ -25,23 +25,36 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseWhereClause skips tokens of a WHERE expression up to the next clause boundary,
+// registering parameters along the way.
 func (p *parser) parseWhereClause() {
 	p.parseExpressionUntilTerminator()
 }
 
-var expressionTerminatorKeywords = map[string]struct{}{
-	keywordGROUP: {}, keywordHAVING: {}, keywordQUALIFY: {}, keywordORDER: {}, keywordLIMIT: {},
-	keywordOFFSET: {}, keywordFETCH: {}, keywordFOR: {}, "WINDOW": {},
-	keywordUNION: {}, keywordINTERSECT: {}, keywordEXCEPT: {},
-	keywordRETURNING: {}, keywordSET: {}, keywordON: {},
-	keywordFROM: {}, keywordWHERE: {}, "INTO": {},
-	keywordPIVOT: {}, keywordUNPIVOT: {},
-}
+var (
+	// expressionTerminatorKeywords lists keywords that end a general SQL expression at depth
+	// zero, used by parseExpressionUntilTerminator.
+	expressionTerminatorKeywords = map[string]struct{}{
+		keywordGROUP: {}, keywordHAVING: {}, keywordQUALIFY: {}, keywordORDER: {}, keywordLIMIT: {},
+		keywordOFFSET: {}, keywordFETCH: {}, keywordFOR: {}, "WINDOW": {},
+		keywordUNION: {}, keywordINTERSECT: {}, keywordEXCEPT: {},
+		keywordRETURNING: {}, keywordSET: {}, keywordON: {},
+		keywordFROM: {}, keywordWHERE: {}, "INTO": {},
+		keywordPIVOT: {}, keywordUNPIVOT: {},
+	}
+)
 
+// parseExpressionUntilTerminator skips tokens of a top-level expression up to the next
+// general clause boundary keyword.
 func (p *parser) parseExpressionUntilTerminator() {
 	p.skipTokensUntilTerminatorSet(expressionTerminatorKeywords)
 }
 
+// skipTokensUntilTerminatorSet advances tokens until a top-level keyword from terminators
+// or an unmatched closing parenthesis.
+//
+// Takes terminators (map[string]struct{}) which is the upper-case keyword set that ends
+// the walk.
 func (p *parser) skipTokensUntilTerminatorSet(terminators map[string]struct{}) {
 	depth := 0
 	for !p.atEnd() {
@@ -67,6 +80,13 @@ func (p *parser) skipTokensUntilTerminatorSet(terminators map[string]struct{}) {
 	}
 }
 
+// handleRightParenInSkip processes a closing parenthesis encountered during a token skip.
+//
+// Takes tok (token) which is the candidate closing-parenthesis token.
+// Takes depth (*int) which is the current nesting depth, decremented when tok is
+// consumed.
+//
+// Returns bool which is true when the skip should stop because depth reached zero.
 func (p *parser) handleRightParenInSkip(tok token, depth *int) bool {
 	if tok.kind != tokenRightParen {
 		return false
@@ -79,6 +99,13 @@ func (p *parser) handleRightParenInSkip(tok token, depth *int) bool {
 	return false
 }
 
+// isKeywordTerminator reports whether tok is an identifier present in terminators.
+//
+// Takes tok (token) which is the candidate token.
+// Takes terminators (map[string]struct{}) which is the upper-case keyword set to test
+// against.
+//
+// Returns bool which is true when tok is a matching keyword.
 func (*parser) isKeywordTerminator(tok token, terminators map[string]struct{}) bool {
 	if tok.kind != tokenIdentifier {
 		return false
@@ -87,6 +114,9 @@ func (*parser) isKeywordTerminator(tok token, terminators map[string]struct{}) b
 	return ok
 }
 
+// parseGroupByClause reads a comma-separated GROUP BY column list.
+//
+// Returns []querier_dto.ColumnReference which is the parsed column reference list.
 func (p *parser) parseGroupByClause() []querier_dto.ColumnReference {
 	var columns []querier_dto.ColumnReference
 
@@ -105,6 +135,11 @@ func (p *parser) parseGroupByClause() []querier_dto.ColumnReference {
 	return columns
 }
 
+// parseGroupByColumn parses a single GROUP BY entry, accepting bare or schema-qualified
+// identifiers.
+//
+// Returns querier_dto.ColumnReference which is the parsed reference.
+// Returns bool which is true when a column reference was produced.
 func (p *parser) parseGroupByColumn() (querier_dto.ColumnReference, bool) {
 	if p.current().kind != tokenIdentifier {
 		p.advance()
@@ -122,16 +157,24 @@ func (p *parser) parseGroupByColumn() (querier_dto.ColumnReference, bool) {
 	return querier_dto.ColumnReference{TableAlias: first, ColumnName: second}, true
 }
 
-var orderByTerminators = map[string]struct{}{
-	keywordLIMIT: {}, keywordOFFSET: {}, keywordFETCH: {}, keywordFOR: {},
-	keywordUNION: {}, keywordINTERSECT: {}, keywordEXCEPT: {},
-	keywordRETURNING: {}, "WINDOW": {},
-}
+var (
+	// orderByTerminators lists keywords that end an ORDER BY list at depth zero.
+	orderByTerminators = map[string]struct{}{
+		keywordLIMIT: {}, keywordOFFSET: {}, keywordFETCH: {}, keywordFOR: {},
+		keywordUNION: {}, keywordINTERSECT: {}, keywordEXCEPT: {},
+		keywordRETURNING: {}, "WINDOW": {},
+	}
+)
 
+// parseOrderByList skips ORDER BY expressions up to the next clause boundary.
 func (p *parser) parseOrderByList() {
 	p.skipTokensUntilTerminatorSet(orderByTerminators)
 }
 
+// consumeParameterOrAdvance consumes the current token, registering it as a bind
+// parameter with context when it is a parameter token.
+//
+// Takes context (querier_dto.ParameterContext) which tags any registered parameter.
 func (p *parser) consumeParameterOrAdvance(context querier_dto.ParameterContext) {
 	if isParameterToken(p.current().kind) {
 		parameterToken := p.current()
@@ -142,6 +185,8 @@ func (p *parser) consumeParameterOrAdvance(context querier_dto.ParameterContext)
 	p.advance()
 }
 
+// parseLimitOffset dispatches over the LIMIT, OFFSET, and FETCH clause shapes accepted by
+// DuckDB.
 func (p *parser) parseLimitOffset() {
 	p.parseLeadingOffset()
 
@@ -154,6 +199,8 @@ func (p *parser) parseLimitOffset() {
 	p.parseTrailingOffset()
 }
 
+// parseLeadingOffset consumes an OFFSET clause that appears before any LIMIT or FETCH
+// clause.
 func (p *parser) parseLeadingOffset() {
 	if !p.isKeyword(keywordOFFSET) {
 		return
@@ -164,6 +211,8 @@ func (p *parser) parseLeadingOffset() {
 	p.matchKeyword(keywordROWS)
 }
 
+// parseLimitClause consumes a LIMIT expression and any trailing OFFSET or "limit, offset"
+// comma form.
 func (p *parser) parseLimitClause() {
 	if !p.matchKeyword(keywordALL) {
 		p.consumeParameterOrAdvance(querier_dto.ParameterContextLimit)
@@ -179,6 +228,8 @@ func (p *parser) parseLimitClause() {
 	}
 }
 
+// parseFetchClause consumes a FETCH FIRST/NEXT N ROWS [ONLY|WITH TIES] clause when one is
+// present.
 func (p *parser) parseFetchClause() {
 	if !p.matchKeyword(keywordFETCH) {
 		return
@@ -201,6 +252,8 @@ func (p *parser) parseFetchClause() {
 	p.matchKeyword("TIES")
 }
 
+// parseTrailingOffset consumes an OFFSET clause that follows a FETCH clause, unless a
+// LIMIT is about to start instead.
 func (p *parser) parseTrailingOffset() {
 	if p.isKeyword(keywordLIMIT) || !p.matchKeyword(keywordOFFSET) {
 		return
@@ -210,6 +263,11 @@ func (p *parser) parseTrailingOffset() {
 	p.matchKeyword(keywordROWS)
 }
 
+// parseCompoundQuery consumes an optional UNION, INTERSECT, or EXCEPT operator, honouring
+// the ALL modifier.
+//
+// Returns querier_dto.CompoundOperator which is the operator that was consumed, or zero
+// when none was present.
 func (p *parser) parseCompoundQuery() querier_dto.CompoundOperator {
 	if p.matchKeyword(keywordUNION) {
 		if p.matchKeyword(keywordALL) {
@@ -228,6 +286,8 @@ func (p *parser) parseCompoundQuery() querier_dto.CompoundOperator {
 	return 0
 }
 
+// skipForUpdateClause consumes a FOR UPDATE/SHARE locking clause and records its presence
+// on the parser.
 func (p *parser) skipForUpdateClause() {
 	if !p.matchKeyword(keywordFOR) {
 		return
@@ -253,6 +313,12 @@ func (p *parser) skipForUpdateClause() {
 	p.matchKeyword("LOCKED")
 }
 
+// parseValuesClause walks a VALUES (...), (...), ... source attached to an INSERT,
+// binding parameters to their target columns.
+//
+// Takes tableName (string) which is the INSERT target table.
+// Takes columnNames ([]string) which is the explicit column list, or nil when none was
+// provided.
 func (p *parser) parseValuesClause(tableName string, columnNames []string) {
 	for p.current().kind == tokenLeftParen {
 		p.advance()
@@ -268,6 +334,15 @@ func (p *parser) parseValuesClause(tableName string, columnNames []string) {
 	}
 }
 
+// columnRefForIndex builds the column reference associated with the index-th positional
+// value in a VALUES row.
+//
+// Takes tableName (string) which is the target table for the reference.
+// Takes columnNames ([]string) which is the declared column list.
+// Takes index (int) which is the position within the row.
+//
+// Returns *querier_dto.ColumnReference which is the column reference, or nil when index
+// is past the declared list.
 func (*parser) columnRefForIndex(tableName string, columnNames []string, index int) *querier_dto.ColumnReference {
 	if index >= len(columnNames) {
 		return nil
@@ -278,6 +353,10 @@ func (*parser) columnRefForIndex(tableName string, columnNames []string, index i
 	}
 }
 
+// parseValuesRow walks one parenthesised VALUES row's elements.
+//
+// Takes tableName (string) which is the INSERT target table.
+// Takes columnNames ([]string) which is the declared column list.
 func (p *parser) parseValuesRow(tableName string, columnNames []string) {
 	columnIndex := 0
 	for !p.atEnd() && p.current().kind != tokenRightParen {
@@ -290,6 +369,12 @@ func (p *parser) parseValuesRow(tableName string, columnNames []string) {
 	}
 }
 
+// parseValuesRowElement handles one element of a VALUES row, binding a parameter to its
+// target column when present.
+//
+// Takes tableName (string) which is the INSERT target table.
+// Takes columnNames ([]string) which is the declared column list.
+// Takes columnIndex (int) which is the element's position in the row.
 func (p *parser) parseValuesRowElement(tableName string, columnNames []string, columnIndex int) {
 	if isParameterToken(p.current().kind) {
 		parameterToken := p.current()
@@ -307,6 +392,11 @@ func (p *parser) parseValuesRowElement(tableName string, columnNames []string, c
 	}
 }
 
+// parseValuesFirstRow parses the first row of a top-level VALUES statement and emits one
+// synthetic output column per element.
+//
+// Returns []querier_dto.RawOutputColumn which is the row's output columns labelled
+// column1, column2, and so on.
 func (p *parser) parseValuesFirstRow() []querier_dto.RawOutputColumn {
 	var outputColumns []querier_dto.RawOutputColumn
 	var columnIndex int
@@ -327,6 +417,8 @@ func (p *parser) parseValuesFirstRow() []querier_dto.RawOutputColumn {
 	return outputColumns
 }
 
+// skipValuesTrailingRows walks the rows after the first in a top-level VALUES statement,
+// registering parameters without emitting columns.
 func (p *parser) skipValuesTrailingRows() {
 	for p.current().kind == tokenComma {
 		p.advance()
@@ -349,14 +441,24 @@ func (p *parser) skipValuesTrailingRows() {
 	}
 }
 
-var insertSourceTerminators = map[string]struct{}{
-	keywordON: {}, keywordRETURNING: {},
-}
+var (
+	// insertSourceTerminators lists the keywords that end an INSERT source expression at
+	// depth zero.
+	insertSourceTerminators = map[string]struct{}{
+		keywordON: {}, keywordRETURNING: {},
+	}
+)
 
+// parseInsertSource skips the SELECT or query expression supplying an INSERT, stopping at
+// ON CONFLICT or RETURNING.
 func (p *parser) parseInsertSource() {
 	p.skipTokensUntilTerminatorSet(insertSourceTerminators)
 }
 
+// parseOnConflict consumes an ON CONFLICT clause and analyses any DO UPDATE body's SET
+// and WHERE expressions.
+//
+// Takes tableName (string) which is the target table for assignment column references.
 func (p *parser) parseOnConflict(tableName string) {
 	p.matchKeyword("CONFLICT")
 
@@ -386,6 +488,10 @@ func (p *parser) parseOnConflict(tableName string) {
 	}
 }
 
+// parseSetClause walks an UPDATE SET list, dispatching to single- or multi-column
+// assignment parsers.
+//
+// Takes tableName (string) which is the target table for assignment column references.
 func (p *parser) parseSetClause(tableName string) {
 	for {
 		if p.current().kind == tokenLeftParen {
@@ -401,6 +507,10 @@ func (p *parser) parseSetClause(tableName string) {
 	}
 }
 
+// parseSingleColumnSetClause parses one "column = expression" assignment, binding
+// parameter targets to the column when possible.
+//
+// Takes tableName (string) which is the target table.
 func (p *parser) parseSingleColumnSetClause(tableName string) {
 	columnName := ""
 	if p.current().kind == tokenIdentifier {
@@ -427,6 +537,9 @@ func (p *parser) parseSingleColumnSetClause(tableName string) {
 	}
 }
 
+// parseMultiColumnSetClause parses a "(c1, c2, ...) = (v1, v2, ...)" SET assignment.
+//
+// Takes tableName (string) which is the target table.
 func (p *parser) parseMultiColumnSetClause(tableName string) {
 	columnNames, _ := p.parseColumnList()
 
@@ -446,6 +559,11 @@ func (p *parser) parseMultiColumnSetClause(tableName string) {
 	}
 }
 
+// parseMultiColumnSetValues walks the value list inside a multi-column SET assignment,
+// binding parameter targets by position.
+//
+// Takes tableName (string) which is the target table.
+// Takes columnNames ([]string) which is the LHS column list.
 func (p *parser) parseMultiColumnSetValues(tableName string, columnNames []string) {
 	columnIndex := 0
 	for !p.atEnd() && p.current().kind != tokenRightParen {
@@ -464,11 +582,16 @@ func (p *parser) parseMultiColumnSetValues(tableName string, columnNames []strin
 	}
 }
 
-var setExpressionTerminators = map[string]struct{}{
-	keywordWHERE: {}, keywordFROM: {}, keywordRETURNING: {},
-	keywordORDER: {}, keywordLIMIT: {},
-}
+var (
+	// setExpressionTerminators lists keywords that end a SET expression at depth zero.
+	setExpressionTerminators = map[string]struct{}{
+		keywordWHERE: {}, keywordFROM: {}, keywordRETURNING: {},
+		keywordORDER: {}, keywordLIMIT: {},
+	}
+)
 
+// skipSetExpression advances past a single SET assignment expression up to the next comma
+// or terminator keyword.
 func (p *parser) skipSetExpression() {
 	depth := 0
 	for !p.atEnd() {
@@ -501,6 +624,11 @@ func (p *parser) skipSetExpression() {
 	}
 }
 
+// isSetExpressionTerminator reports whether tok ends one SET assignment expression.
+//
+// Takes tok (token) which is the candidate token.
+//
+// Returns bool which is true at a comma or one of the terminator keywords.
 func (*parser) isSetExpressionTerminator(tok token) bool {
 	if tok.kind == tokenComma {
 		return true

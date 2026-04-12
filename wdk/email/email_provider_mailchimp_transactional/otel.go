@@ -25,18 +25,19 @@ import (
 )
 
 var (
-	// log is the package-level logger for the email_provider_mailchimp_transactional package.
+	// log is the package-level logger for the email_provider_mailchimp_transactional
+	// package.
 	log = logger.GetLogger("piko/email/email_provider_mailchimp_transactional")
 
 	// Meter is the package-level meter for Mailchimp Transactional provider metrics.
 	Meter = otel.Meter("piko/email/email_provider_mailchimp_transactional")
 
-	// SendTotal tracks the total number of email send attempts.
-	// Labels: status (success|error), send_type (single|bulk).
+	// SendTotal tracks the total number of email send attempts. Labels: status
+	// (success|error), send_type (single|bulk).
 	SendTotal metric.Int64Counter
 
-	// SendDuration tracks the duration of email send operations in milliseconds.
-	// Labels: status (success|error), send_type (single|bulk).
+	// SendDuration tracks the duration of email send operations in milliseconds. Labels:
+	// status (success|error), send_type (single|bulk).
 	SendDuration metric.Float64Histogram
 )
 

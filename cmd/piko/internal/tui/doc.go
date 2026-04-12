@@ -16,19 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package tui provides a terminal user interface for monitoring Piko
-// applications.
+// Package tui provides a terminal user interface for monitoring Piko applications.
 //
-// This package is the public facade for Piko's TUI subsystem. It
-// displays real-time information about registry artefacts,
-// orchestrator tasks, metrics, traces, health status, and system
-// statistics. The TUI connects to a running Piko instance via its
-// gRPC monitoring endpoint.
+// This package is the public facade for Piko's TUI subsystem. It displays real-time
+// information about registry artefacts, orchestrator tasks, metrics, traces, health
+// status, and system statistics. The TUI connects to a running Piko instance via its gRPC
+// monitoring endpoint.
 //
 // # Quick start
 //
-// The TUI connects to your Piko application's gRPC monitoring
-// endpoint:
+// The TUI connects to your Piko application's gRPC monitoring endpoint:
 //
 //	t, err := tui.New(
 //	    tui.WithMonitoringEndpoint("localhost:9091"),
@@ -46,22 +43,19 @@
 //
 // The TUI is configured using functional options:
 //
-//   - [WithMonitoringEndpoint]: connect to Piko's gRPC
-//     monitoring server
+//   - [WithMonitoringEndpoint]: connect to Piko's gRPC monitoring server
 //   - [WithPikoEndpoint]: connect to Piko's HTTP endpoint
 //   - [WithPrometheus]: optionally connect to external Prometheus
 //   - [WithJaeger]: optionally connect to external Jaeger
-//   - [WithRefreshInterval]: set data refresh interval
-//     (default 2s)
+//   - [WithRefreshInterval]: set data refresh interval (default 2s)
 //   - [WithTheme]: select UI theme ("default" or "minimal")
 //   - [WithTitle]: set the TUI title bar text
 //   - [WithConfig]: apply settings from a Config value
 //
-// Configuration can also be loaded from a tui.yaml file using
-// [LoadConfig], which checks ./tui.yaml and
-// $HOME/.config/piko/tui.yaml. PIKO_TUI_* environment variables
-// override file values. The TUI's loader uses the same generic
-// config_domain machinery exposed at piko.sh/piko/wdk/config.
+// Configuration can also be loaded from a tui.yaml file using [LoadConfig], which checks
+// ./tui.yaml and $HOME/.config/piko/tui.yaml. PIKO_TUI_* environment variables override
+// file values. The TUI's loader uses the same generic config_domain machinery exposed at
+// piko.sh/piko/wdk/config.
 //
 // # Custom panels and providers
 //
@@ -86,12 +80,11 @@
 //
 // # Diagnostics
 //
-// Use [RunDiagnostics] to test connectivity to the gRPC
-// monitoring endpoint before launching the full TUI.
+// Use [RunDiagnostics] to test connectivity to the gRPC monitoring endpoint before
+// launching the full TUI.
 //
 // # Thread safety
 //
-// A [TUI] instance must not be shared between goroutines. Call
-// [TUI.Run] from a single goroutine; it blocks until the user
-// exits or the context is cancelled.
+// A [TUI] instance must not be shared between goroutines. Call [TUI.Run] from a single
+// goroutine; it blocks until the user exits or the context is cancelled.
 package tui

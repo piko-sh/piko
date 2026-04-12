@@ -131,8 +131,7 @@ func SetAnalyticsEventName(ctx context.Context, name string) {
 // handlers inherit request-level context automatically.
 //
 // Takes event (*AnalyticsEvent) which is the event to enrich.
-// Takes pctx (*daemon_dto.PikoRequestCtx) which provides the
-// request-level values.
+// Takes pctx (*daemon_dto.PikoRequestCtx) which provides the request-level values.
 func enrichEventFromRequestCtx(event *AnalyticsEvent, pctx *daemon_dto.PikoRequestCtx) {
 	if event.ClientIP == "" {
 		event.ClientIP = pctx.ClientIP

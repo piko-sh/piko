@@ -18,27 +18,28 @@
 
 package interp_link
 
-import "reflect"
+import (
+	"reflect"
+)
 
-// GenericFieldKind classifies a single FieldType node. The registry
-// synthesiser uses the kind to build both the go/types representation
-// (for type-checking user code that instantiates the generic) and the
-// reflect.Type (at runtime when the interpreter encounters an
-// instantiation with user-supplied type arguments).
+// GenericFieldKind classifies a single FieldType node. The registry synthesiser uses the
+// kind to build both the go/types representation (for type-checking user code that
+// instantiates the generic) and the reflect.Type (at runtime when the interpreter
+// encounters an instantiation with user-supplied type arguments).
 type GenericFieldKind uint8
 
 const (
 	// FieldKindBasic is a primitive type such as int, string, or bool.
 	FieldKindBasic GenericFieldKind = iota
 
-	// FieldKindTypeArg references the Nth type parameter of the
-	// enclosing LinkedGenericType (e.g. the T in Item T).
+	// FieldKindTypeArg references the Nth type parameter of the enclosing LinkedGenericType
+	// (e.g. the T in Item T).
 	FieldKindTypeArg
 
 	// FieldKindSlice is []Element.
 	FieldKindSlice
 
-	// FieldKindArray is [Length]Element.
+	// FieldKindArray is LengthElement.
 	FieldKindArray
 
 	// FieldKindMap is map[Key]Element.
@@ -47,62 +48,56 @@ const (
 	// FieldKindPointer is *Element.
 	FieldKindPointer
 
-	// FieldKindChan is a channel whose element is Element; channel
-	// direction information is not preserved because it rarely matters
-	// for the interpreter's type-checking purposes.
+	// FieldKindChan is a channel whose element is Element; channel direction information is
+	// not preserved because it rarely matters for the interpreter's type-checking purposes.
 	FieldKindChan
 
-	// FieldKindInterface collapses any interface type down to the
-	// empty interface for reflect purposes, matching how the compiler
-	// treats interface-typed fields today.
+	// FieldKindInterface collapses any interface type down to the empty interface for
+	// reflect purposes, matching how the compiler treats interface-typed fields today.
 	FieldKindInterface
 
-	// FieldKindNamed references a concrete non-generic named type from
-	// another package. The registry resolves it via its own name-based
-	// lookup during synthesis.
+	// FieldKindNamed references a concrete non-generic named type from another package. The
+	// registry resolves it via its own name-based lookup during synthesis.
 	FieldKindNamed
 
-	// FieldKindNamedGeneric references an instantiation of another
-	// LinkedGenericType (or an aliased generic), with TypeArgs giving
-	// the substitution for each of its declared type parameters.
+	// FieldKindNamedGeneric references an instantiation of another LinkedGenericType (or an
+	// aliased generic), with TypeArgs giving the substitution for each of its declared type
+	// parameters.
 	FieldKindNamedGeneric
 
-	// FieldKindError is the Go built-in `error` interface. Keeping it
-	// as its own kind avoids serialising the interface method set.
+	// FieldKindError is the Go built-in `error` interface. Keeping it as its own kind avoids
+	// serialising the interface method set.
 	FieldKindError
 )
 
-// GenericFieldType is a type-tree node describing one field's type in
-// a LinkedGenericType. It is emitted verbatim by `piko extract generate`
-// into the generated symbol file, so its representation must be
-// JSON-style plain data: no closures, no reflect.Type values captured
-// at extract time.
+// GenericFieldType is a type-tree node describing one field's type in a
+// LinkedGenericType. It is emitted verbatim by `piko extract generate` into the generated
+// symbol file, so its representation must be JSON-style plain data: no closures, no
+// reflect.Type values captured at extract time.
 type GenericFieldType struct {
-	// Element is the inner type for Slice, Array, Pointer, Chan, and
-	// the value side of Map. Nil for leaf kinds.
+	// Element is the inner type for Slice, Array, Pointer, Chan, and the value side of Map.
+	// Nil for leaf kinds.
 	Element *GenericFieldType
 
 	// Key is the key type for FieldKindMap; nil otherwise.
 	Key *GenericFieldType
 
-	// NamedPackage is the import path for FieldKindNamed and
-	// FieldKindNamedGeneric.
+	// NamedPackage is the import path for FieldKindNamed and FieldKindNamedGeneric.
 	NamedPackage string
 
-	// NamedName is the exported type name for FieldKindNamed and
-	// FieldKindNamedGeneric.
+	// NamedName is the exported type name for FieldKindNamed and FieldKindNamedGeneric.
 	NamedName string
 
-	// TypeArgs are the per-position type arguments for
-	// FieldKindNamedGeneric (empty for other kinds). Each element
-	// recursively describes one type argument in declaration order.
+	// TypeArgs are the per-position type arguments for FieldKindNamedGeneric (empty for
+	// other kinds). Each element recursively describes one type argument in declaration
+	// order.
 	TypeArgs []GenericFieldType
 
 	// ArrayLength is the fixed size of FieldKindArray entries.
 	ArrayLength int
 
-	// TypeArgIndex is the 0-based position of the referenced type
-	// parameter for FieldKindTypeArg.
+	// TypeArgIndex is the 0-based position of the referenced type parameter for
+	// FieldKindTypeArg.
 	TypeArgIndex int
 
 	// Kind classifies this node.
@@ -112,8 +107,8 @@ type GenericFieldType struct {
 	BasicKind reflect.Kind
 }
 
-// GenericField describes a single exported field of a linked generic
-// type, including its tag and resolved type-tree.
+// GenericField describes a single exported field of a linked generic type, including its
+// tag and resolved type-tree.
 type GenericField struct {
 	// Name is the exported Go identifier.
 	Name string
@@ -121,45 +116,40 @@ type GenericField struct {
 	// Tag is the raw struct tag, without surrounding backticks.
 	Tag string
 
-	// FieldType is the serialisable type tree for the field. The
-	// registry builds both a go/types.Type and a reflect.Type from it.
+	// FieldType is the serialisable type tree for the field. The registry builds both a
+	// go/types.Type and a reflect.Type from it.
 	FieldType GenericFieldType
 
-	// Exported carries the Go export visibility so the registry can
-	// populate reflect.StructField.PkgPath correctly for hidden
-	// fields. Today every registered symbol is exported, but keeping
-	// this explicit avoids a future mismatch when the extract tool
+	// Exported carries the Go export visibility so the registry can populate
+	// reflect.StructField.PkgPath correctly for hidden fields. Today every registered symbol
+	// is exported, but keeping this explicit avoids a future mismatch when the extract tool
 	// learns to surface sealed types.
 	Exported bool
 }
 
-// LinkedGenericType is the sentinel value registered in place of a
-// generic Go type. The interpreter recognises it during package
-// synthesis and builds a generic types.Named whose field types
-// reference the declared type parameters, so user code writing
-// pkg.Generic[Concrete] type-checks and instantiates into a proper
-// reflect.Type at runtime.
+// LinkedGenericType is the sentinel value registered in place of a generic Go type. The
+// interpreter recognises it during package synthesis and builds a generic types.Named
+// whose field types reference the declared type parameters, so user code writing
+// pkg.Generic[Concrete] type-checks and instantiates into a proper reflect.Type at
+// runtime.
 type LinkedGenericType struct {
 	// Name mirrors the exported type's identifier (e.g. "SearchResult").
 	//
-	// It is duplicated here because the registry walks the sentinel
-	// outside the map entry that recorded the key.
+	// It is duplicated here because the registry walks the sentinel outside the map entry
+	// that recorded the key.
 	Name string
 
-	// Fields describes each exported field of the generic type in
-	// declaration order.
+	// Fields describes each exported field of the generic type in declaration order.
 	Fields []GenericField
 
-	// TypeArgCount is the number of type parameters the generic
-	// declares. The interpreter accepts pkg.Name[T1, ..., Tn]
-	// instantiations where n == TypeArgCount.
+	// TypeArgCount is the number of type parameters the generic declares. The interpreter
+	// accepts pkg.Name[T1, ..., Tn] instantiations where n == TypeArgCount.
 	TypeArgCount int
 }
 
-// WrapType constructs a LinkedGenericType for extract's codegen path.
-// Keeping the constructor explicit keeps the emitted Go source
-// readable and lets us add validation later without changing the
-// generated files' shape.
+// WrapType constructs a LinkedGenericType for extract's codegen path. Keeping the
+// constructor explicit keeps the emitted Go source readable and lets us add validation
+// later without changing the generated files' shape.
 //
 // Takes name (string) which is the exported type identifier.
 // Takes typeArgCount (int) which is the number of type parameters.
@@ -170,6 +160,52 @@ func WrapType(name string, typeArgCount int, fields []GenericField) LinkedGeneri
 	return LinkedGenericType{
 		Name:         name,
 		Fields:       fields,
+		TypeArgCount: typeArgCount,
+	}
+}
+
+// NativeBackedGenericType is the sentinel for unexported-state generics.
+//
+// Registered in place of a generic stdlib type whose state is unexported (e.g.
+// atomic.Pointer, whose only field is an unexported unsafe.Pointer). Such types cannot be
+// reproduced structurally via reflect.StructOf because it cannot attach a method set.
+// Instead the sentinel carries the real, method-bearing reflect.Type of a single
+// canonical erased instantiation (e.g. atomic.Pointer[struct{}]); the interpreter reuses
+// it for every instantiation, coercing pointer arguments/results across the erasure
+// boundary at call sites.
+type NativeBackedGenericType struct {
+	// Name mirrors the exported type's identifier (e.g. "Pointer").
+	Name string
+
+	// ErasedType is the real reflect.Type of the canonical erased instantiation, carrying
+	// the type's genuine native method set.
+	ErasedType reflect.Type
+
+	// ErasureArgs are the reflect.Types of the canonical erased type arguments (e.g.
+	// struct{} for atomic.Pointer[struct{}]), one per type parameter; the registry
+	// substitutes the corresponding type parameter wherever an erasure arg appears in a
+	// synthesised method signature.
+	ErasureArgs []reflect.Type
+
+	// TypeArgCount is the number of type parameters the generic declares.
+	TypeArgCount int
+}
+
+// WrapNativeGenericType constructs a NativeBackedGenericType for extract's codegen path.
+//
+// Takes name (string) which is the exported type identifier.
+// Takes typeArgCount (int) which is the number of type parameters.
+// Takes erased (reflect.Type) which is the reflect.Type of the canonical erased
+// instantiation.
+// Takes erasureArgs (...reflect.Type) which are the erased type arguments, one per type
+// parameter.
+//
+// Returns a NativeBackedGenericType suitable for reflect.ValueOf wrapping.
+func WrapNativeGenericType(name string, typeArgCount int, erased reflect.Type, erasureArgs ...reflect.Type) NativeBackedGenericType {
+	return NativeBackedGenericType{
+		Name:         name,
+		ErasedType:   erased,
+		ErasureArgs:  erasureArgs,
 		TypeArgCount: typeArgCount,
 	}
 }

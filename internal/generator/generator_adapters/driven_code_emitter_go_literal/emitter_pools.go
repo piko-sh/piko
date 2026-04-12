@@ -48,7 +48,8 @@ var (
 		},
 	}
 
-	// expressionEmitterPool reuses expressionEmitter instances to reduce allocation pressure.
+	// expressionEmitterPool reuses expressionEmitter instances to reduce allocation
+	// pressure.
 	expressionEmitterPool = sync.Pool{
 		New: func() any {
 			return &expressionEmitter{}
@@ -84,8 +85,7 @@ var (
 	}
 )
 
-// getAstBuilder retrieves an astBuilder from the pool and sets up all its
-// sub-emitters.
+// getAstBuilder retrieves an astBuilder from the pool and sets up all its sub-emitters.
 //
 // Takes emitter (*emitter) which provides the code generation context.
 //
@@ -117,12 +117,11 @@ func retrieveAstBuilderFromPool(ctx context.Context) *astBuilder {
 	return &astBuilder{}
 }
 
-// initialiseStaticEmitter sets up a static emitter from the pool and assigns
-// it to the builder.
+// initialiseStaticEmitter sets up a static emitter from the pool and assigns it to the
+// builder.
 //
 // Takes b (*astBuilder) which receives the set up static emitter.
-// Takes emitter (*emitter) which provides the base emitter for the static
-// emitter.
+// Takes emitter (*emitter) which provides the base emitter for the static emitter.
 func initialiseStaticEmitter(b *astBuilder, emitter *emitter) {
 	staticEmit, ok := staticEmitterPool.Get().(*staticEmitter)
 	if !ok {
@@ -155,12 +154,10 @@ func initialiseStaticEmitter(b *astBuilder, emitter *emitter) {
 	b.staticEmitter = staticEmit
 }
 
-// initialiseExpressionEmitter sets up the expression emitter and its
-// dependencies.
+// initialiseExpressionEmitter sets up the expression emitter and its dependencies.
 //
 // Takes b (*astBuilder) which receives the configured expression emitter.
-// Takes emitter (*emitter) which provides the base emitter for expression
-// handling.
+// Takes emitter (*emitter) which provides the base emitter for expression handling.
 func initialiseExpressionEmitter(b *astBuilder, emitter *emitter) {
 	expressionEmit, ok := expressionEmitterPool.Get().(*expressionEmitter)
 	if !ok {
@@ -176,8 +173,8 @@ func initialiseExpressionEmitter(b *astBuilder, emitter *emitter) {
 	b.expressionEmitter = expressionEmit
 }
 
-// initialiseBinaryOpEmitter sets up a binary operation emitter within an
-// expression emitter.
+// initialiseBinaryOpEmitter sets up a binary operation emitter within an expression
+// emitter.
 //
 // Takes expressionEmit (*expressionEmitter) which receives the binary emitter.
 // Takes emitter (*emitter) which provides the code emission context.
@@ -196,8 +193,7 @@ func initialiseBinaryOpEmitter(expressionEmit *expressionEmitter, emitter *emitt
 // initialiseControlFlowEmitters sets up the if and for statement emitters.
 //
 // Takes b (*astBuilder) which provides the AST building context.
-// Takes emitter (*emitter) which receives the control flow emitter
-// registrations.
+// Takes emitter (*emitter) which receives the control flow emitter registrations.
 func initialiseControlFlowEmitters(b *astBuilder, emitter *emitter) {
 	initialiseIfEmitter(b, emitter)
 	initialiseForEmitter(b, emitter)
@@ -237,8 +233,8 @@ func initialiseForEmitter(b *astBuilder, emitter *emitter) {
 	b.forEmitter = forEmit
 }
 
-// initialiseNodeEmitter sets up a node emitter by getting one from a pool and
-// setting its fields, then assigns it to the AST builder.
+// initialiseNodeEmitter sets up a node emitter by getting one from a pool and setting its
+// fields, then assigns it to the AST builder.
 //
 // Takes b (*astBuilder) which receives the configured node emitter.
 // Takes emitter (*emitter) which provides the underlying emitter reference.
@@ -259,10 +255,8 @@ func initialiseNodeEmitter(b *astBuilder, emitter *emitter) {
 
 // initialiseAttributeEmitter sets up the attribute emitter for a node emitter.
 //
-// Takes nodeEmit (*nodeEmitter) which receives the configured attribute
-// emitter.
-// Takes emitter (*emitter) which provides the base emitter for attribute
-// output.
+// Takes nodeEmit (*nodeEmitter) which receives the configured attribute emitter.
+// Takes emitter (*emitter) which provides the base emitter for attribute output.
 // Takes expressionEmit (ExpressionEmitter) which handles expression rendering.
 func initialiseAttributeEmitter(nodeEmit *nodeEmitter, emitter *emitter, expressionEmit ExpressionEmitter) {
 	attributeEmit, ok := attributeEmitterPool.Get().(*attributeEmitter)
@@ -276,8 +270,7 @@ func initialiseAttributeEmitter(nodeEmit *nodeEmitter, emitter *emitter, express
 	nodeEmit.attributeEmitter = attributeEmit
 }
 
-// wireEmitterReferences sets up two-way references between an emitter and an
-// astBuilder.
+// wireEmitterReferences sets up two-way references between an emitter and an astBuilder.
 //
 // Takes emitter (*emitter) which receives the builder and static emitter.
 // Takes b (*astBuilder) which provides the static emitter to link.
@@ -288,8 +281,8 @@ func wireEmitterReferences(emitter *emitter, b *astBuilder) {
 	}
 }
 
-// putAstBuilder resets the given astBuilder and returns it along with all
-// its sub-emitters to their respective pools.
+// putAstBuilder resets the given astBuilder and returns it along with all its
+// sub-emitters to their respective pools.
 //
 // Takes b (*astBuilder) which is the builder to reset and return.
 func putAstBuilder(b *astBuilder) {
@@ -304,8 +297,8 @@ func putAstBuilder(b *astBuilder) {
 	resetAndReturnAstBuilder(b)
 }
 
-// returnNodeEmitterToPool returns the nodeEmitter and its attributeEmitter to
-// their pools.
+// returnNodeEmitterToPool returns the nodeEmitter and its attributeEmitter to their
+// pools.
 //
 // Takes b (*astBuilder) which holds the nodeEmitter to return.
 func returnNodeEmitterToPool(b *astBuilder) {
@@ -388,8 +381,8 @@ func returnIfEmitterToPool(b *astBuilder) {
 	b.ifEmitter = nil
 }
 
-// returnExpressionEmitterToPool returns the expression emitter and its binary
-// operation emitter to their object pools for reuse.
+// returnExpressionEmitterToPool returns the expression emitter and its binary operation
+// emitter to their object pools for reuse.
 //
 // Takes b (*astBuilder) which holds the expression emitter to return.
 func returnExpressionEmitterToPool(b *astBuilder) {
@@ -419,8 +412,7 @@ func returnBinaryOpEmitterToPool(ee *expressionEmitter) {
 	}
 }
 
-// resetAndReturnExpressionEmitter clears and returns an expressionEmitter to
-// its pool.
+// resetAndReturnExpressionEmitter clears and returns an expressionEmitter to its pool.
 //
 // Takes ee (*expressionEmitter) which is the emitter to clear and return.
 func resetAndReturnExpressionEmitter(ee *expressionEmitter) {
@@ -430,8 +422,8 @@ func resetAndReturnExpressionEmitter(ee *expressionEmitter) {
 	expressionEmitterPool.Put(ee)
 }
 
-// returnStaticEmitterToPool returns a static emitter to its pool after
-// clearing its state.
+// returnStaticEmitterToPool returns a static emitter to its pool after clearing its
+// state.
 //
 // Takes b (*astBuilder) which holds the static emitter to return.
 func returnStaticEmitterToPool(b *astBuilder) {
@@ -447,8 +439,8 @@ func returnStaticEmitterToPool(b *astBuilder) {
 	b.staticEmitter = nil
 }
 
-// resetAndReturnAstBuilder clears all fields of the builder and returns it to
-// the pool for reuse.
+// resetAndReturnAstBuilder clears all fields of the builder and returns it to the pool
+// for reuse.
 //
 // Takes b (*astBuilder) which is the builder to reset and return.
 func resetAndReturnAstBuilder(b *astBuilder) {

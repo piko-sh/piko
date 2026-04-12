@@ -22,14 +22,15 @@ import (
 	"go/ast"
 	"go/token"
 	"path"
+	"slices"
 	"strings"
 
 	"piko.sh/piko/internal/goastutil"
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// ImportTracker collects import paths required by the generated file and
-// provides AST expression builders for Go types.
+// ImportTracker collects import paths required by the generated file and provides AST
+// expression builders for Go types.
 type ImportTracker struct {
 	// imports holds the collected import paths mapped to their aliases.
 	imports map[string]string
@@ -44,8 +45,8 @@ func NewImportTracker() *ImportTracker {
 	}
 }
 
-// AddType converts a querier_dto.GoType to an ast.Expr, registering any
-// required import in the tracker.
+// AddType converts a querier_dto.GoType to an ast.Expr, registering any required import
+// in the tracker.
 //
 // Takes goType (querier_dto.GoType) which specifies the Go type to represent.
 //
@@ -93,14 +94,12 @@ func (tracker *ImportTracker) AddImport(importPath string) {
 	tracker.imports[importPath] = ""
 }
 
-// ResolveGoType maps a SQL type to its corresponding Go type using the mapping
-// table. This replicates the TypeMapper.MapType logic to avoid importing the
-// domain package.
+// ResolveGoType maps a SQL type to its corresponding Go type using the mapping table.
+// This replicates the TypeMapper.MapType logic to avoid importing the domain package.
 //
 // Takes sqlType (querier_dto.SQLType) which is the SQL type to map.
 // Takes nullable (bool) which indicates whether the column permits NULL.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines the mapping
-// rules.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines the mapping rules.
 //
 // Returns querier_dto.GoType which is the resolved Go type.
 func ResolveGoType(
@@ -111,7 +110,7 @@ func ResolveGoType(
 	var categoryMatch *querier_dto.TypeMapping
 	var exactMatch *querier_dto.TypeMapping
 
-	for i := len(mappings.Mappings) - 1; i >= 0; i-- {
+	for i := range slices.Backward(mappings.Mappings) {
 		mapping := &mappings.Mappings[i]
 		if mapping.SQLCategory != sqlType.Category {
 			continue

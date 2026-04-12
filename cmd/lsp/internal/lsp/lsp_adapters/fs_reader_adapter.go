@@ -32,10 +32,10 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// lspFSReader is a driven adapter that implements FSReaderPort for providing
-// live diagnostics on unsaved files. It first consults the LSP server's
-// in-memory document cache for open files with unsaved changes, then falls
-// back to the physical disk for files not in the cache.
+// lspFSReader is a driven adapter that implements FSReaderPort for providing live
+// diagnostics on unsaved files. It first consults the LSP server's in-memory document
+// cache for open files with unsaved changes, then falls back to the physical disk for
+// files not in the cache.
 type lspFSReader struct {
 	// docCache stores live, unsaved document content for cache lookups.
 	docCache *lsp_domain.DocumentCache
@@ -50,8 +50,8 @@ var (
 	_ annotator_domain.FSReaderPort = (*osFSReader)(nil)
 )
 
-// ReadFile implements the FSReaderPort interface by reading file content.
-// It checks the in-memory cache first before falling back to the disk.
+// ReadFile implements the FSReaderPort interface by reading file content. It checks the
+// in-memory cache first before falling back to the disk.
 //
 // Takes filePath (string) which specifies the absolute path to the file.
 //
@@ -75,12 +75,12 @@ func (r *lspFSReader) ReadFile(ctx context.Context, filePath string) ([]byte, er
 
 // osFSReader implements FSReaderPort by reading files from the file system.
 type osFSReader struct {
-	// sandbox is an optional sandbox for testing. When nil, a sandbox is
-	// created for each ReadFile call based on the file's parent directory.
+	// sandbox is an optional sandbox for testing. When nil, a sandbox is created for each
+	// ReadFile call based on the file's parent directory.
 	sandbox safedisk.Sandbox
 
-	// factory creates sandboxes for filesystem access. When nil, falls back
-	// to safedisk.NewNoOpSandbox for each call.
+	// factory creates sandboxes for filesystem access. When nil, falls back to
+	// safedisk.NewNoOpSandbox for each call.
 	factory safedisk.Factory
 }
 
@@ -130,13 +130,13 @@ func (r *osFSReader) ReadFile(ctx context.Context, filePath string) ([]byte, err
 
 // NewLspFSReader creates a new, configured file reader adapter for the LSP.
 //
-// Takes docCache (*lsp_domain.DocumentCache) which provides the LSP domain's
-// document cache for accessing open documents.
-// Takes fallback (annotator_domain.FSReaderPort) which provides disk access
-// for files not in the cache.
+// Takes docCache (*lsp_domain.DocumentCache) which provides the LSP domain's document
+// cache for accessing open documents.
+// Takes fallback (annotator_domain.FSReaderPort) which provides disk access for files not
+// in the cache.
 //
-// Returns annotator_domain.FSReaderPort which reads files from the document
-// cache with disk fallback.
+// Returns annotator_domain.FSReaderPort which reads files from the document cache with
+// disk fallback.
 // Returns error when docCache or fallback is nil.
 func NewLspFSReader(docCache *lsp_domain.DocumentCache, fallback annotator_domain.FSReaderPort) (annotator_domain.FSReaderPort, error) {
 	switch {
@@ -151,9 +151,8 @@ func NewLspFSReader(docCache *lsp_domain.DocumentCache, fallback annotator_domai
 	}, nil
 }
 
-// WithOsFSReaderSandbox injects a sandbox for testing filesystem
-// operations, using it for all ReadFile calls instead of creating a
-// new sandbox per call.
+// WithOsFSReaderSandbox injects a sandbox for testing filesystem operations, using it for
+// all ReadFile calls instead of creating a new sandbox per call.
 //
 // The caller is responsible for closing the sandbox.
 //
@@ -166,11 +165,10 @@ func WithOsFSReaderSandbox(sandbox safedisk.Sandbox) OsFSReaderOption {
 	}
 }
 
-// WithOsFSReaderFactory sets a sandbox factory for creating sandboxes per
-// ReadFile call instead of falling back to no-op sandboxes.
+// WithOsFSReaderFactory sets a sandbox factory for creating sandboxes per ReadFile call
+// instead of falling back to no-op sandboxes.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
 // Returns OsFSReaderOption which configures the reader with the given factory.
 func WithOsFSReaderFactory(factory safedisk.Factory) OsFSReaderOption {
@@ -181,8 +179,8 @@ func WithOsFSReaderFactory(factory safedisk.Factory) OsFSReaderOption {
 
 // NewOsFSReader creates a new file system reader that reads from disk.
 //
-// Takes opts (...OsFSReaderOption) which provides optional configuration
-// such as WithOsFSReaderSandbox for testing.
+// Takes opts (...OsFSReaderOption) which provides optional configuration such as
+// WithOsFSReaderSandbox for testing.
 //
 // Returns annotator_domain.FSReaderPort which provides file system access.
 func NewOsFSReader(opts ...OsFSReaderOption) annotator_domain.FSReaderPort {

@@ -18,13 +18,16 @@
 
 package db_driver_d1
 
-import "database/sql/driver"
+import (
+	"database/sql/driver"
+)
 
-// Compile-time interface check.
-var _ driver.Result = (*d1Result)(nil)
+var (
+	_ driver.Result = (*d1Result)(nil)
+)
 
-// d1Result implements driver.Result, holding the metadata returned by a D1
-// exec-style query.
+// d1Result implements driver.Result, holding the metadata returned by a D1 exec-style
+// query.
 type d1Result struct {
 	// lastInsertID is the rowid of the last inserted row.
 	lastInsertID int64

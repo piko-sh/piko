@@ -18,7 +18,9 @@
 
 package ratelimiter_dto
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestTokenBucketConfig_MaxTokens(t *testing.T) {
 

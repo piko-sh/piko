@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package i18n_adapters implements [i18n_domain.Service] via
-// filesystem-backed loaders and emitters for internationalisation
-// data.
+// Package i18n_adapters implements [i18n_domain.Service] via filesystem-backed loaders
+// and emitters for internationalisation data.
 //
-// It supports JSON (for development) and FlatBuffer (for production,
-// zero-allocation parsing) storage formats. All file operations are
-// sandboxed via [safedisk.Sandbox] to prevent path traversal attacks.
+// It supports JSON (for development) and FlatBuffer (for production, zero-allocation
+// parsing) storage formats. All file operations are sandboxed via [safedisk.Sandbox] to
+// prevent path traversal attacks.
 //
 // # Usage
 //
@@ -30,8 +29,8 @@
 //
 //	service, err := i18n_adapters.NewService(ctx, sandbox, config)
 //
-// This checks for a pre-compiled FlatBuffer (dist/i18n.bin) first,
-// falling back to JSON if not found. For explicit format selection:
+// This checks for a pre-compiled FlatBuffer (dist/i18n.bin) first, falling back to JSON
+// if not found. For explicit format selection:
 //
 //	// FlatBuffer mode (recommended for production)
 //	loader := i18n_adapters.NewLoader(i18n_adapters.LoaderConfig{
@@ -49,7 +48,6 @@
 //
 // # Thread safety
 //
-// The service returned by [NewService] and [NewFlatBufferService]
-// is safe for concurrent use. Providers and emitters should be used
-// from a single goroutine.
+// The service returned by [NewService] and [NewFlatBufferService] is safe for concurrent
+// use. Providers and emitters should be used from a single goroutine.
 package i18n_adapters

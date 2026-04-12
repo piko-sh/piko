@@ -28,20 +28,18 @@ import (
 	"piko.sh/piko/internal/esbuild/logger"
 )
 
-// applyRuleSet applies both inlineable and leftover rules from the given rule
-// set. Can be tested by passing a manually created RuleSet.
+// applyRuleSet applies both inlineable and leftover rules from the given rule set. Can be
+// tested by passing a manually created RuleSet.
 //
 // Takes ruleSet (*RuleSet) which contains the sorted rules to apply.
-// Takes cssAST (css_ast.AST) which provides context for reinserting leftover
-// rules.
+// Takes cssAST (css_ast.AST) which provides context for reinserting leftover rules.
 func (p *Premailer) applyRuleSet(ruleSet *RuleSet, cssAST css_ast.AST) {
 	p.applyInlineableRules(ruleSet.InlineableRules)
 	p.reinsertLeftoverRules(ruleSet.LeftoverRules, cssAST)
 }
 
-// applyInlineableRules finds nodes using the AST query engine and merges
-// styles into them. Uses cached original inline styles to avoid walking the
-// tree again.
+// applyInlineableRules finds nodes using the AST query engine and merges styles into
+// them. Uses cached original inline styles to avoid walking the tree again.
 //
 // Takes rules ([]styleRule) which contains the CSS rules to apply inline.
 func (p *Premailer) applyInlineableRules(rules []styleRule) {
@@ -59,16 +57,15 @@ func (p *Premailer) applyInlineableRules(rules []styleRule) {
 	}
 }
 
-// matchRulesToNodes matches CSS rules to template nodes and returns the
-// resolved property maps per node without modifying the AST. Rules are
-// expected to be sorted by specificity (lowest first) so that later rules
-// override earlier ones.
+// matchRulesToNodes matches CSS rules to template nodes and returns the resolved property
+// maps per node without modifying the AST. Rules are expected to be sorted by specificity
+// (lowest first) so that later rules override earlier ones.
 //
 // Takes tree (*ast_domain.TemplateAST) which provides the DOM to query.
 // Takes rules ([]styleRule) which contains the sorted CSS rules.
 //
-// Returns map[*ast_domain.TemplateNode]map[string]property which maps each
-// matched node to its cascade-resolved properties.
+// Returns map[*ast_domain.TemplateNode]map[string]property which maps each matched node
+// to its cascade-resolved properties.
 // Returns []*ast_domain.Diagnostic which contains any selector parse errors.
 func matchRulesToNodes(
 	tree *ast_domain.TemplateAST,
@@ -92,8 +89,8 @@ func matchRulesToNodes(
 	return result, diagnostics
 }
 
-// mergeRuleIntoNodeProps merges a rule's properties into the per-node
-// property map, creating the node entry if it does not exist.
+// mergeRuleIntoNodeProps merges a rule's properties into the per-node property map,
+// creating the node entry if it does not exist.
 //
 // Takes result (map) which is the per-node property accumulator.
 // Takes node (*ast_domain.TemplateNode) which is the matched node.
@@ -119,15 +116,14 @@ func mergeRuleIntoNodeProps(
 	}
 }
 
-// matchPseudoRulesToNodes matches pseudo-element CSS rules to template nodes
-// and returns the resolved property maps keyed by node and pseudo-element name.
+// matchPseudoRulesToNodes matches pseudo-element CSS rules to template nodes and returns
+// the resolved property maps keyed by node and pseudo-element name.
 //
 // Takes tree (*ast_domain.TemplateAST) which provides the DOM to query.
-// Takes rules ([]pseudoElementRule) which contains the sorted pseudo-element
-// rules.
+// Takes rules ([]pseudoElementRule) which contains the sorted pseudo-element rules.
 //
-// Returns map[*ast_domain.TemplateNode]map[string]map[string]property which maps
-// each node to its pseudo-element property values keyed by name then property.
+// Returns map[*ast_domain.TemplateNode]map[string]map[string]property which maps each
+// node to its pseudo-element property values keyed by name then property.
 // Returns []*ast_domain.Diagnostic which contains any selector parse errors.
 func matchPseudoRulesToNodes(
 	tree *ast_domain.TemplateAST,
@@ -151,8 +147,8 @@ func matchPseudoRulesToNodes(
 	return result, diagnostics
 }
 
-// mergePseudoRuleIntoNodeProps merges a pseudo-element rule's properties
-// into the per-node pseudo-element property map, creating entries as needed.
+// mergePseudoRuleIntoNodeProps merges a pseudo-element rule's properties into the
+// per-node pseudo-element property map, creating entries as needed.
 //
 // Takes result (map) which is the per-node pseudo-element accumulator.
 // Takes node (*ast_domain.TemplateNode) which is the matched node.
@@ -185,14 +181,13 @@ func mergePseudoRuleIntoNodeProps(
 	}
 }
 
-// applyMatchedPropertiesToNode writes matched CSS properties to a node's style
-// attribute, respecting original inline style priorities.
+// applyMatchedPropertiesToNode writes matched CSS properties to a node's style attribute,
+// respecting original inline style priorities.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to modify.
-// Takes nodeProps (map[string]property) which contains the cascade-resolved
-// properties.
-// Takes originalProps (map[string]bool) which tracks properties from the
-// original inline style.
+// Takes nodeProps (map[string]property) which contains the cascade-resolved properties.
+// Takes originalProps (map[string]bool) which tracks properties from the original inline
+// style.
 // Takes options (*Options) which controls attribute mapping behaviour.
 func applyMatchedPropertiesToNode(
 	node *ast_domain.TemplateNode,
@@ -221,13 +216,12 @@ func applyMatchedPropertiesToNode(
 	}
 }
 
-// reinsertLeftoverRules creates a new style tag for rules that cannot be
-// inlined.
+// reinsertLeftoverRules creates a new style tag for rules that cannot be inlined.
 //
-// Takes rules ([]css_ast.Rule) which contains CSS rules that could not be
-// added to element style attributes.
-// Takes cssAST (css_ast.AST) which provides the parsed CSS structure for
-// converting rules back into text.
+// Takes rules ([]css_ast.Rule) which contains CSS rules that could not be added to
+// element style attributes.
+// Takes cssAST (css_ast.AST) which provides the parsed CSS structure for converting rules
+// back into text.
 func (p *Premailer) reinsertLeftoverRules(rules []css_ast.Rule, cssAST css_ast.AST) {
 	if len(rules) == 0 {
 		return
@@ -263,8 +257,7 @@ func (p *Premailer) insertStyleTag(cssString string) {
 
 // findOrCreateHead finds the head element or creates one if it does not exist.
 //
-// Returns *ast_domain.TemplateNode which is the existing or newly created head
-// element.
+// Returns *ast_domain.TemplateNode which is the existing or newly created head element.
 func (p *Premailer) findOrCreateHead() *ast_domain.TemplateNode {
 	head := p.tree.Find(func(node *ast_domain.TemplateNode) bool {
 		return node.NodeType == ast_domain.NodeElement && node.TagName == "head"
@@ -289,8 +282,7 @@ func (p *Premailer) findOrCreateHead() *ast_domain.TemplateNode {
 	return head
 }
 
-// propagateDiagnostics converts esbuild log messages into TemplateAST
-// diagnostics.
+// propagateDiagnostics converts esbuild log messages into TemplateAST diagnostics.
 func (p *Premailer) propagateDiagnostics() {
 	if !p.log.HasErrors() {
 		return
@@ -333,8 +325,8 @@ func (p *Premailer) propagateDiagnostics() {
 	}
 }
 
-// htmlTagDiagnosticInfo holds information for creating diagnostics about
-// problematic HTML tags.
+// htmlTagDiagnosticInfo holds information for creating diagnostics about problematic HTML
+// tags.
 type htmlTagDiagnosticInfo struct {
 	// message is the text shown to the user when this diagnostic is reported.
 	message string
@@ -343,98 +335,100 @@ type htmlTagDiagnosticInfo struct {
 	severity ast_domain.Severity
 }
 
-// problematicHTMLTags maps tag names to their diagnostic information.
-var problematicHTMLTags = map[string]htmlTagDiagnosticInfo{
-	"script": {
-		severity: ast_domain.Warning,
-		message:  "The <script> element is a security risk and is universally stripped by email clients. All JavaScript will be removed.",
-	},
-	"form": {
-		severity: ast_domain.Warning,
-		message:  "The <form> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
-	},
-	"input": {
-		severity: ast_domain.Warning,
-		message:  "The <input> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
-	},
-	"textarea": {
-		severity: ast_domain.Warning,
-		message:  "The <textarea> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
-	},
-	"select": {
-		severity: ast_domain.Warning,
-		message:  "The <select> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
-	},
-	"option": {
-		severity: ast_domain.Warning,
-		message:  "The <option> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
-	},
-	"button": {
-		severity: ast_domain.Warning,
-		message:  "The <button> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
-	},
-	"iframe": {
-		severity: ast_domain.Warning,
-		message:  "The <iframe> element is a security risk and is universally stripped by email clients.",
-	},
-	"object": {
-		severity: ast_domain.Warning,
-		message:  "The <object> element is a security risk and is universally stripped by email clients.",
-	},
-	"embed": {
-		severity: ast_domain.Warning,
-		message:  "The <embed> element is a security risk and is universally stripped by email clients.",
-	},
-	"applet": {
-		severity: ast_domain.Warning,
-		message:  "The <applet> element is a security risk and is universally stripped by email clients.",
-	},
-	"base": {
-		severity: ast_domain.Warning,
-		message: "The <base> tag is dangerous in HTML emails. It can break all relative links and image paths, " +
-			"especially when the email is forwarded or viewed in different clients.",
-	},
-	"svg": {
-		severity: ast_domain.Warning,
-		message: "The <svg> element is not supported in major email clients like Gmail and Outlook (Windows). " +
-			"It will be stripped. Use a fallback <img> with a PNG or JPG for universal compatibility.",
-	},
-	"video": {
-		severity: ast_domain.Warning,
-		message: "The <video> element has very limited support and will not work in most email clients. " +
-			"Consider linking to the media file or using an animated GIF as a preview.",
-	},
-	"audio": {
-		severity: ast_domain.Warning,
-		message: "The <audio> element has very limited support and will not work in most email clients. " +
-			"Consider linking to the media file or using an animated GIF as a preview.",
-	},
-	"source": {
-		severity: ast_domain.Warning,
-		message: "The <source> element has very limited support and will not work in most email clients. " +
-			"Consider linking to the media file or using an animated GIF as a preview.",
-	},
-	"canvas": {
-		severity: ast_domain.Warning,
-		message:  "The interactive <canvas> element is not supported in email clients.",
-	},
-	"details": {
-		severity: ast_domain.Warning,
-		message:  "The interactive <details> element is not supported in email clients.",
-	},
-	"summary": {
-		severity: ast_domain.Warning,
-		message:  "The interactive <summary> element is not supported in email clients.",
-	},
-	"center": {
-		severity: ast_domain.Info,
-		message: "The <center> tag is obsolete. For better compatibility, use the 'align=\"center\"' attribute " +
-			"on a containing <table> or <td>, or apply 'text-align: center' via CSS.",
-	},
-}
+var (
+	// problematicHTMLTags maps tag names to their diagnostic information.
+	problematicHTMLTags = map[string]htmlTagDiagnosticInfo{
+		"script": {
+			severity: ast_domain.Warning,
+			message:  "The <script> element is a security risk and is universally stripped by email clients. All JavaScript will be removed.",
+		},
+		"form": {
+			severity: ast_domain.Warning,
+			message:  "The <form> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
+		},
+		"input": {
+			severity: ast_domain.Warning,
+			message:  "The <input> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
+		},
+		"textarea": {
+			severity: ast_domain.Warning,
+			message:  "The <textarea> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
+		},
+		"select": {
+			severity: ast_domain.Warning,
+			message:  "The <select> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
+		},
+		"option": {
+			severity: ast_domain.Warning,
+			message:  "The <option> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
+		},
+		"button": {
+			severity: ast_domain.Warning,
+			message:  "The <button> element is not supported. HTML forms do not work in email clients. Link to a form on a web page instead.",
+		},
+		"iframe": {
+			severity: ast_domain.Warning,
+			message:  "The <iframe> element is a security risk and is universally stripped by email clients.",
+		},
+		"object": {
+			severity: ast_domain.Warning,
+			message:  "The <object> element is a security risk and is universally stripped by email clients.",
+		},
+		"embed": {
+			severity: ast_domain.Warning,
+			message:  "The <embed> element is a security risk and is universally stripped by email clients.",
+		},
+		"applet": {
+			severity: ast_domain.Warning,
+			message:  "The <applet> element is a security risk and is universally stripped by email clients.",
+		},
+		"base": {
+			severity: ast_domain.Warning,
+			message: "The <base> tag is dangerous in HTML emails. It can break all relative links and image paths, " +
+				"especially when the email is forwarded or viewed in different clients.",
+		},
+		"svg": {
+			severity: ast_domain.Warning,
+			message: "The <svg> element is not supported in major email clients like Gmail and Outlook (Windows). " +
+				"It will be stripped. Use a fallback <img> with a PNG or JPG for universal compatibility.",
+		},
+		"video": {
+			severity: ast_domain.Warning,
+			message: "The <video> element has very limited support and will not work in most email clients. " +
+				"Consider linking to the media file or using an animated GIF as a preview.",
+		},
+		"audio": {
+			severity: ast_domain.Warning,
+			message: "The <audio> element has very limited support and will not work in most email clients. " +
+				"Consider linking to the media file or using an animated GIF as a preview.",
+		},
+		"source": {
+			severity: ast_domain.Warning,
+			message: "The <source> element has very limited support and will not work in most email clients. " +
+				"Consider linking to the media file or using an animated GIF as a preview.",
+		},
+		"canvas": {
+			severity: ast_domain.Warning,
+			message:  "The interactive <canvas> element is not supported in email clients.",
+		},
+		"details": {
+			severity: ast_domain.Warning,
+			message:  "The interactive <details> element is not supported in email clients.",
+		},
+		"summary": {
+			severity: ast_domain.Warning,
+			message:  "The interactive <summary> element is not supported in email clients.",
+		},
+		"center": {
+			severity: ast_domain.Info,
+			message: "The <center> tag is obsolete. For better compatibility, use the 'align=\"center\"' attribute " +
+				"on a containing <table> or <td>, or apply 'text-align: center' via CSS.",
+		},
+	}
+)
 
-// shouldApplyProperty checks if a new CSS property should replace an existing
-// one based on CSS priority rules and !important flags.
+// shouldApplyProperty checks if a new CSS property should replace an existing one based
+// on CSS priority rules and !important flags.
 //
 // CSS priority order (highest to lowest):
 //  1. Inline styles with !important.
@@ -444,13 +438,12 @@ var problematicHTMLTags = map[string]htmlTagDiagnosticInfo{
 //
 // Takes propName (string) which is the name of the CSS property.
 // Takes newProp (property) which is the new value to consider.
-// Takes existingProp (*property) which is the current value, or nil if the
-// property does not exist.
-// Takes originalProps (map[string]bool) which tracks properties that were in
-// the original inline style.
+// Takes existingProp (*property) which is the current value, or nil if the property does
+// not exist.
+// Takes originalProps (map[string]bool) which tracks properties that were in the original
+// inline style.
 //
-// Returns bool which is true if the new property should replace the existing
-// one.
+// Returns bool which is true if the new property should replace the existing one.
 func shouldApplyProperty(
 	propName string,
 	newProp property,
@@ -468,9 +461,9 @@ func shouldApplyProperty(
 	return true
 }
 
-// makeLeftoverRulesImportant sets the Important flag on all CSS declarations
-// within the given rules. This means email clients like Gmail respect styles
-// in <style> tags, as many only apply styles marked !important.
+// makeLeftoverRulesImportant sets the Important flag on all CSS declarations within the
+// given rules. This means email clients like Gmail respect styles in <style> tags, as
+// many only apply styles marked !important.
 //
 // Takes rules ([]css_ast.Rule) which contains the CSS rules to process.
 func makeLeftoverRulesImportant(rules []css_ast.Rule) {
@@ -499,8 +492,8 @@ func makeLeftoverRulesImportant(rules []css_ast.Rule) {
 // Takes rules ([]css_ast.Rule) which contains the CSS rules to convert.
 // Takes cssAST (css_ast.AST) which provides the symbol table for the CSS.
 //
-// Returns string which is the CSS output with colour values converted to hex
-// format for email client support.
+// Returns string which is the CSS output with colour values converted to hex format for
+// email client support.
 func rulesToCSSString(rules []css_ast.Rule, cssAST css_ast.AST) string {
 	leftoverAST := css_ast.AST{Rules: rules, Symbols: cssAST.Symbols}
 	symbolMap := ast.SymbolMap{SymbolsForSource: [][]ast.Symbol{cssAST.Symbols}}
@@ -512,14 +505,13 @@ func rulesToCSSString(rules []css_ast.Rule, cssAST css_ast.AST) string {
 	return convertColorValues(cssString)
 }
 
-// createHTMLTagDiagnostic creates a diagnostic for an HTML tag that may cause
-// problems in email clients, or returns nil if the tag is safe.
+// createHTMLTagDiagnostic creates a diagnostic for an HTML tag that may cause problems in
+// email clients, or returns nil if the tag is safe.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the HTML tag to check.
 // Takes sourcePath (string) which identifies the source file for reporting.
 //
-// Returns *ast_domain.Diagnostic which describes the issue, or nil if the tag
-// is safe.
+// Returns *ast_domain.Diagnostic which describes the issue, or nil if the tag is safe.
 func createHTMLTagDiagnostic(node *ast_domain.TemplateNode, sourcePath string) *ast_domain.Diagnostic {
 	if info, found := problematicHTMLTags[node.TagName]; found {
 		return ast_domain.NewDiagnostic(

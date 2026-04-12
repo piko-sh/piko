@@ -30,9 +30,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// cssPreProcessor adapts the shared cssinliner.Processor to the
-// compiler's CSSPreProcessorPort interface, resolving @import statements
-// in CSS before the CSS is embedded into compiled component output.
+// cssPreProcessor adapts the shared cssinliner.Processor to the compiler's
+// CSSPreProcessorPort interface, resolving @import statements in CSS before the CSS is
+// embedded into compiled component output.
 type cssPreProcessor struct {
 	// processor provides CSS @import inlining.
 	processor *cssinliner.Processor
@@ -40,30 +40,31 @@ type cssPreProcessor struct {
 	// fsReader reads imported CSS files from the filesystem.
 	fsReader cssinliner.FSReaderPort
 
-	// moduleName is the Go module name (for example a GitHub-hosted module
-	// path) used to convert module-qualified source IDs to filesystem paths.
+	// moduleName is the Go module name (for example a GitHub-hosted module path) used to
+	// convert module-qualified source IDs to filesystem paths.
 	moduleName string
 
-	// baseDir is the absolute path to the project root (the directory
-	// containing go.mod), used alongside moduleName for path conversion.
+	// baseDir is the absolute path to the project root (the directory containing go.mod),
+	// used alongside moduleName for path conversion.
 	baseDir string
 }
 
-var _ compiler_domain.CSSPreProcessorPort = (*cssPreProcessor)(nil)
+var (
+	_ compiler_domain.CSSPreProcessorPort = (*cssPreProcessor)(nil)
+)
 
-// NewCSSPreProcessor creates a new adapter that wraps a CSS processor to
-// implement compiler_domain.CSSPreProcessorPort.
+// NewCSSPreProcessor creates a new adapter that wraps a CSS processor to implement
+// compiler_domain.CSSPreProcessorPort.
 //
-// Takes processor (*cssinliner.Processor) which provides CSS @import
-// inlining.
-// Takes fsReader (cssinliner.FSReaderPort) which reads imported CSS
-// files from the filesystem.
-// Takes moduleName (string) which is the Go module name for converting
-// module-qualified paths to filesystem paths.
+// Takes processor (*cssinliner.Processor) which provides CSS @import inlining.
+// Takes fsReader (cssinliner.FSReaderPort) which reads imported CSS files from the
+// filesystem.
+// Takes moduleName (string) which is the Go module name for converting module-qualified
+// paths to filesystem paths.
 // Takes baseDir (string) which is the absolute path to the project root.
 //
-// Returns compiler_domain.CSSPreProcessorPort which resolves CSS @import
-// statements before compilation.
+// Returns compiler_domain.CSSPreProcessorPort which resolves CSS @import statements
+// before compilation.
 func NewCSSPreProcessor(
 	processor *cssinliner.Processor,
 	fsReader cssinliner.FSReaderPort,
@@ -78,16 +79,16 @@ func NewCSSPreProcessor(
 	}
 }
 
-// InlineImports resolves @import statements in the given CSS content by
-// reading the imported files and merging them into a single CSS string.
+// InlineImports resolves @import statements in the given CSS content by reading the
+// imported files and merging them into a single CSS string.
 //
-// The sourcePath may be a module-qualified path (for example a GitHub-hosted
-// module path with a "/components/foo.pkc" suffix) which is converted to a
-// filesystem path before CSS resolution.
+// The sourcePath may be a module-qualified path (for example a GitHub-hosted module path
+// with a "/components/foo.pkc" suffix) which is converted to a filesystem path before CSS
+// resolution.
 //
 // Takes cssContent (string) which is the raw CSS with potential @import rules.
-// Takes sourcePath (string) which identifies the source file for resolving
-// relative imports.
+// Takes sourcePath (string) which identifies the source file for resolving relative
+// imports.
 //
 // Returns string which is the CSS with all imports inlined.
 // Returns error when import resolution or file reading fails.
@@ -119,11 +120,11 @@ func (p *cssPreProcessor) InlineImports(ctx context.Context, cssContent string, 
 	return result, nil
 }
 
-// resolveToFilesystemPath converts a module-qualified source path to an
-// absolute filesystem path, returning non-module paths unchanged.
+// resolveToFilesystemPath converts a module-qualified source path to an absolute
+// filesystem path, returning non-module paths unchanged.
 //
-// Takes sourcePath (string) which is the path to resolve, potentially
-// prefixed with the Go module name.
+// Takes sourcePath (string) which is the path to resolve, potentially prefixed with the
+// Go module name.
 //
 // Returns string which is the resolved filesystem path.
 func (p *cssPreProcessor) resolveToFilesystemPath(sourcePath string) string {

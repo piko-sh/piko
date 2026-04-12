@@ -21,13 +21,12 @@
 //go:build !safe && !(js && wasm) && amd64
 
 #include "textflag.h"
+#include "funcdata.h"
 #include "asm_dispatch_offsets.h"
 #include "asm_dispatch_amd64.h"
 
-// Fused superinstruction handlers.
-
 // handlerSubIntConst sets ints[A] = ints[B] - intConstants[C].
-TEXT ·handlerSubIntConst(SB), NOSPLIT, $0
+TEXT ·handlerSubIntConst(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -42,7 +41,7 @@ TEXT ·handlerSubIntConst(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerAddIntConst sets ints[A] = ints[B] + intConstants[C].
-TEXT ·handlerAddIntConst(SB), NOSPLIT, $0
+TEXT ·handlerAddIntConst(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -57,7 +56,7 @@ TEXT ·handlerAddIntConst(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerLeIntConstJumpFalse compares ints[A] <= intConstants[B] and jumps if false.
-TEXT ·handlerLeIntConstJumpFalse(SB), NOSPLIT, $0
+TEXT ·handlerLeIntConstJumpFalse(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -82,7 +81,7 @@ dispatch:
 	DISPATCH_NEXT()
 
 // handlerLtIntConstJumpFalse compares ints[A] < intConstants[B] and jumps if false.
-TEXT ·handlerLtIntConstJumpFalse(SB), NOSPLIT, $0
+TEXT ·handlerLtIntConstJumpFalse(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -107,7 +106,7 @@ dispatch:
 	DISPATCH_NEXT()
 
 // handlerEqIntConstJumpFalse compares ints[A] == intConstants[B] and jumps if false.
-TEXT ·handlerEqIntConstJumpFalse(SB), NOSPLIT, $0
+TEXT ·handlerEqIntConstJumpFalse(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -132,7 +131,7 @@ dispatch:
 	DISPATCH_NEXT()
 
 // handlerEqIntConstJumpTrue compares ints[A] == intConstants[B] and jumps if true.
-TEXT ·handlerEqIntConstJumpTrue(SB), NOSPLIT, $0
+TEXT ·handlerEqIntConstJumpTrue(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -157,7 +156,7 @@ dispatch:
 	DISPATCH_NEXT()
 
 // handlerGeIntConstJumpFalse compares ints[A] >= intConstants[B] and jumps if false.
-TEXT ·handlerGeIntConstJumpFalse(SB), NOSPLIT, $0
+TEXT ·handlerGeIntConstJumpFalse(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -182,7 +181,7 @@ dispatch:
 	DISPATCH_NEXT()
 
 // handlerGtIntConstJumpFalse compares ints[A] > intConstants[B] and jumps if false.
-TEXT ·handlerGtIntConstJumpFalse(SB), NOSPLIT, $0
+TEXT ·handlerGtIntConstJumpFalse(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -207,7 +206,7 @@ dispatch:
 	DISPATCH_NEXT()
 
 // handlerMulIntConst sets ints[A] = ints[B] * intConstants[C].
-TEXT ·handlerMulIntConst(SB), NOSPLIT, $0
+TEXT ·handlerMulIntConst(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -222,7 +221,7 @@ TEXT ·handlerMulIntConst(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerAddIntJump sets ints[A] = ints[B] + intConstants[C] and unconditionally jumps.
-TEXT ·handlerAddIntJump(SB), NOSPLIT, $0
+TEXT ·handlerAddIntJump(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
 	SHRQ    $8, AX
 	MOVBLZX AL, AX
@@ -242,14 +241,13 @@ TEXT ·handlerAddIntJump(SB), NOSPLIT, $0
 	ADDQ    AX, R14
 	DISPATCH_NEXT()
 
-// handlerIncIntJumpLt increments ints[A] and jumps if ints[A] < ints[B].
-TEXT ·handlerIncIntJumpLt(SB), NOSPLIT, $0
+// handlerIncIntJumpLt increments ints[B] and jumps if ints[B] < ints[C] in tier-1 form (subOpIncIntJumpLt).
+TEXT ·handlerIncIntJumpLt(SB), NOSPLIT|NOFRAME, $0
 	MOVQ    DX, AX
-	SHRQ    $8, AX
+	SHRQ    $16, AX
 	MOVBLZX AL, AX
 	MOVQ    DX, BX
-	SHRQ    $16, BX
-	MOVBLZX BL, BX
+	SHRQ    $24, BX
 	INCQ    (R8)(AX*8)
 	MOVQ    (R8)(AX*8), SI
 	CMPQ    SI, (R8)(BX*8)

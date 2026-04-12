@@ -22,18 +22,18 @@ import (
 	"piko.sh/piko/internal/image/image_adapters/transformer_mock"
 )
 
-// Provider is a thread-safe, in-memory implementation of ImageTransformerPort.
-// It is designed for unit and integration testing of the image service,
-// allowing call inspection and simulation of both successful transformations
-// and errors.
+// Provider is a thread-safe, in-memory implementation of ImageTransformerPort. It is
+// designed for unit and integration testing of the image service, allowing call
+// inspection and simulation of both successful transformations and errors.
 type Provider = transformer_mock.Provider
 
-// TransformCall records the parameters passed to a single call of the Transform
-// method, letting tests inspect what the service is asking the transformer to
-// do.
+// TransformCall records the parameters passed to a single call of the Transform method,
+// letting tests inspect what the service is asking the transformer to do.
 type TransformCall = transformer_mock.TransformCall
 
-// NewProvider creates a new mock image transformer for use in tests.
-//
-// Returns *Provider which is ready for use.
-var NewProvider = transformer_mock.NewProvider
+var (
+	// NewProvider creates a new mock image transformer for use in tests.
+	//
+	// Returns *Provider which is ready for use.
+	NewProvider = transformer_mock.NewProvider
+)

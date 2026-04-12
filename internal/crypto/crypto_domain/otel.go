@@ -42,8 +42,7 @@ const (
 	// attributeKeyBatchSize is the metric attribute key for batch size.
 	attributeKeyBatchSize = "batch_size"
 
-	// attributeKeyCount is the logging attribute key for item counts
-	// in batch operations.
+	// attributeKeyCount is the logging attribute key for item counts in batch operations.
 	attributeKeyCount = "count"
 
 	// opEncrypt is the operation name for encryption metrics and error tracking.
@@ -70,15 +69,14 @@ const (
 	// opDecryptStream is the operation name for streaming decryption metrics.
 	opDecryptStream = "decrypt_stream"
 
-	// statusSuccess is the status value recorded when an operation completes
-	// without error.
+	// statusSuccess is the status value recorded when an operation completes without error.
 	statusSuccess = "success"
 
 	// statusError is the metric status value for failed operations.
 	statusError = "error"
 
-	// statusPartialFailure is the metric status for batch operations that
-	// completed with some errors.
+	// statusPartialFailure is the metric status for batch operations that completed with
+	// some errors.
 	statusPartialFailure = "partial_failure"
 
 	// statusInitiated is the status for newly started operations.
@@ -99,11 +97,10 @@ var (
 	cryptoOperationDuration metric.Float64Histogram
 )
 
-// metricAttributes creates metric attributes from key-value pairs.
-// This is a helper function to make metric recording more ergonomic.
+// metricAttributes creates metric attributes from key-value pairs. This is a helper
+// function to make metric recording more ergonomic.
 //
-// Takes keyVals (...string) which are alternating key-value pairs for
-// attributes.
+// Takes keyVals (...string) which are alternating key-value pairs for attributes.
 //
 // Returns metric.MeasurementOption which contains the constructed attributes.
 func metricAttributes(keyVals ...string) metric.MeasurementOption {

@@ -27,8 +27,8 @@ import (
 	"strings"
 )
 
-// buildLayoutBoxExpr builds a Go AST composite literal for a
-// LayoutBox, including its children recursively.
+// buildLayoutBoxExpr builds a Go AST composite literal for a LayoutBox, including its
+// children recursively.
 //
 // Takes box (*LayoutBox) which is the layout box to convert.
 //
@@ -76,8 +76,8 @@ func buildLayoutBoxExpr(box *LayoutBox) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(layouterType(typeLayoutBox), elements))
 }
 
-// appendFloatField appends a named float key-value pair to the
-// element list when value is non-zero.
+// appendFloatField appends a named float key-value pair to the element list when value is
+// non-zero.
 //
 // Takes elements ([]goast.Expr) which is the list to append to.
 // Takes name (string) which is the field name.
@@ -91,8 +91,8 @@ func appendFloatField(elements []goast.Expr, name string, value float64) []goast
 	return elements
 }
 
-// appendEdgesField appends a named BoxEdges key-value pair to the
-// element list when any edge value is non-zero.
+// appendEdgesField appends a named BoxEdges key-value pair to the element list when any
+// edge value is non-zero.
 //
 // Takes elements ([]goast.Expr) which is the list to append to.
 // Takes name (string) which is the field name.
@@ -106,8 +106,8 @@ func appendEdgesField(elements []goast.Expr, name string, edges BoxEdges) []goas
 	return elements
 }
 
-// buildStyleExpr builds a Go AST expression for a ComputedStyle,
-// using a default style call or a withStyle override closure.
+// buildStyleExpr builds a Go AST expression for a ComputedStyle, using a default style
+// call or a withStyle override closure.
 //
 // Takes style (*ComputedStyle) which is the style to convert.
 //
@@ -138,8 +138,8 @@ func buildStyleExpr(style *ComputedStyle) goast.Expr {
 	)
 }
 
-// buildStyleOverrideStatements generates assignment statements for
-// each ComputedStyle field that differs from the default.
+// buildStyleOverrideStatements generates assignment statements for each ComputedStyle
+// field that differs from the default.
 //
 // Takes style (*ComputedStyle) which is the style to compare.
 //
@@ -173,8 +173,8 @@ func buildStyleOverrideStatements(style *ComputedStyle) []goast.Stmt {
 	return statements
 }
 
-// buildStyleFieldValueExpr converts a ComputedStyle field value
-// to its Go AST expression form via type dispatch.
+// buildStyleFieldValueExpr converts a ComputedStyle field value to its Go AST expression
+// form via type dispatch.
 //
 // Takes value (any) which is the field value to convert.
 //
@@ -284,8 +284,8 @@ func buildStyleFieldValueExpr(value any) goast.Expr {
 	}
 }
 
-// buildEnumConstExpr builds a selector expression for a CSS enum
-// constant by combining the prefix with the Go name of the keyword.
+// buildEnumConstExpr builds a selector expression for a CSS enum constant by combining
+// the prefix with the Go name of the keyword.
 //
 // Takes prefix (string) which is the enum type prefix.
 // Takes cssKeyword (string) which is the CSS keyword value.
@@ -295,8 +295,8 @@ func buildEnumConstExpr(prefix, cssKeyword string) goast.Expr {
 	return layouterType(prefix + cssKeywordToGoName(cssKeyword))
 }
 
-// cssKeywordToGoName converts a hyphenated CSS keyword to a
-// PascalCase Go identifier name.
+// cssKeywordToGoName converts a hyphenated CSS keyword to a PascalCase Go identifier
+// name.
 //
 // Takes keyword (string) which is the CSS keyword to convert.
 //
@@ -312,8 +312,7 @@ func cssKeywordToGoName(keyword string) string {
 	return builder.String()
 }
 
-// buildBoxTypeExpr builds a selector expression for a BoxType
-// enum constant.
+// buildBoxTypeExpr builds a selector expression for a BoxType enum constant.
 //
 // Takes boxType (BoxType) which is the box type to convert.
 //
@@ -322,8 +321,8 @@ func buildBoxTypeExpr(boxType BoxType) goast.Expr {
 	return layouterType("Box" + boxType.String())
 }
 
-// buildDimensionExpr builds a Go AST call expression for a
-// Dimension value based on its unit type.
+// buildDimensionExpr builds a Go AST call expression for a Dimension value based on its
+// unit type.
 //
 // Takes dimension (Dimension) which is the dimension to convert.
 //
@@ -347,8 +346,8 @@ func buildDimensionExpr(dimension Dimension) goast.Expr {
 	}
 }
 
-// buildColourExpr builds a Go AST expression for a Colour value,
-// using named constants for black, white, and transparent.
+// buildColourExpr builds a Go AST expression for a Colour value, using named constants
+// for black, white, and transparent.
 //
 // Takes colour (Colour) which is the colour to convert.
 //
@@ -369,8 +368,8 @@ func buildColourExpr(colour Colour) goast.Expr {
 	})
 }
 
-// buildEdgesExpr builds a Go AST composite literal for BoxEdges,
-// omitting zero-valued edges.
+// buildEdgesExpr builds a Go AST composite literal for BoxEdges, omitting zero-valued
+// edges.
 //
 // Takes edges (BoxEdges) which is the edge values to convert.
 //
@@ -392,8 +391,8 @@ func buildEdgesExpr(edges BoxEdges) goast.Expr {
 	return newCompositeLit(layouterType(typeBoxEdges), elements)
 }
 
-// buildTextDecorationExpr builds a Go AST expression for text
-// decoration flags, combining multiple flags with bitwise OR.
+// buildTextDecorationExpr builds a Go AST expression for text decoration flags, combining
+// multiple flags with bitwise OR.
 //
 // Takes flags (TextDecorationFlag) which is the flags to convert.
 //
@@ -425,8 +424,8 @@ func buildTextDecorationExpr(flags TextDecorationFlag) goast.Expr {
 	return result
 }
 
-// buildBoxShadowSliceExpr builds a Go AST array literal for a
-// slice of BoxShadowValue entries.
+// buildBoxShadowSliceExpr builds a Go AST array literal for a slice of BoxShadowValue
+// entries.
 //
 // Takes shadows ([]BoxShadowValue) which contains the shadows.
 //
@@ -447,8 +446,8 @@ func buildBoxShadowSliceExpr(shadows []BoxShadowValue) goast.Expr {
 	)
 }
 
-// buildBoxShadowValueExpr builds a Go AST composite literal for
-// a single BoxShadowValue, omitting zero-valued fields.
+// buildBoxShadowValueExpr builds a Go AST composite literal for a single BoxShadowValue,
+// omitting zero-valued fields.
 //
 // Takes shadow (BoxShadowValue) which is the shadow to convert.
 //
@@ -478,8 +477,7 @@ func buildBoxShadowValueExpr(shadow BoxShadowValue) goast.Expr {
 	return newCompositeLit(layouterType("BoxShadowValue"), fields)
 }
 
-// buildStringMapExpr builds a Go AST map literal for a
-// map[string]string value.
+// buildStringMapExpr builds a Go AST map literal for a map[string]string value.
 //
 // Takes entries (map[string]string) which is the map to convert.
 //
@@ -524,8 +522,7 @@ func gridTrackUnitName(unit GridTrackUnit) string {
 	}
 }
 
-// gridAutoRepeatTypeName maps a GridAutoRepeatType to its Go
-// constant name.
+// gridAutoRepeatTypeName maps a GridAutoRepeatType to its Go constant name.
 //
 // Takes t (GridAutoRepeatType) which is the repeat type.
 //
@@ -537,8 +534,7 @@ func gridAutoRepeatTypeName(t GridAutoRepeatType) string {
 	return "GridAutoRepeatFill"
 }
 
-// buildGridTrackExpr builds a Go AST composite literal for a
-// single GridTrack value.
+// buildGridTrackExpr builds a Go AST composite literal for a single GridTrack value.
 //
 // Takes track (GridTrack) which is the track to convert.
 //
@@ -552,8 +548,7 @@ func buildGridTrackExpr(track GridTrack) goast.Expr {
 	return newCompositeLit(layouterType("GridTrack"), fields)
 }
 
-// buildGridTrackSliceExpr builds a Go AST slice literal for
-// a []GridTrack value.
+// buildGridTrackSliceExpr builds a Go AST slice literal for a []GridTrack value.
 //
 // Takes tracks ([]GridTrack) which is the tracks to convert.
 //
@@ -569,8 +564,8 @@ func buildGridTrackSliceExpr(tracks []GridTrack) goast.Expr {
 	)
 }
 
-// buildGridAutoRepeatExpr builds a Go AST expression for a
-// *GridAutoRepeat value including address-of.
+// buildGridAutoRepeatExpr builds a Go AST expression for a *GridAutoRepeat value
+// including address-of.
 //
 // Takes ar (*GridAutoRepeat) which is the auto-repeat to convert.
 //
@@ -594,8 +589,8 @@ func buildGridAutoRepeatExpr(ar *GridAutoRepeat) goast.Expr {
 	return newUnaryExpr(token.AND, newCompositeLit(layouterType("GridAutoRepeat"), fields))
 }
 
-// buildCounterEntrySliceExpr builds a Go AST composite
-// literal for a []CounterEntry slice.
+// buildCounterEntrySliceExpr builds a Go AST composite literal for a []CounterEntry
+// slice.
 //
 // Takes entries ([]CounterEntry) which is the entries to convert.
 //
@@ -616,8 +611,7 @@ func buildCounterEntrySliceExpr(entries []CounterEntry) goast.Expr {
 	)
 }
 
-// hasNonZeroEdges reports whether any edge in the BoxEdges
-// has a non-zero value.
+// hasNonZeroEdges reports whether any edge in the BoxEdges has a non-zero value.
 //
 // Takes edges (BoxEdges) which is the edges to check.
 //
@@ -665,8 +659,7 @@ func boolLit(value bool) goast.Expr {
 	return goast.NewIdent("false")
 }
 
-// buildTextShadowSliceExpr builds a Go AST expression for a
-// slice of TextShadowValue.
+// buildTextShadowSliceExpr builds a Go AST expression for a slice of TextShadowValue.
 //
 // Takes shadows ([]TextShadowValue) which is the shadows.
 //
@@ -698,11 +691,9 @@ func buildTextShadowSliceExpr(shadows []TextShadowValue) goast.Expr {
 	)
 }
 
-// buildBackgroundImageExpr builds a Go AST expression for a
-// BackgroundImage value.
+// buildBackgroundImageExpr builds a Go AST expression for a BackgroundImage value.
 //
-// Takes bg (BackgroundImage) which is the background image
-// to convert.
+// Takes bg (BackgroundImage) which is the background image to convert.
 //
 // Returns goast.Expr which is the composite literal.
 func buildBackgroundImageExpr(bg BackgroundImage) goast.Expr {
@@ -732,11 +723,10 @@ func buildBackgroundImageExpr(bg BackgroundImage) goast.Expr {
 	return newCompositeLit(layouterType("BackgroundImage"), fields)
 }
 
-// buildGradientStopSliceExpr builds a Go AST expression for
-// a slice of GradientStop values.
+// buildGradientStopSliceExpr builds a Go AST expression for a slice of GradientStop
+// values.
 //
-// Takes stops ([]GradientStop) which is the stops to
-// convert.
+// Takes stops ([]GradientStop) which is the stops to convert.
 //
 // Returns goast.Expr which is the slice literal.
 func buildGradientStopSliceExpr(stops []GradientStop) goast.Expr {

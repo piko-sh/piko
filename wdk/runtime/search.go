@@ -33,38 +33,32 @@ import (
 )
 
 const (
-	// maxHydratedSearchResults caps the reflect.Value entries the
-	// //piko:link hydration path is willing to build. It guards against
-	// a misconfigured backend returning a pathologically long result
-	// set.
+	// maxHydratedSearchResults caps the reflect.Value entries the //piko:link hydration path
+	// is willing to build. It guards against a misconfigured backend returning a
+	// pathologically long result set.
 	maxHydratedSearchResults = 10_000
 
-	// maxHydratedSearchItemBytes caps the JSON size of a single
-	// SearchResult item during hydration. Real items are a few KB;
-	// the cap exists so a single oversized payload cannot OOM the
-	// interpreted render path.
+	// maxHydratedSearchItemBytes caps the JSON size of a single SearchResult item during
+	// hydration. Real items are a few KB; the cap exists so a single oversized payload
+	// cannot OOM the interpreted render path.
 	maxHydratedSearchItemBytes = 1 << 20
 
-	// logAttrTargetType is the attribute key used across
-	// hydrateSearchResultsReflect's diagnostic logs; pulled into a
-	// constant so the log shape stays consistent.
+	// logAttrTargetType is the attribute key used across hydrateSearchResultsReflect's
+	// diagnostic logs; pulled into a constant so the log shape stays consistent.
 	logAttrTargetType = "target_type"
 )
 
 // SearchCollection performs fuzzy text search on collection data.
 // Returns results ranked by relevance score.
 //
-// This is a facade function that delegates to the bootstrap SearchService. It
-// handles:
+// This is a facade function that delegates to the bootstrap SearchService. It handles:
 //  1. Extracting current page data from r.CollectionData (if available)
 //  2. Converting search options to domain configuration
 //  3. Converting domain search results to typed results
 //
 // The function automatically detects which mode to use:
-//   - Single-page mode: When r.CollectionData is populated (called from
-//     collection page)
-//   - Full-collection mode: When r.CollectionData is nil (called from search
-//     page)
+//   - Single-page mode: When r.CollectionData is populated (called from collection page)
+//   - Full-collection mode: When r.CollectionData is nil (called from search page)
 //
 // Takes r (*templater_dto.RequestData) which provides the request context.
 // Takes collectionName (string) which identifies the collection to search.
@@ -100,9 +94,8 @@ func SearchCollection[T any](
 	return convertSearchResults[T](domainResults), nil
 }
 
-// QuickSearch performs a simple search returning just the items (no scores).
-// Uses default settings: fuzzy threshold 0.3, searches all fields, top 10
-// results.
+// QuickSearch performs a simple search returning just the items (no scores). Uses default
+// settings: fuzzy threshold 0.3, searches all fields, top 10 results.
 //
 // Takes r (*templater_dto.RequestData) which provides the request context.
 // Takes collectionName (string) which specifies the collection to search.
@@ -128,11 +121,10 @@ func QuickSearch[T any](r *templater_dto.RequestData, collectionName string, que
 	return items, nil
 }
 
-// extractCurrentPageData extracts the current page data from the request if
-// available.
+// extractCurrentPageData extracts the current page data from the request if available.
 //
-// Takes r (*templater_dto.RequestData) which contains the collection data to
-// extract from.
+// Takes r (*templater_dto.RequestData) which contains the collection data to extract
+// from.
 //
 // Returns map[string]any which contains the page data from the collection.
 // Returns error when the collection data is not a map or page data is missing.
@@ -163,10 +155,8 @@ func extractCurrentPageData(r *templater_dto.RequestData) (map[string]any, error
 //
 // Takes collectionName (string) which identifies the collection to search.
 // Takes query (string) which specifies the search query text.
-// Takes currentPageData (map[string]any) which provides page context for the
-// search.
-// Takes searchConfig (searchConfig) which contains search options such as fields,
-// limits,
+// Takes currentPageData (map[string]any) which provides page context for the search.
+// Takes searchConfig (searchConfig) which contains search options such as fields, limits,
 // and thresholds.
 //
 // Returns []collection_domain.SearchResult which contains the matching results.
@@ -190,19 +180,16 @@ func executeCollectionSearch(ctx context.Context, collectionName, query string, 
 	return searchService.Search(ctx, collectionName, currentPageData, domainConfig, searchConfig.searchMode)
 }
 
-// SearchCollectionLink is the //piko:link sibling for SearchCollection.
-// It mirrors SearchCollection's non-generic logic and builds the
-// returned slice via reflect so the interpreter can dispatch
-// SearchCollection[T] with a user-defined T that has no compiled
+// SearchCollectionLink is the //piko:link sibling for SearchCollection. It mirrors
+// SearchCollection's non-generic logic and builds the returned slice via reflect so the
+// interpreter can dispatch SearchCollection[T] with a user-defined T that has no compiled
 // instantiation.
 //
-// Takes tType (reflect.Type) which is the instantiated type the user
-// wrote inside the brackets.
-// Remaining parameters mirror SearchCollection's non-type-parameter
-// signature.
+// Takes tType (reflect.Type) which is the instantiated type the user wrote inside the
+// brackets. Remaining parameters mirror SearchCollection's non-type-parameter signature.
 //
-// Returns a reflect.Value wrapping []SearchResult[T] plus any search
-// error. An empty query returns a zero-length slice without error.
+// Returns a reflect.Value wrapping []SearchResult[T] plus any search error. An empty
+// query returns a zero-length slice without error.
 func SearchCollectionLink(
 	tType reflect.Type,
 	r *templater_dto.RequestData,
@@ -229,13 +216,12 @@ func SearchCollectionLink(
 	return hydrateSearchResultsReflect(r.Context(), domainResults, tType), nil
 }
 
-// QuickSearchLink is the //piko:link sibling for QuickSearch. It
-// reuses SearchCollectionLink internally and projects the Item field
-// out of each SearchResult[T] entry to return a []T.
+// QuickSearchLink is the //piko:link sibling for QuickSearch. It reuses
+// SearchCollectionLink internally and projects the Item field out of each SearchResult[T]
+// entry to return a []T.
 //
-// Takes tType (reflect.Type) which is the instantiated type.
-// Remaining parameters mirror QuickSearch's non-type-parameter
-// signature.
+// Takes tType (reflect.Type) which is the instantiated type. Remaining parameters mirror
+// QuickSearch's non-type-parameter signature.
 //
 // Returns a reflect.Value wrapping []T plus any search error.
 func QuickSearchLink(
@@ -261,10 +247,9 @@ func QuickSearchLink(
 	return items, nil
 }
 
-// searchResultReflectType synthesises the reflect.Type for
-// SearchResult[T] matching the interpreter's own structural
-// representation. The interpreter's converter skips its sentinel field
-// for linked generic types, so this plain reflect.StructOf shape is
+// searchResultReflectType synthesises the reflect.Type for SearchResult[T] matching the
+// interpreter's own structural representation. The interpreter's converter skips its
+// sentinel field for linked generic types, so this plain reflect.StructOf shape is
 // canonical.
 //
 // Takes tType (reflect.Type) which is the instantiated type argument.
@@ -278,8 +263,8 @@ func searchResultReflectType(tType reflect.Type) reflect.Type {
 	})
 }
 
-// makeEmptySearchResultSlice produces a zero-length
-// []SearchResult[T] reflect.Value for error paths and empty queries.
+// makeEmptySearchResultSlice produces a zero-length []SearchResult[T] reflect.Value for
+// error paths and empty queries.
 //
 // Takes tType (reflect.Type) which is the instantiated type argument.
 //
@@ -288,15 +273,14 @@ func makeEmptySearchResultSlice(tType reflect.Type) reflect.Value {
 	return reflect.MakeSlice(reflect.SliceOf(searchResultReflectType(tType)), 0, 0)
 }
 
-// hydrateSearchResultsReflect converts domain search results into a
-// reflect.Value of type []SearchResult[T] via JSON round-trip.
+// hydrateSearchResultsReflect converts domain search results into a reflect.Value of type
+// []SearchResult[T] via JSON round-trip.
 //
-// Truncates to maxHydratedSearchResults to prevent a runaway backend
-// from forcing an unbounded reflect allocation in the interpreted
-// hot path.
+// Truncates to maxHydratedSearchResults to prevent a runaway backend from forcing an
+// unbounded reflect allocation in the interpreted hot path.
 //
-// Takes domainResults ([]collection_domain.SearchResult) which are the
-// raw hits from the search service.
+// Takes domainResults ([]collection_domain.SearchResult) which are the raw hits from the
+// search service.
 // Takes tType (reflect.Type) which is the instantiated type argument.
 //
 // Returns a reflect.Value wrapping []SearchResult[T].
@@ -347,8 +331,8 @@ func hydrateSearchResultsReflect(ctx context.Context, domainResults []collection
 
 // convertSearchResults converts domain search results to typed facade results.
 //
-// Takes domainResults ([]collection_domain.SearchResult) which contains the
-// domain-level search results to convert.
+// Takes domainResults ([]collection_domain.SearchResult) which contains the domain-level
+// search results to convert.
 //
 // Returns []SearchResult[T] which contains the typed facade results.
 func convertSearchResults[T any](domainResults []collection_domain.SearchResult) []SearchResult[T] {
@@ -368,8 +352,8 @@ func convertSearchResults[T any](domainResults []collection_domain.SearchResult)
 	return results
 }
 
-// convertSearchFields converts runtime SearchField values to search_dto
-// SearchField values.
+// convertSearchFields converts runtime SearchField values to search_dto SearchField
+// values.
 //
 // Takes fields ([]SearchField) which specifies the fields to convert.
 //

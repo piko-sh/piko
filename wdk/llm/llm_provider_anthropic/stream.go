@@ -32,17 +32,19 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// llmStreamEventBufferSize bounds the producer/consumer queue for
-// stream events so a slow consumer cannot lockstep the upstream.
-const llmStreamEventBufferSize = 16
+const (
+	// llmStreamEventBufferSize bounds the producer/consumer queue for stream events so a
+	// slow consumer cannot lockstep the upstream.
+	llmStreamEventBufferSize = 16
+)
 
 // streamState holds the data gathered while processing a stream.
 type streamState struct {
 	// finalUsage stores the accumulated token usage after the stream completes.
 	finalUsage *llm_dto.Usage
 
-	// lastFinishReason stores the most recent finish reason from the LLM response;
-	// nil if no response has been received yet.
+	// lastFinishReason stores the most recent finish reason from the LLM response; nil if no
+	// response has been received yet.
 	lastFinishReason *llm_dto.FinishReason
 
 	// messageID is the unique identifier of the current message being streamed.
@@ -66,15 +68,15 @@ type streamState struct {
 
 // Stream sends a streaming completion request to Anthropic.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters including model and messages.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters
+// including model and messages.
 //
-// Returns <-chan llm_dto.StreamEvent which yields streaming events as they
-// arrive from the Anthropic API.
+// Returns <-chan llm_dto.StreamEvent which yields streaming events as they arrive from
+// the Anthropic API.
 // Returns error when the request cannot be initiated.
 //
-// Spawns a goroutine to process the stream and send events on the returned
-// channel. The channel is closed when the stream completes or errors.
+// Spawns a goroutine to process the stream and send events on the returned channel. The
+// channel is closed when the stream completes or errors.
 func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.Stream")
 
@@ -104,8 +106,8 @@ func (p *anthropicProvider) Stream(ctx context.Context, request *llm_dto.Complet
 	return events, nil
 }
 
-// streamContext returns a context that is cancelled when either the caller's
-// context is cancelled or the provider is closed.
+// streamContext returns a context that is cancelled when either the caller's context is
+// cancelled or the provider is closed.
 //
 // Takes ctx (context.Context) which is the caller's context.
 //
@@ -127,8 +129,7 @@ func (p *anthropicProvider) streamContext(ctx context.Context) context.Context {
 // processStream reads from the Anthropic stream and converts events.
 //
 // Takes stream (*ssestream.Stream) which provides the Anthropic message events.
-// Takes events (chan<- llm_dto.StreamEvent) which receives the converted stream
-// events.
+// Takes events (chan<- llm_dto.StreamEvent) which receives the converted stream events.
 // Takes model (string) which identifies the model name for response metadata.
 func (p *anthropicProvider) processStream(ctx context.Context, stream *ssestream.Stream[anthropic.MessageStreamEventUnion], events chan<- llm_dto.StreamEvent, model string) {
 	defer p.streamWaitGroup.Done()
@@ -176,15 +177,14 @@ func (p *anthropicProvider) processStream(ctx context.Context, stream *ssestream
 	}
 }
 
-// handleStreamEvent processes a single stream event and returns the delta if
-// one should be sent.
+// handleStreamEvent processes a single stream event and returns the delta if one should
+// be sent.
 //
-// Takes event (*anthropic.MessageStreamEventUnion) which is the stream event to
-// process.
+// Takes event (*anthropic.MessageStreamEventUnion) which is the stream event to process.
 // Takes state (*streamState) which tracks the current streaming state.
 //
-// Returns *llm_dto.MessageDelta which contains the delta to send, or nil if
-// no delta should be sent.
+// Returns *llm_dto.MessageDelta which contains the delta to send, or nil if no delta
+// should be sent.
 // Returns bool which indicates whether a delta should be sent.
 func (p *anthropicProvider) handleStreamEvent(event *anthropic.MessageStreamEventUnion, state *streamState) (*llm_dto.MessageDelta, bool) {
 	switch e := event.AsAny().(type) {
@@ -231,16 +231,12 @@ func (*anthropicProvider) handleContentBlockStart(e *anthropic.ContentBlockStart
 	state.accumulatedToolCalls[state.currentToolIndex].Function.Name = toolUse.Name
 }
 
-// handleContentBlockDelta processes content block delta events (text or tool
-// input).
+// handleContentBlockDelta processes content block delta events (text or tool input).
 //
-// Takes e (*anthropic.ContentBlockDeltaEvent) which contains the delta event to
-// process.
-// Takes state (*streamState) which holds the accumulated tool calls and current
-// index.
+// Takes e (*anthropic.ContentBlockDeltaEvent) which contains the delta event to process.
+// Takes state (*streamState) which holds the accumulated tool calls and current index.
 //
-// Returns *llm_dto.MessageDelta which contains the processed content or tool
-// call delta.
+// Returns *llm_dto.MessageDelta which contains the processed content or tool call delta.
 func (*anthropicProvider) handleContentBlockDelta(e *anthropic.ContentBlockDeltaEvent, state *streamState) *llm_dto.MessageDelta {
 	delta := &llm_dto.MessageDelta{}
 
@@ -303,13 +299,12 @@ func (*anthropicProvider) sendEvent(ctx context.Context, events chan<- llm_dto.S
 	}
 }
 
-// buildFinalResponse constructs the final completion response from
-// accumulated state.
+// buildFinalResponse constructs the final completion response from accumulated state.
 //
 // Takes state (*streamState) which holds the accumulated streaming data.
 //
-// Returns *llm_dto.CompletionResponse which contains the assembled response
-// with choices, usage data, and any tool calls.
+// Returns *llm_dto.CompletionResponse which contains the assembled response with choices,
+// usage data, and any tool calls.
 func (p *anthropicProvider) buildFinalResponse(state *streamState) *llm_dto.CompletionResponse {
 	finalResponse := &llm_dto.CompletionResponse{
 		ID:    state.messageID,
@@ -344,8 +339,7 @@ func (p *anthropicProvider) buildFinalResponse(state *streamState) *llm_dto.Comp
 
 // validateToolCallArguments verifies accumulated JSON arguments are valid.
 //
-// Takes toolCalls ([]llm_dto.ToolCall) which contains the tool calls to
-// validate.
+// Takes toolCalls ([]llm_dto.ToolCall) which contains the tool calls to validate.
 func (*anthropicProvider) validateToolCallArguments(toolCalls []llm_dto.ToolCall) {
 	for i := range toolCalls {
 		var parsed any

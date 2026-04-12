@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package seo_domain defines the core SEO business logic and port
-// interfaces.
+// Package seo_domain defines the core SEO business logic and port interfaces.
 //
-// It orchestrates generation of SEO artefacts (sitemap.xml and robots.txt)
-// from project metadata, discovering pages, handling internationalisation
-// with hreflang alternates, integrating dynamic URL sources, and splitting
-// sitemaps automatically for large sites.
+// It orchestrates generation of SEO artefacts (sitemap.xml and robots.txt) from project
+// metadata, discovering pages, handling internationalisation with hreflang alternates,
+// integrating dynamic URL sources, and splitting sitemaps automatically for large sites.
 //
 // # Usage
 //
@@ -38,8 +36,7 @@
 //
 // The sitemap builder supports:
 //
-//   - Automatic splitting when URLs exceed MaxURLsPerSitemap
-//     (default 5000)
+//   - Automatic splitting when URLs exceed MaxURLsPerSitemap (default 5000)
 //   - hreflang alternate links for internationalised pages
 //   - Image discovery from the asset manifest
 //   - Dynamic URL sources from external endpoints

@@ -29,18 +29,17 @@ type Config = transformer_crypto.Config
 
 // New creates a crypto service encryption transformer.
 //
-// The transformer supports centralised key management and key rotation,
-// chunked AES-256-GCM encryption (64KB chunks), automatic envelope
-// encryption for cloud KMS providers, and constant memory usage regardless
-// of file size.
+// The transformer supports centralised key management and key rotation, chunked
+// AES-256-GCM encryption (64KB chunks), automatic envelope encryption for cloud KMS
+// providers, and constant memory usage regardless of file size.
 //
-// Takes cryptoService (crypto_domain.CryptoServicePort) which provides the
-// crypto service instance to use for encryption and decryption.
+// Takes cryptoService (crypto_domain.CryptoServicePort) which provides the crypto service
+// instance to use for encryption and decryption.
 // Takes name (string) which identifies this transformer instance.
 // Takes priority (int) which sets the execution order priority.
 //
-// Returns storage.StreamTransformerPort which can encrypt and decrypt data
-// streams using the centralised crypto service.
+// Returns storage.StreamTransformerPort which can encrypt and decrypt data streams using
+// the centralised crypto service.
 func New(cryptoService crypto_domain.CryptoServicePort, name string, priority int) storage.StreamTransformerPort {
 	return transformer_crypto.New(cryptoService, name, priority)
 }

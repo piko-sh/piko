@@ -31,8 +31,8 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// CacheStorePort is the driven port for cache persistence.
-// Implementations must be safe for concurrent access.
+// CacheStorePort is the driven port for cache persistence. Implementations must be safe
+// for concurrent access.
 type CacheStorePort interface {
 	// Get retrieves a cache entry by key.
 	//
@@ -86,8 +86,8 @@ func NewCacheKeyGenerator() *CacheKeyGenerator {
 	return &CacheKeyGenerator{}
 }
 
-// Generate generates a cache key from a completion request and provider. The
-// key is a SHA-256 hash of the normalised request content.
+// Generate generates a cache key from a completion request and provider. The key is a
+// SHA-256 hash of the normalised request content.
 //
 // Takes request (*llm_dto.CompletionRequest) which is the request to hash.
 // Takes provider (string) which is the provider name.
@@ -171,14 +171,14 @@ func NewCacheManager(store CacheStorePort, defaultTTL time.Duration, opts ...Cac
 	return m
 }
 
-// GetOrExecute checks the cache for a response, or executes the function if
-// not cached. It handles cache reads, writes, and metrics tracking.
+// GetOrExecute checks the cache for a response, or executes the function if not cached.
+// It handles cache reads, writes, and metrics tracking.
 //
 // Takes config (*llm_dto.CacheConfig) which configures caching behaviour.
 // Takes request (*llm_dto.CompletionRequest) which is the request to cache.
 // Takes provider (string) which is the provider name.
-// Takes execute (func() (*llm_dto.CompletionResponse, error)) which generates
-// the response when not cached.
+// Takes execute (func() (*llm_dto.CompletionResponse, error)) which generates the
+// response when not cached.
 //
 // Returns *llm_dto.CompletionResponse which is either cached or newly generated.
 // Returns bool which is true if the response was from cache.
@@ -286,8 +286,7 @@ func (m *CacheManager) resolveKey(config *llm_dto.CacheConfig, request *llm_dto.
 	return m.generator.Generate(request, provider)
 }
 
-// tryReadCache attempts to read from cache and returns the response if found
-// and valid.
+// tryReadCache attempts to read from cache and returns the response if found and valid.
 //
 // Takes config (*llm_dto.CacheConfig) which controls cache read behaviour.
 // Takes key (string) which identifies the cached entry to retrieve.
@@ -367,13 +366,12 @@ func (m *CacheManager) tryWriteCache(ctx context.Context, config *llm_dto.CacheC
 	)
 }
 
-// WithCacheManagerClock sets the clock used for time operations.
-// If not set, clock.RealClock() is used.
+// WithCacheManagerClock sets the clock used for time operations. If not set,
+// clock.RealClock() is used.
 //
 // Takes c (clock.Clock) which provides time functions.
 //
-// Returns CacheManagerOption which applies the clock setting to the cache
-// manager.
+// Returns CacheManagerOption which applies the clock setting to the cache manager.
 func WithCacheManagerClock(c clock.Clock) CacheManagerOption {
 	return func(m *CacheManager) {
 		m.clock = c

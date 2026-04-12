@@ -22,14 +22,14 @@ package healthprobe_dto
 type CheckType string
 
 const (
-	// CheckTypeLiveness indicates a liveness check, which determines if the
-	// application is running and not deadlocked. Failing this check typically
-	// results in the application being restarted.
+	// CheckTypeLiveness indicates a liveness check, which determines if the application is
+	// running and not deadlocked. Failing this check typically results in the application
+	// being restarted.
 	CheckTypeLiveness CheckType = "liveness"
 
 	// CheckTypeReadiness indicates a readiness check for health probes.
 	//
-	// A readiness check determines if the application is ready to serve traffic.
-	// Failing this check results in traffic being withheld from the application.
+	// A readiness check determines if the application is ready to serve traffic. Failing
+	// this check results in traffic being withheld from the application.
 	CheckTypeReadiness CheckType = "readiness"
 )

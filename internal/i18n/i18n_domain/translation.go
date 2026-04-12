@@ -58,8 +58,8 @@ const (
 	varKindAny
 )
 
-// varSlot holds a single variable with its type for fast lookup without
-// memory allocation.
+// varSlot holds a single variable with its type for fast lookup without memory
+// allocation.
 type varSlot struct {
 	// any holds complex types such as Decimal, Money, BigInt, or DateTime.
 	any any
@@ -108,9 +108,8 @@ var (
 	_ scopeProvider = (*Translation)(nil)
 )
 
-// Translation represents a translatable string with a fluent API for setting
-// variables. It implements fmt.Stringer for automatic string conversion in
-// templates.
+// Translation represents a translatable string with a fluent API for setting variables.
+// It implements fmt.Stringer for automatic string conversion in templates.
 type Translation struct {
 	// key is the identifier used to look up the translation.
 	key string
@@ -121,8 +120,8 @@ type Translation struct {
 	// literal is the fallback text used when entry is nil.
 	literal string
 
-	// pool is the buffer pool for rendering translations; nil means a new buffer
-	// is created each time.
+	// pool is the buffer pool for rendering translations; nil means a new buffer is created
+	// each time.
 	pool *StrBufPool
 
 	// locale specifies the locale for plural rules; empty uses the default.
@@ -134,8 +133,8 @@ type Translation struct {
 	// varsExtra holds extra variables when more than the fixed slots are needed.
 	varsExtra []varSlot
 
-	// vars stores variable slots directly in the struct to avoid memory
-	// allocation in the common case.
+	// vars stores variable slots directly in the struct to avoid memory allocation in the
+	// common case.
 	vars [maxInlineVars]varSlot
 
 	// count holds the plural count value used to select the correct plural form.
@@ -148,12 +147,10 @@ type Translation struct {
 	hasCount bool
 }
 
-// NewTranslation creates a new Translation for the given key with an entry
-// that has already been looked up. Use this when you already have an Entry
-// from the Store.
+// NewTranslation creates a new Translation for the given key with an entry that has
+// already been looked up. Use this when you already have an Entry from the Store.
 //
-// Takes key (string) which is the translation key, used as a fallback if entry
-// is nil.
+// Takes key (string) which is the translation key, used as a fallback if entry is nil.
 // Takes entry (*Entry) which is the entry already looked up from the Store.
 // Takes pool (*StrBufPool) which provides buffer pooling for string building.
 //
@@ -173,9 +170,8 @@ func NewTranslation(key string, entry *Entry, pool *StrBufPool) *Translation {
 	return t
 }
 
-// NewTranslationFromString creates a Translation from a plain string literal.
-// This is used for older or fallback translations that do not come from a
-// Store.
+// NewTranslationFromString creates a Translation from a plain string literal. This is
+// used for older or fallback translations that do not come from a Store.
 //
 // Takes key (string) which identifies the translation.
 // Takes literal (string) which provides the translation text.
@@ -194,8 +190,8 @@ func NewTranslationFromString(key, literal string, pool *StrBufPool) *Translatio
 	return t
 }
 
-// NewTranslationWithLocale creates a Translation with a specific locale for
-// plural rules. Use this when you need to set the locale for plural forms.
+// NewTranslationWithLocale creates a Translation with a specific locale for plural rules.
+// Use this when you need to set the locale for plural forms.
 //
 // Takes key (string) which identifies the translation message.
 // Takes entry (*Entry) which provides the translation data.
@@ -209,8 +205,8 @@ func NewTranslationWithLocale(key string, entry *Entry, pool *StrBufPool, locale
 	return t
 }
 
-// Release returns the Translation to the pool for reuse. Do not use the Translation
-// after calling Release.
+// Release returns the Translation to the pool for reuse. Do not use the Translation after
+// calling Release.
 func (t *Translation) Release() {
 	translationPool.Put(t)
 }
@@ -309,8 +305,8 @@ func (t *Translation) BigIntVar(name string, value maths.BigInt) *Translation {
 	return t
 }
 
-// TimeVar sets a time.Time variable for interpolation.
-// The time will be formatted according to the locale with medium style.
+// TimeVar sets a time.Time variable for interpolation. The time will be formatted
+// according to the locale with medium style.
 //
 // Takes name (string) which identifies the variable for substitution.
 // Takes value (time.Time) which provides the time value to format.
@@ -322,9 +318,8 @@ func (t *Translation) TimeVar(name string, value time.Time) *Translation {
 	return t
 }
 
-// DateTimeVar sets a DateTime variable for interpolation with custom
-// formatting options. Use this when you need to specify the formatting style
-// (short, medium, long, full).
+// DateTimeVar sets a DateTime variable for interpolation with custom formatting options.
+// Use this when you need to specify the formatting style (short, medium, long, full).
 //
 // Takes name (string) which identifies the variable in the translation.
 // Takes value (DateTime) which provides the date/time to format.
@@ -347,11 +342,11 @@ func (t *Translation) Count(n int) *Translation {
 	return t
 }
 
-// String renders the translation with all set variables and implements
-// fmt.Stringer for automatic conversion in templates.
+// String renders the translation with all set variables and implements fmt.Stringer for
+// automatic conversion in templates.
 //
-// Returns string which is the rendered translation text. After calling String,
-// the Translation is returned to the pool for reuse.
+// Returns string which is the rendered translation text. After calling String, the
+// Translation is returned to the pool for reuse.
 func (t *Translation) String() string {
 	if t.entry == nil {
 		result := t.literal
@@ -400,9 +395,8 @@ func (t *Translation) LookupVar(name string, buffer *StrBuf) bool {
 
 // GetScope returns all variables as a map[string]any for expression evaluation.
 //
-// Returns map[string]any which contains scope variables for V2 rendering with
-// AST expressions. The scope is built incrementally as vars are added, so this
-// is O(1).
+// Returns map[string]any which contains scope variables for V2 rendering with AST
+// expressions. The scope is built incrementally as vars are added, so this is O(1).
 func (t *Translation) GetScope() map[string]any {
 	if t.hasCount {
 		if t.scope == nil {
@@ -434,8 +428,7 @@ func (t *Translation) reset() {
 	t.hasCount = false
 }
 
-// addToScope adds a value to the scope map, getting one from the pool if
-// needed.
+// addToScope adds a value to the scope map, getting one from the pool if needed.
 //
 // Takes name (string) which is the key to store the value under.
 // Takes value (any) which is the value to store in the scope.
@@ -492,8 +485,8 @@ func (t *Translation) writeVar(slot *varSlot, buffer *StrBuf) {
 
 // getScopeMap gets a scope map from the pool with safe type assertion.
 //
-// Returns map[string]any which is either a reused map from the pool or a new
-// map with space for inline variables.
+// Returns map[string]any which is either a reused map from the pool or a new map with
+// space for inline variables.
 func getScopeMap() map[string]any {
 	if m, ok := scopeMapPool.Get().(map[string]any); ok {
 		return m

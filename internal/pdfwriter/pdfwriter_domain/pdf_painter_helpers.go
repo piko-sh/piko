@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/layouter/layouter_domain"
 )
 
-// emitOverflowClip sets a clipping path to the box's padding box,
-// respecting border-radius if present.
+// emitOverflowClip sets a clipping path to the box's padding box, respecting
+// border-radius if present.
 //
 // Takes stream (*ContentStream) which receives the clipping operators.
 // Takes box (*layouter_domain.LayoutBox) which provides the padding box geometry.
@@ -52,14 +52,14 @@ func (painter *PdfPainter) emitOverflowClip(stream *ContentStream, box *layouter
 	stream.ClipNonZero()
 }
 
-// resolveTransformOrigin parses the CSS transform-origin value and
-// returns the origin point in PDF coordinates.
+// resolveTransformOrigin parses the CSS transform-origin value and returns the origin
+// point in PDF coordinates.
 //
-// Defaults to the centre of the border box ("50% 50%"). Supports percentage
-// values and the keywords left/centre/right/top/bottom.
+// Defaults to the centre of the border box ("50% 50%"). Supports percentage values and
+// the keywords left/centre/right/top/bottom.
 //
-// Takes box (*layouter_domain.LayoutBox) which provides the border box
-// geometry and transform-origin style value.
+// Takes box (*layouter_domain.LayoutBox) which provides the border box geometry and
+// transform-origin style value.
 //
 // Returns originX (float64) which is the horizontal origin in PDF coordinates.
 // Returns originY (float64) which is the vertical origin in PDF coordinates.
@@ -91,8 +91,8 @@ func (painter *PdfPainter) resolveTransformOrigin(box *layouter_domain.LayoutBox
 
 // parseOriginComponent parses a single transform-origin axis value.
 //
-// Takes s (string) which is the axis value to parse, accepting percentages
-// ("50%") and keywords (left/centre/right/top/bottom).
+// Takes s (string) which is the axis value to parse, accepting percentages ("50%") and
+// keywords (left/centre/right/top/bottom).
 //
 // Returns float64 which is the fractional position from 0.0 to 1.0.
 func parseOriginComponent(s string) float64 {
@@ -112,12 +112,11 @@ func parseOriginComponent(s string) float64 {
 	return originDefaultFraction
 }
 
-// resolveObjectFitSize computes the rendered width and height of a
-// replaced element given the CSS object-fit value, the content box
-// dimensions, and the image's intrinsic dimensions.
+// resolveObjectFitSize computes the rendered width and height of a replaced element given
+// the CSS object-fit value, the content box dimensions, and the image's intrinsic
+// dimensions.
 //
-// Takes fit (layouter_domain.ObjectFitType) which specifies the CSS
-// object-fit mode.
+// Takes fit (layouter_domain.ObjectFitType) which specifies the CSS object-fit mode.
 // Takes contentW (float64) which is the content box width.
 // Takes contentH (float64) which is the content box height.
 // Takes intrinsicW (float64) which is the image's intrinsic width.
@@ -153,11 +152,11 @@ func (*PdfPainter) resolveObjectFitSize(
 	}
 }
 
-// parseObjectPosition parses a CSS object-position value and returns
-// horizontal and vertical fractions (0-1).
+// parseObjectPosition parses a CSS object-position value and returns horizontal and
+// vertical fractions (0-1).
 //
-// Takes value (string) which is the CSS object-position value to parse,
-// defaulting to "50% 50%" when empty.
+// Takes value (string) which is the CSS object-position value to parse, defaulting to
+// "50% 50%" when empty.
 //
 // Returns xFrac (float64) which is the horizontal fraction from 0.0 to 1.0.
 // Returns yFrac (float64) which is the vertical fraction from 0.0 to 1.0.
@@ -178,8 +177,8 @@ func parseObjectPosition(value string) (xFrac float64, yFrac float64) {
 	return xFrac, yFrac
 }
 
-// pdfEscapeString escapes parentheses and backslashes in a string for
-// use inside a PDF literal string delimited by parentheses.
+// pdfEscapeString escapes parentheses and backslashes in a string for use inside a PDF
+// literal string delimited by parentheses.
 //
 // Takes s (string) which is the raw string to escape.
 //
@@ -200,8 +199,8 @@ func pdfEscapeString(s string) string {
 	return b.String()
 }
 
-// buildInfoDictionary builds the PDF info dictionary string, including
-// metadata fields when set.
+// buildInfoDictionary builds the PDF info dictionary string, including metadata fields
+// when set.
 //
 // Returns string which is the serialised PDF info dictionary.
 func (painter *PdfPainter) buildInfoDictionary() string {
@@ -228,8 +227,8 @@ func (painter *PdfPainter) buildInfoDictionary() string {
 	return b.String()
 }
 
-// collectLinkAnnotation checks whether the box originates from an <a>
-// element with an href attribute. If so, it records a link annotation.
+// collectLinkAnnotation checks whether the box originates from an <a> element with an
+// href attribute. If so, it records a link annotation.
 //
 // Takes box (*layouter_domain.LayoutBox) which is the layout box to inspect.
 func (painter *PdfPainter) collectLinkAnnotation(box *layouter_domain.LayoutBox) {
@@ -338,8 +337,8 @@ func extractTextContent(box *layouter_domain.LayoutBox) string {
 // paintOuterBoxShadows paints non-inset box shadows behind the box.
 //
 // Takes stream (*ContentStream) which receives the shadow drawing operators.
-// Takes box (*layouter_domain.LayoutBox) which provides the box geometry
-// and shadow style values.
+// Takes box (*layouter_domain.LayoutBox) which provides the box geometry and shadow style
+// values.
 func (painter *PdfPainter) paintOuterBoxShadows(stream *ContentStream, box *layouter_domain.LayoutBox) {
 	if len(box.Style.BoxShadow) == 0 {
 		return
@@ -356,8 +355,8 @@ func (painter *PdfPainter) paintOuterBoxShadows(stream *ContentStream, box *layo
 // paintInsetBoxShadows paints inset box shadows over the background.
 //
 // Takes stream (*ContentStream) which receives the shadow drawing operators.
-// Takes box (*layouter_domain.LayoutBox) which provides the box geometry
-// and shadow style values.
+// Takes box (*layouter_domain.LayoutBox) which provides the box geometry and shadow style
+// values.
 func (painter *PdfPainter) paintInsetBoxShadows(stream *ContentStream, box *layouter_domain.LayoutBox) {
 	if len(box.Style.BoxShadow) == 0 {
 		return
@@ -375,8 +374,8 @@ func (painter *PdfPainter) paintInsetBoxShadows(stream *ContentStream, box *layo
 //
 // Takes stream (*ContentStream) which receives the shadow drawing operators.
 // Takes box (*layouter_domain.LayoutBox) which provides the box geometry.
-// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow
-// offset, spread, blur, and colour.
+// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow offset,
+// spread, blur, and colour.
 func (painter *PdfPainter) paintSingleBoxShadow(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -443,8 +442,8 @@ type shadowParams struct {
 //
 // Takes stream (*ContentStream) which receives the drawing operators.
 // Takes box (*layouter_domain.LayoutBox) which provides border-radius values.
-// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow
-// colour and spread.
+// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow colour and
+// spread.
 // Takes sp (shadowParams) which holds the precomputed shadow geometry.
 func (painter *PdfPainter) paintSharpOuterShadow(
 	stream *ContentStream,
@@ -477,8 +476,8 @@ func (painter *PdfPainter) paintSharpOuterShadow(
 //
 // Takes stream (*ContentStream) which receives the drawing operators.
 // Takes box (*layouter_domain.LayoutBox) which provides border-radius values.
-// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow
-// colour, blur, and spread.
+// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow colour, blur,
+// and spread.
 // Takes sp (shadowParams) which holds the precomputed shadow geometry.
 func (painter *PdfPainter) paintBlurredOuterShadow(
 	stream *ContentStream,
@@ -517,8 +516,8 @@ func (painter *PdfPainter) paintBlurredOuterShadow(
 	}
 }
 
-// emitBorderBoxCutout adds a cutout path for the border box to the
-// current path, used with even-odd fill to clip shadows.
+// emitBorderBoxCutout adds a cutout path for the border box to the current path, used
+// with even-odd fill to clip shadows.
 //
 // Takes stream (*ContentStream) which receives the cutout path operators.
 // Takes box (*layouter_domain.LayoutBox) which provides border-radius values.
@@ -544,14 +543,13 @@ func (*PdfPainter) emitBorderBoxCutout(
 	}
 }
 
-// paintSingleInsetBoxShadow paints a single inset box shadow clipped
-// to the padding box.
+// paintSingleInsetBoxShadow paints a single inset box shadow clipped to the padding box.
 //
 // Takes stream (*ContentStream) which receives the shadow drawing operators.
-// Takes box (*layouter_domain.LayoutBox) which provides the padding box
-// geometry and border-radius values.
-// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow
-// offset, spread, blur, and colour.
+// Takes box (*layouter_domain.LayoutBox) which provides the padding box geometry and
+// border-radius values.
+// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow offset,
+// spread, blur, and colour.
 func (painter *PdfPainter) paintSingleInsetBoxShadow(
 	stream *ContentStream,
 	box *layouter_domain.LayoutBox,
@@ -638,8 +636,8 @@ type insetShadowParams struct {
 // paintSharpInsetShadow paints a sharp inset shadow.
 //
 // Takes stream (*ContentStream) which receives the drawing operators.
-// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow
-// colour and alpha.
+// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow colour and
+// alpha.
 // Takes p (insetShadowParams) which holds the precomputed inset geometry.
 func (painter *PdfPainter) paintSharpInsetShadow(
 	stream *ContentStream,
@@ -666,8 +664,8 @@ func (painter *PdfPainter) paintSharpInsetShadow(
 // paintBlurredInsetShadow paints a blurred inset shadow.
 //
 // Takes stream (*ContentStream) which receives the drawing operators.
-// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow
-// colour, blur radius, and alpha.
+// Takes shadow (layouter_domain.BoxShadowValue) which specifies the shadow colour, blur
+// radius, and alpha.
 // Takes p (insetShadowParams) which holds the precomputed inset geometry.
 func (painter *PdfPainter) paintBlurredInsetShadow(
 	stream *ContentStream,

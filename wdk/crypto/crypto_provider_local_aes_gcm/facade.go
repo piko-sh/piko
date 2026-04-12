@@ -32,8 +32,8 @@ const (
 )
 
 var (
-	// ErrInvalidKeySize is returned when the provided encryption key has an
-	// incorrect length for AES-GCM operations.
+	// ErrInvalidKeySize is returned when the provided encryption key has an incorrect length
+	// for AES-GCM operations.
 	ErrInvalidKeySize = local_aes_gcm.ErrInvalidKeySize
 
 	// ErrEmptyPlaintext is returned when encryption is attempted with empty input.

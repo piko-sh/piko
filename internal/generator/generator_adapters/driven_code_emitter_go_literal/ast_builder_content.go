@@ -32,17 +32,15 @@ import (
 	"piko.sh/piko/internal/i18n/i18n_domain"
 )
 
-// buildInitialRenderCall creates the AST statements for the initial render call
-// block: `pageData, pageMeta, renderErr := Render(r, props)`.
+// buildInitialRenderCall creates the AST statements for the initial render call block:
+// `pageData, pageMeta, renderErr := Render(r, props)`.
 //
-// Takes request (generator_dto.GenerateRequest) which specifies the component to
-// render.
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotated
-// virtual module containing component definitions.
+// Takes request (generator_dto.GenerateRequest) which specifies the component to render.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotated virtual
+// module containing component definitions.
 //
 // Returns []goast.Stmt which contains the AST statements for the render block.
-// Returns []*ast_domain.Diagnostic which contains errors if the component is
-// not found.
+// Returns []*ast_domain.Diagnostic which contains errors if the component is not found.
 func (*astBuilder) buildInitialRenderCall(
 	request generator_dto.GenerateRequest,
 	result *annotator_dto.AnnotationResult,
@@ -74,14 +72,13 @@ func (*astBuilder) buildInitialRenderCall(
 	return statements, nil
 }
 
-// buildLocalTranslationsMapLiteral generates a Go map literal for the local
-// translations.
+// buildLocalTranslationsMapLiteral generates a Go map literal for the local translations.
 //
-// Takes translations (i18n_domain.Translations) which provides the locale to
-// message mappings.
+// Takes translations (i18n_domain.Translations) which provides the locale to message
+// mappings.
 //
-// Returns goast.Expr which is the composite literal representing the nested
-// map structure.
+// Returns goast.Expr which is the composite literal representing the nested map
+// structure.
 func (*astBuilder) buildLocalTranslationsMapLiteral(translations i18n_domain.Translations) goast.Expr {
 	mapLit := &goast.CompositeLit{
 		Type: &goast.MapType{
@@ -123,9 +120,8 @@ func (*astBuilder) buildLocalTranslationsMapLiteral(translations i18n_domain.Tra
 
 // emitContentTag handles the <piko:content /> special tag.
 //
-// This tag is used in collection layout templates to render the markdown
-// content of a collection item. The contentAST is fetched at runtime from
-// RequestData.CollectionData.
+// This tag is used in collection layout templates to render the markdown content of a
+// collection item. The contentAST is fetched at runtime from RequestData.CollectionData.
 //
 // The generated code:
 //  1. Calls pikoruntime.GetContentAST(r.CollectionData) to get the content AST
@@ -141,11 +137,9 @@ func (*astBuilder) buildLocalTranslationsMapLiteral(translations i18n_domain.Tra
 //   - nodesConsumed: Always 1 (this tag consumes itself)
 //   - diagnostics: Diagnostics (errors/warnings)
 //
-// Takes parentSliceExpr (goast.Expr) which specifies the slice to add
-// content nodes to.
+// Takes parentSliceExpr (goast.Expr) which specifies the slice to add content nodes to.
 //
-// Returns []goast.Stmt which contains the generated runtime fetch
-// statements.
+// Returns []goast.Stmt which contains the generated runtime fetch statements.
 // Returns int which is the number of nodes consumed (always 1).
 // Returns []*ast_domain.Diagnostic which is always nil.
 func (b *astBuilder) emitContentTag(
@@ -157,8 +151,8 @@ func (b *astBuilder) emitContentTag(
 	return statements, 1, nil
 }
 
-// generateRuntimeContentFetch builds Go AST nodes that fetch and add content
-// nodes at runtime.
+// generateRuntimeContentFetch builds Go AST nodes that fetch and add content nodes at
+// runtime.
 //
 // Generates:
 //
@@ -168,11 +162,10 @@ func (b *astBuilder) emitContentTag(
 //	    }
 //	}
 //
-// Takes parentSliceExpr (goast.Expr) which specifies the slice to add content
-// nodes to.
+// Takes parentSliceExpr (goast.Expr) which specifies the slice to add content nodes to.
 //
-// Returns []goast.Stmt which contains the if statement that wraps the content
-// fetch and add logic.
+// Returns []goast.Stmt which contains the if statement that wraps the content fetch and
+// add logic.
 func (*astBuilder) generateRuntimeContentFetch(parentSliceExpr goast.Expr) []goast.Stmt {
 	getContentASTCall := &goast.CallExpr{
 		Fun: &goast.SelectorExpr{
@@ -235,14 +228,13 @@ func (*astBuilder) generateRuntimeContentFetch(parentSliceExpr goast.Expr) []goa
 	return []goast.Stmt{ifStmt}
 }
 
-// createComponentNotFoundDiagnostic creates an error diagnostic when a virtual
-// component cannot be found by its hash identifier.
+// createComponentNotFoundDiagnostic creates an error diagnostic when a virtual component
+// cannot be found by its hash identifier.
 //
-// Takes hashedName (string) which is the hash identifier of the missing
-// component.
+// Takes hashedName (string) which is the hash identifier of the missing component.
 //
-// Returns []*ast_domain.Diagnostic which contains a single error diagnostic
-// that describes the missing component.
+// Returns []*ast_domain.Diagnostic which contains a single error diagnostic that
+// describes the missing component.
 func createComponentNotFoundDiagnostic(hashedName string) []*ast_domain.Diagnostic {
 	message := "Internal Emitter Error: Could not find virtual component for hash: " + hashedName
 	diagnostic := ast_domain.NewDiagnostic(
@@ -259,9 +251,9 @@ func createComponentNotFoundDiagnostic(hashedName string) []*ast_domain.Diagnost
 //
 // Takes propsTypeExpr (goast.Expr) which is the target type for the assertion.
 //
-// Returns goast.Stmt which is an if statement that checks if propsData is not
-// nil, then tries to convert it to the target type and assigns the result to
-// props if the conversion works.
+// Returns goast.Stmt which is an if statement that checks if propsData is not nil, then
+// tries to convert it to the target type and assigns the result to props if the
+// conversion works.
 func buildPropsTypeAssertion(propsTypeExpr goast.Expr) goast.Stmt {
 	return &goast.IfStmt{
 		Cond: &goast.BinaryExpr{X: cachedIdent("propsData"), Op: token.NEQ, Y: cachedIdent(GoKeywordNil)},
@@ -281,8 +273,8 @@ func buildPropsTypeAssertion(propsTypeExpr goast.Expr) goast.Stmt {
 
 // buildRenderFunctionCall creates the Render function call statement.
 //
-// Returns goast.Stmt which is an assignment statement that calls Render and
-// stores the page data, page metadata, and any render error.
+// Returns goast.Stmt which is an assignment statement that calls Render and stores the
+// page data, page metadata, and any render error.
 func buildRenderFunctionCall() goast.Stmt {
 	return &goast.AssignStmt{
 		Lhs: []goast.Expr{cachedIdent("pageData"), cachedIdent(PageMetaVarName), cachedIdent(identRenderErr)},
@@ -296,8 +288,8 @@ func buildRenderFunctionCall() goast.Stmt {
 
 // buildRenderErrorHandler creates the error handling block for render errors.
 //
-// Returns goast.Stmt which is an if statement that checks for render errors,
-// adds a diagnostic message, and returns early with nil and the diagnostics.
+// Returns goast.Stmt which is an if statement that checks for render errors, adds a
+// diagnostic message, and returns early with nil and the diagnostics.
 func buildRenderErrorHandler() goast.Stmt {
 	return &goast.IfStmt{
 		Cond: &goast.BinaryExpr{X: cachedIdent(identRenderErr), Op: token.NEQ, Y: cachedIdent(GoKeywordNil)},
@@ -342,16 +334,16 @@ func buildRenderErrorHandler() goast.Stmt {
 	}
 }
 
-// extractPropsTypeFromComponent gets the props type expression from a
-// component's Render function.
+// extractPropsTypeFromComponent gets the props type expression from a component's Render
+// function.
 //
-// Takes mainComponent (*annotator_dto.VirtualComponent) which is the component
-// to get props from.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which is the component to get
+// props from.
 //
-// Returns propsTypeExpr (goast.Expr) which is the type expression for the
-// component's props. Returns NoProps if no Render function exists.
-// Returns propsVarInit (goast.Expr) which is the initial value for the props
-// variable.
+// Returns propsTypeExpr (goast.Expr) which is the type expression for the component's
+// props.
+// Returns NoProps if no Render function exists.
+// Returns propsVarInit (goast.Expr) which is the initial value for the props variable.
 func extractPropsTypeFromComponent(mainComponent *annotator_dto.VirtualComponent) (propsTypeExpr goast.Expr, propsVarInit goast.Expr) {
 	propsTypeExpr = &goast.SelectorExpr{X: cachedIdent(facadePackageName), Sel: cachedIdent(NoPropsTypeName)}
 	propsVarInit = &goast.CompositeLit{Type: propsTypeExpr}
@@ -370,16 +362,14 @@ func extractPropsTypeFromComponent(mainComponent *annotator_dto.VirtualComponent
 	return propsTypeExpr, propsVarInit
 }
 
-// extractPropsTypeFromRenderFunction finds the props type from a Render
-// function declaration.
+// extractPropsTypeFromRenderFunction finds the props type from a Render function
+// declaration.
 //
-// Takes functionDeclaration (*goast.FuncDecl) which is the Render
-// function to check.
+// Takes functionDeclaration (*goast.FuncDecl) which is the Render function to check.
 //
-// Returns propsTypeExpr (goast.Expr) which is the type expression for the
-// props parameter.
-// Returns propsVarInit (goast.Expr) which is the initial value for the props
-// variable.
+// Returns propsTypeExpr (goast.Expr) which is the type expression for the props
+// parameter.
+// Returns propsVarInit (goast.Expr) which is the initial value for the props variable.
 func extractPropsTypeFromRenderFunction(functionDeclaration *goast.FuncDecl) (propsTypeExpr goast.Expr, propsVarInit goast.Expr) {
 	defaultPropsType := &goast.SelectorExpr{X: cachedIdent(facadePackageName), Sel: cachedIdent(NoPropsTypeName)}
 	defaultPropsInit := &goast.CompositeLit{Type: defaultPropsType}
@@ -398,10 +388,9 @@ func extractPropsTypeFromRenderFunction(functionDeclaration *goast.FuncDecl) (pr
 
 // buildCustomTagsStaticVar builds a package-level variable for custom tags.
 //
-// When tags is not empty, it creates a slice with the given values:
-// var customTags = []string{"tag1", "tag2"}
-// When tags is empty, it creates a nil slice:
-// var customTags []string
+// When tags is not empty, it creates a slice with the given values: var customTags =
+// []string{"tag1", "tag2"} When tags is empty, it creates a nil slice: var customTags
+// []string
 //
 // Takes tags ([]string) which lists the custom tags to include.
 //
@@ -429,16 +418,16 @@ func buildCustomTagsStaticVar(tags []string) (*goast.GenDecl, string) {
 	return &goast.GenDecl{Tok: token.VAR, Specs: []goast.Spec{spec}}, varName
 }
 
-// buildReturnStatement creates the final return statement that provides
-// rootAST, internalMetaResult, and diagnostics to the caller.
+// buildReturnStatement creates the final return statement that provides rootAST,
+// internalMetaResult, and diagnostics to the caller.
 //
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotation
-// data, including asset references to add to the metadata.
-// Takes customTagsVarName (string) which names the package-level
-// variable that holds custom tags.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotation data,
+// including asset references to add to the metadata.
+// Takes customTagsVarName (string) which names the package-level variable that holds
+// custom tags.
 //
-// Returns []goast.Stmt which contains the variable definition and return
-// statement, ready for code generation.
+// Returns []goast.Stmt which contains the variable definition and return statement, ready
+// for code generation.
 func buildReturnStatement(result *annotator_dto.AnnotationResult, customTagsVarName string) []goast.Stmt {
 	var assetRefsValue goast.Expr
 	if len(result.AssetRefs) == 0 {
@@ -487,14 +476,14 @@ func buildReturnStatement(result *annotator_dto.AnnotationResult, customTagsVarN
 	}
 }
 
-// buildUnusedVarAcknowledgements creates blank identifier assignments to
-// satisfy the Go compiler for unused variables in generated code.
+// buildUnusedVarAcknowledgements creates blank identifier assignments to satisfy the Go
+// compiler for unused variables in generated code.
 //
-// Takes isCollectionPage (bool) which controls whether to include the 'data'
-// variable assignment. The 'data' variable is only declared for collection pages.
+// Takes isCollectionPage (bool) which controls whether to include the 'data' variable
+// assignment. The 'data' variable is only declared for collection pages.
 //
-// Returns []goast.Stmt which contains the blank identifier assignment
-// statements for each variable that needs to be acknowledged.
+// Returns []goast.Stmt which contains the blank identifier assignment statements for each
+// variable that needs to be acknowledged.
 func buildUnusedVarAcknowledgements(isCollectionPage bool) []goast.Stmt {
 	statements := []goast.Stmt{
 		&goast.AssignStmt{
@@ -525,9 +514,9 @@ func buildUnusedVarAcknowledgements(isCollectionPage bool) []goast.Stmt {
 	return statements
 }
 
-// buildContextCancellationCheck builds an if statement that checks whether the
-// request context has been cancelled (e.g. client disconnect or timeout) and
-// returns early to avoid wasting work on template AST building.
+// buildContextCancellationCheck builds an if statement that checks whether the request
+// context has been cancelled (e.g. client disconnect or timeout) and returns early to
+// avoid wasting work on template AST building.
 //
 // Generated code:
 //
@@ -535,8 +524,7 @@ func buildUnusedVarAcknowledgements(isCollectionPage bool) []goast.Stmt {
 //	    return nil, pikoruntime.InternalMetadata{RenderError: r.Context().Err()}, diagnostics
 //	}
 //
-// Returns goast.Stmt which is the if statement that checks for context
-// cancellation.
+// Returns goast.Stmt which is the if statement that checks for context cancellation.
 func buildContextCancellationCheck() goast.Stmt {
 	ctxErrCall := &goast.CallExpr{
 		Fun: &goast.SelectorExpr{
@@ -571,9 +559,9 @@ func buildContextCancellationCheck() goast.Stmt {
 	}
 }
 
-// buildRedirectEarlyReturnCheck builds an if statement that checks for page
-// redirects and returns early. This stops the code from building the full AST
-// when the page will redirect anyway.
+// buildRedirectEarlyReturnCheck builds an if statement that checks for page redirects and
+// returns early. This stops the code from building the full AST when the page will
+// redirect anyway.
 //
 // Generated code:
 //
@@ -586,8 +574,7 @@ func buildContextCancellationCheck() goast.Stmt {
 //	    }, diagnostics
 //	}
 //
-// Returns goast.Stmt which is the if statement that performs the redirect
-// check.
+// Returns goast.Stmt which is the if statement that performs the redirect check.
 func buildRedirectEarlyReturnCheck(_ *annotator_dto.AnnotationResult) goast.Stmt {
 	condition := &goast.BinaryExpr{
 		X: &goast.BinaryExpr{

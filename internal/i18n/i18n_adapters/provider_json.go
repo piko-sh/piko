@@ -25,42 +25,38 @@ import (
 	"path/filepath"
 	"strings"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/i18n/i18n_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/safedisk"
 )
 
 const (
-	// dirPermission is the permission mode for created directories (owner rwx,
-	// group rx).
+	// dirPermission is the permission mode for created directories (owner rwx, group rx).
 	dirPermission fs.FileMode = 0o750
 
-	// filePermission is the file mode for created files (owner read and write
-	// only).
+	// filePermission is the file mode for created files (owner read and write only).
 	filePermission fs.FileMode = 0o600
 )
 
-// jsonProvider loads translations from JSON files. This provider is intended
-// for debugging and development, as it parses templates at runtime rather than
-// using pre-parsed FlatBuffer data.
+// jsonProvider loads translations from JSON files. This provider is intended for
+// debugging and development, as it parses templates at runtime rather than using
+// pre-parsed FlatBuffer data.
 type jsonProvider struct {
 	// sandbox provides safe file system access for reading translation files.
 	sandbox safedisk.Sandbox
 
-	// directory is the path to the folder with JSON translation files,
-	// relative to the sandbox root.
+	// directory is the path to the folder with JSON translation files, relative to the
+	// sandbox root.
 	directory string
 }
 
-// load reads all JSON translation files from the directory and populates the
-// store.
+// load reads all JSON translation files from the directory and populates the store.
 //
 // Takes defaultLocale (string) which specifies the fallback locale for missing
 // translations.
 //
 // Returns *i18n_domain.Store which contains all loaded translations.
-// Returns error when the directory path is empty, unreadable, or a file fails
-// to parse.
+// Returns error when the directory path is empty, unreadable, or a file fails to parse.
 func (p *jsonProvider) load(defaultLocale string) (*i18n_domain.Store, error) {
 	if p.directory == "" {
 		return nil, errors.New("JSON provider requires a valid directory path")
@@ -94,8 +90,7 @@ func (p *jsonProvider) load(defaultLocale string) (*i18n_domain.Store, error) {
 	return store, nil
 }
 
-// parseAndLoadJSONFile reads, parses, and loads translations from a single
-// JSON file.
+// parseAndLoadJSONFile reads, parses, and loads translations from a single JSON file.
 //
 // Takes store (*i18n_domain.Store) which receives the parsed translations.
 // Takes locale (string) which identifies the language for the translations.
@@ -117,22 +112,22 @@ func (p *jsonProvider) parseAndLoadJSONFile(store *i18n_domain.Store, locale, fi
 	return nil
 }
 
-// jsonEmitter writes translations to JSON files for debugging purposes.
-// All file operations use a sandbox for security.
+// jsonEmitter writes translations to JSON files for debugging purposes. All file
+// operations use a sandbox for security.
 type jsonEmitter struct {
 	// sandbox provides file system operations for writing output files.
 	sandbox safedisk.Sandbox
 }
 
-// emit writes the store's translations to JSON files in the specified
-// directory. Each locale gets its own file (e.g., en-GB.json, fr-FR.json).
+// emit writes the store's translations to JSON files in the specified directory. Each
+// locale gets its own file (e.g., en-GB.json, fr-FR.json).
 //
 // Takes store (*i18n_domain.Store) which contains the translations to emit.
-// Takes outputDir (string) which specifies the output directory relative to
-// the sandbox root.
+// Takes outputDir (string) which specifies the output directory relative to the sandbox
+// root.
 //
-// Returns error when the output directory cannot be created, marshalling
-// fails, or a file cannot be written.
+// Returns error when the output directory cannot be created, marshalling fails, or a file
+// cannot be written.
 func (e *jsonEmitter) emit(store *i18n_domain.Store, outputDir string) error {
 	if err := e.sandbox.MkdirAll(outputDir, dirPermission); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
@@ -163,12 +158,11 @@ func (e *jsonEmitter) emit(store *i18n_domain.Store, outputDir string) error {
 	return nil
 }
 
-// emitSingle writes all translations to a single JSON file.
-// The structure is: { "locale": { "key": "value" } }.
+// emitSingle writes all translations to a single JSON file. The structure is: { "locale":
+// { "key": "value" } }.
 //
 // Takes store (*i18n_domain.Store) which provides the translations to emit.
-// Takes outputPath (string) which is the file path relative to the sandbox
-// root.
+// Takes outputPath (string) which is the file path relative to the sandbox root.
 //
 // Returns error when marshalling fails or the file cannot be written.
 func (e *jsonEmitter) emitSingle(store *i18n_domain.Store, outputPath string) error {
@@ -204,9 +198,9 @@ func (e *jsonEmitter) emitSingle(store *i18n_domain.Store, outputPath string) er
 	return nil
 }
 
-// newJSONProvider creates a new JSON provider for the given directory.
-// The directory should contain files named {locale}.json (e.g., en-GB.json,
-// fr-FR.json) and should be relative to the sandbox root.
+// newJSONProvider creates a new JSON provider for the given directory. The directory
+// should contain files named {locale}.json (e.g., en-GB.json, fr-FR.json) and should be
+// relative to the sandbox root.
 //
 // Takes sandbox (safedisk.Sandbox) which provides safe file system access.
 // Takes directory (string) which specifies the path to locale files.

@@ -16,18 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package events_provider_nats provides a NATS JetStream-based event
-// provider for distributed messaging with persistence.
+// Package events_provider_nats provides a NATS JetStream-based event provider for
+// distributed messaging with persistence.
 //
 // Implements the [events.Provider] interface using NATS JetStream, giving Piko
-// applications access to distributed pub/sub messaging. Supports message
-// persistence, at-least-once delivery, durable subscriptions, and competing
-// consumer patterns via queue groups.
+// applications access to distributed pub/sub messaging. Supports message persistence,
+// at-least-once delivery, durable subscriptions, and competing consumer patterns via
+// queue groups.
 //
 // # Configuration
 //
-// Use [DefaultConfig] to obtain sensible defaults with
-// JetStream enabled:
+// Use [DefaultConfig] to obtain sensible defaults with JetStream enabled:
 //
 //	config := events_provider_nats.DefaultConfig()
 //	config.URL = "nats://nats-server:4222"
@@ -59,8 +58,7 @@
 //
 // # Queue groups
 //
-// Enable competing consumers by setting a queue group prefix
-// and subscriber count:
+// Enable competing consumers by setting a queue group prefix and subscriber count:
 //
 //	config := events_provider_nats.DefaultConfig()
 //	config.QueueGroupPrefix = "my-app"
@@ -75,11 +73,10 @@
 //   - At-least-once or exactly-once delivery guarantees
 //   - High-throughput distributed messaging
 //
-// For single-instance in-memory messaging, consider
-// [events_provider_gochannel] instead.
+// For single-instance in-memory messaging, consider [events_provider_gochannel] instead.
 //
 // # Thread safety
 //
-// The provider returned by [NewNATSProvider] is safe for
-// concurrent use after Start has been called.
+// The provider returned by [NewNATSProvider] is safe for concurrent use after Start has
+// been called.
 package events_provider_nats

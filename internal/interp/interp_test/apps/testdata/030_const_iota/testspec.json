@@ -1,0 +1,4 @@
+{
+  "description": "Const block with iota in one file, used by switch in another",
+  "expected": "small=1 medium=2 large=3 label=medium"
+}

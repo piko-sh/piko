@@ -20,8 +20,8 @@
 
 package vectormaths
 
-// euclidSqF32SSE computes the squared Euclidean distance using SSE
-// (4 float32s per iteration). Guaranteed on all amd64 CPUs.
+// euclidSqF32SSE computes the squared Euclidean distance using SSE (4 float32s per
+// iteration). Guaranteed on all amd64 CPUs.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.
@@ -31,8 +31,8 @@ package vectormaths
 //go:noescape
 func euclidSqF32SSE(a, b []float32) float32
 
-// euclidSqF32AVX2 computes the squared Euclidean distance using AVX2
-// (8 float32s per iteration). Requires AVX2 support.
+// euclidSqF32AVX2 computes the squared Euclidean distance using AVX2 (8 float32s per
+// iteration). Requires AVX2 support.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.
@@ -42,8 +42,8 @@ func euclidSqF32SSE(a, b []float32) float32
 //go:noescape
 func euclidSqF32AVX2(a, b []float32) float32
 
-// euclidSqF32Kern computes the squared Euclidean distance between two float32
-// slices using SIMD. Dispatches to AVX2 or SSE based on runtime CPU detection.
+// euclidSqF32Kern computes the squared Euclidean distance between two float32 slices
+// using SIMD. Dispatches to AVX2 or SSE based on runtime CPU detection.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.

@@ -18,7 +18,9 @@
 
 package wizard
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestSelectVersion_PrefersStable(t *testing.T) {
 	t.Parallel()

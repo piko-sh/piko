@@ -1,0 +1,4 @@
+{
+  "description": "Map keyed by an anonymous struct type literal declared in one file is populated/looked-up from another file; tests synthesised-type identity for two structurally-identical anonymous types declared at separate sites",
+  "expected": "root=10:true about=5:true missing=0:false size=3"
+}

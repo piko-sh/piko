@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// MockProvider is a test implementation of the cache.Provider interface.
-// It creates simple mock caches for each namespace.
+// MockProvider is a test implementation of the cache.Provider interface. It creates
+// simple mock caches for each namespace.
 type MockProvider struct {
 	// namespaces maps namespace names to their MockAdapter instances.
 	namespaces map[string]any
@@ -41,7 +41,9 @@ type MockProvider struct {
 	closed bool
 }
 
-var _ cache_domain.Provider = (*MockProvider)(nil)
+var (
+	_ cache_domain.Provider = (*MockProvider)(nil)
+)
 
 // NewMockProvider creates a new mock provider for testing.
 //
@@ -54,9 +56,9 @@ func NewMockProvider() *MockProvider {
 	}
 }
 
-// CreateNamespaceTyped creates a new mock cache instance for the given
-// namespace. This is a non-generic method that uses type erasure; call via
-// CreateNamespace[K,V]() for type safety.
+// CreateNamespaceTyped creates a new mock cache instance for the given namespace. This is
+// a non-generic method that uses type erasure; call via CreateNamespace[K,V]() for type
+// safety.
 //
 // Takes namespace (string) which identifies the cache namespace.
 // Takes options (any) which provides type-erased configuration options.
@@ -89,8 +91,8 @@ func (*MockProvider) Name() string {
 	return "mock"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// Reports unhealthy if the provider has been closed, otherwise healthy.
+// Check implements the healthprobe_domain.Probe interface. Reports unhealthy if the
+// provider has been closed, otherwise healthy.
 //
 // Returns healthprobe_dto.Status which contains the health state and details.
 //

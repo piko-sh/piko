@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// createSystemTempSandbox creates a sandboxed file system scoped to the system
-// temp folder. This is used for reading and writing secret files safely.
+// createSystemTempSandbox creates a sandboxed file system scoped to the system temp
+// folder. This is used for reading and writing secret files safely.
 //
 // Takes name (string) which labels the sandbox for diagnostics.
 //

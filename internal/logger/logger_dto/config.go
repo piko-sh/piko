@@ -23,14 +23,12 @@ import (
 	"strings"
 )
 
-// SentryConfig holds settings for connecting to the Sentry error tracking
-// service.
+// SentryConfig holds settings for connecting to the Sentry error tracking service.
 type SentryConfig struct {
 	// DSN is the Sentry Data Source Name used to connect to Sentry.
 	DSN string `env:"DSN" validate:"required" yaml:"dsn" json:"dsn"`
 
-	// Environment identifies the deployment environment, such as "production"
-	// or "staging".
+	// Environment identifies the deployment environment, such as "production" or "staging".
 	Environment string `env:"ENVIRONMENT" yaml:"environment,omitempty" json:"environment,omitempty"`
 
 	// Release is the application version or commit hash sent to Sentry.
@@ -45,8 +43,7 @@ type SentryConfig struct {
 	// IgnoreErrors is a list of error message patterns to exclude from Sentry.
 	IgnoreErrors []string `env:"IGNORE_ERRORS" yaml:"ignoreErrors,omitempty" json:"ignoreErrors,omitempty"`
 
-	// TracesSampleRate is the sampling fraction for
-	// tracing transactions (0.0-1.0).
+	// TracesSampleRate is the sampling fraction for tracing transactions (0.0-1.0).
 	TracesSampleRate float64 `env:"TRACES_SAMPLE_RATE" default:"0.2" yaml:"tracesSampleRate,omitempty" json:"tracesSampleRate,omitempty"`
 
 	// SampleRate is the portion of error events to send to Sentry (0.0 to 1.0).
@@ -88,8 +85,7 @@ type FileOutputConfig struct {
 
 // OutputConfig holds settings for a single log output destination.
 type OutputConfig struct {
-	// AddSource overrides the global AddSource setting
-	// for this output; nil uses global.
+	// AddSource overrides the global AddSource setting for this output; nil uses global.
 	AddSource *bool `yaml:"addSource,omitempty" json:"addSource,omitempty"`
 
 	// File holds log file settings when output Type is "file"; nil when unused.
@@ -131,8 +127,7 @@ type Config struct {
 	// Level specifies how much detail to show in logs; defaults to "info".
 	Level string `env:"LOG_LEVEL" default:"info" yaml:"level,omitempty" json:"level,omitempty"`
 
-	// Outputs lists the log output destinations; if
-	// empty, standard output is used.
+	// Outputs lists the log output destinations; if empty, standard output is used.
 	Outputs []OutputConfig `envPrefix:"OUTPUT_" yaml:"outputs,omitempty" json:"outputs,omitempty"`
 
 	// Integrations holds the settings for each logging integration to enable.
@@ -169,15 +164,14 @@ func ParseLogLevel(level string, defaultLevel slog.Level) slog.Level {
 	}
 }
 
-// parseSlogLevels parses a comma-separated string of log level names into
-// slog.Level values.
+// parseSlogLevels parses a comma-separated string of log level names into slog.Level
+// values.
 //
 // Takes levels (string) which contains comma-separated level names such as
-// "debug,info,warn". Valid names are: trace, internal, debug, info, notice,
-// warn, error. Names are case-insensitive and unknown names are ignored.
+// "debug,info,warn". Valid names are: trace, internal, debug, info, notice, warn, error.
+// Names are case-insensitive and unknown names are ignored.
 //
-// Returns []slog.Level which contains the parsed levels, or nil if levels is
-// empty.
+// Returns []slog.Level which contains the parsed levels, or nil if levels is empty.
 func parseSlogLevels(levels string) []slog.Level {
 	var result []slog.Level
 	if levels == "" {

@@ -1,0 +1,4 @@
+{
+  "description": "Generic linked list type recursively referencing itself, declared in one file with operations in another",
+  "expected": "values=[a b c] count=3"
+}

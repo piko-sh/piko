@@ -25,8 +25,10 @@ import (
 	"sync"
 )
 
-// decimalBase is the base for decimal number formatting.
-const decimalBase = 10
+const (
+	// decimalBase is the base for decimal number formatting.
+	decimalBase = 10
+)
 
 // frameInfo holds details about a program counter location.
 type frameInfo struct {
@@ -43,17 +45,18 @@ type frameInfo struct {
 	line int
 }
 
-// frameCache maps program counters to their resolved frame information.
-// Using sync.Map because the access pattern is read-heavy (most PCs are
-// resolved once and read many times) and concurrent.
-var frameCache sync.Map
+var (
+	// frameCache maps program counters to their resolved frame information. Using sync.Map
+	// because the access pattern is read-heavy (most PCs are resolved once and read many
+	// times) and concurrent.
+	frameCache sync.Map
+)
 
-// NameFileLine returns the function name, file path, and line number for this
-// program counter.
+// NameFileLine returns the function name, file path, and line number for this program
+// counter.
 //
-// Results are cached to avoid repeated lookups. The file path is shortened to
-// show only the useful part (for example, "internal/logger/logger.go" rather
-// than the full path).
+// Results are cached to avoid repeated lookups. The file path is shortened to show only
+// the useful part (for example, "internal/logger/logger.go" rather than the full path).
 //
 // Returns name (string) which is the fully qualified function name.
 // Returns file (string) which is the shortened file path.
@@ -92,12 +95,11 @@ func (pc PC) NameFileLine() (name, file string, line int) {
 	return name, file, line
 }
 
-// FormattedFrame returns a pre-formatted stack frame string in the format
-// "\tfile:line". This is optimised for stack trace output.
+// FormattedFrame returns a pre-formatted stack frame string in the format "\tfile:line".
+// This is optimised for stack trace output.
 //
-// Returns string which is the formatted frame, or empty if the PC is 0 or the
-// file cannot be resolved. Results are cached, so after warmup this returns
-// zero allocations.
+// Returns string which is the formatted frame, or empty if the PC is 0 or the file cannot
+// be resolved. Results are cached, so after warmup this returns zero allocations.
 func (pc PC) FormattedFrame() string {
 	if pc == 0 {
 		return ""
@@ -128,8 +130,8 @@ func ResetFrameCache() {
 	})
 }
 
-// formatFrame builds a stack frame string in the format "\tfile:line".
-// Uses a stack-allocated buffer to avoid fmt.Sprintf allocation overhead.
+// formatFrame builds a stack frame string in the format "\tfile:line". Uses a
+// stack-allocated buffer to avoid fmt.Sprintf allocation overhead.
 //
 // Takes file (string) which is the source file path.
 // Takes line (int) which is the line number in the file.
@@ -145,9 +147,9 @@ func formatFrame(file string, line int) string {
 	return string(b)
 }
 
-// cropFilename extracts the relevant portion of a file path based on the
-// function name. This produces paths like
-// "internal/logger/logger_domain/logger.go" rather than full absolute paths.
+// cropFilename extracts the relevant portion of a file path based on the function name.
+// This produces paths like "internal/logger/logger_domain/logger.go" rather than full
+// absolute paths.
 //
 // Takes file (string) which is the full file path.
 // Takes functionName (string) which is the fully qualified function name.

@@ -38,81 +38,82 @@ import (
 	browserpkg "piko.sh/piko/wdk/browser"
 )
 
-const layouterCSSReset = `*, *::before, *::after {
-  box-sizing: border-box;
-}
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed,
-figure, figcaption, footer, header, hgroup,
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  vertical-align: baseline;
-}
-body {
-  line-height: 1.4;
-}
-img {
-  max-width: 100%;
-  max-height: 100%;
-}
-a {
-  text-decoration: none;
-}
-`
-
-const extractPositionsJS = `(() => {
-	const result = {};
-	document.querySelectorAll('[data-layout-id]').forEach(element => {
-		const rect = element.getBoundingClientRect();
-		const identifier = element.getAttribute('data-layout-id');
-		const entry = {
-			x: rect.x,
-			y: rect.y,
-			width: rect.width,
-			height: rect.height
-		};
-		const textRects = [];
-		const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
-			acceptNode: function(node) {
-				let parent = node.parentElement;
-				while (parent && parent !== element) {
-					if (parent.hasAttribute('data-layout-id')) return NodeFilter.FILTER_REJECT;
-					parent = parent.parentElement;
+const (
+	layouterCSSReset = `*, *::before, *::after {
+	  box-sizing: border-box;
+	}
+	html, body, div, span, applet, object, iframe,
+	h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+	a, abbr, acronym, address, big, cite, code,
+	del, dfn, em, img, ins, kbd, q, s, samp,
+	small, strike, strong, sub, sup, tt, var,
+	b, u, i, center,
+	dl, dt, dd, ol, ul, li,
+	fieldset, form, label, legend,
+	table, caption, tbody, tfoot, thead, tr, th, td,
+	article, aside, canvas, details, embed,
+	figure, figcaption, footer, header, hgroup,
+	menu, nav, output, ruby, section, summary,
+	time, mark, audio, video {
+	  margin: 0;
+	  padding: 0;
+	  border: 0;
+	  vertical-align: baseline;
+	}
+	body {
+	  line-height: 1.4;
+	}
+	img {
+	  max-width: 100%;
+	  max-height: 100%;
+	}
+	a {
+	  text-decoration: none;
+	}
+	`
+	extractPositionsJS = `(() => {
+		const result = {};
+		document.querySelectorAll('[data-layout-id]').forEach(element => {
+			const rect = element.getBoundingClientRect();
+			const identifier = element.getAttribute('data-layout-id');
+			const entry = {
+				x: rect.x,
+				y: rect.y,
+				width: rect.width,
+				height: rect.height
+			};
+			const textRects = [];
+			const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
+				acceptNode: function(node) {
+					let parent = node.parentElement;
+					while (parent && parent !== element) {
+						if (parent.hasAttribute('data-layout-id')) return NodeFilter.FILTER_REJECT;
+						parent = parent.parentElement;
+					}
+					return NodeFilter.FILTER_ACCEPT;
 				}
-				return NodeFilter.FILTER_ACCEPT;
+			});
+			let textNode;
+			while ((textNode = walker.nextNode()) !== null) {
+				if (textNode.textContent.trim() === '') continue;
+				const rng = document.createRange();
+				rng.selectNodeContents(textNode);
+				const clientRects = rng.getClientRects();
+				for (let i = 0; i < clientRects.length; i++) {
+					const r = clientRects[i];
+					if (r.width > 0 && r.height > 0) {
+						textRects.push({x: r.x, y: r.y, width: r.width, height: r.height});
+					}
+				}
 			}
+			if (textRects.length > 0) {
+				entry.textRects = textRects;
+			}
+			result[identifier] = entry;
 		});
-		let textNode;
-		while ((textNode = walker.nextNode()) !== null) {
-			if (textNode.textContent.trim() === '') continue;
-			const rng = document.createRange();
-			rng.selectNodeContents(textNode);
-			const clientRects = rng.getClientRects();
-			for (let i = 0; i < clientRects.length; i++) {
-				const r = clientRects[i];
-				if (r.width > 0 && r.height > 0) {
-					textRects.push({x: r.x, y: r.y, width: r.width, height: r.height});
-				}
-			}
-		}
-		if (textRects.length > 0) {
-			entry.textRects = textRects;
-		}
-		result[identifier] = entry;
-	});
-	return JSON.stringify(result);
-})()`
+		return JSON.stringify(result);
+	})()`
+)
 
 func runLayouterTestCase(t *testing.T, tc testCase) {
 	t.Helper()

@@ -35,8 +35,8 @@ const (
 	// fontWeightNormal holds the numeric font weight value for normal text.
 	fontWeightNormal = 400
 
-	// fontWeightDigitMultiplier holds the base-10 multiplier
-	// used when parsing numeric font weight strings.
+	// fontWeightDigitMultiplier holds the base-10 multiplier used when parsing numeric font
+	// weight strings.
 	fontWeightDigitMultiplier = 10
 
 	// fontWeightMin holds the minimum valid numeric font weight.
@@ -45,36 +45,31 @@ const (
 	// fontWeightMax holds the maximum valid numeric font weight.
 	fontWeightMax = 900
 
-	// baselineMiddleFactor holds the proportion of font size
-	// used as the vertical offset for middle baseline
-	// alignment.
+	// baselineMiddleFactor holds the proportion of font size used as the vertical offset for
+	// middle baseline alignment.
 	baselineMiddleFactor = 0.35
 
-	// baselineHangFactor holds the proportion of font size
-	// used as the vertical offset for hanging baseline
-	// alignment.
+	// baselineHangFactor holds the proportion of font size used as the vertical offset for
+	// hanging baseline alignment.
 	baselineHangFactor = 0.8
 
-	// decorationThicknessFactor holds the proportion of font
-	// size used to compute text decoration line thickness.
+	// decorationThicknessFactor holds the proportion of font size used to compute text
+	// decoration line thickness.
 	decorationThicknessFactor = 0.05
 
 	// decorationMinThickness holds the minimum text decoration line thickness in points.
 	decorationMinThickness = 0.5
 
-	// underlineOffsetFactor holds the proportion of font size
-	// used as the vertical offset below the baseline for
-	// underlines.
+	// underlineOffsetFactor holds the proportion of font size used as the vertical offset
+	// below the baseline for underlines.
 	underlineOffsetFactor = 0.15
 
-	// overlineOffsetFactor holds the proportion of font size
-	// used as the vertical offset above the baseline for
-	// overlines.
+	// overlineOffsetFactor holds the proportion of font size used as the vertical offset
+	// above the baseline for overlines.
 	overlineOffsetFactor = 0.8
 
-	// lineThroughOffsetFactor holds the proportion of font
-	// size used as the vertical offset above the baseline
-	// for line-through.
+	// lineThroughOffsetFactor holds the proportion of font size used as the vertical offset
+	// above the baseline for line-through.
 	lineThroughOffsetFactor = 0.3
 
 	// gradientHalfDefault holds the default midpoint value for gradient coordinates.
@@ -127,17 +122,12 @@ func renderText(rc *renderContext, node *Node, style *Style) {
 	rc.stream.RestoreState()
 }
 
-// renderTextRun renders a single text run at the specified
-// position with the given style.
+// renderTextRun renders a single text run at the specified position with the given style.
 //
-// Takes rc (*renderContext) which provides the PDF stream
-// and resource managers.
-// Takes text (string) which holds the text content to
-// render.
-// Takes style (*Style) which holds the resolved style
-// properties.
-// Takes x (float64) which specifies the horizontal
-// position.
+// Takes rc (*renderContext) which provides the PDF stream and resource managers.
+// Takes text (string) which holds the text content to render.
+// Takes style (*Style) which holds the resolved style properties.
+// Takes x (float64) which specifies the horizontal position.
 // Takes y (float64) which specifies the vertical position.
 func renderTextRun(rc *renderContext, text string, style *Style, x, y float64) {
 	fontSize := style.FontSize
@@ -185,19 +175,15 @@ func renderTextRun(rc *renderContext, text string, style *Style, x, y float64) {
 	}
 }
 
-// measureTextWidth measures the rendered width of a text
-// string including letter spacing adjustments.
+// measureTextWidth measures the rendered width of a text string including letter spacing
+// adjustments.
 //
-// Takes rc (*renderContext) which provides the text
-// measurement callback.
-// Takes style (*Style) which holds the resolved style
-// properties including letter spacing.
-// Takes weight (int) which specifies the numeric font
-// weight.
-// Takes fontStyle (int) which specifies the font style
-// code.
-// Takes fontSize (float64) which specifies the font size
-// in points.
+// Takes rc (*renderContext) which provides the text measurement callback.
+// Takes style (*Style) which holds the resolved style properties including letter
+// spacing.
+// Takes weight (int) which specifies the numeric font weight.
+// Takes fontStyle (int) which specifies the font style code.
+// Takes fontSize (float64) which specifies the font size in points.
 // Takes text (string) which holds the text to measure.
 //
 // Returns float64 which holds the computed text width.
@@ -219,15 +205,12 @@ func measureTextWidth(rc *renderContext, style *Style, weight, fontStyle int, fo
 	return textWidth
 }
 
-// applyTextAnchor adjusts the x position based on the
-// text-anchor property for middle or end alignment.
+// applyTextAnchor adjusts the x position based on the text-anchor property for middle or
+// end alignment.
 //
-// Takes style (*Style) which holds the resolved style
-// properties including text anchor.
-// Takes x (float64) which specifies the initial horizontal
-// position.
-// Takes textWidth (float64) which specifies the rendered
-// text width.
+// Takes style (*Style) which holds the resolved style properties including text anchor.
+// Takes x (float64) which specifies the initial horizontal position.
+// Takes textWidth (float64) which specifies the rendered text width.
 //
 // Returns float64 which holds the adjusted x position.
 func applyTextAnchor(style *Style, x, textWidth float64) float64 {
@@ -242,15 +225,12 @@ func applyTextAnchor(style *Style, x, textWidth float64) float64 {
 	return x
 }
 
-// applyBaselineAdjustment adjusts the y position based on
-// the dominant-baseline property.
+// applyBaselineAdjustment adjusts the y position based on the dominant-baseline property.
 //
-// Takes style (*Style) which holds the resolved style
-// properties including dominant baseline.
-// Takes y (float64) which specifies the initial vertical
-// position.
-// Takes fontSize (float64) which specifies the font size
-// in points.
+// Takes style (*Style) which holds the resolved style properties including dominant
+// baseline.
+// Takes y (float64) which specifies the initial vertical position.
+// Takes fontSize (float64) which specifies the font size in points.
 //
 // Returns float64 which holds the adjusted y position.
 func applyBaselineAdjustment(style *Style, y, fontSize float64) float64 {
@@ -263,18 +243,14 @@ func applyBaselineAdjustment(style *Style, y, fontSize float64) float64 {
 	return y
 }
 
-// renderTextWithTspan renders a text element that contains
-// tspan children, advancing the cursor between runs.
+// renderTextWithTspan renders a text element that contains tspan children, advancing the
+// cursor between runs.
 //
-// Takes rc (*renderContext) which provides the PDF stream
-// and resource managers.
+// Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes node (*Node) which holds the parent text element.
-// Takes parentStyle (*Style) which holds the inherited
-// style properties.
-// Takes baseX (float64) which specifies the initial
-// horizontal cursor position.
-// Takes baseY (float64) which specifies the initial
-// vertical cursor position.
+// Takes parentStyle (*Style) which holds the inherited style properties.
+// Takes baseX (float64) which specifies the initial horizontal cursor position.
+// Takes baseY (float64) which specifies the initial vertical cursor position.
 func renderTextWithTspan(rc *renderContext, node *Node, parentStyle *Style, baseX, baseY float64) {
 	curX := baseX
 	curY := baseY
@@ -289,24 +265,17 @@ func renderTextWithTspan(rc *renderContext, node *Node, parentStyle *Style, base
 	}
 }
 
-// renderTspanChild renders a single tspan child element
-// and returns the updated cursor position.
+// renderTspanChild renders a single tspan child element and returns the updated cursor
+// position.
 //
-// Takes rc (*renderContext) which provides the PDF stream
-// and resource managers.
-// Takes child (*Node) which holds the tspan element to
-// render.
-// Takes parentStyle (*Style) which holds the inherited
-// style properties.
-// Takes curX (float64) which specifies the current
-// horizontal cursor position.
-// Takes curY (float64) which specifies the current
-// vertical cursor position.
+// Takes rc (*renderContext) which provides the PDF stream and resource managers.
+// Takes child (*Node) which holds the tspan element to render.
+// Takes parentStyle (*Style) which holds the inherited style properties.
+// Takes curX (float64) which specifies the current horizontal cursor position.
+// Takes curY (float64) which specifies the current vertical cursor position.
 //
-// Returns newX (float64) which holds the updated
-// horizontal cursor position.
-// Returns newY (float64) which holds the updated vertical
-// cursor position.
+// Returns newX (float64) which holds the updated horizontal cursor position.
+// Returns newY (float64) which holds the updated vertical cursor position.
 func renderTspanChild(rc *renderContext, child *Node, parentStyle *Style, curX, curY float64) (newX float64, newY float64) {
 	childStyle := ResolveStyle(child, parentStyle)
 
@@ -333,11 +302,10 @@ func renderTspanChild(rc *renderContext, child *Node, parentStyle *Style, curX, 
 	return curX, curY
 }
 
-// resolveTspanText extracts and trims the text content
-// from a tspan node, collecting from children if needed.
+// resolveTspanText extracts and trims the text content from a tspan node, collecting from
+// children if needed.
 //
-// Takes child (*Node) which holds the tspan element to
-// extract text from.
+// Takes child (*Node) which holds the tspan element to extract text from.
 //
 // Returns string which holds the trimmed text content.
 func resolveTspanText(child *Node) string {
@@ -350,13 +318,11 @@ func resolveTspanText(child *Node) string {
 	return strings.TrimSpace(text)
 }
 
-// measureTspanWidth measures the rendered width of a tspan
-// text run using the resolved style.
+// measureTspanWidth measures the rendered width of a tspan text run using the resolved
+// style.
 //
-// Takes rc (*renderContext) which provides the text
-// measurement callback.
-// Takes style (*Style) which holds the resolved style
-// properties.
+// Takes rc (*renderContext) which provides the text measurement callback.
+// Takes style (*Style) which holds the resolved style properties.
 // Takes text (string) which holds the text to measure.
 //
 // Returns float64 which holds the computed text width.
@@ -370,23 +336,17 @@ func measureTspanWidth(rc *renderContext, style *Style, text string) float64 {
 	return rc.measureText(style.FontFamily, weight, fontStyle, fontSize, text)
 }
 
-// renderDirectTextContent renders plain text content
-// between tspan elements and returns the updated x cursor.
+// renderDirectTextContent renders plain text content between tspan elements and returns
+// the updated x cursor.
 //
-// Takes rc (*renderContext) which provides the PDF stream
-// and resource managers.
+// Takes rc (*renderContext) which provides the PDF stream and resource managers.
 // Takes child (*Node) which holds the text content node.
-// Takes parent (*Node) which holds the parent text
-// element.
-// Takes parentStyle (*Style) which holds the inherited
-// style properties.
-// Takes curX (float64) which specifies the current
-// horizontal cursor position.
-// Takes curY (float64) which specifies the current
-// vertical cursor position.
+// Takes parent (*Node) which holds the parent text element.
+// Takes parentStyle (*Style) which holds the inherited style properties.
+// Takes curX (float64) which specifies the current horizontal cursor position.
+// Takes curY (float64) which specifies the current vertical cursor position.
 //
-// Returns float64 which holds the updated horizontal
-// cursor position.
+// Returns float64 which holds the updated horizontal cursor position.
 func renderDirectTextContent(rc *renderContext, child, parent *Node, parentStyle *Style, curX, curY float64) float64 {
 	text := strings.TrimSpace(child.Text)
 	if text == "" && child.Tag == "" && parent.Text != "" {
@@ -407,13 +367,11 @@ func renderDirectTextContent(rc *renderContext, child, parent *Node, parentStyle
 	return curX
 }
 
-// collectText recursively gathers all text content from a
-// node and its children into the string builder.
+// collectText recursively gathers all text content from a node and its children into the
+// string builder.
 //
-// Takes node (*Node) which holds the node to collect text
-// from.
-// Takes sb (*strings.Builder) which holds the builder to
-// append text into.
+// Takes node (*Node) which holds the node to collect text from.
+// Takes sb (*strings.Builder) which holds the builder to append text into.
 func collectText(node *Node, sb *strings.Builder) {
 	if node.Text != "" {
 		sb.WriteString(node.Text)
@@ -423,11 +381,9 @@ func collectText(node *Node, sb *strings.Builder) {
 	}
 }
 
-// parseFontWeight converts an SVG font-weight string to
-// its numeric value.
+// parseFontWeight converts an SVG font-weight string to its numeric value.
 //
-// Takes s (string) which holds the font-weight attribute
-// value.
+// Takes s (string) which holds the font-weight attribute value.
 //
 // Returns int which holds the numeric font weight.
 func parseFontWeight(s string) int {
@@ -453,11 +409,10 @@ func parseFontWeight(s string) int {
 	}
 }
 
-// parseFontStyle converts an SVG font-style string to a
-// numeric code, returning 1 for italic or oblique.
+// parseFontStyle converts an SVG font-style string to a numeric code, returning 1 for
+// italic or oblique.
 //
-// Takes s (string) which holds the font-style attribute
-// value.
+// Takes s (string) which holds the font-style attribute value.
 //
 // Returns int which holds the numeric font style code.
 func parseFontStyle(s string) int {
@@ -469,24 +424,19 @@ func parseFontStyle(s string) int {
 	}
 }
 
-// renderTextDecoration draws underline, overline, and/or
-// line-through lines for the given text run.
+// renderTextDecoration draws underline, overline, and/or line-through lines for the given
+// text run.
 //
-// The decoration value may contain multiple
-// space-separated values (e.g. "underline line-through").
+// The decoration value may contain multiple space-separated values (e.g. "underline
+// line-through").
 //
-// Takes rc (*renderContext) which provides the PDF stream
-// and resource managers.
-// Takes style (*Style) which holds the resolved style
-// including text decoration and colour.
-// Takes x (float64) which specifies the horizontal start
-// position of the text run.
-// Takes y (float64) which specifies the baseline vertical
-// position of the text run.
-// Takes textWidth (float64) which specifies the rendered
-// width of the text run.
-// Takes fontSize (float64) which specifies the font size
-// used for offset calculations.
+// Takes rc (*renderContext) which provides the PDF stream and resource managers.
+// Takes style (*Style) which holds the resolved style including text decoration and
+// colour.
+// Takes x (float64) which specifies the horizontal start position of the text run.
+// Takes y (float64) which specifies the baseline vertical position of the text run.
+// Takes textWidth (float64) which specifies the rendered width of the text run.
+// Takes fontSize (float64) which specifies the font size used for offset calculations.
 func renderTextDecoration(rc *renderContext, style *Style, x, y, textWidth, fontSize float64) {
 	decoration := strings.ToLower(style.TextDecoration)
 

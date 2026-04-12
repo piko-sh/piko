@@ -28,20 +28,20 @@ import (
 
 type recordingResponseWriter struct {
 	http.ResponseWriter
-	deadlineCalls int64
-	flushCalls    int64
+	deadlineCalls atomic.Int64
+	flushCalls    atomic.Int64
 	lastDeadline  time.Time
 	deadlineErr   error
 }
 
 func (r *recordingResponseWriter) SetWriteDeadline(deadline time.Time) error {
-	atomic.AddInt64(&r.deadlineCalls, 1)
+	r.deadlineCalls.Add(1)
 	r.lastDeadline = deadline
 	return r.deadlineErr
 }
 
 func (r *recordingResponseWriter) Flush() {
-	atomic.AddInt64(&r.flushCalls, 1)
+	r.flushCalls.Add(1)
 	if f, ok := r.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
@@ -60,7 +60,7 @@ func TestSSEDeadlineWriter_AppliesDeadlineBeforeEachWrite(t *testing.T) {
 		t.Fatalf("second write returned error: %v", err)
 	}
 
-	if calls := atomic.LoadInt64(&recorder.deadlineCalls); calls != 2 {
+	if calls := recorder.deadlineCalls.Load(); calls != 2 {
 		t.Fatalf("expected SetWriteDeadline to be called twice, got %d", calls)
 	}
 
@@ -85,7 +85,7 @@ func TestSSEDeadlineWriter_FlushesViaController(t *testing.T) {
 	}
 	flusher.Flush()
 
-	if atomic.LoadInt64(&recorder.flushCalls) == 0 {
+	if recorder.flushCalls.Load() == 0 {
 		t.Fatal("expected Flush to reach the underlying writer")
 	}
 }

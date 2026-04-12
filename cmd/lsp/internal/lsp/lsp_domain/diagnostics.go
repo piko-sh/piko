@@ -28,16 +28,16 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// convertDiagnosticsToLSP converts AST diagnostics to LSP protocol format.
-// It filters to include only diagnostics for the given file path and removes
-// duplicates based on message, position, and severity.
+// convertDiagnosticsToLSP converts AST diagnostics to LSP protocol format. It filters to
+// include only diagnostics for the given file path and removes duplicates based on
+// message, position, and severity.
 //
-// Takes allDiagnostics ([]*ast_domain.Diagnostic) which contains the source
-// diagnostics to convert.
+// Takes allDiagnostics ([]*ast_domain.Diagnostic) which contains the source diagnostics
+// to convert.
 // Takes absPath (string) which is the absolute file path to filter by.
 //
-// Returns []protocol.Diagnostic which contains the filtered LSP diagnostics
-// for the given file.
+// Returns []protocol.Diagnostic which contains the filtered LSP diagnostics for the given
+// file.
 func convertDiagnosticsToLSP(ctx context.Context, allDiagnostics []*ast_domain.Diagnostic, absPath string) []protocol.Diagnostic {
 	lspDiagnostics := make([]protocol.Diagnostic, 0, len(allDiagnostics))
 	seen := make(map[string]struct{}, len(allDiagnostics))
@@ -57,8 +57,8 @@ func convertDiagnosticsToLSP(ctx context.Context, allDiagnostics []*ast_domain.D
 	return lspDiagnostics
 }
 
-// isDuplicateDiagnostic checks if a diagnostic has already been seen and marks
-// it as seen.
+// isDuplicateDiagnostic checks if a diagnostic has already been seen and marks it as
+// seen.
 //
 // Takes d (*ast_domain.Diagnostic) which is the diagnostic to check.
 // Takes seen (map[string]struct{}) which tracks diagnostics already seen.
@@ -73,8 +73,8 @@ func isDuplicateDiagnostic(d *ast_domain.Diagnostic, seen map[string]struct{}) b
 	return false
 }
 
-// shouldIncludeDiagnostic checks whether a diagnostic should be included based
-// on its file path.
+// shouldIncludeDiagnostic checks whether a diagnostic should be included based on its
+// file path.
 //
 // Takes d (*ast_domain.Diagnostic) which is the diagnostic to check.
 // Takes absPath (string) which is the absolute path to match against.
@@ -133,11 +133,11 @@ func buildLSPDiagnostic(d *ast_domain.Diagnostic) protocol.Diagnostic {
 
 // calculateEndChar computes the end character position for a diagnostic range.
 //
-// Takes d (*ast_domain.Diagnostic) which provides the location and expression
-// data for the diagnostic.
+// Takes d (*ast_domain.Diagnostic) which provides the location and expression data for
+// the diagnostic.
 //
-// Returns int which is the end character position. When the expression is
-// empty, adds one to ensure at least one character is highlighted.
+// Returns int which is the end character position. When the expression is empty, adds one
+// to ensure at least one character is highlighted.
 func calculateEndChar(d *ast_domain.Diagnostic) int {
 	endChar := d.Location.Column - 1 + len(d.Expression)
 	if len(d.Expression) == 0 {
@@ -163,14 +163,13 @@ func convertSeverityToLSP(severity ast_domain.Severity) protocol.DiagnosticSever
 	}
 }
 
-// convertRelatedInfoToLSP turns AST related information into LSP protocol
-// format.
+// convertRelatedInfoToLSP turns AST related information into LSP protocol format.
 //
-// Takes d (*ast_domain.Diagnostic) which holds the diagnostic with related
-// information to convert.
+// Takes d (*ast_domain.Diagnostic) which holds the diagnostic with related information to
+// convert.
 //
-// Returns []protocol.DiagnosticRelatedInformation which holds the converted
-// related information, or nil if there is none.
+// Returns []protocol.DiagnosticRelatedInformation which holds the converted related
+// information, or nil if there is none.
 func convertRelatedInfoToLSP(d *ast_domain.Diagnostic) []protocol.DiagnosticRelatedInformation {
 	if len(d.RelatedInfo) == 0 {
 		return nil

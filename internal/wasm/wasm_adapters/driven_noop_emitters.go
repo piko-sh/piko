@@ -41,28 +41,28 @@ import (
 )
 
 const (
-	// pkJSTranspileCacheCap caps the long-lived transpile cache between
-	// Generate runs. Entries beyond this count are evicted at the next
-	// Sweep; transpile re-runs cost ~ms so the cap keeps WASM memory
-	// bounded without hurting keystroke-rate cache hit rate.
+	// pkJSTranspileCacheCap caps the long-lived transpile cache between Generate runs.
+	// Entries beyond this count are evicted at the next Sweep; transpile re-runs cost ~ms so
+	// the cap keeps WASM memory bounded without hurting keystroke-rate cache hit rate.
 	pkJSTranspileCacheCap = 256
 
-	// pkJSEmitterComponent identifies the in-memory PKJS emitter for
-	// safecall panic logging; see goroutine.SafeCall1.
+	// pkJSEmitterComponent identifies the in-memory PKJS emitter for safecall panic logging;
+	// see goroutine.SafeCall1.
 	pkJSEmitterComponent = "wasm_adapters.InMemoryPKJSEmitter.Transpile"
 
-	// pkJSCacheVersion participates in every cache key so a deliberate
-	// bump invalidates every long-lived entry across an upgrade. Bump
-	// when TransformPKSource semantics or the JSTranspiler import-rewrite
-	// rules change so a hot-reloaded WASM module never serves stale
-	// output.
+	// pkJSCacheVersion participates in every cache key so a deliberate bump invalidates
+	// every long-lived entry across an upgrade. Bump when TransformPKSource semantics or the
+	// JSTranspiler import-rewrite rules change so a hot-reloaded WASM module never serves
+	// stale output.
 	pkJSCacheVersion = "v2"
 )
 
-// errPKJSPathInvalid is returned by EmitJS / Put when the caller-supplied
-// page path is empty after normalisation, contains a parent-directory
-// segment, or otherwise resolves outside the artefact namespace.
-var errPKJSPathInvalid = errors.New("invalid PKJS artefact path")
+var (
+	// errPKJSPathInvalid is returned by EmitJS / Put when the caller-supplied page path is
+	// empty after normalisation, contains a parent-directory segment, or otherwise resolves
+	// outside the artefact namespace.
+	errPKJSPathInvalid = errors.New("invalid PKJS artefact path")
+)
 
 var (
 	_ generator_domain.CollectionEmitterPort = (*NoOpCollectionEmitter)(nil)
@@ -82,8 +82,8 @@ var (
 	_ generator_domain.ManifestEmitterPort = (*InMemoryManifestEmitter)(nil)
 )
 
-// NoOpCollectionEmitter implements CollectionEmitterPort as a no-op.
-// It is used for WASM contexts where collection binary emission is not needed.
+// NoOpCollectionEmitter implements CollectionEmitterPort as a no-op. It is used for WASM
+// contexts where collection binary emission is not needed.
 type NoOpCollectionEmitter struct{}
 
 // NewNoOpCollectionEmitter creates a new no-op collection emitter.
@@ -106,8 +106,8 @@ func (*NoOpCollectionEmitter) EmitCollection(
 	return "", nil
 }
 
-// NoOpSearchIndexEmitter implements SearchIndexEmitterPort as a no-op.
-// It is used for WASM contexts where search index emission is not needed.
+// NoOpSearchIndexEmitter implements SearchIndexEmitterPort as a no-op. It is used for
+// WASM contexts where search index emission is not needed.
 type NoOpSearchIndexEmitter struct{}
 
 // NewNoOpSearchIndexEmitter creates a new no-op search index emitter.
@@ -130,8 +130,8 @@ func (*NoOpSearchIndexEmitter) EmitSearchIndex(
 	return nil
 }
 
-// NoOpI18nEmitter implements I18nEmitterPort as a no-op.
-// It is used for WASM contexts where i18n binary emission is not needed.
+// NoOpI18nEmitter implements I18nEmitterPort as a no-op. It is used for WASM contexts
+// where i18n binary emission is not needed.
 type NoOpI18nEmitter struct{}
 
 // NewNoOpI18nEmitter creates a new no-op i18n emitter.
@@ -148,8 +148,8 @@ func (*NoOpI18nEmitter) EmitI18n(_ context.Context, _ string) error {
 	return nil
 }
 
-// NoOpActionGenerator implements ActionGeneratorPort as a no-op.
-// It is used for WASM contexts where action generation is not needed.
+// NoOpActionGenerator implements ActionGeneratorPort as a no-op. It is used for WASM
+// contexts where action generation is not needed.
 type NoOpActionGenerator struct{}
 
 // NewNoOpActionGenerator creates a new no-op action generator.
@@ -171,8 +171,8 @@ func (*NoOpActionGenerator) GenerateActions(
 	return nil
 }
 
-// InMemoryRegisterEmitter implements RegisterEmitterPort using in-memory storage.
-// It generates proper register code for WASM contexts and writes to an FSWriter.
+// InMemoryRegisterEmitter implements RegisterEmitterPort using in-memory storage. It
+// generates proper register code for WASM contexts and writes to an FSWriter.
 type InMemoryRegisterEmitter struct {
 	// fsWriter writes the generated output to the in-memory file system.
 	fsWriter generator_domain.FSWriterPort
@@ -256,8 +256,8 @@ func (e *InMemoryRegisterEmitter) GetContent() []byte {
 	return e.content
 }
 
-// NoOpSEOService implements SEOServicePort as a no-op.
-// It is used for WASM contexts where SEO artefact generation is not needed.
+// NoOpSEOService implements SEOServicePort as a no-op. It is used for WASM contexts where
+// SEO artefact generation is not needed.
 type NoOpSEOService struct{}
 
 // NewNoOpSEOService creates a new no-op SEO service.
@@ -274,34 +274,31 @@ func (*NoOpSEOService) GenerateArtefacts(_ context.Context, _ *seo_dto.ProjectVi
 	return nil
 }
 
-// InMemoryPKJSEmitter implements PKJSEmitterPort by transforming and
-// transpiling client-side TypeScript in memory. It mirrors DiskPKJSEmitter's
-// compile pipeline (TransformPKSource then JSTranspiler.Transpile) without
-// writing to a filesystem, and exposes the captured JavaScript via
-// GetArtefacts so the WASM response surface can include it.
+// InMemoryPKJSEmitter implements PKJSEmitterPort by transforming and transpiling
+// client-side TypeScript in memory. It mirrors DiskPKJSEmitter's compile pipeline
+// (TransformPKSource then JSTranspiler.Transpile) without writing to a filesystem, and
+// exposes the captured JavaScript via GetArtefacts so the WASM response surface can
+// include it.
 type InMemoryPKJSEmitter struct {
-	// transpiler converts TypeScript source code to JavaScript using
-	// esbuild's parser/printer. Reused across EmitJS calls.
+	// transpiler converts TypeScript source code to JavaScript using esbuild's
+	// parser/printer. Reused across EmitJS calls.
 	transpiler *generator_domain.JSTranspiler
 
-	// artefacts maps artefact IDs to their compiled JavaScript content.
-	// Reset at the start of each Generate so a response only carries the
-	// JS produced for that run.
+	// artefacts maps artefact IDs to their compiled JavaScript content. Reset at the start
+	// of each Generate so a response only carries the JS produced for that run.
 	artefacts map[string]string
 
-	// transpileCache memoises transpile output keyed by a content hash
-	// of (transformed source + moduleName + filename + cache version).
-	// Long-lived across Generate calls; eviction happens in Sweep.
+	// transpileCache memoises transpile output keyed by a content hash of (transformed
+	// source + moduleName + filename + cache version). Long-lived across Generate calls;
+	// eviction happens in Sweep.
 	transpileCache map[string]string
 
-	// producedThisRun records every content-hash hit in EmitJS during
-	// the current Generate so Sweep can drop cache entries that didn't
-	// participate this run.
+	// producedThisRun records every content-hash hit in EmitJS during the current Generate
+	// so Sweep can drop cache entries that didn't participate this run.
 	producedThisRun map[string]struct{}
 
-	// mu serialises every public method end-to-end so per-run state
-	// (artefacts, producedThisRun) cannot be observed mid-mutation by a
-	// concurrent caller.
+	// mu serialises every public method end-to-end so per-run state (artefacts,
+	// producedThisRun) cannot be observed mid-mutation by a concurrent caller.
 	mu sync.Mutex
 }
 
@@ -319,25 +316,23 @@ func NewInMemoryPKJSEmitter() *InMemoryPKJSEmitter {
 
 // EmitJS transforms PK source and stores the transpiled JavaScript.
 //
-// Transforms client-side PK source via TransformPKSource, transpiles the
-// result to ES module JavaScript, and stores it under a pk-js/<path>.js
-// artefact ID. The WASM build produces JavaScript byte-identical to the
-// disk build for equivalent inputs. Empty or whitespace-only source
-// returns ("", nil) without storing anything.
+// Transforms client-side PK source via TransformPKSource, transpiles the result to ES
+// module JavaScript, and stores it under a pk-js/<path>.js artefact ID. The WASM build
+// produces JavaScript byte-identical to the disk build for equivalent inputs. Empty or
+// whitespace-only source returns ("", nil) without storing anything.
 //
-// Takes source (string) which is the raw client-script TypeScript extracted
-// by the annotator from a .pkc <script> block.
-// Takes pagePath (string) which identifies the page or partial. Cleaned via
-// path.Clean and rejected if it escapes the artefact namespace.
-// Takes moduleName (string) which is the Go module name; used by the
-// transpiler to rewrite "@/" import aliases.
+// Takes source (string) which is the raw client-script TypeScript extracted by the
+// annotator from a .pkc <script> block.
+// Takes pagePath (string) which identifies the page or partial. Cleaned via path.Clean
+// and rejected if it escapes the artefact namespace.
+// Takes moduleName (string) which is the Go module name; used by the transpiler to
+// rewrite "@/" import aliases.
 //
-// Returns string which is the artefact ID ("pk-js/<cleanPath>.js"), or empty
-// when source is whitespace-only.
+// Returns string which is the artefact ID ("pk-js/<cleanPath>.js"), or empty when source
+// is whitespace-only.
 // Returns error when the path is invalid or transpilation fails or panics.
 //
-// Concurrency: Safe for concurrent use; the entire body runs under the
-// emitter mutex.
+// Concurrency: Safe for concurrent use; the entire body runs under the emitter mutex.
 func (e *InMemoryPKJSEmitter) EmitJS(
 	ctx context.Context,
 	source string,
@@ -397,18 +392,16 @@ func (e *InMemoryPKJSEmitter) EmitJS(
 
 // pkJSCacheKey derives a 64-bit content hash for the transpile cache.
 //
-// moduleName is required because RewriteImportRecords embeds it into
-// rewritten "@/" alias paths; filename keeps transpile error messages
-// and source-map metadata accurate; pkJSCacheVersion gives us a
-// kill-switch for stale entries after upgrade. xxhash collisions only
-// cost a redundant transpile, not a correctness or security bug.
+// moduleName is required because RewriteImportRecords embeds it into rewritten "@/" alias
+// paths; filename keeps transpile error messages and source-map metadata accurate;
+// pkJSCacheVersion gives us a kill-switch for stale entries after upgrade. xxhash
+// collisions only cost a redundant transpile, not a correctness or security bug.
 //
-// Takes transformedSource (string) which is the post-transform TypeScript fed
-// to the transpiler.
-// Takes moduleName (string) which the transpiler embeds into rewritten "@/"
-// alias paths.
-// Takes filename (string) which the transpiler uses for error messages and
-// source-map metadata.
+// Takes transformedSource (string) which is the post-transform TypeScript fed to the
+// transpiler.
+// Takes moduleName (string) which the transpiler embeds into rewritten "@/" alias paths.
+// Takes filename (string) which the transpiler uses for error messages and source-map
+// metadata.
 //
 // Returns string which is the hex-encoded 64-bit cache key.
 func pkJSCacheKey(transformedSource, moduleName, filename string) string {
@@ -427,15 +420,15 @@ func pkJSCacheKey(transformedSource, moduleName, filename string) string {
 
 // normalisePKJSPath cleans the caller-supplied page path.
 //
-// Rejects values that would escape the artefact namespace. The rules
-// match the safedisk-sandboxed disk path: no parent-directory segments,
-// no absolute paths, no empty result.
+// Rejects values that would escape the artefact namespace. The rules match the
+// safedisk-sandboxed disk path: no parent-directory segments, no absolute paths, no empty
+// result.
 //
 // Takes pagePath (string) which is the caller-supplied page path.
 //
 // Returns string which is the cleaned path with the .pk suffix stripped.
-// Returns error which wraps errPKJSPathInvalid when the path is unusable as an
-// artefact ID.
+// Returns error which wraps errPKJSPathInvalid when the path is unusable as an artefact
+// ID.
 func normalisePKJSPath(pagePath string) (string, error) {
 	if pagePath == "" {
 		return "", fmt.Errorf("%w: empty page path", errPKJSPathInvalid)
@@ -456,8 +449,8 @@ func normalisePKJSPath(pagePath string) (string, error) {
 
 // GetArtefacts returns a copy of all emitted JavaScript artefacts.
 //
-// The returned map is a snapshot so the caller can iterate without
-// holding the emitter lock.
+// The returned map is a snapshot so the caller can iterate without holding the emitter
+// lock.
 //
 // Returns map[string]string which maps artefact IDs to JavaScript content.
 //
@@ -473,8 +466,8 @@ func (e *InMemoryPKJSEmitter) GetArtefacts() map[string]string {
 
 // Reset clears per-run state.
 //
-// Leaves the long-lived transpile cache untouched. The GeneratorAdapter
-// calls Reset at the start of each Generate.
+// Leaves the long-lived transpile cache untouched. The GeneratorAdapter calls Reset at
+// the start of each Generate.
 //
 // Concurrency: Safe for concurrent use; mutates under the emitter mutex.
 func (e *InMemoryPKJSEmitter) Reset() {
@@ -486,18 +479,17 @@ func (e *InMemoryPKJSEmitter) Reset() {
 
 // Put stores pre-compiled JavaScript verbatim.
 //
-// Bypasses TransformPKSource and the transpile cache. This is the entry
-// point for .pkc client-side components, which go through the SFC
-// compiler rather than the partial-style transform that EmitJS applies
-// to inline <script> blocks inside .pk pages and partials. Empty content
-// is a no-op.
+// Bypasses TransformPKSource and the transpile cache. This is the entry point for .pkc
+// client-side components, which go through the SFC compiler rather than the partial-style
+// transform that EmitJS applies to inline <script> blocks inside .pk pages and partials.
+// Empty content is a no-op.
 //
 // Takes artefactID (string) which is the relative artefact path (e.g.
 // "pk-js/components/pp-counter.js") cleaned and validated before storage.
 // Takes content (string) which is the pre-compiled JavaScript.
 //
-// Returns error which wraps errPKJSPathInvalid when artefactID is empty,
-// absolute, or contains a parent-directory segment after cleaning.
+// Returns error which wraps errPKJSPathInvalid when artefactID is empty, absolute, or
+// contains a parent-directory segment after cleaning.
 //
 // Concurrency: Safe for concurrent use; mutates under the emitter mutex.
 func (e *InMemoryPKJSEmitter) Put(artefactID, content string) error {
@@ -517,8 +509,8 @@ func (e *InMemoryPKJSEmitter) Put(artefactID, content string) error {
 // normalisePutArtefactID validates an artefact ID supplied to Put.
 //
 // The ID is expected to be a forward-slash relative path (e.g.
-// "pk-js/components/pp-counter.js"). Empty, absolute, or
-// parent-traversal inputs are rejected with errPKJSPathInvalid.
+// "pk-js/components/pp-counter.js"). Empty, absolute, or parent-traversal inputs are
+// rejected with errPKJSPathInvalid.
 //
 // Takes artefactID (string) which is the candidate artefact ID.
 //
@@ -543,11 +535,10 @@ func normalisePutArtefactID(artefactID string) (string, error) {
 
 // Sweep prunes the transpile cache after a Generate run.
 //
-// Evicts cache entries whose source hashes were not consumed during the
-// current Generate, then trims any remaining excess to keep the cache
-// under pkJSTranspileCacheCap. producedThisRun is cleared so the next
-// EmitJS pass starts from a clean tracking set even if the caller
-// forgets to call Reset.
+// Evicts cache entries whose source hashes were not consumed during the current Generate,
+// then trims any remaining excess to keep the cache under pkJSTranspileCacheCap.
+// producedThisRun is cleared so the next EmitJS pass starts from a clean tracking set
+// even if the caller forgets to call Reset.
 //
 // Concurrency: Safe for concurrent use; mutates under the emitter mutex.
 func (e *InMemoryPKJSEmitter) Sweep() {
@@ -569,9 +560,8 @@ func (e *InMemoryPKJSEmitter) Sweep() {
 	}
 }
 
-// InMemoryManifestEmitter implements ManifestEmitterPort using an in-memory
-// buffer. It captures the manifest for later retrieval instead of writing to
-// disk.
+// InMemoryManifestEmitter implements ManifestEmitterPort using an in-memory buffer. It
+// captures the manifest for later retrieval instead of writing to disk.
 type InMemoryManifestEmitter struct {
 	// manifest is the captured manifest.
 	manifest *generator_dto.Manifest
@@ -587,16 +577,13 @@ func NewInMemoryManifestEmitter() *InMemoryManifestEmitter {
 	return &InMemoryManifestEmitter{}
 }
 
-// EmitCode stores the manifest in memory instead of writing to
-// disk.
+// EmitCode stores the manifest in memory instead of writing to disk.
 //
-// Takes manifest (*generator_dto.Manifest) which is the manifest to
-// store.
+// Takes manifest (*generator_dto.Manifest) which is the manifest to store.
 //
 // Returns error which is always nil.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (e *InMemoryManifestEmitter) EmitCode(
 	_ context.Context,
 	manifest *generator_dto.Manifest,

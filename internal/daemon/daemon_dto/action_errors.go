@@ -23,9 +23,9 @@ import (
 	"net/http"
 )
 
-// ActionError is the base interface for action errors with HTTP semantics.
-// Errors implementing the contract are automatically discriminated by the action
-// handler to return appropriate HTTP status codes and structured responses.
+// ActionError is the base interface for action errors with HTTP semantics. Errors
+// implementing the contract are automatically discriminated by the action handler to
+// return appropriate HTTP status codes and structured responses.
 type ActionError interface {
 	error
 
@@ -38,8 +38,8 @@ type ActionError interface {
 	ErrorCode() string
 }
 
-// ValidationError represents validation failures (HTTP 422).
-// Use this when user input fails validation rules.
+// ValidationError represents validation failures (HTTP 422). Use this when user input
+// fails validation rules.
 type ValidationError struct {
 	// Fields contains field-specific error messages, keyed by field name.
 	Fields map[string]string
@@ -71,8 +71,8 @@ func (*ValidationError) ErrorCode() string {
 // Returns string which is the safe message for this error.
 func (e *ValidationError) SafeMessage() string { return e.Error() }
 
-// NotFoundError represents resource not found (HTTP 404).
-// Use this when a requested resource does not exist.
+// NotFoundError represents resource not found (HTTP 404). Use this when a requested
+// resource does not exist.
 type NotFoundError struct {
 	// Resource is the type of resource that was not found (e.g., "user", "order").
 	Resource string
@@ -110,8 +110,8 @@ func (*NotFoundError) ErrorCode() string {
 // Returns string which is the safe message for this error.
 func (e *NotFoundError) SafeMessage() string { return e.Error() }
 
-// ConflictError represents a conflict (HTTP 409).
-// Use this when an operation cannot complete due to a conflict with current state.
+// ConflictError represents a conflict (HTTP 409). Use this when an operation cannot
+// complete due to a conflict with current state.
 type ConflictError struct {
 	// Message describes the conflict.
 	Message string
@@ -149,8 +149,8 @@ func (e *ConflictError) ErrorCode() string {
 // Returns string which is the safe message for this error.
 func (e *ConflictError) SafeMessage() string { return e.Error() }
 
-// ForbiddenError represents authorisation failure (HTTP 403).
-// Use this when the user is authenticated but lacks permission.
+// ForbiddenError represents authorisation failure (HTTP 403). Use this when the user is
+// authenticated but lacks permission.
 type ForbiddenError struct {
 	// Message describes why access was denied.
 	Message string
@@ -158,8 +158,7 @@ type ForbiddenError struct {
 
 // Error implements the error interface.
 //
-// Returns string which is the error message, or "access denied" if no message
-// is set.
+// Returns string which is the error message, or "access denied" if no message is set.
 func (e *ForbiddenError) Error() string {
 	if e.Message != "" {
 		return e.Message
@@ -186,8 +185,8 @@ func (*ForbiddenError) ErrorCode() string {
 // Returns string which is the safe message for this error.
 func (e *ForbiddenError) SafeMessage() string { return e.Error() }
 
-// UnauthorisedError represents authentication failure (HTTP 401).
-// Use this when the user needs to authenticate.
+// UnauthorisedError represents authentication failure (HTTP 401). Use this when the user
+// needs to authenticate.
 type UnauthorisedError struct {
 	// Message describes why authentication failed.
 	Message string
@@ -222,8 +221,8 @@ func (*UnauthorisedError) ErrorCode() string {
 // Returns string which is the safe message for this error.
 func (e *UnauthorisedError) SafeMessage() string { return e.Error() }
 
-// BadRequestError represents a malformed request (HTTP 400).
-// Use this when the request itself is invalid, not just the data within it.
+// BadRequestError represents a malformed request (HTTP 400). Use this when the request
+// itself is invalid, not just the data within it.
 type BadRequestError struct {
 	// Message describes what was wrong with the request.
 	Message string
@@ -258,9 +257,9 @@ func (*BadRequestError) ErrorCode() string {
 // Returns string which is the safe message for this error.
 func (e *BadRequestError) SafeMessage() string { return e.Error() }
 
-// GenericPageError represents an error with an arbitrary HTTP status code.
-// Use this when none of the specific error types (NotFoundError, ForbiddenError,
-// etc.) match the status code you need.
+// GenericPageError represents an error with an arbitrary HTTP status code. Use this when
+// none of the specific error types (NotFoundError, ForbiddenError, etc.) match the status
+// code you need.
 type GenericPageError struct {
 	// Message is the human-readable error message.
 	Message string

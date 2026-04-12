@@ -22,12 +22,11 @@ package colour
 
 import "golang.org/x/sys/windows"
 
-// enableVirtualTerminalProcessingFlag holds the Windows console mode flag for
-// virtual terminal sequence processing.
+// enableVirtualTerminalProcessingFlag holds the Windows console mode flag for virtual
+// terminal sequence processing.
 const enableVirtualTerminalProcessingFlag = 0x4
 
-// isTerminal reports whether the given file descriptor refers
-// to a console.
+// isTerminal reports whether the given file descriptor refers to a console.
 //
 // Takes fd (uintptr) which is the file descriptor to check.
 //
@@ -37,8 +36,8 @@ func isTerminal(fd uintptr) bool {
 	return windows.GetConsoleMode(windows.Handle(fd), &mode) == nil
 }
 
-// enableVirtualTerminalProcessing enables ANSI escape sequence processing on
-// the Windows console.
+// enableVirtualTerminalProcessing enables ANSI escape sequence processing on the Windows
+// console.
 func enableVirtualTerminalProcessing() {
 	handle, err := windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
 	if err != nil {

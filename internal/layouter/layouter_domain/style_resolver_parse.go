@@ -67,8 +67,7 @@ const (
 	fontSizeScaleLarger = 1.2
 )
 
-// parseDisplay maps a CSS display value string to a
-// DisplayType enum.
+// parseDisplay maps a CSS display value string to a DisplayType enum.
 //
 // Takes value (string) which is the CSS display value.
 //
@@ -112,8 +111,7 @@ func parseDisplay(value string) DisplayType {
 	}
 }
 
-// parsePosition maps a CSS position value string to a
-// PositionType enum.
+// parsePosition maps a CSS position value string to a PositionType enum.
 //
 // Takes value (string) which is the CSS position value.
 //
@@ -131,8 +129,7 @@ func parsePosition(value string) PositionType {
 	}
 }
 
-// parseBoxSizing maps a CSS box-sizing value string to a
-// BoxSizingType enum.
+// parseBoxSizing maps a CSS box-sizing value string to a BoxSizingType enum.
 //
 // Takes value (string) which is the CSS box-sizing value.
 //
@@ -144,8 +141,7 @@ func parseBoxSizing(value string) BoxSizingType {
 	return BoxSizingContentBox
 }
 
-// parseFloat maps a CSS float value string to a FloatType
-// enum.
+// parseFloat maps a CSS float value string to a FloatType enum.
 //
 // Takes value (string) which is the CSS float value.
 //
@@ -161,8 +157,7 @@ func parseFloat(value string) FloatType {
 	}
 }
 
-// parseClear maps a CSS clear value string to a ClearType
-// enum.
+// parseClear maps a CSS clear value string to a ClearType enum.
 //
 // Takes value (string) which is the CSS clear value.
 //
@@ -180,14 +175,11 @@ func parseClear(value string) ClearType {
 	}
 }
 
-// parseVisibility maps a CSS visibility value string to a
-// VisibilityType enum.
+// parseVisibility maps a CSS visibility value string to a VisibilityType enum.
 //
-// Takes value (string) which is the CSS visibility
-// value.
+// Takes value (string) which is the CSS visibility value.
 //
-// Returns VisibilityType which is the corresponding
-// enum.
+// Returns VisibilityType which is the corresponding enum.
 func parseVisibility(value string) VisibilityType {
 	switch value {
 	case "hidden":
@@ -199,8 +191,7 @@ func parseVisibility(value string) VisibilityType {
 	}
 }
 
-// parseOverflow maps a CSS overflow value string to an
-// OverflowType enum.
+// parseOverflow maps a CSS overflow value string to an OverflowType enum.
 //
 // Takes value (string) which is the CSS overflow value.
 //
@@ -218,14 +209,11 @@ func parseOverflow(value string) OverflowType {
 	}
 }
 
-// parseBorderStyle maps a CSS border-style value string to
-// a BorderStyleType enum.
+// parseBorderStyle maps a CSS border-style value string to a BorderStyleType enum.
 //
-// Takes value (string) which is the CSS border-style
-// value.
+// Takes value (string) which is the CSS border-style value.
 //
-// Returns BorderStyleType which is the corresponding
-// enum.
+// Returns BorderStyleType which is the corresponding enum.
 func parseBorderStyle(value string) BorderStyleType {
 	switch value {
 	case "solid":
@@ -249,14 +237,11 @@ func parseBorderStyle(value string) BorderStyleType {
 	}
 }
 
-// parseTextAlign maps a CSS text-align value string to a
-// TextAlignType enum.
+// parseTextAlign maps a CSS text-align value string to a TextAlignType enum.
 //
-// Takes value (string) which is the CSS text-align
-// value.
+// Takes value (string) which is the CSS text-align value.
 //
-// Returns TextAlignType which is the corresponding
-// enum.
+// Returns TextAlignType which is the corresponding enum.
 func parseTextAlign(value string) TextAlignType {
 	switch value {
 	case cssKeywordCenter, cssKeywordCentre:
@@ -274,14 +259,12 @@ func parseTextAlign(value string) TextAlignType {
 	}
 }
 
-// parseTextDecoration parses a CSS text-decoration value
-// into a bitmask of TextDecorationFlag values.
+// parseTextDecoration parses a CSS text-decoration value into a bitmask of
+// TextDecorationFlag values.
 //
-// Takes value (string) which is the CSS text-decoration
-// value.
+// Takes value (string) which is the CSS text-decoration value.
 //
-// Returns TextDecorationFlag which is the bitmask of
-// active decorations.
+// Returns TextDecorationFlag which is the bitmask of active decorations.
 func parseTextDecoration(value string) TextDecorationFlag {
 	var result TextDecorationFlag
 	for part := range strings.FieldsSeq(value) {
@@ -297,14 +280,12 @@ func parseTextDecoration(value string) TextDecorationFlag {
 	return result
 }
 
-// parseTextDecorationStyle maps a CSS text-decoration-style
-// value string to a TextDecorationStyleType enum.
+// parseTextDecorationStyle maps a CSS text-decoration-style value string to a
+// TextDecorationStyleType enum.
 //
-// Takes value (string) which is the CSS
-// text-decoration-style value.
+// Takes value (string) which is the CSS text-decoration-style value.
 //
-// Returns TextDecorationStyleType which is the
-// corresponding enum.
+// Returns TextDecorationStyleType which is the corresponding enum.
 func parseTextDecorationStyle(value string) TextDecorationStyleType {
 	switch value {
 	case "dashed":
@@ -320,14 +301,11 @@ func parseTextDecorationStyle(value string) TextDecorationStyleType {
 	}
 }
 
-// parseTextTransform maps a CSS text-transform value string
-// to a TextTransformType enum.
+// parseTextTransform maps a CSS text-transform value string to a TextTransformType enum.
 //
-// Takes value (string) which is the CSS text-transform
-// value.
+// Takes value (string) which is the CSS text-transform value.
 //
-// Returns TextTransformType which is the corresponding
-// enum.
+// Returns TextTransformType which is the corresponding enum.
 func parseTextTransform(value string) TextTransformType {
 	switch value {
 	case "uppercase":
@@ -341,14 +319,11 @@ func parseTextTransform(value string) TextTransformType {
 	}
 }
 
-// parseWhiteSpace maps a CSS white-space value string to a
-// WhiteSpaceType enum.
+// parseWhiteSpace maps a CSS white-space value string to a WhiteSpaceType enum.
 //
-// Takes value (string) which is the CSS white-space
-// value.
+// Takes value (string) which is the CSS white-space value.
 //
-// Returns WhiteSpaceType which is the corresponding
-// enum.
+// Returns WhiteSpaceType which is the corresponding enum.
 func parseWhiteSpace(value string) WhiteSpaceType {
 	switch value {
 	case "pre":
@@ -364,14 +339,11 @@ func parseWhiteSpace(value string) WhiteSpaceType {
 	}
 }
 
-// parseWordBreak maps a CSS word-break value string to a
-// WordBreakType enum.
+// parseWordBreak maps a CSS word-break value string to a WordBreakType enum.
 //
-// Takes value (string) which is the CSS word-break
-// value.
+// Takes value (string) which is the CSS word-break value.
 //
-// Returns WordBreakType which is the corresponding
-// enum.
+// Returns WordBreakType which is the corresponding enum.
 func parseWordBreak(value string) WordBreakType {
 	switch value {
 	case "break-all":
@@ -383,12 +355,11 @@ func parseWordBreak(value string) WordBreakType {
 	}
 }
 
-// parseCounterOperations parses a CSS counter-reset or
-// counter-increment value into a list of counter entries.
+// parseCounterOperations parses a CSS counter-reset or counter-increment value into a
+// list of counter entries.
 //
-// Tokens alternate between counter names and optional integer
-// values. When no value follows a name, defaultValue is used
-// (0 for counter-reset, 1 for counter-increment).
+// Tokens alternate between counter names and optional integer values. When no value
+// follows a name, defaultValue is used (0 for counter-reset, 1 for counter-increment).
 //
 // Takes value (string) which is the CSS property value.
 // Takes defaultValue (int) which is the fallback integer.
@@ -414,8 +385,7 @@ func parseCounterOperations(value string, defaultValue int) []CounterEntry {
 	return entries
 }
 
-// parseObjectFit converts a CSS object-fit value string
-// to an ObjectFitType enum.
+// parseObjectFit converts a CSS object-fit value string to an ObjectFitType enum.
 //
 // Takes value (string) which is the CSS object-fit value.
 //
@@ -435,11 +405,10 @@ func parseObjectFit(value string) ObjectFitType {
 	}
 }
 
-// parseOverflowWrap converts a CSS overflow-wrap value
-// string to an OverflowWrapType enum.
+// parseOverflowWrap converts a CSS overflow-wrap value string to an OverflowWrapType
+// enum.
 //
-// Takes value (string) which is the CSS overflow-wrap
-// value.
+// Takes value (string) which is the CSS overflow-wrap value.
 //
 // Returns OverflowWrapType which is the parsed enum value.
 func parseOverflowWrap(value string) OverflowWrapType {
@@ -453,14 +422,12 @@ func parseOverflowWrap(value string) OverflowWrapType {
 	}
 }
 
-// parseFontFamily extracts the first font family name from
-// a CSS font-family value, stripping quotes and commas.
+// parseFontFamily extracts the first font family name from a CSS font-family value,
+// stripping quotes and commas.
 //
-// Takes value (string) which is the CSS font-family
-// value.
+// Takes value (string) which is the CSS font-family value.
 //
-// Returns string which is the extracted font family
-// name.
+// Returns string which is the extracted font family name.
 func parseFontFamily(value string) string {
 	value = strings.TrimSpace(value)
 	if len(value) >= 2 && ((value[0] == '"' && value[len(value)-1] == '"') ||
@@ -473,11 +440,9 @@ func parseFontFamily(value string) string {
 	return value
 }
 
-// parseFontWeight converts a CSS font-weight value to its
-// numeric representation.
+// parseFontWeight converts a CSS font-weight value to its numeric representation.
 //
-// Takes value (string) which is the CSS font-weight
-// value.
+// Takes value (string) which is the CSS font-weight value.
 //
 // Returns int which is the numeric font weight.
 func parseFontWeight(value string) int {
@@ -499,11 +464,9 @@ func parseFontWeight(value string) int {
 	}
 }
 
-// parseFontStyle maps a CSS font-style value string to a
-// FontStyle enum.
+// parseFontStyle maps a CSS font-style value string to a FontStyle enum.
 //
-// Takes value (string) which is the CSS font-style
-// value.
+// Takes value (string) which is the CSS font-style value.
 //
 // Returns FontStyle which is the corresponding enum.
 func parseFontStyle(value string) FontStyle {
@@ -515,14 +478,11 @@ func parseFontStyle(value string) FontStyle {
 	}
 }
 
-// parseFlexDirection maps a CSS flex-direction value string
-// to a FlexDirectionType enum.
+// parseFlexDirection maps a CSS flex-direction value string to a FlexDirectionType enum.
 //
-// Takes value (string) which is the CSS flex-direction
-// value.
+// Takes value (string) which is the CSS flex-direction value.
 //
-// Returns FlexDirectionType which is the corresponding
-// enum.
+// Returns FlexDirectionType which is the corresponding enum.
 func parseFlexDirection(value string) FlexDirectionType {
 	switch value {
 	case "row-reverse":
@@ -536,11 +496,9 @@ func parseFlexDirection(value string) FlexDirectionType {
 	}
 }
 
-// parseFlexWrap maps a CSS flex-wrap value string to a
-// FlexWrapType enum.
+// parseFlexWrap maps a CSS flex-wrap value string to a FlexWrapType enum.
 //
-// Takes value (string) which is the CSS flex-wrap
-// value.
+// Takes value (string) which is the CSS flex-wrap value.
 //
 // Returns FlexWrapType which is the corresponding enum.
 func parseFlexWrap(value string) FlexWrapType {
@@ -554,14 +512,12 @@ func parseFlexWrap(value string) FlexWrapType {
 	}
 }
 
-// parseJustifyContent maps a CSS justify-content value
-// string to a JustifyContentType enum.
-//
-// Takes value (string) which is the CSS
-// justify-content value.
-//
-// Returns JustifyContentType which is the corresponding
+// parseJustifyContent maps a CSS justify-content value string to a JustifyContentType
 // enum.
+//
+// Takes value (string) which is the CSS justify-content value.
+//
+// Returns JustifyContentType which is the corresponding enum.
 func parseJustifyContent(value string) JustifyContentType {
 	switch value {
 	case cssKeywordFlexEnd:
@@ -579,14 +535,11 @@ func parseJustifyContent(value string) JustifyContentType {
 	}
 }
 
-// parseAlignItems maps a CSS align-items value string to an
-// AlignItemsType enum.
+// parseAlignItems maps a CSS align-items value string to an AlignItemsType enum.
 //
-// Takes value (string) which is the CSS align-items
-// value.
+// Takes value (string) which is the CSS align-items value.
 //
-// Returns AlignItemsType which is the corresponding
-// enum.
+// Returns AlignItemsType which is the corresponding enum.
 func parseAlignItems(value string) AlignItemsType {
 	switch value {
 	case cssKeywordFlexStart:
@@ -602,14 +555,11 @@ func parseAlignItems(value string) AlignItemsType {
 	}
 }
 
-// parseAlignSelf maps a CSS align-self value string to an
-// AlignSelfType enum.
+// parseAlignSelf maps a CSS align-self value string to an AlignSelfType enum.
 //
-// Takes value (string) which is the CSS align-self
-// value.
+// Takes value (string) which is the CSS align-self value.
 //
-// Returns AlignSelfType which is the corresponding
-// enum.
+// Returns AlignSelfType which is the corresponding enum.
 func parseAlignSelf(value string) AlignSelfType {
 	switch value {
 	case cssKeywordFlexStart, cssKeywordStart:
@@ -627,14 +577,11 @@ func parseAlignSelf(value string) AlignSelfType {
 	}
 }
 
-// parseAlignContent maps a CSS align-content value string
-// to an AlignContentType enum.
+// parseAlignContent maps a CSS align-content value string to an AlignContentType enum.
 //
-// Takes value (string) which is the CSS align-content
-// value.
+// Takes value (string) which is the CSS align-content value.
 //
-// Returns AlignContentType which is the corresponding
-// enum.
+// Returns AlignContentType which is the corresponding enum.
 func parseAlignContent(value string) AlignContentType {
 	switch value {
 	case cssKeywordFlexStart:
@@ -652,14 +599,11 @@ func parseAlignContent(value string) AlignContentType {
 	}
 }
 
-// parseJustifyItems maps a CSS justify-items value string to
-// a JustifyItemsType enum.
+// parseJustifyItems maps a CSS justify-items value string to a JustifyItemsType enum.
 //
-// Takes value (string) which is the CSS justify-items
-// value.
+// Takes value (string) which is the CSS justify-items value.
 //
-// Returns JustifyItemsType which is the corresponding
-// enum.
+// Returns JustifyItemsType which is the corresponding enum.
 func parseJustifyItems(value string) JustifyItemsType {
 	switch value {
 	case cssKeywordStart:
@@ -673,14 +617,11 @@ func parseJustifyItems(value string) JustifyItemsType {
 	}
 }
 
-// parseJustifySelf maps a CSS justify-self value string to
-// a JustifySelfType enum.
+// parseJustifySelf maps a CSS justify-self value string to a JustifySelfType enum.
 //
-// Takes value (string) which is the CSS justify-self
-// value.
+// Takes value (string) which is the CSS justify-self value.
 //
-// Returns JustifySelfType which is the corresponding
-// enum.
+// Returns JustifySelfType which is the corresponding enum.
 func parseJustifySelf(value string) JustifySelfType {
 	switch value {
 	case "stretch":
@@ -696,14 +637,11 @@ func parseJustifySelf(value string) JustifySelfType {
 	}
 }
 
-// parseTableLayout maps a CSS table-layout value string to
-// a TableLayoutType enum.
+// parseTableLayout maps a CSS table-layout value string to a TableLayoutType enum.
 //
-// Takes value (string) which is the CSS table-layout
-// value.
+// Takes value (string) which is the CSS table-layout value.
 //
-// Returns TableLayoutType which is the corresponding
-// enum.
+// Returns TableLayoutType which is the corresponding enum.
 func parseTableLayout(value string) TableLayoutType {
 	if value == "fixed" {
 		return TableLayoutFixed
@@ -711,14 +649,12 @@ func parseTableLayout(value string) TableLayoutType {
 	return TableLayoutAuto
 }
 
-// parseBorderCollapse maps a CSS border-collapse value
-// string to a BorderCollapseType enum.
-//
-// Takes value (string) which is the CSS border-collapse
-// value.
-//
-// Returns BorderCollapseType which is the corresponding
+// parseBorderCollapse maps a CSS border-collapse value string to a BorderCollapseType
 // enum.
+//
+// Takes value (string) which is the CSS border-collapse value.
+//
+// Returns BorderCollapseType which is the corresponding enum.
 func parseBorderCollapse(value string) BorderCollapseType {
 	if value == "collapse" {
 		return BorderCollapseCollapse
@@ -726,14 +662,11 @@ func parseBorderCollapse(value string) BorderCollapseType {
 	return BorderCollapseSeparate
 }
 
-// parseCaptionSide maps a CSS caption-side value string to
-// a CaptionSideType enum.
+// parseCaptionSide maps a CSS caption-side value string to a CaptionSideType enum.
 //
-// Takes value (string) which is the CSS caption-side
-// value.
+// Takes value (string) which is the CSS caption-side value.
 //
-// Returns CaptionSideType which is the corresponding
-// enum.
+// Returns CaptionSideType which is the corresponding enum.
 func parseCaptionSide(value string) CaptionSideType {
 	if value == cssKeywordBottom {
 		return CaptionSideBottom
@@ -741,14 +674,11 @@ func parseCaptionSide(value string) CaptionSideType {
 	return CaptionSideTop
 }
 
-// parseVerticalAlign maps a CSS vertical-align value string
-// to a VerticalAlignType enum.
+// parseVerticalAlign maps a CSS vertical-align value string to a VerticalAlignType enum.
 //
-// Takes value (string) which is the CSS vertical-align
-// value.
+// Takes value (string) which is the CSS vertical-align value.
 //
-// Returns VerticalAlignType which is the corresponding
-// enum.
+// Returns VerticalAlignType which is the corresponding enum.
 func parseVerticalAlign(value string) VerticalAlignType {
 	switch value {
 	case cssKeywordTop:
@@ -770,14 +700,11 @@ func parseVerticalAlign(value string) VerticalAlignType {
 	}
 }
 
-// parsePageBreak maps a CSS page-break value string to a
-// PageBreakType enum.
+// parsePageBreak maps a CSS page-break value string to a PageBreakType enum.
 //
-// Takes value (string) which is the CSS page-break
-// value.
+// Takes value (string) which is the CSS page-break value.
 //
-// Returns PageBreakType which is the corresponding
-// enum.
+// Returns PageBreakType which is the corresponding enum.
 func parsePageBreak(value string) PageBreakType {
 	switch value {
 	case "always", "page":
@@ -793,14 +720,12 @@ func parsePageBreak(value string) PageBreakType {
 	}
 }
 
-// parseWritingMode parses a CSS writing-mode value into a
-// WritingModeType, defaulting to horizontal-tb.
+// parseWritingMode parses a CSS writing-mode value into a WritingModeType, defaulting to
+// horizontal-tb.
 //
-// Takes value (string) which is the CSS writing-mode
-// value.
+// Takes value (string) which is the CSS writing-mode value.
 //
-// Returns WritingModeType which is the parsed writing
-// mode.
+// Returns WritingModeType which is the parsed writing mode.
 func parseWritingMode(value string) WritingModeType {
 	switch value {
 	case "vertical-rl":
@@ -812,13 +737,12 @@ func parseWritingMode(value string) WritingModeType {
 	}
 }
 
-// parseColour parses a CSS colour value string into a
-// Colour, falling back to black on failure.
+// parseColour parses a CSS colour value string into a Colour, falling back to black on
+// failure.
 //
 // Takes value (string) which is the CSS colour value.
 //
-// Returns Colour which is the parsed colour, or black
-// on failure.
+// Returns Colour which is the parsed colour, or black on failure.
 func parseColour(value string) Colour {
 	colour, ok := ParseColour(value)
 	if !ok {
@@ -827,13 +751,11 @@ func parseColour(value string) Colour {
 	return colour
 }
 
-// parseFloatValue parses a string as a float64, returning
-// zero on failure.
+// parseFloatValue parses a string as a float64, returning zero on failure.
 //
 // Takes value (string) which is the string to parse.
 //
-// Returns float64 which is the parsed value, or zero
-// on failure.
+// Returns float64 which is the parsed value, or zero on failure.
 func parseFloatValue(value string) float64 {
 	result, err := strconv.ParseFloat(strings.TrimSpace(value), 64)
 	if err != nil {
@@ -842,13 +764,11 @@ func parseFloatValue(value string) float64 {
 	return result
 }
 
-// parseIntValue parses a string as an int, returning zero
-// on failure.
+// parseIntValue parses a string as an int, returning zero on failure.
 //
 // Takes value (string) which is the string to parse.
 //
-// Returns int which is the parsed value, or zero on
-// failure.
+// Returns int which is the parsed value, or zero on failure.
 func parseIntValue(value string) int {
 	result, err := strconv.Atoi(strings.TrimSpace(value))
 	if err != nil {

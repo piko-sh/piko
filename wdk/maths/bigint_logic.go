@@ -18,10 +18,12 @@
 
 package maths
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// Cmp compares b with b2 and returns the comparison result: -1 if b < b2,
-// 0 if b == b2, or +1 if b > b2.
+// Cmp compares b with b2 and returns the comparison result: -1 if b < b2, 0 if b == b2,
+// or +1 if b > b2.
 //
 // Takes b2 (BigInt) which is the value to compare against.
 //
@@ -120,8 +122,7 @@ func (b BigInt) GreaterThanInt(i int64) (bool, error) {
 	return b.GreaterThan(NewBigIntFromInt(i))
 }
 
-// GreaterThanString reports whether this BigInt is greater than the given
-// string value.
+// GreaterThanString reports whether this BigInt is greater than the given string value.
 //
 // Takes i (string) which is the numeric string to compare against.
 //
@@ -175,15 +176,15 @@ func (b BigInt) IsInteger() (bool, error) {
 	return true, nil
 }
 
-// IsBetween checks whether the receiver's value falls within the given range,
-// inclusive of both bounds.
+// IsBetween checks whether the receiver's value falls within the given range, inclusive
+// of both bounds.
 //
 // Takes minVal (BigInt) which specifies the lower bound of the range.
 // Takes maxVal (BigInt) which specifies the upper bound of the range.
 //
 // Returns bool which is true if the value is between minVal and maxVal inclusive.
-// Returns error when the receiver or either bound is in an error state, or
-// when minVal is greater than maxVal.
+// Returns error when the receiver or either bound is in an error state, or when minVal is
+// greater than maxVal.
 func (b BigInt) IsBetween(minVal, maxVal BigInt) (bool, error) {
 	if b.err != nil {
 		return false, b.err
@@ -266,8 +267,7 @@ func (b BigInt) CheckIsZero() bool {
 	return err == nil && is
 }
 
-// CheckIsPositive returns true only if the BigInt is valid and its value is
-// positive.
+// CheckIsPositive returns true only if the BigInt is valid and its value is positive.
 //
 // Returns bool which is true when the value is valid and greater than zero.
 func (b BigInt) CheckIsPositive() bool {
@@ -291,8 +291,7 @@ func (b BigInt) CheckIsInteger() bool {
 	return err == nil && is
 }
 
-// CheckEquals returns true only if both BigInts are valid and their values
-// are equal.
+// CheckEquals returns true only if both BigInts are valid and their values are equal.
 //
 // Takes b2 (BigInt) which is the value to compare against.
 //
@@ -302,32 +301,30 @@ func (b BigInt) CheckEquals(b2 BigInt) bool {
 	return err == nil && eq
 }
 
-// CheckLessThan reports whether both BigInts are valid and the receiver is
-// less than b2.
+// CheckLessThan reports whether both BigInts are valid and the receiver is less than b2.
 //
 // Takes b2 (BigInt) which is the value to compare against.
 //
-// Returns bool which is true only when both values are valid and the receiver
-// is less than b2.
+// Returns bool which is true only when both values are valid and the receiver is less
+// than b2.
 func (b BigInt) CheckLessThan(b2 BigInt) bool {
 	lt, err := b.LessThan(b2)
 	return err == nil && lt
 }
 
-// CheckGreaterThan returns true only if both bigints are valid and the first
-// is greater than the second.
+// CheckGreaterThan returns true only if both bigints are valid and the first is greater
+// than the second.
 //
 // Takes b2 (BigInt) which is the value to compare against.
 //
-// Returns bool which is true when both values are valid and b is greater
-// than b2.
+// Returns bool which is true when both values are valid and b is greater than b2.
 func (b BigInt) CheckGreaterThan(b2 BigInt) bool {
 	gt, err := b.GreaterThan(b2)
 	return err == nil && gt
 }
 
-// CheckIsBetween returns true only if the bigint is valid and falls between
-// minVal and maxVal.
+// CheckIsBetween returns true only if the bigint is valid and falls between minVal and
+// maxVal.
 //
 // Takes minVal (BigInt) which specifies the lower bound of the range.
 // Takes maxVal (BigInt) which specifies the upper bound of the range.
@@ -354,8 +351,7 @@ func (b BigInt) CheckIsOdd() bool {
 	return err == nil && is
 }
 
-// CheckIsMultipleOf returns true only if the bigint is a valid multiple of
-// the other.
+// CheckIsMultipleOf returns true only if the bigint is a valid multiple of the other.
 //
 // Takes other (BigInt) which is the divisor to check against.
 //

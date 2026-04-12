@@ -34,32 +34,31 @@ import (
 )
 
 const (
-	// downloadChunkSize is the maximum size of each streaming chunk when
-	// delivering stored watchdog profile data.
+	// downloadChunkSize is the maximum size of each streaming chunk when delivering stored
+	// watchdog profile data.
 	downloadChunkSize = 32 * 1024
 
 	// maxDownloadBytes is the maximum total profile size delivered via gRPC.
 	maxDownloadBytes = 64 * 1024 * 1024
 
-	// maxSidecarBytes is the maximum sidecar JSON payload returned in a
-	// single gRPC response.
+	// maxSidecarBytes is the maximum sidecar JSON payload returned in a single gRPC
+	// response.
 	maxSidecarBytes = 1 * 1024 * 1024
 )
 
-// WatchdogInspectorService implements the gRPC watchdog inspector service
-// interface, providing remote access to watchdog state and stored profiles.
+// WatchdogInspectorService implements the gRPC watchdog inspector service interface,
+// providing remote access to watchdog state and stored profiles.
 type WatchdogInspectorService struct {
 	pb.UnimplementedWatchdogInspectorServiceServer
 
-	// inspector provides read-only access to watchdog state and stored
-	// profiles.
+	// inspector provides read-only access to watchdog state and stored profiles.
 	inspector monitoring_domain.WatchdogInspector
 }
 
 // NewWatchdogInspectorService creates a new WatchdogInspectorService.
 //
-// Takes inspector (monitoring_domain.WatchdogInspector) which provides
-// read-only access to watchdog state and stored profiles.
+// Takes inspector (monitoring_domain.WatchdogInspector) which provides read-only access
+// to watchdog state and stored profiles.
 //
 // Returns *WatchdogInspectorService ready for gRPC registration.
 func NewWatchdogInspectorService(inspector monitoring_domain.WatchdogInspector) *WatchdogInspectorService {
@@ -69,8 +68,8 @@ func NewWatchdogInspectorService(inspector monitoring_domain.WatchdogInspector) 
 // ListProfiles returns metadata for all stored watchdog profile files.
 //
 // Returns *pb.ListProfilesResponse which contains the profile entries.
-// Returns error when the profile directory cannot be read; the error is
-// converted to an appropriate gRPC status code via toGRPCError.
+// Returns error when the profile directory cannot be read; the error is converted to an
+// appropriate gRPC status code via toGRPCError.
 func (s *WatchdogInspectorService) ListProfiles(ctx context.Context, _ *pb.ListProfilesRequest) (*pb.ListProfilesResponse, error) {
 	profiles, err := s.inspector.ListProfiles(ctx)
 	if err != nil {
@@ -93,13 +92,13 @@ func (s *WatchdogInspectorService) ListProfiles(ctx context.Context, _ *pb.ListP
 
 // DownloadSidecar returns the JSON sidecar paired with a profile.
 //
-// Takes request (*pb.DownloadSidecarRequest) which specifies the profile
-// filename whose sidecar to fetch.
+// Takes request (*pb.DownloadSidecarRequest) which specifies the profile filename whose
+// sidecar to fetch.
 //
-// Returns *pb.DownloadSidecarResponse which contains the sidecar bytes
-// and a presence flag.
-// Returns error when the request is malformed or the read fails for
-// reasons other than absence.
+// Returns *pb.DownloadSidecarResponse which contains the sidecar bytes and a presence
+// flag.
+// Returns error when the request is malformed or the read fails for reasons other than
+// absence.
 func (s *WatchdogInspectorService) DownloadSidecar(ctx context.Context, request *pb.DownloadSidecarRequest) (*pb.DownloadSidecarResponse, error) {
 	filename := request.GetProfileFilename()
 	if filename == "" {
@@ -120,16 +119,15 @@ func (s *WatchdogInspectorService) DownloadSidecar(ctx context.Context, request 
 	}, nil
 }
 
-// DownloadProfile streams the raw bytes of a stored watchdog profile file
-// back to the client in fixed-size chunks.
+// DownloadProfile streams the raw bytes of a stored watchdog profile file back to the
+// client in fixed-size chunks.
 //
-// Takes request (*pb.DownloadProfileRequest) which specifies the filename to
-// download.
-// Takes stream (pb.WatchdogInspectorService_DownloadProfileServer) which
-// receives the chunked profile data.
+// Takes request (*pb.DownloadProfileRequest) which specifies the filename to download.
+// Takes stream (pb.WatchdogInspectorService_DownloadProfileServer) which receives the
+// chunked profile data.
 //
-// Returns error when the filename is empty, the profile cannot be read, or
-// streaming fails.
+// Returns error when the filename is empty, the profile cannot be read, or streaming
+// fails.
 func (s *WatchdogInspectorService) DownloadProfile(request *pb.DownloadProfileRequest, stream pb.WatchdogInspectorService_DownloadProfileServer) error {
 	filename := request.GetFilename()
 	if filename == "" {
@@ -149,11 +147,11 @@ func (s *WatchdogInspectorService) DownloadProfile(request *pb.DownloadProfileRe
 	return nil
 }
 
-// PruneProfiles removes stored watchdog profile files and returns the count
-// of files deleted.
+// PruneProfiles removes stored watchdog profile files and returns the count of files
+// deleted.
 //
-// Takes request (*pb.PruneProfilesRequest) which specifies the optional
-// profile type filter. When empty, all profiles are removed.
+// Takes request (*pb.PruneProfilesRequest) which specifies the optional profile type
+// filter. When empty, all profiles are removed.
 //
 // Returns *pb.PruneProfilesResponse which contains the number of deleted files.
 // Returns error when listing or removing files fails.
@@ -168,11 +166,10 @@ func (s *WatchdogInspectorService) PruneProfiles(ctx context.Context, request *p
 	}, nil
 }
 
-// GetWatchdogStatus returns the current watchdog state including
-// configuration, thresholds, and runtime counters.
+// GetWatchdogStatus returns the current watchdog state including configuration,
+// thresholds, and runtime counters.
 //
-// Returns *pb.GetWatchdogStatusResponse which contains the current watchdog
-// state.
+// Returns *pb.GetWatchdogStatusResponse which contains the current watchdog state.
 // Returns error (always nil; included for interface compliance).
 func (s *WatchdogInspectorService) GetWatchdogStatus(ctx context.Context, _ *pb.GetWatchdogStatusRequest) (*pb.GetWatchdogStatusResponse, error) {
 	watchdogStatus := s.inspector.GetWatchdogStatus(ctx)
@@ -216,9 +213,9 @@ func (s *WatchdogInspectorService) GetWatchdogStatus(ctx context.Context, _ *pb.
 	}, nil
 }
 
-// RunContentionDiagnostic enables block + mutex profiling for the configured
-// window, captures both profiles, then disables. The call is synchronous so
-// the gRPC response is returned only after the diagnostic completes.
+// RunContentionDiagnostic enables block + mutex profiling for the configured window,
+// captures both profiles, then disables. The call is synchronous so the gRPC response is
+// returned only after the diagnostic completes.
 //
 // Returns *pb.RunContentionDiagnosticResponse with started=true on success.
 // Returns error wrapped as a gRPC status when the diagnostic cannot run.
@@ -234,8 +231,8 @@ func (s *WatchdogInspectorService) RunContentionDiagnostic(ctx context.Context, 
 
 // GetStartupHistory returns the parsed startup-history ring.
 //
-// Returns *pb.GetStartupHistoryResponse which contains each entry's start
-// and stop timestamps as unix milliseconds.
+// Returns *pb.GetStartupHistoryResponse which contains each entry's start and stop
+// timestamps as unix milliseconds.
 // Returns error when the history file is unreadable or corrupt.
 func (s *WatchdogInspectorService) GetStartupHistory(ctx context.Context, _ *pb.GetStartupHistoryRequest) (*pb.GetStartupHistoryResponse, error) {
 	entries, err := s.inspector.GetStartupHistory(ctx)
@@ -265,11 +262,10 @@ func (s *WatchdogInspectorService) GetStartupHistory(ctx context.Context, _ *pb.
 
 // ListEvents returns recent watchdog events from the in-memory ring.
 //
-// Takes request (*pb.ListEventsRequest) which filters by limit, since,
-// and event type.
+// Takes request (*pb.ListEventsRequest) which filters by limit, since, and event type.
 //
-// Returns *pb.ListEventsResponse which contains the matching events in
-// chronological order.
+// Returns *pb.ListEventsResponse which contains the matching events in chronological
+// order.
 // Returns error (always nil; included for interface compliance).
 func (s *WatchdogInspectorService) ListEvents(ctx context.Context, request *pb.ListEventsRequest) (*pb.ListEventsResponse, error) {
 	since := time.Time{}
@@ -287,13 +283,13 @@ func (s *WatchdogInspectorService) ListEvents(ctx context.Context, request *pb.L
 	return &pb.ListEventsResponse{Events: pbEvents}, nil
 }
 
-// WatchEvents streams newly emitted watchdog events to the client.
-// Optionally back-fills from the ring buffer before live streaming begins.
+// WatchEvents streams newly emitted watchdog events to the client. Optionally back-fills
+// from the ring buffer before live streaming begins.
 //
-// Takes request (*pb.WatchEventsRequest) which carries the optional
-// since-millis back-fill watermark.
-// Takes stream (pb.WatchdogInspectorService_WatchEventsServer) which
-// receives each event message.
+// Takes request (*pb.WatchEventsRequest) which carries the optional since-millis
+// back-fill watermark.
+// Takes stream (pb.WatchdogInspectorService_WatchEventsServer) which receives each event
+// message.
 //
 // Returns error when the subscription cannot be created or a send fails.
 func (s *WatchdogInspectorService) WatchEvents(request *pb.WatchEventsRequest, stream pb.WatchdogInspectorService_WatchEventsServer) error {
@@ -318,11 +314,11 @@ func (s *WatchdogInspectorService) WatchEvents(request *pb.WatchEventsRequest, s
 
 // watchdogEventToProto maps a domain WatchdogEventInfo to its protobuf form.
 //
-// Takes event (monitoring_domain.WatchdogEventInfo) which is the domain
-// event to project onto the wire format.
+// Takes event (monitoring_domain.WatchdogEventInfo) which is the domain event to project
+// onto the wire format.
 //
-// Returns *pb.WatchdogEventMessage which captures every field of the
-// inspector-facing event.
+// Returns *pb.WatchdogEventMessage which captures every field of the inspector-facing
+// event.
 func watchdogEventToProto(event monitoring_domain.WatchdogEventInfo) *pb.WatchdogEventMessage {
 	return &pb.WatchdogEventMessage{
 		EventType:   string(event.EventType),
@@ -333,18 +329,18 @@ func watchdogEventToProto(event monitoring_domain.WatchdogEventInfo) *pb.Watchdo
 	}
 }
 
-// toGRPCError translates a domain or transport error into a gRPC status
-// error with an appropriate code. Errors that are already gRPC status
-// errors are returned unchanged so the original code is preserved.
+// toGRPCError translates a domain or transport error into a gRPC status error with an
+// appropriate code. Errors that are already gRPC status errors are returned unchanged so
+// the original code is preserved.
 //
 // Mapping summary:
-//   - context.Canceled            -> codes.Canceled
-//   - context.DeadlineExceeded    -> codes.DeadlineExceeded
+//   - context.Canceled -> codes.Canceled
+//   - context.DeadlineExceeded -> codes.DeadlineExceeded
 //   - monitoring_domain.ErrWatchdogStopped
 //   - monitoring_domain.ErrEventSubscriberCapExceeded
-//   - monitoring_domain.ErrProfilingControllerNil  -> codes.Unavailable
-//   - fs.ErrNotExist              -> codes.NotFound
-//   - default                     -> codes.Internal
+//   - monitoring_domain.ErrProfilingControllerNil -> codes.Unavailable
+//   - fs.ErrNotExist -> codes.NotFound
+//   - default -> codes.Internal
 //
 // Takes err (error) which is the originating failure to translate.
 //
@@ -376,8 +372,8 @@ func toGRPCError(err error) error {
 
 // sendDownloadChunks writes profile data to the stream in fixed-size chunks.
 //
-// Takes stream (pb.WatchdogInspectorService_DownloadProfileServer) which
-// receives each chunk.
+// Takes stream (pb.WatchdogInspectorService_DownloadProfileServer) which receives each
+// chunk.
 // Takes data ([]byte) which is the complete profile payload.
 //
 // Returns error when the stream context is cancelled or a send fails.

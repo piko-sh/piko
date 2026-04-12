@@ -24,27 +24,19 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// ResolveFunctionCall resolves a polymorphic SQLite
-// function call whose return type depends on its
-// argument types. This handles aggregate functions like
-// SUM, MIN, and MAX where the builtin catalogue declares
-// the return type as "any" but the actual return type
-// should propagate from the argument.
+// ResolveFunctionCall resolves a polymorphic SQLite function call.
 //
-// Takes catalogue (*querier_dto.Catalogue) which holds
-// the schema context (unused for SQLite resolution).
-// Takes name (string) which holds the function name to
-// resolve.
-// Takes schema (string) which holds the schema qualifier
-// (unused for SQLite resolution).
-// Takes argumentTypes ([]querier_dto.SQLType) which
-// holds the resolved types of the call-site arguments.
+// Handles aggregate functions like SUM, MIN, and MAX where the built-in catalogue
+// declares the return type as "any" but the actual return type propagates from the
+// argument.
 //
-// Returns *querier_dto.FunctionResolution which holds
-// the resolved return type and metadata, or nil if the
-// function does not need polymorphic resolution.
-// Returns error which is always nil for this
-// implementation.
+// Takes name (string) which holds the function name to resolve.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types of the
+// call-site arguments.
+//
+// Returns *querier_dto.FunctionResolution which holds the resolved return type and
+// metadata, or nil when no polymorphic resolution applies.
+// Returns error which is always nil for this implementation.
 func (*SQLiteEngine) ResolveFunctionCall(
 	_ *querier_dto.Catalogue,
 	name string,
@@ -63,15 +55,14 @@ func (*SQLiteEngine) ResolveFunctionCall(
 	}
 }
 
-// resolveSQLiteIdentityAggregate resolves MIN and MAX
-// which return the same type as their argument.
+// resolveSQLiteIdentityAggregate resolves MIN and MAX which return the same type as their
+// argument.
 //
-// Takes argumentTypes ([]querier_dto.SQLType) which
-// holds the resolved types of the call-site arguments.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types of the
+// call-site arguments.
 //
-// Returns *querier_dto.FunctionResolution which holds
-// the argument type as the return type, or nil if no
-// arguments were provided.
+// Returns *querier_dto.FunctionResolution which holds the argument type as the return
+// type, or nil if no arguments were provided.
 // Returns error which is always nil.
 func resolveSQLiteIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
@@ -85,16 +76,14 @@ func resolveSQLiteIdentityAggregate(argumentTypes []querier_dto.SQLType) (*queri
 	}, nil
 }
 
-// resolveSQLiteSum resolves SUM which in SQLite returns
-// integer for integer arguments and real for everything
-// else.
+// resolveSQLiteSum resolves SUM which in SQLite returns integer for integer arguments and
+// real for everything else.
 //
-// Takes argumentTypes ([]querier_dto.SQLType) which
-// holds the resolved types of the call-site arguments.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types of the
+// call-site arguments.
 //
-// Returns *querier_dto.FunctionResolution which holds
-// the promoted return type, or nil if no arguments were
-// provided.
+// Returns *querier_dto.FunctionResolution which holds the promoted return type, or nil if
+// no arguments were provided.
 // Returns error which is always nil.
 func resolveSQLiteSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
@@ -118,15 +107,14 @@ func resolveSQLiteSum(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 	}, nil
 }
 
-// resolveSQLiteCoalesce resolves COALESCE which returns
-// the type of the first non-unknown argument.
+// resolveSQLiteCoalesce resolves COALESCE which returns the type of the first non-unknown
+// argument.
 //
-// Takes argumentTypes ([]querier_dto.SQLType) which
-// holds the resolved types of the call-site arguments.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types of the
+// call-site arguments.
 //
-// Returns *querier_dto.FunctionResolution which holds
-// the type of the first argument with a known category,
-// or unknown if all arguments have unknown types.
+// Returns *querier_dto.FunctionResolution which holds the type of the first argument with
+// a known category, or unknown if all arguments have unknown types.
 // Returns error which is always nil.
 func resolveSQLiteCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	for index := range argumentTypes {

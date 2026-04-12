@@ -30,27 +30,28 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-// DefaultVectorSearchTopK is the default number of results returned by
-// similarity searches when no explicit TopK is specified.
-const DefaultVectorSearchTopK = 10
+const (
+	// DefaultVectorSearchTopK is the default number of results returned by similarity
+	// searches when no explicit TopK is specified.
+	DefaultVectorSearchTopK = 10
+)
 
 var (
-	// errDocumentNil is returned when a nil document is passed to the vector
-	// store.
+	// errDocumentNil is returned when a nil document is passed to the vector store.
 	errDocumentNil = errors.New("document cannot be nil")
 
-	// errDocumentIDEmpty is returned when a document with an empty ID is
-	// passed to the vector store.
+	// errDocumentIDEmpty is returned when a document with an empty ID is passed to the
+	// vector store.
 	errDocumentIDEmpty = errors.New("document ID cannot be empty")
 )
 
-// CacheFactory creates a cache instance for a given namespace configuration.
-// The factory is responsible for configuring the search schema with vector
-// fields and selecting the appropriate cache provider.
+// CacheFactory creates a cache instance for a given namespace configuration. The factory
+// is responsible for configuring the search schema with vector fields and selecting the
+// appropriate cache provider.
 type CacheFactory func(namespace string, config *llm_domain.VectorNamespaceConfig) (cache_domain.Cache[string, llm_dto.VectorDocument], error)
 
-// Store implements llm_domain.VectorStorePort by delegating to cache
-// instances. Each namespace has its own cache with vector search support.
+// Store implements llm_domain.VectorStorePort by delegating to cache instances. Each
+// namespace has its own cache with vector search support.
 type Store struct {
 	// caches maps namespace names to their vector document caches.
 	caches map[string]cache_domain.Cache[string, llm_dto.VectorDocument]
@@ -61,9 +62,9 @@ type Store struct {
 	// factory creates cache instances for namespaces.
 	factory CacheFactory
 
-	// retired holds caches removed by DeleteNamespace so they can be closed
-	// during Store.Close without prematurely closing shared resources (e.g.
-	// a Redis client shared across namespaces).
+	// retired holds caches removed by DeleteNamespace so they can be closed during
+	// Store.Close without prematurely closing shared resources (e.g. a Redis client shared
+	// across namespaces).
 	retired []cache_domain.Cache[string, llm_dto.VectorDocument]
 
 	// mu guards concurrent access to store fields.
@@ -73,15 +74,17 @@ type Store struct {
 	closed bool
 }
 
-var _ llm_domain.VectorStorePort = (*Store)(nil)
+var (
+	_ llm_domain.VectorStorePort = (*Store)(nil)
+)
 
 // Store adds or updates a single document in the vector store.
 //
 // Takes namespace (string) which specifies the namespace for the document.
 // Takes document (*llm_dto.VectorDocument) which is the document to store.
 //
-// Returns error when document is nil, document.ID is empty, or the namespace
-// does not exist.
+// Returns error when document is nil, document.ID is empty, or the namespace does not
+// exist.
 func (s *Store) Store(ctx context.Context, namespace string, document *llm_dto.VectorDocument) error {
 	if document == nil {
 		return errDocumentNil
@@ -270,15 +273,14 @@ func (s *Store) CreateNamespace(_ context.Context, namespace string, config *llm
 	return nil
 }
 
-// DeleteNamespace removes a namespace, invalidates all its cached
-// entries, and retires the underlying cache instance.
+// DeleteNamespace removes a namespace, invalidates all its cached entries, and retires
+// the underlying cache instance.
 //
-// All data is cleared from the backing store (Redis, Valkey, etc.) via
-// InvalidateAll before the namespace is forgotten. The cache is retired
-// rather than closed immediately because some providers share a single
-// client across namespaces; closing one would break others and any
-// subsequent CreateNamespace calls. Retired caches are closed during
-// [Store.Close].
+// All data is cleared from the backing store (Redis, Valkey, etc.) via InvalidateAll
+// before the namespace is forgotten. The cache is retired rather than closed immediately
+// because some providers share a single client across namespaces; closing one would break
+// others and any subsequent CreateNamespace calls. Retired caches are closed during
+// Store.Close.
 //
 // Takes namespace (string) which is the name of the namespace to delete.
 //
@@ -326,33 +328,32 @@ func (s *Store) Close(ctx context.Context) error {
 	return nil
 }
 
-// lookupCache returns the cache for the given namespace without
-// auto-creating. Returns nil if the namespace does not exist.
+// lookupCache returns the cache for the given namespace without auto-creating. Returns
+// nil if the namespace does not exist.
 //
 // Takes namespace (string) which identifies the namespace to look up.
 //
-// Returns cache_domain.Cache[string, llm_dto.VectorDocument] which is
-// the cache for the namespace, or nil if not found.
+// Returns cache_domain.Cache[string, llm_dto.VectorDocument] which is the cache for the
+// namespace, or nil if not found.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// read lock.
+// Safe for concurrent use. Access is serialised by an internal read lock.
 func (s *Store) lookupCache(namespace string) cache_domain.Cache[string, llm_dto.VectorDocument] {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.caches[namespace]
 }
 
-// getCache returns the cache for the given namespace, creating it lazily
-// with a default configuration if it does not exist.
+// getCache returns the cache for the given namespace, creating it lazily with a default
+// configuration if it does not exist.
 //
 // Takes namespace (string) which identifies the namespace.
 //
-// Returns cache_domain.Cache[string, llm_dto.VectorDocument] which is
-// the cache for the namespace.
+// Returns cache_domain.Cache[string, llm_dto.VectorDocument] which is the cache for the
+// namespace.
 // Returns error when the store is closed or cache creation fails.
 //
-// Safe for concurrent use. Uses a read lock for the fast path and
-// promotes to a write lock for lazy creation.
+// Safe for concurrent use. Uses a read lock for the fast path and promotes to a write
+// lock for lazy creation.
 func (s *Store) getCache(namespace string) (cache_domain.Cache[string, llm_dto.VectorDocument], error) {
 	s.mu.RLock()
 	c, exists := s.caches[namespace]
@@ -395,8 +396,8 @@ func New(factory CacheFactory) *Store {
 	}
 }
 
-// matchesFilter checks whether a document's metadata satisfies all filter
-// criteria. Each filter key must exist in metadata and its value must match.
+// matchesFilter checks whether a document's metadata satisfies all filter criteria. Each
+// filter key must exist in metadata and its value must match.
 //
 // Takes document (llm_dto.VectorDocument) which is the document to check.
 // Takes filter (map[string]any) which specifies the key-value pairs to match.

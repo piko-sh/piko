@@ -31,22 +31,24 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// defaultMaxBuildWaitDuration is the default longest time a caller will wait
-// for a build result before timing out. This stops goroutines from waiting
-// forever when debouncing replaces their build request with a newer one.
-const defaultMaxBuildWaitDuration = 5 * time.Minute
+const (
+	// defaultMaxBuildWaitDuration is the default longest time a caller will wait for a build
+	// result before timing out. This stops goroutines from waiting forever when debouncing
+	// replaces their build request with a newer one.
+	defaultMaxBuildWaitDuration = 5 * time.Minute
+)
 
-// GetOrBuildProject is the primary synchronous, blocking method for consumers
-// that need a build result to proceed.
+// GetOrBuildProject is the primary synchronous, blocking method for consumers that need a
+// build result to proceed.
 //
 // Actions are auto-discovered from the actions/ directory during annotation.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry
-// points for the build.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry points for the
+// build.
 // Takes opts (...BuildOption) which configures the build behaviour.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the build
-// result, either from cache or a fresh build.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the build result, either
+// from cache or a fresh build.
 // Returns error when the hash calculation or build fails.
 func (s *coordinatorService) GetOrBuildProject(
 	ctx context.Context,
@@ -75,8 +77,8 @@ func (s *coordinatorService) GetOrBuildProject(
 
 // setLastBuildRequest stores the build request for the build loop.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code
-// locations to analyse.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code locations to
+// analyse.
 // Takes buildOpts (*buildOptions) which controls build behaviour.
 //
 // Safe for concurrent use; holds the service mutex while updating state.
@@ -95,12 +97,11 @@ func (s *coordinatorService) setLastBuildRequest(
 	s.mu.Unlock()
 }
 
-// calculateHashForBuild calculates the input hash, handling context
-// cancellation gracefully.
+// calculateHashForBuild calculates the input hash, handling context cancellation
+// gracefully.
 //
 // Takes span (trace.Span) which records tracing attributes for the build.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the build
-// entry points.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the build entry points.
 // Takes buildOpts (*buildOptions) which may contain a resolver override.
 //
 // Returns string which is the calculated input hash.
@@ -131,16 +132,14 @@ func (s *coordinatorService) calculateHashForBuild(
 	return inputHash, nil
 }
 
-// checkCacheHit checks if a cached result exists and returns it, or nil if
-// not found.
+// checkCacheHit checks if a cached result exists and returns it, or nil if not found.
 //
 // Takes span (trace.Span) which records cache status attributes.
 // Takes inputHash (string) which identifies the cached entry to look up.
-// Takes buildOpts (*buildOptions) which provides the causation ID for status
-// updates.
+// Takes buildOpts (*buildOptions) which provides the causation ID for status updates.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which is the cached result,
-// or nil when no cache entry exists.
+// Returns *annotator_dto.ProjectAnnotationResult which is the cached result, or nil when
+// no cache entry exists.
 func (s *coordinatorService) checkCacheHit(
 	ctx context.Context,
 	span trace.Span,
@@ -158,16 +157,16 @@ func (s *coordinatorService) checkCacheHit(
 	return cachedResult
 }
 
-// waitForBuildResult registers a waiter and blocks until the build completes
-// or context cancels.
+// waitForBuildResult registers a waiter and blocks until the build completes or context
+// cancels.
 //
 // Takes inputHash (string) which identifies the build to wait for.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies files to
-// annotate if this is the first request.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies files to annotate if
+// this is the first request.
 // Takes opts ([]BuildOption) which configures the build behaviour.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation
-// data when the build completes.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation data when
+// the build completes.
 // Returns error when the context is cancelled or an unexpected type is stored.
 func (s *coordinatorService) waitForBuildResult(
 	ctx context.Context,
@@ -215,13 +214,12 @@ func (s *coordinatorService) waitForBuildResult(
 // updateStatus sets the build status and sends a notice when done.
 //
 // Takes st (state) which is the new build state.
-// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the build
-// output.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the build output.
 // Takes buildErr (error) which holds any build failure.
 // Takes causationID (string) which tracks the original request.
 //
-// Not safe for use at the same time as reads of the status field. Calls
-// publish when the state is ready and the result is not nil.
+// Not safe for use at the same time as reads of the status field. Calls publish when the
+// state is ready and the result is not nil.
 func (s *coordinatorService) updateStatus(ctx context.Context, st state, result *annotator_dto.ProjectAnnotationResult, buildErr error, causationID string) {
 	s.mu.Lock()
 	s.status = buildStatus{
@@ -240,8 +238,8 @@ func (s *coordinatorService) updateStatus(ctx context.Context, st state, result 
 	}
 }
 
-// applyBuildOptions processes functional options and returns the configured
-// build options.
+// applyBuildOptions processes functional options and returns the configured build
+// options.
 //
 // Takes opts ([]BuildOption) which specifies the functional options to apply.
 //

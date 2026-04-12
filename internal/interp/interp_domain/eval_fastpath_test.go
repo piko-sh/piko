@@ -97,50 +97,50 @@ func TestNativeFastpathDispatchers(t *testing.T) {
 	})
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"string_int", "import \"fp\"\nfp.StringInt(\"hello\")", int64(5)},
+		{name: "string_int", code: "import \"fp\"\nfp.StringInt(\"hello\")", expect: int64(5)},
 
-		{"string_bool_true", "import \"fp\"\nfp.StringBool(\"hi\")", true},
-		{"string_bool_false", "import \"fp\"\nfp.StringBool(\"\")", false},
+		{name: "string_bool_true", code: "import \"fp\"\nfp.StringBool(\"hi\")", expect: true},
+		{name: "string_bool_false", code: "import \"fp\"\nfp.StringBool(\"\")", expect: false},
 
-		{"string_rune_bool_true", "import \"fp\"\nfp.StringRuneBool(\"hello\", 'e')", true},
-		{"string_rune_bool_false", "import \"fp\"\nfp.StringRuneBool(\"hello\", 'z')", false},
+		{name: "string_rune_bool_true", code: "import \"fp\"\nfp.StringRuneBool(\"hello\", 'e')", expect: true},
+		{name: "string_rune_bool_false", code: "import \"fp\"\nfp.StringRuneBool(\"hello\", 'z')", expect: false},
 
-		{"string_rune_int_found", "import \"fp\"\nfp.StringRuneInt(\"hello\", 'l')", int64(2)},
-		{"string_rune_int_missing", "import \"fp\"\nfp.StringRuneInt(\"hello\", 'z')", int64(-1)},
+		{name: "string_rune_int_found", code: "import \"fp\"\nfp.StringRuneInt(\"hello\", 'l')", expect: int64(2)},
+		{name: "string_rune_int_missing", code: "import \"fp\"\nfp.StringRuneInt(\"hello\", 'z')", expect: int64(-1)},
 
-		{"string2_int_eq", "import \"fp\"\nfp.String2Int(\"a\", \"a\")", int64(0)},
-		{"string2_int_ne", "import \"fp\"\nfp.String2Int(\"a\", \"b\")", int64(1)},
+		{name: "string2_int_eq", code: "import \"fp\"\nfp.String2Int(\"a\", \"a\")", expect: int64(0)},
+		{name: "string2_int_ne", code: "import \"fp\"\nfp.String2Int(\"a\", \"b\")", expect: int64(1)},
 
-		{"string3_string", "import \"fp\"\nfp.String3String(\"a\", \"b\", \"c\")", "abc"},
+		{name: "string3_string", code: "import \"fp\"\nfp.String3String(\"a\", \"b\", \"c\")", expect: "abc"},
 
-		{"int_bool_true", "import \"fp\"\nfp.IntBool(5)", true},
-		{"int_bool_false", "import \"fp\"\nfp.IntBool(-1)", false},
+		{name: "int_bool_true", code: "import \"fp\"\nfp.IntBool(5)", expect: true},
+		{name: "int_bool_false", code: "import \"fp\"\nfp.IntBool(-1)", expect: false},
 
-		{"int2_bool_true", "import \"fp\"\nfp.Int2Bool(5, 5)", true},
-		{"int2_bool_false", "import \"fp\"\nfp.Int2Bool(5, 3)", false},
+		{name: "int2_bool_true", code: "import \"fp\"\nfp.Int2Bool(5, 5)", expect: true},
+		{name: "int2_bool_false", code: "import \"fp\"\nfp.Int2Bool(5, 3)", expect: false},
 
-		{"int2_string_gt", "import \"fp\"\nfp.Int2String(5, 3)", "gt"},
-		{"int2_string_le", "import \"fp\"\nfp.Int2String(3, 5)", "le"},
+		{name: "int2_string_gt", code: "import \"fp\"\nfp.Int2String(5, 3)", expect: "gt"},
+		{name: "int2_string_le", code: "import \"fp\"\nfp.Int2String(3, 5)", expect: "le"},
 
-		{"float64_float64", "import \"fp\"\nfp.Float64Float64(2.5)", float64(5.0)},
+		{name: "float64_float64", code: "import \"fp\"\nfp.Float64Float64(2.5)", expect: float64(5.0)},
 
-		{"float642_float64", "import \"fp\"\nfp.Float642Float64(1.5, 2.5)", float64(4.0)},
+		{name: "float642_float64", code: "import \"fp\"\nfp.Float642Float64(1.5, 2.5)", expect: float64(4.0)},
 
-		{"ret_float64", "import \"fp\"\nfp.RetFloat64()", float64(3.14)},
+		{name: "ret_float64", code: "import \"fp\"\nfp.RetFloat64()", expect: float64(3.14)},
 
-		{"ret_error_nil", "import \"fp\"\nerr := fp.RetError()\nerr == nil", true},
+		{name: "ret_error_nil", code: "import \"fp\"\nerr := fp.RetError()\nerr == nil", expect: true},
 
-		{"void_int", "import \"fp\"\nfp.VoidInt(42)\ntrue", true},
+		{name: "void_int", code: "import \"fp\"\nfp.VoidInt(42)\ntrue", expect: true},
 
-		{"void_bool", "import \"fp\"\nfp.VoidBool(true)\ntrue", true},
+		{name: "void_bool", code: "import \"fp\"\nfp.VoidBool(true)\ntrue", expect: true},
 
-		{"read_bool", "import \"fp\"\nfp.ReadBool(true)", false},
-		{"read_float", "import \"fp\"\nfp.ReadFloat(2.5)", float64(2.5)},
+		{name: "read_bool", code: "import \"fp\"\nfp.ReadBool(true)", expect: false},
+		{name: "read_float", code: "import \"fp\"\nfp.ReadFloat(2.5)", expect: float64(2.5)},
 	}
 
 	for _, tt := range tests {

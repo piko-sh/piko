@@ -25,9 +25,9 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// buildDynamicOneQueryStatements builds the var-row declaration, embed
-// pre-alloc, err := queryRowCall.Scan(scanArguments...), and err-check
-// statements that are common to every branch of BuildDynamicOneMethod.
+// buildDynamicOneQueryStatements builds the var-row declaration, embed pre-alloc, err :=
+// queryRowCall.Scan(scanArguments...), and err-check statements that are common to every
+// branch of BuildDynamicOneMethod.
 //
 // Takes rowTypeName (string) which holds the generated row struct name.
 // Takes queryRowCall (*ast.CallExpr) which holds the db.QueryRow(...) call.
@@ -59,8 +59,7 @@ func buildDynamicOneQueryStatements(
 
 // BuildDynamicOneMethod constructs a :one query method with a params struct.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// definition.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete :one method AST node.
@@ -124,8 +123,7 @@ func BuildDynamicOneMethod(query *querier_dto.AnalysedQuery, strategy MethodStra
 
 // BuildDynamicManyMethod constructs a :many query method with a params struct.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// definition.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete :many method AST node.
@@ -168,8 +166,7 @@ func BuildDynamicManyMethod(query *querier_dto.AnalysedQuery, strategy MethodStr
 
 // BuildDynamicExecMethod constructs a :exec query method with a params struct.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// definition.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete :exec method AST node.
@@ -201,11 +198,9 @@ func BuildDynamicExecMethod(query *querier_dto.AnalysedQuery, strategy MethodStr
 	}
 }
 
-// BuildDynamicExecResultMethod constructs a :execresult method with a params
-// struct.
+// BuildDynamicExecResultMethod constructs a :execresult method with a params struct.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// definition.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete :execresult method AST node.
@@ -234,11 +229,9 @@ func BuildDynamicExecResultMethod(query *querier_dto.AnalysedQuery, strategy Met
 	}
 }
 
-// BuildDynamicExecRowsMethod constructs a :execrows method with a params
-// struct.
+// BuildDynamicExecRowsMethod constructs a :execrows method with a params struct.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// definition.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete :execrows method AST node.

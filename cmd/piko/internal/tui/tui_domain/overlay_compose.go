@@ -24,20 +24,19 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// ComposeOverlay splices an overlay body over a rendered background, both
-// expressed as multiline strings whose visible width is at most screenW.
-// The overlay is centred on the screen; SGR sequences in both layers are
-// preserved so colours and styles do not bleed into adjacent cells.
+// ComposeOverlay splices an overlay body over a rendered background, both expressed as
+// multiline strings whose visible width is at most screenW. The overlay is centred on the
+// screen; SGR sequences in both layers are preserved so colours and styles do not bleed
+// into adjacent cells.
 //
-// Takes background (string) which is the underlying layout, sized to
-// approximately screenW x screenH cells.
-// Takes overlayBody (string) which is the pre-rendered overlay; its visible
-// dimensions are computed by counting cells in its rows.
+// Takes background (string) which is the underlying layout, sized to approximately
+// screenW x screenH cells.
+// Takes overlayBody (string) which is the pre-rendered overlay; its visible dimensions
+// are computed by counting cells in its rows.
 // Takes screenW (int) which is the terminal width.
 // Takes screenH (int) which is the terminal height.
-// Takes theme (*Theme) which provides the optional dim style applied to
-// background regions outside the overlay rectangle. May be nil; if so, the
-// background is unchanged.
+// Takes theme (*Theme) which provides the optional dim style applied to background
+// regions outside the overlay rectangle. May be nil; if so, the background is unchanged.
 //
 // Returns string which is the composed image.
 func ComposeOverlay(background, overlayBody string, screenW, screenH int, theme *Theme) string {
@@ -85,16 +84,15 @@ func ComposeOverlay(background, overlayBody string, screenW, screenH int, theme 
 	return strings.Join(bgRows, "\n")
 }
 
-// splitToRows splits the rendered background into rows, padding each row
-// to screenW visible cells and the slice to screenH rows so subsequent
-// splicing arithmetic works without bounds checks.
+// splitToRows splits the rendered background into rows, padding each row to screenW
+// visible cells and the slice to screenH rows so subsequent splicing arithmetic works
+// without bounds checks.
 //
 // Takes raw (string) which is the background newline-separated rendering.
 // Takes screenW (int) which is the target visible width per row.
 // Takes screenH (int) which is the target row count.
 //
-// Returns []string with exactly screenH rows, each of visible width
-// screenW.
+// Returns []string with exactly screenH rows, each of visible width screenW.
 func splitToRows(raw string, screenW, screenH int) []string {
 	rows := strings.Split(raw, "\n")
 

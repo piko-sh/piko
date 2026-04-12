@@ -22,50 +22,42 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// nullabilityPropagator applies final nullability adjustments to output
-// columns and parameters after type resolution. This handles directive
-// overrides, GROUP BY primary key functional dependency rules (SQL:2003),
-// and parameter kind-specific nullability.
+// nullabilityPropagator applies final nullability adjustments to output columns and
+// parameters after type resolution. This handles directive overrides, GROUP BY primary
+// key functional dependency rules (SQL:2003), and parameter kind-specific nullability.
 type nullabilityPropagator struct {
-	// catalogue holds the schema state for primary key
-	// lookups.
+	// catalogue holds the schema state for primary key lookups.
 	catalogue *querier_dto.Catalogue
 }
 
-// newNullabilityPropagator creates a new nullability
-// propagator with the given catalogue for primary key
-// lookup.
+// newNullabilityPropagator creates a new nullability propagator with the given catalogue
+// for primary key lookup.
 //
-// Takes catalogue (*querier_dto.Catalogue) which provides
-// the schema state for primary key lookups.
+// Takes catalogue (*querier_dto.Catalogue) which provides the schema state for primary
+// key lookups.
 //
-// Returns *nullabilityPropagator which is ready to apply
-// nullability adjustments.
+// Returns *nullabilityPropagator which is ready to apply nullability adjustments.
 func newNullabilityPropagator(catalogue *querier_dto.Catalogue) *nullabilityPropagator {
 	return &nullabilityPropagator{
 		catalogue: catalogue,
 	}
 }
 
-// PropagateOutputNullability applies final nullability
-// adjustments to output columns based on directives and
-// GROUP BY functional dependency rules.
+// PropagateOutputNullability applies final nullability adjustments to output columns
+// based on directives and GROUP BY functional dependency rules.
 //
 // Adjustments applied in order:
 //  1. piko.nullable directive override
 //  2. GROUP BY primary key rule
 //
-// Takes columns ([]querier_dto.OutputColumn) which holds
-// the output columns to adjust.
-// Takes queryDirectives (*querier_dto.QueryDirectives)
-// which holds any nullable override directive.
-// Takes scope (*scopeChain) which provides table alias
-// resolution.
-// Takes groupByColumns ([]querier_dto.ColumnReference)
-// which holds the GROUP BY column references.
+// Takes columns ([]querier_dto.OutputColumn) which holds the output columns to adjust.
+// Takes queryDirectives (*querier_dto.QueryDirectives) which holds any nullable override
+// directive.
+// Takes scope (*scopeChain) which provides table alias resolution.
+// Takes groupByColumns ([]querier_dto.ColumnReference) which holds the GROUP BY column
+// references.
 //
-// Returns []querier_dto.OutputColumn which holds the
-// adjusted output columns.
+// Returns []querier_dto.OutputColumn which holds the adjusted output columns.
 func (p *nullabilityPropagator) PropagateOutputNullability(
 	columns []querier_dto.OutputColumn,
 	queryDirectives *querier_dto.QueryDirectives,
@@ -90,9 +82,8 @@ func (p *nullabilityPropagator) PropagateOutputNullability(
 	return result
 }
 
-// PropagateParameterNullability applies final nullability
-// adjustments to parameters based on their parameter kind
-// declarations.
+// PropagateParameterNullability applies final nullability adjustments to parameters based
+// on their parameter kind declarations.
 //
 // Rules:
 //   - piko.optional -> always nullable
@@ -101,14 +92,11 @@ func (p *nullabilityPropagator) PropagateOutputNullability(
 //   - piko.slice -> always NOT NULL
 //   - piko.param with nullable:true/false -> override
 //
-// Takes parameters ([]querier_dto.QueryParameter) which
-// holds the parameters to adjust.
-// Takes parameterDirectives
-// ([]*querier_dto.ParameterDirective) which holds the
-// directive declarations.
+// Takes parameters ([]querier_dto.QueryParameter) which holds the parameters to adjust.
+// Takes parameterDirectives ([]*querier_dto.ParameterDirective) which holds the directive
+// declarations.
 //
-// Returns []querier_dto.QueryParameter which holds the
-// adjusted parameters.
+// Returns []querier_dto.QueryParameter which holds the adjusted parameters.
 func (*nullabilityPropagator) PropagateParameterNullability(
 	parameters []querier_dto.QueryParameter,
 	parameterDirectives []*querier_dto.ParameterDirective,
@@ -150,16 +138,15 @@ func (*nullabilityPropagator) PropagateParameterNullability(
 	return result
 }
 
-// findPrimaryKeyCoveredTables returns a set of table names
-// whose full primary key is covered by the GROUP BY columns.
+// findPrimaryKeyCoveredTables returns a set of table names whose full primary key is
+// covered by the GROUP BY columns.
 //
-// Takes groupByColumns ([]querier_dto.ColumnReference)
-// which holds the GROUP BY column references.
-// Takes scope (*scopeChain) which provides table alias
-// resolution.
+// Takes groupByColumns ([]querier_dto.ColumnReference) which holds the GROUP BY column
+// references.
+// Takes scope (*scopeChain) which provides table alias resolution.
 //
-// Returns map[string]bool which maps table names to true
-// when their primary key is fully covered.
+// Returns map[string]bool which maps table names to true when their primary key is fully
+// covered.
 func (p *nullabilityPropagator) findPrimaryKeyCoveredTables(
 	groupByColumns []querier_dto.ColumnReference,
 	scope *scopeChain,
@@ -188,13 +175,13 @@ func (p *nullabilityPropagator) findPrimaryKeyCoveredTables(
 	return pkCoveredTables
 }
 
-// applyGroupByNullability restores base column nullability
-// for tables whose primary key is fully covered by GROUP BY.
+// applyGroupByNullability restores base column nullability for tables whose primary key
+// is fully covered by GROUP BY.
 //
-// Takes result ([]querier_dto.OutputColumn) which holds the
-// output columns to adjust in place.
-// Takes pkCoveredTables (map[string]bool) which identifies
-// tables with fully covered primary keys.
+// Takes result ([]querier_dto.OutputColumn) which holds the output columns to adjust in
+// place.
+// Takes pkCoveredTables (map[string]bool) which identifies tables with fully covered
+// primary keys.
 func (p *nullabilityPropagator) applyGroupByNullability(
 	result []querier_dto.OutputColumn,
 	pkCoveredTables map[string]bool,
@@ -208,14 +195,14 @@ func (p *nullabilityPropagator) applyGroupByNullability(
 	}
 }
 
-// getBaseColumnNullability looks up the base nullability
-// of a column from the catalogue by table and column name.
+// getBaseColumnNullability looks up the base nullability of a column from the catalogue
+// by table and column name.
 //
 // Takes tableName (string) which identifies the table.
 // Takes columnName (string) which identifies the column.
 //
-// Returns bool which is true if the column is nullable,
-// defaulting to true when not found.
+// Returns bool which is true if the column is nullable, defaulting to true when not
+// found.
 func (p *nullabilityPropagator) getBaseColumnNullability(tableName string, columnName string) bool {
 	for _, schema := range p.catalogue.Schemas {
 		table, exists := schema.Tables[tableName]
@@ -231,17 +218,16 @@ func (p *nullabilityPropagator) getBaseColumnNullability(tableName string, colum
 	return true
 }
 
-// isPrimaryKeyFullyCovered checks whether the given column
-// names include all primary key columns of the specified
-// table.
+// isPrimaryKeyFullyCovered checks whether the given column names include all primary key
+// columns of the specified table.
 //
 // Takes schemaName (string) which identifies the schema.
 // Takes tableName (string) which identifies the table.
-// Takes groupByColumns ([]string) which holds the column
-// names to check against the primary key.
+// Takes groupByColumns ([]string) which holds the column names to check against the
+// primary key.
 //
-// Returns bool which is true if all primary key columns
-// are present in the groupByColumns.
+// Returns bool which is true if all primary key columns are present in the
+// groupByColumns.
 func (p *nullabilityPropagator) isPrimaryKeyFullyCovered(
 	schemaName string,
 	tableName string,

@@ -1,0 +1,22 @@
+package lib
+
+type Buffer struct {
+	chunks []string
+}
+
+func NewBuffer() *Buffer {
+	return &Buffer{}
+}
+
+func (b *Buffer) Write(p []byte) (int, error) {
+	b.chunks = append(b.chunks, string(p))
+	return len(p), nil
+}
+
+func (b *Buffer) String() string {
+	out := ""
+	for _, c := range b.chunks {
+		out += c
+	}
+	return out
+}

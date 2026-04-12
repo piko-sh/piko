@@ -33,27 +33,27 @@ import (
 	"piko.sh/piko/wdk/json"
 )
 
-var _ config.Resolver = (*Resolver)(nil)
+var (
+	_ config.Resolver = (*Resolver)(nil)
+)
 
-// Resolver fetches secrets from Azure Key Vault.
-// It implements the config.Resolver interface.
+// Resolver fetches secrets from Azure Key Vault. It implements the config.Resolver
+// interface.
 //
-// Circuit breaker protection is provided by the config Loader layer,
-// not by this resolver directly.
+// Circuit breaker protection is provided by the config Loader layer, not by this resolver
+// directly.
 //
-// AUTHENTICATION:
-// The resolver uses the Azure SDK's DefaultAzureCredential, which provides
-// an automatic authentication chain. It will try Managed Identity,
-// CLI credentials, environment variables, etc.
+// AUTHENTICATION: The resolver uses the Azure SDK's DefaultAzureCredential, which
+// provides an automatic authentication chain. It will try Managed Identity, CLI
+// credentials, environment variables, etc.
 //
-// USAGE FORMAT:
-// The value is expected in the format:
+// USAGE FORMAT: The value is expected in the format:
 // "azure-kv:vault-name/secret-name[#json-key]"
 //
 // Examples:
 //  1. Plain secret: "azure-kv:my-prod-vault/database-connection-string"
-//  2. JSON key: "azure-kv:my-prod-vault/api-keys#primary" -> fetches
-//     "primary" from a JSON secret.
+//  2. JSON key: "azure-kv:my-prod-vault/api-keys#primary" -> fetches "primary" from a
+//     JSON secret.
 type Resolver struct {
 	// credential authenticates requests to Azure Key Vault.
 	credential azcore.TokenCredential
@@ -67,8 +67,7 @@ type Resolver struct {
 
 // NewResolver creates and initialises a new Azure Key Vault resolver.
 //
-// Returns *Resolver which is ready to resolve secrets from Azure Key
-// Vault.
+// Returns *Resolver which is ready to resolve secrets from Azure Key Vault.
 // Returns error when the Azure default credential cannot be created.
 func NewResolver() (*Resolver, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
@@ -84,8 +83,7 @@ func NewResolver() (*Resolver, error) {
 
 // GetPrefix returns the prefix this resolver handles.
 //
-// Returns string which is the "azure-kv:" prefix identifying Azure Key Vault
-// secrets.
+// Returns string which is the "azure-kv:" prefix identifying Azure Key Vault secrets.
 func (*Resolver) GetPrefix() string {
 	return "azure-kv:"
 }
@@ -93,19 +91,18 @@ func (*Resolver) GetPrefix() string {
 // Resolve fetches the secret value from Azure Key Vault.
 //
 // Takes value (string) which specifies the secret reference in the format
-// "vault-name/secret-name" or "vault-name/secret-name#json-key" to extract
-// a specific key from a JSON secret.
+// "vault-name/secret-name" or "vault-name/secret-name#json-key" to extract a specific key
+// from a JSON secret.
 //
 // Returns string which is the secret value or extracted JSON field.
-// Returns error when the format is invalid, the secret is not found, or
-// JSON parsing fails.
+// Returns error when the format is invalid, the secret is not found, or JSON parsing
+// fails.
 func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	secretRef, jsonKey, _ := strings.Cut(value, "#")
-	parts := strings.SplitN(secretRef, "/", 2)
-	if len(parts) != 2 {
+	vaultName, secretName, ok := strings.Cut(secretRef, "/")
+	if !ok {
 		return "", fmt.Errorf("invalid Azure Key Vault format: %q; expected 'vault-name/secret-name'", value)
 	}
-	vaultName, secretName := parts[0], parts[1]
 
 	client, err := r.getClient(vaultName)
 	if err != nil {
@@ -139,8 +136,7 @@ func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	return secretValue, nil
 }
 
-// getClient lazily creates and caches an azsecrets.Client for a given vault
-// name.
+// getClient lazily creates and caches an azsecrets.Client for a given vault name.
 //
 // Takes vaultName (string) which specifies the Azure Key Vault name.
 //
@@ -166,9 +162,9 @@ func (r *Resolver) getClient(vaultName string) (*azsecrets.Client, error) {
 	return client, nil
 }
 
-// Register creates a new Azure Key Vault resolver and registers it in the
-// global resolver registry. This is a convenience function equivalent to
-// [NewResolver] followed by [config.RegisterResolver].
+// Register creates a new Azure Key Vault resolver and registers it in the global resolver
+// registry. This is a convenience function equivalent to NewResolver followed by
+// config.RegisterResolver.
 //
 // Returns error when resolver creation or registration fails.
 //

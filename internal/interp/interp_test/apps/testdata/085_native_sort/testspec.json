@@ -1,0 +1,5 @@
+{
+  "description": "main calls sort.Sort with a Collection type defined in lib - exercises cross-package sort.Interface adapter (Len/Less/Swap dispatch through pikoSortInterfaceAdapter into lib's compiled methodTable).",
+  "modulePath": "testpkg",
+  "expected": "1,2,3,5,8,13"
+}

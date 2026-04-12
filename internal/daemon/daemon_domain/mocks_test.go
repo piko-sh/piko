@@ -108,7 +108,7 @@ func TestMockSignalNotifier_NotifyContext(t *testing.T) {
 		require.NotNil(t, ctx)
 		require.NotNil(t, cancel)
 		assert.NoError(t, ctx.Err())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NotifyContextCallCount))
+		assert.Equal(t, int64(1), mock.NotifyContextCallCount.Load())
 	})
 
 	t.Run("delegates to NotifyContextFunc", func(t *testing.T) {
@@ -131,7 +131,7 @@ func TestMockSignalNotifier_NotifyContext(t *testing.T) {
 		assert.Equal(t, parent, capturedParent)
 		assert.Equal(t, customCtx, ctx)
 		assert.NotNil(t, cancel)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NotifyContextCallCount))
+		assert.Equal(t, int64(1), mock.NotifyContextCallCount.Load())
 	})
 }
 
@@ -224,11 +224,11 @@ func TestMockSignalNotifier_Reset_Subtests(t *testing.T) {
 		_, cancel := mock.NotifyContext(context.Background())
 		defer cancel()
 
-		require.Equal(t, int64(1), atomic.LoadInt64(&mock.NotifyContextCallCount))
+		require.Equal(t, int64(1), mock.NotifyContextCallCount.Load())
 
 		mock.Reset()
 
-		assert.Equal(t, int64(0), atomic.LoadInt64(&mock.NotifyContextCallCount))
+		assert.Equal(t, int64(0), mock.NotifyContextCallCount.Load())
 	})
 
 	t.Run("allows re-trigger after reset", func(t *testing.T) {
@@ -285,7 +285,7 @@ func TestMockSignalNotifier_ZeroValueIsUsable(t *testing.T) {
 
 	require.NotNil(t, ctx)
 	require.NotNil(t, cancel)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NotifyContextCallCount))
+	assert.Equal(t, int64(1), mock.NotifyContextCallCount.Load())
 	assert.False(t, mock.WasTriggered())
 	assert.True(t, mock.NotifyContextCalled())
 }
@@ -318,7 +318,7 @@ func TestMockSignalNotifier_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NotifyContextCallCount))
+	assert.Equal(t, int64(goroutines), mock.NotifyContextCallCount.Load())
 }
 
 func TestMockSignalNotifier_ImplementsSignalNotifier(t *testing.T) {
@@ -329,11 +329,11 @@ func TestMockSignalNotifier_ImplementsSignalNotifier(t *testing.T) {
 }
 
 type MockDrainSignaller struct {
-	SignalDrainCallCount int64
+	SignalDrainCallCount atomic.Int64
 }
 
 func (m *MockDrainSignaller) SignalDrain() {
-	atomic.AddInt64(&m.SignalDrainCallCount, 1)
+	m.SignalDrainCallCount.Add(1)
 }
 
 func TestMockDrainSignaller_ImplementsDrainSignaller(t *testing.T) {
@@ -347,10 +347,10 @@ func TestMockDrainSignaller_TracksCallCount(t *testing.T) {
 
 	mock := &MockDrainSignaller{}
 
-	assert.Equal(t, int64(0), atomic.LoadInt64(&mock.SignalDrainCallCount))
+	assert.Equal(t, int64(0), mock.SignalDrainCallCount.Load())
 
 	mock.SignalDrain()
 	mock.SignalDrain()
 
-	assert.Equal(t, int64(2), atomic.LoadInt64(&mock.SignalDrainCallCount))
+	assert.Equal(t, int64(2), mock.SignalDrainCallCount.Load())
 }

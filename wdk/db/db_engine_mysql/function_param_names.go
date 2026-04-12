@@ -19,59 +19,89 @@
 package db_engine_mysql
 
 const (
+	// paramNameX names a generic numeric argument.
 	paramNameX = "x"
 
+	// paramNameY names a secondary generic numeric argument.
 	paramNameY = "y"
 
+	// paramNameN names an integer count or index argument.
 	paramNameN = "n"
 
+	// paramNameValue names a generic value argument.
 	paramNameValue = "value"
 
+	// paramNameLength names a length argument.
 	paramNameLength = "length"
 
+	// paramNameString names a string argument.
 	paramNameString = "string"
 
+	// paramNameStart names a starting position argument.
 	paramNameStart = "start"
 
+	// paramNameFormat names a format pattern argument.
 	paramNameFormat = "format"
 
+	// paramNameTarget names a target value argument.
 	paramNameTarget = "target"
 
+	// paramNamePath names a JSON path argument.
 	paramNamePath = "path"
 
+	// paramNameCount names a count argument.
 	paramNameCount = "count"
 
+	// paramNameExpression names a generic expression argument.
 	paramNameExpression = "expression"
 
+	// paramNameJSON names a JSON value argument.
 	paramNameJSON = "json"
 
+	// paramNameTimestamp names a Unix timestamp argument.
 	paramNameTimestamp = "timestamp"
 
+	// paramNameSubstring names a substring search argument.
 	paramNameSubstring = "substring"
 
+	// paramNameDate names a date argument.
 	paramNameDate = "date"
 
+	// paramNameTime names a time argument.
 	paramNameTime = "time"
 
+	// paramNameSeparator names a separator string argument.
 	paramNameSeparator = "separator"
 
+	// paramNameD names a digits-after-the-point argument.
 	paramNameD = "d"
 
+	// paramNameLocale names a locale argument.
 	paramNameLocale = "locale"
 
+	// paramNameCondition names a boolean condition argument.
 	paramNameCondition = "condition"
 
+	// paramNameThen names the then-branch argument of a conditional.
 	paramNameThen = "then"
 
+	// paramNameElse names the else-branch argument of a conditional.
 	paramNameElse = "else"
 
+	// paramNameExpr1 names the first expression argument of a binary operator-style
+	// function.
 	paramNameExpr1 = "expr1"
 
+	// paramNameExpr2 names the second expression argument of a binary operator-style
+	// function.
 	paramNameExpr2 = "expr2"
 
+	// paramNameUnit names a date/time unit argument.
 	paramNameUnit = "unit"
 
+	// paramNameInterval names an interval value argument.
 	paramNameInterval = "interval"
 
+	// paramNameDatetime names a datetime argument.
 	paramNameDatetime = "datetime"
 )

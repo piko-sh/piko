@@ -38,46 +38,45 @@ const (
 	// httpStatusMultiStatus is the upper bound for successful HTTP status codes.
 	httpStatusMultiStatus = 300
 
-	// httpStatusClientErrorMin is the lower bound (inclusive) for 4xx client
-	// errors that surface to users via safeerror wrapping.
+	// httpStatusClientErrorMin is the lower bound (inclusive) for 4xx client errors that
+	// surface to users via safeerror wrapping.
 	httpStatusClientErrorMin = 400
 
-	// httpStatusClientErrorMax is the upper bound (exclusive) for 4xx client
-	// errors.
+	// httpStatusClientErrorMax is the upper bound (exclusive) for 4xx client errors.
 	httpStatusClientErrorMax = 500
 
-	// defaultHTTPTimeout is the timeout for webhook HTTP requests when no
-	// custom client is provided. This prevents goroutine leaks when a
-	// webhook endpoint is unresponsive.
+	// defaultHTTPTimeout is the timeout for webhook HTTP requests when no custom client is
+	// provided. This prevents goroutine leaks when a webhook endpoint is unresponsive.
 	defaultHTTPTimeout = 30 * time.Second
 
-	// maxNotificationResponseBytes caps the bytes read from a third-party
-	// webhook response body, guarding against hostile or runaway servers.
+	// maxNotificationResponseBytes caps the bytes read from a third-party webhook response
+	// body, guarding against hostile or runaway servers.
 	maxNotificationResponseBytes = 64 * 1024
 
-	// safeNotificationDeliveryFailed is the user-facing message returned when a
-	// notification provider rejects the delivery with a client-error response.
+	// safeNotificationDeliveryFailed is the user-facing message returned when a notification
+	// provider rejects the delivery with a client-error response.
 	safeNotificationDeliveryFailed = "notification delivery failed"
 
-	// truncateRunesEllipsisLength is the rune length of the ellipsis suffix
-	// appended when truncateRunes shortens an oversized string.
+	// truncateRunesEllipsisLength is the rune length of the ellipsis suffix appended when
+	// truncateRunes shortens an oversized string.
 	truncateRunesEllipsisLength = 3
 )
 
-// defaultHTTPClient is a shared HTTP client with a timeout, used by all
-// notification providers when no custom client is supplied.
-var defaultHTTPClient = &http.Client{Timeout: defaultHTTPTimeout}
+var (
+	// defaultHTTPClient is a shared HTTP client with a timeout, used by all notification
+	// providers when no custom client is supplied.
+	defaultHTTPClient = &http.Client{Timeout: defaultHTTPTimeout}
+)
 
 // drainAndCloseResponse drains a capped amount of body bytes then closes.
 //
-// Drains up to maxNotificationResponseBytes from response.Body before
-// closing it. The cap prevents a hostile or runaway upstream server from
-// forcing the client to read an unbounded amount of bytes purely to
-// enable connection reuse. Bytes beyond the cap are left on the wire and
-// the connection may not be reused, which is the safe trade-off.
+// Drains up to maxNotificationResponseBytes from response.Body before closing it. The cap
+// prevents a hostile or runaway upstream server from forcing the client to read an
+// unbounded amount of bytes purely to enable connection reuse. Bytes beyond the cap are
+// left on the wire and the connection may not be reused, which is the safe trade-off.
 //
-// Takes response (*http.Response) which is the upstream response whose body
-// should be drained and closed.
+// Takes response (*http.Response) which is the upstream response whose body should be
+// drained and closed.
 func drainAndCloseResponse(response *http.Response) {
 	if response == nil || response.Body == nil {
 		return
@@ -93,8 +92,8 @@ func drainAndCloseResponse(response *http.Response) {
 // Takes payload ([]byte) which contains the JSON data to send.
 // Takes providerName (string) which is used in error messages.
 //
-// Returns error when request creation fails, the HTTP call fails, or the
-// status code is not in the success range [200, 300).
+// Returns error when request creation fails, the HTTP call fails, or the status code is
+// not in the success range [200, 300).
 func sendHTTPJSONPayload(
 	ctx context.Context,
 	httpClient *http.Client,
@@ -126,14 +125,13 @@ func sendHTTPJSONPayload(
 }
 
 // buildProviderStatusError wraps a non-success HTTP response in a
-// notification_domain.ProviderError carrying the upstream status code and any
-// Retry-After hint, so the dispatcher can honour rate-limiting guidance.
+// notification_domain.ProviderError carrying the upstream status code and any Retry-After
+// hint, so the dispatcher can honour rate-limiting guidance.
 //
 // Takes providerName (string) which identifies the provider for diagnostics.
 // Takes response (*http.Response) which is the non-success upstream response.
 //
-// Returns error which is a *notification_domain.ProviderError wrapping the
-// status detail.
+// Returns error which is a *notification_domain.ProviderError wrapping the status detail.
 func buildProviderStatusError(providerName string, response *http.Response) error {
 	cause := fmt.Errorf("%s returned status %d: %s", providerName, response.StatusCode, response.Status)
 	return &notification_domain.ProviderError{
@@ -144,25 +142,22 @@ func buildProviderStatusError(providerName string, response *http.Response) erro
 	}
 }
 
-// isClientError reports whether the HTTP status code is in the 4xx range. The
-// caller is expected to wrap such errors with safeerror so they reach the HTTP
-// edge sanitised.
+// isClientError reports whether the HTTP status code is in the 4xx range. The caller is
+// expected to wrap such errors with safeerror so they reach the HTTP edge sanitised.
 //
-// Takes statusCode (int) which is the HTTP status code from the upstream
-// response.
+// Takes statusCode (int) which is the HTTP status code from the upstream response.
 //
 // Returns bool which is true when the status code lies in [400, 500).
 func isClientError(statusCode int) bool {
 	return statusCode >= httpStatusClientErrorMin && statusCode < httpStatusClientErrorMax
 }
 
-// truncateRunes shortens s to at most maxRunes runes, appending "..." when the
-// original string was longer. The function is rune-aware so it never cuts
-// through a multi-byte UTF-8 sequence.
+// truncateRunes shortens s to at most maxRunes runes, appending "..." when the original
+// string was longer. The function is rune-aware so it never cuts through a multi-byte
+// UTF-8 sequence.
 //
 // Takes s (string) which is the input to truncate.
-// Takes maxRunes (int) which is the maximum number of runes the result may
-// contain.
+// Takes maxRunes (int) which is the maximum number of runes the result may contain.
 //
 // Returns string which is at most maxRunes runes long.
 func truncateRunes(s string, maxRunes int) string {

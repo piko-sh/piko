@@ -22,14 +22,13 @@ import (
 	"piko.sh/piko/internal/video/video_adapters/transcoder_mock"
 )
 
-// Provider is a thread-safe, in-memory mock implementation of
-// VideoTranscoderPort and StreamingTranscoderPort for testing. It supports
-// call inspection and simulation of transcodes and errors.
+// Provider is a thread-safe, in-memory mock implementation of VideoTranscoderPort and
+// StreamingTranscoderPort for testing. It supports call inspection and simulation of
+// transcodes and errors.
 type Provider = transcoder_mock.Provider
 
-// TranscodeCall records the parameters passed to a single call of the
-// Transcode method. It allows tests to inspect what the service is
-// asking the transcoder to do.
+// TranscodeCall records the parameters passed to a single call of the Transcode method.
+// It allows tests to inspect what the service is asking the transcoder to do.
 type TranscodeCall = transcoder_mock.TranscodeCall
 
 // ExtractCapabilitiesCall records calls to ExtractCapabilities.
@@ -41,5 +40,7 @@ type TranscodeHLSCall = transcoder_mock.TranscodeHLSCall
 // ExtractThumbnailCall is a type alias that records calls to ExtractThumbnail.
 type ExtractThumbnailCall = transcoder_mock.ExtractThumbnailCall
 
-// NewProvider creates a new, initialised mock video transcoder.
-var NewProvider = transcoder_mock.NewProvider
+var (
+	// NewProvider creates a new, initialised mock video transcoder.
+	NewProvider = transcoder_mock.NewProvider
+)

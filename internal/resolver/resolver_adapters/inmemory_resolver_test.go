@@ -424,7 +424,7 @@ func TestGoModuleCacheResolver_ResolveAssetPath(t *testing.T) {
 	r := NewGoModuleCacheResolver()
 	_, err := r.ResolveAssetPath(context.Background(), "mod/asset.svg", "")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not yet implemented")
+	assert.Contains(t, err.Error(), "unsupported")
 }
 
 func TestGoModuleCacheResolver_findModulePath_NotInitialised(t *testing.T) {

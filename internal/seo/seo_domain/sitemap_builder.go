@@ -60,19 +60,18 @@ const (
 	namespaceNews = "http://www.google.com/schemas/sitemap-news/0.9"
 )
 
-// sitemapBuilder finds pages in the project and builds a complete sitemap
-// with support for multiple languages and image discovery.
+// sitemapBuilder finds pages in the project and builds a complete sitemap with support
+// for multiple languages and image discovery.
 type sitemapBuilder struct {
 	// dynamicURLSource fetches URLs that are created at runtime.
 	dynamicURLSource DynamicURLSourcePort
 
-	// sandboxFactory creates sandboxes when no sandbox is directly injected.
-	// When non-nil and sandbox is nil, this factory is used instead of
-	// safedisk.NewNoOpSandbox.
+	// sandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil
+	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
-	// sandbox is an optional file system sandbox for testing.
-	// When nil, sandboxes are created per file's parent directory.
+	// sandbox is an optional file system sandbox for testing. When nil, sandboxes are
+	// created per file's parent directory.
 	sandbox safedisk.Sandbox
 
 	// i18nDefaultLocale is the default locale code for building localised URLs.
@@ -105,14 +104,13 @@ type pageDiscovery struct {
 
 // Build creates a sitemap from the project view.
 //
-// Takes view (*seo_dto.ProjectView) which provides the project data to build
-// the sitemap from.
+// Takes view (*seo_dto.ProjectView) which provides the project data to build the sitemap
+// from.
 //
-// Returns *seo_dto.SitemapBuildResult which contains either a single sitemap
-// for small sites, or multiple sitemap files with an index for sites that
-// exceed MaxURLsPerSitemap.
-// Returns error when fetching dynamic URLs fails. The build still finishes
-// with the URLs it has found.
+// Returns *seo_dto.SitemapBuildResult which contains either a single sitemap for small
+// sites, or multiple sitemap files with an index for sites that exceed MaxURLsPerSitemap.
+// Returns error when fetching dynamic URLs fails. The build still finishes with the URLs
+// it has found.
 func (b *sitemapBuilder) Build(ctx context.Context, view *seo_dto.ProjectView) (*seo_dto.SitemapBuildResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	pages := b.discoverPages(view)
@@ -154,11 +152,10 @@ func (b *sitemapBuilder) Build(ctx context.Context, view *seo_dto.ProjectView) (
 
 // discoverPages finds all public pages in the project structure.
 //
-// Takes view (*seo_dto.ProjectView) which provides the project structure to
-// search.
+// Takes view (*seo_dto.ProjectView) which provides the project structure to search.
 //
-// Returns []pageDiscovery which contains an entry for each public page
-// component. Returns an empty slice if view is nil.
+// Returns []pageDiscovery which contains an entry for each public page component.
+// Returns an empty slice if view is nil.
 func (*sitemapBuilder) discoverPages(view *seo_dto.ProjectView) []pageDiscovery {
 	if view == nil {
 		return []pageDiscovery{}
@@ -212,13 +209,12 @@ func (b *sitemapBuilder) shouldExclude(ctx context.Context, routePattern string)
 
 // buildSitemapURL creates a sitemap URL entry with all its data.
 //
-// Takes page (pageDiscovery) which provides the found page details including
-// route and metadata.
-// Takes view (*seo_dto.ProjectView) which supplies project data for finding
-// images.
+// Takes page (pageDiscovery) which provides the found page details including route and
+// metadata.
+// Takes view (*seo_dto.ProjectView) which supplies project data for finding images.
 //
-// Returns seo_dto.SitemapURL which is a complete sitemap URL with location,
-// timestamps, priority, alternate language links, and linked images.
+// Returns seo_dto.SitemapURL which is a complete sitemap URL with location, timestamps,
+// priority, alternate language links, and linked images.
 func (b *sitemapBuilder) buildSitemapURL(
 	page pageDiscovery,
 	view *seo_dto.ProjectView,
@@ -248,8 +244,8 @@ func (b *sitemapBuilder) buildSitemapURL(
 //
 // Takes routePattern (string) which is the path to add to the hostname.
 //
-// Returns string which is the full URL with the hostname and route pattern
-// joined together.
+// Returns string which is the full URL with the hostname and route pattern joined
+// together.
 func (b *sitemapBuilder) buildAbsoluteURL(routePattern string) string {
 	hostname := strings.TrimSuffix(b.config.Hostname, urlPathSeparator)
 
@@ -260,17 +256,16 @@ func (b *sitemapBuilder) buildAbsoluteURL(routePattern string) string {
 	return hostname + routePattern
 }
 
-// determineLastMod determines the lastmod value, falling back to file
-// modification time if needed.
+// determineLastMod determines the lastmod value, falling back to file modification time
+// if needed.
 //
-// Takes explicitLastMod (*time.Time) which specifies an optional explicit
-// timestamp to use.
-// Takes sourcePath (string) which specifies the file path to check for
-// modification time when explicitLastMod is nil.
+// Takes explicitLastMod (*time.Time) which specifies an optional explicit timestamp to
+// use.
+// Takes sourcePath (string) which specifies the file path to check for modification time
+// when explicitLastMod is nil.
 //
-// Returns string which is the lastmod value formatted as ISO date. Uses
-// explicitLastMod if provided, otherwise the file modification time, or
-// current time as fallback.
+// Returns string which is the lastmod value formatted as ISO date. Uses explicitLastMod
+// if provided, otherwise the file modification time, or current time as fallback.
 func (b *sitemapBuilder) determineLastMod(explicitLastMod *time.Time, sourcePath string) string {
 	if explicitLastMod != nil {
 		return explicitLastMod.Format(dateFormatISO)
@@ -291,8 +286,8 @@ func (b *sitemapBuilder) determineLastMod(explicitLastMod *time.Time, sourcePath
 //
 // Takes sourcePath (string) which specifies the file path to check.
 //
-// Returns *time.Time which contains the modification time, or nil if the file
-// cannot be accessed.
+// Returns *time.Time which contains the modification time, or nil if the file cannot be
+// accessed.
 func (b *sitemapBuilder) getFileModTime(sourcePath string) *time.Time {
 	fileName := filepath.Base(sourcePath)
 
@@ -330,8 +325,8 @@ func (b *sitemapBuilder) getFileModTime(sourcePath string) *time.Time {
 // Takes routePattern (string) which specifies the URL pattern for the route.
 // Takes locales ([]string) which provides the list of supported locales.
 //
-// Returns []seo_dto.AlternateLink which contains alternate links for all
-// locales, or nil if there is only one locale or fewer.
+// Returns []seo_dto.AlternateLink which contains alternate links for all locales, or nil
+// if there is only one locale or fewer.
 func (b *sitemapBuilder) buildAlternateLinks(routePattern string, locales []string) []seo_dto.AlternateLink {
 	if len(locales) <= 1 {
 		return nil
@@ -351,14 +346,13 @@ func (b *sitemapBuilder) buildAlternateLinks(routePattern string, locales []stri
 	return alternates
 }
 
-// buildLocalisedURL creates a full URL with a language prefix for
-// non-default locales.
+// buildLocalisedURL creates a full URL with a language prefix for non-default locales.
 //
 // Takes routePattern (string) which specifies the URL path pattern to append.
 // Takes locale (string) which specifies the language code for localisation.
 //
-// Returns string which is the complete URL with the hostname and locale prefix
-// applied when the locale differs from the default.
+// Returns string which is the complete URL with the hostname and locale prefix applied
+// when the locale differs from the default.
 func (b *sitemapBuilder) buildLocalisedURL(routePattern string, locale string) string {
 	hostname := strings.TrimSuffix(b.config.Hostname, urlPathSeparator)
 
@@ -377,12 +371,12 @@ func (b *sitemapBuilder) buildLocalisedURL(routePattern string, locale string) s
 
 // discoverImages finds images associated with a page from the asset manifest.
 //
-// Takes view (*seo_dto.ProjectView) which provides the project data containing
-// the asset manifest.
+// Takes view (*seo_dto.ProjectView) which provides the project data containing the asset
+// manifest.
 // Takes explicitImages ([]string) which lists image URLs to include directly.
 //
-// Returns []seo_dto.ImageEntry for all discovered images, or nil when image
-// discovery is disabled.
+// Returns []seo_dto.ImageEntry for all discovered images, or nil when image discovery is
+// disabled.
 func (b *sitemapBuilder) discoverImages(
 	view *seo_dto.ProjectView,
 	explicitImages []string,
@@ -414,8 +408,8 @@ func (b *sitemapBuilder) discoverImages(
 // Returns []seo_dto.SitemapURL which contains all successfully fetched URLs.
 // Returns error when the context is cancelled.
 //
-// Individual source failures are logged and skipped rather than causing the
-// entire fetch to fail.
+// Individual source failures are logged and skipped rather than causing the entire fetch
+// to fail.
 func (b *sitemapBuilder) fetchDynamicURLs(ctx context.Context) ([]seo_dto.SitemapURL, error) {
 	if len(b.config.Sources) == 0 {
 		return []seo_dto.SitemapURL{}, nil
@@ -447,8 +441,8 @@ func (b *sitemapBuilder) fetchDynamicURLs(ctx context.Context) ([]seo_dto.Sitema
 //
 // Takes input (seo_dto.SitemapURLInput) which contains the source URL data.
 //
-// Returns seo_dto.SitemapURL which contains the full location path and
-// formatted image, video, and news entries.
+// Returns seo_dto.SitemapURL which contains the full location path and formatted image,
+// video, and news entries.
 func (b *sitemapBuilder) convertInputToURL(input seo_dto.SitemapURLInput) seo_dto.SitemapURL {
 	location := input.Location
 	if !strings.HasPrefix(location, "http") {
@@ -471,8 +465,8 @@ func (b *sitemapBuilder) convertInputToURL(input seo_dto.SitemapURLInput) seo_dt
 	}
 }
 
-// convertInputImages builds image entries from a SitemapURLInput.
-// Rich ImageEntries take precedence over the simple Images string list.
+// convertInputImages builds image entries from a SitemapURLInput. Rich ImageEntries take
+// precedence over the simple Images string list.
 //
 // Takes input (seo_dto.SitemapURLInput) which contains the image data.
 //
@@ -493,16 +487,13 @@ func (*sitemapBuilder) convertInputImages(input seo_dto.SitemapURLInput) []seo_d
 	return images
 }
 
-// mergeAndDeduplicate combines discovered and dynamic URLs, removing
-// duplicates.
+// mergeAndDeduplicate combines discovered and dynamic URLs, removing duplicates.
 //
-// Takes discovered ([]seo_dto.SitemapURL) which contains URLs found through
-// crawling.
-// Takes dynamic ([]seo_dto.SitemapURL) which contains programmatically
-// generated URLs.
+// Takes discovered ([]seo_dto.SitemapURL) which contains URLs found through crawling.
+// Takes dynamic ([]seo_dto.SitemapURL) which contains programmatically generated URLs.
 //
-// Returns []seo_dto.SitemapURL which is a sorted, deduplicated slice of URLs.
-// When duplicates exist, discovered URLs take precedence over dynamic ones.
+// Returns []seo_dto.SitemapURL which is a sorted, deduplicated slice of URLs. When
+// duplicates exist, discovered URLs take precedence over dynamic ones.
 func (*sitemapBuilder) mergeAndDeduplicate(discovered, dynamic []seo_dto.SitemapURL) []seo_dto.SitemapURL {
 	urlMap := make(map[string]*seo_dto.SitemapURL, len(discovered)+len(dynamic))
 
@@ -528,14 +519,13 @@ func (*sitemapBuilder) mergeAndDeduplicate(discovered, dynamic []seo_dto.Sitemap
 	return merged
 }
 
-// buildSitemapResult creates either a single sitemap or multiple sitemaps
-// with an index. If the total URLs exceed MaxURLsPerSitemap, the URLs are
-// split across several sitemaps.
+// buildSitemapResult creates either a single sitemap or multiple sitemaps with an index.
+// If the total URLs exceed MaxURLsPerSitemap, the URLs are split across several sitemaps.
 //
 // Takes allURLs ([]seo_dto.SitemapURL) which contains all URLs to include.
 //
-// Returns *seo_dto.SitemapBuildResult which contains the sitemaps and an
-// optional index when splitting was needed.
+// Returns *seo_dto.SitemapBuildResult which contains the sitemaps and an optional index
+// when splitting was needed.
 func (b *sitemapBuilder) buildSitemapResult(ctx context.Context, allURLs []seo_dto.SitemapURL) *seo_dto.SitemapBuildResult {
 	if len(allURLs) <= b.config.MaxURLsPerSitemap {
 		sitemap := buildSitemapNamespaces(allURLs)
@@ -563,13 +553,12 @@ func (b *sitemapBuilder) buildSitemapResult(ctx context.Context, allURLs []seo_d
 	}
 }
 
-// splitIntoSitemaps divides URLs into multiple sitemap files based on
-// MaxURLsPerSitemap.
+// splitIntoSitemaps divides URLs into multiple sitemap files based on MaxURLsPerSitemap.
 //
 // Takes allURLs ([]seo_dto.SitemapURL) which contains all URLs to distribute.
 //
-// Returns []seo_dto.Sitemap which contains sitemaps, each with at most
-// MaxURLsPerSitemap URLs.
+// Returns []seo_dto.Sitemap which contains sitemaps, each with at most MaxURLsPerSitemap
+// URLs.
 func (b *sitemapBuilder) splitIntoSitemaps(allURLs []seo_dto.SitemapURL) []seo_dto.Sitemap {
 	chunkCount := (len(allURLs) + b.config.MaxURLsPerSitemap - 1) / b.config.MaxURLsPerSitemap
 	sitemaps := make([]seo_dto.Sitemap, 0, chunkCount)
@@ -587,14 +576,12 @@ func (b *sitemapBuilder) splitIntoSitemaps(allURLs []seo_dto.SitemapURL) []seo_d
 	return sitemaps
 }
 
-// buildSitemapIndex creates a sitemap index file with references to all
-// sitemap chunks.
+// buildSitemapIndex creates a sitemap index file with references to all sitemap chunks.
 //
-// Takes sitemapCount (int) which specifies the number of sitemap files to
-// reference in the index.
+// Takes sitemapCount (int) which specifies the number of sitemap files to reference in
+// the index.
 //
-// Returns *seo_dto.SitemapIndex containing references to numbered sitemap
-// files.
+// Returns *seo_dto.SitemapIndex containing references to numbered sitemap files.
 func (b *sitemapBuilder) buildSitemapIndex(sitemapCount int) *seo_dto.SitemapIndex {
 	hostname := strings.TrimSuffix(b.config.Hostname, urlPathSeparator)
 	refs := make([]seo_dto.SitemapRef, 0, sitemapCount)
@@ -614,8 +601,8 @@ func (b *sitemapBuilder) buildSitemapIndex(sitemapCount int) *seo_dto.SitemapInd
 	}
 }
 
-// withSitemapSandbox sets a sandbox for testing file stat operations.
-// The caller must close the sandbox when done.
+// withSitemapSandbox sets a sandbox for testing file stat operations. The caller must
+// close the sandbox when done.
 //
 // Takes sandbox (safedisk.Sandbox) which provides file system access.
 //
@@ -626,11 +613,10 @@ func withSitemapSandbox(sandbox safedisk.Sandbox) sitemapBuilderOption {
 	}
 }
 
-// withSitemapSandboxFactory sets a factory for creating sandboxes when no
-// sandbox is directly injected.
+// withSitemapSandboxFactory sets a factory for creating sandboxes when no sandbox is
+// directly injected.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for file stat
-// operations.
+// Takes factory (safedisk.Factory) which creates sandboxes for file stat operations.
 //
 // Returns sitemapBuilderOption which sets the factory on the builder.
 func withSitemapSandboxFactory(factory safedisk.Factory) sitemapBuilderOption {
@@ -641,8 +627,7 @@ func withSitemapSandboxFactory(factory safedisk.Factory) sitemapBuilderOption {
 
 // newSitemapBuilder creates a new sitemap builder with the given settings.
 //
-// When MaxURLsPerSitemap is zero or negative, it defaults to
-// defaultMaxURLsPerSitemap.
+// When MaxURLsPerSitemap is zero or negative, it defaults to defaultMaxURLsPerSitemap.
 //
 // Takes sitemapConfig (config.SitemapConfig) which provides the sitemap settings.
 // Takes i18nDefaultLocale (string) which sets the default locale for URLs.
@@ -678,8 +663,8 @@ func newSitemapBuilder(
 //
 // Takes inputs ([]seo_dto.VideoInputEntry) which contains the video data.
 //
-// Returns []seo_dto.VideoEntry with the converted video entries, or nil
-// when the input is empty.
+// Returns []seo_dto.VideoEntry with the converted video entries, or nil when the input is
+// empty.
 func convertInputVideos(inputs []seo_dto.VideoInputEntry) []seo_dto.VideoEntry {
 	if len(inputs) == 0 {
 		return nil
@@ -696,8 +681,7 @@ func convertInputVideos(inputs []seo_dto.VideoInputEntry) []seo_dto.VideoEntry {
 //
 // Takes input (*seo_dto.NewsInputEntry) which contains the news data.
 //
-// Returns *seo_dto.NewsEntry with the converted entry, or nil when
-// the input is nil.
+// Returns *seo_dto.NewsEntry with the converted entry, or nil when the input is nil.
 func convertInputNews(input *seo_dto.NewsInputEntry) *seo_dto.NewsEntry {
 	if input == nil {
 		return nil
@@ -713,14 +697,14 @@ func convertInputNews(input *seo_dto.NewsInputEntry) *seo_dto.NewsEntry {
 	}
 }
 
-// buildSitemapNamespaces determines which XML namespaces are needed based on
-// the content of the URL entries. Only namespaces for entry types that are
-// actually present are included.
+// buildSitemapNamespaces determines which XML namespaces are needed based on the content
+// of the URL entries. Only namespaces for entry types that are actually present are
+// included.
 //
 // Takes urls ([]seo_dto.SitemapURL) which contains the URL entries to inspect.
 //
-// Returns seo_dto.Sitemap with the base namespace and any optional namespaces
-// populated according to the URL content.
+// Returns seo_dto.Sitemap with the base namespace and any optional namespaces populated
+// according to the URL content.
 func buildSitemapNamespaces(urls []seo_dto.SitemapURL) seo_dto.Sitemap {
 	sitemap := seo_dto.Sitemap{
 		Xmlns: namespaceSitemap,

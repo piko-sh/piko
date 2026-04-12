@@ -28,25 +28,26 @@ import (
 	"piko.sh/piko/internal/render/render_dto"
 )
 
-// ErrNoopRegistry is returned when operations are attempted on the noop
-// registry which doesn't support actual registry operations.
-var ErrNoopRegistry = errors.New("noop render registry: operation not supported in LSP mode")
+var (
+	// ErrNoopRegistry is returned when operations are attempted on the noop registry which
+	// doesn't support actual registry operations.
+	ErrNoopRegistry = errors.New("noop render registry: operation not supported in LSP mode")
+)
 
-// NoopRenderRegistry implements render_domain.RegistryPort with no-op methods,
-// letting the LSP bootstrap without requiring database connectivity for the
-// render registry, which is not needed for LSP operations.
+// NoopRenderRegistry implements render_domain.RegistryPort with no-op methods, letting
+// the LSP bootstrap without requiring database connectivity for the render registry,
+// which is not needed for LSP operations.
 type NoopRenderRegistry struct{}
 
 // NewNoopRenderRegistry creates a new no-op render registry for LSP use.
 //
-// Returns *NoopRenderRegistry which provides no-op implementations of render
-// methods.
+// Returns *NoopRenderRegistry which provides no-op implementations of render methods.
 func NewNoopRenderRegistry() *NoopRenderRegistry {
 	return &NoopRenderRegistry{}
 }
 
-// GetComponentMetadata returns nil and an error as the noop registry cannot
-// retrieve component metadata.
+// GetComponentMetadata returns nil and an error as the noop registry cannot retrieve
+// component metadata.
 //
 // Returns *render_dto.ComponentMetadata which is always nil.
 // Returns error when called, as this is a noop implementation.
@@ -54,19 +55,15 @@ func (*NoopRenderRegistry) GetComponentMetadata(_ context.Context, _ string) (*r
 	return nil, ErrNoopRegistry
 }
 
-// GetAssetRawSVG returns an error as the noop registry cannot retrieve SVG
-// assets.
+// GetAssetRawSVG returns an error as the noop registry cannot retrieve SVG assets.
 //
-// Returns *render_domain.ParsedSvgData which is always nil for this
-// implementation.
-// Returns error when called, as the noop registry does not support asset
-// retrieval.
+// Returns *render_domain.ParsedSvgData which is always nil for this implementation.
+// Returns error when called, as the noop registry does not support asset retrieval.
 func (*NoopRenderRegistry) GetAssetRawSVG(_ context.Context, _ string) (*render_domain.ParsedSvgData, error) {
 	return nil, ErrNoopRegistry
 }
 
-// BulkGetAssetRawSVG returns an error as the noop registry cannot retrieve
-// SVG assets.
+// BulkGetAssetRawSVG returns an error as the noop registry cannot retrieve SVG assets.
 //
 // Returns map[string]*render_domain.ParsedSvgData which is always nil.
 // Returns error when called, as this is a noop implementation.
@@ -74,8 +71,8 @@ func (*NoopRenderRegistry) BulkGetAssetRawSVG(_ context.Context, _ []string) (ma
 	return nil, ErrNoopRegistry
 }
 
-// BulkGetComponentMetadata returns nil as the noop registry cannot retrieve
-// component metadata.
+// BulkGetComponentMetadata returns nil as the noop registry cannot retrieve component
+// metadata.
 //
 // Returns map[string]*render_dto.ComponentMetadata which is always nil.
 // Returns error when called, as this is a noop implementation.
@@ -96,16 +93,15 @@ func (*NoopRenderRegistry) ClearComponentCache(_ context.Context, _ string) {}
 // ClearSvgCache is a no-op as there's no cache to clear.
 func (*NoopRenderRegistry) ClearSvgCache(_ context.Context, _ string) {}
 
-// GetArtefactServePath returns an empty string as the noop registry has no
-// artefacts to serve.
+// GetArtefactServePath returns an empty string as the noop registry has no artefacts to
+// serve.
 //
 // Returns string which is always empty for this implementation.
 func (*NoopRenderRegistry) GetArtefactServePath(_ context.Context, _ string) string {
 	return ""
 }
 
-// UpsertArtefact returns nil metadata as the noop registry cannot store
-// artefacts.
+// UpsertArtefact returns nil metadata as the noop registry cannot store artefacts.
 //
 // Returns *registry_dto.ArtefactMeta which is always nil.
 // Returns error when called, as the noop registry does not support storage.
@@ -120,4 +116,6 @@ func (*NoopRenderRegistry) UpsertArtefact(
 	return nil, ErrNoopRegistry
 }
 
-var _ render_domain.RegistryPort = (*NoopRenderRegistry)(nil)
+var (
+	_ render_domain.RegistryPort = (*NoopRenderRegistry)(nil)
+)

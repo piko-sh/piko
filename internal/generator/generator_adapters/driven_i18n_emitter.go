@@ -70,15 +70,17 @@ type DrivenI18nEmitter struct {
 	config I18nEmitterConfig
 }
 
-var _ generator_domain.I18nEmitterPort = (*DrivenI18nEmitter)(nil)
+var (
+	_ generator_domain.I18nEmitterPort = (*DrivenI18nEmitter)(nil)
+)
 
 // NewDrivenI18nEmitter creates a new i18n emitter instance.
 //
 // Takes config (I18nEmitterConfig) which provides the i18n settings.
-// Takes sourceSandbox (safedisk.Sandbox) which gives read access to i18n
-// source files in the project root.
-// Takes outputSandbox (safedisk.Sandbox) which gives write access to the dist
-// folder for output files.
+// Takes sourceSandbox (safedisk.Sandbox) which gives read access to i18n source files in
+// the project root.
+// Takes outputSandbox (safedisk.Sandbox) which gives write access to the dist folder for
+// output files.
 //
 // Returns *DrivenI18nEmitter which is ready for use.
 func NewDrivenI18nEmitter(
@@ -98,8 +100,8 @@ func NewDrivenI18nEmitter(
 //
 // Takes outputPath (string) which specifies where to write the binary file.
 //
-// Returns error when reading or parsing translation files fails, or when
-// writing the FlatBuffer output fails.
+// Returns error when reading or parsing translation files fails, or when writing the
+// FlatBuffer output fails.
 func (e *DrivenI18nEmitter) EmitI18n(ctx context.Context, outputPath string) error {
 	ctx, l := logger_domain.From(ctx, log)
 	if e.config.I18nSourceDir == "" {
@@ -133,15 +135,14 @@ func (e *DrivenI18nEmitter) resolveI18nSourceDir() string {
 	return dirPath
 }
 
-// loadTranslationFiles reads all JSON translation files from the given
-// directory.
+// loadTranslationFiles reads all JSON translation files from the given directory.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes dirPath (string) which is the directory to scan for translation files.
 //
 // Returns i18n_domain.Translations which contains all loaded translations.
-// Returns error when reading the directory fails, except for non-existent
-// directories which return nil.
+// Returns error when reading the directory fails, except for non-existent directories
+// which return nil.
 func (e *DrivenI18nEmitter) loadTranslationFiles(ctx context.Context, dirPath string) (i18n_domain.Translations, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	files, err := e.sourceSandbox.ReadDir(dirPath)
@@ -173,8 +174,7 @@ func (e *DrivenI18nEmitter) loadTranslationFiles(ctx context.Context, dirPath st
 // Takes ctx (context.Context) which carries logging context.
 // Takes dirPath (string) which is the directory containing the file.
 // Takes fileName (string) which is the name of the JSON file.
-// Takes translations (i18n_domain.Translations) which receives the parsed
-// translations.
+// Takes translations (i18n_domain.Translations) which receives the parsed translations.
 func (e *DrivenI18nEmitter) loadSingleTranslationFile(
 	ctx context.Context,
 	dirPath string,
@@ -209,8 +209,7 @@ func (e *DrivenI18nEmitter) loadSingleTranslationFile(
 
 // emitFlatBuffer serialises translations to a FlatBuffer binary file.
 //
-// Takes translations (i18n_domain.Translations) which contains the translations
-// to emit.
+// Takes translations (i18n_domain.Translations) which contains the translations to emit.
 // Takes outputPath (string) which specifies where to write the binary.
 //
 // Returns error when FlatBuffer emission fails.

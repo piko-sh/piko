@@ -28,19 +28,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// generateStaticCollectionAnnotation creates an annotation for static
-// collections.
+// generateStaticCollectionAnnotation creates an annotation for static collections.
 //
 // Takes provider (CollectionProvider) which supplies the collection data.
 // Takes collectionName (string) which identifies the collection to fetch.
 // Takes targetTypeExpr (ast.Expr) which specifies the target slice type.
-// Takes options (*collection_dto.FetchOptions) which controls filtering,
-// sorting, and pagination.
+// Takes options (*collection_dto.FetchOptions) which controls filtering, sorting, and
+// pagination.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the generated
-// slice literal for the static collection.
-// Returns error when fetching content fails or building the slice literal
-// fails.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the generated slice literal
+// for the static collection.
+// Returns error when fetching content fails or building the slice literal fails.
 func (s *collectionService) generateStaticCollectionAnnotation(
 	ctx context.Context,
 	provider CollectionProvider,
@@ -80,8 +78,8 @@ func (s *collectionService) generateStaticCollectionAnnotation(
 // Takes provider (CollectionProvider) which supplies the static content.
 // Takes collectionName (string) which identifies the collection to fetch.
 //
-// Returns []collection_dto.ContentItem which contains the cached or freshly
-// fetched content items.
+// Returns []collection_dto.ContentItem which contains the cached or freshly fetched
+// content items.
 // Returns error when the provider fails to fetch the content.
 func (s *collectionService) fetchOrCacheStaticContent(
 	ctx context.Context,
@@ -113,17 +111,15 @@ func (s *collectionService) fetchOrCacheStaticContent(
 	return items, nil
 }
 
-// buildStaticAnnotation creates a GoGeneratorAnnotation struct for static
-// collections.
+// buildStaticAnnotation creates a GoGeneratorAnnotation struct for static collections.
 //
-// Takes targetTypeExpr (ast.Expr) which specifies the type of elements in the
-// collection.
+// Takes targetTypeExpr (ast.Expr) which specifies the type of elements in the collection.
 // Takes sliceLiteral (ast.Expr) which provides the slice literal expression.
-// Takes processedItems ([]collection_dto.ContentItem) which contains the
-// pre-processed collection items.
+// Takes processedItems ([]collection_dto.ContentItem) which contains the pre-processed
+// collection items.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which represents the annotation
-// configured for static collection generation.
+// Returns *ast_domain.GoGeneratorAnnotation which represents the annotation configured
+// for static collection generation.
 func (s *collectionService) buildStaticAnnotation(
 	targetTypeExpr ast.Expr,
 	sliceLiteral ast.Expr,
@@ -161,15 +157,15 @@ func (s *collectionService) buildStaticAnnotation(
 	}
 }
 
-// logStaticAnnotationDiagnostics logs debug information about a static
-// collection annotation.
+// logStaticAnnotationDiagnostics logs debug information about a static collection
+// annotation.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes annotation (*ast_domain.GoGeneratorAnnotation) which is the annotation
-// to log details for.
-// Takes processedItems ([]collection_dto.ContentItem) which are the items that
-// were processed from the annotation.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes annotation (*ast_domain.GoGeneratorAnnotation) which is the annotation to log
+// details for.
+// Takes processedItems ([]collection_dto.ContentItem) which are the items that were
+// processed from the annotation.
 func (*collectionService) logStaticAnnotationDiagnostics(
 	ctx context.Context,
 	annotation *ast_domain.GoGeneratorAnnotation,
@@ -199,11 +195,10 @@ func (*collectionService) logStaticAnnotationDiagnostics(
 
 // createSliceTypeInfo creates type information for a slice type.
 //
-// Takes targetTypeExpr (ast.Expr) which specifies the element type for the
-// slice.
+// Takes targetTypeExpr (ast.Expr) which specifies the element type for the slice.
 //
-// Returns *ast_domain.ResolvedTypeInfo which contains the constructed slice
-// type expression with empty package information.
+// Returns *ast_domain.ResolvedTypeInfo which contains the constructed slice type
+// expression with empty package information.
 func (*collectionService) createSliceTypeInfo(targetTypeExpr ast.Expr) *ast_domain.ResolvedTypeInfo {
 	sliceTypeExpr := &ast.ArrayType{
 		Lbrack: 0,
@@ -220,16 +215,16 @@ func (*collectionService) createSliceTypeInfo(targetTypeExpr ast.Expr) *ast_doma
 
 // generateDynamicAnnotation creates an annotation for runtime data fetching.
 //
-// For dynamic providers, this generates a blueprint that the Generator uses
-// to emit a runtime fetcher function and its call.
+// For dynamic providers, this generates a blueprint that the Generator uses to emit a
+// runtime fetcher function and its call.
 //
 // Takes provider (CollectionProvider) which supplies the data source.
 // Takes collectionName (string) which identifies the collection to fetch.
 // Takes targetType (ast.Expr) which specifies the expected result type.
 // Takes options (*collection_dto.FetchOptions) which controls fetch behaviour.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the fetcher
-// blueprint for code generation.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the fetcher blueprint for code
+// generation.
 // Returns error when the provider fails to generate the runtime fetcher.
 func (s *collectionService) generateDynamicAnnotation(
 	ctx context.Context,
@@ -256,15 +251,14 @@ func (s *collectionService) generateDynamicAnnotation(
 	return annotation, nil
 }
 
-// buildDynamicAnnotation creates a GoGeneratorAnnotation struct for dynamic
-// collections.
+// buildDynamicAnnotation creates a GoGeneratorAnnotation struct for dynamic collections.
 //
 // Takes targetType (ast.Expr) which specifies the target type expression.
-// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which provides
-// the dynamic collection metadata.
+// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which provides the dynamic
+// collection metadata.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the annotation
-// configured for dynamic collection use.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the annotation configured for
+// dynamic collection use.
 func (s *collectionService) buildDynamicAnnotation(
 	targetType ast.Expr,
 	dynamicInfo *collection_dto.DynamicCollectionInfo,
@@ -301,19 +295,18 @@ func (s *collectionService) buildDynamicAnnotation(
 	}
 }
 
-// logDynamicAnnotationDiagnostics logs debug details about a dynamic
-// collection annotation.
+// logDynamicAnnotationDiagnostics logs debug details about a dynamic collection
+// annotation.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes annotation (*ast_domain.GoGeneratorAnnotation) which is the annotation
-// to log.
-// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which holds the
-// dynamic collection data.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes annotation (*ast_domain.GoGeneratorAnnotation) which is the annotation to log.
+// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which holds the dynamic
+// collection data.
 // Takes providerName (string) which names the collection provider.
 // Takes collectionName (string) which names the collection.
-// Takes fetcherCode (*collection_dto.RuntimeFetcherCode) which holds the
-// runtime fetcher code, or nil if not present.
+// Takes fetcherCode (*collection_dto.RuntimeFetcherCode) which holds the runtime fetcher
+// code, or nil if not present.
 func (*collectionService) logDynamicAnnotationDiagnostics(
 	ctx context.Context,
 	annotation *ast_domain.GoGeneratorAnnotation,
@@ -351,14 +344,14 @@ func convertItemsToAny(items []collection_dto.ContentItem) []any {
 
 // buildDynamicCollectionInfo creates a DynamicCollectionInfo struct.
 //
-// Takes fetcherCode (*collection_dto.RuntimeFetcherCode) which provides the
-// runtime fetcher code.
+// Takes fetcherCode (*collection_dto.RuntimeFetcherCode) which provides the runtime
+// fetcher code.
 // Takes targetType (ast.Expr) which specifies the target type expression.
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which names the collection.
 //
-// Returns *collection_dto.DynamicCollectionInfo which is set up with hybrid
-// mode off and optional fields set to nil.
+// Returns *collection_dto.DynamicCollectionInfo which is set up with hybrid mode off and
+// optional fields set to nil.
 func buildDynamicCollectionInfo(
 	fetcherCode *collection_dto.RuntimeFetcherCode,
 	targetType ast.Expr,

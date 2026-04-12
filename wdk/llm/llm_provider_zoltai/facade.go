@@ -18,10 +18,12 @@
 
 package llm_provider_zoltai
 
-import "piko.sh/piko/wdk/llm"
+import (
+	"piko.sh/piko/wdk/llm"
+)
 
-// ZoltaiProvider wraps the internal Zoltai provider and exposes both
-// llm.ProviderPort and llm.EmbeddingProviderPort.
+// ZoltaiProvider wraps the internal Zoltai provider and exposes both llm.ProviderPort and
+// llm.EmbeddingProviderPort.
 type ZoltaiProvider struct {
 	*zoltaiProvider
 }
@@ -36,8 +38,8 @@ var (
 //
 // The returned provider implements both llm.ProviderPort (completions) and
 // llm.EmbeddingProviderPort (embeddings). Register it with both
-// [llm.Service.RegisterProvider] and [llm.Service.RegisterEmbeddingProvider]
-// to use it for all LLM operations.
+// llm.Service.RegisterProvider and llm.Service.RegisterEmbeddingProvider to use it for
+// all LLM operations.
 //
 // Takes config (Config) which contains the provider configuration.
 //

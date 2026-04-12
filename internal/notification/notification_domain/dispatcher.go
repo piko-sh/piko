@@ -38,7 +38,9 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-var _ NotificationDispatcherPort = (*NotificationDispatcher)(nil)
+var (
+	_ NotificationDispatcherPort = (*NotificationDispatcher)(nil)
+)
 
 // retryProducerAction represents the outcome of a retry producer step.
 type retryProducerAction int
@@ -52,8 +54,7 @@ const (
 )
 
 const (
-	// defaultBatchSize is the default number of notifications to process in one
-	// batch.
+	// defaultBatchSize is the default number of notifications to process in one batch.
 	defaultBatchSize = 10
 
 	// defaultFlushInterval is the default time between notification flushes.
@@ -68,8 +69,7 @@ const (
 	// defaultMaxRetries is the default number of retry attempts for notifications.
 	defaultMaxRetries = 3
 
-	// defaultInitialDelay is the wait time before the first retry of a
-	// notification.
+	// defaultInitialDelay is the wait time before the first retry of a notification.
 	defaultInitialDelay = 5 * time.Second
 
 	// defaultMaxDelay is the longest wait time between retry attempts.
@@ -78,33 +78,29 @@ const (
 	// defaultBackoffFactor is the multiplier for exponential backoff delays.
 	defaultBackoffFactor = 2.0
 
-	// defaultMaxRetryHeapSize is the largest number of items the retry heap can
-	// hold.
+	// defaultMaxRetryHeapSize is the largest number of items the retry heap can hold.
 	defaultMaxRetryHeapSize = 50000
 
-	// defaultCircuitBreakerInterval is the default time between circuit breaker
-	// state checks.
+	// defaultCircuitBreakerInterval is the default time between circuit breaker state
+	// checks.
 	defaultCircuitBreakerInterval = 60 * time.Second
 
-	// defaultCircuitBreakerTimeout is the default time limit for circuit breaker
-	// operations.
+	// defaultCircuitBreakerTimeout is the default time limit for circuit breaker operations.
 	defaultCircuitBreakerTimeout = 30 * time.Second
 
-	// circuitBreakerBucketPeriod is the time window for counting circuit breaker
-	// failures.
+	// circuitBreakerBucketPeriod is the time window for counting circuit breaker failures.
 	circuitBreakerBucketPeriod = 10 * time.Second
 
-	// defaultMaxConsecutiveFailures is the default circuit breaker failure
-	// threshold.
+	// defaultMaxConsecutiveFailures is the default circuit breaker failure threshold.
 	defaultMaxConsecutiveFailures = 5
 
-	// emptyQueueSleep is the duration to wait before rechecking when the retry
-	// queue is empty.
+	// emptyQueueSleep is the duration to wait before rechecking when the retry queue is
+	// empty.
 	emptyQueueSleep = 10 * time.Minute
 )
 
-// queuedNotification represents a notification queued for sending with
-// multi-cast and retry tracking.
+// queuedNotification represents a notification queued for sending with multi-cast and
+// retry tracking.
 type queuedNotification struct {
 	// firstAttempt is when the first send was tried.
 	firstAttempt time.Time
@@ -115,26 +111,25 @@ type queuedNotification struct {
 	// params holds the notification content and delivery settings.
 	params *notification_dto.SendParams
 
-	// targetProviders lists the providers to try; an empty slice defaults to a
-	// single empty string which selects the default provider.
+	// targetProviders lists the providers to try; an empty slice defaults to a single empty
+	// string which selects the default provider.
 	targetProviders []string
 
-	// failedProviders tracks providers that failed during the current send
-	// attempt.
+	// failedProviders tracks providers that failed during the current send attempt.
 	failedProviders []string
 
-	// pendingRetryAfter is the largest Retry-After hint observed among the
-	// failed providers during the current send attempt. The next backoff is
-	// raised to at least this value when greater than zero.
+	// pendingRetryAfter is the largest Retry-After hint observed among the failed providers
+	// during the current send attempt. The next backoff is raised to at least this value
+	// when greater than zero.
 	pendingRetryAfter time.Duration
 
 	// attempt is the current retry attempt number; starts at 0.
 	attempt int
 }
 
-// NotificationDispatcher provides batched notification sending with retry,
-// dead-letter queue, and per-provider circuit breaker capabilities. It
-// implements NotificationDispatcherPort and DispatcherPort.
+// NotificationDispatcher provides batched notification sending with retry, dead-letter
+// queue, and per-provider circuit breaker capabilities. It implements
+// NotificationDispatcherPort and DispatcherPort.
 type NotificationDispatcher struct {
 	// service provides access to notification providers.
 	service *service
@@ -154,8 +149,7 @@ type NotificationDispatcher struct {
 	// queue holds notifications waiting to be processed in batches.
 	queue chan *notification_dto.SendParams
 
-	// retryHeap holds notifications waiting to be retried, sorted by next retry
-	// time.
+	// retryHeap holds notifications waiting to be retried, sorted by next retry time.
 	retryHeap *retry.Heap[*queuedNotification]
 
 	// retryJobsChan sends retry items to retry workers for processing.
@@ -170,8 +164,7 @@ type NotificationDispatcher struct {
 	// shutdownChan signals all goroutines to stop processing.
 	shutdownChan chan struct{}
 
-	// shutdownName is the name used to register this dispatcher for graceful
-	// shutdown.
+	// shutdownName is the name used to register this dispatcher for graceful shutdown.
 	shutdownName string
 
 	// retryConfig controls retry behaviour for failed notifications.
@@ -186,24 +179,23 @@ type NotificationDispatcher struct {
 	// batchSize is the number of notifications to gather before processing them.
 	batchSize int
 
-	// retryWorkerCount is the number of goroutines that process failed
-	// notifications.
+	// retryWorkerCount is the number of goroutines that process failed notifications.
 	retryWorkerCount int
 
 	// maxRetryHeapSize is the maximum number of entries allowed in the retry heap.
 	maxRetryHeapSize int
 
 	// totalProcessed counts all notifications handled; accessed atomically.
-	totalProcessed int64
+	totalProcessed atomic.Int64
 
 	// totalSuccessful counts notifications sent to all providers without error.
-	totalSuccessful int64
+	totalSuccessful atomic.Int64
 
 	// totalFailed counts notifications that were sent to the dead letter queue.
-	totalFailed int64
+	totalFailed atomic.Int64
 
 	// totalRetries is the total number of retry attempts made.
-	totalRetries int64
+	totalRetries atomic.Int64
 
 	// mu guards concurrent access to isRunning.
 	mu sync.RWMutex
@@ -220,8 +212,8 @@ type NotificationDispatcher struct {
 
 // circuitBreakerConfig holds settings for the circuit breaker pattern.
 type circuitBreakerConfig struct {
-	// maxConsecutiveFailures is the number of failures in a row that triggers the
-	// circuit breaker to open.
+	// maxConsecutiveFailures is the number of failures in a row that triggers the circuit
+	// breaker to open.
 	maxConsecutiveFailures int
 
 	// interval is the time window for counting failures; 0 uses the default.
@@ -233,7 +225,7 @@ type circuitBreakerConfig struct {
 
 // retryItem holds a notification that is ready to be sent again.
 type retryItem struct {
-	// notification is the queued notification awaiting retry.
+	// notification is the queued notification scheduled for retry.
 	notification *queuedNotification
 }
 
@@ -245,8 +237,8 @@ type retryItem struct {
 // Takes config (*notification_dto.DispatcherConfig) which configures dispatcher
 // behaviour.
 //
-// Returns *NotificationDispatcher which is ready to start, or nil
-// if service is not a valid service implementation.
+// Returns *NotificationDispatcher which is ready to start, or nil if service is not a
+// valid service implementation.
 func NewNotificationDispatcher(
 	notificationService Service,
 	deadLetterQueue DeadLetterPort,
@@ -300,8 +292,8 @@ func NewNotificationDispatcher(
 
 // Queue adds a notification to the batch queue for later sending.
 //
-// Takes params (*notification_dto.SendParams) which specifies the notification
-// details to queue.
+// Takes params (*notification_dto.SendParams) which specifies the notification details to
+// queue.
 //
 // Returns error when the dispatcher is not running or the context is cancelled.
 //
@@ -325,8 +317,7 @@ func (d *NotificationDispatcher) Queue(ctx context.Context, params *notification
 
 // Flush sends all queued notifications straight away.
 //
-// Returns error when the dispatcher is not running or the context is
-// cancelled.
+// Returns error when the dispatcher is not running or the context is cancelled.
 //
 // Safe for concurrent use.
 func (d *NotificationDispatcher) Flush(ctx context.Context) error {
@@ -350,8 +341,8 @@ func (d *NotificationDispatcher) Flush(ctx context.Context) error {
 //
 // Returns error when the dispatcher is already running.
 //
-// Spawns goroutines for the main processing loop, retry producer, and retry
-// workers. These run until Stop is called.
+// Spawns goroutines for the main processing loop, retry producer, and retry workers.
+// These run until Stop is called.
 func (d *NotificationDispatcher) Start(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -395,8 +386,8 @@ func (d *NotificationDispatcher) Start(ctx context.Context) error {
 //
 // Returns error when the dispatcher is not running.
 //
-// Safe for concurrent use. Signals shutdown to all spawned goroutines and
-// waits for them to complete before returning.
+// Safe for concurrent use. Signals shutdown to all spawned goroutines and waits for them
+// to complete before returning.
 func (d *NotificationDispatcher) Stop(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -515,10 +506,10 @@ func (d *NotificationDispatcher) GetProcessingStats(ctx context.Context) (Dispat
 
 	stats := DispatcherStats{
 		QueuedNotifications: len(d.queue),
-		TotalProcessed:      atomic.LoadInt64(&d.totalProcessed),
-		TotalSuccessful:     atomic.LoadInt64(&d.totalSuccessful),
-		TotalFailed:         atomic.LoadInt64(&d.totalFailed),
-		TotalRetries:        atomic.LoadInt64(&d.totalRetries),
+		TotalProcessed:      d.totalProcessed.Load(),
+		TotalSuccessful:     d.totalSuccessful.Load(),
+		TotalFailed:         d.totalFailed.Load(),
+		TotalRetries:        d.totalRetries.Load(),
 	}
 
 	d.retryMutex.Lock()
@@ -539,18 +530,15 @@ func (d *NotificationDispatcher) GetProcessingStats(ctx context.Context) (Dispat
 	return stats, nil
 }
 
-// getOrCreateCircuitBreaker gets or creates a circuit breaker for a
-// provider.
+// getOrCreateCircuitBreaker gets or creates a circuit breaker for a provider.
 //
-// Takes ctx (context.Context) which carries logging context for the state
-// change callback.
+// Takes ctx (context.Context) which carries logging context for the state change
+// callback.
 // Takes providerName (string) which identifies the notification provider.
 //
-// Returns *gobreaker.CircuitBreaker[any] which is the circuit breaker for
-// the provider.
+// Returns *gobreaker.CircuitBreaker[any] which is the circuit breaker for the provider.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (d *NotificationDispatcher) getOrCreateCircuitBreaker(ctx context.Context, providerName string) *gobreaker.CircuitBreaker[any] {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -630,11 +618,9 @@ func (d *NotificationDispatcher) processQueue(ctx context.Context) {
 	}
 }
 
-// processBatch sends a batch of notifications, handling multi-cast and
-// partial failures.
+// processBatch sends a batch of notifications, handling multi-cast and partial failures.
 //
-// Takes batch ([]*notification_dto.SendParams) which contains the
-// notifications to send.
+// Takes batch ([]*notification_dto.SendParams) which contains the notifications to send.
 func (d *NotificationDispatcher) processBatch(ctx context.Context, batch []*notification_dto.SendParams) {
 	if len(batch) == 0 {
 		return
@@ -648,7 +634,7 @@ func (d *NotificationDispatcher) processBatch(ctx context.Context, batch []*noti
 			return
 		}
 
-		atomic.AddInt64(&d.totalProcessed, 1)
+		d.totalProcessed.Add(1)
 
 		qn := &queuedNotification{
 			params:          params,
@@ -665,8 +651,8 @@ func (d *NotificationDispatcher) processBatch(ctx context.Context, batch []*noti
 	}
 }
 
-// sendToProviders sends a notification to its target providers and tracks
-// partial failures.
+// sendToProviders sends a notification to its target providers and tracks partial
+// failures.
 //
 // Takes qn (*queuedNotification) which contains the notification and targets.
 func (d *NotificationDispatcher) sendToProviders(ctx context.Context, qn *queuedNotification) {
@@ -686,7 +672,7 @@ func (d *NotificationDispatcher) sendToProviders(ctx context.Context, qn *queued
 	}
 
 	if len(qn.failedProviders) == 0 {
-		atomic.AddInt64(&d.totalSuccessful, 1)
+		d.totalSuccessful.Add(1)
 		notificationSentCount.Add(ctx, 1)
 	} else if len(qn.failedProviders) < len(qn.targetProviders) {
 		partialFailureCount.Add(ctx, 1)
@@ -696,14 +682,13 @@ func (d *NotificationDispatcher) sendToProviders(ctx context.Context, qn *queued
 	}
 }
 
-// retryAfterHintFromError extracts a Retry-After hint from a notification
-// provider error when the upstream returned 429 or 503. Returns zero when no
-// usable hint is present.
+// retryAfterHintFromError extracts a Retry-After hint from a notification provider error
+// when the upstream returned 429 or 503. Returns zero when no usable hint is present.
 //
 // Takes err (error) which is the failure to inspect.
 //
-// Returns time.Duration which is the parsed hint, capped at
-// MaxRetryAfterDuration, or zero when not applicable.
+// Returns time.Duration which is the parsed hint, capped at MaxRetryAfterDuration, or
+// zero when not applicable.
 func retryAfterHintFromError(err error) time.Duration {
 	var providerErr *ProviderError
 	if !errors.As(err, &providerErr) {
@@ -722,12 +707,11 @@ func retryAfterHintFromError(err error) time.Duration {
 	return providerErr.RetryAfter
 }
 
-// sendToSingleProvider sends to one provider with circuit breaker
-// protection.
+// sendToSingleProvider sends to one provider with circuit breaker protection.
 //
 // Takes providerName (string) which identifies the target provider.
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and recipients.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// recipients.
 //
 // Returns error when the provider is not found or sending fails.
 func (d *NotificationDispatcher) sendToSingleProvider(ctx context.Context, providerName string, params *notification_dto.SendParams) error {
@@ -762,14 +746,12 @@ func (d *NotificationDispatcher) sendToSingleProvider(ctx context.Context, provi
 
 // scheduleRetry adds a failed notification to the retry queue.
 //
-// Takes qn (*queuedNotification) which is the notification to schedule for
-// retry.
+// Takes qn (*queuedNotification) which is the notification to schedule for retry.
 //
-// Safe for concurrent use. Uses retryMutex to protect the retry
-// heap. Sends a non-blocking signal to wake the retry producer goroutine.
-// When the previous send received a Retry-After hint via pendingRetryAfter,
-// the next retry time is delayed to at least the hinted instant so the
-// dispatcher respects upstream rate-limiting guidance.
+// Safe for concurrent use. Uses retryMutex to protect the retry heap. Sends a
+// non-blocking signal to wake the retry producer goroutine. When the previous send
+// received a Retry-After hint via pendingRetryAfter, the next retry time is delayed to at
+// least the hinted instant so the dispatcher respects upstream rate-limiting guidance.
 func (d *NotificationDispatcher) scheduleRetry(ctx context.Context, qn *queuedNotification) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -818,7 +800,7 @@ func (d *NotificationDispatcher) scheduleRetry(ctx context.Context, qn *queuedNo
 func (d *NotificationDispatcher) sendToDeadLetter(ctx context.Context, qn *queuedNotification) {
 	ctx, l := logger_domain.From(ctx, log)
 
-	atomic.AddInt64(&d.totalFailed, 1)
+	d.totalFailed.Add(1)
 	deadLetterCount.Add(ctx, 1)
 
 	if d.deadLetterQueue == nil {
@@ -843,11 +825,11 @@ func (d *NotificationDispatcher) sendToDeadLetter(ctx context.Context, qn *queue
 
 // produceRetryJobs monitors the retry heap and schedules items for retry.
 //
-// Takes ctx (context.Context) which carries tracing values with cancellation
-// already detached by Start.
+// Takes ctx (context.Context) which carries tracing values with cancellation already
+// detached by Start.
 //
-// Runs until shutdown is signalled. Blocks on the retry signal channel
-// when the heap is empty.
+// Runs until shutdown is signalled. Blocks on the retry signal channel when the heap is
+// empty.
 func (d *NotificationDispatcher) produceRetryJobs(ctx context.Context) {
 	defer d.wg.Done()
 	defer goroutine.RecoverPanic(ctx, "notification.produceRetryJobs")
@@ -862,8 +844,8 @@ func (d *NotificationDispatcher) produceRetryJobs(ctx context.Context) {
 
 // produceRetryJobsStep performs a single step of the retry producer loop.
 //
-// Returns retryProducerAction which indicates what to do next based on the
-// retry heap state.
+// Returns retryProducerAction which indicates what to do next based on the retry heap
+// state.
 //
 // Safe for concurrent use. Acquires the retry mutex to check the heap state.
 func (d *NotificationDispatcher) produceRetryJobsStep() retryProducerAction {
@@ -883,8 +865,8 @@ func (d *NotificationDispatcher) produceRetryJobsStep() retryProducerAction {
 	return d.waitForNextRetryTime(waitDuration)
 }
 
-// waitForRetrySignal waits until a signal arrives, a timeout passes, or
-// shutdown occurs when the heap is empty.
+// waitForRetrySignal waits until a signal arrives, a timeout passes, or shutdown occurs
+// when the heap is empty.
 //
 // Returns retryProducerAction which shows whether to carry on or shut down.
 func (d *NotificationDispatcher) waitForRetrySignal() retryProducerAction {
@@ -923,14 +905,13 @@ func (d *NotificationDispatcher) dispatchReadyRetryItem() retryProducerAction {
 	}
 }
 
-// waitForNextRetryTime waits until the next item is ready or an interrupt
-// occurs.
+// waitForNextRetryTime waits until the next item is ready or an interrupt occurs.
 //
-// Takes waitDuration (time.Duration) which specifies how long to wait before
-// the next retry attempt.
+// Takes waitDuration (time.Duration) which specifies how long to wait before the next
+// retry attempt.
 //
-// Returns retryProducerAction which indicates whether to continue processing
-// or shut down.
+// Returns retryProducerAction which indicates whether to continue processing or shut
+// down.
 func (d *NotificationDispatcher) waitForNextRetryTime(waitDuration time.Duration) retryProducerAction {
 	waitTimer := d.clock.NewTimer(waitDuration)
 	select {
@@ -947,8 +928,8 @@ func (d *NotificationDispatcher) waitForNextRetryTime(waitDuration time.Duration
 
 // retryWorker processes retry jobs from the retry channel.
 //
-// Runs until shutdown is signalled. Each job increments the retry counter
-// and sends the notification to providers.
+// Runs until shutdown is signalled. Each job increments the retry counter and sends the
+// notification to providers.
 //
 // processing.
 func (d *NotificationDispatcher) retryWorker(ctx context.Context) {
@@ -961,7 +942,7 @@ func (d *NotificationDispatcher) retryWorker(ctx context.Context) {
 			return
 
 		case job := <-d.retryJobsChan:
-			atomic.AddInt64(&d.totalRetries, 1)
+			d.totalRetries.Add(1)
 			retryAttemptCount.Add(ctx, 1)
 
 			d.sendToProviders(ctx, job.notification)
@@ -969,11 +950,11 @@ func (d *NotificationDispatcher) retryWorker(ctx context.Context) {
 	}
 }
 
-// applyDispatcherConfigDefaults sets default values for any zero-value fields
-// in the config.
+// applyDispatcherConfigDefaults sets default values for any zero-value fields in the
+// config.
 //
-// Takes config (*notification_dto.DispatcherConfig) which is changed in place
-// to have sensible defaults for any unset fields.
+// Takes config (*notification_dto.DispatcherConfig) which is changed in place to have
+// sensible defaults for any unset fields.
 func applyDispatcherConfigDefaults(config *notification_dto.DispatcherConfig) {
 	if config.BatchSize <= 0 {
 		config.BatchSize = defaultBatchSize

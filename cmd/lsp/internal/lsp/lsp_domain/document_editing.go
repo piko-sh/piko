@@ -24,15 +24,13 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// GetLinkedEditingRanges finds HTML tag pairs for synchronised editing.
-// When a user edits an opening tag name, the closing tag name should update
-// automatically.
+// GetLinkedEditingRanges finds HTML tag pairs for synchronised editing. When a user edits
+// an opening tag name, the closing tag name should update automatically.
 //
-// Takes position (protocol.Position) which specifies the cursor location in the
-// document.
+// Takes position (protocol.Position) which specifies the cursor location in the document.
 //
-// Returns *protocol.LinkedEditingRanges which contains the ranges of the
-// opening and closing tag names that should be edited together.
+// Returns *protocol.LinkedEditingRanges which contains the ranges of the opening and
+// closing tag names that should be edited together.
 // Returns error when the ranges cannot be determined.
 func (d *document) GetLinkedEditingRanges(position protocol.Position) (*protocol.LinkedEditingRanges, error) {
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
@@ -77,13 +75,13 @@ func (d *document) GetLinkedEditingRanges(position protocol.Position) (*protocol
 	}, nil
 }
 
-// isComponentTag checks if a node represents a component invocation
-// (partial or custom element).
+// isComponentTag checks if a node represents a component invocation (partial or custom
+// element).
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node has an "is" attribute or partial
-// info in annotations.
+// Returns bool which is true if the node has an "is" attribute or partial info in
+// annotations.
 func (*document) isComponentTag(node *ast_domain.TemplateNode) bool {
 	if node == nil {
 		return false
@@ -102,8 +100,8 @@ func (*document) isComponentTag(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// isSpecialTag checks if a tag name is a special Piko tag that should not
-// have linked editing.
+// isSpecialTag checks if a tag name is a special Piko tag that should not have linked
+// editing.
 //
 // Takes tagName (string) which is the tag name to check.
 //

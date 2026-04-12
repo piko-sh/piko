@@ -27,25 +27,27 @@ import (
 	"piko.sh/piko/internal/querier/querier_domain"
 )
 
-// errorFormatPinningConnection holds the format string for connection pinning errors.
-const errorFormatPinningConnection = "pinning database connection: %w"
+const (
+	// errorFormatPinningConnection holds the format string for connection pinning errors.
+	errorFormatPinningConnection = "pinning database connection: %w"
+)
 
-// LockStrategy abstracts database-specific advisory locking for migration
-// concurrency control.
+// LockStrategy abstracts database-specific advisory locking for migration concurrency
+// control.
 //
-// Implementations that require connection pinning (e.g. PostgreSQL advisory
-// locks, which are session-scoped) return a dedicated *sql.Conn from Acquire.
-// The caller must pass this connection back to Release.
+// Implementations that require connection pinning (e.g. PostgreSQL advisory locks, which
+// are session-scoped) return a dedicated *sql.Conn from Acquire. The caller must pass
+// this connection back to Release.
 type LockStrategy interface {
 	// Acquire acquires an advisory lock on the given database.
 	//
-	// For strategies that require connection pinning, this pins a dedicated
-	// connection from the pool and returns it.
+	// For strategies that require connection pinning, this pins a dedicated connection from
+	// the pool and returns it.
 	//
 	// Takes database (*sql.DB) which is the connection pool to acquire the lock from.
 	//
-	// Returns *sql.Conn which is the pinned connection, or nil when no
-	// connection pinning is needed (e.g. NoOpLock for SQLite).
+	// Returns *sql.Conn which is the pinned connection, or nil when no connection pinning is
+	// needed (e.g. NoOpLock for SQLite).
 	// Returns error when the lock cannot be acquired.
 	Acquire(ctx context.Context, database *sql.DB) (*sql.Conn, error)
 
@@ -53,32 +55,30 @@ type LockStrategy interface {
 	//
 	// Takes database (*sql.DB) which is the connection pool to acquire the lock from.
 	//
-	// Returns *sql.Conn which is the pinned connection, or nil when no
-	// connection pinning is needed.
+	// Returns *sql.Conn which is the pinned connection, or nil when no connection pinning is
+	// needed.
 	// Returns error when the lock cannot be acquired, including
-	// querier_domain.ErrLockNotAcquired if the lock is already held by
-	// another session.
+	// querier_domain.ErrLockNotAcquired if the lock is already held by another session.
 	TryAcquire(ctx context.Context, database *sql.DB) (*sql.Conn, error)
 
 	// Release releases the advisory lock.
 	//
-	// Takes connection (*sql.Conn) which is the pinned connection to unlock
-	// and close. If nil, this is a no-op.
+	// Takes connection (*sql.Conn) which is the pinned connection to unlock and close. If
+	// nil, this is a no-op.
 	//
 	// Returns error when the lock cannot be released.
 	Release(ctx context.Context, connection *sql.Conn) error
 }
 
-// PostgresAdvisoryLock implements LockStrategy using PostgreSQL's
-// pg_advisory_lock function.
+// PostgresAdvisoryLock implements LockStrategy using PostgreSQL's pg_advisory_lock
+// function.
 //
-// The lock is session-scoped, so a dedicated connection is pinned from the pool
-// to ensure all subsequent operations run on the same connection that holds the
-// lock.
+// The lock is session-scoped, so a dedicated connection is pinned from the pool to ensure
+// all subsequent operations run on the same connection that holds the lock.
 type PostgresAdvisoryLock struct{}
 
-// Acquire pins a connection from the pool and acquires a PostgreSQL advisory
-// lock keyed on the migration table name.
+// Acquire pins a connection from the pool and acquires a PostgreSQL advisory lock keyed
+// on the migration table name.
 //
 // Takes database (*sql.DB) which is the connection pool to pin a connection from.
 //
@@ -99,8 +99,8 @@ func (*PostgresAdvisoryLock) Acquire(ctx context.Context, database *sql.DB) (*sq
 	return connection, nil
 }
 
-// Release releases the PostgreSQL advisory lock and returns the pinned
-// connection to the pool.
+// Release releases the PostgreSQL advisory lock and returns the pinned connection to the
+// pool.
 //
 // Takes connection (*sql.Conn) which is the pinned connection to unlock and close.
 //
@@ -131,11 +131,11 @@ func (*PostgresAdvisoryLock) TryAcquire(ctx context.Context, database *sql.DB) (
 	return tryAcquirePostgresAdvisoryLock(ctx, database, "piko_migrations", "PostgreSQL")
 }
 
-// TableBasedLock implements LockStrategy using a dedicated lock table with
-// SELECT ... FOR UPDATE.
+// TableBasedLock implements LockStrategy using a dedicated lock table with SELECT ... FOR
+// UPDATE.
 //
-// This is compatible with PgBouncer in transaction mode where advisory locks
-// are not available.
+// This is compatible with PgBouncer in transaction mode where advisory locks are not
+// available.
 type TableBasedLock struct {
 	// heldTransaction holds the open transaction that maintains the FOR UPDATE lock.
 	heldTransaction *sql.Tx
@@ -144,8 +144,8 @@ type TableBasedLock struct {
 	CreateLockTableSQL string
 }
 
-// Acquire pins a connection, creates the lock table if needed, inserts a lock
-// row, and acquires a FOR UPDATE lock within a held transaction.
+// Acquire pins a connection, creates the lock table if needed, inserts a lock row, and
+// acquires a FOR UPDATE lock within a held transaction.
 //
 // Takes database (*sql.DB) which is the connection pool to pin a connection from.
 //
@@ -166,8 +166,8 @@ func (lock *TableBasedLock) TryAcquire(ctx context.Context, database *sql.DB) (*
 	return lock.acquireWithMode(ctx, database, "FOR UPDATE NOWAIT")
 }
 
-// Release commits the held transaction (releasing the FOR UPDATE lock) and
-// closes the pinned connection.
+// Release commits the held transaction (releasing the FOR UPDATE lock) and closes the
+// pinned connection.
 //
 // Takes connection (*sql.Conn) which is the pinned connection to close.
 //
@@ -195,17 +195,14 @@ func (lock *TableBasedLock) Release(ctx context.Context, connection *sql.Conn) e
 	return closeError
 }
 
-// acquireWithMode pins a connection, creates the lock
-// table, inserts a lock row, and acquires a row lock using
-// the specified lock mode.
+// acquireWithMode pins a connection, creates the lock table, inserts a lock row, and
+// acquires a row lock using the specified lock mode.
 //
-// Takes database (*sql.DB) which is the connection pool to
-// pin a connection from.
-// Takes lockMode (string) which specifies the row lock
-// clause (e.g. "FOR UPDATE" or "FOR UPDATE NOWAIT").
+// Takes database (*sql.DB) which is the connection pool to pin a connection from.
+// Takes lockMode (string) which specifies the row lock clause (e.g. "FOR UPDATE" or "FOR
+// UPDATE NOWAIT").
 //
-// Returns *sql.Conn which is the pinned connection holding
-// the lock.
+// Returns *sql.Conn which is the pinned connection holding the lock.
 // Returns error when any step of the acquisition fails.
 func (lock *TableBasedLock) acquireWithMode(
 	ctx context.Context,
@@ -224,8 +221,8 @@ func (lock *TableBasedLock) acquireWithMode(
 	return connection, nil
 }
 
-// isLockNotAvailableError checks whether the error indicates the lock could
-// not be acquired (PostgreSQL error code 55P03: lock_not_available).
+// isLockNotAvailableError checks whether the error indicates the lock could not be
+// acquired (PostgreSQL error code 55P03: lock_not_available).
 //
 // Takes err (error) which is the error to inspect.
 //
@@ -238,13 +235,13 @@ func isLockNotAvailableError(err error) bool {
 		strings.Contains(message, "Lock wait timeout exceeded")
 }
 
-// MySQLAdvisoryLock implements LockStrategy using MySQL's GET_LOCK and
-// RELEASE_LOCK functions. The lock is session-scoped, so a dedicated
-// connection is pinned from the pool.
+// MySQLAdvisoryLock implements LockStrategy using MySQL's GET_LOCK and RELEASE_LOCK
+// functions. The lock is session-scoped, so a dedicated connection is pinned from the
+// pool.
 type MySQLAdvisoryLock struct{}
 
-// Acquire pins a connection from the pool and acquires a MySQL advisory lock
-// using GET_LOCK with an indefinite timeout.
+// Acquire pins a connection from the pool and acquires a MySQL advisory lock using
+// GET_LOCK with an indefinite timeout.
 //
 // Takes database (*sql.DB) which is the connection pool to pin a connection from.
 //
@@ -265,16 +262,12 @@ func (*MySQLAdvisoryLock) TryAcquire(ctx context.Context, database *sql.DB) (*sq
 	return mysqlGetLock(ctx, database, "SELECT GET_LOCK('piko_migrations', 0)")
 }
 
-// mysqlGetLock pins a connection from the pool and executes
-// the given GET_LOCK query.
+// mysqlGetLock pins a connection from the pool and executes the given GET_LOCK query.
 //
-// Takes database (*sql.DB) which is the connection pool to
-// pin a connection from.
-// Takes query (string) which is the GET_LOCK SQL statement
-// to execute.
+// Takes database (*sql.DB) which is the connection pool to pin a connection from.
+// Takes query (string) which is the GET_LOCK SQL statement to execute.
 //
-// Returns *sql.Conn which is the pinned connection holding
-// the lock.
+// Returns *sql.Conn which is the pinned connection holding the lock.
 // Returns error when the lock cannot be acquired.
 func mysqlGetLock(ctx context.Context, database *sql.DB, query string) (*sql.Conn, error) {
 	connection, connectionError := database.Conn(ctx)
@@ -297,8 +290,7 @@ func mysqlGetLock(ctx context.Context, database *sql.DB, query string) (*sql.Con
 	return connection, nil
 }
 
-// Release releases the MySQL advisory lock and returns the pinned connection
-// to the pool.
+// Release releases the MySQL advisory lock and returns the pinned connection to the pool.
 //
 // Takes connection (*sql.Conn) which is the pinned connection to unlock and close.
 //
@@ -318,13 +310,13 @@ func (*MySQLAdvisoryLock) Release(ctx context.Context, connection *sql.Conn) err
 	return closeError
 }
 
-// PostgresAdvisorySeedLock implements LockStrategy using PostgreSQL's
-// pg_advisory_lock function, keyed on the literal "piko_seeds" so it never
-// collides with the migration lock.
+// PostgresAdvisorySeedLock implements LockStrategy using PostgreSQL's pg_advisory_lock
+// function, keyed on the literal "piko_seeds" so it never collides with the migration
+// lock.
 type PostgresAdvisorySeedLock struct{}
 
-// Acquire pins a connection from the pool and acquires a PostgreSQL advisory
-// lock keyed on hashtext('piko_seeds').
+// Acquire pins a connection from the pool and acquires a PostgreSQL advisory lock keyed
+// on hashtext('piko_seeds').
 //
 // Takes database (*sql.DB) which is the connection pool to pin a connection from.
 //
@@ -356,8 +348,8 @@ func (*PostgresAdvisorySeedLock) TryAcquire(ctx context.Context, database *sql.D
 	return tryAcquirePostgresAdvisoryLock(ctx, database, "piko_seeds", "PostgreSQL seed")
 }
 
-// Release releases the PostgreSQL seed advisory lock and returns the pinned
-// connection to the pool.
+// Release releases the PostgreSQL seed advisory lock and returns the pinned connection to
+// the pool.
 //
 // Takes connection (*sql.Conn) which is the pinned connection to unlock and close.
 //
@@ -377,13 +369,13 @@ func (*PostgresAdvisorySeedLock) Release(ctx context.Context, connection *sql.Co
 	return closeError
 }
 
-// MySQLAdvisorySeedLock implements LockStrategy using MySQL's GET_LOCK and
-// RELEASE_LOCK functions, keyed on the literal "piko_seeds" so it never
-// collides with the migration lock.
+// MySQLAdvisorySeedLock implements LockStrategy using MySQL's GET_LOCK and RELEASE_LOCK
+// functions, keyed on the literal "piko_seeds" so it never collides with the migration
+// lock.
 type MySQLAdvisorySeedLock struct{}
 
-// Acquire pins a connection from the pool and acquires a MySQL advisory lock
-// using GET_LOCK with an indefinite timeout.
+// Acquire pins a connection from the pool and acquires a MySQL advisory lock using
+// GET_LOCK with an indefinite timeout.
 //
 // Takes database (*sql.DB) which is the connection pool to pin a connection from.
 //
@@ -404,8 +396,8 @@ func (*MySQLAdvisorySeedLock) TryAcquire(ctx context.Context, database *sql.DB) 
 	return mysqlGetLock(ctx, database, "SELECT GET_LOCK('piko_seeds', 0)")
 }
 
-// Release releases the MySQL seed advisory lock and returns the pinned
-// connection to the pool.
+// Release releases the MySQL seed advisory lock and returns the pinned connection to the
+// pool.
 //
 // Takes connection (*sql.Conn) which is the pinned connection to unlock and close.
 //
@@ -427,8 +419,8 @@ func (*MySQLAdvisorySeedLock) Release(ctx context.Context, connection *sql.Conn)
 
 // TableBasedSeedLock implements LockStrategy via a dedicated lock table.
 //
-// Uses piko_seed_lock with SELECT ... FOR UPDATE. Used in PgBouncer
-// transaction mode where session-scoped advisory locks are not available.
+// Uses piko_seed_lock with SELECT ... FOR UPDATE. Used in PgBouncer transaction mode
+// where session-scoped advisory locks are not available.
 type TableBasedSeedLock struct {
 	// heldTransaction holds the open transaction that maintains the FOR UPDATE lock.
 	heldTransaction *sql.Tx
@@ -437,8 +429,8 @@ type TableBasedSeedLock struct {
 	CreateLockTableSQL string
 }
 
-// Acquire pins a connection, creates the seed lock table if needed, inserts a
-// lock row, and acquires a FOR UPDATE lock within a held transaction.
+// Acquire pins a connection, creates the seed lock table if needed, inserts a lock row,
+// and acquires a FOR UPDATE lock within a held transaction.
 //
 // Takes database (*sql.DB) which is the connection pool to pin a connection from.
 //
@@ -459,8 +451,8 @@ func (lock *TableBasedSeedLock) TryAcquire(ctx context.Context, database *sql.DB
 	return lock.acquireWithMode(ctx, database, "FOR UPDATE NOWAIT")
 }
 
-// Release commits the held transaction (releasing the FOR UPDATE lock) and
-// closes the pinned connection.
+// Release commits the held transaction (releasing the FOR UPDATE lock) and closes the
+// pinned connection.
 //
 // Takes connection (*sql.Conn) which is the pinned connection to close.
 //
@@ -488,13 +480,12 @@ func (lock *TableBasedSeedLock) Release(ctx context.Context, connection *sql.Con
 	return closeError
 }
 
-// acquireWithMode pins a connection, creates the lock table, inserts a lock
-// row, and acquires a row lock using the specified lock mode.
+// acquireWithMode pins a connection, creates the lock table, inserts a lock row, and
+// acquires a row lock using the specified lock mode.
 //
-// Takes database (*sql.DB) which is the connection pool to pin a connection
-// from.
-// Takes lockMode (string) which specifies the row lock clause (e.g.
-// "FOR UPDATE" or "FOR UPDATE NOWAIT").
+// Takes database (*sql.DB) which is the connection pool to pin a connection from.
+// Takes lockMode (string) which specifies the row lock clause (e.g. "FOR UPDATE" or "FOR
+// UPDATE NOWAIT").
 //
 // Returns *sql.Conn which is the pinned connection holding the lock.
 // Returns error when any step of the acquisition fails.
@@ -515,8 +506,8 @@ func (lock *TableBasedSeedLock) acquireWithMode(
 	return connection, nil
 }
 
-// NoOpLock implements LockStrategy as a no-op. This is used for SQLite where
-// file-level locking provides sufficient concurrency control.
+// NoOpLock implements LockStrategy as a no-op. This is used for SQLite where file-level
+// locking provides sufficient concurrency control.
 type NoOpLock struct{}
 
 // Acquire is a no-op for SQLite.
@@ -534,12 +525,12 @@ func (*NoOpLock) TryAcquire(_ context.Context, _ *sql.DB) (*sql.Conn, error) { r
 // Returns nil error since no lock was held.
 func (*NoOpLock) Release(_ context.Context, _ *sql.Conn) error { return nil }
 
-// tableBasedLockOptions captures the dialect-independent inputs to the
-// table-based locking pipeline. Only the table name and an error-message
-// prefix differ between the migration and seed lock paths.
+// tableBasedLockOptions captures the dialect-independent inputs to the table-based
+// locking pipeline. Only the table name and an error-message prefix differ between the
+// migration and seed lock paths.
 type tableBasedLockOptions struct {
-	// createTableSQL is the dialect-specific CREATE TABLE IF NOT EXISTS
-	// statement that idempotently creates the underlying lock table.
+	// createTableSQL is the dialect-specific CREATE TABLE IF NOT EXISTS statement that
+	// idempotently creates the underlying lock table.
 	createTableSQL string
 
 	// tableName is the bare table name used in INSERT and SELECT statements.
@@ -547,32 +538,30 @@ type tableBasedLockOptions struct {
 	// e.g. "piko_migration_lock" or "piko_seed_lock".
 	tableName string
 
-	// errorContextLower is a short lower-case prefix interpolated into
-	// diagnostic error messages so callers can distinguish migration and
-	// seed lock failures (e.g. "seed " or empty for migrations).
+	// errorContextLower is a short lower-case prefix interpolated into diagnostic error
+	// messages so callers can distinguish migration and seed lock failures (e.g. "seed " or
+	// empty for migrations).
 	errorContextLower string
 }
 
-// acquireTableBasedLock pins a connection from the pool, ensures the lock
-// table exists, inserts the singleton row if missing, opens a transaction,
-// and acquires the configured row lock. On any failure all resources are
-// released before the error is returned.
+// acquireTableBasedLock pins a connection from the pool, ensures the lock table exists,
+// inserts the singleton row if missing, opens a transaction, and acquires the configured
+// row lock. On any failure all resources are released before the error is returned.
 //
-// The shared helper exists so the migration and seed table-based lock paths
-// stay byte-equivalent in semantics and only their table name + error
-// messages diverge.
+// The shared helper exists so the migration and seed table-based lock paths stay
+// byte-equivalent in semantics and only their table name + error messages diverge.
 //
 // Takes ctx (context.Context) for cancellation and timeouts.
 // Takes database (*sql.DB) which is the connection pool to pin from.
-// Takes lockMode (string) which is the row lock clause appended to the
-// SELECT (e.g. "FOR UPDATE", "FOR UPDATE NOWAIT").
-// Takes options (tableBasedLockOptions) which describe the table-specific
-// SQL and error-message prefixes.
+// Takes lockMode (string) which is the row lock clause appended to the SELECT (e.g. "FOR
+// UPDATE", "FOR UPDATE NOWAIT").
+// Takes options (tableBasedLockOptions) which describe the table-specific SQL and
+// error-message prefixes.
 //
 // Returns *sql.Conn which is the pinned connection holding the lock.
 // Returns *sql.Tx which is the active transaction maintaining the lock.
-// Returns error which wraps querier_domain.ErrLockNotAcquired when the lock
-// is not available, or any underlying connection / SQL error.
+// Returns error which wraps querier_domain.ErrLockNotAcquired when the lock is not
+// available, or any underlying connection / SQL error.
 func acquireTableBasedLock(
 	ctx context.Context,
 	database *sql.DB,
@@ -620,19 +609,19 @@ func acquireTableBasedLock(
 }
 
 // tryAcquirePostgresAdvisoryLock pins a connection from the pool and runs
-// pg_try_advisory_lock for the supplied lock key (hashed via PostgreSQL's
-// hashtext function). On any failure the pinned connection is returned to
-// the pool before the error bubbles up.
+// pg_try_advisory_lock for the supplied lock key (hashed via PostgreSQL's hashtext
+// function). On any failure the pinned connection is returned to the pool before the
+// error bubbles up.
 //
 // Takes database (*sql.DB) which is the connection pool to pin from.
-// Takes lockKey (string) which is the textual identifier used as the lock key
-// (passed through hashtext at SQL time).
-// Takes errorContext (string) which prefixes diagnostic error messages
-// (e.g. "PostgreSQL", "PostgreSQL seed").
+// Takes lockKey (string) which is the textual identifier used as the lock key (passed
+// through hashtext at SQL time).
+// Takes errorContext (string) which prefixes diagnostic error messages (e.g.
+// "PostgreSQL", "PostgreSQL seed").
 //
 // Returns *sql.Conn which is the pinned connection holding the lock.
-// Returns error which wraps querier_domain.ErrLockNotAcquired when the lock
-// is already held, or any underlying connection / query error.
+// Returns error which wraps querier_domain.ErrLockNotAcquired when the lock is already
+// held, or any underlying connection / query error.
 func tryAcquirePostgresAdvisoryLock(
 	ctx context.Context,
 	database *sql.DB,

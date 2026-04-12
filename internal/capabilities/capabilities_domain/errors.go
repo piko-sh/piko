@@ -27,18 +27,18 @@ var (
 	// errCapabilityNotFound is returned when a requested capability does not exist.
 	errCapabilityNotFound = errors.New("capability: not found")
 
-	// errCapabilityExists is returned when attempting to register a capability
-	// that has already been registered.
+	// errCapabilityExists is returned when attempting to register a capability that has
+	// already been registered.
 	errCapabilityExists = errors.New("capability: already exists")
 
-	// ErrFatal signals that a capability failed permanently and retrying will
-	// not help. Capabilities wrap errors with this to indicate deterministic
-	// failures such as parse errors or invalid input.
+	// ErrFatal signals that a capability failed permanently and retrying will not help.
+	// Capabilities wrap errors with this to indicate deterministic failures such as parse
+	// errors or invalid input.
 	ErrFatal = errors.New("capability: fatal error")
 )
 
-// NewFatalError wraps an error to mark it as a fatal capability failure that
-// should not be retried.
+// NewFatalError wraps an error to mark it as a fatal capability failure that should not
+// be retried.
 //
 // Takes err (error) which is the underlying error to mark as fatal.
 //
@@ -47,8 +47,7 @@ func NewFatalError(err error) error {
 	return fmt.Errorf("%w: %w", err, ErrFatal)
 }
 
-// IsFatalError reports whether err or any error in its chain is a fatal
-// capability error.
+// IsFatalError reports whether err or any error in its chain is a fatal capability error.
 //
 // Takes err (error) which is the error to check.
 //

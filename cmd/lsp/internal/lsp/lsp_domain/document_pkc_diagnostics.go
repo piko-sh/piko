@@ -30,17 +30,16 @@ const (
 	// pkcDiagnosticSource is the source label for PKC diagnostics.
 	pkcDiagnosticSource = "piko"
 
-	// minHandlerRefSuffixLen is the minimum number of characters after an event
-	// binding equals sign (e.g. `="x"`) needed for a valid handler reference.
+	// minHandlerRefSuffixLen is the minimum number of characters after an event binding
+	// equals sign (e.g. `="x"`) needed for a valid handler reference.
 	minHandlerRefSuffixLen = 3
 
-	// diagnosticSliceCapacity is the default pre-allocation capacity for
-	// diagnostic slices.
+	// diagnosticSliceCapacity is the default pre-allocation capacity for diagnostic slices.
 	diagnosticSliceCapacity = 4
 )
 
-// getPKCDiagnostics returns lightweight diagnostics for a PKC file by
-// checking template references against extracted metadata.
+// getPKCDiagnostics returns lightweight diagnostics for a PKC file by checking template
+// references against extracted metadata.
 //
 // Returns []protocol.Diagnostic with any issues found.
 func (d *document) getPKCDiagnostics() []protocol.Diagnostic {
@@ -62,17 +61,15 @@ func (d *document) getPKCDiagnostics() []protocol.Diagnostic {
 
 // makePKCDiagnostic builds a warning diagnostic at a template byte offset.
 //
-// Takes template (string) which contains the template text for position
-// calculation.
+// Takes template (string) which contains the template text for position calculation.
 // Takes byteOffset (int) which specifies the byte position within the template.
-// Takes nameLen (int) which defines the length of the symbol name for range
-// calculation.
+// Takes nameLen (int) which defines the length of the symbol name for range calculation.
 // Takes baseLine (int) which provides the starting line in the document.
 // Takes baseCol (int) which provides the starting column in the document.
 // Takes message (string) which contains the diagnostic message to display.
 //
-// Returns protocol.Diagnostic which is a warning diagnostic with the
-// calculated position range.
+// Returns protocol.Diagnostic which is a warning diagnostic with the calculated position
+// range.
 func makePKCDiagnostic(
 	template string,
 	byteOffset int,
@@ -101,16 +98,15 @@ func makePKCDiagnostic(
 	}
 }
 
-// checkPKCUnknownStateRefs scans the template for state.propName references
-// and reports unknowns as diagnostics.
+// checkPKCUnknownStateRefs scans the template for state.propName references and reports
+// unknowns as diagnostics.
 //
 // Takes template (string) which is the raw template text.
-// Takes baseLine (int) which is the 0-based line offset of the template
-// content in the document.
-// Takes baseCol (int) which is the 0-based column offset of the template
-// content in the document.
-// Takes stateProps (map[string]*pkcStateProperty) which holds the known state
-// properties.
+// Takes baseLine (int) which is the 0-based line offset of the template content in the
+// document.
+// Takes baseCol (int) which is the 0-based column offset of the template content in the
+// document.
+// Takes stateProps (map[string]*pkcStateProperty) which holds the known state properties.
 //
 // Returns []protocol.Diagnostic for unknown state references.
 func checkPKCUnknownStateRefs(
@@ -160,8 +156,8 @@ func checkPKCUnknownStateRefs(
 	return diagnostics
 }
 
-// checkPKCUnknownHandlerRefs scans the template for p-on:*="handler"
-// references and reports unknown handlers as diagnostics.
+// checkPKCUnknownHandlerRefs scans the template for p-on:*="handler" references and
+// reports unknown handlers as diagnostics.
 //
 // Takes template (string) which is the raw template text.
 // Takes baseLine (int) which is the 0-based line offset.
@@ -218,12 +214,10 @@ func checkPKCUnknownHandlerRefs(
 	return diagnostics
 }
 
-// extractHandlerName strips a trailing parenthesised argument
-// list and trims whitespace to yield the bare function name
-// from a handler attribute value.
+// extractHandlerName strips a trailing parenthesised argument list and trims whitespace
+// to yield the bare function name from a handler attribute value.
 //
-// Takes handlerValue (string) which is the raw handler
-// attribute value to parse.
+// Takes handlerValue (string) which is the raw handler attribute value to parse.
 //
 // Returns string which is the bare function name.
 func extractHandlerName(handlerValue string) string {
@@ -234,13 +228,12 @@ func extractHandlerName(handlerValue string) string {
 	return strings.TrimSpace(name)
 }
 
-// isSimpleFunctionRef reports whether name looks like a plain
-// function identifier: non-empty, no dots, no spaces.
+// isSimpleFunctionRef reports whether name looks like a plain function identifier:
+// non-empty, no dots, no spaces.
 //
 // Takes name (string) which is the handler name to check.
 //
-// Returns bool which is true if the name is a simple
-// identifier.
+// Returns bool which is true if the name is a simple identifier.
 func isSimpleFunctionRef(name string) bool {
 	return name != "" && !strings.Contains(name, ".") && !strings.Contains(name, " ")
 }

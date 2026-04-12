@@ -18,7 +18,9 @@
 
 package htmllexer
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestTokenTypeString(t *testing.T) {
 	testCases := []struct {

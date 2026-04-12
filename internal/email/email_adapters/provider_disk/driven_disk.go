@@ -36,15 +36,14 @@ import (
 )
 
 const (
-	// defaultFilePermissions is the file mode used when writing .eml files.
-	// Owner read-write only; email content may contain sensitive data.
+	// defaultFilePermissions is the file mode used when writing .eml files. Owner read-write
+	// only; email content may contain sensitive data.
 	defaultFilePermissions = 0o600
 
 	// filenameTimestampFormat defines the timestamp format for .eml filenames.
 	filenameTimestampFormat = "20060102_150405.000000"
 
-	// metricStatusSuccess is the metric attribute value for a successful
-	// operation.
+	// metricStatusSuccess is the metric attribute value for a successful operation.
 	metricStatusSuccess = "success"
 
 	// metricStatusError is the metric status value for failed operations.
@@ -59,23 +58,21 @@ const (
 	// metricKeyStatus is the metric attribute key for operation status.
 	metricKeyStatus = "status"
 
-	// metricKeySendType is the metric attribute key for send type (single or
-	// bulk).
+	// metricKeySendType is the metric attribute key for send type (single or bulk).
 	metricKeySendType = "send_type"
 )
 
 // DiskProviderArgs holds settings for the disk-based email provider.
 type DiskProviderArgs struct {
-	// SandboxFactory creates sandboxes when no sandbox is directly injected.
-	// When non-nil, this factory is used instead of safedisk.NewSandbox.
+	// SandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil,
+	// this factory is used instead of safedisk.NewSandbox.
 	SandboxFactory safedisk.Factory
 
 	// OutboxPath is the directory where email messages are saved.
 	OutboxPath string
 }
 
-// DiskProvider implements the EmailProviderPort interface by writing emails to
-// disk.
+// DiskProvider implements the EmailProviderPort interface by writing emails to disk.
 type DiskProvider struct {
 	// rateLimiter controls how often email sending operations may run.
 	rateLimiter *email_domain.ProviderRateLimiter
@@ -87,15 +84,18 @@ type DiskProvider struct {
 	outboxPath string
 }
 
-var _ email_domain.EmailProviderPort = (*DiskProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*DiskProvider)(nil)
+var (
+	_ email_domain.EmailProviderPort = (*DiskProvider)(nil)
 
-// NewDiskProvider creates a DiskProvider with a specified outbox directory.
-// If the directory does not exist, it is created.
+	_ provider_domain.ProviderMetadata = (*DiskProvider)(nil)
+)
+
+// NewDiskProvider creates a DiskProvider with a specified outbox directory. If the
+// directory does not exist, it is created.
 //
 // Takes arguments (DiskProviderArgs) which specifies the outbox path.
-// Takes opts (...email_domain.ProviderOption) which provides optional rate
-// limit settings.
+// Takes opts (...email_domain.ProviderOption) which provides optional rate limit
+// settings.
 //
 // Returns *DiskProvider which is the configured provider ready for use.
 // Returns error when the outbox path is empty or cannot be created.
@@ -148,8 +148,7 @@ func (p *DiskProvider) GetProviderMetadata() map[string]any {
 
 // Send writes the email details to a standard .eml file in the outboxPath.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// write.
+// Takes params (*email_dto.SendParams) which contains the email details to write.
 //
 // Returns error when validation fails or the file cannot be written.
 func (p *DiskProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
@@ -179,16 +178,15 @@ func (p *DiskProvider) Close(_ context.Context) error {
 	return p.sandbox.Close()
 }
 
-// SupportsBulkSending indicates that the disk provider does not have a native
-// bulk sending mechanism.
+// SupportsBulkSending indicates that the disk provider does not have a native bulk
+// sending mechanism.
 //
 // Returns bool which is always false for disk providers.
 func (*DiskProvider) SupportsBulkSending() bool {
 	return false
 }
 
-// SendBulk sends multiple emails by calling Send individually and collecting
-// any errors.
+// SendBulk sends multiple emails by calling Send individually and collecting any errors.
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
@@ -262,15 +260,14 @@ func (*DiskProvider) Name() string {
 	return "EmailProvider (Disk)"
 }
 
-// Check implements the healthprobe_domain.Probe interface by verifying disk
-// provider health.
+// Check implements the healthprobe_domain.Probe interface by verifying disk provider
+// health.
 //
-// When checkType is liveness, it verifies the outbox path is configured.
-// When checkType is readiness, it checks the outbox directory exists and is
-// accessible.
+// When checkType is liveness, it verifies the outbox path is configured. When checkType
+// is readiness, it checks the outbox directory exists and is accessible.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
 // Returns healthprobe_dto.Status which contains the health state and details.
 func (p *DiskProvider) Check(_ context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -328,11 +325,10 @@ func (p *DiskProvider) Check(_ context.Context, checkType healthprobe_dto.CheckT
 
 // validateSendParams validates the send parameters and applies rate limiting.
 //
-// Takes params (*email_dto.SendParams) which contains the email parameters to
-// validate.
+// Takes params (*email_dto.SendParams) which contains the email parameters to validate.
 //
-// Returns error when rate limiting fails, no recipients are provided, or both
-// body fields are empty.
+// Returns error when rate limiting fails, no recipients are provided, or both body fields
+// are empty.
 func (p *DiskProvider) validateSendParams(ctx context.Context, params *email_dto.SendParams) error {
 	if err := p.rateLimiter.Wait(ctx); err != nil {
 		return fmt.Errorf("rate limiter wait failed: %w", err)
@@ -350,8 +346,7 @@ func (p *DiskProvider) validateSendParams(ctx context.Context, params *email_dto
 //
 // Takes recipient (string) which is the email recipient address.
 //
-// Returns string which is the sanitised filename (relative to the sandbox
-// root).
+// Returns string which is the sanitised filename (relative to the sandbox root).
 func (*DiskProvider) generateEmailFilename(recipient string) string {
 	timestamp := time.Now().Format(filenameTimestampFormat)
 	safeRecipient := strings.NewReplacer(
@@ -361,15 +356,14 @@ func (*DiskProvider) generateEmailFilename(recipient string) string {
 	return fmt.Sprintf("%s_%s.eml", timestamp, safeRecipient)
 }
 
-// writeEmailFile writes the email content to a file atomically via the
-// sandboxed filesystem. The sandbox handles temporary file creation, writing,
-// and atomic rename internally.
+// writeEmailFile writes the email content to a file atomically via the sandboxed
+// filesystem. The sandbox handles temporary file creation, writing, and atomic rename
+// internally.
 //
 // Takes ctx (context.Context) which carries the logger and cancellation.
-// Takes filename (string) which specifies the destination filename relative to
-// the sandbox root.
-// Takes params (*email_dto.SendParams) which contains the email content to
-// write.
+// Takes filename (string) which specifies the destination filename relative to the
+// sandbox root.
+// Takes params (*email_dto.SendParams) which contains the email content to write.
 //
 // Returns error when building MIME content fails or the atomic write fails.
 func (p *DiskProvider) writeEmailFile(ctx context.Context, filename string, params *email_dto.SendParams) error {

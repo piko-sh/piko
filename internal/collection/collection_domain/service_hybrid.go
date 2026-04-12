@@ -154,9 +154,8 @@ type hybridAnnotationParams struct {
 
 // finaliseHybridAnnotation builds the final annotation with hybrid metadata.
 //
-// Takes params (hybridAnnotationParams) which bundles the provider name,
-// collection name, type expression, ETag, slice literal, processed items,
-// and fetch options.
+// Takes params (hybridAnnotationParams) which bundles the provider name, collection name,
+// type expression, ETag, slice literal, processed items, and fetch options.
 //
 // Returns *ast_domain.GoGeneratorAnnotation which contains the complete hybrid
 // annotation.
@@ -171,13 +170,11 @@ func (s *collectionService) finaliseHybridAnnotation(
 	return annotation, nil
 }
 
-// registerHybridSnapshot encodes content and registers it with the hybrid
-// registry.
+// registerHybridSnapshot encodes content and registers it with the hybrid registry.
 //
 // Takes provider (CollectionProvider) which supplies the collection source.
 // Takes collectionName (string) which identifies the collection to register.
-// Takes items ([]collection_dto.ContentItem) which contains the content to
-// encode.
+// Takes items ([]collection_dto.ContentItem) which contains the content to encode.
 // Takes etag (string) which provides the version tag for the snapshot.
 //
 // Returns error when encoding fails.
@@ -216,11 +213,11 @@ func (s *collectionService) registerHybridSnapshot(
 
 // buildHybridConfigFromOptions builds a HybridConfig from fetch options.
 //
-// Takes options (*collection_dto.FetchOptions) which specifies the cache and
-// fetch settings to use.
+// Takes options (*collection_dto.FetchOptions) which specifies the cache and fetch
+// settings to use.
 //
-// Returns collection_dto.HybridConfig which contains the default settings
-// with any values from options applied.
+// Returns collection_dto.HybridConfig which contains the default settings with any values
+// from options applied.
 func (*collectionService) buildHybridConfigFromOptions(options *collection_dto.FetchOptions) collection_dto.HybridConfig {
 	config := collection_dto.DefaultHybridConfig()
 
@@ -251,11 +248,10 @@ func (*collectionService) buildHybridConfigFromOptions(options *collection_dto.F
 // Takes collectionName (string) which specifies the collection to configure.
 // Takes targetType (ast.Expr) which defines the type for the collection items.
 // Takes etag (string) which provides the snapshot version identifier.
-// Takes hybridConfig (*collection_dto.HybridConfig) which contains hybrid mode
-// settings.
+// Takes hybridConfig (*collection_dto.HybridConfig) which contains hybrid mode settings.
 //
-// Returns *collection_dto.DynamicCollectionInfo which is configured for hybrid
-// mode with fetcher and revalidator set to nil.
+// Returns *collection_dto.DynamicCollectionInfo which is configured for hybrid mode with
+// fetcher and revalidator set to nil.
 func (*collectionService) buildHybridDynamicInfo(
 	providerName string,
 	collectionName string,
@@ -283,13 +279,13 @@ func (*collectionService) buildHybridDynamicInfo(
 //
 // Takes targetTypeExpr (ast.Expr) which specifies the target slice type.
 // Takes sliceLiteral (ast.Expr) which provides the static slice literal.
-// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which contains
-// the dynamic collection configuration for revalidation.
-// Takes processedItems ([]collection_dto.ContentItem) which holds the
-// pre-processed content items for static rendering.
+// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which contains the dynamic
+// collection configuration for revalidation.
+// Takes processedItems ([]collection_dto.ContentItem) which holds the pre-processed
+// content items for static rendering.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is configured for hybrid
-// collection mode with both static and dynamic capabilities.
+// Returns *ast_domain.GoGeneratorAnnotation which is configured for hybrid collection
+// mode with both static and dynamic capabilities.
 func (s *collectionService) buildHybridAnnotation(
 	targetTypeExpr ast.Expr,
 	sliceLiteral ast.Expr,
@@ -328,17 +324,16 @@ func (s *collectionService) buildHybridAnnotation(
 	}
 }
 
-// logHybridAnnotationDiagnostics logs debug details about a hybrid collection
-// annotation.
+// logHybridAnnotationDiagnostics logs debug details about a hybrid collection annotation.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes annotation (*ast_domain.GoGeneratorAnnotation) which holds the parsed
-// annotation data to check.
-// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which provides
-// the dynamic collection settings including hybrid mode options.
-// Takes processedItems ([]collection_dto.ContentItem) which holds the items
-// that were processed for this collection.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes annotation (*ast_domain.GoGeneratorAnnotation) which holds the parsed annotation
+// data to check.
+// Takes dynamicInfo (*collection_dto.DynamicCollectionInfo) which provides the dynamic
+// collection settings including hybrid mode options.
+// Takes processedItems ([]collection_dto.ContentItem) which holds the items that were
+// processed for this collection.
 func (*collectionService) logHybridAnnotationDiagnostics(
 	ctx context.Context,
 	annotation *ast_domain.GoGeneratorAnnotation,

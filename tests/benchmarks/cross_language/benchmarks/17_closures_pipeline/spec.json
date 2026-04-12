@@ -1,0 +1,14 @@
+{
+  "name": "17_closures_pipeline",
+  "description": "Closure-heavy Map/Filter/Map/Filter/Reduce over 100k integers. Each stage is a closure produced by a factory that captures one constant. Tests first-class-function dispatch and capture resolution per call.",
+  "args": [],
+  "expected_stdout_sha256": "2d6aaa3816b6955ba6b9df73280f63fba0b871b085e27ce1e17925d3113da6f6",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "6141001a55e9b7d84facbb6a024e940c87f5331668c16b4684d8975f65f2fc59",
+    "py/cpython.py": "a40bfa01ca3ebe37e1920444b8d285cbe199f8f87e7225006bc45fbbc563cd24",
+    "py/pypy.py": "a40bfa01ca3ebe37e1920444b8d285cbe199f8f87e7225006bc45fbbc563cd24"
+  }
+}

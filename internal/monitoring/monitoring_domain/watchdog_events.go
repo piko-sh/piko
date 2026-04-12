@@ -29,31 +29,27 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// watchdogEventSubscriber tracks a single live event-stream consumer. The
-// channel is closed by the watchdog when the subscription is cancelled or
-// the watchdog stops; subscribers should range over it.
+// watchdogEventSubscriber tracks a single live event-stream consumer. The channel is
+// closed by the watchdog when the subscription is cancelled or the watchdog stops;
+// subscribers should range over it.
 type watchdogEventSubscriber struct {
-	// ch is the buffered channel events are delivered on. Buffer is
-	// eventSubscriberBuffer; a slow subscriber loses oldest pending
-	// events rather than blocking the watchdog.
+	// ch is the buffered channel events are delivered on. Buffer is eventSubscriberBuffer; a
+	// slow subscriber loses oldest pending events rather than blocking the watchdog.
 	ch chan WatchdogEventInfo
 
-	// done is signalled by the subscriber's cancel function so the
-	// watchdog can prune the entry from the active list and avoid
-	// sending into a channel no one reads.
+	// done is signalled by the subscriber's cancel function so the watchdog can prune the
+	// entry from the active list and avoid sending into a channel no one reads.
 	done chan struct{}
 
-	// closeOnce serialises ch + done close across the cancel-function and
-	// Stop paths. Without it, a consumer cancelling the subscription at
-	// the same instant the watchdog is closing all subscribers would
-	// double-close the channels and panic.
+	// closeOnce serialises ch + done close across the cancel-function and Stop paths.
+	// Without it, a consumer cancelling the subscription at the same instant the watchdog is
+	// closing all subscribers would double-close the channels and panic.
 	closeOnce sync.Once
 }
 
 // recordEvent appends an emitted event to the in-memory ring (capped at
-// defaultEventRingSize) and fans it out to active subscribers. Slow
-// subscribers drop the oldest pending event rather than blocking the
-// watchdog loop.
+// defaultEventRingSize) and fans it out to active subscribers. Slow subscribers drop the
+// oldest pending event rather than blocking the watchdog loop.
 //
 // Takes info (WatchdogEventInfo) which is the event to record and dispatch.
 //
@@ -82,16 +78,14 @@ func (w *Watchdog) recordEvent(ctx context.Context, info WatchdogEventInfo) {
 	}
 }
 
-// deliverEventToSubscriber pushes an event onto a subscriber's channel,
-// dropping the oldest pending event if the channel is full so emission
-// never waits on consumers.
+// deliverEventToSubscriber pushes an event onto a subscriber's channel, dropping the
+// oldest pending event if the channel is full so emission never waits on consumers.
 //
-// Takes sub (*watchdogEventSubscriber) which is the subscriber being
-// delivered to.
+// Takes sub (*watchdogEventSubscriber) which is the subscriber being delivered to.
 // Takes info (WatchdogEventInfo) which is the event to deliver.
 //
-// Returns bool which is true when an older event was discarded to make
-// room, so callers can attribute the drop in metrics.
+// Returns bool which is true when an older event was discarded to make room, so callers
+// can attribute the drop in metrics.
 func deliverEventToSubscriber(sub *watchdogEventSubscriber, info WatchdogEventInfo) (dropped bool) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -125,8 +119,8 @@ func deliverEventToSubscriber(sub *watchdogEventSubscriber, info WatchdogEventIn
 
 // ListEvents returns recent watchdog events from the in-memory ring.
 //
-// Takes limit (int) which caps the number of returned events
-// (0 = no cap, return everything in the ring).
+// Takes limit (int) which caps the number of returned events (0 = no cap, return
+// everything in the ring).
 // Takes since (time.Time) which filters events emitted before this instant.
 // Takes eventType (string) which filters by event type when non-empty.
 //
@@ -156,21 +150,19 @@ func (w *Watchdog) ListEvents(_ context.Context, limit int, since time.Time, eve
 	return filtered
 }
 
-// SubscribeEvents registers a streaming subscriber and back-fills events
-// emitted at or after since (zero disables back-fill).
+// SubscribeEvents registers a streaming subscriber and back-fills events emitted at or
+// after since (zero disables back-fill).
 //
-// The returned channel is closed when the cancel function runs, the
-// watchdog stops, or ctx is cancelled. The cancel function is idempotent.
+// The returned channel is closed when the cancel function runs, the watchdog stops, or
+// ctx is cancelled. The cancel function is idempotent.
 //
-// Takes since (time.Time) which back-fills events from the ring at or
-// after the given instant before live streaming begins. Pass zero to
-// skip back-fill.
+// Takes since (time.Time) which back-fills events from the ring at or after the given
+// instant before live streaming begins. Pass zero to skip back-fill.
 //
 // Returns <-chan WatchdogEventInfo delivering events in emission order.
 // Returns func() that cancels the subscription idempotently.
 //
-// Safe for concurrent use; spawns a lifecycle goroutine when registration
-// succeeds.
+// Safe for concurrent use; spawns a lifecycle goroutine when registration succeeds.
 func (w *Watchdog) SubscribeEvents(ctx context.Context, since time.Time) (<-chan WatchdogEventInfo, func()) {
 	sub := &watchdogEventSubscriber{
 		ch:   make(chan WatchdogEventInfo, eventSubscriberBuffer),
@@ -193,18 +185,16 @@ func (w *Watchdog) SubscribeEvents(ctx context.Context, since time.Time) (<-chan
 	return sub.ch, cancel
 }
 
-// registerSubscriber back-fills the supplied subscriber and adds it to the
-// active list.
+// registerSubscriber back-fills the supplied subscriber and adds it to the active list.
 //
-// Takes sub (*watchdogEventSubscriber) which is the freshly constructed
-// subscriber to attach.
-// Takes since (time.Time) which gates back-fill: events emitted before
-// this instant are skipped; pass zero to disable back-fill.
+// Takes sub (*watchdogEventSubscriber) which is the freshly constructed subscriber to
+// attach.
+// Takes since (time.Time) which gates back-fill: events emitted before this instant are
+// skipped; pass zero to disable back-fill.
 //
-// Returns nil on success, ErrWatchdogStopped when the watchdog has
-// already stopped, or ErrEventSubscriberCapExceeded when the cap of
-// concurrent subscribers is reached. The caller must close the channel
-// and short-circuit on any error.
+// Returns nil on success, ErrWatchdogStopped when the watchdog has already stopped, or
+// ErrEventSubscriberCapExceeded when the cap of concurrent subscribers is reached. The
+// caller must close the channel and short-circuit on any error.
 //
 // Safe for concurrent use; acquires the watchdog mutex.
 func (w *Watchdog) registerSubscriber(sub *watchdogEventSubscriber, since time.Time) error {
@@ -231,21 +221,19 @@ func (w *Watchdog) registerSubscriber(sub *watchdogEventSubscriber, since time.T
 	return nil
 }
 
-// subscriberCanceller builds the idempotent cancel function returned to
-// the caller.
+// subscriberCanceller builds the idempotent cancel function returned to the caller.
 //
-// It removes sub from the subscriber list, decrements the live subscriber
-// gauge, and closes its channels exactly once. A sync.Once guards the body
-// so concurrent callers (consumer cancel, lifecycle goroutine on ctx
-// cancellation, watchdog Stop) are safe; the channel close is also
-// serialised via sub.closeOnce so it cannot race with the Stop path.
-// cancelOnce is signalled so the lifecycle goroutine knows to exit. The
-// ctx supplied at subscribe time is used for the gauge decrement so
-// metric attributes match the increment side.
+// It removes sub from the subscriber list, decrements the live subscriber gauge, and
+// closes its channels exactly once. A sync.Once guards the body so concurrent callers
+// (consumer cancel, lifecycle goroutine on ctx cancellation, watchdog Stop) are safe; the
+// channel close is also serialised via sub.closeOnce so it cannot race with the Stop
+// path. cancelOnce is signalled so the lifecycle goroutine knows to exit. The ctx
+// supplied at subscribe time is used for the gauge decrement so metric attributes match
+// the increment side.
 //
 // Takes sub (*watchdogEventSubscriber) which is the subscriber to cancel.
-// Takes cancelOnce (chan struct{}) which is closed exactly once when the
-// returned func runs.
+// Takes cancelOnce (chan struct{}) which is closed exactly once when the returned func
+// runs.
 //
 // Returns func() which is the idempotent cancel handler.
 func (w *Watchdog) subscriberCanceller(ctx context.Context, sub *watchdogEventSubscriber, cancelOnce chan struct{}) func() {
@@ -262,9 +250,8 @@ func (w *Watchdog) subscriberCanceller(ctx context.Context, sub *watchdogEventSu
 	}
 }
 
-// removeSubscriber unlinks the supplied subscriber from the active list
-// under the watchdog mutex. Idempotent: a subscriber not in the list is a
-// no-op.
+// removeSubscriber unlinks the supplied subscriber from the active list under the
+// watchdog mutex. Idempotent: a subscriber not in the list is a no-op.
 //
 // Takes sub (*watchdogEventSubscriber) which is the subscriber to remove.
 //
@@ -282,14 +269,14 @@ func (w *Watchdog) removeSubscriber(sub *watchdogEventSubscriber) {
 	w.eventSubscribers = filtered
 }
 
-// watchSubscriberLifecycle observes the supplied context and the watchdog
-// stop channel; either closing triggers the subscriber's cancel function.
-// Returns when one of the lifecycle signals fires or the subscriber is
-// cancelled directly by the consumer.
+// watchSubscriberLifecycle observes the supplied context and the watchdog stop channel;
+// either closing triggers the subscriber's cancel function.
+// Returns when one of the lifecycle signals fires or the subscriber is cancelled directly
+// by the consumer.
 //
 // Takes cancel (func()) which is the idempotent cancel function.
-// Takes cancelOnce (<-chan struct{}) which is closed when cancel has
-// already run, allowing the goroutine to exit without a second call.
+// Takes cancelOnce (<-chan struct{}) which is closed when cancel has already run,
+// allowing the goroutine to exit without a second call.
 func (w *Watchdog) watchSubscriberLifecycle(ctx context.Context, cancel func(), cancelOnce <-chan struct{}) {
 	select {
 	case <-ctx.Done():
@@ -300,9 +287,8 @@ func (w *Watchdog) watchSubscriberLifecycle(ctx context.Context, cancel func(), 
 	}
 }
 
-// closeAllEventSubscribers is invoked from Stop to release any active
-// subscribers. Each cancel closes the channel and removes the entry; the
-// loop runs until none remain.
+// closeAllEventSubscribers is invoked from Stop to release any active subscribers. Each
+// cancel closes the channel and removes the entry; the loop runs until none remain.
 func (w *Watchdog) closeAllEventSubscribers(ctx context.Context) {
 	for {
 		sub := w.popFirstSubscriber()
@@ -315,11 +301,11 @@ func (w *Watchdog) closeAllEventSubscribers(ctx context.Context) {
 	}
 }
 
-// popFirstSubscriber removes and returns the first subscriber from the
-// active list under the watchdog mutex.
+// popFirstSubscriber removes and returns the first subscriber from the active list under
+// the watchdog mutex.
 //
-// Returns *watchdogEventSubscriber which is the popped subscriber, or
-// nil when the list is empty (signalling the caller's loop to terminate).
+// Returns *watchdogEventSubscriber which is the popped subscriber, or nil when the list
+// is empty (signalling the caller's loop to terminate).
 func (w *Watchdog) popFirstSubscriber() *watchdogEventSubscriber {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -333,14 +319,13 @@ func (w *Watchdog) popFirstSubscriber() *watchdogEventSubscriber {
 
 // closeSubscriber finalises a subscriber.
 //
-// Closes its done and event channels exactly once via sub.closeOnce so the
-// cancel and Stop paths cannot race into a double-close.
+// Closes its done and event channels exactly once via sub.closeOnce so the cancel and
+// Stop paths cannot race into a double-close.
 //
 // Takes sub (*watchdogEventSubscriber) which is the subscriber to close.
 //
-// Returns bool which is true when this call performed the close (and
-// therefore the gauge should be decremented), false when another caller
-// already finalised the subscriber.
+// Returns bool which is true when this call performed the close (and therefore the gauge
+// should be decremented), false when another caller already finalised the subscriber.
 func closeSubscriber(sub *watchdogEventSubscriber) bool {
 	closed := false
 	sub.closeOnce.Do(func() {

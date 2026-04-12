@@ -16,13 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package crypto_streaming provides streaming encryption primitives
-// for envelope encryption with constant memory usage.
+// Package crypto_streaming provides streaming encryption primitives for envelope
+// encryption with constant memory usage.
 //
-// Exposes the low-level AES-GCM streaming readers and writers used by cloud
-// KMS providers (AWS KMS, GCP KMS) to implement envelope encryption. Most
-// applications should use the high-level streaming methods on the crypto
-// service (EncryptStream, DecryptStream) rather than these primitives directly.
+// Exposes the low-level AES-GCM streaming readers and writers used by cloud KMS providers
+// (AWS KMS, GCP KMS) to implement envelope encryption. Most applications should use the
+// high-level streaming methods on the crypto service (EncryptStream, DecryptStream)
+// rather than these primitives directly.
 //
 // # Envelope encryption pattern
 //
@@ -32,8 +32,8 @@
 //  2. Use the DEK with local AES-GCM streaming for encryption
 //  3. Store the encrypted DEK alongside the encrypted data
 //
-// This reduces KMS calls from O(chunks) to O(1), keeping costs
-// low and throughput high for large files.
+// This reduces KMS calls from O(chunks) to O(1), keeping costs low and throughput high
+// for large files.
 //
 // # Usage
 //
@@ -62,12 +62,11 @@
 //
 // # Memory usage
 //
-// The streaming readers and writers use O(chunk_size) memory (~64KB
-// by default), regardless of the total data size. This makes them
-// suitable for multi-GB files.
+// The streaming readers and writers use O(chunk_size) memory (~64KB by default),
+// regardless of the total data size. This makes them suitable for multi-GB files.
 //
 // # Thread safety
 //
-// The streaming readers and writers are NOT safe for concurrent use.
-// Each stream should be used from a single goroutine.
+// The streaming readers and writers are NOT safe for concurrent use. Each stream should
+// be used from a single goroutine.
 package crypto_streaming

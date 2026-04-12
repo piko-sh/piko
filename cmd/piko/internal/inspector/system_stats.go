@@ -28,18 +28,19 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// shortCommitHashLen is the number of leading characters kept when
-// truncating a commit hash for the overview tables.
-const shortCommitHashLen = 8
+const (
+	// shortCommitHashLen is the number of leading characters kept when truncating a commit
+	// hash for the overview tables.
+	shortCommitHashLen = 8
 
-// gcPercentMultiplier converts a fraction in [0,1] to a percentage so
-// the "1.2300%" CPU-fraction label matches what /proc-style tooling
-// emits. Defined here so CLI and TUI share the constant.
-const gcPercentMultiplier = 100
+	// gcPercentMultiplier converts a fraction in [0,1] to a percentage so the "1.2300%"
+	// CPU-fraction label matches what /proc-style tooling emits. Defined here so CLI and TUI
+	// share the constant.
+	gcPercentMultiplier = 100
+)
 
-// ShortCommitHash returns the leading bytes of a commit hash for use in
-// compact overview tables. Hashes shorter than the truncation length
-// are returned unchanged.
+// ShortCommitHash returns the leading bytes of a commit hash for use in compact overview
+// tables. Hashes shorter than the truncation length are returned unchanged.
 //
 // Takes commit (string) which is the full commit hash.
 //
@@ -51,20 +52,19 @@ func ShortCommitHash(commit string) string {
 	return commit
 }
 
-// FormatGCCPUFraction renders a GC CPU fraction in [0,1] as a
-// four-decimal percentage so output reads e.g. "1.2300%".
+// FormatGCCPUFraction renders a GC CPU fraction in [0,1] as a four-decimal percentage so
+// output reads e.g. "1.2300%".
 //
-// Takes fraction (float64) which is the GC CPU share reported by the
-// runtime.
+// Takes fraction (float64) which is the GC CPU share reported by the runtime.
 //
 // Returns string with a trailing "%" sign.
 func FormatGCCPUFraction(fraction float64) string {
 	return fmt.Sprintf("%.4f%%", fraction*gcPercentMultiplier)
 }
 
-// FormatNanosAsDuration renders a nanosecond count as a friendly Go
-// duration. Returns a hyphen for non-positive values so the
-// caller can show "Last GC" with a glyph rather than a stale 1970 timestamp.
+// FormatNanosAsDuration renders a nanosecond count as a friendly Go duration. Returns a
+// hyphen for non-positive values so the caller can show "Last GC" with a glyph rather
+// than a stale 1970 timestamp.
 //
 // Takes nanoseconds (int64) which is the nanosecond count.
 //
@@ -76,16 +76,14 @@ func FormatNanosAsDuration(nanoseconds int64) string {
 	return time.Duration(nanoseconds).String()
 }
 
-// BuildBuildDetailRows renders the canonical row set for a BuildInfo
-// proto message. Rows are ordered for descending readability: identity
-// first (version, commit, go version), platform second (os, arch),
-// build/module metadata last.
+// BuildBuildDetailRows renders the canonical row set for a BuildInfo proto message. Rows
+// are ordered for descending readability: identity first (version, commit, go version),
+// platform second (os, arch), build/module metadata last.
 //
-// Takes build (*pb.BuildInfo) which carries the build metadata; nil
-// returns a nil slice so the caller can detect "no data".
+// Takes build (*pb.BuildInfo) which carries the build metadata; nil returns a nil slice
+// so the caller can detect "no data".
 //
-// Returns []DetailRow which is the labelled key/value pairs for the
-// detail-pane.
+// Returns []DetailRow which is the labelled key/value pairs for the detail-pane.
 func BuildBuildDetailRows(build *pb.BuildInfo) []DetailRow {
 	if build == nil {
 		return nil
@@ -104,12 +102,12 @@ func BuildBuildDetailRows(build *pb.BuildInfo) []DetailRow {
 	}
 }
 
-// BuildRuntimeDetailRows renders the canonical row set for a
-// RuntimeInfo proto message. The compiler row is included so callers
-// can see whether the binary was built with gc or gccgo.
+// BuildRuntimeDetailRows renders the canonical row set for a RuntimeInfo proto message.
+// The compiler row is included so callers can see whether the binary was built with gc or
+// gccgo.
 //
-// Takes runtime (*pb.RuntimeInfo) which carries the runtime config;
-// nil returns a nil slice.
+// Takes runtime (*pb.RuntimeInfo) which carries the runtime config; nil returns a nil
+// slice.
 //
 // Returns []DetailRow describing GOGC, GOMEMLIMIT, and the compiler.
 func BuildRuntimeDetailRows(runtime *pb.RuntimeInfo) []DetailRow {
@@ -123,15 +121,13 @@ func BuildRuntimeDetailRows(runtime *pb.RuntimeInfo) []DetailRow {
 	}
 }
 
-// BuildMemoryDetailRows renders the canonical row set for a MemoryInfo
-// proto message.
+// BuildMemoryDetailRows renders the canonical row set for a MemoryInfo proto message.
 //
-// Rows are grouped by purpose: top-level allocations first, then the
-// heap breakdown, then the stack and runtime metadata pools, then
-// counters.
+// Rows are grouped by purpose: top-level allocations first, then the heap breakdown, then
+// the stack and runtime metadata pools, then counters.
 //
-// Takes memory (*pb.MemoryInfo) which carries the memory snapshot; nil
-// returns a nil slice.
+// Takes memory (*pb.MemoryInfo) which carries the memory snapshot; nil returns a nil
+// slice.
 //
 // Returns []DetailRow describing every sampled memory metric.
 func BuildMemoryDetailRows(memory *pb.MemoryInfo) []DetailRow {
@@ -164,18 +160,16 @@ func BuildMemoryDetailRows(memory *pb.MemoryInfo) []DetailRow {
 	}
 }
 
-// BuildGCDetailRows renders the canonical row set for a GCInfo proto
-// message.
+// BuildGCDetailRows renders the canonical row set for a GCInfo proto message.
 //
-// When the proto carries a non-empty RecentPauses list the trailing
-// "Recent Pauses" row joins each pause via FormatNanosAsDuration so
-// callers get a consistent rendering of the recent-pause history.
+// When the proto carries a non-empty RecentPauses list the trailing "Recent Pauses" row
+// joins each pause via FormatNanosAsDuration so callers get a consistent rendering of the
+// recent-pause history.
 //
-// Takes gc (*pb.GCInfo) which carries the GC snapshot; nil returns a
-// nil slice.
+// Takes gc (*pb.GCInfo) which carries the GC snapshot; nil returns a nil slice.
 //
-// Returns []DetailRow describing cycles, pauses, CPU fraction, and the
-// next GC heap target.
+// Returns []DetailRow describing cycles, pauses, CPU fraction, and the next GC heap
+// target.
 func BuildGCDetailRows(gc *pb.GCInfo) []DetailRow {
 	if gc == nil {
 		return nil
@@ -203,18 +197,15 @@ func BuildGCDetailRows(gc *pb.GCInfo) []DetailRow {
 	return rows
 }
 
-// BuildProcessDetailRows renders the canonical row set for a
-// ProcessInfo proto message.
+// BuildProcessDetailRows renders the canonical row set for a ProcessInfo proto message.
 //
-// Rows are grouped: identifiers, thread / file-descriptor counts, RSS,
-// I/O counters, and the textual hostname / executable / cwd labels at
-// the end.
+// Rows are grouped: identifiers, thread / file-descriptor counts, RSS, I/O counters, and
+// the textual hostname / executable / cwd labels at the end.
 //
-// Takes process (*pb.ProcessInfo) which carries the process snapshot;
-// nil returns a nil slice.
+// Takes process (*pb.ProcessInfo) which carries the process snapshot; nil returns a nil
+// slice.
 //
-// Returns []DetailRow describing every process metric exposed by the
-// monitoring API.
+// Returns []DetailRow describing every process metric exposed by the monitoring API.
 func BuildProcessDetailRows(process *pb.ProcessInfo) []DetailRow {
 	if process == nil {
 		return nil

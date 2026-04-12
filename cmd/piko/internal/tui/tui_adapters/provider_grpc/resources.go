@@ -34,7 +34,9 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-var _ tui_domain.ResourceProvider = (*ResourceProvider)(nil)
+var (
+	_ tui_domain.ResourceProvider = (*ResourceProvider)(nil)
+)
 
 const (
 	// defaultRecentTasksLimit is the default limit for recent tasks queries.
@@ -107,11 +109,11 @@ const (
 	intFormat = "%d"
 )
 
-// ResourceProvider provides access to remote resources using gRPC.
-// It implements tui_domain.ResourceProvider and io.Closer.
+// ResourceProvider provides access to remote resources using gRPC. It implements
+// tui_domain.ResourceProvider and io.Closer.
 type ResourceProvider struct {
-	// lastError stores the most recent error from a refresh operation.
-	// Placed first for optimal alignment (16 bytes for error interface).
+	// lastError stores the most recent error from a refresh operation. Placed first for
+	// optimal alignment (16 bytes for error interface).
 	lastError error
 
 	// conn holds the gRPC connection and service clients.
@@ -136,8 +138,8 @@ type ResourceProvider struct {
 	mu sync.RWMutex
 }
 
-// NewResourceProvider creates a new ResourceProvider with the given connection
-// and refresh interval.
+// NewResourceProvider creates a new ResourceProvider with the given connection and
+// refresh interval.
 //
 // Takes conn (*Connection) which is the shared gRPC connection.
 // Takes interval (time.Duration) which sets how often data is refreshed.
@@ -190,8 +192,8 @@ func (p *ResourceProvider) RefreshInterval() time.Duration {
 
 // Refresh fetches the latest data via gRPC.
 //
-// Returns error when the data cannot be fetched, though partial failures are
-// tolerated and logged.
+// Returns error when the data cannot be fetched, though partial failures are tolerated
+// and logged.
 //
 // Safe for concurrent use. Updates internal state under a mutex lock.
 func (p *ResourceProvider) Refresh(ctx context.Context) error {
@@ -250,9 +252,9 @@ func (p *ResourceProvider) Refresh(ctx context.Context) error {
 //
 // Takes errs (...error) which is the set of errors to inspect.
 //
-// Returns bool which is true when at least one error is non-nil and every
-// non-nil error wraps ErrServiceUnavailable; false when errs is empty, all
-// nil, or any error is of a different kind.
+// Returns bool which is true when at least one error is non-nil and every non-nil error
+// wraps ErrServiceUnavailable; false when errs is empty, all nil, or any error is of a
+// different kind.
 func onlyServiceUnavailable(errs ...error) bool {
 	hasAny := false
 	for _, err := range errs {
@@ -269,8 +271,8 @@ func onlyServiceUnavailable(errs ...error) bool {
 
 // Kinds returns the resource kinds this provider supports.
 //
-// Returns []string which contains the kind identifiers for orchestrator tasks,
-// workflows, and registry artefacts.
+// Returns []string which contains the kind identifiers for orchestrator tasks, workflows,
+// and registry artefacts.
 func (*ResourceProvider) Kinds() []string {
 	return []string{kindOrchestratorTask, kindOrchestratorWorkflow, kindRegistryArtefact}
 }
@@ -307,8 +309,8 @@ func (p *ResourceProvider) List(_ context.Context, kind string) ([]tui_domain.Re
 
 // Summary returns aggregate counts by status.
 //
-// Returns map[string]map[tui_domain.ResourceStatus]int which contains counts
-// grouped by resource kind and status.
+// Returns map[string]map[tui_domain.ResourceStatus]int which contains counts grouped by
+// resource kind and status.
 // Returns error when retrieval fails.
 //
 // Safe for concurrent use; acquires a read lock on the provider.
@@ -327,12 +329,11 @@ func (p *ResourceProvider) Summary(_ context.Context) (map[string]map[tui_domain
 
 // fetchOrchestratorData retrieves orchestrator data via gRPC.
 //
-// Returns map[string]map[tui_domain.ResourceStatus]int which contains
-// task counts grouped by kind and status.
+// Returns map[string]map[tui_domain.ResourceStatus]int which contains task counts grouped
+// by kind and status.
 // Returns []tui_domain.Resource which contains the recent tasks.
 // Returns []tui_domain.Resource which contains the workflow summaries.
-// Returns error when fetching task summary, recent tasks, or workflow
-// data fails.
+// Returns error when fetching task summary, recent tasks, or workflow data fails.
 func (p *ResourceProvider) fetchOrchestratorData(ctx context.Context) (
 	summary map[string]map[tui_domain.ResourceStatus]int,
 	tasks []tui_domain.Resource,
@@ -379,11 +380,11 @@ func (p *ResourceProvider) fetchOrchestratorData(ctx context.Context) (
 
 // fetchRegistryData retrieves registry data via gRPC.
 //
-// Returns map[string]map[tui_domain.ResourceStatus]int which contains resource
-// counts grouped by kind and status.
+// Returns map[string]map[tui_domain.ResourceStatus]int which contains resource counts
+// grouped by kind and status.
 // Returns []tui_domain.Resource which contains the most recent artefacts.
-// Returns error when fetching artefact summary, variant summary, or recent
-// artefacts fails.
+// Returns error when fetching artefact summary, variant summary, or recent artefacts
+// fails.
 func (p *ResourceProvider) fetchRegistryData(ctx context.Context) (
 	map[string]map[tui_domain.ResourceStatus]int,
 	[]tui_domain.Resource,
@@ -433,8 +434,8 @@ func (p *ResourceProvider) fetchRegistryData(ctx context.Context) (
 //
 // Takes task (*pb.TaskListItem) which is the protobuf task to convert.
 //
-// Returns tui_domain.Resource which is the converted TUI resource with
-// metadata including workflow ID, executor, priority, and attempt count.
+// Returns tui_domain.Resource which is the converted TUI resource with metadata including
+// workflow ID, executor, priority, and attempt count.
 func convertTask(task *pb.TaskListItem) tui_domain.Resource {
 	id := task.GetId()
 	displayID := id
@@ -463,11 +464,9 @@ func convertTask(task *pb.TaskListItem) tui_domain.Resource {
 
 // convertWorkflow converts a protobuf workflow summary to a TUI resource.
 //
-// Takes workflow (*pb.WorkflowSummary) which provides the workflow data to
-// convert.
+// Takes workflow (*pb.WorkflowSummary) which provides the workflow data to convert.
 //
-// Returns tui_domain.Resource which contains the formatted workflow data for
-// display.
+// Returns tui_domain.Resource which contains the formatted workflow data for display.
 func convertWorkflow(workflow *pb.WorkflowSummary) tui_domain.Resource {
 	id := workflow.GetWorkflowId()
 	displayID := id
@@ -523,8 +522,7 @@ func convertWorkflow(workflow *pb.WorkflowSummary) tui_domain.Resource {
 
 // convertArtefact converts a protobuf artefact to a TUI resource.
 //
-// Takes artefact (*pb.ArtefactListItem) which is the protobuf artefact to
-// convert.
+// Takes artefact (*pb.ArtefactListItem) which is the protobuf artefact to convert.
 //
 // Returns tui_domain.Resource which is the converted TUI resource.
 func convertArtefact(artefact *pb.ArtefactListItem) tui_domain.Resource {

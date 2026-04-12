@@ -18,27 +18,29 @@
 
 package captcha_dto
 
-import "time"
+import (
+	"time"
+)
 
 // VerifyResponse contains the result of a captcha verification.
 type VerifyResponse struct {
 	// Timestamp is the time the captcha challenge was solved.
 	Timestamp time.Time
 
-	// Score is the normalised confidence score where 0.0 means likely bot
-	// and 1.0 means likely human. Always populated by all providers.
+	// Score is the normalised confidence score where 0.0 means likely bot and 1.0 means
+	// likely human. Always populated by all providers.
 	Score *float64
 
-	// Action is the action name echoed back by the provider, used to confirm
-	// the token was generated for the expected action.
+	// Action is the action name echoed back by the provider, used to confirm the token was
+	// generated for the expected action.
 	Action string
 
-	// Hostname is the hostname the captcha token was issued for, as reported
-	// by the provider.
+	// Hostname is the hostname the captcha token was issued for, as reported by the
+	// provider.
 	Hostname string
 
-	// ErrorCodes contains provider-specific error codes when verification
-	// fails. These are useful for debugging but should not be shown to users.
+	// ErrorCodes contains provider-specific error codes when verification fails. These are
+	// useful for debugging but should not be shown to users.
 	ErrorCodes []string
 
 	// Success indicates whether the captcha verification passed.

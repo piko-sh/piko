@@ -25,23 +25,26 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this bigram analyser.
-const Language = "swedish"
+const (
+	// Language is the language code for this bigram analyser.
+	Language = "swedish"
 
-// minFieldLength is the minimum letter count for bigram analysis.
-const minFieldLength = 4
+	// minFieldLength is the minimum letter count for bigram analysis.
+	minFieldLength = 4
 
-// maxAnalyseLength is the maximum text byte length processed during analysis.
-const maxAnalyseLength = 4096
+	// maxAnalyseLength is the maximum text byte length processed during analysis.
+	maxAnalyseLength = 4096
+)
 
-var _ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+var (
+	_ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+)
 
-// BigramAnalyser provides Swedish character bigram frequency analysis
-// for detecting gibberish or random text.
+// BigramAnalyser provides Swedish character bigram frequency analysis for detecting
+// gibberish or random text.
 type BigramAnalyser struct{}
 
-// BigramFrequencyRatio returns the ratio of uncommon character bigrams
-// to total bigrams.
+// BigramFrequencyRatio returns the ratio of uncommon character bigrams to total bigrams.
 //
 // Takes text (string) which is the text to analyse.
 //
@@ -100,44 +103,46 @@ func init() {
 	linguistics_domain.RegisterBigramAnalyserFactory(Language, Factory)
 }
 
-// swedishBigrams contains the most frequent Swedish letter bigrams.
-var swedishBigrams = map[string]struct{}{
-	"en": {}, "er": {}, "an": {}, "de": {}, "et": {},
-	"te": {}, "in": {}, "re": {}, "ha": {}, "at": {},
-	"ar": {}, "or": {}, "st": {}, "nd": {}, "tt": {},
-	"om": {}, "el": {}, "on": {}, "la": {}, "as": {},
-	"sk": {}, "sa": {}, "le": {}, "ra": {}, "ta": {},
-	"na": {}, "ri": {}, "li": {}, "ll": {}, "to": {},
-	"is": {}, "ka": {}, "ko": {}, "sv": {}, "ns": {},
-	"ts": {}, "ag": {}, "da": {}, "me": {}, "ni": {},
-	"va": {}, "ga": {}, "ma": {}, "rs": {}, "pa": {},
-	"il": {}, "ig": {}, "am": {}, "nn": {}, "mm": {},
-	"fo": {}, "rt": {}, "av": {}, "un": {}, "so": {},
-	"ro": {}, "mi": {}, "be": {}, "ss": {}, "kt": {},
-	"up": {}, "tr": {}, "gr": {}, "lj": {}, "ky": {},
-	"em": {}, "ed": {}, "ef": {}, "by": {}, "fa": {},
-	"hu": {}, "ju": {}, "mo": {}, "no": {}, "op": {},
-	"pr": {}, "sl": {}, "sp": {}, "tv": {}, "vi": {},
-	"yr": {}, "ak": {}, "bl": {}, "ck": {}, "dr": {},
-	"fl": {}, "hj": {}, "ja": {}, "ke": {}, "kl": {},
-	"kr": {}, "ku": {}, "lo": {}, "ly": {}, "my": {},
-	"nk": {}, "ot": {}, "pl": {}, "pe": {}, "ov": {},
-	"pi": {}, "pu": {}, "py": {}, "sj": {}, "sn": {},
-	"tj": {}, "ty": {}, "ul": {}, "vu": {}, "cy": {},
-	"ek": {}, "fj": {}, "fr": {}, "gj": {}, "he": {},
-	"hi": {}, "id": {}, "if": {}, "ik": {}, "im": {},
-	"os": {}, "ox": {}, "oc": {}, "of": {}, "nt": {},
-	"ng": {}, "lt": {}, "iv": {}, "ir": {}, "ip": {},
-	"hy": {}, "gn": {}, "ge": {}, "fu": {}, "fi": {},
-	"fe": {}, "ey": {}, "ex": {}, "ev": {}, "eu": {},
-	"es": {}, "ep": {}, "eo": {}, "eb": {}, "ea": {},
-	"dy": {}, "du": {}, "dj": {}, "di": {}, "co": {},
-	"ci": {}, "ch": {}, "ca": {}, "bu": {}, "br": {},
-	"bo": {}, "bj": {}, "bi": {}, "så": {}, "år": {},
-	"åk": {}, "ål": {}, "ån": {}, "ås": {}, "åv": {},
-	"ök": {}, "öm": {}, "ön": {}, "öp": {}, "ör": {},
-	"ös": {}, "öt": {}, "ho": {}, "hå": {}, "hö": {},
-	"äl": {}, "är": {}, "äs": {}, "åt": {}, "öv": {},
-	"nå": {}, "do": {}, "ob": {}, "od": {}, "oh": {},
-	"ok": {},
-}
+var (
+	// swedishBigrams contains the most frequent Swedish letter bigrams.
+	swedishBigrams = map[string]struct{}{
+		"en": {}, "er": {}, "an": {}, "de": {}, "et": {},
+		"te": {}, "in": {}, "re": {}, "ha": {}, "at": {},
+		"ar": {}, "or": {}, "st": {}, "nd": {}, "tt": {},
+		"om": {}, "el": {}, "on": {}, "la": {}, "as": {},
+		"sk": {}, "sa": {}, "le": {}, "ra": {}, "ta": {},
+		"na": {}, "ri": {}, "li": {}, "ll": {}, "to": {},
+		"is": {}, "ka": {}, "ko": {}, "sv": {}, "ns": {},
+		"ts": {}, "ag": {}, "da": {}, "me": {}, "ni": {},
+		"va": {}, "ga": {}, "ma": {}, "rs": {}, "pa": {},
+		"il": {}, "ig": {}, "am": {}, "nn": {}, "mm": {},
+		"fo": {}, "rt": {}, "av": {}, "un": {}, "so": {},
+		"ro": {}, "mi": {}, "be": {}, "ss": {}, "kt": {},
+		"up": {}, "tr": {}, "gr": {}, "lj": {}, "ky": {},
+		"em": {}, "ed": {}, "ef": {}, "by": {}, "fa": {},
+		"hu": {}, "ju": {}, "mo": {}, "no": {}, "op": {},
+		"pr": {}, "sl": {}, "sp": {}, "tv": {}, "vi": {},
+		"yr": {}, "ak": {}, "bl": {}, "ck": {}, "dr": {},
+		"fl": {}, "hj": {}, "ja": {}, "ke": {}, "kl": {},
+		"kr": {}, "ku": {}, "lo": {}, "ly": {}, "my": {},
+		"nk": {}, "ot": {}, "pl": {}, "pe": {}, "ov": {},
+		"pi": {}, "pu": {}, "py": {}, "sj": {}, "sn": {},
+		"tj": {}, "ty": {}, "ul": {}, "vu": {}, "cy": {},
+		"ek": {}, "fj": {}, "fr": {}, "gj": {}, "he": {},
+		"hi": {}, "id": {}, "if": {}, "ik": {}, "im": {},
+		"os": {}, "ox": {}, "oc": {}, "of": {}, "nt": {},
+		"ng": {}, "lt": {}, "iv": {}, "ir": {}, "ip": {},
+		"hy": {}, "gn": {}, "ge": {}, "fu": {}, "fi": {},
+		"fe": {}, "ey": {}, "ex": {}, "ev": {}, "eu": {},
+		"es": {}, "ep": {}, "eo": {}, "eb": {}, "ea": {},
+		"dy": {}, "du": {}, "dj": {}, "di": {}, "co": {},
+		"ci": {}, "ch": {}, "ca": {}, "bu": {}, "br": {},
+		"bo": {}, "bj": {}, "bi": {}, "så": {}, "år": {},
+		"åk": {}, "ål": {}, "ån": {}, "ås": {}, "åv": {},
+		"ök": {}, "öm": {}, "ön": {}, "öp": {}, "ör": {},
+		"ös": {}, "öt": {}, "ho": {}, "hå": {}, "hö": {},
+		"äl": {}, "är": {}, "äs": {}, "åt": {}, "öv": {},
+		"nå": {}, "do": {}, "ob": {}, "od": {}, "oh": {},
+		"ok": {},
+	}
+)

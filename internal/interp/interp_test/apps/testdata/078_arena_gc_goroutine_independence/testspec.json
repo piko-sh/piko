@@ -1,0 +1,4 @@
+{
+  "description": "Spawns multiple goroutines, each performing its own heavy string allocation. Verifies that per-arena GC operates independently across goroutines (each goroutine owns its arena and GCs without coordination).",
+  "expected": "workers=5 totalLen=2500000"
+}

@@ -71,8 +71,8 @@ const (
 	// HealthStateHealthy means the component is working normally.
 	HealthStateHealthy
 
-	// HealthStateDegraded indicates the component is working but with reduced
-	// performance or features.
+	// HealthStateDegraded indicates the component is working but with reduced performance or
+	// features.
 	HealthStateDegraded
 
 	// HealthStateUnhealthy indicates the component is not working.
@@ -108,8 +108,7 @@ type MetricSeries struct {
 
 // Latest returns the most recent value in the series, or nil if empty.
 //
-// Returns *MetricValue which is the newest entry, or nil when the series has
-// no values.
+// Returns *MetricValue which is the newest entry, or nil when the series has no values.
 func (s *MetricSeries) Latest() *MetricValue {
 	if len(s.Values) == 0 {
 		return nil
@@ -177,21 +176,19 @@ func (s *Span) IsError() bool {
 	return s.Status == SpanStatusError
 }
 
-// ResourceStatus represents the health state of a resource. It implements
-// fmt.Stringer.
+// ResourceStatus represents the health state of a resource. It implements fmt.Stringer.
 type ResourceStatus int
 
 // String returns a human-readable representation of the resource status.
 //
-// Returns string which is one of: unknown, healthy, degraded, unhealthy, or
-// pending.
+// Returns string which is one of: unknown, healthy, degraded, unhealthy, or pending.
 func (s ResourceStatus) String() string {
 	return [...]string{"unknown", "healthy", "degraded", "unhealthy", "pending"}[s]
 }
 
-// Resource represents an item that can be shown in the TUI panels.
-// It holds shared data for registry artefacts, orchestrator tasks, workflows,
-// and other domain objects displayed in the interface.
+// Resource represents an item that can be shown in the TUI panels. It holds shared data
+// for registry artefacts, orchestrator tasks, workflows, and other domain objects
+// displayed in the interface.
 type Resource struct {
 	// CreatedAt is when the resource was created.
 	CreatedAt time.Time
@@ -199,8 +196,8 @@ type Resource struct {
 	// UpdatedAt is when the resource was last modified.
 	UpdatedAt time.Time
 
-	// Metadata holds key-value pairs such as priority, attempt count, and
-	// progress details for the resource.
+	// Metadata holds key-value pairs such as priority, attempt count, and progress details
+	// for the resource.
 	Metadata map[string]string
 
 	// Kind specifies the type of resource.
@@ -229,14 +226,13 @@ func (r *Resource) HasChildren() bool {
 	return len(r.Children) > 0
 }
 
-// ProviderStatus represents the connection state of a provider.
-// It implements fmt.Stringer for display purposes.
+// ProviderStatus represents the connection state of a provider. It implements
+// fmt.Stringer for display purposes.
 type ProviderStatus int
 
 // String returns a human-readable representation of the provider status.
 //
-// Returns string which is one of "disconnected", "connecting", "connected",
-// or "error".
+// Returns string which is one of "disconnected", "connecting", "connected", or "error".
 func (s ProviderStatus) String() string {
 	return [...]string{"disconnected", "connecting", "connected", "error"}[s]
 }
@@ -262,22 +258,22 @@ type ProviderInfo struct {
 	ErrorCount int64
 }
 
-// DataUpdatedMessage is a Bubble Tea message that tells panels when providers have
-// new data. Panels should listen for this message to refresh their display.
+// DataUpdatedMessage is a Bubble Tea message that tells panels when providers have new
+// data. Panels should listen for this message to refresh their display.
 type DataUpdatedMessage struct {
 	// Time is when the data was last updated.
 	Time time.Time
 }
 
-// TickMessage is a bubbletea message sent at regular intervals to all panels.
-// Panels can use this for background updates such as sampling stats.
+// TickMessage is a bubbletea message sent at regular intervals to all panels. Panels can
+// use this for background updates such as sampling stats.
 type TickMessage struct {
 	// Time is the moment when the tick occurred.
 	Time time.Time
 }
 
-// HealthState represents the health of a component. It implements
-// fmt.Stringer for display purposes.
+// HealthState represents the health of a component. It implements fmt.Stringer for
+// display purposes.
 type HealthState int
 
 // String returns a human-readable representation of the health state.
@@ -317,8 +313,8 @@ func (s *HealthStatus) IsHealthy() bool {
 
 // CountByState returns the count of dependencies in each state.
 //
-// Returns map[HealthState]int which maps each health state to the number of
-// dependencies in that state.
+// Returns map[HealthState]int which maps each health state to the number of dependencies
+// in that state.
 func (s *HealthStatus) CountByState() map[HealthState]int {
 	counts := make(map[HealthState]int)
 	for _, dependency := range s.Dependencies {
@@ -327,8 +323,8 @@ func (s *HealthStatus) CountByState() map[HealthState]int {
 	return counts
 }
 
-// Providers holds all the data providers for the TUI.
-// This is passed to NewService to inject dependencies.
+// Providers holds all the data providers for the TUI. This is passed to NewService to
+// inject dependencies.
 type Providers struct {
 	// Metrics holds the data providers for metrics collection.
 	Metrics []MetricsProvider
@@ -348,8 +344,8 @@ type Providers struct {
 	// FDs holds providers that track open file descriptors.
 	FDs []FDsProvider
 
-	// Watchdog holds providers that surface runtime anomaly-detector
-	// state, profiles, history, and live events.
+	// Watchdog holds providers that surface runtime anomaly-detector state, profiles,
+	// history, and live events.
 	Watchdog []WatchdogProvider
 
 	// ProvidersInfo holds the inspector port for `piko get providers`.

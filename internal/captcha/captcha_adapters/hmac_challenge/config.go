@@ -34,8 +34,8 @@ const (
 )
 
 var (
-	// ErrSecretTooShort is returned when the HMAC secret key is shorter than
-	// the minimum required length.
+	// ErrSecretTooShort is returned when the HMAC secret key is shorter than the minimum
+	// required length.
 	ErrSecretTooShort = errors.New("hmac_challenge: secret must be at least 16 bytes")
 
 	// ErrSecretEmpty is returned when the HMAC secret key is empty.
@@ -44,27 +44,27 @@ var (
 	// ErrNegativeTTL is returned when the TTL is negative.
 	ErrNegativeTTL = errors.New("hmac_challenge: TTL must not be negative")
 
-	// ErrInvalidAction is returned when an action name contains the token
-	// separator character.
+	// ErrInvalidAction is returned when an action name contains the token separator
+	// character.
 	ErrInvalidAction = errors.New("hmac_challenge: action name contains invalid character")
 
-	// errHealthCheckFailed is returned when the health check round-trip
-	// verification returns false.
+	// errHealthCheckFailed is returned when the health check round-trip verification returns
+	// false.
 	errHealthCheckFailed = errors.New("hmac_challenge: health check verification returned false")
 )
 
 // Config holds configuration for the HMAC challenge captcha provider.
 type Config struct {
-	// Clock provides the time source for token generation and TTL checks.
-	// Defaults to the real system clock when nil.
+	// Clock provides the time source for token generation and TTL checks. Defaults to the
+	// real system clock when nil.
 	Clock clock.Clock
 
-	// Secret is the HMAC secret key used to sign and verify challenge tokens.
-	// Must be at least 16 bytes.
+	// Secret is the HMAC secret key used to sign and verify challenge tokens. Must be at
+	// least 16 bytes.
 	Secret []byte
 
-	// TTL is how long a generated challenge token remains valid. Defaults to
-	// 5 minutes if zero.
+	// TTL is how long a generated challenge token remains valid. Defaults to 5 minutes if
+	// zero.
 	TTL time.Duration
 }
 

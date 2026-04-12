@@ -31,57 +31,56 @@ const (
 	// DefaultMaxLength is the default maximum length for Dutch phonetic codes.
 	DefaultMaxLength = 6
 
-	// latinAlphabetSize is the number of letters in the Latin alphabet after
-	// Unicode normalisation.
+	// latinAlphabetSize is the number of letters in the Latin alphabet after Unicode
+	// normalisation.
 	latinAlphabetSize = 26
 )
 
-// charHandler processes a character at the given position and returns the next
-// position.
+// charHandler processes a character at the given position and returns the next position.
 type charHandler func(word string, position int, result *strings.Builder) int
 
-// charHandlers is an array dispatch table for character processing.
-// Index is calculated as character - 'A' for uppercase letters
-// (A=0, B=1, ..., Z=25).
-var charHandlers = [latinAlphabetSize]charHandler{
-	0:  handleA,
-	1:  handleB,
-	2:  handleC,
-	3:  handleD,
-	4:  handleE,
-	5:  handleF,
-	6:  handleG,
-	7:  handleH,
-	8:  handleI,
-	9:  handleJ,
-	10: handleK,
-	11: handleL,
-	12: handleM,
-	13: handleN,
-	14: handleO,
-	15: handleP,
-	16: handleQ,
-	17: handleR,
-	18: handleS,
-	19: handleT,
-	20: handleU,
-	21: handleV,
-	22: handleW,
-	23: handleX,
-	24: handleY,
-	25: handleZ,
-}
+var (
+	// charHandlers is an array dispatch table for character processing. Index is calculated
+	// as character - 'A' for uppercase letters (A=0, B=1, ..., Z=25).
+	charHandlers = [latinAlphabetSize]charHandler{
+		0:  handleA,
+		1:  handleB,
+		2:  handleC,
+		3:  handleD,
+		4:  handleE,
+		5:  handleF,
+		6:  handleG,
+		7:  handleH,
+		8:  handleI,
+		9:  handleJ,
+		10: handleK,
+		11: handleL,
+		12: handleM,
+		13: handleN,
+		14: handleO,
+		15: handleP,
+		16: handleQ,
+		17: handleR,
+		18: handleS,
+		19: handleT,
+		20: handleU,
+		21: handleV,
+		22: handleW,
+		23: handleX,
+		24: handleY,
+		25: handleZ,
+	}
+)
 
-// Encoder provides phonetic encoding using Dutch phonetic rules.
-// It implements the linguistics_domain.PhoneticEncoderPort interface.
+// Encoder provides phonetic encoding using Dutch phonetic rules. It implements the
+// linguistics_domain.PhoneticEncoderPort interface.
 type Encoder struct {
-	// maxLength is the maximum length in runes of the output code; 0 means no
-	// limit.
+	// maxLength is the maximum length in runes of the output code; 0 means no limit.
 	maxLength int
 }
 
-// NewWithMaxLength creates a new Dutch phonetic encoder with a custom maximum
-// code length.
+// NewWithMaxLength creates a new Dutch phonetic encoder with a custom maximum code
+// length.
 //
 // Takes maxLength (int) which controls the maximum length of phonetic codes.
 //
@@ -98,8 +97,8 @@ func NewWithMaxLength(maxLength int) (*Encoder, error) {
 
 // Encode returns the phonetic encoding of a Dutch word.
 //
-// Takes word (string) which is the word to encode phonetically. The word should
-// be normalised for best results.
+// Takes word (string) which is the word to encode phonetically. The word should be
+// normalised for best results.
 //
 // Returns string which is the phonetic code.
 func (e *Encoder) Encode(word string) string {
@@ -126,7 +125,9 @@ func (*Encoder) GetLanguage() string {
 	return Language
 }
 
-var _ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+var (
+	_ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+)
 
 // Factory creates a new Dutch phonetic encoder instance. Use this with
 // linguistics_domain.RegisterPhoneticEncoderFactory for explicit registration.
@@ -145,8 +146,8 @@ func New() (*Encoder, error) {
 	return NewWithMaxLength(DefaultMaxLength)
 }
 
-// processCharacter processes a single character and returns the next position.
-// Uses array dispatch table for O(1) handler lookup.
+// processCharacter processes a single character and returns the next position. Uses array
+// dispatch table for O(1) handler lookup.
 //
 // Takes word (string) which is the input word being processed.
 // Takes position (int) which is the current position in the word.

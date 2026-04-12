@@ -25,15 +25,14 @@ import (
 	"strings"
 )
 
-// buildNamedDestsDict writes a /Dests name tree for internal link targets
-// and returns the catalogue entry string.
+// buildNamedDestsDict writes a /Dests name tree for internal link targets and returns the
+// catalogue entry string.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
-// Takes pageObjNumbers ([]int) which maps page indices to their PDF
-// object numbers.
+// Takes pageObjNumbers ([]int) which maps page indices to their PDF object numbers.
 //
-// Returns string which is the catalogue entry, or an empty string if no
-// named destinations were collected.
+// Returns string which is the catalogue entry, or an empty string if no named
+// destinations were collected.
 func (painter *PdfPainter) buildNamedDestsDict(writer *PdfDocumentWriter, pageObjNumbers []int) string {
 	if len(painter.namedDests) == 0 {
 		return ""

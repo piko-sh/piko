@@ -29,11 +29,13 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// logKeyPath is the logger key for file paths.
-const logKeyPath = "path"
+const (
+	// logKeyPath is the logger key for file paths.
+	logKeyPath = "path"
+)
 
-// fileScanner handles recursive discovery of markdown files in a directory.
-// All file operations are sandboxed for security.
+// fileScanner handles recursive discovery of markdown files in a directory. All file
+// operations are sandboxed for security.
 //
 // Design Philosophy:
 //   - Single responsibility: Only concerned with file discovery
@@ -65,18 +67,16 @@ type discoveredFile struct {
 	modTime int64
 }
 
-// scanDirectory recursively scans a directory for markdown files.
-// The rootPath should be relative to the sandbox root (use "." for the root).
+// scanDirectory recursively scans a directory for markdown files. The rootPath should be
+// relative to the sandbox root (use "." for the root).
 //
-// Takes rootPath (string) which is the path relative to the sandbox root to
-// scan.
+// Takes rootPath (string) which is the path relative to the sandbox root to scan.
 //
 // Returns []*discoveredFile which contains the discovered markdown files.
 // Returns error when the directory cannot be read.
 //
-// Skips hidden directories (starting with '.'), node_modules, and .git.
-// Only returns files with .md extension. Returns an empty slice if the
-// directory is empty.
+// Skips hidden directories (starting with '.'), node_modules, and .git. Only returns
+// files with .md extension. Returns an empty slice if the directory is empty.
 func (s *fileScanner) scanDirectory(ctx context.Context, rootPath string) ([]*discoveredFile, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("Scanning directory for markdown files",
@@ -222,8 +222,8 @@ func (s *fileScanner) buildDiscoveredFile(ctx context.Context, rootPath, path st
 	}, nil
 }
 
-// newFileScanner creates a new file scanner that uses the provided sandbox
-// for secure file system access.
+// newFileScanner creates a new file scanner that uses the provided sandbox for secure
+// file system access.
 //
 // Takes sandbox (safedisk.Sandbox) which provides secure file system access.
 //
@@ -243,8 +243,7 @@ func isMarkdownFile(name string) bool {
 	return strings.HasSuffix(strings.ToLower(name), ".md")
 }
 
-// shouldSkipDirectory reports whether a directory should be skipped during
-// scanning.
+// shouldSkipDirectory reports whether a directory should be skipped during scanning.
 //
 // Takes name (string) which is the directory name to check.
 //

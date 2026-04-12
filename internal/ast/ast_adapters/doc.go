@@ -16,27 +16,26 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package ast_adapters implements FlatBuffers serialisation and multi-level
-// caching for template ASTs.
+// Package ast_adapters implements FlatBuffers serialisation and multi-level caching for
+// template ASTs.
 //
-// It combines fast in-memory caching with persistent disk storage,
-// using FlatBuffers for compact binary serialisation, and automatic
-// schema versioning for cache invalidation across Piko updates.
+// It combines fast in-memory caching with persistent disk storage, using FlatBuffers for
+// compact binary serialisation, and automatic schema versioning for cache invalidation
+// across Piko updates.
 //
 // # Caching strategy
 //
-// The cache uses a two-level architecture. L1 is a fast in-memory
-// cache using Otter with configurable TTL and capacity. L2 is
-// persistent FlatBuffers files on disk with lazy TTL eviction.
+// The cache uses a two-level architecture. L1 is a fast in-memory cache using Otter with
+// configurable TTL and capacity. L2 is persistent FlatBuffers files on disk with lazy TTL
+// eviction.
 //
-// Read operations use read-through: L1 misses automatically load
-// from L2. Write operations use write-through: both levels are
-// updated atomically. Expired L2 entries are purged lazily by
-// background deletion workers when next accessed.
+// Read operations use read-through: L1 misses automatically load from L2. Write
+// operations use write-through: both levels are updated atomically. Expired L2 entries
+// are purged lazily by background deletion workers when next accessed.
 //
 // # Thread safety
 //
-// All cache operations are safe for concurrent use. The L1 cache
-// handles concurrent access internally, and the L2 file cache uses
-// atomic file operations with background deletion workers.
+// All cache operations are safe for concurrent use. The L1 cache handles concurrent
+// access internally, and the L2 file cache uses atomic file operations with background
+// deletion workers.
 package ast_adapters

@@ -28,18 +28,19 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-var _ ratelimiter_domain.TokenBucketStorePort = (*InMemoryTokenBucketStore)(nil)
+var (
+	_ ratelimiter_domain.TokenBucketStorePort = (*InMemoryTokenBucketStore)(nil)
+)
 
 // InMemoryTokenBucketStoreOption configures an InMemoryTokenBucketStore.
 type InMemoryTokenBucketStoreOption func(*InMemoryTokenBucketStore)
 
-// InMemoryTokenBucketStore is an in-process implementation of
-// TokenBucketStorePort that stores bucket state in a mutex-protected map.
-// It uses the pure RefillBucket algorithm from ratelimiter_domain for token
-// replenishment.
+// InMemoryTokenBucketStore is an in-process implementation of TokenBucketStorePort that
+// stores bucket state in a mutex-protected map. It uses the pure RefillBucket algorithm
+// from ratelimiter_domain for token replenishment.
 //
-// This store is suitable for single-instance rate limiting where distributed
-// state is not required, such as per-provider email throttling.
+// This store is suitable for single-instance rate limiting where distributed state is not
+// required, such as per-provider email throttling.
 //
 // All methods are safe for concurrent use.
 type InMemoryTokenBucketStore struct {
@@ -55,8 +56,8 @@ type InMemoryTokenBucketStore struct {
 
 // NewInMemoryTokenBucketStore creates an in-memory token bucket store.
 //
-// Takes opts (...InMemoryTokenBucketStoreOption) which are optional
-// configuration functions.
+// Takes opts (...InMemoryTokenBucketStoreOption) which are optional configuration
+// functions.
 //
 // Returns *InMemoryTokenBucketStore ready for use.
 func NewInMemoryTokenBucketStore(opts ...InMemoryTokenBucketStoreOption) *InMemoryTokenBucketStore {
@@ -74,8 +75,7 @@ func NewInMemoryTokenBucketStore(opts ...InMemoryTokenBucketStoreOption) *InMemo
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens to take.
-// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket
-// parameters.
+// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket parameters.
 //
 // Returns bool which is true if tokens were successfully taken.
 // Returns error which is always nil for the in-memory store.
@@ -107,8 +107,7 @@ func (s *InMemoryTokenBucketStore) TryTake(_ context.Context, key string, n floa
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens needed.
-// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket
-// parameters.
+// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket parameters.
 //
 // Returns time.Duration which is the estimated wait time.
 // Returns error which is always nil for the in-memory store.
@@ -151,12 +150,12 @@ func (s *InMemoryTokenBucketStore) DeleteBucket(_ context.Context, key string) e
 // getOrCreate returns the existing bucket state or creates a new one.
 //
 // Takes key (string) which identifies the bucket to retrieve or create.
-// Takes config (*ratelimiter_dto.TokenBucketConfig) which specifies the bucket
-// settings for new buckets.
+// Takes config (*ratelimiter_dto.TokenBucketConfig) which specifies the bucket settings
+// for new buckets.
 // Takes nowNano (int64) which provides the current time in nanoseconds.
 //
-// Returns *ratelimiter_domain.TokenBucketState which is the existing or newly
-// created bucket state.
+// Returns *ratelimiter_domain.TokenBucketState which is the existing or newly created
+// bucket state.
 func (s *InMemoryTokenBucketStore) getOrCreate(key string, config *ratelimiter_dto.TokenBucketConfig, nowNano int64) *ratelimiter_domain.TokenBucketState {
 	state := s.buckets[key]
 	if state == nil {

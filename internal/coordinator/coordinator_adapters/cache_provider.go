@@ -30,25 +30,23 @@ import (
 )
 
 const (
-	// BlueprintBuildResults is the factory blueprint name for creating typed
-	// build result caches via the cache hexagon.
+	// BlueprintBuildResults is the factory blueprint name for creating typed build result
+	// caches via the cache hexagon.
 	BlueprintBuildResults = "coordinator-build-results"
 
-	// BlueprintIntrospection is the factory blueprint name for creating typed
-	// introspection caches via the cache hexagon.
+	// BlueprintIntrospection is the factory blueprint name for creating typed introspection
+	// caches via the cache hexagon.
 	BlueprintIntrospection = "coordinator-introspection"
 )
 
-// createBuildResultCache is the factory function for creating typed build
-// result caches. It type-asserts the options and delegates to the Otter
-// provider factory.
+// createBuildResultCache is the factory function for creating typed build result caches.
+// It type-asserts the options and delegates to the Otter provider factory.
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *annotator_dto.ProjectAnnotationResult].
+// Takes options (any) which must be cache_dto.Options[string,
+// *annotator_dto.ProjectAnnotationResult].
 //
 // Returns any which is the created typed cache instance.
-// Returns error when the options type is incorrect or cache creation
-// fails.
+// Returns error when the options type is incorrect or cache creation fails.
 func createBuildResultCache(
 	_ cache_domain.Service,
 	_ string,
@@ -70,16 +68,14 @@ func createBuildResultCache(
 	return cache, nil
 }
 
-// createIntrospectionCache is the factory function for creating typed
-// introspection caches. It type-asserts the options and delegates to the Otter
-// provider factory.
+// createIntrospectionCache is the factory function for creating typed introspection
+// caches. It type-asserts the options and delegates to the Otter provider factory.
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *coordinator_domain.IntrospectionCacheEntry].
+// Takes options (any) which must be cache_dto.Options[string,
+// *coordinator_domain.IntrospectionCacheEntry].
 //
 // Returns any which is the created typed cache instance.
-// Returns error when the options type is incorrect or cache creation
-// fails.
+// Returns error when the options type is incorrect or cache creation fails.
 func createIntrospectionCache(
 	_ cache_domain.Service,
 	_ string,

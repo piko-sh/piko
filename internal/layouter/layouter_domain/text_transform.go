@@ -25,19 +25,17 @@ import (
 	"golang.org/x/text/language"
 )
 
-// applyTextTransform returns the text with the CSS text-transform
-// property applied.
+// applyTextTransform returns the text with the CSS text-transform property applied.
 //
-// For uppercase and lowercase the entire string is converted using
-// Unicode-aware case mapping. For capitalise, the first letter of each
-// word is title-cased using language-undetermined rules per the CSS
-// specification.
+// For uppercase and lowercase the entire string is converted using Unicode-aware case
+// mapping. For capitalise, the first letter of each word is title-cased using
+// language-undetermined rules per the CSS specification.
 //
 // Takes text (string) which is the source text.
 // Takes transform (TextTransformType) which is the transform to apply.
 //
-// Returns string which is the transformed text, or the original text
-// when the transform is none.
+// Returns string which is the transformed text, or the original text when the transform
+// is none.
 func applyTextTransform(text string, transform TextTransformType) string {
 	switch transform {
 	case TextTransformUppercase:

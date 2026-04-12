@@ -58,7 +58,7 @@ func main() {
 
 	result := map[string]any{
 		"sorted_by_priority_desc": sortedByPriorityDesc,
-		"sorted_by_id_asc":       sortedByIDAsc,
+		"sorted_by_id_asc":        sortedByIDAsc,
 	}
 
 	encoder := json.NewEncoder(os.Stdout)

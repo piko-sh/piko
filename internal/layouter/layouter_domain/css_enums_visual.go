@@ -38,8 +38,7 @@ const (
 	ObjectFitScaleDown
 )
 
-// BackgroundImageType identifies the kind of CSS
-// background-image value.
+// BackgroundImageType identifies the kind of CSS background-image value.
 type BackgroundImageType int
 
 const (
@@ -49,56 +48,47 @@ const (
 	// BackgroundImageURL represents a url() background.
 	BackgroundImageURL
 
-	// BackgroundImageLinearGradient represents a
-	// linear-gradient() background.
+	// BackgroundImageLinearGradient represents a linear-gradient() background.
 	BackgroundImageLinearGradient
 
-	// BackgroundImageRadialGradient represents a
-	// radial-gradient() background.
+	// BackgroundImageRadialGradient represents a radial-gradient() background.
 	BackgroundImageRadialGradient
 
-	// BackgroundImageRepeatingLinearGradient represents a
-	// repeating-linear-gradient() background.
+	// BackgroundImageRepeatingLinearGradient represents a repeating-linear-gradient()
+	// background.
 	BackgroundImageRepeatingLinearGradient
 
-	// BackgroundImageRepeatingRadialGradient represents a
-	// repeating-radial-gradient() background.
+	// BackgroundImageRepeatingRadialGradient represents a repeating-radial-gradient()
+	// background.
 	BackgroundImageRepeatingRadialGradient
 )
 
-// RadialGradientShape identifies the shape of a CSS
-// radial-gradient: ellipse (default) or circle.
+// RadialGradientShape identifies the shape of a CSS radial-gradient: ellipse (default) or
+// circle.
 type RadialGradientShape int
 
 const (
-	// RadialShapeEllipse represents the default elliptical
-	// radial gradient shape.
+	// RadialShapeEllipse represents the default elliptical radial gradient shape.
 	RadialShapeEllipse RadialGradientShape = iota
 
-	// RadialShapeCircle represents a circular radial
-	// gradient shape.
+	// RadialShapeCircle represents a circular radial gradient shape.
 	RadialShapeCircle
 )
 
-// BorderImageRepeatType represents the CSS
-// border-image-repeat property.
+// BorderImageRepeatType represents the CSS border-image-repeat property.
 type BorderImageRepeatType int
 
 const (
-	// BorderImageRepeatStretch represents CSS
-	// border-image-repeat: stretch.
+	// BorderImageRepeatStretch represents CSS border-image-repeat: stretch.
 	BorderImageRepeatStretch BorderImageRepeatType = iota
 
-	// BorderImageRepeatRepeat represents CSS
-	// border-image-repeat: repeat.
+	// BorderImageRepeatRepeat represents CSS border-image-repeat: repeat.
 	BorderImageRepeatRepeat
 
-	// BorderImageRepeatRound represents CSS
-	// border-image-repeat: round.
+	// BorderImageRepeatRound represents CSS border-image-repeat: round.
 	BorderImageRepeatRound
 
-	// BorderImageRepeatSpace represents CSS
-	// border-image-repeat: space.
+	// BorderImageRepeatSpace represents CSS border-image-repeat: space.
 	BorderImageRepeatSpace
 )
 
@@ -212,12 +202,12 @@ const (
 	// TextRenderStroke paints text with the stroke colour only.
 	TextRenderStroke
 
-	// TextRenderFillStroke paints text with both fill and stroke,
-	// producing an outlined effect.
+	// TextRenderFillStroke paints text with both fill and stroke, producing an outlined
+	// effect.
 	TextRenderFillStroke
 
-	// TextRenderInvisible makes text invisible (useful for searchable
-	// overlays on scanned documents).
+	// TextRenderInvisible makes text invisible (useful for searchable overlays on scanned
+	// documents).
 	TextRenderInvisible
 )
 
@@ -235,73 +225,76 @@ const (
 	TabAlignCenter
 )
 
-// TabStop defines a tab stop position with alignment and an optional
-// leader character (e.g. dots in a table of contents).
+// TabStop defines a tab stop position with alignment and an optional leader character
+// (e.g. dots in a table of contents).
 type TabStop struct {
-	// Position is the horizontal position in points from the left
-	// edge of the containing block.
+	// Position is the horizontal position in points from the left edge of the containing
+	// block.
 	Position float64
 
 	// Align controls how text is aligned at the stop position.
 	Align TabAlign
 
-	// Leader is the character repeated to fill the gap before the
-	// tab stop. Zero means no leader.
+	// Leader is the character repeated to fill the gap before the tab stop. Zero means no
+	// leader.
 	Leader rune
 }
 
-// objectFitTypeNames maps ObjectFitType values to their CSS keyword strings.
-var objectFitTypeNames = [...]string{
-	ObjectFitFill:      "Fill",
-	ObjectFitContain:   "Contain",
-	ObjectFitCover:     "Cover",
-	ObjectFitNone:      "None",
-	ObjectFitScaleDown: "ScaleDown",
-}
+var (
+	// objectFitTypeNames maps ObjectFitType values to their CSS keyword strings.
+	objectFitTypeNames = [...]string{
+		ObjectFitFill:      "Fill",
+		ObjectFitContain:   "Contain",
+		ObjectFitCover:     "Cover",
+		ObjectFitNone:      "None",
+		ObjectFitScaleDown: "ScaleDown",
+	}
 
-// backgroundImageTypeNames maps BackgroundImageType values to their CSS keyword strings.
-var backgroundImageTypeNames = [...]string{
-	BackgroundImageNone:                    cssKeywordNone,
-	BackgroundImageURL:                     "url",
-	BackgroundImageLinearGradient:          "linear-gradient",
-	BackgroundImageRadialGradient:          "radial-gradient",
-	BackgroundImageRepeatingLinearGradient: "repeating-linear-gradient",
-	BackgroundImageRepeatingRadialGradient: "repeating-radial-gradient",
-}
+	// backgroundImageTypeNames maps BackgroundImageType values to their CSS keyword strings.
+	backgroundImageTypeNames = [...]string{
+		BackgroundImageNone:                    cssKeywordNone,
+		BackgroundImageURL:                     "url",
+		BackgroundImageLinearGradient:          "linear-gradient",
+		BackgroundImageRadialGradient:          "radial-gradient",
+		BackgroundImageRepeatingLinearGradient: "repeating-linear-gradient",
+		BackgroundImageRepeatingRadialGradient: "repeating-radial-gradient",
+	}
 
-// radialGradientShapeNames maps RadialGradientShape values to their CSS keyword strings.
-var radialGradientShapeNames = [...]string{
-	RadialShapeEllipse: "ellipse",
-	RadialShapeCircle:  "circle",
-}
+	// radialGradientShapeNames maps RadialGradientShape values to their CSS keyword strings.
+	radialGradientShapeNames = [...]string{
+		RadialShapeEllipse: "ellipse",
+		RadialShapeCircle:  "circle",
+	}
 
-// borderImageRepeatTypeNames maps BorderImageRepeatType values to their CSS keyword strings.
-var borderImageRepeatTypeNames = [...]string{
-	BorderImageRepeatStretch: "stretch",
-	BorderImageRepeatRepeat:  "repeat",
-	BorderImageRepeatRound:   "round",
-	BorderImageRepeatSpace:   "space",
-}
+	// borderImageRepeatTypeNames maps BorderImageRepeatType values to their CSS keyword
+	// strings.
+	borderImageRepeatTypeNames = [...]string{
+		BorderImageRepeatStretch: "stretch",
+		BorderImageRepeatRepeat:  "repeat",
+		BorderImageRepeatRound:   "round",
+		BorderImageRepeatSpace:   "space",
+	}
 
-// blendModeTypeNames maps BlendModeType values to their CSS keyword strings.
-var blendModeTypeNames = [...]string{
-	BlendModeNormal:     "Normal",
-	BlendModeMultiply:   "Multiply",
-	BlendModeScreen:     "Screen",
-	BlendModeOverlay:    "Overlay",
-	BlendModeDarken:     "Darken",
-	BlendModeLighten:    "Lighten",
-	BlendModeColorDodge: "ColorDodge",
-	BlendModeColorBurn:  "ColorBurn",
-	BlendModeHardLight:  "HardLight",
-	BlendModeSoftLight:  "SoftLight",
-	BlendModeDifference: "Difference",
-	BlendModeExclusion:  "Exclusion",
-	BlendModeHue:        "Hue",
-	BlendModeSaturation: "Saturation",
-	BlendModeColor:      "Color",
-	BlendModeLuminosity: "Luminosity",
-}
+	// blendModeTypeNames maps BlendModeType values to their CSS keyword strings.
+	blendModeTypeNames = [...]string{
+		BlendModeNormal:     "Normal",
+		BlendModeMultiply:   "Multiply",
+		BlendModeScreen:     "Screen",
+		BlendModeOverlay:    "Overlay",
+		BlendModeDarken:     "Darken",
+		BlendModeLighten:    "Lighten",
+		BlendModeColorDodge: "ColorDodge",
+		BlendModeColorBurn:  "ColorBurn",
+		BlendModeHardLight:  "HardLight",
+		BlendModeSoftLight:  "SoftLight",
+		BlendModeDifference: "Difference",
+		BlendModeExclusion:  "Exclusion",
+		BlendModeHue:        "Hue",
+		BlendModeSaturation: "Saturation",
+		BlendModeColor:      "Color",
+		BlendModeLuminosity: "Luminosity",
+	}
+)
 
 // String returns the Go constant name suffix for this object-fit type.
 //
@@ -353,13 +346,12 @@ func (b BlendModeType) String() string {
 	return cssKeywordUnknown
 }
 
-// ParseBlendMode converts a CSS mix-blend-mode keyword to a
-// BlendModeType.
+// ParseBlendMode converts a CSS mix-blend-mode keyword to a BlendModeType.
 //
 // Takes value (string) which is the CSS keyword to parse.
 //
-// Returns BlendModeType which is the parsed blend mode, or
-// BlendModeNormal for unrecognised values.
+// Returns BlendModeType which is the parsed blend mode, or BlendModeNormal for
+// unrecognised values.
 func ParseBlendMode(value string) BlendModeType {
 	switch value {
 	case "multiply":

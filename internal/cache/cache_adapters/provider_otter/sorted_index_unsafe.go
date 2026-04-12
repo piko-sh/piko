@@ -20,11 +20,13 @@
 
 package provider_otter
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
-// keyTiebreak provides a deterministic ordering for B-tree items when values
-// and typed keys compare equal. It uses pointer addresses as a stable
-// tiebreaker within a single GC cycle.
+// keyTiebreak provides a deterministic ordering for B-tree items when values and typed
+// keys compare equal. It uses pointer addresses as a stable tiebreaker within a single GC
+// cycle.
 //
 // Takes a (*K) which is the first key to compare.
 // Takes b (*K) which is the second key to compare.

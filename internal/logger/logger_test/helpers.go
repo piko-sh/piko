@@ -53,8 +53,8 @@ type loggerState struct {
 	handlers []slog.Handler
 }
 
-// Initialise creates and configures a logger based on the provided configuration.
-// This is a test helper function.
+// Initialise creates and configures a logger based on the provided configuration. This is
+// a test helper function.
 func Initialise(ctx context.Context, loggerConfig logger_dto.Config) (*slog.Logger, func(context.Context) error, error) {
 	logger_domain.ClearLifecycle()
 
@@ -109,8 +109,7 @@ func Initialise(ctx context.Context, loggerConfig logger_dto.Config) (*slog.Logg
 	return logger, shutdown, nil
 }
 
-// InitDefaultFactory initialises the default logger factory with the provided
-// logger.
+// InitDefaultFactory initialises the default logger factory with the provided logger.
 //
 // Takes logger (*slog.Logger) which is the logger instance to use as default.
 func InitDefaultFactory(logger *slog.Logger) {
@@ -131,16 +130,14 @@ func AddPrettyOutput(level slog.Level) {
 	addHandler(handler)
 }
 
-// AddFileOutput adds a file output to the global logger with the specified
-// configuration.
+// AddFileOutput adds a file output to the global logger with the specified configuration.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background
-// rotation goroutine.
+// Takes ctx (context.Context) which controls the lifetime of the background rotation
+// goroutine.
 // Takes name (string) which identifies this output for later reference.
 // Takes path (string) which specifies the file path to write logs to.
 // Takes level (slog.Level) which sets the minimum log level for this output.
-// Takes useJSON (bool) which selects JSON format when true, text format
-// when false.
+// Takes useJSON (bool) which selects JSON format when true, text format when false.
 func AddFileOutput(ctx context.Context, name, path string, level slog.Level, useJSON bool) {
 	fileLogger, fileError := logrotate.New(ctx, logrotate.Config{
 		Directory:  filepath.Dir(path),
@@ -176,13 +173,12 @@ func AddFileOutput(ctx context.Context, name, path string, level slog.Level, use
 	addHandler(handler)
 }
 
-// ResetAndApplyConfig resets the global logger state and applies a new
-// configuration.
+// ResetAndApplyConfig resets the global logger state and applies a new configuration.
 //
 // Takes loggerConfig (logger_dto.Config) which specifies the new logger settings.
 //
-// Safe for concurrent use. The function holds the global state mutex while
-// clearing and reinitialising the logger.
+// Safe for concurrent use. The function holds the global state mutex while clearing and
+// reinitialising the logger.
 func ResetAndApplyConfig(loggerConfig logger_dto.Config) {
 	globalStateMutex.Lock()
 	defer globalStateMutex.Unlock()
@@ -196,8 +192,8 @@ func ResetAndApplyConfig(loggerConfig logger_dto.Config) {
 
 // GetShutdownFunc returns the current shutdown function, if available.
 //
-// Returns func(context.Context) error which is the shutdown function, or nil
-// if none has been set.
+// Returns func(context.Context) error which is the shutdown function, or nil if none has
+// been set.
 //
 // Safe for concurrent use by multiple goroutines.
 func GetShutdownFunc() func(context.Context) error {
@@ -218,8 +214,7 @@ func setShutdownFunc(shutdownFunction func(context.Context) error) {
 	shutdownFunc = shutdownFunction
 }
 
-// addHandler appends a handler to the global logger state and rebuilds the
-// logger.
+// addHandler appends a handler to the global logger state and rebuilds the logger.
 //
 // Takes handler (slog.Handler) which provides the logging output destination.
 //
@@ -250,16 +245,16 @@ func addHandler(handler slog.Handler) {
 
 // createOutputHandler creates a slog.Handler based on the output configuration.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background
-// rotation goroutine for file outputs.
-// Takes output (logger_dto.OutputConfig) which specifies the output type,
-// format, and destination settings.
-// Takes globalAddSource (bool) which sets the default for including source
-// location in log entries.
+// Takes ctx (context.Context) which controls the lifetime of the background rotation
+// goroutine for file outputs.
+// Takes output (logger_dto.OutputConfig) which specifies the output type, format, and
+// destination settings.
+// Takes globalAddSource (bool) which sets the default for including source location in
+// log entries.
 //
 // Returns slog.Handler which is configured for the specified output format.
-// Returns error when the output type is unknown, the format is unknown, or
-// file output is specified without file configuration.
+// Returns error when the output type is unknown, the format is unknown, or file output is
+// specified without file configuration.
 func createOutputHandler(ctx context.Context, output logger_dto.OutputConfig, globalAddSource bool) (slog.Handler, error) {
 	level := logger_dto.ParseLogLevel(output.Level, slog.LevelInfo)
 	addSource := globalAddSource
@@ -322,14 +317,13 @@ func createOutputHandler(ctx context.Context, output logger_dto.OutputConfig, gl
 	}
 }
 
-// createIntegrationHandler creates a logging handler for the specified
-// integration type.
+// createIntegrationHandler creates a logging handler for the specified integration type.
 //
-// Takes integrationConfig (logger_dto.IntegrationConfig) which specifies the
-// integration type and its settings.
+// Takes integrationConfig (logger_dto.IntegrationConfig) which specifies the integration
+// type and its settings.
 //
-// Returns slog.Handler which is the configured handler, or nil if the
-// integration adapter is not imported.
+// Returns slog.Handler which is the configured handler, or nil if the integration adapter
+// is not imported.
 // Returns error when the configuration is invalid or handler creation fails.
 func createIntegrationHandler(integrationConfig logger_dto.IntegrationConfig) (slog.Handler, error) {
 	integration := logger_domain.GetIntegration(integrationConfig.Type)

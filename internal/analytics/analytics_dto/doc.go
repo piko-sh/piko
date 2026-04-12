@@ -16,24 +16,22 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_dto defines data transfer objects for the backend
-// analytics subsystem.
+// Package analytics_dto defines data transfer objects for the backend analytics
+// subsystem.
 //
-// These types carry analytics event data across hexagonal boundaries,
-// covering event classification, request metadata, and custom
-// properties for third-party analytics backends.
+// These types carry analytics event data across hexagonal boundaries, covering event
+// classification, request metadata, and custom properties for third-party analytics
+// backends.
 //
 // # Event types
 //
-// Three event types are defined: [EventPageView] for automatic page
-// request tracking, [EventAction] for server action execution, and
-// [EventCustom] for user-defined business events fired manually from
-// action handlers.
+// Three event types are defined: [EventPageView] for automatic page request tracking,
+// [EventAction] for server action execution, and [EventCustom] for user-defined business
+// events fired manually from action handlers.
 //
 // # Memory management
 //
-// [Event] instances are pooled via [AcquireEvent] and [ReleaseEvent]
-// to avoid allocation on the hot request path. Collectors must not
-// retain a pointer to the Event after Collect returns; they should
-// copy any data they need.
+// [Event] instances are pooled via [AcquireEvent] and [ReleaseEvent] to avoid allocation
+// on the hot request path. Collectors must not retain a pointer to the Event after
+// Collect returns; they should copy any data they need.
 package analytics_dto

@@ -16,26 +16,22 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package local_aes_gcm implements AES-256-GCM encryption without external
-// dependencies.
+// Package local_aes_gcm implements AES-256-GCM encryption without external dependencies.
 //
-// This adapter provides authenticated encryption using the standard Go
-// crypto library. It supports both single-shot operations for small data
-// and streaming encryption for large files with constant memory usage.
-// It is suitable for development, testing, and single-server deployments
-// where external KMS integration is not required.
+// This adapter provides authenticated encryption using the standard Go crypto library. It
+// supports both single-shot operations for small data and streaming encryption for large
+// files with constant memory usage. It is suitable for development, testing, and
+// single-server deployments where external KMS integration is not required.
 //
-// Single-shot encryption produces base64-encoded output containing a
-// 12-byte IV, the ciphertext, and a 16-byte auth tag. Streaming
-// encryption uses a chunked format:
+// Single-shot encryption produces base64-encoded output containing a 12-byte IV, the
+// ciphertext, and a 16-byte auth tag. Streaming encryption uses a chunked format:
 //
 //	[1-byte version][4-byte header length][JSON header][encrypted chunks...]
 //
-// Each chunk is encrypted with a unique IV derived from the base IV
-// and chunk number.
+// Each chunk is encrypted with a unique IV derived from the base IV and chunk number.
 //
-// The streaming primitives are exported so that other encryption
-// providers can reuse the same envelope format for consistency.
+// The streaming primitives are exported so that other encryption providers can reuse the
+// same envelope format for consistency.
 //
 // All Provider methods are safe for concurrent use.
 package local_aes_gcm

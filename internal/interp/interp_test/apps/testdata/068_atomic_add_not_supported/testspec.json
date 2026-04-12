@@ -1,0 +1,4 @@
+{
+  "description": "sync/atomic.AddInt64 increments the variable atomically; interpreter exposes via gen_atomic.go.",
+  "expected": "x=1"
+}

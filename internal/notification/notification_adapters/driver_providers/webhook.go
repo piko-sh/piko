@@ -31,7 +31,9 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-var _ notification_domain.NotificationProviderPort = (*WebhookProvider)(nil)
+var (
+	_ notification_domain.NotificationProviderPort = (*WebhookProvider)(nil)
+)
 
 const (
 	// webhookMaxMessageLength is the maximum message length in bytes for webhook
@@ -41,8 +43,7 @@ const (
 	// httpStatusOKMin is the lowest HTTP status code indicating success.
 	httpStatusOKMin = 200
 
-	// httpStatusOKMax is the exclusive upper bound for successful HTTP status
-	// codes.
+	// httpStatusOKMax is the exclusive upper bound for successful HTTP status codes.
 	httpStatusOKMax = 300
 )
 
@@ -94,11 +95,11 @@ type WebhookProvider struct {
 
 // Send delivers a notification to the webhook endpoint.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// data to send.
+// Takes params (*notification_dto.SendParams) which contains the notification data to
+// send.
 //
-// Returns error when the payload cannot be formatted, the request fails, or
-// the webhook returns a non-success status code.
+// Returns error when the payload cannot be formatted, the request fails, or the webhook
+// returns a non-success status code.
 func (w *WebhookProvider) Send(ctx context.Context, params *notification_dto.SendParams) error {
 	payload, err := w.formatWebhookPayload(params)
 	if err != nil {
@@ -134,8 +135,8 @@ func (w *WebhookProvider) Send(ctx context.Context, params *notification_dto.Sen
 
 // SendBulk sends multiple notifications.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notifications to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notifications
+// to send.
 //
 // Returns error when any notification fails to send.
 func (w *WebhookProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -156,8 +157,8 @@ func (*WebhookProvider) SupportsBulkSending() bool {
 
 // GetCapabilities returns the capabilities of the webhook provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes what
-// features this provider supports.
+// Returns notification_domain.ProviderCapabilities which describes what features this
+// provider supports.
 func (*WebhookProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: false,
@@ -176,11 +177,10 @@ func (*WebhookProvider) Close(_ context.Context) error {
 	return nil
 }
 
-// formatWebhookPayload converts notification params to generic webhook JSON
-// format.
+// formatWebhookPayload converts notification params to generic webhook JSON format.
 //
-// Takes params (*notification_dto.SendParams) which provides the notification
-// content and context to format.
+// Takes params (*notification_dto.SendParams) which provides the notification content and
+// context to format.
 //
 // Returns []byte which contains the JSON-encoded webhook payload.
 // Returns error when JSON marshalling fails.
@@ -205,8 +205,8 @@ func (*WebhookProvider) formatWebhookPayload(params *notification_dto.SendParams
 //
 // Takes webhookURL (string) which specifies the webhook endpoint.
 // Takes headers (map[string]string) which provides optional HTTP headers.
-// Takes client (*http.Client) which provides the HTTP client. If nil, a default
-// client with a 30-second timeout is used.
+// Takes client (*http.Client) which provides the HTTP client. If nil, a default client
+// with a 30-second timeout is used.
 //
 // Returns notification_domain.NotificationProviderPort which is ready to send
 // notifications.

@@ -51,8 +51,7 @@ func (s *encoder) buildIdentifier(identifier *ast_domain.Identifier) (flatbuffer
 
 // buildStringLiteral serialises a string literal into the FlatBuffer.
 //
-// Takes lit (*ast_domain.StringLiteral) which is the string literal to
-// serialise.
+// Takes lit (*ast_domain.StringLiteral) which is the string literal to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised literal.
 // Returns error when the location cannot be built.
@@ -95,8 +94,7 @@ func (s *encoder) buildIntegerLiteral(lit *ast_domain.IntegerLiteral) (flatbuffe
 
 // buildFloatLiteral serialises a float literal to the flatbuffer format.
 //
-// Takes lit (*ast_domain.FloatLiteral) which is the float literal to
-// serialise.
+// Takes lit (*ast_domain.FloatLiteral) which is the float literal to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised literal.
 // Returns error when the location cannot be built.
@@ -117,8 +115,7 @@ func (s *encoder) buildFloatLiteral(lit *ast_domain.FloatLiteral) (flatbuffers.U
 
 // buildBooleanLiteral converts a boolean literal AST node to FlatBuffer format.
 //
-// Takes lit (*ast_domain.BooleanLiteral) which is the boolean literal to
-// serialise.
+// Takes lit (*ast_domain.BooleanLiteral) which is the boolean literal to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised literal.
 // Returns error when location serialisation fails.
@@ -139,8 +136,7 @@ func (s *encoder) buildBooleanLiteral(lit *ast_domain.BooleanLiteral) (flatbuffe
 
 // buildNilLiteral serialises a nil literal AST node to FlatBuffers format.
 //
-// Takes lit (*ast_domain.NilLiteral) which is the nil literal node to
-// serialise.
+// Takes lit (*ast_domain.NilLiteral) which is the nil literal node to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised node.
 // Returns error when building the location fails.
@@ -160,8 +156,7 @@ func (s *encoder) buildNilLiteral(lit *ast_domain.NilLiteral) (flatbuffers.UOffs
 
 // buildDecimalLiteral serialises a decimal literal to its flatbuffer form.
 //
-// Takes lit (*ast_domain.DecimalLiteral) which is the decimal literal to
-// serialise.
+// Takes lit (*ast_domain.DecimalLiteral) which is the decimal literal to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised literal.
 // Returns error when location serialisation fails.
@@ -292,8 +287,7 @@ func (s *encoder) buildTimeLiteral(lit *ast_domain.TimeLiteral) (flatbuffers.UOf
 
 // buildDurationLiteral writes a duration literal to the flatbuffer.
 //
-// Takes lit (*ast_domain.DurationLiteral) which is the duration literal to
-// write.
+// Takes lit (*ast_domain.DurationLiteral) which is the duration literal to write.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the written literal.
 // Returns error when the location cannot be built.
@@ -318,8 +312,8 @@ func (s *encoder) buildDurationLiteral(lit *ast_domain.DurationLiteral) (flatbuf
 // Takes fb (*ast_schema_gen.IdentifierFB) which is the serialised identifier.
 // Takes sourceLength (int) which specifies the length in the source text.
 //
-// Returns *ast_domain.Identifier which is the converted domain object, or nil
-// if fb is nil.
+// Returns *ast_domain.Identifier which is the converted domain object, or nil if fb is
+// nil.
 // Returns error when location unpacking fails.
 func (d *decoder) unpackIdentifier(fb *ast_schema_gen.IdentifierFB, sourceLength int) (*ast_domain.Identifier, error) {
 	if fb == nil {
@@ -341,8 +335,7 @@ func (d *decoder) unpackIdentifier(fb *ast_schema_gen.IdentifierFB, sourceLength
 // Takes fb (*ast_schema_gen.StringLiteralFB) which is the FlatBuffer to unpack.
 // Takes sourceLength (int) which is the length of the source representation.
 //
-// Returns *ast_domain.StringLiteral which is the domain object, or nil if fb
-// is nil.
+// Returns *ast_domain.StringLiteral which is the domain object, or nil if fb is nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackStringLiteral(fb *ast_schema_gen.StringLiteralFB, sourceLength int) (*ast_domain.StringLiteral, error) {
 	if fb == nil {
@@ -362,12 +355,11 @@ func (d *decoder) unpackStringLiteral(fb *ast_schema_gen.StringLiteralFB, source
 // unpackIntegerLiteral converts a FlatBuffer integer literal to its domain
 // representation.
 //
-// Takes fb (*ast_schema_gen.IntegerLiteralFB) which is the FlatBuffer to
-// convert.
+// Takes fb (*ast_schema_gen.IntegerLiteralFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which specifies the length in the source code.
 //
-// Returns *ast_domain.IntegerLiteral which is the domain representation, or
-// nil if fb is nil.
+// Returns *ast_domain.IntegerLiteral which is the domain representation, or nil if fb is
+// nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackIntegerLiteral(fb *ast_schema_gen.IntegerLiteralFB, sourceLength int) (*ast_domain.IntegerLiteral, error) {
 	if fb == nil {
@@ -389,8 +381,7 @@ func (d *decoder) unpackIntegerLiteral(fb *ast_schema_gen.IntegerLiteralFB, sour
 // Takes fb (*ast_schema_gen.FloatLiteralFB) which is the FlatBuffer to unpack.
 // Takes sourceLength (int) which is the length of the source representation.
 //
-// Returns *ast_domain.FloatLiteral which is the domain model, or nil if fb is
-// nil.
+// Returns *ast_domain.FloatLiteral which is the domain model, or nil if fb is nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackFloatLiteral(fb *ast_schema_gen.FloatLiteralFB, sourceLength int) (*ast_domain.FloatLiteral, error) {
 	if fb == nil {
@@ -407,11 +398,9 @@ func (d *decoder) unpackFloatLiteral(fb *ast_schema_gen.FloatLiteralFB, sourceLe
 	}, nil
 }
 
-// unpackBooleanLiteral converts a FlatBuffer boolean literal to a domain
-// boolean literal.
+// unpackBooleanLiteral converts a FlatBuffer boolean literal to a domain boolean literal.
 //
-// Takes fb (*ast_schema_gen.BooleanLiteralFB) which is the FlatBuffer to
-// convert.
+// Takes fb (*ast_schema_gen.BooleanLiteralFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which specifies the length in the source code.
 //
 // Returns *ast_domain.BooleanLiteral which is the domain representation.
@@ -452,15 +441,13 @@ func (d *decoder) unpackNilLiteral(fb *ast_schema_gen.NilLiteralFB, sourceLength
 	}, nil
 }
 
-// unpackDecimalLiteral converts a FlatBuffer decimal literal to a domain
-// object.
+// unpackDecimalLiteral converts a FlatBuffer decimal literal to a domain object.
 //
-// Takes fb (*ast_schema_gen.DecimalLiteralFB) which is the FlatBuffer to
-// convert.
+// Takes fb (*ast_schema_gen.DecimalLiteralFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which specifies the length in the source code.
 //
-// Returns *ast_domain.DecimalLiteral which is the converted domain object, or
-// nil if fb is nil.
+// Returns *ast_domain.DecimalLiteral which is the converted domain object, or nil if fb
+// is nil.
 // Returns error when location unpacking fails.
 func (d *decoder) unpackDecimalLiteral(fb *ast_schema_gen.DecimalLiteralFB, sourceLength int) (*ast_domain.DecimalLiteral, error) {
 	if fb == nil {
@@ -477,14 +464,12 @@ func (d *decoder) unpackDecimalLiteral(fb *ast_schema_gen.DecimalLiteralFB, sour
 	}, nil
 }
 
-// unpackBigIntLiteral converts a FlatBuffer big integer literal to its domain
-// form.
+// unpackBigIntLiteral converts a FlatBuffer big integer literal to its domain form.
 //
 // Takes fb (*ast_schema_gen.BigIntLiteralFB) which is the FlatBuffer to unpack.
 // Takes sourceLength (int) which is the length of the source text.
 //
-// Returns *ast_domain.BigIntLiteral which is the domain object, or nil if fb
-// is nil.
+// Returns *ast_domain.BigIntLiteral which is the domain object, or nil if fb is nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackBigIntLiteral(fb *ast_schema_gen.BigIntLiteralFB, sourceLength int) (*ast_domain.BigIntLiteral, error) {
 	if fb == nil {
@@ -506,8 +491,7 @@ func (d *decoder) unpackBigIntLiteral(fb *ast_schema_gen.BigIntLiteralFB, source
 // Takes fb (*ast_schema_gen.RuneLiteralFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which specifies the length in the source code.
 //
-// Returns *ast_domain.RuneLiteral which is the domain model, or nil if fb is
-// nil.
+// Returns *ast_domain.RuneLiteral which is the domain model, or nil if fb is nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackRuneLiteral(fb *ast_schema_gen.RuneLiteralFB, sourceLength int) (*ast_domain.RuneLiteral, error) {
 	if fb == nil {
@@ -524,15 +508,12 @@ func (d *decoder) unpackRuneLiteral(fb *ast_schema_gen.RuneLiteralFB, sourceLeng
 	}, nil
 }
 
-// unpackDateTimeLiteral converts a FlatBuffer date-time literal to its domain
-// form.
+// unpackDateTimeLiteral converts a FlatBuffer date-time literal to its domain form.
 //
-// Takes fb (*ast_schema_gen.DateTimeLiteralFB) which is the FlatBuffer to
-// convert.
+// Takes fb (*ast_schema_gen.DateTimeLiteralFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which specifies the length in the source text.
 //
-// Returns *ast_domain.DateTimeLiteral which is the domain form, or nil if fb
-// is nil.
+// Returns *ast_domain.DateTimeLiteral which is the domain form, or nil if fb is nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackDateTimeLiteral(fb *ast_schema_gen.DateTimeLiteralFB, sourceLength int) (*ast_domain.DateTimeLiteral, error) {
 	if fb == nil {
@@ -549,11 +530,10 @@ func (d *decoder) unpackDateTimeLiteral(fb *ast_schema_gen.DateTimeLiteralFB, so
 	}, nil
 }
 
-// unpackDateLiteral converts a FlatBuffer date literal to a domain date
-// literal.
+// unpackDateLiteral converts a FlatBuffer date literal to a domain date literal.
 //
-// Takes fb (*ast_schema_gen.DateLiteralFB) which is the FlatBuffer
-// representation to convert.
+// Takes fb (*ast_schema_gen.DateLiteralFB) which is the FlatBuffer representation to
+// convert.
 // Takes sourceLength (int) which specifies the length in the original source.
 //
 // Returns *ast_domain.DateLiteral which is the domain representation.
@@ -578,8 +558,8 @@ func (d *decoder) unpackDateLiteral(fb *ast_schema_gen.DateLiteralFB, sourceLeng
 // Takes fb (*ast_schema_gen.TimeLiteralFB) which is the FlatBuffer to convert.
 // Takes sourceLength (int) which specifies the length in the source code.
 //
-// Returns *ast_domain.TimeLiteral which is the converted domain object, or nil
-// if fb is nil.
+// Returns *ast_domain.TimeLiteral which is the converted domain object, or nil if fb is
+// nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackTimeLiteral(fb *ast_schema_gen.TimeLiteralFB, sourceLength int) (*ast_domain.TimeLiteral, error) {
 	if fb == nil {
@@ -598,12 +578,12 @@ func (d *decoder) unpackTimeLiteral(fb *ast_schema_gen.TimeLiteralFB, sourceLeng
 
 // unpackDurationLiteral converts a FlatBuffer duration literal to domain form.
 //
-// Takes fb (*ast_schema_gen.DurationLiteralFB) which is the serialised duration
-// literal to convert.
+// Takes fb (*ast_schema_gen.DurationLiteralFB) which is the serialised duration literal
+// to convert.
 // Takes sourceLength (int) which specifies the length in the source code.
 //
-// Returns *ast_domain.DurationLiteral which is the converted domain object, or
-// nil if fb is nil.
+// Returns *ast_domain.DurationLiteral which is the converted domain object, or nil if fb
+// is nil.
 // Returns error when the location cannot be unpacked.
 func (d *decoder) unpackDurationLiteral(fb *ast_schema_gen.DurationLiteralFB, sourceLength int) (*ast_domain.DurationLiteral, error) {
 	if fb == nil {

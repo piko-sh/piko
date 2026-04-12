@@ -18,8 +18,8 @@
 
 package layouter_domain
 
-// floatEntry records the position and dimensions of a single floated
-// element within its containing block.
+// floatEntry records the position and dimensions of a single floated element within its
+// containing block.
 type floatEntry struct {
 	// x is the horizontal offset of the float from the container origin.
 	x float64
@@ -34,8 +34,8 @@ type floatEntry struct {
 	height float64
 }
 
-// floatContext tracks all active left and right floats within a
-// containing block, used for positioning new floats and clearing.
+// floatContext tracks all active left and right floats within a containing block, used
+// for positioning new floats and clearing.
 type floatContext struct {
 	// leftFloats holds entries for elements floated to the left.
 	leftFloats []floatEntry
@@ -44,17 +44,14 @@ type floatContext struct {
 	rightFloats []floatEntry
 }
 
-// placeLeftFloat positions a left-floated element, stacking it beside
-// existing left floats when space permits and wrapping below them when
-// the container width is exceeded.
+// placeLeftFloat positions a left-floated element, stacking it beside existing left
+// floats when space permits and wrapping below them when the container width is exceeded.
 //
-// Takes cursorY (float64) which is the current vertical cursor
-// position.
+// Takes cursorY (float64) which is the current vertical cursor position.
 // Takes width (float64) which is the width of the element to float.
 // Takes height (float64) which is the height of the element to float.
 // Takes containerX (float64) which is the left edge of the container.
-// Takes containerWidth (float64) which is the total width of the
-// container.
+// Takes containerWidth (float64) which is the total width of the container.
 //
 // Returns floatX (float64) which is the computed horizontal position.
 // Returns floatY (float64) which is the computed vertical position.
@@ -84,17 +81,15 @@ func (context *floatContext) placeLeftFloat(
 	return x, y
 }
 
-// placeRightFloat positions a right-floated element, stacking it beside
-// existing right floats when space permits and wrapping below them when
-// the element would extend past the container's left edge.
+// placeRightFloat positions a right-floated element, stacking it beside existing right
+// floats when space permits and wrapping below them when the element would extend past
+// the container's left edge.
 //
-// Takes cursorY (float64) which is the current vertical cursor
-// position.
+// Takes cursorY (float64) which is the current vertical cursor position.
 // Takes width (float64) which is the width of the element to float.
 // Takes height (float64) which is the height of the element to float.
 // Takes containerX (float64) which is the left edge of the container.
-// Takes containerWidth (float64) which is the total width of the
-// container.
+// Takes containerWidth (float64) which is the total width of the container.
 //
 // Returns floatX (float64) which is the computed horizontal position.
 // Returns floatY (float64) which is the computed vertical position.
@@ -126,8 +121,8 @@ func (context *floatContext) placeRightFloat(
 
 // clearLeftY returns the Y coordinate just below all left floats.
 //
-// Returns float64 which is the bottom edge of the lowest left float,
-// or zero when no left floats exist.
+// Returns float64 which is the bottom edge of the lowest left float, or zero when no left
+// floats exist.
 func (context *floatContext) clearLeftY() float64 {
 	maxY := 0.0
 	for _, entry := range context.leftFloats {
@@ -141,8 +136,8 @@ func (context *floatContext) clearLeftY() float64 {
 
 // clearRightY returns the Y coordinate just below all right floats.
 //
-// Returns float64 which is the bottom edge of the lowest right float,
-// or zero when no right floats exist.
+// Returns float64 which is the bottom edge of the lowest right float, or zero when no
+// right floats exist.
 func (context *floatContext) clearRightY() float64 {
 	maxY := 0.0
 	for _, entry := range context.rightFloats {
@@ -154,11 +149,11 @@ func (context *floatContext) clearRightY() float64 {
 	return maxY
 }
 
-// clearBothY returns the Y coordinate just below all floats on both
-// sides, taking the maximum of clearLeftY and clearRightY.
+// clearBothY returns the Y coordinate just below all floats on both sides, taking the
+// maximum of clearLeftY and clearRightY.
 //
-// Returns float64 which is the bottom edge of the lowest float on
-// either side, or zero when no floats exist.
+// Returns float64 which is the bottom edge of the lowest float on either side, or zero
+// when no floats exist.
 func (context *floatContext) clearBothY() float64 {
 	leftY := context.clearLeftY()
 	rightY := context.clearRightY()
@@ -168,16 +163,13 @@ func (context *floatContext) clearBothY() float64 {
 	return rightY
 }
 
-// availableWidthAtY returns the width available for content at the
-// given vertical position, narrowed by any floats that overlap the
-// range [y, y+height].
+// availableWidthAtY returns the width available for content at the given vertical
+// position, narrowed by any floats that overlap the range [y, y+height].
 //
 // Takes y (float64) which is the top of the vertical range.
 // Takes height (float64) which is the height of the vertical range.
-// Takes containerX (float64) which is the left edge of the container
-// content area.
-// Takes containerWidth (float64) which is the full container content
-// width.
+// Takes containerX (float64) which is the left edge of the container content area.
+// Takes containerWidth (float64) which is the full container content width.
 //
 // Returns float64 which is the available width between floats.
 func (context *floatContext) availableWidthAtY(
@@ -210,14 +202,12 @@ func (context *floatContext) availableWidthAtY(
 	return available
 }
 
-// leftOffsetAtY returns the X position of the right edge of the
-// rightmost left float overlapping the range [y, y+height], or
-// containerX if no left floats overlap.
+// leftOffsetAtY returns the X position of the right edge of the rightmost left float
+// overlapping the range [y, y+height], or containerX if no left floats overlap.
 //
 // Takes y (float64) which is the top of the vertical range.
 // Takes height (float64) which is the height of the vertical range.
-// Takes containerX (float64) which is the left edge of the container
-// content area.
+// Takes containerX (float64) which is the left edge of the container content area.
 //
 // Returns float64 which is the left offset for content.
 func (context *floatContext) leftOffsetAtY(y, height, containerX float64) float64 {
@@ -233,14 +223,13 @@ func (context *floatContext) leftOffsetAtY(y, height, containerX float64) float6
 	return leftEdge
 }
 
-// clearY returns the Y coordinate past the floats indicated by the
-// given clear type, dispatching to clearLeftY, clearRightY, or
-// clearBothY accordingly.
+// clearY returns the Y coordinate past the floats indicated by the given clear type,
+// dispatching to clearLeftY, clearRightY, or clearBothY accordingly.
 //
 // Takes clearType (ClearType) which selects which side to clear.
 //
-// Returns float64 which is the Y coordinate below the cleared floats,
-// or zero for an unrecognised clear type.
+// Returns float64 which is the Y coordinate below the cleared floats, or zero for an
+// unrecognised clear type.
 func (context *floatContext) clearY(clearType ClearType) float64 {
 	switch clearType {
 	case ClearLeft:

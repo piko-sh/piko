@@ -29,9 +29,9 @@ import (
 	"testing"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/json"
 )
 
 func TestServerHandler_StatusIncludesRollingTraceDetails(t *testing.T) {

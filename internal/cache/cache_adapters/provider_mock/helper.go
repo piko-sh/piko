@@ -27,8 +27,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_dto"
 )
 
-// createMockCache creates a mock cache for the given namespace using type
-// assertions.
+// createMockCache creates a mock cache for the given namespace using type assertions.
 //
 // Takes p (*MockProvider) which provides the mock cache storage.
 // Takes namespace (string) which identifies the cache namespace.
@@ -59,19 +58,15 @@ func createMockCache(p *MockProvider, namespace string, optionsAny any) (any, er
 	}
 }
 
-// createNamespaceGeneric is a helper that handles the type-specific mock cache
-// creation.
+// createNamespaceGeneric is a helper that handles the type-specific mock cache creation.
 //
 // Takes p (*MockProvider) which provides the mock cache storage.
 // Takes namespace (string) which identifies the cache namespace.
 //
-// Returns cache_domain.Cache[K, V] which is the mock cache
-// instance.
-// Returns error when the provider is closed or a namespace
-// exists with different types.
+// Returns cache_domain.Cache[K, V] which is the mock cache instance.
+// Returns error when the provider is closed or a namespace exists with different types.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func createNamespaceGeneric[K comparable, V any](p *MockProvider, namespace string, _ cache_dto.Options[K, V]) (cache_domain.Cache[K, V], error) {
 	if namespace == "" {
 		namespace = "default"

@@ -24,6 +24,12 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseFunctionCall parses a function call beginning at the open paren.
+//
+// Takes name (string) which is the function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns querier_dto.Expression which is the parsed function call.
 func (p *parser) parseFunctionCall(name string, schema string) querier_dto.Expression {
 	p.advance()
 	loweredName := strings.ToLower(name)
@@ -39,6 +45,12 @@ func (p *parser) parseFunctionCall(name string, schema string) querier_dto.Expre
 	return p.parseFunctionCallWithArgs(loweredName, schema)
 }
 
+// parseFunctionCallNoArgs handles functions called with `*` or no args.
+//
+// Takes loweredName (string) which is the lower-cased function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns querier_dto.Expression which is the parsed function call.
 func (p *parser) parseFunctionCallNoArgs(loweredName string, schema string) querier_dto.Expression {
 	if p.current().kind == tokenStar {
 		p.advance()
@@ -53,6 +65,12 @@ func (p *parser) parseFunctionCallNoArgs(loweredName string, schema string) quer
 	return p.parseFunctionSuffix(result)
 }
 
+// parseFunctionCallWithArgs parses a function call with one or more arguments.
+//
+// Takes loweredName (string) which is the lower-cased function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns querier_dto.Expression which is the parsed function call.
 func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) querier_dto.Expression {
 	p.matchKeyword("DISTINCT")
 	p.matchKeyword(keywordALL)
@@ -76,6 +94,9 @@ func (p *parser) parseFunctionCallWithArgs(loweredName string, schema string) qu
 	return p.parseFunctionSuffix(result)
 }
 
+// parseFunctionArguments parses a comma-separated argument list.
+//
+// Returns []querier_dto.Expression which is the parsed argument list.
 func (p *parser) parseFunctionArguments() []querier_dto.Expression {
 	var arguments []querier_dto.Expression
 	for !p.atEnd() && p.current().kind != tokenRightParen {
@@ -91,6 +112,7 @@ func (p *parser) parseFunctionArguments() []querier_dto.Expression {
 	return arguments
 }
 
+// parseFunctionOrderByClause consumes an ORDER BY inside a function call.
 func (p *parser) parseFunctionOrderByClause() {
 	if !p.matchKeyword(keywordORDER) {
 		return
@@ -113,6 +135,11 @@ func (p *parser) parseFunctionOrderByClause() {
 	}
 }
 
+// markParametersAsFunctionArguments retags parameters parsed since parameterCountBefore
+// as function argument contexts.
+//
+// Takes parameterCountBefore (int) which is the parameter count recorded before the
+// function arguments were parsed.
 func (p *parser) markParametersAsFunctionArguments(parameterCountBefore int) {
 	for i := range p.parameterRefs {
 		if p.parameterRefs[i].Number > parameterCountBefore &&
@@ -122,6 +149,12 @@ func (p *parser) markParametersAsFunctionArguments(parameterCountBefore int) {
 	}
 }
 
+// parseFunctionSuffix wraps a function call in an OVER window if present.
+//
+// Takes result (*querier_dto.FunctionCallExpression) which is the inner function call.
+//
+// Returns querier_dto.Expression which is either result or a WindowFunctionExpression
+// wrapping it.
 func (p *parser) parseFunctionSuffix(result *querier_dto.FunctionCallExpression) querier_dto.Expression {
 	if p.isKeyword("OVER") {
 		return p.parseWindowSuffix(result)
@@ -130,6 +163,12 @@ func (p *parser) parseFunctionSuffix(result *querier_dto.FunctionCallExpression)
 	return result
 }
 
+// parseWindowSuffix parses the OVER (...) clause of a window function.
+//
+// Takes innerFunction (*querier_dto.FunctionCallExpression) which is the function the
+// window applies to.
+//
+// Returns querier_dto.Expression which is the wrapped window expression.
 func (p *parser) parseWindowSuffix(innerFunction *querier_dto.FunctionCallExpression) querier_dto.Expression {
 	p.advance()
 
@@ -153,6 +192,7 @@ func (p *parser) parseWindowSuffix(innerFunction *querier_dto.FunctionCallExpres
 	return &querier_dto.WindowFunctionExpression{Function: innerFunction}
 }
 
+// parseWindowSpec parses PARTITION BY, ORDER BY, and frame clauses.
 func (p *parser) parseWindowSpec() {
 	if p.current().kind == tokenIdentifier &&
 		!p.isAnyKeyword("PARTITION", keywordORDER, "ROWS", "RANGE") &&
@@ -193,6 +233,7 @@ func (p *parser) parseWindowSpec() {
 	}
 }
 
+// skipWindowFrame consumes a ROWS or RANGE window frame definition.
 func (p *parser) skipWindowFrame() {
 	p.advance()
 	if p.matchKeyword("BETWEEN") {
@@ -204,6 +245,7 @@ func (p *parser) skipWindowFrame() {
 	}
 }
 
+// skipFrameBound consumes a single window frame bound expression.
 func (p *parser) skipFrameBound() {
 	if p.matchKeyword(keywordCURRENT) {
 		p.matchKeyword("ROW")
@@ -219,8 +261,16 @@ func (p *parser) skipFrameBound() {
 	p.matchKeyword("FOLLOWING")
 }
 
+// specialFunctionParser is the signature of a custom parser for a function whose argument
+// grammar diverges from a plain comma list.
 type specialFunctionParser func(string, string) querier_dto.Expression
 
+// specialFunctionHandler returns the special parser for a function name.
+//
+// Takes loweredName (string) which is the lower-cased function name.
+//
+// Returns specialFunctionParser which is the matched parser, or nil when the function
+// uses the default argument grammar.
 func (p *parser) specialFunctionHandler(loweredName string) specialFunctionParser {
 	switch loweredName {
 	case "trim":
@@ -236,6 +286,12 @@ func (p *parser) specialFunctionHandler(loweredName string) specialFunctionParse
 	}
 }
 
+// parseTrimFunction parses TRIM with its LEADING/TRAILING/BOTH grammar.
+//
+// Takes loweredName (string) which is the lower-cased function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns querier_dto.Expression which is the parsed TRIM call.
 func (p *parser) parseTrimFunction(loweredName string, schema string) querier_dto.Expression {
 	parameterCountBefore := p.parameterCount
 
@@ -262,6 +318,12 @@ func (p *parser) parseTrimFunction(loweredName string, schema string) querier_dt
 	}
 }
 
+// parseExtractFunction parses EXTRACT(field FROM expression).
+//
+// Takes loweredName (string) which is the lower-cased function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns querier_dto.Expression which is the parsed EXTRACT call.
 func (p *parser) parseExtractFunction(loweredName string, schema string) querier_dto.Expression {
 	if p.current().kind == tokenIdentifier {
 		p.advance()
@@ -284,6 +346,12 @@ func (p *parser) parseExtractFunction(loweredName string, schema string) querier
 	}
 }
 
+// parseGroupConcatFunction parses GROUP_CONCAT with its SEPARATOR clause.
+//
+// Takes loweredName (string) which is the lower-cased function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns querier_dto.Expression which is the parsed GROUP_CONCAT call.
 func (p *parser) parseGroupConcatFunction(loweredName string, schema string) querier_dto.Expression {
 	p.matchKeyword("DISTINCT")
 
@@ -321,6 +389,12 @@ func (p *parser) parseGroupConcatFunction(loweredName string, schema string) que
 	return p.parseFunctionSuffix(result)
 }
 
+// parseConvertFunction parses CONVERT(expr, type) or CONVERT(expr USING).
+//
+// Takes loweredName (string) which is the lower-cased function name.
+// Takes schema (string) which is the optional schema qualifier.
+//
+// Returns querier_dto.Expression which is the parsed CONVERT call.
 func (p *parser) parseConvertFunction(loweredName string, schema string) querier_dto.Expression {
 	parameterCountBefore := p.parameterCount
 	inner := p.parseExpression()
@@ -373,6 +447,10 @@ func (p *parser) parseConvertFunction(loweredName string, schema string) querier
 	}
 }
 
+// parseCastFunctionExpression parses CAST(expr AS type).
+//
+// Returns querier_dto.Expression which is the parsed CAST expression, or an unknown
+// expression when the opening paren is missing.
 func (p *parser) parseCastFunctionExpression() querier_dto.Expression {
 	p.advance()
 	if p.current().kind != tokenLeftParen {
@@ -399,6 +477,9 @@ func (p *parser) parseCastFunctionExpression() querier_dto.Expression {
 	}
 }
 
+// parseConvertExpression dispatches to parseConvertFunction.
+//
+// Returns querier_dto.Expression which is the parsed CONVERT call.
 func (p *parser) parseConvertExpression() querier_dto.Expression {
 	p.advance()
 	if p.current().kind != tokenLeftParen {
@@ -408,6 +489,9 @@ func (p *parser) parseConvertExpression() querier_dto.Expression {
 	return p.parseConvertFunction("convert", "")
 }
 
+// parseCastTargetTypeName parses the target type of a CAST expression.
+//
+// Returns string which is the assembled type name.
 func (p *parser) parseCastTargetTypeName() string {
 	typeName := ""
 	if p.current().kind == tokenIdentifier {
@@ -428,6 +512,11 @@ func (p *parser) parseCastTargetTypeName() string {
 	return typeName
 }
 
+// annotateCastParameter tags the most recent parameter with a cast type.
+//
+// Takes typeName (string) which is the raw type name parsed from the CAST.
+// Takes parameterCountBefore (int) which is the parameter count recorded before the inner
+// expression was parsed.
 func (p *parser) annotateCastParameter(typeName string, parameterCountBefore int) {
 	if typeName == "" || p.parameterCount != parameterCountBefore+1 {
 		return
@@ -440,6 +529,12 @@ func (p *parser) annotateCastParameter(typeName string, parameterCountBefore int
 	p.parameterRefs[lastIndex].CastType = new(normaliseTypeName(typeName, nil))
 }
 
+// parseCoalesceExpression parses a COALESCE(...) call with annotation.
+//
+// Annotates parameters with the first column reference seen so the expected column types
+// can be inferred later.
+//
+// Returns querier_dto.Expression which is the parsed COALESCE expression.
 func (p *parser) parseCoalesceExpression() querier_dto.Expression {
 	p.advance()
 	if p.current().kind != tokenLeftParen {
@@ -461,6 +556,12 @@ func (p *parser) parseCoalesceExpression() querier_dto.Expression {
 	}
 }
 
+// parseCoalesceArguments parses COALESCE arguments and tracks the first column reference
+// encountered.
+//
+// Returns []querier_dto.Expression which is the parsed argument list.
+// Returns *querier_dto.ColumnReference which is the first column seen, or nil when no
+// argument is a bare column.
 func (p *parser) parseCoalesceArguments() ([]querier_dto.Expression, *querier_dto.ColumnReference) {
 	var arguments []querier_dto.Expression
 	var firstColumnReference *querier_dto.ColumnReference
@@ -481,6 +582,13 @@ func (p *parser) parseCoalesceArguments() ([]querier_dto.Expression, *querier_dt
 	return arguments, firstColumnReference
 }
 
+// annotateCoalesceParameters tags unannotated COALESCE parameters with the column
+// reference of the first non-parameter argument.
+//
+// Takes firstColumnReference (*querier_dto.ColumnReference) which is the reference to
+// apply to unannotated parameters.
+// Takes referenceCountBefore (int) which is the parameterRefs length before COALESCE
+// arguments were parsed.
 func (p *parser) annotateCoalesceParameters(firstColumnReference *querier_dto.ColumnReference, referenceCountBefore int) {
 	if firstColumnReference == nil {
 		return
@@ -495,6 +603,9 @@ func (p *parser) annotateCoalesceParameters(firstColumnReference *querier_dto.Co
 	}
 }
 
+// parseCaseExpression parses a CASE WHEN ... END expression.
+//
+// Returns querier_dto.Expression which is the parsed CASE expression.
 func (p *parser) parseCaseExpression() querier_dto.Expression {
 	p.advance()
 

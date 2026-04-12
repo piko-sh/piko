@@ -16,9 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_dto contains provider-agnostic request/response types,
-// configuration structs, and parameter objects for the LLM subsystem,
-// covering completions, embeddings, vector search, batch processing,
-// conversation memory, budget management, response caching, retry
-// policies, provider fallback, and pricing.
+// Package llm_dto contains provider-agnostic request/response types, configuration
+// structs, and parameter objects for the LLM subsystem, covering completions, embeddings,
+// vector search, batch processing, conversation memory, budget management, response
+// caching, retry policies, provider fallback, and pricing.
 package llm_dto

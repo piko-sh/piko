@@ -31,13 +31,15 @@ import (
 	"golang.org/x/tools/imports"
 )
 
-// defaultTabWidth is the number of spaces used for tab indentation in Go code.
-const defaultTabWidth = 4
+const (
+	// defaultTabWidth is the number of spaces used for tab indentation in Go code.
+	defaultTabWidth = 4
+)
 
 var (
-	// staticIdentCache provides a cache of commonly-used *ast.Ident instances.
-	// Since Ident structs are immutable in our usage (we only set Name), we can
-	// safely share the same Ident instance across multiple locations in the AST.
+	// staticIdentCache provides a cache of commonly-used *ast.Ident instances. Since Ident
+	// structs are immutable in our usage (we only set Name), we can safely share the same
+	// Ident instance across multiple locations in the AST.
 	staticIdentCache = make(map[string]*ast.Ident, 128)
 
 	// dynamicIdentCache is an atomic cache for identifiers not in the static cache.
@@ -56,15 +58,15 @@ var (
 	litEmptyString = &ast.BasicLit{Kind: token.STRING, Value: `""`}
 )
 
-// ResetDynamicCaches clears the dynamic identifier and string literal caches.
-// This is intended for test isolation between iterations.
+// ResetDynamicCaches clears the dynamic identifier and string literal caches. This is
+// intended for test isolation between iterations.
 func ResetDynamicCaches() {
 	dynamicIdentCache = sync.Map{}
 	strLitCache = sync.Map{}
 }
 
-// RegisterIdent adds an identifier to the static cache for reuse.
-// Call this at package init time to pre-fill domain-specific identifiers.
+// RegisterIdent adds an identifier to the static cache for reuse. Call this at package
+// init time to pre-fill domain-specific identifiers.
 //
 // Takes name (string) which specifies the identifier name to register.
 func RegisterIdent(name string) {
@@ -73,8 +75,8 @@ func RegisterIdent(name string) {
 	}
 }
 
-// CachedIdent returns a cached *ast.Ident for the given name. Use this instead
-// of ast.NewIdent for identifier names that appear often to reduce memory use.
+// CachedIdent returns a cached *ast.Ident for the given name. Use this instead of
+// ast.NewIdent for identifier names that appear often to reduce memory use.
 //
 // Takes name (string) which specifies the identifier name to look up or cache.
 //
@@ -98,9 +100,8 @@ func CachedIdent(name string) *ast.Ident {
 
 // StrLit creates a Go AST string literal from a string value.
 //
-// It uses a two-level cache to reduce memory use during code generation: a
-// fixed cache for the empty string and a shared cache for strings that appear
-// more than once.
+// It uses a two-level cache to reduce memory use during code generation: a fixed cache
+// for the empty string and a shared cache for strings that appear more than once.
 //
 // Takes s (string) which is the value to convert to an AST literal.
 //
@@ -125,8 +126,8 @@ func StrLit(s string) *ast.BasicLit {
 	return lit
 }
 
-// IntLit creates a Go AST integer literal from an int value. Common values
-// (0, 1) are cached to reduce memory use.
+// IntLit creates a Go AST integer literal from an int value. Common values (0, 1) are
+// cached to reduce memory use.
 //
 // Takes i (int) which is the integer value to convert.
 //
@@ -190,8 +191,7 @@ func CallExpr(fun ast.Expr, arguments ...ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{Fun: fun, Args: arguments}
 }
 
-// DefineStmt creates a short variable declaration statement
-// (name := rightHandSide).
+// DefineStmt creates a short variable declaration statement (name := rightHandSide).
 //
 // Takes name (string) which is the variable name.
 // Takes rightHandSide (ast.Expr) which is the expression to assign.
@@ -205,8 +205,8 @@ func DefineStmt(name string, rightHandSide ast.Expr) *ast.AssignStmt {
 	}
 }
 
-// DefineStmtMulti creates a short variable declaration with multiple names on
-// the left side (a, b := rightHandSide).
+// DefineStmtMulti creates a short variable declaration with multiple names on the left
+// side (a, b := rightHandSide).
 //
 // Takes names ([]string) which are the variable names to declare.
 // Takes rightHandSide (ast.Expr) which is the expression to assign.
@@ -269,8 +269,7 @@ func VarDecl(name string, typ ast.Expr) *ast.DeclStmt {
 
 // CompositeLit creates a composite literal expression ({...}).
 //
-// Takes typ (ast.Expr) which is the type of the literal, or nil for type
-// inference.
+// Takes typ (ast.Expr) which is the type of the literal, or nil for type inference.
 // Takes elts (...ast.Expr) which are the elements of the literal.
 //
 // Returns *ast.CompositeLit which is the new literal expression.

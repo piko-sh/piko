@@ -54,8 +54,7 @@ const (
 	// profileKeyWidth is the key for the image width in profile parameters.
 	profileKeyWidth = "width"
 
-	// profileKeyDensity is the key for setting image density in profile
-	// parameters.
+	// profileKeyDensity is the key for setting image density in profile parameters.
 	profileKeyDensity = "density"
 
 	// decimalBase is base 10, used when formatting numbers as strings.
@@ -82,36 +81,36 @@ const (
 	// defaultImageExtension is the file extension used for image variants.
 	defaultImageExtension = ".img"
 
-	// renderContextMapCapacity is the initial capacity for render context maps
-	// tracking components, hints, symbols, and tags.
+	// renderContextMapCapacity is the initial capacity for render context maps tracking
+	// components, hints, symbols, and tags.
 	renderContextMapCapacity = 16
 
-	// renderContextCacheCapacity is the starting size for smaller render context
-	// caches such as registered assets and srcset caches.
+	// renderContextCacheCapacity is the starting size for smaller render context caches such
+	// as registered assets and srcset caches.
 	renderContextCacheCapacity = 8
 
-	// byteBufferInitialCapacity is the initial capacity for byte buffers used
-	// during rendering.
+	// byteBufferInitialCapacity is the initial capacity for byte buffers used during
+	// rendering.
 	byteBufferInitialCapacity = 256
 
-	// bufioWriterBufferSize is the buffer size for pooled bufio.Writer instances.
-	// 32KB balances memory usage against syscall overhead for typical page sizes
-	// (100-200KB), reducing ResponseWriter.Write calls from hundreds to around five
-	// per page and removing mutex contention in net/http.
+	// bufioWriterBufferSize is the buffer size for pooled bufio.Writer instances. 32KB
+	// balances memory usage against syscall overhead for typical page sizes (100-200KB),
+	// reducing ResponseWriter.Write calls from hundreds to around five per page and removing
+	// mutex contention in net/http.
 	bufioWriterBufferSize = 32 * 1024
 )
 
 var (
-	// byteBufferPool reuses byte-slice buffers to reduce allocation pressure
-	// during rendering.
+	// byteBufferPool reuses byte-slice buffers to reduce allocation pressure during
+	// rendering.
 	byteBufferPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, 0, byteBufferInitialCapacity))
 		},
 	}
 
-	// csrfBufPool provides reusable bytes.Buffer instances for CSRF token
-	// generation. The buffer is owned by renderContext for the request duration.
+	// csrfBufPool provides reusable bytes.Buffer instances for CSRF token generation. The
+	// buffer is owned by renderContext for the request duration.
 	csrfBufPool = sync.Pool{
 		New: func() any {
 			b := &bytes.Buffer{}
@@ -120,17 +119,17 @@ var (
 		},
 	}
 
-	// bufioWriterPool provides reusable buffered writers to reduce allocations
-	// during rendering. Each writer has a 32KB buffer that batches small writes
-	// before flushing to the underlying ResponseWriter.
+	// bufioWriterPool provides reusable buffered writers to reduce allocations during
+	// rendering. Each writer has a 32KB buffer that batches small writes before flushing to
+	// the underlying ResponseWriter.
 	bufioWriterPool = sync.Pool{
 		New: func() any {
 			return bufio.NewWriterSize(nil, bufioWriterBufferSize)
 		},
 	}
 
-	// selfClosingSVGElements holds the set of SVG element names that are rendered
-	// as self-closing tags.
+	// selfClosingSVGElements holds the set of SVG element names that are rendered as
+	// self-closing tags.
 	selfClosingSVGElements = map[string]bool{
 		"circle": true, "ellipse": true, "feBlend": true, "feColorMatrix": true, "feComponentTransfer": true,
 		"feComposite": true, "feConvolveMatrix": true, "feDiffuseLighting": true, "feDisplacementMap": true,
@@ -177,14 +176,14 @@ var (
 	commentOpen = []byte("<!--")
 	// commentClose is the pre-computed byte representation of "-->".
 	commentClose = []byte("-->")
-	// csrfEphemeralAttrName is the pre-computed byte representation of the CSRF
-	// ephemeral token attribute name.
+	// csrfEphemeralAttrName is the pre-computed byte representation of the CSRF ephemeral
+	// token attribute name.
 	csrfEphemeralAttrName = []byte("data-csrf-ephemeral-token")
-	// csrfActionAttrName is the pre-computed byte representation of the CSRF
-	// action token attribute name.
+	// csrfActionAttrName is the pre-computed byte representation of the CSRF action token
+	// attribute name.
 	csrfActionAttrName = []byte("data-csrf-action-token")
-	// renderContextPool reuses renderContext instances to reduce allocation
-	// pressure during page rendering.
+	// renderContextPool reuses renderContext instances to reduce allocation pressure during
+	// page rendering.
 	renderContextPool = sync.Pool{
 		New: func() any {
 			return new(newRenderContextFields())
@@ -192,9 +191,8 @@ var (
 	}
 )
 
-// RenderASTOptions contains all options for rendering an AST to HTML output.
-// Using an options struct reduces the argument count and makes the API more
-// flexible.
+// RenderASTOptions contains all options for rendering an AST to HTML output. Using an
+// options struct reduces the argument count and makes the API more flexible.
 type RenderASTOptions struct {
 	// Template is the parsed AST to render. It is returned to the pool after use.
 	Template *ast_domain.TemplateAST
@@ -205,8 +203,8 @@ type RenderASTOptions struct {
 	// SiteConfig holds website settings for fonts and favicons; nil skips these.
 	SiteConfig *config.WebsiteConfig
 
-	// ProbeData holds pre-fetched data from the probe phase. When non-nil,
-	// RenderAST reuses it instead of fetching component metadata again.
+	// ProbeData holds pre-fetched data from the probe phase. When non-nil, RenderAST reuses
+	// it instead of fetching component metadata again.
 	ProbeData *render_dto.ProbeData
 
 	// PageID identifies the page for render context and error messages.
@@ -215,8 +213,7 @@ type RenderASTOptions struct {
 	// Styling specifies the CSS styles to apply to the rendered output.
 	Styling string
 
-	// IsFragment indicates whether to render a page fragment instead of a full
-	// page.
+	// IsFragment indicates whether to render a page fragment instead of a full page.
 	IsFragment bool
 }
 
@@ -237,13 +234,13 @@ type RenderEmailOptions struct {
 	// Styling specifies the CSS styles to apply during email rendering.
 	Styling string
 
-	// IsPreviewMode indicates browser preview mode. When true, local image
-	// paths are resolved to served asset URLs instead of CID references.
+	// IsPreviewMode indicates browser preview mode. When true, local image paths are
+	// resolved to served asset URLs instead of CID references.
 	IsPreviewMode bool
 }
 
-// linkHeaderKey identifies a link header for fast deduplication in a map.
-// It uses URL, Rel, and As fields for comparison.
+// linkHeaderKey identifies a link header for fast deduplication in a map. It uses URL,
+// Rel, and As fields for comparison.
 type linkHeaderKey struct {
 	// URL is the target address from the link header.
 	URL string
@@ -255,9 +252,8 @@ type linkHeaderKey struct {
 	As string
 }
 
-// svgSymbolEntry pairs an SVG artefact ID with its pre-fetched data. Storing
-// the data at registration time avoids a redundant cache lookup in
-// buildSvgSpriteSheet.
+// svgSymbolEntry pairs an SVG artefact ID with its pre-fetched data. Storing the data at
+// registration time avoids a redundant cache lookup in buildSvgSpriteSheet.
 type svgSymbolEntry struct {
 	// data holds the pre-fetched SVG content for this symbol.
 	data *ParsedSvgData
@@ -283,12 +279,10 @@ type renderContext struct {
 	// originalCtx is the original request context for cancellation and deadlines.
 	originalCtx context.Context
 
-	// linkHeaderSet tracks which link headers have been added to prevent
-	// duplicates.
+	// linkHeaderSet tracks which link headers have been added to prevent duplicates.
 	linkHeaderSet map[linkHeaderKey]struct{}
 
-	// customTags holds the set of custom tag names that may appear in the
-	// template.
+	// customTags holds the set of custom tag names that may appear in the template.
 	customTags map[string]struct{}
 
 	// mergedAttrsCache stores merged SVG attribute strings for fast lookups.
@@ -297,61 +291,57 @@ type renderContext struct {
 	// registeredDynamicAssets caches assets that are registered during rendering.
 	registeredDynamicAssets map[string]*registry_dto.ArtefactMeta
 
-	// srcsetCache stores precomputed srcset attribute strings for piko:img
-	// elements. The key is the artefact ID and profile hash.
+	// srcsetCache stores precomputed srcset attribute strings for piko:img elements. The key
+	// is the artefact ID and profile hash.
 	srcsetCache map[srcsetCacheKey]string
 
 	// httpRequest holds the current HTTP request, used for CSRF token generation.
 	httpRequest *http.Request
 
-	// requiredSvgSymbols tracks which SVG symbols are needed for the sprite
-	// sheet, together with their pre-fetched data from the registry cache.
+	// requiredSvgSymbols tracks which SVG symbols are needed for the sprite sheet, together
+	// with their pre-fetched data from the registry cache.
 	requiredSvgSymbols []svgSymbolEntry
 
 	// csrfPair holds the CSRF token pair; nil until first needed.
 	csrfPair *security_dto.CSRFPair
 
-	// csrfBuf holds a pooled buffer for CSRF token generation.
-	// CSRFPair.ActionToken is a slice into this buffer; the buffer is returned to
-	// the pool on reset.
+	// csrfBuf holds a pooled buffer for CSRF token generation. CSRFPair.ActionToken is a
+	// slice into this buffer; the buffer is returned to the pool on reset.
 	csrfBuf *bytes.Buffer
 
-	// collectedCustomComponents tracks custom component tags used during
-	// rendering.
+	// collectedCustomComponents tracks custom component tags used during rendering.
 	collectedCustomComponents map[string]struct{}
 
-	// collectedCaptchaScripts tracks which captcha provider init scripts are
-	// needed on this page, populated by renderPikoCaptcha during rendering.
+	// collectedCaptchaScripts tracks which captcha provider init scripts are needed on this
+	// page, populated by renderPikoCaptcha during rendering.
 	collectedCaptchaScripts map[string]*captchaScriptInfo
 
-	// probeData holds pre-fetched data from the probe phase. When non-nil,
-	// putRenderContext releases it back to the pool.
+	// probeData holds pre-fetched data from the probe phase. When non-nil, putRenderContext
+	// releases it back to the pool.
 	probeData *render_dto.ProbeData
 
-	// componentMetadata stores bulk-fetched component metadata from the
-	// preload phase so buildPreloadLogic can reuse it without a second fetch.
+	// componentMetadata stores bulk-fetched component metadata from the preload phase so
+	// buildPreloadLogic can reuse it without a second fetch.
 	componentMetadata map[string]*render_dto.ComponentMetadata
 
 	// defaultLocale is the site's default locale; empty means no default is set.
 	defaultLocale string
 
-	// pageID identifies the page being rendered for error messages and
-	// diagnostics.
+	// pageID identifies the page being rendered for error messages and diagnostics.
 	pageID string
 
 	// currentLocale holds the locale for the current request; empty means not set.
 	currentLocale string
 
-	// i18nStrategy specifies how to handle localisation; empty or "disabled"
-	// means no localisation, "prefix" adds the locale to URL paths.
+	// i18nStrategy specifies how to handle localisation; empty or "disabled" means no
+	// localisation, "prefix" adds the locale to URL paths.
 	i18nStrategy string
 
 	// diagnostics gathers errors and warnings found during rendering.
 	diagnostics renderDiagnostics
 
-	// frozenBuffers holds buffers that were turned into strings without copying.
-	// These buffers must stay in memory until the request ends so the strings
-	// remain valid.
+	// frozenBuffers holds buffers that were turned into strings without copying. These
+	// buffers must stay in memory until the request ends so the strings remain valid.
 	frozenBuffers []*[]byte
 
 	// collectedLinkHeaders holds Link headers for preloading resources.
@@ -366,24 +356,22 @@ type renderContext struct {
 	// muDiagnostics guards the diagnostics field during concurrent writes.
 	muDiagnostics sync.Mutex
 
-	// skipPrerenderedHTML when true causes renderNode to ignore PrerenderedHTML
-	// and walk the full AST structure. Used for email rendering where the AST
-	// must remain intact for CSS inlining and PML transformations.
+	// skipPrerenderedHTML when true causes renderNode to ignore PrerenderedHTML and walk the
+	// full AST structure. Used for email rendering where the AST must remain intact for CSS
+	// inlining and PML transformations.
 	skipPrerenderedHTML bool
 
-	// isEmailMode indicates whether email rendering is active. When true,
-	// internal attributes like p-key and partial are removed from output.
+	// isEmailMode indicates whether email rendering is active. When true, internal
+	// attributes like p-key and partial are removed from output.
 	isEmailMode bool
 
-	// stripHTMLComments controls whether HTML comments are removed from the
-	// output.
+	// stripHTMLComments controls whether HTML comments are removed from the output.
 	stripHTMLComments bool
 }
 
-// RenderOrchestrator coordinates the rendering of HTML from AST structures,
-// managing transformations, component resolution, CSRF token generation, and
-// SVG sprite sheet creation. It implements RenderService, StaticPrerenderer,
-// and HealthProbe interfaces.
+// RenderOrchestrator coordinates the rendering of HTML from AST structures, managing
+// transformations, component resolution, CSRF token generation, and SVG sprite sheet
+// creation. It implements RenderService, StaticPrerenderer, and HealthProbe interfaces.
 type RenderOrchestrator struct {
 	// pmlEngine transforms PML templates into HTML for email output.
 	pmlEngine pml_domain.Transformer
@@ -394,46 +382,41 @@ type RenderOrchestrator struct {
 	// csrfService creates and validates CSRF tokens.
 	csrfService security_domain.CSRFTokenService
 
-	// captchaService provides captcha verification and rendering requirements
-	// for piko:captcha elements. Nil when captcha is disabled.
+	// captchaService provides captcha verification and rendering requirements for
+	// piko:captcha elements. Nil when captcha is disabled.
 	captchaService captcha_domain.CaptchaServicePort
 
-	// dynamicAssetCache stores artefact metadata across requests, keyed by
-	// asset path. Profiles are deterministic from static template attributes,
-	// so a registered artefact never changes during this process's lifetime.
+	// dynamicAssetCache stores artefact metadata across requests, keyed by asset path.
+	// Profiles are deterministic from static template attributes, so a registered artefact
+	// never changes during this process's lifetime.
 	dynamicAssetCache sync.Map
 
-	// cssResetCSS holds the CSS reset to prepend to theme output. When empty,
-	// no CSS reset is included in the generated theme CSS.
+	// cssResetCSS holds the CSS reset to prepend to theme output. When empty, no CSS reset
+	// is included in the generated theme CSS.
 	cssResetCSS string
 
-	// transformSteps holds the registered transformation steps in the
-	// pipeline.
+	// transformSteps holds the ordered transformation steps applied during rendering.
 	transformSteps []TransformationPort
 
-	// lastEmailAssetRequests holds asset requests from the most recent email
-	// render.
+	// lastEmailAssetRequests holds asset requests from the most recent email render.
 	lastEmailAssetRequests []*email_dto.EmailAssetRequest
 
-	// stripHTMLComments controls whether HTML comments are removed from the
-	// output.
+	// stripHTMLComments controls whether HTML comments are removed from the output.
 	stripHTMLComments bool
 }
 
 // RenderOrchestratorOption configures a RenderOrchestrator.
 type RenderOrchestratorOption func(*RenderOrchestrator)
 
-// NewRenderOrchestrator creates a new render orchestrator with the provided
-// dependencies.
+// NewRenderOrchestrator creates a new render orchestrator with the provided dependencies.
 //
 // Takes pmlEngine (pml_domain.Transformer) which handles PML transformation.
-// Takes transforms ([]TransformationPort) which defines the transformation
-// steps to apply.
+// Takes transforms ([]TransformationPort) which defines the transformation steps to
+// apply.
 // Takes registry (RegistryPort) which provides access to registered components.
-// Takes csrfService (security_domain.CSRFTokenService) which generates CSRF
-// tokens for security.
-// Takes opts (...RenderOrchestratorOption) which provides optional
-// configuration.
+// Takes csrfService (security_domain.CSRFTokenService) which generates CSRF tokens for
+// security.
+// Takes opts (...RenderOrchestratorOption) which provides optional configuration.
 //
 // Returns *RenderOrchestrator which is ready to orchestrate email rendering.
 func NewRenderOrchestrator(
@@ -456,9 +439,9 @@ func NewRenderOrchestrator(
 	return ro
 }
 
-// RenderAST renders an AST into HTML and writes it to the provided writer.
-// It handles both full pages and fragments, manages component preloading,
-// generates SVG sprite sheets, and applies i18n transformations.
+// RenderAST renders an AST into HTML and writes it to the provided writer. It handles
+// both full pages and fragments, manages component preloading, generates SVG sprite
+// sheets, and applies i18n transformations.
 //
 // Takes w (io.Writer) which receives the rendered HTML output.
 // Takes response (http.ResponseWriter) which provides response headers and state.
@@ -531,11 +514,10 @@ func (ro *RenderOrchestrator) RenderAST(
 	return nil
 }
 
-// RenderASTToPlainText converts an AST to plain text format. Use it to
-// generate email plain-text alternatives.
+// RenderASTToPlainText converts an AST to plain text format. Use it to generate email
+// plain-text alternatives.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to
-// render.
+// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to render.
 //
 // Returns string which is the plain text representation of the template.
 // Returns error when the walking process fails.
@@ -551,13 +533,13 @@ func (*RenderOrchestrator) RenderASTToPlainText(
 	return walker.Walk(templateAST)
 }
 
-// GetLastEmailAssetRequests returns the asset requests collected during the
-// most recent email rendering operation. Should be called immediately after
-// RenderEmail to retrieve assets that need to be embedded via Content-ID (CID).
+// GetLastEmailAssetRequests returns the asset requests collected during the most recent
+// email rendering operation. Should be called immediately after RenderEmail to retrieve
+// assets that need to be embedded via Content-ID (CID).
 //
 // Returns []*email_dto.EmailAssetRequest which contains the asset requests.
-// Returns an empty slice if no email has been rendered or if no assets were
-// requested. The returned slice is not a copy; callers should not modify it.
+// Returns an empty slice if no email has been rendered or if no assets were requested.
+// The returned slice is not a copy; callers should not modify it.
 func (ro *RenderOrchestrator) GetLastEmailAssetRequests() []*email_dto.EmailAssetRequest {
 	if ro.lastEmailAssetRequests == nil {
 		return []*email_dto.EmailAssetRequest{}
@@ -565,9 +547,9 @@ func (ro *RenderOrchestrator) GetLastEmailAssetRequests() []*email_dto.EmailAsse
 	return ro.lastEmailAssetRequests
 }
 
-// RenderASTToString renders an AST to an HTML string without requiring HTTP
-// context. Designed for headless rendering scenarios like WASM, testing, and
-// static site generation.
+// RenderASTToString renders an AST to an HTML string without requiring HTTP context.
+// Designed for headless rendering scenarios like WASM, testing, and static site
+// generation.
 //
 // Unlike RenderAST:
 //   - Does not require http.Request or http.ResponseWriter
@@ -664,8 +646,7 @@ func (ro *RenderOrchestrator) renderFragment(
 //
 // Takes qw (*qt.Writer) which receives the streamed HTML output.
 // Takes rctx (*renderContext) which provides the rendering context and state.
-// Takes opts (RenderASTOptions) which specifies page metadata and
-// configuration.
+// Takes opts (RenderASTOptions) which specifies page metadata and configuration.
 // Takes preloadHTML (string) which contains preload link tags for the page.
 // Takes scriptHTML (string) which contains script tags to include.
 //
@@ -774,8 +755,8 @@ func (ro *RenderOrchestrator) getRenderContext(
 	return rctx
 }
 
-// buildSvgSpriteSheetIfNeeded builds an SVG sprite sheet if there are any
-// required symbols.
+// buildSvgSpriteSheetIfNeeded builds an SVG sprite sheet if there are any required
+// symbols.
 //
 // Takes rctx (*renderContext) which provides the required SVG symbols.
 //
@@ -801,8 +782,7 @@ func (ro *RenderOrchestrator) buildSvgSpriteSheetIfNeeded(
 
 // renderASTToWriter renders the template AST nodes to the given writer.
 //
-// Takes tmplAST (*ast_domain.TemplateAST) which is the parsed template to
-// render.
+// Takes tmplAST (*ast_domain.TemplateAST) which is the parsed template to render.
 // Takes qw (*qt.Writer) which is the output destination.
 // Takes rctx (*renderContext) which provides the rendering state.
 //
@@ -865,11 +845,11 @@ func (ro *RenderOrchestrator) renderNode(
 	return nil
 }
 
-// renderFragmentChildren renders all children of a NodeFragment, passing
-// attributes to child elements.
+// renderFragmentChildren renders all children of a NodeFragment, passing attributes to
+// child elements.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the fragment whose
-// children will be rendered.
+// Takes node (*ast_domain.TemplateNode) which provides the fragment whose children will
+// be rendered.
 // Takes qw (*qt.Writer) which receives the rendered output.
 // Takes rctx (*renderContext) which holds the current rendering state.
 //
@@ -891,8 +871,8 @@ func (ro *RenderOrchestrator) renderFragmentChildren(
 // renderFragmentChild renders a single child of a NodeFragment.
 //
 // Takes child (*ast_domain.TemplateNode) which is the child node to render.
-// Takes parentAttrs ([]ast_domain.HTMLAttribute) which contains attributes
-// inherited from the parent fragment.
+// Takes parentAttrs ([]ast_domain.HTMLAttribute) which contains attributes inherited from
+// the parent fragment.
 // Takes qw (*qt.Writer) which is the output writer for rendered content.
 // Takes rctx (*renderContext) which provides the current rendering state.
 //
@@ -930,8 +910,8 @@ func (ro *RenderOrchestrator) renderFragmentChild(
 // Takes node (*ast_domain.TemplateNode) which is the element to render.
 // Takes qw (*qt.Writer) which receives the rendered output.
 // Takes rctx (*renderContext) which holds the rendering state and settings.
-// Takes fragmentAttrs ([]ast_domain.HTMLAttribute) which are extra attributes
-// to add to the element.
+// Takes fragmentAttrs ([]ast_domain.HTMLAttribute) which are extra attributes to add to
+// the element.
 //
 // Returns error when rendering the element content fails.
 func (ro *RenderOrchestrator) renderElement(
@@ -991,9 +971,8 @@ func (ro *RenderOrchestrator) renderElement(
 	return nil
 }
 
-// renderNodeContent renders the content inside an element (innerHTML,
-// textContent, or children). This helper reduces nesting depth in
-// renderElement.
+// renderNodeContent renders the content inside an element (innerHTML, textContent, or
+// children). This helper reduces nesting depth in renderElement.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the content to render.
 // Takes qw (*qt.Writer) which writes the rendered output.
@@ -1031,13 +1010,13 @@ func (ro *RenderOrchestrator) renderNodeContent(node *ast_domain.TemplateNode, q
 	}, qw, rctx)
 }
 
-// writeElementDirectives writes all common directives for an element: CSRF,
-// events, and p-ref. This is shared between renderElement and specialised
-// renderers (renderPikoA, renderPikoImg, renderPikoSvg) to avoid code
-// duplication and ensure consistent directive handling.
+// writeElementDirectives writes all common directives for an element: CSRF, events, and
+// p-ref. This is shared between renderElement and specialised renderers (renderPikoA,
+// renderPikoImg, renderPikoSvg) to avoid code duplication and ensure consistent directive
+// handling.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node
-// containing directives to write.
+// Takes node (*ast_domain.TemplateNode) which provides the template node containing
+// directives to write.
 // Takes qw (*qt.Writer) which receives the rendered output.
 // Takes rctx (*renderContext) which provides the current rendering context.
 func (ro *RenderOrchestrator) writeElementDirectives(
@@ -1072,9 +1051,9 @@ func (ro *RenderOrchestrator) writeElementDirectives(
 	writeAttributeWriters(node.AttributeWriters, qw)
 }
 
-// writeElementDirectivesExcluding is like writeElementDirectives but excludes
-// the specified attributes from AttributeWriters. Used by piko:img which
-// handles src and srcset specially.
+// writeElementDirectivesExcluding is like writeElementDirectives but excludes the
+// specified attributes from AttributeWriters. Used by piko:img which handles src and
+// srcset specially.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to render.
 // Takes qw (*qt.Writer) which is the output writer for the rendered content.
@@ -1119,8 +1098,8 @@ func (ro *RenderOrchestrator) writeElementDirectivesExcluding(
 // Takes node (*ast_domain.TemplateNode) which is checked for CSRF requirements.
 // Takes rctx (*renderContext) which holds the request state and CSRF service.
 //
-// Returns *security_dto.CSRFPair which contains the token and cookie, or nil
-// if CSRF is not required or generation failed.
+// Returns *security_dto.CSRFPair which contains the token and cookie, or nil if CSRF is
+// not required or generation failed.
 func (*RenderOrchestrator) getCSRFIfNeeded(
 	node *ast_domain.TemplateNode,
 	rctx *renderContext,
@@ -1149,27 +1128,25 @@ type RenderASTToStringOptions struct {
 	// Styling specifies the CSS styles to include in the output.
 	Styling string
 
-	// IncludeDocumentWrapper determines whether to wrap output in full HTML
-	// document structure (<!DOCTYPE>, <html>, <head>, <body>). When false,
-	// only the AST content is rendered.
+	// IncludeDocumentWrapper determines whether to wrap output in full HTML document
+	// structure (<!DOCTYPE>, <html>, <head>, <body>). When false, only the AST content is
+	// rendered.
 	IncludeDocumentWrapper bool
 }
 
-// ensureCSRFForMeta generates CSRF tokens for page-level meta tag injection.
-// Unlike getCSRFIfNeeded (which is lazy and per-node), this is called
-// proactively at the start of page/fragment rendering to populate the CSRF
-// meta tags.
+// ensureCSRFForMeta generates CSRF tokens for page-level meta tag injection. Unlike
+// getCSRFIfNeeded (which is lazy and per-node), this is called proactively at the start
+// of page/fragment rendering to populate the CSRF meta tags.
 //
-// This enables the Global CSRF Token Strategy where tokens are available
-// page-wide via <meta name="csrf-token"> and <meta name="csrf-ephemeral">,
-// allowing client-side JavaScript to read tokens without per-element
-// attributes.
+// This enables the Global CSRF Token Strategy where tokens are available page-wide via
+// <meta name="csrf-token"> and <meta name="csrf-ephemeral">, allowing client-side
+// JavaScript to read tokens without per-element attributes.
 //
-// Takes rctx (*renderContext) which provides the request context including
-// CSRF service and HTTP request/response.
+// Takes rctx (*renderContext) which provides the request context including CSRF service
+// and HTTP request/response.
 //
-// Returns *security_dto.CSRFPair which contains the generated CSRF tokens,
-// or nil if generation fails.
+// Returns *security_dto.CSRFPair which contains the generated CSRF tokens, or nil if
+// generation fails.
 func (*RenderOrchestrator) ensureCSRFForMeta(rctx *renderContext) *security_dto.CSRFPair {
 	generateCSRFOnce(rctx, "Failed to generate CSRF pair for meta tags")
 
@@ -1180,8 +1157,8 @@ func (*RenderOrchestrator) ensureCSRFForMeta(rctx *renderContext) *security_dto.
 	return rctx.csrfPair
 }
 
-// getHeadlessRenderContext creates a render context for headless rendering
-// without HTTP dependencies.
+// getHeadlessRenderContext creates a render context for headless rendering without HTTP
+// dependencies.
 //
 // Returns *renderContext which is configured for headless use.
 func (ro *RenderOrchestrator) getHeadlessRenderContext(ctx context.Context) *renderContext {
@@ -1270,8 +1247,8 @@ func (ro *RenderOrchestrator) renderHeadlessFullPage(
 	return nil
 }
 
-// WithStripHTMLComments configures whether HTML comments (<!-- ... -->)
-// are stripped from both prerendered and runtime-rendered output.
+// WithStripHTMLComments configures whether HTML comments (<!-- ... -->) are stripped from
+// both prerendered and runtime-rendered output.
 //
 // Takes strip (bool) which specifies whether comments should be stripped.
 //
@@ -1282,9 +1259,9 @@ func WithStripHTMLComments(strip bool) RenderOrchestratorOption {
 	}
 }
 
-// WithCSSResetCSS sets the CSS reset content to include in the generated theme
-// CSS, appended after theme variables in BuildThemeCSS output. When empty, no
-// CSS reset is included.
+// WithCSSResetCSS sets the CSS reset content to include in the generated theme CSS,
+// appended after theme variables in BuildThemeCSS output. When empty, no CSS reset is
+// included.
 //
 // Takes css (string) which is the CSS reset content to include.
 //
@@ -1295,9 +1272,9 @@ func WithCSSResetCSS(css string) RenderOrchestratorOption {
 	}
 }
 
-// isVoidElement returns true for HTML void elements (elements that cannot
-// have children). Uses a switch statement which Go optimises with length-based
-// dispatch, avoiding map allocation.
+// isVoidElement returns true for HTML void elements (elements that cannot have children).
+// Uses a switch statement which Go optimises with length-based dispatch, avoiding map
+// allocation.
 //
 // Takes tag (string) which is the HTML tag name to check.
 //
@@ -1311,11 +1288,10 @@ func isVoidElement(tag string) bool {
 	}
 }
 
-// newRenderContext creates a new render context with initialised maps and
-// default values.
+// newRenderContext creates a new render context with initialised maps and default values.
 //
-// This is called when pool retrieval fails, which should be rare as pools
-// normally return the correct type.
+// This is called when pool retrieval fails, which should be rare as pools normally return
+// the correct type.
 //
 // Returns *renderContext which is ready for use.
 func newRenderContext() *renderContext {
@@ -1323,8 +1299,8 @@ func newRenderContext() *renderContext {
 }
 
 // newRenderContextFields returns a renderContext value with all maps and slices
-// pre-allocated to their default capacities. Shared by the pool constructor and
-// the standalone fallback to avoid duplicating the field initialisations.
+// pre-allocated to their default capacities. Shared by the pool constructor and the
+// standalone fallback to avoid duplicating the field initialisations.
 //
 // Returns renderContext which is ready for use.
 func newRenderContextFields() renderContext {
@@ -1341,8 +1317,8 @@ func newRenderContextFields() renderContext {
 	}
 }
 
-// getBufferedWriter gets a buffered writer from the pool and sets it to write
-// to the given writer.
+// getBufferedWriter gets a buffered writer from the pool and sets it to write to the
+// given writer.
 //
 // Takes w (io.Writer) which is the target for buffered output.
 //
@@ -1357,9 +1333,8 @@ func getBufferedWriter(w io.Writer) *bufio.Writer {
 	return bw
 }
 
-// releaseBufferedWriter returns a buffered writer to the pool after clearing
-// its link to the underlying writer. The caller must call Flush before
-// releasing.
+// releaseBufferedWriter returns a buffered writer to the pool after clearing its link to
+// the underlying writer. The caller must call Flush before releasing.
 //
 // Takes bw (*bufio.Writer) which is the writer to return to the pool.
 func releaseBufferedWriter(bw *bufio.Writer) {
@@ -1367,8 +1342,8 @@ func releaseBufferedWriter(bw *bufio.Writer) {
 	bufioWriterPool.Put(bw)
 }
 
-// populateTagMap fills the destination map with tag names.
-// The destination map must be empty before the call.
+// populateTagMap fills the destination map with tag names. The destination map must be
+// empty before the call.
 //
 // Takes dest (map[string]struct{}) which is the map to fill with tags.
 // Takes tags ([]string) which contains the tag names to add.
@@ -1378,12 +1353,11 @@ func populateTagMap(dest map[string]struct{}, tags []string) {
 	}
 }
 
-// generateCSRFOnce generates a CSRF token pair exactly once per render context.
-// It uses sync.Once to ensure the generation happens only on the first call,
-// subsequent calls use the cached result.
+// generateCSRFOnce generates a CSRF token pair exactly once per render context. It uses
+// sync.Once to ensure the generation happens only on the first call, subsequent calls use
+// the cached result.
 //
-// Takes rctx (*renderContext) which provides the HTTP context for CSRF
-// generation.
+// Takes rctx (*renderContext) which provides the HTTP context for CSRF generation.
 // Takes errMessage (string) which is the log message prefix on failure.
 func generateCSRFOnce(rctx *renderContext, errMessage string) {
 	rctx.csrfOnce.Do(func() {
@@ -1413,9 +1387,9 @@ func generateCSRFOnce(rctx *renderContext, errMessage string) {
 	})
 }
 
-// isClientDisconnectError reports whether an error was caused by the client
-// disconnecting before the response was fully written. These errors are
-// expected during normal operation and do not indicate a server fault.
+// isClientDisconnectError reports whether an error was caused by the client disconnecting
+// before the response was fully written. These errors are expected during normal
+// operation and do not indicate a server fault.
 //
 // Takes err (error) which is the error to check.
 //
@@ -1427,9 +1401,9 @@ func isClientDisconnectError(err error) bool {
 	return false
 }
 
-// filterValidJSON returns only the entries from input that are syntactically
-// valid JSON. Invalid entries are logged as warnings and dropped to prevent
-// malformed <script> blocks in the output.
+// filterValidJSON returns only the entries from input that are syntactically valid JSON.
+// Invalid entries are logged as warnings and dropped to prevent malformed <script> blocks
+// in the output.
 //
 // Takes input ([]string) which holds raw JSON-LD strings.
 //

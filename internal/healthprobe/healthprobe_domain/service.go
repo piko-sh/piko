@@ -33,15 +33,17 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// maxConcurrentProbes caps the parallel execution of probes per
-// liveness/readiness/startup check.
-const maxConcurrentProbes = 4
+const (
+	// maxConcurrentProbes caps the parallel execution of probes per
+	// liveness/readiness/startup check.
+	maxConcurrentProbes = 4
+)
 
 // ServiceOption is a function that configures a healthprobe service.
 type ServiceOption func(*service)
 
-// service provides health status checks for the application.
-// It implements healthprobe_domain.Service.
+// service provides health status checks for the application. It implements
+// healthprobe_domain.Service.
 type service struct {
 	// registry stores the registered health probes and email providers.
 	registry Registry
@@ -66,13 +68,13 @@ func (s *service) CheckLiveness(ctx context.Context) healthprobe_dto.Status {
 	return s.checkAll(ctx, healthprobe_dto.CheckTypeLiveness, "Liveness")
 }
 
-// CheckReadiness runs all readiness health probes and aggregates their
-// results. If the service has been signalled to drain, it returns
-// StateUnhealthy immediately without running probes, allowing load
-// balancers to deregister the instance before the server shuts down.
+// CheckReadiness runs all readiness health probes and aggregates their results. If the
+// service has been signalled to drain, it returns StateUnhealthy immediately without
+// running probes, allowing load balancers to deregister the instance before the server
+// shuts down.
 //
-// Returns healthprobe_dto.Status which contains the combined status of all
-// readiness probes.
+// Returns healthprobe_dto.Status which contains the combined status of all readiness
+// probes.
 func (s *service) CheckReadiness(ctx context.Context) healthprobe_dto.Status {
 	if s.shuttingDown.Load() {
 		return healthprobe_dto.Status{
@@ -86,8 +88,8 @@ func (s *service) CheckReadiness(ctx context.Context) healthprobe_dto.Status {
 	return s.checkAll(ctx, healthprobe_dto.CheckTypeReadiness, "Readiness")
 }
 
-// SignalDrain marks the service as draining so that readiness checks
-// return StateUnhealthy immediately.
+// SignalDrain marks the service as draining so that readiness checks return
+// StateUnhealthy immediately.
 func (s *service) SignalDrain() {
 	s.shuttingDown.Store(true)
 	DrainSignalledCount.Add(context.Background(), 1)
@@ -95,12 +97,12 @@ func (s *service) SignalDrain() {
 
 // checkAll runs all health checks and gathers the results.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies which type of
-// health check to run.
+// Takes checkType (healthprobe_dto.CheckType) which specifies which type of health check
+// to run.
 // Takes checkName (string) which sets the name shown in status messages.
 //
-// Returns healthprobe_dto.Status which holds the overall health state and
-// the status of each dependency.
+// Returns healthprobe_dto.Status which holds the overall health state and the status of
+// each dependency.
 func (s *service) checkAll(ctx context.Context, checkType healthprobe_dto.CheckType, checkName string) healthprobe_dto.Status {
 	startTime := s.clock.Now()
 	probes := s.registry.GetAll()
@@ -123,16 +125,15 @@ func (s *service) checkAll(ctx context.Context, checkType healthprobe_dto.CheckT
 	}
 }
 
-// executeProbesConcurrently runs all probes simultaneously with
-// individual timeouts, spawning one task per probe via errgroup.
+// executeProbesConcurrently runs all probes simultaneously with individual timeouts,
+// spawning one task per probe via errgroup.
 //
-// Takes probes ([]Probe) which contains the health probes to
-// execute.
-// Takes checkType (healthprobe_dto.CheckType) which specifies the
-// type of health check to run.
+// Takes probes ([]Probe) which contains the health probes to execute.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// run.
 //
-// Returns chan healthprobe_dto.Status which delivers results from
-// all probes once they complete.
+// Returns chan healthprobe_dto.Status which delivers results from all probes once they
+// complete.
 func (s *service) executeProbesConcurrently(ctx context.Context, probes []Probe, checkType healthprobe_dto.CheckType) chan healthprobe_dto.Status {
 	statuses := make(chan healthprobe_dto.Status, len(probes))
 	g, gCtx := errgroup.WithContext(ctx)
@@ -166,8 +167,8 @@ func (s *service) executeProbesConcurrently(ctx context.Context, probes []Probe,
 	return statuses
 }
 
-// WithClock sets the clock used for timestamps and duration measurements.
-// When not provided, the service defaults to clock.RealClock().
+// WithClock sets the clock used for timestamps and duration measurements. When not
+// provided, the service defaults to clock.RealClock().
 //
 // Takes clk (clock.Clock) which provides time operations.
 //
@@ -201,18 +202,15 @@ func NewService(registry Registry, checkTimeout time.Duration, applicationName s
 	return s
 }
 
-// aggregateProbeResults collects probe statuses and determines the overall
-// health state.
+// aggregateProbeResults collects probe statuses and determines the overall health state.
 //
-// Takes statuses (chan healthprobe_dto.Status) which provides probe results
-// to collect.
+// Takes statuses (chan healthprobe_dto.Status) which provides probe results to collect.
 // Takes probeCount (int) which specifies the expected number of results for
 // pre-allocation.
 //
-// Returns healthprobe_dto.State which is the aggregated health state based on
-// all probe results.
-// Returns []*healthprobe_dto.Status which contains all collected probe
-// statuses.
+// Returns healthprobe_dto.State which is the aggregated health state based on all probe
+// results.
+// Returns []*healthprobe_dto.Status which contains all collected probe statuses.
 func aggregateProbeResults(statuses chan healthprobe_dto.Status, probeCount int) (healthprobe_dto.State, []*healthprobe_dto.Status) {
 	aggregatedState := healthprobe_dto.StateHealthy
 	dependencyStatuses := make([]*healthprobe_dto.Status, 0, probeCount)

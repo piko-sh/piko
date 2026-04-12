@@ -32,8 +32,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// minifyCSS reduces the size of a CSS block using the given parser and printer
-// settings.
+// minifyCSS reduces the size of a CSS block using the given parser and printer settings.
 //
 // Takes cssBlock (string) which is the raw CSS content to make smaller.
 // Takes parserOptions (css_parser.Options) which controls how CSS is parsed.
@@ -110,8 +109,7 @@ func createCSSSource(css string) es_logger.Source {
 	}
 }
 
-// checkCSSParseErrors checks for CSS parse errors and returns an error if any
-// are found.
+// checkCSSParseErrors checks for CSS parse errors and returns an error if any are found.
 //
 // Takes esLog (es_logger.Log) which holds the log messages from esbuild.
 //

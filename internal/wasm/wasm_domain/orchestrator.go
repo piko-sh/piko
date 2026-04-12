@@ -51,8 +51,7 @@ const (
 	// severityError is the severity level for error diagnostics.
 	severityError = "error"
 
-	// defaultCompletionCapacity is the starting size for the completion items
-	// slice.
+	// defaultCompletionCapacity is the starting size for the completion items slice.
 	defaultCompletionCapacity = 50
 
 	// logLevelDebug is the debug log level for detailed diagnostic messages.
@@ -76,19 +75,19 @@ const (
 	// regexGroupMessage is the index for the error message capture group.
 	regexGroupMessage = 4
 
-	// regexMinMatchesForPosition is the minimum number of matches required for
-	// position info.
+	// regexMinMatchesForPosition is the minimum number of matches required for position
+	// info.
 	regexMinMatchesForPosition = 4
 
-	// regexMinMatchesForMessage is the minimum number of matches required for
-	// message extraction.
+	// regexMinMatchesForMessage is the minimum number of matches required for message
+	// extraction.
 	regexMinMatchesForMessage = 5
 
 	// previewEntryPoint is the virtual file path used for the preview template.
 	previewEntryPoint = "pages/preview.pk"
 
-	// minCatchAllSegmentLength is the minimum length of a catch-all route
-	// segment like {x*} (opening brace + at least one char + star + closing brace).
+	// minCatchAllSegmentLength is the minimum length of a catch-all route segment like {x*}
+	// (opening brace + at least one char + star + closing brace).
 	minCatchAllSegmentLength = 3
 )
 
@@ -96,30 +95,30 @@ var (
 	// version holds the current Piko version. This is set at build time.
 	version = "dev"
 
-	// errOrchestratorNotInitialised is returned when an operation is attempted
-	// on the WASM orchestrator before it has been initialised.
+	// errOrchestratorNotInitialised is returned when an operation is attempted on the WASM
+	// orchestrator before it has been initialised.
 	errOrchestratorNotInitialised = errors.New("orchestrator not initialised")
 
-	// errStdlibLoaderNotConfigured is returned when a stdlib import is
-	// requested but the stdlib loader has not been configured.
+	// errStdlibLoaderNotConfigured is returned when a stdlib import is requested but the
+	// stdlib loader has not been configured.
 	errStdlibLoaderNotConfigured = errors.New("stdlib loader not configured")
 
-	// errRendererNotConfigured is returned when a render operation is
-	// requested but the renderer has not been configured.
+	// errRendererNotConfigured is returned when a render operation is requested but the
+	// renderer has not been configured.
 	errRendererNotConfigured = errors.New("renderer not configured")
 
-	// errSourceTooLarge is returned when the total source size submitted to a
-	// WASM orchestrator entrypoint exceeds the configured MaxSourceSize cap.
+	// errSourceTooLarge is returned when the total source size submitted to a WASM
+	// orchestrator entrypoint exceeds the configured MaxSourceSize cap.
 	errSourceTooLarge = errors.New("source size exceeds maximum")
 
-	// errorPosRegex matches Go error format: "file:line:col: message" or
-	// "file:line: message".
+	// errorPosRegex matches Go error format: "file:line:col: message" or "file:line:
+	// message".
 	errorPosRegex = regexp.MustCompile(`^([^:]+):(\d+):(\d+)?:?\s*(.*)$`)
 )
 
-// Orchestrator manages WASM runtime tasks and implements WASMService.
-// It uses the inspector's lite builder for type analysis and provides
-// a simple API for JavaScript code.
+// Orchestrator manages WASM runtime tasks and implements WASMService. It uses the
+// inspector's lite builder for type analysis and provides a simple API for JavaScript
+// code.
 type Orchestrator struct {
 	// stdlibLoader loads standard library package data.
 	stdlibLoader StdlibLoaderPort
@@ -169,8 +168,8 @@ func NewOrchestrator(opts ...Option) *Orchestrator {
 	return o
 }
 
-// Initialise prepares the orchestrator by loading the stdlib data. Must be
-// called before any other methods.
+// Initialise prepares the orchestrator by loading the stdlib data. Must be called before
+// any other methods.
 //
 // Returns error when the stdlib loader is not configured or fails to load.
 //
@@ -236,8 +235,8 @@ func (o *Orchestrator) Analyse(ctx context.Context, request *wasm_dto.AnalyseReq
 
 // GetCompletions returns code completion suggestions.
 //
-// Takes request (*wasm_dto.CompletionRequest) which specifies the source code and
-// cursor position for completion.
+// Takes request (*wasm_dto.CompletionRequest) which specifies the source code and cursor
+// position for completion.
 //
 // Returns *wasm_dto.CompletionResponse which contains the completion items.
 // Returns error when the orchestrator has not been initialised.
@@ -272,8 +271,8 @@ func (o *Orchestrator) GetCompletions(ctx context.Context, request *wasm_dto.Com
 
 // GetHover returns hover information at a position.
 //
-// Takes request (*wasm_dto.HoverRequest) which specifies the source code and
-// cursor position for hover lookup.
+// Takes request (*wasm_dto.HoverRequest) which specifies the source code and cursor
+// position for hover lookup.
 //
 // Returns *wasm_dto.HoverResponse which contains the hover content and range.
 // Returns error when the orchestrator is not initialised.
@@ -333,11 +332,11 @@ func (o *Orchestrator) GetHover(ctx context.Context, request *wasm_dto.HoverRequ
 
 // Validate runs a quick syntactic check on Go source code.
 //
-// Takes request (*wasm_dto.ValidateRequest) which contains the source code and
-// file path to validate.
+// Takes request (*wasm_dto.ValidateRequest) which contains the source code and file path
+// to validate.
 //
-// Returns *wasm_dto.ValidateResponse which indicates whether the source is
-// valid and includes any syntax error diagnostics.
+// Returns *wasm_dto.ValidateResponse which indicates whether the source is valid and
+// includes any syntax error diagnostics.
 // Returns error when validation cannot be performed.
 func (*Orchestrator) Validate(_ context.Context, request *wasm_dto.ValidateRequest) (*wasm_dto.ValidateResponse, error) {
 	fset := token.NewFileSet()
@@ -358,11 +357,9 @@ func (*Orchestrator) Validate(_ context.Context, request *wasm_dto.ValidateReque
 
 // ParseTemplate parses a PK template.
 //
-// Takes request (*wasm_dto.ParseTemplateRequest) which contains the template to
-// parse.
+// Takes request (*wasm_dto.ParseTemplateRequest) which contains the template to parse.
 //
-// Returns *wasm_dto.ParseTemplateResponse which contains the parsed AST or
-// error details.
+// Returns *wasm_dto.ParseTemplateResponse which contains the parsed AST or error details.
 // Returns error when an unexpected failure occurs.
 func (*Orchestrator) ParseTemplate(ctx context.Context, request *wasm_dto.ParseTemplateRequest) (*wasm_dto.ParseTemplateResponse, error) {
 	parseTemplateCount.Add(ctx, 1)
@@ -385,15 +382,15 @@ func (*Orchestrator) ParseTemplate(ctx context.Context, request *wasm_dto.ParseT
 	}, nil
 }
 
-// RenderPreview renders a template preview by delegating to the static
-// renderer. The template and optional script are assembled into a
-// RenderFromSourcesRequest and passed through the existing render pipeline.
+// RenderPreview renders a template preview by delegating to the static renderer. The
+// template and optional script are assembled into a RenderFromSourcesRequest and passed
+// through the existing render pipeline.
 //
-// Takes request (*wasm_dto.RenderPreviewRequest) which contains the template and
-// optional script to render.
+// Takes request (*wasm_dto.RenderPreviewRequest) which contains the template and optional
+// script to render.
 //
-// Returns *wasm_dto.RenderPreviewResponse which contains the rendered HTML,
-// CSS, and any diagnostics.
+// Returns *wasm_dto.RenderPreviewResponse which contains the rendered HTML, CSS, and any
+// diagnostics.
 // Returns error when an unexpected failure occurs.
 func (o *Orchestrator) RenderPreview(ctx context.Context, request *wasm_dto.RenderPreviewRequest) (*wasm_dto.RenderPreviewResponse, error) {
 	renderPreviewCount.Add(ctx, 1)
@@ -441,8 +438,8 @@ func (o *Orchestrator) RenderPreview(ctx context.Context, request *wasm_dto.Rend
 
 // GetRuntimeInfo returns information about the WASM runtime.
 //
-// Returns *wasm_dto.RuntimeInfo which contains version, Go version, standard
-// library packages, and available capabilities.
+// Returns *wasm_dto.RuntimeInfo which contains version, Go version, standard library
+// packages, and available capabilities.
 // Returns error which is always nil but included for interface compatibility.
 //
 // Safe for concurrent use; acquires a read lock on the orchestrator.
@@ -488,21 +485,21 @@ type operationInstrumentation struct {
 	errorCounter metric.Int64Counter
 }
 
-// instrumentedOperation handles the common instrumentation, nil-adapter check,
-// call delegation, and error counting shared by Generate and Render.
+// instrumentedOperation handles the common instrumentation, nil-adapter check, call
+// delegation, and error counting shared by Generate and Render.
 //
 // Takes ctx (context.Context) for metric recording.
-// Takes instruments (operationInstrumentation) holding the counter, histogram and
-// error counter.
+// Takes instruments (operationInstrumentation) holding the counter, histogram and error
+// counter.
 // Takes adapter (any) checked for nil; a nil adapter is treated as not configured.
 // Takes notConfiguredResponse (*Response) returned when adapter is nil.
 // Takes delegate (func() (*Response, error)) performing the actual operation.
-// Takes onFailure (func(error) *Response) constructing an error response on
-// delegate failure.
+// Takes onFailure (func(error) *Response) constructing an error response on delegate
+// failure.
 // Takes isSuccess (func(*Response) bool) indicating whether the response succeeded.
 //
-// Returns (*Response, error); the error is always nil -- failures are encoded in
-// the response.
+// Returns (*Response, error); the error is always nil -- failures are encoded in the
+// response.
 func instrumentedOperation[Response any](
 	ctx context.Context,
 	instruments operationInstrumentation,
@@ -538,11 +535,11 @@ func instrumentedOperation[Response any](
 
 // Generate produces code artefacts from in-memory sources.
 //
-// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source
-// files and configuration.
+// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
+// and configuration.
 //
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated
-// artefacts and manifest.
+// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated artefacts
+// and manifest.
 // Returns error when the generator is not configured.
 func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateFromSourcesRequest) (*wasm_dto.GenerateFromSourcesResponse, error) {
 	if err := checkSourceSize(ctx, request.Sources, o.config.MaxSourceSize); err != nil {
@@ -563,11 +560,11 @@ func (o *Orchestrator) Generate(ctx context.Context, request *wasm_dto.GenerateF
 	)
 }
 
-// Render produces HTML from in-memory sources.
-// Only supports static templates (no Go code execution).
+// Render produces HTML from in-memory sources. Only supports static templates (no Go code
+// execution).
 //
-// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source
-// files and configuration.
+// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source files and
+// configuration.
 //
 // Returns *wasm_dto.RenderFromSourcesResponse which contains the rendered HTML.
 // Returns error when the renderer is not configured.
@@ -590,11 +587,11 @@ func (o *Orchestrator) Render(ctx context.Context, request *wasm_dto.RenderFromS
 	)
 }
 
-// DynamicRender produces HTML by generating Go code from PK templates,
-// interpreting the code, and rendering the resulting AST.
+// DynamicRender produces HTML by generating Go code from PK templates, interpreting the
+// code, and rendering the resulting AST.
 //
-// Takes request (*wasm_dto.DynamicRenderRequest) which contains the source files,
-// module name, and request URL.
+// Takes request (*wasm_dto.DynamicRenderRequest) which contains the source files, module
+// name, and request URL.
 //
 // Returns *wasm_dto.DynamicRenderResponse which contains the rendered HTML.
 // Returns error when generation, interpretation, or rendering fails.
@@ -629,8 +626,7 @@ func (o *Orchestrator) DynamicRender(ctx context.Context, request *wasm_dto.Dyna
 
 // GetStdlibData retrieves the stdlib data under lock.
 //
-// Returns *inspector_dto.TypeData which contains the standard library type
-// information.
+// Returns *inspector_dto.TypeData which contains the standard library type information.
 // Returns error when the orchestrator has not been initialised.
 //
 // Safe for concurrent use; protected by a read lock.
@@ -646,8 +642,8 @@ func (o *Orchestrator) GetStdlibData() (*inspector_dto.TypeData, error) {
 
 // validateDynamicRenderAdapters checks that required adapters are configured.
 //
-// Returns *wasm_dto.DynamicRenderResponse which contains an error message when
-// a required adapter is missing, or nil when all adapters are configured.
+// Returns *wasm_dto.DynamicRenderResponse which contains an error message when a required
+// adapter is missing, or nil when all adapters are configured.
 func (o *Orchestrator) validateDynamicRenderAdapters(ctx context.Context) *wasm_dto.DynamicRenderResponse {
 	if o.generator == nil {
 		dynamicRenderErrorCount.Add(ctx, 1)
@@ -662,13 +658,13 @@ func (o *Orchestrator) validateDynamicRenderAdapters(ctx context.Context) *wasm_
 
 // dynamicRenderGenerate performs code generation and finds the page artefact.
 //
-// Takes request (*wasm_dto.DynamicRenderRequest) which contains the sources and
-// module name for code generation.
+// Takes request (*wasm_dto.DynamicRenderRequest) which contains the sources and module
+// name for code generation.
 //
-// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generation
-// result when successful, or nil on failure.
-// Returns *wasm_dto.DynamicRenderResponse which contains an error response on
-// failure, or nil on success.
+// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generation result when
+// successful, or nil on failure.
+// Returns *wasm_dto.DynamicRenderResponse which contains an error response on failure, or
+// nil on success.
 func (o *Orchestrator) dynamicRenderGenerate(ctx context.Context, request *wasm_dto.DynamicRenderRequest) (*wasm_dto.GenerateFromSourcesResponse, *wasm_dto.DynamicRenderResponse) {
 	o.log(logLevelDebug, "DynamicRender: Phase 1 - Generating code...")
 	genResp, err := o.generator.Generate(ctx, &wasm_dto.GenerateFromSourcesRequest{
@@ -691,13 +687,13 @@ func (o *Orchestrator) dynamicRenderGenerate(ctx context.Context, request *wasm_
 
 // dynamicRenderInterpret interprets the generated code.
 //
-// Takes request (*wasm_dto.DynamicRenderRequest) which contains the request URL
-// and props for rendering.
-// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which provides the
-// generated artefacts and manifest to interpret.
+// Takes request (*wasm_dto.DynamicRenderRequest) which contains the request URL and props
+// for rendering.
+// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which provides the generated
+// artefacts and manifest to interpret.
 //
-// Returns *wasm_dto.InterpretResponse which contains the interpretation result
-// on success, or nil on failure.
+// Returns *wasm_dto.InterpretResponse which contains the interpretation result on
+// success, or nil on failure.
 // Returns *wasm_dto.DynamicRenderResponse which contains error details when
 // interpretation fails, or nil on success.
 func (o *Orchestrator) dynamicRenderInterpret(
@@ -741,22 +737,20 @@ func (o *Orchestrator) dynamicRenderInterpret(
 	return interpResp, nil
 }
 
-// dynamicRenderHTML renders the interpreted AST to HTML and assembles the
-// full response, including any compiled client-side JavaScript artefacts
-// captured during code generation and the matched page's CSS.
+// dynamicRenderHTML renders the interpreted AST to HTML and assembles the full response,
+// including any compiled client-side JavaScript artefacts captured during code generation
+// and the matched page's CSS.
 //
-// Takes interpResp (*wasm_dto.InterpretResponse) which contains the AST and
-// metadata from the interpretation phase.
-// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which provides the
-// generated artefacts; ArtefactTypeJS entries are surfaced verbatim under
-// DynamicRenderResponse.Scripts and the matched page's StyleBlock becomes
-// resp.CSS.
-// Takes requestURL (string) which identifies the page whose CSS should be
-// used; matched against the manifest's route patterns.
+// Takes interpResp (*wasm_dto.InterpretResponse) which contains the AST and metadata from
+// the interpretation phase.
+// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which provides the generated
+// artefacts; ArtefactTypeJS entries are surfaced verbatim under
+// DynamicRenderResponse.Scripts and the matched page's StyleBlock becomes resp.CSS.
+// Takes requestURL (string) which identifies the page whose CSS should be used; matched
+// against the manifest's route patterns.
 //
-// Returns *wasm_dto.DynamicRenderResponse which contains the rendered HTML,
-// CSS, scripts, and runtime-import URLs, or error details if rendering
-// failed.
+// Returns *wasm_dto.DynamicRenderResponse which contains the rendered HTML, CSS, scripts,
+// and runtime-import URLs, or error details if rendering failed.
 // Returns error when an unexpected failure occurs.
 func (o *Orchestrator) dynamicRenderHTML(
 	ctx context.Context,
@@ -786,19 +780,17 @@ func (o *Orchestrator) dynamicRenderHTML(
 	}, nil
 }
 
-// renderASTToHTML converts a template AST to HTML using the WASM renderer.
-// CSS is propagated through the renderer for any in-AST styling logic but
-// the dynamic-render path treats styleBlock as the source of truth, so the
-// renderer's CSS echo is intentionally not returned.
+// renderASTToHTML converts a template AST to HTML using the WASM renderer. CSS is
+// propagated through the renderer for any in-AST styling logic but the dynamic-render
+// path treats styleBlock as the source of truth, so the renderer's CSS echo is
+// intentionally not returned.
 //
 // Takes ctx (context.Context) which is the request context.
 // Takes astNode (*ast_domain.TemplateAST) which is the template AST to render.
-// Takes metadata (*templater_dto.InternalMetadata) which contains template
-// metadata.
+// Takes metadata (*templater_dto.InternalMetadata) which contains template metadata.
 // Takes styleBlock (string) which is the CSS to apply during rendering.
 //
-// Returns html (string) which is the rendered HTML body markup (no document
-// wrapper).
+// Returns html (string) which is the rendered HTML body markup (no document wrapper).
 // Returns err (error) when rendering fails.
 func (o *Orchestrator) renderASTToHTML(
 	ctx context.Context,
@@ -846,16 +838,15 @@ func (o *Orchestrator) log(level, message string, arguments ...any) {
 	}
 }
 
-// validateAnalyseRequest checks an analysis request and returns an error
-// response if it is not valid.
+// validateAnalyseRequest checks an analysis request and returns an error response if it
+// is not valid.
 //
-// Takes request (*wasm_dto.AnalyseRequest) which contains the source files to
-// check.
-// Takes maxSourceSize (int) which sets the largest allowed total size of all
-// source files in bytes.
+// Takes request (*wasm_dto.AnalyseRequest) which contains the source files to check.
+// Takes maxSourceSize (int) which sets the largest allowed total size of all source files
+// in bytes.
 //
-// Returns *wasm_dto.AnalyseResponse which contains an error response if the
-// check fails, or nil if the request is valid.
+// Returns *wasm_dto.AnalyseResponse which contains an error response if the check fails,
+// or nil if the request is valid.
 func validateAnalyseRequest(ctx context.Context, request *wasm_dto.AnalyseRequest, maxSourceSize int) *wasm_dto.AnalyseResponse {
 	if len(request.Sources) == 0 {
 		return newAnalyseErrorResponse("no source files provided", nil)
@@ -869,16 +860,14 @@ func validateAnalyseRequest(ctx context.Context, request *wasm_dto.AnalyseReques
 }
 
 // checkSourceSize records the aggregate source size for OTel and returns
-// errSourceTooLarge wrapped with the actual size when the total exceeds
-// maxSourceSize. Used by every WASM orchestrator entrypoint that accepts
-// arbitrary in-memory sources so a single large payload cannot exhaust the
-// runtime regardless of which entrypoint receives it.
+// errSourceTooLarge wrapped with the actual size when the total exceeds maxSourceSize.
+// Used by every WASM orchestrator entrypoint that accepts arbitrary in-memory sources so
+// a single large payload cannot exhaust the runtime regardless of which entrypoint
+// receives it.
 //
 // Takes ctx (context.Context) used for the OTel size histogram.
-// Takes sources (map[string]string) which holds the request payload keyed by
-// path.
-// Takes maxSourceSize (int) which is the configured cap; sizes <= 0 disable
-// the check.
+// Takes sources (map[string]string) which holds the request payload keyed by path.
+// Takes maxSourceSize (int) which is the configured cap; sizes <= 0 disable the check.
 //
 // Returns error when the aggregate source size exceeds the cap, wrapping
 // errSourceTooLarge so callers can errors.Is against it.
@@ -900,16 +889,14 @@ func checkSourceSize(ctx context.Context, sources map[string]string, maxSourceSi
 	return nil
 }
 
-// prepareSourceBytes converts source strings to byte slices and makes paths
-// absolute.
+// prepareSourceBytes converts source strings to byte slices and makes paths absolute.
 //
-// Takes sources (map[string]string) which holds the source file contents keyed
-// by their paths.
-// Takes moduleName (string) which is the module name to add when building
-// absolute paths.
+// Takes sources (map[string]string) which holds the source file contents keyed by their
+// paths.
+// Takes moduleName (string) which is the module name to add when building absolute paths.
 //
-// Returns map[string][]byte which holds the same content as byte slices, with
-// paths made absolute by adding the module name as a prefix.
+// Returns map[string][]byte which holds the same content as byte slices, with paths made
+// absolute by adding the module name as a prefix.
 func prepareSourceBytes(sources map[string]string, moduleName string) map[string][]byte {
 	sourceBytes := make(map[string][]byte, len(sources))
 	for path, content := range sources {
@@ -923,14 +910,13 @@ func prepareSourceBytes(sources map[string]string, moduleName string) map[string
 
 // runAnalysis performs the actual analysis with the lite builder.
 //
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library
-// type information for the analysis.
-// Takes sourceBytes (map[string][]byte) which contains the source files to
-// analyse, keyed by file path.
+// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
+// information for the analysis.
+// Takes sourceBytes (map[string][]byte) which contains the source files to analyse, keyed
+// by file path.
 // Takes moduleName (string) which specifies the Go module name for the code.
 //
-// Returns *wasm_dto.AnalyseResponse which contains the analysis results or
-// error details.
+// Returns *wasm_dto.AnalyseResponse which contains the analysis results or error details.
 // Returns error when an unexpected failure occurs.
 func runAnalysis(ctx context.Context, stdlibData *inspector_dto.TypeData, sourceBytes map[string][]byte, moduleName string) (*wasm_dto.AnalyseResponse, error) {
 	config := inspector_dto.Config{
@@ -969,11 +955,10 @@ func runAnalysis(ctx context.Context, stdlibData *inspector_dto.TypeData, source
 // newAnalyseErrorResponse creates a failed response for analysis requests.
 //
 // Takes errMessage (string) which is the error message to include.
-// Takes diagnostics ([]wasm_dto.Diagnostic) which holds any diagnostic details
-// to attach.
+// Takes diagnostics ([]wasm_dto.Diagnostic) which holds any diagnostic details to attach.
 //
-// Returns *wasm_dto.AnalyseResponse with Success set to false and the given
-// error details filled in.
+// Returns *wasm_dto.AnalyseResponse with Success set to false and the given error details
+// filled in.
 func newAnalyseErrorResponse(errMessage string, diagnostics []wasm_dto.Diagnostic) *wasm_dto.AnalyseResponse {
 	return &wasm_dto.AnalyseResponse{
 		Success:     false,
@@ -989,8 +974,7 @@ func newAnalyseErrorResponse(errMessage string, diagnostics []wasm_dto.Diagnosti
 //
 // Takes result (*sfcparser.ParseResult) which holds the parsed SFC content.
 //
-// Returns *wasm_dto.TemplateAST which holds the template nodes and script
-// block details.
+// Returns *wasm_dto.TemplateAST which holds the template nodes and script block details.
 func convertSFCResultToAST(result *sfcparser.ParseResult) *wasm_dto.TemplateAST {
 	templateAST := &wasm_dto.TemplateAST{
 		Nodes:       make([]wasm_dto.TemplateNode, 0),
@@ -1026,8 +1010,8 @@ func convertSFCResultToAST(result *sfcparser.ParseResult) *wasm_dto.TemplateAST 
 //
 // Takes script (*sfcparser.Script) which holds the parsed script content.
 //
-// Returns *wasm_dto.ScriptBlockInfo which contains the type declarations,
-// props type, and whether an init function exists.
+// Returns *wasm_dto.ScriptBlockInfo which contains the type declarations, props type, and
+// whether an init function exists.
 func extractScriptBlockInfo(script *sfcparser.Script) *wasm_dto.ScriptBlockInfo {
 	info := &wasm_dto.ScriptBlockInfo{
 		PropsType: "",
@@ -1102,20 +1086,20 @@ func extractTypesFromGenDecl(d *ast.GenDecl, info *wasm_dto.ScriptBlockInfo) {
 	}
 }
 
-// extractInitFromFuncDecl checks if the function declaration is an init
-// function and sets the HasInit flag on the script block info.
+// extractInitFromFuncDecl checks if the function declaration is an init function and sets
+// the HasInit flag on the script block info.
 //
 // Takes d (*ast.FuncDecl) which is the function declaration to check.
-// Takes info (*wasm_dto.ScriptBlockInfo) which is updated with the HasInit
-// flag when the declaration is an init function.
+// Takes info (*wasm_dto.ScriptBlockInfo) which is updated with the HasInit flag when the
+// declaration is an init function.
 func extractInitFromFuncDecl(d *ast.FuncDecl, info *wasm_dto.ScriptBlockInfo) {
 	if d.Name.Name == "init" && d.Recv == nil {
 		info.HasInit = true
 	}
 }
 
-// assemblePreviewTemplate combines a template body and script block into a
-// single PK template source.
+// assemblePreviewTemplate combines a template body and script block into a single PK
+// template source.
 //
 // Takes template (string) which is the template body.
 // Takes script (string) which is the Go script content.
@@ -1127,13 +1111,12 @@ func assemblePreviewTemplate(template, script string) string {
 
 // findPageArtefactForURL finds the page artefact that matches the given URL.
 //
-// It first checks the manifest for a matching page. If no match is found, it
-// falls back to returning the first page artefact.
+// It first checks the manifest for a matching page. If no match is found, it falls back
+// to returning the first page artefact.
 //
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated
-// files.
-// Takes manifest (*wasm_dto.GeneratedManifest) which contains page metadata
-// and package paths.
+// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated files.
+// Takes manifest (*wasm_dto.GeneratedManifest) which contains page metadata and package
+// paths.
 // Takes requestURL (string) which is the URL to match against page routes.
 //
 // Returns *wasm_dto.GeneratedArtefact which is the matching page artefact.
@@ -1152,19 +1135,18 @@ func findPageArtefactForURL(artefacts []wasm_dto.GeneratedArtefact, manifest *wa
 	return pageArtefact, packagePath, deps
 }
 
-// collectPartialDependencies builds a dependency map from partial artefacts so
-// the interpreter can resolve partial imports during type checking.
+// collectPartialDependencies builds a dependency map from partial artefacts so the
+// interpreter can resolve partial imports during type checking.
 //
-// It derives import paths directly from artefact file paths rather than
-// relying on the manifest, since the generator may not populate partial
-// manifest entries.
+// It derives import paths directly from artefact file paths rather than relying on the
+// manifest, since the generator may not populate partial manifest entries.
 //
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated
-// files including partial artefacts.
+// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated files
+// including partial artefacts.
 // Takes moduleName (string) which is the Go module name prefix for import paths.
 //
-// Returns map[string]string which maps partial package paths to their generated
-// source code.
+// Returns map[string]string which maps partial package paths to their generated source
+// code.
 func collectPartialDependencies(artefacts []wasm_dto.GeneratedArtefact, moduleName string) map[string]string {
 	deps := make(map[string]string)
 
@@ -1189,12 +1171,12 @@ func collectPartialDependencies(artefacts []wasm_dto.GeneratedArtefact, moduleNa
 
 // artefactDirectory returns the directory portion of an artefact path.
 //
-// Takes path (string) which is the artefact file path
-// (e.g., "dist/partials/partials_info_card_14ceb24d/generated.go").
+// Takes path (string) which is the artefact file path (e.g.,
+// "dist/partials/partials_info_card_14ceb24d/generated.go").
 //
-// Returns string which is the directory
-// (e.g., "dist/partials/partials_info_card_14ceb24d"), or empty if the
-// path has no directory separator.
+// Returns string which is the directory (e.g.,
+// "dist/partials/partials_info_card_14ceb24d"), or empty if the path has no directory
+// separator.
 func artefactDirectory(path string) string {
 	lastSlash := strings.LastIndex(path, "/")
 	if lastSlash <= 0 {
@@ -1203,11 +1185,10 @@ func artefactDirectory(path string) string {
 	return path[:lastSlash]
 }
 
-// findMatchingPageFromManifest searches the manifest for a page that matches
-// the request URL.
+// findMatchingPageFromManifest searches the manifest for a page that matches the request
+// URL.
 //
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated
-// files.
+// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains all generated files.
 // Takes manifest (*wasm_dto.GeneratedManifest) which contains page metadata.
 // Takes requestURL (string) which is the URL to match.
 //
@@ -1242,12 +1223,12 @@ func pageMatchesURL(patterns map[string]string, requestURL string) bool {
 
 // findArtefactBySourcePath finds a page artefact with the given source path.
 //
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains the list of
-// artefacts to search through.
+// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains the list of artefacts to
+// search through.
 // Takes sourcePath (string) which is the path to match against.
 //
-// Returns *wasm_dto.GeneratedArtefact which is the matching artefact, or nil
-// if no match is found.
+// Returns *wasm_dto.GeneratedArtefact which is the matching artefact, or nil if no match
+// is found.
 func findArtefactBySourcePath(artefacts []wasm_dto.GeneratedArtefact, sourcePath string) *wasm_dto.GeneratedArtefact {
 	for i := range artefacts {
 		if artefacts[i].Type == wasm_dto.ArtefactTypePage && artefacts[i].SourcePath == sourcePath {
@@ -1259,13 +1240,12 @@ func findArtefactBySourcePath(artefacts []wasm_dto.GeneratedArtefact, sourcePath
 
 // findFirstPageArtefact finds the first page artefact to use as a fallback.
 //
-// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains the artefacts
-// to search through.
-// Takes manifest (*wasm_dto.GeneratedManifest) which provides package path
-// lookup.
+// Takes artefacts ([]wasm_dto.GeneratedArtefact) which contains the artefacts to search
+// through.
+// Takes manifest (*wasm_dto.GeneratedManifest) which provides package path lookup.
 //
-// Returns *wasm_dto.GeneratedArtefact which is the first page artefact found,
-// or nil if none exists.
+// Returns *wasm_dto.GeneratedArtefact which is the first page artefact found, or nil if
+// none exists.
 // Returns string which is the package path for the page, or empty if not found.
 func findFirstPageArtefact(artefacts []wasm_dto.GeneratedArtefact, manifest *wasm_dto.GeneratedManifest) (*wasm_dto.GeneratedArtefact, string) {
 	for i := range artefacts {
@@ -1302,11 +1282,10 @@ func lookupPackagePath(manifest *wasm_dto.GeneratedManifest, sourcePath string) 
 //   - {param} matches a single non-empty path segment
 //   - {param*} matches all remaining path segments (catch-all, must be last)
 //
-// The URL's query string and fragment are stripped before comparison so
-// that `/?sort=name` and `/#section` both match the pattern `/`. Without
-// this, a page-level link click that sends e.g. `/?sort=department` would
-// fail to match its own page route, and dynamicRender would fall back to
-// findFirstPageArtefact (no styles, wrong page).
+// The URL's query string and fragment are stripped before comparison so that
+// `/?sort=name` and `/#section` both match the pattern `/`. Without this, a page-level
+// link click that sends e.g. `/?sort=department` would fail to match its own page route,
+// and dynamicRender would fall back to findFirstPageArtefact (no styles, wrong page).
 //
 // Takes pattern (string) which is the route pattern to match against.
 // Takes url (string) which is the URL to check.
@@ -1365,8 +1344,8 @@ func matchSegments(patternSegs, urlSegs []string) bool {
 	return len(patternSegs) == len(urlSegs)
 }
 
-// isDynamicSegment reports whether a path segment is a Chi-style dynamic
-// parameter like {slug}.
+// isDynamicSegment reports whether a path segment is a Chi-style dynamic parameter like
+// {slug}.
 //
 // Takes seg (string) which is the path segment to check.
 //
@@ -1375,8 +1354,8 @@ func isDynamicSegment(seg string) bool {
 	return len(seg) > 2 && seg[0] == '{' && seg[len(seg)-1] == '}' && !strings.HasSuffix(seg, "*}")
 }
 
-// isCatchAllSegment reports whether a path segment is a Chi-style catch-all
-// parameter like {path*}.
+// isCatchAllSegment reports whether a path segment is a Chi-style catch-all parameter
+// like {path*}.
 //
 // Takes seg (string) which is the path segment to check.
 //
@@ -1387,13 +1366,13 @@ func isCatchAllSegment(seg string) bool {
 
 // typeDataToResponse converts type inspection data into an analysis response.
 //
-// Takes data (*inspector_dto.TypeData) which holds the inspected type and
-// package details.
-// Takes moduleName (string) which is the user's module name, used to filter
-// out standard library packages.
+// Takes data (*inspector_dto.TypeData) which holds the inspected type and package
+// details.
+// Takes moduleName (string) which is the user's module name, used to filter out standard
+// library packages.
 //
-// Returns *wasm_dto.AnalyseResponse which contains the extracted types,
-// functions, and imports from packages that match the module name.
+// Returns *wasm_dto.AnalyseResponse which contains the extracted types, functions, and
+// imports from packages that match the module name.
 func typeDataToResponse(data *inspector_dto.TypeData, moduleName string) *wasm_dto.AnalyseResponse {
 	response := &wasm_dto.AnalyseResponse{
 		Success:     false,
@@ -1419,10 +1398,8 @@ func typeDataToResponse(data *inspector_dto.TypeData, moduleName string) *wasm_d
 
 // extractTypesFromPackage copies type data from a package into a response.
 //
-// Takes inspectedPackage (*inspector_dto.Package) which
-// provides the parsed package data.
-// Takes response (*wasm_dto.AnalyseResponse) which receives
-// the extracted types.
+// Takes inspectedPackage (*inspector_dto.Package) which provides the parsed package data.
+// Takes response (*wasm_dto.AnalyseResponse) which receives the extracted types.
 func extractTypesFromPackage(inspectedPackage *inspector_dto.Package, response *wasm_dto.AnalyseResponse) {
 	for _, typ := range inspectedPackage.NamedTypes {
 		response.Types = append(response.Types, convertTypeToInfo(typ))
@@ -1433,8 +1410,8 @@ func extractTypesFromPackage(inspectedPackage *inspector_dto.Package, response *
 //
 // Takes typ (*inspector_dto.Type) which is the source type to convert.
 //
-// Returns wasm_dto.TypeInfo which holds the converted type data including
-// fields, methods, and location.
+// Returns wasm_dto.TypeInfo which holds the converted type data including fields,
+// methods, and location.
 func convertTypeToInfo(typ *inspector_dto.Type) wasm_dto.TypeInfo {
 	typeInfo := wasm_dto.TypeInfo{
 		Name:          typ.Name,
@@ -1472,13 +1449,10 @@ func convertTypeToInfo(typ *inspector_dto.Type) wasm_dto.TypeInfo {
 	return typeInfo
 }
 
-// extractFunctionsFromPackage copies function data from a package into the
-// response.
+// extractFunctionsFromPackage copies function data from a package into the response.
 //
-// Takes inspectedPackage (*inspector_dto.Package) which
-// contains the parsed package data.
-// Takes response (*wasm_dto.AnalyseResponse) which receives
-// the function details.
+// Takes inspectedPackage (*inspector_dto.Package) which contains the parsed package data.
+// Takes response (*wasm_dto.AnalyseResponse) which receives the function details.
 func extractFunctionsFromPackage(inspectedPackage *inspector_dto.Package, response *wasm_dto.AnalyseResponse) {
 	for _, inspectedFunction := range inspectedPackage.Funcs {
 		response.Functions = append(response.Functions, wasm_dto.FunctionInfo{
@@ -1497,10 +1471,8 @@ func extractFunctionsFromPackage(inspectedPackage *inspector_dto.Package, respon
 
 // extractImportsFromPackage collects import details from a package.
 //
-// Takes inspectedPackage (*inspector_dto.Package) which
-// contains the parsed package data.
-// Takes response (*wasm_dto.AnalyseResponse) which receives
-// the collected imports.
+// Takes inspectedPackage (*inspector_dto.Package) which contains the parsed package data.
+// Takes response (*wasm_dto.AnalyseResponse) which receives the collected imports.
 func extractImportsFromPackage(inspectedPackage *inspector_dto.Package, response *wasm_dto.AnalyseResponse) {
 	for _, imports := range inspectedPackage.FileImports {
 		for importPath, alias := range imports {
@@ -1535,8 +1507,8 @@ func typeKind(typ *inspector_dto.Type) string {
 //
 // Takes err (error) which is the error to convert.
 //
-// Returns []wasm_dto.Diagnostic which holds a single diagnostic with error
-// severity and no location set.
+// Returns []wasm_dto.Diagnostic which holds a single diagnostic with error severity and
+// no location set.
 func errorToDiagnostics(err error) []wasm_dto.Diagnostic {
 	return []wasm_dto.Diagnostic{
 		{
@@ -1552,9 +1524,8 @@ func errorToDiagnostics(err error) []wasm_dto.Diagnostic {
 	}
 }
 
-// parseErrorToDiagnostics converts a parse error to diagnostics with proper
-// positions. It handles scanner.ErrorList for multiple errors and falls back
-// to regex parsing.
+// parseErrorToDiagnostics converts a parse error to diagnostics with proper positions. It
+// handles scanner.ErrorList for multiple errors and falls back to regex parsing.
 //
 // Takes err (error) which is the parse error to convert.
 // Takes filePath (string) which identifies the source file for the diagnostic.
@@ -1581,15 +1552,14 @@ func parseErrorToDiagnostics(err error, filePath string) []wasm_dto.Diagnostic {
 	return parseErrorStringToDiagnostics(err.Error(), filePath)
 }
 
-// parseErrorStringToDiagnostics parses an error string to extract line and
-// column positions.
+// parseErrorStringToDiagnostics parses an error string to extract line and column
+// positions.
 //
 // Takes errMessage (string) which contains the error message to parse.
 // Takes filePath (string) which specifies the file path for the diagnostic.
 //
-// Returns []wasm_dto.Diagnostic which contains a single diagnostic with the
-// extracted line and column positions. If parsing fails, the positions are
-// set to zero.
+// Returns []wasm_dto.Diagnostic which contains a single diagnostic with the extracted
+// line and column positions. If parsing fails, the positions are set to zero.
 func parseErrorStringToDiagnostics(errMessage, filePath string) []wasm_dto.Diagnostic {
 	matches := errorPosRegex.FindStringSubmatch(errMessage)
 	if len(matches) >= regexMinMatchesForPosition {
@@ -1634,19 +1604,19 @@ func parseErrorStringToDiagnostics(errMessage, filePath string) []wasm_dto.Diagn
 	}
 }
 
-// collectScriptArtefacts pulls every JavaScript artefact out of a generator
-// response so the dynamic-render path can surface them to the consumer.
+// collectScriptArtefacts pulls every JavaScript artefact out of a generator response so
+// the dynamic-render path can surface them to the consumer.
 //
-// The generator returns a mixed bag (Go code, manifests, register files,
-// CSS) so we filter to ArtefactTypeJS. The returned slice preserves
-// generator order, which keeps responses deterministic for golden tests.
+// The generator returns a mixed bag (Go code, manifests, register files, CSS) so we
+// filter to ArtefactTypeJS. The returned slice preserves generator order, which keeps
+// responses deterministic for golden tests.
 //
-// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries every
-// artefact captured during generation.
+// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries every artefact
+// captured during generation.
 //
-// Returns []wasm_dto.ScriptArtefact where each entry is one compiled ES
-// module. Returns nil when genResp is nil or no JS artefacts were emitted;
-// JSON-omitempty hides the field from the response in that case.
+// Returns []wasm_dto.ScriptArtefact where each entry is one compiled ES module.
+// Returns nil when genResp is nil or no JS artefacts were emitted; JSON-omitempty hides
+// the field from the response in that case.
 func collectScriptArtefacts(genResp *wasm_dto.GenerateFromSourcesResponse) []wasm_dto.ScriptArtefact {
 	if genResp == nil || len(genResp.Artefacts) == 0 {
 		return nil
@@ -1668,32 +1638,32 @@ func collectScriptArtefacts(genResp *wasm_dto.GenerateFromSourcesResponse) []was
 	return scripts
 }
 
-// defaultRuntimeImports lists the framework-runtime URLs.
-//
-// The dynamic-render path echoes this list in every response so
-// consumers can pre-resolve the imports (typically by fetching the
-// framework bundles from the parent daemon and adding entries to an
-// importmap) without having to scan emitted JS for `import` statements.
-// Sourced from the exported constants in generator_domain so any future
-// path change ripples through automatically.
-var defaultRuntimeImports = []string{
-	generator_domain.PKFrameworkURL,
-	generator_domain.PKComponentsURL,
-	generator_domain.PKActionsGenURL,
-}
+var (
+	// defaultRuntimeImports lists the framework-runtime URLs.
+	//
+	// The dynamic-render path echoes this list in every response so consumers can
+	// pre-resolve the imports (typically by fetching the framework bundles from the parent
+	// daemon and adding entries to an importmap) without having to scan emitted JS for
+	// `import` statements. Sourced from the exported constants in generator_domain so any
+	// future path change ripples through automatically.
+	defaultRuntimeImports = []string{
+		generator_domain.PKFrameworkURL,
+		generator_domain.PKComponentsURL,
+		generator_domain.PKActionsGenURL,
+	}
+)
 
-// findPageStyleBlock returns the aggregated CSS for the page that matches
-// requestURL. The block already includes CSS from every transitively
-// referenced partial (the manifest builder collapses them at generation
-// time), so it can be used verbatim as the page's <style> contents.
+// findPageStyleBlock returns the aggregated CSS for the page that matches requestURL. The
+// block already includes CSS from every transitively referenced partial (the manifest
+// builder collapses them at generation time), so it can be used verbatim as the page's
+// <style> contents.
 //
-// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries the
-// manifest produced this run.
-// Takes requestURL (string) which is matched against each page entry's
-// route patterns.
+// Takes genResp (*wasm_dto.GenerateFromSourcesResponse) which carries the manifest
+// produced this run.
+// Takes requestURL (string) which is matched against each page entry's route patterns.
 //
-// Returns string which is the matched page's StyleBlock, or empty when no
-// page matches or the manifest is absent.
+// Returns string which is the matched page's StyleBlock, or empty when no page matches or
+// the manifest is absent.
 func findPageStyleBlock(genResp *wasm_dto.GenerateFromSourcesResponse, requestURL string) string {
 	if genResp == nil || genResp.Manifest == nil {
 		return ""

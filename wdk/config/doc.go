@@ -16,19 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config provides a reflection-based configuration loading
-// framework that populates structs from multiple sources with a clear
-// precedence order.
+// Package config provides a reflection-based configuration loading framework that
+// populates structs from multiple sources with a clear precedence order.
 //
-// Sources are applied in the following order (highest precedence last):
-// programmatic defaults, struct tag defaults, config files (JSON/YAML),
-// .env files, environment variables, command-line flags, and secret
-// resolvers.
+// Sources are applied in the following order (highest precedence last): programmatic
+// defaults, struct tag defaults, config files (JSON/YAML), .env files, environment
+// variables, command-line flags, and secret resolvers.
 //
-// The framework also provides a shared global flag coordinator for
-// conflict-free flag parsing across independent config structs, a
-// global resolver registry for reusable secret providers, pluggable
-// struct validation, and detailed source tracking for debugging.
+// The framework also provides a shared global flag coordinator for conflict-free flag
+// parsing across independent config structs, a global resolver registry for reusable
+// secret providers, pluggable struct validation, and detailed source tracking for
+// debugging.
 //
 // # Usage
 //
@@ -46,21 +44,18 @@
 //	    UseGlobalResolvers: true,
 //	})
 //
-// Flags are coordinated globally via [RegisterFlags], allowing
-// multiple independent config structs to register flags without
-// conflicts. In most cases, flag registration happens automatically
-// when calling [Load] with a FlagPrefix.
+// Flags are coordinated globally via [RegisterFlags], allowing multiple independent
+// config structs to register flags without conflicts. In most cases, flag registration
+// happens automatically when calling [Load] with a FlagPrefix.
 //
 // # Secret resolvers
 //
-// Cloud and infrastructure secret resolvers are available in the
-// config_resolver_* sub-packages. Built-in resolvers ([EnvResolver],
-// [Base64Resolver], [FileResolver]) are included automatically when
-// using [Load] or [WithDefaultResolvers].
+// Cloud and infrastructure secret resolvers are available in the config_resolver_*
+// sub-packages. Built-in resolvers ([EnvResolver], [Base64Resolver], [FileResolver]) are
+// included automatically when using [Load] or [WithDefaultResolvers].
 //
 // # Thread safety
 //
-// The global flag coordinator and resolver registry are safe for
-// concurrent use. Individual [Loader] instances should not be
-// shared between goroutines.
+// The global flag coordinator and resolver registry are safe for concurrent use.
+// Individual [Loader] instances should not be shared between goroutines.
 package config

@@ -25,121 +25,138 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-const integerPromotionRankWidest = 3
+const (
 
-var builtinTypeMap = map[string]querier_dto.SQLType{
-	// Integer types
-	"smallint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-	"int2":        {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-	"integer":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-	"int":         {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-	"int4":        {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-	"bigint":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-	"int8":        {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-	"smallserial": {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-	"serial2":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
-	"serial":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-	"serial4":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
-	"bigserial":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
-	"serial8":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
+	// integerPromotionRankWidest is the rank assigned to the widest integer width (bigint /
+	// int8) during numeric type promotion.
+	integerPromotionRankWidest = 3
+)
 
-	// Float types
-	"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
-	"float4":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
-	"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
-	"float8":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
-	"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
+var (
+	// builtinTypeMap holds the Postgres builtin SQL types keyed by their canonical lowercase
+	// spelling.
+	builtinTypeMap = map[string]querier_dto.SQLType{
+		// Integer types
+		"smallint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
+		"int2":        {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
+		"integer":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"int":         {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"int4":        {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"bigint":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
+		"int8":        {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
+		"smallserial": {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
+		"serial2":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int2"},
+		"serial":      {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"serial4":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int4"},
+		"bigserial":   {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
+		"serial8":     {Category: querier_dto.TypeCategoryInteger, EngineName: "int8"},
 
-	// Decimal types
-	"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
-	"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
+		// Float types
+		"real":             {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
+		"float4":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float4"},
+		"double precision": {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
+		"float8":           {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
+		"float":            {Category: querier_dto.TypeCategoryFloat, EngineName: "float8"},
 
-	// Boolean
-	"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
-	"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
+		// Decimal types
+		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
+		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
 
-	// Text types
-	"text":              {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"character varying": {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-	"varchar":           {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
-	"character":         {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-	"char":              {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-	"bpchar":            {Category: querier_dto.TypeCategoryText, EngineName: "char"},
-	"name":              {Category: querier_dto.TypeCategoryText, EngineName: "name"},
-	"citext":            {Category: querier_dto.TypeCategoryText, EngineName: "citext"},
+		// Boolean
+		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
+		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "bool"},
 
-	// Bytea
-	"bytea": {Category: querier_dto.TypeCategoryBytea, EngineName: "bytea"},
+		// Text types
+		"text":              {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"character varying": {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
+		"varchar":           {Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
+		"character":         {Category: querier_dto.TypeCategoryText, EngineName: "char"},
+		"char":              {Category: querier_dto.TypeCategoryText, EngineName: "char"},
+		"bpchar":            {Category: querier_dto.TypeCategoryText, EngineName: "char"},
+		"name":              {Category: querier_dto.TypeCategoryText, EngineName: "name"},
+		"citext":            {Category: querier_dto.TypeCategoryText, EngineName: "citext"},
 
-	// Temporal types
-	"timestamp without time zone": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
-	"timestamp":                   {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
-	"timestamp with time zone":    {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamptz"},
-	"timestamptz":                 {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamptz"},
-	"date":                        {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
-	"time without time zone":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
-	"time":                        {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
-	"time with time zone":         {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
-	"timetz":                      {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
-	"interval":                    {Category: querier_dto.TypeCategoryTemporal, EngineName: "interval"},
+		// Bytea
+		"bytea": {Category: querier_dto.TypeCategoryBytea, EngineName: "bytea"},
 
-	// JSON types
-	"json":  {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
-	"jsonb": {Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"},
+		// Temporal types
+		"timestamp without time zone": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
+		"timestamp":                   {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
+		"timestamp with time zone":    {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamptz"},
+		"timestamptz":                 {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamptz"},
+		"date":                        {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
+		"time without time zone":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
+		"time":                        {Category: querier_dto.TypeCategoryTemporal, EngineName: "time"},
+		"time with time zone":         {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
+		"timetz":                      {Category: querier_dto.TypeCategoryTemporal, EngineName: "timetz"},
+		"interval":                    {Category: querier_dto.TypeCategoryTemporal, EngineName: "interval"},
 
-	// UUID
-	"uuid": {Category: querier_dto.TypeCategoryUUID, EngineName: "uuid"},
+		// JSON types
+		"json":  {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+		"jsonb": {Category: querier_dto.TypeCategoryJSON, EngineName: "jsonb"},
 
-	// Network types
-	"inet":     {Category: querier_dto.TypeCategoryNetwork, EngineName: "inet"},
-	"cidr":     {Category: querier_dto.TypeCategoryNetwork, EngineName: "cidr"},
-	"macaddr":  {Category: querier_dto.TypeCategoryNetwork, EngineName: "macaddr"},
-	"macaddr8": {Category: querier_dto.TypeCategoryNetwork, EngineName: "macaddr8"},
+		// UUID
+		"uuid": {Category: querier_dto.TypeCategoryUUID, EngineName: "uuid"},
 
-	// Geometric types
-	"point":   {Category: querier_dto.TypeCategoryGeometric, EngineName: "point"},
-	"line":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "line"},
-	"lseg":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "lseg"},
-	"box":     {Category: querier_dto.TypeCategoryGeometric, EngineName: "box"},
-	"path":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "path"},
-	"polygon": {Category: querier_dto.TypeCategoryGeometric, EngineName: "polygon"},
-	"circle":  {Category: querier_dto.TypeCategoryGeometric, EngineName: "circle"},
+		// Network types
+		"inet":     {Category: querier_dto.TypeCategoryNetwork, EngineName: "inet"},
+		"cidr":     {Category: querier_dto.TypeCategoryNetwork, EngineName: "cidr"},
+		"macaddr":  {Category: querier_dto.TypeCategoryNetwork, EngineName: "macaddr"},
+		"macaddr8": {Category: querier_dto.TypeCategoryNetwork, EngineName: "macaddr8"},
 
-	// Range types
-	"int4range":      {Category: querier_dto.TypeCategoryRange, EngineName: "int4range"},
-	"int8range":      {Category: querier_dto.TypeCategoryRange, EngineName: "int8range"},
-	"numrange":       {Category: querier_dto.TypeCategoryRange, EngineName: "numrange"},
-	"tsrange":        {Category: querier_dto.TypeCategoryRange, EngineName: "tsrange"},
-	"tstzrange":      {Category: querier_dto.TypeCategoryRange, EngineName: "tstzrange"},
-	"daterange":      {Category: querier_dto.TypeCategoryRange, EngineName: "daterange"},
-	"int4multirange": {Category: querier_dto.TypeCategoryRange, EngineName: "int4multirange"},
-	"int8multirange": {Category: querier_dto.TypeCategoryRange, EngineName: "int8multirange"},
-	"nummultirange":  {Category: querier_dto.TypeCategoryRange, EngineName: "nummultirange"},
-	"tsmultirange":   {Category: querier_dto.TypeCategoryRange, EngineName: "tsmultirange"},
-	"tstzmultirange": {Category: querier_dto.TypeCategoryRange, EngineName: "tstzmultirange"},
-	"datemultirange": {Category: querier_dto.TypeCategoryRange, EngineName: "datemultirange"},
+		// Geometric types
+		"point":   {Category: querier_dto.TypeCategoryGeometric, EngineName: "point"},
+		"line":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "line"},
+		"lseg":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "lseg"},
+		"box":     {Category: querier_dto.TypeCategoryGeometric, EngineName: "box"},
+		"path":    {Category: querier_dto.TypeCategoryGeometric, EngineName: "path"},
+		"polygon": {Category: querier_dto.TypeCategoryGeometric, EngineName: "polygon"},
+		"circle":  {Category: querier_dto.TypeCategoryGeometric, EngineName: "circle"},
 
-	// Other system types
-	"oid":      {Category: querier_dto.TypeCategoryInteger, EngineName: "oid"},
-	"money":    {Category: querier_dto.TypeCategoryDecimal, EngineName: "money"},
-	"xml":      {Category: querier_dto.TypeCategoryText, EngineName: "xml"},
-	"tsvector": {Category: querier_dto.TypeCategoryText, EngineName: "tsvector"},
-	"tsquery":  {Category: querier_dto.TypeCategoryText, EngineName: "tsquery"},
-	"regtype":  {Category: querier_dto.TypeCategoryInteger, EngineName: "regtype"},
-	"regclass": {Category: querier_dto.TypeCategoryInteger, EngineName: "regclass"},
-	"pg_lsn":   {Category: querier_dto.TypeCategoryText, EngineName: "pg_lsn"},
-	"void":     {Category: querier_dto.TypeCategoryUnknown, EngineName: "void"},
-}
+		// Range types
+		"int4range":      {Category: querier_dto.TypeCategoryRange, EngineName: "int4range"},
+		"int8range":      {Category: querier_dto.TypeCategoryRange, EngineName: "int8range"},
+		"numrange":       {Category: querier_dto.TypeCategoryRange, EngineName: "numrange"},
+		"tsrange":        {Category: querier_dto.TypeCategoryRange, EngineName: "tsrange"},
+		"tstzrange":      {Category: querier_dto.TypeCategoryRange, EngineName: "tstzrange"},
+		"daterange":      {Category: querier_dto.TypeCategoryRange, EngineName: "daterange"},
+		"int4multirange": {Category: querier_dto.TypeCategoryRange, EngineName: "int4multirange"},
+		"int8multirange": {Category: querier_dto.TypeCategoryRange, EngineName: "int8multirange"},
+		"nummultirange":  {Category: querier_dto.TypeCategoryRange, EngineName: "nummultirange"},
+		"tsmultirange":   {Category: querier_dto.TypeCategoryRange, EngineName: "tsmultirange"},
+		"tstzmultirange": {Category: querier_dto.TypeCategoryRange, EngineName: "tstzmultirange"},
+		"datemultirange": {Category: querier_dto.TypeCategoryRange, EngineName: "datemultirange"},
 
-var multiWordTypes = map[string]string{
-	"double precision":            "double precision",
-	"character varying":           "character varying",
-	"timestamp without time zone": "timestamp without time zone",
-	"timestamp with time zone":    "timestamp with time zone",
-	"time without time zone":      "time without time zone",
-	"time with time zone":         "time with time zone",
-}
+		// Other system types
+		"oid":      {Category: querier_dto.TypeCategoryInteger, EngineName: "oid"},
+		"money":    {Category: querier_dto.TypeCategoryDecimal, EngineName: "money"},
+		"xml":      {Category: querier_dto.TypeCategoryText, EngineName: "xml"},
+		"tsvector": {Category: querier_dto.TypeCategoryText, EngineName: "tsvector"},
+		"tsquery":  {Category: querier_dto.TypeCategoryText, EngineName: "tsquery"},
+		"regtype":  {Category: querier_dto.TypeCategoryInteger, EngineName: "regtype"},
+		"regclass": {Category: querier_dto.TypeCategoryInteger, EngineName: "regclass"},
+		"pg_lsn":   {Category: querier_dto.TypeCategoryText, EngineName: "pg_lsn"},
+		"void":     {Category: querier_dto.TypeCategoryUnknown, EngineName: "void"},
+	}
 
+	// multiWordTypes maps lowercase multi-word Postgres type spellings to themselves so the
+	// parser can recognise them as a single type token.
+	multiWordTypes = map[string]string{
+		"double precision":            "double precision",
+		"character varying":           "character varying",
+		"timestamp without time zone": "timestamp without time zone",
+		"timestamp with time zone":    "timestamp with time zone",
+		"time without time zone":      "time without time zone",
+		"time with time zone":         "time with time zone",
+	}
+)
+
+// buildTypeCatalogue assembles a type catalogue from builtin and extra types.
+//
+// Takes extraTypes (map[string]querier_dto.SQLType) which provides additional types
+// layered over the builtins.
+//
+// Returns *querier_dto.TypeCatalogue which holds the merged type map.
 func buildTypeCatalogue(extraTypes map[string]querier_dto.SQLType) *querier_dto.TypeCatalogue {
 	catalogue := &querier_dto.TypeCatalogue{
 		Types: make(map[string]querier_dto.SQLType, len(builtinTypeMap)+len(extraTypes)),
@@ -149,6 +166,15 @@ func buildTypeCatalogue(extraTypes map[string]querier_dto.SQLType) *querier_dto.
 	return catalogue
 }
 
+// normaliseTypeName resolves a Postgres type name to its canonical SQLType.
+//
+// Takes name (string) which is the raw type spelling to resolve.
+// Takes hook (func(string, []int) *querier_dto.SQLType) which optionally overrides the
+// resolution for engine-specific types.
+// Takes modifiers (...int) which provides precision, scale, or length modifiers applied
+// to the resolved type.
+//
+// Returns querier_dto.SQLType which describes the resolved type.
 func normaliseTypeName(
 	name string,
 	hook func(string, []int) *querier_dto.SQLType,
@@ -200,6 +226,10 @@ func normaliseTypeName(
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown, EngineName: lowered}
 }
 
+// applyModifiers writes precision, scale, or length modifiers onto sqlType.
+//
+// Takes sqlType (*querier_dto.SQLType) which is the target type to mutate.
+// Takes modifiers ([]int) which provides the modifier values in declaration order.
 func applyModifiers(sqlType *querier_dto.SQLType, modifiers []int) {
 	if len(modifiers) == 0 {
 		return
@@ -225,6 +255,10 @@ func applyModifiers(sqlType *querier_dto.SQLType, modifiers []int) {
 }
 
 // integerPromotionRank returns the numeric width rank for PG integer types.
+//
+// Takes engineName (string) which is the canonical engine type name.
+//
+// Returns int which is the width rank used for promotion ordering.
 func integerPromotionRank(engineName string) int {
 	switch engineName {
 	case "int2":
@@ -237,6 +271,10 @@ func integerPromotionRank(engineName string) int {
 }
 
 // floatPromotionRank returns the numeric width rank for PG float types.
+//
+// Takes engineName (string) which is the canonical engine type name.
+//
+// Returns int which is the width rank used for promotion ordering.
 func floatPromotionRank(engineName string) int {
 	switch engineName {
 	case "float4":

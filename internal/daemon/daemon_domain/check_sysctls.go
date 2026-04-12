@@ -40,34 +40,32 @@ const (
 	// keyKey is the logging field name for sysctl parameter keys.
 	keyKey = "key"
 
-	// msgCouldNotReadSysctl is the warning message logged when a sysctl value
-	// cannot be read.
+	// msgCouldNotReadSysctl is the warning message logged when a sysctl value cannot be
+	// read.
 	msgCouldNotReadSysctl = "Could not read sysctl value."
 )
 
 var (
-	// recommendedSysctlInts defines integer-based kernel settings and their
-	// recommended minimum values.
+	// recommendedSysctlInts defines integer-based kernel settings and their recommended
+	// minimum values.
 	recommendedSysctlInts = map[string]int{
-		// Maximum number of connections queued for acceptance. Low values can
-		// lead to connection drops during traffic bursts. 65535 is a common
-		// high-performance value for servers expecting high connection rates.
+		// Maximum number of connections queued for acceptance. Low values can lead to
+		// connection drops during traffic bursts. 65535 is a common high-performance value for
+		// servers expecting high connection rates.
 		"net.core.somaxconn": 65535,
-		// Allows the reuse of sockets in TIME_WAIT state for new connections when it's
-		// safe from a protocol perspective. Essential for services with many
-		// short-lived connections to avoid ephemeral port exhaustion. A value of 1
-		// enables it.
+		// Allows the reuse of sockets in TIME_WAIT state for new connections when it's safe
+		// from a protocol perspective. Essential for services with many short-lived connections
+		// to avoid ephemeral port exhaustion. A value of 1 enables it.
 		"net.ipv4.tcp_tw_reuse": 1,
-		// Reduces the time the kernel holds sockets in FIN_WAIT2 after a connection is
-		// closed. A lower value (e.g., 15-30s) allows for faster resource reclamation.
+		// Reduces the time the kernel holds sockets in FIN_WAIT2 after a connection is closed.
+		// A lower value (e.g., 15-30s) allows for faster resource reclamation.
 		"net.ipv4.tcp_fin_timeout": 30,
 	}
 
 	// recommendedSysctlRanges defines range-based kernel settings.
 	recommendedSysctlRanges = map[string][2]int{
-		// The range of ephemeral ports for outgoing connections. A wider range
-		// prevents port exhaustion. We check if the available range is at least 32768
-		// ports.
+		// The range of ephemeral ports for outgoing connections. A wider range prevents port
+		// exhaustion. We check if the available range is at least 32768 ports.
 		"net.ipv4.ip_local_port_range": {32768, 65535},
 	}
 
@@ -79,8 +77,8 @@ var (
 	}
 )
 
-// checkHostConfiguration checks kernel settings and resource limits to ensure
-// the host is ready for high-performance network tasks.
+// checkHostConfiguration checks kernel settings and resource limits to ensure the host is
+// ready for high-performance network tasks.
 //
 // When the environment is not production, skips checks and logs a message.
 //
@@ -115,8 +113,8 @@ func checkAllSysctls(ctx context.Context) {
 	}
 }
 
-// checkAllRlimits checks all resource limits and logs warnings for any that
-// are below the suggested values.
+// checkAllRlimits checks all resource limits and logs warnings for any that are below the
+// suggested values.
 func checkAllRlimits(ctx context.Context) {
 	for key, expectedValue := range recommendedRlimits {
 		if key == "ulimit-n" {

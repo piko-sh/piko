@@ -57,8 +57,8 @@ func NavigationKeyBindings() []KeyBinding {
 
 // TableKeyBindings returns key bindings for table navigation.
 //
-// Returns []KeyBinding which contains the key mappings for moving around and
-// working with tables.
+// Returns []KeyBinding which contains the key mappings for moving around and working with
+// tables.
 func TableKeyBindings() []KeyBinding {
 	return []KeyBinding{
 		{Key: "j / Down", Description: "Move down"},

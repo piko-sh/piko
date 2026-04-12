@@ -156,6 +156,24 @@ func run() int {
 }
 `,
 		},
+		{
+			"general_arg_struct_value",
+			`package main
+
+type Box struct{ a, b, c int }
+
+func sumBox(box Box) int { return box.a + box.b + box.c }
+
+func run() int {
+	box := Box{a: 1, b: 2, c: 3}
+	s := 0
+	for i := 0; i < 1000; i++ {
+		s += sumBox(box)
+	}
+	return s
+}
+`,
+		},
 	}
 
 	for _, bm := range benchmarks {

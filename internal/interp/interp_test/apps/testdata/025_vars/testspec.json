@@ -1,0 +1,4 @@
+{
+  "description": "Package-level variable defined in one file mutated and read by helpers in other files",
+  "expected": "counter=3 history=[start one two three]"
+}

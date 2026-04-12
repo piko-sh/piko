@@ -152,8 +152,8 @@ func (h *BaseHarness) GoldenPath(filename string) string {
 //
 // Takes filename (string) which identifies the golden file to compare against.
 // Takes actual ([]byte) which contains the bytes to compare.
-// Takes msgAndArgs (...any) which provides optional message and
-// format arguments on failure.
+// Takes msgAndArgs (...any) which provides optional message and format arguments on
+// failure.
 func (h *BaseHarness) AssertGolden(filename string, actual []byte, msgAndArgs ...any) {
 	h.T.Helper()
 	AssertGoldenFile(h.T, h.GoldenPath(filename), actual, msgAndArgs...)
@@ -161,11 +161,10 @@ func (h *BaseHarness) AssertGolden(filename string, actual []byte, msgAndArgs ..
 
 // AssertGoldenHTML compares actual HTML against a golden file.
 //
-// Takes filename (string) which is the name of the golden file to compare
-// against.
+// Takes filename (string) which is the name of the golden file to compare against.
 // Takes actual ([]byte) which is the HTML content to verify.
-// Takes msgAndArgs (...any) which provides optional message and format
-// arguments for failure output.
+// Takes msgAndArgs (...any) which provides optional message and format arguments for
+// failure output.
 func (h *BaseHarness) AssertGoldenHTML(filename string, actual []byte, msgAndArgs ...any) {
 	h.T.Helper()
 	AssertGoldenHTML(h.T, h.GoldenPath(filename), actual, msgAndArgs...)

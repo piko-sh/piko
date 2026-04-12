@@ -18,12 +18,11 @@
 
 package tui_domain
 
-// FocusManager tracks which panel currently has focus and which panels are
-// currently visible (i.e. assigned to a layout slot).
+// FocusManager tracks which panel currently has focus and which panels are currently
+// visible (i.e. assigned to a layout slot).
 //
-// The active panel is always considered visible. Tab and 1-9 hotkeys cycle
-// through every registered panel; ctrl+w + arrow cycles through only the
-// panels currently visible.
+// The active panel is always considered visible. Tab and 1-9 hotkeys cycle through every
+// registered panel; ctrl+w + arrow cycles through only the panels currently visible.
 type FocusManager struct {
 	// visibleIDs is the set of panel IDs currently rendered in the layout.
 	visibleIDs map[string]struct{}
@@ -35,8 +34,8 @@ type FocusManager struct {
 	panels []Panel
 }
 
-// NewFocusManager creates an empty FocusManager. SetPanels populates the
-// list and SetActive picks the initial focus.
+// NewFocusManager creates an empty FocusManager. SetPanels populates the list and
+// SetActive picks the initial focus.
 //
 // Returns *FocusManager which is empty and ready for SetPanels.
 func NewFocusManager() *FocusManager {
@@ -45,9 +44,8 @@ func NewFocusManager() *FocusManager {
 	}
 }
 
-// SetPanels replaces the managed panel list. The active ID is preserved if
-// the corresponding panel still exists; otherwise focus reverts to the
-// first panel.
+// SetPanels replaces the managed panel list. The active ID is preserved if the
+// corresponding panel still exists; otherwise focus reverts to the first panel.
 //
 // Takes panels ([]Panel) which is the new ordered panel list.
 func (f *FocusManager) SetPanels(panels []Panel) {
@@ -67,8 +65,8 @@ func (f *FocusManager) SetPanels(panels []Panel) {
 
 // SetActive marks the panel with the given ID as focused.
 //
-// The previously focused panel has SetFocused(false) called on it; the new
-// focused panel has SetFocused(true) called on it. Unknown IDs are ignored.
+// The previously focused panel has SetFocused(false) called on it; the new focused panel
+// has SetFocused(true) called on it. Unknown IDs are ignored.
 //
 // Takes id (string) which is the panel to focus.
 //
@@ -88,15 +86,13 @@ func (f *FocusManager) SetActive(id string) bool {
 
 // ActiveID returns the ID of the currently-focused panel.
 //
-// Returns string which is the active panel ID, or "" when no panel is
-// registered.
+// Returns string which is the active panel ID, or "" when no panel is registered.
 func (f *FocusManager) ActiveID() string {
 	return f.activeID
 }
 
-// MarkVisible records the IDs of panels currently visible in the layout.
-// This is invoked after each layout assignment so cycling visible panes
-// can ignore hidden panels.
+// MarkVisible records the IDs of panels currently visible in the layout. This is invoked
+// after each layout assignment so cycling visible panes can ignore hidden panels.
 //
 // Takes ids ([]string) which lists the visible panel IDs.
 func (f *FocusManager) MarkVisible(ids []string) {
@@ -107,8 +103,7 @@ func (f *FocusManager) MarkVisible(ids []string) {
 	f.visibleIDs = visible
 }
 
-// IsVisible reports whether the panel with the given ID is currently
-// rendered.
+// IsVisible reports whether the panel with the given ID is currently rendered.
 //
 // Takes id (string) which is the panel to check.
 //
@@ -118,9 +113,9 @@ func (f *FocusManager) IsVisible(id string) bool {
 	return ok
 }
 
-// NextPanel returns the ID of the panel after the current one in the
-// registered list, wrapping at the end. Cycles through every panel
-// regardless of layout visibility, equivalent to Tab.
+// NextPanel returns the ID of the panel after the current one in the registered list,
+// wrapping at the end. Cycles through every panel regardless of layout visibility,
+// equivalent to Tab.
 //
 // Returns string which is the next panel ID, or "" when no panels exist.
 func (f *FocusManager) NextPanel() string {
@@ -134,11 +129,9 @@ func (f *FocusManager) NextPanel() string {
 	return f.panels[(index+1)%len(f.panels)].ID()
 }
 
-// PrevPanel is the reverse of NextPanel, wrapping from the start back to
-// the end.
+// PrevPanel is the reverse of NextPanel, wrapping from the start back to the end.
 //
-// Returns string which is the previous panel ID, or "" when no panels
-// exist.
+// Returns string which is the previous panel ID, or "" when no panels exist.
 func (f *FocusManager) PrevPanel() string {
 	if len(f.panels) == 0 {
 		return ""
@@ -154,14 +147,12 @@ func (f *FocusManager) PrevPanel() string {
 	return f.panels[index].ID()
 }
 
-// NextVisible returns the next panel ID that is currently visible in the
-// layout.
+// NextVisible returns the next panel ID that is currently visible in the layout.
 //
-// When only one panel is visible, the active ID is returned. Cycling among
-// visible panels is the equivalent of ctrl+w + right.
+// When only one panel is visible, the active ID is returned. Cycling among visible panels
+// is the equivalent of ctrl+w + right.
 //
-// Returns string which is the next visible panel ID, or "" when none are
-// visible.
+// Returns string which is the next visible panel ID, or "" when none are visible.
 func (f *FocusManager) NextVisible() string {
 	visible := f.orderedVisible()
 	if len(visible) == 0 {
@@ -208,8 +199,8 @@ func (f *FocusManager) orderedVisible() []string {
 	return out
 }
 
-// indexOfActive returns the position of the active panel in the registered
-// list, or -1 if the active ID is not registered.
+// indexOfActive returns the position of the active panel in the registered list, or -1 if
+// the active ID is not registered.
 //
 // Returns int which is the active panel's index, or -1 when not found.
 func (f *FocusManager) indexOfActive() int {
@@ -221,11 +212,10 @@ func (f *FocusManager) indexOfActive() int {
 	return -1
 }
 
-// applyFocus updates the SetFocused state on each panel and records the new
-// active ID.
+// applyFocus updates the SetFocused state on each panel and records the new active ID.
 //
-// Takes id (string) which is the new active panel ID. Caller has already
-// verified the ID exists.
+// Takes id (string) which is the new active panel ID. Caller has already verified the ID
+// exists.
 func (f *FocusManager) applyFocus(id string) {
 	for _, p := range f.panels {
 		p.SetFocused(p.ID() == id)

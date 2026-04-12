@@ -19,9 +19,8 @@
 package cssinliner
 
 // Resolves CSS @import statements by recursively parsing and inlining imported
-// stylesheets into a single AST. Detects circular dependencies, caches parsed
-// files, and merges multiple CSS sources whilst preserving layer and media
-// conditions.
+// stylesheets into a single AST. Detects circular dependencies, caches parsed files, and
+// merges multiple CSS sources whilst preserving layer and media conditions.
 
 import (
 	"context"
@@ -41,8 +40,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// cssParseCache stores parsed CSS files to avoid parsing the same file twice.
-// The map key is the full file path.
+// cssParseCache stores parsed CSS files to avoid parsing the same file twice. The map key
+// is the full file path.
 type cssParseCache = map[string]*css_ast.AST
 
 // Inliner holds the state for a single CSS inlining operation.
@@ -56,8 +55,8 @@ type Inliner struct {
 	// fsReader reads CSS files to resolve @import statements.
 	fsReader FSReaderPort
 
-	// diagnosticCode is the code assigned to diagnostics produced by this
-	// inliner (e.g. "T114" for import errors).
+	// diagnosticCode is the code assigned to diagnostics produced by this inliner (e.g.
+	// "T114" for import errors).
 	diagnosticCode string
 
 	// cache stores parsed CSS stylesheets to avoid parsing the same file twice.
@@ -67,13 +66,15 @@ type Inliner struct {
 	diagnostics []*ast.Diagnostic
 }
 
-// inlinerPool reuses Inliner instances to reduce allocation pressure during CSS
-// import resolution.
-var inlinerPool = sync.Pool{
-	New: func() any {
-		return &Inliner{}
-	},
-}
+var (
+	// inlinerPool reuses Inliner instances to reduce allocation pressure during CSS import
+	// resolution.
+	inlinerPool = sync.Pool{
+		New: func() any {
+			return &Inliner{}
+		},
+	}
+)
 
 // GetInliner retrieves an Inliner from the pool and prepares it for use.
 //
@@ -110,19 +111,17 @@ func PutInliner(inliner *Inliner) {
 	inlinerPool.Put(inliner)
 }
 
-// InlineAndParse is the main entry point for CSS inlining. It takes the
-// initial CSS content and its path, and returns a single, fully inlined AST.
+// InlineAndParse is the main entry point for CSS inlining. It takes the initial CSS
+// content and its path, and returns a single, fully inlined AST.
 //
 // Takes cssContent (string) which contains the raw CSS to parse and inline.
-// Takes containingPath (string) which specifies the file path for resolving
-// relative imports.
-// Takes startLocation (ast.Location) which marks the source position for
-// diagnostics.
+// Takes containingPath (string) which specifies the file path for resolving relative
+// imports.
+// Takes startLocation (ast.Location) which marks the source position for diagnostics.
 //
-// Returns *css_ast.AST which is the fully inlined syntax tree, or nil when
-// a fatal error such as an import cycle occurs.
-// Returns []*ast.Diagnostic which contains any warnings or errors found
-// during parsing.
+// Returns *css_ast.AST which is the fully inlined syntax tree, or nil when a fatal error
+// such as an import cycle occurs.
+// Returns []*ast.Diagnostic which contains any warnings or errors found during parsing.
 func (i *Inliner) InlineAndParse(
 	ctx context.Context,
 	cssContent string,
@@ -180,12 +179,11 @@ func (i *Inliner) parseRecursive(
 // checkCircularDependency detects if a CSS import path creates a cycle.
 //
 // Takes containingPath (string) which is the path being checked for cycles.
-// Takes startLocation (ast.Location) which is the source location for error
-// reporting.
+// Takes startLocation (ast.Location) which is the source location for error reporting.
 // Takes pathStack ([]string) which is the current chain of import paths.
 //
-// Returns error when containingPath already exists in pathStack, indicating a
-// circular dependency.
+// Returns error when containingPath already exists in pathStack, indicating a circular
+// dependency.
 func (i *Inliner) checkCircularDependency(containingPath string, startLocation ast.Location, pathStack []string) error {
 	if !slices.Contains(pathStack, containingPath) {
 		return nil
@@ -202,8 +200,7 @@ func (i *Inliner) checkCircularDependency(containingPath string, startLocation a
 // parseCSSContent parses raw CSS text and returns the resulting AST.
 //
 // Takes cssContent (string) which is the CSS source text to parse.
-// Takes containingPath (string) which identifies the source file for error
-// messages.
+// Takes containingPath (string) which identifies the source file for error messages.
 // Takes startLocation (ast.Location) which is the offset for error positions.
 //
 // Returns css_ast.AST which is the parsed stylesheet tree.
@@ -226,8 +223,7 @@ func (i *Inliner) parseCSSContent(cssContent, containingPath string, startLocati
 // processImports resolves and inlines CSS @import rules into the AST.
 //
 // Takes tree (css_ast.AST) which is the parsed CSS to process.
-// Takes containingPath (string) which is the file path of the CSS being
-// processed.
+// Takes containingPath (string) which is the file path of the CSS being processed.
 // Takes startLocation (ast.Location) which marks where processing began.
 // Takes pathStack ([]string) which tracks visited paths to detect cycles.
 //
@@ -251,15 +247,15 @@ func (i *Inliner) processImports(ctx context.Context, tree css_ast.AST, containi
 		LayersPostImport:     tree.LayersPostImport,
 	}
 
-	for index := len(importsToMerge) - 1; index >= 0; index-- {
-		MergeASTs(&newTree, importsToMerge[index])
+	for _, importToMerge := range slices.Backward(importsToMerge) {
+		MergeASTs(&newTree, importToMerge)
 	}
 
 	return newTree, nil
 }
 
-// collectImportedASTs processes a CSS AST to separate import rules from other
-// rules and resolve the imported stylesheets.
+// collectImportedASTs processes a CSS AST to separate import rules from other rules and
+// resolve the imported stylesheets.
 //
 // Takes tree (css_ast.AST) which is the CSS abstract syntax tree to process.
 // Takes containingPath (string) which is the file path of the stylesheet.
@@ -297,13 +293,12 @@ func (i *Inliner) collectImportedASTs(ctx context.Context, tree css_ast.AST, con
 // Takes tree (css_ast.AST) which provides the import records for resolution.
 // Takes imp (*css_ast.RAtImport) which specifies the import rule to process.
 // Takes rule (css_ast.Rule) which provides the original rule location.
-// Takes containingPath (string) which is the path of the file that contains
-// the import.
+// Takes containingPath (string) which is the path of the file that contains the import.
 // Takes startLocation (ast.Location) which marks where the import appears.
 // Takes pathStack ([]string) which tracks visited paths to find cycles.
 //
-// Returns *css_ast.AST which is the parsed and condition-wrapped imported CSS,
-// or nil if the import could not be resolved or parsed.
+// Returns *css_ast.AST which is the parsed and condition-wrapped imported CSS, or nil if
+// the import could not be resolved or parsed.
 // Returns error when a circular import is found.
 func (i *Inliner) resolveAndParseImport(
 	ctx context.Context,
@@ -342,9 +337,8 @@ func (i *Inliner) resolveAndParseImport(
 	return WrapImportedASTWithConditions(importedAST, imp.ImportConditions, rule.Loc), nil
 }
 
-// MergeASTs joins a child AST into a parent AST by updating all token
-// indexes. Child rules are added before parent rules so that imports appear
-// first in the CSS output.
+// MergeASTs joins a child AST into a parent AST by updating all token indexes. Child
+// rules are added before parent rules so that imports appear first in the CSS output.
 //
 // Takes parent (*css_ast.AST) which receives the merged result.
 // Takes child (*css_ast.AST) which provides the rules to add.
@@ -368,8 +362,7 @@ func MergeASTs(parent *css_ast.AST, child *css_ast.AST) {
 //
 // Takes rule (*css_ast.Rule) which is the rule to update.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexRule(rule *css_ast.Rule, symbolOffset, importRecordOffset uint32) {
 	switch r := rule.Data.(type) {
 	case *css_ast.RSelector:
@@ -394,13 +387,12 @@ func reIndexRule(rule *css_ast.Rule, symbolOffset, importRecordOffset uint32) {
 	}
 }
 
-// reIndexSelectorRule updates symbol and import record indices for a selector
-// rule and its nested rules.
+// reIndexSelectorRule updates symbol and import record indices for a selector rule and
+// its nested rules.
 //
 // Takes r (*css_ast.RSelector) which is the selector rule to re-index.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexSelectorRule(r *css_ast.RSelector, symbolOffset, importRecordOffset uint32) {
 	for i := range r.Selectors {
 		reIndexSelector(&r.Selectors[i], symbolOffset, importRecordOffset)
@@ -408,13 +400,12 @@ func reIndexSelectorRule(r *css_ast.RSelector, symbolOffset, importRecordOffset 
 	reIndexRuleList(r.Rules, symbolOffset, importRecordOffset)
 }
 
-// reIndexKeyframesRule updates symbol references in a keyframes rule and its
-// nested blocks.
+// reIndexKeyframesRule updates symbol references in a keyframes rule and its nested
+// blocks.
 //
 // Takes r (*css_ast.RAtKeyframes) which is the keyframes rule to re-index.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexKeyframesRule(r *css_ast.RAtKeyframes, symbolOffset, importRecordOffset uint32) {
 	if symbolOffset > 0 {
 		r.Name.Ref.InnerIndex += symbolOffset
@@ -432,20 +423,17 @@ func reIndexKeyframesRule(r *css_ast.RAtKeyframes, symbolOffset, importRecordOff
 // Takes prelude ([]css_ast.Token) which contains the at-rule's prelude tokens.
 // Takes rules ([]css_ast.Rule) which contains the at-rule's nested rules.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexAtRule(prelude []css_ast.Token, rules []css_ast.Rule, symbolOffset, importRecordOffset uint32) {
 	reIndexTokens(prelude, symbolOffset, importRecordOffset)
 	reIndexRuleList(rules, symbolOffset, importRecordOffset)
 }
 
-// reIndexRuleList updates symbol and import record indices for a list of CSS
-// rules.
+// reIndexRuleList updates symbol and import record indices for a list of CSS rules.
 //
 // Takes rules ([]css_ast.Rule) which contains the rules to re-index.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexRuleList(rules []css_ast.Rule, symbolOffset, importRecordOffset uint32) {
 	for i := range rules {
 		reIndexRule(&rules[i], symbolOffset, importRecordOffset)
@@ -456,22 +444,19 @@ func reIndexRuleList(rules []css_ast.Rule, symbolOffset, importRecordOffset uint
 //
 // Takes selector (*css_ast.ComplexSelector) which is the selector to re-index.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexSelector(selector *css_ast.ComplexSelector, symbolOffset, importRecordOffset uint32) {
 	for i := range selector.Selectors {
 		reIndexCompoundSelector(&selector.Selectors[i], symbolOffset, importRecordOffset)
 	}
 }
 
-// reIndexCompoundSelector updates symbol and import record references in a
-// compound selector.
+// reIndexCompoundSelector updates symbol and import record references in a compound
+// selector.
 //
-// Takes cs (*css_ast.CompoundSelector) which is the compound selector to
-// re-index.
+// Takes cs (*css_ast.CompoundSelector) which is the compound selector to re-index.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexCompoundSelector(cs *css_ast.CompoundSelector, symbolOffset, importRecordOffset uint32) {
 	for i := range cs.SubclassSelectors {
 		switch data := cs.SubclassSelectors[i].Data.(type) {
@@ -497,14 +482,12 @@ func reIndexCompoundSelector(cs *css_ast.CompoundSelector, symbolOffset, importR
 	}
 }
 
-// reIndexTokens updates payload indices in CSS tokens when merging symbol
-// tables. URL tokens receive the import record offset and symbol tokens
-// receive the symbol offset.
+// reIndexTokens updates payload indices in CSS tokens when merging symbol tables. URL
+// tokens receive the import record offset and symbol tokens receive the symbol offset.
 //
 // Takes tokens ([]css_ast.Token) which contains the tokens to re-index.
 // Takes symbolOffset (uint32) which is the offset to add to symbol indices.
-// Takes importRecordOffset (uint32) which is the offset to add to import
-// record indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import record indices.
 func reIndexTokens(tokens []css_ast.Token, symbolOffset, importRecordOffset uint32) {
 	for i := range tokens {
 		t := &tokens[i]
@@ -555,8 +538,7 @@ func CloneAST(original *css_ast.AST) *css_ast.AST {
 	return clone
 }
 
-// cloneRule creates a deep copy of a CSS rule, including its data and
-// location.
+// cloneRule creates a deep copy of a CSS rule, including its data and location.
 //
 // Takes original (css_ast.Rule) which is the rule to copy.
 //
@@ -568,13 +550,13 @@ func cloneRule(original css_ast.Rule) css_ast.Rule {
 	}
 }
 
-// cloneR creates a deep copy of a CSS rule node, dispatching to the
-// appropriate type-specific clone function based on the concrete type.
+// cloneR creates a deep copy of a CSS rule node, dispatching to the appropriate
+// type-specific clone function based on the concrete type.
 //
 // Takes original (css_ast.R) which is the rule data to copy.
 //
-// Returns css_ast.R which is a new deep copy, or nil if the original is nil
-// or an unrecognised type.
+// Returns css_ast.R which is a new deep copy, or nil if the original is nil or an
+// unrecognised type.
 func cloneR(original css_ast.R) css_ast.R {
 	if original == nil {
 		return nil
@@ -611,8 +593,8 @@ func cloneR(original css_ast.R) css_ast.R {
 	}
 }
 
-// cloneRAtImport creates a deep copy of a CSS @import rule, including its
-// import conditions.
+// cloneRAtImport creates a deep copy of a CSS @import rule, including its import
+// conditions.
 //
 // Takes r (*css_ast.RAtImport) which is the rule to copy.
 //
@@ -626,8 +608,8 @@ func cloneRAtImport(r *css_ast.RAtImport) *css_ast.RAtImport {
 	return &clone
 }
 
-// cloneRAtKeyframes creates a deep copy of a CSS @keyframes rule with all
-// its blocks cloned.
+// cloneRAtKeyframes creates a deep copy of a CSS @keyframes rule with all its blocks
+// cloned.
 //
 // Takes r (*css_ast.RAtKeyframes) which is the keyframes rule to copy.
 //
@@ -641,8 +623,8 @@ func cloneRAtKeyframes(r *css_ast.RAtKeyframes) *css_ast.RAtKeyframes {
 	return &clone
 }
 
-// cloneRKnownAt creates a deep copy of a known CSS at-rule with its prelude
-// and nested rules cloned.
+// cloneRKnownAt creates a deep copy of a known CSS at-rule with its prelude and nested
+// rules cloned.
 //
 // Takes r (*css_ast.RKnownAt) which is the at-rule to copy.
 //
@@ -654,8 +636,8 @@ func cloneRKnownAt(r *css_ast.RKnownAt) *css_ast.RKnownAt {
 	return &clone
 }
 
-// cloneRUnknownAt creates a deep copy of an unknown CSS at-rule with its
-// prelude and block tokens cloned.
+// cloneRUnknownAt creates a deep copy of an unknown CSS at-rule with its prelude and
+// block tokens cloned.
 //
 // Takes r (*css_ast.RUnknownAt) which is the at-rule to copy.
 //
@@ -667,8 +649,8 @@ func cloneRUnknownAt(r *css_ast.RUnknownAt) *css_ast.RUnknownAt {
 	return &clone
 }
 
-// cloneRSelector creates a deep copy of a CSS selector rule with all its
-// selectors and nested rules cloned.
+// cloneRSelector creates a deep copy of a CSS selector rule with all its selectors and
+// nested rules cloned.
 //
 // Takes r (*css_ast.RSelector) which is the selector rule to copy.
 //
@@ -683,8 +665,8 @@ func cloneRSelector(r *css_ast.RSelector) *css_ast.RSelector {
 	return &clone
 }
 
-// cloneRAtLayer creates a deep copy of a CSS @layer rule with its layer
-// names and nested rules cloned.
+// cloneRAtLayer creates a deep copy of a CSS @layer rule with its layer names and nested
+// rules cloned.
 //
 // Takes r (*css_ast.RAtLayer) which is the @layer rule to copy.
 //
@@ -699,8 +681,8 @@ func cloneRAtLayer(r *css_ast.RAtLayer) *css_ast.RAtLayer {
 	return &clone
 }
 
-// cloneRAtMedia creates a deep copy of a CSS @media rule with its queries
-// and nested rules cloned.
+// cloneRAtMedia creates a deep copy of a CSS @media rule with its queries and nested
+// rules cloned.
 //
 // Takes r (*css_ast.RAtMedia) which is the @media rule to copy.
 //
@@ -726,8 +708,8 @@ func cloneRules(rules []css_ast.Rule) []css_ast.Rule {
 	return cloned
 }
 
-// cloneKeyframeBlock creates a deep copy of a CSS keyframe block, including
-// its selectors and nested rules.
+// cloneKeyframeBlock creates a deep copy of a CSS keyframe block, including its selectors
+// and nested rules.
 //
 // Takes original (css_ast.KeyframeBlock) which is the keyframe block to copy.
 //
@@ -742,13 +724,13 @@ func cloneKeyframeBlock(original css_ast.KeyframeBlock) css_ast.KeyframeBlock {
 	return clone
 }
 
-// cloneTokens creates a deep copy of a CSS token slice, recursively cloning
-// any child token slices.
+// cloneTokens creates a deep copy of a CSS token slice, recursively cloning any child
+// token slices.
 //
 // Takes original ([]css_ast.Token) which contains the tokens to copy.
 //
-// Returns []css_ast.Token which is a new slice with each token deep-copied,
-// or nil if the original is nil.
+// Returns []css_ast.Token which is a new slice with each token deep-copied, or nil if the
+// original is nil.
 func cloneTokens(original []css_ast.Token) []css_ast.Token {
 	if original == nil {
 		return nil
@@ -763,19 +745,17 @@ func cloneTokens(original []css_ast.Token) []css_ast.Token {
 	return clone
 }
 
-// WrapImportedASTWithConditions wraps the imported AST's rules with
-// @layer, @supports, and/or @media rules based on the
-// ImportConditions from the @import statement.
+// WrapImportedASTWithConditions wraps the imported AST's rules with @layer, @supports,
+// and/or @media rules based on the ImportConditions from the @import statement.
 //
 // Takes importedAST (*css_ast.AST) which is the parsed CSS to wrap.
-// Takes conditions (*css_ast.ImportConditions) which specifies the
-// wrapping rules from the @import statement.
-// Takes loc (es_logger.Loc) which provides the source location for
-// the generated wrapper rules.
+// Takes conditions (*css_ast.ImportConditions) which specifies the wrapping rules from
+// the @import statement.
+// Takes loc (es_logger.Loc) which provides the source location for the generated wrapper
+// rules.
 //
-// Returns *css_ast.AST which is a new AST with the rules wrapped
-// according to the conditions, or the original AST if conditions is
-// nil.
+// Returns *css_ast.AST which is a new AST with the rules wrapped according to the
+// conditions, or the original AST if conditions is nil.
 func WrapImportedASTWithConditions(importedAST *css_ast.AST, conditions *css_ast.ImportConditions, loc es_logger.Loc) *css_ast.AST {
 	if conditions == nil {
 		return importedAST
@@ -826,8 +806,8 @@ func WrapImportedASTWithConditions(importedAST *css_ast.AST, conditions *css_ast
 	return wrapped
 }
 
-// extractLayerNamesFromTokens parses layer names from CSS import tokens by
-// finding a "layer" function token and extracting its children.
+// extractLayerNamesFromTokens parses layer names from CSS import tokens by finding a
+// "layer" function token and extracting its children.
 //
 // Takes tokens ([]css_ast.Token) which contains the import condition tokens.
 //
@@ -848,8 +828,8 @@ func extractLayerNamesFromTokens(tokens []css_ast.Token) [][]string {
 	return [][]string{{}}
 }
 
-// parseLayerNameFromChildren extracts layer names from the child tokens of a
-// CSS layer() function, collecting identifier tokens as name parts.
+// parseLayerNameFromChildren extracts layer names from the child tokens of a CSS layer()
+// function, collecting identifier tokens as name parts.
 //
 // Takes children ([]css_ast.Token) which contains the function's child tokens.
 //

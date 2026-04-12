@@ -1,0 +1,4 @@
+{
+  "description": "iota in const block in fileA, separate const block with own iota in fileB, both consumed in main; tests independent iota counters",
+  "expected": "small=0 large=2 lowDay=0 highDay=4"
+}

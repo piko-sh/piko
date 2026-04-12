@@ -29,11 +29,13 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// pageSize caches the system page size.
-var pageSize = unix.Getpagesize()
+var (
+	// pageSize caches the system page size.
+	pageSize = unix.Getpagesize()
+)
 
-// secureBytesCleanupData holds the data needed for runtime.AddCleanup.
-// It is passed to the cleanup function when SecureBytes becomes unreachable.
+// secureBytesCleanupData holds the data needed for runtime.AddCleanup. It is passed to
+// the cleanup function when SecureBytes becomes unreachable.
 type secureBytesCleanupData struct {
 	// id is the unique identifier used when logging.
 	id string
@@ -66,12 +68,12 @@ func (secureBytes *SecureBytes) platformClose() error {
 	return nil
 }
 
-// NewSecureBytes creates a new SecureBytes instance with secure memory
-// allocation. The memory is allocated via mmap (outside Go heap), locked in
-// physical memory via mlock (prevents swapping), and zero-initialised.
+// NewSecureBytes creates a new SecureBytes instance with secure memory allocation. The
+// memory is allocated via mmap (outside Go heap), locked in physical memory via mlock
+// (prevents swapping), and zero-initialised.
 //
-// The caller MUST call Close() when done to release memory. A finaliser is set
-// as a safety net, but explicit Close() is preferred.
+// The caller MUST call Close() when done to release memory. A finaliser is set as a
+// safety net, but explicit Close() is preferred.
 //
 // Takes size (int) which specifies the number of bytes to allocate.
 // Takes opts (...Option) which provides optional configuration settings.
@@ -116,9 +118,9 @@ func NewSecureBytes(size int, opts ...Option) (*SecureBytes, error) {
 	return secureBytes, nil
 }
 
-// NewSecureBytesFromSlice creates a SecureBytes instance from an existing byte
-// slice by copying the data into secure memory. The caller should zero the
-// source data after this call if it contains sensitive material.
+// NewSecureBytesFromSlice creates a SecureBytes instance from an existing byte slice by
+// copying the data into secure memory. The caller should zero the source data after this
+// call if it contains sensitive material.
 //
 // Takes source ([]byte) which provides the data to copy into secure memory.
 // Takes opts (...Option) which configures the SecureBytes behaviour.
@@ -144,12 +146,11 @@ func NewSecureBytesFromSlice(source []byte, opts ...Option) (*SecureBytes, error
 	return secureBytes, nil
 }
 
-// secureBytesCleanup is called by the runtime when a SecureBytes becomes
-// unreachable without Close having been called. This acts as a safety net to
-// ensure secure memory is zeroed and freed.
+// secureBytesCleanup is called by the runtime when a SecureBytes becomes unreachable
+// without Close having been called. This acts as a safety net to ensure secure memory is
+// zeroed and freed.
 //
-// Takes argument (*secureBytesCleanupData) which contains the memory region to
-// clean up.
+// Takes argument (*secureBytesCleanupData) which contains the memory region to clean up.
 func secureBytesCleanup(argument *secureBytesCleanupData) {
 	_, l := logger_domain.From(context.Background(), log)
 	l.Warn("SecureBytes finaliser called - Close() was not called explicitly",

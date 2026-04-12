@@ -20,19 +20,17 @@
 
 // Command wasm is the WebAssembly entry point for the Piko framework.
 //
-// It compiles to a .wasm binary that runs in the browser via the
-// standard Go WASM runtime (wasm_exec.js), registering a global piko
-// object with the following methods:
+// It compiles to a .wasm binary that runs in the browser via the standard Go WASM runtime
+// (wasm_exec.js), registering a global piko object with the following methods:
 //
 //   - init, analyse, generate, render, dynamicRender
 //   - getCompletions, getHover, validate
 //   - parseTemplate, renderPreview, getRuntimeInfo
 //
-// All methods except getRuntimeInfo return JavaScript Promises, and
-// long-running operations enforce a 30-second timeout.
+// All methods except getRuntimeInfo return JavaScript Promises, and long-running
+// operations enforce a 30-second timeout.
 //
-// Internally, the command wires together adapters from the wasm,
-// render, and interp packages into a [wasm_domain.Orchestrator]. The
-// stdlib type data is embedded at build time and decoded on
-// initialisation.
+// Internally, the command wires together adapters from the wasm, render, and interp
+// packages into a [wasm_domain.Orchestrator]. The stdlib type data is embedded at build
+// time and decoded on initialisation.
 package main

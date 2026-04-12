@@ -22,13 +22,12 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// getAnnotationFromExpression extracts the Go generator annotation from an
-// expression.
+// getAnnotationFromExpression extracts the Go generator annotation from an expression.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the annotation, or nil if
-// the expression is nil or has no annotation.
+// Returns *ast_domain.GoGeneratorAnnotation which is the annotation, or nil if the
+// expression is nil or has no annotation.
 func getAnnotationFromExpression(expression ast_domain.Expression) *ast_domain.GoGeneratorAnnotation {
 	if expression == nil {
 		return nil
@@ -45,13 +44,13 @@ func getAnnotationFromExpression(expression ast_domain.Expression) *ast_domain.G
 	return getAnnotationFromComplexExpr(expression)
 }
 
-// getAnnotationFromOperatorExpr extracts Go generator annotations from an
-// operator expression.
+// getAnnotationFromOperatorExpr extracts Go generator annotations from an operator
+// expression.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the Go generator
-// annotations, or nil if the expression type is not supported.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the Go generator annotations, or
+// nil if the expression type is not supported.
 func getAnnotationFromOperatorExpr(expression ast_domain.Expression) *ast_domain.GoGeneratorAnnotation {
 	switch n := expression.(type) {
 	case *ast_domain.MemberExpression:
@@ -70,14 +69,13 @@ func getAnnotationFromOperatorExpr(expression ast_domain.Expression) *ast_domain
 	return nil
 }
 
-// getAnnotationFromLiteralExpr returns the Go-specific annotations from a
-// literal expression.
+// getAnnotationFromLiteralExpr returns the Go-specific annotations from a literal
+// expression.
 //
-// Takes expression (ast_domain.Expression) which is the literal
-// expression to check.
+// Takes expression (ast_domain.Expression) which is the literal expression to check.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the annotations for
-// the literal, or nil if the expression is not a known literal type.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the annotations for the literal,
+// or nil if the expression is not a known literal type.
 func getAnnotationFromLiteralExpr(expression ast_domain.Expression) *ast_domain.GoGeneratorAnnotation {
 	switch n := expression.(type) {
 	case *ast_domain.StringLiteral:
@@ -108,14 +106,13 @@ func getAnnotationFromLiteralExpr(expression ast_domain.Expression) *ast_domain.
 	return nil
 }
 
-// getAnnotationFromComplexExpr extracts Go annotations from a complex
-// expression.
+// getAnnotationFromComplexExpr extracts Go annotations from a complex expression.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the Go annotations if
-// the expression is a supported type (identifier, template literal, object
-// literal, or array literal), or nil if the type is not supported.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the Go annotations if the
+// expression is a supported type (identifier, template literal, object literal, or array
+// literal), or nil if the type is not supported.
 func getAnnotationFromComplexExpr(expression ast_domain.Expression) *ast_domain.GoGeneratorAnnotation {
 	switch n := expression.(type) {
 	case *ast_domain.Identifier:
@@ -130,14 +127,14 @@ func getAnnotationFromComplexExpr(expression ast_domain.Expression) *ast_domain.
 	return nil
 }
 
-// getEffectiveKeyExpression returns the key expression to use for a node,
-// using the progressive enrichment strategy.
+// getEffectiveKeyExpression returns the key expression to use for a node, using the
+// progressive enrichment strategy.
 //
-// It prefers the EffectiveKeyExpression (set by the annotator) over the
-// structural node.Key (set by the keyAssigner).
+// It prefers the EffectiveKeyExpression (set by the annotator) over the structural
+// node.Key (set by the keyAssigner).
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to get the
-// key expression from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to get the key
+// expression from.
 //
 // Returns ast_domain.Expression which is the key expression to use.
 func getEffectiveKeyExpression(node *ast_domain.TemplateNode) ast_domain.Expression {

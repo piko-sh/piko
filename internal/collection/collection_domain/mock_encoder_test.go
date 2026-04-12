@@ -21,7 +21,6 @@ package collection_domain
 import (
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestMockEncoder_EncodeCollection(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.EncodeCollectionCallCount))
+		assert.Equal(t, int64(1), m.EncodeCollectionCallCount.Load())
 	})
 
 	t.Run("delegates to EncodeCollectionFunc", func(t *testing.T) {
@@ -89,7 +88,7 @@ func TestMockEncoder_DecodeCollectionItem(t *testing.T) {
 		assert.Nil(t, meta)
 		assert.Nil(t, content)
 		assert.Nil(t, excerpt)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DecodeCollectionItemCallCount))
+		assert.Equal(t, int64(1), m.DecodeCollectionItemCallCount.Load())
 	})
 
 	t.Run("delegates to DecodeCollectionItemFunc", func(t *testing.T) {
@@ -166,6 +165,6 @@ func TestMockEncoder_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.EncodeCollectionCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DecodeCollectionItemCallCount))
+	assert.Equal(t, int64(goroutines), m.EncodeCollectionCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DecodeCollectionItemCallCount.Load())
 }

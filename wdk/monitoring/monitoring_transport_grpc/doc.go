@@ -16,10 +16,9 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package monitoring_transport_grpc provides a gRPC server that
-// exposes Piko's runtime monitoring services.
+// Package monitoring_transport_grpc provides a gRPC server that exposes Piko's runtime
+// monitoring services.
 //
-// It supports automatic port selection when the configured port is
-// in use, optional gRPC reflection, and graceful shutdown with a
-// configurable timeout.
+// It supports automatic port selection when the configured port is in use, optional gRPC
+// reflection, and graceful shutdown with a configurable timeout.
 package monitoring_transport_grpc

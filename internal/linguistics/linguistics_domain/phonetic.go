@@ -34,8 +34,8 @@ const (
 	// PhoneticT is the phonetic code for the T sound.
 	PhoneticT = "T"
 
-	// PhoneticX is the phonetic code for the "sh" sound in patterns like CH, SH,
-	// SIO, SIA, TIO, TIA, and TCH.
+	// PhoneticX is the phonetic code for the "sh" sound in patterns like CH, SH, SIO, SIA,
+	// TIO, TIA, and TCH.
 	PhoneticX = "X"
 
 	// sequenceLength3 is the number of characters to skip for a three-letter sequence.
@@ -51,9 +51,9 @@ const (
 	soundexCodeLength = 4
 )
 
-// PhoneticEncoder implements the PhoneticEncoderPort interface using the
-// Double Metaphone algorithm. It matches words that sound alike but are spelt
-// differently, such as "Stephen" and "Steven", or "night" and "knight".
+// PhoneticEncoder implements the PhoneticEncoderPort interface using the Double Metaphone
+// algorithm. It matches words that sound alike but are spelt differently, such as
+// "Stephen" and "Steven", or "night" and "knight".
 type PhoneticEncoder struct {
 	// maxLength is the maximum length in runes of the output code.
 	maxLength int
@@ -61,8 +61,8 @@ type PhoneticEncoder struct {
 
 // NewPhoneticEncoder creates a new Double Metaphone encoder.
 //
-// Takes maxLength (int) which controls the maximum length of the returned
-// phonetic code (typically 4-6).
+// Takes maxLength (int) which controls the maximum length of the returned phonetic code
+// (typically 4-6).
 //
 // Returns *PhoneticEncoder which is the configured encoder ready for use.
 func NewPhoneticEncoder(maxLength int) *PhoneticEncoder {
@@ -98,16 +98,15 @@ func (p *PhoneticEncoder) Encode(word string) string {
 	return p.finalisePhoneticCode(primary.String())
 }
 
-// GetLanguage returns the language this encoder supports.
-// The Double Metaphone algorithm is designed for English words.
+// GetLanguage returns the language this encoder supports. The Double Metaphone algorithm
+// is designed for English words.
 //
 // Returns string which is always "english".
 func (*PhoneticEncoder) GetLanguage() string {
 	return LanguageEnglish
 }
 
-// preprocessWord handles leading silent letters and special starting
-// characters.
+// preprocessWord handles leading silent letters and special starting characters.
 //
 // Takes word (string) which is the uppercase word to process.
 // Takes primary (*strings.Builder) which stores the phonetic encoding.
@@ -131,22 +130,24 @@ func (*PhoneticEncoder) preprocessWord(word string, primary *strings.Builder) in
 // characterHandler processes a character and returns the next position.
 type characterHandler func(*PhoneticEncoder, string, int, *strings.Builder) int
 
-// phoneticDispatchTable maps each letter to its handler function.
-var phoneticDispatchTable = map[rune]characterHandler{
-	'A': handleVowelDispatch, 'E': handleVowelDispatch, 'I': handleVowelDispatch,
-	'O': handleVowelDispatch, 'U': handleVowelDispatch, 'Y': handleVowelDispatch,
+var (
+	// phoneticDispatchTable maps each letter to its handler function.
+	phoneticDispatchTable = map[rune]characterHandler{
+		'A': handleVowelDispatch, 'E': handleVowelDispatch, 'I': handleVowelDispatch,
+		'O': handleVowelDispatch, 'U': handleVowelDispatch, 'Y': handleVowelDispatch,
 
-	'B': handleBDispatch, 'F': handleFDispatch, 'J': handleJDispatch,
-	'K': handleKDispatch, 'L': handleLDispatch, 'M': handleMDispatch,
-	'N': handleNDispatch, 'Q': handleQDispatch, 'R': handleRDispatch,
-	'V': handleVDispatch, 'Z': handleZDispatch,
+		'B': handleBDispatch, 'F': handleFDispatch, 'J': handleJDispatch,
+		'K': handleKDispatch, 'L': handleLDispatch, 'M': handleMDispatch,
+		'N': handleNDispatch, 'Q': handleQDispatch, 'R': handleRDispatch,
+		'V': handleVDispatch, 'Z': handleZDispatch,
 
-	'C': handleCDispatch, 'D': handleDDispatch, 'G': handleGDispatch,
-	'H': handleHDispatch, 'P': handlePDispatch, 'S': handleSDispatch,
-	'T': handleTDispatch, 'W': handleWDispatch,
+		'C': handleCDispatch, 'D': handleDDispatch, 'G': handleGDispatch,
+		'H': handleHDispatch, 'P': handlePDispatch, 'S': handleSDispatch,
+		'T': handleTDispatch, 'W': handleWDispatch,
 
-	'X': handleXDispatch,
-}
+		'X': handleXDispatch,
+	}
+)
 
 // processCharacter handles a single character and returns the next position.
 //
@@ -174,16 +175,16 @@ func (p *PhoneticEncoder) finalisePhoneticCode(code string) string {
 	return TruncateRunes(code, p.maxLength)
 }
 
-// TruncateRunes shortens s to at most maxRunes runes. The function is
-// rune-aware so it never cuts through a multi-byte UTF-8 sequence, making it
-// safe for Cyrillic, accented Latin, CJK, and other non-ASCII text.
+// TruncateRunes shortens s to at most maxRunes runes. The function is rune-aware so it
+// never cuts through a multi-byte UTF-8 sequence, making it safe for Cyrillic, accented
+// Latin, CJK, and other non-ASCII text.
 //
 // Takes s (string) which is the input to truncate.
-// Takes maxRunes (int) which is the maximum number of runes the result may
-// contain. Values of zero or below produce an empty string.
+// Takes maxRunes (int) which is the maximum number of runes the result may contain.
+// Values of zero or below produce an empty string.
 //
-// Returns string which is at most maxRunes runes long. If s is already short
-// enough, s is returned unchanged.
+// Returns string which is at most maxRunes runes long. If s is already short enough, s is
+// returned unchanged.
 func TruncateRunes(s string, maxRunes int) string {
 	if maxRunes <= 0 {
 		return ""
@@ -404,14 +405,13 @@ func (*PhoneticEncoder) handleW(word string, current int, primary *strings.Build
 	return current + 1
 }
 
-// SoundexEncode encodes a word using the Soundex phonetic algorithm.
-// Soundex is faster but less precise than Double Metaphone, and works well
-// for encoding names.
+// SoundexEncode encodes a word using the Soundex phonetic algorithm. Soundex is faster
+// but less precise than Double Metaphone, and works well for encoding names.
 //
 // Takes word (string) which is the text to encode.
 //
-// Returns string which is the four-character Soundex code, or an empty
-// string if the input is empty.
+// Returns string which is the four-character Soundex code, or an empty string if the
+// input is empty.
 func SoundexEncode(word string) string {
 	if len(word) == 0 {
 		return ""
@@ -460,8 +460,7 @@ func SoundexEncode(word string) string {
 // Takes _ (*PhoneticEncoder) which is unused by this handler.
 // Takes _ (string) which is unused by this handler.
 // Takes current (int) which is the current position in the text.
-// Takes primary (*strings.Builder) which accumulates the phonetic
-// output.
+// Takes primary (*strings.Builder) which accumulates the phonetic output.
 //
 // Returns int which is the updated position after processing.
 func handleVowelDispatch(_ *PhoneticEncoder, _ string, current int, primary *strings.Builder) int {
@@ -600,8 +599,7 @@ func handleXDispatch(_ *PhoneticEncoder, _ string, current int, primary *strings
 	return current + 1
 }
 
-// handleCDispatch passes C character processing to the encoder's handleC
-// method.
+// handleCDispatch passes C character processing to the encoder's handleC method.
 //
 // Takes p (*PhoneticEncoder) which provides the encoding context.
 // Takes word (string) which contains the text being encoded.
@@ -673,8 +671,7 @@ func handleSDispatch(p *PhoneticEncoder, word string, current int, primary *stri
 	return p.handleS(word, current, primary)
 }
 
-// handleTDispatch delegates T character processing to the encoder's handleT
-// method.
+// handleTDispatch delegates T character processing to the encoder's handleT method.
 //
 // Takes p (*PhoneticEncoder) which provides the encoding methods.
 // Takes word (string) which is the word being encoded.
@@ -698,8 +695,8 @@ func handleWDispatch(p *PhoneticEncoder, word string, current int, primary *stri
 	return p.handleW(word, current, primary)
 }
 
-// handleVowel processes vowel characters (A, E, I, O, U, Y).
-// Vowels are only encoded if they appear at the start of the word.
+// handleVowel processes vowel characters (A, E, I, O, U, Y). Vowels are only encoded if
+// they appear at the start of the word.
 //
 // Takes current (int) which is the position of the vowel in the word.
 // Takes primary (*strings.Builder) which collects the encoded output.
@@ -712,11 +709,11 @@ func handleVowel(current int, primary *strings.Builder) int {
 	return current + 1
 }
 
-// handleSimpleDoublingLetter handles letters that produce a phonetic code and
-// may appear twice in a row.
+// handleSimpleDoublingLetter handles letters that produce a phonetic code and may appear
+// twice in a row.
 //
-// This pattern applies to: B, F, J, K, L, M, N, Q, R, V, Z. When the same
-// letter appears twice (such as "BB"), both are treated as one sound.
+// This pattern applies to: B, F, J, K, L, M, N, Q, R, V, Z. When the same letter appears
+// twice (such as "BB"), both are treated as one sound.
 //
 // Takes word (string) which is the word being processed.
 // Takes current (int) which is the current position in the word.
@@ -724,8 +721,8 @@ func handleVowel(current int, primary *strings.Builder) int {
 // Takes phoneticCode (string) which is the code to write for this letter.
 // Takes primary (*strings.Builder) which collects the phonetic output.
 //
-// Returns int which is the next position to process. Returns current + 2 if
-// the letter is doubled, or current + 1 otherwise.
+// Returns int which is the next position to process.
+// Returns current + 2 if the letter is doubled, or current + 1 otherwise.
 func handleSimpleDoublingLetter(word string, current int, letter byte, phoneticCode string, primary *strings.Builder) int {
 	primary.WriteString(phoneticCode)
 
@@ -764,8 +761,7 @@ func isSoftG(word string, current int) bool {
 	return next == 'E' || next == 'I' || next == 'Y'
 }
 
-// isPhoneticVowel reports whether the given character is a vowel for phonetic
-// purposes.
+// isPhoneticVowel reports whether the given character is a vowel for phonetic purposes.
 //
 // Takes character (byte) which is the character to check.
 //

@@ -52,8 +52,7 @@ func Navigate(ctx *ActionContext, path string) error {
 
 // GoBack navigates back in browser history.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// navigation.
+// Takes ctx (*ActionContext) which provides the browser context for the navigation.
 //
 // Returns error when the navigation fails.
 func GoBack(ctx *ActionContext) error {
@@ -144,8 +143,8 @@ func Stop(ctx *ActionContext) error {
 // Takes ctx (*ActionContext) which provides the browser context and settings.
 // Takes url (string) which specifies the target URL to navigate to.
 //
-// Returns error when navigation fails, the page appears empty, or the page
-// becomes unresponsive after loading.
+// Returns error when navigation fails, the page appears empty, or the page becomes
+// unresponsive after loading.
 func navigateOnce(ctx *ActionContext, url string) error {
 	timedCtx, cancel := context.WithTimeoutCause(ctx.Ctx, 15*time.Second, fmt.Errorf("navigation navigateOnce exceeded %s timeout", 15*time.Second))
 	defer cancel()
@@ -176,8 +175,8 @@ func navigateOnce(ctx *ActionContext, url string) error {
 
 // verifyPageHasContent checks that the page has a body element with content.
 //
-// Returns error when the page is unresponsive, the ready state is unexpected,
-// no body element exists, or the body is empty.
+// Returns error when the page is unresponsive, the ready state is unexpected, no body
+// element exists, or the body is empty.
 func verifyPageHasContent(ctx context.Context) error {
 	timedCtx, cancel := context.WithTimeoutCause(ctx, 2*time.Second, fmt.Errorf("navigation verifyPageHasContent exceeded %s timeout", 2*time.Second))
 	defer cancel()

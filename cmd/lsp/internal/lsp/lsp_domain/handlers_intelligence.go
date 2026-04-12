@@ -25,16 +25,16 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// getDocumentForURIHandler retrieves the document for an LSP handler that
-// operates on a URI without a cursor position.
+// getDocumentForURIHandler retrieves the document for an LSP handler that operates on a
+// URI without a cursor position.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is
-// detached so analysis completes independently.
+// Takes ctx (context.Context) which carries tracing values; cancellation is detached so
+// analysis completes independently.
 // Takes handlerName (string) which identifies the LSP operation for logging.
 // Takes uri (protocol.DocumentURI) which specifies the document to analyse.
 //
-// Returns *document which is the analysed document, or nil if analysis fails.
-// When analysis fails, the error is logged and nil is returned.
+// Returns *document which is the analysed document, or nil if analysis fails. When
+// analysis fails, the error is logged and nil is returned.
 func (s *Server) getDocumentForURIHandler(ctx context.Context, handlerName string, uri protocol.DocumentURI) *document {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -48,18 +48,17 @@ func (s *Server) getDocumentForURIHandler(ctx context.Context, handlerName strin
 	return document
 }
 
-// getDocumentForHandler retrieves the document for an LSP handler operation.
-// It logs the operation, runs analysis, and returns the document.
+// getDocumentForHandler retrieves the document for an LSP handler operation. It logs the
+// operation, runs analysis, and returns the document.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is
-// detached so analysis completes independently.
+// Takes ctx (context.Context) which carries tracing values; cancellation is detached so
+// analysis completes independently.
 // Takes handlerName (string) which identifies the LSP operation for logging.
 // Takes uri (protocol.DocumentURI) which specifies the document to analyse.
-// Takes position (protocol.Position) which provides the cursor
-// position for logging.
+// Takes position (protocol.Position) which provides the cursor position for logging.
 //
-// Returns *document which is the analysed document, or nil if analysis fails.
-// When analysis fails, the error is logged and nil is returned.
+// Returns *document which is the analysed document, or nil if analysis fails. When
+// analysis fails, the error is logged and nil is returned.
 func (s *Server) getDocumentForHandler(ctx context.Context, handlerName string, uri protocol.DocumentURI, position protocol.Position) *document {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -73,8 +72,7 @@ func (s *Server) getDocumentForHandler(ctx context.Context, handlerName string, 
 	return document
 }
 
-// CompletionResolve provides additional details for a selected completion
-// item.
+// CompletionResolve provides additional details for a selected completion item.
 //
 // Takes params (*protocol.CompletionItem) which specifies the item to resolve.
 //
@@ -94,11 +92,11 @@ func (*Server) CompletionResolve(ctx context.Context, params *protocol.Completio
 
 // TypeDefinition handles requests to find the type definition of a symbol.
 //
-// Takes params (*protocol.TypeDefinitionParams) which specifies the document
-// and position to find the type definition for.
+// Takes params (*protocol.TypeDefinitionParams) which specifies the document and position
+// to find the type definition for.
 //
-// Returns []protocol.Location which contains the locations of the type
-// definitions found, or an empty slice if none exist.
+// Returns []protocol.Location which contains the locations of the type definitions found,
+// or an empty slice if none exist.
 // Returns error when the type definition lookup fails.
 func (s *Server) TypeDefinition(ctx context.Context, params *protocol.TypeDefinitionParams) ([]protocol.Location, error) {
 	document := s.getDocumentForHandler(ctx, "TypeDefinition", params.TextDocument.URI, params.Position)
@@ -108,14 +106,13 @@ func (s *Server) TypeDefinition(ctx context.Context, params *protocol.TypeDefini
 	return document.GetTypeDefinition(ctx, params.Position)
 }
 
-// Implementation finds all implementations of an interface or abstract method
-// at the given position.
+// Implementation finds all implementations of an interface or abstract method at the
+// given position.
 //
-// Takes params (*protocol.ImplementationParams) which specifies the text
-// document position to find implementations for.
+// Takes params (*protocol.ImplementationParams) which specifies the text document
+// position to find implementations for.
 //
-// Returns []protocol.Location which contains the locations of all found
-// implementations.
+// Returns []protocol.Location which contains the locations of all found implementations.
 // Returns error when the lookup fails.
 func (s *Server) Implementation(ctx context.Context, params *protocol.ImplementationParams) ([]protocol.Location, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -137,11 +134,11 @@ func (s *Server) Implementation(ctx context.Context, params *protocol.Implementa
 
 // Declaration finds the declaration of a symbol at the given position.
 //
-// In Go, declaration and definition are the same, so this delegates to the
-// Definition handler.
+// In Go, declaration and definition are the same, so this delegates to the Definition
+// handler.
 //
-// Takes params (*protocol.DeclarationParams) which specifies the text document
-// position to find the declaration for.
+// Takes params (*protocol.DeclarationParams) which specifies the text document position
+// to find the declaration for.
 //
 // Returns []protocol.Location which contains the declaration locations found.
 // Returns error when the lookup fails.
@@ -156,14 +153,13 @@ func (s *Server) Declaration(ctx context.Context, params *protocol.DeclarationPa
 	return s.Definition(ctx, defParams)
 }
 
-// References handles requests to find all references to a symbol across the
-// workspace.
+// References handles requests to find all references to a symbol across the workspace.
 //
-// Takes params (*protocol.ReferenceParams) which specifies the text document
-// and position to find references for.
+// Takes params (*protocol.ReferenceParams) which specifies the text document and position
+// to find references for.
 //
-// Returns []protocol.Location which contains all locations where the symbol
-// is referenced.
+// Returns []protocol.Location which contains all locations where the symbol is
+// referenced.
 // Returns error when the workspace search fails.
 func (s *Server) References(ctx context.Context, params *protocol.ReferenceParams) ([]protocol.Location, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -185,11 +181,11 @@ func (s *Server) References(ctx context.Context, params *protocol.ReferenceParam
 
 // DocumentHighlight finds all places where a symbol appears in a document.
 //
-// Takes params (*protocol.DocumentHighlightParams) which specifies the document
-// and position to find highlights for.
+// Takes params (*protocol.DocumentHighlightParams) which specifies the document and
+// position to find highlights for.
 //
-// Returns []protocol.DocumentHighlight which contains the ranges of all
-// matching symbol uses.
+// Returns []protocol.DocumentHighlight which contains the ranges of all matching symbol
+// uses.
 // Returns error when the highlights cannot be found.
 func (s *Server) DocumentHighlight(ctx context.Context, params *protocol.DocumentHighlightParams) ([]protocol.DocumentHighlight, error) {
 	document := s.getDocumentForHandler(ctx, "DocumentHighlight", params.TextDocument.URI, params.Position)
@@ -201,11 +197,11 @@ func (s *Server) DocumentHighlight(ctx context.Context, params *protocol.Documen
 
 // SignatureHelp provides function signature information at a given position.
 //
-// Takes params (*protocol.SignatureHelpParams) which specifies the document
-// position for which to provide signature help.
+// Takes params (*protocol.SignatureHelpParams) which specifies the document position for
+// which to provide signature help.
 //
-// Returns *protocol.SignatureHelp which contains the signature information at
-// the requested position, or an empty result if no document is found.
+// Returns *protocol.SignatureHelp which contains the signature information at the
+// requested position, or an empty result if no document is found.
 // Returns error when the signature help request fails.
 func (s *Server) SignatureHelp(ctx context.Context, params *protocol.SignatureHelpParams) (*protocol.SignatureHelp, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -228,11 +224,11 @@ func (s *Server) SignatureHelp(ctx context.Context, params *protocol.SignatureHe
 
 // SemanticTokensFull provides semantic tokens for a whole document.
 //
-// Takes params (*protocol.SemanticTokensParams) which identifies the document
-// to tokenise.
+// Takes params (*protocol.SemanticTokensParams) which identifies the document to
+// tokenise.
 //
-// Returns *protocol.SemanticTokens which contains the encoded token data for
-// syntax highlighting.
+// Returns *protocol.SemanticTokens which contains the encoded token data for syntax
+// highlighting.
 // Returns error when token generation fails.
 func (*Server) SemanticTokensFull(ctx context.Context, params *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -246,8 +242,8 @@ func (*Server) SemanticTokensFull(ctx context.Context, params *protocol.Semantic
 
 // SemanticTokensFullDelta provides incremental updates to semantic tokens.
 //
-// Takes params (*protocol.SemanticTokensDeltaParams) which identifies the
-// document and the previous result to compute changes against.
+// Takes params (*protocol.SemanticTokensDeltaParams) which identifies the document and
+// the previous result to compute changes against.
 //
 // Returns any which contains the semantic tokens delta with edit operations.
 // Returns error when the delta cannot be computed.
@@ -261,14 +257,13 @@ func (*Server) SemanticTokensFullDelta(ctx context.Context, params *protocol.Sem
 	}, nil
 }
 
-// SemanticTokensRange provides semantic tokens for a specific range in a
-// document.
+// SemanticTokensRange provides semantic tokens for a specific range in a document.
 //
-// Takes params (*protocol.SemanticTokensRangeParams) which specifies the
-// document and range to analyse.
+// Takes params (*protocol.SemanticTokensRangeParams) which specifies the document and
+// range to analyse.
 //
-// Returns *protocol.SemanticTokens which contains the semantic tokens for the
-// requested range.
+// Returns *protocol.SemanticTokens which contains the semantic tokens for the requested
+// range.
 // Returns error when token analysis fails.
 func (*Server) SemanticTokensRange(ctx context.Context, params *protocol.SemanticTokensRangeParams) (*protocol.SemanticTokens, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -295,8 +290,8 @@ func (*Server) CodeLensResolve(ctx context.Context, params *protocol.CodeLens) (
 
 // DocumentLink finds clickable links within a document.
 //
-// Takes params (*protocol.DocumentLinkParams) which specifies the document to
-// scan for links.
+// Takes params (*protocol.DocumentLinkParams) which specifies the document to scan for
+// links.
 //
 // Returns []protocol.DocumentLink which contains the links found.
 // Returns error when the analysis fails.
@@ -329,8 +324,8 @@ func (*Server) DocumentLinkResolve(ctx context.Context, params *protocol.Documen
 
 // DocumentColor returns colour information for colour literals in a document.
 //
-// Takes params (*protocol.DocumentColorParams) which specifies the document to
-// check for colour literals.
+// Takes params (*protocol.DocumentColorParams) which specifies the document to check for
+// colour literals.
 //
 // Returns []protocol.ColorInformation which contains the colours found.
 // Returns error when the document cannot be read.
@@ -344,11 +339,11 @@ func (s *Server) DocumentColor(ctx context.Context, params *protocol.DocumentCol
 
 // ColorPresentation provides colour format conversion options.
 //
-// Takes params (*protocol.ColorPresentationParams) which specifies the colour
-// and text document location.
+// Takes params (*protocol.ColorPresentationParams) which specifies the colour and text
+// document location.
 //
-// Returns []protocol.ColorPresentation which contains the available colour
-// format options.
+// Returns []protocol.ColorPresentation which contains the available colour format
+// options.
 // Returns error when document analysis fails.
 func (s *Server) ColorPresentation(ctx context.Context, params *protocol.ColorPresentationParams) ([]protocol.ColorPresentation, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -366,8 +361,7 @@ func (s *Server) ColorPresentation(ctx context.Context, params *protocol.ColorPr
 
 // Rename handles requests to rename a symbol across the workspace.
 //
-// Takes params (*protocol.RenameParams) which specifies the symbol position
-// and new name.
+// Takes params (*protocol.RenameParams) which specifies the symbol position and new name.
 //
 // Returns *protocol.WorkspaceEdit which contains the text edits for all files.
 // Returns error when the rename fails.
@@ -411,11 +405,11 @@ func (s *Server) Rename(ctx context.Context, params *protocol.RenameParams) (*pr
 
 // PrepareRename checks if a symbol can be renamed and returns its range.
 //
-// Takes params (*protocol.PrepareRenameParams) which specifies the document
-// and position of the symbol to check.
+// Takes params (*protocol.PrepareRenameParams) which specifies the document and position
+// of the symbol to check.
 //
-// Returns *protocol.Range which contains the range of the symbol if it can be
-// renamed, or nil if renaming is not supported at that position.
+// Returns *protocol.Range which contains the range of the symbol if it can be renamed, or
+// nil if renaming is not supported at that position.
 // Returns error when the rename preparation fails.
 func (s *Server) PrepareRename(ctx context.Context, params *protocol.PrepareRenameParams) (*protocol.Range, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -433,8 +427,7 @@ func (s *Server) PrepareRename(ctx context.Context, params *protocol.PrepareRena
 
 // FoldingRanges provides code folding regions for a document.
 //
-// Takes params (*protocol.FoldingRangeParams) which identifies the document to
-// analyse.
+// Takes params (*protocol.FoldingRangeParams) which identifies the document to analyse.
 //
 // Returns []protocol.FoldingRange which contains the folding regions found.
 // Returns error when the document cannot be analysed.
@@ -448,11 +441,11 @@ func (s *Server) FoldingRanges(ctx context.Context, params *protocol.FoldingRang
 
 // IncomingCalls provides callers of a function in the call hierarchy.
 //
-// Takes params (*protocol.CallHierarchyIncomingCallsParams) which specifies
-// the call hierarchy item to find callers for.
+// Takes params (*protocol.CallHierarchyIncomingCallsParams) which specifies the call
+// hierarchy item to find callers for.
 //
-// Returns []protocol.CallHierarchyIncomingCall which contains the incoming
-// calls to the specified item.
+// Returns []protocol.CallHierarchyIncomingCall which contains the incoming calls to the
+// specified item.
 // Returns error when the operation fails.
 func (*Server) IncomingCalls(ctx context.Context, params *protocol.CallHierarchyIncomingCallsParams) ([]protocol.CallHierarchyIncomingCall, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -463,11 +456,11 @@ func (*Server) IncomingCalls(ctx context.Context, params *protocol.CallHierarchy
 
 // OutgoingCalls returns the functions called by a given call hierarchy item.
 //
-// Takes params (*protocol.CallHierarchyOutgoingCallsParams) which specifies
-// the call hierarchy item to get outgoing calls for.
+// Takes params (*protocol.CallHierarchyOutgoingCallsParams) which specifies the call
+// hierarchy item to get outgoing calls for.
 //
-// Returns []protocol.CallHierarchyOutgoingCall which contains the functions
-// called by the given item.
+// Returns []protocol.CallHierarchyOutgoingCall which contains the functions called by the
+// given item.
 // Returns error when the outgoing calls cannot be found.
 func (*Server) OutgoingCalls(ctx context.Context, params *protocol.CallHierarchyOutgoingCallsParams) ([]protocol.CallHierarchyOutgoingCall, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -478,11 +471,11 @@ func (*Server) OutgoingCalls(ctx context.Context, params *protocol.CallHierarchy
 
 // PrepareCallHierarchy prepares a call hierarchy item at a given position.
 //
-// Takes params (*protocol.CallHierarchyPrepareParams) which specifies the
-// text document and position to prepare the call hierarchy for.
+// Takes params (*protocol.CallHierarchyPrepareParams) which specifies the text document
+// and position to prepare the call hierarchy for.
 //
-// Returns []protocol.CallHierarchyItem which contains the call hierarchy items
-// at the given position.
+// Returns []protocol.CallHierarchyItem which contains the call hierarchy items at the
+// given position.
 // Returns error when the preparation fails.
 func (*Server) PrepareCallHierarchy(ctx context.Context, params *protocol.CallHierarchyPrepareParams) ([]protocol.CallHierarchyItem, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -493,11 +486,11 @@ func (*Server) PrepareCallHierarchy(ctx context.Context, params *protocol.CallHi
 
 // LinkedEditingRange provides ranges that should be edited together.
 //
-// Takes params (*protocol.LinkedEditingRangeParams) which specifies the
-// document and position to find linked ranges for.
+// Takes params (*protocol.LinkedEditingRangeParams) which specifies the document and
+// position to find linked ranges for.
 //
-// Returns *protocol.LinkedEditingRanges which contains the ranges that should
-// be edited simultaneously.
+// Returns *protocol.LinkedEditingRanges which contains the ranges that should be edited
+// simultaneously.
 // Returns error when the linked ranges cannot be determined.
 func (s *Server) LinkedEditingRange(ctx context.Context, params *protocol.LinkedEditingRangeParams) (*protocol.LinkedEditingRanges, error) {
 	document := s.getDocumentForHandler(ctx, "LinkedEditingRange", params.TextDocument.URI, params.Position)
@@ -507,14 +500,13 @@ func (s *Server) LinkedEditingRange(ctx context.Context, params *protocol.Linked
 	return document.GetLinkedEditingRanges(params.Position)
 }
 
-// Moniker returns unique identifiers for symbols to support cross-repository
-// navigation.
+// Moniker returns unique identifiers for symbols to support cross-repository navigation.
 //
-// Takes params (*protocol.MonikerParams) which specifies the text document
-// position to get monikers for.
+// Takes params (*protocol.MonikerParams) which specifies the text document position to
+// get monikers for.
 //
-// Returns []protocol.Moniker which contains the unique identifiers for the
-// symbol at the given position.
+// Returns []protocol.Moniker which contains the unique identifiers for the symbol at the
+// given position.
 // Returns error when the moniker lookup fails.
 func (s *Server) Moniker(ctx context.Context, params *protocol.MonikerParams) ([]protocol.Moniker, error) {
 	_, l := logger_domain.From(ctx, log)

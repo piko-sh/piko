@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_factory registers a ProviderFactoryBlueprint for hybrid
-// collection caches so they can be created through the cache service.
+// Package cache_factory registers a ProviderFactoryBlueprint for hybrid collection caches
+// so they can be created through the cache service.
 package cache_factory
 
 import (
@@ -29,13 +29,13 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 )
 
-// createHybridCollectionCache creates an Otter-backed cache instance for
-// hybrid collections.
+// createHybridCollectionCache creates an Otter-backed cache instance for hybrid
+// collections.
 //
 // Takes _ (cache_domain.Service) which is the cache service (unused).
 // Takes _ (string) which is the cache name (unused).
-// Takes options (any) which must be
-// cache_dto.Options[string, collection_domain.HybridCacheValue].
+// Takes options (any) which must be cache_dto.Options[string,
+// collection_domain.HybridCacheValue].
 //
 // Returns any which is the created cache provider.
 // Returns error when the options type is invalid or cache creation fails.

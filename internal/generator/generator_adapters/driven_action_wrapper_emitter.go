@@ -35,8 +35,7 @@ const (
 	// wrapperIdentPiko is the package identifier for piko types in generated code.
 	wrapperIdentPiko = "piko"
 
-	// wrapperIdentOK is the identifier name for the boolean result of type
-	// assertions.
+	// wrapperIdentOK is the identifier name for the boolean result of type assertions.
 	wrapperIdentOK = "ok"
 
 	// goTypeString is the Go type name for string.
@@ -58,8 +57,7 @@ const (
 	blankParamName = "_"
 )
 
-// ActionWrapperEmitter generates Go wrapper functions for type-safe action
-// dispatch.
+// ActionWrapperEmitter generates Go wrapper functions for type-safe action dispatch.
 type ActionWrapperEmitter struct{}
 
 // NewActionWrapperEmitter creates a new wrapper emitter.
@@ -71,8 +69,8 @@ func NewActionWrapperEmitter() *ActionWrapperEmitter {
 
 // EmitWrappers generates the action wrapper Go file using AST construction.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to
-// generate wrappers for.
+// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to generate wrappers
+// for.
 //
 // Returns []byte which contains the formatted Go source code.
 // Returns error when AST formatting fails.
@@ -106,15 +104,13 @@ func (e *ActionWrapperEmitter) EmitWrappers(_ context.Context, specs []annotator
 	return goastutil.FormatAST(fset, file)
 }
 
-// checkSpecialTypeImports checks if any action spec uses FileUpload or
-// RawBody types.
+// checkSpecialTypeImports checks if any action spec uses FileUpload or RawBody types.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// specifications to check.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action specifications to
+// check.
 //
 // Returns needsPiko (bool) which indicates if piko imports are required.
-// Returns needsMultipart (bool) which indicates if multipart imports are
-// required.
+// Returns needsMultipart (bool) which indicates if multipart imports are required.
 func (*ActionWrapperEmitter) checkSpecialTypeImports(specs []annotator_dto.ActionSpec) (needsPiko, needsMultipart bool) {
 	for i := range specs {
 		spec := &specs[i]
@@ -131,11 +127,11 @@ func (*ActionWrapperEmitter) checkSpecialTypeImports(specs []annotator_dto.Actio
 }
 
 // checkBinderImport checks if any action spec requires the binder package for
-// JSON-to-struct binding. This is needed when a parameter is a struct type or
-// an unrecognised generic type.
+// JSON-to-struct binding. This is needed when a parameter is a struct type or an
+// unrecognised generic type.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// specifications to check.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action specifications to
+// check.
 //
 // Returns bool which indicates if the binder import is required.
 func (*ActionWrapperEmitter) checkBinderImport(specs []annotator_dto.ActionSpec) bool {
@@ -159,14 +155,13 @@ func (*ActionWrapperEmitter) checkBinderImport(specs []annotator_dto.ActionSpec)
 	return false
 }
 
-// specNeedsBinder checks whether a single action spec requires the binder
-// package for JSON-to-struct binding.
+// specNeedsBinder checks whether a single action spec requires the binder package for
+// JSON-to-struct binding.
 //
-// Takes spec (*annotator_dto.ActionSpec) which is the action specification to
-// check.
+// Takes spec (*annotator_dto.ActionSpec) which is the action specification to check.
 //
-// Returns bool which indicates if the spec has any parameters that need
-// binder-based extraction.
+// Returns bool which indicates if the spec has any parameters that need binder-based
+// extraction.
 func specNeedsBinder(spec *annotator_dto.ActionSpec) bool {
 	for _, param := range spec.CallParams {
 		if param.Name == blankParamName || param.IsFileUpload || param.IsFileUploadSlice || param.IsRawBody {
@@ -187,8 +182,8 @@ func specNeedsBinder(spec *annotator_dto.ActionSpec) bool {
 
 // buildWrappersAST constructs the complete AST for the wrappers file.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// specifications to generate wrappers for.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action specifications to
+// generate wrappers for.
 //
 // Returns *ast.File which is the complete AST ready for code generation.
 func (e *ActionWrapperEmitter) buildWrappersAST(specs []annotator_dto.ActionSpec) *ast.File {
@@ -207,8 +202,8 @@ func (e *ActionWrapperEmitter) buildWrappersAST(specs []annotator_dto.ActionSpec
 	}
 }
 
-// buildLogVarDecl builds a variable declaration AST node for the logger.
-// It creates: var log = logger.GetLogger("piko/actions").
+// buildLogVarDecl builds a variable declaration AST node for the logger. It creates: var
+// log = logger.GetLogger("piko/actions").
 //
 // Returns *ast.GenDecl which is the variable declaration node.
 func (*ActionWrapperEmitter) buildLogVarDecl() *ast.GenDecl {
@@ -284,14 +279,13 @@ func (e *ActionWrapperEmitter) buildWrapperFunc(spec *annotator_dto.ActionSpec) 
 	)
 }
 
-// buildParamExtraction builds statements to extract a parameter from the arguments
-// map.
+// buildParamExtraction builds statements to extract a parameter from the arguments map.
 //
-// Takes param (*annotator_dto.ParamSpec) which specifies the parameter to
-// extract, including its name, type, and any special handling requirements.
+// Takes param (*annotator_dto.ParamSpec) which specifies the parameter to extract,
+// including its name, type, and any special handling requirements.
 //
-// Returns []ast.Stmt which contains the AST statements for extracting and
-// converting the parameter value.
+// Returns []ast.Stmt which contains the AST statements for extracting and converting the
+// parameter value.
 func (e *ActionWrapperEmitter) buildParamExtraction(param *annotator_dto.ParamSpec) []ast.Stmt {
 	varName := param.Name
 	jsonKey := param.JSONName
@@ -326,14 +320,11 @@ func (e *ActionWrapperEmitter) buildParamExtraction(param *annotator_dto.ParamSp
 	}
 }
 
-// buildStructParamExtraction builds statements for extracting a struct
-// parameter.
+// buildStructParamExtraction builds statements for extracting a struct parameter.
 //
-// Takes varName (string) which specifies the variable name for the extracted
-// value.
+// Takes varName (string) which specifies the variable name for the extracted value.
 // Takes jsonKey (string) which specifies the JSON key to extract from.
-// Takes typeSpec (*annotator_dto.TypeSpec) which describes the struct type
-// to extract.
+// Takes typeSpec (*annotator_dto.TypeSpec) which describes the struct type to extract.
 //
 // Returns []ast.Stmt which contains the AST statements for JSON unmarshalling.
 func (e *ActionWrapperEmitter) buildStructParamExtraction(varName, jsonKey string, typeSpec *annotator_dto.TypeSpec) []ast.Stmt {
@@ -341,8 +332,8 @@ func (e *ActionWrapperEmitter) buildStructParamExtraction(varName, jsonKey strin
 	return e.buildJSONUnmarshalExtraction(varName, jsonKey, qualifiedType)
 }
 
-// buildBasicTypeAssertion builds a type assertion statement of the form
-// varName, _ := arguments["key"].(type).
+// buildBasicTypeAssertion builds a type assertion statement of the form varName, _ :=
+// arguments["key"].(type).
 //
 // Takes varName (string) which is the variable name for the asserted value.
 // Takes jsonKey (string) which is the key to look up in the arguments map.
@@ -364,10 +355,8 @@ func (*ActionWrapperEmitter) buildBasicTypeAssertion(varName, jsonKey, typeName 
 // buildIntConversion builds statements for int/int64 conversion from float64.
 //
 // Takes varName (string) which specifies the name for the converted variable.
-// Takes jsonKey (string) which specifies the JSON key to extract the value
-// from.
-// Takes intType (string) which specifies the target integer type (int or
-// int64).
+// Takes jsonKey (string) which specifies the JSON key to extract the value from.
+// Takes intType (string) which specifies the target integer type (int or int64).
 //
 // Returns []ast.Stmt which contains the AST statements for the conversion.
 func (*ActionWrapperEmitter) buildIntConversion(varName, jsonKey, intType string) []ast.Stmt {
@@ -387,8 +376,7 @@ func (*ActionWrapperEmitter) buildIntConversion(varName, jsonKey, intType string
 	}
 }
 
-// buildGenericParamExtraction builds statements for generic type extraction
-// using JSON.
+// buildGenericParamExtraction builds statements for generic type extraction using JSON.
 //
 // Takes varName (string) which specifies the variable name to assign.
 // Takes jsonKey (string) which specifies the JSON key to extract.
@@ -399,16 +387,14 @@ func (e *ActionWrapperEmitter) buildGenericParamExtraction(varName, jsonKey, goT
 	return e.buildJSONUnmarshalExtraction(varName, jsonKey, goType)
 }
 
-// buildFileUploadExtraction builds statements for extracting a single
-// piko.FileUpload parameter from the arguments map.
+// buildFileUploadExtraction builds statements for extracting a single piko.FileUpload
+// parameter from the arguments map.
 //
-// Takes varName (string) which specifies the variable name for the extracted
-// file upload.
+// Takes varName (string) which specifies the variable name for the extracted file upload.
 // Takes jsonKey (string) which specifies the key to look up in the arguments map.
 //
-// Returns []ast.Stmt which contains a variable declaration and a type
-// assertion if-statement that extracts the file header and creates a new
-// FileUpload.
+// Returns []ast.Stmt which contains a variable declaration and a type assertion
+// if-statement that extracts the file header and creates a new FileUpload.
 func (*ActionWrapperEmitter) buildFileUploadExtraction(varName, jsonKey string) []ast.Stmt {
 	return []ast.Stmt{
 		goastutil.VarDecl(varName, goastutil.SelectorExpr(wrapperIdentPiko, "FileUpload")),
@@ -434,14 +420,14 @@ func (*ActionWrapperEmitter) buildFileUploadExtraction(varName, jsonKey string) 
 	}
 }
 
-// buildFileUploadSliceExtraction builds AST statements for extracting a
-// []piko.FileUpload parameter from multipart file headers.
+// buildFileUploadSliceExtraction builds AST statements for extracting a []piko.FileUpload
+// parameter from multipart file headers.
 //
 // Takes varName (string) which specifies the variable name to assign.
 // Takes jsonKey (string) which specifies the key to look up in the arguments map.
 //
-// Returns []ast.Stmt which contains the variable declaration and conditional
-// extraction logic.
+// Returns []ast.Stmt which contains the variable declaration and conditional extraction
+// logic.
 func (*ActionWrapperEmitter) buildFileUploadSliceExtraction(varName, jsonKey string) []ast.Stmt {
 	fileUploadSliceType := &ast.ArrayType{Elt: goastutil.SelectorExpr(wrapperIdentPiko, "FileUpload")}
 	fileHeaderSliceType := &ast.ArrayType{Elt: goastutil.StarExpr(goastutil.SelectorExpr("multipart", "FileHeader"))}
@@ -486,14 +472,14 @@ func (*ActionWrapperEmitter) buildFileUploadSliceExtraction(varName, jsonKey str
 	}
 }
 
-// buildRawBodyExtraction builds statements for extracting a piko.RawBody
-// parameter from the arguments map using a type assertion.
+// buildRawBodyExtraction builds statements for extracting a piko.RawBody parameter from
+// the arguments map using a type assertion.
 //
-// Takes varName (string) which is the name of the variable to assign the
-// extracted RawBody value to.
+// Takes varName (string) which is the name of the variable to assign the extracted
+// RawBody value to.
 //
-// Returns []ast.Stmt which contains the variable declaration and conditional
-// assignment statements.
+// Returns []ast.Stmt which contains the variable declaration and conditional assignment
+// statements.
 //
 // Note: RawBody is injected by the handler under the special key "_rawBody".
 func (*ActionWrapperEmitter) buildRawBodyExtraction(varName string) []ast.Stmt {
@@ -518,9 +504,9 @@ func (*ActionWrapperEmitter) buildRawBodyExtraction(varName string) []ast.Stmt {
 	}
 }
 
-// buildJSONUnmarshalExtraction builds binder-based extraction with error
-// handling. Generates code that handles both nested JSON ({"input": {...}})
-// and flat form data ({...}) using pikobinder.BindMap.
+// buildJSONUnmarshalExtraction builds binder-based extraction with error handling.
+// Generates code that handles both nested JSON ({"input": {...}}) and flat form data
+// ({...}) using pikobinder.BindMap.
 //
 // Takes varName (string) which specifies the variable name to store the result.
 // Takes jsonKey (string) which specifies the JSON key to extract.
@@ -553,11 +539,11 @@ func (*ActionWrapperEmitter) buildJSONUnmarshalExtraction(varName, jsonKey, type
 
 // buildCallInvocation builds the action Call method invocation statements.
 //
-// Takes spec (*annotator_dto.ActionSpec) which provides the action
-// specification including call parameters and error handling details.
+// Takes spec (*annotator_dto.ActionSpec) which provides the action specification
+// including call parameters and error handling details.
 //
-// Returns []ast.Stmt which contains the AST statements for invoking the Call
-// method, with appropriate return handling based on whether errors are used.
+// Returns []ast.Stmt which contains the AST statements for invoking the Call method, with
+// appropriate return handling based on whether errors are used.
 func (*ActionWrapperEmitter) buildCallInvocation(spec *annotator_dto.ActionSpec) []ast.Stmt {
 	arguments := make([]ast.Expr, 0, len(spec.CallParams))
 	for _, param := range spec.CallParams {
@@ -594,16 +580,14 @@ func (*ActionWrapperEmitter) buildCallInvocation(spec *annotator_dto.ActionSpec)
 //
 // Returns ast.Expr which is the parsed AST expression.
 func parseTypeExpr(typeName string) ast.Expr {
-	if strings.Contains(typeName, ".") {
-		parts := strings.SplitN(typeName, ".", 2)
-		return goastutil.SelectorExpr(parts[0], parts[1])
+	if pkg, name, ok := strings.Cut(typeName, "."); ok {
+		return goastutil.SelectorExpr(pkg, name)
 	}
 	return goastutil.CachedIdent(typeName)
 }
 
-// buildNestedBindBlock builds the AST for the nested key extraction path.
-// It generates a type assertion from any to map[string]any, then calls
-// pikobinder.BindMap.
+// buildNestedBindBlock builds the AST for the nested key extraction path. It generates a
+// type assertion from any to map[string]any, then calls pikobinder.BindMap.
 //
 // Takes varName (string) which is the name of the variable to bind into.
 // Takes jsonKey (string) which is the JSON key name for error logging.
@@ -625,8 +609,8 @@ func buildNestedBindBlock(varName, jsonKey string) *ast.BlockStmt {
 	)
 }
 
-// buildBindMapBlock builds the AST for binding a map[string]any to a struct
-// using pikobinder.BindMap with IgnoreUnknownKeys(true).
+// buildBindMapBlock builds the AST for binding a map[string]any to a struct using
+// pikobinder.BindMap with IgnoreUnknownKeys(true).
 //
 // Takes sourceExpression (ast.Expr) which is the map expression to bind from.
 // Takes varName (string) which is the name of the variable to bind into.
@@ -670,9 +654,9 @@ func buildBindMapBlock(sourceExpression ast.Expr, varName, jsonKey, errorContext
 	)
 }
 
-// buildZeroValueExpr builds the zero-value expression for a parameter type.
-// This is used for blank identifier (_) parameters that are positionally
-// required in the Call signature but carry no meaningful data.
+// buildZeroValueExpr builds the zero-value expression for a parameter type. This is used
+// for blank identifier (_) parameters that are positionally required in the Call
+// signature but carry no meaningful data.
 //
 // Takes param (*annotator_dto.ParamSpec) which describes the parameter type.
 //
@@ -698,14 +682,12 @@ func buildZeroValueExpr(param *annotator_dto.ParamSpec) ast.Expr {
 	}
 }
 
-// wrapperQualifiedTypeName returns the package-qualified type name for a
-// struct type.
+// wrapperQualifiedTypeName returns the package-qualified type name for a struct type.
 //
-// Takes typeSpec (*annotator_dto.TypeSpec) which specifies the type to
-// format.
+// Takes typeSpec (*annotator_dto.TypeSpec) which specifies the type to format.
 //
-// Returns string which is the qualified name in "package.TypeName" format, or
-// empty if typeSpec is nil.
+// Returns string which is the qualified name in "package.TypeName" format, or empty if
+// typeSpec is nil.
 func wrapperQualifiedTypeName(typeSpec *annotator_dto.TypeSpec) string {
 	if typeSpec == nil {
 		return ""

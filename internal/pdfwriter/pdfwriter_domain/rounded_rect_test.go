@@ -26,7 +26,9 @@ import (
 	"testing"
 )
 
-const epsilon = 1e-6
+const (
+	epsilon = 1e-6
+)
 
 func floatsEqual(a, b float64) bool {
 	return math.Abs(a-b) < epsilon

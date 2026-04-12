@@ -16,6 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config_resolver_gcp resolves configuration values from
-// Google Cloud Secret Manager.
+// Package config_resolver_gcp resolves configuration values from Google Cloud Secret
+// Manager.
 package config_resolver_gcp

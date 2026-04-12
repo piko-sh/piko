@@ -30,34 +30,33 @@ import (
 )
 
 const (
-	// errorFormatEnsuringMigrationTable holds the format string for wrapping
-	// errors from EnsureMigrationTable.
+	// errorFormatEnsuringMigrationTable holds the format string for wrapping errors from
+	// EnsureMigrationTable.
 	errorFormatEnsuringMigrationTable = "ensuring migration table: %w"
 
-	// errorFormatReadingAppliedVersions holds the format string for wrapping
-	// errors from AppliedVersions.
+	// errorFormatReadingAppliedVersions holds the format string for wrapping errors from
+	// AppliedVersions.
 	errorFormatReadingAppliedVersions = "reading applied versions: %w"
 
-	// logFieldVersion holds the structured log field name for migration
-	// version numbers.
+	// logFieldVersion holds the structured log field name for migration version numbers.
 	logFieldVersion = "version"
 )
 
-// noTransactionDirective is the marker that opts a migration out of
-// transaction wrapping. If this appears as the first line of a migration
-// file, the executor runs the SQL without BEGIN/COMMIT.
-var noTransactionDirective = []byte("-- piko:no-transaction")
+var (
+	// noTransactionDirective is the marker that opts a migration out of transaction
+	// wrapping. If this appears as the first line of a migration file, the executor runs the
+	// SQL without BEGIN/COMMIT.
+	noTransactionDirective = []byte("-- piko:no-transaction")
+)
 
-// MigrationServiceOption configures optional behaviour of the migration
-// service.
+// MigrationServiceOption configures optional behaviour of the migration service.
 type MigrationServiceOption func(*migrationService)
 
-// WithNonBlockingLock configures the migration service to use a non-blocking
-// lock acquisition. If the lock is already held, operations return
-// ErrLockNotAcquired immediately instead of waiting.
+// WithNonBlockingLock configures the migration service to use a non-blocking lock
+// acquisition. If the lock is already held, operations return ErrLockNotAcquired
+// immediately instead of waiting.
 //
-// Returns MigrationServiceOption which sets the nonBlockingLock flag on the
-// service.
+// Returns MigrationServiceOption which sets the nonBlockingLock flag on the service.
 func WithNonBlockingLock() MigrationServiceOption {
 	return func(service *migrationService) {
 		service.nonBlockingLock = true
@@ -93,15 +92,14 @@ type migrationService struct {
 
 // NewMigrationService creates a new migration service.
 //
-// Takes executor (MigrationExecutorPort) which provides database-specific
-// migration operations.
+// Takes executor (MigrationExecutorPort) which provides database-specific migration
+// operations.
 // Takes fileReader (FileReaderPort) which provides filesystem access.
 // Takes directory (string) which is the path to the migration files.
-// Takes options (...MigrationServiceOption) which configure optional
-// behaviour such as non-blocking lock acquisition.
+// Takes options (...MigrationServiceOption) which configure optional behaviour such as
+// non-blocking lock acquisition.
 //
-// Returns MigrationServicePort which is ready to apply or roll back
-// migrations.
+// Returns MigrationServicePort which is ready to apply or roll back migrations.
 func NewMigrationService(
 	executor MigrationExecutorPort,
 	fileReader FileReaderPort,
@@ -122,8 +120,8 @@ func NewMigrationService(
 // Up applies all pending up migrations in version order.
 //
 // Returns int which is the number of migrations applied.
-// Returns error when migration reading, checksum
-// validation, lock acquisition, or execution fails.
+// Returns error when migration reading, checksum validation, lock acquisition, or
+// execution fails.
 func (service *migrationService) Up(ctx context.Context) (int, error) {
 	return service.applyUpMigrations(ctx, nil)
 }
@@ -133,8 +131,8 @@ func (service *migrationService) Up(ctx context.Context) (int, error) {
 // Takes targetVersion (int64) which specifies the maximum version to apply.
 //
 // Returns int which is the number of migrations applied.
-// Returns error when migration reading, checksum
-// validation, lock acquisition, or execution fails.
+// Returns error when migration reading, checksum validation, lock acquisition, or
+// execution fails.
 func (service *migrationService) UpTo(ctx context.Context, targetVersion int64) (int, error) {
 	return service.applyUpMigrations(ctx, &targetVersion)
 }
@@ -143,33 +141,26 @@ func (service *migrationService) UpTo(ctx context.Context, targetVersion int64) 
 //
 // Takes steps (int) which specifies how many migrations to roll back.
 //
-// Returns int which is the number of migrations rolled
-// back.
-// Returns error when migration reading, lock acquisition,
-// or rollback execution fails.
+// Returns int which is the number of migrations rolled back.
+// Returns error when migration reading, lock acquisition, or rollback execution fails.
 func (service *migrationService) Down(ctx context.Context, steps int) (int, error) {
 	return service.rollbackMigrations(ctx, &steps, nil)
 }
 
-// DownTo rolls back applied migrations down to (but not including) the target
-// version.
+// DownTo rolls back applied migrations down to (but not including) the target version.
 //
 // Takes targetVersion (int64) which specifies the version to roll back to.
 //
-// Returns int which is the number of migrations rolled
-// back.
-// Returns error when migration reading, lock acquisition,
-// or rollback execution fails.
+// Returns int which is the number of migrations rolled back.
+// Returns error when migration reading, lock acquisition, or rollback execution fails.
 func (service *migrationService) DownTo(ctx context.Context, targetVersion int64) (int, error) {
 	return service.rollbackMigrations(ctx, nil, &targetVersion)
 }
 
 // Status returns the list of all known migrations and their applied state.
 //
-// Returns []querier_dto.MigrationStatus which holds the
-// status of each known migration.
-// Returns error when reading files or querying applied
-// versions fails.
+// Returns []querier_dto.MigrationStatus which holds the status of each known migration.
+// Returns error when reading files or querying applied versions fails.
 func (service *migrationService) Status(ctx context.Context) ([]querier_dto.MigrationStatus, error) {
 	ctx, _ = logger_domain.From(ctx, log)
 	ctx, span, _ := log.Span(ctx, "MigrationService.Status")
@@ -220,11 +211,11 @@ func (service *migrationService) Status(ctx context.Context) ([]querier_dto.Migr
 	return statuses, nil
 }
 
-// Validate checks that all applied migration checksums match their on-disk
-// files without executing anything.
+// Validate checks that all applied migration checksums match their on-disk files without
+// executing anything.
 //
-// Returns error when file reading, table initialisation, version querying,
-// or checksum validation fails.
+// Returns error when file reading, table initialisation, version querying, or checksum
+// validation fails.
 func (service *migrationService) Validate(ctx context.Context) error {
 	ctx, _ = logger_domain.From(ctx, log)
 	ctx, span, _ := log.Span(ctx, "MigrationService.Validate")
@@ -249,12 +240,11 @@ func (service *migrationService) Validate(ctx context.Context) error {
 	return validateChecksums(upFiles, applied)
 }
 
-// applyUpMigrations reads migration files, validates checksums, acquires the
-// advisory lock, and executes all pending up migrations up to the optional
-// target version.
+// applyUpMigrations reads migration files, validates checksums, acquires the advisory
+// lock, and executes all pending up migrations up to the optional target version.
 //
-// Takes targetVersion (*int64) which specifies the maximum version to apply,
-// or nil to apply all pending migrations.
+// Takes targetVersion (*int64) which specifies the maximum version to apply, or nil to
+// apply all pending migrations.
 //
 // Returns int which is the number of migrations applied.
 // Returns error when any step fails.
@@ -315,16 +305,15 @@ func (service *migrationService) applyUpMigrations(
 	return service.executePendingUp(ctx, pending, downChecksumsByVersion)
 }
 
-// rollbackMigrations reads migration files, acquires the advisory lock, and
-// rolls back applied migrations by step count or down to a target version.
+// rollbackMigrations reads migration files, acquires the advisory lock, and rolls back
+// applied migrations by step count or down to a target version.
 //
-// Takes steps (*int) which specifies how many migrations to roll back, or nil
-// to use targetVersion instead.
-// Takes targetVersion (*int64) which specifies the version to roll back to, or
-// nil to use steps instead.
+// Takes steps (*int) which specifies how many migrations to roll back, or nil to use
+// targetVersion instead.
+// Takes targetVersion (*int64) which specifies the version to roll back to, or nil to use
+// steps instead.
 //
-// Returns int which is the number of migrations rolled
-// back.
+// Returns int which is the number of migrations rolled back.
 // Returns error when any step fails.
 func (service *migrationService) rollbackMigrations(
 	ctx context.Context,
@@ -368,13 +357,12 @@ func (service *migrationService) rollbackMigrations(
 	return service.executeRollbacks(ctx, applied, rollbackCount, downFilesByVersion)
 }
 
-// warnSkippedMigrations logs a warning for each pending migration whose
-// version is earlier than the maximum applied version.
+// warnSkippedMigrations logs a warning for each pending migration whose version is
+// earlier than the maximum applied version.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the migrations to
-// check.
-// Takes applied ([]querier_dto.AppliedMigration) which holds the already
-// applied migrations.
+// Takes pending ([]querier_dto.MigrationFile) which holds the migrations to check.
+// Takes applied ([]querier_dto.AppliedMigration) which holds the already applied
+// migrations.
 func (*migrationService) warnSkippedMigrations(
 	ctx context.Context,
 	pending []querier_dto.MigrationFile,
@@ -392,19 +380,18 @@ func (*migrationService) warnSkippedMigrations(
 	}
 }
 
-// executePendingUp runs before-run hooks, applies each pending migration with
-// its before/after hooks, and runs after-run hooks. Before processing pending
-// migrations, any dirty migration is detected and either retried (if it
-// matches the next pending version) or reported as a blocking error.
+// executePendingUp runs before-run hooks, applies each pending migration with its
+// before/after hooks, and runs after-run hooks. Before processing pending migrations, any
+// dirty migration is detected and either retried (if it matches the next pending version)
+// or reported as a blocking error.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the migrations to
-// apply.
+// Takes pending ([]querier_dto.MigrationFile) which holds the migrations to apply.
 // Takes downChecksumsByVersion (map[int64]string) which maps versions to their
 // down-migration checksums.
 //
 // Returns int which is the number of migrations applied.
-// Returns error when any hook or migration execution fails, or a dirty
-// migration from a different version blocks progress.
+// Returns error when any hook or migration execution fails, or a dirty migration from a
+// different version blocks progress.
 func (service *migrationService) executePendingUp(
 	ctx context.Context,
 	pending []querier_dto.MigrationFile,
@@ -444,13 +431,12 @@ func (service *migrationService) executePendingUp(
 	return count + migrated, applyError
 }
 
-// applyPendingUpMigrations iterates through pending migrations, running hooks
-// and executing each in sequence.
+// applyPendingUpMigrations iterates through pending migrations, running hooks and
+// executing each in sequence.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds
-// the migrations to apply.
-// Takes downChecksumsByVersion (map[int64]string) which maps
-// versions to their down-migration checksums.
+// Takes pending ([]querier_dto.MigrationFile) which holds the migrations to apply.
+// Takes downChecksumsByVersion (map[int64]string) which maps versions to their
+// down-migration checksums.
 //
 // Returns int which is the number of migrations successfully applied.
 // Returns error when a hook or migration execution fails.
@@ -519,13 +505,13 @@ func (service *migrationService) applyPendingUpMigrations(
 
 // findDirtyMigration scans applied migrations for one marked as dirty.
 //
-// Takes applied ([]querier_dto.AppliedMigration) which holds the applied
-// migration records.
+// Takes applied ([]querier_dto.AppliedMigration) which holds the applied migration
+// records.
 //
-// Returns *querier_dto.AppliedMigration which is the dirty
-// migration, or nil if none is dirty.
-// Returns int which is the last completed statement index to
-// skip on retry (-1 if no statements completed).
+// Returns *querier_dto.AppliedMigration which is the dirty migration, or nil if none is
+// dirty.
+// Returns int which is the last completed statement index to skip on retry (-1 if no
+// statements completed).
 func findDirtyMigration(
 	applied []querier_dto.AppliedMigration,
 ) (*querier_dto.AppliedMigration, int) {
@@ -541,17 +527,15 @@ func findDirtyMigration(
 	return nil, -1
 }
 
-// handleDirtyMigration checks whether a dirty migration can be retried
-// (because it matches the next pending version) and retries it if so.
-// If the dirty migration does not match the next pending version, a
-// DirtyMigrationError is returned.
+// handleDirtyMigration checks whether a dirty migration can be retried (because it
+// matches the next pending version) and retries it if so. If the dirty migration does not
+// match the next pending version, a DirtyMigrationError is returned.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the pending
-// migrations.
-// Takes downChecksumsByVersion (map[int64]string) which maps versions to
-// their down-migration checksums.
-// Takes dirtyMigration (querier_dto.AppliedMigration) which is the dirty
-// migration record.
+// Takes pending ([]querier_dto.MigrationFile) which holds the pending migrations.
+// Takes downChecksumsByVersion (map[int64]string) which maps versions to their
+// down-migration checksums.
+// Takes dirtyMigration (querier_dto.AppliedMigration) which is the dirty migration
+// record.
 // Takes skipUpTo (int) which is the last completed statement index.
 //
 // Returns int which is 1 if the retry succeeded, 0 otherwise.
@@ -623,8 +607,7 @@ func (service *migrationService) handleDirtyMigration(
 
 // removePendingVersion removes a specific version from the pending list.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the pending
-// migrations.
+// Takes pending ([]querier_dto.MigrationFile) which holds the pending migrations.
 // Takes version (int64) which is the version to remove.
 //
 // Returns []querier_dto.MigrationFile without the specified version.
@@ -641,18 +624,16 @@ func removePendingVersion(
 	return filtered
 }
 
-// executeRollbacks runs before-run hooks, rolls back the specified number of
-// migrations in reverse order, and runs after-run hooks.
+// executeRollbacks runs before-run hooks, rolls back the specified number of migrations
+// in reverse order, and runs after-run hooks.
 //
-// Takes applied ([]querier_dto.AppliedMigration) which holds all applied
-// migrations in version order.
-// Takes steps (int) which specifies how many migrations to roll back from the
-// end.
-// Takes downFilesByVersion (map[int64]querier_dto.MigrationFile) which maps
-// versions to their down-migration files.
+// Takes applied ([]querier_dto.AppliedMigration) which holds all applied migrations in
+// version order.
+// Takes steps (int) which specifies how many migrations to roll back from the end.
+// Takes downFilesByVersion (map[int64]querier_dto.MigrationFile) which maps versions to
+// their down-migration files.
 //
-// Returns int which is the number of migrations rolled
-// back.
+// Returns int which is the number of migrations rolled back.
 // Returns error when any hook or rollback execution fails.
 func (service *migrationService) executeRollbacks(
 	ctx context.Context,
@@ -693,16 +674,14 @@ func (service *migrationService) executeRollbacks(
 	return count, nil
 }
 
-// executeSingleRollback validates the down checksum, runs before/after
-// migration hooks, and executes a single rollback migration.
+// executeSingleRollback validates the down checksum, runs before/after migration hooks,
+// and executes a single rollback migration.
 //
-// Takes appliedMigration (querier_dto.AppliedMigration) which holds the
-// applied migration record to roll back.
-// Takes downFile (querier_dto.MigrationFile) which holds the down migration
-// file content.
+// Takes appliedMigration (querier_dto.AppliedMigration) which holds the applied migration
+// record to roll back.
+// Takes downFile (querier_dto.MigrationFile) which holds the down migration file content.
 //
-// Returns error when checksum validation, hook execution, or migration
-// execution fails.
+// Returns error when checksum validation, hook execution, or migration execution fails.
 func (service *migrationService) executeSingleRollback(
 	ctx context.Context,
 	appliedMigration querier_dto.AppliedMigration,
@@ -755,13 +734,12 @@ func (service *migrationService) executeSingleRollback(
 	return nil
 }
 
-// validateDownChecksum checks that the down migration file checksum matches
-// the checksum recorded when the up migration was applied.
+// validateDownChecksum checks that the down migration file checksum matches the checksum
+// recorded when the up migration was applied.
 //
-// Takes appliedMigration (querier_dto.AppliedMigration) which holds the
-// recorded down checksum.
-// Takes downFile (querier_dto.MigrationFile) which holds the current file
+// Takes appliedMigration (querier_dto.AppliedMigration) which holds the recorded down
 // checksum.
+// Takes downFile (querier_dto.MigrationFile) which holds the current file checksum.
 //
 // Returns error when the recorded checksum does not match the file checksum.
 func validateDownChecksum(
@@ -787,13 +765,13 @@ func validateDownChecksum(
 	return nil
 }
 
-// runBeforeRunHooks invokes all registered before-run hooks with a context
-// built from the pending migration files.
+// runBeforeRunHooks invokes all registered before-run hooks with a context built from the
+// pending migration files.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the migrations about
-// to be applied.
-// Takes direction (querier_dto.MigrationDirection) which indicates whether the
-// run is up or down.
+// Takes pending ([]querier_dto.MigrationFile) which holds the migrations about to be
+// applied.
+// Takes direction (querier_dto.MigrationDirection) which indicates whether the run is up
+// or down.
 //
 // Returns error when any hook returns an error.
 func (service *migrationService) runBeforeRunHooks(
@@ -821,13 +799,12 @@ func (service *migrationService) runBeforeRunHooks(
 	return nil
 }
 
-// runBeforeRunHooksFromVersions invokes all registered before-run hooks with
-// a context built from explicit version numbers.
+// runBeforeRunHooksFromVersions invokes all registered before-run hooks with a context
+// built from explicit version numbers.
 //
-// Takes versions ([]int64) which holds the migration versions about to be
-// processed.
-// Takes direction (querier_dto.MigrationDirection) which indicates whether the
-// run is up or down.
+// Takes versions ([]int64) which holds the migration versions about to be processed.
+// Takes direction (querier_dto.MigrationDirection) which indicates whether the run is up
+// or down.
 //
 // Returns error when any hook returns an error.
 func (service *migrationService) runBeforeRunHooksFromVersions(
@@ -851,13 +828,13 @@ func (service *migrationService) runBeforeRunHooksFromVersions(
 	return nil
 }
 
-// runAfterRunHooks invokes all registered after-run hooks with a context
-// built from the pending migration files and the count of applied migrations.
+// runAfterRunHooks invokes all registered after-run hooks with a context built from the
+// pending migration files and the count of applied migrations.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the migrations that
-// were processed.
-// Takes direction (querier_dto.MigrationDirection) which indicates whether the
-// run was up or down.
+// Takes pending ([]querier_dto.MigrationFile) which holds the migrations that were
+// processed.
+// Takes direction (querier_dto.MigrationDirection) which indicates whether the run was up
+// or down.
 // Takes applied (int) which is the number of migrations that were applied.
 //
 // Returns error when any hook returns an error.
@@ -887,14 +864,12 @@ func (service *migrationService) runAfterRunHooks(
 	return nil
 }
 
-// runAfterRunHooksFromVersions invokes all registered after-run hooks with
-// a context built from explicit version numbers and the count of applied
-// migrations.
+// runAfterRunHooksFromVersions invokes all registered after-run hooks with a context
+// built from explicit version numbers and the count of applied migrations.
 //
-// Takes versions ([]int64) which holds the migration versions that were
-// processed.
-// Takes direction (querier_dto.MigrationDirection) which indicates whether the
-// run was up or down.
+// Takes versions ([]int64) which holds the migration versions that were processed.
+// Takes direction (querier_dto.MigrationDirection) which indicates whether the run was up
+// or down.
 // Takes applied (int) which is the number of migrations that were applied.
 //
 // Returns error when any hook returns an error.
@@ -920,11 +895,11 @@ func (service *migrationService) runAfterRunHooksFromVersions(
 	return nil
 }
 
-// runBeforeMigrationHooks invokes all registered before-migration hooks for a
-// single migration.
+// runBeforeMigrationHooks invokes all registered before-migration hooks for a single
+// migration.
 //
-// Takes hookContext (MigrationHookContext) which holds the version, name, and
-// direction of the migration.
+// Takes hookContext (MigrationHookContext) which holds the version, name, and direction
+// of the migration.
 //
 // Returns error when any hook returns an error.
 func (service *migrationService) runBeforeMigrationHooks(
@@ -939,11 +914,11 @@ func (service *migrationService) runBeforeMigrationHooks(
 	return nil
 }
 
-// runAfterMigrationHooks invokes all registered after-migration hooks for a
-// single migration.
+// runAfterMigrationHooks invokes all registered after-migration hooks for a single
+// migration.
 //
-// Takes hookContext (MigrationHookContext) which holds the version, name, and
-// direction of the migration.
+// Takes hookContext (MigrationHookContext) which holds the version, name, and direction
+// of the migration.
 //
 // Returns error when any hook returns an error.
 func (service *migrationService) runAfterMigrationHooks(
@@ -958,8 +933,8 @@ func (service *migrationService) runAfterMigrationHooks(
 	return nil
 }
 
-// acquireLock acquires the migration advisory lock, using either blocking or
-// non-blocking mode depending on the service configuration.
+// acquireLock acquires the migration advisory lock, using either blocking or non-blocking
+// mode depending on the service configuration.
 //
 // Returns error when the lock cannot be acquired.
 func (service *migrationService) acquireLock(ctx context.Context) error {
@@ -969,8 +944,7 @@ func (service *migrationService) acquireLock(ctx context.Context) error {
 	return service.executor.AcquireLock(ctx)
 }
 
-// releaseLock releases the migration advisory lock, logging an error if
-// release fails.
+// releaseLock releases the migration advisory lock, logging an error if release fails.
 func (service *migrationService) releaseLock(ctx context.Context) {
 	if releaseError := service.executor.ReleaseLock(ctx); releaseError != nil {
 		_, l := logger_domain.From(ctx, log)
@@ -983,11 +957,11 @@ func (service *migrationService) releaseLock(ctx context.Context) {
 // filterByDirection returns only files matching the given direction.
 //
 // Takes files ([]querier_dto.MigrationFile) which holds all migration files.
-// Takes direction (querier_dto.MigrationDirection) which specifies the
-// direction to filter by.
+// Takes direction (querier_dto.MigrationDirection) which specifies the direction to
+// filter by.
 //
-// Returns []querier_dto.MigrationFile which holds only files matching the
-// specified direction.
+// Returns []querier_dto.MigrationFile which holds only files matching the specified
+// direction.
 func filterByDirection(
 	files []querier_dto.MigrationFile,
 	direction querier_dto.MigrationDirection,
@@ -1005,8 +979,8 @@ func filterByDirection(
 //
 // Takes files ([]querier_dto.MigrationFile) which holds all migration files.
 //
-// Returns map[int64]querier_dto.MigrationFile which maps version numbers to
-// their corresponding down migration files.
+// Returns map[int64]querier_dto.MigrationFile which maps version numbers to their
+// corresponding down migration files.
 func buildDownFileMap(
 	files []querier_dto.MigrationFile,
 ) map[int64]querier_dto.MigrationFile {
@@ -1019,13 +993,12 @@ func buildDownFileMap(
 	return result
 }
 
-// buildDownChecksumMap returns a map of version to down-migration checksum for
-// all versions that have a .down.sql file.
+// buildDownChecksumMap returns a map of version to down-migration checksum for all
+// versions that have a .down.sql file.
 //
 // Takes files ([]querier_dto.MigrationFile) which holds all migration files.
 //
-// Returns map[int64]string which maps version numbers to their down-migration
-// checksums.
+// Returns map[int64]string which maps version numbers to their down-migration checksums.
 func buildDownChecksumMap(files []querier_dto.MigrationFile) map[int64]string {
 	result := make(map[int64]string)
 	for _, file := range files {
@@ -1040,8 +1013,8 @@ func buildDownChecksumMap(files []querier_dto.MigrationFile) map[int64]string {
 //
 // Takes files ([]querier_dto.MigrationFile) which holds all migration files.
 //
-// Returns map[int64]bool which contains true for each version that has a down
-// migration file.
+// Returns map[int64]bool which contains true for each version that has a down migration
+// file.
 func buildDownVersionSet(files []querier_dto.MigrationFile) map[int64]bool {
 	result := make(map[int64]bool)
 	for _, file := range files {
@@ -1052,15 +1025,14 @@ func buildDownVersionSet(files []querier_dto.MigrationFile) map[int64]bool {
 	return result
 }
 
-// filterByTargetVersion filters pending migrations to only include those up
-// to and including the target version.
+// filterByTargetVersion filters pending migrations to only include those up to and
+// including the target version.
 //
 // If targetVersion is nil, all pending migrations are returned.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the migrations to
-// filter.
-// Takes targetVersion (*int64) which specifies the maximum version to include,
-// or nil to include all.
+// Takes pending ([]querier_dto.MigrationFile) which holds the migrations to filter.
+// Takes targetVersion (*int64) which specifies the maximum version to include, or nil to
+// include all.
 //
 // Returns []querier_dto.MigrationFile which holds the filtered migrations.
 func filterByTargetVersion(
@@ -1081,16 +1053,14 @@ func filterByTargetVersion(
 
 // computeRollbackSteps determines how many migrations to roll back.
 //
-// If steps is provided, that value is used (clamped to applied length). If
-// targetVersion is provided, it counts applied migrations with version greater
-// than targetVersion.
+// If steps is provided, that value is used (clamped to applied length). If targetVersion
+// is provided, it counts applied migrations with version greater than targetVersion.
 //
-// Takes applied ([]querier_dto.AppliedMigration) which holds all applied
-// migrations.
-// Takes steps (*int) which specifies the number of migrations to roll back, or
-// nil to use targetVersion.
-// Takes targetVersion (*int64) which specifies the version to roll back to, or
-// nil to use steps.
+// Takes applied ([]querier_dto.AppliedMigration) which holds all applied migrations.
+// Takes steps (*int) which specifies the number of migrations to roll back, or nil to use
+// targetVersion.
+// Takes targetVersion (*int64) which specifies the version to roll back to, or nil to use
+// steps.
 //
 // Returns int which is the number of migrations to roll back.
 func computeRollbackSteps(
@@ -1116,17 +1086,15 @@ func computeRollbackSteps(
 	return 0
 }
 
-// computePending returns up migration files that have not been successfully
-// applied yet, sorted by version ascending. Dirty (partially-applied)
-// migrations are treated as pending since they need to be retried.
+// computePending returns up migration files that have not been successfully applied yet,
+// sorted by version ascending. Dirty (partially-applied) migrations are treated as
+// pending since they need to be retried.
 //
-// Takes upFiles ([]querier_dto.MigrationFile) which holds all up migration
-// files.
-// Takes applied ([]querier_dto.AppliedMigration) which holds already applied
-// migrations.
+// Takes upFiles ([]querier_dto.MigrationFile) which holds all up migration files.
+// Takes applied ([]querier_dto.AppliedMigration) which holds already applied migrations.
 //
-// Returns []querier_dto.MigrationFile which holds the unapplied or dirty
-// migrations sorted by version.
+// Returns []querier_dto.MigrationFile which holds the unapplied or dirty migrations
+// sorted by version.
 func computePending(
 	upFiles []querier_dto.MigrationFile,
 	applied []querier_dto.AppliedMigration,
@@ -1152,16 +1120,14 @@ func computePending(
 	return pending
 }
 
-// validateChecksums verifies that all applied migrations have matching
-// checksums with on-disk files.
+// validateChecksums verifies that all applied migrations have matching checksums with
+// on-disk files.
 //
-// Takes upFiles ([]querier_dto.MigrationFile) which holds the on-disk
-// migration files.
-// Takes applied ([]querier_dto.AppliedMigration) which holds the applied
-// migration records.
+// Takes upFiles ([]querier_dto.MigrationFile) which holds the on-disk migration files.
+// Takes applied ([]querier_dto.AppliedMigration) which holds the applied migration
+// records.
 //
-// Returns error when a file is missing or its checksum does not match the
-// applied record.
+// Returns error when a file is missing or its checksum does not match the applied record.
 func validateChecksums(
 	upFiles []querier_dto.MigrationFile,
 	applied []querier_dto.AppliedMigration,
@@ -1192,16 +1158,16 @@ func validateChecksums(
 	return nil
 }
 
-// detectSkippedMigrations finds pending migrations whose version is earlier
-// than the maximum applied version.
+// detectSkippedMigrations finds pending migrations whose version is earlier than the
+// maximum applied version.
 //
-// These are migrations that were added after later migrations were already
-// applied, for example from branch merges.
+// These are migrations that were added after later migrations were already applied, for
+// example from branch merges.
 //
-// Takes pending ([]querier_dto.MigrationFile) which holds the pending
-// migrations to check.
-// Takes applied ([]querier_dto.AppliedMigration) which holds the already
-// applied migrations.
+// Takes pending ([]querier_dto.MigrationFile) which holds the pending migrations to
+// check.
+// Takes applied ([]querier_dto.AppliedMigration) which holds the already applied
+// migrations.
 //
 // Returns []int64 which holds the version numbers of skipped migrations.
 func detectSkippedMigrations(
@@ -1224,13 +1190,12 @@ func detectSkippedMigrations(
 	return skipped
 }
 
-// hasNoTransactionDirective checks whether the migration content starts with
-// the -- piko:no-transaction directive.
+// hasNoTransactionDirective checks whether the migration content starts with the --
+// piko:no-transaction directive.
 //
 // Takes content ([]byte) which holds the migration file content.
 //
-// Returns bool which is true if the first line matches the no-transaction
-// directive.
+// Returns bool which is true if the first line matches the no-transaction directive.
 func hasNoTransactionDirective(content []byte) bool {
 	firstLine, _, _ := bytes.Cut(content, []byte{'\n'})
 	return bytes.Equal(bytes.TrimSpace(firstLine), noTransactionDirective)

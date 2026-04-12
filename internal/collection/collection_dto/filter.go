@@ -51,8 +51,7 @@ const (
 	// FilterOpLessThan matches when the field value is less than the filter value.
 	FilterOpLessThan FilterOperator = "lt"
 
-	// FilterOpLessEqual matches when a field is less than or equal to the
-	// given value.
+	// FilterOpLessEqual matches when a field is less than or equal to the given value.
 	FilterOpLessEqual FilterOperator = "lte"
 
 	// FilterOpContains checks if a field value contains the given text.
@@ -61,8 +60,8 @@ const (
 	// FilterOpStartsWith matches when a field value starts with a given prefix.
 	FilterOpStartsWith FilterOperator = "startsWith"
 
-	// FilterOpEndsWith is a filter operator that matches when a field ends with
-	// the given suffix.
+	// FilterOpEndsWith is a filter operator that matches when a field ends with the given
+	// suffix.
 	FilterOpEndsWith FilterOperator = "endsWith"
 
 	// FilterOpIn checks if a field value exists within a given list.
@@ -263,14 +262,13 @@ func compareEquals(a, b any) bool {
 
 // compareGreaterThan checks if a is greater than b.
 //
-// Supports numeric, string, and time comparisons. For strings, uses
-// alphabetical ordering. Returns false if the values cannot be compared.
+// Supports numeric, string, and time comparisons. For strings, uses alphabetical
+// ordering. Returns false if the values cannot be compared.
 //
 // Takes a (any) which is the left value to compare.
 // Takes b (any) which is the right value to compare.
 //
-// Returns bool which is true if a is greater than b, or false if they
-// cannot be compared.
+// Returns bool which is true if a is greater than b, or false if they cannot be compared.
 func compareGreaterThan(a, b any) bool {
 	aNum := toFloat64(a)
 	bNum := toFloat64(b)
@@ -298,8 +296,8 @@ func compareGreaterThan(a, b any) bool {
 // Takes fieldValue (any) which is the field to search within.
 // Takes searchValue (any) which is the substring to look for.
 //
-// Returns bool which is true if fieldValue contains searchValue, or false if
-// either value is not a string.
+// Returns bool which is true if fieldValue contains searchValue, or false if either value
+// is not a string.
 func compareContains(fieldValue, searchValue any) bool {
 	fieldString, ok := fieldValue.(string)
 	if !ok {
@@ -317,8 +315,8 @@ func compareContains(fieldValue, searchValue any) bool {
 // Takes fieldValue (any) which is the value to check. It must be a string.
 // Takes prefix (any) which is the prefix to match. It must be a string.
 //
-// Returns bool which is true if fieldValue starts with prefix, or false if
-// either value is not a string.
+// Returns bool which is true if fieldValue starts with prefix, or false if either value
+// is not a string.
 func compareStartsWith(fieldValue, prefix any) bool {
 	fieldString, ok := fieldValue.(string)
 	if !ok {
@@ -336,8 +334,8 @@ func compareStartsWith(fieldValue, prefix any) bool {
 // Takes fieldValue (any) which is the value to check. It must be a string.
 // Takes suffix (any) which is the suffix to match. It must be a string.
 //
-// Returns bool which is true if fieldValue ends with suffix, or false if
-// either value is not a string.
+// Returns bool which is true if fieldValue ends with suffix, or false if either value is
+// not a string.
 func compareEndsWith(fieldValue, suffix any) bool {
 	fieldString, ok := fieldValue.(string)
 	if !ok {
@@ -381,9 +379,8 @@ func compareIn(fieldValue, arrayValue any) bool {
 //
 // Takes v (any) which is the value to convert.
 //
-// Returns *float64 which points to the converted value, or nil if the value
-// cannot be converted. Supported types are float64, float32, int, int32, int64,
-// and string.
+// Returns *float64 which points to the converted value, or nil if the value cannot be
+// converted. Supported types are float64, float32, int, int32, int64, and string.
 func toFloat64(v any) *float64 {
 	switch value := v.(type) {
 	case float64:
@@ -408,12 +405,10 @@ func toFloat64(v any) *float64 {
 
 // toTime converts a value to a time pointer.
 //
-// Takes v (any) which is the value to convert. This may be a time.Time or a
-// string in RFC3339, date-only (2006-01-02), or datetime (2006-01-02 15:04:05)
-// format.
+// Takes v (any) which is the value to convert. This may be a time.Time or a string in
+// RFC3339, date-only (2006-01-02), or datetime (2006-01-02 15:04:05) format.
 //
-// Returns *time.Time which is the converted time, or nil if the conversion
-// fails.
+// Returns *time.Time which is the converted time, or nil if the conversion fails.
 func toTime(v any) *time.Time {
 	switch value := v.(type) {
 	case time.Time:
@@ -438,9 +433,8 @@ func toTime(v any) *time.Time {
 // Takes fieldValue (any) which is the field content to match against.
 // Takes searchValue (any) which is the search pattern to find.
 //
-// Returns bool which is true if the field value matches the search pattern
-// within the default threshold (0.3), or false if either value is not a
-// string.
+// Returns bool which is true if the field value matches the search pattern within the
+// default threshold (0.3), or false if either value is not a string.
 func compareFuzzy(fieldValue, searchValue any) bool {
 	fieldString, ok := fieldValue.(string)
 	if !ok {

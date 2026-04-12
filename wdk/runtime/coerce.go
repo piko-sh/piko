@@ -23,9 +23,8 @@ import (
 	"time"
 )
 
-// CoerceInt extracts an integer from a value of unknown type. YAML parsers
-// produce int, int64, or float64 depending on the value and library; the
-// helper handles all three.
+// CoerceInt extracts an integer from a value of unknown type. YAML parsers produce int,
+// int64, or float64 depending on the value and library; the helper handles all three.
 //
 // Takes v (any) which is the value to coerce.
 //
@@ -125,9 +124,8 @@ func CoerceFloat32(v any) (float32, bool) {
 	}
 }
 
-// CoerceStringSlice extracts a string slice from a value of unknown type.
-// YAML parsers may produce []any containing strings rather than []string
-// directly.
+// CoerceStringSlice extracts a string slice from a value of unknown type. YAML parsers
+// may produce []any containing strings rather than []string directly.
 //
 // Takes v (any) which is the value to coerce.
 //
@@ -152,9 +150,8 @@ func CoerceStringSlice(v any) ([]string, bool) {
 	}
 }
 
-// CoerceTime extracts a time.Time from a value of unknown type. YAML parsers
-// typically produce time.Time directly for date fields, but the value may also
-// arrive as a string.
+// CoerceTime extracts a time.Time from a value of unknown type. YAML parsers typically
+// produce time.Time directly for date fields, but the value may also arrive as a string.
 //
 // Takes v (any) which is the value to coerce.
 //
@@ -187,10 +184,9 @@ type unsignedInt interface {
 	~uint8 | ~uint16 | ~uint32 | ~uint | ~uint64
 }
 
-// CoerceSignedInt extracts a signed integer of any width from a value of
-// unknown type. YAML parsers produce int, int64, or float64 depending on the
-// value and library; the helper handles all three and converts to the
-// target type T.
+// CoerceSignedInt extracts a signed integer of any width from a value of unknown type.
+// YAML parsers produce int, int64, or float64 depending on the value and library; the
+// helper handles all three and converts to the target type T.
 //
 // Takes v (any) which is the value to coerce.
 //
@@ -217,8 +213,8 @@ func CoerceSignedInt[T signedInt](v any) (T, bool) {
 	}
 }
 
-// CoerceUnsignedInt extracts an unsigned integer of any width from a value of
-// unknown type.
+// CoerceUnsignedInt extracts an unsigned integer of any width from a value of unknown
+// type.
 //
 // Takes v (any) which is the value to coerce.
 //
@@ -261,8 +257,8 @@ func CoerceUnsignedInt[T unsignedInt](v any) (T, bool) {
 	}
 }
 
-// MetadataGet looks up a key in a metadata map, trying an exact match first
-// then falling back to a case-insensitive match.
+// MetadataGet looks up a key in a metadata map, trying an exact match first then falling
+// back to a case-insensitive match.
 //
 // Takes m (map[string]any) which is the metadata map to search.
 // Takes key (string) which is the key to look up.

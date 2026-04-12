@@ -35,11 +35,13 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-var _ email.ProviderPort = (*MailgunProvider)(nil)
+var (
+	_ email.ProviderPort = (*MailgunProvider)(nil)
+)
 
 const (
-	// defaultCallsPerSecond is a conservative default rate limit for the
-	// Mailgun API. Actual limits vary by plan.
+	// defaultCallsPerSecond is a conservative default rate limit for the Mailgun API. Actual
+	// limits vary by plan.
 	defaultCallsPerSecond = 50.0
 
 	// defaultBurst is the default burst size for the token bucket rate limiter.
@@ -51,8 +53,8 @@ const (
 	// metricKeySendType is the metric attribute key for the email send type.
 	metricKeySendType = "send_type"
 
-	// metricStatusSuccess is the metric attribute value for operations that
-	// complete without error.
+	// metricStatusSuccess is the metric attribute value for operations that complete without
+	// error.
 	metricStatusSuccess = "success"
 
 	// metricStatusError is the metric attribute value for failed operations.
@@ -79,16 +81,15 @@ const (
 	// optionKeyRequireTLS is the option key for requiring TLS delivery.
 	optionKeyRequireTLS = "require_tls"
 
-	// optionKeySkipVerification is the option key for skipping certificate
-	// verification.
+	// optionKeySkipVerification is the option key for skipping certificate verification.
 	optionKeySkipVerification = "skip_verification"
 
 	// logKeyTo is the log attribute key for email recipient addresses.
 	logKeyTo = "to"
 )
 
-// MailgunProvider implements the EmailProviderPort interface for the
-// Mailgun email service.
+// MailgunProvider implements the EmailProviderPort interface for the Mailgun email
+// service.
 type MailgunProvider struct {
 	// client sends emails through the Mailgun API.
 	client mailgun.Mailgun
@@ -103,11 +104,9 @@ type MailgunProvider struct {
 	domain string
 }
 
-// MailgunProviderArgs contains configuration for creating a new Mailgun email
-// provider.
+// MailgunProviderArgs contains configuration for creating a new Mailgun email provider.
 type MailgunProviderArgs struct {
-	// Domain is the Mailgun sending domain (e.g. "mg.example.com"); must not
-	// be empty.
+	// Domain is the Mailgun sending domain (e.g. "mg.example.com"); must not be empty.
 	Domain string
 
 	// APIKey is the Mailgun API key for authentication; must not be empty.
@@ -116,24 +115,21 @@ type MailgunProviderArgs struct {
 	// FromEmail is the default sender email address; must not be empty.
 	FromEmail string
 
-	// APIBase is an optional override for the Mailgun API base URL, empty
-	// for the default US endpoint.
+	// APIBase is an optional override for the Mailgun API base URL, empty for the default US
+	// endpoint.
 	APIBase string
 }
 
 // ProviderOption is a functional option for setting up the Mailgun provider.
 type ProviderOption = email_domain.ProviderOption
 
-// NewMailgunProvider creates a new Mailgun email provider with the given
-// settings.
+// NewMailgunProvider creates a new Mailgun email provider with the given settings.
 //
-// Takes arguments (MailgunProviderArgs) which specifies the Mailgun credentials,
-// sending domain, and sender details.
-// Takes opts (...ProviderOption) which provides optional rate limiting
-// settings.
+// Takes arguments (MailgunProviderArgs) which specifies the Mailgun credentials, sending
+// domain, and sender details.
+// Takes opts (...ProviderOption) which provides optional rate limiting settings.
 //
-// Returns email.ProviderPort which is the configured provider ready for
-// use.
+// Returns email.ProviderPort which is the configured provider ready for use.
 // Returns error when the domain, API key, or from email is empty.
 func NewMailgunProvider(ctx context.Context, arguments MailgunProviderArgs, opts ...ProviderOption) (email.ProviderPort, error) {
 	if arguments.Domain == "" {
@@ -171,11 +167,11 @@ func NewMailgunProvider(ctx context.Context, arguments MailgunProviderArgs, opts
 
 // Send transmits a single email via Mailgun.
 //
-// Takes params (*email_dto.SendParams) which specifies the email recipients,
-// subject, and body content.
+// Takes params (*email_dto.SendParams) which specifies the email recipients, subject, and
+// body content.
 //
-// Returns error when rate limiting fails, parameters are invalid, or the
-// Mailgun API request fails.
+// Returns error when rate limiting fails, parameters are invalid, or the Mailgun API
+// request fails.
 func (p *MailgunProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
 	startTime := time.Now()
 
@@ -214,9 +210,9 @@ func (p *MailgunProvider) Send(ctx context.Context, params *email_dto.SendParams
 	return nil
 }
 
-// SupportsBulkSending reports whether the provider supports native bulk sending.
-// Mailgun does not have a native bulk sending API for varied messages, so bulk
-// sends fall back to individual Send calls.
+// SupportsBulkSending reports whether the provider supports native bulk sending. Mailgun
+// does not have a native bulk sending API for varied messages, so bulk sends fall back to
+// individual Send calls.
 //
 // Returns bool which is always false for this provider.
 func (*MailgunProvider) SupportsBulkSending() bool {
@@ -253,8 +249,8 @@ func (p *MailgunProvider) SendBulk(ctx context.Context, emails []*email_dto.Send
 	return nil
 }
 
-// Close releases resources held by the provider. The Mailgun client is
-// stateless, so the call does nothing.
+// Close releases resources held by the provider. The Mailgun client is stateless, so the
+// call does nothing.
 //
 // Returns error when cleanup fails, though this always returns nil.
 func (*MailgunProvider) Close(_ context.Context) error {
@@ -263,11 +259,9 @@ func (*MailgunProvider) Close(_ context.Context) error {
 
 // buildMailgunMessage converts email parameters to a Mailgun API message.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// convert.
+// Takes params (*email_dto.SendParams) which contains the email details to convert.
 //
-// Returns *mailgun.Message which is the formatted message ready for the Mailgun
-// API.
+// Returns *mailgun.Message which is the formatted message ready for the Mailgun API.
 // Returns error when provider options cannot be applied.
 func (p *MailgunProvider) buildMailgunMessage(params *email_dto.SendParams) (*mailgun.Message, error) {
 	from := p.fromEmail
@@ -295,8 +289,8 @@ func (p *MailgunProvider) buildMailgunMessage(params *email_dto.SendParams) (*ma
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
-// Returns *email_domain.MultiError which contains all send failures, or nil if
-// all emails were sent successfully.
+// Returns *email_domain.MultiError which contains all send failures, or nil if all emails
+// were sent successfully.
 func (p *MailgunProvider) sendEmailsIndividually(ctx context.Context, emails []*email_dto.SendParams) *email_domain.MultiError {
 	ctx, l := logger.From(ctx, log)
 	var multiError *email_domain.MultiError
@@ -328,14 +322,11 @@ func (p *MailgunProvider) sendEmailsIndividually(ctx context.Context, emails []*
 	return multiError
 }
 
-// validateSendParams checks that the required fields in send parameters are
-// present.
+// validateSendParams checks that the required fields in send parameters are present.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// check.
+// Takes params (*email_dto.SendParams) which contains the email details to check.
 //
-// Returns error when no recipients are provided or when both body fields are
-// empty.
+// Returns error when no recipients are provided or when both body fields are empty.
 func validateSendParams(params *email_dto.SendParams) error {
 	if len(params.To) == 0 {
 		return email_domain.ErrRecipientRequired
@@ -359,12 +350,11 @@ func addRecipients(message *mailgun.Message, params *email_dto.SendParams) {
 	}
 }
 
-// addAttachments converts email attachments to Mailgun format and adds them
-// to the message.
+// addAttachments converts email attachments to Mailgun format and adds them to the
+// message.
 //
 // Takes message (*mailgun.Message) which receives the converted attachments.
-// Takes attachments ([]email_dto.Attachment) which provides the attachments
-// to convert.
+// Takes attachments ([]email_dto.Attachment) which provides the attachments to convert.
 func addAttachments(message *mailgun.Message, attachments []email_dto.Attachment) {
 	for _, attachment := range attachments {
 		if attachment.ContentID != "" {
@@ -436,8 +426,8 @@ func recordSendMetrics(ctx context.Context, startTime time.Time, err error, send
 //
 // Takes startTime (time.Time) which marks when the bulk operation began.
 // Takes emailCount (int) which is the total number of emails in the batch.
-// Takes multiError (*email_domain.MultiError) which holds any errors from the
-// bulk operation.
+// Takes multiError (*email_domain.MultiError) which holds any errors from the bulk
+// operation.
 func recordBulkMetrics(ctx context.Context, startTime time.Time, emailCount int, multiError *email_domain.MultiError) {
 	duration := float64(time.Since(startTime).Milliseconds())
 	status := metricStatusSuccess

@@ -22,19 +22,16 @@ const (
 	// IdentQueries represents the Queries struct name.
 	IdentQueries = "Queries"
 
-	// IdentQueriesReceiver represents the receiver
-	// variable name for Queries methods.
+	// IdentQueriesReceiver represents the receiver variable name for Queries methods.
 	IdentQueriesReceiver = "queries"
 
 	// IdentDB represents the db parameter name.
 	IdentDB = "db"
 
-	// IdentReader represents the reader field name
-	// for read-only database connections.
+	// IdentReader represents the reader field name for read-only database connections.
 	IdentReader = "reader"
 
-	// IdentWriter represents the writer field name
-	// for read-write database connections.
+	// IdentWriter represents the writer field name for read-write database connections.
 	IdentWriter = "writer"
 
 	// IdentRow represents the row local variable name.
@@ -58,8 +55,7 @@ const (
 	// IdentCtx represents the ctx parameter name.
 	IdentCtx = "ctx"
 
-	// IdentBuilder represents the builder variable name
-	// used for strings.Builder instances.
+	// IdentBuilder represents the builder variable name used for strings.Builder instances.
 	IdentBuilder = "builder"
 
 	// IdentQuery represents the query variable name.
@@ -71,19 +67,18 @@ const (
 	// IdentInt represents the int built-in type name.
 	IdentInt = "int"
 
-	// IdentWhereArgs represents the whereArgs variable
-	// name for dynamic WHERE clause arguments.
+	// IdentWhereArgs represents the whereArgs variable name for dynamic WHERE clause
+	// arguments.
 	IdentWhereArgs = "whereArgs"
 
-	// IdentWhereClauses represents the whereClauses
-	// variable name for dynamic WHERE clause fragments.
+	// IdentWhereClauses represents the whereClauses variable name for dynamic WHERE clause
+	// fragments.
 	IdentWhereClauses = "whereClauses"
 
 	// IdentContext represents the context package name.
 	IdentContext = "context"
 
-	// IdentContextType represents the Context type name
-	// from the context package.
+	// IdentContextType represents the Context type name from the context package.
 	IdentContextType = "Context"
 
 	// IdentBlank represents the blank identifier.

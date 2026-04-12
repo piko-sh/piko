@@ -36,22 +36,24 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// emailBaseStyles contains the base CSS reset styles for email rendering.
-const emailBaseStyles = `#outlook a{padding:0}body{margin:0;padding:0;-webkit-text-size-adjust:100%;` +
-	`-ms-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}` +
-	`table,td{border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0}` +
-	`img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;max-width:100%}` +
-	`p,h1,h2,h3,h4,h5,h6{margin:0}*,*::before,*::after{box-sizing:border-box}`
+const (
+	// emailBaseStyles contains the base CSS reset styles for email rendering.
+	emailBaseStyles = `#outlook a{padding:0}body{margin:0;padding:0;-webkit-text-size-adjust:100%;` +
+		`-ms-text-size-adjust:100%;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}` +
+		`table,td{border-collapse:collapse;mso-table-lspace:0;mso-table-rspace:0}` +
+		`img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;max-width:100%}` +
+		`p,h1,h2,h3,h4,h5,h6{margin:0}*,*::before,*::after{box-sizing:border-box}`
+)
 
-// RenderEmail orchestrates the complete email rendering pipeline using the
-// PREMAILER -> PML flow. It inlines CSS styles onto the raw PML AST via
-// Premailer, transforms the styled PikoML tags into final standard HTML via
-// pmlEngine, and renders the final HTML to the writer.
+// RenderEmail orchestrates the complete email rendering pipeline using the PREMAILER ->
+// PML flow. It inlines CSS styles onto the raw PML AST via Premailer, transforms the
+// styled PikoML tags into final standard HTML via pmlEngine, and renders the final HTML
+// to the writer.
 //
 // Takes w (io.Writer) which receives the rendered email HTML output.
 // Takes request (*http.Request) which provides request context for rendering.
-// Takes opts (RenderEmailOptions) which specifies the template, styling, and
-// metadata for the email.
+// Takes opts (RenderEmailOptions) which specifies the template, styling, and metadata for
+// the email.
 //
 // Returns error when streaming the AST to the writer fails.
 func (ro *RenderOrchestrator) RenderEmail(
@@ -164,10 +166,9 @@ type emailContentParams struct {
 //
 // Takes qw (*quicktemplate.Writer) which receives the rendered output.
 // Takes rctx (*renderContext) which holds the current rendering state.
-// Takes metadata (*templater_dto.InternalMetadata) which provides email title
-// and language settings.
-// Takes params (emailContentParams) which contains the CSS, AST, and styling
-// to render.
+// Takes metadata (*templater_dto.InternalMetadata) which provides email title and
+// language settings.
+// Takes params (emailContentParams) which contains the CSS, AST, and styling to render.
 // Takes span (trace.Span) which tracks the rendering operation.
 //
 // Returns error when the AST cannot be rendered to the writer.
@@ -227,12 +228,11 @@ func (ro *RenderOrchestrator) embedEmailSVGSprite(
 	qw.N().S(spriteSheet)
 }
 
-// extractPreservedBlocks finds MSO conditional comments and extracts them for
-// reinsertion after rendering. These blocks must be preserved exactly as-is
-// and not processed by the rendering pipeline.
+// extractPreservedBlocks finds MSO conditional comments and extracts them for reinsertion
+// after rendering. These blocks must be preserved exactly as-is and not processed by the
+// rendering pipeline.
 //
-// Takes ast (*ast_domain.TemplateAST) which is the template to scan for
-// preserved blocks.
+// Takes ast (*ast_domain.TemplateAST) which is the template to scan for preserved blocks.
 //
 // Returns []string which contains the extracted MSO conditional comments.
 func (*RenderOrchestrator) extractPreservedBlocks(
@@ -260,19 +260,17 @@ func (*RenderOrchestrator) extractPreservedBlocks(
 	return preservedBlocks
 }
 
-// performPremailerPass runs the premailer transformation on the raw AST
-// containing <pml-*> tags. It inlines styles as style attributes and extracts
-// leftover CSS such as @media queries that cannot be inlined.
+// performPremailerPass runs the premailer transformation on the raw AST containing
+// <pml-*> tags. It inlines styles as style attributes and extracts leftover CSS such as
+// @media queries that cannot be inlined.
 //
-// Takes tmplAST (*ast_domain.TemplateAST) which is the raw template AST to
-// transform.
+// Takes tmplAST (*ast_domain.TemplateAST) which is the raw template AST to transform.
 // Takes styling (string) which contains external CSS to inline.
-// Takes premailerOptions (*premailer.Options) which configures the premailer
-// behaviour.
+// Takes premailerOptions (*premailer.Options) which configures the premailer behaviour.
 // Takes span (trace.Span) which provides tracing context for error reporting.
 //
-// Returns *ast_domain.TemplateAST which is the transformed AST with inlined
-// styles, or the original AST if transformation fails.
+// Returns *ast_domain.TemplateAST which is the transformed AST with inlined styles, or
+// the original AST if transformation fails.
 // Returns string which contains any leftover CSS that could not be inlined.
 func (ro *RenderOrchestrator) performPremailerPass(
 	ctx context.Context,
@@ -308,9 +306,8 @@ func (ro *RenderOrchestrator) performPremailerPass(
 	return premailedAST, leftoverCSS
 }
 
-// extractPremailerLeftoverCSS extracts CSS from the premailer-generated
-// head tag and removes the head tag from the AST so it does not appear in the
-// body content.
+// extractPremailerLeftoverCSS extracts CSS from the premailer-generated head tag and
+// removes the head tag from the AST so it does not appear in the body content.
 //
 // Takes premailedAST (*ast_domain.TemplateAST) which is the AST to search.
 //
@@ -343,11 +340,10 @@ func (*RenderOrchestrator) extractPremailerLeftoverCSS(
 	return ""
 }
 
-// performPmlTransformation transforms the pre-inlined AST using the PML engine
-// for email output.
+// performPmlTransformation transforms the pre-inlined AST using the PML engine for email
+// output.
 //
-// Takes premailedAST (*ast_domain.TemplateAST) which is the pre-inlined AST to
-// transform.
+// Takes premailedAST (*ast_domain.TemplateAST) which is the pre-inlined AST to transform.
 //
 // Returns *ast_domain.TemplateAST which is the HTML AST after transformation.
 // Returns string which is the CSS generated by the PML engine.
@@ -406,17 +402,14 @@ func logPmlErrors(ctx context.Context, pmlErrors []*pml_domain.Error) {
 	}
 }
 
-// combineEmailCSS extracts body styles and combines leftover CSS with
-// PML-generated CSS.
+// combineEmailCSS extracts body styles and combines leftover CSS with PML-generated CSS.
 //
-// Takes premailerLeftoverCSS (string) which contains CSS not inlined by
-// premailer.
+// Takes premailerLeftoverCSS (string) which contains CSS not inlined by premailer.
 // Takes pmlGeneratedCSS (string) which contains CSS generated by PML.
 //
-// Returns bodyInlineStyles (string) which contains styles extracted for the
-// body element.
-// Returns finalCombinedCSS (string) which contains the merged leftover and
-// PML-generated CSS.
+// Returns bodyInlineStyles (string) which contains styles extracted for the body element.
+// Returns finalCombinedCSS (string) which contains the merged leftover and PML-generated
+// CSS.
 func combineEmailCSS(ctx context.Context, premailerLeftoverCSS, pmlGeneratedCSS string) (bodyInlineStyles, finalCombinedCSS string) {
 	ctx, l := logger_domain.From(ctx, log)
 	leftoverCSS := premailerLeftoverCSS

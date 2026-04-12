@@ -60,8 +60,8 @@ const (
 	// expandedLinesCPUBase is the base line count for the expanded CPU section.
 	expandedLinesCPUBase = 4
 
-	// expandedLinesCPUHistory is the number of extra lines added when CPU
-	// history is displayed.
+	// expandedLinesCPUHistory is the number of extra lines added when CPU history is
+	// displayed.
 	expandedLinesCPUHistory = 3
 
 	// expandedLinesMemory is the number of lines shown in the expanded memory section.
@@ -70,22 +70,21 @@ const (
 	// expandedLinesGoroutinesBase is the base line count for the goroutines section.
 	expandedLinesGoroutinesBase = 1
 
-	// expandedLinesGoroutinesHist is the number of extra lines added when
-	// the goroutine histogram is shown.
+	// expandedLinesGoroutinesHist is the number of extra lines added when the goroutine
+	// histogram is shown.
 	expandedLinesGoroutinesHist = 3
 
 	// expandedLinesGCBase is the base number of lines for the GC section display.
 	expandedLinesGCBase = 5
 
-	// expandedLinesBuild is the number of lines shown in the build section when
-	// expanded.
+	// expandedLinesBuild is the number of lines shown in the build section when expanded.
 	expandedLinesBuild = 6
 
 	// expandedLinesProcess is the line count when the process section is expanded.
 	expandedLinesProcess = 4
 
-	// expandedLinesRuntime is the number of lines shown when the runtime section
-	// is expanded.
+	// expandedLinesRuntime is the number of lines shown when the runtime section is
+	// expanded.
 	expandedLinesRuntime = 2
 
 	// sectionCPU is the section key for the CPU usage display.
@@ -112,8 +111,7 @@ const (
 	// sectionCache is the section key for render cache statistics.
 	sectionCache = "cache"
 
-	// expandedLinesCache is the number of lines shown when the cache section
-	// is expanded.
+	// expandedLinesCache is the number of lines shown when the cache section is expanded.
 	expandedLinesCache = 2
 )
 
@@ -138,8 +136,8 @@ type SystemRefreshMessage struct {
 	Err error
 }
 
-// SystemPanel shows Go runtime statistics from the Piko server.
-// It implements the Panel interface.
+// SystemPanel shows Go runtime statistics from the Piko server. It implements the Panel
+// interface.
 type SystemPanel struct {
 	*AssetViewer[systemSection]
 
@@ -186,11 +184,10 @@ type systemRenderer struct {
 // NewSystemPanel creates a new system stats panel.
 //
 // Takes provider (SystemProvider) which supplies system statistics data.
-// Takes c (clock.Clock) which provides time functions; if nil, uses the real
-// clock.
+// Takes c (clock.Clock) which provides time functions; if nil, uses the real clock.
 //
-// Returns *SystemPanel which is set up with history tracking and an asset
-// viewer for showing system information.
+// Returns *SystemPanel which is set up with history tracking and an asset viewer for
+// showing system information.
 func NewSystemPanel(provider SystemProvider, c clock.Clock) *SystemPanel {
 	if c == nil {
 		c = clock.RealClock()
@@ -308,8 +305,8 @@ func (p *SystemPanel) handleRefreshMessage(message SystemRefreshMessage) {
 	p.lastRefresh = p.clock.Now()
 }
 
-// updateHistory adds the current stats to the sparkline history.
-// Caller must hold stateMutex.
+// updateHistory adds the current stats to the sparkline history. Caller must hold
+// stateMutex.
 func (p *SystemPanel) updateHistory() {
 	if p.stats == nil {
 		return
@@ -348,8 +345,8 @@ func (p *SystemPanel) handleKey(message tea.KeyPressMsg) (Panel, tea.Cmd) {
 //
 // Returns int which is the number of lines written to the builder.
 //
-// Safe for concurrent use. Acquires a read lock on state before accessing
-// error and stats fields.
+// Safe for concurrent use. Acquires a read lock on state before accessing error and stats
+// fields.
 func (p *SystemPanel) renderSystemHeader(content *strings.Builder) int {
 	usedLines := 0
 
@@ -452,8 +449,8 @@ type sectionContent struct {
 //
 // Returns sectionContent which holds the formatted label, sparkline and value.
 //
-// Safe for concurrent use. Acquires a read lock on stateMutex to access the
-// current stats and history data.
+// Safe for concurrent use. Acquires a read lock on stateMutex to access the current stats
+// and history data.
 func (p *SystemPanel) getSectionContent(section systemSection, config *SparklineConfig) sectionContent {
 	p.stateMutex.RLock()
 	stats := p.stats
@@ -497,8 +494,8 @@ func (p *SystemPanel) getSectionContent(section systemSection, config *Sparkline
 // Takes expanded (bool) which shows if this section is expanded.
 // Takes sparkWidth (int) which sets the width of the sparkline chart.
 //
-// Returns string which holds the formatted row with cursor, expand marker,
-// label, sparkline, and value.
+// Returns string which holds the formatted row with cursor, expand marker, label,
+// sparkline, and value.
 func (p *SystemPanel) renderSectionRow(section systemSection, selected, expanded bool, sparkWidth int) string {
 	cursor := RenderCursor(selected, p.Focused())
 	expandChar := RenderExpandIndicator(expanded)
@@ -524,8 +521,8 @@ func (p *SystemPanel) renderSectionRow(section systemSection, selected, expanded
 // Takes ctx (*ScrollContext) which provides the scroll context for rendering.
 // Takes sectionKey (string) which identifies the section to render.
 //
-// Safe for concurrent use. Acquires a read lock on the state mutex to access
-// statistics and history data.
+// Safe for concurrent use. Acquires a read lock on the state mutex to access statistics
+// and history data.
 func (p *SystemPanel) renderSectionDetails(ctx *ScrollContext, sectionKey string) {
 	p.stateMutex.RLock()
 	stats := p.stats
@@ -570,8 +567,8 @@ func (p *SystemPanel) renderSectionDetails(ctx *ScrollContext, sectionKey string
 
 // refresh fetches new system stats from the provider.
 //
-// Returns tea.Cmd which gets stats in the background and sends a
-// SystemRefreshMessage with the result.
+// Returns tea.Cmd which gets stats in the background and sends a SystemRefreshMessage
+// with the result.
 func (p *SystemPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
@@ -593,8 +590,7 @@ func (p *SystemPanel) refresh() tea.Cmd {
 
 // RenderRow renders a system section row.
 //
-// Takes section (systemSection) which identifies the section to
-// render.
+// Takes section (systemSection) which identifies the section to render.
 // Takes _ (int) which is the unused line index.
 // Takes selected (bool) which indicates if this row is selected.
 // Takes _ (bool) which is the unused focused state.
@@ -609,15 +605,14 @@ func (r *systemRenderer) RenderRow(section systemSection, _ int, selected, _ boo
 
 // RenderExpanded returns detail lines for an expanded system section.
 //
-// Takes section (systemSection) which identifies the section to
-// expand.
+// Takes section (systemSection) which identifies the section to expand.
 // Takes _ (int) which is the unused content width.
 //
-// Returns []string which contains the indented detail lines for
-// the section, or nil if no stats are available.
+// Returns []string which contains the indented detail lines for the section, or nil if no
+// stats are available.
 //
-// Safe for concurrent use. Acquires a read lock on the panel
-// state mutex to access stats and history data.
+// Safe for concurrent use. Acquires a read lock on the panel state mutex to access stats
+// and history data.
 func (r *systemRenderer) RenderExpanded(section systemSection, _ int) []string {
 	r.panel.stateMutex.RLock()
 	stats := r.panel.stats
@@ -742,8 +737,7 @@ func (r *systemRenderer) ExpandedLineCount(section systemSection) int {
 //
 // Takes key (string) which is the section name to look up.
 //
-// Returns string which is the human-readable label, or the key itself if no
-// label exists.
+// Returns string which is the human-readable label, or the key itself if no label exists.
 func sectionLabel(key string) string {
 	labels := map[string]string{
 		sectionCPU:        "CPU",
@@ -764,8 +758,8 @@ func sectionLabel(key string) string {
 // renderCPUDetails renders CPU section details.
 //
 // Takes stats (*SystemStats) which provides current CPU metrics.
-// Takes cpuHist ([]float64) which holds recent CPU usage history for
-// min/max/avg calculations.
+// Takes cpuHist ([]float64) which holds recent CPU usage history for min/max/avg
+// calculations.
 // Takes dimStyle (*lipgloss.Style) which applies visual styling to the output.
 //
 // Returns []string which contains the formatted CPU detail lines.
@@ -811,15 +805,12 @@ func renderMemoryDetails(stats *SystemStats, dimStyle *lipgloss.Style) []string 
 	}
 }
 
-// renderGoroutineDetails renders the expanded details for the
-// active tasks section.
+// renderGoroutineDetails renders the expanded details for the active tasks section.
 //
-// Takes stats (*SystemStats) which provides the current task
-// count.
-// Takes goroutineHist ([]float64) which holds recent task counts
-// for min/max/avg calculations.
-// Takes dimStyle (*lipgloss.Style) which applies dimmed styling to
-// the output.
+// Takes stats (*SystemStats) which provides the current task count.
+// Takes goroutineHist ([]float64) which holds recent task counts for min/max/avg
+// calculations.
+// Takes dimStyle (*lipgloss.Style) which applies dimmed styling to the output.
 //
 // Returns []string which contains the formatted detail lines.
 func renderGoroutineDetails(stats *SystemStats, goroutineHist []float64, dimStyle *lipgloss.Style) []string {
@@ -840,8 +831,7 @@ func renderGoroutineDetails(stats *SystemStats, goroutineHist []float64, dimStyl
 // renderGCDetails renders the garbage collection section details.
 //
 // Takes stats (*SystemStats) which contains the garbage collection metrics.
-// Takes now (time.Time) which is the current time for working out relative
-// timestamps.
+// Takes now (time.Time) which is the current time for working out relative timestamps.
 // Takes dimStyle (*lipgloss.Style) which styles the output text.
 //
 // Returns []string which contains the formatted GC detail lines.
@@ -930,8 +920,8 @@ func renderCacheDetails(stats *SystemStats, dimStyle *lipgloss.Style) []string {
 //
 // Takes m (float64) which is the CPU usage in millicores.
 //
-// Returns string which shows cores if m is at least 1000, or millicores with
-// an "m" suffix otherwise.
+// Returns string which shows cores if m is at least 1000, or millicores with an "m"
+// suffix otherwise.
 func formatMillicores(m float64) string {
 	if m >= millicoresPerCore {
 		return fmt.Sprintf("%.2f", m/millicoresPerCore)
@@ -943,8 +933,8 @@ func formatMillicores(m float64) string {
 //
 // Takes d (time.Duration) which is the duration to format.
 //
-// Returns string which contains the formatted uptime in hours, minutes, and
-// seconds (e.g. "2h30m15s", "5m30s", or "45s").
+// Returns string which contains the formatted uptime in hours, minutes, and seconds (e.g.
+// "2h30m15s", "5m30s", or "45s").
 func formatUptime(d time.Duration) string {
 	d = d.Round(time.Second)
 	h := d / time.Hour

@@ -43,8 +43,7 @@ const (
 	// WatchdogProfilesPanelTitle is the display title.
 	WatchdogProfilesPanelTitle = "Watchdog Profiles"
 
-	// profilesAllTypeLabel is the "no type filter" sentinel shown in
-	// the type filter cycle.
+	// profilesAllTypeLabel is the "no type filter" sentinel shown in the type filter cycle.
 	profilesAllTypeLabel = "all"
 )
 
@@ -65,8 +64,8 @@ const (
 	profileSortFilename
 )
 
-// profilesSnapshotMsg carries a refreshed profile list from the provider.
-// Err is non-nil when the fetch failed.
+// profilesSnapshotMsg carries a refreshed profile list from the provider. Err is non-nil
+// when the fetch failed.
 type profilesSnapshotMsg struct {
 	// Err is the fetch error, or nil on success.
 	Err error
@@ -75,8 +74,7 @@ type profilesSnapshotMsg struct {
 	Profiles []WatchdogProfile
 }
 
-// profilesPruneCompletedMsg notifies the panel that a prune RPC
-// completed.
+// profilesPruneCompletedMsg notifies the panel that a prune RPC completed.
 type profilesPruneCompletedMsg struct {
 	// Err is the prune error, or nil on success.
 	Err error
@@ -88,8 +86,8 @@ type profilesPruneCompletedMsg struct {
 	Removed int
 }
 
-// WatchdogProfilesPanel renders the inventory of stored profile artefacts
-// with sort, type-filter, and prune actions.
+// WatchdogProfilesPanel renders the inventory of stored profile artefacts with sort,
+// type-filter, and prune actions.
 type WatchdogProfilesPanel struct {
 	// provider supplies the profile inventory.
 	provider WatchdogProvider
@@ -117,7 +115,7 @@ type WatchdogProfilesPanel struct {
 	// mu guards lastFetchErr and profiles.
 	mu sync.RWMutex
 
-	// pruneInFlight is true while a prune RPC is awaiting completion.
+	// pruneInFlight is true while a prune RPC is in progress.
 	pruneInFlight bool
 }
 
@@ -265,8 +263,7 @@ func (p *WatchdogProfilesPanel) renderHeaderRow(width int) string {
 	return PadRightANSI(left+strings.Repeat(" ", gap)+right, width)
 }
 
-// renderTableHeader returns the AGE / TYPE / SIZE / SIDECAR /
-// FILENAME header row.
+// renderTableHeader returns the AGE / TYPE / SIZE / SIDECAR / FILENAME header row.
 //
 // Takes width (int) which is the row width.
 //
@@ -277,8 +274,8 @@ func (p *WatchdogProfilesPanel) renderTableHeader(width int) string {
 	return PadRightANSI(header, width)
 }
 
-// renderRows returns up to height rows of the visible, sorted, filtered
-// profile inventory.
+// renderRows returns up to height rows of the visible, sorted, filtered profile
+// inventory.
 //
 // Takes width (int) which is the row width.
 // Takes height (int) which is the maximum number of rows to return.
@@ -452,8 +449,8 @@ func (p *WatchdogProfilesPanel) sortModeLabel() string {
 
 // fetchCmd asks the provider for a fresh profile inventory.
 //
-// Returns tea.Cmd which produces a profilesSnapshotMsg, or nil when no
-// provider is configured.
+// Returns tea.Cmd which produces a profilesSnapshotMsg, or nil when no provider is
+// configured.
 func (p *WatchdogProfilesPanel) fetchCmd() tea.Cmd {
 	if p.provider == nil {
 		return nil
@@ -468,8 +465,8 @@ func (p *WatchdogProfilesPanel) fetchCmd() tea.Cmd {
 
 // pruneCmd issues a prune RPC for the active type filter.
 //
-// Returns tea.Cmd which produces a profilesPruneCompletedMsg, or nil when
-// no provider is configured.
+// Returns tea.Cmd which produces a profilesPruneCompletedMsg, or nil when no provider is
+// configured.
 func (p *WatchdogProfilesPanel) pruneCmd() tea.Cmd {
 	if p.provider == nil {
 		return nil
@@ -532,8 +529,8 @@ func (p *WatchdogProfilesPanel) cycleSort() {
 	}
 }
 
-// cycleTypeFilter advances through the distinct types present in the
-// snapshot, with a leading "all" entry.
+// cycleTypeFilter advances through the distinct types present in the snapshot, with a
+// leading "all" entry.
 func (p *WatchdogProfilesPanel) cycleTypeFilter() {
 	types := p.distinctTypes()
 	choices := append([]string{profilesAllTypeLabel}, types...)
@@ -571,8 +568,8 @@ func (p *WatchdogProfilesPanel) distinctTypes() []string {
 	return out
 }
 
-// clampCursor ensures the cursor stays within the visible range when
-// the underlying data shrinks.
+// clampCursor ensures the cursor stays within the visible range when the underlying data
+// shrinks.
 func (p *WatchdogProfilesPanel) clampCursor() {
 	visible := len(p.visibleProfiles())
 	cursor := p.Cursor()

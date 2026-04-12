@@ -18,8 +18,8 @@
 
 package layouter_domain
 
-// gridAlignmentInput groups the cell geometry and content offsets
-// needed by alignGridItem, reducing its argument count.
+// gridAlignmentInput groups the cell geometry and content offsets needed by
+// alignGridItem, reducing its argument count.
 type gridAlignmentInput struct {
 	// cellX holds the horizontal position of the cell in points.
 	cellX float64
@@ -33,24 +33,22 @@ type gridAlignmentInput struct {
 	// cellHeight holds the height of the grid cell in points.
 	cellHeight float64
 
-	// contentOffsetX holds the horizontal offset from the
-	// grid container edge to the content area.
+	// contentOffsetX holds the horizontal offset from the grid container edge to the content
+	// area.
 	contentOffsetX float64
 
-	// contentOffsetY holds the vertical offset from the
-	// grid container edge to the content area.
+	// contentOffsetY holds the vertical offset from the grid container edge to the content
+	// area.
 	contentOffsetY float64
 }
 
-// alignGridItem positions a grid item fragment within its cell
-// by applying justify-items and align-items alignment.
+// alignGridItem positions a grid item fragment within its cell by applying justify-items
+// and align-items alignment.
 //
-// Takes fragment (*Fragment) which is the grid item fragment
-// to position.
-// Takes cell (gridAlignmentInput) which holds the cell
-// geometry and content offsets.
-// Takes containerStyle (*ComputedStyle) which provides the
-// container's justify-items and align-items values.
+// Takes fragment (*Fragment) which is the grid item fragment to position.
+// Takes cell (gridAlignmentInput) which holds the cell geometry and content offsets.
+// Takes containerStyle (*ComputedStyle) which provides the container's justify-items and
+// align-items values.
 func alignGridItem(
 	fragment *Fragment,
 	cell gridAlignmentInput,
@@ -77,12 +75,11 @@ func alignGridItem(
 	fragment.OffsetY = cell.contentOffsetY + cell.cellY + offsetY + fragment.Margin.Top + fragment.Padding.Top + fragment.Border.Top
 }
 
-// applyGridJustifyStretch stretches a grid item's content width to
-// fill the cell when justify-items is stretch.
+// applyGridJustifyStretch stretches a grid item's content width to fill the cell when
+// justify-items is stretch.
 //
 // Takes fragment (*Fragment) which is the grid item to stretch.
-// Takes justify (JustifyItemsType) which is the effective
-// justify-items value.
+// Takes justify (JustifyItemsType) which is the effective justify-items value.
 // Takes cellWidth (float64) which is the width of the grid cell.
 //
 // Returns float64 which is the updated margin-box width.
@@ -100,14 +97,12 @@ func applyGridJustifyStretch(fragment *Fragment, justify JustifyItemsType, cellW
 	return fragment.MarginBoxWidth()
 }
 
-// computeGridJustifyOffset returns the horizontal offset within a
-// grid cell based on the effective justify-items value.
+// computeGridJustifyOffset returns the horizontal offset within a grid cell based on the
+// effective justify-items value.
 //
-// Takes justify (JustifyItemsType) which is the effective
-// justify-items value.
+// Takes justify (JustifyItemsType) which is the effective justify-items value.
 // Takes cellWidth (float64) which is the width of the grid cell.
-// Takes itemMarginWidth (float64) which is the margin-box width
-// of the grid item.
+// Takes itemMarginWidth (float64) which is the margin-box width of the grid item.
 //
 // Returns float64 which is the horizontal offset.
 func computeGridJustifyOffset(justify JustifyItemsType, cellWidth, itemMarginWidth float64) float64 {
@@ -121,14 +116,12 @@ func computeGridJustifyOffset(justify JustifyItemsType, cellWidth, itemMarginWid
 	}
 }
 
-// applyGridAlignStretch stretches a grid item's content height to
-// fill the cell when align-items is stretch.
+// applyGridAlignStretch stretches a grid item's content height to fill the cell when
+// align-items is stretch.
 //
 // Takes fragment (*Fragment) which is the grid item to stretch.
-// Takes align (AlignItemsType) which is the effective
-// align-items value.
-// Takes cellHeight (float64) which is the height of the grid
-// cell.
+// Takes align (AlignItemsType) which is the effective align-items value.
+// Takes cellHeight (float64) which is the height of the grid cell.
 //
 // Returns float64 which is the updated margin-box height.
 func applyGridAlignStretch(fragment *Fragment, align AlignItemsType, cellHeight float64) float64 {
@@ -145,15 +138,12 @@ func applyGridAlignStretch(fragment *Fragment, align AlignItemsType, cellHeight 
 	return fragment.MarginBoxHeight()
 }
 
-// computeGridAlignOffset returns the vertical offset within a grid
-// cell based on the effective align-items value.
+// computeGridAlignOffset returns the vertical offset within a grid cell based on the
+// effective align-items value.
 //
-// Takes align (AlignItemsType) which is the effective
-// align-items value.
-// Takes cellHeight (float64) which is the height of the grid
-// cell.
-// Takes itemMarginHeight (float64) which is the margin-box
-// height of the grid item.
+// Takes align (AlignItemsType) which is the effective align-items value.
+// Takes cellHeight (float64) which is the height of the grid cell.
+// Takes itemMarginHeight (float64) which is the margin-box height of the grid item.
 //
 // Returns float64 which is the vertical offset.
 func computeGridAlignOffset(align AlignItemsType, cellHeight, itemMarginHeight float64) float64 {
@@ -167,13 +157,11 @@ func computeGridAlignOffset(align AlignItemsType, cellHeight, itemMarginHeight f
 	}
 }
 
-// resolveEffectiveJustify resolves the effective justify-items value
-// for a grid item, falling back to the container's justify-items
-// when the item's justify-self is auto.
+// resolveEffectiveJustify resolves the effective justify-items value for a grid item,
+// falling back to the container's justify-items when the item's justify-self is auto.
 //
 // Takes fragment (*Fragment) which is the grid item fragment.
-// Takes containerJustify (JustifyItemsType) which is the
-// container's justify-items value.
+// Takes containerJustify (JustifyItemsType) which is the container's justify-items value.
 //
 // Returns JustifyItemsType which is the effective value.
 func resolveEffectiveJustify(fragment *Fragment, containerJustify JustifyItemsType) JustifyItemsType {
@@ -194,13 +182,11 @@ func resolveEffectiveJustify(fragment *Fragment, containerJustify JustifyItemsTy
 	}
 }
 
-// resolveEffectiveAlign resolves the effective align-items value
-// for a grid item, falling back to the container's align-items
-// when the item's align-self is auto.
+// resolveEffectiveAlign resolves the effective align-items value for a grid item, falling
+// back to the container's align-items when the item's align-self is auto.
 //
 // Takes fragment (*Fragment) which is the grid item fragment.
-// Takes containerAlign (AlignItemsType) which is the
-// container's align-items value.
+// Takes containerAlign (AlignItemsType) which is the container's align-items value.
 //
 // Returns AlignItemsType which is the effective value.
 func resolveEffectiveAlign(fragment *Fragment, containerAlign AlignItemsType) AlignItemsType {

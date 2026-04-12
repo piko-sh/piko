@@ -16,13 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package markdown_provider_goldmark implements the
-// MarkdownParserPort using the Goldmark library.
+// Package markdown_provider_goldmark implements the MarkdownParserPort using the Goldmark
+// library.
 //
-// [Parser] parses Markdown content with Goldmark (including GFM,
-// footnotes, fenced containers, and YAML frontmatter) and converts
-// the resulting AST into Piko's native markdown AST types. The
-// package also provides [ToHTML] and [ToHTMLBytes] convenience
-// functions for direct Markdown-to-HTML conversion, with safe and
-// unsafe rendering modes.
+// [Parser] parses Markdown content with Goldmark (including GFM, footnotes, fenced
+// containers, and YAML frontmatter) and converts the resulting AST into Piko's native
+// markdown AST types. The package also provides [ToHTML] and [ToHTMLBytes] convenience
+// functions for direct Markdown-to-HTML conversion, with safe and unsafe rendering modes.
 package markdown_provider_goldmark

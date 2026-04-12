@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/bootstrap"
+	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/i18n/i18n_adapters"
 	"piko.sh/piko/internal/i18n/i18n_domain"
 	"piko.sh/piko/wdk/maths"

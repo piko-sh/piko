@@ -32,13 +32,15 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// circuitBreakerBucketPeriod is the duration of each measurement bucket
-// for tracking failure counts.
-const circuitBreakerBucketPeriod = 10 * time.Second
+const (
+	// circuitBreakerBucketPeriod is the duration of each measurement bucket for tracking
+	// failure counts.
+	circuitBreakerBucketPeriod = 10 * time.Second
+)
 
-// CircuitBreakerWrapper wraps a storage provider with circuit breaker
-// functionality. It implements StorageProviderPort and prevents cascading
-// failures by opening the circuit after consecutive failures.
+// CircuitBreakerWrapper wraps a storage provider with circuit breaker functionality. It
+// implements StorageProviderPort and prevents cascading failures by opening the circuit
+// after consecutive failures.
 type CircuitBreakerWrapper struct {
 	// provider is the underlying storage provider wrapped by the circuit breaker.
 	provider StorageProviderPort
@@ -50,18 +52,18 @@ type CircuitBreakerWrapper struct {
 	name string
 }
 
-var _ StorageProviderPort = (*CircuitBreakerWrapper)(nil)
+var (
+	_ StorageProviderPort = (*CircuitBreakerWrapper)(nil)
 
-// ErrCircuitBreakerUnexpectedType indicates that the circuit breaker's
-// Execute call returned a value that could not be type-asserted to the
-// expected result type.
-var ErrCircuitBreakerUnexpectedType = errors.New("circuit breaker returned unexpected type")
+	// ErrCircuitBreakerUnexpectedType indicates that the circuit breaker's Execute call
+	// returned a value that could not be type-asserted to the expected result type.
+	ErrCircuitBreakerUnexpectedType = errors.New("circuit breaker returned unexpected type")
+)
 
-// NewCircuitBreakerWrapper creates a new circuit breaker wrapper for a storage
-// provider.
+// NewCircuitBreakerWrapper creates a new circuit breaker wrapper for a storage provider.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes provider (StorageProviderPort) which is the storage to wrap.
 // Takes config (CircuitBreakerConfig) which sets the circuit breaker options.
 // Takes name (string) which identifies this circuit breaker in logs.
@@ -108,8 +110,8 @@ func (cbw *CircuitBreakerWrapper) Unwrap() StorageProviderPort {
 
 // GetProviderType forwards the provider type query through the wrapper chain.
 //
-// Returns string which is the type from the inner provider, or "unknown" if
-// no layer implements ProviderMetadata.
+// Returns string which is the type from the inner provider, or "unknown" if no layer
+// implements ProviderMetadata.
 func (cbw *CircuitBreakerWrapper) GetProviderType() string {
 	if meta, ok := cbw.provider.(provider_domain.ProviderMetadata); ok {
 		return meta.GetProviderType()
@@ -119,8 +121,8 @@ func (cbw *CircuitBreakerWrapper) GetProviderType() string {
 
 // GetProviderMetadata forwards the metadata query through the wrapper chain.
 //
-// Returns map[string]any which is the metadata from the inner provider, or nil
-// if no layer implements ProviderMetadata.
+// Returns map[string]any which is the metadata from the inner provider, or nil if no
+// layer implements ProviderMetadata.
 func (cbw *CircuitBreakerWrapper) GetProviderMetadata() map[string]any {
 	if meta, ok := cbw.provider.(provider_domain.ProviderMetadata); ok {
 		return meta.GetProviderMetadata()
@@ -148,8 +150,8 @@ func (cbw *CircuitBreakerWrapper) Put(ctx context.Context, params *storage_dto.P
 // Takes params (storage_dto.GetParams) which specifies what to retrieve.
 //
 // Returns io.ReadCloser which provides access to the retrieved content.
-// Returns error when the circuit breaker is open, the operation fails, or the
-// result is not the expected type.
+// Returns error when the circuit breaker is open, the operation fails, or the result is
+// not the expected type.
 func (cbw *CircuitBreakerWrapper) Get(ctx context.Context, params storage_dto.GetParams) (io.ReadCloser, error) {
 	result, err := cbw.breaker.Execute(func() (any, error) {
 		return cbw.provider.Get(ctx, params)
@@ -169,8 +171,7 @@ func (cbw *CircuitBreakerWrapper) Get(ctx context.Context, params storage_dto.Ge
 // Takes params (storage_dto.GetParams) which specifies the object to query.
 //
 // Returns *ObjectInfo which contains metadata about the requested object.
-// Returns error when the circuit breaker is open or the underlying operation
-// fails.
+// Returns error when the circuit breaker is open or the underlying operation fails.
 func (cbw *CircuitBreakerWrapper) Stat(ctx context.Context, params storage_dto.GetParams) (*ObjectInfo, error) {
 	result, err := cbw.breaker.Execute(func() (any, error) {
 		return cbw.provider.Stat(ctx, params)
@@ -202,8 +203,8 @@ func (cbw *CircuitBreakerWrapper) Copy(ctx context.Context, srcRepo string, srcK
 	return nil
 }
 
-// CopyToAnotherRepository executes a cross-repository copy operation through
-// the circuit breaker.
+// CopyToAnotherRepository executes a cross-repository copy operation through the circuit
+// breaker.
 //
 // Takes srcRepo (string) which specifies the source repository name.
 // Takes srcKey (string) which specifies the key of the item to copy.
@@ -241,8 +242,7 @@ func (cbw *CircuitBreakerWrapper) Remove(ctx context.Context, params storage_dto
 // Takes params (storage_dto.GetParams) which specifies what hash to retrieve.
 //
 // Returns string which is the retrieved hash value.
-// Returns error when the circuit breaker is open or the underlying operation
-// fails.
+// Returns error when the circuit breaker is open or the underlying operation fails.
 func (cbw *CircuitBreakerWrapper) GetHash(ctx context.Context, params storage_dto.GetParams) (string, error) {
 	result, err := cbw.breaker.Execute(func() (any, error) {
 		return cbw.provider.GetHash(ctx, params)
@@ -259,12 +259,11 @@ func (cbw *CircuitBreakerWrapper) GetHash(ctx context.Context, params storage_dt
 
 // PresignURL executes a PresignURL operation through the circuit breaker.
 //
-// Takes params (storage_dto.PresignParams) which specifies the presigning
-// parameters.
+// Takes params (storage_dto.PresignParams) which specifies the presigning parameters.
 //
 // Returns string which is the presigned URL for the storage object.
-// Returns error when the circuit breaker rejects the request or the underlying
-// provider fails.
+// Returns error when the circuit breaker rejects the request or the underlying provider
+// fails.
 func (cbw *CircuitBreakerWrapper) PresignURL(ctx context.Context, params storage_dto.PresignParams) (string, error) {
 	result, err := cbw.breaker.Execute(func() (any, error) {
 		return cbw.provider.PresignURL(ctx, params)
@@ -279,15 +278,15 @@ func (cbw *CircuitBreakerWrapper) PresignURL(ctx context.Context, params storage
 	return url, nil
 }
 
-// PresignDownloadURL executes a presign download URL operation through
-// the circuit breaker.
+// PresignDownloadURL executes a presign download URL operation through the circuit
+// breaker.
 //
 // Takes params (storage_dto.PresignDownloadParams) which specifies the download
 // parameters.
 //
 // Returns string which is the presigned URL for downloading.
-// Returns error when the circuit breaker rejects the request or the underlying
-// provider fails.
+// Returns error when the circuit breaker rejects the request or the underlying provider
+// fails.
 func (cbw *CircuitBreakerWrapper) PresignDownloadURL(ctx context.Context, params storage_dto.PresignDownloadParams) (string, error) {
 	result, err := cbw.breaker.Execute(func() (any, error) {
 		return cbw.provider.PresignDownloadURL(ctx, params)
@@ -321,8 +320,7 @@ func (cbw *CircuitBreakerWrapper) SupportsMultipart() bool {
 
 // RemoveMany deletes multiple items using the circuit breaker.
 //
-// Takes params (storage_dto.RemoveManyParams) which specifies which items to
-// delete.
+// Takes params (storage_dto.RemoveManyParams) which specifies which items to delete.
 //
 // Returns *storage_dto.BatchResult which contains the result of each delete.
 // Returns error when the circuit breaker is open or the delete fails.
@@ -362,8 +360,7 @@ func (cbw *CircuitBreakerWrapper) PutMany(ctx context.Context, params *storage_d
 
 // SupportsBatchOperations passes through to the underlying provider.
 //
-// Returns bool which is true if the underlying provider supports batch
-// operations.
+// Returns bool which is true if the underlying provider supports batch operations.
 func (cbw *CircuitBreakerWrapper) SupportsBatchOperations() bool {
 	return cbw.provider.SupportsBatchOperations()
 }
@@ -391,8 +388,7 @@ func (cbw *CircuitBreakerWrapper) SupportsRateLimiting() bool {
 
 // SupportsPresignedURLs passes through to the underlying provider.
 //
-// Returns bool which is true if the underlying provider supports native
-// presigned URLs.
+// Returns bool which is true if the underlying provider supports native presigned URLs.
 func (cbw *CircuitBreakerWrapper) SupportsPresignedURLs() bool {
 	return cbw.provider.SupportsPresignedURLs()
 }
@@ -436,14 +432,14 @@ func (cbw *CircuitBreakerWrapper) Exists(ctx context.Context, params storage_dto
 
 // GetState returns the current state of the circuit breaker.
 //
-// Returns gobreaker.State which indicates whether the circuit is closed, open,
-// or half-open.
+// Returns gobreaker.State which indicates whether the circuit is closed, open, or
+// half-open.
 func (cbw *CircuitBreakerWrapper) GetState() gobreaker.State {
 	return cbw.breaker.State()
 }
 
-// GetCounts returns the current counts (successes, failures, etc.) of the
-// circuit breaker.
+// GetCounts returns the current counts (successes, failures, etc.) of the circuit
+// breaker.
 //
 // Returns gobreaker.Counts which contains the current state metrics.
 func (cbw *CircuitBreakerWrapper) GetCounts() gobreaker.Counts {

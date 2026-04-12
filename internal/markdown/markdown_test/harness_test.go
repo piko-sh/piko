@@ -25,13 +25,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/markdown/markdown_domain"
-	"piko.sh/piko/internal/markdown/markdown_testparser"
 	"piko.sh/piko/internal/markdown/markdown_dto"
+	"piko.sh/piko/internal/markdown/markdown_testparser"
 )
 
 type TopLevelTestSpec struct {
@@ -57,7 +57,9 @@ type testCase struct {
 	SourceFile string
 }
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 func runTestCase(t *testing.T, tc testCase) {
 	sourcePath := filepath.Join(tc.Path, tc.SourceFile)

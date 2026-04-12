@@ -24,12 +24,10 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body for the row currently under
-// the cursor. Category rows show their FD list; otherwise the panel-
-// level FDs summary is rendered.
+// DetailView renders the detail-pane body for the row currently under the cursor.
+// Category rows show their FD list; otherwise the panel- level FDs summary is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *ResourcesPanel) DetailView(width, height int) string {
@@ -37,8 +35,8 @@ func (p *ResourcesPanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target.
 //
 // Returns inspector.DetailBody describing the selected category or panel overview.
 func (p *ResourcesPanel) buildDetailBody() inspector.DetailBody {

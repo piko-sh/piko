@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Analyses function call expressions in templates by resolving function types, validating arguments, and determining return types.
-// Handles built-in functions, method calls, and user-defined functions whilst ensuring type safety and correct argument passing.
+// Analyses function call expressions in templates by resolving function types, validating
+// arguments, and determining return types. Handles built-in functions, method calls, and
+// user-defined functions whilst ensuring type safety and correct argument passing.
 
 import (
 	"context"
@@ -36,8 +37,8 @@ import (
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to resolve.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which describes the type that the
-// call produces.
+// Returns *ast_domain.GoGeneratorAnnotation which describes the type that the call
+// produces.
 func (a *typeExpressionAnalyser) resolveCallExpression(ctx context.Context, n *ast_domain.CallExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveCallExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
@@ -56,13 +57,12 @@ func (a *typeExpressionAnalyser) resolveCallExpression(ctx context.Context, n *a
 	return a.handleCallFailure(n, resolution.CalleeAnn)
 }
 
-// tryResolveGetCollectionCall checks if this is a GetCollection call and
-// handles it.
+// tryResolveGetCollectionCall checks if this is a GetCollection call and handles it.
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to check.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the resolved annotation,
-// nil if not a GetCollection call, or an empty annotation if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which is the resolved annotation, nil if not
+// a GetCollection call, or an empty annotation if resolution fails.
 func (a *typeExpressionAnalyser) tryResolveGetCollectionCall(n *ast_domain.CallExpression) *ast_domain.GoGeneratorAnnotation {
 	collectionAnn, isGetCollection := a.typeResolver.tryResolveGetCollectionCall(a.ctx, n, a.location)
 	if !isGetCollection {
@@ -84,8 +84,8 @@ func (a *typeExpressionAnalyser) tryResolveGetCollectionCall(n *ast_domain.CallE
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to analyse.
 //
-// Returns []*ast_domain.GoGeneratorAnnotation which contains the resolved
-// annotations for each argument, in order.
+// Returns []*ast_domain.GoGeneratorAnnotation which contains the resolved annotations for
+// each argument, in order.
 func (a *typeExpressionAnalyser) resolveCallArguments(ctx context.Context, n *ast_domain.CallExpression) []*ast_domain.GoGeneratorAnnotation {
 	argAnns := make([]*ast_domain.GoGeneratorAnnotation, len(n.Args))
 	for i, argument := range n.Args {
@@ -113,16 +113,15 @@ type calleeResolution struct {
 	Found bool
 }
 
-// resolveCallee finds the function or method being called and returns its
-// signature.
+// resolveCallee finds the function or method being called and returns its signature.
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to resolve.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides the
-// argument annotations for the call.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides the argument
+// annotations for the call.
 //
-// Returns *calleeResolution which contains the resolved signature, annotations,
-// and method info. Returns a not-found result when the callee cannot be
-// resolved.
+// Returns *calleeResolution which contains the resolved signature, annotations, and
+// method info.
+// Returns a not-found result when the callee cannot be resolved.
 func (a *typeExpressionAnalyser) resolveCallee(ctx context.Context, n *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *calleeResolution {
 	switch c := n.Callee.(type) {
 	case *ast_domain.Identifier:
@@ -146,20 +145,19 @@ func (a *typeExpressionAnalyser) resolveCallee(ctx context.Context, n *ast_domai
 	}
 }
 
-// resolveIdentifierCallee handles calls where the callee is a simple
-// identifier.
+// resolveIdentifierCallee handles calls where the callee is a simple identifier.
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to analyse.
 // Takes c (*ast_domain.Identifier) which is the identifier being called.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// resolved argument annotations.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the resolved
+// argument annotations.
 //
-// Returns sig (*inspector_dto.FunctionSignature) which is the resolved
-// function signature, or nil if not found.
-// Returns baseAnn (*ast_domain.GoGeneratorAnnotation) which is the base
-// annotation for the callee.
-// Returns calleeAnn (*ast_domain.GoGeneratorAnnotation) which is the
-// annotation resolved for the callee expression.
+// Returns sig (*inspector_dto.FunctionSignature) which is the resolved function
+// signature, or nil if not found.
+// Returns baseAnn (*ast_domain.GoGeneratorAnnotation) which is the base annotation for
+// the callee.
+// Returns calleeAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation resolved
+// for the callee expression.
 // Returns found (bool) which shows whether resolution succeeded.
 func (a *typeExpressionAnalyser) resolveIdentifierCallee(ctx context.Context, n *ast_domain.CallExpression, c *ast_domain.Identifier, argAnns []*ast_domain.GoGeneratorAnnotation) (
 	sig *inspector_dto.FunctionSignature, baseAnn, calleeAnn *ast_domain.GoGeneratorAnnotation, found bool,
@@ -199,11 +197,11 @@ func (a *typeExpressionAnalyser) resolveIdentifierCallee(ctx context.Context, n 
 // Takes n (*ast_domain.CallExpression) which is the call expression to analyse.
 // Takes c (*ast_domain.Identifier) which is the callee identifier.
 // Takes calleeSymbol (*Symbol) which is the resolved symbol for the callee.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// argument annotations.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
+// annotations.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// information, or nil if the callee is not a built-in function.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type information,
+// or nil if the callee is not a built-in function.
 func (a *typeExpressionAnalyser) tryResolveBuiltInCall(
 	n *ast_domain.CallExpression,
 	c *ast_domain.Identifier,
@@ -253,15 +251,13 @@ func (a *typeExpressionAnalyser) tryResolveBuiltInCall(
 	}
 }
 
-// createBuiltInCalleeAnnotation creates an annotation for a built-in function
-// call.
+// createBuiltInCalleeAnnotation creates an annotation for a built-in function call.
 //
-// Takes calleeSymbol (*Symbol) which holds the symbol data for the built-in
-// function.
+// Takes calleeSymbol (*Symbol) which holds the symbol data for the built-in function.
 // Takes n (*ast_domain.CallExpression) which is the call expression node.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// and symbol data for code generation.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type and symbol
+// data for code generation.
 func (a *typeExpressionAnalyser) createBuiltInCalleeAnnotation(calleeSymbol *Symbol, n *ast_domain.CallExpression) *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
@@ -305,13 +301,11 @@ func (a *typeExpressionAnalyser) createBuiltInCalleeAnnotation(calleeSymbol *Sym
 	}
 }
 
-// tryResolveSymbolMethod attempts to resolve a call as a method via symbol
-// lookup.
+// tryResolveSymbolMethod attempts to resolve a call as a method via symbol lookup.
 //
 // Takes c (*ast_domain.Identifier) which is the identifier to resolve.
 //
-// Returns *inspector_dto.FunctionSignature which is the method signature if
-// found.
+// Returns *inspector_dto.FunctionSignature which is the method signature if found.
 // Returns *ast_domain.GoGeneratorAnnotation which provides base type info.
 // Returns bool which indicates whether the resolution was successful.
 func (a *typeExpressionAnalyser) tryResolveSymbolMethod(c *ast_domain.Identifier) (*inspector_dto.FunctionSignature, *ast_domain.GoGeneratorAnnotation, bool) {
@@ -375,13 +369,12 @@ func (a *typeExpressionAnalyser) tryResolveSymbolMethod(c *ast_domain.Identifier
 	return nil, nil, false
 }
 
-// tryResolveLocalFunction looks for a function declared in the current
-// context.
+// tryResolveLocalFunction looks for a function declared in the current context.
 //
 // Takes name (string) which specifies the function name to search for.
 //
-// Returns *inspector_dto.FunctionSignature which contains the function
-// signature if found, or nil if no matching function exists.
+// Returns *inspector_dto.FunctionSignature which contains the function signature if
+// found, or nil if no matching function exists.
 func (a *typeExpressionAnalyser) tryResolveLocalFunction(name string) *inspector_dto.FunctionSignature {
 	a.ctx.Logger.Trace("Checking for local function", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, name))
 
@@ -394,13 +387,12 @@ func (a *typeExpressionAnalyser) tryResolveLocalFunction(name string) *inspector
 	return a.typeResolver.parseSignatureFromFuncDecl(localFuncDecl, a.ctx)
 }
 
-// tryResolveInspectorFunction attempts to find a function via the
-// TypeInspector.
+// tryResolveInspectorFunction attempts to find a function via the TypeInspector.
 //
 // Takes name (string) which is the function name to look up.
 //
-// Returns *inspector_dto.FunctionSignature which is the function signature if
-// found, or nil if the function does not exist.
+// Returns *inspector_dto.FunctionSignature which is the function signature if found, or
+// nil if the function does not exist.
 func (a *typeExpressionAnalyser) tryResolveInspectorFunction(name string) *inspector_dto.FunctionSignature {
 	a.ctx.Logger.Trace("Querying TypeInspector for function", logger_domain.Int(logKeyDepth, a.depth),
 		logger_domain.String(logKeyName, name),
@@ -419,15 +411,13 @@ func (a *typeExpressionAnalyser) tryResolveInspectorFunction(name string) *inspe
 	return sig
 }
 
-// resolveMemberExprCallee handles calls where the callee is a member
-// expression.
+// resolveMemberExprCallee handles calls where the callee is a member expression.
 //
-// Takes n (*ast_domain.CallExpression) which is the call expression
-// being analysed.
+// Takes n (*ast_domain.CallExpression) which is the call expression being analysed.
 // Takes c (*ast_domain.MemberExpression) which is the member expression callee.
 //
-// Returns *calleeResolution which contains the resolved signature and metadata,
-// or a resolution with Found set to false if no signature could be found.
+// Returns *calleeResolution which contains the resolved signature and metadata, or a
+// resolution with Found set to false if no signature could be found.
 func (a *typeExpressionAnalyser) resolveMemberExprCallee(ctx context.Context, n *ast_domain.CallExpression, c *ast_domain.MemberExpression) *calleeResolution {
 	a.ctx.Logger.Trace("Callee is a MemberExpr; finding method/package function signature", logger_domain.Int(logKeyDepth, a.depth))
 	calleeAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Callee, a.location, a.depth+1)
@@ -465,13 +455,12 @@ func (a *typeExpressionAnalyser) resolveMemberExprCallee(ctx context.Context, n 
 
 // tryResolveFunctionField tries to resolve a call to a function-typed field.
 //
-// Takes c (*ast_domain.MemberExpression) which is the member
-// expression to resolve.
+// Takes c (*ast_domain.MemberExpression) which is the member expression to resolve.
 //
-// Returns *inspector_dto.FunctionSignature which is the resolved function
-// signature, or nil if resolution fails.
-// Returns *ast_domain.GoGeneratorAnnotation which is the base annotation, or
+// Returns *inspector_dto.FunctionSignature which is the resolved function signature, or
 // nil if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which is the base annotation, or nil if
+// resolution fails.
 func (a *typeExpressionAnalyser) tryResolveFunctionField(c *ast_domain.MemberExpression) (*inspector_dto.FunctionSignature, *ast_domain.GoGeneratorAnnotation) {
 	baseAnn := getAnnotationFromExpression(c.Base)
 	propName := getPropertyName(c)
@@ -502,21 +491,21 @@ func (a *typeExpressionAnalyser) tryResolveFunctionField(c *ast_domain.MemberExp
 	return sig, baseAnn
 }
 
-// buildCallResult validates arguments and builds the final annotation for a
-// resolved call.
+// buildCallResult validates arguments and builds the final annotation for a resolved
+// call.
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to process.
-// Takes sig (*inspector_dto.FunctionSignature) which provides the function
-// signature for validation, or nil for built-in functions.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// annotations for each argument.
+// Takes sig (*inspector_dto.FunctionSignature) which provides the function signature for
+// validation, or nil for built-in functions.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the annotations for
+// each argument.
 // Takes baseAnnForCall (*ast_domain.GoGeneratorAnnotation) which provides the
 // pre-computed annotation for built-in functions.
-// Takes methodInfo (*inspector_dto.Method) which provides method metadata when
-// the call is a method invocation.
+// Takes methodInfo (*inspector_dto.Method) which provides method metadata when the call
+// is a method invocation.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the final annotation for
-// the call result.
+// Returns *ast_domain.GoGeneratorAnnotation which is the final annotation for the call
+// result.
 func (a *typeExpressionAnalyser) buildCallResult(
 	n *ast_domain.CallExpression,
 	sig *inspector_dto.FunctionSignature,
@@ -549,12 +538,11 @@ func (a *typeExpressionAnalyser) buildCallResult(
 // handleCallFailure handles a call expression that could not be resolved.
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression that failed.
-// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation
-// for the callee.
+// Takes calleeAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation for the
+// callee.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is a fallback annotation if
-// the callee was already reported as an error, or the result of reporting the
-// failure.
+// Returns *ast_domain.GoGeneratorAnnotation which is a fallback annotation if the callee
+// was already reported as an error, or the result of reporting the failure.
 func (a *typeExpressionAnalyser) handleCallFailure(n *ast_domain.CallExpression, calleeAnn *ast_domain.GoGeneratorAnnotation) *ast_domain.GoGeneratorAnnotation {
 	for _, diagnostic := range *a.ctx.Diagnostics {
 		if diagnostic.Location == a.location.Add(n.Callee.GetRelativeLocation()) && diagnostic.Expression == n.Callee.String() {

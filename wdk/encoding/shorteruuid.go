@@ -27,9 +27,9 @@ import (
 )
 
 const (
-	// ShorterUUIDLength is the length of a version-stripped base58-encoded UUID.
-	// By removing the 4-bit version and 2-bit variant (6 bits total), we reduce
-	// the encoded length from 22 to 21 characters.
+	// ShorterUUIDLength is the length of a version-stripped base58-encoded UUID. By removing
+	// the 4-bit version and 2-bit variant (6 bits total), we reduce the encoded length from
+	// 22 to 21 characters.
 	ShorterUUIDLength = 21
 
 	// variantRFC4122 is the variant bits for RFC 4122 UUIDs (binary 10xxxxxx).
@@ -53,8 +53,7 @@ const (
 	// timestampShift16 is the bit shift for the fourth byte of a timestamp.
 	timestampShift16 = 16
 
-	// timestampShift8 is the bit shift for the second-lowest byte in timestamp
-	// operations.
+	// timestampShift8 is the bit shift for the second-lowest byte in timestamp operations.
 	timestampShift8 = 8
 
 	// randBShift56 is the bit shift amount for the high byte of rand_b.
@@ -157,16 +156,18 @@ const (
 	uuidByteRandB6 = 15
 )
 
-// base58DecodeMap maps ASCII bytes to their Base58 digit values.
-// Invalid characters map to -1.
-var base58DecodeMap [256]int8
+var (
+	// base58DecodeMap maps ASCII bytes to their Base58 digit values. Invalid characters map
+	// to -1.
+	base58DecodeMap [256]int8
+)
 
-// UUIDToShorterString converts a UUID to a 21-character base58 string by
-// removing the version (4 bits) and variant (2 bits) fields. These fields are
-// fixed for any given UUID version, so they can be left out.
+// UUIDToShorterString converts a UUID to a 21-character base58 string by removing the
+// version (4 bits) and variant (2 bits) fields. These fields are fixed for any given UUID
+// version, so they can be left out.
 //
-// This produces the shortest encoding for UUIDs when the version is known.
-// When decoding, pass the version to ShorterStringToUUID.
+// This produces the shortest encoding for UUIDs when the version is known. When decoding,
+// pass the version to ShorterStringToUUID.
 //
 // Takes id (uuid.UUID) which is the UUID to encode.
 //
@@ -180,8 +181,8 @@ func UUIDToShorterString(id uuid.UUID) string {
 	return encode122BitsToBase58(hi, lo)
 }
 
-// ShorterStringToUUID decodes a 21-character shorter UUID string back to a
-// UUID. It uses the given version to restore the version and variant bits.
+// ShorterStringToUUID decodes a 21-character shorter UUID string back to a UUID. It uses
+// the given version to restore the version and variant bits.
 //
 // Takes s (string) which is the 21-character encoded string to decode.
 // Takes version (int) which is the UUID version (1-15) to use when rebuilding.
@@ -232,8 +233,8 @@ func ShorterStringToUUIDv7(s string) (uuid.UUID, error) {
 	return ShorterStringToUUID(s, uuidVersion7)
 }
 
-// MustShorterStringToUUID is like ShorterStringToUUID but panics on error.
-// Use this only when you are certain the input is valid.
+// MustShorterStringToUUID is like ShorterStringToUUID but panics on error. Use this only
+// when you are certain the input is valid.
 //
 // Takes s (string) which is the 21-character encoded string to decode.
 // Takes version (int) which is the UUID version to use when reconstructing.
@@ -267,8 +268,8 @@ func extractTimestamp(id uuid.UUID) uint64 {
 //
 // Takes id (uuid.UUID) which is the UUID to extract from.
 //
-// Returns uint64 which holds the 12-bit rand_a value. This combines the low
-// nibble of byte 6 with byte 7.
+// Returns uint64 which holds the 12-bit rand_a value. This combines the low nibble of
+// byte 6 with byte 7.
 func extractRandA(id uuid.UUID) uint64 {
 	return uint64(id[uuidByteVersion]&0x0F)<<timestampShift8 | uint64(id[uuidByteRandA])
 }
@@ -291,8 +292,8 @@ func extractRandB(id uuid.UUID) uint64 {
 		uint64(id[uuidByteRandB6])
 }
 
-// packToUint128 combines the three UUID fields into a 122-bit value stored
-// as two uint64s (hi, lo). Layout: ts(48) | randA(12) | randB(62).
+// packToUint128 combines the three UUID fields into a 122-bit value stored as two uint64s
+// (hi, lo). Layout: ts(48) | randA(12) | randB(62).
 //
 // The 122 bits are right-aligned in the 128-bit space:
 //   - hi contains bits 121-64: timestamp bits and top 10 bits of randA
@@ -310,8 +311,8 @@ func packToUint128(timestamp, randA, randB uint64) (hi, lo uint64) {
 	return hi, lo
 }
 
-// unpackFromUint128 extracts the three UUID fields from a 122-bit value
-// stored as two uint64s.
+// unpackFromUint128 extracts the three UUID fields from a 122-bit value stored as two
+// uint64s.
 //
 // Takes hi (uint64) which is the upper 64 bits of the 128-bit value.
 // Takes lo (uint64) which is the lower 64 bits of the 128-bit value.
@@ -361,8 +362,8 @@ func mulAdd58_128(hi, lo, digit uint64) (rHi, rLo uint64) {
 	return rHi, rLo
 }
 
-// encode122BitsToBase58 encodes a 122-bit value (stored as hi, lo) to a
-// 21-character Base58 string. Uses a fixed-size buffer to avoid allocations.
+// encode122BitsToBase58 encodes a 122-bit value (stored as hi, lo) to a 21-character
+// Base58 string. Uses a fixed-size buffer to avoid allocations.
 //
 // Takes hi (uint64) which is the upper 64 bits of the 128-bit value.
 // Takes lo (uint64) which is the lower 64 bits of the 128-bit value.
@@ -380,8 +381,7 @@ func encode122BitsToBase58(hi, lo uint64) string {
 	return string(buffer[:])
 }
 
-// decodeBase58To122Bits decodes a Base58 string to a 122-bit value stored
-// as two uint64s.
+// decodeBase58To122Bits decodes a Base58 string to a 122-bit value stored as two uint64s.
 //
 // Takes s (string) which is the Base58-encoded string to decode.
 //

@@ -26,16 +26,18 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// buildCopyFromMethod constructs a :copyfrom query method using pgx.CopyFrom
-// and pgx.CopyFromSlice to perform bulk inserts.
+// buildCopyFromMethod constructs a :copyfrom query method using pgx.CopyFrom and
+// pgx.CopyFromSlice to perform bulk inserts.
 //
 // The generated method signature is:
 //
 //	func (queries *Queries) MethodName(ctx context.Context, rows []MethodNameParams) (int64, error)
 //
+// The type-mapping table and import tracker parameters are accepted for interface
+// symmetry with the database/sql emitter but not used here: pgx.CopyFrom is referenced
+// through the pre-known pgx alias.
+//
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
-// Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
-// Takes tracker (*emitter_shared.ImportTracker) for import collection.
 //
 // Returns *ast.FuncDecl which is the copyfrom method declaration.
 func buildCopyFromMethod(
@@ -83,6 +85,10 @@ func buildCopyFromMethod(
 }
 
 // buildTableIdentifier constructs `pgx.Identifier{tableName}`.
+//
+// Takes tableName (string) which is the target table identifier.
+//
+// Returns *ast.CompositeLit which is the pgx.Identifier literal.
 func buildTableIdentifier(tableName string) *ast.CompositeLit {
 	return goastutil.CompositeLit(
 		goastutil.SelectorExpr(identPgx, "Identifier"),
@@ -90,8 +96,12 @@ func buildTableIdentifier(tableName string) *ast.CompositeLit {
 	)
 }
 
-// buildColumnNames constructs `[]string{"col1", "col2", ...}` from the insert
-// column names.
+// buildColumnNames constructs `[]string{"col1", "col2", ...}` from the insert column
+// names.
+//
+// Takes columns ([]string) which are the column names to embed.
+//
+// Returns *ast.CompositeLit which is the string slice literal.
 func buildColumnNames(columns []string) *ast.CompositeLit {
 	columnElements := make([]ast.Expr, 0, len(columns))
 	for _, column := range columns {
@@ -104,8 +114,13 @@ func buildColumnNames(columns []string) *ast.CompositeLit {
 	}
 }
 
-// buildCopyFromSliceFunc constructs the pgx.CopyFromSlice call expression with
-// a function literal that maps each row's fields to an []any slice.
+// buildCopyFromSliceFunc constructs the pgx.CopyFromSlice call expression with a function
+// literal that maps each row's fields to an []any slice.
+//
+// Takes parameters ([]querier_dto.QueryParameter) which describe the row fields to
+// project.
+//
+// Returns *ast.CallExpr which is the CopyFromSlice call expression.
 func buildCopyFromSliceFunc(parameters []querier_dto.QueryParameter) *ast.CallExpr {
 	valueFields := make([]ast.Expr, 0, len(parameters))
 	for index := range parameters {

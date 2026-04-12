@@ -27,30 +27,28 @@ import (
 )
 
 const (
-	// watchdogEventPriorityNormal is the int wire value for the Normal
-	// watchdog event priority, mirrored from the proto definition.
+	// watchdogEventPriorityNormal is the int wire value for the Normal watchdog event
+	// priority, mirrored from the proto definition.
 	watchdogEventPriorityNormal = 1
 
-	// watchdogEventPriorityHigh is the int wire value for the High
-	// watchdog event priority.
+	// watchdogEventPriorityHigh is the int wire value for the High watchdog event priority.
 	watchdogEventPriorityHigh = 2
 
-	// watchdogEventPriorityCritical is the int wire value for the
-	// Critical watchdog event priority.
+	// watchdogEventPriorityCritical is the int wire value for the Critical watchdog event
+	// priority.
 	watchdogEventPriorityCritical = 3
 
-	// fmtDecimalInt is the printf verb used for decimal integer rendering
-	// across watchdog status / table output.
+	// fmtDecimalInt is the printf verb used for decimal integer rendering across watchdog
+	// status / table output.
 	fmtDecimalInt = "%d"
 )
 
-// WatchdogEventPriorityLabel maps the int priority encoded over the
-// wire to a human-readable label used in tail / table output.
+// WatchdogEventPriorityLabel maps the int priority encoded over the wire to a
+// human-readable label used in tail / table output.
 //
 // Takes priority (int32) which is the wire priority value.
 //
-// Returns string which is one of "normal", "high", "critical", or
-// "unknown".
+// Returns string which is one of "normal", "high", "critical", or "unknown".
 func WatchdogEventPriorityLabel(priority int32) string {
 	switch priority {
 	case watchdogEventPriorityNormal:
@@ -64,15 +62,14 @@ func WatchdogEventPriorityLabel(priority int32) string {
 	}
 }
 
-// FilterWatchdogProfilesByType returns only profiles whose type matches
-// the given filter (case-insensitive).
+// FilterWatchdogProfilesByType returns only profiles whose type matches the given filter
+// (case-insensitive).
 //
 // Takes profiles ([]*pb.WatchdogProfileEntry) which is the full list.
 // Takes typeFilter (string) which is the type to match against.
 //
-// Returns []*pb.WatchdogProfileEntry which contains only matching
-// profiles. The slice is freshly allocated so callers may safely retain
-// references.
+// Returns []*pb.WatchdogProfileEntry which contains only matching profiles. The slice is
+// freshly allocated so callers may safely retain references.
 func FilterWatchdogProfilesByType(profiles []*pb.WatchdogProfileEntry, typeFilter string) []*pb.WatchdogProfileEntry {
 	filtered := make([]*pb.WatchdogProfileEntry, 0, len(profiles))
 	for _, profile := range profiles {
@@ -83,11 +80,11 @@ func FilterWatchdogProfilesByType(profiles []*pb.WatchdogProfileEntry, typeFilte
 	return filtered
 }
 
-// BuildWatchdogStatusCoreRows builds the lifecycle DetailRows shown at
-// the top of `piko watchdog status`.
+// BuildWatchdogStatusCoreRows builds the lifecycle DetailRows shown at the top of `piko
+// watchdog status`.
 //
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
+// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot returned by the
+// inspector RPC.
 //
 // Returns []DetailRow rendered as the Lifecycle section.
 func BuildWatchdogStatusCoreRows(response *pb.GetWatchdogStatusResponse) []DetailRow {
@@ -111,11 +108,11 @@ func BuildWatchdogStatusCoreRows(response *pb.GetWatchdogStatusResponse) []Detai
 	}
 }
 
-// BuildWatchdogStatusThresholdRows builds the threshold DetailRows
-// covering heap, goroutine, FD, and scheduler-latency configuration.
+// BuildWatchdogStatusThresholdRows builds the threshold DetailRows covering heap,
+// goroutine, FD, and scheduler-latency configuration.
 //
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
+// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot returned by the
+// inspector RPC.
 //
 // Returns []DetailRow rendered as the Thresholds section.
 func BuildWatchdogStatusThresholdRows(response *pb.GetWatchdogStatusResponse) []DetailRow {
@@ -131,11 +128,10 @@ func BuildWatchdogStatusThresholdRows(response *pb.GetWatchdogStatusResponse) []
 	}
 }
 
-// BuildWatchdogStatusCrashLoopRows builds the crash-loop detection
-// DetailRows.
+// BuildWatchdogStatusCrashLoopRows builds the crash-loop detection DetailRows.
 //
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
+// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot returned by the
+// inspector RPC.
 //
 // Returns []DetailRow rendered as the Crash Loop Detection section.
 func BuildWatchdogStatusCrashLoopRows(response *pb.GetWatchdogStatusResponse) []DetailRow {
@@ -145,11 +141,10 @@ func BuildWatchdogStatusCrashLoopRows(response *pb.GetWatchdogStatusResponse) []
 	}
 }
 
-// BuildWatchdogStatusContinuousRows builds the continuous-profiling
-// DetailRows.
+// BuildWatchdogStatusContinuousRows builds the continuous-profiling DetailRows.
 //
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
+// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot returned by the
+// inspector RPC.
 //
 // Returns []DetailRow rendered as the Continuous Profiling section.
 func BuildWatchdogStatusContinuousRows(response *pb.GetWatchdogStatusResponse) []DetailRow {
@@ -165,11 +160,10 @@ func BuildWatchdogStatusContinuousRows(response *pb.GetWatchdogStatusResponse) [
 	}
 }
 
-// BuildWatchdogStatusContentionRows builds the contention-diagnostic
-// DetailRows.
+// BuildWatchdogStatusContentionRows builds the contention-diagnostic DetailRows.
 //
-// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot
-// returned by the inspector RPC.
+// Takes response (*pb.GetWatchdogStatusResponse) which is the snapshot returned by the
+// inspector RPC.
 //
 // Returns []DetailRow rendered as the Contention Diagnostic section.
 func BuildWatchdogStatusContentionRows(response *pb.GetWatchdogStatusResponse) []DetailRow {
@@ -185,14 +179,13 @@ func BuildWatchdogStatusContentionRows(response *pb.GetWatchdogStatusResponse) [
 	}
 }
 
-// WatchdogWarmUpRemaining computes how much warm-up time remains,
-// returning "complete" if the warm-up period has elapsed.
+// WatchdogWarmUpRemaining computes how much warm-up time remains, returning "complete" if
+// the warm-up period has elapsed.
 //
-// Takes response (*pb.GetWatchdogStatusResponse) which provides the
-// warm-up duration and server start time.
+// Takes response (*pb.GetWatchdogStatusResponse) which provides the warm-up duration and
+// server start time.
 //
-// Returns string which is the formatted remaining warm-up time or
-// "complete".
+// Returns string which is the formatted remaining warm-up time or "complete".
 func WatchdogWarmUpRemaining(response *pb.GetWatchdogStatusResponse) string {
 	warmUpDuration := time.Duration(response.GetWarmUpDurationMs()) * time.Millisecond
 	if warmUpDuration == 0 {
@@ -210,15 +203,14 @@ func WatchdogWarmUpRemaining(response *pb.GetWatchdogStatusResponse) string {
 	return remaining.Truncate(time.Second).String()
 }
 
-// WatchdogHistoryEntry is the JSON-friendly view of a single
-// startup-history entry served by the inspector.
+// WatchdogHistoryEntry is the JSON-friendly view of a single startup-history entry served
+// by the inspector.
 type WatchdogHistoryEntry struct {
-	// StartedAt is the wall-clock instant the watchdog began monitoring
-	// the process, formatted as RFC 3339.
+	// StartedAt is the wall-clock instant the watchdog began monitoring the process,
+	// formatted as RFC 3339.
 	StartedAt string `json:"startedAt"`
 
-	// StoppedAt is the clean-shutdown instant; empty when the process
-	// exited uncleanly.
+	// StoppedAt is the clean-shutdown instant; empty when the process exited uncleanly.
 	StoppedAt string `json:"stoppedAt,omitempty"`
 
 	// Hostname is the host the run executed on.
@@ -227,9 +219,8 @@ type WatchdogHistoryEntry struct {
 	// Version is the build version reported by the run.
 	Version string `json:"version"`
 
-	// StopReason is the free-form classification recorded at stop time
-	// ("clean", "unclean", "panic"). Empty when the process is the
-	// current run.
+	// StopReason is the free-form classification recorded at stop time ("clean", "unclean",
+	// "panic"). Empty when the process is the current run.
 	StopReason string `json:"stopReason,omitempty"`
 
 	// GomemlimitBytes is the effective Go memory limit at start.
@@ -239,9 +230,8 @@ type WatchdogHistoryEntry struct {
 	PID int32 `json:"pid"`
 }
 
-// BuildWatchdogHistoryEntries converts wire-form startup-history
-// entries into the JSON-friendly result struct used by both the table
-// renderer and JSON output mode.
+// BuildWatchdogHistoryEntries converts wire-form startup-history entries into the
+// JSON-friendly result struct used by both the table renderer and JSON output mode.
 //
 // Takes entries ([]*pb.StartupHistoryEntry) which is the proto slice.
 //
@@ -266,13 +256,13 @@ func BuildWatchdogHistoryEntries(entries []*pb.StartupHistoryEntry) []WatchdogHi
 	return results
 }
 
-// BuildWatchdogHistoryRows formats history entries as table rows,
-// applying fallbacks for empty StoppedAt and StopReason fields.
+// BuildWatchdogHistoryRows formats history entries as table rows, applying fallbacks for
+// empty StoppedAt and StopReason fields.
 //
 // Takes results ([]WatchdogHistoryEntry) which is the input slice.
 //
-// Returns [][]string with one row per entry, in column order
-// PID, STARTED, STOPPED, REASON, HOST, VERSION.
+// Returns [][]string with one row per entry, in column order PID, STARTED, STOPPED,
+// REASON, HOST, VERSION.
 func BuildWatchdogHistoryRows(results []WatchdogHistoryEntry) [][]string {
 	rows := make([][]string, len(results))
 	for index, entry := range results {
@@ -296,8 +286,7 @@ func BuildWatchdogHistoryRows(results []WatchdogHistoryEntry) [][]string {
 	return rows
 }
 
-// WatchdogEventResult is the JSON-friendly view of a single watchdog
-// event.
+// WatchdogEventResult is the JSON-friendly view of a single watchdog event.
 type WatchdogEventResult struct {
 	// Fields contains the structured key-value attachments.
 	Fields map[string]string `json:"fields,omitempty"`
@@ -305,8 +294,7 @@ type WatchdogEventResult struct {
 	// EmittedAt is the wall-clock instant the event was emitted, RFC 3339.
 	EmittedAt string `json:"emittedAt"`
 
-	// EventType is the snake_case event identifier
-	// (e.g. "heap_threshold_exceeded").
+	// EventType is the snake_case event identifier (e.g. "heap_threshold_exceeded").
 	EventType string `json:"eventType"`
 
 	// Message is the human-readable description.
@@ -316,8 +304,8 @@ type WatchdogEventResult struct {
 	Priority int32 `json:"priority"`
 }
 
-// BuildWatchdogEventResult adapts a proto WatchdogEventMessage into the
-// JSON-rendered WatchdogEventResult struct.
+// BuildWatchdogEventResult adapts a proto WatchdogEventMessage into the JSON-rendered
+// WatchdogEventResult struct.
 //
 // Takes event (*pb.WatchdogEventMessage) which is the wire event.
 //

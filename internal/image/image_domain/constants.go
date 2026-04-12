@@ -18,7 +18,9 @@
 
 package image_domain
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// minQuality is the minimum allowed quality value for image transformations.
@@ -33,8 +35,8 @@ const (
 	// defaultMaxImageHeight is the default maximum image height in pixels.
 	defaultMaxImageHeight = 8192
 
-	// defaultMaxImagePixels is the default maximum total pixel count for images.
-	// This equals 100 megapixels, which is roughly a 10000x10000 image.
+	// defaultMaxImagePixels is the default maximum total pixel count for images. This equals
+	// 100 megapixels, which is roughly a 10000x10000 image.
 	defaultMaxImagePixels = 100_000_000
 
 	// defaultMaxFileSizeBytes is the default maximum file size of 50 megabytes.
@@ -46,13 +48,13 @@ const (
 	// hashPrefixLength is the number of characters used from a hash for sidecar keys.
 	hashPrefixLength = 16
 
-	// defaultPlaceholderWidth is the default width in pixels for placeholder images.
+	// defaultPlaceholderWidth is the default width in pixels for LQIP preview images.
 	defaultPlaceholderWidth = 20
 
-	// defaultPlaceholderQuality is the default quality setting for placeholder images.
+	// defaultPlaceholderQuality is the default quality setting for LQIP preview images.
 	defaultPlaceholderQuality = 10
 
-	// defaultPlaceholderBlur is the default blur sigma value for placeholder images.
+	// defaultPlaceholderBlur is the default blur sigma value for LQIP preview images.
 	defaultPlaceholderBlur = 5.0
 
 	// bytesPerKB is the number of bytes per kilobyte.
@@ -91,12 +93,11 @@ const (
 	// responsiveWidthXLarge is the responsive width for extra-large screens.
 	responsiveWidthXLarge = 1280
 
-	// responsiveWidth2XLarge is the responsive width for 2x extra-large screens
-	// (1920px).
+	// responsiveWidth2XLarge is the responsive width for 2x extra-large screens (1920px).
 	responsiveWidth2XLarge = 1920
 
-	// defaultDensityMultiplier is the default pixel density multiplier value of 1.0,
-	// used when parsing fails or the provided density is invalid.
+	// defaultDensityMultiplier is the default pixel density multiplier value of 1.0, used
+	// when parsing fails or the provided density is invalid.
 	defaultDensityMultiplier = 1.0
 
 	// metricAttributeProvider is the metric attribute key for the provider name.

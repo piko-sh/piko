@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_sendgrid implements the email provider
-// port using SendGrid.
+// Package email_provider_sendgrid implements the email provider port using SendGrid.
 //
-// The adapter supports single and bulk sending, attachments,
-// inline images, and automatic rate limiting. Bulk sends use
-// SendGrid's personalisations feature to batch compatible emails
-// into single API calls. OpenTelemetry metrics are emitted for
-// send attempts and durations.
+// The adapter supports single and bulk sending, attachments, inline images, and automatic
+// rate limiting. Bulk sends use SendGrid's personalisations feature to batch compatible
+// emails into single API calls. OpenTelemetry metrics are emitted for send attempts and
+// durations.
 //
 // # Thread safety
 //

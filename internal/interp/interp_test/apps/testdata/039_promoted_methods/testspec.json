@@ -1,0 +1,4 @@
+{
+  "description": "Three-level promotion: Animal in fileA, Dog embeds Animal in fileB, ServiceDog embeds Dog in fileC, methods promoted across all levels",
+  "expected": "name=Rex kind=dog skill=guide breathe=ok"
+}

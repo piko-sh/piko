@@ -39,8 +39,8 @@ func WithMinLevel(level int) SectionTreeOption {
 	}
 }
 
-// WithMaxLevel sets the maximum heading level to include (default: 4). Headings
-// above this level are filtered out.
+// WithMaxLevel sets the maximum heading level to include (default: 4). Headings above
+// this level are filtered out.
 //
 // Takes level (int) which specifies the maximum heading level.
 //
@@ -53,22 +53,22 @@ func WithMaxLevel(level int) SectionTreeOption {
 
 // BuildSectionTree converts a flat list of sections into a hierarchical tree.
 //
-// Transforms flat section data from any content provider into a nested tree
-// structure suitable for rendering a table of contents. Provider-agnostic and
-// returns collection_dto.SectionNode regardless of the source.
+// Transforms flat section data from any content provider into a nested tree structure
+// suitable for rendering a table of contents. Provider-agnostic and returns
+// collection_dto.SectionNode regardless of the source.
 //
 // When sections is empty or no sections match the filter criteria, returns nil.
 //
-// Takes sections ([]markdown_dto.SectionData) which is a flat list of sections
-// from markdown, CMS, or any content provider.
-// Takes opts (...SectionTreeOption) which provides optional configuration such
-// as WithMinLevel and WithMaxLevel.
+// Takes sections ([]markdown_dto.SectionData) which is a flat list of sections from
+// markdown, CMS, or any content provider.
+// Takes opts (...SectionTreeOption) which provides optional configuration such as
+// WithMinLevel and WithMaxLevel.
 //
-// Returns []collection_dto.SectionNode which contains top-level nodes with
-// nested children preserving the heading hierarchy.
+// Returns []collection_dto.SectionNode which contains top-level nodes with nested
+// children preserving the heading hierarchy.
 //
-// Default behaviour uses MinLevel 2 (starts at h2, skips h1 page title) and
-// MaxLevel 4 (includes up to h4).
+// Default behaviour uses MinLevel 2 (starts at h2, skips h1 page title) and MaxLevel 4
+// (includes up to h4).
 func BuildSectionTree(sections []markdown_dto.SectionData, opts ...SectionTreeOption) []collection_dto.SectionNode {
 	config := collection_dto.DefaultSectionTreeConfig()
 
@@ -90,13 +90,12 @@ func BuildSectionTree(sections []markdown_dto.SectionData, opts ...SectionTreeOp
 
 // filterSectionsByLevel returns only sections within the given level range.
 //
-// Takes sections ([]markdown_dto.SectionData) which contains the sections to
-// filter.
+// Takes sections ([]markdown_dto.SectionData) which contains the sections to filter.
 // Takes minLevel (int) which sets the lowest heading level to include.
 // Takes maxLevel (int) which sets the highest heading level to include.
 //
-// Returns []markdown_dto.SectionData which contains only sections where the
-// level is between minLevel and maxLevel, including both.
+// Returns []markdown_dto.SectionData which contains only sections where the level is
+// between minLevel and maxLevel, including both.
 func filterSectionsByLevel(sections []markdown_dto.SectionData, minLevel, maxLevel int) []markdown_dto.SectionData {
 	result := make([]markdown_dto.SectionData, 0, len(sections))
 	for _, s := range sections {
@@ -107,16 +106,15 @@ func filterSectionsByLevel(sections []markdown_dto.SectionData, minLevel, maxLev
 	return result
 }
 
-// buildSectionHierarchy converts a filtered flat list into a nested tree
-// structure.
+// buildSectionHierarchy converts a filtered flat list into a nested tree structure.
 //
-// Takes sections ([]markdown_dto.SectionData) which is the filtered list
-// of sections to organise into a tree.
-// Takes maxLevel (int) which limits the deepest heading level to include
-// in the hierarchy.
+// Takes sections ([]markdown_dto.SectionData) which is the filtered list of sections to
+// organise into a tree.
+// Takes maxLevel (int) which limits the deepest heading level to include in the
+// hierarchy.
 //
-// Returns []collection_dto.SectionNode which contains the top-level nodes
-// with nested children, or nil if sections is empty.
+// Returns []collection_dto.SectionNode which contains the top-level nodes with nested
+// children, or nil if sections is empty.
 func buildSectionHierarchy(sections []markdown_dto.SectionData, _, maxLevel int) []collection_dto.SectionNode {
 	if len(sections) == 0 {
 		return nil
@@ -135,19 +133,17 @@ func buildSectionHierarchy(sections []markdown_dto.SectionData, _, maxLevel int)
 
 // buildSectionLevel builds section nodes for a given heading level.
 //
-// It walks through a flat list of sections and groups them into a tree. When
-// it finds a section at the current level, it creates a node. When it finds a
-// deeper level, it builds child nodes. It stops when it finds a shallower
-// level.
+// It walks through a flat list of sections and groups them into a tree. When it finds a
+// section at the current level, it creates a node. When it finds a deeper level, it
+// builds child nodes. It stops when it finds a shallower level.
 //
-// Takes sections ([]markdown_dto.SectionData) which contains the flat list of
-// sections to process.
+// Takes sections ([]markdown_dto.SectionData) which contains the flat list of sections to
+// process.
 // Takes startIndex (int) which specifies where to start processing.
 // Takes currentLevel (int) which indicates the heading level being built.
 // Takes maxLevel (int) which limits the maximum depth of the tree.
 //
-// Returns []collection_dto.SectionNode which contains the built nodes for this
-// level.
+// Returns []collection_dto.SectionNode which contains the built nodes for this level.
 // Returns int which is the index where processing stopped.
 func buildSectionLevel(sections []markdown_dto.SectionData, startIndex, currentLevel, maxLevel int) ([]collection_dto.SectionNode, int) {
 	hint := 0
@@ -177,18 +173,18 @@ func buildSectionLevel(sections []markdown_dto.SectionData, startIndex, currentL
 	return items, i
 }
 
-// handleDeeperSection handles a section that is deeper than the current level.
-// It either creates an orphan node or attaches children to the last item.
+// handleDeeperSection handles a section that is deeper than the current level. It either
+// creates an orphan node or attaches children to the last item.
 //
-// Takes sections ([]markdown_dto.SectionData) which contains all the
-// section data being processed.
-// Takes items ([]collection_dto.SectionNode) which holds the nodes built
-// so far at the current level.
+// Takes sections ([]markdown_dto.SectionData) which contains all the section data being
+// processed.
+// Takes items ([]collection_dto.SectionNode) which holds the nodes built so far at the
+// current level.
 // Takes index (int) which is the current position in the sections slice.
 // Takes maxLevel (int) which is the deepest heading level to include.
 //
-// Returns []collection_dto.SectionNode which is the updated list of nodes
-// with the deeper section handled.
+// Returns []collection_dto.SectionNode which is the updated list of nodes with the deeper
+// section handled.
 // Returns int which is the next index to process after this section.
 func handleDeeperSection(
 	sections []markdown_dto.SectionData,
@@ -208,16 +204,14 @@ func handleDeeperSection(
 	return items, newIndex
 }
 
-// createOrphanSection creates a section node for a section that has no parent
-// at a higher level.
+// createOrphanSection creates a section node for a section that has no parent at a higher
+// level.
 //
-// Takes sections ([]markdown_dto.SectionData) which contains the section data
-// to process.
+// Takes sections ([]markdown_dto.SectionData) which contains the section data to process.
 // Takes index (int) which specifies the current position in the sections slice.
 // Takes maxLevel (int) which defines the deepest heading level to include.
 //
-// Returns collection_dto.SectionNode which is the built node with any nested
-// children.
+// Returns collection_dto.SectionNode which is the built node with any nested children.
 // Returns int which is the updated index after processing.
 func createOrphanSection(sections []markdown_dto.SectionData, index, maxLevel int) (collection_dto.SectionNode, int) {
 	section := sections[index]
@@ -234,16 +228,14 @@ func createOrphanSection(sections []markdown_dto.SectionData, index, maxLevel in
 
 // handleCurrentSection processes a single section at the current heading level.
 //
-// Takes sections ([]markdown_dto.SectionData) which contains all sections to
-// process.
-// Takes items ([]collection_dto.SectionNode) which holds the nodes built so
-// far.
+// Takes sections ([]markdown_dto.SectionData) which contains all sections to process.
+// Takes items ([]collection_dto.SectionNode) which holds the nodes built so far.
 // Takes index (int) which is the current position in the sections slice.
 // Takes currentLevel (int) which is the heading level being processed.
 // Takes maxLevel (int) which is the deepest heading level to include.
 //
-// Returns []collection_dto.SectionNode which contains the updated list with
-// the new node added.
+// Returns []collection_dto.SectionNode which contains the updated list with the new node
+// added.
 // Returns int which is the next index to process after this section.
 func handleCurrentSection(
 	sections []markdown_dto.SectionData,
@@ -278,8 +270,7 @@ func canHaveChildren(sections []markdown_dto.SectionData, index, currentLevel, m
 //
 // Takes section (markdown_dto.SectionData) which provides the source data.
 //
-// Returns collection_dto.SectionNode which is the converted node with nil
-// children.
+// Returns collection_dto.SectionNode which is the converted node with nil children.
 func sectionDataToNode(section markdown_dto.SectionData) collection_dto.SectionNode {
 	return collection_dto.SectionNode{
 		Title:    section.Title,

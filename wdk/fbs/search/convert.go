@@ -24,9 +24,10 @@ import (
 	search_fb "piko.sh/piko/internal/search/search_schema/search_schema_gen"
 )
 
-// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be
-// decoded.
-var errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+var (
+	// errFlatBufferParseFailed is returned when a FlatBuffer payload cannot be decoded.
+	errFlatBufferParseFailed = errors.New("failed to parse FlatBuffer payload")
+)
 
 // SearchIndex is a JSON-serialisable representation of a compiled search index.
 type SearchIndex struct {
@@ -72,8 +73,7 @@ type IndexParams struct {
 	// BM25B is the BM25 document length normalisation parameter; typically 0.75.
 	BM25B float32 `json:"bm25_b"`
 
-	// MinTokenLength is the minimum token length for indexing; shorter tokens
-	// are ignored.
+	// MinTokenLength is the minimum token length for indexing; shorter tokens are ignored.
 	MinTokenLength uint16 `json:"min_token_length"`
 
 	// MaxTokenLength is the maximum token length; longer tokens are ignored.
@@ -131,8 +131,8 @@ type DocMetadata struct {
 // ConvertSearchIndex parses a raw FlatBuffer search index payload into a
 // JSON-serialisable struct.
 //
-// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the
-// version header (use Unpack first).
+// Takes payload ([]byte) which is the raw FlatBuffer data after stripping the version
+// header (use Unpack first).
 //
 // Returns *SearchIndex which contains the full index data.
 // Returns error when the payload cannot be parsed.
@@ -160,8 +160,8 @@ func ConvertSearchIndex(payload []byte) (*SearchIndex, error) {
 //
 // Takes fb (*search_fb.SearchIndex) which contains the serialised index data.
 //
-// Returns *IndexParams which holds the extracted BM25 and tokenisation
-// settings, or nil if the FlatBuffer contains no parameters.
+// Returns *IndexParams which holds the extracted BM25 and tokenisation settings, or nil
+// if the FlatBuffer contains no parameters.
 func convertParams(fb *search_fb.SearchIndex) *IndexParams {
 	var paramsFB search_fb.IndexParams
 	params := fb.Params(&paramsFB)
@@ -261,8 +261,8 @@ func convertPostings(fb *search_fb.Term) []Posting {
 //
 // Takes fb (*search_fb.SearchIndex) which contains the serialised search index.
 //
-// Returns []DocMetadata which holds the extracted document metadata, or nil
-// if no documents exist.
+// Returns []DocMetadata which holds the extracted document metadata, or nil if no
+// documents exist.
 func convertDocuments(fb *search_fb.SearchIndex) []DocMetadata {
 	length := fb.DocumentsLength()
 	if length == 0 {

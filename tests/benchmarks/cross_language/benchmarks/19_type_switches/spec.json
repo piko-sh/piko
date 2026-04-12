@@ -1,0 +1,14 @@
+{
+  "name": "19_type_switches",
+  "description": "Runtime type-switch dispatch over a heterogeneous []any of 100k typed values. Go switch x.(type) vs Python isinstance chain. Tests type-tag introspection path distinct from virtual method dispatch (bench 13) and generic dispatch (bench 18).",
+  "args": [],
+  "expected_stdout_sha256": "581f1bf65fa338f95c64ef8984db406d40876e39f5eb575664dcb353c9eb4f41",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "d7b095e73aa5b429aa243dbdf556b17284e911345671cb8447876dbf70bbacd8",
+    "py/cpython.py": "90ba92ecf04138f2aa6e85d4404a66be29619b6449a09c06aca0b6aa12952e74",
+    "py/pypy.py": "90ba92ecf04138f2aa6e85d4404a66be29619b6449a09c06aca0b6aa12952e74"
+  }
+}

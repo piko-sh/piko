@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/image/image_dto"
 )
 
-// ImageConfig holds the settings produced by ImageConfigBuilder.
-// Pass this to piko.WithImage to set up the image hexagon.
+// ImageConfig holds the settings produced by ImageConfigBuilder. Pass this to
+// piko.WithImage to set up the image hexagon.
 type ImageConfig struct {
 	// Providers maps provider names to their transformer implementations.
 	Providers map[string]TransformerPort
@@ -57,11 +57,10 @@ func (c *ImageConfig) GetVariant(name string) (image_dto.TransformationSpec, boo
 	return spec, ok
 }
 
-// ImageConfigBuilder provides a fluent interface for setting up image service
-// options. It creates an ImageConfig that can be passed to piko.WithImage().
+// ImageConfigBuilder provides a fluent interface for setting up image service options. It
+// creates an ImageConfig that can be passed to piko.WithImage().
 //
-// Usage:
-// config := image_domain.Image().
+// Usage: config := image_domain.Image().
 //
 //	Provider("vips", vipsProvider).
 //	MaxFileSizeMB(50).
@@ -85,9 +84,8 @@ type ImageConfigBuilder struct {
 	config ServiceConfig
 }
 
-// Provider registers an image transformer with a name.
-// The first provider registered becomes the default unless DefaultProvider
-// is called.
+// Provider registers an image transformer with a name. The first provider registered
+// becomes the default unless DefaultProvider is called.
 //
 // Takes name (string) which identifies the provider.
 // Takes transformer (TransformerPort) which provides the image processing.
@@ -109,8 +107,8 @@ func (b *ImageConfigBuilder) Provider(name string, transformer TransformerPort) 
 	return b
 }
 
-// DefaultProvider sets which provider to use when none is specified.
-// This overrides the automatic selection of the first registered provider.
+// DefaultProvider sets which provider to use when none is specified. This overrides the
+// automatic selection of the first registered provider.
 //
 // Takes name (string) which identifies the default provider.
 //
@@ -132,8 +130,8 @@ func (b *ImageConfigBuilder) MaxDimensions(width, height int) *ImageConfigBuilde
 	return b
 }
 
-// MaxPixels sets the maximum allowed total pixel count (width * height).
-// This prevents memory exhaustion from extremely large images.
+// MaxPixels sets the maximum allowed total pixel count (width * height). This prevents
+// memory exhaustion from extremely large images.
 //
 // Takes pixels (int64) which specifies the maximum pixel count.
 //
@@ -173,8 +171,8 @@ func (b *ImageConfigBuilder) TransformTimeout(d time.Duration) *ImageConfigBuild
 	return b
 }
 
-// AllowedFormats sets the list of permitted output formats.
-// If not called, all standard formats are allowed.
+// AllowedFormats sets the list of permitted output formats. If not called, all standard
+// formats are allowed.
 //
 // Takes formats (...string) which specifies the allowed formats.
 //
@@ -184,8 +182,8 @@ func (b *ImageConfigBuilder) AllowedFormats(formats ...string) *ImageConfigBuild
 	return b
 }
 
-// DefaultQuality sets the default compression quality (1-100).
-// This is used when a transformation doesn't specify quality.
+// DefaultQuality sets the default compression quality (1-100). This is used when a
+// transformation doesn't specify quality.
 //
 // Takes q (int) which specifies the quality value.
 //
@@ -198,8 +196,8 @@ func (b *ImageConfigBuilder) DefaultQuality(q int) *ImageConfigBuilder {
 	return b
 }
 
-// WithVariant registers a predefined variant specification.
-// These variants can be referenced by name during transformations.
+// WithVariant registers a predefined variant specification. These variants can be
+// referenced by name during transformations.
 //
 // Takes name (string) which identifies the variant.
 // Takes spec (image_dto.TransformationSpec) which defines the variant.
@@ -214,8 +212,8 @@ func (b *ImageConfigBuilder) WithVariant(name string, spec image_dto.Transformat
 	return b
 }
 
-// WithVariantBuilder registers a predefined variant using a VariantBuilder.
-// This is a convenience method that calls Build() on the builder.
+// WithVariantBuilder registers a predefined variant using a VariantBuilder. This is a
+// convenience method that calls Build() on the builder.
 //
 // Takes name (string) which identifies the variant.
 // Takes builder (*VariantBuilder) which provides the variant configuration.
@@ -229,9 +227,8 @@ func (b *ImageConfigBuilder) WithVariantBuilder(name string, builder *VariantBui
 	return b.WithVariant(name, builder.Build())
 }
 
-// WithFallbackIcon sets a fallback icon for non-image MIME types.
-// When a transformation is requested for a file that isn't an image,
-// the fallback icon is returned instead.
+// WithFallbackIcon sets a fallback icon for non-image MIME types. When a transformation
+// is requested for a file that isn't an image, the fallback icon is returned instead.
 //
 // Takes mimePrefix (string) which specifies the MIME type prefix to match.
 // Takes iconPath (string) which specifies the path to the icon file.
@@ -245,8 +242,8 @@ func (b *ImageConfigBuilder) WithFallbackIcon(mimePrefix, iconPath string) *Imag
 	return b
 }
 
-// FromConfig copies settings from an existing ServiceConfig. Use it to extend
-// or modify an existing configuration.
+// FromConfig copies settings from an existing ServiceConfig. Use it to extend or modify
+// an existing configuration.
 //
 // Takes config (ServiceConfig) which provides the base settings.
 //
@@ -256,8 +253,8 @@ func (b *ImageConfigBuilder) FromConfig(config ServiceConfig) *ImageConfigBuilde
 	return b
 }
 
-// FromDefaults resets the configuration to default values and includes
-// default predefined variants.
+// FromDefaults resets the configuration to default values and includes default predefined
+// variants.
 //
 // Returns *ImageConfigBuilder which allows method chaining.
 func (b *ImageConfigBuilder) FromDefaults() *ImageConfigBuilder {
@@ -284,9 +281,8 @@ func (b *ImageConfigBuilder) Build() (*ImageConfig, error) {
 	}, nil
 }
 
-// MustBuild validates and returns the ImageConfig, panicking on error.
-// Use it in init() functions or when configuration errors should halt
-// startup.
+// MustBuild validates and returns the ImageConfig, panicking on error. Use it in init()
+// functions or when configuration errors should halt startup.
 //
 // Returns *ImageConfig which contains the complete configuration.
 //
@@ -301,9 +297,8 @@ func (b *ImageConfigBuilder) MustBuild() *ImageConfig {
 
 // validate checks the configuration for errors.
 //
-// Returns error when any builder error exists, no providers are registered,
-// default provider is not set or not registered, or validation of config or
-// variants fails.
+// Returns error when any builder error exists, no providers are registered, default
+// provider is not set or not registered, or validation of config or variants fails.
 func (b *ImageConfigBuilder) validate() error {
 	if len(b.errs) > 0 {
 		return b.errs[0]
@@ -334,8 +329,8 @@ func (b *ImageConfigBuilder) validate() error {
 
 // validateConfig checks the ServiceConfig values.
 //
-// Returns error when any configuration value is negative or an invalid format
-// is specified.
+// Returns error when any configuration value is negative or an invalid format is
+// specified.
 func (b *ImageConfigBuilder) validateConfig() error {
 	if b.config.MaxImageWidth < 0 {
 		return errMaxWidthNegative
@@ -386,8 +381,8 @@ func (b *ImageConfigBuilder) validateVariants() error {
 
 // Image creates a new image configuration builder with sensible defaults.
 //
-// Returns *ImageConfigBuilder which provides a fluent interface for
-// setting up the image service.
+// Returns *ImageConfigBuilder which provides a fluent interface for setting up the image
+// service.
 func Image() *ImageConfigBuilder {
 	return &ImageConfigBuilder{
 		providers:          make(map[string]TransformerPort),
@@ -398,11 +393,10 @@ func Image() *ImageConfigBuilder {
 	}
 }
 
-// DefaultPredefinedVariants returns a map of sensible default variants.
-// These are included when FromDefaults() is called.
+// DefaultPredefinedVariants returns a map of sensible default variants. These are
+// included when FromDefaults() is called.
 //
-// Returns map[string]image_dto.TransformationSpec which contains the
-// default variants.
+// Returns map[string]image_dto.TransformationSpec which contains the default variants.
 func DefaultPredefinedVariants() map[string]image_dto.TransformationSpec {
 	return map[string]image_dto.TransformationSpec{
 		"thumb_100": {

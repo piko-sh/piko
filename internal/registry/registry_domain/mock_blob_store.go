@@ -24,8 +24,8 @@ import (
 	"sync/atomic"
 )
 
-// MockBlobStore is a test double for BlobStore where nil function
-// fields return zero values and call counts are tracked atomically.
+// MockBlobStore is a test double for BlobStore where nil function fields return zero
+// values and call counts are tracked atomically.
 type MockBlobStore struct {
 	// PutFunc is the function called by Put.
 	PutFunc func(ctx context.Context, key string, data io.Reader) error
@@ -48,33 +48,26 @@ type MockBlobStore struct {
 	// ListKeysFunc is the function called by ListKeys.
 	ListKeysFunc func(ctx context.Context) ([]string, error)
 
-	// PutCallCount tracks how many times Put was
-	// called.
-	PutCallCount int64
+	// PutCallCount tracks how many times Put was called.
+	PutCallCount atomic.Int64
 
-	// GetCallCount tracks how many times Get was
-	// called.
-	GetCallCount int64
+	// GetCallCount tracks how many times Get was called.
+	GetCallCount atomic.Int64
 
-	// RangeGetCallCount tracks how many times RangeGet
-	// was called.
-	RangeGetCallCount int64
+	// RangeGetCallCount tracks how many times RangeGet was called.
+	RangeGetCallCount atomic.Int64
 
-	// DeleteCallCount tracks how many times Delete was
-	// called.
-	DeleteCallCount int64
+	// DeleteCallCount tracks how many times Delete was called.
+	DeleteCallCount atomic.Int64
 
-	// RenameCallCount tracks how many times Rename was
-	// called.
-	RenameCallCount int64
+	// RenameCallCount tracks how many times Rename was called.
+	RenameCallCount atomic.Int64
 
-	// ExistsCallCount tracks how many times Exists was
-	// called.
-	ExistsCallCount int64
+	// ExistsCallCount tracks how many times Exists was called.
+	ExistsCallCount atomic.Int64
 
-	// ListKeysCallCount tracks how many times ListKeys was
-	// called.
-	ListKeysCallCount int64
+	// ListKeysCallCount tracks how many times ListKeys was called.
+	ListKeysCallCount atomic.Int64
 }
 
 // Put writes blob data under the given key.
@@ -85,7 +78,7 @@ type MockBlobStore struct {
 //
 // Returns error, or nil if PutFunc is nil.
 func (m *MockBlobStore) Put(ctx context.Context, key string, data io.Reader) error {
-	atomic.AddInt64(&m.PutCallCount, 1)
+	m.PutCallCount.Add(1)
 	if m.PutFunc != nil {
 		return m.PutFunc(ctx, key, data)
 	}
@@ -99,7 +92,7 @@ func (m *MockBlobStore) Put(ctx context.Context, key string, data io.Reader) err
 //
 // Returns (io.ReadCloser, error), or (nil, nil) if GetFunc is nil.
 func (m *MockBlobStore) Get(ctx context.Context, key string) (io.ReadCloser, error) {
-	atomic.AddInt64(&m.GetCallCount, 1)
+	m.GetCallCount.Add(1)
 	if m.GetFunc != nil {
 		return m.GetFunc(ctx, key)
 	}
@@ -115,7 +108,7 @@ func (m *MockBlobStore) Get(ctx context.Context, key string) (io.ReadCloser, err
 //
 // Returns (io.ReadCloser, error), or (nil, nil) if RangeGetFunc is nil.
 func (m *MockBlobStore) RangeGet(ctx context.Context, key string, offset int64, length int64) (io.ReadCloser, error) {
-	atomic.AddInt64(&m.RangeGetCallCount, 1)
+	m.RangeGetCallCount.Add(1)
 	if m.RangeGetFunc != nil {
 		return m.RangeGetFunc(ctx, key, offset, length)
 	}
@@ -129,7 +122,7 @@ func (m *MockBlobStore) RangeGet(ctx context.Context, key string, offset int64, 
 //
 // Returns error, or nil if DeleteFunc is nil.
 func (m *MockBlobStore) Delete(ctx context.Context, key string) error {
-	atomic.AddInt64(&m.DeleteCallCount, 1)
+	m.DeleteCallCount.Add(1)
 	if m.DeleteFunc != nil {
 		return m.DeleteFunc(ctx, key)
 	}
@@ -144,7 +137,7 @@ func (m *MockBlobStore) Delete(ctx context.Context, key string) error {
 //
 // Returns error, or nil if RenameFunc is nil.
 func (m *MockBlobStore) Rename(ctx context.Context, tempKey string, key string) error {
-	atomic.AddInt64(&m.RenameCallCount, 1)
+	m.RenameCallCount.Add(1)
 	if m.RenameFunc != nil {
 		return m.RenameFunc(ctx, tempKey, key)
 	}
@@ -158,7 +151,7 @@ func (m *MockBlobStore) Rename(ctx context.Context, tempKey string, key string) 
 //
 // Returns (bool, error), or (false, nil) if ExistsFunc is nil.
 func (m *MockBlobStore) Exists(ctx context.Context, key string) (bool, error) {
-	atomic.AddInt64(&m.ExistsCallCount, 1)
+	m.ExistsCallCount.Add(1)
 	if m.ExistsFunc != nil {
 		return m.ExistsFunc(ctx, key)
 	}
@@ -171,7 +164,7 @@ func (m *MockBlobStore) Exists(ctx context.Context, key string) (bool, error) {
 //
 // Returns ([]string, error), or (nil, nil) if ListKeysFunc is nil.
 func (m *MockBlobStore) ListKeys(ctx context.Context) ([]string, error) {
-	atomic.AddInt64(&m.ListKeysCallCount, 1)
+	m.ListKeysCallCount.Add(1)
 	if m.ListKeysFunc != nil {
 		return m.ListKeysFunc(ctx)
 	}

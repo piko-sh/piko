@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package builder_lite provides integration tests for the
-// LiteBuilder, the lightweight AST-only code inspection path that
-// extracts type information without invoking go/packages.
+// Package builder_lite provides integration tests for the LiteBuilder, the lightweight
+// AST-only code inspection path that extracts type information without invoking
+// go/packages.
 //
-// Each subdirectory under testdata/ represents a single golden-file
-// scenario. Tests pre-generate a minimal stdlib type data set in
-// TestMain and compare serialised output against the golden files.
+// Each subdirectory under testdata/ represents a single golden-file scenario. Tests
+// pre-generate a minimal stdlib type data set in TestMain and compare serialised output
+// against the golden files.
 package builder_lite

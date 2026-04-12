@@ -58,8 +58,7 @@ func (m Money) EqualsInt(i int64) (bool, error) {
 // Takes i (string) which is the monetary amount to compare against.
 //
 // Returns bool which is true if the values are equal.
-// Returns error when the currency code cannot be determined or the
-// comparison fails.
+// Returns error when the currency code cannot be determined or the comparison fails.
 func (m Money) EqualsString(i string) (bool, error) {
 	code, err := m.CurrencyCode()
 	if err != nil {
@@ -87,8 +86,8 @@ func (m Money) EqualsFloat(i float64) (bool, error) {
 // Takes other (Money) which is the value to compare against.
 //
 // Returns bool which is true if m is less than other.
-// Returns error when either Money object has an error or when the
-// currencies do not match.
+// Returns error when either Money object has an error or when the currencies do not
+// match.
 func (m Money) LessThan(other Money) (bool, error) {
 	if m.err != nil {
 		return false, m.err
@@ -150,8 +149,8 @@ func (m Money) LessThanFloat(i float64) (bool, error) {
 // Takes other (Money) which is the value to compare against.
 //
 // Returns bool which is true when m is greater than other.
-// Returns error when the currencies do not match or when either Money
-// value is in an error state.
+// Returns error when the currencies do not match or when either Money value is in an
+// error state.
 func (m Money) GreaterThan(other Money) (bool, error) {
 	if m.err != nil {
 		return false, m.err
@@ -166,8 +165,8 @@ func (m Money) GreaterThan(other Money) (bool, error) {
 	return cmp > 0, nil
 }
 
-// GreaterThanInt reports whether the money amount is greater than the given
-// integer value.
+// GreaterThanInt reports whether the money amount is greater than the given integer
+// value.
 //
 // Takes i (int64) which is the value to compare against.
 //
@@ -181,14 +180,14 @@ func (m Money) GreaterThanInt(i int64) (bool, error) {
 	return m.GreaterThan(NewMoneyFromInt(i, code))
 }
 
-// GreaterThanString reports whether the money amount is greater than the
-// given string value.
+// GreaterThanString reports whether the money amount is greater than the given string
+// value.
 //
 // Takes i (string) which is the numeric value to compare against.
 //
 // Returns bool which is true if this money amount exceeds the parsed value.
-// Returns error when the currency code cannot be determined or the string
-// cannot be parsed.
+// Returns error when the currency code cannot be determined or the string cannot be
+// parsed.
 func (m Money) GreaterThanString(i string) (bool, error) {
 	code, err := m.CurrencyCode()
 	if err != nil {
@@ -197,8 +196,8 @@ func (m Money) GreaterThanString(i string) (bool, error) {
 	return m.GreaterThan(NewMoneyFromString(i, code))
 }
 
-// GreaterThanFloat reports whether this money value is greater than the given
-// float amount.
+// GreaterThanFloat reports whether this money value is greater than the given float
+// amount.
 //
 // Takes i (float64) which is the amount to compare against.
 //
@@ -269,8 +268,8 @@ func (m Money) CheckIsNegative() bool {
 	return err == nil && is
 }
 
-// CheckEquals returns true only if both money values are valid, equal, and
-// share the same currency.
+// CheckEquals returns true only if both money values are valid, equal, and share the same
+// currency.
 //
 // Takes other (Money) which is the money value to compare against.
 //
@@ -280,20 +279,19 @@ func (m Money) CheckEquals(other Money) bool {
 	return err == nil && eq
 }
 
-// CheckLessThan returns true only if both money values are valid and m is
-// less than other.
+// CheckLessThan returns true only if both money values are valid and m is less than
+// other.
 //
 // Takes other (Money) which is the value to compare against.
 //
-// Returns bool which is true when both values are valid and m is less than
-// other.
+// Returns bool which is true when both values are valid and m is less than other.
 func (m Money) CheckLessThan(other Money) bool {
 	lt, err := m.LessThan(other)
 	return err == nil && lt
 }
 
-// CheckGreaterThan returns true only if both money values are valid and m is
-// greater than other.
+// CheckGreaterThan returns true only if both money values are valid and m is greater than
+// other.
 //
 // Takes other (Money) which is the value to compare against.
 //
@@ -402,15 +400,15 @@ func (m Money) IsInteger() (bool, error) {
 	return amount.IsInteger()
 }
 
-// IsBetween checks whether the money amount falls within the given range,
-// inclusive of both minVal and maxVal.
+// IsBetween checks whether the money amount falls within the given range, inclusive of
+// both minVal and maxVal.
 //
 // Takes minVal (Money) which specifies the lower bound of the range.
 // Takes maxVal (Money) which specifies the upper bound of the range.
 //
 // Returns bool which is true if the amount is within the range.
-// Returns error when any Money object is in an error state, currencies do
-// not match, or minVal exceeds maxVal.
+// Returns error when any Money object is in an error state, currencies do not match, or
+// minVal exceeds maxVal.
 func (m Money) IsBetween(minVal, maxVal Money) (bool, error) {
 	if m.err != nil {
 		return false, m.err
@@ -436,15 +434,15 @@ func (m Money) IsBetween(minVal, maxVal Money) (bool, error) {
 	return mAmount.IsBetween(minAmount, maxAmount)
 }
 
-// IsCloseTo checks whether the money amount is within a given tolerance of
-// the target value.
+// IsCloseTo checks whether the money amount is within a given tolerance of the target
+// value.
 //
 // Takes target (Money) which is the value to compare against.
 // Takes tolerance (Money) which is the maximum allowed difference.
 //
 // Returns bool which is true if the difference is within tolerance.
-// Returns error when any Money value is in an error state, currencies do not
-// match, or tolerance is negative.
+// Returns error when any Money value is in an error state, currencies do not match, or
+// tolerance is negative.
 func (m Money) IsCloseTo(target, tolerance Money) (bool, error) {
 	if m.err != nil {
 		return false, m.err
@@ -487,8 +485,7 @@ func (m Money) IsCloseTo(target, tolerance Money) (bool, error) {
 // Returns false for non-integers.
 //
 // Returns bool which indicates whether the amount is an even integer.
-// Returns error when the money has an existing error or the amount cannot be
-// retrieved.
+// Returns error when the money has an existing error or the amount cannot be retrieved.
 func (m Money) IsEven() (bool, error) {
 	if m.err != nil {
 		return false, m.err
@@ -504,8 +501,7 @@ func (m Money) IsEven() (bool, error) {
 // Returns false for non-integers.
 //
 // Returns bool which indicates whether the amount is an odd integer.
-// Returns error when the money has an existing error or the amount cannot be
-// retrieved.
+// Returns error when the money has an existing error or the amount cannot be retrieved.
 func (m Money) IsOdd() (bool, error) {
 	if m.err != nil {
 		return false, m.err
@@ -517,8 +513,7 @@ func (m Money) IsOdd() (bool, error) {
 	return amount.IsOdd()
 }
 
-// IsMultipleOf checks whether the money amount is a multiple of another
-// money amount.
+// IsMultipleOf checks whether the money amount is a multiple of another money amount.
 //
 // Takes other (Money) which is the divisor to check against.
 //
@@ -551,8 +546,8 @@ func (m Money) CheckIsInteger() bool {
 	return err == nil && is
 }
 
-// CheckIsBetween returns true only if the money value is valid and falls
-// between minVal and maxVal.
+// CheckIsBetween returns true only if the money value is valid and falls between minVal
+// and maxVal.
 //
 // Takes minVal (Money) which specifies the lower bound of the range.
 // Takes maxVal (Money) which specifies the upper bound of the range.
@@ -563,8 +558,8 @@ func (m Money) CheckIsBetween(minVal, maxVal Money) bool {
 	return err == nil && is
 }
 
-// CheckIsCloseTo returns true when the money value is valid and within the
-// given tolerance of the target.
+// CheckIsCloseTo returns true when the money value is valid and within the given
+// tolerance of the target.
 //
 // Takes target (Money) which specifies the value to compare against.
 // Takes tolerance (Money) which specifies the allowed difference.
@@ -591,13 +586,12 @@ func (m Money) CheckIsOdd() bool {
 	return err == nil && is
 }
 
-// CheckIsMultipleOf checks whether the money amount divides evenly by another
-// amount.
+// CheckIsMultipleOf checks whether the money amount divides evenly by another amount.
 //
 // Takes other (Money) which specifies the divisor to check against.
 //
-// Returns bool which is true when the amount is an exact multiple with no
-// remainder, or false when division is not exact or an error occurs.
+// Returns bool which is true when the amount is an exact multiple with no remainder, or
+// false when division is not exact or an error occurs.
 func (m Money) CheckIsMultipleOf(other Money) bool {
 	is, err := m.IsMultipleOf(other)
 	return err == nil && is
@@ -674,8 +668,7 @@ func (m Money) MustIsOdd() bool {
 	return is
 }
 
-// MustIsMultipleOf returns true if the money amount is a multiple of the
-// other.
+// MustIsMultipleOf returns true if the money amount is a multiple of the other.
 //
 // Takes other (Money) which specifies the divisor to check against.
 //

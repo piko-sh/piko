@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_provider_mock provides an in-memory mock cache
-// provider for testing.
+// Package cache_provider_mock provides an in-memory mock cache provider for testing.
 //
-// [NewMockProvider] creates a provider that can be registered with a
-// cache service for integration-style tests. [NewMockAdapter] creates
-// a standalone typed cache for unit tests that do not need the full
-// service layer.
+// [NewMockProvider] creates a provider that can be registered with a cache service for
+// integration-style tests. [NewMockAdapter] creates a standalone typed cache for unit
+// tests that do not need the full service layer.
 //
-// Both support TTL expiration, tag-based invalidation, call recording,
-// and error injection. All methods are safe for concurrent use.
+// Both support TTL expiration, tag-based invalidation, call recording, and error
+// injection. All methods are safe for concurrent use.
 package cache_provider_mock

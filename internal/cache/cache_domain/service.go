@@ -39,19 +39,19 @@ const (
 )
 
 var (
-	// errProviderNameEmpty is returned when a provider is registered with an
-	// empty name.
+	// errProviderNameEmpty is returned when a provider is registered with an empty name.
 	errProviderNameEmpty = errors.New("provider name cannot be empty")
 
-	// errProviderNil is returned when a nil provider is supplied during
-	// registration.
+	// errProviderNil is returned when a nil provider is supplied during registration.
 	errProviderNil = errors.New("provider cannot be nil")
 )
 
-var _ Service = (*service)(nil)
+var (
+	_ Service = (*service)(nil)
+)
 
-// service implements the Service interface, managing a registry of cache
-// providers and creating configured cache instances on demand.
+// service implements the Service interface, managing a registry of cache providers and
+// creating configured cache instances on demand.
 type service struct {
 	// providers maps provider names to their Provider instances.
 	providers map[string]any
@@ -63,16 +63,15 @@ type service struct {
 	mu sync.RWMutex
 }
 
-// RegisterProvider adds a cache provider implementation to the service
-// registry.
+// RegisterProvider adds a cache provider implementation to the service registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace and
-// request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace and request ID
+// propagation.
 // Takes name (string) which identifies the provider in the registry.
 // Takes provider (any) which must be a Provider instance.
 //
-// Returns error when name is empty, provider is nil, provider is not a Provider
-// instance, or a provider with that name already exists.
+// Returns error when name is empty, provider is nil, provider is not a Provider instance,
+// or a provider with that name already exists.
 //
 // Safe for concurrent use.
 func (s *service) RegisterProvider(ctx context.Context, name string, provider any) error {
@@ -144,11 +143,10 @@ func (s *service) GetProviders() []string {
 	return names
 }
 
-// SetDefaultProvider sets the default cache provider to use when none is
-// specified.
+// SetDefaultProvider sets the default cache provider to use when none is specified.
 //
-// Takes ctx (context.Context) which carries logging context for trace and
-// request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace and request ID
+// propagation.
 // Takes name (string) which is the provider name to set as default.
 //
 // Returns error when the provider name is not registered.
@@ -182,8 +180,8 @@ func (s *service) GetDefaultProvider() string {
 
 // Close shuts down all registered providers and releases their resources.
 //
-// Takes ctx (context.Context) which carries logging context for trace and
-// request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace and request ID
+// propagation.
 //
 // Returns error when one or more providers fail to close.
 //
@@ -215,19 +213,18 @@ func (s *service) Close(ctx context.Context) error {
 	return nil
 }
 
-// Name returns the service identifier and implements the
-// healthprobe_domain.Probe interface.
+// Name returns the service identifier and implements the healthprobe_domain.Probe
+// interface.
 //
 // Returns string which is the constant "CacheService".
 func (*service) Name() string {
 	return "CacheService"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies cache providers are available.
+// Check implements the healthprobe_domain.Probe interface. It verifies cache providers
+// are available.
 //
-// Returns healthprobe_dto.Status which contains the health state and provider
-// count.
+// Returns healthprobe_dto.Status which contains the health state and provider count.
 //
 // Safe for concurrent use.
 func (s *service) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -253,16 +250,15 @@ func (s *service) Check(_ context.Context, _ healthprobe_dto.CheckType) healthpr
 	}
 }
 
-// resolveProvider finds a provider by name, or uses the default if no name
-// is given.
+// resolveProvider finds a provider by name, or uses the default if no name is given.
 //
-// Takes providerName (string) which is the name of the provider to find, or
-// an empty string to use the default.
+// Takes providerName (string) which is the name of the provider to find, or an empty
+// string to use the default.
 //
 // Returns string which is the resolved provider name.
 // Returns any which is the provider instance.
-// Returns error when no provider name is given and no default is set, or when
-// the named provider does not exist.
+// Returns error when no provider name is given and no default is set, or when the named
+// provider does not exist.
 //
 // Safe for concurrent use; holds a read lock while reading the provider map.
 func (s *service) resolveProvider(providerName string) (string, any, error) {
@@ -284,20 +280,18 @@ func (s *service) resolveProvider(providerName string) (string, any, error) {
 	return providerName, providerAny, nil
 }
 
-// CreateNamespace creates a new cache instance using the namespace pattern
-// and is a standalone function (rather than a method) because Go methods
-// cannot have generic type parameters.
+// CreateNamespace creates a new cache instance using the namespace pattern and is a
+// standalone function (rather than a method) because Go methods cannot have generic type
+// parameters.
 //
 // Takes service (Service) which provides access to registered cache providers.
 // Takes providerName (string) which identifies the cache provider to use.
-// Takes namespace (string) which is the logical namespace for the cache
-// instance.
-// Takes options (cache_dto.Options[K, V]) which configures the cache
-// behaviour.
+// Takes namespace (string) which is the logical namespace for the cache instance.
+// Takes options (cache_dto.Options[K, V]) which configures the cache behaviour.
 //
 // Returns Cache[K, V] which is the configured cache instance.
-// Returns error when the provider is not found, options are invalid, or
-// namespace creation fails.
+// Returns error when the provider is not found, options are invalid, or namespace
+// creation fails.
 func CreateNamespace[K comparable, V any](ctx context.Context, service Service, providerName, namespace string, options cache_dto.Options[K, V]) (Cache[K, V], error) {
 	provider, err := service.GetProvider(providerName)
 	if err != nil {
@@ -323,19 +317,16 @@ func CreateNamespace[K comparable, V any](ctx context.Context, service Service, 
 	return cache, nil
 }
 
-// NewCache creates a new, configured cache instance by selecting the
-// appropriate provider and returning a generic Cache interface, implemented
-// as a standalone function because Go methods cannot have generic type
-// parameters.
+// NewCache creates a new, configured cache instance by selecting the appropriate provider
+// and returning a generic Cache interface, implemented as a standalone function because
+// Go methods cannot have generic type parameters.
 //
-// Takes cacheService (Service) which provides access to registered
-// cache providers.
-// Takes options (cache_dto.Options[K, V]) which configures the cache
-// instance.
+// Takes cacheService (Service) which provides access to registered cache providers.
+// Takes options (cache_dto.Options[K, V]) which configures the cache instance.
 //
 // Returns Cache[K, V] which is the configured cache instance.
-// Returns error when the service implementation is invalid, options
-// validation fails, or provider creation fails.
+// Returns error when the service implementation is invalid, options validation fails, or
+// provider creation fails.
 func NewCache[K comparable, V any](cacheService Service, options cache_dto.Options[K, V]) (Cache[K, V], error) {
 	s, ok := cacheService.(*service)
 	if !ok {
@@ -361,8 +352,8 @@ func NewCache[K comparable, V any](cacheService Service, options cache_dto.Optio
 
 // NewService creates a new cache service.
 //
-// Takes defaultProvider (string) which sets the provider to use when no
-// provider is given in the cache options.
+// Takes defaultProvider (string) which sets the provider to use when no provider is given
+// in the cache options.
 //
 // Returns Service which is the configured cache service ready for use.
 func NewService(defaultProvider string) Service {
@@ -372,18 +363,14 @@ func NewService(defaultProvider string) Service {
 	}
 }
 
-// createCacheFromProvider creates a cache using the new-style Provider
-// interface.
+// createCacheFromProvider creates a cache using the new-style Provider interface.
 //
 // Takes provider (Provider) which is the cache provider implementation.
-// Takes providerName (string) which identifies the provider for error
-// messages.
-// Takes options (cache_dto.Options[K, V]) which configures the cache
-// instance.
+// Takes providerName (string) which identifies the provider for error messages.
+// Takes options (cache_dto.Options[K, V]) which configures the cache instance.
 //
 // Returns Cache[K, V] which is the created cache instance.
-// Returns error when namespace creation fails or the provider returns an
-// invalid type.
+// Returns error when namespace creation fails or the provider returns an invalid type.
 func createCacheFromProvider[K comparable, V any](
 	provider Provider,
 	providerName string,

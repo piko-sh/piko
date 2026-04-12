@@ -30,20 +30,22 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-// errClientDisconnected is returned when the SSE client has disconnected.
-var errClientDisconnected = errors.New("client disconnected")
+var (
+	// errClientDisconnected is returned when the SSE client has disconnected.
+	errClientDisconnected = errors.New("client disconnected")
+)
 
-// SSECapable is an interface that actions can implement to support
-// Server-Sent Events (SSE) streaming. When an action implements this
-// interface, clients can request SSE transport for progressive updates.
+// SSECapable is an interface that actions can implement to support Server-Sent Events
+// (SSE) streaming. When an action implements SSECapable, clients can request SSE
+// transport for progressive updates.
 type SSECapable interface {
-	// StreamProgress handles SSE streaming for the action.
-	// The stream is automatically closed when the call returns.
+	// StreamProgress handles SSE streaming for the action. The stream is automatically
+	// closed when the call returns.
 	StreamProgress(stream *SSEStream) error
 }
 
-// SSEStream provides an interface for sending Server-Sent Events to the client.
-// It wraps the underlying HTTP response writer with SSE-specific methods.
+// SSEStream provides an interface for sending Server-Sent Events to the client. It wraps
+// the underlying HTTP response writer with SSE-specific methods.
 type SSEStream struct {
 	// writer is the output destination for SSE events and heartbeats.
 	writer io.Writer
@@ -54,32 +56,31 @@ type SSEStream struct {
 	// done signals when the client has disconnected.
 	done <-chan struct{}
 
-	// lastEventID holds the Last-Event-ID header from the client's
-	// reconnection request. Empty on first connection.
+	// lastEventID holds the Last-Event-ID header from the client's reconnection request.
+	// Empty on first connection.
 	lastEventID string
 
-	// nextID is the auto-incrementing event ID counter. Only used
-	// when idsEnabled is true.
+	// nextID is the auto-incrementing event ID counter. Only used when idsEnabled is true.
 	nextID uint64
 
-	// idsEnabled controls whether Send/SendData/SendComplete include
-	// an id: field in the SSE output. Activated by EnableEventIDs().
+	// idsEnabled controls whether Send/SendData/SendComplete include an id: field in the SSE
+	// output. Activated by EnableEventIDs().
 	idsEnabled bool
 
-	// developmentMode controls whether SendError exposes the raw
-	// internal error string to the client. In production only the
-	// safe message extracted by safeerror.ExtractSafeMessage is sent.
+	// developmentMode controls whether SendError exposes the raw internal error string to
+	// the client. In production only the safe message extracted by
+	// safeerror.ExtractSafeMessage is sent.
 	developmentMode bool
 }
 
-// isDevelopmentModeFromContext reads the DevelopmentMode flag from a
-// PikoRequestCtx attached to ctx. Returns false when no carrier is present
-// so default behaviour is the safer production path.
+// isDevelopmentModeFromContext reads the DevelopmentMode flag from a PikoRequestCtx
+// attached to ctx. Returns false when no carrier is present so default behaviour is the
+// safer production path.
 //
 // Takes ctx (context.Context) which carries the request scoped context.
 //
-// Returns bool which is true when the request context indicates development
-// mode is active.
+// Returns bool which is true when the request context indicates development mode is
+// active.
 func isDevelopmentModeFromContext(ctx context.Context) bool {
 	if ctx == nil {
 		return false
@@ -94,11 +95,11 @@ func isDevelopmentModeFromContext(ctx context.Context) bool {
 //
 // Takes w (http.ResponseWriter) which is the response writer to wrap.
 // Takes done (<-chan struct{}) which signals when the stream should close.
-// Takes lastEventID (string) which is the Last-Event-ID header from the
-// client's reconnection request (empty on first connection).
+// Takes lastEventID (string) which is the Last-Event-ID header from the client's
+// reconnection request (empty on first connection).
 //
-// Returns *SSEStream which is the configured stream, or nil if the writer
-// does not support flushing.
+// Returns *SSEStream which is the configured stream, or nil if the writer does not
+// support flushing.
 func NewSSEStream(w http.ResponseWriter, done <-chan struct{}, lastEventID string) *SSEStream {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -112,42 +113,41 @@ func NewSSEStream(w http.ResponseWriter, done <-chan struct{}, lastEventID strin
 	}
 }
 
-// EnableEventIDs activates automatic event ID generation for the SSE stream.
-// When enabled, Send, SendData, and SendComplete calls include an
-// auto-incrementing id: field in the SSE output.
+// EnableEventIDs activates automatic event ID generation for the SSE stream. When
+// enabled, Send, SendData, and SendComplete calls include an auto-incrementing id: field
+// in the SSE output.
 //
-// Clients can send the Last-Event-ID header on reconnection, allowing the
-// action to skip already-sent events via LastEventID.
+// Clients can send the Last-Event-ID header on reconnection, allowing the action to skip
+// already-sent events via LastEventID.
 func (s *SSEStream) EnableEventIDs() {
 	s.idsEnabled = true
 	s.nextID = 1
 }
 
-// SetDevelopmentModeFromContext records whether the daemon is running in
-// development mode by inspecting the PikoRequestCtx attached to ctx. The
-// flag controls whether SendError forwards the raw internal error string
-// or only the user-safe message extracted by safeerror.ExtractSafeMessage.
+// SetDevelopmentModeFromContext records whether the daemon is running in development mode
+// by inspecting the PikoRequestCtx attached to ctx. The flag controls whether SendError
+// forwards the raw internal error string or only the user-safe message extracted by
+// safeerror.ExtractSafeMessage.
 //
 // Takes ctx (context.Context) which carries the request scoped context.
 func (s *SSEStream) SetDevelopmentModeFromContext(ctx context.Context) {
 	s.developmentMode = isDevelopmentModeFromContext(ctx)
 }
 
-// SetDevelopmentMode explicitly toggles development mode on the stream
-// without reading any context. Provided for tests and callers that already
-// have the resolved flag.
+// SetDevelopmentMode explicitly toggles development mode on the stream without reading
+// any context. Provided for tests and callers that already have the resolved flag.
 //
 // Takes developmentMode (bool) which enables raw error exposure when true.
 func (s *SSEStream) SetDevelopmentMode(developmentMode bool) {
 	s.developmentMode = developmentMode
 }
 
-// LastEventID returns the Last-Event-ID header value from the client's
-// reconnection request. Returns an empty string on first connection.
+// LastEventID returns the Last-Event-ID header value from the client's reconnection
+// request. Returns an empty string on first connection.
 //
-// This value is client-provided input and must be validated before use.
-// Actions can use this to skip already-sent events when a client reconnects:
-// if lastID := stream.LastEventID(); lastID != "" {
+// This value is client-provided input and must be validated before use. Actions can use
+// this to skip already-sent events when a client reconnects: if lastID :=
+// stream.LastEventID(); lastID != "" {
 //
 //	if parsed, err := strconv.Atoi(lastID); err == nil && parsed > 0 && parsed <= total {
 //	    startIndex = parsed
@@ -155,15 +155,13 @@ func (s *SSEStream) SetDevelopmentMode(developmentMode bool) {
 //
 // }
 //
-// Returns string which is the Last-Event-ID header value, or empty
-// on first connection.
+// Returns string which is the Last-Event-ID header value, or empty on first connection.
 func (s *SSEStream) LastEventID() string {
 	return s.lastEventID
 }
 
-// Send transmits a JSON-encoded SSE event to the client stream. When event
-// IDs are enabled via EnableEventIDs(), an auto-incrementing id field is
-// included.
+// Send transmits a JSON-encoded SSE event to the client stream. When event IDs are
+// enabled via EnableEventIDs(), an auto-incrementing id field is included.
 //
 // Takes event (string) which specifies the SSE event type.
 // Takes data (any) which is the payload to JSON-encode and send.
@@ -195,10 +193,9 @@ func (s *SSEStream) Send(event string, data any) error {
 	return nil
 }
 
-// SendWithID sends an SSE event with a caller-specified event ID.
-// Use this instead of EnableEventIDs when the event ID must match an
-// application-specific value such as a database record ID rather than an
-// auto-incrementing counter.
+// SendWithID sends an SSE event with a caller-specified event ID. Use this instead of
+// EnableEventIDs when the event ID must match an application-specific value such as a
+// database record ID rather than an auto-incrementing counter.
 //
 // Takes id (string) which is the SSE event ID to include.
 // Takes event (string) which specifies the SSE event type.
@@ -226,14 +223,12 @@ func (s *SSEStream) SendWithID(id string, event string, data any) error {
 	return nil
 }
 
-// SendData sends an SSE event with only the data field, using the default
-// 'message' event type on the client. When event IDs are enabled, an id: field
-// is included.
+// SendData sends an SSE event with only the data field, using the default 'message' event
+// type on the client. When event IDs are enabled, an id: field is included.
 //
 // Takes data (any) which is the payload to send, marshalled as JSON.
 //
-// Returns error when the client has disconnected, encoding fails, or writing
-// fails.
+// Returns error when the client has disconnected, encoding fails, or writing fails.
 func (s *SSEStream) SendData(data any) error {
 	select {
 	case <-s.done:
@@ -260,8 +255,8 @@ func (s *SSEStream) SendData(data any) error {
 	return nil
 }
 
-// SendComplete sends a "complete" event signalling the stream is done.
-// This should be called at the end of successful streaming.
+// SendComplete sends a "complete" event signalling the stream is done. This should be
+// called at the end of successful streaming.
 //
 // Takes data (any) which is the final payload to send with the complete event.
 //
@@ -272,11 +267,10 @@ func (s *SSEStream) SendComplete(data any) error {
 
 // SendError sends an "error" event with sanitised error details.
 //
-// The payload is passed through safeerror.ExtractSafeMessage so production
-// clients only receive a user-safe message, while development mode
-// surfaces the full internal error for debugging. Callers should configure
-// development mode via SetDevelopmentModeFromContext before invoking
-// SendError.
+// The payload is passed through safeerror.ExtractSafeMessage so production clients only
+// receive a user-safe message, while development mode surfaces the full internal error
+// for debugging. Callers should configure development mode via
+// SetDevelopmentModeFromContext before invoking SendError.
 //
 // Takes err (error) which provides the error to send to the client.
 //
@@ -287,9 +281,8 @@ func (s *SSEStream) SendError(err error) error {
 	})
 }
 
-// SendHeartbeat sends a comment (ping) to keep the connection alive.
-// Heartbeats do not include event IDs per the SSE specification
-// (comments are not events).
+// SendHeartbeat sends a comment (ping) to keep the connection alive. Heartbeats do not
+// include event IDs per the SSE specification (comments are not events).
 //
 // Returns error when the client has disconnected or the write fails.
 func (s *SSEStream) SendHeartbeat() error {
@@ -308,8 +301,8 @@ func (s *SSEStream) SendHeartbeat() error {
 	return nil
 }
 
-// Done returns a channel that is closed when the client disconnects.
-// Use this to detect early termination and clean up resources.
+// Done returns a channel that is closed when the client disconnects. Use this to detect
+// early termination and clean up resources.
 //
 // Returns <-chan struct{} which yields a signal when the stream ends.
 func (s *SSEStream) Done() <-chan struct{} {

@@ -33,32 +33,31 @@ import (
 )
 
 const (
-	// DefaultSearchResultLimit is the default number of results returned by search
-	// queries when no explicit limit is specified.
+	// DefaultSearchResultLimit is the default number of results returned by search queries
+	// when no explicit limit is specified.
 	DefaultSearchResultLimit = 10
 
 	// valkeyJSONPath is the root path selector for Valkey JSON commands.
 	valkeyJSONPath = "$"
 
-	// valkeyLogKeyField is the attribute key for logging Valkey keys in search
-	// operations.
+	// valkeyLogKeyField is the attribute key for logging Valkey keys in search operations.
 	valkeyLogKeyField = "key"
 
-	// logKeyIndex is the attribute key for logging the index name in search
-	// operations.
+	// logKeyIndex is the attribute key for logging the index name in search operations.
 	logKeyIndex = "index"
 )
 
-// indexCreationMu protects concurrent index creation attempts.
-var indexCreationMu sync.Mutex
+var (
+	// indexCreationMu protects concurrent index creation attempts.
+	indexCreationMu sync.Mutex
+)
 
-// ensureIndexExists creates the Valkey Search index if it does not already
-// exist. This is called lazily on the first search operation.
+// ensureIndexExists creates the Valkey Search index if it does not already exist. This is
+// called lazily on the first search operation.
 //
 // Returns error when the index cannot be created or search is not supported.
 //
-// Safe for concurrent use. Uses a mutex to ensure only one goroutine creates
-// the index.
+// Safe for concurrent use. Uses a mutex to ensure only one goroutine creates the index.
 func (a *ValkeyClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) error {
 	ctx, l := logger.From(ctx, log)
 
@@ -94,8 +93,8 @@ func (a *ValkeyClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) erro
 	return nil
 }
 
-// createIndex creates the Valkey Search index using FT.CREATE.
-// TEXT and GEO fields are skipped as Valkey Search does not yet support them.
+// createIndex creates the Valkey Search index using FT.CREATE. TEXT and GEO fields are
+// skipped as Valkey Search does not yet support them.
 //
 // Returns error when the index creation command fails.
 func (a *ValkeyClusterAdapter[K, V]) createIndex(ctx context.Context) error {
@@ -179,8 +178,8 @@ func (a *ValkeyClusterAdapter[K, V]) buildSearchQuery(textQuery string, filters 
 //
 // Takes f (cache.Filter) which specifies the filter operation and values.
 //
-// Returns string which is the Valkey Search query clause, or empty if the
-// filter operation is not supported or has insufficient values.
+// Returns string which is the Valkey Search query clause, or empty if the filter
+// operation is not supported or has insufficient values.
 func (*ValkeyClusterAdapter[K, V]) buildFilterClause(f cache.Filter) string {
 	switch f.Operation {
 	case cache.FilterOpEq:
@@ -225,13 +224,11 @@ func (*ValkeyClusterAdapter[K, V]) buildFilterClause(f cache.Filter) string {
 // executeSearch runs the FT.SEARCH command and returns raw results.
 //
 // Takes query (string) which specifies the Valkey Search query to execute.
-// Takes opts (*cache.SearchOptions) which provides pagination and sorting
-// options.
+// Takes opts (*cache.SearchOptions) which provides pagination and sorting options.
 //
 // Returns []valkey.ValkeyMessage which contains the raw result documents.
 // Returns int64 which is the total count of matching documents.
-// Returns error when the search command fails or the result format is
-// unexpected.
+// Returns error when the search command fails or the result format is unexpected.
 func (a *ValkeyClusterAdapter[K, V]) executeSearch(ctx context.Context, query string, opts *cache.SearchOptions) ([]valkey.ValkeyMessage, int64, error) {
 	limit := DefaultSearchResultLimit
 	offset := 0
@@ -276,17 +273,14 @@ func (a *ValkeyClusterAdapter[K, V]) executeSearch(ctx context.Context, query st
 
 // parseSearchResults converts raw FT.SEARCH results to SearchResult.
 //
-// Takes rawResults ([]valkey.ValkeyMessage) which contains the raw
-// document pairs from the FT.SEARCH response.
-// Takes total (int64) which is the total number of matching documents
-// reported by Valkey.
-// Takes opts (*cache.SearchOptions) which provides the offset and
-// limit for pagination metadata.
+// Takes rawResults ([]valkey.ValkeyMessage) which contains the raw document pairs from
+// the FT.SEARCH response.
+// Takes total (int64) which is the total number of matching documents reported by Valkey.
+// Takes opts (*cache.SearchOptions) which provides the offset and limit for pagination
+// metadata.
 //
-// Returns cache.SearchResult[K, V] which contains the parsed hits
-// with pagination info.
-// Returns error which is currently always nil but reserved for future
-// use.
+// Returns cache.SearchResult[K, V] which contains the parsed hits with pagination info.
+// Returns error which is currently always nil but reserved for future use.
 func (a *ValkeyClusterAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []valkey.ValkeyMessage, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
 		Items: make([]cache.SearchHit[K, V], 0),
@@ -308,16 +302,14 @@ func (a *ValkeyClusterAdapter[K, V]) parseSearchResults(ctx context.Context, raw
 	return result, nil
 }
 
-// parseSearchHit parses a single search hit from the raw results at
-// the given index.
+// parseSearchHit parses a single search hit from the raw results at the given index.
 //
-// Takes rawResults ([]valkey.ValkeyMessage) which contains the full
-// array of raw search result messages.
-// Takes i (int) which is the index of the key element within
-// rawResults; the document data follows at i+1.
+// Takes rawResults ([]valkey.ValkeyMessage) which contains the full array of raw search
+// result messages.
+// Takes i (int) which is the index of the key element within rawResults; the document
+// data follows at i+1.
 //
-// Returns cache.SearchHit[K, V] which contains the decoded key and
-// unmarshalled value.
+// Returns cache.SearchHit[K, V] which contains the decoded key and unmarshalled value.
 // Returns bool which is true when parsing succeeded.
 func (a *ValkeyClusterAdapter[K, V]) parseSearchHit(ctx context.Context, rawResults []valkey.ValkeyMessage, i int) (cache.SearchHit[K, V], bool) {
 	_, l := logger.From(ctx, log)
@@ -393,8 +385,8 @@ func (a *ValkeyClusterAdapter[K, V]) setJSONValue(ctx context.Context, keyString
 	return nil
 }
 
-// indexDocument stores a document for Valkey Search indexing.
-// This is called from Set when a search schema is configured.
+// indexDocument stores a document for Valkey Search indexing. This is called from Set
+// when a search schema is configured.
 //
 // Takes keyString (string) which is the Valkey key for the document.
 // Takes value (V) which is the value to index.
@@ -422,15 +414,13 @@ func (a *ValkeyClusterAdapter[K, V]) indexDocument(ctx context.Context, keyStrin
 
 // searchWithValkeySearch performs a search using FT.SEARCH.
 //
-// Takes query (string) which is the text search term; may be empty
-// for filter-only queries.
-// Takes opts (*cache.SearchOptions) which provides filters,
-// pagination, and sorting parameters.
+// Takes query (string) which is the text search term; may be empty for filter-only
+// queries.
+// Takes opts (*cache.SearchOptions) which provides filters, pagination, and sorting
+// parameters.
 //
-// Returns cache.SearchResult[K, V] which contains the matched items
-// and total count.
-// Returns error when the index cannot be ensured or the search
-// command fails.
+// Returns cache.SearchResult[K, V] which contains the matched items and total count.
+// Returns error when the index cannot be ensured or the search command fails.
 func (a *ValkeyClusterAdapter[K, V]) searchWithValkeySearch(ctx context.Context, query string, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	if err := a.ensureIndexExists(ctx); err != nil {
 		return cache.SearchResult[K, V]{}, err
@@ -452,13 +442,11 @@ func (a *ValkeyClusterAdapter[K, V]) searchWithValkeySearch(ctx context.Context,
 
 // queryWithValkeySearch performs a structured query using FT.SEARCH.
 //
-// Takes opts (*cache.QueryOptions) which provides filters, pagination,
-// and sorting parameters.
+// Takes opts (*cache.QueryOptions) which provides filters, pagination, and sorting
+// parameters.
 //
-// Returns cache.SearchResult[K, V] which contains the matched items
-// and total count.
-// Returns error when the index cannot be ensured or the search
-// command fails.
+// Returns cache.SearchResult[K, V] which contains the matched items and total count.
+// Returns error when the index cannot be ensured or the search command fails.
 func (a *ValkeyClusterAdapter[K, V]) queryWithValkeySearch(ctx context.Context, opts *cache.QueryOptions) (cache.SearchResult[K, V], error) {
 	if err := a.ensureIndexExists(ctx); err != nil {
 		return cache.SearchResult[K, V]{}, err
@@ -492,8 +480,8 @@ func (a *ValkeyClusterAdapter[K, V]) queryWithValkeySearch(ctx context.Context, 
 	return a.parseSearchResults(ctx, rawResults, total, searchOpts)
 }
 
-// dropIndex removes the Valkey Search index. Called during InvalidateAll if
-// search is enabled.
+// dropIndex removes the Valkey Search index. Called during InvalidateAll if search is
+// enabled.
 func (a *ValkeyClusterAdapter[K, V]) dropIndex(ctx context.Context) {
 	ctx, l := logger.From(ctx, log)
 
@@ -513,8 +501,7 @@ func (a *ValkeyClusterAdapter[K, V]) dropIndex(ctx context.Context) {
 	a.indexCreated = false
 }
 
-// needsJSONStorage reports whether search is enabled and values should be
-// stored as JSON.
+// needsJSONStorage reports whether search is enabled and values should be stored as JSON.
 //
 // Returns bool which is true when a schema is configured.
 func (a *ValkeyClusterAdapter[K, V]) needsJSONStorage() bool {
@@ -548,8 +535,7 @@ func (a *ValkeyClusterAdapter[K, V]) getJSONValue(ctx context.Context, keyString
 	return values[0], true
 }
 
-// isUnknownIndexError reports whether the error indicates
-// an unknown Valkey search index.
+// isUnknownIndexError reports whether the error indicates an unknown Valkey search index.
 //
 // Takes err (error) which is the error to check for an unknown index message.
 //
@@ -562,8 +548,7 @@ func isUnknownIndexError(err error) bool {
 //
 // Takes v (any) which is the value to escape.
 //
-// Returns string which is the escaped value with backslash-prefixed special
-// characters.
+// Returns string which is the escaped value with backslash-prefixed special characters.
 func escapeTagValue(v any) string {
 	s := fmt.Sprintf("%v", v)
 	s = strings.ReplaceAll(s, ",", "\\,")
@@ -598,8 +583,7 @@ func escapeTagValue(v any) string {
 
 // extractJSONFromDocData extracts the JSON string from document field data.
 //
-// Takes docData ([]valkey.ValkeyMessage) which contains field name and value
-// pairs.
+// Takes docData ([]valkey.ValkeyMessage) which contains field name and value pairs.
 //
 // Returns string which is the JSON value if found, or an empty string if not.
 func extractJSONFromDocData(docData []valkey.ValkeyMessage) string {

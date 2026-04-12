@@ -18,9 +18,9 @@
 
 package daemon_domain
 
-// This file implements on-demand variant generation for responsive images. When
-// a srcset URL like /_piko/assets/{id}?v=image_w240_webp is requested but the
-// variant doesn't exist, this service generates it lazily on first request.
+// This file implements on-demand variant generation for responsive images. When a srcset
+// URL like /_piko/assets/{id}?v=image_w240_webp is requested but the variant doesn't
+// exist, this service generates it lazily on first request.
 
 import (
 	"context"
@@ -42,33 +42,31 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// OnDemandVariantGenerator creates image variants when they are first
-// requested, enabling lazy transformation where variants are only made
-// when needed.
+// OnDemandVariantGenerator creates image variants when they are first requested, enabling
+// lazy transformation where variants are only made when needed.
 type OnDemandVariantGenerator interface {
-	// GenerateVariant generates a variant for an artefact based on the profile
-	// name.
+	// GenerateVariant generates a variant for an artefact based on the profile name.
 	//
 	// Takes artefact (*registry_dto.ArtefactMeta) which is the source artefact.
 	// Takes profileName (string) which identifies the variant profile to use.
 	//
-	// Returns *registry_dto.Variant which is the newly created variant, or nil if
-	// the profile name is invalid or generation fails.
+	// Returns *registry_dto.Variant which is the newly created variant, or nil if the
+	// profile name is invalid or generation fails.
 	// Returns error when variant generation fails.
 	GenerateVariant(ctx context.Context, artefact *registry_dto.ArtefactMeta, profileName string) (*registry_dto.Variant, error)
 
-	// ParseProfileName parses a profile name like "image_w240_webp" and returns
-	// the parsed settings.
+	// ParseProfileName parses a profile name like "image_w240_webp" and returns the parsed
+	// settings.
 	//
 	// Takes profileName (string) which is the profile name to parse.
 	//
-	// Returns *ParsedImageProfile which contains the parsed settings, or nil if
-	// the profile name is not valid.
+	// Returns *ParsedImageProfile which contains the parsed settings, or nil if the profile
+	// name is not valid.
 	ParseProfileName(profileName string) *ParsedImageProfile
 }
 
-// ParsedImageProfile holds the settings parsed from a profile name. It is
-// returned by ParseProfileName and passed to image transformation functions.
+// ParsedImageProfile holds the settings parsed from a profile name. It is returned by
+// ParseProfileName and passed to image transformation functions.
 type ParsedImageProfile struct {
 	// Format specifies the output image format (e.g. "webp", "jpeg").
 	Format string
@@ -80,8 +78,8 @@ type ParsedImageProfile struct {
 	Quality int
 }
 
-// onDemandVariantGeneratorImpl implements the OnDemandVariantGenerator
-// interface for creating image variants when they are requested.
+// onDemandVariantGeneratorImpl implements the OnDemandVariantGenerator interface for
+// creating image variants when they are requested.
 type onDemandVariantGeneratorImpl struct {
 	// registryService provides access to artefacts, variants, and blob storage.
 	registryService registry_domain.RegistryService
@@ -103,12 +101,10 @@ type onDemandVariantGeneratorImpl struct {
 }
 
 const (
-	// defaultMaxWidth is the largest image width in pixels for on-demand
-	// generation.
+	// defaultMaxWidth is the largest image width in pixels for on-demand generation.
 	defaultMaxWidth = 4096
 
-	// defaultMinWidth is the smallest allowed width in pixels for generated
-	// images.
+	// defaultMinWidth is the smallest allowed width in pixels for generated images.
 	defaultMinWidth = 1
 
 	// defaultImageQuality is the default JPEG quality as a percentage.
@@ -132,26 +128,25 @@ type OnDemandGeneratorConfig struct {
 	// MaxWidth is the maximum allowed image width in pixels.
 	MaxWidth int
 
-	// MinWidth is the minimum allowed width in pixels; widths below this are
-	// rejected.
+	// MinWidth is the minimum allowed width in pixels; widths below this are rejected.
 	MinWidth int
 
-	// DefaultQuality is the image quality used when not specified in the
-	// profile name; range is 1-100.
+	// DefaultQuality is the image quality used when not specified in the profile name; range
+	// is 1-100.
 	DefaultQuality int
 }
 
-// profileNameRegex matches profile names like "image_w240_webp" or
-// "image_w1024_jpeg".
-var profileNameRegex = regexp.MustCompile(`^image_w(\d+)_([a-z]+)$`)
+var (
+	// profileNameRegex matches profile names like "image_w240_webp" or "image_w1024_jpeg".
+	profileNameRegex = regexp.MustCompile(`^image_w(\d+)_([a-z]+)$`)
+)
 
-// ParseProfileName parses a profile name and validates it against security
-// constraints.
+// ParseProfileName parses a profile name and validates it against security constraints.
 //
 // Takes profileName (string) which specifies the profile name to parse.
 //
-// Returns *ParsedImageProfile which contains the parsed width, format, and
-// quality, or nil when the profile name is invalid or fails validation.
+// Returns *ParsedImageProfile which contains the parsed width, format, and quality, or
+// nil when the profile name is invalid or fails validation.
 func (g *onDemandVariantGeneratorImpl) ParseProfileName(profileName string) *ParsedImageProfile {
 	matches := profileNameRegex.FindStringSubmatch(profileName)
 	if matches == nil {
@@ -182,16 +177,15 @@ func (g *onDemandVariantGeneratorImpl) ParseProfileName(profileName string) *Par
 
 // GenerateVariant generates a variant on-demand.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which specifies the source
-// artefact to generate a variant from.
-// Takes profileName (string) which identifies the transformation profile to
-// apply.
+// Takes artefact (*registry_dto.ArtefactMeta) which specifies the source artefact to
+// generate a variant from.
+// Takes profileName (string) which identifies the transformation profile to apply.
 //
 // Returns *registry_dto.Variant which is the generated variant metadata.
 // Returns error when the profile name is invalid or generation fails.
 //
-// Safe for concurrent use. Uses per-variant locking to prevent duplicate
-// generation of the same variant.
+// Safe for concurrent use. Uses per-variant locking to prevent duplicate generation of
+// the same variant.
 func (g *onDemandVariantGeneratorImpl) GenerateVariant(
 	ctx context.Context,
 	artefact *registry_dto.ArtefactMeta,
@@ -254,14 +248,13 @@ func (g *onDemandVariantGeneratorImpl) isAllowedFormat(format string) bool {
 	return false
 }
 
-// checkExistingVariant checks if the variant was created while waiting for
-// the lock.
+// checkExistingVariant checks if the variant was created while waiting for the lock.
 //
 // Takes artefactID (string) which identifies the artefact to check.
 // Takes profileName (string) which specifies the variant profile to look for.
 //
-// Returns *registry_dto.Variant which is the existing variant if found, or nil
-// if not found or on error.
+// Returns *registry_dto.Variant which is the existing variant if found, or nil if not
+// found or on error.
 func (g *onDemandVariantGeneratorImpl) checkExistingVariant(ctx context.Context, artefactID, profileName string) *registry_dto.Variant {
 	ctx, l := logger_domain.From(ctx, log)
 	refreshedArtefact, err := g.registryService.GetArtefact(ctx, artefactID)
@@ -280,16 +273,15 @@ func (g *onDemandVariantGeneratorImpl) checkExistingVariant(ctx context.Context,
 
 // executeVariantGeneration performs the actual variant generation pipeline.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source
-// artefact to transform.
+// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source artefact to
+// transform.
 // Takes profileName (string) which specifies the name of the image profile.
 // Takes profile (*ParsedImageProfile) which defines the transformation rules.
 // Takes span (trace.Span) which provides tracing context.
 //
-// Returns *registry_dto.Variant which is the newly generated and stored
-// variant.
-// Returns error when the source variant is not found, image transformation
-// fails, or storage fails.
+// Returns *registry_dto.Variant which is the newly generated and stored variant.
+// Returns error when the source variant is not found, image transformation fails, or
+// storage fails.
 func (g *onDemandVariantGeneratorImpl) executeVariantGeneration(
 	ctx context.Context,
 	artefact *registry_dto.ArtefactMeta,
@@ -324,15 +316,14 @@ func (g *onDemandVariantGeneratorImpl) executeVariantGeneration(
 
 // transformImage executes the image transformation capability.
 //
-// Takes sourceVariant (*registry_dto.Variant) which identifies the source
-// image to transform.
-// Takes profile (*ParsedImageProfile) which specifies the target dimensions,
-// format, and quality.
+// Takes sourceVariant (*registry_dto.Variant) which identifies the source image to
+// transform.
+// Takes profile (*ParsedImageProfile) which specifies the target dimensions, format, and
+// quality.
 // Takes span (trace.Span) which provides tracing context for error reporting.
 //
 // Returns io.Reader which streams the transformed image data.
-// Returns error when the source data cannot be retrieved or transformation
-// fails.
+// Returns error when the source data cannot be retrieved or transformation fails.
 func (g *onDemandVariantGeneratorImpl) transformImage(
 	ctx context.Context,
 	sourceVariant *registry_dto.Variant,
@@ -366,11 +357,9 @@ func (g *onDemandVariantGeneratorImpl) transformImage(
 
 // findSourceVariant finds the source variant for an artefact.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to
-// search.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 //
-// Returns *registry_dto.Variant which is the source variant, or nil if not
-// found.
+// Returns *registry_dto.Variant which is the source variant, or nil if not found.
 func (*onDemandVariantGeneratorImpl) findSourceVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
 	for i := range artefact.ActualVariants {
 		if artefact.ActualVariants[i].VariantID == "source" {
@@ -382,16 +371,16 @@ func (*onDemandVariantGeneratorImpl) findSourceVariant(artefact *registry_dto.Ar
 
 // storeVariant stores the generated variant data and adds it to the registry.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which provides the source
-// artefact metadata.
+// Takes artefact (*registry_dto.ArtefactMeta) which provides the source artefact
+// metadata.
 // Takes profileName (string) which identifies the image profile to apply.
-// Takes profile (*ParsedImageProfile) which contains the parsed image
-// transformation settings.
+// Takes profile (*ParsedImageProfile) which contains the parsed image transformation
+// settings.
 // Takes outputStream (io.Reader) which provides the transformed image data.
 //
 // Returns *registry_dto.Variant which is the newly created variant record.
-// Returns error when the blob store is unavailable, the transformation
-// produces zero bytes, or the variant cannot be saved to the registry.
+// Returns error when the blob store is unavailable, the transformation produces zero
+// bytes, or the variant cannot be saved to the registry.
 func (g *onDemandVariantGeneratorImpl) storeVariant(
 	ctx context.Context,
 	artefact *registry_dto.ArtefactMeta,
@@ -438,14 +427,13 @@ func (g *onDemandVariantGeneratorImpl) storeVariant(
 // Takes artefactID (string) which identifies the source artefact.
 // Takes profileName (string) which specifies the variant profile.
 //
-// Returns string which is the temporary path combining the artefact ID,
-// profile name, and current timestamp.
+// Returns string which is the temporary path combining the artefact ID, profile name, and
+// current timestamp.
 func (g *onDemandVariantGeneratorImpl) generateTempKey(artefactID, profileName string) string {
 	return path.Join("tmp", fmt.Sprintf("ondemand_%s_%s_%d", artefactID, profileName, g.clock.Now().UnixNano()))
 }
 
-// writeToBlobStore writes the output stream to the blob store and returns
-// hash and size.
+// writeToBlobStore writes the output stream to the blob store and returns hash and size.
 //
 // Takes blobStore (registry_domain.BlobStore) which provides blob storage.
 // Takes tempKey (string) which specifies the temporary storage key.
@@ -482,8 +470,7 @@ func (*onDemandVariantGeneratorImpl) writeToBlobStore(
 // Takes finalHash ([]byte) which is the hash used to create a unique key.
 // Takes format (string) which specifies the output format for the extension.
 //
-// Returns string which is the generated storage key with path, hash, and
-// extension.
+// Returns string which is the generated storage key with path, hash, and extension.
 func (g *onDemandVariantGeneratorImpl) generateFinalStorageKey(sourcePath string, finalHash []byte, format string) string {
 	shortHash := fmt.Sprintf("%x", finalHash[:8])
 	extension := g.getExtensionForFormat(format)
@@ -551,11 +538,10 @@ func (g *onDemandVariantGeneratorImpl) buildVariantRecord(
 	}
 }
 
-// addVariantToRegistry adds the variant to the registry and handles cleanup
-// on failure.
+// addVariantToRegistry adds the variant to the registry and handles cleanup on failure.
 //
-// Takes blobStore (registry_domain.BlobStore) which provides blob storage for
-// cleanup on failure.
+// Takes blobStore (registry_domain.BlobStore) which provides blob storage for cleanup on
+// failure.
 // Takes artefactID (string) which identifies the parent artefact.
 // Takes storageKey (string) which identifies the blob to delete on failure.
 // Takes variant (*registry_dto.Variant) which contains the variant to add.
@@ -583,11 +569,11 @@ func (g *onDemandVariantGeneratorImpl) addVariantToRegistry(
 
 // getExtensionForFormat returns the file extension for a given image format.
 //
-// Takes format (string) which specifies the image format name (e.g. "webp",
-// "jpeg", "png", "avif").
+// Takes format (string) which specifies the image format name (e.g. "webp", "jpeg",
+// "png", "avif").
 //
-// Returns string which is the file extension with a leading dot, or ".img" if
-// the format is not recognised.
+// Returns string which is the file extension with a leading dot, or ".img" if the format
+// is not recognised.
 func (*onDemandVariantGeneratorImpl) getExtensionForFormat(format string) string {
 	switch strings.ToLower(format) {
 	case "webp":
@@ -607,8 +593,8 @@ func (*onDemandVariantGeneratorImpl) getExtensionForFormat(format string) string
 //
 // Takes format (string) which specifies the image format name.
 //
-// Returns string which is the corresponding MIME type, or
-// "application/octet-stream" for unknown formats.
+// Returns string which is the corresponding MIME type, or "application/octet-stream" for
+// unknown formats.
 func (*onDemandVariantGeneratorImpl) getMimeTypeForFormat(format string) string {
 	switch strings.ToLower(format) {
 	case "webp":
@@ -651,8 +637,8 @@ func (g *onDemandVariantGeneratorImpl) cleanupVariantMutex(key string) {
 	delete(g.inProgress, key)
 }
 
-// countingHashReader wraps a reader to count bytes and compute a hash.
-// It implements io.Reader.
+// countingHashReader wraps a reader to count bytes and compute a hash. It implements
+// io.Reader.
 type countingHashReader struct {
 	// reader is the source from which bytes are read.
 	reader io.Reader
@@ -669,8 +655,7 @@ type countingHashReader struct {
 // Takes p ([]byte) which is the buffer to read data into.
 //
 // Returns n (int) which is the number of bytes read.
-// Returns err (error) which signals the end of the stream or a read
-// failure.
+// Returns err (error) which signals the end of the stream or a read failure.
 func (r *countingHashReader) Read(p []byte) (n int, err error) {
 	n, err = r.reader.Read(p)
 	if n > 0 {
@@ -680,11 +665,10 @@ func (r *countingHashReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-// DefaultOnDemandGeneratorConfig returns the default settings for image
-// generation.
+// DefaultOnDemandGeneratorConfig returns the default settings for image generation.
 //
-// Returns OnDemandGeneratorConfig which contains default values for allowed
-// formats, size limits, and quality settings.
+// Returns OnDemandGeneratorConfig which contains default values for allowed formats, size
+// limits, and quality settings.
 func DefaultOnDemandGeneratorConfig() OnDemandGeneratorConfig {
 	return OnDemandGeneratorConfig{
 		Clock:            nil,
@@ -700,8 +684,8 @@ func DefaultOnDemandGeneratorConfig() OnDemandGeneratorConfig {
 //
 // Takes registryService (RegistryService) which provides access to the registry.
 // Takes capabilityService (CapabilityService) which provides capability lookups.
-// Takes config (OnDemandGeneratorConfig) which sets the generator options.
-// If config.Clock is nil, a real clock is used.
+// Takes config (OnDemandGeneratorConfig) which sets the generator options. If
+// config.Clock is nil, a real clock is used.
 //
 // Returns OnDemandVariantGenerator which is ready for concurrent use.
 func NewOnDemandVariantGenerator(

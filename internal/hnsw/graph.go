@@ -28,22 +28,21 @@ import (
 )
 
 const (
-	// defaultMaxNeighboursPerLayer is the maximum number of
-	// neighbours per node in upper layers.
+	// defaultMaxNeighboursPerLayer is the maximum number of neighbours per node in upper
+	// layers.
 	defaultMaxNeighboursPerLayer = 16
 
-	// defaultConstructionCandidateCount is the number of
-	// candidates to consider when building the graph.
-	// Larger values improve search quality but slow down inserts.
+	// defaultConstructionCandidateCount is the number of candidates to consider when
+	// building the graph. Larger values improve search quality but slow down inserts.
 	defaultConstructionCandidateCount = 200
 
-	// defaultSearchCandidateCount is the default size of the
-	// candidate list used during search.
+	// defaultSearchCandidateCount is the default size of the candidate list used during
+	// search.
 	defaultSearchCandidateCount = 50
 )
 
-// Result holds a single search result with the key and its distance to the
-// query vector. Lower distance values indicate more similar vectors.
+// Result holds a single search result with the key and its distance to the query vector.
+// Lower distance values indicate more similar vectors.
 type Result[K comparable] struct {
 	// Key is the identifier of the matched vector.
 	Key K
@@ -52,16 +51,15 @@ type Result[K comparable] struct {
 	Distance float32
 }
 
-// Graph is a generic HNSW index mapping keys of type K to float32 vectors.
-// It supports concurrent reads and writes.
+// Graph is a generic HNSW index mapping keys of type K to float32 vectors. It supports
+// concurrent reads and writes.
 //
 // K must be comparable (used as map keys).
 type Graph[K comparable] struct {
 	// visitedPool holds reusable []bool slices for the visited set in searchLayer.
 	visitedPool sync.Pool
 
-	// pqItemPool holds reusable []priorityQueueItem[K] slices for priority
-	// queues.
+	// pqItemPool holds reusable []priorityQueueItem[K] slices for priority queues.
 	pqItemPool sync.Pool
 
 	// entry is the key used to look up this node in the graph.
@@ -88,8 +86,7 @@ type Graph[K comparable] struct {
 	// layers holds nodes grouped by their depth in the topological order.
 	layers []map[K]*node[K]
 
-	// maxNeighboursPerLayer is the maximum number of neighbours per node in
-	// upper layers.
+	// maxNeighboursPerLayer is the maximum number of neighbours per node in upper layers.
 	maxNeighboursPerLayer int
 
 	// maxNeighboursBaseLayer is the maximum number of connections at layer 0.
@@ -101,8 +98,8 @@ type Graph[K comparable] struct {
 	// searchCandidateCount is the number of candidates to check during search.
 	searchCandidateCount int
 
-	// levelNormalisationFactor is the multiplier for the level assignment
-	// formula: 1/ln(maxNeighboursPerLayer).
+	// levelNormalisationFactor is the multiplier for the level assignment formula:
+	// 1/ln(maxNeighboursPerLayer).
 	levelNormalisationFactor float64
 
 	// dimension is the number of values in each vector stored in the graph.
@@ -123,16 +120,15 @@ type Option func(*graphConfig)
 
 // graphConfig holds settings for building and searching the HNSW graph.
 type graphConfig struct {
-	// maxNeighboursPerLayer is the number of connections per node; used to
-	// calculate maxNeighboursBaseLayer and levelNormalisationFactor.
+	// maxNeighboursPerLayer is the number of connections per node; used to calculate
+	// maxNeighboursBaseLayer and levelNormalisationFactor.
 	maxNeighboursPerLayer int
 
-	// constructionCandidateCount is the number of candidates to
-	// consider when building the index.
+	// constructionCandidateCount is the number of candidates to consider when building the
+	// index.
 	constructionCandidateCount int
 
-	// searchCandidateCount is the size of the dynamic candidate
-	// list used during search.
+	// searchCandidateCount is the size of the dynamic candidate list used during search.
 	searchCandidateCount int
 
 	// seed is the random number generator seed for reproducible results.
@@ -168,8 +164,8 @@ func (g *Graph[K]) Clear() {
 	g.freeIDs = g.freeIDs[:0]
 }
 
-// allocID returns a dense internal ID for a new node. It reuses IDs from
-// deleted nodes when available, otherwise increments the counter.
+// allocID returns a dense internal ID for a new node. It reuses IDs from deleted nodes
+// when available, otherwise increments the counter.
 //
 // Returns uint32 which is the allocated internal node ID.
 //
@@ -198,8 +194,8 @@ func (g *Graph[K]) freeID(id uint32) {
 	g.freeIDs = append(g.freeIDs, id)
 }
 
-// getVisited returns a []bool slice of at least the given size from the pool,
-// or creates a new one. The slice is zeroed and ready for use.
+// getVisited returns a []bool slice of at least the given size from the pool, or creates
+// a new one. The slice is zeroed and ready for use.
 //
 // Takes needed (int) which specifies the minimum slice length required.
 //
@@ -221,14 +217,13 @@ func (g *Graph[K]) putVisited(buffer []bool) {
 	g.visitedPool.Put(buffer)
 }
 
-// getPQSlice returns a []priorityQueueItem[K] slice with at least the given
-// capacity from the pool, or allocates a new one. The returned slice has
-// length 0.
+// getPQSlice returns a []priorityQueueItem[K] slice with at least the given capacity from
+// the pool, or allocates a new one. The returned slice has length 0.
 //
 // Takes capacity (int) which specifies the minimum slice capacity.
 //
-// Returns []priorityQueueItem[K] which is a zero-length slice with at least
-// the requested capacity.
+// Returns []priorityQueueItem[K] which is a zero-length slice with at least the requested
+// capacity.
 func (g *Graph[K]) getPQSlice(capacity int) []priorityQueueItem[K] {
 	if v := g.pqItemPool.Get(); v != nil {
 		if buffer, ok := v.([]priorityQueueItem[K]); ok && cap(buffer) >= capacity {
@@ -240,18 +235,17 @@ func (g *Graph[K]) getPQSlice(capacity int) []priorityQueueItem[K] {
 
 // putPQSlice clears and returns a PQ item slice to the pool.
 //
-// Takes buffer ([]priorityQueueItem[K]) which is the slice to clear and
-// return.
+// Takes buffer ([]priorityQueueItem[K]) which is the slice to clear and return.
 func (g *Graph[K]) putPQSlice(buffer []priorityQueueItem[K]) {
 	clear(buffer[:cap(buffer)])
 	g.pqItemPool.Put(buffer[:0])
 }
 
-// WithMaxNeighboursPerLayer sets the maximum number of neighbours per node
-// in upper layers.
+// WithMaxNeighboursPerLayer sets the maximum number of neighbours per node in upper
+// layers.
 //
-// Takes maxNeighboursPerLayer (int) which specifies the maximum neighbours
-// per node. Default is 16.
+// Takes maxNeighboursPerLayer (int) which specifies the maximum neighbours per node.
+// Default is 16.
 //
 // Returns Option which configures the graph with the specified value.
 //
@@ -264,15 +258,13 @@ func WithMaxNeighboursPerLayer(maxNeighboursPerLayer int) Option {
 	}
 }
 
-// WithConstructionCandidateCount sets the construction-time candidate list
-// size.
+// WithConstructionCandidateCount sets the construction-time candidate list size.
 //
 // Takes candidateCount (int) which specifies the candidate list size.
 //
 // Returns Option which configures the graph with the specified value.
 //
-// Larger values improve index quality at the cost of slower inserts.
-// Default is 200.
+// Larger values improve index quality at the cost of slower inserts. Default is 200.
 func WithConstructionCandidateCount(candidateCount int) Option {
 	return func(config *graphConfig) {
 		if candidateCount > 0 {
@@ -283,13 +275,12 @@ func WithConstructionCandidateCount(candidateCount int) Option {
 
 // WithSearchCandidateCount sets the default search-time candidate list size.
 //
-// Takes candidateCount (int) which specifies the candidate list size for
-// search operations.
+// Takes candidateCount (int) which specifies the candidate list size for search
+// operations.
 //
 // Returns Option which configures the graph with the specified value.
 //
-// Can be overridden per query via the candidateCount parameter in Search.
-// Default is 50.
+// Can be overridden per query via the candidateCount parameter in Search. Default is 50.
 func WithSearchCandidateCount(candidateCount int) Option {
 	return func(config *graphConfig) {
 		if candidateCount > 0 {
@@ -298,8 +289,8 @@ func WithSearchCandidateCount(candidateCount int) Option {
 	}
 }
 
-// WithRandomSeed sets a fixed seed for layer assignment, ensuring
-// deterministic results across test runs.
+// WithRandomSeed sets a fixed seed for layer assignment, ensuring deterministic results
+// across test runs.
 //
 // Takes seed (int64) which specifies the random seed value.
 //
@@ -311,8 +302,8 @@ func WithRandomSeed(seed int64) Option {
 	}
 }
 
-// New creates a new HNSW graph for vectors of the given dimension using the
-// specified distance metric.
+// New creates a new HNSW graph for vectors of the given dimension using the specified
+// distance metric.
 //
 // Takes dimension (int) which specifies the vector dimensionality.
 // Takes metric (vectormaths.Metric) which selects the distance function.

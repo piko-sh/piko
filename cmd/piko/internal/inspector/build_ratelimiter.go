@@ -25,23 +25,23 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// rateLimiterPercentageFactor scales a 0..1 ratio into a percentage
-// for the "Allow Rate" row.
-const rateLimiterPercentageFactor = 100
+const (
+	// rateLimiterPercentageFactor scales a 0..1 ratio into a percentage for the "Allow Rate"
+	// row.
+	rateLimiterPercentageFactor = 100
+)
 
-// BuildRateLimiterDetailSections converts a rate limiter status
-// response into the shared section/row shape consumed by the CLI
-// Printer and the TUI detail panel renderer.
+// BuildRateLimiterDetailSections converts a rate limiter status response into the shared
+// section/row shape consumed by the CLI Printer and the TUI detail panel renderer.
 //
-// The output contains two sections: the configuration row group and
-// the counter row group. The "Allow Rate" row renders as "-" when no
-// checks have been recorded yet.
+// The output contains two sections: the configuration row group and the counter row
+// group. The "Allow Rate" row renders as "-" when no checks have been recorded yet.
 //
-// Takes response (*pb.GetRateLimiterStatusResponse) which contains the
-// rate limiter status returned by the monitoring API.
+// Takes response (*pb.GetRateLimiterStatusResponse) which contains the rate limiter
+// status returned by the monitoring API.
 //
-// Returns []DetailSection which contains exactly two sections - "Rate
-// Limiter" configuration and "Counters" totals.
+// Returns []DetailSection which contains exactly two sections - "Rate Limiter"
+// configuration and "Counters" totals.
 func BuildRateLimiterDetailSections(response *pb.GetRateLimiterStatusResponse) []DetailSection {
 	allowedDeniedRatio := "-"
 	total := response.GetTotalAllowed() + response.GetTotalDenied()

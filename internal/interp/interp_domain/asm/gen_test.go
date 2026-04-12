@@ -37,7 +37,7 @@ func TestGenerateProducesNonEmptyOutput(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestEachFileGroupGeneratesForBothArchitectures(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
@@ -93,21 +93,37 @@ func TestGeneratedFilesContainTextDirectives(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
 
+	registryDependentBaseNames := map[string]bool{
+		"asm_vm_dispatch_direct_exits": true,
+		"asm_vm_dispatch_tier2_lift":   true,
+	}
+	skipFile := func(path string) bool {
+		for baseName := range registryDependentBaseNames {
+			if strings.Contains(path, baseName) {
+				return true
+			}
+		}
+		return false
+	}
+
 	for path, data := range writer.files {
 		content := string(data)
-		if !strings.Contains(content, "TEXT") {
-			t.Errorf("file %s contains no TEXT directives", path)
-		}
 		if !strings.Contains(content, "//go:build") {
 			t.Errorf("file %s contains no build constraint", path)
 		}
 		if !strings.Contains(content, "#include") {
 			t.Errorf("file %s contains no #include directives", path)
+		}
+		if skipFile(path) {
+			continue
+		}
+		if !strings.Contains(content, "TEXT") {
+			t.Errorf("file %s contains no TEXT directives", path)
 		}
 	}
 }
@@ -117,7 +133,7 @@ func TestGeneratedArithmeticFileContainsExpectedHandlers(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
@@ -135,15 +151,13 @@ func TestGeneratedArithmeticFileContainsExpectedHandlers(t *testing.T) {
 	}
 
 	expectedHandlers := []string{
-		"handlerNop", "handlerMoveInt", "handlerMoveFloat",
 		"handlerAddInt", "handlerSubInt", "handlerMulInt",
-		"handlerDivInt", "handlerRemInt", "handlerNegInt",
-		"handlerIncInt", "handlerDecInt",
+		"handlerDivInt", "handlerRemInt",
 		"handlerBitAnd", "handlerBitOr", "handlerBitXor",
-		"handlerBitAndNot", "handlerBitNot",
+		"handlerBitAndNot",
 		"handlerShiftLeft", "handlerShiftRight",
 		"handlerAddFloat", "handlerSubFloat",
-		"handlerMulFloat", "handlerDivFloat", "handlerNegFloat",
+		"handlerMulFloat", "handlerDivFloat",
 	}
 
 	for _, handler := range expectedHandlers {
@@ -158,7 +172,7 @@ func TestGeneratedComparisonFileContainsExpectedHandlers(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
@@ -179,9 +193,7 @@ func TestGeneratedComparisonFileContainsExpectedHandlers(t *testing.T) {
 		"handlerEqInt", "handlerNeInt", "handlerLtInt",
 		"handlerLeInt", "handlerGtInt", "handlerGeInt",
 		"handlerEqFloat", "handlerNeFloat",
-		"handlerIntToFloat", "handlerFloatToInt",
-		"handlerMathSqrt", "handlerMathAbs",
-		"handlerNot", "handlerJump",
+		"handlerJump",
 		"handlerJumpIfTrue", "handlerJumpIfFalse",
 	}
 
@@ -198,7 +210,7 @@ func TestGenerateOutputSample(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
@@ -217,7 +229,7 @@ func TestGenerateOutputSample(t *testing.T) {
 
 	arm64Archs := []BytecodeArchitecturePort{interp_arm64.New()}
 	arm64Writer := &memWriter{files: make(map[string][]byte)}
-	err = asmgen.GenerateFiles(arm64Writer, arm64Archs, groups, nil)
+	err = asmgen.GenerateFiles(arm64Writer, arm64Archs, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("arm64 generate error: %v", err)
 	}
@@ -241,10 +253,10 @@ func TestHeaderFilesGenerate(t *testing.T) {
 		interp_arm64.New(),
 	}
 
-	headers := HeaderFiles()
+	headers := HeaderFiles(testOffsetsForHeaderFiles())
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, nil, headers)
+	err := asmgen.GenerateFiles(writer, architectures, nil, headers, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}

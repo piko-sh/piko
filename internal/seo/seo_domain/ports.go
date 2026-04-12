@@ -27,36 +27,36 @@ import (
 
 // SEOService is the driving port for the SEO hexagon.
 //
-// It orchestrates the generation of all SEO-related artefacts
-// (sitemap.xml, robots.txt) from a complete project build result.
-// Implements SEOService, SEOServicePort, and seoServicePort interfaces.
+// It orchestrates the generation of all SEO-related artefacts (sitemap.xml, robots.txt)
+// from a complete project build result. Implements SEOService, SEOServicePort, and
+// seoServicePort interfaces.
 type SEOService interface {
-	// GenerateArtefacts creates the sitemap.xml and robots.txt files from the
-	// provided project view and stores them in the registry for serving. This
-	// method is called after a successful project build or rebuild.
+	// GenerateArtefacts creates the sitemap.xml and robots.txt files from the provided
+	// project view and stores them in the registry for serving. Callers invoke
+	// GenerateArtefacts after a successful project build or rebuild.
 	//
-	// Takes view (*seo_dto.ProjectView) which contains the project data for
-	// generating the SEO files.
+	// Takes view (*seo_dto.ProjectView) which contains the project data for generating the
+	// SEO files.
 	//
 	// Returns error when file generation or storage fails.
 	GenerateArtefacts(ctx context.Context, view *seo_dto.ProjectView) error
 }
 
-// SEOStoragePort is a driven port for persisting generated SEO artefacts. It
-// abstracts the underlying storage mechanism (typically the registry service).
+// SEOStoragePort is a driven port for persisting generated SEO artefacts. It abstracts
+// the underlying storage mechanism (typically the registry service).
 type SEOStoragePort interface {
 	// StoreSitemap saves the sitemap.xml content with optional compression.
 	//
 	// Takes artefactID (string) which identifies the sitemap to store.
 	// Takes content ([]byte) which is the raw sitemap.xml data.
-	// Takes desiredProfiles ([]NamedProfile) which lists compression formats
-	// to create, such as gzip or brotli.
+	// Takes desiredProfiles ([]NamedProfile) which lists compression formats to create, such
+	// as gzip or brotli.
 	//
 	// Returns error when the storage operation fails.
 	StoreSitemap(ctx context.Context, artefactID string, content []byte, desiredProfiles []registry_dto.NamedProfile) error
 
-	// StoreRobotsTxt persists the generated robots.txt content. The file is
-	// typically not compressed as it is small and frequently accessed by crawlers.
+	// StoreRobotsTxt persists the generated robots.txt content. The file is typically not
+	// compressed as it is small and frequently accessed by crawlers.
 	//
 	// Takes content ([]byte) which is the robots.txt data to store.
 	//
@@ -64,9 +64,9 @@ type SEOStoragePort interface {
 	StoreRobotsTxt(ctx context.Context, content []byte) error
 }
 
-// DynamicURLSourcePort is a driven port for fetching additional URLs from
-// external sources. This enables integration with headless CMS systems,
-// databases, or other dynamic content sources.
+// DynamicURLSourcePort is a driven port for fetching additional URLs from external
+// sources. This enables integration with headless CMS systems, databases, or other
+// dynamic content sources.
 type DynamicURLSourcePort interface {
 	// FetchURLs gets a list of URLs from the given source endpoint.
 	//

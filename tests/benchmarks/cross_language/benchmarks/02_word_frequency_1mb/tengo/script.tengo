@@ -1,0 +1,171 @@
+fmt := import("fmt")
+os := import("os")
+times := import("times")
+
+CORPUS_BYTES := 1024 * 1024
+TOP_K := 10
+VOCABULARY_MASK := 0x3F
+LCG_MASK := 0xFFFFFFFF
+SPACE := " "
+
+VOCABULARY := [
+	"the", "of", "and", "to", "in", "a", "is", "it", "you", "that",
+	"he", "was", "for", "on", "are", "with", "as", "I", "his", "they",
+	"be", "at", "one", "have", "this", "from", "or", "had", "by", "hot",
+	"word", "but", "what", "some", "we", "can", "out", "other", "were", "all",
+	"there", "when", "up", "use", "your", "how", "said", "an", "each", "she",
+	"which", "do", "their", "time", "if", "will", "way", "about", "many", "then",
+	"them", "write", "would", "like"]
+
+int_to_decimal := func(value) {
+	if value == 0 {
+		return "0"
+	}
+	negative := value < 0
+	if negative {
+		value = -value
+	}
+	digits := []
+	for value > 0 {
+		digits = append(digits, char(int('0') + value % 10))
+		value = value / 10
+	}
+	out := ""
+	for i := len(digits) - 1; i >= 0; i-- {
+		out += digits[i]
+	}
+	if negative {
+		return "-" + out
+	}
+	return out
+}
+
+generate_corpus := func() {
+	output := []
+	lcg_state := 987654321
+	for len(output) < CORPUS_BYTES {
+		lcg_state = (lcg_state * 1664525 + 1013904223) & LCG_MASK
+		word := VOCABULARY[lcg_state & VOCABULARY_MASK]
+		if len(output) > 0 {
+			output = append(output, SPACE)
+		}
+		for string_index := 0; string_index < len(word); string_index++ {
+			output = append(output, word[string_index])
+		}
+	}
+	return output
+}
+
+count_words_manual := func(corpus) {
+	counts := {}
+	token_start := 0
+	corpus_length := len(corpus)
+	for position := 0; position <= corpus_length; position++ {
+		at_end := position == corpus_length
+		is_space := !at_end && corpus[position] == SPACE
+		if at_end || is_space {
+			if position > token_start {
+				word := ""
+				for build_index := token_start; build_index < position; build_index++ {
+					word += corpus[build_index]
+				}
+				existing := counts[word]
+				if is_undefined(existing) {
+					counts[word] = 1
+				} else {
+					counts[word] = existing + 1
+				}
+			}
+			token_start = position + 1
+		}
+	}
+	return counts
+}
+
+less_for_top := func(left, right) {
+	if left.count != right.count {
+		return left.count > right.count
+	}
+	return left.word < right.word
+}
+
+top_k_by_insertion_sort := func(counts, k) {
+	heap := []
+	for word, count in counts {
+		entry := {word: word, count: count}
+		insert_position := len(heap)
+		for insert_position > 0 && less_for_top(entry, heap[insert_position - 1]) {
+			insert_position--
+		}
+		heap = append(heap, {word: "", count: 0})
+		for shift_position := len(heap) - 1; shift_position > insert_position; shift_position-- {
+			heap[shift_position] = heap[shift_position - 1]
+		}
+		heap[insert_position] = entry
+		if len(heap) > k {
+			heap = heap[:k]
+		}
+	}
+	return heap
+}
+
+format_top_k_output := func(top) {
+	pieces := []
+	for line_index := 0; line_index < len(top); line_index++ {
+		entry := top[line_index]
+		if line_index > 0 {
+			pieces = append(pieces, "\n")
+		}
+		pieces = append(pieces, entry.word)
+		pieces = append(pieces, "\t")
+		pieces = append(pieces, int_to_decimal(entry.count))
+	}
+	out := ""
+	for piece in pieces {
+		out += piece
+	}
+	return out
+}
+
+do_word_frequency := func() {
+	corpus := generate_corpus()
+	counts := count_words_manual(corpus)
+	top := top_k_by_insertion_sort(counts, TOP_K)
+	return format_top_k_output(top)
+}
+
+run := func() {
+	return do_word_frequency()
+}
+
+run_inner := func(k) {
+	start_nanos := times.time_unix_nano(times.now())
+	last := ""
+	for index := 0; index < k; index++ {
+		last = do_word_frequency()
+	}
+	elapsed_nanos := times.time_unix_nano(times.now()) - start_nanos
+	return [last, elapsed_nanos]
+}
+
+args := os.args()
+mode := "endtoend"
+k := 0
+for i := 0; i < len(args); i++ {
+	if args[i] == "--mode" && i+1 < len(args) {
+		mode = args[i+1]
+	}
+	if args[i] == "--k" && i+1 < len(args) {
+		k = int(args[i+1])
+	}
+}
+
+if mode == "inner" {
+	result := run_inner(k)
+	fmt.println(result[0])
+	stderr := os.create("/dev/stderr")
+	stderr.write_string(fmt.sprintf("INNER_ELAPSED_NS=%d\n", result[1]))
+	stderr.close()
+} else {
+	fmt.println(run())
+}

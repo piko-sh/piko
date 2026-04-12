@@ -29,14 +29,13 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// EmbeddingProviderPort defines the interface that embedding provider adapters
-// must implement. It is a driven port in the hexagonal architecture pattern.
+// EmbeddingProviderPort defines the interface that embedding provider adapters must
+// implement. It is a driven port in the hexagonal architecture pattern.
 type EmbeddingProviderPort interface {
 	// Embed generates embeddings for the given input texts.
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding
-	// parameters.
+	// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 	//
 	// Returns *llm_dto.EmbeddingResponse containing the generated embeddings.
 	// Returns error when the request fails.
@@ -50,11 +49,11 @@ type EmbeddingProviderPort interface {
 	// Returns error when the model list cannot be retrieved.
 	ListEmbeddingModels(ctx context.Context) ([]llm_dto.ModelInfo, error)
 
-	// EmbeddingDimensions returns the default vector dimension produced by this
-	// provider's embedding model.
+	// EmbeddingDimensions returns the default vector dimension produced by this provider's
+	// embedding model.
 	//
-	// Returns int which is the vector dimension, or 0 if the dimension is not
-	// known statically (e.g. server-determined models).
+	// Returns int which is the vector dimension, or 0 if the dimension is not known
+	// statically (e.g. server-determined models).
 	EmbeddingDimensions() int
 
 	// Close releases any resources held by the provider.
@@ -71,22 +70,21 @@ type embeddingService struct {
 	// providers maps provider names to their implementations.
 	providers map[string]EmbeddingProviderPort
 
-	// defaultProvider is the name of the embedding provider to use when none is
-	// specified; empty means no default is set.
+	// defaultProvider is the name of the embedding provider to use when none is specified;
+	// empty means no default is set.
 	defaultProvider string
 
 	// mu guards access to the providers map and defaultProvider field.
 	mu sync.RWMutex
 }
 
-// embeddingServiceOption is a functional option for configuring an
-// embeddingService.
+// embeddingServiceOption is a functional option for configuring an embeddingService.
 type embeddingServiceOption func(*embeddingService)
 
 // RegisterEmbeddingProvider adds an embedding provider to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes name (string) which identifies the provider.
 // Takes provider (EmbeddingProviderPort) which handles embedding requests.
 //
@@ -131,8 +129,7 @@ func (s *embeddingService) SetDefaultEmbeddingProvider(name string) error {
 // Embed generates embeddings using the specified provider.
 //
 // Takes providerName (string) which identifies the embedding provider to use.
-// Takes request (*llm_dto.EmbeddingRequest) which contains the
-// input data to embed.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the input data to embed.
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the provider is not found or the embedding request fails.
@@ -180,12 +177,12 @@ func (s *embeddingService) Embed(ctx context.Context, providerName string, reque
 
 // getEmbeddingProvider retrieves an embedding provider by name.
 //
-// Takes name (string) which specifies the provider to retrieve. If empty, the
-// default provider is used.
+// Takes name (string) which specifies the provider to retrieve. If empty, the default
+// provider is used.
 //
 // Returns EmbeddingProviderPort which is the requested provider.
-// Returns error when no default provider is configured or the named provider
-// does not exist.
+// Returns error when no default provider is configured or the named provider does not
+// exist.
 //
 // Safe for concurrent use; protected by a read lock.
 func (s *embeddingService) getEmbeddingProvider(name string) (EmbeddingProviderPort, error) {
@@ -206,8 +203,7 @@ func (s *embeddingService) getEmbeddingProvider(name string) (EmbeddingProviderP
 	return provider, nil
 }
 
-// EmbeddingBuilder provides a fluent API for building and executing embedding
-// requests.
+// EmbeddingBuilder provides a fluent API for building and executing embedding requests.
 type EmbeddingBuilder struct {
 	// embeddingService is the service used to execute embedding requests.
 	embeddingService *embeddingService
@@ -221,11 +217,10 @@ type EmbeddingBuilder struct {
 
 // NewEmbeddingBuilder creates a new embedding builder.
 //
-// Takes service (*embeddingService) which provides the embedding service for
-// generating embeddings.
+// Takes service (*embeddingService) which provides the embedding service for generating
+// embeddings.
 //
-// Returns *EmbeddingBuilder which is ready to configure and execute embedding
-// requests.
+// Returns *EmbeddingBuilder which is ready to configure and execute embedding requests.
 func NewEmbeddingBuilder(service *embeddingService) *EmbeddingBuilder {
 	return &EmbeddingBuilder{
 		embeddingService: service,
@@ -236,8 +231,7 @@ func NewEmbeddingBuilder(service *embeddingService) *EmbeddingBuilder {
 
 // Model sets the embedding model to use.
 //
-// Takes model (string) which identifies the model (e.g.,
-// "text-embedding-3-small").
+// Takes model (string) which identifies the model (e.g., "text-embedding-3-small").
 //
 // Returns *EmbeddingBuilder for method chaining.
 func (b *EmbeddingBuilder) Model(model string) *EmbeddingBuilder {
@@ -255,8 +249,8 @@ func (b *EmbeddingBuilder) Input(texts ...string) *EmbeddingBuilder {
 	return b
 }
 
-// Dimensions sets the output dimension for the embedding.
-// Only supported by certain models.
+// Dimensions sets the output dimension for the embedding. Only supported by certain
+// models.
 //
 // Takes d (int) which is the output dimension.
 //

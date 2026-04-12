@@ -34,9 +34,10 @@ import (
 	"piko.sh/piko/internal/testutil/leakcheck"
 )
 
-var wasmTestDir string
-
-var pikoProjectRoot string
+var (
+	wasmTestDir string
+	pikoProjectRoot string
+)
 
 func TestMain(m *testing.M) {
 

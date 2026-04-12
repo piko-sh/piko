@@ -116,8 +116,8 @@ func (s *nodeFindState) checkOpeningTag(node *ast_domain.TemplateNode, position 
 	return false
 }
 
-// checkNodeRange checks if the position is within the node's overall range
-// and updates best match.
+// checkNodeRange checks if the position is within the node's overall range and updates
+// best match.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes position (protocol.Position) which is the position to test against.
@@ -133,15 +133,15 @@ func (s *nodeFindState) checkNodeRange(node *ast_domain.TemplateNode, position p
 	}
 }
 
-// findNodeAtPosition finds the smallest node that contains the given cursor
-// position and comes from the specified document.
+// findNodeAtPosition finds the smallest node that contains the given cursor position and
+// comes from the specified document.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template to search.
 // Takes position (protocol.Position) which specifies the cursor position to find.
 // Takes docPath (string) which filters nodes by their source document.
 //
-// Returns *ast_domain.TemplateNode which is the innermost node at the position,
-// or nil if no matching node is found.
+// Returns *ast_domain.TemplateNode which is the innermost node at the position, or nil if
+// no matching node is found.
 func findNodeAtPosition(tree *ast_domain.TemplateAST, position protocol.Position, docPath string) *ast_domain.TemplateNode {
 	state := &nodeFindState{}
 
@@ -157,9 +157,9 @@ func findNodeAtPosition(tree *ast_domain.TemplateAST, position protocol.Position
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes docPath (string) which is the path of the document to match against.
 //
-// Returns bool which is true if the node's original source path matches
-// docPath, or if the node has no source path annotation. Nodes without this
-// annotation are included because they likely belong to the current document.
+// Returns bool which is true if the node's original source path matches docPath, or if
+// the node has no source path annotation. Nodes without this annotation are included
+// because they likely belong to the current document.
 func isNodeFromDocument(node *ast_domain.TemplateNode, docPath string) bool {
 	if node.GoAnnotations == nil || node.GoAnnotations.OriginalSourcePath == nil {
 		return true
@@ -167,21 +167,21 @@ func isNodeFromDocument(node *ast_domain.TemplateNode, docPath string) bool {
 	return *node.GoAnnotations.OriginalSourcePath == docPath
 }
 
-// findNodeAtPartialInvocationSite finds a node whose merged invoker attributes
-// contain the given cursor position. This handles the case where the cursor is
-// at a partial invocation site but the expanded node's OriginalSourcePath points
-// to the partial definition file.
+// findNodeAtPartialInvocationSite finds a node whose merged invoker attributes contain
+// the given cursor position. This handles the case where the cursor is at a partial
+// invocation site but the expanded node's OriginalSourcePath points to the partial
+// definition file.
 //
-// When a partial is expanded, its attributes are merged from the invoker node,
-// preserving their original AttributeRange locations from the invoking document.
-// The merged attributes can then be checked against the cursor position to
-// locate partial invocation nodes.
+// When a partial is expanded, its attributes are merged from the invoker node, preserving
+// their original AttributeRange locations from the invoking document. The merged
+// attributes can then be checked against the cursor position to locate partial invocation
+// nodes.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template to search.
 // Takes position (protocol.Position) which is the cursor position to locate.
 //
-// Returns *ast_domain.TemplateNode which is the partial invocation node at the
-// position, or nil if no match is found.
+// Returns *ast_domain.TemplateNode which is the partial invocation node at the position,
+// or nil if no match is found.
 func findNodeAtPartialInvocationSite(ctx context.Context, tree *ast_domain.TemplateAST, position protocol.Position) *ast_domain.TemplateNode {
 	_, l := logger_domain.From(ctx, log)
 
@@ -220,28 +220,26 @@ func findNodeAtPartialInvocationSite(ctx context.Context, tree *ast_domain.Templ
 	return result
 }
 
-// isPartialInvocationNode checks if a node represents an expanded partial
-// invocation by checking whether it has PartialInfo attached.
+// isPartialInvocationNode checks if a node represents an expanded partial invocation by
+// checking whether it has PartialInfo attached.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node has PartialInfo, meaning it is an
-// expanded partial invocation.
+// Returns bool which is true if the node has PartialInfo, meaning it is an expanded
+// partial invocation.
 func isPartialInvocationNode(node *ast_domain.TemplateNode) bool {
 	return node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil
 }
 
-// hasAttributeAtPosition checks if any attribute or directive on the node has
-// a range that contains the given position. This works because merged invoker
-// attributes and directives preserve their original AttributeRange from the
-// invoking document.
+// hasAttributeAtPosition checks if any attribute or directive on the node has a range
+// that contains the given position. This works because merged invoker attributes and
+// directives preserve their original AttributeRange from the invoking document.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node whose attributes to
-// check.
+// Takes node (*ast_domain.TemplateNode) which is the node whose attributes to check.
 // Takes position (protocol.Position) which is the cursor position to match.
 //
-// Returns bool which is true if any attribute's or directive's range contains
-// the position.
+// Returns bool which is true if any attribute's or directive's range contains the
+// position.
 func hasAttributeAtPosition(ctx context.Context, node *ast_domain.TemplateNode, position protocol.Position) bool {
 	for i := range node.Attributes {
 		attribute := &node.Attributes[i]
@@ -268,9 +266,8 @@ func hasAttributeAtPosition(ctx context.Context, node *ast_domain.TemplateNode, 
 	return false
 }
 
-// checkAttrRangeMatch checks if the given position is within an attribute's
-// range. It logs debug information about the check and returns true if a match
-// is found.
+// checkAttrRangeMatch checks if the given position is within an attribute's range. It
+// logs debug information about the check and returns true if a match is found.
 //
 // Takes name (string) which identifies the attribute being checked.
 // Takes attributeRange (*ast_domain.Range) which defines the attribute boundaries.
@@ -296,8 +293,8 @@ func checkAttrRangeMatch(ctx context.Context, name string, attributeRange *ast_d
 	return false
 }
 
-// hasPassedPropAtPosition checks if any PassedProp on a partial invocation
-// node has a location that matches the given position.
+// hasPassedPropAtPosition checks if any PassedProp on a partial invocation node has a
+// location that matches the given position.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes position (protocol.Position) which is the cursor position to match.
@@ -337,8 +334,7 @@ func hasPassedPropAtPosition(ctx context.Context, node *ast_domain.TemplateNode,
 	return false
 }
 
-// hasDirectiveAtPosition checks if any directive on the node contains the
-// given position.
+// hasDirectiveAtPosition checks if any directive on the node contains the given position.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes position (protocol.Position) which is the cursor position to match.
@@ -354,15 +350,13 @@ func hasDirectiveAtPosition(ctx context.Context, node *ast_domain.TemplateNode, 
 	return hasEventDirectiveAtPosition(ctx, node.OnEvents, position)
 }
 
-// hasStandardDirectiveAtPosition checks standard directives (if, for, etc.)
-// for a position match.
+// hasStandardDirectiveAtPosition checks standard directives (if, for, etc.) for a
+// position match.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the directives to check.
-// Takes position (protocol.Position) which specifies the position
-// to match against.
+// Takes position (protocol.Position) which specifies the position to match against.
 //
-// Returns bool which is true if the position falls within any
-// directive range.
+// Returns bool which is true if the position falls within any directive range.
 func hasStandardDirectiveAtPosition(ctx context.Context, node *ast_domain.TemplateNode, position protocol.Position) bool {
 	_, l := logger_domain.From(ctx, log)
 
@@ -395,12 +389,12 @@ func hasStandardDirectiveAtPosition(ctx context.Context, node *ast_domain.Templa
 // hasBindDirectiveAtPosition checks bind directives for a position match.
 //
 // Takes ctx (context.Context) which carries the request context for logging.
-// Takes binds (map[string]*ast_domain.Directive) which contains the bind
-// directives to search.
+// Takes binds (map[string]*ast_domain.Directive) which contains the bind directives to
+// search.
 // Takes position (protocol.Position) which specifies the position to check.
 //
-// Returns bool which is true if the position falls within any bind directive's
-// attribute range.
+// Returns bool which is true if the position falls within any bind directive's attribute
+// range.
 func hasBindDirectiveAtPosition(ctx context.Context, binds map[string]*ast_domain.Directive, position protocol.Position) bool {
 	_, l := logger_domain.From(ctx, log)
 
@@ -418,14 +412,12 @@ func hasBindDirectiveAtPosition(ctx context.Context, binds map[string]*ast_domai
 
 // hasEventDirectiveAtPosition checks event directives for a position match.
 //
-// Takes onEvents (map[string][]ast_domain.Directive) which contains the event
-// directives to search through.
-// Takes position (protocol.Position) which specifies the position
-// to match against.
+// Takes onEvents (map[string][]ast_domain.Directive) which contains the event directives
+// to search through.
+// Takes position (protocol.Position) which specifies the position to match against.
 //
-// Returns bool which is true if the position falls within any
-// non-synthetic
-// event directive's attribute range.
+// Returns bool which is true if the position falls within any non-synthetic event
+// directive's attribute range.
 func hasEventDirectiveAtPosition(ctx context.Context, onEvents map[string][]ast_domain.Directive, position protocol.Position) bool {
 	_, l := logger_domain.From(ctx, log)
 
@@ -444,14 +436,13 @@ func hasEventDirectiveAtPosition(ctx context.Context, onEvents map[string][]ast_
 	return false
 }
 
-// isPositionInAttributeRange checks if a position falls within an attribute's
-// range.
+// isPositionInAttributeRange checks if a position falls within an attribute's range.
 //
 // Takes position (protocol.Position) which is the position to check.
 // Takes attributeRange (*ast_domain.Range) which defines the attribute's range.
 //
-// Returns bool which is true if the position is within the attribute range,
-// or false if the range is synthetic.
+// Returns bool which is true if the position is within the attribute range, or false if
+// the range is synthetic.
 func isPositionInAttributeRange(position protocol.Position, attributeRange *ast_domain.Range) bool {
 	if attributeRange.Start.IsSynthetic() {
 		return false
@@ -460,12 +451,11 @@ func isPositionInAttributeRange(position protocol.Position, attributeRange *ast_
 	return isPositionInRange(position, r)
 }
 
-// astRangeToLSPRange converts a 1-based ast_domain.Range to a 0-based
-// protocol.Range. Lines and columns in the source range start at 1, while the
-// LSP protocol uses positions that start at 0.
+// astRangeToLSPRange converts a 1-based ast_domain.Range to a 0-based protocol.Range.
+// Lines and columns in the source range start at 1, while the LSP protocol uses positions
+// that start at 0.
 //
-// Takes astRange (ast_domain.Range) which specifies the source range to
-// convert.
+// Takes astRange (ast_domain.Range) which specifies the source range to convert.
 //
 // Returns protocol.Range which is the converted range with 0-based positions.
 func astRangeToLSPRange(astRange ast_domain.Range) protocol.Range {

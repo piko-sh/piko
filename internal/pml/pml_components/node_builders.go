@@ -23,8 +23,8 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// NewLocation creates a zero-valued Location for generated nodes.
-// Generated nodes do not have source positions, so all fields are zero.
+// NewLocation creates a zero-valued Location for generated nodes. Generated nodes do not
+// have source positions, so all fields are zero.
 //
 // Returns ast_domain.Location which is a zero-valued location.
 func NewLocation() ast_domain.Location {
@@ -35,8 +35,8 @@ func NewLocation() ast_domain.Location {
 	}
 }
 
-// NewRange creates a Range with zero values for start and end locations.
-// Generated nodes do not have source ranges, so all fields are zero.
+// NewRange creates a Range with zero values for start and end locations. Generated nodes
+// do not have source ranges, so all fields are zero.
 //
 // Returns ast_domain.Range which contains zero-valued start and end locations.
 func NewRange() ast_domain.Range {
@@ -46,14 +46,14 @@ func NewRange() ast_domain.Range {
 	}
 }
 
-// NewElementNode creates a TemplateNode representing an HTML element.
-// All optional TemplateNode fields are explicitly set to their zero values.
+// NewElementNode creates a TemplateNode representing an HTML element. All optional
+// TemplateNode fields are explicitly set to their zero values.
 //
 // Takes tagName (string) which specifies the HTML tag name for the element.
-// Takes attributes ([]ast_domain.HTMLAttribute) which provides the element's
-// HTML attributes. If nil, an empty slice is used.
-// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes.
-// If nil, an empty slice is used.
+// Takes attributes ([]ast_domain.HTMLAttribute) which provides the element's HTML
+// attributes. If nil, an empty slice is used.
+// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes. If nil, an
+// empty slice is used.
 //
 // Returns *ast_domain.TemplateNode which is the configured element node.
 func NewElementNode(tagName string, attributes []ast_domain.HTMLAttribute, children []*ast_domain.TemplateNode) *ast_domain.TemplateNode {
@@ -105,9 +105,9 @@ func NewElementNode(tagName string, attributes []ast_domain.HTMLAttribute, child
 	}
 }
 
-// NewRawHTMLNode creates a TemplateNode representing raw HTML content.
-// This node type renders its TextContent directly without escaping, which
-// suited for conditional comments and other raw HTML fragments.
+// NewRawHTMLNode creates a TemplateNode representing raw HTML content. This node type
+// renders its TextContent directly without escaping, which suited for conditional
+// comments and other raw HTML fragments.
 //
 // Takes content (string) which is the raw HTML to include in the output.
 //
@@ -116,15 +116,13 @@ func NewRawHTMLNode(content string) *ast_domain.TemplateNode {
 	return newNodeWithContent(ast_domain.NodeRawHTML, content)
 }
 
-// NewFragmentNode creates a TemplateNode representing a document fragment.
-// Fragments do not render wrapper elements themselves; they only render their
-// children.
+// NewFragmentNode creates a TemplateNode representing a document fragment. Fragments do
+// not render wrapper elements themselves; they only render their children.
 //
-// Takes children ([]*ast_domain.TemplateNode) which specifies the child nodes
-// to include in the fragment. If nil, an empty slice is used.
+// Takes children ([]*ast_domain.TemplateNode) which specifies the child nodes to include
+// in the fragment. If nil, an empty slice is used.
 //
-// Returns *ast_domain.TemplateNode which is the configured fragment node ready
-// for use.
+// Returns *ast_domain.TemplateNode which is the configured fragment node ready for use.
 func NewFragmentNode(children []*ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	if children == nil {
 		children = []*ast_domain.TemplateNode{}
@@ -171,8 +169,8 @@ func NewFragmentNode(children []*ast_domain.TemplateNode) *ast_domain.TemplateNo
 	}
 }
 
-// NewSimpleTextNode creates a text node with fixed string content, such as
-// special characters or entities.
+// NewSimpleTextNode creates a text node with fixed string content, such as special
+// characters or entities.
 //
 // Takes content (string) which specifies the text for the node.
 //
@@ -181,9 +179,8 @@ func NewSimpleTextNode(content string) *ast_domain.TemplateNode {
 	return newNodeWithContent(ast_domain.NodeText, content)
 }
 
-// NewHTMLAttribute creates an HTMLAttribute with the given name and value.
-// Location fields are set to their zero values as they are not needed for
-// generated content.
+// NewHTMLAttribute creates an HTMLAttribute with the given name and value. Location
+// fields are set to their zero values as they are not needed for generated content.
 //
 // Takes name (string) which specifies the attribute name.
 // Takes value (string) which specifies the attribute value.
@@ -199,14 +196,13 @@ func NewHTMLAttribute(name, value string) ast_domain.HTMLAttribute {
 	}
 }
 
-// NewAttributeDefinition creates an AttributeDefinition for a non-enum
-// attribute type.
+// NewAttributeDefinition creates an AttributeDefinition for a non-enum attribute type.
 //
-// Takes attributeType (pml_domain.AttributeType) which specifies the type of
-// attribute to define.
+// Takes attributeType (pml_domain.AttributeType) which specifies the type of attribute to
+// define.
 //
-// Returns pml_domain.AttributeDefinition which is the definition with the
-// given type and nil allowed values.
+// Returns pml_domain.AttributeDefinition which is the definition with the given type and
+// nil allowed values.
 func NewAttributeDefinition(attributeType pml_domain.AttributeType) pml_domain.AttributeDefinition {
 	return pml_domain.AttributeDefinition{
 		Type:          attributeType,
@@ -214,8 +210,8 @@ func NewAttributeDefinition(attributeType pml_domain.AttributeType) pml_domain.A
 	}
 }
 
-// NewEnumAttributeDefinition creates an AttributeDefinition for an enum type
-// with the specified allowed values.
+// NewEnumAttributeDefinition creates an AttributeDefinition for an enum type with the
+// specified allowed values.
 //
 // Takes allowedValues ([]string) which specifies the valid enum options.
 //
@@ -227,8 +223,7 @@ func NewEnumAttributeDefinition(allowedValues []string) pml_domain.AttributeDefi
 	}
 }
 
-// newNodeWithContent creates a new template node with the given type and text
-// content.
+// newNodeWithContent creates a new template node with the given type and text content.
 //
 // Takes nodeType (ast_domain.NodeType) which specifies the kind of node.
 // Takes content (string) which provides the text content for the node.

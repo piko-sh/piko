@@ -30,8 +30,8 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_domain"
 )
 
-// wasmUnsafePackages lists packages that are not available in WASM and
-// must be filtered out from the symbol exports.
+// wasmUnsafePackages lists packages that are not available in WASM and must be filtered
+// out from the symbol exports.
 var wasmUnsafePackages = map[string]bool{
 	"unsafe":         true,
 	"runtime/cgo":    true,
@@ -51,9 +51,9 @@ var wasmUnsafePackages = map[string]bool{
 	"debug/plan9obj": true,
 }
 
-// WASMSymbolAdapter adapts the Piko bytecode interpreter's symbol
-// providers to wasm_domain.SymbolLoaderPort, filtering out packages
-// that are not available in the WASM environment.
+// WASMSymbolAdapter adapts the Piko bytecode interpreter's symbol providers to
+// wasm_domain.SymbolLoaderPort, filtering out packages that are not available in the WASM
+// environment.
 type WASMSymbolAdapter struct {
 	// sp provides the WASM-filtered symbol provider.
 	sp *WASMSymbolProvider
@@ -63,22 +63,19 @@ var _ wasm_domain.SymbolLoaderPort = (*WASMSymbolAdapter)(nil)
 
 // NewWASMSymbolAdapter creates a new WASM symbol adapter.
 //
-// Takes sp (*WASMSymbolProvider) which provides the WASM-filtered
-// symbols to load.
+// Takes sp (*WASMSymbolProvider) which provides the WASM-filtered symbols to load.
 //
-// Returns *WASMSymbolAdapter which implements
-// wasm_domain.SymbolLoaderPort.
+// Returns *WASMSymbolAdapter which implements wasm_domain.SymbolLoaderPort.
 func NewWASMSymbolAdapter(sp *WASMSymbolProvider) *WASMSymbolAdapter {
 	return &WASMSymbolAdapter{sp: sp}
 }
 
 // Use loads WASM-filtered symbols into an interpreter.
 //
-// Takes interpreter (any) which must be a *interp_domain.Service or a
-// wrapper that embeds one via a Service() accessor.
+// Takes interpreter (any) which must be a *interp_domain.Service or a wrapper that embeds
+// one via a Service() accessor.
 //
-// Returns error when the interpreter type is unsupported or symbol
-// loading fails.
+// Returns error when the interpreter type is unsupported or symbol loading fails.
 func (a *WASMSymbolAdapter) Use(interpreter any) error {
 	if service, ok := interpreter.(*interp_domain.Service); ok {
 		a.sp.applyToService(service)
@@ -95,8 +92,8 @@ func (a *WASMSymbolAdapter) Use(interpreter any) error {
 	return fmt.Errorf("unsupported interpreter type: %T", interpreter)
 }
 
-// WASMSymbolProvider wraps the system and Piko symbol providers with
-// WASM-unsafe package filtering.
+// WASMSymbolProvider wraps the system and Piko symbol providers with WASM-unsafe package
+// filtering.
 type WASMSymbolProvider struct {
 	// systemProvider provides vendored stdlib symbols.
 	systemProvider interp_domain.SymbolProviderPort
@@ -105,11 +102,10 @@ type WASMSymbolProvider struct {
 	pikoProvider interp_domain.SymbolProviderPort
 }
 
-// NewWASMSymbolProvider creates a new symbol provider that filters out
-// WASM-incompatible packages from the system and Piko symbol tables.
+// NewWASMSymbolProvider creates a new symbol provider that filters out WASM-incompatible
+// packages from the system and Piko symbol tables.
 //
-// Returns *WASMSymbolProvider which is ready for use with
-// NewWASMSymbolAdapter.
+// Returns *WASMSymbolProvider which is ready for use with NewWASMSymbolAdapter.
 func NewWASMSymbolProvider() *WASMSymbolProvider {
 	return &WASMSymbolProvider{
 		systemProvider: driven_system_symbols.NewProvider(),
@@ -117,12 +113,11 @@ func NewWASMSymbolProvider() *WASMSymbolProvider {
 	}
 }
 
-// applyToService loads WASM-filtered symbols into an
-// interpreter service and registers package aliases for Piko
-// packages with duplicated path segments.
+// applyToService loads WASM-filtered symbols into an interpreter service and registers
+// package aliases for Piko packages with duplicated path segments.
 //
-// Takes service (*interp_domain.Service) which is the
-// interpreter service to load symbols into.
+// Takes service (*interp_domain.Service) which is the interpreter service to load symbols
+// into.
 func (sp *WASMSymbolProvider) applyToService(service *interp_domain.Service) {
 	filtered := &wasmFilteredProvider{
 		system: sp.systemProvider,
@@ -133,13 +128,13 @@ func (sp *WASMSymbolProvider) applyToService(service *interp_domain.Service) {
 	sp.registerAliases(service, filtered)
 }
 
-// registerAliases creates short aliases for Piko packages
-// where the last two path segments are identical.
+// registerAliases creates short aliases for Piko packages where the last two path
+// segments are identical.
 //
-// Takes service (*interp_domain.Service) which is the
-// interpreter service to register aliases on.
-// Takes filtered (*wasmFilteredProvider) which provides the
-// WASM-filtered symbol exports to scan for aliases.
+// Takes service (*interp_domain.Service) which is the interpreter service to register
+// aliases on.
+// Takes filtered (*wasmFilteredProvider) which provides the WASM-filtered symbol exports
+// to scan for aliases.
 func (sp *WASMSymbolProvider) registerAliases(service *interp_domain.Service, filtered *wasmFilteredProvider) {
 	for path, syms := range filtered.Exports() {
 		if alias := createAliasIfNeeded(path); alias != "" {
@@ -148,8 +143,8 @@ func (sp *WASMSymbolProvider) registerAliases(service *interp_domain.Service, fi
 	}
 }
 
-// wasmFilteredProvider wraps the system and Piko providers, filtering
-// out WASM-unsafe packages from the combined exports.
+// wasmFilteredProvider wraps the system and Piko providers, filtering out WASM-unsafe
+// packages from the combined exports.
 type wasmFilteredProvider struct {
 	// system provides vendored stdlib symbols.
 	system interp_domain.SymbolProviderPort
@@ -160,8 +155,8 @@ type wasmFilteredProvider struct {
 
 // Exports returns the combined, WASM-filtered symbol exports.
 //
-// Returns interp_domain.SymbolExports which maps import paths to
-// symbol maps, excluding WASM-incompatible packages.
+// Returns interp_domain.SymbolExports which maps import paths to symbol maps, excluding
+// WASM-incompatible packages.
 func (f *wasmFilteredProvider) Exports() interp_domain.SymbolExports {
 	merged := make(interp_domain.SymbolExports)
 
@@ -180,8 +175,8 @@ func (f *wasmFilteredProvider) Exports() interp_domain.SymbolExports {
 	return merged
 }
 
-// isWASMUnsafePackage checks if a package path should be excluded in
-// WASM. It matches exact package names and any sub-packages.
+// isWASMUnsafePackage checks if a package path should be excluded in WASM. It matches
+// exact package names and any sub-packages.
 //
 // Takes path (string) which is the package import path to check.
 //

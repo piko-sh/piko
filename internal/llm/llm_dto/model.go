@@ -20,8 +20,8 @@ package llm_dto
 
 // ModelInfo contains metadata about an available LLM model.
 type ModelInfo struct {
-	// ID is the unique identifier for the model
-	// (e.g. "gpt-5", "claude-sonnet-4-5-20250929").
+	// ID is the unique identifier for the model (e.g. "gpt-5",
+	// "claude-sonnet-4-5-20250929").
 	ID string
 
 	// Name is the display name for the model that people can read.
@@ -45,8 +45,7 @@ type ModelInfo struct {
 	// SupportsTools indicates whether the model supports tool/function calling.
 	SupportsTools bool
 
-	// SupportsStructuredOutput indicates whether the model
-	// supports JSON schema output.
+	// SupportsStructuredOutput indicates whether the model supports JSON schema output.
 	SupportsStructuredOutput bool
 
 	// SupportsVision indicates whether the model can process images.

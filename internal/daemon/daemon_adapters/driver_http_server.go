@@ -46,16 +46,16 @@ const (
 	// serverPurposeHealth marks a server as a health check endpoint.
 	serverPurposeHealth serverPurpose = "health"
 
-	// ServerPurposeMain is the exported form of serverPurposeMain for use by
-	// the bootstrap layer when creating adapters via the TLS factory.
+	// ServerPurposeMain is the exported form of serverPurposeMain for use by the bootstrap
+	// layer when creating adapters via the TLS factory.
 	ServerPurposeMain = serverPurposeMain
 
 	// ServerPurposeHealth is the exported form of serverPurposeHealth.
 	ServerPurposeHealth = serverPurposeHealth
 )
 
-// driverHTTPServerAdapter implements the ServerAdapter interface using the
-// standard Go http.Server for production HTTP serving.
+// driverHTTPServerAdapter implements the ServerAdapter interface using the standard Go
+// http.Server for production HTTP serving.
 type driverHTTPServerAdapter struct {
 	// server holds the HTTP server instance created during ListenAndServe.
 	server *http.Server
@@ -63,18 +63,20 @@ type driverHTTPServerAdapter struct {
 	// tlsConfig holds optional TLS configuration; nil means plain HTTP.
 	tlsConfig *TLSAdapterConfig
 
-	// onBound is an optional callback invoked after the server successfully
-	// binds to a port, receiving the resolved listen address.
+	// onBound is an optional callback invoked after the server successfully binds to a port,
+	// receiving the resolved listen address.
 	onBound func(address string)
 
 	// purpose indicates whether this server handles health probes or main traffic.
 	purpose serverPurpose
 }
 
-var _ daemon_domain.ServerAdapter = (*driverHTTPServerAdapter)(nil)
+var (
+	_ daemon_domain.ServerAdapter = (*driverHTTPServerAdapter)(nil)
+)
 
-// ListenAndServe starts the HTTP server listening on the specified address.
-// It blocks until the server shuts down or encounters a fatal error.
+// ListenAndServe starts the HTTP server listening on the specified address. It blocks
+// until the server shuts down or encounters a fatal error.
 //
 // Takes address (string) which specifies the TCP address to listen on.
 // Takes handler (http.Handler) which handles incoming HTTP requests.
@@ -128,8 +130,8 @@ func (a *driverHTTPServerAdapter) ListenAndServe(
 	return nil
 }
 
-// Shutdown stops the HTTP server gracefully, allowing in-flight requests to
-// complete before returning.
+// Shutdown stops the HTTP server gracefully, allowing in-flight requests to complete
+// before returning.
 //
 // Returns error when the server fails to shut down within the context deadline.
 func (a *driverHTTPServerAdapter) Shutdown(ctx context.Context) error {
@@ -168,14 +170,13 @@ func (a *driverHTTPServerAdapter) Shutdown(ctx context.Context) error {
 
 // SetOnBound registers a callback invoked after the server binds successfully.
 //
-// Takes fn (func(address string)) which is the callback receiving the resolved
-// listen address.
+// Takes fn (func(address string)) which is the callback receiving the resolved listen
+// address.
 func (a *driverHTTPServerAdapter) SetOnBound(fn func(address string)) {
 	a.onBound = fn
 }
 
-// recordServerSpanAttributes adds server configuration attributes to the
-// trace span.
+// recordServerSpanAttributes adds server configuration attributes to the trace span.
 //
 // Takes span (trace.Span) which receives the configuration attributes.
 func (a *driverHTTPServerAdapter) recordServerSpanAttributes(span trace.Span) {
@@ -238,48 +239,45 @@ func (a *driverHTTPServerAdapter) logServerReady(l logger_domain.Logger, address
 	}
 }
 
-// NewDriverHTTPServerAdapter creates a new HTTP server adapter for the main
-// server.
+// NewDriverHTTPServerAdapter creates a new HTTP server adapter for the main server.
 //
-// Returns daemon_domain.ServerAdapter which is the configured adapter ready
-// for use.
+// Returns daemon_domain.ServerAdapter which is the configured adapter ready for use.
 func NewDriverHTTPServerAdapter() daemon_domain.ServerAdapter {
 	return &driverHTTPServerAdapter{purpose: serverPurposeMain}
 }
 
-// NewDriverHTTPServerAdapterWithTLS creates a TLS-enabled HTTP server adapter
-// for the main server. The provided config controls TLS certificate loading,
-// client auth, and protocol negotiation.
+// NewDriverHTTPServerAdapterWithTLS creates a TLS-enabled HTTP server adapter for the
+// main server. The provided config controls TLS certificate loading, client auth, and
+// protocol negotiation.
 //
 // Takes config (TLSAdapterConfig) which provides the TLS settings.
 //
-// Returns daemon_domain.ServerAdapter which is the configured TLS adapter
-// ready for use.
+// Returns daemon_domain.ServerAdapter which is the configured TLS adapter ready for use.
 func NewDriverHTTPServerAdapterWithTLS(config TLSAdapterConfig) daemon_domain.ServerAdapter {
 	return &driverHTTPServerAdapter{purpose: serverPurposeMain, tlsConfig: &config}
 }
 
 // NewHealthServerAdapter creates a server adapter for the health probe server.
 //
-// Returns daemon_domain.ServerAdapter which provides the health probe server
-// adapter ready for use.
+// Returns daemon_domain.ServerAdapter which provides the health probe server adapter
+// ready for use.
 func NewHealthServerAdapter() daemon_domain.ServerAdapter {
 	return &driverHTTPServerAdapter{purpose: serverPurposeHealth}
 }
 
-// NewHealthServerAdapterWithTLS creates a TLS-enabled server adapter for the
-// health probe server.
+// NewHealthServerAdapterWithTLS creates a TLS-enabled server adapter for the health probe
+// server.
 //
 // Takes config (TLSAdapterConfig) which provides the TLS settings.
 //
-// Returns daemon_domain.ServerAdapter which provides the TLS-enabled health
-// probe adapter ready for use.
+// Returns daemon_domain.ServerAdapter which provides the TLS-enabled health probe adapter
+// ready for use.
 func NewHealthServerAdapterWithTLS(config TLSAdapterConfig) daemon_domain.ServerAdapter {
 	return &driverHTTPServerAdapter{purpose: serverPurposeHealth, tlsConfig: &config}
 }
 
-// recordServerCompletion records metrics and span status based on the server
-// completion result.
+// recordServerCompletion records metrics and span status based on the server completion
+// result.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes span (trace.Span) which receives the status and any error details.
@@ -301,8 +299,8 @@ func recordServerCompletion(ctx context.Context, span trace.Span, err error) {
 	span.SetStatus(codes.Ok, "HTTP server started successfully")
 }
 
-// formatServerURL converts an address to a full URL with the appropriate
-// scheme based on whether TLS is enabled.
+// formatServerURL converts an address to a full URL with the appropriate scheme based on
+// whether TLS is enabled.
 //
 // Takes address (string) which is the host:port or just :port to format.
 // Takes isTLS (bool) which selects https:// when true, http:// when false.
@@ -319,14 +317,13 @@ func formatServerURL(address string, isTLS bool) string {
 	return scheme + "://" + address
 }
 
-// httpServerErrorWriter adapts Go's http.Server error output to Piko's
-// structured logger. Messages that are expected noise (such as TLS handshake
-// errors from plain-HTTP clients) are logged at Internal level; everything
-// else is logged as a warning.
+// httpServerErrorWriter adapts Go's http.Server error output to Piko's structured logger.
+// Messages that are expected noise (such as TLS handshake errors from plain-HTTP clients)
+// are logged at Internal level; everything else is logged as a warning.
 type httpServerErrorWriter struct{}
 
-// Write logs the given bytes as a structured message and returns the number
-// of bytes consumed.
+// Write logs the given bytes as a structured message and returns the number of bytes
+// consumed.
 //
 // Takes p ([]byte) which contains the error message from the HTTP server.
 //

@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package templater_adapter implements the email domain's template
-// rendering port by delegating to the templater domain. It translates
-// templater domain types to email domain types, keeping both domains
-// decoupled so the email hexagon does not depend directly on the
-// templater hexagon.
+// Package templater_adapter implements the email domain's template rendering port by
+// delegating to the templater domain. It translates templater domain types to email
+// domain types, keeping both domains decoupled so the email hexagon does not depend
+// directly on the templater hexagon.
 //
-// The adapter itself is stateless and safe for concurrent use. Thread
-// safety depends on the underlying EmailTemplateService implementation.
+// The adapter itself is stateless and safe for concurrent use. Thread safety depends on
+// the underlying EmailTemplateService implementation.
 package templater_adapter

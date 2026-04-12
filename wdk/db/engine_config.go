@@ -18,23 +18,22 @@
 
 package db
 
-import "piko.sh/piko/internal/bootstrap"
+import (
+	"piko.sh/piko/internal/bootstrap"
+)
 
-// EngineConfig bundles the components needed for a database engine: the
-// codegen parser (used at build time), the migration dialect (used at
-// runtime for migration execution), and an optional factory for creating
-// live-database catalogue providers.
+// EngineConfig bundles the components needed for a database engine: the codegen parser
+// (used at build time), the migration dialect (used at runtime for migration execution),
+// and an optional factory for creating live-database catalogue providers.
 //
-// Engine sub-packages (db_engine_postgres, db_engine_mysql, etc.) provide
-// pre-built EngineConfig values via constructor functions like Postgres(),
-// MySQL(), and SQLite().
+// Engine sub-packages (db_engine_postgres, db_engine_mysql, etc.) provide pre-built
+// EngineConfig values via constructor functions like Postgres(), MySQL(), and SQLite().
 type EngineConfig = bootstrap.EngineConfig
 
-// DatabaseHealthDiagnostic is a single diagnostic measurement from an
-// engine-specific health checker.
+// DatabaseHealthDiagnostic is a single diagnostic measurement from an engine-specific
+// health checker.
 type DatabaseHealthDiagnostic = bootstrap.DatabaseHealthDiagnostic
 
-// DatabaseHealthChecker is an optional interface that engine implementations
-// can satisfy to provide engine-specific health diagnostics beyond a basic
-// ping.
+// DatabaseHealthChecker is an optional interface that engine implementations can satisfy
+// to provide engine-specific health diagnostics beyond a basic ping.
 type DatabaseHealthChecker = bootstrap.DatabaseHealthChecker

@@ -18,15 +18,14 @@
 
 package seo_dto
 
-// ProjectView is a read-only representation of a compiled Piko project for SEO.
-// It is an Anti-Corruption Layer that decouples the SEO domain from the
-// annotator, containing only information needed for SEO artefact generation.
+// ProjectView is a read-only representation of a compiled Piko project for SEO. It is an
+// Anti-Corruption Layer that decouples the SEO domain from the annotator, containing only
+// information needed for SEO artefact generation.
 type ProjectView struct {
 	// Components holds the component views within this project.
 	Components []ComponentView
 
-	// FinalAssetManifest contains all asset dependencies discovered across the
-	// project.
+	// FinalAssetManifest contains all asset dependencies discovered across the project.
 	FinalAssetManifest []AssetDependency
 }
 
@@ -36,8 +35,8 @@ type ComponentView struct {
 	// HashedName is the unique, stable hash that identifies the component.
 	HashedName string
 
-	// OriginalSourcePath is the original filesystem path, useful for fallbacks
-	// like file modification time.
+	// OriginalSourcePath is the original filesystem path, useful for fallbacks like file
+	// modification time.
 	OriginalSourcePath string
 
 	// RoutePattern is the URL path pattern for this component if it is a page.
@@ -46,12 +45,11 @@ type ComponentView struct {
 	// SEO holds the SEO metadata for the component.
 	SEO PageSEOMetadata
 
-	// SupportedLocales lists the locales available for this component, taken
-	// from LocalTranslations.
+	// SupportedLocales lists the locales available for this component, taken from
+	// LocalTranslations.
 	SupportedLocales []string
 
-	// IsPage indicates whether this component is a page that users can visit
-	// directly.
+	// IsPage indicates whether this component is a page that users can visit directly.
 	IsPage bool
 
 	// IsPublic indicates whether the page can be viewed by anyone.

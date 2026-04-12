@@ -18,12 +18,13 @@
 
 package llm_provider_mistral
 
-import "piko.sh/piko/wdk/llm"
+import (
+	"piko.sh/piko/wdk/llm"
+)
 
 // NewMistralProvider creates a new Mistral LLM provider.
 //
-// Takes config (Config) which contains the provider configuration including
-// API key.
+// Takes config (Config) which contains the provider configuration including API key.
 //
 // Returns llm.ProviderPort which can be registered with the LLM service.
 // Returns error when the configuration is invalid.

@@ -77,8 +77,8 @@ var (
 	_ ItemRenderer[Span] = (*spanRenderer)(nil)
 )
 
-// TracesPanel shows recent traces and spans in the debug interface.
-// It implements the Panel interface and supports filtering to show only errors.
+// TracesPanel shows recent traces and spans in the debug interface. It implements the
+// Panel interface and supports filtering to show only errors.
 type TracesPanel struct {
 	*AssetViewer[Span]
 
@@ -100,8 +100,7 @@ type TracesPanel struct {
 	// errorsOnly filters the trace list to show only traces that contain errors.
 	errorsOnly bool
 
-	// stateMutex guards TracesPanel-specific state including
-	// errorsOnly and seenSpanIDs.
+	// stateMutex guards TracesPanel-specific state including errorsOnly and seenSpanIDs.
 	stateMutex sync.RWMutex
 }
 
@@ -123,8 +122,8 @@ type TracesRefreshMessage struct {
 // NewTracesPanel creates a new traces panel.
 //
 // Takes provider (TracesProvider) which supplies the trace data.
-// Takes c (clock.Clock) which provides time functions. If nil, uses the real
-// system clock.
+// Takes c (clock.Clock) which provides time functions. If nil, uses the real system
+// clock.
 //
 // Returns *TracesPanel which is the configured panel ready for use.
 func NewTracesPanel(provider TracesProvider, c clock.Clock) *TracesPanel {
@@ -214,8 +213,8 @@ func (p *TracesPanel) View(width, height int) string {
 
 // handleRefreshMessage processes a traces refresh message.
 //
-// Takes message (TracesRefreshMessage) which contains the refresh
-// result with spans or an error.
+// Takes message (TracesRefreshMessage) which contains the refresh result with spans or an
+// error.
 //
 // Safe for concurrent use. Acquires the panel mutex before updating state.
 func (p *TracesPanel) handleRefreshMessage(message TracesRefreshMessage) {
@@ -285,8 +284,8 @@ func (p *TracesPanel) updateFilter() {
 	})
 }
 
-// renderTracesViewHeader renders the search box, filter status, and error
-// message for the traces view.
+// renderTracesViewHeader renders the search box, filter status, and error message for the
+// traces view.
 //
 // Takes content (*strings.Builder) which receives the rendered header output.
 //
@@ -334,8 +333,8 @@ func (p *TracesPanel) renderTracesEmptyState(content *strings.Builder) {
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 // Takes displayItems ([]int) which contains indices of items to display.
-// Takes headerLines (int) which specifies the number of header lines to use
-// when working out the visible height.
+// Takes headerLines (int) which specifies the number of header lines to use when working
+// out the visible height.
 func (p *TracesPanel) renderTracesItems(content *strings.Builder, displayItems []int, headerLines int) {
 	tableHeader := p.renderTableHeader()
 	content.WriteString(tableHeader)
@@ -422,8 +421,8 @@ func (p *TracesPanel) setItemsUnlocked(items []Span) {
 // Returns tea.Cmd which spawns a goroutine to fetch traces and sends a
 // TracesRefreshMessage when complete.
 //
-// Concurrent use is safe. The returned command runs in a separate goroutine
-// and uses a read lock to access filter state safely.
+// Concurrent use is safe. The returned command runs in a separate goroutine and uses a
+// read lock to access filter state safely.
 func (p *TracesPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
@@ -457,11 +456,10 @@ func (p *TracesPanel) refresh() tea.Cmd {
 
 // renderHeader builds the panel header text with the current filter state.
 //
-// Returns string which shows the error filter state, span count, and time
-// since the last refresh.
+// Returns string which shows the error filter state, span count, and time since the last
+// refresh.
 //
-// Safe for concurrent use. Acquires a read lock to access the errorsOnly
-// filter state.
+// Safe for concurrent use. Acquires a read lock to access the errorsOnly filter state.
 func (p *TracesPanel) renderHeader() string {
 	p.stateMutex.RLock()
 	errorsOnly := p.errorsOnly
@@ -523,8 +521,8 @@ func (p *TracesPanel) calculateColumnWidths() (nameW, serviceW int) {
 // Takes span (Span) which contains the trace span data to display.
 // Takes index (int) which is the row index in the span list.
 //
-// Returns string which is the formatted line with cursor, status, name,
-// service, duration, and time ago columns.
+// Returns string which is the formatted line with cursor, status, name, service,
+// duration, and time ago columns.
 func (p *TracesPanel) renderSpanLine(span Span, index int) string {
 	cursor := " "
 	if index == p.Cursor() {
@@ -609,8 +607,7 @@ func (*spanRenderer) GetID(span Span) string {
 // Takes span (Span) which is the span to check against the query.
 // Takes query (string) which is the lowercase search term to match.
 //
-// Returns bool which is true if the span's name, service, or trace ID
-// contains the query.
+// Returns bool which is true if the span's name, service, or trace ID contains the query.
 func (*spanRenderer) MatchesFilter(span Span, query string) bool {
 	return strings.Contains(strings.ToLower(span.Name), query) ||
 		strings.Contains(strings.ToLower(span.Service), query) ||
@@ -631,8 +628,7 @@ func (*spanRenderer) ExpandedLineCount(_ Span) int {
 	return 0
 }
 
-// formatTimeAgo formats a time as a short relative string like "5s", "3m",
-// "2h", or "1d".
+// formatTimeAgo formats a time as a short relative string like "5s", "3m", "2h", or "1d".
 //
 // Takes t (time.Time) which is the time to format.
 // Takes now (time.Time) which is the current time used as a reference point.

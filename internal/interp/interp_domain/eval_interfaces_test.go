@@ -36,7 +36,7 @@ func TestEvalInterfaceBoxing(t *testing.T) {
 		{
 			name:   "box and unbox int",
 			code:   "func wrap(x any) any { return x }\nwrap(42)",
-			expect: int64(42),
+			expect: 42,
 		},
 		{
 			name:   "box and unbox float",
@@ -56,7 +56,7 @@ func TestEvalInterfaceBoxing(t *testing.T) {
 		{
 			name:   "box and unbox uint",
 			code:   "func wrap(x any) any { return x }\nvar u uint = 42\nwrap(u)",
-			expect: uint64(42),
+			expect: uint(42),
 		},
 		{
 			name: "unbox to typed int",

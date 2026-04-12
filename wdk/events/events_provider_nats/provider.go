@@ -34,47 +34,44 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-var _ events.Provider = (*NATSProvider)(nil)
+var (
+	_ events.Provider = (*NATSProvider)(nil)
+)
 
 const (
-	// defaultTimeoutSeconds is the default timeout in seconds for various NATS
-	// operations.
+	// defaultTimeoutSeconds is the default timeout in seconds for various NATS operations.
 	defaultTimeoutSeconds = 30
 )
 
 // Config contains configuration options for the NATS JetStream provider.
 type Config struct {
-	// URL is the NATS server connection address.
-	// Default: "nats://localhost:4222".
+	// URL is the NATS server connection address. Default: "nats://localhost:4222".
 	URL string
 
-	// ClusterID identifies this client in logs and monitoring.
-	// Default: "piko-events".
+	// ClusterID identifies this client in logs and monitoring. Default: "piko-events".
 	ClusterID string
 
-	// QueueGroupPrefix is prepended to topic names to form queue group names,
-	// enabling competing consumer patterns where multiple subscribers share work
-	// on the same topic. Default: "piko".
+	// QueueGroupPrefix is prepended to topic names to form queue group names, enabling
+	// competing consumer patterns where multiple subscribers share work on the same topic.
+	// Default: "piko".
 	QueueGroupPrefix string
 
-	// NATSOptions provides extra NATS connection options.
-	// These are added after the default options.
+	// NATSOptions provides extra NATS connection options. These are added after the default
+	// options.
 	NATSOptions []nc.Option
 
 	// JetStream holds settings for NATS JetStream messaging.
 	JetStream JetStreamConfig
 
-	// SubscribersCount is the number of concurrent subscribers
-	// per topic, where higher values increase throughput but
-	// use more resources (default: 1).
+	// SubscribersCount is the number of concurrent subscribers per topic, where higher
+	// values increase throughput but use more resources (default: 1).
 	SubscribersCount int
 
-	// AckWaitTimeout is how long to wait for message acknowledgement before
-	// redelivery. Default is 30 seconds.
+	// AckWaitTimeout is how long to wait for message acknowledgement before redelivery.
+	// Default is 30 seconds.
 	AckWaitTimeout time.Duration
 
-	// CloseTimeout is how long to wait for a clean shutdown. Default is 30
-	// seconds.
+	// CloseTimeout is how long to wait for a clean shutdown. Default is 30 seconds.
 	CloseTimeout time.Duration
 
 	// RouterConfig holds settings for the Watermill message router.
@@ -83,9 +80,8 @@ type Config struct {
 
 // JetStreamConfig contains JetStream-specific configuration options.
 type JetStreamConfig struct {
-	// DurablePrefix is prepended to subscription names to create
-	// durable subscriptions that survive client disconnections
-	// and server restarts (default: "piko").
+	// DurablePrefix is prepended to subscription names to create durable subscriptions that
+	// survive client disconnections and server restarts (default: "piko").
 	DurablePrefix string
 
 	// SubscribeOptions holds extra options passed to JetStream when subscribing.
@@ -94,28 +90,27 @@ type JetStreamConfig struct {
 	// PublishOptions specifies extra settings for JetStream publish operations.
 	PublishOptions []nc.PubOpt
 
-	// Disabled disables JetStream and uses core NATS instead, which provides
-	// at-most-once delivery without persistence; default is false.
+	// Disabled disables JetStream and uses core NATS instead, which provides at-most-once
+	// delivery without persistence; default is false.
 	Disabled bool
 
-	// AutoProvision automatically creates streams if they do not
-	// exist, which is useful for development but should be
-	// disabled in production where streams are pre-created with
+	// AutoProvision automatically creates streams if they do not exist, which is useful for
+	// development but should be disabled in production where streams are pre-created with
 	// specific configurations (default: true).
 	AutoProvision bool
 
-	// TrackMessageID enables message ID tracking for exactly-once delivery.
-	// This has a performance cost but prevents duplicates; default is false.
+	// TrackMessageID enables message ID tracking for exactly-once delivery. This has a
+	// performance cost but prevents duplicates; default is false.
 	TrackMessageID bool
 
-	// AckAsync enables asynchronous acknowledgement. When true, Ack() returns
-	// immediately without waiting for server confirmation, improving performance
-	// at the cost of delivery guarantees; default is false.
+	// AckAsync enables asynchronous acknowledgement. When true, Ack() returns immediately
+	// without waiting for server confirmation, improving performance at the cost of delivery
+	// guarantees; default is false.
 	AckAsync bool
 }
 
-// NATSProvider implements the events.Provider interface using NATS
-// JetStream for message passing with storage.
+// NATSProvider implements the events.Provider interface using NATS JetStream for message
+// passing with storage.
 type NATSProvider struct {
 	// publisher handles sending messages to NATS topics.
 	publisher message.Publisher
@@ -148,11 +143,10 @@ type NATSProvider struct {
 	running bool
 }
 
-// NewNATSProvider creates a new NATS JetStream provider with the given
-// configuration. Call Start to set up the connection and router before use.
+// NewNATSProvider creates a new NATS JetStream provider with the given configuration.
+// Call Start to set up the connection and router before use.
 //
-// Takes config (Config) which specifies the NATS connection and JetStream
-// settings.
+// Takes config (Config) which specifies the NATS connection and JetStream settings.
 //
 // Returns *NATSProvider which is the configured provider ready for starting.
 // Returns error when the configuration is not valid.
@@ -165,13 +159,13 @@ func NewNATSProvider(config Config) (*NATSProvider, error) {
 	}, nil
 }
 
-// Start initialises the NATS connection, creates publisher/subscriber,
-// and starts the Watermill router.
+// Start initialises the NATS connection, creates publisher/subscriber, and starts the
+// Watermill router.
 //
 // Returns error when connection, pub/sub initialisation, or router setup fails.
 //
-// Safe for concurrent use. Returns nil immediately if already running. Spawns
-// a background goroutine for the router that runs until Stop is called.
+// Safe for concurrent use. Returns nil immediately if already running. Spawns a
+// background goroutine for the router that runs until Stop is called.
 func (p *NATSProvider) Start(ctx context.Context) error {
 	ctx, l := logger.From(ctx, log)
 
@@ -241,8 +235,8 @@ func (p *NATSProvider) Running() bool {
 	return p.running
 }
 
-// Connection returns the underlying NATS connection.
-// This can be used for advanced operations or health checks.
+// Connection returns the underlying NATS connection. This can be used for advanced
+// operations or health checks.
 //
 // Returns *nc.Conn which is the active NATS connection.
 func (p *NATSProvider) Connection() *nc.Conn {
@@ -251,11 +245,10 @@ func (p *NATSProvider) Connection() *nc.Conn {
 
 // Close shuts down the provider and releases all resources.
 //
-// Returns error when the shutdown fails, though the current version always
-// returns nil.
+// Returns error when the shutdown fails, though the current version always returns nil.
 //
-// Safe for concurrent use. Logs errors for individual component failures but
-// does not return them.
+// Safe for concurrent use. Logs errors for individual component failures but does not
+// return them.
 func (p *NATSProvider) Close() error {
 	ctx := context.Background()
 	_, l := logger.From(ctx, log)
@@ -396,8 +389,8 @@ func (p *NATSProvider) initialiseRouter(ctx context.Context) error {
 
 // startRouterGoroutine starts the router in a background goroutine.
 //
-// The goroutine runs until the router stops or returns an error. It updates
-// the running state when the router stops.
+// The goroutine runs until the router stops or returns an error. It updates the running
+// state when the router stops.
 //
 // Safe for concurrent use. Uses a mutex to update the running state.
 func (p *NATSProvider) startRouterGoroutine(ctx context.Context) {
@@ -436,8 +429,8 @@ func (p *NATSProvider) recordStartMetrics(ctx context.Context, startTime time.Ti
 
 // buildNATSOptions builds the NATS connection options.
 //
-// Returns []nc.Option which contains the connection options, including
-// handlers for reconnection, disconnection, and errors.
+// Returns []nc.Option which contains the connection options, including handlers for
+// reconnection, disconnection, and errors.
 func (p *NATSProvider) buildNATSOptions(ctx context.Context) []nc.Option {
 	ctx, l := logger.From(ctx, log)
 
@@ -538,9 +531,8 @@ func (p *NATSProvider) createSubscriber() (message.Subscriber, error) {
 	return nats.NewSubscriber(subConfig, p.logger)
 }
 
-// DefaultConfig returns settings suited for production use with reliable
-// message delivery. JetStream is enabled with auto-provisioning for simple
-// deployment.
+// DefaultConfig returns settings suited for production use with reliable message
+// delivery. JetStream is enabled with auto-provisioning for simple deployment.
 //
 // Returns Config which contains the default settings ready for use.
 func DefaultConfig() Config {

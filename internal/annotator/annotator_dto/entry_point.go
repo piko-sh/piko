@@ -18,29 +18,28 @@
 
 package annotator_dto
 
-// EntryPoint defines a single entry point for a project build,
-// specifying its source path and whether it should be treated as a page.
+// EntryPoint defines a single entry point for a project build, specifying its source path
+// and whether it should be treated as a page.
 type EntryPoint struct {
-	// VirtualPageSource holds settings for pages built from collection items.
-	// When nil, this entry point is a normal file-based page.
+	// VirtualPageSource holds settings for pages built from collection items. When nil, this
+	// entry point is a normal file-based page.
 	VirtualPageSource *VirtualPageSource
 
 	// Path is the file path to the entry point source file.
 	Path string
 
-	// ErrorStatusCode is the HTTP status code this error page handles,
-	// parsed from the filename (e.g., !404.pk -> 404, !500.pk -> 500).
+	// ErrorStatusCode is the HTTP status code this error page handles, parsed from the
+	// filename (e.g., !404.pk -> 404, !500.pk -> 500).
 	//
-	// Only meaningful when IsErrorPage is true and not a range or
-	// catch-all.
+	// Only meaningful when IsErrorPage is true and not a range or catch-all.
 	ErrorStatusCode int
 
-	// ErrorStatusCodeMin is the lower bound of a range error page
-	// (e.g., 400 for !400-499.pk). Zero when the page is not a range.
+	// ErrorStatusCodeMin is the lower bound of a range error page (e.g., 400 for
+	// !400-499.pk). Zero when the page is not a range.
 	ErrorStatusCodeMin int
 
-	// ErrorStatusCodeMax is the upper bound of a range error page
-	// (e.g., 499 for !400-499.pk). Zero when the page is not a range.
+	// ErrorStatusCodeMax is the upper bound of a range error page (e.g., 499 for
+	// !400-499.pk). Zero when the page is not a range.
 	ErrorStatusCodeMax int
 
 	// IsPage indicates whether this entry point shows a full page.
@@ -55,30 +54,27 @@ type EntryPoint struct {
 	// IsPdf indicates whether this entry point is a PDF template.
 	IsPdf bool
 
-	// IsE2EOnly indicates this entry point comes from the e2e/
-	// directory and is only included when Build.E2EMode is enabled.
+	// IsE2EOnly indicates this entry point comes from the e2e/ directory and is only
+	// included when Build.E2EMode is enabled.
 	//
-	// At runtime, a guard returns 404 if E2EMode is disabled. E2E
-	// entry points with the same route/name as production ones
-	// override them, allowing tests to replace production components
-	// with test versions.
+	// At runtime, a guard returns 404 if E2EMode is disabled. E2E entry points with the same
+	// route/name as production ones override them, allowing tests to replace production
+	// components with test versions.
 	IsE2EOnly bool
 
-	// IsErrorPage indicates this entry point is a convention-based
-	// error page using the ! prefix (e.g., !404.pk, !500.pk),
-	// compiled like normal pages but registered as error handlers
-	// rather than routable pages.
+	// IsErrorPage indicates this entry point is a convention-based error page using the !
+	// prefix (e.g., !404.pk, !500.pk), compiled like normal pages but registered as error
+	// handlers rather than routable pages.
 	IsErrorPage bool
 
 	// IsCatchAllError is true for !error.pk pages that handle all status codes.
 	IsCatchAllError bool
 }
 
-// VirtualPageSource contains metadata for virtual pages generated from
-// collections.
+// VirtualPageSource contains metadata for virtual pages generated from collections.
 //
-// Virtual pages do not correspond to physical .pk files on disk. They are
-// generated dynamically from collection items such as blog posts or products.
+// Virtual pages do not correspond to physical .pk files on disk. They are generated
+// dynamically from collection items such as blog posts or products.
 //
 // Carries all the information needed to render the virtual page:
 //   - Which template to use
@@ -90,19 +86,18 @@ type VirtualPageSource struct {
 
 	// CollectionContext holds data about the collection item.
 	//
-	// Always set. Components can use it to show language switchers,
-	// breadcrumbs, and other navigation elements.
+	// Always set. Components can use it to show language switchers, breadcrumbs, and other
+	// navigation elements.
 	CollectionContext *CollectionContext
 
-	// TemplatePath is the path to the template file that renders this
-	// virtual page.
+	// TemplatePath is the path to the template file that renders this virtual page.
 	//
-	// This template has a p-collection directive and is used to render all virtual
-	// pages in the collection.
+	// This template has a p-collection directive and is used to render all virtual pages in
+	// the collection.
 	TemplatePath string
 
-	// CollectionName is the name of the collection this virtual page belongs to,
-	// such as "blog" or "products".
+	// CollectionName is the name of the collection this virtual page belongs to, such as
+	// "blog" or "products".
 	CollectionName string
 
 	// ProviderName is the provider that supplied the collection item.
@@ -110,8 +105,8 @@ type VirtualPageSource struct {
 
 	// RouteOverride is the URL path for this virtual page.
 	//
-	// For static collections, this holds the full URL like "/blog/test-post".
-	// For dynamic collections, this is empty as the template route is used.
+	// For static collections, this holds the full URL like "/blog/test-post". For dynamic
+	// collections, this is empty as the template route is used.
 	RouteOverride string
 }
 

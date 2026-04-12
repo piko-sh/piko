@@ -30,12 +30,11 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// multiLevelCache implements the ASTCache interface by composing a fast
-// in-memory L1 cache with a potentially slower, persistent L2 cache.
+// multiLevelCache implements the ASTCache interface by composing a fast in-memory L1
+// cache with a potentially slower, persistent L2 cache.
 //
-// This implementation uses the idiomatic Otter v2 pattern, using its built-in
-// loader mechanism to provide automatic cache-aside logic and thundering herd
-// protection.
+// This implementation uses the idiomatic Otter v2 pattern, using its built-in loader
+// mechanism to provide automatic cache-aside logic and thundering herd protection.
 type multiLevelCache struct {
 	// l1Cache is the fast in-memory cache using Otter v2.
 	l1Cache *otter.Cache[string, *ast_domain.TemplateAST]
@@ -46,12 +45,14 @@ type multiLevelCache struct {
 	// clock provides time operations for TTL calculations.
 	clock clock.Clock
 
-	// l1DefaultTTL is the default time-to-live for L1 cache entries; 0 uses the
-	// remaining L2 TTL instead.
+	// l1DefaultTTL is the default time-to-live for L1 cache entries; 0 uses the remaining L2
+	// TTL instead.
 	l1DefaultTTL time.Duration
 }
 
-var _ ast_domain.ASTCache = (*multiLevelCache)(nil)
+var (
+	_ ast_domain.ASTCache = (*multiLevelCache)(nil)
+)
 
 // Get retrieves a template AST using L1 -> L2 read-through caching with TTL
 // synchronisation.
@@ -97,8 +98,8 @@ func (c *multiLevelCache) Get(ctx context.Context, key string) (*ast_domain.Temp
 // Takes key (string) which identifies the cache entry.
 // Takes ast (*ast_domain.TemplateAST) which is the parsed template to cache.
 //
-// Returns error when the L2 cache write fails. On L2 failure, the L1 entry is
-// removed to keep both cache levels in sync.
+// Returns error when the L2 cache write fails. On L2 failure, the L1 entry is removed to
+// keep both cache levels in sync.
 func (c *multiLevelCache) Set(ctx context.Context, key string, ast *ast_domain.TemplateAST) error {
 	return log.RunInSpan(ctx, "multilevel_cache.set", func(spanCtx context.Context, _ logger_domain.Logger) error {
 		c.l1Cache.Set(key, ast)
@@ -111,15 +112,15 @@ func (c *multiLevelCache) Set(ctx context.Context, key string, ast *ast_domain.T
 	}, logger_domain.String("cache.key", key))
 }
 
-// SetWithTTL stores an AST in both cache levels with a custom TTL using a
-// write-through strategy.
+// SetWithTTL stores an AST in both cache levels with a custom TTL using a write-through
+// strategy.
 //
 // Takes key (string) which identifies the cache entry.
 // Takes ast (*ast_domain.TemplateAST) which is the parsed template to cache.
 // Takes ttl (time.Duration) which sets how long the entry stays valid.
 //
-// Returns error when the L2 cache write fails. On L2 failure, the L1 entry is
-// removed to keep the caches in sync.
+// Returns error when the L2 cache write fails. On L2 failure, the L1 entry is removed to
+// keep the caches in sync.
 func (c *multiLevelCache) SetWithTTL(ctx context.Context, key string, ast *ast_domain.TemplateAST, ttl time.Duration) error {
 	return log.RunInSpan(ctx, "multilevel_cache.set_with_ttl", func(spanCtx context.Context, _ logger_domain.Logger) error {
 		c.l1Cache.Set(key, ast)
@@ -133,8 +134,7 @@ func (c *multiLevelCache) SetWithTTL(ctx context.Context, key string, ast *ast_d
 	}, logger_domain.String("cache.key", key), logger_domain.Duration("cache.ttl", ttl))
 }
 
-// Delete removes an entry from both cache levels, using write-through
-// invalidation.
+// Delete removes an entry from both cache levels, using write-through invalidation.
 //
 // Takes key (string) which identifies the cache entry to remove.
 //
@@ -148,8 +148,8 @@ func (c *multiLevelCache) Delete(ctx context.Context, key string) error {
 	}, logger_domain.String("cache.key", key))
 }
 
-// Shutdown stops the L1 cache's background tasks and the L2 cache if it
-// supports graceful shutdown.
+// Shutdown stops the L1 cache's background tasks and the L2 cache if it supports graceful
+// shutdown.
 func (c *multiLevelCache) Shutdown(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	c.l1Cache.StopAllGoroutines()
@@ -164,17 +164,15 @@ func (c *multiLevelCache) Shutdown(ctx context.Context) {
 
 // newMultiLevelCache creates a new two-level cache for AST storage.
 //
-// The l1Cache must be a set-up Otter v2 cache. The l2Cache is a component that
-// fulfils the ASTCache interface.
+// The l1Cache must be a set-up Otter v2 cache. The l2Cache is a component that fulfils
+// the ASTCache interface.
 //
-// Takes l1Cache (*otter.Cache) which provides fast in-memory first-level
-// caching.
-// Takes l2Cache (ASTCache) which provides second-level storage that lasts
-// longer.
-// Takes l1DefaultTTL (time.Duration) which sets the default time before L1
-// cache entries expire.
-// Takes clk (clock.Clock) which provides the time source for TTL
-// calculations. If nil, the real system clock is used.
+// Takes l1Cache (*otter.Cache) which provides fast in-memory first-level caching.
+// Takes l2Cache (ASTCache) which provides second-level storage that lasts longer.
+// Takes l1DefaultTTL (time.Duration) which sets the default time before L1 cache entries
+// expire.
+// Takes clk (clock.Clock) which provides the time source for TTL calculations. If nil,
+// the real system clock is used.
 //
 // Returns *multiLevelCache which is ready for use with a logger included.
 func newMultiLevelCache(

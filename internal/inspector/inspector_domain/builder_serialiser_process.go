@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file contains the core logic for encoding Go type information
-// from the `go/types` representation into a portable DTO format.
+// This file contains the core logic for encoding Go type information from the `go/types`
+// representation into a portable DTO format.
 
 import (
 	"cmp"
@@ -35,43 +35,42 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// cleaningContextPool reuses cleaningContext instances to reduce allocation
-// pressure during type encoding.
-var cleaningContextPool = sync.Pool{
-	New: func() any {
-		return &cleaningContext{}
-	},
-}
+var (
+	// cleaningContextPool reuses cleaningContext instances to reduce allocation pressure
+	// during type encoding.
+	cleaningContextPool = sync.Pool{
+		New: func() any {
+			return &cleaningContext{}
+		},
+	}
+)
 
 // encoder holds the state for encoding a single package.
 type encoder struct {
-	// allPackages maps package paths to parsed packages for cross-reference
-	// lookups.
+	// allPackages maps package paths to parsed packages for cross-reference lookups.
 	allPackages map[string]*packages.Package
 
-	// arena provides slab-allocated DTO structs to avoid per-object heap
-	// allocations. The arena is NOT pooled -- it is allocated fresh per build
-	// and its backing memory lives as long as the DTOs reference it.
+	// arena provides slab-allocated DTO structs to avoid per-object heap allocations. The
+	// arena is NOT pooled -- it is allocated fresh per build and its backing memory lives as
+	// long as the DTOs reference it.
 	arena *encoderArena
 
-	// methodSetCache avoids redundant types.NewMethodSet calls for the same
-	// type. Method set computation walks the full type hierarchy, so caching
-	// saves significant work when the same type is encountered multiple times.
+	// methodSetCache avoids redundant types.NewMethodSet calls for the same type. Method set
+	// computation walks the full type hierarchy, so caching saves significant work when the
+	// same type is encountered multiple times.
 	methodSetCache map[types.Type]*types.MethodSet
 
-	// primitiveGuard is a reusable recursion guard map for
-	// goastutil.IsPrimitiveRecursive calls. Cleared between uses to avoid
-	// allocating a new map per call.
+	// primitiveGuard is a reusable recursion guard map for goastutil.IsPrimitiveRecursive
+	// calls. Cleared between uses to avoid allocating a new map per call.
 	primitiveGuard map[types.Type]bool
 }
 
-// cachedMethodSet returns the method set for typ, computing and
-// caching it on first access.
+// cachedMethodSet returns the method set for typ, computing and caching it on first
+// access.
 //
 // Takes typ (types.Type) which is the type to get the method set for.
 //
-// Returns *types.MethodSet which is the cached or newly computed
-// method set.
+// Returns *types.MethodSet which is the cached or newly computed method set.
 func (s *encoder) cachedMethodSet(typ types.Type) *types.MethodSet {
 	if ms, ok := s.methodSetCache[typ]; ok {
 		return ms
@@ -81,13 +80,13 @@ func (s *encoder) cachedMethodSet(typ types.Type) *types.MethodSet {
 	return ms
 }
 
-// processSinglePackage encodes a single Go package into the inspector DTO
-// format. It builds context maps and processes all exported package objects.
+// processSinglePackage encodes a single Go package into the inspector DTO format. It
+// builds context maps and processes all exported package objects.
 //
 // Takes pkg (*packages.Package) which is the parsed Go package to encode.
 //
-// Returns *inspector_dto.Package which contains the encoded package data,
-// or nil if the package has no type information.
+// Returns *inspector_dto.Package which contains the encoded package data, or nil if the
+// package has no type information.
 func (s *encoder) processSinglePackage(pkg *packages.Package) *inspector_dto.Package {
 	if pkg.Types == nil || pkg.Types.Scope() == nil {
 		return nil
@@ -135,13 +134,13 @@ func (s *encoder) processSinglePackage(pkg *packages.Package) *inspector_dto.Pac
 	return cachedPackage
 }
 
-// buildFileImportsMap creates a map of file paths to their import aliases
-// and paths for the entire package.
+// buildFileImportsMap creates a map of file paths to their import aliases and paths for
+// the entire package.
 //
 // Takes pkg (*packages.Package) which provides the parsed package data.
 //
-// Returns map[string]map[string]string which maps each file path to a map of
-// import alias to import path.
+// Returns map[string]map[string]string which maps each file path to a map of import alias
+// to import path.
 func (*encoder) buildFileImportsMap(pkg *packages.Package) map[string]map[string]string {
 	fileImports := make(map[string]map[string]string)
 	if pkg.Fset == nil || len(pkg.Syntax) == 0 {
@@ -174,8 +173,8 @@ func (*encoder) buildFileImportsMap(pkg *packages.Package) map[string]map[string
 	return fileImports
 }
 
-// buildObjectToFileMap creates a map from each type object to its source file
-// path. It walks through each file in the package to build this mapping.
+// buildObjectToFileMap creates a map from each type object to its source file path. It
+// walks through each file in the package to build this mapping.
 //
 // Takes pkg (*packages.Package) which provides the package to process.
 //
@@ -191,14 +190,12 @@ func (s *encoder) buildObjectToFileMap(pkg *packages.Package) map[types.Object]s
 	return objToFile
 }
 
-// mapObjectsInFile processes a single AST file and maps all top-level
-// declarations to their file path. It calls the correct handler for each
-// declaration type.
+// mapObjectsInFile processes a single AST file and maps all top-level declarations to
+// their file path. It calls the correct handler for each declaration type.
 //
 // Takes pkg (*packages.Package) which provides type information and file set.
 // Takes astFile (*goast.File) which is the parsed AST to process.
-// Takes objToFile (map[types.Object]string) which stores the object-to-path
-// mappings.
+// Takes objToFile (map[types.Object]string) which stores the object-to-path mappings.
 func (s *encoder) mapObjectsInFile(pkg *packages.Package, astFile *goast.File, objToFile map[types.Object]string) {
 	tokenFile := pkg.Fset.File(astFile.Pos())
 	if tokenFile == nil {
@@ -221,8 +218,7 @@ func (s *encoder) mapObjectsInFile(pkg *packages.Package, astFile *goast.File, o
 // Takes info (*types.Info) which provides type data for the package.
 // Takes genDecl (*goast.GenDecl) which is the general declaration to process.
 // Takes filePath (string) which is the path to the file with the declaration.
-// Takes objToFile (map[types.Object]string) which maps objects to their file
-// paths.
+// Takes objToFile (map[types.Object]string) which maps objects to their file paths.
 func (s *encoder) mapGenDecl(info *types.Info, genDecl *goast.GenDecl, filePath string, objToFile map[types.Object]string) {
 	for _, spec := range genDecl.Specs {
 		switch sp := spec.(type) {
@@ -240,22 +236,20 @@ func (s *encoder) mapGenDecl(info *types.Info, genDecl *goast.GenDecl, filePath 
 //
 // Takes info (*types.Info) which provides type information for the AST.
 // Takes funcDecl (*goast.FuncDecl) which is the function declaration to map.
-// Takes filePath (string) which is the path of the file containing the
-// declaration.
-// Takes objToFile (map[types.Object]string) which maps type objects to their
-// file paths.
+// Takes filePath (string) which is the path of the file containing the declaration.
+// Takes objToFile (map[types.Object]string) which maps type objects to their file paths.
 func (s *encoder) mapFuncDecl(info *types.Info, funcDecl *goast.FuncDecl, filePath string, objToFile map[types.Object]string) {
 	s.addObjectMapping(info, funcDecl.Name, filePath, objToFile)
 }
 
-// addObjectMapping looks up an identifier in the type information and adds it
-// to the map if it is a valid definition.
+// addObjectMapping looks up an identifier in the type information and adds it to the map
+// if it is a valid definition.
 //
 // Takes info (*types.Info) which provides type information for the package.
 // Takes identifier (*goast.Ident) which is the identifier to look up.
 // Takes filePath (string) which is the file path to link to the object.
-// Takes objToFile (map[types.Object]string) which stores mappings from objects
-// to file paths.
+// Takes objToFile (map[types.Object]string) which stores mappings from objects to file
+// paths.
 func (*encoder) addObjectMapping(info *types.Info, identifier *goast.Ident, filePath string, objToFile map[types.Object]string) {
 	if identifier == nil || info == nil {
 		return
@@ -265,9 +259,9 @@ func (*encoder) addObjectMapping(info *types.Info, identifier *goast.Ident, file
 	}
 }
 
-// fileScopeQualifier encapsulates the logic for qualifying package names from
-// the perspective of a single source file. It implements the types.Qualifier
-// interface via its Qualify method.
+// fileScopeQualifier encapsulates the logic for qualifying package names from the
+// perspective of a single source file. It implements the types.Qualifier interface via
+// its Qualify method.
 type fileScopeQualifier struct {
 	// currentPackage is the package being documented.
 	currentPackage *types.Package
@@ -276,13 +270,13 @@ type fileScopeQualifier struct {
 	pathToAlias map[string]string
 }
 
-// Qualify provides the package name or alias for a given package. It is used
-// as a callback by the go/types library to correctly format type names.
+// Qualify provides the package name or alias for a given package. It is used as a
+// callback by the go/types library to correctly format type names.
 //
 // Takes imported (*types.Package) which is the package to qualify.
 //
-// Returns string which is the package name, import alias, or empty string for
-// nil packages.
+// Returns string which is the package name, import alias, or empty string for nil
+// packages.
 func (q *fileScopeQualifier) Qualify(imported *types.Package) string {
 	if imported == nil {
 		return ""
@@ -298,8 +292,7 @@ func (q *fileScopeQualifier) Qualify(imported *types.Package) string {
 	return imported.Name()
 }
 
-// processScopeObject sends a scope object to the correct handler based on its
-// type.
+// processScopeObject sends a scope object to the correct handler based on its type.
 //
 // Takes typeObject (types.Object) which is the scope object to process.
 // Takes cachedPackage (*inspector_dto.Package) which stores the processed results.
@@ -325,8 +318,8 @@ func (s *encoder) processScopeObject(
 	}
 }
 
-// processTypeName handles a type name by choosing how to encode it based on
-// whether it is an alias or a named type.
+// processTypeName handles a type name by choosing how to encode it based on whether it is
+// an alias or a named type.
 //
 // Takes typeName (*types.TypeName) which is the type name to process.
 // Takes cachedPackage (*inspector_dto.Package) which provides stored package data.
@@ -352,8 +345,7 @@ func (s *encoder) processTypeName(
 // Takes typeName (*types.TypeName) which is the alias type to encode.
 // Takes cachedPackage (*inspector_dto.Package) which receives the encoded type.
 // Takes qualifier (types.Qualifier) which formats type references.
-// Takes currentTypesPackage (*types.Package) which provides the current package
-// context.
+// Takes currentTypesPackage (*types.Package) which provides the current package context.
 func (s *encoder) processAliasType(
 	typeName *types.TypeName,
 	cachedPackage *inspector_dto.Package,
@@ -487,8 +479,7 @@ func (s *encoder) processFunc(typeFunction *types.Func, cachedPackage *inspector
 // processPackageVariable converts a package-level variable into DTO format.
 //
 // Takes v (*types.Var) which is the variable to convert.
-// Takes cachedPackage (*inspector_dto.Package) which stores
-// the converted variable.
+// Takes cachedPackage (*inspector_dto.Package) which stores the converted variable.
 // Takes qualifier (types.Qualifier) which formats type references.
 func (s *encoder) processPackageVariable(v *types.Var, cachedPackage *inspector_dto.Package, qualifier types.Qualifier) {
 	if v.IsField() {
@@ -513,12 +504,11 @@ func (s *encoder) processPackageVariable(v *types.Var, cachedPackage *inspector_
 	cachedPackage.Variables[v.Name()] = va
 }
 
-// processPackageConst encodes a package-level constant into the DTO format.
-// Constants are stored in the Variables map with IsConst set to true.
+// processPackageConst encodes a package-level constant into the DTO format. Constants are
+// stored in the Variables map with IsConst set to true.
 //
 // Takes c (*types.Const) which is the constant to encode.
-// Takes cachedPackage (*inspector_dto.Package) which receives
-// the encoded constant.
+// Takes cachedPackage (*inspector_dto.Package) which receives the encoded constant.
 // Takes qualifier (types.Qualifier) which formats type references.
 func (s *encoder) processPackageConst(c *types.Const, cachedPackage *inspector_dto.Package, qualifier types.Qualifier) {
 	defFilePath, defLine, defCol := s.extractPositionInfo(c)
@@ -543,8 +533,8 @@ func (s *encoder) processPackageConst(c *types.Const, cachedPackage *inspector_d
 //
 // Takes typeObject (types.Object) which is the object to find.
 //
-// Returns string which is the file path, or empty if the object is nil,
-// has no position, or cannot be found in any loaded package.
+// Returns string which is the file path, or empty if the object is nil, has no position,
+// or cannot be found in any loaded package.
 func (s *encoder) findFileForObj(typeObject types.Object) string {
 	if typeObject == nil || typeObject.Pos() == token.NoPos {
 		return ""
@@ -559,8 +549,8 @@ func (s *encoder) findFileForObj(typeObject types.Object) string {
 	return ""
 }
 
-// extractPositionInfo gets the file position for a types.Object symbol.
-// The LSP uses this to provide "Go to Definition" functionality.
+// extractPositionInfo gets the file position for a types.Object symbol. The LSP uses this
+// to provide "Go to Definition" functionality.
 //
 // Takes typeObject (types.Object) which is the symbol to find.
 //
@@ -582,15 +572,14 @@ func (s *encoder) extractPositionInfo(typeObject types.Object) (filePath string,
 	return "", 0, 0
 }
 
-// getCleaningContext gets a cleaningContext from the pool and sets it up with
-// the given settings.
+// getCleaningContext gets a cleaningContext from the pool and sets it up with the given
+// settings.
 //
-// Takes aliasToPath (map[string]string) which maps import aliases to their full
-// package paths.
-// Takes allPackages (map[string]*packages.Package) which provides access to all
-// loaded packages by path.
-// Takes currentPackage (*types.Package) which specifies the package being
-// processed.
+// Takes aliasToPath (map[string]string) which maps import aliases to their full package
+// paths.
+// Takes allPackages (map[string]*packages.Package) which provides access to all loaded
+// packages by path.
+// Takes currentPackage (*types.Package) which specifies the package being processed.
 //
 // Returns *cleaningContext which is ready for use with the given settings.
 func getCleaningContext(aliasToPath map[string]string, allPackages map[string]*packages.Package, currentPackage *types.Package) *cleaningContext {
@@ -614,16 +603,15 @@ func putCleaningContext(ctx *cleaningContext) {
 	cleaningContextPool.Put(ctx)
 }
 
-// newFileScopeQualifier creates a qualifier that contains the import alias
-// context for a specific file.
+// newFileScopeQualifier creates a qualifier that contains the import alias context for a
+// specific file.
 //
 // Takes pkg (*packages.Package) which provides the package type information.
 // Takes filePath (string) which identifies the file to get imports for.
-// Takes allFileImports (map[string]map[string]string) which maps file paths
-// to their import aliases.
-//
-// Returns *fileScopeQualifier which resolves type names using the file's
+// Takes allFileImports (map[string]map[string]string) which maps file paths to their
 // import aliases.
+//
+// Returns *fileScopeQualifier which resolves type names using the file's import aliases.
 func newFileScopeQualifier(pkg *packages.Package, filePath string, allFileImports map[string]map[string]string) *fileScopeQualifier {
 	pathToAlias := make(map[string]string)
 	if fileImports, ok := allFileImports[filePath]; ok {
@@ -647,8 +635,7 @@ func newFileScopeQualifier(pkg *packages.Package, filePath string, allFileImport
 	}
 }
 
-// determineStringability checks a named type for common string-conversion
-// interfaces.
+// determineStringability checks a named type for common string-conversion interfaces.
 //
 // The priority order is:
 //  1. PikoFormatter - specialised high-performance formatters for Piko types
@@ -658,8 +645,8 @@ func newFileScopeQualifier(pkg *packages.Package, filePath string, allFileImport
 //
 // Takes named (*types.Named) which is the type to check for stringability.
 //
-// Returns inspector_dto.StringabilityMethod which indicates the best
-// available string conversion method, or StringableNone if none is found.
+// Returns inspector_dto.StringabilityMethod which indicates the best available string
+// conversion method, or StringableNone if none is found.
 func determineStringability(named *types.Named) inspector_dto.StringabilityMethod {
 	canonicalPath := ""
 	if pkg := named.Obj().Pkg(); pkg != nil {

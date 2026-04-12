@@ -25,27 +25,26 @@ import (
 
 // WithRenderer attaches a RenderService to enable full HTML rendering.
 //
-// Takes renderer (render_domain.RenderService) which provides the HTML
-// rendering capability.
+// Takes renderer (render_domain.RenderService) which provides the HTML rendering
+// capability.
 //
-// Returns pikotest_dto.ComponentOption which configures the component to use
-// the given renderer.
+// Returns pikotest_dto.ComponentOption which configures the component to use the given
+// renderer.
 //
-// Without this option, HTML() calls on TestView will fail. Most tests should
-// use AST queries instead, which do not require a renderer.
+// Without this option, HTML() calls on TestView will fail. Most tests should use AST
+// queries instead, which do not require a renderer.
 func WithRenderer(renderer render_domain.RenderService) pikotest_dto.ComponentOption {
 	return func(config *pikotest_dto.ComponentConfig) {
 		config.Renderer = renderer
 	}
 }
 
-// WithPageID sets the page identifier for this component test. This is used
-// mainly for error messages and debugging.
+// WithPageID sets the page identifier for this component test. This is used mainly for
+// error messages and debugging.
 //
 // Takes pageID (string) which specifies the identifier for the page.
 //
-// Returns pikotest_dto.ComponentOption which configures the tester with the
-// page ID.
+// Returns pikotest_dto.ComponentOption which configures the tester with the page ID.
 func WithPageID(pageID string) pikotest_dto.ComponentOption {
 	return func(config *pikotest_dto.ComponentConfig) {
 		config.PageID = pageID

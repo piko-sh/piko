@@ -24,8 +24,8 @@ import (
 
 // SvgComponentNode creates a template node for an SVG component.
 //
-// Returns *ast_domain.TemplateNode which represents a piko:svg element with
-// source and class attributes configured for testing.
+// Returns *ast_domain.TemplateNode which represents a piko:svg element with source and
+// class attributes configured for testing.
 func SvgComponentNode() *ast_domain.TemplateNode {
 	return &ast_domain.TemplateNode{
 		NodeType: ast_domain.NodeElement,
@@ -39,8 +39,8 @@ func SvgComponentNode() *ast_domain.TemplateNode {
 
 // ComplexPageAST returns a test fixture representing a complex page template.
 //
-// Returns *ast_domain.TemplateAST which contains a page structure with nested
-// components, a form with CSRF annotation, and text requiring HTML escaping.
+// Returns *ast_domain.TemplateAST which contains a page structure with nested components,
+// a form with CSRF annotation, and text requiring HTML escaping.
 func ComplexPageAST() *ast_domain.TemplateAST {
 	return &ast_domain.TemplateAST{
 		RootNodes: []*ast_domain.TemplateNode{

@@ -25,16 +25,15 @@ import (
 )
 
 const (
-	// defaultCloseTimeoutSeconds is the default timeout in seconds for closing the
-	// router.
+	// defaultCloseTimeoutSeconds is the default timeout in seconds for closing the router.
 	defaultCloseTimeoutSeconds = 30
 )
 
 // Provider represents a backend-agnostic message bus provider.
 //
-// Each provider implementation (GoChannel, NATS, PostgreSQL, SQLite) implements
-// Provider to supply the Watermill infrastructure components. Provider implements
-// the events.Provider and io.Closer interfaces.
+// Each provider implementation (GoChannel, NATS, PostgreSQL, SQLite) implements Provider
+// to supply the Watermill infrastructure components. Provider implements the
+// events.Provider and io.Closer interfaces.
 //
 // Provider lifecycle:
 //  1. Create provider with NewXxxProvider(config)
@@ -44,8 +43,8 @@ const (
 type Provider interface {
 	// Start initialises the provider and starts the Watermill router.
 	//
-	// This must be called before using Router, Publisher, or Subscriber. The
-	// provided context controls the router's lifecycle.
+	// This must be called before using Router, Publisher, or Subscriber. The provided
+	// context controls the router's lifecycle.
 	//
 	// Returns error when initialisation or startup fails.
 	Start(ctx context.Context) error
@@ -66,15 +65,15 @@ type Provider interface {
 	// Reports whether the router has been started and is still active.
 	Running() bool
 
-	// Close shuts down the provider and all its parts in a safe way.
-	// It closes the router, publisher, and subscriber in order.
+	// Close shuts down the provider and all its parts in a safe way. It closes the router,
+	// publisher, and subscriber in order.
 	//
 	// Returns error when the shutdown fails.
 	Close() error
 }
 
-// ProviderConfig holds the base settings shared by all providers.
-// Each provider extends this with its own settings.
+// ProviderConfig holds the base settings shared by all providers. Each provider extends
+// this with its own settings.
 type ProviderConfig struct {
 	// RouterConfig holds settings for the Watermill message router.
 	RouterConfig RouterConfig
@@ -82,8 +81,8 @@ type ProviderConfig struct {
 
 // RouterConfig holds settings for the Watermill Router.
 type RouterConfig struct {
-	// CloseTimeout is the time in seconds to wait for handlers to finish when
-	// closing the router. Default is 30.
+	// CloseTimeout is the time in seconds to wait for handlers to finish when closing the
+	// router. Default is 30.
 	CloseTimeout int64
 }
 

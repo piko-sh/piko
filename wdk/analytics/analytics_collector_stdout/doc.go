@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_collector_stdout provides an analytics collector
-// that prints events to the structured logger.
+// Package analytics_collector_stdout provides an analytics collector that prints events
+// to the structured logger.
 //
-// This collector is intended for development and debugging. Events
-// are logged at INFO level with all fields visible, making it easy
-// to verify that analytics events fire correctly without requiring
-// an external service.
+// This collector is intended for development and debugging. Events are logged at INFO
+// level with all fields visible, making it easy to verify that analytics events fire
+// correctly without requiring an external service.
 //
 // # Usage
 //

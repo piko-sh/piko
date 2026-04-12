@@ -18,28 +18,29 @@
 
 package layouter_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 // DiagnosticSeverity indicates the severity of a layout diagnostic.
 type DiagnosticSeverity int
 
 const (
-	// SeverityWarning indicates a non-fatal issue that may produce
-	// unexpected visual results.
+	// SeverityWarning indicates a non-fatal issue that may produce unexpected visual
+	// results.
 	SeverityWarning DiagnosticSeverity = iota
 
-	// SeverityError indicates a fatal issue that prevented layout from
-	// completing.
+	// SeverityError indicates a fatal issue that prevented layout from completing.
 	SeverityError
 )
 
 var (
-	// ErrCSSResolutionFailed indicates that CSS property
-	// resolution failed during the layout pipeline.
+	// ErrCSSResolutionFailed indicates that CSS property resolution failed during the layout
+	// pipeline.
 	ErrCSSResolutionFailed = errors.New("CSS property resolution failed")
 
-	// ErrUnhandledBoxType indicates that a box type was
-	// encountered that has no corresponding formatting context.
+	// ErrUnhandledBoxType indicates that a box type was encountered that has no
+	// corresponding formatting context.
 	ErrUnhandledBoxType = errors.New("unhandled box type in formatting context")
 )
 

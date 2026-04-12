@@ -29,18 +29,17 @@ import (
 )
 
 const (
-	// errMessageFailedToRemoveTempFile is the warning message logged when a temporary
-	// file cannot be deleted during cleanup.
+	// errMessageFailedToRemoveTempFile is the warning message logged when a temporary file
+	// cannot be deleted during cleanup.
 	errMessageFailedToRemoveTempFile = "Failed to remove temporary file during cleanup"
 )
 
-// AtomicWriteFile writes data to a file atomically by first writing to a
-// temporary file in the same directory and then renaming it to the final
-// destination. This prevents partial writes and file corruption if the
-// process is interrupted.
+// AtomicWriteFile writes data to a file atomically by first writing to a temporary file
+// in the same directory and then renaming it to the final destination. This prevents
+// partial writes and file corruption if the process is interrupted.
 //
-// The filename should be relative to the sandbox root. All operations are
-// performed within the sandbox boundary.
+// The filename should be relative to the sandbox root. All operations are performed
+// within the sandbox boundary.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes sandbox (safedisk.Sandbox) which provides the sandboxed filesystem.
@@ -48,8 +47,8 @@ const (
 // Takes data ([]byte) which contains the content to write.
 // Takes perm (fs.FileMode) which sets the file permissions.
 //
-// Returns error when the directory cannot be created, the temporary file
-// cannot be written, or the atomic rename fails.
+// Returns error when the directory cannot be created, the temporary file cannot be
+// written, or the atomic rename fails.
 func AtomicWriteFile(ctx context.Context, sandbox safedisk.Sandbox, filename string, data []byte, perm fs.FileMode) error {
 	directory := filepath.Dir(filename)
 	if err := sandbox.MkdirAll(directory, DirectoryPermission); err != nil {
@@ -90,8 +89,8 @@ func AtomicWriteFile(ctx context.Context, sandbox safedisk.Sandbox, filename str
 	return nil
 }
 
-// cleanupTempFile closes and removes a temporary file, logging any errors.
-// This is a best-effort cleanup function used during error handling.
+// cleanupTempFile closes and removes a temporary file, logging any errors. This is a
+// best-effort cleanup function used during error handling.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes sandbox (safedisk.Sandbox) which provides file system operations.

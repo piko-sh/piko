@@ -29,7 +29,9 @@ import (
 	"piko.sh/piko/internal/testutil/leakcheck"
 )
 
-var globalEnv *testEnv
+var (
+	globalEnv *testEnv
+)
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()

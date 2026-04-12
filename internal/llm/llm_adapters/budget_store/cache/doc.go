@@ -16,14 +16,13 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package cache implements [llm_domain.BudgetStorePort] using the
-// internal/cache system. It stores LLM cost and usage data per
-// scope, with pluggable backends (Otter, Redis, Valkey) allowing
-// budget tracking to be shared across instances.
+// Package cache implements [llm_domain.BudgetStorePort] using the internal/cache system.
+// It stores LLM cost and usage data per scope, with pluggable backends (Otter, Redis,
+// Valkey) allowing budget tracking to be shared across instances.
 //
-// All mutating operations use the cache's Compute method for atomic
-// read-modify-write semantics. Time window resets (hourly, daily)
-// happen transparently inside these operations.
+// All mutating operations use the cache's Compute method for atomic read-modify-write
+// semantics. Time window resets (hourly, daily) happen transparently inside these
+// operations.
 //
 // # Usage
 //
@@ -35,6 +34,6 @@
 //
 // # Thread safety
 //
-// All exported methods on Store are safe for concurrent use. The
-// underlying cache provider handles synchronisation.
+// All exported methods on Store are safe for concurrent use. The underlying cache
+// provider handles synchronisation.
 package cache

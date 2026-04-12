@@ -38,8 +38,8 @@ const (
 	// systemSampleInterval is the time between CPU usage samples.
 	systemSampleInterval = time.Second
 
-	// clockTicksPerSecond is the number of clock ticks per second.
-	// On Linux this is usually 100.
+	// clockTicksPerSecond is the number of clock ticks per second. On Linux this is usually
+	// 100.
 	clockTicksPerSecond = 100
 
 	// millicoresPerCore is the number of millicores in one CPU core.
@@ -51,8 +51,7 @@ const (
 	// recentPausesCount is the number of recent GC pauses to include in the response.
 	recentPausesCount = 10
 
-	// systemStatFileParts is the expected number of parts when parsing
-	// /proc/self/stat.
+	// systemStatFileParts is the expected number of parts when parsing /proc/self/stat.
 	systemStatFileParts = 13
 
 	// defaultGOGC is the default garbage collection target percentage.
@@ -61,19 +60,19 @@ const (
 	// pageSize is the memory page size in bytes (4 KB on Linux).
 	pageSize = 4096
 
-	// limitsLineFieldCount is the minimum number of whitespace-delimited fields
-	// expected in a /proc/self/limits line to extract soft and hard limits.
+	// limitsLineFieldCount is the minimum number of whitespace-delimited fields expected in
+	// a /proc/self/limits line to extract soft and hard limits.
 	limitsLineFieldCount = 5
 )
 
-// SystemCollector gathers runtime statistics for the system.
-// It implements SystemStatsProvider.
+// SystemCollector gathers runtime statistics for the system. It implements
+// SystemStatsProvider.
 type SystemCollector struct {
 	// startTime records when the collector was created, used to calculate uptime.
 	startTime time.Time
 
-	// lastCPUSampleAt is the timestamp of the previous CPU sample; used to
-	// calculate elapsed time for CPU usage.
+	// lastCPUSampleAt is the timestamp of the previous CPU sample; used to calculate elapsed
+	// time for CPU usage.
 	lastCPUSampleAt time.Time
 
 	// clock provides time operations; defaults to real clock if not set.
@@ -82,20 +81,20 @@ type SystemCollector struct {
 	// stopCh signals the collector to stop processing when closed.
 	stopCh chan struct{}
 
-	// runtimeMetrics samples the runtime/metrics view for histogram-derived
-	// signals (GC pause percentiles, scheduler latency, mutex contention)
-	// that runtime.MemStats does not expose.
+	// runtimeMetrics samples the runtime/metrics view for histogram-derived signals (GC
+	// pause percentiles, scheduler latency, mutex contention) that runtime.MemStats does not
+	// expose.
 	runtimeMetrics *runtimeMetricsCollector
 
 	// listenAddr is the monitoring gRPC server listen address.
 	listenAddr string
 
-	// lastSnapshot is the most recent runtime/metrics snapshot, refreshed
-	// once per tick alongside memStats.
+	// lastSnapshot is the most recent runtime/metrics snapshot, refreshed once per tick
+	// alongside memStats.
 	lastSnapshot runtimeMetricsSnapshot
 
-	// memStats stores the runtime memory statistics used to populate the
-	// legacy MemoryInfo and GCInfo fields. Updated each tick.
+	// memStats stores the runtime memory statistics used to populate the legacy MemoryInfo
+	// and GCInfo fields. Updated each tick.
 	memStats runtime.MemStats
 
 	// lastCPUTime is the CPU time in ticks from the previous sample.
@@ -116,8 +115,8 @@ type SystemCollectorOption func(*SystemCollector)
 
 // NewSystemCollector creates a new system statistics collector.
 //
-// Takes opts (...SystemCollectorOption) which provides optional configuration
-// functions to customise the collector behaviour.
+// Takes opts (...SystemCollectorOption) which provides optional configuration functions
+// to customise the collector behaviour.
 //
 // Returns *SystemCollector which is ready to collect system metrics.
 func NewSystemCollector(opts ...SystemCollectorOption) *SystemCollector {
@@ -157,8 +156,8 @@ func (c *SystemCollector) Start(ctx context.Context) {
 
 // Stop stops the collector.
 //
-// Safe for concurrent use. Calling Stop multiple times is safe; only the first
-// call closes the stop channel.
+// Safe for concurrent use. Calling Stop multiple times is safe; only the first call
+// closes the stop channel.
 func (c *SystemCollector) Stop() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -169,8 +168,8 @@ func (c *SystemCollector) Stop() {
 	}
 }
 
-// GetStats returns the current system statistics in domain format.
-// Implements SystemStatsProvider.
+// GetStats returns the current system statistics in domain format. Implements
+// SystemStatsProvider.
 //
 // Returns SystemStats which contains memory, CPU, GC, and process metrics.
 //
@@ -203,8 +202,8 @@ func (c *SystemCollector) GetStats() SystemStats {
 	}
 }
 
-// buildMemoryInfo converts the current runtime.MemStats and runtime/metrics
-// snapshot into the public MemoryInfo struct.
+// buildMemoryInfo converts the current runtime.MemStats and runtime/metrics snapshot into
+// the public MemoryInfo struct.
 //
 // Returns MemoryInfo which contains heap, stack, allocator statistics, and
 // runtime/metrics-derived heap class partitions.
@@ -242,11 +241,11 @@ func (c *SystemCollector) buildMemoryInfo() MemoryInfo {
 	}
 }
 
-// buildGCInfo combines legacy MemStats GC data with runtime/metrics
-// histogram-derived percentiles for the public GCInfo struct.
+// buildGCInfo combines legacy MemStats GC data with runtime/metrics histogram-derived
+// percentiles for the public GCInfo struct.
 //
-// Returns GCInfo which contains pause times, recent pauses ring, and pause
-// histogram percentiles.
+// Returns GCInfo which contains pause times, recent pauses ring, and pause histogram
+// percentiles.
 func (c *SystemCollector) buildGCInfo() GCInfo {
 	internal := c.buildGCStats()
 	return GCInfo{
@@ -264,11 +263,11 @@ func (c *SystemCollector) buildGCInfo() GCInfo {
 	}
 }
 
-// buildSchedulerInfo populates the SchedulerInfo struct from the latest
-// runtime/metrics snapshot.
+// buildSchedulerInfo populates the SchedulerInfo struct from the latest runtime/metrics
+// snapshot.
 //
-// Returns SchedulerInfo which contains scheduler latency percentiles,
-// goroutine count, and GOMAXPROCS as observed by runtime/metrics.
+// Returns SchedulerInfo which contains scheduler latency percentiles, goroutine count,
+// and GOMAXPROCS as observed by runtime/metrics.
 func (c *SystemCollector) buildSchedulerInfo() SchedulerInfo {
 	return SchedulerInfo{
 		LatencyP50:     c.lastSnapshot.SchedulerLatencyP50,
@@ -278,10 +277,9 @@ func (c *SystemCollector) buildSchedulerInfo() SchedulerInfo {
 	}
 }
 
-// buildSyncInfo populates the SyncInfo struct from the latest runtime/metrics
-// snapshot. The MutexWaitTotalSeconds counter is only populated when mutex
-// profiling is enabled via runtime.SetMutexProfileFraction; otherwise it
-// stays at zero.
+// buildSyncInfo populates the SyncInfo struct from the latest runtime/metrics snapshot.
+// The MutexWaitTotalSeconds counter is only populated when mutex profiling is enabled via
+// runtime.SetMutexProfileFraction; otherwise it stays at zero.
 //
 // Returns SyncInfo which contains the cumulative mutex wait time.
 func (c *SystemCollector) buildSyncInfo() SyncInfo {
@@ -290,10 +288,9 @@ func (c *SystemCollector) buildSyncInfo() SyncInfo {
 	}
 }
 
-// lastRuntimeMetricsSnapshot returns the most recent runtime/metrics
-// snapshot for in-package callers that need direct access to
-// histogram-derived signals (such as the watchdog sidecar metadata
-// writer).
+// lastRuntimeMetricsSnapshot returns the most recent runtime/metrics snapshot for
+// in-package callers that need direct access to histogram-derived signals (such as the
+// watchdog sidecar metadata writer).
 //
 // The returned snapshot is a value copy and safe to retain across goroutines.
 //
@@ -381,8 +378,8 @@ type internalGCStats struct {
 
 // buildGCStats builds GC statistics from the current memStats.
 //
-// Returns internalGCStats which contains the collected garbage collection
-// metrics including recent pause times and CPU fraction.
+// Returns internalGCStats which contains the collected garbage collection metrics
+// including recent pause times and CPU fraction.
 func (c *SystemCollector) buildGCStats() internalGCStats {
 	var lastPauseNs uint64
 	if c.memStats.NumGC > 0 {
@@ -530,7 +527,9 @@ type internalIOStats struct {
 	WriteBytes uint64
 }
 
-var _ SystemStatsProvider = (*SystemCollector)(nil)
+var (
+	_ SystemStatsProvider = (*SystemCollector)(nil)
+)
 
 // WithSystemCollectorClock sets the clock for the SystemCollector.
 //
@@ -554,11 +553,11 @@ func WithListenAddress(addr string) SystemCollectorOption {
 	}
 }
 
-// buildPublicProcessInfo gathers OS-level process details and converts them
-// to the public ProcessInfo struct.
+// buildPublicProcessInfo gathers OS-level process details and converts them to the public
+// ProcessInfo struct.
 //
-// Returns ProcessInfo which contains process ID, file descriptors, memory,
-// and I/O statistics.
+// Returns ProcessInfo which contains process ID, file descriptors, memory, and I/O
+// statistics.
 func buildPublicProcessInfo() ProcessInfo {
 	p := buildProcessInfo()
 	return ProcessInfo{
@@ -585,8 +584,8 @@ func buildPublicProcessInfo() ProcessInfo {
 
 // readProcessCPUTime reads the process CPU time from /proc/self/stat.
 //
-// Returns uint64 which is the total CPU ticks (utime + stime), or 0 if the
-// file cannot be read or parsed.
+// Returns uint64 which is the total CPU ticks (utime + stime), or 0 if the file cannot be
+// read or parsed.
 func readProcessCPUTime() uint64 {
 	file, err := os.Open("/proc/self/stat")
 	if err != nil {
@@ -621,8 +620,8 @@ func readProcessCPUTime() uint64 {
 
 // buildBuildInfo returns build-time information.
 //
-// Returns internalBuildInfo which contains version, commit, build time, and
-// runtime details including VCS metadata from debug.ReadBuildInfo.
+// Returns internalBuildInfo which contains version, commit, build time, and runtime
+// details including VCS metadata from debug.ReadBuildInfo.
 func buildBuildInfo() internalBuildInfo {
 	info := internalBuildInfo{
 		GoVersion: runtime.Version(),
@@ -652,8 +651,8 @@ func buildBuildInfo() internalBuildInfo {
 
 // buildProcessInfo returns OS-level process information.
 //
-// Returns internalProcessInfo which contains the current process ID, thread
-// count, file descriptor count, resident set size, and I/O statistics.
+// Returns internalProcessInfo which contains the current process ID, thread count, file
+// descriptor count, resident set size, and I/O statistics.
 func buildProcessInfo() internalProcessInfo {
 	hostname, _ := os.Hostname()
 	executable, _ := os.Executable()
@@ -683,8 +682,8 @@ func buildProcessInfo() internalProcessInfo {
 
 // buildRuntimeConfig returns runtime configuration values.
 //
-// Returns internalRuntimeConfig which contains the GOGC and GOMEMLIMIT settings
-// from environment variables or their default values.
+// Returns internalRuntimeConfig which contains the GOGC and GOMEMLIMIT settings from
+// environment variables or their default values.
 func buildRuntimeConfig() internalRuntimeConfig {
 	gogc := os.Getenv("GOGC")
 	if gogc == "" {
@@ -709,8 +708,8 @@ func buildRuntimeConfig() internalRuntimeConfig {
 
 // readThreadCount reads the thread count from /proc/self/status.
 //
-// Returns int which is the number of threads, or 0 if the file cannot be read
-// or the thread count line is not found.
+// Returns int which is the number of threads, or 0 if the file cannot be read or the
+// thread count line is not found.
 func readThreadCount() int {
 	file, err := os.Open("/proc/self/status")
 	if err != nil {
@@ -732,8 +731,8 @@ func readThreadCount() int {
 
 // parseThreadCountLine extracts the thread count from a /proc/self/status line.
 //
-// Takes line (string) which is a line from /proc/self/status containing thread
-// count information.
+// Takes line (string) which is a line from /proc/self/status containing thread count
+// information.
 //
 // Returns int which is the parsed thread count, or 0 if parsing fails.
 func parseThreadCountLine(line string) int {
@@ -751,8 +750,8 @@ func parseThreadCountLine(line string) int {
 
 // readFDCount reads the number of open file descriptors.
 //
-// Returns int which is the count of open file descriptors, or 0 if the count
-// cannot be determined.
+// Returns int which is the count of open file descriptors, or 0 if the count cannot be
+// determined.
 func readFDCount() int {
 	entries, err := os.ReadDir("/proc/self/fd")
 	if err != nil {
@@ -763,8 +762,7 @@ func readFDCount() int {
 
 // readRSS reads the resident set size from /proc/self/statm.
 //
-// Returns uint64 which is the RSS in bytes, or 0 if the file cannot be read
-// or parsed.
+// Returns uint64 which is the RSS in bytes, or 0 if the file cannot be read or parsed.
 func readRSS() uint64 {
 	data, err := os.ReadFile("/proc/self/statm")
 	if err != nil {
@@ -784,8 +782,8 @@ func readRSS() uint64 {
 	return pages * pageSize
 }
 
-// readMaxOpenFiles reads the soft and hard limits for open file descriptors
-// from /proc/self/limits.
+// readMaxOpenFiles reads the soft and hard limits for open file descriptors from
+// /proc/self/limits.
 //
 // Returns int64 which is the soft limit, or 0 on non-Linux or parse failure.
 // Returns int64 which is the hard limit, or 0 on non-Linux or parse failure.
@@ -822,8 +820,8 @@ func readMaxOpenFiles() (soft, hard int64) {
 
 // readIOStats reads I/O counters from /proc/self/io.
 //
-// Returns internalIOStats which contains the read/write byte counters, or a
-// zero struct on non-Linux or parse failure.
+// Returns internalIOStats which contains the read/write byte counters, or a zero struct
+// on non-Linux or parse failure.
 func readIOStats() internalIOStats {
 	file, err := os.Open("/proc/self/io")
 	if err != nil {
@@ -863,8 +861,7 @@ func readIOStats() internalIOStats {
 
 // readSystemUptime reads the host system uptime from /proc/uptime.
 //
-// Returns int64 which is the uptime in milliseconds, or 0 on non-Linux or
-// parse failure.
+// Returns int64 which is the uptime in milliseconds, or 0 on non-Linux or parse failure.
 func readSystemUptime() int64 {
 	data, err := os.ReadFile("/proc/uptime")
 	if err != nil {
@@ -886,8 +883,8 @@ func readSystemUptime() int64 {
 
 // readCgroupPath reads the cgroup v2 path from /proc/self/cgroup.
 //
-// Returns string which is the cgroup path (from the "0::" line), or empty on
-// non-Linux or parse failure.
+// Returns string which is the cgroup path (from the "0::" line), or empty on non-Linux or
+// parse failure.
 func readCgroupPath() string {
 	file, err := os.Open("/proc/self/cgroup")
 	if err != nil {

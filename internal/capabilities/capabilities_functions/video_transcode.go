@@ -31,8 +31,7 @@ import (
 )
 
 const (
-	// defaultVideoPreset is the default encoding speed preset for video
-	// transcoding.
+	// defaultVideoPreset is the default encoding speed preset for video transcoding.
 	defaultVideoPreset = "medium"
 
 	// defaultVideoCodec is the default video codec.
@@ -42,15 +41,14 @@ const (
 	paramCodec = "codec"
 )
 
-// VideoTranscode creates a capability function that performs video transcoding.
-// It depends on the video domain's Service to select the provider and execute
-// the transcoding operation.
+// VideoTranscode creates a capability function that performs video transcoding. It
+// depends on the video domain's Service to select the provider and execute the
+// transcoding operation.
 //
-// Takes videoService (video_domain.Service) which provides the video transcoding
-// backend.
+// Takes videoService (video_domain.Service) which provides the video transcoding backend.
 //
-// Returns capabilities_domain.CapabilityFunc which wraps the transcoding logic
-// for use within the capabilities system.
+// Returns capabilities_domain.CapabilityFunc which wraps the transcoding logic for use
+// within the capabilities system.
 //
 // Supported parameters:
 //
@@ -97,8 +95,8 @@ func VideoTranscode(videoService video_domain.Service) capabilities_domain.Capab
 	}
 }
 
-// buildVideoTranscodeParams builds a map of video transcoding settings from
-// the given capability parameters.
+// buildVideoTranscodeParams builds a map of video transcoding settings from the given
+// capability parameters.
 //
 // Takes params (CapabilityParams) which holds the input settings to convert.
 //
@@ -140,8 +138,7 @@ func buildVideoTranscodeParams(params capabilities_domain.CapabilityParams) map[
 	return result
 }
 
-// parseResolution parses a resolution string like "1920x1080" into width and
-// height.
+// parseResolution parses a resolution string like "1920x1080" into width and height.
 //
 // Takes resolution (string) which is the resolution string to parse.
 //

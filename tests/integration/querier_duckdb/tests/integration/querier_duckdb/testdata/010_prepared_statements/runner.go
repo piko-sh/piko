@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"os"
 	_ "github.com/duckdb/duckdb-go/v2"
+	"os"
 	"querier_test_runner/db"
 )
 
@@ -23,15 +23,24 @@ func main() {
 
 	// Now test prepared for reads
 	prepared, err := db.Prepare(ctx, conn)
-	if err != nil { fmt.Fprintln(os.Stderr, "Prepare:", err); os.Exit(1) }
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Prepare:", err)
+		os.Exit(1)
+	}
 	defer prepared.Close()
 
 	queries := db.New(prepared)
 	note, err := queries.GetNote(ctx, int32(1))
-	if err != nil { fmt.Fprintln(os.Stderr, "GetNote:", err); os.Exit(1) }
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "GetNote:", err)
+		os.Exit(1)
+	}
 
 	allNotes, err := queries.ListNotes(ctx)
-	if err != nil { fmt.Fprintln(os.Stderr, "ListNotes:", err); os.Exit(1) }
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ListNotes:", err)
+		os.Exit(1)
+	}
 
 	result := map[string]any{"note": note, "all_notes": allNotes}
 	encoder := json.NewEncoder(os.Stdout)

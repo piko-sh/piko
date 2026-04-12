@@ -23,7 +23,6 @@ import (
 	"errors"
 	"net/http"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestMockServerAdapter_ListenAndServe(t *testing.T) {
 		err := mock.ListenAndServe(":8080", http.DefaultServeMux)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ListenAndServeCallCount))
+		assert.Equal(t, int64(1), mock.ListenAndServeCallCount.Load())
 	})
 
 	t.Run("delegates to ListenAndServeFunc", func(t *testing.T) {
@@ -64,7 +63,7 @@ func TestMockServerAdapter_ListenAndServe(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, ":9090", capturedAddress)
 		assert.Equal(t, handler, capturedHandler)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ListenAndServeCallCount))
+		assert.Equal(t, int64(1), mock.ListenAndServeCallCount.Load())
 	})
 
 	t.Run("propagates error from ListenAndServeFunc", func(t *testing.T) {
@@ -80,7 +79,7 @@ func TestMockServerAdapter_ListenAndServe(t *testing.T) {
 
 		require.Error(t, err)
 		assert.ErrorIs(t, err, http.ErrServerClosed)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ListenAndServeCallCount))
+		assert.Equal(t, int64(1), mock.ListenAndServeCallCount.Load())
 	})
 }
 
@@ -95,7 +94,7 @@ func TestMockServerAdapter_Shutdown(t *testing.T) {
 		err := mock.Shutdown(context.Background())
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ShutdownCallCount))
+		assert.Equal(t, int64(1), mock.ShutdownCallCount.Load())
 	})
 
 	t.Run("delegates to ShutdownFunc", func(t *testing.T) {
@@ -115,7 +114,7 @@ func TestMockServerAdapter_Shutdown(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, ctx, capturedCtx)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ShutdownCallCount))
+		assert.Equal(t, int64(1), mock.ShutdownCallCount.Load())
 	})
 
 	t.Run("propagates error from ShutdownFunc", func(t *testing.T) {
@@ -132,7 +131,7 @@ func TestMockServerAdapter_Shutdown(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Equal(t, expectedErr.Error(), err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ShutdownCallCount))
+		assert.Equal(t, int64(1), mock.ShutdownCallCount.Load())
 	})
 }
 
@@ -143,11 +142,11 @@ func TestMockServerAdapter_ZeroValueIsUsable(t *testing.T) {
 
 	err := mock.ListenAndServe(":8080", nil)
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ListenAndServeCallCount))
+	assert.Equal(t, int64(1), mock.ListenAndServeCallCount.Load())
 
 	err = mock.Shutdown(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ShutdownCallCount))
+	assert.Equal(t, int64(1), mock.ShutdownCallCount.Load())
 }
 
 func TestMockServerAdapter_ConcurrentAccess(t *testing.T) {
@@ -172,8 +171,8 @@ func TestMockServerAdapter_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ListenAndServeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ShutdownCallCount))
+	assert.Equal(t, int64(goroutines), mock.ListenAndServeCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ShutdownCallCount.Load())
 }
 
 func TestMockServerAdapter_CallCountsAreIndependent(t *testing.T) {
@@ -186,8 +185,8 @@ func TestMockServerAdapter_CallCountsAreIndependent(t *testing.T) {
 	_ = mock.ListenAndServe(":8080", nil)
 	_ = mock.Shutdown(context.Background())
 
-	assert.Equal(t, int64(3), atomic.LoadInt64(&mock.ListenAndServeCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ShutdownCallCount))
+	assert.Equal(t, int64(3), mock.ListenAndServeCallCount.Load())
+	assert.Equal(t, int64(1), mock.ShutdownCallCount.Load())
 }
 
 func TestMockServerAdapter_ImplementsServerAdapter(t *testing.T) {

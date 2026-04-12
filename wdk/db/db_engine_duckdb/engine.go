@@ -24,19 +24,27 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// DuckDBDialect holds configuration for a DuckDB variant. Hooks allow
-// customising types, functions, and semantic rules without forking the parser.
+// DuckDBDialect holds configuration for a DuckDB variant. Hooks allow customising types,
+// functions, and semantic rules without forking the parser.
 type DuckDBDialect struct {
+	// ExtraTypes merges extra type definitions into the type catalogue after the builtin
+	// DuckDB types.
 	ExtraTypes map[string]querier_dto.SQLType
 
+	// ExtraFunctions registers additional functions after the builtin DuckDB function
+	// catalogue is built.
 	ExtraFunctions func(*FunctionCatalogueBuilder)
 
+	// TypeNormaliserHook overrides type-name normalisation when non-nil.
 	TypeNormaliserHook func(name string, modifiers []int) *querier_dto.SQLType
 
+	// ImplicitCastHook overrides implicit cast resolution when non-nil.
 	ImplicitCastHook func(from, to querier_dto.SQLTypeCategory) *bool
 
+	// PromoteTypeHook overrides type promotion when non-nil.
 	PromoteTypeHook func(left, right querier_dto.SQLType) *querier_dto.SQLType
 
+	// Name identifies the dialect variant.
 	Name string
 }
 
@@ -44,48 +52,70 @@ type DuckDBDialect struct {
 type Option func(*DuckDBDialect)
 
 // WithDialectName sets the dialect name.
+//
+// Takes name (string) which is the dialect identifier to apply.
+//
+// Returns Option which applies the name to a DuckDBDialect.
 func WithDialectName(name string) Option {
 	return func(dialect *DuckDBDialect) {
 		dialect.Name = name
 	}
 }
 
-// WithExtraTypes adds extra type definitions that are merged into the type
-// catalogue after the builtin DuckDB types.
+// WithExtraTypes registers extra type definitions on the dialect.
+//
+// Takes types (map[string]querier_dto.SQLType) which lists extra type definitions merged
+// in after the builtin DuckDB types.
+//
+// Returns Option which applies the extra types to a DuckDBDialect.
 func WithExtraTypes(types map[string]querier_dto.SQLType) Option {
 	return func(dialect *DuckDBDialect) {
 		dialect.ExtraTypes = types
 	}
 }
 
-// WithExtraFunctions registers additional functions after the builtin DuckDB
-// function catalogue is built.
+// WithExtraFunctions registers extra function definitions on the dialect.
+//
+// Takes register (func(*FunctionCatalogueBuilder)) which registers extra functions after
+// the builtin DuckDB function catalogue is built.
+//
+// Returns Option which applies the extra functions to a DuckDBDialect.
 func WithExtraFunctions(register func(*FunctionCatalogueBuilder)) Option {
 	return func(dialect *DuckDBDialect) {
 		dialect.ExtraFunctions = register
 	}
 }
 
-// WithTypeNormaliserHook installs a hook that is called first in
-// NormaliseTypeName. If it returns non-nil, the result is used instead of the
-// default normalisation.
+// WithTypeNormaliserHook installs a hook invoked first in NormaliseTypeName.
+//
+// Takes hook (func(string, []int) *querier_dto.SQLType) which returns a non-nil override
+// or nil to use the default normalisation.
+//
+// Returns Option which applies the hook to a DuckDBDialect.
 func WithTypeNormaliserHook(hook func(string, []int) *querier_dto.SQLType) Option {
 	return func(dialect *DuckDBDialect) {
 		dialect.TypeNormaliserHook = hook
 	}
 }
 
-// WithImplicitCastHook installs a hook that is called first in
-// CanImplicitCast. If it returns non-nil, the result is used instead of the
-// default rules.
+// WithImplicitCastHook installs a hook invoked first in CanImplicitCast.
+//
+// Takes hook (func(from, to querier_dto.SQLTypeCategory) *bool) which returns a non-nil
+// override or nil to use the default rules.
+//
+// Returns Option which applies the hook to a DuckDBDialect.
 func WithImplicitCastHook(hook func(from, to querier_dto.SQLTypeCategory) *bool) Option {
 	return func(dialect *DuckDBDialect) {
 		dialect.ImplicitCastHook = hook
 	}
 }
 
-// WithPromoteTypeHook installs a hook that is called first in PromoteType. If
-// it returns non-nil, the result is used instead of the default promotion.
+// WithPromoteTypeHook installs a hook invoked first in PromoteType.
+//
+// Takes hook (func(left, right querier_dto.SQLType) *querier_dto.SQLType) which returns a
+// non-nil override or nil to use the default promotion.
+//
+// Returns Option which applies the hook to a DuckDBDialect.
 func WithPromoteTypeHook(hook func(left, right querier_dto.SQLType) *querier_dto.SQLType) Option {
 	return func(dialect *DuckDBDialect) {
 		dialect.PromoteTypeHook = hook
@@ -94,15 +124,21 @@ func WithPromoteTypeHook(hook func(left, right querier_dto.SQLType) *querier_dto
 
 // DuckDBEngine implements the querier EnginePort for DuckDB.
 type DuckDBEngine struct {
+	// functions holds the resolved function catalogue for this engine.
 	functions *querier_dto.FunctionCatalogue
 
+	// types holds the resolved type catalogue for this engine.
 	types *querier_dto.TypeCatalogue
 
+	// dialect holds the dialect configuration applied to this engine.
 	dialect DuckDBDialect
 }
 
-// NewDuckDBEngine creates a new DuckDB engine adapter with optional dialect
-// overrides.
+// NewDuckDBEngine creates a DuckDB engine adapter with optional dialect overrides.
+//
+// Takes options (...Option) which apply dialect customisations.
+//
+// Returns *DuckDBEngine which is the configured engine adapter.
 func NewDuckDBEngine(options ...Option) *DuckDBEngine {
 	dialect := DuckDBDialect{
 		Name: "duckdb",
@@ -118,7 +154,13 @@ func NewDuckDBEngine(options ...Option) *DuckDBEngine {
 	}
 }
 
-// ParseStatements tokenises and classifies SQL statements for the DuckDB dialect.
+// ParseStatements tokenises and classifies SQL statements for DuckDB.
+//
+// Takes sql (string) which is the source text containing one or more statements.
+//
+// Returns []querier_dto.ParsedStatement which is the ordered list of parsed statements
+// with classification metadata.
+// Returns error when tokenising fails.
 func (*DuckDBEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
 	tokens, tokeniseError := tokenise(sql)
 	if tokeniseError != nil {
@@ -140,46 +182,55 @@ func (*DuckDBEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement,
 	return results, nil
 }
 
-// ddlHandler is a function that parses a DDL statement into a catalogue mutation.
+// ddlHandler parses a DDL statement into a catalogue mutation.
 type ddlHandler func(*parser, *DuckDBEngine) (*querier_dto.CatalogueMutation, error)
 
-var ddlHandlers = [statementKindCount]ddlHandler{
-	statementKindCreateTable: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateTable(engine)
-	},
-	statementKindDropTable: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropTable() },
-	statementKindAlterTable: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseAlterTable(engine)
-	},
-	statementKindCreateView:  func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateView() },
-	statementKindDropView:    func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropView() },
-	statementKindCreateIndex: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateIndex() },
-	statementKindDropIndex:   func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropIndex() },
-	statementKindCreateType: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateType(engine)
-	},
-	statementKindAlterType: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseAlterType() },
-	statementKindDropType:  func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropType() },
-	statementKindCreateFunction: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateMacro(engine)
-	},
-	statementKindDropFunction: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropFunction() },
-	statementKindCreateMacro: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateMacro(engine)
-	},
-	statementKindDropMacro:    func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropFunction() },
-	statementKindCreateSchema: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateSchema() },
-	statementKindDropSchema:   func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropSchema() },
-	statementKindCreateSequence: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateSequence()
-	},
-	statementKindDropSequence: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropSequence() },
-	statementKindComment:      func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseComment() },
-	statementKindInstall:      func(_ *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return nil, nil },
-	statementKindLoad:         func(_ *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return nil, nil },
-}
+var (
+	// ddlHandlers dispatches each statementKind to its DDL parsing handler.
+	ddlHandlers = [statementKindCount]ddlHandler{
+		statementKindCreateTable: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateTable(engine)
+		},
+		statementKindDropTable: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropTable() },
+		statementKindAlterTable: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseAlterTable(engine)
+		},
+		statementKindCreateView:  func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateView() },
+		statementKindDropView:    func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropView() },
+		statementKindCreateIndex: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateIndex() },
+		statementKindDropIndex:   func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropIndex() },
+		statementKindCreateType: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateType(engine)
+		},
+		statementKindAlterType: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseAlterType() },
+		statementKindDropType:  func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropType() },
+		statementKindCreateFunction: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateMacro(engine)
+		},
+		statementKindDropFunction: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropFunction() },
+		statementKindCreateMacro: func(p *parser, engine *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateMacro(engine)
+		},
+		statementKindDropMacro:    func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropFunction() },
+		statementKindCreateSchema: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateSchema() },
+		statementKindDropSchema:   func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropSchema() },
+		statementKindCreateSequence: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateSequence()
+		},
+		statementKindDropSequence: func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropSequence() },
+		statementKindComment:      func(p *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return p.parseComment() },
+		statementKindInstall:      func(_ *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return nil, nil },
+		statementKindLoad:         func(_ *parser, _ *DuckDBEngine) (*querier_dto.CatalogueMutation, error) { return nil, nil },
+	}
+)
 
 // ApplyDDL applies a DDL statement to the catalogue for the DuckDB dialect.
+//
+// Takes statement (querier_dto.ParsedStatement) which is the DDL statement to apply.
+//
+// Returns *querier_dto.CatalogueMutation which describes the catalogue change, or nil for
+// no-op statements.
+// Returns error when the statement payload has an unexpected type.
 func (engine *DuckDBEngine) ApplyDDL(
 	statement querier_dto.ParsedStatement,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -197,7 +248,13 @@ func (engine *DuckDBEngine) ApplyDDL(
 	return nil, nil
 }
 
-// AnalyseQuery performs structural analysis of a DML statement for the DuckDB dialect.
+// AnalyseQuery performs structural analysis of a DML statement for DuckDB.
+//
+// Takes statement (querier_dto.ParsedStatement) which is the DML statement to analyse.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the structural analysis of the
+// statement.
+// Returns error when the statement payload has an unexpected type.
 func (*DuckDBEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -226,26 +283,39 @@ func (*DuckDBEngine) AnalyseQuery(
 }
 
 // BuiltinFunctions returns the DuckDB built-in function catalogue.
+//
+// Returns *querier_dto.FunctionCatalogue which holds the builtin functions.
 func (engine *DuckDBEngine) BuiltinFunctions() *querier_dto.FunctionCatalogue {
 	return engine.functions
 }
 
 // BuiltinTypes returns the DuckDB built-in type catalogue.
+//
+// Returns *querier_dto.TypeCatalogue which holds the builtin types.
 func (engine *DuckDBEngine) BuiltinTypes() *querier_dto.TypeCatalogue {
 	return engine.types
 }
 
-// NormaliseTypeName resolves a raw type name to a structured SQLType for DuckDB.
+// NormaliseTypeName resolves a raw type name to a structured SQLType.
+//
+// Takes name (string) which is the raw type name to normalise.
+// Takes modifiers (...int) which are optional type modifiers.
+//
+// Returns querier_dto.SQLType which is the normalised type.
 func (engine *DuckDBEngine) NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
 	return normaliseTypeName(name, engine.dialect.TypeNormaliserHook, modifiers...)
 }
 
 // ParameterStyle returns the dollar-sign parameter style used by DuckDB.
+//
+// Returns querier_dto.ParameterStyle which is ParameterStyleDollar.
 func (*DuckDBEngine) ParameterStyle() querier_dto.ParameterStyle {
 	return querier_dto.ParameterStyleDollar
 }
 
 // SupportedDirectivePrefixes returns the parameter prefixes valid in DuckDB directives.
+//
+// Returns []querier_dto.DirectiveParameterPrefix which lists the supported prefixes.
 func (*DuckDBEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParameterPrefix {
 	return []querier_dto.DirectiveParameterPrefix{
 		{Prefix: '$', IsNamed: false},
@@ -254,16 +324,23 @@ func (*DuckDBEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParamet
 }
 
 // SupportsReturning reports that DuckDB supports RETURNING clauses.
+//
+// Returns bool which is always true for DuckDB.
 func (*DuckDBEngine) SupportsReturning() bool {
 	return true
 }
 
 // Dialect returns "duckdb".
+//
+// Returns string which is the dialect identifier "duckdb".
 func (*DuckDBEngine) Dialect() string {
 	return "duckdb"
 }
 
 // SupportedExpressions returns the expression features supported by DuckDB.
+//
+// Returns querier_dto.SQLExpressionFeature which is the OR-combined feature mask of
+// supported expression features.
 func (*DuckDBEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 	return querier_dto.SQLFeaturesBase |
 		querier_dto.SQLFeatureScalarSubquery |
@@ -276,11 +353,18 @@ func (*DuckDBEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 }
 
 // DefaultSchema returns "main", the default DuckDB schema.
+//
+// Returns string which is "main".
 func (*DuckDBEngine) DefaultSchema() string {
 	return "main"
 }
 
 // TableValuedFunctionColumns returns output columns for a known table-valued function.
+//
+// Takes functionName (string) which is the table-valued function name.
+//
+// Returns []querier_dto.ScopedColumn which is a copy of the columns for the named
+// function, or nil when the name is unknown.
 func (*DuckDBEngine) TableValuedFunctionColumns(functionName string) []querier_dto.ScopedColumn {
 	columns, exists := tableValuedFunctionColumns[functionName]
 	if !exists {
@@ -291,9 +375,15 @@ func (*DuckDBEngine) TableValuedFunctionColumns(functionName string) []querier_d
 	return result
 }
 
-// TableValuedFunctionColumnsFromCatalogue resolves user-defined functions
-// returning composite or set-of types by looking up the function signature
-// and return type in the catalogue.
+// TableValuedFunctionColumnsFromCatalogue resolves user-defined functions returning
+// composite or set-of types by looking up the function signature and return type in the
+// catalogue.
+//
+// Takes catalogue (*querier_dto.Catalogue) which is the catalogue to search.
+// Takes functionName (string) which is the function name to look up.
+//
+// Returns []querier_dto.ScopedColumn which lists the resolved output columns, or nil when
+// no matching set-returning function is found.
 func (*DuckDBEngine) TableValuedFunctionColumnsFromCatalogue(
 	catalogue *querier_dto.Catalogue,
 	functionName string,
@@ -316,6 +406,15 @@ func (*DuckDBEngine) TableValuedFunctionColumnsFromCatalogue(
 	return nil
 }
 
+// resolveCompositeColumns expands a composite return type into its scoped columns by
+// looking the type up in the declaring or target schema.
+//
+// Takes catalogue (*querier_dto.Catalogue) which holds all known schemas.
+// Takes declaringSchema (*querier_dto.Schema) which is the function's home schema.
+// Takes returnType (querier_dto.SQLType) which is the composite return type to expand.
+//
+// Returns []querier_dto.ScopedColumn which is the field list of the matching composite
+// type, or nil when no match is found.
 func resolveCompositeColumns(
 	catalogue *querier_dto.Catalogue,
 	declaringSchema *querier_dto.Schema,
@@ -352,6 +451,11 @@ func resolveCompositeColumns(
 }
 
 // PromoteType returns the wider type within the same category for DuckDB.
+//
+// Takes left (querier_dto.SQLType) which is the left-hand operand type.
+// Takes right (querier_dto.SQLType) which is the right-hand operand type.
+//
+// Returns querier_dto.SQLType which is the promoted type.
 func (engine *DuckDBEngine) PromoteType(
 	left querier_dto.SQLType,
 	right querier_dto.SQLType,
@@ -382,8 +486,13 @@ func (engine *DuckDBEngine) PromoteType(
 	}
 }
 
-// CanImplicitCast reports whether DuckDB allows implicit conversion between
-// type categories.
+// CanImplicitCast reports whether DuckDB allows implicit conversion between type
+// categories.
+//
+// Takes from (querier_dto.SQLTypeCategory) which is the source category.
+// Takes to (querier_dto.SQLTypeCategory) which is the destination category.
+//
+// Returns bool which is true when an implicit cast is allowed.
 func (engine *DuckDBEngine) CanImplicitCast(
 	from querier_dto.SQLTypeCategory,
 	to querier_dto.SQLTypeCategory,
@@ -409,11 +518,23 @@ func (engine *DuckDBEngine) CanImplicitCast(
 }
 
 // CommentStyle returns the standard SQL comment style.
+//
+// Returns querier_dto.CommentStyle which is the default SQL comment style.
 func (*DuckDBEngine) CommentStyle() querier_dto.CommentStyle {
 	return querier_dto.DefaultSQLCommentStyle()
 }
 
 // ResolveFunctionCall resolves a function call using DuckDB overload rules.
+//
+// Takes catalogue (*querier_dto.Catalogue) which holds known functions.
+// Takes name (string) which is the function name being called.
+// Takes schema (string) which scopes the lookup to a schema.
+// Takes argumentTypes ([]querier_dto.SQLType) which describes call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved overload, or nil when no
+// polymorphic rule matches.
+// Returns error when resolution fails.
 func (*DuckDBEngine) ResolveFunctionCall(
 	catalogue *querier_dto.Catalogue,
 	name string,

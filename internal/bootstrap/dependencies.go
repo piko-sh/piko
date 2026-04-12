@@ -23,19 +23,18 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
-// Dependencies holds all the external inputs required to bootstrap the Piko
-// application. This creates a clean and stable API for the bootstrap functions.
+// Dependencies holds all the external inputs required to bootstrap the Piko application.
+// This creates a clean and stable API for the bootstrap functions.
 type Dependencies struct {
-	// AppRouter is the root Chi router for the application. The bootstrap
-	// process mounts all generated routes onto this router, including pages,
-	// partials, and actions.
+	// AppRouter is the root Chi router for the application. The bootstrap process mounts all
+	// generated routes onto this router, including pages, partials, and actions.
 	AppRouter *chi.Mux
 
-	// SymbolProvider provides symbols for interpreted mode; nil for other modes.
-	// The concrete type implements SymbolProviderPort.
+	// SymbolProvider provides symbols for interpreted mode; nil for other modes. The
+	// concrete type implements SymbolProviderPort.
 	SymbolProvider any
 
-	// InterpreterPool provides a pool of interpreters for JIT compilation in
-	// interpreted mode; nil for other modes.
+	// InterpreterPool provides a pool of interpreters for JIT compilation in interpreted
+	// mode; nil for other modes.
 	InterpreterPool templater_domain.InterpreterPoolPort
 }

@@ -33,16 +33,15 @@ import (
 type completionKind int
 
 const (
-	// completionKindScope indicates top-level scope completions, including
-	// keywords, builtins, and packages.
+	// completionKindScope indicates top-level scope completions, including keywords,
+	// builtins, and packages.
 	completionKindScope completionKind = iota
 
-	// completionKindPackageMember indicates completions after a package name
-	// (fmt.).
+	// completionKindPackageMember indicates completions after a package name (fmt.).
 	completionKindPackageMember
 
-	// completionKindFieldMethod indicates completions after a variable or
-	// expression (e.g. user.).
+	// completionKindFieldMethod indicates completions after a variable or expression (e.g.
+	// user.).
 	completionKindFieldMethod
 )
 
@@ -81,8 +80,7 @@ var (
 
 // completionContext holds details about what type of code completion is needed.
 type completionContext struct {
-	// pkgAlias is the package alias (e.g. "fmt") used for PackageMember
-	// completions.
+	// pkgAlias is the package alias (e.g. "fmt") used for PackageMember completions.
 	pkgAlias string
 
 	// packagePath is the full package path for PackageMember completions.
@@ -91,22 +89,20 @@ type completionContext struct {
 	// prefix is the partial text already typed, such as "Pri" in "fmt.Pri".
 	prefix string
 
-	// expressionType is the type of the expression for FieldMethod
-	// completions (future).
+	// expressionType is the type of the expression for FieldMethod completions (future).
 	expressionType string
 
 	// kind indicates what type of completion is needed at this position.
 	kind completionKind
 }
 
-// getBasicCompletions builds a completion response containing keywords, builtin
-// types, builtin functions, and standard library packages.
+// getBasicCompletions builds a completion response containing keywords, builtin types,
+// builtin functions, and standard library packages.
 //
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library
-// type information for package completions.
+// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
+// information for package completions.
 //
-// Returns *wasm_dto.CompletionResponse which contains all basic completion
-// items.
+// Returns *wasm_dto.CompletionResponse which contains all basic completion items.
 func getBasicCompletions(stdlibData *inspector_dto.TypeData) *wasm_dto.CompletionResponse {
 	items := make([]wasm_dto.CompletionItem, 0, defaultCompletionCapacity)
 	items = appendKeywordCompletions(items)
@@ -125,8 +121,7 @@ func getBasicCompletions(stdlibData *inspector_dto.TypeData) *wasm_dto.Completio
 //
 // Takes items ([]wasm_dto.CompletionItem) which is the slice to add to.
 //
-// Returns []wasm_dto.CompletionItem which has all the original items plus Go
-// keywords.
+// Returns []wasm_dto.CompletionItem which has all the original items plus Go keywords.
 func appendKeywordCompletions(items []wasm_dto.CompletionItem) []wasm_dto.CompletionItem {
 	for _, kw := range goKeywords {
 		items = append(items, newCompletionItem(kw, "keyword", ""))
@@ -134,13 +129,12 @@ func appendKeywordCompletions(items []wasm_dto.CompletionItem) []wasm_dto.Comple
 	return items
 }
 
-// appendBuiltinTypeCompletions adds Go built-in type completions to the given
-// slice.
+// appendBuiltinTypeCompletions adds Go built-in type completions to the given slice.
 //
 // Takes items ([]wasm_dto.CompletionItem) which is the slice to add to.
 //
-// Returns []wasm_dto.CompletionItem which contains the original items plus
-// built-in type completions.
+// Returns []wasm_dto.CompletionItem which contains the original items plus built-in type
+// completions.
 func appendBuiltinTypeCompletions(items []wasm_dto.CompletionItem) []wasm_dto.CompletionItem {
 	for _, bt := range goBuiltinTypes {
 		items = append(items, newCompletionItem(bt, "type", ""))
@@ -148,13 +142,12 @@ func appendBuiltinTypeCompletions(items []wasm_dto.CompletionItem) []wasm_dto.Co
 	return items
 }
 
-// appendBuiltinFuncCompletions adds Go builtin function completions to the
-// given slice.
+// appendBuiltinFuncCompletions adds Go builtin function completions to the given slice.
 //
 // Takes items ([]wasm_dto.CompletionItem) which is the slice to add to.
 //
-// Returns []wasm_dto.CompletionItem which contains the original items plus
-// the builtin function completions.
+// Returns []wasm_dto.CompletionItem which contains the original items plus the builtin
+// function completions.
 func appendBuiltinFuncCompletions(items []wasm_dto.CompletionItem) []wasm_dto.CompletionItem {
 	for _, builtinFunction := range goBuiltinFuncs {
 		items = append(items, newCompletionItem(builtinFunction, "function", ""))
@@ -162,16 +155,15 @@ func appendBuiltinFuncCompletions(items []wasm_dto.CompletionItem) []wasm_dto.Co
 	return items
 }
 
-// appendStdlibPackageCompletions adds standard library package completions to
-// the given list.
-//
-// Takes items ([]wasm_dto.CompletionItem) which is the existing completion
+// appendStdlibPackageCompletions adds standard library package completions to the given
 // list.
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library
-// package data.
 //
-// Returns []wasm_dto.CompletionItem which contains the original items plus any
-// standard library package completions.
+// Takes items ([]wasm_dto.CompletionItem) which is the existing completion list.
+// Takes stdlibData (*inspector_dto.TypeData) which provides standard library package
+// data.
+//
+// Returns []wasm_dto.CompletionItem which contains the original items plus any standard
+// library package completions.
 func appendStdlibPackageCompletions(items []wasm_dto.CompletionItem, stdlibData *inspector_dto.TypeData) []wasm_dto.CompletionItem {
 	if stdlibData == nil {
 		return items
@@ -182,16 +174,15 @@ func appendStdlibPackageCompletions(items []wasm_dto.CompletionItem, stdlibData 
 	return items
 }
 
-// newCompletionItem creates a new completion item with the given label, kind,
-// and detail.
+// newCompletionItem creates a new completion item with the given label, kind, and detail.
 //
 // Takes label (string) which specifies the text shown in the completion list.
-// Takes kind (string) which indicates the type of completion (keyword, type,
-// function, or package).
+// Takes kind (string) which indicates the type of completion (keyword, type, function, or
+// package).
 // Takes detail (string) which provides additional information about the item.
 //
-// Returns wasm_dto.CompletionItem which is the configured completion item with
-// empty documentation, insert text, and sort text fields.
+// Returns wasm_dto.CompletionItem which is the configured completion item with empty
+// documentation, insert text, and sort text fields.
 func newCompletionItem(label, kind, detail string) wasm_dto.CompletionItem {
 	return wasm_dto.CompletionItem{
 		Label:         label,
@@ -203,17 +194,16 @@ func newCompletionItem(label, kind, detail string) wasm_dto.CompletionItem {
 	}
 }
 
-// analyseCompletionContext determines what kind of completion is needed at the
-// cursor position.
+// analyseCompletionContext determines what kind of completion is needed at the cursor
+// position.
 //
 // Takes source (string) which contains the full source code.
 // Takes line (int) which specifies the one-based cursor line.
 // Takes column (int) which specifies the one-based cursor column.
-// Takes imports (map[string]string) which maps import aliases to package
-// paths.
+// Takes imports (map[string]string) which maps import aliases to package paths.
 //
-// Returns *completionContext which describes the completion kind and
-// relevant identifiers.
+// Returns *completionContext which describes the completion kind and relevant
+// identifiers.
 func analyseCompletionContext(source string, line, column int, _ *ast.File, imports map[string]string) *completionContext {
 	textBeforeCursor, ok := getTextBeforeCursor(source, line, column)
 	if !ok {
@@ -241,8 +231,7 @@ func analyseCompletionContext(source string, line, column int, _ *ast.File, impo
 
 // newScopeContext returns a default scope completion context.
 //
-// Returns *completionContext which has empty fields and completionKindScope
-// as the kind.
+// Returns *completionContext which has empty fields and completionKindScope as the kind.
 func newScopeContext() *completionContext {
 	return &completionContext{
 		pkgAlias:       "",
@@ -259,8 +248,8 @@ func newScopeContext() *completionContext {
 // Takes line (int) which specifies the one-based line number.
 // Takes column (int) which specifies the one-based column position.
 //
-// Returns string which contains the text from the start of the line up to the
-// cursor position.
+// Returns string which contains the text from the start of the line up to the cursor
+// position.
 // Returns bool which indicates whether the extraction was successful.
 func getTextBeforeCursor(source string, line, column int) (string, bool) {
 	lines := strings.Split(source, "\n")
@@ -274,8 +263,8 @@ func getTextBeforeCursor(source string, line, column int) (string, bool) {
 	return lineText[:column-1], true
 }
 
-// extractLastIdentifier finds the last identifier in a string by scanning
-// backwards from the end.
+// extractLastIdentifier finds the last identifier in a string by scanning backwards from
+// the end.
 //
 // Takes text (string) which contains the input to scan.
 //
@@ -301,8 +290,8 @@ func isIdentChar(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'
 }
 
-// buildCompletionContext creates a completion context for the given
-// identifier and prefix.
+// buildCompletionContext creates a completion context for the given identifier and
+// prefix.
 //
 // Takes identifier (string) which specifies the type or package name.
 // Takes prefix (string) which provides the partial text to complete.
@@ -329,16 +318,15 @@ func buildCompletionContext(identifier, prefix string, imports map[string]string
 	}
 }
 
-// getPackageMemberCompletions returns completions for exported types and
-// functions from a package.
+// getPackageMemberCompletions returns completions for exported types and functions from a
+// package.
 //
 // Takes packagePath (string) which specifies the package import path to search.
 // Takes prefix (string) which filters results to names starting with this text.
-// Takes stdlibData (*inspector_dto.TypeData) which holds the type data to
-// search.
+// Takes stdlibData (*inspector_dto.TypeData) which holds the type data to search.
 //
-// Returns []wasm_dto.CompletionItem which contains matching exported types and
-// functions, or nil when stdlibData is nil or the package is not found.
+// Returns []wasm_dto.CompletionItem which contains matching exported types and functions,
+// or nil when stdlibData is nil or the package is not found.
 func getPackageMemberCompletions(packagePath, prefix string, stdlibData *inspector_dto.TypeData) []wasm_dto.CompletionItem {
 	if stdlibData == nil {
 		return nil
@@ -393,16 +381,15 @@ func getPackageMemberCompletions(packagePath, prefix string, stdlibData *inspect
 //
 // When file is nil, imports are extracted directly from the source text.
 //
-// Takes file (*ast.File) which provides the parsed AST, or nil if not
-// available.
+// Takes file (*ast.File) which provides the parsed AST, or nil if not available.
 // Takes source (string) which contains the raw source code.
 // Takes line (int) which specifies the cursor line position.
 // Takes column (int) which specifies the cursor column position.
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library
-// type information.
+// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
+// information.
 //
-// Returns []wasm_dto.CompletionItem which contains matching completion
-// suggestions for the context, or nil if none are found.
+// Returns []wasm_dto.CompletionItem which contains matching completion suggestions for
+// the context, or nil if none are found.
 func findCompletionsAtPosition(file *ast.File, source string, line, column int, stdlibData *inspector_dto.TypeData) []wasm_dto.CompletionItem {
 	var imports map[string]string
 	if file != nil {
@@ -425,15 +412,15 @@ func findCompletionsAtPosition(file *ast.File, source string, line, column int, 
 	}
 }
 
-// extractImportsFromSource extracts import statements from source text using
-// regex. This is used as a fallback when AST parsing fails.
+// extractImportsFromSource extracts import statements from source text using regex. This
+// is used as a fallback when AST parsing fails.
 //
 // Takes source (string) which is the Go source code to parse for imports.
-// Takes stdlibData (*inspector_dto.TypeData) which provides the standard
-// library package data for validation.
+// Takes stdlibData (*inspector_dto.TypeData) which provides the standard library package
+// data for validation.
 //
-// Returns map[string]string which maps import aliases to package paths for
-// all standard library imports found in the source.
+// Returns map[string]string which maps import aliases to package paths for all standard
+// library imports found in the source.
 func extractImportsFromSource(source string, stdlibData *inspector_dto.TypeData) map[string]string {
 	imports := make(map[string]string)
 	if stdlibData == nil {

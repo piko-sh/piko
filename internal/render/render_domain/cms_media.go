@@ -18,11 +18,12 @@
 
 package render_domain
 
-import "reflect"
+import (
+	"reflect"
+)
 
-// cmsMediaWrapper wraps an object that has CMS media methods. Uses reflection to
-// call methods, allowing duck typing without needing the type to import the render
-// package.
+// cmsMediaWrapper wraps an object that has CMS media methods. Uses reflection to call
+// methods, allowing duck typing without needing the type to import the render package.
 type cmsMediaWrapper struct {
 	// value holds the reflected value of the wrapped media object.
 	value reflect.Value
@@ -33,8 +34,8 @@ type cmsMediaWrapper struct {
 	// widthM holds the reflected MediaWidth method, if present.
 	widthM reflect.Value
 
-	// heightM holds the reflected MediaHeight method; zero value if the
-	// method is not present.
+	// heightM holds the reflected MediaHeight method; zero value if the method is not
+	// present.
 	heightM reflect.Value
 
 	// altM holds the reflected MediaAltText method.
@@ -57,8 +58,8 @@ func (w *cmsMediaWrapper) MediaURL() string {
 
 // MediaWidth returns the original width of the media in pixels.
 //
-// Returns int which is the width in pixels, or zero if the width method is
-// invalid or returns no results.
+// Returns int which is the width in pixels, or zero if the width method is invalid or
+// returns no results.
 func (w *cmsMediaWrapper) MediaWidth() int {
 	if !w.widthM.IsValid() {
 		return 0
@@ -108,8 +109,8 @@ type variantWrapper struct {
 //
 // Takes name (string) which specifies the variant to retrieve.
 //
-// Returns *variantWrapper which wraps the requested variant, or nil if the
-// variant method is invalid or the named variant does not exist.
+// Returns *variantWrapper which wraps the requested variant, or nil if the variant method
+// is invalid or the named variant does not exist.
 func (w *cmsMediaWrapper) MediaVariant(name string) *variantWrapper {
 	if !w.variantM.IsValid() {
 		return nil
@@ -123,8 +124,8 @@ func (w *cmsMediaWrapper) MediaVariant(name string) *variantWrapper {
 
 // MediaVariants returns all available variants.
 //
-// Returns map[string]*variantWrapper which maps variant names to their
-// wrappers, or nil if no variants are available.
+// Returns map[string]*variantWrapper which maps variant names to their wrappers, or nil
+// if no variants are available.
 func (w *cmsMediaWrapper) MediaVariants() map[string]*variantWrapper {
 	if !w.variantsM.IsValid() {
 		return nil
@@ -204,8 +205,8 @@ func (v *variantWrapper) IsReady() bool {
 //
 // Takes v (any) which is the object to wrap.
 //
-// Returns *cmsMediaWrapper which wraps the object if it has a valid MediaURL
-// method, or nil if the object is nil or lacks the required method.
+// Returns *cmsMediaWrapper which wraps the object if it has a valid MediaURL method, or
+// nil if the object is nil or lacks the required method.
 func tryCMSMediaWrapper(v any) *cmsMediaWrapper {
 	if v == nil {
 		return nil

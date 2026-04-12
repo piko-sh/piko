@@ -18,7 +18,9 @@
 
 package tlscert
 
-import "crypto/tls"
+import (
+	"crypto/tls"
+)
 
 // TLSMode describes the TLS operating mode for a server.
 type TLSMode uint8
@@ -31,8 +33,8 @@ const (
 	TLSModeCertFile
 )
 
-// TLSValues holds the resolved, value-type TLS configuration for a server.
-// All pointer-to-value conversion happens in the bootstrap layer.
+// TLSValues holds the resolved, value-type TLS configuration for a server. All
+// pointer-to-value conversion happens in the bootstrap layer.
 type TLSValues struct {
 	// CertFile is the path to the PEM-encoded certificate.
 	CertFile string
@@ -46,8 +48,7 @@ type TLSValues struct {
 	// ClientAuthType is the resolved tls.ClientAuthType value.
 	ClientAuthType tls.ClientAuthType
 
-	// MinVersion is the resolved minimum TLS version constant
-	// (e.g. tls.VersionTLS12).
+	// MinVersion is the resolved minimum TLS version constant (e.g. tls.VersionTLS12).
 	MinVersion uint16
 
 	// Mode indicates how TLS certificates are obtained.

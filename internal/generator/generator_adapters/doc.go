@@ -16,12 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package generator_adapters implements driven adapters for the generator
-// domain.
+// Package generator_adapters implements driven adapters for the generator domain.
 //
-// It implements the ports defined in generator_domain, covering file
-// I/O, manifest serialisation, code emission, action code generation,
-// and build artefact production. All
-// file operations use sandboxed access to prevent path traversal attacks
-// and atomic writes to prevent corruption from concurrent access.
+// It implements the ports defined in generator_domain, covering file I/O, manifest
+// serialisation, code emission, action code generation, and build artefact production.
+// All file operations use sandboxed access to prevent path traversal attacks and atomic
+// writes to prevent corruption from concurrent access.
 package generator_adapters

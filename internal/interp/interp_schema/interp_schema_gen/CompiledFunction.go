@@ -390,7 +390,7 @@ func (rcv *CompiledFunction) UpvalueDescriptors(obj *UpvalueDescriptor, j int) b
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 3
+		x += flatbuffers.UOffsetT(j) * 5
 		obj.Init(rcv._tab.Bytes, x)
 		return true
 	}
@@ -487,8 +487,93 @@ func (rcv *CompiledFunction) VariableInitFunction(obj *CompiledFunction) *Compil
 	return nil
 }
 
+func (rcv *CompiledFunction) StructLayoutTable(obj *StructFieldLayout, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 16
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *CompiledFunction) StructLayoutTableLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *CompiledFunction) IsPointerReceiver() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(50))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *CompiledFunction) MutateIsPointerReceiver(n bool) bool {
+	return rcv._tab.MutateBoolSlot(50, n)
+}
+
+func (rcv *CompiledFunction) ParameterRegisters(j int) byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+	}
+	return 0
+}
+
+func (rcv *CompiledFunction) ParameterRegistersLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *CompiledFunction) ParameterRegistersBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *CompiledFunction) MutateParameterRegisters(j int, n byte) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+	}
+	return false
+}
+
+func (rcv *CompiledFunction) TypeTableInterfaceMethods(obj *InterfaceMethodSet, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *CompiledFunction) TypeTableInterfaceMethodsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func CompiledFunctionStart(builder *flatbuffers.Builder) {
-	builder.StartObject(22)
+	builder.StartObject(26)
 }
 func CompiledFunctionAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -587,7 +672,7 @@ func CompiledFunctionAddUpvalueDescriptors(builder *flatbuffers.Builder, upvalue
 	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(upvalueDescriptors), 0)
 }
 func CompiledFunctionStartUpvalueDescriptorsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(3, numElems, 1)
+	return builder.StartVector(5, numElems, 1)
 }
 func CompiledFunctionAddFunctions(builder *flatbuffers.Builder, functions flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(functions), 0)
@@ -609,6 +694,27 @@ func CompiledFunctionStartMethodTableVector(builder *flatbuffers.Builder, numEle
 }
 func CompiledFunctionAddVariableInitFunction(builder *flatbuffers.Builder, variableInitFunction flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(21, flatbuffers.UOffsetT(variableInitFunction), 0)
+}
+func CompiledFunctionAddStructLayoutTable(builder *flatbuffers.Builder, structLayoutTable flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(22, flatbuffers.UOffsetT(structLayoutTable), 0)
+}
+func CompiledFunctionStartStructLayoutTableVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(16, numElems, 4)
+}
+func CompiledFunctionAddIsPointerReceiver(builder *flatbuffers.Builder, isPointerReceiver bool) {
+	builder.PrependBoolSlot(23, isPointerReceiver, false)
+}
+func CompiledFunctionAddParameterRegisters(builder *flatbuffers.Builder, parameterRegisters flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(24, flatbuffers.UOffsetT(parameterRegisters), 0)
+}
+func CompiledFunctionStartParameterRegistersVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(1, numElems, 1)
+}
+func CompiledFunctionAddTypeTableInterfaceMethods(builder *flatbuffers.Builder, typeTableInterfaceMethods flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(25, flatbuffers.UOffsetT(typeTableInterfaceMethods), 0)
+}
+func CompiledFunctionStartTypeTableInterfaceMethodsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func CompiledFunctionEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

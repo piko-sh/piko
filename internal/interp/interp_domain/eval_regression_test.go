@@ -88,47 +88,47 @@ func (w *testWriter) Result() string {
 func TestShiftWithUintAmount(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{int64(8), "shift_left_uint_amount", `a := 1; b := uint(3); a << b`},
-		{int64(4), "shift_right_uint_amount", `a := 16; b := uint(2); a >> b`},
-		{int64(16), "shift_left_uint_var", `x := 1; var n uint = 4; x << n`},
+		{expect: int64(8), name: "shift_left_uint_amount", code: `a := 1; b := uint(3); a << b`},
+		{expect: int64(4), name: "shift_right_uint_amount", code: `a := 16; b := uint(2); a >> b`},
+		{expect: int64(16), name: "shift_left_uint_var", code: `x := 1; var n uint = 4; x << n`},
 
-		{int64(8), "shift_left_const", `a := 1; a << 3`},
-		{int64(4), "shift_right_const", `a := 16; a >> 2`},
+		{expect: int64(8), name: "shift_left_const", code: `a := 1; a << 3`},
+		{expect: int64(4), name: "shift_right_const", code: `a := 16; a >> 2`},
 	})
 }
 
 func TestGoDispatchShiftWithUintAmount(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(8), "shift_left_uint_amount", `a := 1; b := uint(3); a << b`},
-		{int64(4), "shift_right_uint_amount", `a := 16; b := uint(2); a >> b`},
-		{int64(16), "shift_left_uint_var", `x := 1; var n uint = 4; x << n`},
-		{int64(8), "shift_left_const", `a := 1; a << 3`},
-		{int64(4), "shift_right_const", `a := 16; a >> 2`},
+		{expect: int64(8), name: "shift_left_uint_amount", code: `a := 1; b := uint(3); a << b`},
+		{expect: int64(4), name: "shift_right_uint_amount", code: `a := 16; b := uint(2); a >> b`},
+		{expect: int64(16), name: "shift_left_uint_var", code: `x := 1; var n uint = 4; x << n`},
+		{expect: int64(8), name: "shift_left_const", code: `a := 1; a << 3`},
+		{expect: int64(4), name: "shift_right_const", code: `a := 16; a >> 2`},
 	})
 }
 
 func TestStringSliceCompoundAssign(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{"hello world", "string_slice_concat", `s := []string{"hello"}; s[0] += " world"; s[0]`},
-		{"abc", "string_slice_concat_multi", `s := []string{"a", "b"}; s[0] += "bc"; s[0]`},
+		{expect: "hello world", name: "string_slice_concat", code: `s := []string{"hello"}; s[0] += " world"; s[0]`},
+		{expect: "abc", name: "string_slice_concat_multi", code: `s := []string{"a", "b"}; s[0] += "bc"; s[0]`},
 	})
 }
 
 func TestUintSliceCompoundAssign(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{uint64(15), "uint_slice_add", `s := []uint{10}; s[0] += 5; s[0]`},
-		{uint64(6), "uint_slice_mul", `s := []uint{3}; s[0] *= 2; s[0]`},
+		{expect: uint64(15), name: "uint_slice_add", code: `s := []uint{10}; s[0] += 5; s[0]`},
+		{expect: uint64(6), name: "uint_slice_mul", code: `s := []uint{3}; s[0] *= 2; s[0]`},
 	})
 }
 
 func TestIntSliceCompoundAssignRegression(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{int64(15), "int_slice_add", `s := []int{10}; s[0] += 5; s[0]`},
-		{float64(4.0), "float_slice_add", `s := []float64{1.5}; s[0] += 2.5; s[0]`},
+		{expect: int64(15), name: "int_slice_add", code: `s := []int{10}; s[0] += 5; s[0]`},
+		{expect: float64(4.0), name: "float_slice_add", code: `s := []float64{1.5}; s[0] += 2.5; s[0]`},
 	})
 }
 
@@ -136,40 +136,40 @@ func TestUnexportedIntFieldAccess(t *testing.T) {
 	t.Parallel()
 
 	runEvalTable(t, nil, []evalTestCase{
-		{int64(5), "exported_field_set_get", `type S struct { X int }; s := S{}; s.X = 5; s.X`},
-		{int64(15), "exported_field_compound", `type S struct { X int }; s := S{X: 10}; s.X += 5; s.X`},
+		{expect: int64(5), name: "exported_field_set_get", code: `type S struct { X int }; s := S{}; s.X = 5; s.X`},
+		{expect: int64(15), name: "exported_field_compound", code: `type S struct { X int }; s := S{X: 10}; s.X += 5; s.X`},
 	})
 }
 
 func TestGoDispatchUnexportedIntFieldAccess(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(5), "exported_field_set_get", `type S struct { X int }; s := S{}; s.X = 5; s.X`},
-		{int64(15), "exported_field_compound", `type S struct { X int }; s := S{X: 10}; s.X += 5; s.X`},
+		{expect: int64(5), name: "exported_field_set_get", code: `type S struct { X int }; s := S{}; s.X = 5; s.X`},
+		{expect: int64(15), name: "exported_field_compound", code: `type S struct { X int }; s := S{X: 10}; s.X += 5; s.X`},
 	})
 }
 
 func TestStructFieldOps(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{int64(42), "field_literal_init", `type S struct { X int }; s := S{X: 42}; s.X`},
-		{int64(10), "field_assign", `type S struct { X int }; s := S{}; s.X = 10; s.X`},
-		{int64(3), "field_add_assign", `type S struct { X int }; s := S{X: 1}; s.X += 2; s.X`},
-		{int64(7), "field_arithmetic", `type S struct { A int; B int }; s := S{A: 3, B: 4}; s.A + s.B`},
-		{int64(20), "pointer_field_set", `type S struct { X int }; s := &S{}; s.X = 20; s.X`},
-		{"hello", "string_field", `type S struct { Name string }; s := S{Name: "hello"}; s.Name`},
-		{true, "bool_field", `type S struct { Active bool }; s := S{Active: true}; s.Active`},
-		{float64(3.14), "float_field", `type S struct { Value float64 }; s := S{Value: 3.14}; s.Value`},
+		{expect: int64(42), name: "field_literal_init", code: `type S struct { X int }; s := S{X: 42}; s.X`},
+		{expect: int64(10), name: "field_assign", code: `type S struct { X int }; s := S{}; s.X = 10; s.X`},
+		{expect: int64(3), name: "field_add_assign", code: `type S struct { X int }; s := S{X: 1}; s.X += 2; s.X`},
+		{expect: int64(7), name: "field_arithmetic", code: `type S struct { A int; B int }; s := S{A: 3, B: 4}; s.A + s.B`},
+		{expect: int64(20), name: "pointer_field_set", code: `type S struct { X int }; s := &S{}; s.X = 20; s.X`},
+		{expect: "hello", name: "string_field", code: `type S struct { Name string }; s := S{Name: "hello"}; s.Name`},
+		{expect: true, name: "bool_field", code: `type S struct { Active bool }; s := S{Active: true}; s.Active`},
+		{expect: float64(3.14), name: "float_field", code: `type S struct { Value float64 }; s := S{Value: 3.14}; s.Value`},
 	})
 }
 
 func TestGoDispatchStructFieldOps(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(42), "field_literal_init", `type S struct { X int }; s := S{X: 42}; s.X`},
-		{int64(10), "field_assign", `type S struct { X int }; s := S{}; s.X = 10; s.X`},
-		{int64(3), "field_add_assign", `type S struct { X int }; s := S{X: 1}; s.X += 2; s.X`},
-		{int64(20), "pointer_field_set", `type S struct { X int }; s := &S{}; s.X = 20; s.X`},
+		{expect: int64(42), name: "field_literal_init", code: `type S struct { X int }; s := S{X: 42}; s.X`},
+		{expect: int64(10), name: "field_assign", code: `type S struct { X int }; s := S{}; s.X = 10; s.X`},
+		{expect: int64(3), name: "field_add_assign", code: `type S struct { X int }; s := S{X: 1}; s.X += 2; s.X`},
+		{expect: int64(20), name: "pointer_field_set", code: `type S struct { X int }; s := &S{}; s.X = 20; s.X`},
 	})
 }
 
@@ -192,17 +192,21 @@ func TestSortSliceWithTimeAfter(t *testing.T) {
 	symbols.SynthesiseAll()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "sort.Slice using time.Time.After",
 			source: `package main
 
-import "sort"
-import "time"
+import (
+	"sort"
+)
+import (
+	"time"
+)
 
 func run() bool {
 	t1 := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -237,8 +241,12 @@ func main() {}
 			name: "sort.Slice using time.Time.Before",
 			source: `package main
 
-import "sort"
-import "time"
+import (
+	"sort"
+)
+import (
+	"time"
+)
 
 func run() bool {
 	t1 := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -284,26 +292,26 @@ func main() {}
 }
 
 type nativePageItem struct {
-	Name             string
-	Published        bool
 	CreatedAt        time.Time
 	VersionCreatedAt time.Time
+	Name             string
+	Published        bool
 }
 
 type nativePageWithVersion struct {
-	ID                        [16]byte
-	WebsiteID                 [16]byte
-	BlueprintID               [16]byte
 	CreatedAt                 time.Time
+	VersionCreatedAt          time.Time
+	VersionStatus             string
+	VersionReason             json.RawMessage
+	VersionData               json.RawMessage
 	VersionID                 [16]byte
 	VersionEnvironmentID      [16]byte
 	VersionBlueprintVersionID [16]byte
 	VersionAccountID          [16]byte
-	VersionStatus             string
-	VersionReason             json.RawMessage
-	VersionData               json.RawMessage
+	BlueprintID               [16]byte
+	ID                        [16]byte
+	WebsiteID                 [16]byte
 	VersionPublished          bool
-	VersionCreatedAt          time.Time
 }
 
 func TestSortSliceWithNativeStructTimeAfter(t *testing.T) {
@@ -341,17 +349,21 @@ func TestSortSliceWithNativeStructTimeAfter(t *testing.T) {
 	symbols.SynthesiseAll()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "sort native struct slice by CreatedAt.After",
 			source: `package main
 
-import "sort"
-import "mypkg"
+import (
+	"sort"
+)
+import (
+	"mypkg"
+)
 
 func run() string {
 	items := mypkg.MakeItems()
@@ -370,8 +382,12 @@ func main() {}
 			name: "sort native struct slice by VersionCreatedAt.Before",
 			source: `package main
 
-import "sort"
-import "mypkg"
+import (
+	"sort"
+)
+import (
+	"mypkg"
+)
 
 func run() string {
 	items := mypkg.MakeItems()
@@ -445,17 +461,21 @@ func TestSortSliceWithRealTypesPackage(t *testing.T) {
 	symbols.SynthesiseAll()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "sort native struct slice by CreatedAt.After with real types",
 			source: `package main
 
-import "sort"
-import "mypkg"
+import (
+	"sort"
+)
+import (
+	"mypkg"
+)
 
 func run() string {
 	items := mypkg.MakeItems()
@@ -474,8 +494,12 @@ func main() {}
 			name: "sort native struct slice by VersionCreatedAt.Before with real types",
 			source: `package main
 
-import "sort"
-import "mypkg"
+import (
+	"sort"
+)
+import (
+	"mypkg"
+)
 
 func run() string {
 	items := mypkg.MakeItems()
@@ -538,8 +562,12 @@ func TestNativeStructFieldWithRealTypesPackage(t *testing.T) {
 
 	source := `package main
 
-import "encoding/json"
-import "mypkg"
+import (
+	"encoding/json"
+)
+import (
+	"mypkg"
+)
 
 func process(data json.RawMessage) string {
 	return string(data)
@@ -614,17 +642,21 @@ func TestSortSliceProductionLayout(t *testing.T) {
 	symbols.SynthesiseAll()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "sort by VersionCreatedAt.After (field index 12)",
 			source: `package main
 
-import "sort"
-import "mypkg"
+import (
+	"sort"
+)
+import (
+	"mypkg"
+)
 
 func run() string {
 	items := mypkg.MakeItems()
@@ -643,8 +675,12 @@ func main() {}
 			name: "sort by CreatedAt.Before (field index 3)",
 			source: `package main
 
-import "sort"
-import "mypkg"
+import (
+	"sort"
+)
+import (
+	"mypkg"
+)
 
 func run() string {
 	items := mypkg.MakeItems()
@@ -663,8 +699,12 @@ func main() {}
 			name: "switch with multiple sort.Slice closures (production pattern)",
 			source: `package main
 
-import "sort"
-import "mypkg"
+import (
+	"sort"
+)
+import (
+	"mypkg"
+)
 
 func run() string {
 	items := mypkg.MakeItems()
@@ -723,7 +763,9 @@ func TestMethodCallSameNameAsPackageFunction(t *testing.T) {
 	source := `
 package main
 
-import "time"
+import (
+	"time"
+)
 
 func run() bool {
 	a := time.Date(2025, 1, 2, 0, 0, 0, 0, time.Now().Location())
@@ -1147,7 +1189,9 @@ func TestStructFieldIndexCrossFunction(t *testing.T) {
 	source := `
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type TableCell struct {
 	Text         string
@@ -1287,7 +1331,9 @@ func TestDoubleRecycleRedeclaredVar(t *testing.T) {
 	source := `
 package main
 
-import "mypkg"
+import (
+	"mypkg"
+)
 
 func run() string {
 	// data1 declared as general register (slice), err as general (error)
@@ -1392,15 +1438,33 @@ func TestLargeNativeCallWithRecycling(t *testing.T) {
 	source := `
 package main
 
-import "partial1"
-import "partial2"
-import "partial3"
-import "partial4"
-import "partial5"
-import "partial6"
-import "partial7"
-import "partial8"
-import "factory"
+import (
+	"partial1"
+)
+import (
+	"partial2"
+)
+import (
+	"partial3"
+)
+import (
+	"partial4"
+)
+import (
+	"partial5"
+)
+import (
+	"partial6"
+)
+import (
+	"partial7"
+)
+import (
+	"partial8"
+)
+import (
+	"factory"
+)
 
 func run() string {
 	// Phase 1: Multi-return calls with blank discards (register recycling)
@@ -1495,15 +1559,33 @@ func TestLargeNativeMethodCallWithRecycling(t *testing.T) {
 	source := `
 package main
 
-import "partial1"
-import "partial2"
-import "partial3"
-import "partial4"
-import "partial5"
-import "partial6"
-import "partial7"
-import "partial8"
-import "factory"
+import (
+	"partial1"
+)
+import (
+	"partial2"
+)
+import (
+	"partial3"
+)
+import (
+	"partial4"
+)
+import (
+	"partial5"
+)
+import (
+	"partial6"
+)
+import (
+	"partial7"
+)
+import (
+	"partial8"
+)
+import (
+	"factory"
+)
 
 func run() string {
 	// Phase 1: Multi-return calls with blank discards
@@ -1598,7 +1680,9 @@ func TestVarDeclMapThenAddr(t *testing.T) {
 	source := `
 package main
 
-import "mypkg"
+import (
+	"mypkg"
+)
 
 func run() string {
 	var pageData map[string]any
@@ -1640,7 +1724,9 @@ func TestNamedStringMethodCallAsArgument(t *testing.T) {
 	source := `
 package main
 
-import "mypkg"
+import (
+	"mypkg"
+)
 
 func run() string {
 	item := mypkg.NewItem("abc", "test")
@@ -1678,7 +1764,9 @@ func TestNamedStringMethodCallAsArgumentWithRecycling(t *testing.T) {
 	source := `
 package main
 
-import "mypkg"
+import (
+	"mypkg"
+)
 
 func run() string {
 	// Multi-return calls with blank discards to populate the recycled register pool.

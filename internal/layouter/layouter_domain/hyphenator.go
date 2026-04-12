@@ -28,26 +28,27 @@ import (
 )
 
 const (
-	// hyphenLeftMin is the minimum number of characters before the
-	// first allowed break point.
+	// hyphenLeftMin is the minimum number of characters before the first allowed break
+	// point.
 	hyphenLeftMin = 2
 
-	// hyphenRightMin is the minimum number of characters after the
-	// last allowed break point.
+	// hyphenRightMin is the minimum number of characters after the last allowed break point.
 	hyphenRightMin = 3
 
 	// langEnUS is the default language tag for hyphenation.
 	langEnUS = "en-us"
 )
 
-// enUSPatterns holds the embedded TeX hyphenation patterns for American English.
-//
-//go:embed patterns/hyph-en-us.pat.txt
-var enUSPatterns string
+var (
 
-// trieNode is a node in the pattern trie. Each node may have
-// children keyed by rune and an optional values slice holding
-// the interleaved digit levels from the pattern.
+	// enUSPatterns holds the embedded TeX hyphenation patterns for American English.
+	//
+	//go:embed patterns/hyph-en-us.pat.txt
+	enUSPatterns string
+)
+
+// trieNode is a node in the pattern trie. Each node may have children keyed by rune and
+// an optional values slice holding the interleaved digit levels from the pattern.
 type trieNode struct {
 	// children holds the child nodes keyed by rune.
 	children map[rune]*trieNode
@@ -63,17 +64,15 @@ func newTrieNode() *trieNode {
 	return &trieNode{children: make(map[rune]*trieNode)}
 }
 
-// Hyphenator holds a compiled trie of hyphenation patterns for a
-// single language. It is safe for concurrent use after construction.
+// Hyphenator holds a compiled trie of hyphenation patterns for a single language. It is
+// safe for concurrent use after construction.
 //
-// The algorithm works by building a trie from TeX pattern strings
-// during construction. Each pattern encodes interleaved letters and
-// digit values that indicate hyphenation priority at each position.
-// During lookup, the word is augmented with boundary markers (.),
-// all matching patterns are overlaid (taking the maximum digit at
-// each position), and odd-valued positions indicate valid break
-// points. Breaks within leftMin characters from the start or
-// rightMin characters from the end are suppressed.
+// The algorithm works by building a trie from TeX pattern strings during construction.
+// Each pattern encodes interleaved letters and digit values that indicate hyphenation
+// priority at each position. During lookup, the word is augmented with boundary markers
+// (.), all matching patterns are overlaid (taking the maximum digit at each position),
+// and odd-valued positions indicate valid break points. Breaks within leftMin characters
+// from the start or rightMin characters from the end are suppressed.
 type Hyphenator struct {
 	// trie holds the root of the compiled pattern trie.
 	trie *trieNode
@@ -87,8 +86,8 @@ type Hyphenator struct {
 
 // NewHyphenator creates a Hyphenator from a TeX-format pattern string.
 //
-// The pattern string contains one pattern per line. Comment lines
-// beginning with '%' and empty lines are skipped.
+// The pattern string contains one pattern per line. Comment lines beginning with '%' and
+// empty lines are skipped.
 //
 // Takes patterns (string) which is the TeX-format pattern data.
 //
@@ -103,17 +102,16 @@ func NewHyphenator(patterns string) *Hyphenator {
 	}
 }
 
-// Hyphenate returns the rune indices of valid hyphenation points
-// in the given word.
+// Hyphenate returns the rune indices of valid hyphenation points in the given word.
 //
-// Each index indicates a position between runes where a hyphen may
-// be inserted. For example, for "hyp-hen" where the break is between
-// index 3 and 4, the returned index would be 3.
+// Each index indicates a position between runes where a hyphen may be inserted. For
+// example, for "hyp-hen" where the break is between index 3 and 4, the returned index
+// would be 3.
 //
 // Takes word (string) which is the word to hyphenate.
 //
-// Returns []int which holds the rune indices of break points, or nil
-// if the word is too short or contains no valid break points.
+// Returns []int which holds the rune indices of break points, or nil if the word is too
+// short or contains no valid break points.
 func (h *Hyphenator) Hyphenate(word string) []int {
 	runes := []rune(strings.ToLower(word))
 	if len(runes) < h.leftMin+h.rightMin {
@@ -126,13 +124,13 @@ func (h *Hyphenator) Hyphenate(word string) []int {
 	return collectBreakPoints(levels, len(runes), h.leftMin, h.rightMin)
 }
 
-// InsertSoftHyphens returns the word with Unicode soft hyphen
-// characters (U+00AD) inserted at all valid hyphenation points.
+// InsertSoftHyphens returns the word with Unicode soft hyphen characters (U+00AD)
+// inserted at all valid hyphenation points.
 //
 // Takes word (string) which is the word to insert soft hyphens into.
 //
-// Returns string which is the word with soft hyphens, or the original
-// word unchanged if no hyphenation points are found.
+// Returns string which is the word with soft hyphens, or the original word unchanged if
+// no hyphenation points are found.
 func (h *Hyphenator) InsertSoftHyphens(word string) string {
 	points := h.Hyphenate(word)
 	if len(points) == 0 {
@@ -157,9 +155,8 @@ func (h *Hyphenator) InsertSoftHyphens(word string) string {
 	return b.String()
 }
 
-// walkTrie walks the pattern trie from every starting position in
-// augmented, overlaying the maximum digit value at each position
-// into levels.
+// walkTrie walks the pattern trie from every starting position in augmented, overlaying
+// the maximum digit value at each position into levels.
 //
 // Takes augmented ([]rune) which is the boundary-marked word.
 // Takes levels ([]int) which receives the overlaid digit values.
@@ -191,12 +188,10 @@ func buildTrie(root *trieNode, lines iter.Seq[string]) {
 	}
 }
 
-// insertPattern parses a single TeX pattern and inserts it into
-// the trie.
+// insertPattern parses a single TeX pattern and inserts it into the trie.
 //
-// A pattern like "hy1p" means the letters are "hyp" and the values
-// at positions [0,1,2,3] are [0,0,1,0]. The dot (.) represents
-// a word boundary.
+// A pattern like "hy1p" means the letters are "hyp" and the values at positions [0,1,2,3]
+// are [0,0,1,0]. The dot (.) represents a word boundary.
 //
 // Takes root (*trieNode) which is the trie root to insert into.
 // Takes pattern (string) which is the TeX pattern string.
@@ -245,8 +240,8 @@ func augmentWord(runes []rune) []rune {
 	return append(augmented, '.')
 }
 
-// overlayValues merges pattern values into levels starting at
-// offset, keeping the maximum at each position.
+// overlayValues merges pattern values into levels starting at offset, keeping the maximum
+// at each position.
 //
 // Takes values ([]int) which holds the pattern digit values.
 // Takes levels ([]int) which receives the maximum values.
@@ -260,8 +255,8 @@ func overlayValues(values, levels []int, offset int) {
 	}
 }
 
-// collectBreakPoints returns rune indices where odd-valued levels
-// indicate valid hyphenation points, respecting margin constraints.
+// collectBreakPoints returns rune indices where odd-valued levels indicate valid
+// hyphenation points, respecting margin constraints.
 //
 // Takes levels ([]int) which holds the computed digit levels.
 // Takes wordLen (int) which is the number of runes in the word.
@@ -279,8 +274,7 @@ func collectBreakPoints(levels []int, wordLen, leftMin, rightMin int) []int {
 	return points
 }
 
-// HyphenationRegistry holds lazily-initialised hyphenators keyed
-// by language tag.
+// HyphenationRegistry holds lazily-initialised hyphenators keyed by language tag.
 type HyphenationRegistry struct {
 	// hyphenators holds the cached hyphenators keyed by normalised language tag.
 	hyphenators map[string]*Hyphenator
@@ -289,25 +283,26 @@ type HyphenationRegistry struct {
 	mu sync.Mutex
 }
 
-// defaultHyphenationRegistry holds the package-level registry
-// of language-specific hyphenators.
-var defaultHyphenationRegistry = &HyphenationRegistry{
-	hyphenators: make(map[string]*Hyphenator),
-}
+var (
+	// defaultHyphenationRegistry holds the package-level registry of language-specific
+	// hyphenators.
+	defaultHyphenationRegistry = &HyphenationRegistry{
+		hyphenators: make(map[string]*Hyphenator),
+	}
+)
 
-// DefaultRegistry returns the package-level registry of
-// hyphenators, lazily initialising them on first use.
+// DefaultRegistry returns the package-level registry of hyphenators, lazily initialising
+// them on first use.
 //
 // Returns *HyphenationRegistry which is the shared registry instance.
 func DefaultRegistry() *HyphenationRegistry {
 	return defaultHyphenationRegistry
 }
 
-// Get returns the Hyphenator for the given language tag,
-// constructing it on first access.
+// Get returns the Hyphenator for the given language tag, constructing it on first access.
 //
-// Falls back to "en-us" for unsupported languages. The language
-// tag is normalised to lowercase.
+// Falls back to "en-us" for unsupported languages. The language tag is normalised to
+// lowercase.
 //
 // Takes lang (string) which is the language tag to look up.
 //
@@ -355,8 +350,8 @@ func normaliseLang(lang string) string {
 	return lang
 }
 
-// patternsForLang returns the embedded pattern data for a
-// language tag, or empty string if unsupported.
+// patternsForLang returns the embedded pattern data for a language tag, or empty string
+// if unsupported.
 //
 // Takes lang (string) which is the normalised language tag.
 //

@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Handles loop variable analysis for p-for directives by extracting, validating, and registering loop variables in the symbol table.
-// Manages index and value variables, maintains proper scoping, and validates loop expressions for semantic correctness.
+// Handles loop variable analysis for p-for directives by extracting, validating, and
+// registering loop variables in the symbol table. Manages index and value variables,
+// maintains proper scoping, and validates loop expressions for semantic correctness.
 
 import (
 	"fmt"
@@ -29,33 +30,38 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// maxLoopVarSearchIterations is the maximum number of attempts to find a
-// unique loop variable name.
-const maxLoopVarSearchIterations = 100
+const (
 
-// loopVariableManagerPool reuses LoopVariableManager instances
-// to reduce allocation pressure.
-var loopVariableManagerPool = sync.Pool{
-	New: func() any {
-		return &LoopVariableManager{}
-	},
-}
+	// maxLoopVarSearchIterations is the maximum number of attempts to find a unique loop
+	// variable name.
+	maxLoopVarSearchIterations = 100
+)
 
-// LoopVariableManager handles loop variable names during code generation.
-// It checks that user-defined variables do not shadow built-in symbols and
-// creates unique names for index variables in nested loops.
+var (
+	// loopVariableManagerPool reuses LoopVariableManager instances to reduce allocation
+	// pressure.
+	loopVariableManagerPool = sync.Pool{
+		New: func() any {
+			return &LoopVariableManager{}
+		},
+	}
+)
+
+// LoopVariableManager handles loop variable names during code generation. It checks that
+// user-defined variables do not shadow built-in symbols and creates unique names for
+// index variables in nested loops.
 type LoopVariableManager struct {
 	// ctx holds the analysis context for symbol lookup and diagnostics.
 	ctx *AnalysisContext
 }
 
-// ValidateLoopVariable checks a single loop variable for shadowing reserved
-// names. It emits warnings if the variable shadows built-in Piko system
-// symbols or global functions.
+// ValidateLoopVariable checks a single loop variable for shadowing reserved names. It
+// emits warnings if the variable shadows built-in Piko system symbols or global
+// functions.
 //
 // Takes variable (*ast_domain.Identifier) which is the loop variable to check.
-// Takes forDirective (*ast_domain.Directive) which provides location context
-// for diagnostics.
+// Takes forDirective (*ast_domain.Directive) which provides location context for
+// diagnostics.
 func (lvm *LoopVariableManager) ValidateLoopVariable(variable *ast_domain.Identifier, forDirective *ast_domain.Directive) {
 	if variable == nil {
 		return
@@ -75,12 +81,12 @@ func (lvm *LoopVariableManager) ValidateLoopVariable(variable *ast_domain.Identi
 	}
 }
 
-// GenerateUniqueLoopVarName generates a unique loop variable name to avoid
-// shadowing in nested loops.
+// GenerateUniqueLoopVarName generates a unique loop variable name to avoid shadowing in
+// nested loops.
 //
-// It checks the current context for existing __pikoLoopIdx variables and
-// returns __pikoLoopIdx, __pikoLoopIdx2, __pikoLoopIdx3, etc. This avoids
-// name collisions so each nested loop level has its own distinct index variable.
+// It checks the current context for existing __pikoLoopIdx variables and returns
+// __pikoLoopIdx, __pikoLoopIdx2, __pikoLoopIdx3, etc. This avoids name collisions so each
+// nested loop level has its own distinct index variable.
 //
 // Takes depth (int) which specifies the current loop nesting level.
 //
@@ -102,11 +108,9 @@ func (lvm *LoopVariableManager) GenerateUniqueLoopVarName(depth int) string {
 	return fmt.Sprintf("__pikoLoopIdx%d", depth)
 }
 
-// getLoopVariableManager gets a LoopVariableManager from the pool and sets it
-// up for use.
+// getLoopVariableManager gets a LoopVariableManager from the pool and sets it up for use.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis context for the
-// manager.
+// Takes ctx (*AnalysisContext) which provides the analysis context for the manager.
 //
 // Returns *LoopVariableManager which is ready to use.
 func getLoopVariableManager(ctx *AnalysisContext) *LoopVariableManager {
@@ -118,8 +122,7 @@ func getLoopVariableManager(ctx *AnalysisContext) *LoopVariableManager {
 	return lvm
 }
 
-// putLoopVariableManager resets the LoopVariableManager and returns it to
-// the pool.
+// putLoopVariableManager resets the LoopVariableManager and returns it to the pool.
 //
 // Takes lvm (*LoopVariableManager) which is the manager to reset and return.
 func putLoopVariableManager(lvm *LoopVariableManager) {
@@ -127,8 +130,8 @@ func putLoopVariableManager(lvm *LoopVariableManager) {
 	loopVariableManagerPool.Put(lvm)
 }
 
-// newLoopVariableManager creates a new LoopVariableManager for the given
-// analysis context.
+// newLoopVariableManager creates a new LoopVariableManager for the given analysis
+// context.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
 //

@@ -18,16 +18,18 @@
 
 package inspector_domain
 
-// This file provides a slab allocator for inspector DTO structs. Instead of
-// making one heap allocation per struct, it allocates backing arrays in chunks
-// and bump-allocates from them. This consolidates hundreds of thousands of
-// tiny allocations into a handful of slab-growth operations.
+// This file provides a slab allocator for inspector DTO structs. Instead of making one
+// heap allocation per struct, it allocates backing arrays in chunks and bump-allocates
+// from them. This consolidates hundreds of thousands of tiny allocations into a handful
+// of slab-growth operations.
 //
-// The arena is NOT pooled - each build gets a fresh arena whose backing memory
-// persists as long as the DTO pointers reference it. When the TypeData is
-// eventually garbage collected, the arena slabs are collected too.
+// The arena is NOT pooled - each build gets a fresh arena whose backing memory persists
+// as long as the DTO pointers reference it. When the TypeData is eventually garbage
+// collected, the arena slabs are collected too.
 
-import "piko.sh/piko/internal/inspector/inspector_dto"
+import (
+	"piko.sh/piko/internal/inspector/inspector_dto"
+)
 
 const (
 	// initialCompositePartSlab is the initial capacity of the CompositePart slab.
@@ -49,9 +51,9 @@ const (
 	initialTypeSlab = 256
 )
 
-// encoderArena provides slab-allocated DTO structs for the encoding pipeline.
-// Each call to a getter method returns a pointer into a pre-allocated backing
-// array, avoiding individual heap allocations.
+// encoderArena provides slab-allocated DTO structs for the encoding pipeline. Each call
+// to a getter method returns a pointer into a pre-allocated backing array, avoiding
+// individual heap allocations.
 type encoderArena struct {
 	// compositeParts is the backing slab for CompositePart structs.
 	compositeParts []inspector_dto.CompositePart
@@ -106,8 +108,7 @@ func newEncoderArena() *encoderArena {
 
 // CompositePart returns a zeroed CompositePart from the slab.
 //
-// Returns *inspector_dto.CompositePart bump-allocated from the
-// backing array.
+// Returns *inspector_dto.CompositePart bump-allocated from the backing array.
 func (a *encoderArena) CompositePart() *inspector_dto.CompositePart {
 	if a.compositePartsUsed >= len(a.compositeParts) {
 		a.compositeParts = append(a.compositeParts, make([]inspector_dto.CompositePart, len(a.compositeParts))...)
@@ -119,8 +120,7 @@ func (a *encoderArena) CompositePart() *inspector_dto.CompositePart {
 
 // Field returns a zeroed Field from the slab.
 //
-// Returns *inspector_dto.Field bump-allocated from the backing
-// array.
+// Returns *inspector_dto.Field bump-allocated from the backing array.
 func (a *encoderArena) Field() *inspector_dto.Field {
 	if a.fieldsUsed >= len(a.fields) {
 		a.fields = append(a.fields, make([]inspector_dto.Field, len(a.fields))...)
@@ -132,8 +132,7 @@ func (a *encoderArena) Field() *inspector_dto.Field {
 
 // Method returns a zeroed Method from the slab.
 //
-// Returns *inspector_dto.Method bump-allocated from the backing
-// array.
+// Returns *inspector_dto.Method bump-allocated from the backing array.
 func (a *encoderArena) Method() *inspector_dto.Method {
 	if a.methodsUsed >= len(a.methods) {
 		a.methods = append(a.methods, make([]inspector_dto.Method, len(a.methods))...)
@@ -145,8 +144,7 @@ func (a *encoderArena) Method() *inspector_dto.Method {
 
 // Function returns a zeroed Function from the slab.
 //
-// Returns *inspector_dto.Function bump-allocated from the backing
-// array.
+// Returns *inspector_dto.Function bump-allocated from the backing array.
 func (a *encoderArena) Function() *inspector_dto.Function {
 	if a.functionsUsed >= len(a.functions) {
 		a.functions = append(a.functions, make([]inspector_dto.Function, len(a.functions))...)
@@ -158,8 +156,7 @@ func (a *encoderArena) Function() *inspector_dto.Function {
 
 // Variable returns a zeroed Variable from the slab.
 //
-// Returns *inspector_dto.Variable bump-allocated from the backing
-// array.
+// Returns *inspector_dto.Variable bump-allocated from the backing array.
 func (a *encoderArena) Variable() *inspector_dto.Variable {
 	if a.variablesUsed >= len(a.variables) {
 		a.variables = append(a.variables, make([]inspector_dto.Variable, len(a.variables))...)
@@ -171,8 +168,7 @@ func (a *encoderArena) Variable() *inspector_dto.Variable {
 
 // Type returns a zeroed Type from the slab.
 //
-// Returns *inspector_dto.Type bump-allocated from the backing
-// array.
+// Returns *inspector_dto.Type bump-allocated from the backing array.
 func (a *encoderArena) Type() *inspector_dto.Type {
 	if a.typesUsed >= len(a.types) {
 		a.types = append(a.types, make([]inspector_dto.Type, len(a.types))...)

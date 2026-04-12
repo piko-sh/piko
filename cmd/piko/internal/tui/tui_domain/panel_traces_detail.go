@@ -25,13 +25,11 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body for the row currently under
-// the cursor. Span rows show metadata (trace ID, service, name,
-// duration, status) plus selected attributes; otherwise an overview
-// is rendered.
+// DetailView renders the detail-pane body for the row currently under the cursor. Span
+// rows show metadata (trace ID, service, name, duration, status) plus selected
+// attributes; otherwise an overview is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *TracesPanel) DetailView(width, height int) string {
@@ -39,8 +37,8 @@ func (p *TracesPanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target.
 //
 // Returns inspector.DetailBody describing the selected span or the overview.
 func (p *TracesPanel) buildDetailBody() inspector.DetailBody {
@@ -123,11 +121,10 @@ func (p *TracesPanel) tracesOverviewDetailBody() inspector.DetailBody {
 	}
 }
 
-// tracesFilterLabel returns a friendly description of the current span
-// filter mode.
+// tracesFilterLabel returns a friendly description of the current span filter mode.
 //
-// Takes errorsOnly (bool) which indicates whether the filter is restricted
-// to error spans.
+// Takes errorsOnly (bool) which indicates whether the filter is restricted to error
+// spans.
 //
 // Returns string which is the human-readable filter label.
 func tracesFilterLabel(errorsOnly bool) string {

@@ -1,0 +1,5 @@
+{
+  "description": "Context cancelled in main is observed by inner package via ctx.Done() select default branch.",
+  "expected": "cancelled",
+  "modulePath": "example.com/ctxprop"
+}

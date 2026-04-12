@@ -34,13 +34,13 @@ import (
 )
 
 const (
-	// DefaultMetricsCollectionInterval is the default time between metrics
-	// collection cycles.
+	// DefaultMetricsCollectionInterval is the default time between metrics collection
+	// cycles.
 	DefaultMetricsCollectionInterval = 5 * time.Second
 
-	// errReaderNotRegistered is the error message returned by OTEL's ManualReader
-	// when Collect is called before the reader is registered with a MeterProvider.
-	// This is normal during startup and should not be logged as a warning.
+	// errReaderNotRegistered is the error message returned by OTEL's ManualReader when
+	// Collect is called before the reader is registered with a MeterProvider. This is normal
+	// during startup and should not be logged as a warning.
 	errReaderNotRegistered = "reader is not registered"
 
 	// metricTypeCounter is the type label for counter metrics.
@@ -56,7 +56,9 @@ const (
 // MetricsCollectorOption configures a MetricsCollector.
 type MetricsCollectorOption func(*MetricsCollector)
 
-var _ monitoring_domain.MetricsCollectorAdapter = (*MetricsCollector)(nil)
+var (
+	_ monitoring_domain.MetricsCollectorAdapter = (*MetricsCollector)(nil)
+)
 
 // MetricsCollector wraps the SDK's ManualReader and collects metrics into a
 // TelemetryStore for gRPC access. It implements the MetricsCollectorAdapter,
@@ -102,19 +104,17 @@ func NewMetricsCollector(store *monitoring_domain.TelemetryStore, interval time.
 }
 
 // Reader returns the underlying ManualReader which implements
-// monitoring_domain.MetricReader. This is what should be passed to the
-// MeterProvider.
+// monitoring_domain.MetricReader. This is what should be passed to the MeterProvider.
 //
-// Returns monitoring_domain.MetricReader which provides access to collected
-// metrics.
+// Returns monitoring_domain.MetricReader which provides access to collected metrics.
 func (c *MetricsCollector) Reader() monitoring_domain.MetricReader {
 	return c.manualReader
 }
 
 // Start begins periodic metric collection.
 //
-// Safe for concurrent use. The spawned goroutine runs until the context is
-// cancelled or Stop is called.
+// Safe for concurrent use. The spawned goroutine runs until the context is cancelled or
+// Stop is called.
 func (c *MetricsCollector) Start(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	go func() {
@@ -171,13 +171,12 @@ func (c *MetricsCollector) collect(ctx context.Context) error {
 	return nil
 }
 
-// recordMetric stores a metric by dispatching to the appropriate handler
-// based on its data type.
+// recordMetric stores a metric by dispatching to the appropriate handler based on its
+// data type.
 //
 // Takes m (metricdata.Metrics) which is the metric to record.
 //
-// revive:disable:cyclomatic High case count is required for OTEL metric type
-// dispatch
+// revive:disable:cyclomatic High case count is required for OTEL metric type dispatch
 func (c *MetricsCollector) recordMetric(m metricdata.Metrics) {
 	switch data := m.Data.(type) {
 	case metricdata.Sum[int64]:
@@ -199,10 +198,8 @@ func (c *MetricsCollector) recordMetric(m metricdata.Metrics) {
 
 // recordSumInt64 records integer sum metric data points to the store.
 //
-// Takes m (metricdata.Metrics) which provides the metric name, description,
-// and unit.
-// Takes data (metricdata.Sum[int64]) which contains the integer data points
-// to record.
+// Takes m (metricdata.Metrics) which provides the metric name, description, and unit.
+// Takes data (metricdata.Sum[int64]) which contains the integer data points to record.
 func (c *MetricsCollector) recordSumInt64(m metricdata.Metrics, data metricdata.Sum[int64]) {
 	for _, dp := range data.DataPoints {
 		attrs := attributeSetToMap(dp.Attributes)
@@ -212,10 +209,8 @@ func (c *MetricsCollector) recordSumInt64(m metricdata.Metrics, data metricdata.
 
 // recordSumFloat64 records float64 sum metric data points to the store.
 //
-// Takes m (metricdata.Metrics) which provides the metric name, description,
-// and unit.
-// Takes data (metricdata.Sum[float64]) which contains the data points to
-// record.
+// Takes m (metricdata.Metrics) which provides the metric name, description, and unit.
+// Takes data (metricdata.Sum[float64]) which contains the data points to record.
 func (c *MetricsCollector) recordSumFloat64(m metricdata.Metrics, data metricdata.Sum[float64]) {
 	for _, dp := range data.DataPoints {
 		attrs := attributeSetToMap(dp.Attributes)
@@ -225,10 +220,8 @@ func (c *MetricsCollector) recordSumFloat64(m metricdata.Metrics, data metricdat
 
 // recordGaugeInt64 records integer gauge data points to the metrics store.
 //
-// Takes m (metricdata.Metrics) which provides the metric name, description,
-// and unit.
-// Takes data (metricdata.Gauge[int64]) which contains the gauge data points
-// to record.
+// Takes m (metricdata.Metrics) which provides the metric name, description, and unit.
+// Takes data (metricdata.Gauge[int64]) which contains the gauge data points to record.
 func (c *MetricsCollector) recordGaugeInt64(m metricdata.Metrics, data metricdata.Gauge[int64]) {
 	for _, dp := range data.DataPoints {
 		attrs := attributeSetToMap(dp.Attributes)
@@ -238,10 +231,8 @@ func (c *MetricsCollector) recordGaugeInt64(m metricdata.Metrics, data metricdat
 
 // recordGaugeFloat64 records float64 gauge data points to the metric store.
 //
-// Takes m (metricdata.Metrics) which provides the metric name, description and
-// unit.
-// Takes data (metricdata.Gauge[float64]) which contains the gauge data points
-// to record.
+// Takes m (metricdata.Metrics) which provides the metric name, description and unit.
+// Takes data (metricdata.Gauge[float64]) which contains the gauge data points to record.
 func (c *MetricsCollector) recordGaugeFloat64(m metricdata.Metrics, data metricdata.Gauge[float64]) {
 	for _, dp := range data.DataPoints {
 		attrs := attributeSetToMap(dp.Attributes)
@@ -249,13 +240,12 @@ func (c *MetricsCollector) recordGaugeFloat64(m metricdata.Metrics, data metricd
 	}
 }
 
-// recordHistogramInt64 records histogram data points with int64 values to the
-// metrics store.
+// recordHistogramInt64 records histogram data points with int64 values to the metrics
+// store.
 //
-// Takes m (metricdata.Metrics) which provides the metric name, description,
-// and unit.
-// Takes data (metricdata.Histogram[int64]) which contains the histogram data
-// points to record.
+// Takes m (metricdata.Metrics) which provides the metric name, description, and unit.
+// Takes data (metricdata.Histogram[int64]) which contains the histogram data points to
+// record.
 func (c *MetricsCollector) recordHistogramInt64(m metricdata.Metrics, data metricdata.Histogram[int64]) {
 	for _, dp := range data.DataPoints {
 		attrs := attributeSetToMap(dp.Attributes)
@@ -266,10 +256,9 @@ func (c *MetricsCollector) recordHistogramInt64(m metricdata.Metrics, data metri
 
 // recordHistogramFloat64 records histogram data points with float64 values.
 //
-// Takes m (metricdata.Metrics) which provides the metric name, description,
-// and unit.
-// Takes data (metricdata.Histogram[float64]) which contains the histogram
-// data points to record.
+// Takes m (metricdata.Metrics) which provides the metric name, description, and unit.
+// Takes data (metricdata.Histogram[float64]) which contains the histogram data points to
+// record.
 func (c *MetricsCollector) recordHistogramFloat64(m metricdata.Metrics, data metricdata.Histogram[float64]) {
 	for _, dp := range data.DataPoints {
 		attrs := attributeSetToMap(dp.Attributes)
@@ -278,8 +267,8 @@ func (c *MetricsCollector) recordHistogramFloat64(m metricdata.Metrics, data met
 	}
 }
 
-// WithMetricsCollectorClock sets the clock used for ticker creation. If not
-// provided, the real system clock is used.
+// WithMetricsCollectorClock sets the clock used for ticker creation. If not provided, the
+// real system clock is used.
 //
 // Takes clk (clock.Clock) which provides time operations.
 //
@@ -292,11 +281,10 @@ func WithMetricsCollectorClock(clk clock.Clock) MetricsCollectorOption {
 	}
 }
 
-// histogramMeanInt64 calculates the mean value for an int64 histogram data
-// point.
+// histogramMeanInt64 calculates the mean value for an int64 histogram data point.
 //
-// Takes dp (metricdata.HistogramDataPoint[int64]) which is the histogram data
-// point to calculate the mean from.
+// Takes dp (metricdata.HistogramDataPoint[int64]) which is the histogram data point to
+// calculate the mean from.
 //
 // Returns float64 which is the mean value, or zero if the count is zero.
 func histogramMeanInt64(dp metricdata.HistogramDataPoint[int64]) float64 {
@@ -306,11 +294,10 @@ func histogramMeanInt64(dp metricdata.HistogramDataPoint[int64]) float64 {
 	return 0
 }
 
-// histogramMeanFloat64 calculates the mean value for a float64 histogram data
-// point.
+// histogramMeanFloat64 calculates the mean value for a float64 histogram data point.
 //
-// Takes dp (metricdata.HistogramDataPoint[float64]) which is the histogram data
-// point to calculate the mean from.
+// Takes dp (metricdata.HistogramDataPoint[float64]) which is the histogram data point to
+// calculate the mean from.
 //
 // Returns float64 which is the mean value, or zero if the count is zero.
 func histogramMeanFloat64(dp metricdata.HistogramDataPoint[float64]) float64 {

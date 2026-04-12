@@ -29,16 +29,17 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
-// minGibberishFieldLength is the minimum letter count for bigram analysis.
-const minGibberishFieldLength = 4
+const (
+	// minGibberishFieldLength is the minimum letter count for bigram analysis.
+	minGibberishFieldLength = 4
+)
 
-// GibberishDetector analyses text fields for random or nonsensical
-// character patterns using bigram frequency analysis.
+// GibberishDetector analyses text fields for random or nonsensical character patterns
+// using bigram frequency analysis.
 //
-// When bigram analysers are injected via DI, the detector tries each
-// analyser and the built-in English fallback, taking the best (lowest)
-// score. This supports multilingual sites where submissions may arrive
-// in any of the declared languages.
+// When bigram analysers are injected via DI, the detector tries each analyser and the
+// built-in English fallback, taking the best (lowest) score. This supports multilingual
+// sites where submissions may arrive in any of the declared languages.
 type GibberishDetector struct {
 	// bigramAnalysers holds language-specific bigram analysers injected via DI.
 	bigramAnalysers []linguistics_domain.BigramAnalyserPort
@@ -50,9 +51,8 @@ type GibberishDetector struct {
 // NewGibberishDetector creates a gibberish detector.
 //
 // Takes threshold (float64) which is the gibberish ratio threshold.
-// Takes bigramAnalysers ([]linguistics_domain.BigramAnalyserPort) which
-// provide language-aware analysis. Pass nil or empty for the built-in
-// English fallback only.
+// Takes bigramAnalysers ([]linguistics_domain.BigramAnalyserPort) which provide
+// language-aware analysis. Pass nil or empty for the built-in English fallback only.
 //
 // Returns *GibberishDetector which is the configured detector.
 func NewGibberishDetector(threshold float64, bigramAnalysers []linguistics_domain.BigramAnalyserPort) *GibberishDetector {
@@ -91,8 +91,7 @@ func (*GibberishDetector) Mode() spamdetect_dto.DetectorMode {
 	return spamdetect_dto.DetectorModeSync
 }
 
-// Analyse runs bigram frequency analysis on all fields tagged with
-// SignalGibberish.
+// Analyse runs bigram frequency analysis on all fields tagged with SignalGibberish.
 //
 // Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
@@ -136,16 +135,14 @@ func (d *GibberishDetector) Analyse(ctx context.Context, submission *spamdetect_
 	}, nil
 }
 
-// HealthCheck always succeeds because the detector has no external
-// dependencies.
+// HealthCheck always succeeds because the detector has no external dependencies.
 //
 // Returns error which is always nil.
 func (*GibberishDetector) HealthCheck(_ context.Context) error { return nil }
 
-// collectFieldRatios walks the schema fields, accumulating per-field
-// gibberish ratios into the supplied maps and returning the total and
-// the count of analysed fields. Returns an error if the caller's
-// context cancels mid-loop.
+// collectFieldRatios walks the schema fields, accumulating per-field gibberish ratios
+// into the supplied maps and returning the total and the count of analysed fields.
+// Returns an error if the caller's context cancels mid-loop.
 //
 // Takes ctx (context.Context) which is the caller context.
 // Takes submission (*spamdetect_dto.Submission) which contains the field values.
@@ -192,8 +189,8 @@ func (d *GibberishDetector) collectFieldRatios(
 	return totalRatio, analysedCount, nil
 }
 
-// compositeGibberishScore maps an averaged ratio above the threshold
-// onto the detector's score range.
+// compositeGibberishScore maps an averaged ratio above the threshold onto the detector's
+// score range.
 //
 // Takes averageRatio (float64) which is the mean gibberish ratio.
 // Takes threshold (float64) which is the per-field flag threshold.
@@ -207,8 +204,7 @@ func compositeGibberishScore(averageRatio float64, threshold float64) float64 {
 	return min(detectorSpamThreshold+normalised*detectorSpamThreshold, 1.0)
 }
 
-// resolveThreshold returns the per-schema threshold override or the
-// default.
+// resolveThreshold returns the per-schema threshold override or the default.
 //
 // Takes schema (*spamdetect_dto.Schema) which may override the threshold.
 //
@@ -222,9 +218,9 @@ func (d *GibberishDetector) resolveThreshold(schema *spamdetect_dto.Schema) floa
 	return d.threshold
 }
 
-// analyseField runs bigram analysis against all injected language
-// analysers and the built-in English fallback, returning the best
-// (lowest) ratio. Text that is natural in any declared language passes.
+// analyseField runs bigram analysis against all injected language analysers and the
+// built-in English fallback, returning the best (lowest) ratio. Text that is natural in
+// any declared language passes.
 //
 // Takes text (string) which is the field value to analyse.
 //
@@ -255,8 +251,8 @@ func (d *GibberishDetector) analyseField(text string) (float64, bool) {
 	return bestRatio, true
 }
 
-// fallbackGibberishRatio uses the built-in English bigram table when no
-// linguistics analyser is available.
+// fallbackGibberishRatio uses the built-in English bigram table when no linguistics
+// analyser is available.
 //
 // Takes text (string) which is the field value to analyse.
 //

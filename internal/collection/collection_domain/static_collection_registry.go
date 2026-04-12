@@ -39,36 +39,34 @@ const (
 	// logKeyCollection is the log attribute key for collection names.
 	logKeyCollection = "collection"
 
-	// errFmtGettingCollectionBlob is the format string used when a collection
-	// blob cannot be retrieved from the registry.
+	// errFmtGettingCollectionBlob is the format string used when a collection blob cannot be
+	// retrieved from the registry.
 	errFmtGettingCollectionBlob = "getting collection blob for %q: %w"
 
-	// metadataKeyURL is the metadata key carrying the original URL of a
-	// collection item. Read by metadataToContentItems so downstream
-	// navigation/sitemap builders can surface the URL on ContentItem.URL.
+	// metadataKeyURL is the metadata key carrying the original URL of a collection item.
+	// Read by metadataToContentItems so downstream navigation/sitemap builders can surface
+	// the URL on ContentItem.URL.
 	metadataKeyURL = "URL"
 
-	// rootIndexSlug is the canonical slug for an index file at a collection
-	// root. Lookups whose normalised path is empty resolve to this slug so
-	// requests like "/" or "/<collection>/" reach the root index.
+	// rootIndexSlug is the canonical slug for an index file at a collection root. Lookups
+	// whose normalised path is empty resolve to this slug so requests like "/" or
+	// "/<collection>/" reach the root index.
 	rootIndexSlug = "index"
 
 	// pathSeparator is the forward slash used in slug paths.
 	pathSeparator = "/"
 
-	// maxLookupSlugBytes caps the length of a runtime lookup key. Defends
-	// against pathological URL captures from being used as map keys or log
-	// fields.
+	// maxLookupSlugBytes caps the length of a runtime lookup key. Defends against
+	// pathological URL captures from being used as map keys or log fields.
 	maxLookupSlugBytes = 1024
 
-	// MaxStaticCollectionItems caps the number of items decoded from an
-	// embedded FlatBuffer blob. Mirrors the encoder cap as defence-in-depth
-	// so a malformed or hostile embedded blob cannot allocate unbounded
-	// slices and maps at registration time.
+	// MaxStaticCollectionItems caps the number of items decoded from an embedded FlatBuffer
+	// blob. Mirrors the encoder cap as defence-in-depth so a malformed or hostile embedded
+	// blob cannot allocate unbounded slices and maps at registration time.
 	MaxStaticCollectionItems = 100_000
 
-	// logKeyItemIndex is the log attribute key for the position of an item
-	// inside a collection blob.
+	// logKeyItemIndex is the log attribute key for the position of an item inside a
+	// collection blob.
 	logKeyItemIndex = "item_index"
 )
 
@@ -77,20 +75,19 @@ var (
 
 	_ ASTDecoderPort = (*defaultASTDecoder)(nil)
 
-	// staticItemsByPointer maps the backing-array address of a pre-decoded items
-	// slice to its owning staticCollectionData. This enables TryGetCachedNavigation
-	// to detect whether a []map[string]any slice is the same instance returned by
-	// GetStaticCollectionItems without requiring callers to change their code.
+	// staticItemsByPointer maps the backing-array address of a pre-decoded items slice to
+	// its owning staticCollectionData. This enables TryGetCachedNavigation to detect whether
+	// a []map[string]any slice is the same instance returned by GetStaticCollectionItems
+	// without requiring callers to change their code.
 	//
 	staticItemsByPointer sync.Map
 
-	// staticCollectionRegistry stores all static collection data with pre-decoded
-	// metadata.
+	// staticCollectionRegistry stores all static collection data with pre-decoded metadata.
 	//
-	// Generated code populates this during package initialisation via //go:embed
-	// directives. Each collection is stored as a compact FlatBuffer binary for AST
-	// lookups, with metadata pre-decoded at registration time so that runtime
-	// access is a zero-allocation field read.
+	// Generated code populates this during package initialisation via //go:embed directives.
+	// Each collection is stored as a compact FlatBuffer binary for AST lookups, with
+	// metadata pre-decoded at registration time so that runtime access is a zero-allocation
+	// field read.
 	//
 	// Thread-safety: Safe for concurrent reads after initialisation.
 	staticCollectionRegistry = struct {
@@ -103,9 +100,8 @@ var (
 	}
 )
 
-// cachedAST holds the decoded content and excerpt ASTs for a single item.
-// The renderer never mutates decoded AST nodes, so these are safe to share
-// across concurrent requests.
+// cachedAST holds the decoded content and excerpt ASTs for a single item. The renderer
+// never mutates decoded AST nodes, so these are safe to share across concurrent requests.
 type cachedAST struct {
 	// content holds the decoded main content AST for the item.
 	content *ast_domain.TemplateAST
@@ -114,26 +110,25 @@ type cachedAST struct {
 	excerpt *ast_domain.TemplateAST
 }
 
-// staticCollectionData holds the raw FlatBuffer blob and pre-decoded derived
-// data for a single static collection.
+// staticCollectionData holds the raw FlatBuffer blob and pre-decoded derived data for a
+// single static collection.
 //
-// Metadata is decoded eagerly at registration time so that runtime lookups
-// are zero-allocation field accesses. ASTs are lazily decoded and cached
-// per route since the renderer treats them as read-only.
+// Metadata is decoded eagerly at registration time so that runtime lookups are
+// zero-allocation field accesses. ASTs are lazily decoded and cached per route since the
+// renderer treats them as read-only.
 type staticCollectionData struct {
-	// navigation stores lazily initialised navigation trees keyed by config.
-	// Static collection data is immutable, so each config produces a single
-	// tree that lives for the process lifetime.
+	// navigation stores lazily initialised navigation trees keyed by config. Static
+	// collection data is immutable, so each config produces a single tree that lives for the
+	// process lifetime.
 	navigation sync.Map
 
-	// astCache stores decoded ASTs per item so repeated requests for the
-	// same slug avoid FlatBuffer decoding entirely. Keys are slug strings,
-	// values are *cachedAST.
+	// astCache stores decoded ASTs per item so repeated requests for the same slug avoid
+	// FlatBuffer decoding entirely. Keys are slug strings, values are *cachedAST.
 	astCache sync.Map
 
-	// slugIndex maps item slugs to indices in items for O(1) metadata lookup.
-	// Items are keyed by slug (not URL) so the same collection item can be
-	// rendered at multiple URL prefixes by different consuming pages.
+	// slugIndex maps item slugs to indices in items for O(1) metadata lookup. Items are
+	// keyed by slug (not URL) so the same collection item can be rendered at multiple URL
+	// prefixes by different consuming pages.
 	slugIndex map[string]int
 
 	// blob is the raw FlatBuffer binary for single-item AST lookups.
@@ -143,10 +138,9 @@ type staticCollectionData struct {
 	items []map[string]any
 }
 
-// defaultStaticCollectionRegistry implements StaticCollectionRegistryPort by
-// wrapping the package-level global registry, so the interface can be used for
-// DI while maintaining backward compatibility with generated code that uses
-// global functions.
+// defaultStaticCollectionRegistry implements StaticCollectionRegistryPort by wrapping the
+// package-level global registry, so the interface can be used for DI while maintaining
+// backward compatibility with generated code that uses global functions.
 type defaultStaticCollectionRegistry struct {
 	// encoder decodes collection items from stored blobs.
 	encoder CollectionEncoderPort
@@ -157,22 +151,22 @@ type defaultStaticCollectionRegistry struct {
 
 // Register implements StaticCollectionRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes collectionName (string) which identifies the collection to register.
 // Takes data ([]byte) which contains the collection content.
 func (*defaultStaticCollectionRegistry) Register(ctx context.Context, collectionName string, data []byte) {
 	RegisterStaticCollectionBlob(ctx, collectionName, data)
 }
 
-// GetItem retrieves a single item from the named collection by slug.
-// Implements StaticCollectionRegistryPort.
+// GetItem retrieves a single item from the named collection by slug. Implements
+// StaticCollectionRegistryPort.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes collectionName (string) which identifies the collection to search.
-// Takes slug (string) which is the item's canonical identifier (e.g.
-// "anthropic" for content/integrations/anthropic.md).
+// Takes slug (string) which is the item's canonical identifier (e.g. "anthropic" for
+// content/integrations/anthropic.md).
 //
 // Returns *CollectionItemResult which contains the decoded item data.
 // Returns error when the collection cannot be loaded or the item is not found.
@@ -199,8 +193,8 @@ func (r *defaultStaticCollectionRegistry) GetItem(ctx context.Context, collectio
 	}, nil
 }
 
-// GetAllItems returns all items from the named static collection.
-// Implements StaticCollectionRegistryPort.
+// GetAllItems returns all items from the named static collection. Implements
+// StaticCollectionRegistryPort.
 //
 // Takes collectionName (string) which identifies the collection to retrieve.
 //
@@ -210,8 +204,8 @@ func (*defaultStaticCollectionRegistry) GetAllItems(collectionName string) ([]ma
 	return GetStaticCollectionItems(collectionName)
 }
 
-// Has reports whether a static collection is registered with the given name.
-// Implements StaticCollectionRegistryPort.
+// Has reports whether a static collection is registered with the given name. Implements
+// StaticCollectionRegistryPort.
 //
 // Takes collectionName (string) which is the name of the collection to check.
 //
@@ -220,8 +214,8 @@ func (*defaultStaticCollectionRegistry) Has(collectionName string) bool {
 	return HasStaticCollection(collectionName)
 }
 
-// List returns all registered static collection names.
-// Implements StaticCollectionRegistryPort.
+// List returns all registered static collection names. Implements
+// StaticCollectionRegistryPort.
 //
 // Returns []string which contains the names of all registered collections.
 //
@@ -251,8 +245,8 @@ func (*defaultASTDecoder) Decode(ctx context.Context, data []byte) (*ast_domain.
 // Takes ctx (context.Context) which carries logging and cancellation context.
 // Takes data ([]byte) which contains the encoded AST representation.
 //
-// Returns *ast_domain.TemplateAST which is the decoded template AST with
-// location and range fields omitted.
+// Returns *ast_domain.TemplateAST which is the decoded template AST with location and
+// range fields omitted.
 // Returns error when the data cannot be decoded.
 func (*defaultASTDecoder) DecodeForRender(ctx context.Context, data []byte) (*ast_domain.TemplateAST, error) {
 	return ast_adapters.DecodeASTForRender(ctx, data)
@@ -266,13 +260,12 @@ type CollectionItemResult struct {
 	// ContentAST is the parsed template AST for the item's main content.
 	ContentAST *ast_domain.TemplateAST
 
-	// ExcerptAST is the parsed template AST for the item excerpt; nil if no
-	// excerpt.
+	// ExcerptAST is the parsed template AST for the item excerpt; nil if no excerpt.
 	ExcerptAST *ast_domain.TemplateAST
 }
 
-// navigationConfigKey identifies a unique navigation configuration for use as
-// a sync.Map key.
+// navigationConfigKey identifies a unique navigation configuration for use as a sync.Map
+// key.
 type navigationConfigKey struct {
 	// locale is the locale filter for navigation building.
 	locale string
@@ -287,14 +280,14 @@ type navigationConfigKey struct {
 	groupBySection bool
 }
 
-// NewDefaultStaticCollectionRegistry creates a StaticCollectionRegistryPort
-// that wraps the package-level global registry.
+// NewDefaultStaticCollectionRegistry creates a StaticCollectionRegistryPort that wraps
+// the package-level global registry.
 //
-// This is the standard way to obtain a StaticCollectionRegistryPort for
-// production use. For testing, create a mock implementation instead.
+// This is the standard way to obtain a StaticCollectionRegistryPort for production use.
+// For testing, create a mock implementation instead.
 //
-// Returns StaticCollectionRegistryPort which provides access to the global
-// collection registry.
+// Returns StaticCollectionRegistryPort which provides access to the global collection
+// registry.
 func NewDefaultStaticCollectionRegistry() StaticCollectionRegistryPort {
 	return &defaultStaticCollectionRegistry{
 		encoder:    collection_adapters.NewFlatBufferEncoder(),
@@ -302,32 +295,29 @@ func NewDefaultStaticCollectionRegistry() StaticCollectionRegistryPort {
 	}
 }
 
-// NewDefaultASTDecoder creates an ASTDecoderPort using the standard AST
-// adapters.
+// NewDefaultASTDecoder creates an ASTDecoderPort using the standard AST adapters.
 //
 // Returns ASTDecoderPort which is the default decoder ready for use.
 func NewDefaultASTDecoder() ASTDecoderPort {
 	return &defaultASTDecoder{}
 }
 
-// RegisterStaticCollectionBlob registers a binary blob for a static collection
-// and eagerly decodes all item metadata for zero-cost runtime access.
+// RegisterStaticCollectionBlob registers a binary blob for a static collection and
+// eagerly decodes all item metadata for zero-cost runtime access.
 //
-// This is called by generated code in init() functions (from //go:embed
-// directives) to register the embedded binary data. Metadata is decoded once
-// here so that GetStaticCollectionItems and GetStaticCollectionItem avoid
-// per-request JSON parsing.
+// This is called by generated code in init() functions (from //go:embed directives) to
+// register the embedded binary data. Metadata is decoded once here so that
+// GetStaticCollectionItems and GetStaticCollectionItem avoid per-request JSON parsing.
 //
-// Takes collectionName (string) which identifies the collection
-// (e.g., "docs", "blog").
-// Takes data ([]byte) which contains the FlatBuffer binary blob
-// (embedded via //go:embed).
+// Takes collectionName (string) which identifies the collection (e.g., "docs", "blog").
+// Takes data ([]byte) which contains the FlatBuffer binary blob (embedded via
+// //go:embed).
 //
-// The blob is not copied (zero-copy registration). The byte slice points to
-// read-only memory in the executable.
+// The blob is not copied (zero-copy registration). The byte slice points to read-only
+// memory in the executable.
 //
-// Safe for concurrent use during package initialisation. Uses a mutex to
-// protect the registry.
+// Safe for concurrent use during package initialisation. Uses a mutex to protect the
+// registry.
 func RegisterStaticCollectionBlob(ctx context.Context, collectionName string, data []byte) {
 	ctx, l := logger_domain.From(ctx, log)
 	items, slugIndex := decodeAllItemMetadata(ctx, data)
@@ -351,23 +341,22 @@ func RegisterStaticCollectionBlob(ctx context.Context, collectionName string, da
 		logger_domain.Int("items", len(items)))
 }
 
-// GetStaticCollectionItem retrieves a single item from a static collection by
-// slug.
+// GetStaticCollectionItem retrieves a single item from a static collection by slug.
 //
-// Metadata is returned from the pre-decoded slug index (zero allocation).
-// ASTs are decoded per-request from FlatBuffer bytes because the rendering
-// pipeline may mutate nodes.
+// Metadata is returned from the pre-decoded slug index (zero allocation). ASTs are
+// decoded per-request from FlatBuffer bytes because the rendering pipeline may mutate
+// nodes.
 //
 // Takes collectionName (string) which is the collection identifier.
 // Takes slug (string) which is the item's slug (e.g. "anthropic" for
-// content/integrations/anthropic.md). Generated page code reads this from the
-// matched URL parameter (defaults to {slug}; configurable via p-param).
+// content/integrations/anthropic.md). Generated page code reads this from the matched URL
+// parameter (defaults to {slug}; configurable via p-param).
 //
 // Returns metadata (map[string]any) which is the pre-decoded JSON metadata.
-// Returns contentAST (*ast_domain.TemplateAST) which is the decoded
-// content AST from FlatBuffer bytes.
-// Returns excerptAST (*ast_domain.TemplateAST) which is the decoded
-// excerpt AST from FlatBuffer bytes, or nil if not present.
+// Returns contentAST (*ast_domain.TemplateAST) which is the decoded content AST from
+// FlatBuffer bytes.
+// Returns excerptAST (*ast_domain.TemplateAST) which is the decoded excerpt AST from
+// FlatBuffer bytes, or nil if not present.
 // Returns err (error) when the collection or slug is not found.
 func GetStaticCollectionItem(ctx context.Context, collectionName, slug string) (metadata map[string]any, contentAST *ast_domain.TemplateAST, excerptAST *ast_domain.TemplateAST, err error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -396,16 +385,16 @@ func GetStaticCollectionItem(ctx context.Context, collectionName, slug string) (
 	return metadata, contentAST, excerptAST, nil
 }
 
-// GetStaticCollectionItems returns the pre-decoded metadata for all items in a
-// static collection.
+// GetStaticCollectionItems returns the pre-decoded metadata for all items in a static
+// collection.
 //
-// This returns the slice that was materialised at registration time. No JSON
-// parsing occurs at call time.
+// This returns the slice that was materialised at registration time. No JSON parsing
+// occurs at call time.
 //
 // Takes collectionName (string) which identifies the collection to retrieve.
 //
-// Returns []map[string]any which contains the metadata for each item in the
-// collection. The returned slice must not be mutated by callers.
+// Returns []map[string]any which contains the metadata for each item in the collection.
+// The returned slice must not be mutated by callers.
 // Returns error when the collection is not found.
 func GetStaticCollectionItems(collectionName string) ([]map[string]any, error) {
 	data, err := getCollectionData(collectionName)
@@ -416,20 +405,18 @@ func GetStaticCollectionItems(collectionName string) ([]map[string]any, error) {
 	return data.items, nil
 }
 
-// GetStaticCollectionNavigation returns a lazily initialised navigation tree
-// for the named static collection and configuration.
+// GetStaticCollectionNavigation returns a lazily initialised navigation tree for the
+// named static collection and configuration.
 //
-// The first call for a given collection and config pair builds the tree; all
-// subsequent calls return the same instance. This is not a cache - it is
-// deferred initialisation of derived data from immutable inputs.
+// The first call for a given collection and config pair builds the tree; all subsequent
+// calls return the same instance. This is not a cache - it is deferred initialisation of
+// derived data from immutable inputs.
 //
-// Takes ctx (context.Context) which carries deadlines and request-scoped
-// values.
+// Takes ctx (context.Context) which carries deadlines and request-scoped values.
 // Takes collectionName (string) which identifies the collection.
 // Takes config (collection_dto.NavigationConfig) which controls tree building.
 //
-// Returns *collection_dto.NavigationGroups which contains the navigation
-// trees.
+// Returns *collection_dto.NavigationGroups which contains the navigation trees.
 // Returns error when the collection is not found.
 func GetStaticCollectionNavigation(
 	ctx context.Context,
@@ -444,8 +431,8 @@ func GetStaticCollectionNavigation(
 	return getOrBuildNavigation(ctx, data, config), nil
 }
 
-// TryGetCachedNavigation returns cached navigation for items if they belong to
-// a known static collection, or false when the caller must rebuild.
+// TryGetCachedNavigation returns cached navigation for items if they belong to a known
+// static collection, or false when the caller must rebuild.
 //
 // Takes ctx (context.Context) which carries request-scoped values.
 // Takes items ([]map[string]any) which is the metadata slice to identify.
@@ -475,8 +462,8 @@ func TryGetCachedNavigation(
 
 // HasStaticCollection checks if a static collection is registered.
 //
-// Use it to decide whether to use static or dynamic collection fetching
-// in search operations.
+// Use it to decide whether to use static or dynamic collection fetching in search
+// operations.
 //
 // Takes collectionName (string) which is the collection identifier.
 //
@@ -491,14 +478,12 @@ func HasStaticCollection(collectionName string) bool {
 	return exists
 }
 
-// ResetStaticCollectionRegistry clears the static collection registry for test
-// isolation.
+// ResetStaticCollectionRegistry clears the static collection registry for test isolation.
 //
-// Should only be called from tests. Clears all registered static collections
-// and their pre-decoded data so that tests start with a clean state.
+// Should only be called from tests. Clears all registered static collections and their
+// pre-decoded data so that tests start with a clean state.
 //
-// Safe for use from any goroutine, but not concurrently with other registry
-// operations.
+// Safe for use from any goroutine, but not concurrently with other registry operations.
 func ResetStaticCollectionRegistry() {
 	staticCollectionRegistry.mu.Lock()
 	defer staticCollectionRegistry.mu.Unlock()
@@ -506,24 +491,22 @@ func ResetStaticCollectionRegistry() {
 	staticItemsByPointer = sync.Map{}
 }
 
-// decodeAllItemMetadata decodes every item's JSON metadata from a FlatBuffer
-// blob and builds a slug index for O(1) lookups.
+// decodeAllItemMetadata decodes every item's JSON metadata from a FlatBuffer blob and
+// builds a slug index for O(1) lookups.
 //
-// The FlatBuffer "route" field holds the item's slug (the schema field is named
-// "route" for legacy reasons; semantically it is now a slug). Items are looked
-// up by slug at runtime so multiple consuming pages can render the same item
-// at different URL prefixes. The decoded item count is capped against
-// MaxStaticCollectionItems so a malformed or hostile embedded blob cannot
-// allocate unbounded slices and maps at registration time. Items whose slug
-// fails structural validation, or whose metadata fails to unmarshal, are
+// The FlatBuffer "route" field holds the item's slug (the schema field is named "route"
+// for legacy reasons; semantically it is now a slug). Items are looked up by slug at
+// runtime so multiple consuming pages can render the same item at different URL prefixes.
+// The decoded item count is capped against MaxStaticCollectionItems so a malformed or
+// hostile embedded blob cannot allocate unbounded slices and maps at registration time.
+// Items whose slug fails structural validation, or whose metadata fails to unmarshal, are
 // dropped with a warning log so silent corruption does not propagate.
 //
 // Takes ctx (context.Context) which carries the logger for warning diagnostics.
 // Takes blob ([]byte) which contains the encoded collection data.
 //
 // Returns []map[string]any which holds pre-decoded metadata for each item.
-// Returns map[string]int which maps item slugs to their indices in the items
-// slice.
+// Returns map[string]int which maps item slugs to their indices in the items slice.
 func decodeAllItemMetadata(ctx context.Context, blob []byte) ([]map[string]any, map[string]int) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -584,12 +567,11 @@ func decodeAllItemMetadata(ctx context.Context, blob []byte) ([]map[string]any, 
 	return items, slugIndex
 }
 
-// getItemFromData retrieves a single item using the pre-decoded route index
-// for metadata and the AST cache for decoded content trees.
+// getItemFromData retrieves a single item using the pre-decoded route index for metadata
+// and the AST cache for decoded content trees.
 //
-// On the first request for a given slug the ASTs are decoded from the
-// FlatBuffer blob and stored in the cache. Subsequent requests return the
-// cached trees with zero allocations.
+// On the first request for a given slug the ASTs are decoded from the FlatBuffer blob and
+// stored in the cache. Subsequent requests return the cached trees with zero allocations.
 //
 // Takes encoder (CollectionEncoderPort) which decodes items from the blob.
 // Takes decoder (ASTDecoderPort) which decodes AST bytes.
@@ -636,15 +618,14 @@ func getItemFromData(
 
 // normaliseLookupSlug aligns a runtime lookup key with stored slugs.
 //
-// Strips a leading slash, trims a trailing slash (chi catch-all captures may
-// include either), resolves an empty result to rootIndexSlug so the root
-// index page is reachable, and caps length at maxLookupSlugBytes so a
-// hostile caller cannot flood log fields or map keys.
+// Strips a leading slash, trims a trailing slash (chi catch-all captures may include
+// either), resolves an empty result to rootIndexSlug so the root index page is reachable,
+// and caps length at maxLookupSlugBytes so a hostile caller cannot flood log fields or
+// map keys.
 //
 // Takes slug (string) which is the raw lookup key from the request.
 //
-// Returns string which is the normalised slug ready for slugIndex / encoder
-// lookups.
+// Returns string which is the normalised slug ready for slugIndex / encoder lookups.
 func normaliseLookupSlug(slug string) string {
 	slug = strings.TrimPrefix(slug, pathSeparator)
 	slug = strings.TrimSuffix(slug, pathSeparator)
@@ -657,17 +638,15 @@ func normaliseLookupSlug(slug string) string {
 	return slug
 }
 
-// resolveMetadata looks up pre-decoded metadata for an item by slug. The
-// previous implementation accepted URL-style paths and tried trailing-slash /
-// /index variants; lookups are now slug-only so a single direct map check
-// suffices.
+// resolveMetadata looks up pre-decoded metadata for an item by slug. The previous
+// implementation accepted URL-style paths and tried trailing-slash / /index variants;
+// lookups are now slug-only so a single direct map check suffices.
 //
 // Takes encoder (CollectionEncoderPort) which decodes items from the blob.
 // Takes data (*staticCollectionData) which holds the pre-decoded collection.
 // Takes slug (string) which identifies the collection item to look up.
 //
-// Returns map[string]any which is the metadata for the slug, or nil if not
-// found.
+// Returns map[string]any which is the metadata for the slug, or nil if not found.
 func resolveMetadata(encoder CollectionEncoderPort, data *staticCollectionData, slug string) map[string]any {
 	if index, found := data.slugIndex[slug]; found {
 		return data.items[index]
@@ -683,8 +662,8 @@ func resolveMetadata(encoder CollectionEncoderPort, data *staticCollectionData, 
 	return metadata
 }
 
-// decodeASTPair decodes content and excerpt AST byte slices into their
-// respective TemplateAST structures.
+// decodeASTPair decodes content and excerpt AST byte slices into their respective
+// TemplateAST structures.
 //
 // Takes ctx (context.Context) which carries logging and cancellation context.
 // Takes decoder (ASTDecoderPort) which decodes AST bytes.
@@ -733,16 +712,15 @@ func getCollectionData(collectionName string) (*staticCollectionData, error) {
 	return data, nil
 }
 
-// lookupItemWithEncoder performs a binary search lookup in the encoded
-// collection data by slug.
+// lookupItemWithEncoder performs a binary search lookup in the encoded collection data by
+// slug.
 //
 // Takes encoder (CollectionEncoderPort) which decodes items from the blob.
 // Takes blob ([]byte) which is the encoded collection data to search.
 // Takes collectionName (string) which identifies the collection for logging.
 // Takes slug (string) which is the item identifier to look up.
 //
-// Returns metadataJSON ([]byte) which is the raw JSON metadata for the
-// matched item.
+// Returns metadataJSON ([]byte) which is the raw JSON metadata for the matched item.
 // Returns contentASTBytes ([]byte) which is the encoded content AST.
 // Returns excerptASTBytes ([]byte) which is the encoded excerpt AST.
 // Returns err (error) when the item cannot be found.
@@ -764,16 +742,15 @@ func lookupItemWithEncoder(ctx context.Context, encoder CollectionEncoderPort, b
 	return metadataJSON, contentASTBytes, excerptASTBytes, nil
 }
 
-// getOrBuildNavigation returns a lazily initialised navigation tree for the
-// given data and config. The tree is built once and reused for all subsequent
-// calls with the same config.
+// getOrBuildNavigation returns a lazily initialised navigation tree for the given data
+// and config. The tree is built once and reused for all subsequent calls with the same
+// config.
 //
 // Takes ctx (context.Context) which carries request-scoped values.
 // Takes data (*staticCollectionData) which holds the pre-decoded items.
 // Takes config (collection_dto.NavigationConfig) which controls tree building.
 //
-// Returns *collection_dto.NavigationGroups which contains the navigation
-// trees.
+// Returns *collection_dto.NavigationGroups which contains the navigation trees.
 func getOrBuildNavigation(
 	ctx context.Context,
 	data *staticCollectionData,
@@ -800,8 +777,8 @@ func getOrBuildNavigation(
 	return groups
 }
 
-// metadataToContentItems converts pre-decoded metadata maps into ContentItem
-// structs suitable for the NavigationBuilder.
+// metadataToContentItems converts pre-decoded metadata maps into ContentItem structs
+// suitable for the NavigationBuilder.
 //
 // Takes items ([]map[string]any) which contains the pre-decoded metadata.
 //

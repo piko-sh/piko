@@ -18,10 +18,9 @@
 
 // Package spamdetect provides the public API for spam detection in Piko.
 //
-// The package is a facade that re-exports types from internal packages,
-// providing a stable import path for application developers. Most
-// callers use [Analyse] against a [Schema] describing their form, with
-// [Submission] carrying the field values.
+// The package is a facade that re-exports types from internal packages, providing a
+// stable import path for application developers. Most callers use [Analyse] against a
+// [Schema] describing their form, with [Submission] carrying the field values.
 //
 // # Usage
 //
@@ -55,15 +54,17 @@
 //
 // # Detectors
 //
-// Six built-in detectors are available via the
-// spamdetect_provider_builtin_detectors subpackage:
+// Six built-in detectors are available via the spamdetect_provider_builtin_detectors
+// subpackage:
 //
 //   - [spamdetect_provider_builtin_detectors.HoneypotDetector]: hidden field detection
-//   - [spamdetect_provider_builtin_detectors.GibberishDetector]: bigram frequency analysis
+//   - [spamdetect_provider_builtin_detectors.GibberishDetector]: bigram frequency
+//     analysis
 //   - [spamdetect_provider_builtin_detectors.LinkDensityDetector]: URL counting
 //   - [spamdetect_provider_builtin_detectors.BlocklistDetector]: regex pattern matching
 //   - [spamdetect_provider_builtin_detectors.TimingDetector]: submission speed analysis
-//   - [spamdetect_provider_builtin_detectors.RepetitionDetector]: repeated submission detection
+//   - [spamdetect_provider_builtin_detectors.RepetitionDetector]: repeated submission
+//     detection
 //
 // Detectors can be registered individually or as a complete set via
 // [spamdetect_provider_builtin_detectors.RegisterDefaults].
@@ -86,8 +87,8 @@
 //
 // # Reading results in an action
 //
-// After analysis, inspect the composite verdict and per-field
-// breakdown to decide how to proceed:
+// After analysis, inspect the composite verdict and per-field breakdown to decide how to
+// proceed:
 //
 //	result, err := spamdetect.Analyse(ctx, submission, schema)
 //	if err != nil { return err }
@@ -105,10 +106,9 @@
 //
 // # Feedback
 //
-// Detectors that learn from confirmed spam/ham should implement
-// [FeedbackAwareDetector]. Persist feedback through a [FeedbackStore]
-// passed via [WithFeedbackStore]. The service correlates feedback to
-// the original submission via the ID assigned at analysis time.
+// Detectors that learn from confirmed spam/ham should implement [FeedbackAwareDetector].
+// Persist feedback through a [FeedbackStore] passed via [WithFeedbackStore]. The service
+// correlates feedback to the original submission via the ID assigned at analysis time.
 //
 // # Thread safety
 //

@@ -43,21 +43,20 @@ const (
 	// resourcesFDFixedWidth is the fixed width in characters for file descriptor rows.
 	resourcesFDFixedWidth = 22
 
-	// resourcesAgeWarningThreshold is the age after which resource data is
-	// highlighted with a warning style.
+	// resourcesAgeWarningThreshold is the age after which resource data is highlighted with
+	// a warning style.
 	resourcesAgeWarningThreshold = 30 * time.Minute
 
-	// resourcesAgeErrorThreshold is the age after which a resource is shown as
-	// an error.
+	// resourcesAgeErrorThreshold is the age after which a resource is shown as an error.
 	resourcesAgeErrorThreshold = 1 * time.Hour
 
 	// resourcesSummarySparklineWidth is the character width of the sparkline in the
 	// resources summary line.
 	resourcesSummarySparklineWidth = 20
 
-	// resourcesDetailMaxFDs caps how many file descriptors the detail
-	// pane renders for a single category before truncating; deeper
-	// drill-downs use the centre column's full list.
+	// resourcesDetailMaxFDs caps how many file descriptors the detail pane renders for a
+	// single category before truncating; deeper drill-downs use the centre column's full
+	// list.
 	resourcesDetailMaxFDs = 10
 )
 
@@ -67,8 +66,8 @@ var (
 	_ ItemRenderer[FDCategory] = (*resourcesRenderer)(nil)
 )
 
-// ResourcesPanel displays OS-level resources like file descriptors,
-// categorised by type (files, TCP, UDP, pipes, etc.).
+// ResourcesPanel displays OS-level resources like file descriptors, categorised by type
+// (files, TCP, UDP, pipes, etc.).
 type ResourcesPanel struct {
 	*AssetViewer[FDCategory]
 
@@ -112,8 +111,7 @@ type ResourcesRefreshMessage struct {
 // NewResourcesPanel creates a panel for viewing OS resource information.
 //
 // Takes provider (FDsProvider) which supplies file descriptor data.
-// Takes c (clock.Clock) which provides time functions; if nil, uses the real
-// clock.
+// Takes c (clock.Clock) which provides time functions; if nil, uses the real clock.
 //
 // Returns *ResourcesPanel which is ready for use with an embedded AssetViewer.
 func NewResourcesPanel(provider FDsProvider, c clock.Clock) *ResourcesPanel {
@@ -203,8 +201,7 @@ func (p *ResourcesPanel) View(width, height int) string {
 
 // handleRefreshMessage processes a resources refresh message.
 //
-// Takes message (ResourcesRefreshMessage) which contains the
-// refresh data or error.
+// Takes message (ResourcesRefreshMessage) which contains the refresh data or error.
 //
 // Safe for concurrent use. Acquires both the panel mutex and state mutex.
 func (p *ResourcesPanel) handleRefreshMessage(message ResourcesRefreshMessage) {
@@ -258,8 +255,8 @@ func (p *ResourcesPanel) handleKey(message tea.KeyPressMsg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// toggleCategoryExpansion expands or collapses the category at the cursor.
-// Only one category may be open at a time.
+// toggleCategoryExpansion expands or collapses the category at the cursor. Only one
+// category may be open at a time.
 func (p *ResourcesPanel) toggleCategoryExpansion() {
 	item := p.GetItemAtCursor()
 	if item == nil {
@@ -306,14 +303,12 @@ func (p *ResourcesPanel) renderResourcesHeader(content *strings.Builder) int {
 	return usedLines
 }
 
-// renderSummaryLine builds the summary text showing file descriptor count and
-// sparkline.
+// renderSummaryLine builds the summary text showing file descriptor count and sparkline.
 //
-// Returns string which contains the formatted summary line with file descriptor
-// count, optional sparkline history, and refresh timestamp.
+// Returns string which contains the formatted summary line with file descriptor count,
+// optional sparkline history, and refresh timestamp.
 //
-// Safe for concurrent use. Acquires a read lock on stateMutex to access panel
-// state.
+// Safe for concurrent use. Acquires a read lock on stateMutex to access panel state.
 func (p *ResourcesPanel) renderSummaryLine() string {
 	var parts []string
 
@@ -362,8 +357,8 @@ func (p *ResourcesPanel) renderEmptyState(content *strings.Builder) {
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 // Takes displayItems ([]int) which specifies the indices of items to display.
-// Takes headerLines (int) which is the number of header lines to exclude from
-// content height.
+// Takes headerLines (int) which is the number of header lines to exclude from content
+// height.
 func (p *ResourcesPanel) renderCategories(content *strings.Builder, displayItems []int, headerLines int) {
 	RenderExpandableItems(RenderExpandableItemsConfig[FDCategory]{
 		Ctx:          NewScrollContext(content, p.ScrollOffset(), p.ContentHeight()-headerLines-1),
@@ -469,8 +464,8 @@ func (*ResourcesPanel) formatAge(ageMs int64) string {
 //
 // Takes category (string) which identifies the resource type.
 //
-// Returns string which is the emoji icon for the category, or a question mark
-// if the category is not recognised.
+// Returns string which is the emoji icon for the category, or a question mark if the
+// category is not recognised.
 func (*ResourcesPanel) categoryIcon(category string) string {
 	icons := map[string]string{
 		"file":   "📄",
@@ -491,8 +486,8 @@ func (*ResourcesPanel) categoryIcon(category string) string {
 //
 // Takes category (string) which is the internal category identifier.
 //
-// Returns string which is the readable display name, or the original category
-// if no mapping exists.
+// Returns string which is the readable display name, or the original category if no
+// mapping exists.
 func (*ResourcesPanel) categoryDisplayName(category string) string {
 	names := map[string]string{
 		"file":   "Files",
@@ -519,8 +514,8 @@ func (*ResourcesPanel) fdMatchesFilter(fd FDInfo, query string) bool {
 	return strings.Contains(strings.ToLower(fd.Target), query)
 }
 
-// updateFDCountHistory appends the current file descriptor count to history.
-// Must be called with stateMutex held.
+// updateFDCountHistory appends the current file descriptor count to history. Must be
+// called with stateMutex held.
 func (p *ResourcesPanel) updateFDCountHistory() {
 	if p.data == nil {
 		return
@@ -570,8 +565,8 @@ func (r *resourcesRenderer) RenderRow(cat FDCategory, _ int, selected, _ bool, _
 // Takes cat (FDCategory) which holds the category to expand.
 // Takes _ (int) which is the unused content width.
 //
-// Returns []string which contains the formatted file descriptor
-// rows, filtered by the active search query.
+// Returns []string which contains the formatted file descriptor rows, filtered by the
+// active search query.
 func (r *resourcesRenderer) RenderExpanded(cat FDCategory, _ int) []string {
 	searchQuery := ""
 	if r.panel.Search() != nil {
@@ -602,8 +597,8 @@ func (*resourcesRenderer) GetID(cat FDCategory) string {
 // Takes cat (FDCategory) which is the category to check.
 // Takes query (string) which is the lowercase search term to match.
 //
-// Returns bool which is true if the category name, display name, or any file
-// descriptor within the category matches the query.
+// Returns bool which is true if the category name, display name, or any file descriptor
+// within the category matches the query.
 func (r *resourcesRenderer) MatchesFilter(cat FDCategory, query string) bool {
 	if strings.Contains(strings.ToLower(cat.Category), query) {
 		return true
@@ -633,8 +628,8 @@ func (*resourcesRenderer) IsExpandable(cat FDCategory) bool {
 //
 // Takes cat (FDCategory) which specifies the category to count.
 //
-// Returns int which is the count of matching file descriptors, filtered by
-// the current search query if one is active.
+// Returns int which is the count of matching file descriptors, filtered by the current
+// search query if one is active.
 func (r *resourcesRenderer) ExpandedLineCount(cat FDCategory) int {
 	if r.panel.Search() == nil || !r.panel.Search().HasQuery() {
 		return len(cat.FDs)

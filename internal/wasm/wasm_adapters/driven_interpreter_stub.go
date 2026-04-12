@@ -28,11 +28,13 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_dto"
 )
 
-// InterpreterAdapter is a stub for non-WASM builds.
-// The actual implementation is in driven_interpreter.go with build tag js && wasm.
+// InterpreterAdapter is a stub for non-WASM builds. The actual implementation is in
+// driven_interpreter.go with build tag js && wasm.
 type InterpreterAdapter struct{}
 
-var _ wasm_domain.InterpreterPort = (*InterpreterAdapter)(nil)
+var (
+	_ wasm_domain.InterpreterPort = (*InterpreterAdapter)(nil)
+)
 
 // InterpreterAdapterOption configures an InterpreterAdapter.
 type InterpreterAdapterOption func(*InterpreterAdapter)

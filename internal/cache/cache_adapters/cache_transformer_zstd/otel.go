@@ -18,7 +18,9 @@
 
 package cache_transformer_zstd
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
 var (
 	// log is the package-level logger for the cache_transformer_zstd package.

@@ -41,7 +41,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var benchCounter atomic.Int64
+var (
+	benchCounter atomic.Int64
+)
 
 func openTestDB(b *testing.B, dsn string) *sql.DB {
 	b.Helper()

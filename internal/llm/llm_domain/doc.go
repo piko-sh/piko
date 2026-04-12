@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_domain orchestrates provider-agnostic interaction with
-// large language models.
+// Package llm_domain orchestrates provider-agnostic interaction with large language
+// models.
 //
-// It handles completions, streaming, embeddings, batch processing,
-// cost tracking, budget enforcement, rate limiting, response caching,
-// conversation memory, retry with exponential backoff, and
-// multi-provider fallback routing. It owns the driving port
-// ([Service]) and defines driven ports for providers, caches, memory
-// stores, budget stores, and vector stores.
+// It handles completions, streaming, embeddings, batch processing, cost tracking, budget
+// enforcement, rate limiting, response caching, conversation memory, retry with
+// exponential backoff, and multi-provider fallback routing. It owns the driving port
+// ([Service]) and defines driven ports for providers, caches, memory stores, budget
+// stores, and vector stores.
 //
 // # Usage
 //
@@ -49,17 +48,15 @@
 //
 // # Context handling
 //
-// All terminal operations ([CompletionBuilder.Do],
-// [CompletionBuilder.Stream], [IngestBuilder.Do]) honour context
-// cancellation and deadlines. Multi-stage operations check context
-// between phases to avoid unnecessary work if the context has been
+// All terminal operations ([CompletionBuilder.Do], [CompletionBuilder.Stream],
+// [IngestBuilder.Do]) honour context cancellation and deadlines. Multi-stage operations
+// check context between phases to avoid unnecessary work if the context has been
 // cancelled.
 //
 // # Thread safety
 //
-// [Service], [CostCalculator], [BudgetManager], [RateLimiter], and
-// all [Memory] implementations are safe for concurrent use. Methods
-// document their locking behaviour individually.
-// [CompletionBuilder] and [EmbeddingBuilder] instances are not safe
-// for concurrent use; create one per goroutine.
+// [Service], [CostCalculator], [BudgetManager], [RateLimiter], and all [Memory]
+// implementations are safe for concurrent use. Methods document their locking behaviour
+// individually. [CompletionBuilder] and [EmbeddingBuilder] instances are not safe for
+// concurrent use; create one per goroutine.
 package llm_domain

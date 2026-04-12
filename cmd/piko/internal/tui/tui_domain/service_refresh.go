@@ -42,15 +42,12 @@ type refreshOrchestrator struct {
 	wg sync.WaitGroup
 }
 
-// Start begins the refresh loop in a background goroutine.
-//
-// Safe for concurrent use. The spawned goroutine runs until the context is
+// Start begins the refresh loop in a background goroutine that runs until the context is
 // cancelled or Stop is called.
 func (r *refreshOrchestrator) Start(ctx context.Context) {
 	ctx, r.cancel = context.WithCancelCause(ctx)
 
-	r.wg.Add(1)
-	go r.loop(ctx)
+	r.wg.Go(func() { r.loop(ctx) })
 }
 
 // Stop halts the refresh loop and waits for it to finish.
@@ -73,8 +70,6 @@ func (r *refreshOrchestrator) ForceRefresh(ctx context.Context) tea.Cmd {
 
 // loop runs the refresh cycle at regular intervals.
 func (r *refreshOrchestrator) loop(ctx context.Context) {
-	defer r.wg.Done()
-
 	r.refreshAll(ctx)
 
 	ticker := r.service.config.GetClock().NewTicker(r.service.config.RefreshInterval)
@@ -142,13 +137,12 @@ func (r *refreshOrchestrator) refreshResourceProviders(ctx context.Context) {
 	r.service.model.UpdateResourceData(combinedSummary, combinedResources)
 }
 
-// mergeSummary adds the status counts from source into destination, summing
-// counts for matching kinds and statuses.
+// mergeSummary adds the status counts from source into destination, summing counts for
+// matching kinds and statuses.
 //
-// Takes destination (map[string]map[ResourceStatus]int) which receives the
-// merged status counts.
-// Takes source (map[string]map[ResourceStatus]int) which provides the counts
-// to add.
+// Takes destination (map[string]map[ResourceStatus]int) which receives the merged status
+// counts.
+// Takes source (map[string]map[ResourceStatus]int) which provides the counts to add.
 func mergeSummary(
 	destination map[string]map[ResourceStatus]int,
 	source map[string]map[ResourceStatus]int,
@@ -163,13 +157,12 @@ func mergeSummary(
 	}
 }
 
-// collectResources fetches all resource kinds from a provider and appends them
-// to the destination map.
+// collectResources fetches all resource kinds from a provider and appends them to the
+// destination map.
 //
-// Takes provider (ResourceProvider) which supplies the resource kinds and
-// listings.
-// Takes destination (map[string][]Resource) which receives the collected
-// resources keyed by kind.
+// Takes provider (ResourceProvider) which supplies the resource kinds and listings.
+// Takes destination (map[string][]Resource) which receives the collected resources keyed
+// by kind.
 func collectResources(
 	ctx context.Context,
 	provider ResourceProvider,

@@ -24,9 +24,9 @@ import (
 	"slices"
 )
 
-// Allocate splits a BigInt value into parts based on the given ratios.
-// This uses integer division; any remainder goes to the last part so the sum
-// of all parts equals the original value.
+// Allocate splits a BigInt value into parts based on the given ratios. This uses integer
+// division; any remainder goes to the last part so the sum of all parts equals the
+// original value.
 //
 // Takes ratios (...int64) which specifies the proportional distribution.
 //
@@ -66,14 +66,13 @@ func SumBigInts(bigints ...BigInt) BigInt {
 	return sum
 }
 
-// AverageBigInts returns the average of all big integers in a slice.
-// It returns a Decimal to preserve precision, as the average of integers
-// is often fractional.
+// AverageBigInts returns the average of all big integers in a slice. It returns a Decimal
+// to preserve precision, as the average of integers is often fractional.
 //
 // Takes bigints (...BigInt) which are the values to average.
 //
-// Returns Decimal which contains the average, or an error-state Decimal
-// if the slice is empty or any calculation fails.
+// Returns Decimal which contains the average, or an error-state Decimal if the slice is
+// empty or any calculation fails.
 func AverageBigInts(bigints ...BigInt) Decimal {
 	if len(bigints) == 0 {
 		return Decimal{err: errors.New("maths: cannot calculate average of an empty slice")}
@@ -99,8 +98,8 @@ func AverageBigInts(bigints ...BigInt) Decimal {
 // Takes b1 (BigInt) which is the first value to compare.
 // Takes others (...BigInt) which are extra values to compare.
 //
-// Returns BigInt which is the smallest value. If any input has an error or if
-// comparison fails, returns a BigInt that holds the error.
+// Returns BigInt which is the smallest value. If any input has an error or if comparison
+// fails, returns a BigInt that holds the error.
 func MinBigInt(b1 BigInt, others ...BigInt) BigInt {
 	if b1.err != nil {
 		return b1
@@ -126,8 +125,8 @@ func MinBigInt(b1 BigInt, others ...BigInt) BigInt {
 // Takes b1 (BigInt) which is the first value to compare.
 // Takes others (...BigInt) which are additional values to compare.
 //
-// Returns BigInt which is the largest value found. If any input has an error
-// or if a comparison fails, returns a BigInt carrying that error.
+// Returns BigInt which is the largest value found. If any input has an error or if a
+// comparison fails, returns a BigInt carrying that error.
 func MaxBigInt(b1 BigInt, others ...BigInt) BigInt {
 	if b1.err != nil {
 		return b1
@@ -165,8 +164,8 @@ func AbsSumBigInts(bigints ...BigInt) BigInt {
 //
 // Takes bigints ([]BigInt) which is the slice to sort in place.
 //
-// Returns error when any BigInt in the slice has an error or when an
-// unexpected comparison error occurs during sorting.
+// Returns error when any BigInt in the slice has an error or when an unexpected
+// comparison error occurs during sorting.
 func SortBigInts(bigints []BigInt) error {
 	for i, b := range bigints {
 		if b.err != nil {
@@ -192,8 +191,8 @@ func SortBigInts(bigints []BigInt) error {
 //
 // Takes bigints ([]BigInt) which is the slice to sort in place.
 //
-// Returns error when any BigInt in the slice has an error or when an
-// unexpected comparison error occurs during sorting.
+// Returns error when any BigInt in the slice has an error or when an unexpected
+// comparison error occurs during sorting.
 func SortBigIntsReverse(bigints []BigInt) error {
 	for i, b := range bigints {
 		if b.err != nil {
@@ -215,8 +214,7 @@ func SortBigIntsReverse(bigints []BigInt) error {
 	return sortErr
 }
 
-// validateAndSumRatios checks that all ratios are non-negative and returns
-// their sum.
+// validateAndSumRatios checks that all ratios are non-negative and returns their sum.
 //
 // Takes ratios ([]int64) which contains the ratio values to validate and sum.
 //
@@ -236,9 +234,8 @@ func validateAndSumRatios(ratios []int64) (int64, error) {
 	return totalRatio, nil
 }
 
-// allocateBigIntPortions distributes a BigInt across the given ratios. The
-// last portion receives the remainder to ensure the sum equals the original
-// value.
+// allocateBigIntPortions distributes a BigInt across the given ratios. The last portion
+// receives the remainder to ensure the sum equals the original value.
 //
 // Takes b (BigInt) which is the value to distribute.
 // Takes ratios ([]int64) which specifies the proportions for distribution.

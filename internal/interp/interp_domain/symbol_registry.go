@@ -24,78 +24,105 @@ import (
 	"maps"
 	"path"
 	"reflect"
-	"strconv"
 	"sync"
-
-	"piko.sh/piko/wdk/interp/interp_link"
 )
 
-// SymbolExports maps package paths to symbol names and their reflected
-// values. This mirrors the type definition in templater_domain.
+const (
+	// maxSynthesisDepth is the maximum nesting depth for cross-package type synthesis via
+	// Import. Exceeding this limit indicates a circular or pathologically deep dependency
+	// chain and triggers a graceful fallback.
+	maxSynthesisDepth = 64
+
+	// maxTypeConversionDepth is the maximum recursion depth within a single
+	// reflectTypeConverter.toGoType call chain. Guards against deeply nested or
+	// self-referential type hierarchies within a single package synthesis.
+	maxTypeConversionDepth = 128
+)
+
+var (
+	// reflectKindToBasicType maps primitive reflect kinds to basic types.
+	//
+	// Compound kinds (Slice, Map, etc.) are not included, since they require recursive
+	// conversion.
+	//nolint:exhaustive // compound kinds intentionally absent; resolved via recursion.
+	reflectKindToBasicType = map[reflect.Kind]types.BasicKind{
+		reflect.Bool:          types.Bool,
+		reflect.Int:           types.Int,
+		reflect.Int8:          types.Int8,
+		reflect.Int16:         types.Int16,
+		reflect.Int32:         types.Int32,
+		reflect.Int64:         types.Int64,
+		reflect.Uint:          types.Uint,
+		reflect.Uint8:         types.Uint8,
+		reflect.Uint16:        types.Uint16,
+		reflect.Uint32:        types.Uint32,
+		reflect.Uint64:        types.Uint64,
+		reflect.Uintptr:       types.Uintptr,
+		reflect.Float32:       types.Float32,
+		reflect.Float64:       types.Float64,
+		reflect.Complex64:     types.Complex64,
+		reflect.Complex128:    types.Complex128,
+		reflect.String:        types.String,
+		reflect.UnsafePointer: types.UnsafePointer,
+	}
+)
+
+// SymbolExports is the per-package export table accepted by NewSymbolRegistry. The outer
+// key is an import path; the inner map pairs exported symbol names with their
+// reflect.Values (functions, variables, or typed-nil pointers acting as type carriers).
 type SymbolExports = map[string]map[string]reflect.Value
 
-// maxSynthesisDepth is the maximum nesting depth for cross-package type
-// synthesis via Import. Exceeding this limit indicates a circular or
-// pathologically deep dependency chain and triggers a graceful fallback.
-const maxSynthesisDepth = 64
-
-// maxTypeConversionDepth is the maximum recursion depth within a single
-// reflectTypeConverter.toGoType call chain. Guards against deeply nested
-// or self-referential type hierarchies within a single package synthesis.
-const maxTypeConversionDepth = 128
-
-// SymbolRegistry provides thread-safe access to pre-registered native
-// Go symbols. It maps import paths to package-level exports.
-//
-// The registry is immutable after initial setup and safe for concurrent
-// reads. It is shared across interpreter clones.
+// SymbolRegistry holds the host-provided package symbols visible to compiled bytecode. It
+// exposes lookup, scoping, and lazy synthesis of go/types representations so the compiler
+// can type-check references to native symbols without re-importing their packages.
 type SymbolRegistry struct {
 	// symbols maps "path/to/pkg" to {"FuncName": reflect.Value, ...}.
 	symbols map[string]map[string]reflect.Value
 
-	// synthesised caches types.Package objects built from reflected
-	// symbols for use by the go/types Importer.
+	// synthesised caches types.Package objects built from reflected symbols for use by the
+	// go/types Importer.
 	synthesised map[string]*types.Package
 
-	// reflectToTypes caches reflect.Type to types.Type mappings
-	// across all synthesised packages.
+	// reflectToTypes caches reflect.Type to types.Type mappings across all synthesised
+	// packages.
 	//
-	// This preserves named type identity when the same Go type
-	// appears in multiple packages (e.g. a type alias re-exported
-	// from a facade package). Without this, each per-package
-	// converter would create independent anonymous types for the
-	// same reflect.Type, breaking Go's nominal type system.
+	// This preserves named type identity when the same Go type appears in multiple packages
+	// (e.g. a type alias re-exported from a facade package). Without this, each per-package
+	// converter would create independent anonymous types for the same reflect.Type, breaking
+	// Go's nominal type system.
 	reflectToTypes map[reflect.Type]types.Type
 
-	// protectedPackages contains package paths that cannot be overridden
-	// via RegisterPackage. Used for built-in packages like "unsafe".
+	// protectedPackages contains package paths that cannot be overridden via
+	// RegisterPackage. Used for built-in packages like "unsafe".
 	protectedPackages map[string]bool
 
-	// typeOwners maps reflect.Type (elem of nil-pointer registrations) to
-	// the package path under which it was registered. This handles type
-	// aliases where reflect.Type.PkgPath() returns the original type's
-	// package rather than the facade package where the alias is exported.
+	// typeOwners maps reflect.Type (elem of nil-pointer registrations) to the package path
+	// under which it was registered. This handles type aliases where reflect.Type.PkgPath()
+	// returns the original type's package rather than the facade package where the alias is
+	// exported.
 	typeOwners map[reflect.Type]string
 
-	// synthesising tracks packages currently being synthesised to prevent
-	// infinite recursion when cross-package named types reference each other.
+	// synthesising tracks packages currently being synthesised to prevent infinite recursion
+	// when cross-package named types reference each other.
 	synthesising map[string]bool
 
-	// synthesisDepth tracks the current nesting depth of Import calls
-	// triggered by cross-package type resolution. Acts as a safety net
-	// to prevent stack overflow from circular or deeply nested chains.
+	// synthesisDepth tracks the current nesting depth of Import calls triggered by
+	// cross-package type resolution. Acts as a safety net to prevent stack overflow from
+	// circular or deeply nested chains.
 	synthesisDepth int
 
 	// mu guards concurrent access during initial setup.
 	mu sync.RWMutex
 }
 
-// NewSymbolRegistry creates a registry from symbol exports.
+// NewSymbolRegistry constructs a SymbolRegistry seeded with the supplied per-package
+// exports. Typed-nil pointer symbols are recorded as the canonical owner of their element
+// reflect.Type so reflect-based dispatch can attribute methods to their declaring
+// package.
 //
-// Takes exports (SymbolExports) which maps package paths to their
-// exported symbols.
+// Takes exports (SymbolExports) which maps import path -> name -> value.
 //
-// Returns *SymbolRegistry which is ready for lookups.
+// Returns a fully initialised registry ready for Lookup, Scoped, or SynthesiseAll calls.
 func NewSymbolRegistry(exports SymbolExports) *SymbolRegistry {
 	r := &SymbolRegistry{
 		symbols:        make(map[string]map[string]reflect.Value, len(exports)),
@@ -121,16 +148,9 @@ func NewSymbolRegistry(exports SymbolExports) *SymbolRegistry {
 	return r
 }
 
-// SynthesiseAll eagerly synthesises types.Package objects for every
-// registered package that has not already been provided via
-// RegisterTypesPackage. This populates the reflectToTypes cache so that
-// concurrent Import calls always hit the fast path, eliminating races
-// where two goroutines synthesise the same package simultaneously and
-// produce inconsistent named type identities.
-//
-// Call this after all RegisterTypesPackage calls are complete, so that
-// cross-package type resolution uses the real packages rather than
-// separately synthesised ones.
+// SynthesiseAll eagerly synthesises go/types.Package shells for every registered import
+// path, populating the synthesised cache so later type-checking against host symbols has
+// no per-call cost.
 func (r *SymbolRegistry) SynthesiseAll() {
 	for importPath := range r.symbols {
 		if _, ok := r.synthesised[importPath]; ok {
@@ -140,15 +160,18 @@ func (r *SymbolRegistry) SynthesiseAll() {
 	}
 }
 
-// Lookup returns the reflect.Value for a symbol in a package.
+// Lookup returns the reflect.Value of name within packagePath.
 //
-// Takes packagePath (string) which is the package import path.
-// Takes name (string) which is the symbol name.
+// Both the package and the symbol must be registered; returns the zero Value and false
+// otherwise.
 //
-// Returns reflect.Value which is the symbol's value.
-// Returns bool which is true if the symbol was found.
+// Takes packagePath (string) which is the import path.
+// Takes name (string) which is the symbol name to look up.
 //
-// Safe for concurrent use by multiple goroutines.
+// Returns reflect.Value which wraps the symbol value on hit.
+// Returns bool which is true when the symbol is registered.
+//
+// Concurrency: acquires the registry read lock for the duration of the call.
 func (r *SymbolRegistry) Lookup(packagePath, name string) (reflect.Value, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -162,14 +185,14 @@ func (r *SymbolRegistry) Lookup(packagePath, name string) (reflect.Value, bool) 
 	return value, ok
 }
 
-// LookupPackage returns all exports for a package.
+// LookupPackage returns the full symbol map for packagePath.
 //
-// Takes packagePath (string) which is the package import path.
+// Takes packagePath (string) which is the import path.
 //
-// Returns map[string]reflect.Value which contains all exported symbols.
-// Returns bool which is true if the package was found.
+// Returns map[string]reflect.Value which is the symbol map on hit, nil otherwise.
+// Returns bool which is true when the package is registered.
 //
-// Safe for concurrent use by multiple goroutines.
+// Concurrency: acquires the registry read lock for the duration of the call.
 func (r *SymbolRegistry) LookupPackage(packagePath string) (map[string]reflect.Value, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -178,15 +201,15 @@ func (r *SymbolRegistry) LookupPackage(packagePath string) (map[string]reflect.V
 	return pkg, ok
 }
 
-// ZeroValueForType returns an addressable zero value for a named type
-// registered via the (*T)(nil) pattern, so pointer receiver methods
-// can be called on it.
+// ZeroValueForType returns the zero Value for a typed-nil pointer symbol's element type.
 //
-// Takes packagePath (string) which is the package import path.
-// Takes name (string) which is the type name to look up.
+// Yields a zero Value and false when the symbol is not a typed-nil pointer.
 //
-// Returns the addressable zero value and true, or an invalid value
-// and false if not found.
+// Takes packagePath (string) which is the import path.
+// Takes name (string) which is the symbol name.
+//
+// Returns reflect.Value which wraps a fresh zero Value of the element type.
+// Returns bool which is true when the symbol is a typed-nil pointer.
 func (r *SymbolRegistry) ZeroValueForType(packagePath, name string) (reflect.Value, bool) {
 	value, ok := r.Lookup(packagePath, name)
 	if !ok {
@@ -200,13 +223,13 @@ func (r *SymbolRegistry) ZeroValueForType(packagePath, name string) (reflect.Val
 	return reflect.New(reflectType.Elem()).Elem(), true
 }
 
-// HasPackage returns true if the registry contains the given package.
+// HasPackage reports whether the registry has any symbols registered under packagePath.
 //
-// Takes packagePath (string) which is the package import path to check.
+// Takes packagePath (string) which is the import path.
 //
-// Returns true if the package is registered.
+// Returns bool which is true when at least one symbol is registered.
 //
-// Safe for concurrent use by multiple goroutines.
+// Concurrency: acquires the registry read lock for the duration of the call.
 func (r *SymbolRegistry) HasPackage(packagePath string) bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -215,11 +238,12 @@ func (r *SymbolRegistry) HasPackage(packagePath string) bool {
 	return ok
 }
 
-// AllPackages returns all registered package paths.
+// AllPackages returns the import paths of every package currently registered, in
+// unspecified order.
 //
-// Returns a slice of all registered package import paths.
+// Returns []string which is the list of registered import paths.
 //
-// Safe for concurrent use by multiple goroutines.
+// Concurrency: acquires the registry read lock for the duration of the call.
 func (r *SymbolRegistry) AllPackages() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -231,17 +255,15 @@ func (r *SymbolRegistry) AllPackages() []string {
 	return paths
 }
 
-// RegisterPackage adds or replaces a package in the registry at runtime,
-// used to register compiled interpreter packages so that other packages
-// can import them via the existing Lookup and Import paths.
+// RegisterPackage installs or replaces the symbol map for packagePath.
 //
-// Protected packages (e.g. "unsafe") are silently ignored.
+// No-op when the package has been protected via ProtectPackage; the owner side-table for
+// typed-nil pointers is refreshed otherwise.
 //
-// Takes packagePath (string) which is the package import path.
-// Takes symbols (map[string]reflect.Value) which is the exported symbol
-// map to register.
+// Takes packagePath (string) which is the import path.
+// Takes symbols (map[string]reflect.Value) which provides the new symbol map.
 //
-// Safe for concurrent use by multiple goroutines.
+// Concurrency: acquires the registry write lock for the duration of the call.
 func (r *SymbolRegistry) RegisterPackage(packagePath string, symbols map[string]reflect.Value) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -260,14 +282,87 @@ func (r *SymbolRegistry) RegisterPackage(packagePath string, symbols map[string]
 	}
 }
 
-// PackageSymbols returns a copy of the exported symbols for a package.
+// Scoped returns a derived registry filtered by allowlist.
 //
-// Takes packagePath (string) which is the package import path.
+// Exposes only the import paths and symbol names matching allowlist. Entries are either
+// "pkg" for a whole-package wildcard or "pkg.Name" for a single symbol. A nil allowlist
+// returns the receiver unchanged.
 //
-// Returns map[string]reflect.Value which maps symbol names to values.
-// Returns bool which is true when the package exists.
+// Takes allowlist ([]string) which carries the allowlist entries.
 //
-// Safe for concurrent use by multiple goroutines.
+// Returns *SymbolRegistry which is either a fresh derived registry or the receiver itself
+// when allowlist is nil.
+//
+// Concurrency: acquires the receiver's read lock for the duration of the call.
+func (r *SymbolRegistry) Scoped(allowlist []string) *SymbolRegistry {
+	if allowlist == nil {
+		return r
+	}
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	packageWildcards, symbolEntries := classifyAllowlistEntries(allowlist)
+
+	scoped := &SymbolRegistry{
+		symbols:           make(map[string]map[string]reflect.Value),
+		synthesised:       r.synthesised,
+		reflectToTypes:    r.reflectToTypes,
+		typeOwners:        r.typeOwners,
+		synthesising:      make(map[string]bool),
+		protectedPackages: r.protectedPackages,
+	}
+	for packagePath, packageSymbols := range r.symbols {
+		_, wildcardOK := packageWildcards[packagePath]
+		nameSet, nameSetOK := symbolEntries[packagePath]
+		if !wildcardOK && !nameSetOK {
+			continue
+		}
+		if wildcardOK {
+			copyPkg := make(map[string]reflect.Value, len(packageSymbols))
+			maps.Copy(copyPkg, packageSymbols)
+			scoped.symbols[packagePath] = copyPkg
+			continue
+		}
+		scoped.symbols[packagePath] = filterPackageSymbols(packageSymbols, nameSet)
+	}
+	return scoped
+}
+
+// OverlayPackage merges overlay into the symbols of packagePath.
+//
+// Replaces existing entries on collision. No-op when the package is protected via
+// ProtectPackage; the package is created when absent.
+//
+// Takes packagePath (string) which is the import path.
+// Takes overlay (map[string]reflect.Value) which contains the symbols to merge in.
+//
+// Concurrency: acquires the registry write lock for the duration of the call.
+func (r *SymbolRegistry) OverlayPackage(packagePath string, overlay map[string]reflect.Value) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.protectedPackages[packagePath] {
+		return
+	}
+	existing, ok := r.symbols[packagePath]
+	if !ok {
+		merged := make(map[string]reflect.Value, len(overlay))
+		maps.Copy(merged, overlay)
+		r.symbols[packagePath] = merged
+		return
+	}
+	maps.Copy(existing, overlay)
+}
+
+// PackageSymbols returns the live symbol map for packagePath.
+//
+// The returned map must not be mutated by callers.
+//
+// Takes packagePath (string) which is the import path.
+//
+// Returns map[string]reflect.Value which is the live symbol map.
+// Returns bool which is true when the package is registered.
+//
+// Concurrency: acquires the registry read lock for the duration of the call.
 func (r *SymbolRegistry) PackageSymbols(packagePath string) (map[string]reflect.Value, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -275,18 +370,17 @@ func (r *SymbolRegistry) PackageSymbols(packagePath string) (map[string]reflect.
 	return symbols, ok
 }
 
-// ReflectTypeForNamed returns the real Go reflect.Type for a named type
-// that was registered via the (*T)(nil) pattern. This allows the
-// bytecode compiler to use the actual Go type identity instead of
-// synthesising anonymous struct types.
+// ReflectTypeForNamed returns the typed-nil pointer's element type.
 //
-// Takes pkgPath (string) which is the package import path.
-// Takes typeName (string) which is the type name to look up.
+// Yields nil and false when the symbol is missing or is not a typed-nil pointer.
 //
-// Returns reflect.Type which is the real Go type.
-// Returns bool which is true if the type was found.
+// Takes pkgPath (string) which is the import path.
+// Takes typeName (string) which is the type symbol name.
 //
-// Safe for concurrent use by multiple goroutines.
+// Returns reflect.Type which is the named element type on hit.
+// Returns bool which is true when the symbol is a typed-nil pointer.
+//
+// Concurrency: acquires the registry read lock for the duration of the call.
 func (r *SymbolRegistry) ReflectTypeForNamed(pkgPath, typeName string) (reflect.Type, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -309,12 +403,14 @@ func (r *SymbolRegistry) ReflectTypeForNamed(pkgPath, typeName string) (reflect.
 	return nil, false
 }
 
-// ProtectPackage marks a package as protected, preventing it from being
-// overridden via RegisterPackage.
+// ProtectPackage marks packagePath as immutable.
 //
-// Takes packagePath (string) which is the package import path to protect.
+// Subsequent RegisterPackage and OverlayPackage calls become no-ops. Used to lock down
+// host-provided packages (e.g. unsafe) after initial registration.
 //
-// Safe for concurrent use by multiple goroutines.
+// Takes packagePath (string) which is the import path to protect.
+//
+// Concurrency: acquires the registry write lock for the duration of the call.
 func (r *SymbolRegistry) ProtectPackage(packagePath string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -325,17 +421,15 @@ func (r *SymbolRegistry) ProtectPackage(packagePath string) {
 	r.protectedPackages[packagePath] = true
 }
 
-// RegisterTypesPackage caches a pre-built *types.Package so that Import
-// returns it directly instead of synthesising from reflect values.
+// RegisterTypesPackage installs a pre-synthesised go/types.Package.
 //
-// Used when the package was type-checked from source and we want to preserve
-// the exact type information for downstream importers.
+// Refreshes the reflectToTypes side-table so existing reflect.Types resolve to the new
+// go/types objects.
 //
-// Takes packagePath (string) which is the package import path.
-// Takes pkg (*types.Package) which is the pre-built types package to
-// cache.
+// Takes packagePath (string) which is the import path.
+// Takes pkg (*types.Package) which is the pre-synthesised package.
 //
-// Safe for concurrent use by multiple goroutines.
+// Concurrency: acquires the registry write lock for the duration of the call.
 func (r *SymbolRegistry) RegisterTypesPackage(packagePath string, pkg *types.Package) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -345,14 +439,37 @@ func (r *SymbolRegistry) RegisterTypesPackage(packagePath string, pkg *types.Pac
 	r.remapReflectTypesToPackage(packagePath, pkg)
 }
 
-// Import implements types.Importer by synthesising a types.Package from
-// the reflected symbol values registered for the given import path.
+// SnapshotTypesPackages returns a shallow copy of all currently registered
+// go/types.Packages, keyed by import path. Used by the module-load path to seed
+// gcexportdata's "imports" cache so a freshly-decoded package's references to
+// previously-registered packages resolve to the same *types.Package instances.
 //
-// Takes importPath (string) which is the package import path to resolve.
+// The returned map is owned by the caller and safe to mutate; the *types.Package values
+// must be treated as read-only - they are shared with the registry.
 //
-// Returns the synthesised types package, or an error if not found.
+// Returns map[string]*types.Package which is the snapshot map.
 //
-// Safe for concurrent use by multiple goroutines.
+// Concurrency: acquires the registry read lock for the duration of the call.
+func (r *SymbolRegistry) SnapshotTypesPackages() map[string]*types.Package {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	out := make(map[string]*types.Package, len(r.synthesised))
+	maps.Copy(out, r.synthesised)
+	return out
+}
+
+// Import returns the go/types.Package for importPath.
+//
+// Synthesises one from the registered reflect.Values on first call and caches the result.
+// The "unsafe" package is special-cased to types.Unsafe.
+//
+// Takes importPath (string) which is the import path to resolve.
+//
+// Returns *types.Package which is the synthesised or cached package.
+// Returns error when importPath is not registered or synthesis fails.
+//
+// Concurrency: acquires the registry write lock briefly to publish the synthesised
+// package; reads use the read lock.
 func (r *SymbolRegistry) Import(importPath string) (*types.Package, error) {
 	if importPath == pkgUnsafe {
 		return types.Unsafe, nil
@@ -406,16 +523,11 @@ func (r *SymbolRegistry) Import(importPath string) (*types.Package, error) {
 	return pkg, nil
 }
 
-// remapReflectTypesToPackage updates reflectToTypes entries for
-// nil-pointer type registrations in the given package.
+// remapReflectTypesToPackage refreshes reflectToTypes entries so the package's named
+// types resolve through the supplied package.
 //
-// The entries are repointed to the named types from the provided
-// types.Package instead of from a previously synthesised package.
-// Must be called with r.mu held.
-//
-// Takes packagePath (string) which is the package import path.
-// Takes pkg (*types.Package) which is the replacement package
-// whose named types should be used.
+// Takes packagePath (string) which is the import path.
+// Takes pkg (*types.Package) which provides the new scope.
 func (r *SymbolRegistry) remapReflectTypesToPackage(packagePath string, pkg *types.Package) {
 	exports, ok := r.symbols[packagePath]
 	if !ok {
@@ -439,24 +551,18 @@ func (r *SymbolRegistry) remapReflectTypesToPackage(packagePath string, pkg *typ
 			continue
 		}
 
-		elemRT := reflectType.Elem()
-		r.reflectToTypes[elemRT] = tn.Type()
+		elementReflectType := reflectType.Elem()
+		r.reflectToTypes[elementReflectType] = tn.Type()
 		r.reflectToTypes[reflectType] = types.NewPointer(tn.Type())
 	}
 }
 
-// synthesisePackage builds a types.Package from reflected symbol values
-// using a two-pass approach for correct named type resolution.
+// synthesisePackage builds a go/types.Package from reflect exports.
 //
-// The first pass registers (*T)(nil) type patterns so that subsequent
-// function signatures (e.g. func() *T) resolve to the named type rather
-// than an anonymous struct.
+// Takes importPath (string) which is the synthesised package path.
+// Takes exports (map[string]reflect.Value) which contains the registered reflect symbols.
 //
-// Takes importPath (string) which is the package import path.
-// Takes exports (map[string]reflect.Value) which maps symbol names to
-// their reflected values.
-//
-// Returns the synthesised types package.
+// Returns *types.Package which is the completed synthesised package.
 func (r *SymbolRegistry) synthesisePackage(importPath string, exports map[string]reflect.Value) *types.Package {
 	packageName := path.Base(importPath)
 	pkg := types.NewPackage(importPath, packageName)
@@ -470,18 +576,18 @@ func (r *SymbolRegistry) synthesisePackage(importPath string, exports map[string
 
 	r.registerNamedTypes(pkg, exports, converter)
 	r.registerLinkedGenericTypes(pkg, exports)
+	r.registerNativeBackedGenericTypes(pkg, exports, converter)
 	r.registerFunctionsAndVariables(pkg, exports, converter)
 
 	pkg.MarkComplete()
 	return pkg
 }
 
-// pendingNamedType holds a named type whose underlying type has not
-// yet been resolved because it may reference other types in the same
-// package.
+// pendingNamedType holds a named type whose underlying type has not yet been resolved
+// because it may reference other types in the same package.
 type pendingNamedType struct {
-	// elemRT is the element reflect.Type (the T in *T).
-	elemRT reflect.Type
+	// elementReflectType is the element reflect.Type (the T in *T).
+	elementReflectType reflect.Type
 
 	// ptrRT is the pointer reflect.Type (*T).
 	ptrRT reflect.Type
@@ -490,17 +596,16 @@ type pendingNamedType struct {
 	named *types.Named
 }
 
-// registerNamedTypes scans exports for nil-pointer type registrations,
-// creates forward-declared named types, then resolves their underlying
-// types and methods.
+// registerNamedTypes installs named type declarations for exports.
 //
-// Takes pkg (*types.Package) which is the target package.
-// Takes exports (map[string]reflect.Value) which maps symbol names
-// to their reflected values.
-// Takes converter (*reflectTypeConverter) which performs the type
-// conversion.
+// Takes pkg (*types.Package) which receives the named-type declarations.
+// Takes exports (map[string]reflect.Value) which provides the typed-nil pointer
+// registrations.
+// Takes converter (*reflectTypeConverter) which lowers reflect underlying types to
+// go/types.
 //
-// Safe for concurrent use; acquires r.mu internally as needed.
+// Concurrency: takes r.mu in write mode while populating the reflect-to-types index for
+// each new named type.
 func (r *SymbolRegistry) registerNamedTypes(
 	pkg *types.Package,
 	exports map[string]reflect.Value,
@@ -515,59 +620,40 @@ func (r *SymbolRegistry) registerNamedTypes(
 			continue
 		}
 
-		elemRT := reflectType.Elem()
+		elementReflectType := reflectType.Elem()
 		typeName := types.NewTypeName(0, pkg, name, nil)
 		named := types.NewNamed(typeName, nil, nil)
 
-		converter.seen[elemRT] = named
+		converter.seen[elementReflectType] = named
 		ptrNamed := types.NewPointer(named)
 		converter.seen[reflectType] = ptrNamed
 
-		converter.localTypes[elemRT] = true
+		converter.localTypes[elementReflectType] = true
 		converter.localTypes[reflectType] = true
 
 		r.mu.Lock()
-		r.reflectToTypes[elemRT] = named
+		r.reflectToTypes[elementReflectType] = named
 		r.reflectToTypes[reflectType] = ptrNamed
 		r.mu.Unlock()
 
 		scope.Insert(typeName)
-		pending = append(pending, pendingNamedType{elemRT: elemRT, ptrRT: reflectType, named: named})
+		pending = append(pending, pendingNamedType{elementReflectType: elementReflectType, ptrRT: reflectType, named: named})
 	}
 
 	for _, p := range pending {
-		underlying := converter.synthesiseNamedUnderlying(p.elemRT)
+		underlying := converter.synthesiseNamedUnderlying(p.elementReflectType)
 		p.named.SetUnderlying(underlying)
 		converter.synthesiseMethods(p.ptrRT, p.named, pkg)
 	}
 }
 
-// synthesiseNamedUnderlying computes the underlying types.Type for a
-// registered named type. It dispatches by reflect.Kind and skips the
-// seen-cache short-circuit so the placeholder *types.Named stays
-// available for recursive field and method references.
+// registerFunctionsAndVariables installs functions and var declarations for non-typed-nil
+// exports.
 //
-// Takes reflectType (reflect.Type) which is the element reflect.Type
-// (the T in *T) of the registered named type.
-//
-// Returns the synthesised underlying types.Type (struct, interface,
-// signature, slice, etc.).
-func (c *reflectTypeConverter) synthesiseNamedUnderlying(reflectType reflect.Type) types.Type {
-	if basicKind, ok := reflectKindToBasicType[reflectType.Kind()]; ok {
-		return types.Typ[basicKind]
-	}
-	return c.convertCompositeType(reflectType)
-}
-
-// registerFunctionsAndVariables inserts exported functions and
-// variables into the package scope, skipping nil-pointer type
-// registrations that were already handled by registerNamedTypes.
-//
-// Takes pkg (*types.Package) which is the target package.
-// Takes exports (map[string]reflect.Value) which maps symbol names
-// to their reflected values.
-// Takes converter (*reflectTypeConverter) which performs the type
-// conversion.
+// Takes pkg (*types.Package) which receives the declarations.
+// Takes exports (map[string]reflect.Value) which provides the reflect-side function and
+// variable values.
+// Takes converter (*reflectTypeConverter) which lowers reflect signatures to go/types.
 func (*SymbolRegistry) registerFunctionsAndVariables(
 	pkg *types.Package,
 	exports map[string]reflect.Value,
@@ -603,857 +689,83 @@ func (*SymbolRegistry) registerFunctionsAndVariables(
 	}
 }
 
-// reflectTypeConverter converts reflect.Type to types.Type, handling
-// recursive types via a cache to break cycles.
-type reflectTypeConverter struct {
-	// seen caches previously converted types to break recursive cycles.
-	seen map[reflect.Type]types.Type
-
-	// pkg is the target package for named type declarations.
-	pkg *types.Package
-
-	// registry is a back-reference to the owning SymbolRegistry, used to
-	// resolve named types from foreign packages during synthesis so that
-	// cross-package type identity is preserved.
-	registry *SymbolRegistry
-
-	// localTypes contains reflect.Types being defined as named types in the
-	// current package (from (*T)(nil) exports). These must not be resolved
-	// as foreign types even when reflect.PkgPath() differs from the
-	// synthesised package path (which happens for re-exported types).
-	localTypes map[reflect.Type]bool
-
-	// depth tracks the current recursion depth of toGoType calls within
-	// this converter, guarding against pathologically deep type hierarchies.
-	depth int
-}
-
-// synthesiseMethods adds exported methods from ptrType's method set to
-// the named type.
+// classifyAllowlistEntries splits an allowlist into the set of whole-package wildcard
+// imports and the per-package symbol-name sets. Empty package paths are dropped.
 //
-// The pointer method set includes all value receiver methods, so this single
-// pass covers everything. Methods that also appear on the value type's
-// method set are registered with a value receiver; pointer-only methods
-// use a pointer receiver. This distinction matters for the type checker
-// when calling methods on non-addressable values.
+// Takes allowlist ([]string) which carries the entries to classify.
 //
-// Takes ptrType (reflect.Type) which is the pointer type whose methods
-// to scan.
-// Takes named (*types.Named) which is the target named type.
-// Takes pkg (*types.Package) which is the package for method
-// declarations.
-func (c *reflectTypeConverter) synthesiseMethods(
-	ptrType reflect.Type,
-	named *types.Named,
-	pkg *types.Package,
-) {
-	elemType := ptrType.Elem()
-	valueMethodCount := elemType.NumMethod()
-	valueMethodSet := make(map[string]bool, valueMethodCount)
-	for valueMethod := range elemType.Methods() {
-		valueMethodSet[valueMethod.Name] = true
-	}
-
-	for m := range ptrType.Methods() {
-		if !m.IsExported() {
+// Returns map[string]struct{} which is the set of wildcard packages.
+// Returns map[string]map[string]struct{} which is the per-package symbol-name set.
+func classifyAllowlistEntries(allowlist []string) (map[string]struct{}, map[string]map[string]struct{}) {
+	packageWildcards := make(map[string]struct{})
+	symbolEntries := make(map[string]map[string]struct{})
+	for _, entry := range allowlist {
+		packagePath, name := parseAllowlistEntry(entry)
+		if packagePath == "" {
 			continue
 		}
-
-		mt := m.Type
-		numIn := mt.NumIn() - 1
-		parameters := make([]*types.Var, numIn)
-		for j := range numIn {
-			parameters[j] = types.NewParam(0, nil, "", c.toGoType(mt.In(j+1)))
-		}
-		numOut := mt.NumOut()
-		results := make([]*types.Var, numOut)
-		for j := range numOut {
-			results[j] = types.NewParam(0, nil, "", c.toGoType(mt.Out(j)))
-		}
-
-		var receiver types.Type = named
-		if !valueMethodSet[m.Name] {
-			receiver = types.NewPointer(named)
-		}
-
-		signature := types.NewSignatureType(
-			types.NewParam(0, pkg, "", receiver),
-			nil, nil,
-			types.NewTuple(parameters...),
-			types.NewTuple(results...),
-			mt.IsVariadic(),
-		)
-		named.AddMethod(types.NewFunc(0, pkg, m.Name, signature))
-	}
-}
-
-// reflectKindToBasicType maps reflect.Kind values for primitive types to
-// their corresponding go/types basic type. Compound kinds (Slice, Map,
-// etc.) are not included, since they require recursive conversion.
-var reflectKindToBasicType = map[reflect.Kind]types.BasicKind{
-	reflect.Bool:          types.Bool,
-	reflect.Int:           types.Int,
-	reflect.Int8:          types.Int8,
-	reflect.Int16:         types.Int16,
-	reflect.Int32:         types.Int32,
-	reflect.Int64:         types.Int64,
-	reflect.Uint:          types.Uint,
-	reflect.Uint8:         types.Uint8,
-	reflect.Uint16:        types.Uint16,
-	reflect.Uint32:        types.Uint32,
-	reflect.Uint64:        types.Uint64,
-	reflect.Uintptr:       types.Uintptr,
-	reflect.Float32:       types.Float32,
-	reflect.Float64:       types.Float64,
-	reflect.Complex64:     types.Complex64,
-	reflect.Complex128:    types.Complex128,
-	reflect.String:        types.String,
-	reflect.UnsafePointer: types.UnsafePointer,
-}
-
-// reflectChanDirToTypes maps a reflect.ChanDir to the corresponding
-// types.ChanDir constant.
-//
-// Takes direction (reflect.ChanDir) which is the channel direction
-// to convert.
-//
-// Returns the equivalent go/types channel direction.
-func reflectChanDirToTypes(direction reflect.ChanDir) types.ChanDir {
-	switch direction {
-	case reflect.SendDir:
-		return types.SendOnly
-	case reflect.RecvDir:
-		return types.RecvOnly
-	default:
-		return types.SendRecv
-	}
-}
-
-// toGoType converts a reflect.Type to the corresponding types.Type.
-//
-// Takes reflectType (reflect.Type) which is the reflect type to convert.
-//
-// Returns the equivalent go/types representation.
-func (c *reflectTypeConverter) toGoType(reflectType reflect.Type) types.Type {
-	if cached, ok := c.seen[reflectType]; ok {
-		return cached
-	}
-
-	c.depth++
-	defer func() { c.depth-- }()
-	if c.depth > maxTypeConversionDepth {
-		return types.NewInterfaceType(nil, nil)
-	}
-
-	if resolved := c.resolveFromRegistry(reflectType); resolved != nil {
-		return resolved
-	}
-
-	if basicKind, ok := reflectKindToBasicType[reflectType.Kind()]; ok {
-		return types.Typ[basicKind]
-	}
-
-	return c.convertCompositeType(reflectType)
-}
-
-// resolveFromRegistry checks the registry cache and foreign type
-// resolution for a previously seen or registered type.
-//
-// Takes reflectType (reflect.Type) which is the type to look up.
-//
-// Returns the cached types.Type, or nil if not found.
-//
-// Safe for concurrent use; acquires registry.mu internally.
-func (c *reflectTypeConverter) resolveFromRegistry(reflectType reflect.Type) types.Type {
-	if c.registry == nil || c.localTypes[reflectType] {
-		return nil
-	}
-	c.registry.mu.RLock()
-	cached, ok := c.registry.reflectToTypes[reflectType]
-	c.registry.mu.RUnlock()
-	if ok {
-		c.seen[reflectType] = cached
-		return cached
-	}
-	if resolved := c.resolveForeignNamedType(reflectType); resolved != nil {
-		c.seen[reflectType] = resolved
-		return resolved
-	}
-	return nil
-}
-
-// convertCompositeType handles conversion of composite reflect
-// types (slices, maps, structs, interfaces, etc.) to go/types.
-//
-// Takes reflectType (reflect.Type) which is the composite type
-// to convert.
-//
-// Returns the equivalent go/types representation.
-func (c *reflectTypeConverter) convertCompositeType(reflectType reflect.Type) types.Type {
-	switch reflectType.Kind() {
-	case reflect.Slice:
-		if reflectType.Elem().Kind() == reflect.Uint8 {
-			return types.NewSlice(types.Typ[types.Byte])
-		}
-		return types.NewSlice(c.toGoType(reflectType.Elem()))
-	case reflect.Array:
-		return types.NewArray(c.toGoType(reflectType.Elem()), int64(reflectType.Len()))
-	case reflect.Map:
-		return types.NewMap(c.toGoType(reflectType.Key()), c.toGoType(reflectType.Elem()))
-	case reflect.Pointer:
-		return types.NewPointer(c.toGoType(reflectType.Elem()))
-	case reflect.Chan:
-		return types.NewChan(reflectChanDirToTypes(reflectType.ChanDir()), c.toGoType(reflectType.Elem()))
-	case reflect.Func:
-		return c.funcSignature(reflectType)
-	case reflect.Struct:
-		return c.structType(reflectType)
-	case reflect.Interface:
-		return c.interfaceType(reflectType)
-	default:
-		return types.NewInterfaceType(nil, nil)
-	}
-}
-
-// interfaceType converts a reflect interface type to a go/types
-// interface, using a placeholder to handle recursive types.
-//
-// Takes reflectType (reflect.Type) which is the interface type
-// to convert.
-//
-// Returns the equivalent go/types interface.
-func (c *reflectTypeConverter) interfaceType(reflectType reflect.Type) types.Type {
-	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
-	var placeholder types.Type
-	if !hasNamedPlaceholder {
-		placeholder = types.NewInterfaceType(nil, nil)
-		c.seen[reflectType] = placeholder
-	}
-
-	var methods []*types.Func
-	for m := range reflectType.Methods() {
-		signature := c.funcSignature(m.Type)
-		methods = append(methods, types.NewFunc(0, nil, m.Name, signature))
-	}
-	if len(methods) > 0 {
-		iface := types.NewInterfaceType(methods, nil)
-		iface.Complete()
-		if !hasNamedPlaceholder {
-			c.seen[reflectType] = iface
-		}
-		return iface
-	}
-
-	if hasNamedPlaceholder {
-		return types.NewInterfaceType(nil, nil)
-	}
-	return placeholder
-}
-
-// linkedGenericFunc synthesises a generic *types.Func for a symbol
-// registered as an interp_link.LinkedFunction.
-//
-// The sibling's reflect signature drives the reconstruction: the
-// first TypeArgCount parameters are the prepended reflect.Type values
-// (dropped here because they are implicit in the generic's Go-level
-// signature), and any remaining reflect.Value occurrences in params
-// or results are replaced by the first type parameter.
-//
-// Takes pkg (*types.Package) which is the owning package.
-// Takes name (string) which is the generic's exported name.
-// Takes value (reflect.Value) which wraps the LinkedFunction.
-//
-// Returns a *types.Func carrying the reconstructed generic signature.
-func (c *reflectTypeConverter) linkedGenericFunc(pkg *types.Package, name string, value reflect.Value) *types.Func {
-	linked, ok := value.Interface().(interp_link.LinkedFunction)
-	if !ok || !linked.Target.IsValid() || linked.TypeArgCount <= 0 {
-		return types.NewFunc(0, pkg, name, c.fallbackGenericSignature(1))
-	}
-
-	siblingType := linked.Target.Type()
-	if siblingType.Kind() != reflect.Func {
-		return types.NewFunc(0, pkg, name, c.fallbackGenericSignature(linked.TypeArgCount))
-	}
-
-	typeParams := makeLinkedTypeParams(pkg, linked.TypeArgCount)
-
-	parameters := c.linkedFuncParameterTypes(pkg, siblingType, linked, typeParams)
-	results := c.linkedFuncResultTypes(pkg, siblingType, linked, typeParams)
-	signature := types.NewSignatureType(
-		nil,
-		nil,
-		typeParams,
-		types.NewTuple(parameters...),
-		types.NewTuple(results...),
-		c.linkedFuncVariadic(siblingType, linked),
-	)
-	return types.NewFunc(0, pkg, name, signature)
-}
-
-// linkedFuncParameterTypes picks the parameter list for a linked
-// generic, preferring descriptors when available.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes siblingType (reflect.Type) which is the sibling's reflect
-// signature (used as a fallback when no descriptors were emitted).
-// Takes linked (interp_link.LinkedFunction) which holds the sentinel.
-// Takes typeParams ([]*types.TypeParam) which are the generic's
-// declared parameters.
-//
-// Returns the []*types.Var representing the generic's parameter list.
-func (c *reflectTypeConverter) linkedFuncParameterTypes(
-	pkg *types.Package,
-	siblingType reflect.Type,
-	linked interp_link.LinkedFunction,
-	typeParams []*types.TypeParam,
-) []*types.Var {
-	if len(linked.Params) > 0 {
-		parameters := make([]*types.Var, len(linked.Params))
-		for position, descriptor := range linked.Params {
-			parameters[position] = types.NewParam(0, nil, "", c.resolveLinkedDescriptor(pkg, descriptor, typeParams, 0))
-		}
-		return parameters
-	}
-	if linked.TypeArgCount > 0 && len(typeParams) > 0 {
-		return c.linkedFuncParameters(siblingType, linked.TypeArgCount, typeParams[0])
-	}
-	return nil
-}
-
-// linkedFuncResultTypes picks the result list for a linked generic,
-// preferring descriptors when available.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes siblingType (reflect.Type) which is the sibling's reflect
-// signature used as a fallback.
-// Takes linked (interp_link.LinkedFunction) which holds the sentinel.
-// Takes typeParams ([]*types.TypeParam) which are the generic's
-// declared parameters.
-//
-// Returns the []*types.Var representing the generic's result list.
-func (c *reflectTypeConverter) linkedFuncResultTypes(
-	pkg *types.Package,
-	siblingType reflect.Type,
-	linked interp_link.LinkedFunction,
-	typeParams []*types.TypeParam,
-) []*types.Var {
-	if len(linked.Results) > 0 {
-		results := make([]*types.Var, len(linked.Results))
-		for position, descriptor := range linked.Results {
-			results[position] = types.NewParam(0, nil, "", c.resolveLinkedDescriptor(pkg, descriptor, typeParams, 0))
-		}
-		return results
-	}
-	if linked.TypeArgCount > 0 && len(typeParams) > 0 {
-		return c.linkedFuncResults(siblingType, typeParams[0])
-	}
-	return nil
-}
-
-// linkedFuncVariadic prefers the generic's own Variadic flag and only
-// falls back to the sibling's reflect signature when descriptors are
-// unavailable.
-//
-// Takes siblingType (reflect.Type) which is the sibling's signature.
-// Takes linked (interp_link.LinkedFunction) which holds the sentinel.
-//
-// Returns true when the synthesised signature should be variadic.
-func (*reflectTypeConverter) linkedFuncVariadic(siblingType reflect.Type, linked interp_link.LinkedFunction) bool {
-	if len(linked.Params) > 0 || len(linked.Results) > 0 {
-		return linked.Variadic
-	}
-	return siblingType.IsVariadic()
-}
-
-// resolveLinkedDescriptor converts a GenericFieldType descriptor into
-// a go/types.Type.
-//
-// Falls back to the empty interface when a descriptor cannot be
-// resolved, so a slightly broken registration still produces a usable
-// package. Recursion is bounded by maxLinkedDescriptorDepth.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
-// Takes depth (int) which tracks the current recursion depth.
-//
-// Returns the resolved go/types.Type, or the empty interface on any
-// failure path.
-func (c *reflectTypeConverter) resolveLinkedDescriptor(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-) types.Type {
-	if depth >= maxLinkedDescriptorDepth {
-		return types.NewInterfaceType(nil, nil)
-	}
-	if resolved, handled := c.resolveLinkedLeafKind(pkg, descriptor, typeParams, depth); handled {
-		return resolved
-	}
-	if resolved, handled := c.resolveLinkedCompositeKind(pkg, descriptor, typeParams, depth); handled {
-		return resolved
-	}
-	if resolved := linkedFieldToType(c.registry, descriptor, typeParams, depth); resolved != nil {
-		return resolved
-	}
-	return types.NewInterfaceType(nil, nil)
-}
-
-// resolveLinkedLeafKind handles descriptor kinds that terminate the
-// recursion: Error, NamedGeneric, and Named.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
-// Takes depth (int) which tracks the current recursion depth.
-//
-// Returns the resolved type and true when the kind matched; the zero
-// value and false otherwise so the caller can try a composite kind.
-func (c *reflectTypeConverter) resolveLinkedLeafKind(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-) (types.Type, bool) {
-	switch descriptor.Kind {
-	case interp_link.FieldKindError:
-		return types.Universe.Lookup("error").Type(), true
-	case interp_link.FieldKindNamedGeneric:
-		return c.resolveLinkedNamedGeneric(pkg, descriptor, typeParams, depth+1), true
-	case interp_link.FieldKindNamed:
-		if resolved := c.resolveLinkedNamed(pkg, descriptor); resolved != nil {
-			return resolved, true
-		}
-		return types.NewInterfaceType(nil, nil), true
-	}
-	return nil, false
-}
-
-// resolveLinkedCompositeKind handles descriptor kinds that carry an
-// Element (and optionally a Key).
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
-// Takes depth (int) which tracks the current recursion depth.
-//
-// Returns the resolved type and true when the kind matched; the zero
-// value and false otherwise so the caller can try a fallback.
-func (c *reflectTypeConverter) resolveLinkedCompositeKind(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-) (types.Type, bool) {
-	switch descriptor.Kind {
-	case interp_link.FieldKindSlice:
-		return c.resolveLinkedElementOnly(pkg, descriptor, typeParams, depth,
-			func(element types.Type) types.Type { return types.NewSlice(element) }), true
-	case interp_link.FieldKindPointer:
-		return c.resolveLinkedElementOnly(pkg, descriptor, typeParams, depth,
-			func(element types.Type) types.Type { return types.NewPointer(element) }), true
-	case interp_link.FieldKindChan:
-		return c.resolveLinkedChan(pkg, descriptor, typeParams, depth), true
-	case interp_link.FieldKindArray:
-		return c.resolveLinkedArray(pkg, descriptor, typeParams, depth), true
-	case interp_link.FieldKindMap:
-		return c.resolveLinkedMap(pkg, descriptor, typeParams, depth), true
-	}
-	return nil, false
-}
-
-// resolveLinkedElementOnly handles the shared Element-only pattern
-// for Slice and Pointer kinds via a constructor callback.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
-// Takes depth (int) which tracks the current recursion depth.
-// Takes constructor (func(types.Type) types.Type) which wraps the
-// resolved element in the composite type.
-//
-// Returns the composite type, or the empty interface when the element
-// is missing.
-func (c *reflectTypeConverter) resolveLinkedElementOnly(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-	constructor func(types.Type) types.Type,
-) types.Type {
-	if descriptor.Element == nil {
-		return types.NewInterfaceType(nil, nil)
-	}
-	return constructor(c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1))
-}
-
-// resolveLinkedChan resolves a channel descriptor, kept separate from
-// resolveLinkedElementOnly because types.NewChan takes a direction.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
-// Takes depth (int) which tracks the current recursion depth.
-//
-// Returns the channel type, or the empty interface when Element is
-// nil.
-func (c *reflectTypeConverter) resolveLinkedChan(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-) types.Type {
-	if descriptor.Element == nil {
-		return types.NewInterfaceType(nil, nil)
-	}
-	return types.NewChan(types.SendRecv, c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1))
-}
-
-// resolveLinkedArray resolves a fixed-length array descriptor.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
-// Takes depth (int) which tracks the current recursion depth.
-//
-// Returns the array type, or the empty interface when Element is nil.
-func (c *reflectTypeConverter) resolveLinkedArray(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-) types.Type {
-	if descriptor.Element == nil {
-		return types.NewInterfaceType(nil, nil)
-	}
-	return types.NewArray(
-		c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1),
-		int64(descriptor.ArrayLength),
-	)
-}
-
-// resolveLinkedMap resolves a map descriptor, returning the empty
-// interface when either Key or Element is missing.
-//
-// Takes pkg (*types.Package) which owns the synthesised symbols.
-// Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
-// Takes depth (int) which tracks the current recursion depth.
-//
-// Returns the map type, or the empty interface when Key or Element
-// is missing.
-func (c *reflectTypeConverter) resolveLinkedMap(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-) types.Type {
-	if descriptor.Key == nil || descriptor.Element == nil {
-		return types.NewInterfaceType(nil, nil)
-	}
-	return types.NewMap(
-		c.resolveLinkedDescriptor(pkg, *descriptor.Key, typeParams, depth+1),
-		c.resolveLinkedDescriptor(pkg, *descriptor.Element, typeParams, depth+1),
-	)
-}
-
-// resolveLinkedNamed resolves a FieldKindNamed reference, preferring
-// the in-progress package's scope before falling back to other
-// synthesised packages.
-//
-// Takes pkg (*types.Package) which is the currently synthesising
-// package.
-// Takes descriptor (interp_link.GenericFieldType) which carries
-// NamedPackage and NamedName.
-//
-// Returns the resolved type, or nil when the descriptor is empty or
-// the symbol is unknown.
-func (c *reflectTypeConverter) resolveLinkedNamed(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-) types.Type {
-	if descriptor.NamedPackage == "" || descriptor.NamedName == "" {
-		return nil
-	}
-	if pkg != nil && descriptor.NamedPackage == pkg.Path() {
-		if obj := pkg.Scope().Lookup(descriptor.NamedName); obj != nil {
-			return obj.Type()
-		}
-	}
-	return c.registry.resolveNamedForLinkedField(descriptor.NamedPackage, descriptor.NamedName)
-}
-
-// resolveLinkedNamedGeneric finds the referenced generic named type
-// and instantiates it with the descriptor's TypeArgs.
-//
-// Synthesis order matters: LinkedGenericType registrations run before
-// LinkedFunction synthesis, so cross-references within the same
-// package resolve reliably.
-//
-// Takes pkg (*types.Package) which is the currently synthesising
-// package.
-// Takes descriptor (interp_link.GenericFieldType) which carries the
-// target name and TypeArgs.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references in TypeArgs.
-// Takes depth (int) which tracks the current recursion depth.
-//
-// Returns the instantiated type, or the empty interface on any failure
-// path (missing target, arity mismatch, instantiation error).
-func (c *reflectTypeConverter) resolveLinkedNamedGeneric(
-	pkg *types.Package,
-	descriptor interp_link.GenericFieldType,
-	typeParams []*types.TypeParam,
-	depth int,
-) types.Type {
-	if depth >= maxLinkedDescriptorDepth {
-		return types.NewInterfaceType(nil, nil)
-	}
-	if descriptor.NamedPackage == "" || descriptor.NamedName == "" {
-		return types.NewInterfaceType(nil, nil)
-	}
-	resolved := c.resolveLinkedNamed(pkg, descriptor)
-	if resolved == nil {
-		return types.NewInterfaceType(nil, nil)
-	}
-	named, ok := resolved.(*types.Named)
-	if !ok || named.TypeParams() == nil || named.TypeParams().Len() == 0 {
-		return resolved
-	}
-	if len(descriptor.TypeArgs) != named.TypeParams().Len() {
-		return types.NewInterfaceType(nil, nil)
-	}
-	if named.TypeParams().Len() > maxLinkedTypeArgCount {
-		return types.NewInterfaceType(nil, nil)
-	}
-	typeArgs := make([]types.Type, len(descriptor.TypeArgs))
-	for position, argDescriptor := range descriptor.TypeArgs {
-		typeArgs[position] = c.resolveLinkedDescriptor(pkg, argDescriptor, typeParams, depth+1)
-	}
-	instance, err := types.Instantiate(nil, named, typeArgs, true)
-	if err != nil {
-		return types.NewInterfaceType(nil, nil)
-	}
-	return instance
-}
-
-// linkedFuncParameters builds the parameter tuple for a linked
-// generic's synthesised signature, skipping the leading reflect.Type
-// stubs and substituting reflect.Value occurrences with the first
-// type parameter.
-//
-// Takes siblingType (reflect.Type) which is the sibling signature.
-// Takes typeArgCount (int) which is the number of leading
-// reflect.Type parameters to skip.
-// Takes firstTypeParam (*types.TypeParam) which is substituted in for
-// reflect.Value positions.
-//
-// Returns the per-parameter []*types.Var slice.
-func (c *reflectTypeConverter) linkedFuncParameters(siblingType reflect.Type, typeArgCount int, firstTypeParam *types.TypeParam) []*types.Var {
-	var parameters []*types.Var
-	inIndex := 0
-	for in := range siblingType.Ins() {
-		if inIndex < typeArgCount {
-			inIndex++
+		if name == "" || name == "*" {
+			packageWildcards[packagePath] = struct{}{}
 			continue
 		}
-		parameters = append(parameters, types.NewParam(0, nil, "", c.substituteParametricType(in, firstTypeParam)))
-		inIndex++
-	}
-	return parameters
-}
-
-// linkedFuncResults builds the return tuple for a linked generic's
-// synthesised signature.
-//
-// Substitutes reflect.Value returns with the first type parameter so
-// callers can bind the result to an ordinary typed variable.
-//
-// Takes siblingType (reflect.Type) which is the sibling signature.
-// Takes firstTypeParam (*types.TypeParam) which is substituted in for
-// reflect.Value positions.
-//
-// Returns the per-result []*types.Var slice.
-func (c *reflectTypeConverter) linkedFuncResults(siblingType reflect.Type, firstTypeParam *types.TypeParam) []*types.Var {
-	var results []*types.Var
-	for out := range siblingType.Outs() {
-		results = append(results, types.NewParam(0, nil, "", c.substituteParametricType(out, firstTypeParam)))
-	}
-	return results
-}
-
-// substituteParametricType converts a reflect.Type to its go/types
-// equivalent, mapping reflect.Value to the first type parameter so
-// parametric positions surface as T in the reconstructed signature.
-//
-// Takes reflectType (reflect.Type) which is the sibling's position
-// type.
-// Takes firstTypeParam (*types.TypeParam) which replaces reflect.Value.
-//
-// Returns the corresponding types.Type.
-func (c *reflectTypeConverter) substituteParametricType(reflectType reflect.Type, firstTypeParam *types.TypeParam) types.Type {
-	if reflectType == linkedResultReflectValueType {
-		return firstTypeParam
-	}
-	return c.toGoType(reflectType)
-}
-
-// fallbackGenericSignature builds a permissive generic signature used
-// when the LinkedFunction's sibling cannot be inspected.
-//
-// The signature accepts no parameters and returns the first type
-// parameter, which lets go/types accept simple call sites without
-// crashing on malformed or future-shaped directives.
-//
-// Takes typeArgCount (int) which is the declared type-parameter count.
-//
-// Returns the fallback *types.Signature.
-func (c *reflectTypeConverter) fallbackGenericSignature(typeArgCount int) *types.Signature {
-	if typeArgCount < 1 {
-		typeArgCount = 1
-	}
-	typeParams := make([]*types.TypeParam, typeArgCount)
-	for i := range typeArgCount {
-		paramName := "T"
-		if i > 0 {
-			paramName = "T" + strconv.Itoa(i+1)
+		set, ok := symbolEntries[packagePath]
+		if !ok {
+			set = make(map[string]struct{})
+			symbolEntries[packagePath] = set
 		}
-		tname := types.NewTypeName(0, c.pkg, paramName, nil)
-		typeParams[i] = types.NewTypeParam(tname, types.NewInterfaceType(nil, nil))
+		set[name] = struct{}{}
 	}
-	return types.NewSignatureType(
-		nil,
-		nil,
-		typeParams,
-		types.NewTuple(),
-		types.NewTuple(types.NewParam(0, nil, "", typeParams[0])),
-		false,
-	)
+	return packageWildcards, symbolEntries
 }
 
-// funcSignature converts a reflect function type to types.Signature.
+// filterPackageSymbols returns a new map containing only the entries of packageSymbols
+// whose name appears in nameSet.
 //
-// Takes reflectType (reflect.Type) which is the function type to convert.
+// Takes packageSymbols (map[string]reflect.Value) which is the source symbol map.
+// Takes nameSet (map[string]struct{}) which is the allowed-name set.
 //
-// Returns the equivalent go/types function signature.
-func (c *reflectTypeConverter) funcSignature(reflectType reflect.Type) *types.Signature {
-	var parameters []*types.Var
-	for in := range reflectType.Ins() {
-		parameters = append(parameters, types.NewParam(0, nil, "", c.toGoType(in)))
-	}
-
-	var results []*types.Var
-	for out := range reflectType.Outs() {
-		results = append(results, types.NewParam(0, nil, "", c.toGoType(out)))
-	}
-
-	return types.NewSignatureType(
-		nil,
-		nil, nil,
-		types.NewTuple(parameters...),
-		types.NewTuple(results...),
-		reflectType.IsVariadic(),
-	)
-}
-
-// structType converts a reflect struct type to types.Struct.
-//
-// Takes reflectType (reflect.Type) which is the struct type to convert.
-//
-// Returns the equivalent go/types struct type.
-func (c *reflectTypeConverter) structType(reflectType reflect.Type) types.Type {
-	_, hasNamedPlaceholder := c.seen[reflectType].(*types.Named)
-	if !hasNamedPlaceholder {
-		placeholder := types.NewStruct(nil, nil)
-		c.seen[reflectType] = placeholder
-	}
-
-	var fields []*types.Var
-	var tags []string
-	for f := range reflectType.Fields() {
-		var fieldPkg *types.Package
-		if !f.IsExported() && f.PkgPath != "" {
-			fieldPkg = types.NewPackage(f.PkgPath, path.Base(f.PkgPath))
-		}
-		fields = append(fields, types.NewField(0, fieldPkg, f.Name, c.toGoType(f.Type), f.Anonymous))
-		tags = append(tags, string(f.Tag))
-	}
-
-	result := types.NewStruct(fields, tags)
-	if !hasNamedPlaceholder {
-		c.seen[reflectType] = result
-	}
-	return result
-}
-
-// resolveForeignNamedType resolves a named type from a foreign
-// registered package that has not yet been synthesised.
-//
-// This handles cross-package named type resolution: when package
-// A's struct has a field of type B.SomeType, and package B is
-// registered but not yet synthesised, the B.SomeType entry will
-// be missing from reflectToTypes. Triggering B's synthesis first
-// ensures the named type (with its methods) is used instead of
-// the anonymous underlying type.
-//
-// Takes reflectType (reflect.Type) which is the type to resolve.
-//
-// Returns the resolved types.Type, or nil if the type cannot be
-// resolved this way.
-//
-// Safe for concurrent use; acquires registry.mu internally.
-func (c *reflectTypeConverter) resolveForeignNamedType(reflectType reflect.Type) types.Type {
-	foreignPackagePath := reflectType.PkgPath()
-	if foreignPackagePath == "" || reflectType.Name() == "" {
-		return nil
-	}
-
-	if foreignPackagePath == c.pkg.Path() {
-		return nil
-	}
-
-	if !c.registry.HasPackage(foreignPackagePath) {
-		c.registry.mu.RLock()
-		ownerPath, ok := c.registry.typeOwners[reflectType]
-		c.registry.mu.RUnlock()
-		if !ok || ownerPath == c.pkg.Path() {
-			return nil
-		}
-		foreignPackagePath = ownerPath
-	}
-
-	c.registry.mu.RLock()
-	inProgress := c.registry.synthesising[foreignPackagePath]
-	c.registry.mu.RUnlock()
-	if inProgress {
-		return nil
-	}
-
-	foreignPackage, _ := c.registry.Import(foreignPackagePath)
-
-	c.registry.mu.RLock()
-	resolved, ok := c.registry.reflectToTypes[reflectType]
-	c.registry.mu.RUnlock()
-	if ok {
-		return resolved
-	}
-
-	if foreignPackage != nil {
-		typeObject := foreignPackage.Scope().Lookup(reflectType.Name())
-		if typeObject != nil {
-			if typeName, isTypeName := typeObject.(*types.TypeName); isTypeName {
-				return typeName.Type()
-			}
+// Returns map[string]reflect.Value which is the filtered map.
+func filterPackageSymbols(packageSymbols map[string]reflect.Value, nameSet map[string]struct{}) map[string]reflect.Value {
+	filteredPkg := make(map[string]reflect.Value, len(nameSet))
+	for name := range nameSet {
+		if value, ok := packageSymbols[name]; ok {
+			filteredPkg[name] = value
 		}
 	}
+	return filteredPkg
+}
 
-	return nil
+// parseAllowlistEntry splits a Scoped allowlist entry into the import path and
+// symbol-name components. A trailing "/*" denotes a whole- package wildcard; otherwise
+// the last dot after the final slash delimits the import path from the symbol name.
+//
+// Takes entry (string) which is the allowlist entry to parse.
+//
+// Returns packagePath (string) which is the import path component.
+// Returns symbolName (string) which is the symbol name or "*" for wildcards.
+func parseAllowlistEntry(entry string) (packagePath, symbolName string) {
+	if entry == "" {
+		return "", ""
+	}
+	if len(entry) >= 2 && entry[len(entry)-2:] == "/*" {
+		return entry[:len(entry)-2], "*"
+	}
+	lastSlash := -1
+	for i := len(entry) - 1; i >= 0; i-- {
+		if entry[i] == '/' {
+			lastSlash = i
+			break
+		}
+	}
+	dotIndex := -1
+	for i := len(entry) - 1; i > lastSlash; i-- {
+		if entry[i] == '.' {
+			dotIndex = i
+			break
+		}
+	}
+	if dotIndex < 0 {
+		return entry, ""
+	}
+	return entry[:dotIndex], entry[dotIndex+1:]
 }

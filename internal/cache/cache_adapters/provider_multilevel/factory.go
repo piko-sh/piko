@@ -30,11 +30,11 @@ type Config struct {
 	// L2ProviderName is the name of the level 2 cache provider.
 	L2ProviderName string `mapstructure:"l2_provider"`
 
-	// MaxConsecutiveFailures is the number of failures before the circuit breaker
-	// opens for the L2 provider.
+	// MaxConsecutiveFailures is the number of failures before the circuit breaker opens for
+	// the L2 provider.
 	MaxConsecutiveFailures int `mapstructure:"l2_max_failures"`
 
-	// OpenStateTimeout is how long the circuit breaker stays open before
-	// trying again. A value of 0 uses the default timeout.
+	// OpenStateTimeout is how long the circuit breaker stays open before trying again. A
+	// value of 0 uses the default timeout.
 	OpenStateTimeout time.Duration `mapstructure:"l2_open_timeout"`
 }

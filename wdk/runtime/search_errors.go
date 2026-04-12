@@ -18,18 +18,17 @@
 
 package runtime
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
-	// ErrCollectionDataNotMap is returned when collection data cannot be
-	// asserted as a map.
+	// ErrCollectionDataNotMap is returned when collection data cannot be asserted as a map.
 	ErrCollectionDataNotMap = errors.New("collection data is not a map")
 
-	// ErrNoPageData is returned when the collection data contains no page
-	// entry.
+	// ErrNoPageData is returned when the collection data contains no page entry.
 	ErrNoPageData = errors.New("no page data in collection")
 
-	// ErrPageDataNotMap is returned when the page data entry cannot be
-	// asserted as a map.
+	// ErrPageDataNotMap is returned when the page data entry cannot be asserted as a map.
 	ErrPageDataNotMap = errors.New("page data is not a map")
 )

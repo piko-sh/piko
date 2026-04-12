@@ -40,8 +40,8 @@ const (
 	// actionBinderPackagePath is the import path for the Piko binder package.
 	actionBinderPackagePath = "piko.sh/piko/wdk/binder"
 
-	// actionBinderPackageAlias is the import alias for the binder package,
-	// avoiding conflict with the internal binder package.
+	// actionBinderPackageAlias is the import alias for the binder package, avoiding conflict
+	// with the internal binder package.
 	actionBinderPackageAlias = "pikobinder"
 
 	// actionGeneratedPackageName is the package name for generated action files.

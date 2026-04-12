@@ -32,25 +32,26 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_dto"
 )
 
-// RenderAdapter implements RenderPort by using the annotator to parse templates
-// and a HeadlessRendererPort to convert the AST to HTML.
+// RenderAdapter implements RenderPort by using the annotator to parse templates and a
+// HeadlessRendererPort to convert the AST to HTML.
 //
-// This adapter only supports static templates (no Go code execution).
-// Templates with Go handlers or expressions will render with placeholder values.
+// This adapter only supports static templates (no Go code execution). Templates with Go
+// handlers or expressions will render with placeholder values.
 type RenderAdapter struct {
 	// headlessRenderer converts TemplateAST to HTML strings.
 	headlessRenderer wasm_domain.HeadlessRendererPort
 
-	// stdlibDataGetter retrieves the pre-bundled standard library type
-	// information. This is a function because the data may not be available
-	// when the adapter is created.
+	// stdlibDataGetter retrieves the pre-bundled standard library type information. This is
+	// a function because the data may not be available when the adapter is created.
 	stdlibDataGetter func() (*inspector_dto.TypeData, error)
 
 	// moduleName is the Go module name used for generated code.
 	moduleName string
 }
 
-var _ wasm_domain.RenderPort = (*RenderAdapter)(nil)
+var (
+	_ wasm_domain.RenderPort = (*RenderAdapter)(nil)
+)
 
 // RenderAdapterOption configures a RenderAdapter.
 type RenderAdapterOption func(*RenderAdapter)
@@ -72,11 +73,11 @@ func NewRenderAdapter(opts ...RenderAdapterOption) *RenderAdapter {
 
 // Render produces HTML from in-memory sources.
 //
-// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source
-// files and rendering options.
+// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source files and
+// rendering options.
 //
-// Returns *wasm_dto.RenderFromSourcesResponse which contains the rendered HTML
-// and CSS, or error details if rendering fails.
+// Returns *wasm_dto.RenderFromSourcesResponse which contains the rendered HTML and CSS,
+// or error details if rendering fails.
 // Returns error when an unexpected failure occurs.
 func (a *RenderAdapter) Render(
 	ctx context.Context,
@@ -130,12 +131,10 @@ func (a *RenderAdapter) Render(
 	}, nil
 }
 
-// RenderFromAST produces HTML from a pre-built TemplateAST.
-// This is used for dynamic rendering where the AST comes from interpreter
-// execution rather than annotation.
+// RenderFromAST produces HTML from a pre-built TemplateAST. This is used for dynamic
+// rendering where the AST comes from interpreter execution rather than annotation.
 //
-// Takes request (*wasm_dto.RenderFromASTRequest) which contains the AST and
-// metadata.
+// Takes request (*wasm_dto.RenderFromASTRequest) which contains the AST and metadata.
 //
 // Returns *wasm_dto.RenderFromASTResponse which contains the rendered HTML.
 // Returns error when rendering fails.
@@ -180,10 +179,9 @@ func (a *RenderAdapter) RenderFromAST(
 
 // validateAndGetStdlib validates the adapter and returns stdlib data.
 //
-// Returns *inspector_dto.TypeData which contains the standard library type
-// information.
-// Returns *wasm_dto.RenderFromSourcesResponse which is non-nil when validation
-// fails, containing the error details.
+// Returns *inspector_dto.TypeData which contains the standard library type information.
+// Returns *wasm_dto.RenderFromSourcesResponse which is non-nil when validation fails,
+// containing the error details.
 func (a *RenderAdapter) validateAndGetStdlib() (*inspector_dto.TypeData, *wasm_dto.RenderFromSourcesResponse) {
 	if a.stdlibDataGetter == nil {
 		return nil, a.errorResponse("render adapter not configured: stdlib data getter is nil")
@@ -199,13 +197,13 @@ func (a *RenderAdapter) validateAndGetStdlib() (*inspector_dto.TypeData, *wasm_d
 //
 // Takes sources (map[string]string) which provides the source files to parse.
 // Takes moduleName (string) which specifies the module path for the sources.
-// Takes stdlibData (*inspector_dto.TypeData) which provides standard library
-// type information.
+// Takes stdlibData (*inspector_dto.TypeData) which provides standard library type
+// information.
 //
-// Returns annotator_domain.AnnotatorPort which is the configured annotator
-// service ready for use.
-// Returns *wasm_dto.RenderFromSourcesResponse which contains an error response
-// when the annotator service cannot be created, or nil on success.
+// Returns annotator_domain.AnnotatorPort which is the configured annotator service ready
+// for use.
+// Returns *wasm_dto.RenderFromSourcesResponse which contains an error response when the
+// annotator service cannot be created, or nil on success.
 func (a *RenderAdapter) createAnnotator(sources map[string]string, moduleName string, stdlibData *inspector_dto.TypeData) (annotator_domain.AnnotatorPort, *wasm_dto.RenderFromSourcesResponse) {
 	annotator, err := NewInMemoryAnnotatorService(sources, moduleName, stdlibData)
 	if err != nil {
@@ -216,13 +214,13 @@ func (a *RenderAdapter) createAnnotator(sources map[string]string, moduleName st
 
 // renderToHTML renders the component to HTML using the headless renderer.
 //
-// Takes component (*annotator_dto.AnnotationResult) which provides the
-// annotated AST to render.
+// Takes component (*annotator_dto.AnnotationResult) which provides the annotated AST to
+// render.
 // Takes styling (string) which specifies the styling to apply.
 //
 // Returns string which contains the rendered HTML output.
-// Returns *wasm_dto.RenderFromSourcesResponse which contains error details
-// when rendering fails, or nil on success.
+// Returns *wasm_dto.RenderFromSourcesResponse which contains error details when rendering
+// fails, or nil on success.
 func (a *RenderAdapter) renderToHTML(ctx context.Context, component *annotator_dto.AnnotationResult, styling string) (string, *wasm_dto.RenderFromSourcesResponse) {
 	if a.headlessRenderer == nil {
 		return "", a.errorResponse("headless renderer not configured")
@@ -287,13 +285,12 @@ func (*RenderAdapter) findEntryPoints(
 
 // selectComponentToRender chooses which component to render from the results.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// annotated components to select from.
-// Takes preferredEntry (string) which specifies a preferred component name to
-// match.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the annotated
+// components to select from.
+// Takes preferredEntry (string) which specifies a preferred component name to match.
 //
-// Returns *annotator_dto.AnnotationResult which is the selected component, or
-// nil if none found.
+// Returns *annotator_dto.AnnotationResult which is the selected component, or nil if none
+// found.
 // Returns string which is the style block for the selected component.
 func (*RenderAdapter) selectComponentToRender(
 	result *annotator_dto.ProjectAnnotationResult,
@@ -323,11 +320,11 @@ func (*RenderAdapter) selectComponentToRender(
 
 // buildMetadata creates InternalMetadata from a component's annotation result.
 //
-// Takes component (*annotator_dto.AnnotationResult) which provides the
-// annotation data to convert.
+// Takes component (*annotator_dto.AnnotationResult) which provides the annotation data to
+// convert.
 //
-// Returns *templater_dto.InternalMetadata which contains the converted
-// metadata, or an empty instance if component is nil.
+// Returns *templater_dto.InternalMetadata which contains the converted metadata, or an
+// empty instance if component is nil.
 func (*RenderAdapter) buildMetadata(component *annotator_dto.AnnotationResult) *templater_dto.InternalMetadata {
 	if component == nil {
 		return &templater_dto.InternalMetadata{}
@@ -341,11 +338,10 @@ func (*RenderAdapter) buildMetadata(component *annotator_dto.AnnotationResult) *
 
 // convertDiagnostics converts annotator diagnostics to WASM DTOs.
 //
-// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostics to
-// convert.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostics to convert.
 //
-// Returns []wasm_dto.Diagnostic which contains the converted diagnostics ready
-// for WASM transport.
+// Returns []wasm_dto.Diagnostic which contains the converted diagnostics ready for WASM
+// transport.
 func (*RenderAdapter) convertDiagnostics(diagnostics []*ast_domain.Diagnostic) []wasm_dto.Diagnostic {
 	if len(diagnostics) == 0 {
 		return nil
@@ -371,11 +367,11 @@ func (*RenderAdapter) convertDiagnostics(diagnostics []*ast_domain.Diagnostic) [
 	return result
 }
 
-// WithRendererStdlibDataGetter sets a function to retrieve the pre-bundled
-// standard library type information.
+// WithRendererStdlibDataGetter sets a function to retrieve the pre-bundled standard
+// library type information.
 //
-// Takes getter (func() (*inspector_dto.TypeData, error)) which retrieves
-// the stdlib types when called.
+// Takes getter (func() (*inspector_dto.TypeData, error)) which retrieves the stdlib types
+// when called.
 //
 // Returns RenderAdapterOption which configures the adapter.
 func WithRendererStdlibDataGetter(getter func() (*inspector_dto.TypeData, error)) RenderAdapterOption {
@@ -397,8 +393,8 @@ func WithRendererModuleName(moduleName string) RenderAdapterOption {
 
 // WithHeadlessRenderer sets the headless renderer for AST-to-HTML conversion.
 //
-// Takes renderer (wasm_domain.HeadlessRendererPort) which provides headless
-// rendering features.
+// Takes renderer (wasm_domain.HeadlessRendererPort) which provides headless rendering
+// features.
 //
 // Returns RenderAdapterOption which configures the adapter.
 func WithHeadlessRenderer(renderer wasm_domain.HeadlessRendererPort) RenderAdapterOption {

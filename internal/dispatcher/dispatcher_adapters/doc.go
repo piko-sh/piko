@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package dispatcher_adapters provides the driven adapter implementations
-// for the dispatcher hexagon.
+// Package dispatcher_adapters provides the driven adapter implementations for the
+// dispatcher hexagon.
 //
-// It implements the [dispatcher_domain.DispatcherInspector] port by
-// delegating to the underlying email and notification dispatcher
-// ports. The [Inspector] type aggregates processing statistics and
-// dead letter queue (DLQ) operations across all configured
-// dispatchers and exposes a unified monitoring interface for the
-// dev-tools and admin layers.
+// It implements the [dispatcher_domain.DispatcherInspector] port by delegating to the
+// underlying email and notification dispatcher ports. The [Inspector] type aggregates
+// processing statistics and dead letter queue (DLQ) operations across all configured
+// dispatchers and exposes a unified monitoring interface for the dev-tools and admin
+// layers.
 package dispatcher_adapters

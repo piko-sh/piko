@@ -26,13 +26,14 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// DisabledCryptoService implements CryptoServicePort but returns errors for
-// all operations. It is used when no encryption key is set, allowing the
-// application to start without encryption while giving clear errors if
-// encryption is attempted.
+// DisabledCryptoService implements CryptoServicePort but returns errors for all
+// operations. It is used when no encryption key is set, allowing the application to start
+// without encryption while giving clear errors if encryption is attempted.
 type DisabledCryptoService struct{}
 
-var _ CryptoServicePort = (*DisabledCryptoService)(nil)
+var (
+	_ CryptoServicePort = (*DisabledCryptoService)(nil)
+)
 
 // NewDisabledCryptoService creates a new disabled crypto service.
 //
@@ -41,8 +42,8 @@ func NewDisabledCryptoService() *DisabledCryptoService {
 	return &DisabledCryptoService{}
 }
 
-// Encrypt returns an empty string and ErrCryptoDisabled since
-// encryption is not configured.
+// Encrypt returns an empty string and ErrCryptoDisabled since encryption is not
+// configured.
 //
 // Returns string which is always empty.
 // Returns error when called, always ErrCryptoDisabled.
@@ -50,8 +51,8 @@ func (*DisabledCryptoService) Encrypt(_ context.Context, _ string) (string, erro
 	return "", crypto_dto.ErrCryptoDisabled
 }
 
-// Decrypt returns an empty string and ErrCryptoDisabled since encryption
-// is not configured.
+// Decrypt returns an empty string and ErrCryptoDisabled since encryption is not
+// configured.
 //
 // Returns string which is always empty.
 // Returns error when called, always ErrCryptoDisabled.
@@ -59,8 +60,8 @@ func (*DisabledCryptoService) Decrypt(_ context.Context, _ string) (string, erro
 	return "", crypto_dto.ErrCryptoDisabled
 }
 
-// EncryptWithKey returns an empty string and ErrCryptoDisabled since
-// encryption is not set up.
+// EncryptWithKey returns an empty string and ErrCryptoDisabled since encryption is not
+// set up.
 //
 // Returns string which is always empty.
 // Returns error which is always ErrCryptoDisabled.
@@ -76,8 +77,7 @@ func (*DisabledCryptoService) EncryptBatch(_ context.Context, _ []string) ([]str
 	return nil, crypto_dto.ErrCryptoDisabled
 }
 
-// DecryptBatch returns nil and ErrCryptoDisabled since
-// encryption is not configured.
+// DecryptBatch returns nil and ErrCryptoDisabled since encryption is not configured.
 //
 // Returns []string which is always nil.
 // Returns error when called, always returning ErrCryptoDisabled.
@@ -92,8 +92,7 @@ func (*DisabledCryptoService) RotateKey(_ context.Context, _, _ string) error {
 	return crypto_dto.ErrCryptoDisabled
 }
 
-// GetActiveKeyID returns an empty key identifier since encryption is not
-// set up.
+// GetActiveKeyID returns an empty key identifier since encryption is not set up.
 //
 // Returns string which is always empty.
 // Returns error which is always ErrCryptoDisabled.
@@ -101,8 +100,7 @@ func (*DisabledCryptoService) GetActiveKeyID(_ context.Context) (string, error) 
 	return "", crypto_dto.ErrCryptoDisabled
 }
 
-// DecryptAndReEncrypt returns ErrCryptoDisabled since encryption is not
-// configured.
+// DecryptAndReEncrypt returns ErrCryptoDisabled since encryption is not configured.
 //
 // Returns ciphertext (string) which is always empty.
 // Returns keyID (string) which is always empty.
@@ -112,12 +110,11 @@ func (*DisabledCryptoService) DecryptAndReEncrypt(_ context.Context, _ string) (
 	return "", "", false, crypto_dto.ErrCryptoDisabled
 }
 
-// HealthCheck returns nil since the disabled service is healthy in the sense
-// that it correctly reports its disabled state. The service is functioning as
-// intended; encryption is not configured.
+// HealthCheck returns nil since the disabled service is healthy in the sense that it
+// correctly reports its disabled state. The service is functioning as intended;
+// encryption is not configured.
 //
-// Returns error when the health check fails, which never occurs for a disabled
-// service.
+// Returns error when the health check fails, which never occurs for a disabled service.
 func (*DisabledCryptoService) HealthCheck(_ context.Context) error {
 	return nil
 }
@@ -174,8 +171,7 @@ func (d *DisabledCryptoService) NewBatchDecrypt() *BatchDecryptBuilder {
 	}
 }
 
-// NewStreamEncrypt creates a streaming encryption builder that returns an
-// error.
+// NewStreamEncrypt creates a streaming encryption builder that returns an error.
 //
 // Returns *StreamEncryptBuilder which is configured with the disabled service.
 func (d *DisabledCryptoService) NewStreamEncrypt() *StreamEncryptBuilder {
@@ -193,40 +189,40 @@ func (d *DisabledCryptoService) NewStreamDecrypt() *StreamDecryptBuilder {
 	}
 }
 
-// RegisterProvider returns ErrCryptoDisabled since provider registration is not
-// supported when encryption is disabled.
+// RegisterProvider returns ErrCryptoDisabled since provider registration is not supported
+// when encryption is disabled.
 //
 // Returns error always ErrCryptoDisabled.
 func (*DisabledCryptoService) RegisterProvider(_ context.Context, _ string, _ EncryptionProvider) error {
 	return crypto_dto.ErrCryptoDisabled
 }
 
-// SetDefaultProvider returns ErrCryptoDisabled since provider management is not
-// supported when encryption is disabled.
+// SetDefaultProvider returns ErrCryptoDisabled since provider management is not supported
+// when encryption is disabled.
 //
 // Returns error always ErrCryptoDisabled.
 func (*DisabledCryptoService) SetDefaultProvider(_ string) error {
 	return crypto_dto.ErrCryptoDisabled
 }
 
-// GetProviders returns an empty list since no providers are registered when
-// encryption is disabled.
+// GetProviders returns an empty list since no providers are registered when encryption is
+// disabled.
 //
 // Returns []string which is always empty.
 func (*DisabledCryptoService) GetProviders(_ context.Context) []string {
 	return []string{}
 }
 
-// HasProvider returns false since no providers are registered when encryption
-// is disabled.
+// HasProvider returns false since no providers are registered when encryption is
+// disabled.
 //
 // Returns bool which is always false.
 func (*DisabledCryptoService) HasProvider(_ string) bool {
 	return false
 }
 
-// ListProviders returns an empty list since no providers are registered when
-// encryption is disabled.
+// ListProviders returns an empty list since no providers are registered when encryption
+// is disabled.
 //
 // Returns []provider_domain.ProviderInfo which is always empty.
 func (*DisabledCryptoService) ListProviders(_ context.Context) []provider_domain.ProviderInfo {
@@ -235,8 +231,7 @@ func (*DisabledCryptoService) ListProviders(_ context.Context) []provider_domain
 
 // Close releases resources held by the service.
 //
-// This is a no-op for the disabled service since there are no providers to
-// shut down.
+// This is a no-op for the disabled service since there are no providers to shut down.
 //
 // Returns error which is always nil.
 func (*DisabledCryptoService) Close(_ context.Context) error {

@@ -27,9 +27,8 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-// Store is an in-memory implementation of MemoryStorePort.
-// It stores conversations in memory and is suitable for development,
-// testing, and single-instance deployments.
+// Store is an in-memory implementation of MemoryStorePort. It stores conversations in
+// memory and is suitable for development, testing, and single-instance deployments.
 type Store struct {
 	// conversations maps conversation IDs to their state.
 	conversations map[string]*llm_dto.ConversationState
@@ -42,8 +41,8 @@ type Store struct {
 //
 // Takes conversationID (string) which identifies the conversation.
 //
-// Returns *llm_dto.ConversationState which contains a deep copy of the
-// conversation state.
+// Returns *llm_dto.ConversationState which contains a deep copy of the conversation
+// state.
 // Returns error when the conversation is not found.
 //
 // Safe for concurrent use; protected by a read lock.
@@ -89,8 +88,8 @@ func (s *Store) Delete(_ context.Context, conversationID string) error {
 	return nil
 }
 
-// List returns conversation IDs matching the pattern.
-// The pattern supports * as a wildcard that matches any characters.
+// List returns conversation IDs matching the pattern. The pattern supports * as a
+// wildcard that matches any characters.
 //
 // Takes pattern (string) which is the pattern to match.
 //
@@ -144,8 +143,8 @@ func New() *Store {
 //
 // Takes state (*llm_dto.ConversationState) which is the state to copy.
 //
-// Returns *llm_dto.ConversationState which is a new independent copy of the
-// input, or nil if the input is nil.
+// Returns *llm_dto.ConversationState which is a new independent copy of the input, or nil
+// if the input is nil.
 func copyState(state *llm_dto.ConversationState) *llm_dto.ConversationState {
 	if state == nil {
 		return nil

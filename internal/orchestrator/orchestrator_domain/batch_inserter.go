@@ -26,10 +26,9 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// batchInsertLoop gathers tasks from a channel and inserts them into the
-// database in batches for better performance.
+// batchInsertLoop gathers tasks from a channel and inserts them into the database in
+// batches for better performance.
 func (s *orchestratorService) batchInsertLoop() {
-	defer s.wg.Done()
 	defer goroutine.RecoverPanic(s.runCtx, "orchestrator.batchInsertLoop")
 
 	batch := make([]*Task, 0, s.batchSize)
@@ -65,14 +64,13 @@ func (s *orchestratorService) batchInsertLoop() {
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes batch ([]*Task) which contains any pending tasks to include in flush.
 //
-// The write-lock acquisition waits for any in-flight Dispatch/Schedule callers
-// holding RLock to leave their critical section. Once the lock is held, the
-// closed flag is set so future senders short-circuit, then the channel is
-// closed and drained. This makes close-on-channel safe under concurrent sends.
+// The write-lock acquisition waits for any in-flight Dispatch/Schedule callers holding
+// RLock to leave their critical section. Once the lock is held, the closed flag is set so
+// future senders short-circuit, then the channel is closed and drained. This makes
+// close-on-channel safe under concurrent sends.
 //
-// Concurrency: acquires taskInsertMutex.Lock to wait for all in-flight senders
-// before closing taskInsertChan; senders observe taskInsertClosed via the read
-// lock.
+// Concurrency: acquires taskInsertMutex.Lock to wait for all in-flight senders before
+// closing taskInsertChan; senders observe taskInsertClosed via the read lock.
 func (s *orchestratorService) handleBatchShutdown(ctx context.Context, batch []*Task) {
 	_, l := logger_domain.From(ctx, log)
 	l.Internal("Shutting down batch inserter, flushing remaining tasks...")
@@ -99,8 +97,8 @@ func (s *orchestratorService) drainAndFlushBatch(batch []*Task, timer clock.Chan
 	return s.flushTaskBatch(batch)
 }
 
-// drainTaskChannel collects tasks from the channel until the batch is full or
-// time runs out.
+// drainTaskChannel collects tasks from the channel until the batch is full or time runs
+// out.
 //
 // Takes batch ([]*Task) which is the current batch to add tasks to.
 // Takes timer (clock.ChannelTimer) which signals when to stop waiting.
@@ -123,8 +121,8 @@ func (s *orchestratorService) drainTaskChannel(batch []*Task, timer clock.Channe
 	return batch
 }
 
-// flushTaskBatch saves a batch of tasks to the database in one operation.
-// After saving, it sends the tasks to the dispatcher for processing.
+// flushTaskBatch saves a batch of tasks to the database in one operation. After saving,
+// it sends the tasks to the dispatcher for processing.
 //
 // Takes batch ([]*Task) which contains the tasks to save and dispatch.
 //
@@ -153,8 +151,8 @@ func (s *orchestratorService) flushTaskBatch(batch []*Task) []*Task {
 	return batch[:0]
 }
 
-// failBatchReceipts marks all receipts for the given batch of tasks as failed
-// with the provided error.
+// failBatchReceipts marks all receipts for the given batch of tasks as failed with the
+// provided error.
 //
 // Takes batch ([]*Task) which contains the tasks that failed to process.
 // Takes err (error) which is the error to resolve all receipts with.
@@ -176,8 +174,7 @@ func (s *orchestratorService) failBatchReceipts(batch []*Task, err error) {
 	}
 }
 
-// dispatchPersistedTasks sends tasks to the task dispatcher after they have
-// been saved.
+// dispatchPersistedTasks sends tasks to the task dispatcher after they have been saved.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes batch ([]*Task) which contains the tasks to send.

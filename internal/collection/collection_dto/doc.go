@@ -16,12 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package collection_dto defines data transfer objects for the collection
-// module.
+// Package collection_dto defines data transfer objects for the collection module.
 //
-// It contains the shared data structures used throughout the collection
-// system, carrying data between domain logic, adapters, and code generation
-// without depending on any specific provider. Types are provider-agnostic,
-// include built-in locale and translation support, and allow
-// provider-specific extension through metadata maps.
+// It contains the shared data structures used throughout the collection system, carrying
+// data between domain logic, adapters, and code generation without depending on any
+// specific provider. Types are provider-agnostic, include built-in locale and translation
+// support, and allow provider-specific extension through metadata maps.
 package collection_dto

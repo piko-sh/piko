@@ -26,33 +26,31 @@ import (
 	"piko.sh/piko/internal/search/search_dto"
 )
 
-// MockScorer is a test double for search_domain.ScorerPort that returns zero
-// values from nil function fields and tracks call counts atomically.
+// MockScorer is a test double for search_domain.ScorerPort that returns zero values from
+// nil function fields and tracks call counts atomically.
 type MockScorer struct {
 	// ScoreFunc is the function called by Score.
 	ScoreFunc func(ctx context.Context, queryTerms []string, documentID uint32, reader search_domain.IndexReaderPort, config search_dto.SearchConfig) (search_domain.ScoreResult, error)
 
-	// ScoreCallCount tracks how many times Score was
-	// called.
-	ScoreCallCount int64
+	// ScoreCallCount tracks how many times Score was called.
+	ScoreCallCount atomic.Int64
 }
 
-var _ search_domain.ScorerPort = (*MockScorer)(nil)
+var (
+	_ search_domain.ScorerPort = (*MockScorer)(nil)
+)
 
 // Score delegates to ScoreFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation
-// signals.
-// Takes queryTerms ([]string) which is the list of query terms to
-// score against.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes queryTerms ([]string) which is the list of query terms to score against.
 // Takes documentID (uint32) which identifies the document to score.
-// Takes reader (search_domain.IndexReaderPort) which provides access
-// to the search index.
+// Takes reader (search_domain.IndexReaderPort) which provides access to the search index.
 // Takes config (search_dto.SearchConfig) which provides search configuration.
 //
 // Returns (ScoreResult{}, nil) if ScoreFunc is nil.
 func (m *MockScorer) Score(ctx context.Context, queryTerms []string, documentID uint32, reader search_domain.IndexReaderPort, config search_dto.SearchConfig) (search_domain.ScoreResult, error) {
-	atomic.AddInt64(&m.ScoreCallCount, 1)
+	m.ScoreCallCount.Add(1)
 	if m.ScoreFunc != nil {
 		return m.ScoreFunc(ctx, queryTerms, documentID, reader, config)
 	}

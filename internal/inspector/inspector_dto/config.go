@@ -19,22 +19,24 @@
 package inspector_dto
 
 const (
-	// AnalysisBuildTag is the Go build tag used to exclude physical dist files
-	// from type-checking during LSP analysis. Generated dist files carry the
-	// constraint "//go:build !piko_analysis", so passing this tag to the Go
-	// toolchain makes them invisible to the inspector while overlay files
-	// (which have no constraint) remain visible.
+	// AnalysisBuildTag is the Go build tag used to exclude physical dist files from
+	// type-checking during LSP analysis. Generated dist files carry the constraint
+	// "//go:build !piko_analysis", so passing this tag to the Go toolchain makes them
+	// invisible to the inspector while overlay files (which have no constraint) remain
+	// visible.
 	AnalysisBuildTag = "piko_analysis"
 )
 
-// AnalysisBuildFlags is the set of build flags that activates the analysis
-// build tag, causing the Go toolchain to skip physical dist files.
-var AnalysisBuildFlags = []string{"-tags=" + AnalysisBuildTag}
+var (
+	// AnalysisBuildFlags is the set of build flags that activates the analysis build tag,
+	// causing the Go toolchain to skip physical dist files.
+	AnalysisBuildFlags = []string{"-tags=" + AnalysisBuildTag}
+)
 
 // Config holds settings for the inspector package.
 type Config struct {
-	// MaxParseWorkers is the maximum number of workers that can parse files at the
-	// same time. If nil, uses a default value.
+	// MaxParseWorkers is the maximum number of workers that can parse files at the same
+	// time. If nil, uses a default value.
 	MaxParseWorkers *int
 
 	// BaseDir is the root directory of the project being analysed.
@@ -59,11 +61,9 @@ type Config struct {
 	BuildFlags []string
 
 	// UseStandardLoader causes the inspector to use the standard
-	// golang.org/x/tools/go/packages.Load instead of the faster
-	// quickpackages.Load.
+	// golang.org/x/tools/go/packages.Load instead of the faster quickpackages.Load.
 	//
-	// This is slower but always stable, as it is maintained by the
-	// Go team. Useful as a fallback when quickpackages encounters
-	// issues with specific dependency configurations.
+	// This is slower but always stable, as it is maintained by the Go team. Useful as a
+	// fallback when quickpackages encounters issues with specific dependency configurations.
 	UseStandardLoader bool
 }

@@ -1,0 +1,14 @@
+{
+  "name": "07_dijkstra_10k_nodes",
+  "description": "Dijkstra single-source shortest paths on a 10000-node sparse graph generated deterministically. Hand-rolled binary heap (no container/heap, no heapq). Returns sum of all reachable distances modulo 2^32.",
+  "args": [],
+  "expected_stdout_sha256": "8cd1811853e4ed84e0f0f9382ac2af7571cc8596e2503b5140ed90fb690dfcb1",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "310b787188ea3dca51247162d62eae1f6c08df4a760f9c4d68888bb38af4296e",
+    "py/cpython.py": "d4b45aba16530662bacd6e4855cdc90583e06ef5f1cf7ef8757e3cfee8e5bd73",
+    "py/pypy.py": "d4b45aba16530662bacd6e4855cdc90583e06ef5f1cf7ef8757e3cfee8e5bd73"
+  }
+}

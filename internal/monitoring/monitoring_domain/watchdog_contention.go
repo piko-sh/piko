@@ -27,17 +27,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// RunContentionDiagnostic enables block + mutex profiling for the
-// configured window, captures both profiles, then disables them.
+// RunContentionDiagnostic enables block + mutex profiling for the configured window,
+// captures both profiles, then disables them.
 //
-// The call blocks for the diagnostic window plus capture overhead and
-// serialises concurrent invocations via contentionMu (TryLock). On
-// success two profile files are written under the "block-<ts>.pb.gz" and
-// "mutex-<ts>.pb.gz" prefixes with paired sidecar metadata.
+// The call blocks for the diagnostic window plus capture overhead and serialises
+// concurrent invocations via contentionMu (TryLock). On success two profile files are
+// written under the "block-<ts>.pb.gz" and "mutex-<ts>.pb.gz" prefixes with paired
+// sidecar metadata.
 //
-// Returns error when the diagnostic cannot start (already running, in
-// cooldown, watchdog stopped, no profiling controller). Individual
-// capture failures are logged but do not propagate.
+// Returns error when the diagnostic cannot start (already running, in cooldown, watchdog
+// stopped, no profiling controller). Individual capture failures are logged but do not
+// propagate.
 func (w *Watchdog) RunContentionDiagnostic(ctx context.Context) error {
 	if !w.contentionMu.TryLock() {
 		watchdogContentionDiagnosticErrorCount.Add(ctx, 1)
@@ -78,13 +78,12 @@ func (w *Watchdog) RunContentionDiagnostic(ctx context.Context) error {
 	return nil
 }
 
-// checkContentionPreconditions verifies the watchdog is in a state where a
-// diagnostic can run: not stopped, profiling controller wired, and the
-// cooldown elapsed since the previous diagnostic.
+// checkContentionPreconditions verifies the watchdog is in a state where a diagnostic can
+// run: not stopped, profiling controller wired, and the cooldown elapsed since the
+// previous diagnostic.
 //
-// Returns error when any precondition fails; the value is one of
-// ErrWatchdogStopped, ErrProfilingControllerNil, or
-// ErrContentionDiagnosticCooldown.
+// Returns error when any precondition fails; the value is one of ErrWatchdogStopped,
+// ErrProfilingControllerNil, or ErrContentionDiagnosticCooldown.
 //
 // Safe for concurrent use; acquires the watchdog mutex briefly.
 func (w *Watchdog) checkContentionPreconditions() error {
@@ -110,14 +109,12 @@ func (w *Watchdog) checkContentionPreconditions() error {
 
 // enableContentionProfiling sets the runtime block + mutex profile rates.
 //
-// runtime.SetBlockProfileRate has no return value so the previous rate
-// cannot be recovered; restoring to zero on exit deliberately clears any
-// previously active rate so heavyweight profiling is never left on by
-// surprise.
+// runtime.SetBlockProfileRate has no return value so the previous rate cannot be
+// recovered; restoring to zero on exit deliberately clears any previously active rate so
+// heavyweight profiling is never left on by surprise.
 //
-// Returns func() which restores the previous rates when invoked; callers
-// should defer it to ensure profiling does not stay enabled past the
-// diagnostic window.
+// Returns func() which restores the previous rates when invoked; callers should defer it
+// to ensure profiling does not stay enabled past the diagnostic window.
 func (w *Watchdog) enableContentionProfiling() func() {
 	runtime.SetBlockProfileRate(w.config.ContentionDiagnosticBlockProfileRate)
 	originalMutexFraction := runtime.SetMutexProfileFraction(w.config.ContentionDiagnosticMutexProfileFraction)
@@ -127,12 +124,11 @@ func (w *Watchdog) enableContentionProfiling() func() {
 	}
 }
 
-// waitContentionWindow blocks for the configured diagnostic window or
-// returns early if the watchdog is being shut down or the context is
-// cancelled.
+// waitContentionWindow blocks for the configured diagnostic window or returns early if
+// the watchdog is being shut down or the context is cancelled.
 //
-// Returns nil when the timer fired normally, ctx.Cause when the context
-// was cancelled, or ErrWatchdogStopped when Stop closed the stop channel.
+// Returns nil when the timer fired normally, ctx.Cause when the context was cancelled, or
+// ErrWatchdogStopped when Stop closed the stop channel.
 func (w *Watchdog) waitContentionWindow(ctx context.Context) error {
 	timer := w.clock.NewTimer(w.config.ContentionDiagnosticWindowDuration)
 	defer timer.Stop()
@@ -147,11 +143,11 @@ func (w *Watchdog) waitContentionWindow(ctx context.Context) error {
 	}
 }
 
-// fireContentionDiagnosticOnce is the auto-fire path used by
-// evaluateSchedulerLatency when ContentionDiagnosticAutoFire is enabled and
-// the consecutive scheduler-latency events exceed the configured trigger.
-// The diagnostic runs in a backgroundWG-tracked goroutine on a detached
-// context so SIGTERM during the diagnostic does not truncate the captures.
+// fireContentionDiagnosticOnce is the auto-fire path used by evaluateSchedulerLatency
+// when ContentionDiagnosticAutoFire is enabled and the consecutive scheduler-latency
+// events exceed the configured trigger. The diagnostic runs in a backgroundWG-tracked
+// goroutine on a detached context so SIGTERM during the diagnostic does not truncate the
+// captures.
 func (w *Watchdog) fireContentionDiagnosticOnce(ctx context.Context) {
 	detached := context.WithoutCancel(ctx)
 	detached, cancel := context.WithTimeoutCause(detached,

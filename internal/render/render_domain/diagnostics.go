@@ -18,8 +18,8 @@
 
 package render_domain
 
-// renderDiagnostics collects warnings and errors during rendering.
-// It defers logging until after the hot rendering path completes.
+// renderDiagnostics collects warnings and errors during rendering. It defers logging
+// until after the hot rendering path completes.
 type renderDiagnostics struct {
 	// Warnings holds the warnings gathered during rendering.
 	Warnings []renderWarning

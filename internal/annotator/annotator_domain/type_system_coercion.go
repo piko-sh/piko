@@ -18,9 +18,8 @@
 
 package annotator_domain
 
-// Provides validation and return type resolution for coercion built-in
-// functions. These functions convert values between types (string, int, float,
-// bool, decimal, bigint).
+// Provides validation and return type resolution for coercion built-in functions. These
+// functions convert values between types (string, int, float, bool, decimal, bigint).
 
 import (
 	"fmt"
@@ -32,9 +31,8 @@ import (
 )
 
 var (
-	// coercibleToString lists types that can be converted to a string.
-	// Supported types include all primitives, maths.Decimal, maths.BigInt,
-	// time.Time, and any.
+	// coercibleToString lists types that can be converted to a string. Supported types
+	// include all primitives, maths.Decimal, maths.BigInt, time.Time, and any.
 	coercibleToString = map[string]bool{
 		"string":        true,
 		"int":           true,
@@ -132,8 +130,8 @@ var (
 		"interface{}":   true,
 	}
 
-	// coercibleToDecimal lists types that can be converted to maths.Decimal.
-	// bool and time.Time are NOT coercible to decimal.
+	// coercibleToDecimal lists types that can be converted to maths.Decimal. bool and
+	// time.Time are NOT coercible to decimal.
 	coercibleToDecimal = map[string]bool{
 		"int":           true,
 		"int8":          true,
@@ -156,8 +154,8 @@ var (
 		"interface{}":   true,
 	}
 
-	// coercibleToBigInt lists types that can be converted to maths.BigInt.
-	// float types, bool, and time.Time are NOT coercible to bigint.
+	// coercibleToBigInt lists types that can be converted to maths.BigInt. float types,
+	// bool, and time.Time are NOT coercible to bigint.
 	coercibleToBigInt = map[string]bool{
 		"int":           true,
 		"int8":          true,
@@ -179,16 +177,14 @@ var (
 	}
 )
 
-// validateStringCoercionArgs checks that arguments to the string() function
-// can be converted to strings.
+// validateStringCoercionArgs checks that arguments to the string() function can be
+// converted to strings.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds the argument
 // annotations.
-// Takes baseLocation (ast_domain.Location) which specifies where to report
-// errors.
+// Takes baseLocation (ast_domain.Location) which specifies where to report errors.
 func (*TypeResolver) validateStringCoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "string", "string", coercibleToString)
 }
@@ -196,137 +192,112 @@ func (*TypeResolver) validateStringCoercionArgs(ctx *AnalysisContext, callExpr *
 // validateIntCoercionArgs validates arguments to the int() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains argument
 // annotations.
-// Takes baseLocation (ast_domain.Location) which specifies the source position
-// for errors.
+// Takes baseLocation (ast_domain.Location) which specifies the source position for
+// errors.
 func (*TypeResolver) validateIntCoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "int", "int", coercibleToInt)
 }
 
-// validateInt64CoercionArgs validates arguments to the int64() coercion
-// function.
+// validateInt64CoercionArgs validates arguments to the int64() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument
-// annotations.
-// Takes baseLocation (ast_domain.Location) which is the source location for
-// error reporting.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument annotations.
+// Takes baseLocation (ast_domain.Location) which is the source location for error
+// reporting.
 func (*TypeResolver) validateInt64CoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "int64", "int64", coercibleToInt)
 }
 
-// validateInt32CoercionArgs validates arguments to the int32() coercion
-// function.
+// validateInt32CoercionArgs validates arguments to the int32() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call expression to
-// validate.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// argument annotations.
-// Takes baseLocation (ast_domain.Location) which specifies where errors should
-// be reported.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to validate.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
+// annotations.
+// Takes baseLocation (ast_domain.Location) which specifies where errors should be
+// reported.
 func (*TypeResolver) validateInt32CoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "int32", "int32", coercibleToInt)
 }
 
-// validateInt16CoercionArgs validates arguments to the int16() coercion
-// function.
+// validateInt16CoercionArgs validates arguments to the int16() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds argument
-// annotations.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds argument annotations.
 // Takes baseLocation (ast_domain.Location) which specifies the error location.
 func (*TypeResolver) validateInt16CoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "int16", "int16", coercibleToInt)
 }
 
-// validateFloatCoercionArgs validates arguments to the float() coercion
-// function.
+// validateFloatCoercionArgs validates arguments to the float() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call expression to
-// validate.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// argument annotations.
-// Takes baseLocation (ast_domain.Location) which specifies the base location
-// for error reporting.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to validate.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
+// annotations.
+// Takes baseLocation (ast_domain.Location) which specifies the base location for error
+// reporting.
 func (*TypeResolver) validateFloatCoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "float", "float64", coercibleToFloat)
 }
 
-// validateFloat64CoercionArgs validates arguments to the float64() coercion
-// function.
+// validateFloat64CoercionArgs validates arguments to the float64() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// argument annotations.
-// Takes baseLocation (ast_domain.Location) which specifies the source location
-// for diagnostics.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
+// annotations.
+// Takes baseLocation (ast_domain.Location) which specifies the source location for
+// diagnostics.
 func (*TypeResolver) validateFloat64CoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "float64", "float64", coercibleToFloat)
 }
 
-// validateFloat32CoercionArgs checks the arguments for a float32 type
-// conversion call.
+// validateFloat32CoercionArgs checks the arguments for a float32 type conversion call.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds the argument
 // annotations.
-// Takes baseLocation (ast_domain.Location) which specifies where to report
-// errors.
+// Takes baseLocation (ast_domain.Location) which specifies where to report errors.
 func (*TypeResolver) validateFloat32CoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "float32", "float32", coercibleToFloat)
 }
 
-// validateBoolCoercionArgs validates arguments to the bool() coercion
-// function.
+// validateBoolCoercionArgs validates arguments to the bool() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument
-// annotations.
-// Takes baseLocation (ast_domain.Location) which is the source location for
-// diagnostics.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument annotations.
+// Takes baseLocation (ast_domain.Location) which is the source location for diagnostics.
 func (*TypeResolver) validateBoolCoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "bool", "bool", coercibleToBool)
 }
 
-// validateDecimalCoercionArgs validates arguments to the decimal() coercion
-// function.
+// validateDecimalCoercionArgs validates arguments to the decimal() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// argument annotations.
-// Takes baseLocation (ast_domain.Location) which specifies the source location
-// for diagnostics.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the argument
+// annotations.
+// Takes baseLocation (ast_domain.Location) which specifies the source location for
+// diagnostics.
 func (*TypeResolver) validateDecimalCoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "decimal", "maths.Decimal", coercibleToDecimal)
 }
 
-// validateBigIntCoercionArgs validates arguments to the bigint() coercion
-// function.
+// validateBigIntCoercionArgs validates arguments to the bigint() coercion function.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument
-// annotations.
-// Takes baseLocation (ast_domain.Location) which is the source location for
-// error reporting.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which are the argument annotations.
+// Takes baseLocation (ast_domain.Location) which is the source location for error
+// reporting.
 func (*TypeResolver) validateBigIntCoercionArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	validateCoercionArg(ctx, callExpr, argAnns, baseLocation, "bigint", "maths.BigInt", coercibleToBigInt)
 }
@@ -334,11 +305,10 @@ func (*TypeResolver) validateBigIntCoercionArgs(ctx *AnalysisContext, callExpr *
 // validateCoercionArg is a shared validator that checks argument count and type
 // compatibility for coercion functions.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and
-// diagnostics.
+// Takes ctx (*AnalysisContext) which provides the analysis state and diagnostics.
 // Takes callExpr (*ast_domain.CallExpression) which is the coercion function call.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides type info
-// for arguments.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides type info for
+// arguments.
 // Takes baseLocation (ast_domain.Location) which is the base position for error
 // reporting.
 // Takes functionName (string) which is the name of the coercion function.
@@ -376,11 +346,9 @@ func validateCoercionArg(
 	}
 }
 
-// getStringReturnType returns the type information for a string type
-// conversion.
+// getStringReturnType returns the type information for a string type conversion.
 //
-// Returns *ast_domain.ResolvedTypeInfo which represents the built-in string
-// type.
+// Returns *ast_domain.ResolvedTypeInfo which represents the built-in string type.
 func getStringReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	return newSimpleTypeInfo(goast.NewIdent(typeString))
 }
@@ -413,8 +381,8 @@ func getInt16ReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallE
 	return newSimpleTypeInfo(goast.NewIdent("int16"))
 }
 
-// getFloatReturnType returns type information for the float() coercion
-// function, which produces float64, the standard Go floating-point type.
+// getFloatReturnType returns type information for the float() coercion function, which
+// produces float64, the standard Go floating-point type.
 //
 // Returns *ast_domain.ResolvedTypeInfo which represents the float64 type.
 func getFloatReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
@@ -472,14 +440,12 @@ func getBigIntReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.Call
 	}
 }
 
-// suggestCoercionFunction suggests an appropriate coercion function when types
-// mismatch.
+// suggestCoercionFunction suggests an appropriate coercion function when types mismatch.
 //
 // Takes type1 (string) which is the first type in the mismatch.
 // Takes type2 (string) which is the second type in the mismatch.
 //
-// Returns string which is a suggestion message, or empty if no suggestion
-// applies.
+// Returns string which is a suggestion message, or empty if no suggestion applies.
 func suggestCoercionFunction(type1, type2 string) string {
 	numericTypes := map[string]bool{
 		typeNameInt: true, typeNameInt8: true, typeNameInt16: true, typeNameInt32: true, typeNameInt64: true,

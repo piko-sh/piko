@@ -41,8 +41,8 @@ var (
 	globalMu sync.RWMutex
 )
 
-// Harness manages the test environment for end-to-end browser tests.
-// Create one in TestMain and call Setup before running tests.
+// Harness manages the test environment for end-to-end browser tests. Create one in
+// TestMain and call Setup before running tests.
 type Harness struct {
 	// setupErr stores any error that occurs during setup; protected by setupOnce.
 	setupErr error
@@ -107,8 +107,8 @@ func NewHarness(opts ...HarnessOption) *Harness {
 	return h
 }
 
-// Setup builds the project and starts the server.
-// Safe to call many times; uses sync.Once internally.
+// Setup builds the project and starts the server. Safe to call many times; uses sync.Once
+// internally.
 //
 // Returns error when the build or server start fails.
 func (h *Harness) Setup() error {
@@ -118,11 +118,9 @@ func (h *Harness) Setup() error {
 	return h.setupErr
 }
 
-// Cleanup stops the server and closes the browser.
-// Call this in defer after NewHarness.
+// Cleanup stops the server and closes the browser. Call this in defer after NewHarness.
 //
-// Safe for concurrent use. Acquires the harness mutex before releasing
-// resources.
+// Safe for concurrent use. Acquires the harness mutex before releasing resources.
 func (h *Harness) Cleanup() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -165,9 +163,9 @@ func (h *Harness) IsInteractive() bool {
 	return h.opts.interactive
 }
 
-// NewSession creates a standalone browser session (tab) that does not require
-// testing.TB. Unlike Page, Session methods return errors instead of calling
-// Fatalf, making it suitable for CLI tools and standalone programs.
+// NewSession creates a standalone browser session (tab) that does not require testing.TB.
+// Unlike Page, Session methods return errors instead of calling Fatalf, making it
+// suitable for CLI tools and standalone programs.
 //
 // Returns *Session which is a browser tab ready for interaction.
 // Returns error when the harness has not been set up or page creation fails.
@@ -194,9 +192,9 @@ func (h *Harness) NewSession() (*Session, error) {
 
 // doSetup performs the actual setup work.
 //
-// Returns error when the project path cannot be resolved, the temp directory
-// cannot be created, the project build fails, no port is available, the server
-// fails to start, or the browser fails to start.
+// Returns error when the project path cannot be resolved, the temp directory cannot be
+// created, the project build fails, no port is available, the server fails to start, or
+// the browser fails to start.
 func (h *Harness) doSetup() error {
 	absProjectDir, err := filepath.Abs(h.opts.projectDir)
 	if err != nil {
@@ -385,8 +383,8 @@ func (h *Harness) newPage(t testing.TB) (*Page, error) {
 	return page, nil
 }
 
-// New creates a browser page for a test using the global harness set up in
-// TestMain. Each test should call this to get its own page.
+// New creates a browser page for a test using the global harness set up in TestMain. Each
+// test should call this to get its own page.
 //
 // Takes t (testing.TB) which is the test context for error reporting.
 //

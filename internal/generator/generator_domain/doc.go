@@ -16,19 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package generator_domain defines the core code generation business logic
-// for Piko.
+// Package generator_domain defines the core code generation business logic for Piko.
 //
-// It orchestrates the compilation pipeline that transforms annotated PK
-// templates into executable Go code. It coordinates between the annotator,
-// which builds dependency graphs and semantic metadata, and various
-// emitters that produce Go source files, manifests, and static assets. It
-// also handles client-side concerns such as TypeScript transpilation and
-// PK script source transformation.
+// It orchestrates the compilation pipeline that transforms annotated PK templates into
+// executable Go code. It coordinates between the annotator, which builds dependency
+// graphs and semantic metadata, and various emitters that produce Go source files,
+// manifests, and static assets. It also handles client-side concerns such as TypeScript
+// transpilation and PK script source transformation.
 //
-// The service supports two compilation modes. Single-file mode is used by
-// development servers and testing. Full project mode is used for
-// production builds, running annotation and code generation in parallel
-// with a worker pool, and optionally producing SEO artefacts, i18n
-// binaries, and search indexes.
+// The service supports two compilation modes. Single-file mode is used by development
+// servers and testing. Full project mode is used for production builds, running
+// annotation and code generation in parallel with a worker pool, and optionally producing
+// SEO artefacts, i18n binaries, and search indexes.
 package generator_domain

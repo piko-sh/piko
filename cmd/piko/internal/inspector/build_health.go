@@ -25,21 +25,20 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// BuildHealthDetailSections turns the liveness and readiness probes on
-// a GetHealth response into the shared section/row shape used by the
-// CLI Printer and the TUI detail pane. Filter narrows the output to a
-// single named probe.
+// BuildHealthDetailSections turns the liveness and readiness probes on a GetHealth
+// response into the shared section/row shape used by the CLI Printer and the TUI detail
+// pane. Filter narrows the output to a single named probe.
 //
-// The State row carries IsStatus=true so renderers can colourise it as
-// a status value; the raw state string flows through unchanged.
+// The State row carries IsStatus=true so renderers can colourise it as a status value;
+// the raw state string flows through unchanged.
 //
-// Takes response (*pb.GetHealthResponse) which is the health payload
-// returned by the monitoring API.
-// Takes filter (string) which restricts output to the probe whose name
-// matches; an empty filter passes both probes through.
+// Takes response (*pb.GetHealthResponse) which is the health payload returned by the
+// monitoring API.
+// Takes filter (string) which restricts output to the probe whose name matches; an empty
+// filter passes both probes through.
 //
-// Returns []DetailSection which contains zero, one, or two sections
-// depending on whether each probe is present and matches the filter.
+// Returns []DetailSection which contains zero, one, or two sections depending on whether
+// each probe is present and matches the filter.
 func BuildHealthDetailSections(response *pb.GetHealthResponse, filter string) []DetailSection {
 	probes := []struct {
 		status *pb.HealthStatus
@@ -62,14 +61,13 @@ func BuildHealthDetailSections(response *pb.GetHealthResponse, filter string) []
 	return sections
 }
 
-// healthStatusSection builds the section for a single probe, including
-// dependency sub-sections.
+// healthStatusSection builds the section for a single probe, including dependency
+// sub-sections.
 //
 // Takes name (string) which is the section heading.
 // Takes status (*pb.HealthStatus) which is the probe payload.
 //
-// Returns DetailSection which contains the labelled rows and any
-// dependency sub-sections.
+// Returns DetailSection which contains the labelled rows and any dependency sub-sections.
 func healthStatusSection(name string, status *pb.HealthStatus) DetailSection {
 	section := DetailSection{
 		Heading: name,
@@ -88,9 +86,8 @@ func healthStatusSection(name string, status *pb.HealthStatus) DetailSection {
 	return section
 }
 
-// healthDependencySection builds a sub-section for a single
-// dependency. The Message row is appended only when a non-empty
-// message is present.
+// healthDependencySection builds a sub-section for a single dependency. The Message row
+// is appended only when a non-empty message is present.
 //
 // Takes dependency (*pb.HealthStatus) which is the dependency payload.
 //
@@ -109,14 +106,14 @@ func healthDependencySection(dependency *pb.HealthStatus) DetailSection {
 	return section
 }
 
-// formatHealthReady counts healthy dependencies on a probe and returns "x/y"
-// for display in the Dependencies row. When the probe has no dependencies,
-// returns "-" so the row reads cleanly.
+// formatHealthReady counts healthy dependencies on a probe and returns "x/y" for display
+// in the Dependencies row. When the probe has no dependencies, returns "-" so the row
+// reads cleanly.
 //
 // Takes status (*pb.HealthStatus) which contains the dependency list.
 //
-// Returns string which is the ready count in "x/y" form, or "-" when
-// there are no dependencies.
+// Returns string which is the ready count in "x/y" form, or "-" when there are no
+// dependencies.
 func formatHealthReady(status *pb.HealthStatus) string {
 	deps := status.GetDependencies()
 	if len(deps) == 0 {

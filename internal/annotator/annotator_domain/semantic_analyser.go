@@ -18,10 +18,10 @@
 
 package annotator_domain
 
-// Performs semantic analysis on component templates by walking the AST
-// and validating expressions, types, and structure. Coordinates type
-// checking, attribute validation, and diagnostic collection to ensure
-// templates are semantically correct before code generation.
+// Performs semantic analysis on component templates by walking the AST and validating
+// expressions, types, and structure. Coordinates type checking, attribute validation, and
+// diagnostic collection to ensure templates are semantically correct before code
+// generation.
 
 import (
 	"context"
@@ -37,12 +37,12 @@ import (
 )
 
 const (
-	// initialPartialInvocationMapCapacity is the initial capacity for partial
-	// invocation maps.
+	// initialPartialInvocationMapCapacity is the initial capacity for partial invocation
+	// maps.
 	initialPartialInvocationMapCapacity = 4
 
-	// initialSemanticDiagnosticsCapacity is the starting size for the diagnostics
-	// slice used during semantic analysis.
+	// initialSemanticDiagnosticsCapacity is the starting size for the diagnostics slice used
+	// during semantic analysis.
 	initialSemanticDiagnosticsCapacity = 8
 
 	// initialAnalysisMapCapacity is the initial size for the analysis map.
@@ -54,17 +54,16 @@ type SemanticAnalyserConfig struct {
 	// PKValidator checks client-side event handlers.
 	PKValidator *PKValidator
 
-	// MainComponentHash identifies the main component for primary key
-	// validator lookup.
+	// MainComponentHash identifies the main component for primary key validator lookup.
 	MainComponentHash string
 }
 
-// SemanticAnalyser is the final stage of the compilation pipeline.
-// It implements ast.Visitor to walk a fully expanded and linked AST,
-// passing work to helper services for context, attributes, and key handling.
+// SemanticAnalyser is the final stage of the compilation pipeline. It implements
+// ast.Visitor to walk a fully expanded and linked AST, passing work to helper services
+// for context, attributes, and key handling.
 type SemanticAnalyser struct {
-	// parentEffectiveKey holds the effective key expression from the parent node.
-	// It changes at each level of the AST during traversal.
+	// parentEffectiveKey holds the effective key expression from the parent node. It changes
+	// at each level of the AST during traversal.
 	parentEffectiveKey ast_domain.Expression
 
 	// typeResolver checks and resolves types; shared across the full tree walk.
@@ -79,26 +78,23 @@ type SemanticAnalyser struct {
 	// keyAnalyser assigns effective keys to loop items.
 	keyAnalyser *KeyAnalyser
 
-	// internalsManager handles the analysis of internal expressions
-	// within template nodes.
+	// internalsManager handles the analysis of internal expressions within template nodes.
 	internalsManager *InternalsAnalyser
 
 	// ctx holds the current analysis context used when resolving nodes.
 	ctx *AnalysisContext
 
-	// currentPartialInfo holds details about the partial being called
-	// during analysis.
+	// currentPartialInfo holds details about the partial being called during analysis.
 	currentPartialInfo *ast_domain.PartialInvocationInfo
 
-	// partialInvocationMap tracks all ancestor partial invocations,
-	// mapping partial hash to invocation info. This enables correct
-	// context resolution when expressions from ancestor partials need
-	// to use invocation-specific variable names during SSR inlining.
+	// partialInvocationMap tracks all ancestor partial invocations, mapping partial hash to
+	// invocation info. This enables correct context resolution when expressions from
+	// ancestor partials need to use invocation-specific variable names during SSR inlining.
 	partialInvocationMap map[string]*ast_domain.PartialInvocationInfo
 
-	// analysisMap links each TemplateNode to its AnalysisContext. It is shared
-	// across all visitors so the LSP can provide code completion, hover info, and
-	// go-to-definition for any position.
+	// analysisMap links each TemplateNode to its AnalysisContext. It is shared across all
+	// visitors so the LSP can provide code completion, hover info, and go-to-definition for
+	// any position.
 	analysisMap map[*ast_domain.TemplateNode]*AnalysisContext
 
 	// depth tracks how deep the current node is in the template tree.
@@ -109,14 +105,12 @@ type SemanticAnalyser struct {
 //
 // Takes resolver (*TypeResolver) which provides type lookup services.
 // Takes initialCtx (*AnalysisContext) which sets the starting analysis state.
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which holds partial call
-// details.
-// Takes actions (map[string]ActionInfoProvider) which maps action names to
-// their providers.
-// Takes virtualModule (*annotator_dto.VirtualModule) which allows context
-// switching.
-// Takes analysisMap (map[*ast_domain.TemplateNode]*AnalysisContext) which
-// stores analysis results for each template node.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which holds partial call details.
+// Takes actions (map[string]ActionInfoProvider) which maps action names to their
+// providers.
+// Takes virtualModule (*annotator_dto.VirtualModule) which allows context switching.
+// Takes analysisMap (map[*ast_domain.TemplateNode]*AnalysisContext) which stores analysis
+// results for each template node.
 // Takes config (SemanticAnalyserConfig) which holds PK settings.
 //
 // Returns *SemanticAnalyser which is set up and ready to use.
@@ -151,8 +145,7 @@ func NewSemanticAnalyser(
 
 // Enter performs semantic analysis on a node when the AST walker enters it.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to
-// analyse.
+// Takes node (*ast_domain.TemplateNode) which is the template node to analyse.
 //
 // Returns ast_domain.Visitor which is the visitor for processing child nodes.
 // Returns error when the for directive cannot be handled.
@@ -206,13 +199,12 @@ func (*SemanticAnalyser) Exit(_ context.Context, _ *ast_domain.TemplateNode) err
 
 // newVisitorForChild creates a new visitor for a child scope.
 //
-// The specialists and the analysisMap are shared; only the state changes.
-// When entering a new partial, the partialInvocationMap is extended with
-// the new partial's info.
+// The specialists and the analysisMap are shared; only the state changes. When entering a
+// new partial, the partialInvocationMap is extended with the new partial's info.
 //
 // Takes newCtx (*AnalysisContext) which provides the context for the child.
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which holds partial info,
-// or nil if not entering a partial.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which holds partial info, or nil if not
+// entering a partial.
 // Takes parentKey (ast_domain.Expression) which identifies the parent node.
 //
 // Returns *SemanticAnalyser which is the new visitor for the child scope.
@@ -239,13 +231,11 @@ func (sa *SemanticAnalyser) newVisitorForChild(newCtx *AnalysisContext, pInfo *a
 	}
 }
 
-// resolveForDirectiveInContext resolves and checks the p-for directive
-// expression using the given context. This is used for partial invocation
-// nodes where the expression must be resolved in the parent context before
-// any context switch happens.
+// resolveForDirectiveInContext resolves and checks the p-for directive expression using
+// the given context. This is used for partial invocation nodes where the expression must
+// be resolved in the parent context before any context switch happens.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the directive to
-// resolve.
+// Takes node (*ast_domain.TemplateNode) which contains the directive to resolve.
 // Takes ctx (*AnalysisContext) which provides the context for resolution.
 func (sa *SemanticAnalyser) resolveForDirectiveInContext(goCtx context.Context, node *ast_domain.TemplateNode, ctx *AnalysisContext) {
 	if node.DirFor == nil {
@@ -268,18 +258,14 @@ func (sa *SemanticAnalyser) resolveForDirectiveInContext(goCtx context.Context, 
 	}
 }
 
-// handleForDirective processes the p-for directive, validating loop variables
-// and creating loop context. For partial invocation nodes, the expression has
-// already been resolved by resolveForDirectiveInContext, and only the loop
-// context is created here.
+// handleForDirective processes the p-for directive, validating loop variables and
+// creating loop context. For partial invocation nodes, the expression has already been
+// resolved by resolveForDirectiveInContext, and only the loop context is created here.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the directive to
-// process.
-// Takes ctxForThisNode (*AnalysisContext) which provides the current analysis
-// context.
+// Takes node (*ast_domain.TemplateNode) which contains the directive to process.
+// Takes ctxForThisNode (*AnalysisContext) which provides the current analysis context.
 //
-// Returns *AnalysisContext which is the loop scope context for analysing
-// attributes.
+// Returns *AnalysisContext which is the loop scope context for analysing attributes.
 // Returns error when the loop context cannot be created.
 func (sa *SemanticAnalyser) handleForDirective(goCtx context.Context, node *ast_domain.TemplateNode, ctxForThisNode *AnalysisContext) (*AnalysisContext, error) {
 	if node.DirFor == nil {
@@ -308,12 +294,11 @@ func (sa *SemanticAnalyser) handleForDirective(goCtx context.Context, node *ast_
 
 // buildPartialInvocationMap creates the partial invocation map for a node.
 //
-// Takes activePInfo (*ast_domain.PartialInvocationInfo) which specifies the
-// active partial invocation to include in the map, or nil to use the existing
-// map unchanged.
+// Takes activePInfo (*ast_domain.PartialInvocationInfo) which specifies the active
+// partial invocation to include in the map, or nil to use the existing map unchanged.
 //
-// Returns map[string]*ast_domain.PartialInvocationInfo which maps
-// package names to their partial invocation info.
+// Returns map[string]*ast_domain.PartialInvocationInfo which maps package names to their
+// partial invocation info.
 func (sa *SemanticAnalyser) buildPartialInvocationMap(activePInfo *ast_domain.PartialInvocationInfo) map[string]*ast_domain.PartialInvocationInfo {
 	partialMap := sa.partialInvocationMap
 	if activePInfo != nil && activePInfo.PartialPackageName != "" {
@@ -324,23 +309,20 @@ func (sa *SemanticAnalyser) buildPartialInvocationMap(activePInfo *ast_domain.Pa
 	return partialMap
 }
 
-// Annotate performs semantic analysis on a linked AST, resolving types,
-// validating expressions, and enriching nodes with annotations.
+// Annotate performs semantic analysis on a linked AST, resolving types, validating
+// expressions, and enriching nodes with annotations.
 //
-// Takes linkingResult (*annotator_dto.LinkingResult) which contains the linked
-// AST and virtual module to analyse.
-// Takes resolver (*TypeResolver) which resolves type information during
-// analysis.
+// Takes linkingResult (*annotator_dto.LinkingResult) which contains the linked AST and
+// virtual module to analyse.
+// Takes resolver (*TypeResolver) which resolves type information during analysis.
 // Takes entryPointPath (string) which identifies the main component file.
-// Takes actions (map[string]ActionInfoProvider) which provides action metadata
-// for validation.
+// Takes actions (map[string]ActionInfoProvider) which provides action metadata for
+// validation.
 //
-// Returns *annotator_dto.AnnotationResult which contains the annotated AST and
-// analysis context map.
-// Returns []*ast_domain.Diagnostic which contains any semantic warnings or
-// errors found.
-// Returns error when the AST traversal fails or the main component cannot be
-// found.
+// Returns *annotator_dto.AnnotationResult which contains the annotated AST and analysis
+// context map.
+// Returns []*ast_domain.Diagnostic which contains any semantic warnings or errors found.
+// Returns error when the AST traversal fails or the main component cannot be found.
 func Annotate(
 	ctx context.Context,
 	linkingResult *annotator_dto.LinkingResult,
@@ -388,16 +370,14 @@ func Annotate(
 	return result, diagnostics, nil
 }
 
-// createEmptyAnnotationResult creates a default AnnotationResult for empty
-// ASTs.
+// createEmptyAnnotationResult creates a default AnnotationResult for empty ASTs.
 //
-// Takes flattenedAST (*ast_domain.TemplateAST) which provides the AST
-// structure to wrap.
-// Takes diagnostics ([]*ast_domain.Diagnostic) which contains any diagnostic
-// messages to include.
+// Takes flattenedAST (*ast_domain.TemplateAST) which provides the AST structure to wrap.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which contains any diagnostic messages to
+// include.
 //
-// Returns *annotator_dto.AnnotationResult which contains the wrapped AST with
-// nil values for all optional fields.
+// Returns *annotator_dto.AnnotationResult which contains the wrapped AST with nil values
+// for all optional fields.
 // Returns []*ast_domain.Diagnostic which is the unchanged diagnostics slice.
 // Returns error which is always nil here.
 func createEmptyAnnotationResult(flattenedAST *ast_domain.TemplateAST, diagnostics []*ast_domain.Diagnostic) (*annotator_dto.AnnotationResult, []*ast_domain.Diagnostic, error) {
@@ -415,15 +395,14 @@ func createEmptyAnnotationResult(flattenedAST *ast_domain.TemplateAST, diagnosti
 	}, diagnostics, nil
 }
 
-// setupAndPopulateRootContext creates and fills the root analysis context
-// with debug logging.
+// setupAndPopulateRootContext creates and fills the root analysis context with debug
+// logging.
 //
 // Takes ctx (context.Context) which carries the session logger.
-// Takes mainVirtualComponent (*annotator_dto.VirtualComponent) which provides
-// the main component to analyse.
+// Takes mainVirtualComponent (*annotator_dto.VirtualComponent) which provides the main
+// component to analyse.
 // Takes resolver (*TypeResolver) which resolves types during analysis.
-// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any diagnostic
-// messages.
+// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any diagnostic messages.
 //
 // Returns *AnalysisContext which is the filled root context ready for use.
 func setupAndPopulateRootContext(
@@ -467,11 +446,11 @@ func setupAndPopulateRootContext(
 
 // buildTranslationKeySet collects all translation keys from a component.
 //
-// Takes vc (*annotator_dto.VirtualComponent) which provides the component
-// that holds translation data.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the component that holds
+// translation data.
 //
-// Returns *TranslationKeySet which contains the local translation keys, or nil
-// if the component is nil or has no translations.
+// Returns *TranslationKeySet which contains the local translation keys, or nil if the
+// component is nil or has no translations.
 func buildTranslationKeySet(vc *annotator_dto.VirtualComponent) *TranslationKeySet {
 	if vc == nil || vc.Source == nil {
 		return nil
@@ -507,15 +486,15 @@ func buildTranslationKeySet(vc *annotator_dto.VirtualComponent) *TranslationKeyS
 // findMainComponent finds and checks the main component in the virtual module.
 //
 // Takes ctx (context.Context) which carries the session logger.
-// Takes virtualModule (*annotator_dto.VirtualModule) which contains the
-// component graph and hash mappings.
-// Takes entryPointPath (string) which specifies the path to look up in the
-// component graph.
+// Takes virtualModule (*annotator_dto.VirtualModule) which contains the component graph
+// and hash mappings.
+// Takes entryPointPath (string) which specifies the path to look up in the component
+// graph.
 //
-// Returns *annotator_dto.VirtualComponent which is the main component for the
-// given entry point.
-// Returns error when the entry point path is not found in the graph or the
-// component hash cannot be resolved.
+// Returns *annotator_dto.VirtualComponent which is the main component for the given entry
+// point.
+// Returns error when the entry point path is not found in the graph or the component hash
+// cannot be resolved.
 func findMainComponent(ctx context.Context, virtualModule *annotator_dto.VirtualModule, entryPointPath string) (*annotator_dto.VirtualComponent, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	mainComponentHashedName, ok := virtualModule.Graph.PathToHashedName[entryPointPath]
@@ -537,15 +516,14 @@ func findMainComponent(ctx context.Context, virtualModule *annotator_dto.Virtual
 
 // createPKValidator creates a PK validator for client-side event handlers.
 //
-// When the component has no client script, returns nil without creating a
-// validator.
+// When the component has no client script, returns nil without creating a validator.
 //
 // Takes ctx (context.Context) which carries the session logger.
-// Takes comp (*annotator_dto.VirtualComponent) which provides the component
-// source containing the client script and imports.
+// Takes comp (*annotator_dto.VirtualComponent) which provides the component source
+// containing the client script and imports.
 //
-// Returns *PKValidator which checks client-side event handler functions, or
-// nil if no client script exists.
+// Returns *PKValidator which checks client-side event handler functions, or nil if no
+// client script exists.
 func createPKValidator(ctx context.Context, comp *annotator_dto.VirtualComponent) *PKValidator {
 	ctx, l := logger_domain.From(ctx, log)
 	if comp.Source.ClientScript == "" {
@@ -586,12 +564,9 @@ func runASTTraversal(ctx context.Context, ast *ast_domain.TemplateAST, visitor *
 //
 // Takes pkValidator (*PKValidator) which checks partial file templates.
 // Takes rootCtx (*AnalysisContext) which provides the analysis context.
-// Takes mainComp (*annotator_dto.VirtualComponent) which is the main
-// component.
-// Takes virtualModule (*annotator_dto.VirtualModule) which is the module to
-// check.
-// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any problems
-// found.
+// Takes mainComp (*annotator_dto.VirtualComponent) which is the main component.
+// Takes virtualModule (*annotator_dto.VirtualModule) which is the module to check.
+// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any problems found.
 func runPostTraversalValidation(
 	pkValidator *PKValidator,
 	rootCtx *AnalysisContext,
@@ -610,22 +585,20 @@ func runPostTraversalValidation(
 	*diagnostics = append(*diagnostics, cycleDiagnostics...)
 }
 
-// buildAnnotationResult builds the final annotation result by combining all
-// processed data into a single structure.
+// buildAnnotationResult builds the final annotation result by combining all processed
+// data into a single structure.
 //
-// Takes flattenedAST (*ast_domain.TemplateAST) which is the processed template
-// tree.
-// Takes virtualModule (*annotator_dto.VirtualModule) which holds the module
-// data.
-// Takes linkingResult (*annotator_dto.LinkingResult) which contains the CSS
-// and invocation data.
-// Takes analysisMap (map[*ast_domain.TemplateNode]*AnalysisContext) which maps
-// nodes to their analysis results.
-// Takes mainComp (*annotator_dto.VirtualComponent) which provides the entry
-// point style blocks and client script.
+// Takes flattenedAST (*ast_domain.TemplateAST) which is the processed template tree.
+// Takes virtualModule (*annotator_dto.VirtualModule) which holds the module data.
+// Takes linkingResult (*annotator_dto.LinkingResult) which contains the CSS and
+// invocation data.
+// Takes analysisMap (map[*ast_domain.TemplateNode]*AnalysisContext) which maps nodes to
+// their analysis results.
+// Takes mainComp (*annotator_dto.VirtualComponent) which provides the entry point style
+// blocks and client script.
 //
-// Returns *annotator_dto.AnnotationResult which holds all annotation data in
-// one structure.
+// Returns *annotator_dto.AnnotationResult which holds all annotation data in one
+// structure.
 func buildAnnotationResult(
 	flattenedAST *ast_domain.TemplateAST,
 	virtualModule *annotator_dto.VirtualModule,
@@ -647,13 +620,11 @@ func buildAnnotationResult(
 	}
 }
 
-// determineEffectiveKeyForChildren finds the key expression to pass to child
-// nodes.
+// determineEffectiveKeyForChildren finds the key expression to pass to child nodes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns ast_domain.Expression which is the key expression, or nil if none
-// is found.
+// Returns ast_domain.Expression which is the key expression, or nil if none is found.
 func determineEffectiveKeyForChildren(node *ast_domain.TemplateNode) ast_domain.Expression {
 	if node.GoAnnotations != nil && node.GoAnnotations.EffectiveKeyExpression != nil {
 		return node.GoAnnotations.EffectiveKeyExpression
@@ -664,16 +635,14 @@ func determineEffectiveKeyForChildren(node *ast_domain.TemplateNode) ast_domain.
 	return nil
 }
 
-// resolveAndValidate resolves type annotations for a directive and runs
-// validation.
+// resolveAndValidate resolves type annotations for a directive and runs validation.
 //
 // When d is nil or has no expression, returns at once without action.
 //
 // Takes d (*ast_domain.Directive) which is the directive to process.
 // Takes ctx (*AnalysisContext) which provides the analysis context.
 // Takes resolver (*TypeResolver) which resolves type annotations.
-// Takes validateFunction (func(...)) which validates the directive
-// after resolution.
+// Takes validateFunction (func(...)) which validates the directive after resolution.
 func resolveAndValidate(goCtx context.Context, d *ast_domain.Directive, ctx *AnalysisContext, resolver *TypeResolver, validateFunction func(*ast_domain.Directive, *AnalysisContext)) {
 	if d == nil || d.Expression == nil {
 		return
@@ -687,8 +656,7 @@ func resolveAndValidate(goCtx context.Context, d *ast_domain.Directive, ctx *Ana
 // validateForDirective checks that a p-for directive has valid loop syntax.
 //
 // Takes d (*ast_domain.Directive) which is the directive to validate.
-// Takes ctx (*AnalysisContext) which holds the analysis state for reporting
-// errors.
+// Takes ctx (*AnalysisContext) which holds the analysis state for reporting errors.
 func validateForDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 	if rejectEventPlaceholderInDirective(d, ctx) || rejectFormPlaceholderInDirective(d, ctx) {
 		return
@@ -707,8 +675,7 @@ func validateForDirective(d *ast_domain.Directive, ctx *AnalysisContext) {
 
 // isIterable reports whether the given type can be iterated over.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
 //
 // Returns bool which is true for arrays, maps, and strings.
 func isIterable(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -740,14 +707,14 @@ func logAnalysisContext(ctx *AnalysisContext, title string) {
 	)
 }
 
-// getClientScriptLocation returns the source location of the client script
-// block in a virtual component.
+// getClientScriptLocation returns the source location of the client script block in a
+// virtual component.
 //
-// Takes vc (*annotator_dto.VirtualComponent) which provides the component
-// containing the client script.
+// Takes vc (*annotator_dto.VirtualComponent) which provides the component containing the
+// client script.
 //
-// Returns ast_domain.Location which gives the position of the script block,
-// or line 1 if no location is found.
+// Returns ast_domain.Location which gives the position of the script block, or line 1 if
+// no location is found.
 func getClientScriptLocation(vc *annotator_dto.VirtualComponent) ast_domain.Location {
 	if vc == nil || vc.Source == nil {
 		return ast_domain.Location{Line: 1, Column: 1, Offset: 0}

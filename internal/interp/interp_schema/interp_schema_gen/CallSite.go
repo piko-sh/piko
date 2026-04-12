@@ -165,8 +165,20 @@ func (rcv *CallSite) ReturnsLength() int {
 	return 0
 }
 
+func (rcv *CallSite) IsEllipsisSpread() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *CallSite) MutateIsEllipsisSpread(n bool) bool {
+	return rcv._tab.MutateBoolSlot(22, n)
+}
+
 func CallSiteStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(10)
 }
 func CallSiteAddFunctionIndex(builder *flatbuffers.Builder, functionIndex uint16) {
 	builder.PrependUint16Slot(0, functionIndex, 0)
@@ -200,6 +212,9 @@ func CallSiteAddReturns(builder *flatbuffers.Builder, returns flatbuffers.UOffse
 }
 func CallSiteStartReturnsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
+}
+func CallSiteAddIsEllipsisSpread(builder *flatbuffers.Builder, isEllipsisSpread bool) {
+	builder.PrependBoolSlot(9, isEllipsisSpread, false)
 }
 func CallSiteEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

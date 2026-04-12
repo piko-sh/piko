@@ -24,18 +24,18 @@ import (
 )
 
 const (
-	// compositePartsPerFieldEstimate is the multiplier for
-	// estimating composite parts from field counts.
+	// compositePartsPerFieldEstimate is the multiplier for estimating composite parts from
+	// field counts.
 	compositePartsPerFieldEstimate = 3
 
-	// stringsPerMethodEstimate is the multiplier for estimating backing strings
-	// per method or function (average params + results + param names). Falls
-	// back to heap if underestimated.
+	// stringsPerMethodEstimate is the multiplier for estimating backing strings per method
+	// or function (average params + results + param names). Falls back to heap if
+	// underestimated.
 	stringsPerMethodEstimate = 4
 )
 
-// unpackCounts holds pre-computed entity counts from a FlatBuffer TypeData,
-// used to size arena slabs exactly.
+// unpackCounts holds pre-computed entity counts from a FlatBuffer TypeData, used to size
+// arena slabs exactly.
 type unpackCounts struct {
 	// packages is the number of packages to allocate.
 	packages int
@@ -62,11 +62,10 @@ type unpackCounts struct {
 	strings int
 }
 
-// countEntities walks a FlatBuffer TypeData to count all
-// entities without allocating any DTO structs.
+// countEntities walks a FlatBuffer TypeData to count all entities without allocating any
+// DTO structs.
 //
-// Takes fb (*inspector_schema_gen.TypeData) which is the
-// root FlatBuffer table.
+// Takes fb (*inspector_schema_gen.TypeData) which is the root FlatBuffer table.
 //
 // Returns unpackCounts with counts for arena pre-allocation.
 func countEntities(fb *inspector_schema_gen.TypeData) unpackCounts {
@@ -112,8 +111,8 @@ func countEntities(fb *inspector_schema_gen.TypeData) unpackCounts {
 	return c
 }
 
-// unpackArena provides bump-allocated slabs for DTO structs, eliminating
-// per-entity heap allocations during FlatBuffer unpacking.
+// unpackArena provides bump-allocated slabs for DTO structs, eliminating per-entity heap
+// allocations during FlatBuffer unpacking.
 type unpackArena struct {
 	// packages is the slab for Package values.
 	packages []inspector_dto.Package
@@ -145,8 +144,7 @@ type unpackArena struct {
 	// methodPtrs is the backing array for []*Method slices.
 	methodPtrs []*inspector_dto.Method
 
-	// compositePartPtrs is the backing array for
-	// []*CompositePart slices.
+	// compositePartPtrs is the backing array for []*CompositePart slices.
 	compositePartPtrs []*inspector_dto.CompositePart
 
 	// packagesUsed tracks the bump offset into packages.
@@ -161,8 +159,7 @@ type unpackArena struct {
 	// methodsUsed tracks the bump offset into methods.
 	methodsUsed int
 
-	// compositePartsUsed tracks the bump offset into
-	// compositeParts.
+	// compositePartsUsed tracks the bump offset into compositeParts.
 	compositePartsUsed int
 
 	// functionsUsed tracks the bump offset into functions.
@@ -180,8 +177,7 @@ type unpackArena struct {
 	// methodPtrsUsed tracks the bump offset into methodPtrs.
 	methodPtrsUsed int
 
-	// compositePartPtrsUsed tracks the bump offset into
-	// compositePartPtrs.
+	// compositePartPtrsUsed tracks the bump offset into compositePartPtrs.
 	compositePartPtrsUsed int
 }
 
@@ -207,8 +203,7 @@ func newUnpackArena(c unpackCounts) *unpackArena {
 	}
 }
 
-// AllocPackage bumps the package offset and returns the
-// next slot.
+// AllocPackage bumps the package offset and returns the next slot.
 //
 // Returns *inspector_dto.Package from the slab.
 func (a *unpackArena) AllocPackage() *inspector_dto.Package {
@@ -217,8 +212,7 @@ func (a *unpackArena) AllocPackage() *inspector_dto.Package {
 	return p
 }
 
-// AllocType bumps the type offset and returns the next
-// slot.
+// AllocType bumps the type offset and returns the next slot.
 //
 // Returns *inspector_dto.Type from the slab.
 func (a *unpackArena) AllocType() *inspector_dto.Type {
@@ -227,8 +221,7 @@ func (a *unpackArena) AllocType() *inspector_dto.Type {
 	return t
 }
 
-// AllocField bumps the field offset and returns the next
-// slot.
+// AllocField bumps the field offset and returns the next slot.
 //
 // Returns *inspector_dto.Field from the slab.
 func (a *unpackArena) AllocField() *inspector_dto.Field {
@@ -237,8 +230,7 @@ func (a *unpackArena) AllocField() *inspector_dto.Field {
 	return f
 }
 
-// AllocMethod bumps the method offset and returns the next
-// slot.
+// AllocMethod bumps the method offset and returns the next slot.
 //
 // Returns *inspector_dto.Method from the slab.
 func (a *unpackArena) AllocMethod() *inspector_dto.Method {
@@ -247,11 +239,10 @@ func (a *unpackArena) AllocMethod() *inspector_dto.Method {
 	return m
 }
 
-// AllocCompositePart bumps the composite part offset and
-// returns the next slot, falling back to heap if exhausted.
+// AllocCompositePart bumps the composite part offset and returns the next slot, falling
+// back to heap if exhausted.
 //
-// Returns *inspector_dto.CompositePart from the slab or
-// heap.
+// Returns *inspector_dto.CompositePart from the slab or heap.
 func (a *unpackArena) AllocCompositePart() *inspector_dto.CompositePart {
 	if a.compositePartsUsed >= len(a.compositeParts) {
 		return new(inspector_dto.CompositePart)
@@ -261,8 +252,7 @@ func (a *unpackArena) AllocCompositePart() *inspector_dto.CompositePart {
 	return cp
 }
 
-// AllocFunction bumps the function offset and returns the
-// next slot.
+// AllocFunction bumps the function offset and returns the next slot.
 //
 // Returns *inspector_dto.Function from the slab.
 func (a *unpackArena) AllocFunction() *inspector_dto.Function {
@@ -271,8 +261,7 @@ func (a *unpackArena) AllocFunction() *inspector_dto.Function {
 	return f
 }
 
-// AllocVariable bumps the variable offset and returns the
-// next slot.
+// AllocVariable bumps the variable offset and returns the next slot.
 //
 // Returns *inspector_dto.Variable from the slab.
 func (a *unpackArena) AllocVariable() *inspector_dto.Variable {
@@ -281,8 +270,8 @@ func (a *unpackArena) AllocVariable() *inspector_dto.Variable {
 	return v
 }
 
-// StringSlice returns a sub-slice of n strings from the
-// backing array, falling back to heap if exhausted.
+// StringSlice returns a sub-slice of n strings from the backing array, falling back to
+// heap if exhausted.
 //
 // Takes n (int) which is the number of strings needed.
 //
@@ -296,8 +285,7 @@ func (a *unpackArena) StringSlice(n int) []string {
 	return s
 }
 
-// FieldPtrSlice returns a sub-slice of n *Field pointers
-// from the backing array.
+// FieldPtrSlice returns a sub-slice of n *Field pointers from the backing array.
 //
 // Takes n (int) which is the number of pointers needed.
 //
@@ -308,8 +296,7 @@ func (a *unpackArena) FieldPtrSlice(n int) []*inspector_dto.Field {
 	return s
 }
 
-// MethodPtrSlice returns a sub-slice of n *Method pointers
-// from the backing array.
+// MethodPtrSlice returns a sub-slice of n *Method pointers from the backing array.
 //
 // Takes n (int) which is the number of pointers needed.
 //
@@ -320,14 +307,12 @@ func (a *unpackArena) MethodPtrSlice(n int) []*inspector_dto.Method {
 	return s
 }
 
-// CompositePartPtrSlice returns a sub-slice of n
-// *CompositePart pointers from the backing array, falling
-// back to heap if exhausted.
+// CompositePartPtrSlice returns a sub-slice of n *CompositePart pointers from the backing
+// array, falling back to heap if exhausted.
 //
 // Takes n (int) which is the number of pointers needed.
 //
-// Returns []*inspector_dto.CompositePart from the slab or
-// heap.
+// Returns []*inspector_dto.CompositePart from the slab or heap.
 func (a *unpackArena) CompositePartPtrSlice(n int) []*inspector_dto.CompositePart {
 	if a.compositePartPtrsUsed+n > len(a.compositePartPtrs) {
 		return make([]*inspector_dto.CompositePart, n)

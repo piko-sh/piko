@@ -31,60 +31,62 @@ import (
 )
 
 const (
-	// insertPlaceholderVersion holds the 1-based placeholder index for the version column.
+	// insertPlaceholderVersion is the 1-based bind-parameter index for the version column.
 	insertPlaceholderVersion = 1
 
-	// insertPlaceholderName holds the 1-based placeholder index for the name column.
+	// insertPlaceholderName is the 1-based bind-parameter index for the name column.
 	insertPlaceholderName = 2
 
-	// insertPlaceholderChecksum holds the 1-based placeholder index for the checksum column.
+	// insertPlaceholderChecksum is the 1-based bind-parameter index for the checksum column.
 	insertPlaceholderChecksum = 3
 
-	// insertPlaceholderAppliedAt holds the 1-based placeholder index for the applied_at column.
+	// insertPlaceholderAppliedAt is the 1-based bind-parameter index for the applied_at
+	// column.
 	insertPlaceholderAppliedAt = 4
 
-	// insertPlaceholderDurationMs holds the 1-based placeholder
-	// index for the duration_ms column.
+	// insertPlaceholderDurationMs is the 1-based bind-parameter index for the duration_ms
+	// column.
 	insertPlaceholderDurationMs = 5
 
-	// insertPlaceholderDownChecksum holds the 1-based
-	// placeholder index for the down_checksum column.
+	// insertPlaceholderDownChecksum is the 1-based bind-parameter index for the
+	// down_checksum column.
 	insertPlaceholderDownChecksum = 6
 
-	// insertPlaceholderLastStatement holds the 1-based placeholder index for
-	// the last_statement column.
+	// insertPlaceholderLastStatement is the 1-based bind-parameter index for the
+	// last_statement column.
 	insertPlaceholderLastStatement = 7
 
-	// insertPlaceholderDirty holds the 1-based placeholder index for the
-	// dirty column.
+	// insertPlaceholderDirty is the 1-based bind-parameter index for the dirty column.
 	insertPlaceholderDirty = 8
 
-	// clearDirtyPlaceholderDirty holds the 1-based placeholder index for the
-	// dirty column in the clearDirty UPDATE statement.
+	// clearDirtyPlaceholderDirty is the 1-based bind-parameter index for the dirty column in
+	// the clearDirty UPDATE statement.
 	clearDirtyPlaceholderDirty = 1
 
-	// clearDirtyPlaceholderDurationMs holds the 1-based placeholder index for
-	// the duration_ms column in the clearDirty UPDATE statement.
+	// clearDirtyPlaceholderDurationMs is the 1-based bind-parameter index for the
+	// duration_ms column in the clearDirty UPDATE statement.
 	clearDirtyPlaceholderDurationMs = 2
 
-	// clearDirtyPlaceholderVersion holds the 1-based placeholder index for
-	// the version column in the clearDirty UPDATE statement.
+	// clearDirtyPlaceholderVersion is the 1-based bind-parameter index for the version
+	// column in the clearDirty UPDATE statement.
 	clearDirtyPlaceholderVersion = 3
 
-	// defaultStatementCapacity is the initial slice capacity used when collecting
-	// split statements. It avoids the first few allocations for typical
-	// migration files without over-allocating for empty inputs.
+	// defaultStatementCapacity is the initial slice capacity used when collecting split
+	// statements. It avoids the first few allocations for typical migration files without
+	// over-allocating for empty inputs.
 	defaultStatementCapacity = 8
 )
 
-// ErrMalformedSQLStatement is returned when migration SQL contains
-// unterminated string literals, unterminated dollar-quoted blocks, or
-// unterminated block comments. Callers can detect this with errors.Is.
-var ErrMalformedSQLStatement = errors.New("malformed SQL statement")
+var (
+	// ErrMalformedSQLStatement is returned when migration SQL contains unterminated string
+	// literals, unterminated dollar-quoted blocks, or unterminated block comments. Callers
+	// can detect this with errors.Is.
+	ErrMalformedSQLStatement = errors.New("malformed SQL statement")
+)
 
-// queryRunner is the common interface satisfied by both *sql.DB and *sql.Conn,
-// allowing the executor to route operations through a pinned connection when
-// an advisory lock is held.
+// queryRunner is the common interface satisfied by both *sql.DB and *sql.Conn, allowing
+// the executor to route operations through a pinned connection when an advisory lock is
+// held.
 type queryRunner interface {
 	// ExecContext executes a query without returning rows.
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -96,27 +98,29 @@ type queryRunner interface {
 	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 }
 
-// Executor implements MigrationExecutorPort using database/sql. It works for
-// both SQLite and PostgreSQL via the DialectConfig strategy.
+// Executor implements MigrationExecutorPort using database/sql. It works for both SQLite
+// and PostgreSQL via the DialectConfig strategy.
 type Executor struct {
 	// database holds the underlying database connection pool.
 	database *sql.DB
 
-	// pinnedConnection holds a dedicated connection used when an advisory lock
-	// is held, ensuring all operations run on the same session.
+	// pinnedConnection holds a dedicated connection used when an advisory lock is held,
+	// ensuring all operations run on the same session.
 	pinnedConnection *sql.Conn
 
 	// dialectConfig holds the dialect-specific SQL and locking behaviour.
 	dialectConfig DialectConfig
 }
 
-var _ querier_domain.MigrationExecutorPort = (*Executor)(nil)
+var (
+	_ querier_domain.MigrationExecutorPort = (*Executor)(nil)
+)
 
 // NewExecutor creates a new SQL-based migration executor.
 //
 // Takes database (*sql.DB) which is the database connection.
-// Takes dialectConfig (DialectConfig) which provides dialect-specific SQL and
-// locking behaviour.
+// Takes dialectConfig (DialectConfig) which provides dialect-specific SQL and locking
+// behaviour.
 //
 // Returns *Executor which is ready to execute migrations.
 func NewExecutor(database *sql.DB, dialectConfig DialectConfig) *Executor {
@@ -126,8 +130,8 @@ func NewExecutor(database *sql.DB, dialectConfig DialectConfig) *Executor {
 	}
 }
 
-// EnsureMigrationTable creates the piko_migrations table if it does not exist
-// and applies any pending AlterStatements idempotently.
+// EnsureMigrationTable creates the piko_migrations table if it does not exist and applies
+// any pending AlterStatements idempotently.
 //
 // Returns error when the table cannot be created or altered.
 func (executor *Executor) EnsureMigrationTable(ctx context.Context) error {
@@ -149,8 +153,8 @@ func (executor *Executor) EnsureMigrationTable(ctx context.Context) error {
 // AcquireLock acquires the database-specific advisory lock.
 //
 // For strategies that require connection pinning (e.g. PostgreSQL), a dedicated
-// connection is held for the duration until ReleaseLock is called. After
-// acquiring the lock, any configured PreMigrationStatements are executed.
+// connection is held for the duration until ReleaseLock is called. After acquiring the
+// lock, any configured PreMigrationStatements are executed.
 //
 // Returns error when the lock cannot be acquired or pre-migration statements fail.
 func (executor *Executor) AcquireLock(ctx context.Context) error {
@@ -189,8 +193,8 @@ func (executor *Executor) TryAcquireLock(ctx context.Context) error {
 	return nil
 }
 
-// ReleaseLock releases the database-specific advisory lock and returns any
-// pinned connection to the pool.
+// ReleaseLock releases the database-specific advisory lock and returns any pinned
+// connection to the pool.
 //
 // Returns error when the lock cannot be released.
 func (executor *Executor) ReleaseLock(ctx context.Context) error {
@@ -251,14 +255,12 @@ func (executor *Executor) AppliedVersions(
 	return applied, nil
 }
 
-// parseAppliedAt converts the raw applied_at value from the database into a
-// time.Time, handling both native time.Time (PostgreSQL) and string formats
-// (SQLite).
+// parseAppliedAt converts the raw applied_at value from the database into a time.Time,
+// handling both native time.Time (PostgreSQL) and string formats (SQLite).
 //
 // Takes raw (any) which is the database driver's applied_at value.
 //
-// Returns time.Time which is the parsed timestamp, or zero time if parsing
-// fails.
+// Returns time.Time which is the parsed timestamp, or zero time if parsing fails.
 func parseAppliedAt(raw any) time.Time {
 	if raw == nil {
 		return time.Time{}
@@ -289,22 +291,20 @@ func parseAppliedAt(raw any) time.Time {
 
 // ExecuteMigration runs a single migration's SQL content.
 //
-// For up migrations it INSERTs a record; for down migrations it DELETEs the
-// record. When useTransaction is true, both the SQL and history update happen
-// atomically.
+// For up migrations it INSERTs a record; for down migrations it DELETEs the record. When
+// useTransaction is true, both the SQL and history update happen atomically.
 //
-// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL
-// and metadata.
-// Takes direction (querier_dto.MigrationDirection) which specifies whether
-// this is an up or down migration.
-// Takes useTransaction (bool) which controls whether the migration and history
-// update are wrapped in a single transaction.
+// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL and
+// metadata.
+// Takes direction (querier_dto.MigrationDirection) which specifies whether this is an up
+// or down migration.
+// Takes useTransaction (bool) which controls whether the migration and history update are
+// wrapped in a single transaction.
 //
 // Returns error when the migration SQL or history update fails.
 //
-// Note: the migration SQL is passed as a single string to ExecContext, which
-// requires the underlying database/sql driver to support multi-statement
-// execution.
+// Note: the migration SQL is passed as a single string to ExecContext, which requires the
+// underlying database/sql driver to support multi-statement execution.
 func (executor *Executor) ExecuteMigration(
 	ctx context.Context,
 	migration querier_dto.MigrationRecord,
@@ -319,8 +319,8 @@ func (executor *Executor) ExecuteMigration(
 	return executor.executeWithoutTransaction(ctx, migration, direction, start)
 }
 
-// queryExecutor returns the pinned connection if one is held (i.e. under an
-// advisory lock), or the connection pool otherwise.
+// queryExecutor returns the pinned connection if one is held (i.e. under an advisory
+// lock), or the connection pool otherwise.
 //
 // Returns queryRunner which is either the pinned connection or the database pool.
 func (executor *Executor) queryExecutor() queryRunner {
@@ -330,8 +330,8 @@ func (executor *Executor) queryExecutor() queryRunner {
 	return executor.database
 }
 
-// executePreMigrationStatements runs all configured PreMigrationStatements
-// on the current query executor.
+// executePreMigrationStatements runs all configured PreMigrationStatements on the current
+// query executor.
 //
 // Returns error when any statement fails to execute.
 func (executor *Executor) executePreMigrationStatements(ctx context.Context) error {
@@ -343,9 +343,9 @@ func (executor *Executor) executePreMigrationStatements(ctx context.Context) err
 	return nil
 }
 
-// statementSplitter holds the state for splitStatements as a small state
-// machine. It keeps the per-mode scanners small so each one stays well below
-// the cognitive-complexity threshold.
+// statementSplitter holds the state for splitStatements as a small state machine. It
+// keeps the per-mode scanners small so each one stays well below the cognitive-complexity
+// threshold.
 type statementSplitter struct {
 	// current accumulates the runes of the statement currently being scanned.
 	current strings.Builder
@@ -360,9 +360,9 @@ type statementSplitter struct {
 	index int
 }
 
-// writeRune appends r to the current statement buffer. The wrapper exists so
-// the unhandled-error linter only sees one ignored WriteRune call site rather
-// than many; (*strings.Builder).WriteRune is documented to always return nil.
+// writeRune appends r to the current statement buffer. The wrapper exists so the
+// unhandled-error linter only sees one ignored WriteRune call site rather than many;
+// (*strings.Builder).WriteRune is documented to always return nil.
 //
 // Takes r (rune) which is the rune to append.
 func (s *statementSplitter) writeRune(r rune) {
@@ -399,8 +399,7 @@ func (s *statementSplitter) scanLineComment() {
 
 // scanBlockComment consumes a "/* ... */" block comment.
 //
-// Returns error wrapping ErrMalformedSQLStatement when the comment never
-// terminates.
+// Returns error wrapping ErrMalformedSQLStatement when the comment never terminates.
 func (s *statementSplitter) scanBlockComment() error {
 	s.writeRune(s.runes[s.index])
 	s.writeRune(s.runes[s.index+1])
@@ -418,11 +417,10 @@ func (s *statementSplitter) scanBlockComment() error {
 	return fmt.Errorf("unterminated block comment: %w", ErrMalformedSQLStatement)
 }
 
-// scanSingleQuotedString consumes a '...' literal, treating single quotes as an
-// embedded quote.
+// scanSingleQuotedString consumes a single-quoted literal, treating a doubled single
+// quote as an embedded quote.
 //
-// Returns error which wraps ErrMalformedSQLStatement when the literal never
-// terminates.
+// Returns error which wraps ErrMalformedSQLStatement when the literal never terminates.
 func (s *statementSplitter) scanSingleQuotedString() error {
 	s.writeRune(s.runes[s.index])
 	s.index++
@@ -445,12 +443,11 @@ func (s *statementSplitter) scanSingleQuotedString() error {
 	return fmt.Errorf("unterminated string literal: %w", ErrMalformedSQLStatement)
 }
 
-// scanDollarQuotedBlock consumes a $tag$ ... $tag$ block when the current
-// position opens such a block.
+// scanDollarQuotedBlock consumes a $tag$ ... $tag$ block when the current position opens
+// such a block.
 //
 // Returns bool which is true when a block was consumed, false otherwise.
-// Returns error which wraps ErrMalformedSQLStatement when the block never
-// terminates.
+// Returns error which wraps ErrMalformedSQLStatement when the block never terminates.
 func (s *statementSplitter) scanDollarQuotedBlock() (bool, error) {
 	tag, advance, ok := readDollarQuoteTag(s.runes, s.index)
 	if !ok {
@@ -507,23 +504,21 @@ func (s *statementSplitter) step() error {
 	}
 }
 
-// splitStatements splits migration SQL content into individual statements,
-// honouring SQL lexical structure so that semicolons inside string literals,
-// dollar-quoted blocks, and comments are not treated as statement
-// terminators. Empty statements are skipped.
+// splitStatements splits migration SQL content into individual statements, honouring SQL
+// lexical structure so that semicolons inside string literals, dollar-quoted blocks, and
+// comments are not treated as statement terminators. Empty statements are skipped.
 //
 // The splitter recognises:
-//   - Single-quoted string literals as an embedded quote.
-//   - PostgreSQL dollar-quoted blocks with optional tag, e.g. $$ ... $$,
-//     $tag$ ... $tag$.
+//   - Single-quoted string literals with a doubled single quote as an embedded quote.
+//   - PostgreSQL dollar-quoted blocks with optional tag, e.g. $$ ... $$, $tag$ ... $tag$.
 //   - "--" line comments through to end-of-line.
 //   - "/* ... */" block comments (non-nested).
 //
 // Takes content (string) which holds the raw migration SQL.
 //
 // Returns []string which holds the individual non-empty SQL statements.
-// Returns error which wraps ErrMalformedSQLStatement when an unterminated
-// string, dollar-quote, or block comment is detected.
+// Returns error which wraps ErrMalformedSQLStatement when an unterminated string,
+// dollar-quote, or block comment is detected.
 func splitStatements(content string) ([]string, error) {
 	splitter := &statementSplitter{
 		statements: make([]string, 0, defaultStatementCapacity),
@@ -538,8 +533,8 @@ func splitStatements(content string) ([]string, error) {
 	return splitter.statements, nil
 }
 
-// readDollarQuoteTag detects whether position start in runes is the start of
-// a dollar-quote token (e.g. $$ or $tag$).
+// readDollarQuoteTag detects whether position start in runes is the start of a
+// dollar-quote token (e.g. $$ or $tag$).
 //
 // Takes runes ([]rune) which holds the SQL content as runes.
 // Takes start (int) which is the index of the leading '$' rune.
@@ -565,21 +560,21 @@ func readDollarQuoteTag(runes []rune, start int) (string, int, bool) {
 	return string(runes[start+1 : end]), end - start + 1, true
 }
 
-// execStatements splits migration SQL on semicolons and executes each non-empty
-// statement individually. Statements up to and including skipUpTo are skipped,
-// allowing retry from where a partial application left off.
+// execStatements splits migration SQL on semicolons and executes each non-empty statement
+// individually. Statements up to and including skipUpTo are skipped, allowing retry from
+// where a partial application left off.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes runner which satisfies ExecContext for executing SQL.
 // Takes content (string) which holds the raw migration SQL.
 // Takes version (int64) which identifies the migration for error messages.
-// Takes skipUpTo (int) which is the 0-based index of statements to skip
-// (-1 means execute all from the start).
+// Takes skipUpTo (int) which is the 0-based index of statements to skip (-1 means execute
+// all from the start).
 //
-// Returns statementsExecuted (int) which is the count of statements
-// successfully executed.
-// Returns err (error) when any individual statement fails, including
-// which statement index failed.
+// Returns statementsExecuted (int) which is the count of statements successfully
+// executed.
+// Returns err (error) when any individual statement fails, including which statement
+// index failed.
 func (*Executor) execStatements(
 	ctx context.Context,
 	runner interface {
@@ -610,17 +605,15 @@ func (*Executor) execStatements(
 	return statementsExecuted, nil
 }
 
-// executeInTransaction runs the migration SQL and history update within a
-// single database transaction. Statements are split and executed individually
-// for better error messages, but the transaction ensures atomicity so no dirty
-// state tracking is needed.
+// executeInTransaction runs the migration SQL and history update within a single database
+// transaction. Statements are split and executed individually for better error messages,
+// but the transaction ensures atomicity so no dirty state tracking is needed.
 //
-// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL
-// and metadata.
-// Takes direction (querier_dto.MigrationDirection) which specifies whether
-// this is an up or down migration.
-// Takes start (time.Time) which records when execution began for duration
-// tracking.
+// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL and
+// metadata.
+// Takes direction (querier_dto.MigrationDirection) which specifies whether this is an up
+// or down migration.
+// Takes start (time.Time) which records when execution began for duration tracking.
 //
 // Returns error when the transaction, migration SQL, or history update fails.
 func (executor *Executor) executeInTransaction(
@@ -659,12 +652,11 @@ func (executor *Executor) executeInTransaction(
 // executeWithoutTransaction runs the migration SQL outside a transaction with
 // per-statement dirty state tracking, delegating to direction-specific helpers.
 //
-// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL
-// and metadata.
-// Takes direction (querier_dto.MigrationDirection) which specifies whether
-// this is an up or down migration.
-// Takes start (time.Time) which records when execution began for duration
-// tracking.
+// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL and
+// metadata.
+// Takes direction (querier_dto.MigrationDirection) which specifies whether this is an up
+// or down migration.
+// Takes start (time.Time) which records when execution began for duration tracking.
 //
 // Returns error when the migration SQL or history update fails.
 func (executor *Executor) executeWithoutTransaction(
@@ -680,14 +672,12 @@ func (executor *Executor) executeWithoutTransaction(
 	return executor.executeWithoutTransactionDown(ctx, migration, start)
 }
 
-// executeWithoutTransactionUp handles non-transactional up migrations with
-// per-statement dirty state tracking. On full success the record is finalised
-// with dirty = FALSE.
+// executeWithoutTransactionUp handles non-transactional up migrations with per-statement
+// dirty state tracking. On full success the record is finalised with dirty = FALSE.
 //
-// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL
-// and metadata.
-// Takes start (time.Time) which records when execution began for duration
-// tracking.
+// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL and
+// metadata.
+// Takes start (time.Time) which records when execution began for duration tracking.
 //
 // Returns error when the migration SQL or history update fails.
 func (executor *Executor) executeWithoutTransactionUp(
@@ -728,14 +718,13 @@ func (executor *Executor) executeWithoutTransactionUp(
 	return executor.clearDirty(ctx, migration.Version, start)
 }
 
-// executeWithoutTransactionDown handles non-transactional down migrations.
-// Down migrations do not use dirty state tracking since they delete the history
-// record on success.
+// executeWithoutTransactionDown handles non-transactional down migrations. Down
+// migrations do not use dirty state tracking since they delete the history record on
+// success.
 //
-// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL
-// and metadata.
-// Takes start (time.Time) which records when execution began for duration
-// tracking.
+// Takes migration (querier_dto.MigrationRecord) which holds the migration SQL and
+// metadata.
+// Takes start (time.Time) which records when execution began for duration tracking.
 //
 // Returns error when the migration SQL or history update fails.
 func (executor *Executor) executeWithoutTransactionDown(
@@ -770,19 +759,15 @@ func (executor *Executor) executeWithoutTransactionDown(
 	return nil
 }
 
-// updateHistory inserts or deletes a migration record in
-// the piko_migrations table depending on the direction.
+// updateHistory inserts or deletes a migration record in the piko_migrations table
+// depending on the direction.
 //
-// Takes transaction (*sql.Tx) which is the active database
-// transaction.
-// Takes migration (querier_dto.MigrationRecord) which holds
-// the migration metadata.
-// Takes direction (querier_dto.MigrationDirection) which
-// specifies whether this is an up or down migration.
-// Takes appliedAt (time.Time) which is the timestamp to
-// record.
-// Takes durationMs (int64) which is the execution duration
-// in milliseconds.
+// Takes transaction (*sql.Tx) which is the active database transaction.
+// Takes migration (querier_dto.MigrationRecord) which holds the migration metadata.
+// Takes direction (querier_dto.MigrationDirection) which specifies whether this is an up
+// or down migration.
+// Takes appliedAt (time.Time) which is the timestamp to record.
+// Takes durationMs (int64) which is the execution duration in milliseconds.
 //
 // Returns error when the INSERT or DELETE statement fails.
 func (executor *Executor) updateHistory(
@@ -831,15 +816,13 @@ func (executor *Executor) updateHistory(
 	return nil
 }
 
-// preRecordDirtyMigration inserts a migration history record with dirty = TRUE
-// and last_statement = -1 before any SQL statements are executed. This ensures
-// the migration is recorded as in-progress even if the process crashes during
-// execution.
+// preRecordDirtyMigration inserts a migration history record with dirty = TRUE and
+// last_statement = -1 before any SQL statements are executed. This ensures the migration
+// is recorded as in-progress even if the process crashes during execution.
 //
-// Takes migration (querier_dto.MigrationRecord) which holds the migration
-// metadata.
-// Takes direction (querier_dto.MigrationDirection) which specifies the
-// migration direction.
+// Takes migration (querier_dto.MigrationRecord) which holds the migration metadata.
+// Takes direction (querier_dto.MigrationDirection) which specifies the migration
+// direction.
 // Takes start (time.Time) which is the timestamp to record.
 //
 // Returns error when the INSERT statement fails.
@@ -879,14 +862,13 @@ func (executor *Executor) preRecordDirtyMigration(
 	return nil
 }
 
-// updateStatementProgress updates the last_statement column for a migration
-// to reflect the most recently completed statement index. This is called after
-// each successful statement in non-transactional execution, providing a
-// resumption point if the process crashes.
+// updateStatementProgress updates the last_statement column for a migration to reflect
+// the most recently completed statement index. This is called after each successful
+// statement in non-transactional execution, providing a resumption point if the process
+// crashes.
 //
 // Takes version (int64) which identifies the migration record.
-// Takes lastStatement (int) which is the 0-based index of the last successful
-// statement.
+// Takes lastStatement (int) which is the 0-based index of the last successful statement.
 func (executor *Executor) updateStatementProgress(
 	ctx context.Context,
 	version int64,
@@ -902,12 +884,12 @@ func (executor *Executor) updateStatementProgress(
 	_, _ = executor.queryExecutor().ExecContext(ctx, updateSQL, lastStatement, version)
 }
 
-// clearDirty marks a non-transactional migration as successfully completed by
-// setting dirty = FALSE and recording the final duration.
+// clearDirty marks a non-transactional migration as successfully completed by setting
+// dirty = FALSE and recording the final duration.
 //
 // Takes version (int64) which identifies the migration record.
-// Takes start (time.Time) which is when execution began, used to compute the
-// final duration.
+// Takes start (time.Time) which is when execution began, used to compute the final
+// duration.
 //
 // Returns error when the UPDATE statement fails.
 func (executor *Executor) clearDirty(
@@ -932,9 +914,9 @@ func (executor *Executor) clearDirty(
 	return nil
 }
 
-// isDuplicateColumnError reports whether the error indicates the column already
-// exists. SQLite does not support IF NOT EXISTS for ADD COLUMN, so this
-// suppresses the expected error when the column was already added.
+// isDuplicateColumnError reports whether the error indicates the column already exists.
+// SQLite does not support IF NOT EXISTS for ADD COLUMN, so this suppresses the expected
+// error when the column was already added.
 //
 // Takes err (error) which is the error to inspect.
 //

@@ -24,9 +24,9 @@ import (
 	es_logger "piko.sh/piko/internal/esbuild/logger"
 )
 
-// CleanCSSTree walks the CSS AST and removes any rules where Data is nil.
-// This is needed because the esbuild minifier can leave empty rules in nested
-// blocks (such as @media) that the printer cannot handle.
+// CleanCSSTree walks the CSS AST and removes any rules where Data is nil. This is needed
+// because the esbuild minifier can leave empty rules in nested blocks (such as @media)
+// that the printer cannot handle.
 //
 // Takes rules ([]css_ast.Rule) which is the slice of CSS rules to clean.
 //
@@ -64,18 +64,16 @@ func CleanCSSTree(rules []css_ast.Rule) []css_ast.Rule {
 	return rules[:n]
 }
 
-// ConvertESBuildMessagesToDiagnostics converts esbuild log messages into
-// diagnostic objects for the domain layer.
+// ConvertESBuildMessagesToDiagnostics converts esbuild log messages into diagnostic
+// objects for the domain layer.
 //
 // When messages is empty, returns nil.
 //
-// Takes messages ([]es_logger.Msg) which contains the esbuild log messages to
-// convert.
+// Takes messages ([]es_logger.Msg) which contains the esbuild log messages to convert.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
-// Takes startLocation (ast_domain.Location) which provides the offset for
-// line and column values.
-// Takes diagnosticCode (string) which is the code to assign to each
-// diagnostic.
+// Takes startLocation (ast_domain.Location) which provides the offset for line and column
+// values.
+// Takes diagnosticCode (string) which is the code to assign to each diagnostic.
 //
 // Returns []*ast_domain.Diagnostic which contains the converted diagnostics.
 func ConvertESBuildMessagesToDiagnostics(messages []es_logger.Msg, sourcePath string, startLocation ast_domain.Location, diagnosticCode string) []*ast_domain.Diagnostic {

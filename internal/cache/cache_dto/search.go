@@ -22,24 +22,24 @@ package cache_dto
 type FieldType int
 
 const (
-	// FieldTypeText supports full-text search with tokenization.
-	// Values are split into words and indexed for partial matching.
+	// FieldTypeText supports full-text search with tokenization. Values are split into words
+	// and indexed for partial matching.
 	FieldTypeText FieldType = iota + 1
 
-	// FieldTypeTag supports exact match filtering without tokenization.
-	// Values are indexed as-is for precise equality matching.
+	// FieldTypeTag supports exact match filtering without tokenization. Values are indexed
+	// as-is for precise equality matching.
 	FieldTypeTag
 
-	// FieldTypeNumeric supports range queries and numeric sorting.
-	// Values must be numeric (int, float, etc.) for comparison operations.
+	// FieldTypeNumeric supports range queries and numeric sorting. Values must be numeric
+	// (int, float, etc.) for comparison operations.
 	FieldTypeNumeric
 
-	// FieldTypeGeo supports geographic queries based on coordinates.
-	// Values should be lat/long pairs for distance-based operations.
+	// FieldTypeGeo supports geographic queries based on coordinates. Values should be
+	// lat/long pairs for distance-based operations.
 	FieldTypeGeo
 
-	// FieldTypeVector supports vector similarity search using HNSW indexing.
-	// Values must be []float32 vectors of the dimension specified in FieldSchema.
+	// FieldTypeVector supports vector similarity search using HNSW indexing. Values must be
+	// []float32 vectors of the dimension specified in FieldSchema.
 	FieldTypeVector
 )
 
@@ -82,66 +82,65 @@ const (
 
 // FieldSchema defines a single searchable field in a cached value type.
 type FieldSchema struct {
-	// Name is the field path in the cached value.
-	// Supports dot notation for nested fields (e.g., "address.city").
+	// Name is the field path in the cached value. Supports dot notation for nested fields
+	// (e.g., "address.city").
 	Name string
 
-	// DistanceMetric specifies the similarity metric for VECTOR fields --
-	// "cosine" (default), "euclidean", or "dot_product" -- and is ignored for
-	// non-vector field types.
+	// DistanceMetric specifies the similarity metric for VECTOR fields -- "cosine"
+	// (default), "euclidean", or "dot_product" -- and is ignored for non-vector field types.
 	DistanceMetric string
 
 	// Type specifies how the field should be searchable.
 	Type FieldType
 
-	// Dimension is the vector dimensionality for VECTOR fields. Required when Type
-	// is FieldTypeVector; ignored for other field types.
+	// Dimension is the vector dimensionality for VECTOR fields. Required when Type is
+	// FieldTypeVector; ignored for other field types.
 	Dimension int
 
-	// Sortable enables sorting on the field.
-	// Has memory cost as the provider maintains sorted structures.
+	// Sortable enables sorting on the field. Has memory cost as the provider maintains
+	// sorted structures.
 	Sortable bool
 
-	// Weight is the relevance score multiplier for TEXT fields.
-	// Higher values increase search ranking impact; default is 1.0.
+	// Weight is the relevance score multiplier for TEXT fields. Higher values increase
+	// search ranking impact; default is 1.0.
 	Weight float64
 }
 
-// TextAnalyseFunc transforms text into index terms for search indexing. The
-// same function must be used for indexing and querying; implementations must
-// be concurrent-safe, and when nil, providers use default tokenisation.
+// TextAnalyseFunc transforms text into index terms for search indexing. The same function
+// must be used for indexing and querying; implementations must be concurrent-safe, and
+// when nil, providers use default tokenisation.
 type TextAnalyseFunc func(text string) []string
 
-// SearchSchema defines which fields of a cached value type are searchable.
-// This schema enables providers to build appropriate internal structures
-// for efficient search and query operations.
+// SearchSchema defines which fields of a cached value type are searchable. This schema
+// enables providers to build appropriate internal structures for efficient search and
+// query operations.
 type SearchSchema struct {
-	// TextAnalyser is an optional function for linguistic text processing that
-	// replaces the default tokenisation. Providers with native search may ignore it.
+	// TextAnalyser is an optional function for linguistic text processing that replaces the
+	// default tokenisation. Providers with native search may ignore it.
 	TextAnalyser TextAnalyseFunc
 
-	// Language specifies the stemming language for TEXT fields; affects how words
-	// are normalised (e.g., "running" becomes "run"). Default is "english".
+	// Language specifies the stemming language for TEXT fields; affects how words are
+	// normalised (e.g., "running" becomes "run"). Default is "english".
 	Language string
 
 	// Fields lists all searchable fields in the cached value type.
 	Fields []FieldSchema
 
-	// StopWords defines words to ignore during text search.
-	// If nil, provider defaults are used.
+	// StopWords defines words to ignore during text search. If nil, provider defaults are
+	// used.
 	StopWords []string
 
-	// MaxTagsPerKey limits the number of tags per cache key. Zero means
-	// unlimited; excess tags are silently dropped.
+	// MaxTagsPerKey limits the number of tags per cache key. Zero means unlimited; excess
+	// tags are silently dropped.
 	MaxTagsPerKey int
 
-	// MaxInvertedIndexTokens limits unique terms in the inverted index; when the
-	// limit is reached, new terms are silently ignored. Zero means unlimited.
+	// MaxInvertedIndexTokens limits unique terms in the inverted index; when the limit is
+	// reached, new terms are silently ignored. Zero means unlimited.
 	MaxInvertedIndexTokens int
 
-	// MaxVectors limits the maximum number of vectors per vector index, after
-	// which Add calls for new keys are silently ignored (updates to existing
-	// keys still work) and zero means unlimited.
+	// MaxVectors limits the maximum number of vectors per vector index, after which Add
+	// calls for new keys are silently ignored (updates to existing keys still work) and zero
+	// means unlimited.
 	MaxVectors int
 }
 
@@ -159,8 +158,8 @@ type Filter struct {
 	// Field is the name of the field to filter on.
 	Field string
 
-	// Values contains multiple values for In (set membership) and
-	// Between (min, max range) operations.
+	// Values contains multiple values for In (set membership) and Between (min, max range)
+	// operations.
 	Values []any
 
 	// Operation is the comparison operation to apply.
@@ -169,89 +168,83 @@ type Filter struct {
 
 // SearchOptions configures a full-text search operation.
 type SearchOptions struct {
-	// MinScore filters out results below this similarity threshold.
-	// If nil, no minimum score filter is applied.
+	// MinScore filters out results below this similarity threshold. If nil, no minimum score
+	// filter is applied.
 	MinScore *float32
 
-	// SortBy is the field to sort results by.
-	// If empty, results are sorted by relevance score.
+	// SortBy is the field to sort results by. If empty, results are sorted by relevance
+	// score.
 	SortBy string
 
-	// VectorField specifies which vector field to search.
-	// If empty and only one vector field exists in the schema, it is used
-	// automatically.
+	// VectorField specifies which vector field to search. If empty and only one vector field
+	// exists in the schema, it is used automatically.
 	VectorField string
 
-	// Filters are additional conditions to apply after text matching.
-	// All filters must match (AND logic).
+	// Filters are additional conditions to apply after text matching. All filters must match
+	// (AND logic).
 	Filters []Filter
 
-	// Fields limits which TEXT fields to search.
-	// If nil, all TEXT fields in the schema are searched.
+	// Fields limits which TEXT fields to search. If nil, all TEXT fields in the schema are
+	// searched.
 	Fields []string
 
-	// Vector is the query vector for similarity search.
-	// When set, the search performs vector similarity matching.
+	// Vector is the query vector for similarity search. When set, the search performs vector
+	// similarity matching.
 	Vector []float32
 
-	// Limit is the maximum number of results to return.
-	// Default is 10, maximum depends on provider.
+	// Limit is the maximum number of results to return. Default is 10, maximum depends on
+	// provider.
 	Limit int
 
-	// Offset is the starting position for pagination.
-	// Use with Limit for paging through results.
+	// Offset is the starting position for pagination. Use with Limit for paging through
+	// results.
 	Offset int
 
-	// TopK is the maximum number of nearest neighbours for vector search.
-	// If zero, defaults to Limit.
+	// TopK is the maximum number of nearest neighbours for vector search. If zero, defaults
+	// to Limit.
 	TopK int
 
-	// SortOrder specifies ascending or descending sort.
-	// Default is SortAsc.
+	// SortOrder specifies ascending or descending sort. Default is SortAsc.
 	SortOrder SortOrder
 
-	// Highlight enables highlighting of matched terms in results.
-	// When true, SearchHit.Highlights contains snippets.
+	// Highlight enables highlighting of matched terms in results. When true,
+	// SearchHit.Highlights contains snippets.
 	Highlight bool
 }
 
 // QueryOptions configures a structured query operation without full-text search.
 type QueryOptions struct {
-	// MinScore filters out results below this similarity threshold.
-	// If nil, no minimum score filter is applied.
+	// MinScore filters out results below this similarity threshold. If nil, no minimum score
+	// filter is applied.
 	MinScore *float32
 
-	// SortBy is the field to sort results by.
-	// Must be a sortable field in the schema.
+	// SortBy is the field to sort results by. Must be a sortable field in the schema.
 	SortBy string
 
-	// VectorField specifies which vector field to search.
-	// If empty and only one vector field exists in the schema, it is used
-	// automatically.
+	// VectorField specifies which vector field to search. If empty and only one vector field
+	// exists in the schema, it is used automatically.
 	VectorField string
 
-	// Filters are the conditions to match.
-	// All filters must match (AND logic).
+	// Filters are the conditions to match. All filters must match (AND logic).
 	Filters []Filter
 
-	// Vector is the query vector for similarity search.
-	// When set, the query performs vector similarity matching.
+	// Vector is the query vector for similarity search. When set, the query performs vector
+	// similarity matching.
 	Vector []float32
 
-	// Limit is the maximum number of results to return.
-	// Default is 10, maximum depends on provider.
+	// Limit is the maximum number of results to return. Default is 10, maximum depends on
+	// provider.
 	Limit int
 
-	// Offset is the starting position for pagination.
-	// Use with Limit for paging through results.
+	// Offset is the starting position for pagination. Use with Limit for paging through
+	// results.
 	Offset int
 
-	// TopK is the maximum number of nearest neighbours for vector search.
-	// If zero, defaults to Limit.
+	// TopK is the maximum number of nearest neighbours for vector search. If zero, defaults
+	// to Limit.
 	TopK int
 
-	// SortOrder specifies ascending or descending sort.
-	// Default is SortAsc.
+	// SortOrder specifies ascending or descending sort. Default is SortAsc.
 	SortOrder SortOrder
 }
 
@@ -260,8 +253,8 @@ type SearchResult[K comparable, V any] struct {
 	// Items contains the matched cache entries with metadata.
 	Items []SearchHit[K, V]
 
-	// Total is the total number of matches in the cache.
-	// May exceed len(Items) when pagination is used.
+	// Total is the total number of matches in the cache. May exceed len(Items) when
+	// pagination is used.
 	Total int64
 
 	// Offset is the starting position that was used.
@@ -315,12 +308,12 @@ type SearchHit[K comparable, V any] struct {
 	// Value is the cached value.
 	Value V
 
-	// Highlights maps field names to snippets with matched terms highlighted.
-	// Only populated when SearchOptions.Highlight is true.
+	// Highlights maps field names to snippets with matched terms highlighted. Only populated
+	// when SearchOptions.Highlight is true.
 	Highlights map[string]string
 
-	// Score is the relevance score for full-text search; higher values indicate
-	// better matches. For structured queries without text search, this is 0.
+	// Score is the relevance score for full-text search; higher values indicate better
+	// matches. For structured queries without text search, this is 0.
 	Score float64
 }
 
@@ -400,8 +393,8 @@ func GeoField(name string) FieldSchema {
 	}
 }
 
-// VectorField creates a FieldSchema for vector similarity search with the
-// default cosine distance metric.
+// VectorField creates a FieldSchema for vector similarity search with the default cosine
+// distance metric.
 //
 // Takes name (string) which is the field path (supports dot notation).
 // Takes dimension (int) which is the vector dimensionality.
@@ -416,13 +409,13 @@ func VectorField(name string, dimension int) FieldSchema {
 	}
 }
 
-// VectorFieldWithMetric creates a FieldSchema for vector similarity search
-// with a custom distance metric.
+// VectorFieldWithMetric creates a FieldSchema for vector similarity search with a custom
+// distance metric.
 //
 // Takes name (string) which is the field path (supports dot notation).
 // Takes dimension (int) which is the vector dimensionality.
-// Takes metric (string) which is the distance metric: "cosine", "euclidean",
-// or "dot_product".
+// Takes metric (string) which is the distance metric: "cosine", "euclidean", or
+// "dot_product".
 //
 // Returns FieldSchema configured for vector similarity search.
 func VectorFieldWithMetric(name string, dimension int, metric string) FieldSchema {
@@ -446,16 +439,14 @@ func NewSearchSchema(fields ...FieldSchema) *SearchSchema {
 	}
 }
 
-// NewSearchSchemaWithAnalyser creates a SearchSchema with a text analyser for
-// linguistic processing of TEXT fields. The analyser replaces the provider's
-// default tokenisation, enabling stemming, normalisation, stop words, and
-// other NLP features.
+// NewSearchSchemaWithAnalyser creates a SearchSchema with a text analyser for linguistic
+// processing of TEXT fields. The analyser replaces the provider's default tokenisation,
+// enabling stemming, normalisation, stop words, and other NLP features.
 //
 // Takes analyser (TextAnalyseFunc) which processes text into index terms.
 // Takes fields (...FieldSchema) which define the searchable fields.
 //
-// Returns *SearchSchema with the analyser configured and english as the
-// default language.
+// Returns *SearchSchema with the analyser configured and english as the default language.
 func NewSearchSchemaWithAnalyser(analyser TextAnalyseFunc, fields ...FieldSchema) *SearchSchema {
 	return &SearchSchema{
 		Fields:       fields,

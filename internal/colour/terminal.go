@@ -23,8 +23,11 @@ import (
 	"sync/atomic"
 )
 
-// colourEnabled holds the global flag that controls whether ANSI colour output is active.
-var colourEnabled atomic.Bool
+var (
+	// colourEnabled holds the global flag that controls whether ANSI colour output is
+	// active.
+	colourEnabled atomic.Bool
+)
 
 func init() {
 	enableVirtualTerminalProcessing()
@@ -45,25 +48,23 @@ func init() {
 	colourEnabled.Store(isTerminal(os.Stdout.Fd()))
 }
 
-// Enabled reports whether colour output is currently active. Safe for
-// concurrent use by multiple goroutines.
+// Enabled reports whether colour output is currently active. Safe for concurrent use by
+// multiple goroutines.
 //
 // Returns bool which is true when colour escape sequences should be emitted.
 func Enabled() bool {
 	return colourEnabled.Load()
 }
 
-// SetEnabled overrides the auto-detected colour state. Use in tests or when
-// a configuration flag controls colour output.
+// SetEnabled overrides the auto-detected colour state. Use in tests or when a
+// configuration flag controls colour output.
 //
-// Takes value (bool) which enables colour when true and disables it when
-// false.
+// Takes value (bool) which enables colour when true and disables it when false.
 func SetEnabled(value bool) {
 	colourEnabled.Store(value)
 }
 
-// envIsSet reports whether the environment variable with the
-// given key is set.
+// envIsSet reports whether the environment variable with the given key is set.
 //
 // Takes key (string) which specifies the environment variable name.
 //

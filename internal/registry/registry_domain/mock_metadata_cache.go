@@ -25,22 +25,19 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// MockMetadataCache is a test double for MetadataCache where nil
-// function fields return zero values and call counts are tracked
-// atomically.
+// MockMetadataCache is a test double for MetadataCache where nil function fields return
+// zero values and call counts are tracked atomically.
 type MockMetadataCache struct {
 	// GetFunc is the function called by Get.
 	GetFunc func(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error)
 
-	// GetMultipleFunc is the function called by
-	// GetMultiple.
+	// GetMultipleFunc is the function called by GetMultiple.
 	GetMultipleFunc func(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, []string)
 
 	// SetFunc is the function called by Set.
 	SetFunc func(ctx context.Context, artefact *registry_dto.ArtefactMeta)
 
-	// SetMultipleFunc is the function called by
-	// SetMultiple.
+	// SetMultipleFunc is the function called by SetMultiple.
 	SetMultipleFunc func(ctx context.Context, artefacts []*registry_dto.ArtefactMeta)
 
 	// DeleteFunc is the function called by Delete.
@@ -50,26 +47,22 @@ type MockMetadataCache struct {
 	CloseFunc func(ctx context.Context) error
 
 	// GetCallCount tracks how many times Get was called.
-	GetCallCount int64
+	GetCallCount atomic.Int64
 
-	// GetMultipleCallCount tracks how many times
-	// GetMultiple was called.
-	GetMultipleCallCount int64
+	// GetMultipleCallCount tracks how many times GetMultiple was called.
+	GetMultipleCallCount atomic.Int64
 
 	// SetCallCount tracks how many times Set was called.
-	SetCallCount int64
+	SetCallCount atomic.Int64
 
-	// SetMultipleCallCount tracks how many times
-	// SetMultiple was called.
-	SetMultipleCallCount int64
+	// SetMultipleCallCount tracks how many times SetMultiple was called.
+	SetMultipleCallCount atomic.Int64
 
-	// DeleteCallCount tracks how many times Delete was
-	// called.
-	DeleteCallCount int64
+	// DeleteCallCount tracks how many times Delete was called.
+	DeleteCallCount atomic.Int64
 
-	// CloseCallCount tracks how many times Close was
-	// called.
-	CloseCallCount int64
+	// CloseCallCount tracks how many times Close was called.
+	CloseCallCount atomic.Int64
 }
 
 // Get retrieves artefact metadata by ID.
@@ -79,7 +72,7 @@ type MockMetadataCache struct {
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if GetFunc is nil.
 func (m *MockMetadataCache) Get(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.GetCallCount, 1)
+	m.GetCallCount.Add(1)
 	if m.GetFunc != nil {
 		return m.GetFunc(ctx, artefactID)
 	}
@@ -91,10 +84,9 @@ func (m *MockMetadataCache) Get(ctx context.Context, artefactID string) (*regist
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactIDs ([]string) which lists the artefact IDs to look up.
 //
-// Returns ([]*ArtefactMeta, []string), or (nil, nil) if GetMultipleFunc
-// is nil.
+// Returns ([]*ArtefactMeta, []string), or (nil, nil) if GetMultipleFunc is nil.
 func (m *MockMetadataCache) GetMultiple(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, []string) {
-	atomic.AddInt64(&m.GetMultipleCallCount, 1)
+	m.GetMultipleCallCount.Add(1)
 	if m.GetMultipleFunc != nil {
 		return m.GetMultipleFunc(ctx, artefactIDs)
 	}
@@ -106,7 +98,7 @@ func (m *MockMetadataCache) GetMultiple(ctx context.Context, artefactIDs []strin
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefact (*registry_dto.ArtefactMeta) which is the metadata to cache.
 func (m *MockMetadataCache) Set(ctx context.Context, artefact *registry_dto.ArtefactMeta) {
-	atomic.AddInt64(&m.SetCallCount, 1)
+	m.SetCallCount.Add(1)
 	if m.SetFunc != nil {
 		m.SetFunc(ctx, artefact)
 	}
@@ -115,10 +107,9 @@ func (m *MockMetadataCache) Set(ctx context.Context, artefact *registry_dto.Arte
 // SetMultiple stores multiple artefact metadata entries in the cache.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
-// Takes artefacts ([]*registry_dto.ArtefactMeta) which
-// are the metadata entries to cache.
+// Takes artefacts ([]*registry_dto.ArtefactMeta) which are the metadata entries to cache.
 func (m *MockMetadataCache) SetMultiple(ctx context.Context, artefacts []*registry_dto.ArtefactMeta) {
-	atomic.AddInt64(&m.SetMultipleCallCount, 1)
+	m.SetMultipleCallCount.Add(1)
 	if m.SetMultipleFunc != nil {
 		m.SetMultipleFunc(ctx, artefacts)
 	}
@@ -129,7 +120,7 @@ func (m *MockMetadataCache) SetMultiple(ctx context.Context, artefacts []*regist
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactID (string) which identifies the artefact to remove.
 func (m *MockMetadataCache) Delete(ctx context.Context, artefactID string) {
-	atomic.AddInt64(&m.DeleteCallCount, 1)
+	m.DeleteCallCount.Add(1)
 	if m.DeleteFunc != nil {
 		m.DeleteFunc(ctx, artefactID)
 	}
@@ -137,12 +128,12 @@ func (m *MockMetadataCache) Delete(ctx context.Context, artefactID string) {
 
 // Close shuts down the cache.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 //
 // Returns error, or nil if CloseFunc is nil.
 func (m *MockMetadataCache) Close(ctx context.Context) error {
-	atomic.AddInt64(&m.CloseCallCount, 1)
+	m.CloseCallCount.Add(1)
 	if m.CloseFunc != nil {
 		return m.CloseFunc(ctx)
 	}

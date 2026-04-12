@@ -25,15 +25,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// mergeCustomFunctions adds user-defined custom function
-// signatures into the catalogue's default schema.
+// mergeCustomFunctions adds user-defined custom function signatures into the catalogue's
+// default schema.
 //
-// Takes catalogue (*querier_dto.Catalogue) which holds the
-// schema state to modify.
-// Takes engine (EngineTypeSystemPort) which provides type
-// normalisation.
-// Takes customFunctions ([]querier_dto.CustomFunctionConfig)
-// which holds the user-defined function configurations.
+// Takes catalogue (*querier_dto.Catalogue) which holds the schema state to modify.
+// Takes engine (EngineTypeSystemPort) which provides type normalisation.
+// Takes customFunctions ([]querier_dto.CustomFunctionConfig) which holds the user-defined
+// function configurations.
 func mergeCustomFunctions(
 	catalogue *querier_dto.Catalogue,
 	engine EngineTypeSystemPort,
@@ -55,16 +53,14 @@ func mergeCustomFunctions(
 	}
 }
 
-// convertCustomFunction converts a custom function config
-// into a FunctionSignature, returning nil if invalid.
+// convertCustomFunction converts a custom function config into a FunctionSignature,
+// returning nil if invalid.
 //
-// Takes config (querier_dto.CustomFunctionConfig) which
-// holds the function definition.
-// Takes engine (EngineTypeSystemPort) which provides type
-// normalisation.
+// Takes config (querier_dto.CustomFunctionConfig) which holds the function definition.
+// Takes engine (EngineTypeSystemPort) which provides type normalisation.
 //
-// Returns *querier_dto.FunctionSignature which is the
-// converted signature, or nil if the config is invalid.
+// Returns *querier_dto.FunctionSignature which is the converted signature, or nil if the
+// config is invalid.
 func convertCustomFunction(
 	config querier_dto.CustomFunctionConfig,
 	engine EngineTypeSystemPort,
@@ -97,14 +93,12 @@ func convertCustomFunction(
 	}
 }
 
-// parseNullableBehaviour converts a nullable string value
-// into the corresponding FunctionNullableBehaviour enum.
+// parseNullableBehaviour converts a nullable string value into the corresponding
+// FunctionNullableBehaviour enum.
 //
-// Takes nullable (string) which is the raw nullable
-// configuration value.
+// Takes nullable (string) which is the raw nullable configuration value.
 //
-// Returns querier_dto.FunctionNullableBehaviour which is the
-// parsed enum value.
+// Returns querier_dto.FunctionNullableBehaviour which is the parsed enum value.
 func parseNullableBehaviour(nullable string) querier_dto.FunctionNullableBehaviour {
 	switch strings.ToLower(nullable) {
 	case "never_null":

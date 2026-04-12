@@ -19,33 +19,35 @@
 //nolint:dupl // parallel typed API per registry.
 package linguistics_domain
 
-// PhoneticEncoderFactory creates a phonetic encoder for a given language.
-// Each language adapter registers its own factory under the language name.
+// PhoneticEncoderFactory creates a phonetic encoder for a given language. Each language
+// adapter registers its own factory under the language name.
 type PhoneticEncoderFactory = factoryFunc[PhoneticEncoderPort]
 
-// phoneticEncoderRegistry holds the registered phonetic encoder factories keyed
-// by language.
-var phoneticEncoderRegistry = newRegistry[PhoneticEncoderPort]("phonetic encoder")
+var (
+	// phoneticEncoderRegistry holds the registered phonetic encoder factories keyed by
+	// language.
+	phoneticEncoderRegistry = newRegistry[PhoneticEncoderPort]("phonetic encoder")
+)
 
-// RegisterPhoneticEncoderFactory registers a phonetic encoder factory for a
-// language. This should be called explicitly at application startup to register
-// the encoders needed for the application.
+// RegisterPhoneticEncoderFactory registers a phonetic encoder factory for a language.
+// This should be called explicitly at application startup to register the encoders needed
+// for the application.
 //
-// Takes language (string) which is the language this factory provides
-// (e.g., "english", "french").
+// Takes language (string) which is the language this factory provides (e.g., "english",
+// "french").
 // Takes factory (PhoneticEncoderFactory) which creates the encoder.
 func RegisterPhoneticEncoderFactory(language string, factory PhoneticEncoderFactory) {
 	phoneticEncoderRegistry.register(language, factory)
 }
 
-// CreatePhoneticEncoder creates a phonetic encoder for the specified language.
-// If no factory is registered for the language or creation fails, a
-// NoOpPhoneticEncoder is returned instead.
+// CreatePhoneticEncoder creates a phonetic encoder for the specified language. If no
+// factory is registered for the language or creation fails, a NoOpPhoneticEncoder is
+// returned instead.
 //
 // Takes language (string) which specifies the language code for the encoder.
 //
-// Returns PhoneticEncoderPort which is the encoder for the given language, or
-// a no-op encoder if creation fails.
+// Returns PhoneticEncoderPort which is the encoder for the given language, or a no-op
+// encoder if creation fails.
 func CreatePhoneticEncoder(language string) PhoneticEncoderPort {
 	factory, ok := getPhoneticEncoderFactory(language)
 	if !ok {
@@ -60,16 +62,15 @@ func CreatePhoneticEncoder(language string) PhoneticEncoderPort {
 	return encoder
 }
 
-// RegisteredPhoneticEncoderFactories returns the names of languages that have
-// registered phonetic encoder factories.
+// RegisteredPhoneticEncoderFactories returns the names of languages that have registered
+// phonetic encoder factories.
 //
 // Returns []string which contains the names of all registered languages.
 func RegisteredPhoneticEncoderFactories() []string {
 	return phoneticEncoderRegistry.registeredNames()
 }
 
-// getPhoneticEncoderFactory retrieves a phonetic encoder factory for the given
-// language.
+// getPhoneticEncoderFactory retrieves a phonetic encoder factory for the given language.
 //
 // Takes language (string) which specifies the language code to look up.
 //

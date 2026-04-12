@@ -23,14 +23,13 @@ import (
 	"strings"
 )
 
-// isRelevantFileForProcessing checks if a file should be processed by the
-// Piko build system based on its extension and directory location.
+// isRelevantFileForProcessing checks if a file should be processed by the Piko build
+// system based on its extension and directory location.
 //
-// Acts as the single source of truth used by both the initial file seeder and the
-// live file watcher.
+// Acts as the single source of truth used by both the initial file seeder and the live
+// file watcher.
 //
-// Takes relPath (string) which is the path to the file relative to the project
-// root.
+// Takes relPath (string) which is the path to the file relative to the project root.
 // Takes paths (*LifecyclePathsConfig) which specifies the source directories.
 //
 // Returns bool which is true if the file matches the processing rules.
@@ -58,15 +57,13 @@ func isRelevantFileForProcessing(relPath string, paths *LifecyclePathsConfig) bo
 	return false
 }
 
-// isCoreSourceFile checks if a file change should trigger a full project
-// rebuild (handled by the coordinator) rather than a simple asset update
-// (handled by the orchestrator).
+// isCoreSourceFile checks if a file change should trigger a full project rebuild (handled
+// by the coordinator) rather than a simple asset update (handled by the orchestrator).
 //
 // Takes relPath (string) which is the path to the file being checked.
 // Takes paths (*LifecyclePathsConfig) which provides the source folder paths.
 //
-// Returns bool which is true if the file is a core source file that needs a
-// full rebuild.
+// Returns bool which is true if the file is a core source file that needs a full rebuild.
 func isCoreSourceFile(relPath string, paths *LifecyclePathsConfig) bool {
 	ext := strings.ToLower(filepath.Ext(relPath))
 
@@ -86,9 +83,9 @@ func isCoreSourceFile(relPath string, paths *LifecyclePathsConfig) bool {
 	return false
 }
 
-// hasPrefix checks whether a path starts with a given directory prefix.
-// It adds a trailing slash to the prefix if needed, so it matches full
-// directory names rather than partial strings.
+// hasPrefix checks whether a path starts with a given directory prefix. It adds a
+// trailing slash to the prefix if needed, so it matches full directory names rather than
+// partial strings.
 //
 // Takes path (string) which is the file path to check.
 // Takes prefix (string) which is the directory prefix to match against.

@@ -18,8 +18,8 @@
 
 package driver_handlers
 
-// OtelSetupConfig holds the resolved OTEL configuration values. All fields are
-// value types; pointer-to-value conversion is performed in the bootstrap layer.
+// OtelSetupConfig holds the resolved OTEL configuration values. All fields are value
+// types; pointer-to-value conversion is performed in the bootstrap layer.
 type OtelSetupConfig struct {
 	// Headers contains key-value pairs sent as HTTP headers with OTLP requests.
 	Headers map[string]string

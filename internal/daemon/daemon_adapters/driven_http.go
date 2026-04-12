@@ -50,34 +50,31 @@ import (
 	"piko.sh/piko/internal/security/security_dto"
 )
 
-// HTTPRouterBuilder builds the main HTTP router with all system middleware
-// and route handlers. It implements the RouterBuilder interface.
+// HTTPRouterBuilder builds the main HTTP router with all system middleware and route
+// handlers. It implements the RouterBuilder interface.
 type HTTPRouterBuilder struct {
-	// artefactCache is the cache hexagon instance for artefact metadata. Set
-	// before BuildRouter is called; used by serveArtefact to create the
-	// metadataCache wrapper.
+	// artefactCache is the cache hexagon instance for artefact metadata. Set before
+	// BuildRouter is called; used by serveArtefact to create the metadataCache wrapper.
 	artefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
 
-	// metadataCache holds the artefact metadata cache created during route setup.
-	// Stored here so Close() can release its resources.
+	// metadataCache holds the artefact metadata cache created during route setup. Stored
+	// here so Close() can release its resources.
 	metadataCache *artefactMetadataCache
 
-	// variantGenerationGroup deduplicates concurrent background variant
-	// generation for the same artefact. Without this, N concurrent requests
-	// for a pending artefact would each spawn a goroutine that loops over
-	// missing profiles - only the first does real work while the rest
-	// short-circuit, but the goroutine burst is unnecessary.
+	// variantGenerationGroup deduplicates concurrent background variant generation for the
+	// same artefact. Without this, N concurrent requests for a pending artefact would each
+	// spawn a goroutine that loops over missing profiles - only the first does real work
+	// while the rest short-circuit, but the goroutine burst is unnecessary.
 	variantGenerationGroup singleflight.Group
 }
 
 // BuildRouter constructs the final HTTP handler with all middleware and routes
-// configured. It sets up CORS, logging, recovery, timeouts, and mounts asset
-// and page handlers.
+// configured. It sets up CORS, logging, recovery, timeouts, and mounts asset and page
+// handlers.
 //
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides the
-// router-specific settings.
-// Takes deps (daemon_domain.RouterDependencies) which groups all router
-// dependencies.
+// Takes routerConfig (*daemon_domain.RouterConfig) which provides the router-specific
+// settings.
+// Takes deps (daemon_domain.RouterDependencies) which groups all router dependencies.
 //
 // Returns http.Handler which is the fully configured router ready to serve.
 // Returns error when router construction fails.
@@ -106,8 +103,8 @@ func (builder *HTTPRouterBuilder) BuildRouter(
 	return mainRouter, nil
 }
 
-// Close releases resources held by the builder, such as the artefact metadata
-// cache. Call when the router is no longer needed.
+// Close releases resources held by the builder, such as the artefact metadata cache. Call
+// when the router is no longer needed.
 func (builder *HTTPRouterBuilder) Close() {
 	if builder.metadataCache != nil {
 		builder.metadataCache.Close(context.Background())
@@ -117,10 +114,10 @@ func (builder *HTTPRouterBuilder) Close() {
 // setupBaseMiddleware adds middleware that applies to all routes.
 //
 // Takes router (*chi.Mux) which is the router to add middleware to.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides security and
-// network settings.
-// Takes cspConfig (security_dto.CSPRuntimeConfig) which provides the
-// computed CSP settings.
+// Takes routerConfig (*daemon_domain.RouterConfig) which provides security and network
+// settings.
+// Takes cspConfig (security_dto.CSPRuntimeConfig) which provides the computed CSP
+// settings.
 func (*HTTPRouterBuilder) setupBaseMiddleware(
 	router *chi.Mux,
 	routerConfig *daemon_domain.RouterConfig,
@@ -141,23 +138,20 @@ func (*HTTPRouterBuilder) setupBaseMiddleware(
 	router.Use(middleware.Heartbeat("/ping"))
 }
 
-// setupStaticRoutes adds routes for static files without CORS, logging, or
-// timeouts.
+// setupStaticRoutes adds routes for static files without CORS, logging, or timeouts.
 //
 // Takes router (*chi.Mux) which is the router to add routes to.
 // Takes routerConfig (*daemon_domain.RouterConfig) which provides path settings.
 // Takes registryService (registry_domain.RegistryService) which provides access to
 // registry data.
-// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates
-// image variants on demand.
-// Takes presignUploadHandler (http.Handler) which handles presigned URL
-// uploads;
-// may be nil if presigned uploads are not enabled.
-// Takes presignDownloadHandler (http.Handler) which handles presigned URL
-// downloads; may be nil if presigned downloads are not enabled.
-// Takes publicDownloadHandler (http.Handler) which handles public file
-// downloads
-// without authentication; may be nil if not enabled.
+// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates image
+// variants on demand.
+// Takes presignUploadHandler (http.Handler) which handles presigned URL uploads; may be
+// nil if presigned uploads are not enabled.
+// Takes presignDownloadHandler (http.Handler) which handles presigned URL downloads; may
+// be nil if presigned downloads are not enabled.
+// Takes publicDownloadHandler (http.Handler) which handles public file downloads without
+// authentication; may be nil if not enabled.
 func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	router *chi.Mux,
 	routerConfig *daemon_domain.RouterConfig,
@@ -207,14 +201,14 @@ func (builder *HTTPRouterBuilder) setupStaticRoutes(
 	}
 }
 
-// setupDynamicRoutes adds routes with the full middleware stack including CORS,
-// logging, and timeouts.
+// setupDynamicRoutes adds routes with the full middleware stack including CORS, logging,
+// and timeouts.
 //
 // Takes router (*chi.Mux) which is the router to configure.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides timeout and
-// CORS settings.
-// Takes deps (daemon_domain.RouterDependencies) which groups all router
-// dependencies including auth, rate limiting, and user routes.
+// Takes routerConfig (*daemon_domain.RouterConfig) which provides timeout and CORS
+// settings.
+// Takes deps (daemon_domain.RouterDependencies) which groups all router dependencies
+// including auth, rate limiting, and user routes.
 //
 // Returns error when the trusted proxy configuration is invalid.
 func (builder *HTTPRouterBuilder) setupDynamicRoutes(
@@ -262,14 +256,12 @@ func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 	return setupErr
 }
 
-// setupRealIP adds the RealIP middleware that extracts the client IP and
-// creates a request ID, storing both in the request context. This must run
-// before rate limiting and other middleware that need the client IP or
-// request ID.
+// setupRealIP adds the RealIP middleware that extracts the client IP and creates a
+// request ID, storing both in the request context. This must run before rate limiting and
+// other middleware that need the client IP or request ID.
 //
 // Takes r (chi.Router) which receives the RealIP middleware.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides trusted proxy
-// settings.
+// Takes routerConfig (*daemon_domain.RouterConfig) which provides trusted proxy settings.
 //
 // Returns error when the trusted proxy configuration is invalid.
 func (*HTTPRouterBuilder) setupRealIP(r chi.Router, routerConfig *daemon_domain.RouterConfig) error {
@@ -285,14 +277,13 @@ func (*HTTPRouterBuilder) setupRealIP(r chi.Router, routerConfig *daemon_domain.
 	return nil
 }
 
-// setupRateLimiting adds rate limiting middleware to the router if enabled.
-// The rate limiter reads the client IP from context, set by RealIP middleware.
+// setupRateLimiting adds rate limiting middleware to the router if enabled. The rate
+// limiter reads the client IP from context, set by RealIP middleware.
 //
 // Takes r (chi.Router) which receives the rate limiting middleware.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides rate limit
-// settings.
-// Takes rateLimitService (security_domain.RateLimitService) which handles rate
-// limit checks.
+// Takes routerConfig (*daemon_domain.RouterConfig) which provides rate limit settings.
+// Takes rateLimitService (security_domain.RateLimitService) which handles rate limit
+// checks.
 func (*HTTPRouterBuilder) setupRateLimiting(
 	r chi.Router,
 	routerConfig *daemon_domain.RouterConfig,
@@ -311,8 +302,7 @@ func (*HTTPRouterBuilder) setupRateLimiting(
 // setupCORS sets up CORS middleware to handle cross-origin requests.
 //
 // Takes r (chi.Router) which receives the CORS middleware.
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides the allowed
-// origins.
+// Takes routerConfig (*daemon_domain.RouterConfig) which provides the allowed origins.
 func (*HTTPRouterBuilder) setupCORS(r chi.Router, routerConfig *daemon_domain.RouterConfig) {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   buildAllowedOrigins(routerConfig),
@@ -329,30 +319,27 @@ type staticArtefactConfig struct {
 	// artefactID is the unique identifier for the static artefact to serve.
 	artefactID string
 
-	// defaultMimeType is the MIME type to use when the variant does not specify
-	// one.
+	// defaultMimeType is the MIME type to use when the variant does not specify one.
 	defaultMimeType string
 
 	// cacheMaxAge is the Cache-Control header value for static responses.
 	cacheMaxAge string
 
-	// preferredType specifies which variant type to prefer, such as "minified" or
-	// "source"; an empty string allows compressed variants with fallback to
-	// source.
+	// preferredType specifies which variant type to prefer, such as "minified" or "source";
+	// an empty string allows compressed variants with fallback to source.
 	preferredType string
 
-	// useCompression enables the selection of compressed variants when set to
-	// true.
+	// useCompression enables the selection of compressed variants when set to true.
 	useCompression bool
 }
 
 // serveTheme returns a handler that serves the theme CSS file.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to static assets.
+// Takes registryService (registry_domain.RegistryService) which provides access to static
+// assets.
 //
-// Returns http.HandlerFunc which serves the minified, compressed theme CSS
-// with a one-hour cache time.
+// Returns http.HandlerFunc which serves the minified, compressed theme CSS with a
+// one-hour cache time.
 func (*HTTPRouterBuilder) serveTheme(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      "theme.css",
@@ -363,15 +350,15 @@ func (*HTTPRouterBuilder) serveTheme(registryService registry_domain.RegistrySer
 	}, "serveTheme")
 }
 
-// serveSitemapArtefact returns a handler that serves a sitemap file by its ID
-// (e.g., "sitemap.xml", "sitemap-1.xml").
+// serveSitemapArtefact returns a handler that serves a sitemap file by its ID (e.g.,
+// "sitemap.xml", "sitemap-1.xml").
 //
-// Takes registryService (registry_domain.RegistryService) which provides access to
-// stored files.
+// Takes registryService (registry_domain.RegistryService) which provides access to stored
+// files.
 // Takes artefactID (string) which is the name of the sitemap file to serve.
 //
-// Returns http.HandlerFunc which serves the sitemap with XML content type and
-// a one-hour cache duration.
+// Returns http.HandlerFunc which serves the sitemap with XML content type and a one-hour
+// cache duration.
 func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.RegistryService, artefactID string, disableHTTPCache bool) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      artefactID,
@@ -382,11 +369,11 @@ func (*HTTPRouterBuilder) serveSitemapArtefact(registryService registry_domain.R
 	}, "serveSitemapArtefact")
 }
 
-// serveSitemapChunk serves numbered sitemap chunk files such as
-// /sitemap-1.xml or /sitemap-2.xml.
+// serveSitemapChunk serves numbered sitemap chunk files such as /sitemap-1.xml or
+// /sitemap-2.xml.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to stored sitemap files.
+// Takes registryService (registry_domain.RegistryService) which provides access to stored
+// sitemap files.
 //
 // Returns http.HandlerFunc which handles requests for sitemap chunks.
 func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
@@ -401,8 +388,7 @@ func (builder *HTTPRouterBuilder) serveSitemapChunk(registryService registry_dom
 //
 // Takes registryService (RegistryService) which provides access to static files.
 //
-// Returns http.HandlerFunc which serves the robots.txt file with a one-hour
-// cache.
+// Returns http.HandlerFunc which serves the robots.txt file with a one-hour cache.
 func (*HTTPRouterBuilder) serveRobotsTxt(registryService registry_domain.RegistryService, disableHTTPCache bool) http.HandlerFunc {
 	return serveStaticArtefactHandler(registryService, staticArtefactConfig{
 		artefactID:      "robots.txt",
@@ -424,13 +410,13 @@ type artefactLookupResult struct {
 	// httpStatus is the HTTP status code to return; 0 means success.
 	httpStatus int
 
-	// foundByStorageKey indicates whether the artefact was found using its storage
-	// key rather than its main identifier.
+	// foundByStorageKey indicates whether the artefact was found using its storage key
+	// rather than its main identifier.
 	foundByStorageKey bool
 }
 
-// variantResolutionContext bundles the dependencies and state needed for
-// variant resolution.
+// variantResolutionContext bundles the dependencies and state needed for variant
+// resolution.
 type variantResolutionContext struct {
 	// span is the trace span for reporting errors and status changes.
 	span trace.Span
@@ -453,13 +439,13 @@ type variantResolutionContext struct {
 
 // serveArtefact returns an HTTP handler that serves artefact content.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to artefact metadata and storage.
-// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which
-// creates image variants when needed.
+// Takes registryService (registry_domain.RegistryService) which provides access to
+// artefact metadata and storage.
+// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates image
+// variants when needed.
 //
-// Returns http.HandlerFunc which handles artefact requests with optional
-// variant selection.
+// Returns http.HandlerFunc which handles artefact requests with optional variant
+// selection.
 func (builder *HTTPRouterBuilder) serveArtefact(
 	registryService registry_domain.RegistryService,
 	variantGenerator daemon_domain.OnDemandVariantGenerator,
@@ -516,8 +502,8 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 	}
 }
 
-// resolveVariant finds which variant to serve based on the artefact state
-// and request settings.
+// resolveVariant finds which variant to serve based on the artefact state and request
+// settings.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes vrc (variantResolutionContext) which provides the request context.
@@ -525,8 +511,8 @@ func (builder *HTTPRouterBuilder) serveArtefact(
 // Takes artefactID (string) which is the artefact or storage key.
 // Takes variantParam (string) which is the requested variant name.
 //
-// Returns *registry_dto.Variant which is the matched variant, or nil if an
-// error occurred.
+// Returns *registry_dto.Variant which is the matched variant, or nil if an error
+// occurred.
 func (builder *HTTPRouterBuilder) resolveVariant(
 	ctx context.Context,
 	vrc variantResolutionContext,
@@ -555,19 +541,18 @@ func (builder *HTTPRouterBuilder) resolveVariant(
 	return builder.resolveVariantByArtefactID(ctx, vrc, artefact, variantParam)
 }
 
-// resolveVariantForPendingArtefact creates a variant for an artefact that is
-// still pending.
+// resolveVariantForPendingArtefact creates a variant for an artefact that is still
+// pending.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes vrc (variantResolutionContext) which provides the request context and
 // dependencies.
-// Takes artefact (*registry_dto.ArtefactMeta) which specifies the pending
-// artefact to create a variant for.
-// Takes variantParam (string) which specifies the requested variant, or empty
-// for the default source variant.
+// Takes artefact (*registry_dto.ArtefactMeta) which specifies the pending artefact to
+// create a variant for.
+// Takes variantParam (string) which specifies the requested variant, or empty for the
+// default source variant.
 //
-// Returns *registry_dto.Variant which is the created variant, or nil if
-// creation failed.
+// Returns *registry_dto.Variant which is the created variant, or nil if creation failed.
 func (builder *HTTPRouterBuilder) resolveVariantForPendingArtefact(
 	ctx context.Context,
 	vrc variantResolutionContext,
@@ -605,19 +590,19 @@ func (builder *HTTPRouterBuilder) resolveVariantForPendingArtefact(
 	return variant
 }
 
-// resolveVariantByArtefactID finds a variant using the artefact ID and an
-// optional variant parameter.
+// resolveVariantByArtefactID finds a variant using the artefact ID and an optional
+// variant parameter.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
-// Takes vrc (variantResolutionContext) which provides the resolution context
-// including the HTTP writer and span.
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact
-// metadata with the available variants.
-// Takes variantParam (string) which specifies the requested variant ID, or an
-// empty string to use the default source variant.
+// Takes vrc (variantResolutionContext) which provides the resolution context including
+// the HTTP writer and span.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact metadata with
+// the available variants.
+// Takes variantParam (string) which specifies the requested variant ID, or an empty
+// string to use the default source variant.
 //
-// Returns *registry_dto.Variant which is the found variant, or nil if not
-// found and the source fallback also fails.
+// Returns *registry_dto.Variant which is the found variant, or nil if not found and the
+// source fallback also fails.
 func (builder *HTTPRouterBuilder) resolveVariantByArtefactID(
 	ctx context.Context,
 	vrc variantResolutionContext,
@@ -659,15 +644,12 @@ func (builder *HTTPRouterBuilder) resolveVariantByArtefactID(
 // tryGenerateVariantOnDemand tries to create an image variant on demand.
 //
 // Takes ctx (context.Context) which carries the logger context.
-// Takes generator (daemon_domain.OnDemandVariantGenerator) which creates the
-// variant.
-// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source
-// image.
+// Takes generator (daemon_domain.OnDemandVariantGenerator) which creates the variant.
+// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source image.
 // Takes profileName (string) which specifies which variant profile to create.
 //
-// Returns *registry_dto.Variant which is the created variant if successful,
-// or nil if the generator is not available, the profile name is not valid, or
-// creation fails.
+// Returns *registry_dto.Variant which is the created variant if successful, or nil if the
+// generator is not available, the profile name is not valid, or creation fails.
 func (*HTTPRouterBuilder) tryGenerateVariantOnDemand(
 	ctx context.Context,
 	generator daemon_domain.OnDemandVariantGenerator,
@@ -711,25 +693,24 @@ func (*HTTPRouterBuilder) tryGenerateVariantOnDemand(
 	return variant
 }
 
-// queueRemainingVariants queues background generation for all variants in
-// DesiredProfiles except the one already generated. This enables lazy loading
-// where the first HTTP request generates one variant, then the remaining
-// variants are generated in the background.
+// queueRemainingVariants queues background generation for all variants in DesiredProfiles
+// except the one already generated. This enables lazy loading where the first HTTP
+// request generates one variant, then the remaining variants are generated in the
+// background.
 //
 // Takes ctx (context.Context) which carries the logger context.
-// Takes registryService (registry_domain.RegistryService) which fetches fresh
-// artefact state.
-// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which
-// creates the image variants.
-// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source
-// image.
+// Takes registryService (registry_domain.RegistryService) which fetches fresh artefact
+// state.
+// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates the image
+// variants.
+// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source image.
 // Takes alreadyGenerated (string) which names the variant already created.
 //
-// Concurrency: uses singleflight to deduplicate concurrent calls for the same
-// artefact - only the first caller spawns a background goroutine; subsequent
-// callers share the in-flight result. The goroutine detaches cancellation from
-// the parent context but preserves tracing values, and checks for existing
-// variants before generating to avoid doing the same work twice.
+// Concurrency: uses singleflight to deduplicate concurrent calls for the same artefact -
+// only the first caller spawns a background goroutine; subsequent callers share the
+// in-flight result. The goroutine detaches cancellation from the parent context but
+// preserves tracing values, and checks for existing variants before generating to avoid
+// doing the same work twice.
 func (builder *HTTPRouterBuilder) queueRemainingVariants(
 	ctx context.Context,
 	registryService registry_domain.RegistryService,
@@ -776,21 +757,23 @@ type videoQualityInfo struct {
 	bandwidth int
 }
 
-// hlsQualityConfigs maps quality names to their resolution and bandwidth.
-var hlsQualityConfigs = map[string]videoQualityInfo{
-	"2160p": {resolution: "3840x2160", bandwidth: 15000000},
-	"1440p": {resolution: "2560x1440", bandwidth: 8000000},
-	"1080p": {resolution: "1920x1080", bandwidth: 5000000},
-	"720p":  {resolution: "1280x720", bandwidth: 2500000},
-	"480p":  {resolution: "854x480", bandwidth: 1000000},
-	"360p":  {resolution: "640x360", bandwidth: 500000},
-}
+var (
+	// hlsQualityConfigs maps quality names to their resolution and bandwidth.
+	hlsQualityConfigs = map[string]videoQualityInfo{
+		"2160p": {resolution: "3840x2160", bandwidth: 15000000},
+		"1440p": {resolution: "2560x1440", bandwidth: 8000000},
+		"1080p": {resolution: "1920x1080", bandwidth: 5000000},
+		"720p":  {resolution: "1280x720", bandwidth: 2500000},
+		"480p":  {resolution: "854x480", bandwidth: 1000000},
+		"360p":  {resolution: "640x360", bandwidth: 500000},
+	}
+)
 
-// serveVideoMasterPlaylist returns an HTTP handler that serves the HLS master
-// playlist for a video artefact.
+// serveVideoMasterPlaylist returns an HTTP handler that serves the HLS master playlist
+// for a video artefact.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access to
-// video artefact metadata.
+// Takes registryService (registry_domain.RegistryService) which provides access to video
+// artefact metadata.
 //
 // Returns http.HandlerFunc which builds and serves the master M3U8 playlist.
 func (*HTTPRouterBuilder) serveVideoMasterPlaylist(
@@ -829,11 +812,11 @@ func (*HTTPRouterBuilder) serveVideoMasterPlaylist(
 	}
 }
 
-// serveVideoVariantPlaylist returns an HTTP handler that serves an HLS variant
-// playlist for a specific quality level.
+// serveVideoVariantPlaylist returns an HTTP handler that serves an HLS variant playlist
+// for a specific quality level.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access to
-// video variant chunks.
+// Takes registryService (registry_domain.RegistryService) which provides access to video
+// variant chunks.
 //
 // Returns http.HandlerFunc which builds and serves the variant M3U8 playlist.
 func (*HTTPRouterBuilder) serveVideoVariantPlaylist(
@@ -882,11 +865,10 @@ func (*HTTPRouterBuilder) serveVideoVariantPlaylist(
 	}
 }
 
-// serveVideoChunk returns an HTTP handler that serves a single HLS video
-// chunk.
+// serveVideoChunk returns an HTTP handler that serves a single HLS video chunk.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access to
-// the chunk data.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// chunk data.
 //
 // Returns http.HandlerFunc which sends the chunk data to the client.
 func (*HTTPRouterBuilder) serveVideoChunk(
@@ -930,26 +912,24 @@ func (*HTTPRouterBuilder) serveVideoChunk(
 
 // NewHTTPRouterBuilder creates a new HTTP router builder.
 //
-// Takes artefactCache (cache_domain.Cache) which provides the backing store
-// for artefact metadata caching. May be nil to disable caching.
+// Takes artefactCache (cache_domain.Cache) which provides the backing store for artefact
+// metadata caching. May be nil to disable caching.
 //
-// Returns daemon_domain.RouterBuilder which is the configured builder ready
-// for use.
+// Returns daemon_domain.RouterBuilder which is the configured builder ready for use.
 func NewHTTPRouterBuilder(artefactCache cache_domain.Cache[string, *registry_dto.ArtefactMeta]) daemon_domain.RouterBuilder {
 	return &HTTPRouterBuilder{
 		artefactCache: artefactCache,
 	}
 }
 
-// buildAllowedOrigins builds the list of allowed CORS origins from the router
-// settings.
+// buildAllowedOrigins builds the list of allowed CORS origins from the router settings.
 //
-// When no public domain is set, returns an empty slice so that cross-origin
-// requests are rejected by default. This is the safe default - deployments
-// that need CORS must configure PublicDomain explicitly.
+// When no public domain is set, returns an empty slice so that cross-origin requests are
+// rejected by default. This is the safe default - deployments that need CORS must
+// configure PublicDomain explicitly.
 //
-// Takes routerConfig (*daemon_domain.RouterConfig) which provides the public
-// domain and HTTPS setting.
+// Takes routerConfig (*daemon_domain.RouterConfig) which provides the public domain and
+// HTTPS setting.
 //
 // Returns []string which contains the allowed origins.
 func buildAllowedOrigins(routerConfig *daemon_domain.RouterConfig) []string {
@@ -966,14 +946,12 @@ func buildAllowedOrigins(routerConfig *daemon_domain.RouterConfig) []string {
 	return origins
 }
 
-// cacheControlForMode returns the appropriate Cache-Control header value,
-// using no-cache to force ETag revalidation when HTTP caching is disabled
-// (dev mode) and the provided production value when enabled (prod mode).
+// cacheControlForMode returns the appropriate Cache-Control header value, using no-cache
+// to force ETag revalidation when HTTP caching is disabled (dev mode) and the provided
+// production value when enabled (prod mode).
 //
-// Takes disableHTTPCache (bool) which indicates whether HTTP caching is
-// disabled.
-// Takes prodValue (string) which is the Cache-Control value to use in
-// production mode.
+// Takes disableHTTPCache (bool) which indicates whether HTTP caching is disabled.
+// Takes prodValue (string) which is the Cache-Control value to use in production mode.
 //
 // Returns string which is the resolved Cache-Control header value.
 func cacheControlForMode(disableHTTPCache bool, prodValue string) string {
@@ -983,12 +961,11 @@ func cacheControlForMode(disableHTTPCache bool, prodValue string) string {
 	return prodValue
 }
 
-// fetchStaticArtefact gets an artefact from the registry and handles
-// not-found errors.
+// fetchStaticArtefact gets an artefact from the registry and handles not-found errors.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
-// Takes registryService (registry_domain.RegistryService) which provides access to
-// the artefact registry.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// artefact registry.
 // Takes artefactID (string) which is the unique identifier of the artefact.
 // Takes span (trace.Span) which records error status when fetching fails.
 //
@@ -1017,17 +994,16 @@ func fetchStaticArtefact(
 	return artefact, true
 }
 
-// selectStaticVariant picks the best variant from an artefact based on the
-// given settings.
+// selectStaticVariant picks the best variant from an artefact based on the given
+// settings.
 //
-// Takes r (*http.Request) which provides Accept-Encoding headers for choosing
-// a compressed variant.
-// Takes artefact (*registry_dto.ArtefactMeta) which holds the available
-// variants.
+// Takes r (*http.Request) which provides Accept-Encoding headers for choosing a
+// compressed variant.
+// Takes artefact (*registry_dto.ArtefactMeta) which holds the available variants.
 // Takes config (staticArtefactConfig) which sets compression and type options.
 //
-// Returns *registry_dto.Variant which is the best matching variant, or the
-// source variant if no better match is found.
+// Returns *registry_dto.Variant which is the best matching variant, or the source variant
+// if no better match is found.
 func selectStaticVariant(
 	r *http.Request,
 	artefact *registry_dto.ArtefactMeta,
@@ -1046,8 +1022,7 @@ func selectStaticVariant(
 	return findVariantByID(artefact.ActualVariants, variantSource)
 }
 
-// writeStaticVariantResponse writes a variant to the response with the correct
-// headers.
+// writeStaticVariantResponse writes a variant to the response with the correct headers.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the response data and headers.
@@ -1105,16 +1080,16 @@ func writeStaticVariantResponse(
 	}
 }
 
-// serveStaticArtefactHandler creates a handler for serving static artefacts
-// with the given settings.
+// serveStaticArtefactHandler creates a handler for serving static artefacts with the
+// given settings.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to the artefact registry.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// artefact registry.
 // Takes config (staticArtefactConfig) which sets the artefact options.
 // Takes spanName (string) which names the tracing span.
 //
-// Returns http.HandlerFunc which serves the static artefact with content
-// type selection and caching.
+// Returns http.HandlerFunc which serves the static artefact with content type selection
+// and caching.
 func serveStaticArtefactHandler(
 	registryService registry_domain.RegistryService,
 	config staticArtefactConfig,
@@ -1153,19 +1128,19 @@ func serveStaticArtefactHandler(
 	}
 }
 
-// lookupArtefact finds an artefact by its ID, checking the cache first, then
-// loading from storage. If the artefact is not found by ID, it tries to find
-// it using the storage key as a fallback.
+// lookupArtefact finds an artefact by its ID, checking the cache first, then loading from
+// storage. If the artefact is not found by ID, it tries to find it using the storage key
+// as a fallback.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes span (trace.Span) which provides tracing context for error reports.
 // Takes cache (*artefactMetadataCache) which holds cached artefact metadata.
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to the registry for the storage key fallback.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// registry for the storage key fallback.
 // Takes artefactID (string) which is the artefact ID or storage key to find.
 //
-// Returns artefactLookupResult which contains the artefact, any error, the
-// HTTP status code, and whether it was found by storage key.
+// Returns artefactLookupResult which contains the artefact, any error, the HTTP status
+// code, and whether it was found by storage key.
 func lookupArtefact(
 	ctx context.Context,
 	span trace.Span,
@@ -1195,17 +1170,16 @@ func lookupArtefact(
 	return lookupArtefactByStorageKey(ctx, span, registryService, artefactID)
 }
 
-// lookupArtefactByStorageKey attempts to find an artefact by its storage key
-// as a fallback.
+// lookupArtefactByStorageKey attempts to find an artefact by its storage key as a
+// fallback.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes span (trace.Span) which records the operation status.
-// Takes registryService (registry_domain.RegistryService) which provides artefact
-// lookup.
+// Takes registryService (registry_domain.RegistryService) which provides artefact lookup.
 // Takes artefactID (string) which is the storage key to search for.
 //
-// Returns artefactLookupResult which contains the artefact if found, or error
-// details with the appropriate HTTP status code.
+// Returns artefactLookupResult which contains the artefact if found, or error details
+// with the appropriate HTTP status code.
 func lookupArtefactByStorageKey(
 	ctx context.Context,
 	span trace.Span,
@@ -1232,17 +1206,15 @@ func lookupArtefactByStorageKey(
 
 // serveVariantResponse writes the variant data to the HTTP response.
 //
-// It finds the best compressed variant for the request, checks for ETag
-// matches to return 304 Not Modified when possible, and streams the variant
-// data to the client with proper cache headers.
+// It finds the best compressed variant for the request, checks for ETag matches to return
+// 304 Not Modified when possible, and streams the variant data to the client with proper
+// cache headers.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
-// Takes vrc (variantResolutionContext) which holds the response writer and
-// registry service.
-// Takes artefact (*registry_dto.ArtefactMeta) which holds the artefact
-// details.
-// Takes requestedVariant (*registry_dto.Variant) which is the variant to
-// serve.
+// Takes vrc (variantResolutionContext) which holds the response writer and registry
+// service.
+// Takes artefact (*registry_dto.ArtefactMeta) which holds the artefact details.
+// Takes requestedVariant (*registry_dto.Variant) which is the variant to serve.
 func serveVariantResponse(
 	ctx context.Context,
 	vrc variantResolutionContext,
@@ -1296,16 +1268,15 @@ func serveVariantResponse(
 	}
 }
 
-// findBestCompressedVariant selects the best compressed variant based on the
-// client's Accept-Encoding header.
+// findBestCompressedVariant selects the best compressed variant based on the client's
+// Accept-Encoding header.
 //
 // Takes r (*http.Request) which provides the Accept-Encoding header.
-// Takes artefact (*registry_dto.ArtefactMeta) which contains available
-// variants.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains available variants.
 // Takes baseVariantID (string) which identifies the base variant to match.
 //
-// Returns *registry_dto.Variant which is the best matching compressed variant,
-// or the base variant if no compressed version is available.
+// Returns *registry_dto.Variant which is the best matching compressed variant, or the
+// base variant if no compressed version is available.
 func findBestCompressedVariant(r *http.Request, artefact *registry_dto.ArtefactMeta, baseVariantID string) *registry_dto.Variant {
 	acceptEncoding := r.Header.Get("Accept-Encoding")
 
@@ -1330,16 +1301,14 @@ func findBestCompressedVariant(r *http.Request, artefact *registry_dto.ArtefactM
 	return findVariantByID(artefact.ActualVariants, baseVariantID)
 }
 
-// serveEmbeddedFrontend creates a handler that serves static files from the
-// embedded frontend.
+// serveEmbeddedFrontend creates a handler that serves static files from the embedded
+// frontend.
 //
 // In production mode (when watchMode is false), requests for .es.js files are
-// automatically redirected to the minified .min.es.js versions for optimal
-// performance.
+// automatically redirected to the minified .min.es.js versions for optimal performance.
 //
-// When the requested file is not found, sends a 404 Not Found response. When
-// the client's If-None-Match header matches the file's ETag, sends a 304 Not
-// Modified response.
+// When the requested file is not found, sends a 404 Not Found response. When the client's
+// If-None-Match header matches the file's ETag, sends a 304 Not Modified response.
 //
 // Takes watchMode (bool) which indicates whether the server is in dev mode.
 //
@@ -1391,8 +1360,7 @@ func serveEmbeddedFrontend(watchMode bool, disableHTTPCache bool) http.HandlerFu
 // Takes variants ([]registry_dto.Variant) which is the slice to search.
 // Takes id (string) which is the ID to find.
 //
-// Returns *registry_dto.Variant which is the matching variant, or nil if not
-// found.
+// Returns *registry_dto.Variant which is the matching variant, or nil if not found.
 func findVariantByID(variants []registry_dto.Variant, id string) *registry_dto.Variant {
 	for i := range variants {
 		if variants[i].VariantID == id {
@@ -1407,8 +1375,7 @@ func findVariantByID(variants []registry_dto.Variant, id string) *registry_dto.V
 // Takes variants ([]registry_dto.Variant) which is the slice to search.
 // Takes storageKey (string) which is the key to match against.
 //
-// Returns *registry_dto.Variant which is the matching variant, or nil if not
-// found.
+// Returns *registry_dto.Variant which is the matching variant, or nil if not found.
 func findVariantByStorageKey(variants []registry_dto.Variant, storageKey string) *registry_dto.Variant {
 	for i := range variants {
 		if variants[i].StorageKey == storageKey {
@@ -1418,15 +1385,14 @@ func findVariantByStorageKey(variants []registry_dto.Variant, storageKey string)
 	return nil
 }
 
-// collectMissingVariantProfiles returns variant profile names that have not
-// been generated yet.
+// collectMissingVariantProfiles returns variant profile names that have not been
+// generated yet.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the desired
-// profiles to check.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the desired profiles to
+// check.
 // Takes alreadyGenerated (string) which specifies a profile name to skip.
 //
-// Returns []string which contains profile names that still need to be
-// generated.
+// Returns []string which contains profile names that require generation.
 func collectMissingVariantProfiles(artefact *registry_dto.ArtefactMeta, alreadyGenerated string) []string {
 	profiles := make([]string, 0, len(artefact.DesiredProfiles))
 	for i := range artefact.DesiredProfiles {
@@ -1438,11 +1404,10 @@ func collectMissingVariantProfiles(artefact *registry_dto.ArtefactMeta, alreadyG
 	return profiles
 }
 
-// variantExistsInArtefact checks whether a variant with the given ID exists in
-// the artefact.
+// variantExistsInArtefact checks whether a variant with the given ID exists in the
+// artefact.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to
-// search.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 // Takes variantID (string) which is the ID to look for.
 //
 // Returns bool which is true if the variant exists, false otherwise.
@@ -1458,10 +1423,9 @@ func variantExistsInArtefact(artefact *registry_dto.ArtefactMeta, variantID stri
 // generateBackgroundVariant creates a single variant and logs the result.
 //
 // Takes ctx (context.Context) which carries the logger context.
-// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which
-// creates the variant.
-// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source
-// artefact.
+// Takes variantGenerator (daemon_domain.OnDemandVariantGenerator) which creates the
+// variant.
+// Takes artefact (*registry_dto.ArtefactMeta) which identifies the source artefact.
 // Takes profileName (string) which specifies the variant profile to create.
 func generateBackgroundVariant(
 	ctx context.Context,
@@ -1490,8 +1454,8 @@ func generateBackgroundVariant(
 
 // buildMasterPlaylist creates an HLS master playlist from video profiles.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the video
-// profiles to include in the playlist.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the video profiles to
+// include in the playlist.
 //
 // Returns string which is the complete m3u8 master playlist content.
 func buildMasterPlaylist(artefact *registry_dto.ArtefactMeta) string {
@@ -1520,8 +1484,7 @@ func buildMasterPlaylist(artefact *registry_dto.ArtefactMeta) string {
 
 // buildVariantPlaylist creates an HLS variant playlist from video chunks.
 //
-// Takes variant (*registry_dto.Variant) which holds the video chunks to
-// include.
+// Takes variant (*registry_dto.Variant) which holds the video chunks to include.
 //
 // Returns string which is the complete M3U8 playlist content.
 func buildVariantPlaylist(variant *registry_dto.Variant) string {
@@ -1565,8 +1528,8 @@ func buildVariantPlaylist(variant *registry_dto.Variant) string {
 // lookupArtefactChunk finds the variant and chunk for a video artefact.
 //
 // Takes ctx (context.Context) which carries the logger context.
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to stored artefacts.
+// Takes registryService (registry_domain.RegistryService) which provides access to stored
+// artefacts.
 // Takes artefactID (string) which identifies the video artefact.
 // Takes quality (string) which identifies the quality variant to find.
 // Takes chunkID (string) which identifies the chunk to find.
@@ -1638,8 +1601,7 @@ func streamChunkToResponse(
 // Takes variant (*registry_dto.Variant) which contains the chunks to search.
 // Takes chunkID (string) which is the ID of the chunk to find.
 //
-// Returns *registry_dto.VariantChunk which is the matching chunk, or nil if
-// not found.
+// Returns *registry_dto.VariantChunk which is the matching chunk, or nil if not found.
 func findChunkByID(variant *registry_dto.Variant, chunkID string) *registry_dto.VariantChunk {
 	for i := range variant.Chunks {
 		if variant.Chunks[i].ChunkID == chunkID {

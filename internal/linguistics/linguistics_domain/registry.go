@@ -18,13 +18,15 @@
 
 package linguistics_domain
 
-import "sync"
+import (
+	"sync"
+)
 
 // factoryFunc is a generic factory function that creates instances of type T.
 type factoryFunc[T any] func() (T, error)
 
-// registry is a thread-safe generic store for factories.
-// It allows adding, fetching, and listing factories by name.
+// registry is a thread-safe generic store for factories. It allows adding, fetching, and
+// listing factories by name.
 type registry[T any] struct {
 	// factories maps linter names to their constructor functions.
 	factories map[string]factoryFunc[T]
@@ -38,8 +40,8 @@ type registry[T any] struct {
 
 // register registers a factory with the given name.
 //
-// Takes name (string) which is the identifier for this factory
-// (typically a language code like "english").
+// Takes name (string) which is the identifier for this factory (typically a language code
+// like "english").
 // Takes factory (factoryFunc[T]) which creates instances of type T.
 //
 // Panics if a factory with the same name is already registered.
@@ -59,8 +61,8 @@ func (r *registry[T]) register(name string, factory factoryFunc[T]) {
 //
 // Takes name (string) which is the factory identifier.
 //
-// Returns (factoryFunc[T], bool) where the factory is nil and bool is
-// false if no factory with that name is registered.
+// Returns (factoryFunc[T], bool) where the factory is nil and bool is false if no factory
+// with that name is registered.
 //
 // Safe for concurrent use; acquires a read lock on the registry.
 func (r *registry[T]) get(name string) (factoryFunc[T], bool) {
@@ -71,8 +73,8 @@ func (r *registry[T]) get(name string) (factoryFunc[T], bool) {
 	return factory, ok
 }
 
-// registeredNames returns the names of all registered factories.
-// Intended for debugging and introspection.
+// registeredNames returns the names of all registered factories. Intended for debugging
+// and introspection.
 //
 // Returns []string which contains the names of all registered factories.
 //
@@ -90,8 +92,8 @@ func (r *registry[T]) registeredNames() []string {
 
 // newRegistry creates a new generic registry.
 //
-// Takes typeName (string) which is used in error messages
-// (e.g., "stemmer", "phonetic encoder").
+// Takes typeName (string) which is used in error messages (e.g., "stemmer", "phonetic
+// encoder").
 //
 // Returns *registry[T] which is ready for registering factories.
 func newRegistry[T any](typeName string) *registry[T] {

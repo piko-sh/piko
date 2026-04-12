@@ -27,10 +27,9 @@ import (
 	"time"
 )
 
-// MockWatchdogProvider is an in-memory WatchdogProvider used by tests and
-// for stand-alone TUI exercises. It exposes setters for every snapshot
-// type and a channel for streaming events; failures can be injected per
-// method via the Errors fields.
+// MockWatchdogProvider is an in-memory WatchdogProvider used by tests and for stand-alone
+// TUI exercises. It exposes setters for every snapshot type and a channel for streaming
+// events; failures can be injected per method via the Errors fields.
 type MockWatchdogProvider struct {
 	// Errors holds the optional error injection points used by tests.
 	Errors WatchdogProviderErrors
@@ -72,9 +71,8 @@ type MockWatchdogProvider struct {
 	closed bool
 }
 
-// WatchdogProviderErrors holds optional error injection points for the
-// mock provider. Tests assign individual fields to simulate transport
-// failures.
+// WatchdogProviderErrors holds optional error injection points for the mock provider.
+// Tests assign individual fields to simulate transport failures.
 type WatchdogProviderErrors struct {
 	// Refresh is returned from the Refresh method when non-nil.
 	Refresh error
@@ -85,8 +83,7 @@ type WatchdogProviderErrors struct {
 	// ListProfiles is returned from the ListProfiles method when non-nil.
 	ListProfiles error
 
-	// StartupHistory is returned from the GetStartupHistory method when
-	// non-nil.
+	// StartupHistory is returned from the GetStartupHistory method when non-nil.
 	StartupHistory error
 
 	// ListEvents is returned from the ListEvents method when non-nil.
@@ -98,16 +95,13 @@ type WatchdogProviderErrors struct {
 	// Prune is returned from the PruneProfiles method when non-nil.
 	Prune error
 
-	// DownloadProfile is returned from the DownloadProfile method when
-	// non-nil.
+	// DownloadProfile is returned from the DownloadProfile method when non-nil.
 	DownloadProfile error
 
-	// DownloadSidecar is returned from the DownloadSidecar method when
-	// non-nil.
+	// DownloadSidecar is returned from the DownloadSidecar method when non-nil.
 	DownloadSidecar error
 
-	// ContentionDiagRun is returned from the RunContentionDiagnostic method
-	// when non-nil.
+	// ContentionDiagRun is returned from the RunContentionDiagnostic method when non-nil.
 	ContentionDiagRun error
 }
 
@@ -225,16 +219,16 @@ func (m *MockWatchdogProvider) EmitEvent(event WatchdogEvent) {
 	}
 }
 
-// PruneCallCount returns the number of times PruneProfiles has been
-// invoked, useful in tests asserting an action triggered the call.
+// PruneCallCount returns the number of times PruneProfiles has been invoked, useful in
+// tests asserting an action triggered the call.
 //
 // Returns int which is the call count.
 func (m *MockWatchdogProvider) PruneCallCount() int {
 	return int(m.pruneCalled.Load())
 }
 
-// ContentionDiagnosticRunCount returns the number of times
-// RunContentionDiagnostic has been invoked.
+// ContentionDiagnosticRunCount returns the number of times RunContentionDiagnostic has
+// been invoked.
 //
 // Returns int which is the call count.
 func (m *MockWatchdogProvider) ContentionDiagnosticRunCount() int {
@@ -243,8 +237,8 @@ func (m *MockWatchdogProvider) ContentionDiagnosticRunCount() int {
 
 // GetStatus implements WatchdogProvider.
 //
-// Returns *WatchdogStatus which is the cached snapshot, or nil when no
-// status has been set.
+// Returns *WatchdogStatus which is the cached snapshot, or nil when no status has been
+// set.
 // Returns error which is the value injected via Errors.GetStatus.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
@@ -291,8 +285,8 @@ func (m *MockWatchdogProvider) GetStartupHistory(_ context.Context) ([]WatchdogS
 	return out, nil
 }
 
-// ListEvents implements WatchdogProvider, applying the supplied filter to
-// the cached events list.
+// ListEvents implements WatchdogProvider, applying the supplied filter to the cached
+// events list.
 //
 // Takes query (WatchdogEventQuery) which constrains the returned events.
 //
@@ -324,8 +318,8 @@ func (m *MockWatchdogProvider) ListEvents(_ context.Context, query WatchdogEvent
 	return out, nil
 }
 
-// SubscribeEvents implements WatchdogProvider, returning a channel the
-// test can drive via EmitEvent.
+// SubscribeEvents implements WatchdogProvider, returning a channel the test can drive via
+// EmitEvent.
 //
 // Returns <-chan WatchdogEvent which delivers events emitted via EmitEvent.
 // Returns func() which cancels the subscription.
@@ -361,16 +355,15 @@ func (m *MockWatchdogProvider) SubscribeEvents(ctx context.Context, _ time.Time)
 
 // DroppedEvents implements WatchdogProvider.
 //
-// Returns uint64 which is the count of events discarded due to a full
-// subscriber.
+// Returns uint64 which is the count of events discarded due to a full subscriber.
 func (m *MockWatchdogProvider) DroppedEvents() uint64 {
 	return m.dropped.Load()
 }
 
 // PruneProfiles implements WatchdogProvider.
 //
-// Takes profileType (string) which is the profile type to prune; an empty
-// string clears every cached profile.
+// Takes profileType (string) which is the profile type to prune; an empty string clears
+// every cached profile.
 //
 // Returns int which is the number of profiles removed.
 // Returns error which is the value injected via Errors.Prune.
@@ -401,14 +394,13 @@ func (m *MockWatchdogProvider) PruneProfiles(_ context.Context, profileType stri
 	return removed, nil
 }
 
-// DownloadProfile implements WatchdogProvider, writing a placeholder body
-// for tests.
+// DownloadProfile implements WatchdogProvider, writing a placeholder body for tests.
 //
-// Takes filename (string) which is the profile name to fetch.
-// Takes w (io.Writer) which receives the placeholder body.
+// Takes filename (string) which is the profile name to fetch. Takes w (io.Writer) which
+// receives the placeholder body.
 //
-// Returns error which is the value injected via Errors.DownloadProfile, or
-// any error from the underlying writer.
+// Returns error which is the value injected via Errors.DownloadProfile, or any error from
+// the underlying writer.
 func (m *MockWatchdogProvider) DownloadProfile(_ context.Context, filename string, w io.Writer) error {
 	if m.Errors.DownloadProfile != nil {
 		return m.Errors.DownloadProfile

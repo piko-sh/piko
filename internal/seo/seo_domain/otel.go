@@ -31,15 +31,13 @@ var (
 	// meter is the package-level meter for OpenTelemetry metrics.
 	meter = otel.Meter("piko/internal/seo/seo_domain")
 
-	// sitemapGenerationDuration tracks how long it takes to generate a complete
-	// sitemap.
+	// sitemapGenerationDuration tracks how long it takes to generate a complete sitemap.
 	sitemapGenerationDuration metric.Float64Histogram
 
 	// sitemapURLCount tracks the number of URLs included in generated sitemaps.
 	sitemapURLCount metric.Int64Counter
 
-	// robotsTxtGenerationCount tracks how many times robots.txt has been
-	// generated.
+	// robotsTxtGenerationCount tracks how many times robots.txt has been generated.
 	robotsTxtGenerationCount metric.Int64Counter
 )
 

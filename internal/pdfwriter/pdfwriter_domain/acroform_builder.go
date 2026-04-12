@@ -46,8 +46,7 @@ const (
 	FormFieldPushButton
 )
 
-// FormFieldFlags are bit flags for form field properties
-// (ISO 32000, clause 12.7.3).
+// FormFieldFlags are bit flags for form field properties (ISO 32000, clause 12.7.3).
 type FormFieldFlags uint32
 
 const (
@@ -83,6 +82,10 @@ const (
 	// defaultFontSize is the default font size in points for form field appearance strings.
 	defaultFontSize = 12.0
 
+	// pushButtonCaptionMaxHeightRatio caps the push button caption font size so it never
+	// exceeds this fraction of the widget height, leaving room for padding.
+	pushButtonCaptionMaxHeightRatio = 0.7
+
 	// defaultWidgetSize is the fallback widget dimension when the rect has zero extent.
 	defaultWidgetSize = 10.0
 
@@ -109,6 +112,16 @@ const (
 
 	// rectY2Index is the index of the top edge in a rect [x1,y1,x2,y2].
 	rectY2Index = 3
+
+	// pushButtonHelveticaWidthFactor is the approximate average glyph advance for Helvetica
+	// expressed as a fraction of the font size, used for crude horizontal centring of push
+	// button captions.
+	pushButtonHelveticaWidthFactor = 0.5
+
+	// pushButtonBaselineFactor positions the caption baseline as a fraction below the
+	// vertical centre of the button rect to give the appearance of vertical centring for the
+	// cap-height glyphs.
+	pushButtonBaselineFactor = 0.35
 )
 
 // FormField represents a single PDF form field collected during painting.
@@ -147,9 +160,9 @@ type FormField struct {
 	Flags FormFieldFlags
 }
 
-// AcroFormBuilder collects form fields during painting and writes the
-// /AcroForm dictionary, field objects, widget annotations, and default
-// resources when the document is finalised.
+// AcroFormBuilder collects form fields during painting and writes the /AcroForm
+// dictionary, field objects, widget annotations, and default resources when the document
+// is finalised.
 type AcroFormBuilder struct {
 	// radioGroups maps radio button group names to their collected fields.
 	radioGroups map[string][]*FormField
@@ -170,9 +183,9 @@ func NewAcroFormBuilder() *AcroFormBuilder {
 	}
 }
 
-// AddField records a form field for later PDF object generation.
-// Radio button fields are additionally grouped by name so that
-// WriteObjects can emit a single parent field with /Kids.
+// AddField records a form field for later PDF object generation. Radio button fields are
+// additionally grouped by name so that WriteObjects can emit a single parent field with
+// /Kids.
 //
 // Takes field (*FormField) which is the form field to record.
 func (b *AcroFormBuilder) AddField(field *FormField) {
@@ -190,24 +203,22 @@ func (b *AcroFormBuilder) HasFields() bool {
 	return len(b.fields) > 0
 }
 
-// WriteObjects writes all AcroForm-related PDF objects (the /AcroForm
-// dictionary, field dictionaries, widget annotations, default resource
-// fonts, and appearance streams).
+// WriteObjects writes all AcroForm-related PDF objects (the /AcroForm dictionary, field
+// dictionaries, widget annotations, default resource fonts, and appearance streams).
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
-// Takes pageObjNumbers ([]int) which maps page indices to their PDF
-// object numbers.
+// Takes pageObjNumbers ([]int) which maps page indices to their PDF object numbers.
 //
-// Returns int which is the AcroForm dictionary object number, or 0 if
-// no fields exist.
-// Returns map[int][]string which maps page indices to widget annotation
-// reference strings for merging into each page's /Annots.
+// Returns int which is the AcroForm dictionary object number, or 0 if no fields exist.
+// Returns map[int][]string which maps page indices to widget annotation reference strings
+// for merging into each page's /Annots.
+// Returns error when a field carries an unhandled FormFieldType value.
 func (b *AcroFormBuilder) WriteObjects(
 	writer *PdfDocumentWriter,
 	pageObjNumbers []int,
-) (int, map[int][]string) {
+) (int, map[int][]string, error) {
 	if !b.HasFields() {
-		return 0, nil
+		return 0, nil, nil
 	}
 
 	pageWidgetRefs := make(map[int][]string)
@@ -234,7 +245,10 @@ func (b *AcroFormBuilder) WriteObjects(
 			continue
 		}
 
-		ref := b.writeField(writer, field, pageObjNumbers, pageWidgetRefs, zapfNum, helveticaNum)
+		ref, fieldError := b.writeField(writer, field, pageObjNumbers, pageWidgetRefs, zapfNum, helveticaNum)
+		if fieldError != nil {
+			return 0, nil, fieldError
+		}
 		fieldRefs = append(fieldRefs, ref)
 	}
 
@@ -257,21 +271,23 @@ func (b *AcroFormBuilder) WriteObjects(
 	dict.WriteString(pdfDictClose)
 	writer.WriteObject(acroformNum, dict.String())
 
-	return acroformNum, pageWidgetRefs
+	return acroformNum, pageWidgetRefs, nil
 }
 
-// writeField writes a single non-radio form field as a combined
-// field+widget annotation object.
+// writeField writes a single non-radio form field as a combined field+widget annotation
+// object.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes field (*FormField) which is the form field to write.
 // Takes pageObjNumbers ([]int) which maps page indices to object numbers.
-// Takes pageWidgetRefs (map[int][]string) which collects widget references
-// per page.
+// Takes pageWidgetRefs (map[int][]string) which collects widget references per page.
 // Takes zapfFontNum (int) which is the ZapfDingbats font object number.
 // Takes helveticaNum (int) which is the Helvetica font object number.
 //
 // Returns string which is the PDF object reference for the field.
+// Returns error when the field's FormFieldType is not recognised by the dispatch switch
+// (the early radio bypass in WriteObjects covers radios, so any unrecognised value here
+// signals a new enum that the builder has not yet been updated to handle).
 func (b *AcroFormBuilder) writeField(
 	writer *PdfDocumentWriter,
 	field *FormField,
@@ -279,7 +295,7 @@ func (b *AcroFormBuilder) writeField(
 	pageWidgetRefs map[int][]string,
 	zapfFontNum int,
 	helveticaNum int,
-) string {
+) (string, error) {
 	fieldNum := writer.AllocateObject()
 	var dict strings.Builder
 
@@ -312,6 +328,15 @@ func (b *AcroFormBuilder) writeField(
 	case FormFieldText, FormFieldDropdown, FormFieldListBox:
 		apRef := b.writeTextFieldAppearance(writer, field, helveticaNum)
 		fmt.Fprintf(&dict, " /AP << /N %s >>", apRef)
+	case FormFieldPushButton:
+		apRef := b.writePushButtonAppearance(writer, field, helveticaNum)
+		fmt.Fprintf(&dict, " /AP << /N %s >>", apRef)
+		caption := pushButtonCaption(field)
+		fmt.Fprintf(&dict, " /MK << /CA (%s) >>", pdfEscapeString(caption))
+	case FormFieldRadio:
+		return "", fmt.Errorf("acroform_builder: radio field %q reached writeField; radios must be dispatched via writeRadioGroup", field.Name)
+	default:
+		return "", fmt.Errorf("acroform_builder: unhandled FormFieldType %v", field.FieldType)
 	}
 
 	dict.WriteString(" /Border [0 0 1]")
@@ -322,7 +347,22 @@ func (b *AcroFormBuilder) writeField(
 	if field.PageIndex >= 0 && field.PageIndex < len(pageObjNumbers) {
 		pageWidgetRefs[field.PageIndex] = append(pageWidgetRefs[field.PageIndex], ref)
 	}
-	return ref
+	return ref, nil
+}
+
+// pushButtonCaption returns the display caption for a push button widget, preferring the
+// field's value (which carries the button label collected from the source HTML) and
+// falling back to the field name when the value is empty.
+//
+// Takes field (*FormField) which is the push button field whose caption should be
+// derived.
+//
+// Returns string which is the caption text to render inside the button.
+func pushButtonCaption(field *FormField) string {
+	if field.Value != "" {
+		return field.Value
+	}
+	return field.Name
 }
 
 // writeFieldFlags appends the /Ff entry if flags are non-zero.
@@ -393,14 +433,13 @@ func writeFieldOptions(dict *strings.Builder, field *FormField) {
 	}
 }
 
-// writeRadioGroup writes a radio button group as a parent field with
-// /Kids pointing to individual widget annotations.
+// writeRadioGroup writes a radio button group as a parent field with /Kids pointing to
+// individual widget annotations.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes name (string) which is the radio group field name.
 // Takes pageObjNumbers ([]int) which maps page indices to object numbers.
-// Takes pageWidgetRefs (map[int][]string) which collects widget references
-// per page.
+// Takes pageWidgetRefs (map[int][]string) which collects widget references per page.
 //
 // Returns string which is the parent field's PDF object reference.
 func (b *AcroFormBuilder) writeRadioGroup(
@@ -456,8 +495,7 @@ func (b *AcroFormBuilder) writeRadioGroup(
 // Takes parentNum (int) which is the parent field's PDF object number.
 // Takes selectedValue (string) which is the currently selected export value.
 // Takes pageObjNumbers ([]int) which maps page indices to object numbers.
-// Takes pageWidgetRefs (map[int][]string) which collects widget references
-// per page.
+// Takes pageWidgetRefs (map[int][]string) which collects widget references per page.
 //
 // Returns string which is the child widget's PDF object reference.
 func (b *AcroFormBuilder) writeRadioChild(
@@ -507,16 +545,13 @@ func (b *AcroFormBuilder) writeRadioChild(
 	return kidRef
 }
 
-// writeCheckboxAppearance creates /AP appearance XObject streams for
-// a checkbox field.
+// writeCheckboxAppearance creates /AP appearance XObject streams for a checkbox field.
 //
-// Takes writer (*PdfDocumentWriter) which receives the appearance
-// stream objects.
+// Takes writer (*PdfDocumentWriter) which receives the appearance stream objects.
 // Takes field (*FormField) which provides the widget rectangle dimensions.
 // Takes zapfFontNum (int) which is the ZapfDingbats font object number.
 //
-// Returns string which is the /AP dictionary fragment to append to the
-// field dictionary.
+// Returns string which is the /AP dictionary fragment to append to the field dictionary.
 func (*AcroFormBuilder) writeCheckboxAppearance(
 	writer *PdfDocumentWriter,
 	field *FormField,
@@ -560,17 +595,14 @@ func (*AcroFormBuilder) writeCheckboxAppearance(
 		FormatReference(yesNum), FormatReference(offNum))
 }
 
-// writeRadioAppearance creates /AP appearance XObject streams for a
-// radio button widget.
+// writeRadioAppearance creates /AP appearance XObject streams for a radio button widget.
 //
-// Each widget needs an "on" appearance (filled circle) keyed by its export
-// value and an "Off" appearance (empty circle).
+// Each widget needs an "on" appearance (filled circle) keyed by its export value and an
+// "Off" appearance (empty circle).
 //
-// Takes writer (*PdfDocumentWriter) which receives the appearance
-// stream objects.
+// Takes writer (*PdfDocumentWriter) which receives the appearance stream objects.
 // Takes field (*FormField) which provides the widget rectangle dimensions.
-// Takes exportVal (string) which is the export value key for the "on"
-// appearance.
+// Takes exportVal (string) which is the export value key for the "on" appearance.
 //
 // Returns string which is the /AP dictionary fragment.
 func (*AcroFormBuilder) writeRadioAppearance(
@@ -613,9 +645,8 @@ func (*AcroFormBuilder) writeRadioAppearance(
 		exportVal, FormatReference(onNum), FormatReference(offNum))
 }
 
-// radioCircleStream generates PDF content stream operators for a radio
-// button appearance: an outer circle stroke, and optionally a filled
-// inner circle for the selected state.
+// radioCircleStream generates PDF content stream operators for a radio button appearance:
+// an outer circle stroke, and optionally a filled inner circle for the selected state.
 //
 // Takes cx (float64) which is the circle centre x coordinate.
 // Takes cy (float64) which is the circle centre y coordinate.
@@ -662,11 +693,10 @@ func radioCircleStream(cx, cy, r float64, filled bool) string {
 	return b.String()
 }
 
-// writeTextFieldAppearance creates an /AP /N appearance XObject stream
-// for a text or choice field, rendering the current value with Helvetica.
+// writeTextFieldAppearance creates an /AP /N appearance XObject stream for a text or
+// choice field, rendering the current value with Helvetica.
 //
-// Takes writer (*PdfDocumentWriter) which receives the appearance
-// stream object.
+// Takes writer (*PdfDocumentWriter) which receives the appearance stream object.
 // Takes field (*FormField) which provides the field value and dimensions.
 // Takes helveticaNum (int) which is the Helvetica font object number.
 //
@@ -733,8 +763,84 @@ func (*AcroFormBuilder) writeTextFieldAppearance(
 	return FormatReference(apNum)
 }
 
-// pdfEscapeParens wraps a string in parentheses with escaping for
-// PDF string literals.
+// writePushButtonAppearance emits the /N appearance stream for a push button widget.
+//
+// Push buttons are stateless, so no /D (down) or /R (rollover) appearances are emitted,
+// and no /AS entry is written on the widget. The appearance draws a light grey
+// rectangular border, a light fill, and renders the caption centred horizontally and
+// vertically using Helvetica.
+//
+// Takes writer (*PdfDocumentWriter) which receives the appearance stream object.
+// Takes field (*FormField) which provides the widget rectangle and caption source.
+// Takes helveticaNum (int) which is the Helvetica font object number.
+//
+// Returns string which is the appearance stream PDF object reference, suitable for
+// splicing into a /AP << /N ... >> entry.
+func (*AcroFormBuilder) writePushButtonAppearance(
+	writer *PdfDocumentWriter,
+	field *FormField,
+	helveticaNum int,
+) string {
+	w := field.Rect[rectX2Index] - field.Rect[0]
+	h := field.Rect[rectY2Index] - field.Rect[1]
+	if w <= 0 {
+		w = defaultWidgetSize
+	}
+	if h <= 0 {
+		h = defaultWidgetSize
+	}
+
+	fontSize := field.FontSize
+	if fontSize == 0 {
+		fontSize = defaultFontSize
+	}
+	if fontSize > h*pushButtonCaptionMaxHeightRatio {
+		fontSize = h * pushButtonCaptionMaxHeightRatio
+	}
+
+	caption := pushButtonCaption(field)
+
+	var content strings.Builder
+	content.WriteString("q\n")
+	fmt.Fprintf(&content, "0.94 0.94 0.94 rg\n0 0 %s %s re\nf\n",
+		FormatNumber(w), FormatNumber(h))
+	fmt.Fprintf(&content, "0.6 0.6 0.6 RG\n0.75 w\n0 0 %s %s re\nS\n",
+		FormatNumber(w), FormatNumber(h))
+
+	if caption != "" {
+		approxWidth := float64(len([]rune(caption))) * fontSize * pushButtonHelveticaWidthFactor
+		xOffset := (w - approxWidth) / 2
+		if xOffset < 0 {
+			xOffset = 0
+		}
+		yOffset := h/2 - fontSize*pushButtonBaselineFactor
+		if yOffset < 0 {
+			yOffset = 0
+		}
+
+		content.WriteString("BT\n")
+		fmt.Fprintf(&content, "/Helv %s Tf\n", FormatNumber(fontSize))
+		content.WriteString("0 0 0 rg\n")
+		fmt.Fprintf(&content, "%s %s Td\n", FormatNumber(xOffset), FormatNumber(yOffset))
+		fmt.Fprintf(&content, "%s Tj\n", pdfEscapeParens(caption))
+		content.WriteString("ET\n")
+	}
+
+	content.WriteString("Q\n")
+	streamBody := content.String()
+
+	apNum := writer.AllocateObject()
+	apDict := fmt.Sprintf(
+		"<< /Type /XObject /Subtype /Form /BBox [0 0 %s %s] /Resources << /Font << /Helv %s >> >> /Length %d >>",
+		FormatNumber(w), FormatNumber(h),
+		FormatReference(helveticaNum),
+		len(streamBody))
+	writer.WriteObject(apNum, apDict+"\nstream\n"+streamBody+"\nendstream")
+
+	return FormatReference(apNum)
+}
+
+// pdfEscapeParens wraps a string in parentheses with escaping for PDF string literals.
 //
 // Takes s (string) which is the raw string to escape and wrap.
 //

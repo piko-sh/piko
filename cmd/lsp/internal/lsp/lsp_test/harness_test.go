@@ -32,16 +32,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.lsp.dev/jsonrpc2"
-	"piko.sh/piko/wdk/json"
 	"go.lsp.dev/protocol"
 	"go.lsp.dev/uri"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_adapters"
 	"piko.sh/piko/cmd/lsp/internal/lsp/lsp_domain"
 	"piko.sh/piko/internal/annotator/annotator_adapters"
 	"piko.sh/piko/internal/annotator/annotator_domain"
+	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/config"
-	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
@@ -51,6 +50,7 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 	"piko.sh/piko/internal/resolver/resolver_domain"
+	"piko.sh/piko/wdk/json"
 )
 
 func newTestCacheService() cache_domain.Service {

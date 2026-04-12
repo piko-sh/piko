@@ -74,9 +74,9 @@ func main() {
 	}
 
 	result := map[string]any{
-		"default_page":  defaultPage,
-		"first_five":    firstFive,
-		"last_five":     lastFive,
+		"default_page":   defaultPage,
+		"first_five":     firstFive,
+		"last_five":      lastFive,
 		"clamped_to_max": clampedToMax,
 	}
 

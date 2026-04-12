@@ -39,14 +39,14 @@ import (
 )
 
 const (
-	// maxMailchimpResponseBytes caps the bytes read from a Mailchimp
-	// Transactional reply, guarding against hostile or runaway responses while
-	// staying generous enough for legitimate per-recipient result arrays.
+	// maxMailchimpResponseBytes caps the bytes read from a Mailchimp Transactional reply,
+	// guarding against hostile or runaway responses while staying generous enough for
+	// legitimate per-recipient result arrays.
 	maxMailchimpResponseBytes = 4 * 1024 * 1024
 
-	// defaultCallsPerSecond is the default rate limit. Mailchimp Transactional
-	// allows 10 concurrent connections per API key, so a conservative per-second
-	// limit keeps usage well within bounds.
+	// defaultCallsPerSecond is the default rate limit. Mailchimp Transactional allows 10
+	// concurrent connections per API key, so a conservative per-second limit keeps usage
+	// well within bounds.
 	defaultCallsPerSecond = 10.0
 
 	// defaultBurst is the default burst size for rate limiting.
@@ -58,13 +58,11 @@ const (
 	// httpClientTimeout is the safety-net timeout for the HTTP client.
 	httpClientTimeout = 30 * time.Second
 
-	// httpMaxIdleConns is the maximum number of idle HTTP connections to keep.
-	// Matches the Mailchimp Transactional limit of 10 concurrent connections
-	// per API key.
+	// httpMaxIdleConns is the maximum number of idle HTTP connections to keep. Matches the
+	// Mailchimp Transactional limit of 10 concurrent connections per API key.
 	httpMaxIdleConns = 10
 
-	// httpIdleConnTimeout is how long idle connections remain open before
-	// being closed.
+	// httpIdleConnTimeout is how long idle connections remain open before being closed.
 	httpIdleConnTimeout = 90 * time.Second
 
 	// metricKeyStatus is the metric attribute key for recording operation status.
@@ -73,8 +71,8 @@ const (
 	// metricKeySendType is the metric attribute key for the email send type.
 	metricKeySendType = "send_type"
 
-	// metricStatusSuccess is the metric attribute value for operations that
-	// complete without error.
+	// metricStatusSuccess is the metric attribute value for operations that complete without
+	// error.
 	metricStatusSuccess = "success"
 
 	// metricStatusError is the metric attribute value for failed operations.
@@ -117,14 +115,16 @@ const (
 	logKeyTo = "to"
 )
 
-var _ email.ProviderPort = (*MailchimpTransactionalProvider)(nil)
+var (
+	_ email.ProviderPort = (*MailchimpTransactionalProvider)(nil)
 
-// ErrMailchimpResponseTooLarge indicates the Mailchimp Transactional response
-// body exceeded the maximum allowed size and was truncated before parsing.
-var ErrMailchimpResponseTooLarge = errors.New("mailchimp transactional response body exceeded maximum allowed size")
+	// ErrMailchimpResponseTooLarge indicates the Mailchimp Transactional response body
+	// exceeded the maximum allowed size and was truncated before parsing.
+	ErrMailchimpResponseTooLarge = errors.New("mailchimp transactional response body exceeded maximum allowed size")
+)
 
-// MailchimpTransactionalProvider implements the EmailProviderPort interface for
-// the Mailchimp Transactional (formerly Mandrill) email service.
+// MailchimpTransactionalProvider implements the EmailProviderPort interface for the
+// Mailchimp Transactional (formerly Mandrill) email service.
 type MailchimpTransactionalProvider struct {
 	// httpClient sends requests to the Mailchimp Transactional API.
 	httpClient *http.Client
@@ -138,24 +138,23 @@ type MailchimpTransactionalProvider struct {
 	// fromEmail is the default sender email address for outgoing messages.
 	fromEmail string
 
-	// baseURL is the API base URL, defaulting to https://mandrillapp.com/api/1.0
-	// but overridable for testing.
+	// baseURL is the API base URL, defaulting to https://mandrillapp.com/api/1.0 but
+	// overridable for testing.
 	baseURL string
 }
 
-// MailchimpTransactionalProviderArgs contains configuration for creating a new
-// Mailchimp Transactional email provider.
+// MailchimpTransactionalProviderArgs contains configuration for creating a new Mailchimp
+// Transactional email provider.
 type MailchimpTransactionalProviderArgs struct {
-	// APIKey is the Mailchimp Transactional API key for authentication; must not
-	// be empty.
+	// APIKey is the Mailchimp Transactional API key for authentication; must not be empty.
 	APIKey string
 
 	// FromEmail is the default sender email address; must not be empty.
 	FromEmail string
 }
 
-// ProviderOption is a functional option for setting up the Mailchimp
-// Transactional provider.
+// ProviderOption is a functional option for setting up the Mailchimp Transactional
+// provider.
 type ProviderOption = email_domain.ProviderOption
 
 // mandrillSendRequest is the JSON body for the /messages/send endpoint.
@@ -230,8 +229,7 @@ type mandrillRecipient struct {
 	Type string `json:"type"`
 }
 
-// mandrillAttachment represents an attachment or inline image in the Mandrill
-// API.
+// mandrillAttachment represents an attachment or inline image in the Mandrill API.
 type mandrillAttachment struct {
 	// Type is the MIME type of the attachment (e.g. "application/pdf").
 	Type string `json:"type"`
@@ -272,11 +270,11 @@ type mandrillErrorResponse struct {
 
 // Send transmits a single email via Mailchimp Transactional.
 //
-// Takes params (*email_dto.SendParams) which specifies the email recipients,
-// subject, and body content.
+// Takes params (*email_dto.SendParams) which specifies the email recipients, subject, and
+// body content.
 //
-// Returns error when rate limiting fails, parameters are invalid, or the
-// Mailchimp Transactional API request fails.
+// Returns error when rate limiting fails, parameters are invalid, or the Mailchimp
+// Transactional API request fails.
 func (p *MailchimpTransactionalProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
 	startTime := time.Now()
 
@@ -320,9 +318,9 @@ func (p *MailchimpTransactionalProvider) Send(ctx context.Context, params *email
 	return nil
 }
 
-// SupportsBulkSending reports whether the provider supports native bulk
-// sending. Mailchimp Transactional does not have a separate bulk sending API,
-// so bulk sends fall back to individual Send calls.
+// SupportsBulkSending reports whether the provider supports native bulk sending.
+// Mailchimp Transactional does not have a separate bulk sending API, so bulk sends fall
+// back to individual Send calls.
 //
 // Returns bool which is always false for this provider.
 func (*MailchimpTransactionalProvider) SupportsBulkSending() bool {
@@ -359,21 +357,20 @@ func (p *MailchimpTransactionalProvider) SendBulk(ctx context.Context, emails []
 	return nil
 }
 
-// Close releases resources held by the provider. The HTTP client is stateless,
-// so the call does nothing.
+// Close releases resources held by the provider. The HTTP client is stateless, so the
+// call does nothing.
 //
 // Returns error when cleanup fails, though this always returns nil.
 func (*MailchimpTransactionalProvider) Close(_ context.Context) error {
 	return nil
 }
 
-// NewMailchimpTransactionalProvider creates a new Mailchimp Transactional email
-// provider with the given settings.
+// NewMailchimpTransactionalProvider creates a new Mailchimp Transactional email provider
+// with the given settings.
 //
-// Takes arguments (MailchimpTransactionalProviderArgs) which specifies the API
-// key and sender details.
-// Takes opts (...ProviderOption) which provides optional rate limiting
-// settings.
+// Takes arguments (MailchimpTransactionalProviderArgs) which specifies the API key and
+// sender details.
+// Takes opts (...ProviderOption) which provides optional rate limiting settings.
 //
 // Returns email.ProviderPort which is the configured provider ready for use.
 // Returns error when the API key or from email is empty.
@@ -413,14 +410,11 @@ func NewMailchimpTransactionalProvider(ctx context.Context, arguments MailchimpT
 	}, nil
 }
 
-// validateSendParams checks that the required fields in send parameters are
-// present.
+// validateSendParams checks that the required fields in send parameters are present.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// check.
+// Takes params (*email_dto.SendParams) which contains the email details to check.
 //
-// Returns error when no recipients are provided or when both body fields are
-// empty.
+// Returns error when no recipients are provided or when both body fields are empty.
 func validateSendParams(params *email_dto.SendParams) error {
 	if len(params.To) == 0 {
 		return email_domain.ErrRecipientRequired
@@ -433,11 +427,10 @@ func validateSendParams(params *email_dto.SendParams) error {
 
 // buildMandrillRequest converts email parameters to a Mandrill API request.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// convert.
+// Takes params (*email_dto.SendParams) which contains the email details to convert.
 //
-// Returns *mandrillSendRequest which is the formatted request ready for the
-// Mailchimp Transactional API.
+// Returns *mandrillSendRequest which is the formatted request ready for the Mailchimp
+// Transactional API.
 func (p *MailchimpTransactionalProvider) buildMandrillRequest(params *email_dto.SendParams) *mandrillSendRequest {
 	from := p.fromEmail
 	if params.From != nil {
@@ -466,8 +459,8 @@ func (p *MailchimpTransactionalProvider) buildMandrillRequest(params *email_dto.
 	return request
 }
 
-// buildRecipients converts To, Cc, and Bcc address lists into a unified
-// Mandrill recipient array with type discriminators.
+// buildRecipients converts To, Cc, and Bcc address lists into a unified Mandrill
+// recipient array with type discriminators.
 //
 // Takes params (*email_dto.SendParams) which provides the recipient lists.
 //
@@ -488,15 +481,13 @@ func buildRecipients(params *email_dto.SendParams) []mandrillRecipient {
 	return recipients
 }
 
-// buildAttachmentsAndImages converts email attachments to Mandrill format,
-// splitting them into regular attachments and inline images based on whether
-// a ContentID is present.
+// buildAttachmentsAndImages converts email attachments to Mandrill format, splitting them
+// into regular attachments and inline images based on whether a ContentID is present.
 //
-// Takes attachments ([]email_dto.Attachment) which provides the attachments to
-// convert.
+// Takes attachments ([]email_dto.Attachment) which provides the attachments to convert.
 //
-// Returns []mandrillAttachment for regular attachments and []mandrillAttachment
-// for inline images.
+// Returns []mandrillAttachment for regular attachments and []mandrillAttachment for
+// inline images.
 func buildAttachmentsAndImages(attachments []email_dto.Attachment) (regular []mandrillAttachment, images []mandrillAttachment) {
 	if len(attachments) == 0 {
 		return nil, nil
@@ -520,8 +511,8 @@ func buildAttachmentsAndImages(attachments []email_dto.Attachment) (regular []ma
 	return regular, images
 }
 
-// applyProviderOptions applies Mailchimp Transactional-specific options to the
-// message and request.
+// applyProviderOptions applies Mailchimp Transactional-specific options to the message
+// and request.
 //
 // Takes message (*mandrillMessage) which is the message to configure.
 // Takes request (*mandrillSendRequest) which is the request to configure.
@@ -565,8 +556,8 @@ func applyProviderOptions(message *mandrillMessage, request *mandrillSendRequest
 // Takes request (*mandrillSendRequest) which contains the API request body.
 //
 // Returns []mandrillSendResponse which contains per-recipient results.
-// Returns error when the HTTP request fails, the response cannot be parsed, or
-// the API returns an error status.
+// Returns error when the HTTP request fails, the response cannot be parsed, or the API
+// returns an error status.
 func (p *MailchimpTransactionalProvider) doSendRequest(ctx context.Context, request *mandrillSendRequest) ([]mandrillSendResponse, error) {
 	body, err := json.Marshal(request)
 	if err != nil {
@@ -630,11 +621,10 @@ func parseErrorResponse(body []byte, statusCode int) error {
 		apiErr.Name, apiErr.Message, apiErr.Code)
 }
 
-// checkRecipientStatuses inspects per-recipient results and returns an error if
-// any recipients were rejected or invalid.
+// checkRecipientStatuses inspects per-recipient results and returns an error if any
+// recipients were rejected or invalid.
 //
-// Takes results ([]mandrillSendResponse) which contains the per-recipient send
-// results.
+// Takes results ([]mandrillSendResponse) which contains the per-recipient send results.
 //
 // Returns error when any recipient has a "rejected" or "invalid" status.
 func checkRecipientStatuses(results []mandrillSendResponse) error {
@@ -655,8 +645,8 @@ func checkRecipientStatuses(results []mandrillSendResponse) error {
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
-// Returns *email_domain.MultiError which contains all send failures, or nil if
-// all emails were sent successfully.
+// Returns *email_domain.MultiError which contains all send failures, or nil if all emails
+// were sent successfully.
 func (p *MailchimpTransactionalProvider) sendEmailsIndividually(ctx context.Context, emails []*email_dto.SendParams) *email_domain.MultiError {
 	ctx, l := logger.From(ctx, log)
 	var multiError *email_domain.MultiError
@@ -715,8 +705,8 @@ func recordSendMetrics(ctx context.Context, startTime time.Time, err error, send
 //
 // Takes startTime (time.Time) which marks when the bulk operation began.
 // Takes emailCount (int) which is the total number of emails in the batch.
-// Takes multiError (*email_domain.MultiError) which holds any errors from the
-// bulk operation.
+// Takes multiError (*email_domain.MultiError) which holds any errors from the bulk
+// operation.
 func recordBulkMetrics(ctx context.Context, startTime time.Time, emailCount int, multiError *email_domain.MultiError) {
 	duration := float64(time.Since(startTime).Milliseconds())
 	status := metricStatusSuccess

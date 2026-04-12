@@ -111,4 +111,6 @@ func newTestConfig() *tui_dto.Config {
 	}
 }
 
-var _ Panel = (*mockPanel)(nil)
+var (
+	_ Panel = (*mockPanel)(nil)
+)

@@ -38,7 +38,9 @@ func TestBuildImportAliasMap_DefaultAlias(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import "github.com/example/content_domain"
+import (
+	"github.com/example/content_domain"
+)
 
 func main() { _ = content_domain.Foo }
 `,
@@ -54,7 +56,9 @@ func TestBuildImportAliasMap_ExplicitAlias(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import cd "github.com/example/content_domain"
+import (
+	cd "github.com/example/content_domain"
+)
 
 func main() { _ = cd.Foo }
 `,
@@ -72,9 +76,15 @@ func TestBuildImportAliasMap_BlankAndDotImports(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import _ "github.com/example/sideeffect"
-import . "github.com/example/dotpkg"
-import "github.com/example/normalpkg"
+import (
+	_ "github.com/example/sideeffect"
+)
+import (
+	. "github.com/example/dotpkg"
+)
+import (
+	"github.com/example/normalpkg"
+)
 
 func main() {}
 `,
@@ -104,7 +114,9 @@ func TestEnrichTypeCheckError_UndefinedInNativePackage(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import "github.com/example/content_domain"
+import (
+	"github.com/example/content_domain"
+)
 
 func main() { _ = content_domain.AnnotatedField{} }
 `,
@@ -130,7 +142,9 @@ func TestEnrichTypeCheckError_UndefinedInInterpretedPackage(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import "testmod/mylib"
+import (
+	"testmod/mylib"
+)
 
 func main() { mylib.MissingFunc() }
 `,
@@ -160,7 +174,9 @@ func TestEnrichTypeCheckError_NonUndefinedMessage(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import "github.com/example/pkg"
+import (
+	"github.com/example/pkg"
+)
 
 func main() { pkg.Foo() }
 `,
@@ -204,7 +220,9 @@ func TestEnrichTypeCheckError_PackageNotInRegistry(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import "github.com/example/unknownpkg"
+import (
+	"github.com/example/unknownpkg"
+)
 
 func main() { unknownpkg.Foo() }
 `,
@@ -255,7 +273,9 @@ func TestEnrichTypeCheckError_SymbolAlreadyRegistered(t *testing.T) {
 	files := parseTestFiles(t, map[string]string{
 		"main.go": `package main
 
-import "github.com/example/content_domain"
+import (
+	"github.com/example/content_domain"
+)
 
 func main() { _ = content_domain.AnnotatedField{} }
 `,
@@ -278,7 +298,9 @@ func TestCompileProgram_StaleSymbolRegistryHint(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "custom/content_domain"
+import (
+	"custom/content_domain"
+)
 
 func entrypoint() bool {
 	return content_domain.MissingType{} != content_domain.MissingType{}
@@ -304,7 +326,9 @@ func TestCompileProgram_InterpretedPackageMissingSymbol_NoHint(t *testing.T) {
 		"": {
 			"main.go": `package main
 
-import "testmod/mylib"
+import (
+	"testmod/mylib"
+)
 
 func entrypoint() int {
 	return mylib.Nonexistent()
@@ -340,7 +364,9 @@ func TestCompileFileSet_StaleSymbolRegistryHint(t *testing.T) {
 	sources := map[string]string{
 		"main.go": `package main
 
-import "custom/mypkg"
+import (
+	"custom/mypkg"
+)
 
 func run() string {
 	return mypkg.Missing()

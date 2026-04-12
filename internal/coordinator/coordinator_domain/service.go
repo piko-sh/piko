@@ -36,22 +36,20 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// coordinatorOptions holds configuration for the coordinator service.
-// Fields are ordered for optimal memory alignment.
+// coordinatorOptions holds configuration for the coordinator service. Fields are ordered
+// for optimal memory alignment.
 type coordinatorOptions struct {
-	// fileHashCache stores file hashes to avoid reading files that have not
-	// changed.
+	// fileHashCache stores file hashes to avoid reading files that have not changed.
 	fileHashCache FileHashCachePort
 
 	// codeEmitter outputs formatted code in dev-i mode; nil disables output.
 	codeEmitter CodeEmitterPort
 
-	// clientScriptEmitter transpiles and stores client-side scripts in
-	// dev-i mode; nil disables per-component <script> emission.
+	// clientScriptEmitter transpiles and stores client-side scripts in dev-i mode; nil
+	// disables per-component <script> emission.
 	clientScriptEmitter ClientScriptEmitterPort
 
-	// diagnosticOutput specifies where to write diagnostic messages; nil means
-	// silent.
+	// diagnosticOutput specifies where to write diagnostic messages; nil means silent.
 	diagnosticOutput DiagnosticOutputPort
 
 	// clock provides time operations; nil defaults to RealClock.
@@ -60,47 +58,40 @@ type coordinatorOptions struct {
 	// baseDirSandbox provides file access within the project base directory.
 	baseDirSandbox safedisk.Sandbox
 
-	// sandboxFactory creates sandboxes with validated paths. When set and
-	// baseDirSandbox is nil, the factory is used before falling back to
-	// NewNoOpSandbox.
+	// sandboxFactory creates sandboxes with validated paths. When set and baseDirSandbox is
+	// nil, the factory is used before falling back to NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
-	// debounceDuration is the wait time before processing changes; 0 means
-	// immediate.
+	// debounceDuration is the wait time before processing changes; 0 means immediate.
 	debounceDuration time.Duration
 
-	// maxBuildWaitDuration is the longest time a caller waits for a build result;
-	// defaults to 30 seconds.
+	// maxBuildWaitDuration is the longest time a caller waits for a build result; defaults
+	// to 30 seconds.
 	maxBuildWaitDuration time.Duration
 
-	// enableStaticHoisting controls whether static nodes are hoisted to
-	// package-level variables in generated code. Defaults to true via
-	// config.CompilerEnableStaticHoisting.
+	// enableStaticHoisting controls whether static nodes are hoisted to package-level
+	// variables in generated code. Defaults to true via config.CompilerEnableStaticHoisting.
 	enableStaticHoisting bool
 
-	// enablePrerendering enables static HTML prerendering at generation
-	// time.
+	// enablePrerendering enables static HTML prerendering at generation time.
 	enablePrerendering bool
 
 	// stripHTMLComments removes HTML comments from generated output.
 	stripHTMLComments bool
 
-	// enableDwarfLineDirectives enables valid DWARF //line directives
-	// in generated code.
+	// enableDwarfLineDirectives enables valid DWARF //line directives in generated code.
 	enableDwarfLineDirectives bool
 }
 
-// CoordinatorOption is a functional option for configuring the coordinator
-// service.
+// CoordinatorOption is a functional option for configuring the coordinator service.
 type CoordinatorOption func(*coordinatorOptions)
 
-// coordinatorService implements the CoordinatorService interface. It is the
-// stateful, long-lived service that manages the entire build lifecycle,
-// including caching, state management, debouncing, and preventing concurrent
-// builds (cache stampede protection).
+// coordinatorService implements the CoordinatorService interface. It is the stateful,
+// long-lived service that manages the entire build lifecycle, including caching, state
+// management, debouncing, and preventing concurrent builds (cache stampede protection).
 type coordinatorService struct {
-	// lastTriggerTime records when the last build was triggered; zero means no
-	// build has happened yet.
+	// lastTriggerTime records when the last build was triggered; zero means no build has
+	// happened yet.
 	lastTriggerTime time.Time
 
 	// buildGroup prevents duplicate build requests with the same input hash.
@@ -121,9 +112,9 @@ type coordinatorService struct {
 	// codeEmitter generates code for dev-i mode; nil in other modes.
 	codeEmitter CodeEmitterPort
 
-	// clientScriptEmitter transpiles <script lang="ts"> blocks to JS in
-	// dev-i mode so the rendered page emits the per-component script
-	// tags; nil disables emission and matches the non-dev-i default.
+	// clientScriptEmitter transpiles <script lang="ts"> blocks to JS in dev-i mode so the
+	// rendered page emits the per-component script tags; nil disables emission and matches
+	// the non-dev-i default.
 	clientScriptEmitter ClientScriptEmitterPort
 
 	// diagnosticOutput sends diagnostics to the user; nil in LSP mode.
@@ -135,15 +126,15 @@ type coordinatorService struct {
 	// introspectionCache stores tier 1 type introspection results.
 	introspectionCache IntrospectionCachePort
 
-	// fileHashCache stores file hashes to avoid reading unchanged files;
-	// nil disables caching.
+	// fileHashCache stores file hashes to avoid reading unchanged files; nil disables
+	// caching.
 	fileHashCache FileHashCachePort
 
 	// baseDirSandbox provides file access within the project base directory.
 	baseDirSandbox safedisk.Sandbox
 
-	// sandboxFactory creates sandboxes with validated paths. When set, the
-	// factory is preferred over NewNoOpSandbox for fallback sandbox creation.
+	// sandboxFactory creates sandboxes with validated paths. When set, the factory is
+	// preferred over NewNoOpSandbox for fallback sandbox creation.
 	sandboxFactory safedisk.Factory
 
 	// baseDirSandboxPath is the path for which the cached sandbox was created.
@@ -152,8 +143,7 @@ type coordinatorService struct {
 	// debounceTimer schedules the next rebuild; nil when no build is waiting.
 	debounceTimer clock.Timer
 
-	// lastBuildRequest stores the most recent build request for debounced
-	// rebuilds.
+	// lastBuildRequest stores the most recent build request for debounced rebuilds.
 	lastBuildRequest *coordinator_dto.BuildRequest
 
 	// shutdown signals the coordinator to stop processing.
@@ -174,13 +164,12 @@ type coordinatorService struct {
 	// wg tracks the build loop goroutine for graceful shutdown.
 	wg sync.WaitGroup
 
-	// invalidationEpoch is incremented by Invalidate(). Builds that started
-	// before the current epoch must not write to the cache, as their results
-	// are stale.
+	// invalidationEpoch is incremented by Invalidate(). Builds that started before the
+	// current epoch must not write to the cache, as their results are stale.
 	invalidationEpoch atomic.Uint64
 
-	// buildInFlight tracks whether a build is currently executing in the
-	// build loop. Invalidate() waits for it to complete before returning.
+	// buildInFlight tracks whether a build is currently executing in the build loop.
+	// Invalidate() waits for it to complete before returning.
 	buildInFlight sync.WaitGroup
 
 	// debounceDuration is the shortest time allowed between build triggers.
@@ -201,40 +190,37 @@ type coordinatorService struct {
 	// debounceMutex guards access to the debounce timer.
 	debounceMutex sync.Mutex
 
-	// enableStaticHoisting controls whether static nodes are hoisted
-	// to package-level variables in generated code.
+	// enableStaticHoisting controls whether static nodes are hoisted to package-level
+	// variables in generated code.
 	enableStaticHoisting bool
 
-	// enablePrerendering enables static HTML prerendering at generation
-	// time.
+	// enablePrerendering enables static HTML prerendering at generation time.
 	enablePrerendering bool
 
 	// stripHTMLComments removes HTML comments from generated output.
 	stripHTMLComments bool
 
-	// enableDwarfLineDirectives enables valid DWARF //line directives
-	// in generated code.
+	// enableDwarfLineDirectives enables valid DWARF //line directives in generated code.
 	enableDwarfLineDirectives bool
 }
 
-// GetResult retrieves the latest successful build or triggers an initial build
-// on cold start.
+// GetResult retrieves the latest successful build or triggers an initial build on cold
+// start.
 //
-// Provides a non-blocking fast path for retrieving cached results.
-// If no build is available, falls back to the blocking GetOrBuildProject.
+// Provides a non-blocking fast path for retrieving cached results. If no build is
+// available, falls back to the blocking GetOrBuildProject.
 //
 // Actions are auto-discovered from the actions/ directory during annotation.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code
-// locations to analyse.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code locations to
+// analyse.
 // Takes opts (...BuildOption) which configures the build behaviour.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation
-// data for the project.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation data for
+// the project.
 // Returns error when the build fails or cannot be completed.
 //
-// Safe for concurrent use. Uses a mutex to protect the last build request
-// state.
+// Safe for concurrent use. Uses a mutex to protect the last build request state.
 func (s *coordinatorService) GetResult(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
@@ -269,8 +255,8 @@ func (s *coordinatorService) GetResult(
 	return s.GetOrBuildProject(ctx, entryPoints, opts...)
 }
 
-// Shutdown performs a graceful shutdown of the coordinator service, ensuring
-// the background build loop is terminated and any pending timers are stopped.
+// Shutdown performs a graceful shutdown of the coordinator service, ensuring the
+// background build loop is terminated and any pending timers are stopped.
 //
 // Safe for concurrent use. Blocks until all background goroutines have exited.
 func (s *coordinatorService) Shutdown(ctx context.Context) {
@@ -300,13 +286,12 @@ func (s *coordinatorService) Shutdown(ctx context.Context) {
 //
 // Actions are found from the actions/ directory during annotation.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code
-// locations to start the build from.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code locations to
+// start the build from.
 // Takes opts (...BuildOption) which sets optional build behaviour.
 //
-// Safe for concurrent use. Uses debouncing to combine rapid requests into
-// a single build. The build runs in a separate goroutine after the debounce
-// period.
+// Safe for concurrent use. Uses debouncing to combine rapid requests into a single build.
+// The build runs in a separate goroutine after the debounce period.
 func (s *coordinatorService) RequestRebuild(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
@@ -368,11 +353,10 @@ func (s *coordinatorService) GetStatus() buildStatus {
 	return s.status
 }
 
-// GetLastSuccessfulBuild returns the most recent successfully completed build
-// result.
+// GetLastSuccessfulBuild returns the most recent successfully completed build result.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the build
-// result, or nil if no successful build exists.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the build result, or nil
+// if no successful build exists.
 // Returns bool which indicates whether a successful build result was found.
 //
 // Safe for concurrent use. Uses a read lock to protect access to the status.
@@ -387,18 +371,18 @@ func (s *coordinatorService) GetLastSuccessfulBuild() (*annotator_dto.ProjectAnn
 
 // Invalidate clears the annotation cache (Tier 2) and in-memory state.
 //
-// This does not clear Tier 1 (introspection cache) because Tier 1 should only
-// be cleared when script blocks or .go files change. The build executor finds
-// these changes by comparing introspection hashes.
+// This does not clear Tier 1 (introspection cache) because Tier 1 should only be cleared
+// when script blocks or .go files change. The build executor finds these changes by
+// comparing introspection hashes.
 //
-// Clearing Tier 1 on every file change would break the two-tier caching
-// system, which allows fast template-only rebuilds.
+// Clearing Tier 1 on every file change would break the two-tier caching system, which
+// allows fast template-only rebuilds.
 //
 // The hash-based cache checking works as follows:
-//   - Uses Tier 1 fast path when only template, style, or i18n files changed
-//     (5-10x faster).
-//   - Starts full rebuild when script blocks changed (automatic Tier 1
-//     clearing through hash mismatch).
+//   - Uses Tier 1 fast path when only template, style, or i18n files changed (5-10x
+//     faster).
+//   - Starts full rebuild when script blocks changed (automatic Tier 1 clearing through
+//     hash mismatch).
 //
 // Returns error when the annotation cache cannot be cleared.
 //
@@ -431,9 +415,8 @@ func (s *coordinatorService) Invalidate(ctx context.Context) error {
 	return nil
 }
 
-// drainRebuildTrigger removes any pending rebuild requests from the channel
-// so that stale triggers from a previous daemon do not interfere with the
-// next build cycle.
+// drainRebuildTrigger removes any pending rebuild requests from the channel so that stale
+// triggers from a previous daemon do not interfere with the next build cycle.
 func (s *coordinatorService) drainRebuildTrigger() {
 	for {
 		select {
@@ -444,8 +427,8 @@ func (s *coordinatorService) drainRebuildTrigger() {
 	}
 }
 
-// initialisePostCreation handles post-creation initialisation: loading the file
-// hash cache and creating the sandbox.
+// initialisePostCreation handles post-creation initialisation: loading the file hash
+// cache and creating the sandbox.
 func (s *coordinatorService) initialisePostCreation(ctx context.Context) {
 	ctx, il := logger_domain.From(ctx, log)
 	if s.fileHashCache != nil {
@@ -480,11 +463,10 @@ func (s *coordinatorService) initialisePostCreation(ctx context.Context) {
 
 // WithDebounceDuration sets the debounce duration for build requests.
 //
-// Takes d (time.Duration) which sets how long to wait before processing a
-// build request. Values of zero or less are ignored.
+// Takes d (time.Duration) which sets how long to wait before processing a build request.
+// Values of zero or less are ignored.
 //
-// Returns CoordinatorOption which configures the coordinator's debounce
-// behaviour.
+// Returns CoordinatorOption which configures the coordinator's debounce behaviour.
 func WithDebounceDuration(d time.Duration) CoordinatorOption {
 	return func(o *coordinatorOptions) {
 		if d > 0 {
@@ -493,15 +475,14 @@ func WithDebounceDuration(d time.Duration) CoordinatorOption {
 	}
 }
 
-// WithMaxBuildWaitDuration sets the maximum time a caller waits for a build
-// result before timing out, defaulting to 5 minutes and worth increasing
-// for integration tests under heavy system load.
+// WithMaxBuildWaitDuration sets the maximum time a caller waits for a build result before
+// timing out, defaulting to 5 minutes and worth increasing for integration tests under
+// heavy system load.
 //
-// Takes d (time.Duration) which sets the maximum wait time. Values of zero or
-// less are ignored.
+// Takes d (time.Duration) which sets the maximum wait time. Values of zero or less are
+// ignored.
 //
-// Returns CoordinatorOption which configures the coordinator's build wait
-// timeout.
+// Returns CoordinatorOption which configures the coordinator's build wait timeout.
 func WithMaxBuildWaitDuration(d time.Duration) CoordinatorOption {
 	return func(o *coordinatorOptions) {
 		if d > 0 {
@@ -510,11 +491,10 @@ func WithMaxBuildWaitDuration(d time.Duration) CoordinatorOption {
 	}
 }
 
-// WithFileHashCache sets the file hash cache for read optimisation.
-// If not provided, all files will be read in full during hash calculation.
+// WithFileHashCache sets the file hash cache for read optimisation. If not provided, all
+// files will be read in full during hash calculation.
 //
-// Takes cache (FileHashCachePort) which provides the cache for file hash
-// lookups.
+// Takes cache (FileHashCachePort) which provides the cache for file hash lookups.
 //
 // Returns CoordinatorOption which configures the coordinator with the cache.
 func WithFileHashCache(cache FileHashCachePort) CoordinatorOption {
@@ -523,9 +503,8 @@ func WithFileHashCache(cache FileHashCachePort) CoordinatorOption {
 	}
 }
 
-// WithCodeEmitter sets the code emitter for dev-i mode. This is only needed
-// when the coordinator must create fully-emitted artefacts for the interpreted
-// runner.
+// WithCodeEmitter sets the code emitter for dev-i mode. This is only needed when the
+// coordinator must create fully-emitted artefacts for the interpreted runner.
 //
 // Takes emitter (CodeEmitterPort) which handles code emission for artefacts.
 //
@@ -538,24 +517,22 @@ func WithCodeEmitter(emitter CodeEmitterPort) CoordinatorOption {
 
 // WithClientScriptEmitter sets the client script emitter for dev-i mode.
 //
-// The emitter transpiles each component's <script lang="ts"> block and
-// registers the resulting artefact ID so the renderer can emit
-// per-component script tags. When unset, interpreted pages skip
-// client-side script emission and client-side behaviour will not run.
+// The emitter transpiles each component's <script lang="ts"> block and registers the
+// resulting artefact ID so the renderer can emit per-component script tags. When unset,
+// interpreted pages skip client-side script emission and client-side behaviour will not
+// run.
 //
 // Takes emitter (ClientScriptEmitterPort) which handles JS emission.
 //
-// Returns CoordinatorOption which configures the coordinator with the
-// emitter.
+// Returns CoordinatorOption which configures the coordinator with the emitter.
 func WithClientScriptEmitter(emitter ClientScriptEmitterPort) CoordinatorOption {
 	return func(o *coordinatorOptions) {
 		o.clientScriptEmitter = emitter
 	}
 }
 
-// WithDiagnosticOutput sets how diagnostic messages are shown to users.
-// Command-line tools use rich ANSI-formatted output, while LSP mode stays
-// silent.
+// WithDiagnosticOutput sets how diagnostic messages are shown to users. Command-line
+// tools use rich ANSI-formatted output, while LSP mode stays silent.
 //
 // Takes output (DiagnosticOutputPort) which specifies how to display messages.
 //
@@ -566,29 +543,26 @@ func WithDiagnosticOutput(output DiagnosticOutputPort) CoordinatorOption {
 	}
 }
 
-// WithBaseDirSandbox sets a custom sandbox for the project base directory.
-// Use it with mock sandboxes for testing filesystem operations.
+// WithBaseDirSandbox sets a custom sandbox for the project base directory. Use it with
+// mock sandboxes for testing filesystem operations.
 //
-// If not provided, a real sandbox is created using safedisk.NewNoOpSandbox
-// during service setup.
+// If not provided, a real sandbox is created using safedisk.NewNoOpSandbox during service
+// setup.
 //
-// Takes sandbox (safedisk.Sandbox) which provides filesystem access within
-// the project base directory.
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access within the project
+// base directory.
 //
-// Returns CoordinatorOption which sets up the coordinator with the given
-// sandbox.
+// Returns CoordinatorOption which sets up the coordinator with the given sandbox.
 func WithBaseDirSandbox(sandbox safedisk.Sandbox) CoordinatorOption {
 	return func(o *coordinatorOptions) {
 		o.baseDirSandbox = sandbox
 	}
 }
 
-// WithSandboxFactory sets the sandbox factory used for fallback sandbox
-// creation. When baseDirSandbox is nil, the factory is tried before falling
-// back to NewNoOpSandbox.
+// WithSandboxFactory sets the sandbox factory used for fallback sandbox creation. When
+// baseDirSandbox is nil, the factory is tried before falling back to NewNoOpSandbox.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes with validated
-// paths.
+// Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
 // Returns CoordinatorOption which configures the coordinator with the factory.
 func WithSandboxFactory(factory safedisk.Factory) CoordinatorOption {
@@ -597,8 +571,8 @@ func WithSandboxFactory(factory safedisk.Factory) CoordinatorOption {
 	}
 }
 
-// WithStaticHoisting controls whether static nodes are hoisted to
-// package-level variables in generated code.
+// WithStaticHoisting controls whether static nodes are hoisted to package-level variables
+// in generated code.
 //
 // Takes enabled (bool) which enables or disables static hoisting.
 //
@@ -609,8 +583,7 @@ func WithStaticHoisting(enabled bool) CoordinatorOption {
 	}
 }
 
-// WithPrerendering controls whether static HTML is prerendered at
-// generation time.
+// WithPrerendering controls whether static HTML is prerendered at generation time.
 //
 // Takes enabled (bool) which enables or disables prerendering.
 //
@@ -621,8 +594,7 @@ func WithPrerendering(enabled bool) CoordinatorOption {
 	}
 }
 
-// WithStripHTMLComments controls whether HTML comments are omitted
-// from generated output.
+// WithStripHTMLComments controls whether HTML comments are omitted from generated output.
 //
 // Takes enabled (bool) which enables or disables comment stripping.
 //
@@ -633,8 +605,8 @@ func WithStripHTMLComments(enabled bool) CoordinatorOption {
 	}
 }
 
-// WithDwarfLineDirectives controls whether the code generator emits
-// valid DWARF //line directives.
+// WithDwarfLineDirectives controls whether the code generator emits valid DWARF //line
+// directives.
 //
 // Takes enabled (bool) which enables or disables DWARF directives.
 //
@@ -645,27 +617,25 @@ func WithDwarfLineDirectives(enabled bool) CoordinatorOption {
 	}
 }
 
-// NewService creates a new coordinator service. It requires its core
-// dependencies as interfaces, adhering to the hexagonal architecture.
+// NewService creates a new coordinator service. It requires its core dependencies as
+// interfaces, adhering to the hexagonal architecture.
 //
-// Optional dependencies (file hash cache, code emitter, diagnostic output,
-// context) should be provided via functional options: WithFileHashCache,
-// WithCodeEmitter, WithDiagnosticOutput, WithContext.
+// Optional dependencies (file hash cache, code emitter, diagnostic output, context)
+// should be provided via functional options: WithFileHashCache, WithCodeEmitter,
+// WithDiagnosticOutput, WithContext.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation throughout the service lifetime.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation throughout the service lifetime.
 // Takes annotator (AnnotatorPort) which provides code annotation capabilities.
 // Takes cache (BuildResultCachePort) which stores build results.
-// Takes introspectionCache (IntrospectionCachePort) which caches introspection
-// data.
+// Takes introspectionCache (IntrospectionCachePort) which caches introspection data.
 // Takes fsReader (FSReaderPort) which reads from the file system.
 // Takes resolver (ResolverPort) which resolves package dependencies.
 // Takes opts (CoordinatorOption) which configures optional behaviour.
 //
 // Returns CoordinatorService which is ready for use.
 //
-// Spawns a background goroutine that runs the build loop until the service
-// is stopped.
+// Spawns a background goroutine that runs the build loop until the service is stopped.
 func NewService(
 	ctx context.Context,
 	annotator annotator_domain.AnnotatorPort,
@@ -683,8 +653,8 @@ func NewService(
 	return service
 }
 
-// withClock sets a custom clock for time operations. This is mainly used for
-// testing to make debounce logic deterministic.
+// withClock sets a custom clock for time operations. This is mainly used for testing to
+// make debounce logic deterministic.
 //
 // Takes c (clock.Clock) which provides the clock implementation to use.
 //
@@ -695,13 +665,12 @@ func withClock(c clock.Clock) CoordinatorOption {
 	}
 }
 
-// applyCoordinatorOptions applies the given functional options and returns the
-// settings.
+// applyCoordinatorOptions applies the given functional options and returns the settings.
 //
 // Takes opts (...CoordinatorOption) which specifies the options to apply.
 //
-// Returns coordinatorOptions which holds the settings with defaults applied
-// for any values not set.
+// Returns coordinatorOptions which holds the settings with defaults applied for any
+// values not set.
 func applyCoordinatorOptions(opts ...CoordinatorOption) coordinatorOptions {
 	options := coordinatorOptions{
 		fileHashCache:        nil,
@@ -722,21 +691,17 @@ func applyCoordinatorOptions(opts ...CoordinatorOption) coordinatorOptions {
 	return options
 }
 
-// newCoordinatorService creates a new coordinator service with all fields
-// initialised.
+// newCoordinatorService creates a new coordinator service with all fields initialised.
 //
-// Takes annotator (annotator_domain.AnnotatorPort) which provides code
-// annotation capabilities.
+// Takes annotator (annotator_domain.AnnotatorPort) which provides code annotation
+// capabilities.
 // Takes cache (BuildResultCachePort) which stores build results.
-// Takes introspectionCache (IntrospectionCachePort) which caches introspection
-// data.
-// Takes fsReader (annotator_domain.FSReaderPort) which reads from the file
-// system.
+// Takes introspectionCache (IntrospectionCachePort) which caches introspection data.
+// Takes fsReader (annotator_domain.FSReaderPort) which reads from the file system.
 // Takes resolver (resolver_domain.ResolverPort) which resolves package paths.
 // Takes options (coordinatorOptions) which configures service behaviour.
 //
-// Returns *coordinatorService which is ready for use with all internal state
-// initialised.
+// Returns *coordinatorService which is ready for use with all internal state initialised.
 func newCoordinatorService(
 	annotator annotator_domain.AnnotatorPort,
 	cache BuildResultCachePort,

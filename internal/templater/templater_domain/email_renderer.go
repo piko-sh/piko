@@ -39,18 +39,19 @@ type emailTemplateService struct {
 	renderer RendererPort
 }
 
-var _ EmailTemplateService = (*emailTemplateService)(nil)
+var (
+	_ EmailTemplateService = (*emailTemplateService)(nil)
+)
 
 // Render processes an email template and returns the rendered output.
 //
-// Takes request (*http.Request) which provides the HTTP context for template
-// rendering.
+// Takes request (*http.Request) which provides the HTTP context for template rendering.
 // Takes templatePath (string) which specifies the path to the email template.
 // Takes props (any) which contains the data to pass to the template.
 // Takes premailerOptions (*premailer.Options) which controls CSS inlining.
 //
-// Returns *templater_dto.RenderedEmailContent which contains the rendered HTML
-// and plain text versions of the email.
+// Returns *templater_dto.RenderedEmailContent which contains the rendered HTML and plain
+// text versions of the email.
 // Returns error when the template cannot be found, parsed, or rendered.
 func (s *emailTemplateService) Render(
 	ctx context.Context,
@@ -120,18 +121,17 @@ func NewEmailTemplateService(runner ManifestRunnerPort, renderer RendererPort) E
 	return &emailTemplateService{runner: runner, renderer: renderer}
 }
 
-// buildRenderedEmailContent builds the final email content and logs debug
-// information about the result.
+// buildRenderedEmailContent builds the final email content and logs debug information
+// about the result.
 //
 // Takes ctx (context.Context) which carries the logger and tracing data.
 // Takes htmlContent (string) which provides the HTML body of the email.
 // Takes plainTextContent (string) which provides the plain text body.
 // Takes styling (string) which provides CSS styling for the email.
-// Takes assetRequests ([]*email_dto.EmailAssetRequest) which lists assets to
-// attach.
+// Takes assetRequests ([]*email_dto.EmailAssetRequest) which lists assets to attach.
 //
-// Returns *templater_dto.RenderedEmailContent which contains the assembled
-// email content ready for sending.
+// Returns *templater_dto.RenderedEmailContent which contains the assembled email content
+// ready for sending.
 func buildRenderedEmailContent(
 	ctx context.Context,
 	htmlContent string,

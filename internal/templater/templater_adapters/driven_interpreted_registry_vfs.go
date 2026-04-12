@@ -75,40 +75,37 @@ const (
 	// srcPathSuffix is the path suffix to trim from GOPATH and GOROOT paths.
 	srcPathSuffix = pathSeparator + srcDirName
 
-	// defaultFileSizeEstimate is the assumed file size in bytes for generated
-	// files when the actual size is not available.
+	// defaultFileSizeEstimate is the assumed file size in bytes for generated files when the
+	// actual size is not available.
 	defaultFileSizeEstimate = 1024
 
 	// virtualDirPermissions is the file mode for virtual directories.
 	virtualDirPermissions = 0755
 
-	// virtualFilePermissions is the permission bits for virtual files in the
-	// registry.
+	// virtualFilePermissions is the permission bits for virtual files in the registry.
 	virtualFilePermissions = 0644
 )
 
-// RegistryVFSAdapter provides a virtual filesystem for the Go compiler that
-// serves generated code from the registry instead of the real filesystem.
+// RegistryVFSAdapter provides a virtual filesystem for the Go compiler that serves
+// generated code from the registry instead of the real filesystem.
 type RegistryVFSAdapter struct {
-	// ctx carries logging context for trace and request ID
-	// propagation, retained on the struct because the
-	// adapter implements fs.FS and go/build.Context
-	// callbacks whose signatures cannot accept a context
-	// parameter.
+	// ctx carries logging context for trace and request ID propagation, retained on the
+	// struct because the adapter implements fs.FS and go/build.Context callbacks whose
+	// signatures cannot accept a context parameter.
 	ctx context.Context
 
 	// registryService retrieves and fetches artefact data from the registry.
 	registryService registry_domain.RegistryService
 
-	// projectSandbox provides sandboxed filesystem access to the project root.
-	// When non-nil, user package resolution uses this instead of raw os calls.
+	// projectSandbox provides sandboxed filesystem access to the project root. When non-nil,
+	// user package resolution uses this instead of raw os calls.
 	projectSandbox safedisk.Sandbox
 
 	// pathMap maps package paths to artefact IDs.
 	pathMap map[string]string
 
-	// freshArtefacts is an in-memory cache of freshly generated code (artefactID
-	// -> content).
+	// freshArtefacts is an in-memory cache of freshly generated code (artefactID ->
+	// content).
 	freshArtefacts map[string][]byte
 
 	// goPath is the virtual GOPATH prefix used to resolve file paths.
@@ -117,8 +114,8 @@ type RegistryVFSAdapter struct {
 	// goRoot is the path prefix for standard library packages.
 	goRoot string
 
-	// modulePath is the Go module path for the project (for example a
-	// GitHub-hosted module path).
+	// modulePath is the Go module path for the project (for example a GitHub-hosted module
+	// path).
 	modulePath string
 
 	// projectRoot is the absolute path to the project root folder.
@@ -128,20 +125,20 @@ type RegistryVFSAdapter struct {
 	mu sync.RWMutex
 }
 
-// NewRegistryVFSAdapter creates a virtual filesystem adapter for serving
-// generated code. The modulePath and projectSandbox parameters enable the VFS
-// to redirect user package imports (imports that match the module path but are
-// not generated code) to the real filesystem via a sandboxed reader.
+// NewRegistryVFSAdapter creates a virtual filesystem adapter for serving generated code.
+// The modulePath and projectSandbox parameters enable the VFS to redirect user package
+// imports (imports that match the module path but are not generated code) to the real
+// filesystem via a sandboxed reader.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to the code registry.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// code registry.
 // Takes goPath (string) which specifies the virtual GOPATH root.
 // Takes goRoot (string) which specifies the virtual GOROOT root.
 // Takes modulePath (string) which identifies the module for import redirection.
-// Takes projectSandbox (safedisk.Sandbox) which provides sandboxed filesystem
-// access to the project root. May be nil to disable user package resolution.
+// Takes projectSandbox (safedisk.Sandbox) which provides sandboxed filesystem access to
+// the project root. May be nil to disable user package resolution.
 //
 // Returns *RegistryVFSAdapter which is the configured adapter ready for use.
 // Returns error when registryService is nil or when goPath or goRoot are empty.
@@ -183,8 +180,8 @@ func NewRegistryVFSAdapter(
 
 // UpdateMap replaces the path-to-artefact mapping with a new snapshot.
 //
-// Takes newMap (map[string]string) which provides the complete mapping of
-// package paths to artefact IDs.
+// Takes newMap (map[string]string) which provides the complete mapping of package paths
+// to artefact IDs.
 //
 // Safe for concurrent use; protected by a mutex.
 func (vfs *RegistryVFSAdapter) UpdateMap(newMap map[string]string) {
@@ -194,21 +191,18 @@ func (vfs *RegistryVFSAdapter) UpdateMap(newMap map[string]string) {
 	vfs.pathMap = newMap
 }
 
-// UpdateFreshArtefacts updates the in-memory cache of freshly
-// generated artefacts, giving the interpreter access to
-// generated code that has not yet been stored in the registry.
-// The cache maps artefact IDs (source paths) to their
-// generated Go code content.
+// UpdateFreshArtefacts updates the in-memory cache of freshly generated artefacts, giving
+// the interpreter access to generated code that has not yet been stored in the registry.
+// The cache maps artefact IDs (source paths) to their generated Go code content.
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// freshly generated artefacts to cache.
-// Takes projectRoot (string) which is the absolute path to the project root
-// for computing relative paths.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the freshly
+// generated artefacts to cache.
+// Takes projectRoot (string) which is the absolute path to the project root for computing
+// relative paths.
 //
 // Returns error which is currently always nil.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (vfs *RegistryVFSAdapter) UpdateFreshArtefacts(artefacts []*generator_dto.GeneratedArtefact, projectRoot string) error {
 	vfs.mu.Lock()
 	defer vfs.mu.Unlock()
@@ -246,9 +240,8 @@ func (vfs *RegistryVFSAdapter) UpdateFreshArtefacts(artefacts []*generator_dto.G
 	return nil
 }
 
-// OpenFile opens a file from the virtual file system, serving generated code
-// from the registry. It implements the build.Context.OpenFile interface for
-// the Go compiler.
+// OpenFile opens a file from the virtual file system, serving generated code from the
+// registry. It implements the build.Context.OpenFile interface for the Go compiler.
 //
 // Takes path (string) which specifies the file path to open.
 //
@@ -303,12 +296,11 @@ func (vfs *RegistryVFSAdapter) OpenFile(ctx context.Context, path string) (io.Re
 	return vfs.fetchFromRegistry(ctx, span, artefactID)
 }
 
-// GetBuildContext creates a custom build.Context configured to use this VFS
-// adapter for file resolution. This context is designed for use with
-// incremental interpreters.
+// GetBuildContext creates a custom build.Context configured to use this VFS adapter for
+// file resolution. This context is designed for use with incremental interpreters.
 //
-// Returns *build.Context which is configured for GOPATH resolution with VFS
-// file operations and real filesystem fallback.
+// Returns *build.Context which is configured for GOPATH resolution with VFS file
+// operations and real filesystem fallback.
 func (vfs *RegistryVFSAdapter) GetBuildContext() *build.Context {
 	customContext := build.Default
 	customContext.GOPATH = strings.TrimSuffix(vfs.goPath, srcPathSuffix)
@@ -326,8 +318,8 @@ func (vfs *RegistryVFSAdapter) GetBuildContext() *build.Context {
 	return &customContext
 }
 
-// Open implements the fs.FS interface.
-// This is the main entry point for the interpreter's file system access.
+// Open implements the fs.FS interface. This is the main entry point for the interpreter's
+// file system access.
 //
 // Takes name (string) which specifies the path to open.
 //
@@ -386,8 +378,7 @@ func (vfs *RegistryVFSAdapter) Open(name string) (fs.File, error) {
 // Takes name (string) which is the path to check.
 //
 // Returns fs.FileInfo which holds file details for the given path.
-// Returns error when the path does not exist in either the virtual or real
-// file system.
+// Returns error when the path does not exist in either the virtual or real file system.
 //
 // Safe for concurrent use; protected by a read lock on the VFS mutex.
 func (vfs *RegistryVFSAdapter) Stat(name string) (fs.FileInfo, error) {
@@ -445,8 +436,8 @@ func (vfs *RegistryVFSAdapter) Stat(name string) (fs.FileInfo, error) {
 	}, nil
 }
 
-// ReadDir implements fs.ReadDirFS interface.
-// Lists all files/subdirectories in the given directory.
+// ReadDir implements fs.ReadDirFS interface. Lists all files/subdirectories in the given
+// directory.
 //
 // Takes name (string) which specifies the directory path to list.
 //
@@ -509,10 +500,8 @@ func (vfs *RegistryVFSAdapter) checkFreshCache(ctx context.Context, artefactID, 
 // Takes span (trace.Span) which provides tracing context.
 // Takes artefactID (string) which identifies the artefact to fetch.
 //
-// Returns io.ReadCloser which provides access to the artefact's Go variant
-// data.
-// Returns error when the artefact cannot be found or lacks the required Go
-// variant.
+// Returns io.ReadCloser which provides access to the artefact's Go variant data.
+// Returns error when the artefact cannot be found or lacks the required Go variant.
 func (vfs *RegistryVFSAdapter) fetchFromRegistry(
 	ctx context.Context,
 	span trace.Span,
@@ -541,8 +530,7 @@ func (vfs *RegistryVFSAdapter) fetchFromRegistry(
 
 // findGoVariant locates the generated Go variant in an artefact.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to
-// search.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to search.
 //
 // Returns *registry_dto.Variant which is the Go variant, or nil if not found.
 func (*RegistryVFSAdapter) findGoVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
@@ -558,8 +546,7 @@ func (*RegistryVFSAdapter) findGoVariant(artefact *registry_dto.ArtefactMeta) *r
 //
 // Takes span (trace.Span) which provides tracing context for the operation.
 // Takes artefactID (string) which identifies the artefact being read.
-// Takes goVariant (*registry_dto.Variant) which specifies which variant to
-// read.
+// Takes goVariant (*registry_dto.Variant) which specifies which variant to read.
 //
 // Returns io.ReadCloser which provides the variant data as a readable stream.
 // Returns error when the variant data cannot be fetched or read.
@@ -595,8 +582,8 @@ func (vfs *RegistryVFSAdapter) readVariantData(
 //
 // Takes path (string) which is the file path to convert.
 //
-// Returns string which is the directory part of the path with the virtual
-// GOPATH, GOROOT, or .piko-gopath prefixes removed.
+// Returns string which is the directory part of the path with the virtual GOPATH, GOROOT,
+// or .piko-gopath prefixes removed.
 func (vfs *RegistryVFSAdapter) normalisePath(path string) string {
 	p := filepath.ToSlash(path)
 
@@ -619,8 +606,8 @@ func (vfs *RegistryVFSAdapter) normalisePath(path string) string {
 	return filepath.Dir(packagePath)
 }
 
-// buildContextOpenFile implements build.Context.OpenFile for the interpreter.
-// It checks the VFS first, then falls back to the real file system.
+// buildContextOpenFile implements build.Context.OpenFile for the interpreter. It checks
+// the VFS first, then falls back to the real file system.
 //
 // Takes path (string) which specifies the file path to open.
 //
@@ -656,8 +643,8 @@ func (vfs *RegistryVFSAdapter) buildContextOpenFile(path string) (io.ReadCloser,
 	return realFile, realErr
 }
 
-// buildContextIsDir implements build.Context.IsDir for the interpreter.
-// It checks VFS first, then falls back to the real filesystem.
+// buildContextIsDir implements build.Context.IsDir for the interpreter. It checks VFS
+// first, then falls back to the real filesystem.
 //
 // Takes path (string) which specifies the directory path to check.
 //
@@ -682,8 +669,8 @@ func (vfs *RegistryVFSAdapter) buildContextIsDir(path string) bool {
 	return false
 }
 
-// buildContextHasSubdir implements build.Context.HasSubdir for the interpreter.
-// It checks the VFS first, then falls back to the real filesystem.
+// buildContextHasSubdir implements build.Context.HasSubdir for the interpreter. It checks
+// the VFS first, then falls back to the real filesystem.
 //
 // Takes root (string) which is the base directory path.
 // Takes directory (string) which is the subdirectory to check for.
@@ -713,14 +700,13 @@ func (vfs *RegistryVFSAdapter) buildContextHasSubdir(root, directory string) (st
 	return "", false
 }
 
-// buildContextReadDir implements build.Context.ReadDir for the interpreter.
-// It tries the VFS first, then falls back to the real file system.
+// buildContextReadDir implements build.Context.ReadDir for the interpreter. It tries the
+// VFS first, then falls back to the real file system.
 //
 // Takes directory (string) which specifies the directory path to read.
 //
 // Returns []os.FileInfo which contains the directory entries.
-// Returns error when both the VFS and real file system fail to read the
-// directory.
+// Returns error when both the VFS and real file system fail to read the directory.
 func (vfs *RegistryVFSAdapter) buildContextReadDir(directory string) ([]os.FileInfo, error) {
 	_, l := logger_domain.From(vfs.ctx, log)
 	l.Trace("[BUILD-CTX] ReadDir called", logger_domain.String(logFieldDir, directory))
@@ -800,8 +786,8 @@ func (vfs *RegistryVFSAdapter) openPackageAsFile(name, artefactID string) (fs.Fi
 	}, nil
 }
 
-// isParentDirectory checks if the path is a parent directory of any packages
-// in pathMap. Unlike isDirectory, this returns false for exact package paths.
+// isParentDirectory checks if the path is a parent directory of any packages in pathMap.
+// Unlike isDirectory, this returns false for exact package paths.
 //
 // Takes packagePath (string) which specifies the path to check.
 //
@@ -823,14 +809,14 @@ func (vfs *RegistryVFSAdapter) isParentDirectory(packagePath string) bool {
 	return false
 }
 
-// resolveUserPackagePath checks if a package path belongs to the user's
-// project and returns the matching path relative to the project sandbox.
+// resolveUserPackagePath checks if a package path belongs to the user's project and
+// returns the matching path relative to the project sandbox.
 //
 // Takes packagePath (string) which is the package import path to resolve.
 // Takes originalName (string) which is the original file or folder name.
 //
-// Returns string which is the resolved path relative to the project sandbox,
-// or empty if the path does not belong to the user's project.
+// Returns string which is the resolved path relative to the project sandbox, or empty if
+// the path does not belong to the user's project.
 func (vfs *RegistryVFSAdapter) resolveUserPackagePath(packagePath, originalName string) string {
 	_, l := logger_domain.From(vfs.ctx, log)
 	l.Trace("[VFS-USER-PKG] Checking user package resolution",
@@ -880,8 +866,7 @@ func (vfs *RegistryVFSAdapter) resolveUserPackagePath(packagePath, originalName 
 	return ""
 }
 
-// readDirPackage handles ReadDir for a package directory that exists in
-// pathMap.
+// readDirPackage handles ReadDir for a package directory that exists in pathMap.
 //
 // Takes packagePath (string) which specifies the package path to read.
 //
@@ -916,11 +901,10 @@ func (vfs *RegistryVFSAdapter) readDirPackage(packagePath string) ([]fs.DirEntry
 	}, true
 }
 
-// listSubdirectories returns virtual directory entries for packages that start
-// with the given path.
+// listSubdirectories returns virtual directory entries for packages that start with the
+// given path.
 //
-// Takes packagePath (string) which specifies the package path prefix
-// to search for.
+// Takes packagePath (string) which specifies the package path prefix to search for.
 //
 // Returns []fs.DirEntry which contains the subdirectory entries found.
 func (vfs *RegistryVFSAdapter) listSubdirectories(packagePath string) []fs.DirEntry {
@@ -964,8 +948,8 @@ func (vfs *RegistryVFSAdapter) listSubdirectories(packagePath string) []fs.DirEn
 // Takes path (string) which is the full path to extract from.
 // Takes prefix (string) which is the leading part to remove before extracting.
 //
-// Returns string which is the first path part after the prefix, or an empty
-// string if none remains.
+// Returns string which is the first path part after the prefix, or an empty string if
+// none remains.
 func (*RegistryVFSAdapter) extractNextPathComponent(path, prefix string) string {
 	remainder := strings.TrimPrefix(path, prefix)
 	parts := strings.Split(remainder, pathSeparator)
@@ -975,8 +959,8 @@ func (*RegistryVFSAdapter) extractNextPathComponent(path, prefix string) string 
 	return parts[0]
 }
 
-// readDirFallback handles ReadDir when no entries exist in the VFS.
-// It falls back to user packages or the real file system.
+// readDirFallback handles ReadDir when no entries exist in the VFS. It falls back to user
+// packages or the real file system.
 //
 // Takes packagePath (string) which specifies the package path to resolve.
 // Takes name (string) which specifies the directory name to read.
@@ -999,8 +983,8 @@ func (vfs *RegistryVFSAdapter) readDirFallback(packagePath, name string) ([]fs.D
 
 // isDirectory checks if the given path is a directory in the VFS.
 //
-// A path is a directory if it exactly matches a package path in pathMap, or
-// other package paths start with this path (it is a parent directory).
+// A path is a directory if it exactly matches a package path in pathMap, or other package
+// paths start with this path (it is a parent directory).
 //
 // Takes packagePath (string) which specifies the path to check.
 //
@@ -1028,14 +1012,14 @@ func (vfs *RegistryVFSAdapter) isDirectory(packagePath string) bool {
 
 // normalisePathForFS prepares a filesystem path for VFS lookups.
 //
-// This works like normalisePath but handles directory paths in a special way.
-// It processes both absolute paths (e.g. /path/.piko-gopath/src/pkg) and
-// relative paths (e.g. .piko-gopath/src/pkg) that the interpreter may pass.
+// This works like normalisePath but handles directory paths in a special way. It
+// processes both absolute paths (e.g. /path/.piko-gopath/src/pkg) and relative paths
+// (e.g. .piko-gopath/src/pkg) that the interpreter may pass.
 //
 // Takes name (string) which is the path to prepare for filesystem lookup.
 //
-// Returns string which is the package path with virtual prefixes and source
-// directory parts removed.
+// Returns string which is the package path with virtual prefixes and source directory
+// parts removed.
 func (vfs *RegistryVFSAdapter) normalisePathForFS(name string) string {
 	p := filepath.ToSlash(name)
 	packagePath := vfs.stripVirtualPrefix(p)
@@ -1052,14 +1036,14 @@ func (vfs *RegistryVFSAdapter) normalisePathForFS(name string) string {
 	return packagePath
 }
 
-// stripVirtualPrefix extracts the package path from a virtual filesystem path.
-// It handles GOPATH, GOROOT, and relative .piko-gopath prefixes.
+// stripVirtualPrefix extracts the package path from a virtual filesystem path. It handles
+// GOPATH, GOROOT, and relative .piko-gopath prefixes.
 //
 // Takes p (string) which is the virtual filesystem path to process.
 //
-// Returns string which is the extracted package path. Returns empty string for
-// the root of virtual GOPATH/src, or the original path if no virtual prefix
-// is found.
+// Returns string which is the extracted package path.
+// Returns empty string for the root of virtual GOPATH/src, or the original path if no
+// virtual prefix is found.
 func (vfs *RegistryVFSAdapter) stripVirtualPrefix(p string) string {
 	if result, found := strings.CutPrefix(p, vfs.goPath); found {
 		return result
@@ -1187,12 +1171,12 @@ func (d *virtualDir) Close() error {
 
 // ReadDir implements fs.ReadDirFile.ReadDir.
 //
-// Takes n (int) which specifies the maximum number of entries to return. If n
-// is less than or equal to zero, all remaining entries are returned.
+// Takes n (int) which specifies the maximum number of entries to return. If n is less
+// than or equal to zero, all remaining entries are returned.
 //
 // Returns []fs.DirEntry which contains the directory entries.
-// Returns error when the directory is closed, reading fails, or there are no
-// more entries (io.EOF).
+// Returns error when the directory is closed, reading fails, or there are no more entries
+// (io.EOF).
 func (d *virtualDir) ReadDir(n int) ([]fs.DirEntry, error) {
 	if d.closed {
 		return nil, &fs.PathError{Op: "readdir", Path: d.name, Err: fs.ErrClosed}
@@ -1252,8 +1236,8 @@ func (fi *virtualFileInfo) Name() string { return fi.name }
 // Returns int64 which is the size of the content.
 func (fi *virtualFileInfo) Size() int64 { return fi.size }
 
-// Mode returns the file mode bits for this virtual file or directory.
-// Implements fs.FileInfo.
+// Mode returns the file mode bits for this virtual file or directory. Implements
+// fs.FileInfo.
 //
 // Returns fs.FileMode which describes the file type and permission bits.
 func (fi *virtualFileInfo) Mode() fs.FileMode {
@@ -1318,11 +1302,10 @@ func (e *virtualDirEntry) Info() (fs.FileInfo, error) { return e.info, nil }
 
 // convertDirEntriesToFileInfos converts directory entries to file info values.
 //
-// Takes entries ([]fs.DirEntry) which contains the directory entries to
-// convert.
+// Takes entries ([]fs.DirEntry) which contains the directory entries to convert.
 //
-// Returns []os.FileInfo which contains the file info for each entry that could
-// be read. Entries that fail to read are skipped.
+// Returns []os.FileInfo which contains the file info for each entry that could be read.
+// Entries that fail to read are skipped.
 func convertDirEntriesToFileInfos(entries []fs.DirEntry) []os.FileInfo {
 	infos := make([]os.FileInfo, 0, len(entries))
 	for _, entry := range entries {
@@ -1334,16 +1317,15 @@ func convertDirEntriesToFileInfos(entries []fs.DirEntry) []os.FileInfo {
 	return infos
 }
 
-// openViaScopedSandbox opens a file by constructing a one-shot read-only
-// sandbox at its parent directory. This routes module-system fallback reads
-// (GOPATH/GOROOT files outside the project sandbox) through path-traversal
-// protection scoped to the file's containing directory.
+// openViaScopedSandbox opens a file by constructing a one-shot read-only sandbox at its
+// parent directory. This routes module-system fallback reads (GOPATH/GOROOT files outside
+// the project sandbox) through path-traversal protection scoped to the file's containing
+// directory.
 //
 // Takes path (string) which is the absolute file path to open.
 //
 // Returns safedisk.FileHandle which provides access to the file content.
-// Returns error when the parent sandbox cannot be created or the file cannot
-// be opened.
+// Returns error when the parent sandbox cannot be created or the file cannot be opened.
 func openViaScopedSandbox(path string) (safedisk.FileHandle, error) {
 	directory := filepath.Dir(path)
 	sandbox, err := safedisk.NewSandbox(directory, safedisk.ModeReadOnly)

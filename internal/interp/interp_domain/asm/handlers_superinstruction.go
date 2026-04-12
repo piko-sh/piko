@@ -18,51 +18,41 @@
 
 package asm
 
-import "piko.sh/piko/wdk/asmgen"
+import (
+	"piko.sh/piko/wdk/asmgen"
+)
 
-// labelTaken is the branch-target label used when the comparison
-// condition holds and the jump should be skipped.
-const labelTaken = "taken"
+const (
+	// labelTaken is the branch-target label used when the comparison condition holds and the
+	// jump should be skipped.
+	labelTaken = "taken"
 
-// labelDispatch is the convergence label where all paths rejoin before
-// calling DispatchNext.
-const labelDispatch = "dispatch"
+	// labelDispatch is the convergence label where all paths rejoin before calling
+	// DispatchNext.
+	labelDispatch = "dispatch"
+)
 
-// superinstructionHandlers returns the handler definitions for fused
-// superinstruction opcodes.
+// superinstructionHandlers returns the handler set for fused superinstruction opcodes.
 //
-// Superinstructions are compound bytecode operations that fuse two or more
-// simple operations into a single handler, eliminating intermediate register
-// file reads and writes and reducing dispatch overhead. The bytecode compiler's
-// peephole optimiser identifies common instruction sequences and replaces them
-// with these fused opcodes.
+// Superinstructions fuse two or more simple operations into a single handler, eliminating
+// intermediate register reads/writes and reducing dispatch overhead. The peephole
+// optimiser identifies common instruction sequences and replaces them with these fused
+// opcodes.
 //
-// The returned set covers three families of fused operations. First, the
-// constant arithmetic handlers (SubIntConst, AddIntConst, MulIntConst) that
-// combine an integer constant load with a binary arithmetic operation, reading
-// one operand from the integer register bank and the other from the integer
-// constant pool. Second, the compare-constant-jump-false handlers
-// (LeIntConstJumpFalse, LtIntConstJumpFalse, EqIntConstJumpFalse,
-// GeIntConstJumpFalse, GtIntConstJumpFalse) and the compare-constant-jump-true
-// handler (EqIntConstJumpTrue) that fuse a comparison against a constant with a
-// conditional branch, eliminating the intermediate boolean register and the
-// separate JumpIfFalse/JumpIfTrue instruction. Third, the fused
-// arithmetic-plus-jump handlers (AddIntJump, IncIntJumpLt) that combine an
-// arithmetic update with a control flow transfer.
+// The returned set covers constant arithmetic (SubIntConst, AddIntConst, MulIntConst)
+// combining an integer constant load with a binary operation, compare-constant-jump-false
+// handlers (LeIntConstJumpFalse, LtIntConstJumpFalse, EqIntConstJumpFalse,
+// GeIntConstJumpFalse, GtIntConstJumpFalse) and EqIntConstJumpTrue fusing a comparison
+// with a conditional branch, and arithmetic-plus-jump handlers (AddIntJump, IncIntJumpLt)
+// combining an arithmetic update with a control flow transfer. Superinstructions that
+// include a jump consume an extension word (OpExt) immediately following the primary
+// word; the handler reads it via LoadNextInstructionWord and applies the offset to the
+// program counter, and when the jump is not taken the handler must still advance past the
+// extension word via IncrementProgramCounter. Slice ordering matches the opcode numbering
+// expected by the jump table initialisation logic.
 //
-// All superinstructions that include a jump component consume an extension word
-// (OpExt) from the bytecode stream. The extension word is the instruction word
-// immediately following the superinstruction's own word; it encodes the signed
-// jump offset in its upper bits. The handler reads this extension word via
-// LoadNextInstructionWord and applies the offset to the program counter. When
-// the jump is not taken, the handler must still advance past the extension word
-// via IncrementProgramCounter so that dispatch resumes at the correct position.
-//
-// The ordering within the slice matches the opcode numbering expected by the
-// jump table initialisation logic.
-//
-// Returns []asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// complete set of superinstruction handler definitions.
+// Returns []asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the complete set
+// of superinstruction handler definitions.
 func superinstructionHandlers() []asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return []asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		constantArithmeticHandler("handlerSubIntConst", "handlerSubIntConst sets ints[A] = ints[B] - intConstants[C].", "SUB"),
@@ -79,43 +69,30 @@ func superinstructionHandlers() []asmgen.HandlerDefinition[BytecodeArchitectureP
 	}
 }
 
-// constantArithmeticHandler is a factory that produces a HandlerDefinition for
-// any binary integer arithmetic operation where one operand comes from the
-// integer register bank and the other comes from the integer constant pool. It
-// abstracts the common pattern shared by handlerSubIntConst, handlerAddIntConst,
-// and handlerMulIntConst.
+// constantArithmeticHandler is a factory that produces a HandlerDefinition for any binary
+// integer arithmetic operation where one operand comes from the integer register bank and
+// the other from the integer constant pool, abstracting the pattern shared by
+// handlerSubIntConst, handlerAddIntConst and handlerMulIntConst.
 //
-// Each generated handler uses a three-operand ABC instruction encoding. Operand
-// A is the destination register index addressing the integer register bank.
-// Operand B is the source register index, also addressing the integer register
-// bank. Operand C is the index into the integer constant pool (not the register
-// bank). The handler extracts A, B, and C into scratch registers, then
-// delegates to IntegerBinaryOperationConstant on the architecture adapter,
-// passing the operation string (one of "ADD", "SUB", "MUL").
-//
-// The adapter loads ints[B] from the register bank, loads intConstants[C] from
-// the constant pool, performs the specified signed 64-bit arithmetic operation,
-// and writes the result into ints[A]. This fused operation eliminates what
-// would otherwise require a separate LoadIntConst instruction followed by a
-// binary arithmetic instruction, saving one dispatch cycle and one intermediate
-// register file write per occurrence.
-//
-// The name parameter becomes the Go symbol name for the TEXT directive. The
-// comment parameter becomes the godoc-style comment placed above that directive
-// in the generated assembly file. The operation parameter selects which
-// arithmetic instruction the adapter emits. After the operation, the handler
-// dispatches to the next instruction via DispatchNext.
+// Each generated handler uses a three-operand ABC encoding: A is the destination integer
+// register, B is the source integer register, C is the integer constant pool index. The
+// handler extracts A, B, and C into scratch registers and delegates to
+// IntegerBinaryOperationConstant on the architecture adapter with the operation string
+// ("ADD", "SUB", "MUL"). The adapter performs ints[A] = ints[B] op intConstants[C] as a
+// signed 64-bit operation, replacing what would otherwise be a LoadIntConst followed by a
+// binary arithmetic instruction. After the operation the handler dispatches to the next
+// instruction via DispatchNext.
 //
 // Takes name (string) which is the assembly symbol name for the TEXT directive.
 // Takes comment (string) which is the inline comment for the generated assembly.
 // Takes operation (string) which selects the arithmetic instruction (ADD, SUB, MUL).
 //
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the specified constant arithmetic operation.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the specified constant arithmetic operation.
 func constantArithmeticHandler(name, comment, operation string) asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: name, Comment: comment,
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -127,62 +104,34 @@ func constantArithmeticHandler(name, comment, operation string) asmgen.HandlerDe
 	}
 }
 
-// compareConstantJumpFalseHandler is a factory that produces a HandlerDefinition
-// for a fused compare-against-constant-and-jump-if-false superinstruction. It
-// abstracts the common pattern shared by handlerLeIntConstJumpFalse,
-// handlerLtIntConstJumpFalse, handlerEqIntConstJumpFalse,
-// handlerGeIntConstJumpFalse, and handlerGtIntConstJumpFalse.
+// compareConstantJumpFalseHandler is a factory that produces a HandlerDefinition for a
+// fused compare-against-constant-and-jump-if-false superinstruction, abstracting the
+// pattern shared by handlerLeIntConstJumpFalse, handlerLtIntConstJumpFalse,
+// handlerEqIntConstJumpFalse, handlerGeIntConstJumpFalse and handlerGtIntConstJumpFalse.
 //
-// Each generated handler uses a two-operand AB instruction encoding for its
-// primary word, plus a mandatory extension word (OpExt) that encodes the jump
-// offset. Operand A is the register index addressing the integer register bank
-// (the value to be tested). Operand B is the index into the integer constant
-// pool (the value to compare against). The extension word immediately follows
-// in the bytecode stream and carries the signed jump offset in its upper bits.
-//
-// The handler extracts A and B into scratch registers, then delegates to
-// IntegerCompareConstantAndBranch on the architecture adapter, passing the
-// condition string (one of "LE", "LT", "EQ", "GE", "GT") and the label
-// "taken". The adapter loads ints[A] from the register bank, loads
-// intConstants[B] from the constant pool, performs a signed 64-bit comparison,
-// and branches to "taken" if the condition holds.
-//
-// If the condition holds (branch taken), execution reaches the "taken" label,
-// where IncrementProgramCounter skips past the extension word without applying
-// its offset, and execution falls through to the "dispatch" label for normal
-// dispatch to the next sequential instruction.
-//
-// If the condition does not hold (branch not taken, meaning the condition is
-// false), execution falls through to the jump logic. The handler calls
-// LoadNextInstructionWord to read the extension word (OpExt) into a scratch
-// register, which also advances the program counter past that word. It then
-// calls AddToProgramCounter to apply the signed offset from the extension word.
-// An UnconditionalBranch to "dispatch" then transfers control to the shared
-// DispatchNext at the end.
-//
-// This fused operation eliminates what would otherwise be a compare instruction,
-// a boolean register write, and a separate JumpIfFalse instruction, saving two
-// dispatch cycles and one intermediate register file update per occurrence.
-// The direct compare+branch approach also avoids materialising the boolean
-// result entirely, since IntegerCompareConstantAndBranch uses a CMP + Bcc
-// sequence (on arm64) or CMP + Jcc sequence (on amd64) that branches directly
-// on the processor flags.
-//
-// The name parameter becomes the Go symbol name for the TEXT directive. The
-// comment parameter becomes the godoc-style comment placed above that directive
-// in the generated assembly file. The condition parameter selects the
-// relational operator for the comparison.
+// Each generated handler uses a two-operand AB encoding plus a mandatory extension word
+// (OpExt) carrying the signed jump offset. A indexes the integer register being tested; B
+// indexes the integer constant pool entry being compared against. The handler extracts A
+// and B into scratches and delegates to IntegerCompareConstantAndBranch with the
+// condition ("LE", "LT", "EQ", "GE", "GT") and the label "taken". When the condition
+// holds the branch reaches "taken", IncrementProgramCounter skips past the extension
+// word, and execution falls through to "dispatch" for normal sequential dispatch. When
+// the condition does not hold the handler reads the extension word via
+// LoadNextInstructionWord (which also advances past it), calls AddToProgramCounter to
+// apply the offset, and branches unconditionally to "dispatch" where DispatchNext fires.
+// This avoids materialising the boolean result entirely by using a CMP+Bcc/Jcc sequence
+// that branches directly on the processor flags.
 //
 // Takes name (string) which is the assembly symbol name for the TEXT directive.
 // Takes comment (string) which is the inline comment for the generated assembly.
 // Takes condition (string) which selects the relational operator (LE, LT, EQ, GE, GT).
 //
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the specified compare-constant-jump-false operation.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the specified compare-constant-jump-false operation.
 func compareConstantJumpFalseHandler(name, comment, condition string) asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: name, Comment: comment,
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -204,47 +153,28 @@ func compareConstantJumpFalseHandler(name, comment, condition string) asmgen.Han
 }
 
 // compareConstantJumpTrueHandler returns the handler definition for the
-// EqIntConstJumpTrue superinstruction, which fuses an equality comparison
-// against a constant with a conditional jump that is taken when the condition
-// is TRUE (equal), rather than when it is false.
+// EqIntConstJumpTrue superinstruction, which fuses an equality comparison against a
+// constant with a conditional jump taken when the values are equal (TRUE) rather than not
+// equal.
 //
-// This handler uses a two-operand AB instruction encoding for its primary word,
-// plus a mandatory extension word (OpExt) that encodes the jump offset. Operand
-// A is the register index addressing the integer register bank (the value to
-// be tested). Operand B is the index into the integer constant pool (the value
-// to compare against).
+// The handler uses a two-operand AB encoding plus an OpExt extension word carrying the
+// signed jump offset: A indexes the integer register being tested, B indexes the integer
+// constant pool entry. It delegates to IntegerCompareConstantAndBranch with condition
+// "NE" and label "taken" (the polarity is inverted relative to
+// compareConstantJumpFalseHandler so the adapter branches away from the jump when the
+// values are not equal). On NE the handler reaches "taken", advances past the extension
+// word via IncrementProgramCounter, and falls through to "dispatch". When equal it reads
+// the extension word with LoadNextInstructionWord, applies the signed offset via
+// AddToProgramCounter, and unconditionally branches to "dispatch" where DispatchNext
+// fires. It exists as a separate function from the factory because the inverted polarity
+// benefits from explicit documentation.
 //
-// The handler extracts A and B into scratch registers, then delegates to
-// IntegerCompareConstantAndBranch with the condition "NE" (not equal) and the
-// label "taken". Note the inversion: because this is a jump-if-true handler,
-// the branch must skip the jump when the condition is false (not equal), so the
-// adapter is told to branch to "taken" on NE. This is the mirror image of the
-// compareConstantJumpFalseHandler pattern, where the adapter branches on the
-// original condition to skip the jump.
-//
-// If the values are not equal (NE branch taken), execution reaches the "taken"
-// label, where IncrementProgramCounter skips past the extension word, and
-// execution falls through to "dispatch" for normal sequential dispatch.
-//
-// If the values are equal (NE branch not taken), execution falls through to the
-// jump logic. The handler calls LoadNextInstructionWord to read the extension
-// word (OpExt) and advance past it, then calls AddToProgramCounter to apply
-// the signed offset. An UnconditionalBranch to "dispatch" then transfers
-// control to the shared DispatchNext.
-//
-// This handler exists as a separate function rather than using the
-// compareConstantJumpFalseHandler factory because the jump polarity is inverted:
-// the jump is taken on equality rather than on inequality. The condition passed
-// to the adapter must be the logical negation of the desired jump condition,
-// and this asymmetry makes it clearer to implement as its own function with
-// explicit documentation of the inversion.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the EqIntConstJumpTrue superinstruction.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the EqIntConstJumpTrue superinstruction.
 func compareConstantJumpTrueHandler() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerEqIntConstJumpTrue", Comment: "handlerEqIntConstJumpTrue compares ints[A] == intConstants[B] and jumps if true.",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -265,42 +195,27 @@ func compareConstantJumpTrueHandler() asmgen.HandlerDefinition[BytecodeArchitect
 	}
 }
 
-// handlerAddIntJump returns the handler definition for the AddIntJump
-// superinstruction, which fuses an integer addition with a constant operand and
-// an unconditional jump into a single handler.
+// handlerAddIntJump returns the handler definition for the AddIntJump superinstruction,
+// fusing an integer addition with a constant operand and an unconditional jump into a
+// single handler.
 //
-// This handler uses a three-operand ABC instruction encoding for its primary
-// word, plus a mandatory extension word (OpExt) that encodes the jump offset.
-// Operand A is the destination register index addressing the integer register
-// bank. Operand B is the source register index, also addressing the integer
-// register bank. Operand C is the index into the integer constant pool.
+// The encoding is three-operand ABC for the primary word plus an OpExt extension word
+// carrying the signed jump offset: A is the destination integer register, B is the source
+// integer register, C is the integer constant pool index. The handler delegates to
+// IntegerBinaryOperationConstant with "ADD" to compute ints[A] = ints[B] +
+// intConstants[C], then reads the extension word via LoadNextInstructionWord (advancing
+// past it) and applies the offset via AddToProgramCounter before dispatching with
+// DispatchNext. The jump is always taken; this is the natural lowering of a loop
+// back-edge that includes an increment or accumulator update, saving one dispatch cycle
+// per iteration over the separate AddIntConst + Jump pair, and the extension word permits
+// a wider signed offset than the simple Jump opcode's 16-bit BC field.
 //
-// The handler extracts A, B, and C into scratch registers, then delegates to
-// IntegerBinaryOperationConstant with the operation "ADD" to compute
-// ints[A] = ints[B] + intConstants[C]. This is identical to the arithmetic
-// performed by handlerAddIntConst. After the addition, the handler calls
-// LoadNextInstructionWord to read the extension word (OpExt) from the bytecode
-// stream, which provides the signed jump offset and advances the program
-// counter past the extension word. It then calls AddToProgramCounter to apply
-// the offset.
-//
-// The unconditional jump is always taken; there is no conditional branch in
-// this handler. This fused operation is the natural lowering of a loop back-
-// edge that includes an increment or accumulator update: the compiler replaces
-// the separate AddIntConst + Jump pair with a single AddIntJump, saving one
-// dispatch cycle per loop iteration. The extension word mechanism allows a full
-// instruction-word-width signed offset, giving a larger jump range than the
-// 16-bit signed BC offset available to the simple Jump opcode.
-//
-// After applying the jump offset, the handler dispatches to the next
-// instruction via DispatchNext.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the AddIntJump superinstruction.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the AddIntJump superinstruction.
 func handlerAddIntJump() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
 		Name: "handlerAddIntJump", Comment: "handlerAddIntJump sets ints[A] = ints[B] + intConstants[C] and unconditionally jumps.",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
 			architecture.ExtractA(emitter, scratches[0])
@@ -315,50 +230,33 @@ func handlerAddIntJump() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 }
 
 // handlerIncIntJumpLt returns the handler definition for the IncIntJumpLt
-// superinstruction, which fuses an in-place integer increment with a
-// less-than comparison and a conditional backward jump into a single handler.
-// This is the canonical loop-control superinstruction.
+// superinstruction, which fuses an in-place integer increment with a less-than comparison
+// and a conditional backward jump. This is the canonical loop-control superinstruction.
 //
-// This handler uses a two-operand AB instruction encoding for its primary word,
-// plus a mandatory extension word (OpExt) that encodes the jump offset. Operand
-// A is the register index addressing the integer register bank for the loop
-// counter (both read and written in place). Operand B is the register index
-// addressing the integer register bank for the loop bound.
+// The encoding is two-operand AB plus an OpExt extension word carrying the signed jump
+// offset: B is the integer register holding the loop counter (read and written in place),
+// C is the integer register holding the loop bound. The handler calls IntegerInPlace with
+// "INC" to increment ints[B] directly in the register bank, then IntegerCompareAndBranch
+// with "LT" to branch to "jump" when ints[B] < ints[C]. When the condition fails the loop
+// has completed: IncrementProgramCounter advances past the extension word and
+// UnconditionalBranch to "dispatch" hands control to DispatchNext for the instruction
+// after the loop. At "jump", LoadNextInstructionWord reads the (typically negative)
+// offset and AddToProgramCounter applies it before falling through to "dispatch". This
+// replaces what would otherwise be four separate instructions (IncInt, register
+// move/LoadIntConst, LtInt, JumpIfTrue), eliminating three dispatch cycles and avoiding
+// any intermediate boolean materialisation, which makes tight counted loops substantially
+// faster.
 //
-// The handler extracts A and B into scratch registers, then calls
-// IntegerInPlace with the operation "INC" to increment ints[A] by one directly
-// in the register bank, without requiring a separate destination register.
-// After the increment, it calls IntegerCompareAndBranch with the condition "LT"
-// to test whether the updated ints[A] is still less than ints[B]. If the
-// condition holds (ints[A] < ints[B]), execution branches to the "jump" label.
-//
-// If the condition does not hold (ints[A] >= ints[B], meaning the loop has
-// completed), IncrementProgramCounter advances past the extension word, and an
-// UnconditionalBranch to "dispatch" transfers control to the shared
-// DispatchNext for sequential execution of the instruction after the loop.
-//
-// At the "jump" label, LoadNextInstructionWord reads the extension word (OpExt)
-// to obtain the signed jump offset (typically negative, pointing back to the
-// loop body), and AddToProgramCounter applies it. Execution then falls through
-// to the "dispatch" label and DispatchNext.
-//
-// This fused operation replaces what would otherwise be four separate
-// instructions: IncInt, LoadIntConst or a register move, LtInt comparison, and
-// JumpIfTrue. By performing the increment, comparison, and conditional branch
-// in a single handler, it eliminates three dispatch cycles and avoids
-// materialising the intermediate boolean comparison result in the register
-// file. This makes tight counted loops substantially faster.
-//
-// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the
-// handler definition for the IncIntJumpLt superinstruction.
+// Returns asmgen.HandlerDefinition[BytecodeArchitecturePort] which is the handler
+// definition for the IncIntJumpLt superinstruction.
 func handlerIncIntJumpLt() asmgen.HandlerDefinition[BytecodeArchitecturePort] {
 	return asmgen.HandlerDefinition[BytecodeArchitecturePort]{
-		Name: "handlerIncIntJumpLt", Comment: "handlerIncIntJumpLt increments ints[A] and jumps if ints[A] < ints[B].",
-		FrameSize: frameSizeZero, Flags: flagNoSplit,
+		Name: "handlerIncIntJumpLt", Comment: "handlerIncIntJumpLt increments ints[B] and jumps if ints[B] < ints[C] in tier-1 form (subOpIncIntJumpLt).",
+		FrameSize: frameSizeZero, Flags: flagsNoSplitNoFrame,
 		Emit: func(emitter *asmgen.Emitter, architecture BytecodeArchitecturePort) {
 			scratches := architecture.ScratchRegisters()
-			architecture.ExtractA(emitter, scratches[0])
-			architecture.ExtractB(emitter, scratches[1])
+			architecture.ExtractB(emitter, scratches[0])
+			architecture.ExtractC(emitter, scratches[1])
 			architecture.IntegerInPlace(emitter, "INC", scratches[0])
 
 			architecture.IntegerCompareAndBranch(emitter, "LT", scratches[0], scratches[1], "jump")

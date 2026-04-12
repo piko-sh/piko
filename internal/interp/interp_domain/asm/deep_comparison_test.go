@@ -32,11 +32,13 @@ import (
 	interp_arm64 "piko.sh/piko/internal/interp/interp_domain/asm/asmgen_arch_arm64"
 )
 
-var exactMatchBaseNames = map[string]bool{
-	"asm_vm_dispatch_string": true,
-	"asm_vm_dispatch_init":   true,
-	"asm_vm_dispatch_inline": true,
-}
+var (
+	exactMatchBaseNames = map[string]bool{
+		"asm_vm_dispatch_string": true,
+		"asm_vm_dispatch_init":   true,
+		"asm_vm_dispatch_inline": true,
+	}
+)
 
 func TestDeepInstructionComparison(t *testing.T) {
 	architectures := []BytecodeArchitecturePort{
@@ -45,7 +47,7 @@ func TestDeepInstructionComparison(t *testing.T) {
 	}
 
 	writer := &memWriter{files: make(map[string][]byte)}
-	err := asmgen.GenerateFiles(writer, architectures, FileGroups(), HeaderFiles())
+	err := asmgen.GenerateFiles(writer, architectures, FileGroups(), HeaderFiles(testOffsetsForHeaderFiles()), nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
@@ -123,7 +125,9 @@ func TestDeepInstructionComparison(t *testing.T) {
 	}
 }
 
-var trailingComment = regexp.MustCompile(`\s+//.*$`)
+var (
+	trailingComment = regexp.MustCompile(`\s+//.*$`)
+)
 
 func extractTextBlocks(content string) map[string][]string {
 	blocks := make(map[string][]string)

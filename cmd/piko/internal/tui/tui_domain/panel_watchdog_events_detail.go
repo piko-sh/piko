@@ -25,12 +25,11 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body for the event currently
-// under the cursor. The full event message, fields, and timestamp are
-// shown; otherwise an event-stream summary is rendered.
+// DetailView renders the detail-pane body for the event currently under the cursor. The
+// full event message, fields, and timestamp are shown; otherwise an event-stream summary
+// is rendered.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *WatchdogEventsPanel) DetailView(width, height int) string {
@@ -38,8 +37,8 @@ func (p *WatchdogEventsPanel) DetailView(width, height int) string {
 	return RenderDetailBody(p.theme, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content based on the
-// current cursor target.
+// buildDetailBody assembles the structured detail content based on the current cursor
+// target.
 //
 // Returns inspector.DetailBody for the selected event, or the overall stream summary.
 func (p *WatchdogEventsPanel) buildDetailBody() inspector.DetailBody {
@@ -88,11 +87,10 @@ func watchdogEventDetailBody(ev WatchdogEvent) inspector.DetailBody {
 	}
 }
 
-// eventsOverviewDetailBody renders the panel-level summary of the
-// event stream.
+// eventsOverviewDetailBody renders the panel-level summary of the event stream.
 //
-// Returns inspector.DetailBody describing the visible/total counts, stream state,
-// and minimum priority filter.
+// Returns inspector.DetailBody describing the visible/total counts, stream state, and
+// minimum priority filter.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (p *WatchdogEventsPanel) eventsOverviewDetailBody() inspector.DetailBody {

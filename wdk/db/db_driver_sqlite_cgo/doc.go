@@ -16,11 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_driver_sqlite_cgo provides a CGO-based SQLite
-// connection opener using the mattn/go-sqlite3 driver.
+// Package db_driver_sqlite_cgo provides a CGO-based SQLite connection opener using the
+// mattn/go-sqlite3 driver.
 //
-// The Open function returns a *sql.DB with production-ready
-// defaults already applied, including WAL mode, foreign keys,
-// and a single-connection pool to match SQLite's single-writer
-// model.
+// The Open function returns a *sql.DB with production-ready defaults already applied,
+// including WAL mode, foreign keys, and a single-connection pool to match SQLite's
+// single-writer model.
 package db_driver_sqlite_cgo

@@ -59,66 +59,63 @@ const (
 )
 
 var (
-	// ErrClosed is returned by [Writer.Write] when the writer has already
-	// been closed.
+	// ErrClosed is returned by Writer.Write when the writer has already been closed.
 	ErrClosed = errors.New("logrotate: writer is closed")
 
-	// ErrInvalidConfig is returned by [New] when the configuration fails
-	// validation. Use [errors.Is] to check for this sentinel; the returned
-	// error wraps it with a descriptive message.
+	// ErrInvalidConfig is returned by New when the configuration fails validation. Use
+	// errors.Is to check for this sentinel; the returned error wraps it with a descriptive
+	// message.
 	ErrInvalidConfig = errors.New("logrotate: invalid configuration")
 )
 
 // Config holds the settings for a rotating log file writer.
 type Config struct {
-	// Sandbox is the filesystem sandbox used for all file operations. When
-	// nil a sandbox is created from Directory.
+	// Sandbox is the filesystem sandbox used for all file operations. When nil a sandbox is
+	// created from Directory.
 	Sandbox safedisk.Sandbox
 
 	// Clock provides the current time.
 	//
-	// When nil [clock.RealClock] is used. Use [clock.NewMockClock] in tests
-	// to control timestamps.
+	// When nil clock.RealClock is used. Use clock.NewMockClock in tests to control
+	// timestamps.
 	Clock clock.Clock
 
-	// Directory is the directory where the log file and its rotated backups
-	// are stored.
+	// Directory is the directory where the log file and its rotated backups are stored.
 	//
-	// When Sandbox is nil this must be set and a real sandbox is created from
-	// it. When Sandbox is provided the value is ignored.
+	// When Sandbox is nil this must be set and a real sandbox is created from it. When
+	// Sandbox is provided the value is ignored.
 	Directory string
 
-	// Filename is the base name of the log file (e.g. "app.log"), which must
-	// not contain path separators.
+	// Filename is the base name of the log file (e.g. "app.log"), which must not contain
+	// path separators.
 	Filename string
 
-	// MaxSize is the maximum size of the log file in megabytes before it is
-	// rotated. Zero uses the default of 100 MB.
+	// MaxSize is the maximum size of the log file in megabytes before it is rotated. Zero
+	// uses the default of 100 MB.
 	MaxSize int
 
-	// MaxBackups is the maximum number of old log files to retain. Zero
-	// means keep all backups.
+	// MaxBackups is the maximum number of old log files to retain. Zero means keep all
+	// backups.
 	MaxBackups int
 
-	// MaxAge is the maximum number of days to retain old log files based on
-	// the timestamp encoded in their filename. Zero means no age limit.
+	// MaxAge is the maximum number of days to retain old log files based on the timestamp
+	// encoded in their filename. Zero means no age limit.
 	MaxAge int
 
 	// Compress controls whether rotated log files are compressed with gzip.
 	Compress bool
 
-	// LocalTime determines whether backup timestamps use local time instead
-	// of UTC. The default is UTC.
+	// LocalTime determines whether backup timestamps use local time instead of UTC. The
+	// default is UTC.
 	LocalTime bool
 }
 
-// Writer is a thread-safe [io.WriteCloser] that automatically rotates the
-// underlying log file when it exceeds the configured size.
+// Writer is a thread-safe io.WriteCloser that automatically rotates the underlying log
+// file when it exceeds the configured size.
 //
-// Rotated files are named by appending a timestamp to the original filename.
-// A background goroutine compresses rotated files and removes old backups
-// according to MaxBackups and MaxAge. The goroutine respects context
-// cancellation and exits promptly during shutdown.
+// Rotated files are named by appending a timestamp to the original filename. A background
+// goroutine compresses rotated files and removes old backups according to MaxBackups and
+// MaxAge. The goroutine respects context cancellation and exits promptly during shutdown.
 type Writer struct {
 	// sandbox holds the filesystem sandbox for all file operations.
 	sandbox safedisk.Sandbox
@@ -172,28 +169,26 @@ type Writer struct {
 	ownsSandbox bool
 }
 
-var _ io.WriteCloser = (*Writer)(nil)
+var (
+	_ io.WriteCloser = (*Writer)(nil)
+)
 
 // New creates a new rotating log file writer with the given configuration.
 //
-// The provided context controls the lifetime of the background cleanup
-// goroutine; cancelling it causes the goroutine to stop accepting new work.
-// Call [Writer.Close] for deterministic shutdown regardless of context state.
+// The provided context controls the lifetime of the background cleanup goroutine;
+// cancelling it causes the goroutine to stop accepting new work. Call Writer.Close for
+// deterministic shutdown regardless of context state.
 //
-// Takes ctx ([context.Context]) which controls the background goroutine
-// lifetime.
-// Takes config ([Config]) which specifies the rotation settings.
+// Takes ctx (context.Context) which controls the background goroutine lifetime.
+// Takes config (Config) which specifies the rotation settings.
 //
 // Returns *Writer which is ready for use.
-// Returns error which wraps [ErrInvalidConfig] when the
-// configuration is invalid, or a filesystem error when the
-// sandbox cannot be created.
+// Returns error which wraps ErrInvalidConfig when the configuration is invalid, or a
+// filesystem error when the sandbox cannot be created.
 //
-// Concurrency: the returned Writer is safe for concurrent
-// use. Writes are serialised by an internal mutex. A
-// background goroutine handles compression and old backup
-// removal; it exits when the context is cancelled or Close
-// is called.
+// Concurrency: the returned Writer is safe for concurrent use. Writes are serialised by
+// an internal mutex. A background goroutine handles compression and old backup removal;
+// it exits when the context is cancelled or Close is called.
 func New(ctx context.Context, config Config) (*Writer, error) {
 	if err := validateConfig(config); err != nil {
 		return nil, err
@@ -239,15 +234,14 @@ func New(ctx context.Context, config Config) (*Writer, error) {
 	return writer, nil
 }
 
-// Write writes the payload to the current log file, rotating first if the
-// write would exceed the configured maximum size.
+// Write writes the payload to the current log file, rotating first if the write would
+// exceed the configured maximum size.
 //
 // Takes payload ([]byte) which contains the data to write.
 //
 // Returns int which is the number of bytes written.
-// Returns error which wraps [ErrClosed] when the writer
-// has been closed, or a filesystem error when writing
-// fails.
+// Returns error which wraps ErrClosed when the writer has been closed, or a filesystem
+// error when writing fails.
 //
 // Safe for concurrent use by multiple goroutines.
 func (w *Writer) Write(payload []byte) (int, error) {
@@ -275,8 +269,8 @@ func (w *Writer) Write(payload []byte) (int, error) {
 	return bytesWritten, writeError
 }
 
-// Close flushes and closes the current log file, stops the background
-// cleanup goroutine, and releases the sandbox if it was created internally.
+// Close flushes and closes the current log file, stops the background cleanup goroutine,
+// and releases the sandbox if it was created internally.
 //
 // Close is idempotent; subsequent calls return nil.
 //
@@ -308,9 +302,9 @@ func (w *Writer) Close() error {
 
 // validateConfig checks that the configuration is valid.
 //
-// Takes config ([Config]) which holds the settings to validate.
+// Takes config (Config) which holds the settings to validate.
 //
-// Returns error wrapping [ErrInvalidConfig] when validation fails.
+// Returns error wrapping ErrInvalidConfig when validation fails.
 func validateConfig(config Config) error {
 	if config.Filename == "" {
 		return fmt.Errorf("%w: filename must not be empty", ErrInvalidConfig)
@@ -332,7 +326,7 @@ func validateConfig(config Config) error {
 
 // resolveSandbox creates or reuses the filesystem sandbox.
 //
-// Takes config ([Config]) which provides the sandbox or directory to use.
+// Takes config (Config) which provides the sandbox or directory to use.
 //
 // Returns safedisk.Sandbox which is the sandbox to use.
 // Returns bool which indicates whether the caller owns the sandbox.
@@ -358,8 +352,8 @@ func resolveSandbox(config Config) (safedisk.Sandbox, bool, error) {
 	return sandbox, true, nil
 }
 
-// openExistingOrCreate opens the log file for appending if it already exists
-// and is within the size limit, otherwise creates a new file.
+// openExistingOrCreate opens the log file for appending if it already exists and is
+// within the size limit, otherwise creates a new file.
 //
 // Returns error when the file cannot be opened or created.
 func (w *Writer) openExistingOrCreate() error {
@@ -384,8 +378,8 @@ func (w *Writer) openExistingOrCreate() error {
 	return w.createFreshFile()
 }
 
-// rotateExistingFile renames the existing log file to a timestamped backup
-// name and signals the background cleanup goroutine.
+// rotateExistingFile renames the existing log file to a timestamped backup name and
+// signals the background cleanup goroutine.
 //
 // Returns error when the rename fails.
 func (w *Writer) rotateExistingFile() error {
@@ -412,8 +406,7 @@ func (w *Writer) createFreshFile() error {
 	return nil
 }
 
-// rotateFile closes the current log file, renames it to a backup, and opens
-// a fresh file.
+// rotateFile closes the current log file, renames it to a backup, and opens a fresh file.
 //
 // Returns error when any step fails.
 func (w *Writer) rotateFile() error {
@@ -429,8 +422,8 @@ func (w *Writer) rotateFile() error {
 	return w.createFreshFile()
 }
 
-// backupFilename generates a timestamped backup filename from the current
-// time and the configured location.
+// backupFilename generates a timestamped backup filename from the current time and the
+// configured location.
 //
 // Returns string which is the backup filename relative to the sandbox root.
 func (w *Writer) backupFilename() string {
@@ -438,9 +431,8 @@ func (w *Writer) backupFilename() string {
 	return w.prefix + "-" + timestamp + w.extension
 }
 
-// signalCleanup sends a non-blocking signal to the background cleanup
-// goroutine. If the goroutine is already processing a cleanup the signal
-// is dropped.
+// signalCleanup sends a non-blocking signal to the background cleanup goroutine. If the
+// goroutine is already processing a cleanup the signal is dropped.
 func (w *Writer) signalCleanup() {
 	select {
 	case w.cleanupSignal <- struct{}{}:
@@ -448,9 +440,8 @@ func (w *Writer) signalCleanup() {
 	}
 }
 
-// runCleanup is the background goroutine that processes
-// cleanup signals, exiting when the writer's context is
-// cancelled or the channel is closed.
+// runCleanup is the background goroutine that processes cleanup signals, exiting when the
+// writer's context is cancelled or the channel is closed.
 func (w *Writer) runCleanup() {
 	defer close(w.done)
 	defer goroutine.RecoverPanic(w.ctx, "logrotate.cleanup")
@@ -468,9 +459,9 @@ func (w *Writer) runCleanup() {
 	}
 }
 
-// performCleanup compresses uncompressed backups and removes old backups
-// that exceed MaxBackups or MaxAge. Each step checks context cancellation
-// to exit promptly during shutdown.
+// performCleanup compresses uncompressed backups and removes old backups that exceed
+// MaxBackups or MaxAge. Each step checks context cancellation to exit promptly during
+// shutdown.
 func (w *Writer) performCleanup() {
 	if w.ctx.Err() != nil {
 		return
@@ -501,8 +492,8 @@ func (w *Writer) performCleanup() {
 	}
 }
 
-// compressBackups finds uncompressed backup files and compresses each one
-// using gzip with atomic rename. Exits early if the context is cancelled.
+// compressBackups finds uncompressed backup files and compresses each one using gzip with
+// atomic rename. Exits early if the context is cancelled.
 func (w *Writer) compressBackups() {
 	backups, err := w.oldBackups()
 	if err != nil {
@@ -526,8 +517,8 @@ func (w *Writer) compressBackups() {
 // compressFile compresses a single backup file using gzip with an atomic
 // write-then-rename strategy.
 //
-// Data is written to a temporary file which is then renamed to the final
-// compressed name. The original uncompressed file is removed on success.
+// Data is written to a temporary file which is then renamed to the final compressed name.
+// The original uncompressed file is removed on success.
 //
 // Takes source (string) which is the filename relative to the sandbox root.
 //
@@ -588,8 +579,8 @@ func (w *Writer) compressFile(source string) error {
 	return nil
 }
 
-// selectRemovals determines which backup files should be removed based on
-// MaxBackups and MaxAge. The backups slice must be sorted newest-first.
+// selectRemovals determines which backup files should be removed based on MaxBackups and
+// MaxAge. The backups slice must be sorted newest-first.
 //
 // Takes backups ([]backupInfo) which contains the backup files to evaluate.
 //
@@ -632,8 +623,8 @@ type backupInfo struct {
 	name string
 }
 
-// oldBackups scans the sandbox root directory and returns all backup files
-// matching the expected naming pattern, sorted newest-first.
+// oldBackups scans the sandbox root directory and returns all backup files matching the
+// expected naming pattern, sorted newest-first.
 //
 // Returns []backupInfo which contains the discovered backups.
 // Returns error when the directory cannot be read.
@@ -663,8 +654,8 @@ func (w *Writer) oldBackups() ([]backupInfo, error) {
 	return backups, nil
 }
 
-// parseBackupTimestamp extracts the timestamp from a backup filename that
-// matches the pattern {prefix}-{timestamp}{extension}[.gz].
+// parseBackupTimestamp extracts the timestamp from a backup filename that matches the
+// pattern {prefix}-{timestamp}{extension}[.gz].
 //
 // Takes name (string) which is the filename to parse.
 //
@@ -691,11 +682,11 @@ func (w *Writer) parseBackupTimestamp(name string) (time.Time, bool) {
 	return parsed, true
 }
 
-// location returns the time location for backup timestamps based on the
-// LocalTime configuration.
+// location returns the time location for backup timestamps based on the LocalTime
+// configuration.
 //
-// Returns *time.Location which is [time.Local] when LocalTime is true,
-// or [time.UTC] otherwise.
+// Returns *time.Location which is time.Local when LocalTime is true, or time.UTC
+// otherwise.
 func (w *Writer) location() *time.Location {
 	if w.config.LocalTime {
 		return time.Local

@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_disk implements the email provider port by writing
-// emails to disk as RFC 5322 compliant .eml files suitable for
-// development, testing, and auditing.
+// Package provider_disk implements the email provider port by writing emails to disk as
+// RFC 5322 compliant .eml files suitable for development, testing, and auditing.
 //
-// The output files are standard MIME messages that can be opened by
-// any email client. Emails are written atomically using a temporary
-// file with rename. Filenames follow the pattern
-// {timestamp}_{sanitised_recipient}.eml.
+// The output files are standard MIME messages that can be opened by any email client.
+// Emails are written atomically using a temporary file with rename. Filenames follow the
+// pattern {timestamp}_{sanitised_recipient}.eml.
 //
 // All methods are safe for concurrent use.
 package provider_disk

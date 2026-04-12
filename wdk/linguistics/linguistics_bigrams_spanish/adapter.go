@@ -25,23 +25,26 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this bigram analyser.
-const Language = "spanish"
+const (
+	// Language is the language code for this bigram analyser.
+	Language = "spanish"
 
-// minFieldLength is the minimum letter count for bigram analysis.
-const minFieldLength = 4
+	// minFieldLength is the minimum letter count for bigram analysis.
+	minFieldLength = 4
 
-// maxAnalyseLength is the maximum text byte length processed during analysis.
-const maxAnalyseLength = 4096
+	// maxAnalyseLength is the maximum text byte length processed during analysis.
+	maxAnalyseLength = 4096
+)
 
-var _ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+var (
+	_ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+)
 
-// BigramAnalyser provides Spanish character bigram frequency analysis
-// for detecting gibberish or random text.
+// BigramAnalyser provides Spanish character bigram frequency analysis for detecting
+// gibberish or random text.
 type BigramAnalyser struct{}
 
-// BigramFrequencyRatio returns the ratio of uncommon character bigrams
-// to total bigrams.
+// BigramFrequencyRatio returns the ratio of uncommon character bigrams to total bigrams.
 //
 // Takes text (string) which is the text to analyse.
 //
@@ -100,42 +103,44 @@ func init() {
 	linguistics_domain.RegisterBigramAnalyserFactory(Language, Factory)
 }
 
-// spanishBigrams contains the most frequent Spanish letter bigrams.
-var spanishBigrams = map[string]struct{}{
-	"de": {}, "en": {}, "es": {}, "er": {}, "la": {},
-	"os": {}, "ar": {}, "re": {}, "el": {}, "on": {},
-	"as": {}, "an": {}, "al": {}, "ra": {}, "ac": {},
-	"ad": {}, "or": {}, "st": {}, "do": {}, "co": {},
-	"in": {}, "te": {}, "se": {}, "le": {}, "nt": {},
-	"ro": {}, "ci": {}, "to": {}, "tr": {}, "pa": {},
-	"si": {}, "ri": {}, "ti": {}, "nd": {}, "io": {},
-	"is": {}, "ne": {}, "me": {}, "so": {}, "am": {},
-	"mo": {}, "ue": {}, "ol": {}, "mi": {}, "ca": {},
-	"lo": {}, "ec": {}, "ce": {}, "no": {}, "ta": {},
-	"ma": {}, "pe": {}, "li": {}, "qu": {}, "ia": {},
-	"id": {}, "ni": {}, "po": {}, "em": {}, "ho": {},
-	"om": {}, "it": {}, "lu": {}, "na": {}, "il": {},
-	"sa": {}, "rt": {}, "pr": {}, "rs": {}, "ab": {},
-	"pi": {}, "ba": {}, "rm": {}, "rc": {}, "tu": {},
-	"ul": {}, "ot": {}, "di": {}, "ha": {}, "be": {},
-	"un": {}, "da": {}, "av": {}, "op": {}, "ic": {},
-	"iv": {}, "at": {}, "mp": {}, "ir": {}, "rg": {},
-	"dr": {}, "mb": {}, "mu": {}, "uc": {}, "va": {},
-	"of": {}, "rp": {}, "ns": {}, "ye": {}, "ig": {},
-	"pu": {}, "ap": {}, "cu": {}, "bi": {}, "sp": {},
-	"sm": {}, "sc": {}, "ua": {}, "eo": {}, "pl": {},
-	"sl": {}, "rv": {}, "ur": {}, "um": {}, "fi": {},
-	"ud": {}, "je": {}, "ei": {}, "ch": {}, "tl": {},
-	"fu": {}, "vo": {}, "gi": {}, "fa": {}, "fe": {},
-	"ga": {}, "ge": {}, "go": {}, "gr": {}, "gu": {},
-	"xi": {}, "ex": {}, "br": {}, "bl": {}, "cl": {},
-	"cr": {}, "fl": {}, "fr": {}, "ll": {}, "rr": {},
-	"yo": {}, "ya": {}, "za": {}, "ze": {}, "zi": {},
-	"zo": {}, "zu": {}, "sh": {}, "th": {}, "hi": {},
-	"he": {}, "hu": {}, "hn": {}, "hy": {}, "oa": {},
-	"oe": {}, "ou": {}, "ai": {}, "au": {}, "eu": {},
-	"ui": {}, "iu": {}, "oi": {}, "oy": {}, "ay": {},
-	"ey": {}, "uy": {}, "ño": {}, "ña": {}, "ñe": {},
-	"ñi": {}, "ñu": {}, "xa": {}, "xe": {}, "xo": {},
-	"xu": {},
-}
+var (
+	// spanishBigrams contains the most frequent Spanish letter bigrams.
+	spanishBigrams = map[string]struct{}{
+		"de": {}, "en": {}, "es": {}, "er": {}, "la": {},
+		"os": {}, "ar": {}, "re": {}, "el": {}, "on": {},
+		"as": {}, "an": {}, "al": {}, "ra": {}, "ac": {},
+		"ad": {}, "or": {}, "st": {}, "do": {}, "co": {},
+		"in": {}, "te": {}, "se": {}, "le": {}, "nt": {},
+		"ro": {}, "ci": {}, "to": {}, "tr": {}, "pa": {},
+		"si": {}, "ri": {}, "ti": {}, "nd": {}, "io": {},
+		"is": {}, "ne": {}, "me": {}, "so": {}, "am": {},
+		"mo": {}, "ue": {}, "ol": {}, "mi": {}, "ca": {},
+		"lo": {}, "ec": {}, "ce": {}, "no": {}, "ta": {},
+		"ma": {}, "pe": {}, "li": {}, "qu": {}, "ia": {},
+		"id": {}, "ni": {}, "po": {}, "em": {}, "ho": {},
+		"om": {}, "it": {}, "lu": {}, "na": {}, "il": {},
+		"sa": {}, "rt": {}, "pr": {}, "rs": {}, "ab": {},
+		"pi": {}, "ba": {}, "rm": {}, "rc": {}, "tu": {},
+		"ul": {}, "ot": {}, "di": {}, "ha": {}, "be": {},
+		"un": {}, "da": {}, "av": {}, "op": {}, "ic": {},
+		"iv": {}, "at": {}, "mp": {}, "ir": {}, "rg": {},
+		"dr": {}, "mb": {}, "mu": {}, "uc": {}, "va": {},
+		"of": {}, "rp": {}, "ns": {}, "ye": {}, "ig": {},
+		"pu": {}, "ap": {}, "cu": {}, "bi": {}, "sp": {},
+		"sm": {}, "sc": {}, "ua": {}, "eo": {}, "pl": {},
+		"sl": {}, "rv": {}, "ur": {}, "um": {}, "fi": {},
+		"ud": {}, "je": {}, "ei": {}, "ch": {}, "tl": {},
+		"fu": {}, "vo": {}, "gi": {}, "fa": {}, "fe": {},
+		"ga": {}, "ge": {}, "go": {}, "gr": {}, "gu": {},
+		"xi": {}, "ex": {}, "br": {}, "bl": {}, "cl": {},
+		"cr": {}, "fl": {}, "fr": {}, "ll": {}, "rr": {},
+		"yo": {}, "ya": {}, "za": {}, "ze": {}, "zi": {},
+		"zo": {}, "zu": {}, "sh": {}, "th": {}, "hi": {},
+		"he": {}, "hu": {}, "hn": {}, "hy": {}, "oa": {},
+		"oe": {}, "ou": {}, "ai": {}, "au": {}, "eu": {},
+		"ui": {}, "iu": {}, "oi": {}, "oy": {}, "ay": {},
+		"ey": {}, "uy": {}, "ño": {}, "ña": {}, "ñe": {},
+		"ñi": {}, "ñu": {}, "xa": {}, "xe": {}, "xo": {},
+		"xu": {},
+	}
+)

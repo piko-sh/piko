@@ -31,9 +31,11 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// contentOverviewTimeout is the maximum time the refresh command will
-// wait for the resource provider to reply before cancelling the call.
-const contentOverviewTimeout = 5 * time.Second
+const (
+	// contentOverviewTimeout is the maximum time the refresh command will wait for the
+	// resource provider to reply before cancelling the call.
+	contentOverviewTimeout = 5 * time.Second
+)
 
 // contentOverviewMessage carries combined kind summaries.
 type contentOverviewMessage struct {
@@ -66,15 +68,16 @@ type ContentOverviewPanel struct {
 
 	BasePanel
 
-	// stateMutex guards last / lastRefresh / hasData for safe
-	// concurrent reads.
+	// stateMutex guards last / lastRefresh / hasData for safe concurrent reads.
 	stateMutex sync.RWMutex
 
 	// hasData reports whether at least one refresh has completed.
 	hasData bool
 }
 
-var _ Panel = (*ContentOverviewPanel)(nil)
+var (
+	_ Panel = (*ContentOverviewPanel)(nil)
+)
 
 // NewContentOverviewPanel constructs the panel.
 //
@@ -125,8 +128,8 @@ func (p *ContentOverviewPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 
 // View renders the centre as a compact tile.
 //
-// Shows the total artefact count plus the largest-by-count kind. The
-// per-status breakdown lives in DetailView.
+// Shows the total artefact count plus the largest-by-count kind. The per-status breakdown
+// lives in DetailView.
 //
 // Takes width (int) which is the column width allocated by the layout.
 // Takes height (int) which is the row height allocated by the layout.
@@ -147,8 +150,8 @@ func (p *ContentOverviewPanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, p.detailBody(), width, height)
 }
 
-// tileBody renders the centre-pane tile summary: just the per-kind
-// total counts. The detail pane breaks each kind down by status.
+// tileBody renders the centre-pane tile summary: just the per-kind total counts. The
+// detail pane breaks each kind down by status.
 //
 // Returns inspector.DetailBody ready to pass to RenderDetailBody.
 //
@@ -188,9 +191,9 @@ func (p *ContentOverviewPanel) tileBody() inspector.DetailBody {
 	}
 }
 
-// detailBody renders the right-pane detail body with per-kind and
-// per-status counts. Each kind expands into one row per status with
-// its count, surfacing degraded / unhealthy items at a glance.
+// detailBody renders the right-pane detail body with per-kind and per-status counts. Each
+// kind expands into one row per status with its count, surfacing degraded / unhealthy
+// items at a glance.
 //
 // Returns inspector.DetailBody ready to pass to RenderDetailBody.
 //
@@ -231,15 +234,13 @@ func (p *ContentOverviewPanel) detailBody() inspector.DetailBody {
 	}
 }
 
-// sortedResourceStatuses returns the statuses in a stable
-// human-readable order. Used by the detail pane so per-kind
-// breakdowns line up across renders.
+// sortedResourceStatuses returns the statuses in a stable human-readable order. Used by
+// the detail pane so per-kind breakdowns line up across renders.
 //
-// Takes statuses (map[ResourceStatus]int) which is the per-status
-// count map.
+// Takes statuses (map[ResourceStatus]int) which is the per-status count map.
 //
-// Returns []ResourceStatus in declared-order: Healthy, Degraded,
-// Unhealthy, Pending, Unknown, but only those present in the map.
+// Returns []ResourceStatus in declared-order: Healthy, Degraded, Unhealthy, Pending,
+// Unknown, but only those present in the map.
 func sortedResourceStatuses(statuses map[ResourceStatus]int) []ResourceStatus {
 	order := []ResourceStatus{
 		ResourceStatusHealthy,
@@ -257,8 +258,8 @@ func sortedResourceStatuses(statuses map[ResourceStatus]int) []ResourceStatus {
 	return out
 }
 
-// refresh returns a command that fetches the current resource summary
-// from the configured provider and emits it as a contentOverviewMessage.
+// refresh returns a command that fetches the current resource summary from the configured
+// provider and emits it as a contentOverviewMessage.
 //
 // Returns tea.Cmd which performs the fetch when executed.
 func (p *ContentOverviewPanel) refresh() tea.Cmd {

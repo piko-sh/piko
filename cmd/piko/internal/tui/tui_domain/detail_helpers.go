@@ -28,50 +28,46 @@ import (
 )
 
 const (
-	// detailKeyMinWidth is the minimum cell width allocated to the
-	// key column in a key/value detail row.
+	// detailKeyMinWidth is the minimum cell width allocated to the key column in a key/value
+	// detail row.
 	detailKeyMinWidth = 12
 
-	// detailKeyMaxWidth is the maximum cell width the key column may
-	// occupy before values start truncating.
+	// detailKeyMaxWidth is the maximum cell width the key column may occupy before values
+	// start truncating.
 	detailKeyMaxWidth = 24
 
-	// detailRowGutter is the horizontal padding between the key and
-	// value columns plus the leading indent.
+	// detailRowGutter is the horizontal padding between the key and value columns plus the
+	// leading indent.
 	detailRowGutter = 4
 
-	// detailMinRows is the smallest preallocated capacity for rendered
-	// row slices.
+	// detailMinRows is the smallest preallocated capacity for rendered row slices.
 	detailMinRows = 8
 
-	// chartMinDetailHeight is the smallest allowed chart-area height in
-	// a detail pane; below this the chart is suppressed and the body
-	// uses the full pane.
+	// chartMinDetailHeight is the smallest allowed chart-area height in a detail pane; below
+	// this the chart is suppressed and the body uses the full pane.
 	chartMinDetailHeight = 6
 
-	// chartMaxDetailHeight caps the chart area so the body always has
-	// room for the structured rows above it.
+	// chartMaxDetailHeight caps the chart area so the body always has room for the
+	// structured rows above it.
 	chartMaxDetailHeight = 16
 
-	// chartHeightDivisor controls how much of the pane is allocated to
-	// the chart by default (1/3 of total height).
+	// chartHeightDivisor controls how much of the pane is allocated to the chart by default
+	// (1/3 of total height).
 	chartHeightDivisor = 3
 
-	// chartMinTotalHeight is the minimum pane height before the chart
-	// is even considered.
+	// chartMinTotalHeight is the minimum pane height before the chart is even considered.
 	chartMinTotalHeight = 18
 
-	// chartHeaderRows is the number of rows reserved between the body
-	// and the chart for the title and a blank gap.
+	// chartHeaderRows is the number of rows reserved between the body and the chart for the
+	// title and a blank gap.
 	chartHeaderRows = 2
 )
 
-// RenderDetailBody renders a inspector.DetailBody at (width, height). Long values
-// are truncated to fit; the body is right-padded and clipped to the
-// supplied dimensions so the composer's frame line up cleanly.
+// RenderDetailBody renders a inspector.DetailBody at (width, height). Long values are
+// truncated to fit; the body is right-padded and clipped to the supplied dimensions so
+// the composer's frame line up cleanly.
 //
-// Takes theme (*Theme) which provides title / dim / bold styles. May
-// be nil during tests.
+// Takes theme (*Theme) which provides title / dim / bold styles. May be nil during tests.
 // Takes body (inspector.DetailBody) which is the structured content.
 // Takes width (int) and height (int) which size the rendered body.
 //
@@ -84,12 +80,10 @@ func RenderDetailBody(theme *Theme, body inspector.DetailBody, width, height int
 	rows := make([]string, 0, max(detailMinRows, height))
 
 	if body.Title != "" {
-		titleStyle := detailTitleStyle(theme)
-		rows = append(rows, paddedLine(&titleStyle, body.Title, width))
+		rows = append(rows, paddedLine(new(detailTitleStyle(theme)), body.Title, width))
 	}
 	if body.Subtitle != "" {
-		dimStyle := detailDimStyle(theme)
-		rows = append(rows, paddedLine(&dimStyle, body.Subtitle, width))
+		rows = append(rows, paddedLine(new(detailDimStyle(theme)), body.Subtitle, width))
 	}
 	if body.Title != "" || body.Subtitle != "" {
 		rows = append(rows, strings.Repeat(SingleSpace, width))
@@ -103,8 +97,7 @@ func RenderDetailBody(theme *Theme, body inspector.DetailBody, width, height int
 		}
 		first = false
 		if section.Heading != "" {
-			dimStyle := detailDimStyle(theme)
-			rows = append(rows, paddedLine(&dimStyle, strings.ToUpper(section.Heading), width))
+			rows = append(rows, paddedLine(new(detailDimStyle(theme)), strings.ToUpper(section.Heading), width))
 		}
 		for _, r := range section.Rows {
 			rows = append(rows, renderDetailKeyValueWrapped(theme, r.Label, r.Value, keyWidth, width)...)
@@ -114,10 +107,9 @@ func RenderDetailBody(theme *Theme, body inspector.DetailBody, width, height int
 	return clipDetailBody(rows, width, height)
 }
 
-// renderDetailKeyValueWrapped renders a key/value row, wrapping the
-// value across multiple continuation rows when it does not fit in the
-// value column. The first row shows "  KEY        VALUE..."; each
-// continuation row indents to align with the value column.
+// renderDetailKeyValueWrapped renders a key/value row, wrapping the value across multiple
+// continuation rows when it does not fit in the value column. The first row shows " KEY
+// VALUE..."; each continuation row indents to align with the value column.
 //
 // Takes theme (*Theme) which provides dim and bold styles; may be nil.
 // Takes key (string) which is the row label.
@@ -153,9 +145,9 @@ func renderDetailKeyValueWrapped(theme *Theme, key, value string, keyWidth, widt
 
 // wrapByWidth splits s into chunks each at most maxWidth cells wide.
 //
-// Wraps at word boundaries when possible; falls back to mid-word
-// breaks when a single token exceeds maxWidth so the column never
-// overflows. Empty input returns an empty slice.
+// Wraps at word boundaries when possible; falls back to mid-word breaks when a single
+// token exceeds maxWidth so the column never overflows. Empty input returns an empty
+// slice.
 //
 // Takes s (string) which is the unstyled value to wrap.
 // Takes maxWidth (int) which is the per-line width budget.
@@ -184,15 +176,13 @@ func wrapByWidth(s string, maxWidth int) []string {
 	return out
 }
 
-// wrapAddWord folds word into the wrap accumulator, returning the new
-// completed-lines slice and the in-progress current line. Long words
-// that exceed maxWidth on their own are split mid-word so the column
-// never overflows.
+// wrapAddWord folds word into the wrap accumulator, returning the new completed-lines
+// slice and the in-progress current line. Long words that exceed maxWidth on their own
+// are split mid-word so the column never overflows.
 //
 // Takes out ([]string), current (string), word (string), maxWidth (int).
 //
-// Returns ([]string, string) updated completed-lines and current
-// in-progress line.
+// Returns ([]string, string) updated completed-lines and current in-progress line.
 func wrapAddWord(out []string, current, word string, maxWidth int) ([]string, string) {
 	if TextWidth(word) > maxWidth {
 		if current != "" {
@@ -214,14 +204,14 @@ func wrapAddWord(out []string, current, word string, maxWidth int) ([]string, st
 
 // breakOversizeWord splits word into rune-aligned chunks of at most maxWidth.
 //
-// Appends the leading chunks onto out and returns the trailing partial
-// chunk. A single rune wider than maxWidth is emitted on its own line
-// so the loop always makes progress even when one glyph overflows.
+// Appends the leading chunks onto out and returns the trailing partial chunk. A single
+// rune wider than maxWidth is emitted on its own line so the loop always makes progress
+// even when one glyph overflows.
 //
 // Takes out ([]string), word (string), maxWidth (int).
 //
-// Returns ([]string, string) updated completed-lines slice and the
-// trailing partial chunk.
+// Returns ([]string, string) updated completed-lines slice and the trailing partial
+// chunk.
 func breakOversizeWord(out []string, word string, maxWidth int) ([]string, string) {
 	for TextWidth(word) > maxWidth {
 		head, tail := splitByCellWidth(word, maxWidth)
@@ -238,18 +228,18 @@ func breakOversizeWord(out []string, word string, maxWidth int) ([]string, strin
 	return out, word
 }
 
-// splitByCellWidth returns the longest rune-aligned prefix of s whose
-// cell width fits maxWidth, plus the remainder.
+// splitByCellWidth returns the longest rune-aligned prefix of s whose cell width fits
+// maxWidth, plus the remainder.
 //
-// Walks runes so multi-byte characters (East-Asian glyphs, emoji) are
-// never cut mid-byte. Returns ("", s) when even the first rune is
-// wider than maxWidth, leaving it to the caller to make progress.
+// Walks runes so multi-byte characters (East-Asian glyphs, emoji) are never cut mid-byte.
+// Returns ("", s) when even the first rune is wider than maxWidth, leaving it to the
+// caller to make progress.
 //
 // Takes s (string) which is the unstyled text to split.
 // Takes maxWidth (int) which is the cell-width budget for the prefix.
 //
-// Returns prefix (string) which is the rune-aligned head whose cell
-// width fits within maxWidth.
+// Returns prefix (string) which is the rune-aligned head whose cell width fits within
+// maxWidth.
 // Returns remainder (string) which is the unconsumed tail.
 func splitByCellWidth(s string, maxWidth int) (prefix, remainder string) {
 	if maxWidth <= 0 || s == "" {
@@ -268,8 +258,8 @@ func splitByCellWidth(s string, maxWidth int) (prefix, remainder string) {
 	return s, ""
 }
 
-// detailKeyWidth picks a key-column width based on the longest label
-// across all sections, capped at detailKeyMaxWidth.
+// detailKeyWidth picks a key-column width based on the longest label across all sections,
+// capped at detailKeyMaxWidth.
 //
 // Takes body (inspector.DetailBody) which is the structured detail body.
 //
@@ -288,9 +278,8 @@ func detailKeyWidth(body inspector.DetailBody) int {
 
 // paddedLine renders text in style and pads/clips to width.
 //
-// Accepts a pointer to lipgloss.Style because the underlying struct
-// is large (~648 bytes); copying it on every detail-row render adds
-// avoidable allocation pressure.
+// Accepts a pointer to lipgloss.Style because the underlying struct is large (~648
+// bytes); copying it on every detail-row render adds avoidable allocation pressure.
 //
 // Takes style (*lipgloss.Style) which styles the text; nil renders raw.
 // Takes text (string) which is the content.
@@ -304,8 +293,7 @@ func paddedLine(style *lipgloss.Style, text string, width int) string {
 	return PadRightANSI(style.Render(text), width)
 }
 
-// clipDetailBody pads or truncates rows to exactly height rows of
-// width cells.
+// clipDetailBody pads or truncates rows to exactly height rows of width cells.
 //
 // Takes rows ([]string) which are the rendered rows.
 // Takes width (int) which is the per-row cell width.
@@ -322,8 +310,8 @@ func clipDetailBody(rows []string, width, height int) string {
 	return strings.Join(rows, "\n")
 }
 
-// detailTitleStyle returns the active theme's panel-title style or a
-// safe fallback for nil themes.
+// detailTitleStyle returns the active theme's panel-title style or a safe fallback for
+// nil themes.
 //
 // Takes theme (*Theme) which is the active theme; may be nil.
 //
@@ -335,8 +323,8 @@ func detailTitleStyle(theme *Theme) lipgloss.Style {
 	return panelTitleStyle
 }
 
-// detailDimStyle returns the active theme's dim/subtle style or a
-// safe fallback for nil themes.
+// detailDimStyle returns the active theme's dim/subtle style or a safe fallback for nil
+// themes.
 //
 // Takes theme (*Theme) which is the active theme; may be nil.
 //
@@ -348,8 +336,8 @@ func detailDimStyle(theme *Theme) lipgloss.Style {
 	return navItemStyle
 }
 
-// detailBoldStyle returns the active theme's bold style or a safe
-// fallback for nil themes.
+// detailBoldStyle returns the active theme's bold style or a safe fallback for nil
+// themes.
 //
 // Takes theme (*Theme) which is the active theme; may be nil.
 //
@@ -361,10 +349,10 @@ func detailBoldStyle(theme *Theme) lipgloss.Style {
 	return navItemStyle
 }
 
-// RenderDetailBodyWithChart renders body in the top portion of (width,
-// height) and a high-fidelity chart in the bottom portion. The chart
-// receives at least chartMinDetailHeight rows when there is enough
-// vertical room; smaller detail panes fall back to body-only.
+// RenderDetailBodyWithChart renders body in the top portion of (width, height) and a
+// high-fidelity chart in the bottom portion. The chart receives at least
+// chartMinDetailHeight rows when there is enough vertical room; smaller detail panes fall
+// back to body-only.
 //
 // Takes theme (*Theme) for styling.
 // Takes body (inspector.DetailBody) which is the structured content.
@@ -407,12 +395,11 @@ func RenderDetailBodyWithChart(theme *Theme, body inspector.DetailBody, series [
 //
 // Returns *lipgloss.Style pointing at the chart title style.
 func themeChartTitleStyle(theme *Theme) *lipgloss.Style {
-	style := detailDimStyle(theme)
-	return &style
+	return new(detailDimStyle(theme))
 }
 
-// computeDetailChartHeight returns the rows allocated to the chart, or
-// 0 when the pane is too short to show one usefully.
+// computeDetailChartHeight returns the rows allocated to the chart, or 0 when the pane is
+// too short to show one usefully.
 //
 // Takes height (int) which is the total inner height.
 //

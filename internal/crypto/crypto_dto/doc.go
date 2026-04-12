@@ -18,13 +18,12 @@
 
 // Package crypto_dto defines data transfer objects for the crypto module.
 //
-// It contains request/response types, configuration structs, secure memory
-// primitives, and sentinel errors used across architectural boundaries in
-// the cryptographic subsystem.
+// It contains request/response types, configuration structs, secure memory primitives,
+// and sentinel errors used across architectural boundaries in the cryptographic
+// subsystem.
 //
-// The secure memory type uses platform-specific mechanisms (mmap+mlock on
-// Unix, VirtualAlloc+VirtualLock on Windows) to prevent garbage collector
-// copying and memory swapping to disk. Its methods are safe for concurrent
-// use. Configuration types are intended to be set once at initialisation
-// and read thereafter.
+// The secure memory type uses platform-specific mechanisms (mmap+mlock on Unix,
+// VirtualAlloc+VirtualLock on Windows) to prevent garbage collector copying and memory
+// swapping to disk. Its methods are safe for concurrent use. Configuration types are
+// intended to be set once at initialisation and read thereafter.
 package crypto_dto

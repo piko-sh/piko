@@ -16,19 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_provider_multilevel provides a multi-level cache
-// adapter with L1/L2 coordination and circuit breaker resilience.
+// Package cache_provider_multilevel provides a multi-level cache adapter with L1/L2
+// coordination and circuit breaker resilience.
 //
-// The multilevel provider coordinates between two cache layers,
-// typically a fast local cache (e.g. Otter) backed by a slower
-// distributed cache (e.g. Redis). On reads, L1 is always consulted
-// first; on an L1 miss the adapter falls back to L2 and
-// automatically back-populates L1 with the result. Writes use a
-// write-through policy, storing values in both layers.
+// The multilevel provider coordinates between two cache layers, typically a fast local
+// cache (e.g. Otter) backed by a slower distributed cache (e.g. Redis). On reads, L1 is
+// always consulted first; on an L1 miss the adapter falls back to L2 and automatically
+// back-populates L1 with the result. Writes use a write-through policy, storing values in
+// both layers.
 //
-// A circuit breaker protects against L2 failures: when the remote
-// cache becomes unavailable, the adapter transparently degrades to
-// L1-only operation and automatically recovers once L2 is healthy.
+// A circuit breaker protects against L2 failures: when the remote cache becomes
+// unavailable, the adapter transparently degrades to L1-only operation and automatically
+// recovers once L2 is healthy.
 //
 // # Architecture
 //
@@ -38,9 +37,8 @@
 //
 // # Usage
 //
-// The multilevel provider requires two pre-configured cache
-// instances. Create L1 and L2 caches using the cache builder, then
-// combine them:
+// The multilevel provider requires two pre-configured cache instances. Create L1 and L2
+// caches using the cache builder, then combine them:
 //
 //	l1Cache, _ := cache.NewCacheBuilder[string, User](service).
 //	    WithProvider("otter").
@@ -63,7 +61,6 @@
 //
 // # Thread safety
 //
-// All methods are safe for concurrent use. Back-population from L2
-// to L1 and asynchronous L2 writes are performed in background
-// goroutines.
+// All methods are safe for concurrent use. Back-population from L2 to L1 and asynchronous
+// L2 writes are performed in background goroutines.
 package cache_provider_multilevel

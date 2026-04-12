@@ -18,11 +18,13 @@
 
 package browser
 
-// This file re-exports types and functions from the internal browser provider
-// so that external consumers (e.g. integration tests) can access them through
-// the public wdk/browser API without importing the internal package directly.
+// This file re-exports types and functions from the internal browser provider so that
+// external consumers (e.g. integration tests) can access them through the public
+// wdk/browser API without importing the internal package directly.
 
-import bpc "piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
+import (
+	bpc "piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
+)
 
 // ActionContext holds the context needed for browser action execution.
 type ActionContext = bpc.ActionContext
@@ -33,20 +35,19 @@ type Browser = bpc.Browser
 // BrowserOptions holds settings for creating a browser instance.
 type BrowserOptions = bpc.BrowserOptions
 
-// BrowserPool manages multiple Browser instances and distributes page creation
-// across them via round-robin for multi-process parallelism.
+// BrowserPool manages multiple Browser instances and distributes page creation across
+// them via round-robin for multi-process parallelism.
 type BrowserPool = bpc.BrowserPool
 
 // BrowserPoolConfig configures optional behaviour of a BrowserPool.
 type BrowserPoolConfig = bpc.BrowserPoolConfig
 
-// ExclusiveBrowserPool manages a pool of Browser instances where each browser
-// is checked out to at most one consumer at a time, guaranteeing single-tab
-// exclusivity for focus, blur, and mouse-capture sensitive tests.
+// ExclusiveBrowserPool manages a pool of Browser instances where each browser is checked
+// out to at most one consumer at a time, guaranteeing single-tab exclusivity for focus,
+// blur, and mouse-capture sensitive tests.
 type ExclusiveBrowserPool = bpc.ExclusiveBrowserPool
 
-// IncognitoPage wraps a page with its incognito browser context for proper
-// cleanup.
+// IncognitoPage wraps a page with its incognito browser context for proper cleanup.
 type IncognitoPage = bpc.IncognitoPage
 
 // NetworkMock defines a mock network response for testing.
@@ -55,8 +56,7 @@ type NetworkMock = bpc.NetworkMock
 // NormaliseOptions controls how DOM normalisation is performed.
 type NormaliseOptions = bpc.NormaliseOptions
 
-// PageHelper wraps a chromedp context with additional helper methods for E2E
-// testing.
+// PageHelper wraps a chromedp context with additional helper methods for E2E testing.
 type PageHelper = bpc.PageHelper
 
 // PartialConfig defines configuration for a partial with staged variants.
@@ -75,16 +75,13 @@ type LoadTestSpecOption = bpc.LoadTestSpecOption
 type DownloadTrackerOption = bpc.DownloadTrackerOption
 
 var (
-	// NewBrowser is an alias for bpc.NewBrowser that creates a new browser
-	// instance.
+	// NewBrowser is an alias for bpc.NewBrowser that creates a new browser instance.
 	NewBrowser = bpc.NewBrowser
 
-	// NewBrowserPool is an alias for bpc.NewBrowserPool that creates a pool of
-	// browsers.
+	// NewBrowserPool is an alias for bpc.NewBrowserPool that creates a pool of browsers.
 	NewBrowserPool = bpc.NewBrowserPool
 
-	// NewExclusiveBrowserPool creates a pool where each browser is checked out
-	// exclusively.
+	// NewExclusiveBrowserPool creates a pool where each browser is checked out exclusively.
 	NewExclusiveBrowserPool = bpc.NewExclusiveBrowserPool
 
 	// DefaultPoolSize returns a sensible default pool size based on CPU count.
@@ -123,12 +120,10 @@ var (
 	// EvalOnElement is a re-export of bpc.EvalOnElement.
 	EvalOnElement = bpc.EvalOnElement
 
-	// SetViewport is an alias for the browser protocol command to set the
-	// viewport.
+	// SetViewport is an alias for the browser protocol command to set the viewport.
 	SetViewport = bpc.SetViewport
 
-	// WaitForSelector is a browser page control for waiting until a selector
-	// matches.
+	// WaitForSelector is a browser page control for waiting until a selector matches.
 	WaitForSelector = bpc.WaitForSelector
 
 	// WaitForServerReady is an alias for bpc.WaitForServerReady.
@@ -143,19 +138,18 @@ var (
 	// ExecuteAssertion is an alias for bpc.ExecuteAssertion.
 	ExecuteAssertion = bpc.ExecuteAssertion
 
-	// IsAssertionAction is a predicate that checks if a string is an assertion
-	// action.
+	// IsAssertionAction is a predicate that checks if a string is an assertion action.
 	IsAssertionAction = bpc.IsAssertionAction
 
 	// LoadTestSpec is an alias for bpc.LoadTestSpec.
 	LoadTestSpec = bpc.LoadTestSpec
 
-	// WithTestSpecSandboxFactory sets a factory for creating sandboxes when
-	// loading a test spec file.
+	// WithTestSpecSandboxFactory sets a factory for creating sandboxes when loading a test
+	// spec file.
 	WithTestSpecSandboxFactory = bpc.WithTestSpecSandboxFactory
 
-	// WithDownloadSandboxFactory sets a factory for creating sandboxes in the
-	// download tracker.
+	// WithDownloadSandboxFactory sets a factory for creating sandboxes in the download
+	// tracker.
 	WithDownloadSandboxFactory = bpc.WithDownloadSandboxFactory
 
 	// CaptureDOM is an alias for bpc.CaptureDOM.
@@ -164,8 +158,7 @@ var (
 	// NormaliseDOM is a function that normalises HTML DOM structures.
 	NormaliseDOM = bpc.NormaliseDOM
 
-	// DefaultNormaliseOptions provides the standard normalisation settings from
-	// bpc.
+	// DefaultNormaliseOptions provides the standard normalisation settings from bpc.
 	DefaultNormaliseOptions = bpc.DefaultNormaliseOptions
 
 	// GetFormData returns form data from a form element as a map.
@@ -174,7 +167,6 @@ var (
 	// ListenForEvent attaches an event listener to capture e.detail.
 	ListenForEvent = bpc.ListenForEvent
 
-	// GetEventDetail returns the event detail captured by a prior ListenForEvent
-	// call.
+	// GetEventDetail returns the event detail captured by a prior ListenForEvent call.
 	GetEventDetail = bpc.GetEventDetail
 )

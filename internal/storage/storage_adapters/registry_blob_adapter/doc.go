@@ -16,13 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package registry_blob_adapter implements the registry hexagon's
-// BlobStore interface using the storage hexagon's providers. It
-// translates registry_domain.BlobStore operations into
-// storage_domain.StorageProviderPort calls, so the registry can use
-// any configured storage backend without maintaining its own blob
-// storage implementations.
+// Package registry_blob_adapter implements the registry hexagon's BlobStore interface
+// using the storage hexagon's providers. It translates registry_domain.BlobStore
+// operations into storage_domain.StorageProviderPort calls, so the registry can use any
+// configured storage backend without maintaining its own blob storage implementations.
 //
-// Thread safety depends on the underlying StorageProviderPort
-// implementation.
+// Thread safety depends on the underlying StorageProviderPort implementation.
 package registry_blob_adapter

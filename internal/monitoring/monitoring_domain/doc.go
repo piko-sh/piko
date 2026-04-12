@@ -16,26 +16,25 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package monitoring_domain defines the core abstractions and business
-// logic for the monitoring subsystem.
+// Package monitoring_domain defines the core abstractions and business logic for the
+// monitoring subsystem.
 //
-// It defines port interfaces for telemetry collection, system statistics,
-// and file descriptor tracking, along with in-memory storage for metrics
-// and trace spans. The [Service] manages the lifecycle of collectors, the
-// [TelemetryStore], and the gRPC server that exposes this data to external
-// consumers such as the TUI dashboard.
+// It defines port interfaces for telemetry collection, system statistics, and file
+// descriptor tracking, along with in-memory storage for metrics and trace spans. The
+// [Service] manages the lifecycle of collectors, the [TelemetryStore], and the gRPC
+// server that exposes this data to external consumers such as the TUI dashboard.
 //
 // # Integration
 //
 // The [Service] integrates with the OpenTelemetry SDK by providing a
-// [sdktrace.SpanProcessor] and [sdkmetric.Reader] that should be
-// registered with the application's trace and meter providers. It also
-// accepts inspectors from the orchestrator and registry hexagons via
-// [Service.SetInspectors] for exposing their state through gRPC.
+// [sdktrace.SpanProcessor] and [sdkmetric.Reader] that should be registered with the
+// application's trace and meter providers. It also accepts inspectors from the
+// orchestrator and registry hexagons via [Service.SetInspectors] for exposing their state
+// through gRPC.
 //
 // # Thread safety
 //
-// [TelemetryStore], [SystemCollector], and [ResourceCollector]
-// are all safe for concurrent use. The [Service] protects its mutable
-// inspector fields with a read-write mutex.
+// [TelemetryStore], [SystemCollector], and [ResourceCollector] are all safe for
+// concurrent use. The [Service] protects its mutable inspector fields with a read-write
+// mutex.
 package monitoring_domain

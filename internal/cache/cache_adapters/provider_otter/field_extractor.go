@@ -31,16 +31,16 @@ import (
 )
 
 const (
-	// initialTypeCacheCapacity is the starting size for the global type accessor
-	// cache. Most applications use a small number of cached struct types.
+	// initialTypeCacheCapacity is the starting size for the global type accessor cache. Most
+	// applications use a small number of cached struct types.
 	initialTypeCacheCapacity = 8
 
 	// decimalBase is base 10 for formatting integers as decimal strings.
 	decimalBase = 10
 )
 
-// fieldAccessor holds cached metadata for field access without memory
-// allocation. Uses unsafe pointer arithmetic for direct memory access.
+// fieldAccessor holds cached metadata for field access without memory allocation. Uses
+// unsafe pointer arithmetic for direct memory access.
 type fieldAccessor struct {
 	// indexes is the field index path for navigating through nested structs.
 	indexes []int
@@ -51,27 +51,28 @@ type fieldAccessor struct {
 	// kind is the cached reflect.Kind for fast type switching.
 	kind reflect.Kind
 
-	// isDirect reports whether direct unsafe access can be used (non-pointer,
-	// single-level access only).
+	// isDirect reports whether direct unsafe access can be used (non-pointer, single-level
+	// access only).
 	isDirect bool
 }
 
-// typeAccessorCache stores field accessors for each struct type.
-// It uses atomic.Pointer for lock-free reads.
+// typeAccessorCache stores field accessors for each struct type. It uses atomic.Pointer
+// for lock-free reads.
 type typeAccessorCache struct {
-	// fast holds a read-only map of accessors for each type, accessed without
-	// locks.
+	// fast holds a read-only map of accessors for each type, accessed without locks.
 	fast atomic.Pointer[map[uintptr]map[string]*fieldAccessor]
 
 	// mu guards updates to the cache.
 	mu sync.Mutex
 }
 
-// globalTypeCache is the global cache for field accessors.
-var globalTypeCache = &typeAccessorCache{}
+var (
+	// globalTypeCache is the global cache for field accessors.
+	globalTypeCache = &typeAccessorCache{}
+)
 
-// FieldExtractor extracts field values from cached values based on a schema.
-// It uses zero-allocation unsafe field access after cache warmup.
+// FieldExtractor extracts field values from cached values based on a schema. It uses
+// zero-allocation unsafe field access after cache warmup.
 type FieldExtractor[V any] struct {
 	// schema specifies which fields to extract from search results.
 	schema *cache_dto.SearchSchema
@@ -79,13 +80,12 @@ type FieldExtractor[V any] struct {
 	// sortableFields maps field names to whether they can be used for sorting.
 	sortableFields map[string]bool
 
-	// fieldPathParts holds field paths split into parts for fast lookup without
-	// memory allocation. Built once at startup for all schema fields.
+	// fieldPathParts holds field paths split into parts for fast lookup without memory
+	// allocation. Built once at startup for all schema fields.
 	fieldPathParts map[string][]string
 
-	// fieldPathInvalid tracks invalid field paths to avoid repeated failed
-	// lookups. Presence in map means the path is invalid; uses struct{} for zero
-	// memory.
+	// fieldPathInvalid tracks invalid field paths to avoid repeated failed lookups. Presence
+	// in map means the path is invalid; uses struct{} for zero memory.
 	fieldPathInvalid map[string]struct{}
 
 	// textFields holds the names of TEXT fields used for full-text search.
@@ -104,8 +104,8 @@ type FieldExtractor[V any] struct {
 	cacheMu sync.RWMutex
 }
 
-// ExtractTextFields returns all text field values from the value.
-// Used for full-text search indexing.
+// ExtractTextFields returns all text field values from the value. Used for full-text
+// search indexing.
 //
 // Takes value (V) which is the cached value to extract from.
 //
@@ -186,8 +186,7 @@ func (fe *FieldExtractor[V]) ExtractVectorValue(value V, fieldName string) ([]fl
 
 // GetVectorFields returns the names of all VECTOR fields in the schema.
 //
-// Returns []string which contains the vector field names, or nil if the
-// receiver is nil.
+// Returns []string which contains the vector field names, or nil if the receiver is nil.
 func (fe *FieldExtractor[V]) GetVectorFields() []string {
 	if fe == nil {
 		return nil
@@ -209,8 +208,8 @@ func (fe *FieldExtractor[V]) IsSortable(fieldName string) bool {
 
 // GetSortableFields returns the names of all fields that support sorting.
 //
-// Returns []string which contains the sortable field names, or nil if the
-// receiver is nil.
+// Returns []string which contains the sortable field names, or nil if the receiver is
+// nil.
 func (fe *FieldExtractor[V]) GetSortableFields() []string {
 	if fe == nil {
 		return nil
@@ -251,10 +250,9 @@ func (fe *FieldExtractor[V]) extractNumeric(value V, fieldPath string) (float64,
 	return toFloat64(extracted)
 }
 
-// extractAny extracts any value from a field using zero-allocation unsafe
-// access. Supports dot notation for nested fields (e.g., "address.city") and
-// uses binder-style reflection caching to eliminate reflect.ValueOf
-// allocations.
+// extractAny extracts any value from a field using zero-allocation unsafe access.
+// Supports dot notation for nested fields (e.g., "address.city") and uses binder-style
+// reflection caching to eliminate reflect.ValueOf allocations.
 //
 // Takes value (V) which is the struct instance to extract from.
 // Takes fieldPath (string) which specifies the field path using dot notation.
@@ -262,8 +260,7 @@ func (fe *FieldExtractor[V]) extractNumeric(value V, fieldPath string) (float64,
 // Returns any which is the extracted field value.
 // Returns bool which indicates whether the extraction was successful.
 //
-// Safe for concurrent use. Uses a read lock when checking the invalid field
-// path cache.
+// Safe for concurrent use. Uses a read lock when checking the invalid field path cache.
 func (fe *FieldExtractor[V]) extractAny(value V, fieldPath string) (any, bool) {
 	fe.cacheMu.RLock()
 	_, isInvalid := fe.fieldPathInvalid[fieldPath]
@@ -290,8 +287,8 @@ func (fe *FieldExtractor[V]) extractAny(value V, fieldPath string) (any, bool) {
 	return fe.extractAndCache(value, fieldPath, t, tKey)
 }
 
-// extractAndCache builds a field accessor and caches it for future
-// zero-allocation access.
+// extractAndCache builds a field accessor and caches it for future zero-allocation
+// access.
 //
 // Takes value (V) which is the struct value to extract a field from.
 // Takes fieldPath (string) which specifies the dot-separated path to the field.
@@ -397,8 +394,8 @@ func (*FieldExtractor[V]) buildAccessor(v reflect.Value, t reflect.Type, parts [
 // Takes fieldPath (string) which specifies the path to the field.
 // Takes accessor (*fieldAccessor) which provides the accessor to store.
 //
-// Safe for concurrent use. Uses mutex locking with atomic swap to update the
-// cache without blocking reads from other goroutines.
+// Safe for concurrent use. Uses mutex locking with atomic swap to update the cache
+// without blocking reads from other goroutines.
 func (*FieldExtractor[V]) cacheAccessor(tKey uintptr, fieldPath string, accessor *fieldAccessor) {
 	globalTypeCache.mu.Lock()
 	defer globalTypeCache.mu.Unlock()
@@ -422,11 +419,10 @@ func (*FieldExtractor[V]) cacheAccessor(tKey uintptr, fieldPath string, accessor
 
 // NewFieldExtractor creates a new field extractor for the given schema.
 //
-// Takes schema (*cache_dto.SearchSchema) which defines the fields
-// to extract from cached values.
+// Takes schema (*cache_dto.SearchSchema) which defines the fields to extract from cached
+// values.
 //
-// Returns *FieldExtractor[V] which is the configured extractor,
-// or nil if schema is nil.
+// Returns *FieldExtractor[V] which is the configured extractor, or nil if schema is nil.
 func NewFieldExtractor[V any](schema *cache_dto.SearchSchema) *FieldExtractor[V] {
 	if schema == nil {
 		return nil
@@ -467,8 +463,8 @@ func NewFieldExtractor[V any](schema *cache_dto.SearchSchema) *FieldExtractor[V]
 	return fe
 }
 
-// findFieldByNameInType finds a field by name in a struct type using
-// case-insensitive matching.
+// findFieldByNameInType finds a field by name in a struct type using case-insensitive
+// matching.
 //
 // Takes t (reflect.Type) which is the struct type to search.
 // Takes name (string) which is the field name to find.
@@ -507,8 +503,8 @@ func isPrimitiveKind(k reflect.Kind) bool {
 //
 // Takes v (reflect.Value) which is the value to dereference.
 //
-// Returns reflect.Value which is the underlying non-pointer value, or the
-// original value if a nil pointer is encountered.
+// Returns reflect.Value which is the underlying non-pointer value, or the original value
+// if a nil pointer is encountered.
 func dereferencePointers(v reflect.Value) reflect.Value {
 	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
@@ -519,8 +515,8 @@ func dereferencePointers(v reflect.Value) reflect.Value {
 	return v
 }
 
-// toString converts a value of any type to its string form.
-// Uses strconv for number types for better speed.
+// toString converts a value of any type to its string form. Uses strconv for number types
+// for better speed.
 //
 // Takes value (any) which is the value to convert.
 //

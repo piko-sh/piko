@@ -53,8 +53,8 @@ func NewActionRegistryEmitter() *ActionRegistryEmitter {
 
 // EmitRegistry generates the action registry Go file using AST construction.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to
-// include in the registry.
+// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to include in the
+// registry.
 //
 // Returns []byte which contains the formatted Go source code.
 // Returns error when AST formatting fails.
@@ -80,8 +80,8 @@ func (e *ActionRegistryEmitter) EmitRegistry(_ context.Context, specs []annotato
 
 // buildRegistryAST constructs the complete AST for the registry file.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which provides the action
-// specifications to include in the generated registry.
+// Takes specs ([]annotator_dto.ActionSpec) which provides the action specifications to
+// include in the generated registry.
 //
 // Returns *ast.File which is the complete AST ready for code generation.
 func (e *ActionRegistryEmitter) buildRegistryAST(specs []annotator_dto.ActionSpec) *ast.File {
@@ -95,11 +95,11 @@ func (e *ActionRegistryEmitter) buildRegistryAST(specs []annotator_dto.ActionSpe
 	}
 }
 
-// buildInitFunction builds the init() function that registers all actions
-// and pretouches JSON types for performance.
+// buildInitFunction builds the init() function that registers all actions and pretouches
+// JSON types for performance.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// specifications to register.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action specifications to
+// register.
 //
 // Returns *ast.FuncDecl which is the generated init function AST node.
 func (e *ActionRegistryEmitter) buildInitFunction(specs []annotator_dto.ActionSpec) *ast.FuncDecl {
@@ -136,14 +136,14 @@ func (e *ActionRegistryEmitter) buildInitFunction(specs []annotator_dto.ActionSp
 	)
 }
 
-// collectPretouchTypes collects unique struct types from action specs for
-// pretouch. Only types with valid package paths are included (skips builtins).
+// collectPretouchTypes collects unique struct types from action specs for pretouch. Only
+// types with valid package paths are included (skips builtins).
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// specifications to extract types from.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action specifications to
+// extract types from.
 //
-// Returns []annotator_dto.TypeSpec which contains the unique types sorted
-// by their fully qualified names.
+// Returns []annotator_dto.TypeSpec which contains the unique types sorted by their fully
+// qualified names.
 func (*ActionRegistryEmitter) collectPretouchTypes(specs []annotator_dto.ActionSpec) []annotator_dto.TypeSpec {
 	seen := make(map[string]bool)
 	var result []annotator_dto.TypeSpec
@@ -162,11 +162,11 @@ func (*ActionRegistryEmitter) collectPretouchTypes(specs []annotator_dto.ActionS
 
 // buildPretouchStatements builds the pretouch initialisation statements.
 //
-// Takes types ([]annotator_dto.TypeSpec) which specifies the types to
-// pretouch for JSON serialisation.
+// Takes types ([]annotator_dto.TypeSpec) which specifies the types to pretouch for JSON
+// serialisation.
 //
-// Returns []ast.Stmt which contains the variable declarations and loop for
-// pretouching all specified types.
+// Returns []ast.Stmt which contains the variable declarations and loop for pretouching
+// all specified types.
 func (*ActionRegistryEmitter) buildPretouchStatements(types []annotator_dto.TypeSpec) []ast.Stmt {
 	typeElts := make([]ast.Expr, 0, len(types))
 	for _, t := range types {
@@ -215,8 +215,8 @@ func (*ActionRegistryEmitter) buildPretouchStatements(types []annotator_dto.Type
 
 // buildActionHandlerTypeDecl builds the ActionHandler type declaration.
 //
-// Returns *ast.GenDecl which contains the struct type definition for
-// ActionHandler with fields for Name, Method, Create, Invoke, and HasSSE.
+// Returns *ast.GenDecl which contains the struct type definition for ActionHandler with
+// fields for Name, Method, Create, Invoke, and HasSSE.
 func (e *ActionRegistryEmitter) buildActionHandlerTypeDecl() *ast.GenDecl {
 	return goastutil.GenDeclType(
 		"ActionHandler",
@@ -230,9 +230,9 @@ func (e *ActionRegistryEmitter) buildActionHandlerTypeDecl() *ast.GenDecl {
 	)
 }
 
-// buildInvokeFuncType builds the AST representation for an invoke function
-// type with signature:
-// func(ctx context.Context, action any, arguments map[string]any) (any, error).
+// buildInvokeFuncType builds the AST representation for an invoke function type with
+// signature: func(ctx context.Context, action any, arguments map[string]any) (any,
+// error).
 //
 // Returns *ast.FuncType which defines the function type for action invocation.
 func (*ActionRegistryEmitter) buildInvokeFuncType() *ast.FuncType {
@@ -251,8 +251,8 @@ func (*ActionRegistryEmitter) buildInvokeFuncType() *ast.FuncType {
 
 // buildRegistryFunction builds the Registry() function.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which provides the action
-// specifications to include in the registry.
+// Takes specs ([]annotator_dto.ActionSpec) which provides the action specifications to
+// include in the registry.
 //
 // Returns *ast.FuncDecl which is the generated Registry function declaration.
 func (e *ActionRegistryEmitter) buildRegistryFunction(specs []annotator_dto.ActionSpec) *ast.FuncDecl {
@@ -280,8 +280,7 @@ func (e *ActionRegistryEmitter) buildRegistryFunction(specs []annotator_dto.Acti
 
 // buildActionEntry builds a single map entry for an action.
 //
-// Takes spec (*annotator_dto.ActionSpec) which defines the action to build
-// an entry for.
+// Takes spec (*annotator_dto.ActionSpec) which defines the action to build an entry for.
 //
 // Returns *ast.KeyValueExpr which is the AST node representing the map entry.
 func (e *ActionRegistryEmitter) buildActionEntry(spec *annotator_dto.ActionSpec) *ast.KeyValueExpr {
@@ -301,8 +300,8 @@ func (e *ActionRegistryEmitter) buildActionEntry(spec *annotator_dto.ActionSpec)
 	)
 }
 
-// buildCreateFunc builds a function literal that returns a new instance of a
-// struct, producing code of the form: func() any { return &pkg.StructName{} }.
+// buildCreateFunc builds a function literal that returns a new instance of a struct,
+// producing code of the form: func() any { return &pkg.StructName{} }.
 //
 // Takes pkgAlias (string) which specifies the package alias for the struct.
 // Takes structName (string) which specifies the name of the struct to create.
@@ -323,15 +322,13 @@ func (*ActionRegistryEmitter) buildCreateFunc(pkgAlias, structName string) *ast.
 
 // collectParamTypes adds struct types from call parameters to the result.
 //
-// Takes params ([]annotator_dto.ParamSpec) which contains the parameters
-// to scan for struct types.
-// Takes seen (map[string]bool) which tracks already processed types to avoid
-// duplicates.
-// Takes result ([]annotator_dto.TypeSpec) which is the slice to append
-// new types to.
+// Takes params ([]annotator_dto.ParamSpec) which contains the parameters to scan for
+// struct types.
+// Takes seen (map[string]bool) which tracks already processed types to avoid duplicates.
+// Takes result ([]annotator_dto.TypeSpec) which is the slice to append new types to.
 //
-// Returns []annotator_dto.TypeSpec which contains the updated result with
-// any new struct types appended.
+// Returns []annotator_dto.TypeSpec which contains the updated result with any new struct
+// types appended.
 func collectParamTypes(params []annotator_dto.ParamSpec, seen map[string]bool, result []annotator_dto.TypeSpec) []annotator_dto.TypeSpec {
 	for _, param := range params {
 		if param.Struct == nil || param.Struct.PackagePath == "" {
@@ -347,8 +344,8 @@ func collectParamTypes(params []annotator_dto.ParamSpec, seen map[string]bool, r
 	return result
 }
 
-// collectReturnType adds a return type to the result slice if it is a struct
-// that has not already been seen.
+// collectReturnType adds a return type to the result slice if it is a struct that has not
+// already been seen.
 //
 // Takes returnType (*annotator_dto.TypeSpec) which is the type to collect.
 // Takes seen (map[string]bool) which tracks already processed types by key.
@@ -386,8 +383,7 @@ func actionSortSpecs(specs []annotator_dto.ActionSpec) []annotator_dto.ActionSpe
 // Takes packagePath (string) which is the full import path of the package.
 // Takes packageName (string) which is the declared package name.
 //
-// Returns bool which is true when the last path segment differs from the
-// package name.
+// Returns bool which is true when the last path segment differs from the package name.
 func actionNeedsAlias(packagePath, packageName string) bool {
 	parts := strings.Split(packagePath, "/")
 	lastPart := parts[len(parts)-1]

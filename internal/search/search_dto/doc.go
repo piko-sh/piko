@@ -18,7 +18,7 @@
 
 // Package search_dto defines data transfer objects for the search module.
 //
-// It contains configuration types for search operations, result
-// containers, and JSON-serialisable index structures used for debugging
-// and human-readable index inspection.
+// It contains configuration types for search operations, result containers, and
+// JSON-serialisable index structures used for debugging and human-readable index
+// inspection.
 package search_dto

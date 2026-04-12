@@ -40,6 +40,6 @@ func (r RoomSetup) BedroomsInt() int {
 }
 
 type PropertyData struct {
-	Title     string                `json:"title"`
-	RoomSetup Embedded[RoomSetup]   `json:"room_setup"`
+	Title     string              `json:"title"`
+	RoomSetup Embedded[RoomSetup] `json:"room_setup"`
 }

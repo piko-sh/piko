@@ -23,13 +23,15 @@ import (
 	"time"
 )
 
-const testHTMLCookies = `<!DOCTYPE html>
-<html>
-<head><title>Cookie Test</title></head>
-<body>
-<div id="content">Cookie Test Page</div>
-</body>
-</html>`
+const (
+	testHTMLCookies = `<!DOCTYPE html>
+	<html>
+	<head><title>Cookie Test</title></head>
+	<body>
+	<div id="content">Cookie Test Page</div>
+	</body>
+	</html>`
+)
 
 func TestCookies(t *testing.T) {
 	t.Parallel()

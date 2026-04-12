@@ -21,9 +21,9 @@ package healthprobe_adapters
 import (
 	"net/http"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/healthprobe/healthprobe_domain"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
+	"piko.sh/piko/internal/json"
 )
 
 // HTTPHandlerAdapter provides HTTP endpoints for health checks.

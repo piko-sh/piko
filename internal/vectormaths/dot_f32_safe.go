@@ -20,8 +20,8 @@
 
 package vectormaths
 
-// dotF32 computes the dot product of two float32 slices.
-// Pure Go implementation used when the safe build tag is active.
+// dotF32 computes the dot product of two float32 slices. Pure Go implementation used when
+// the safe build tag is active.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.

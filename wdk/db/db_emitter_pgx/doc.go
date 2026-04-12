@@ -16,8 +16,14 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_emitter_pgx implements CodeEmitterPort for the pgx/v5 runtime
-// target. It generates Go source code that uses the pgx native interfaces
-// rather than database/sql. The emitter itself does not import pgx at build
-// time; it only produces source text that references pgx types.
+// Package db_emitter_pgx implements CodeEmitterPort for pgx/v5.
+//
+// Generates Go source code that uses the pgx native interfaces rather than database/sql.
+// The emitter itself does not import pgx at build time; it only produces source text that
+// references pgx types.
+//
+// # Thread safety
+//
+// Emitter values carry no mutable state and are safe for concurrent use by multiple
+// goroutines.
 package db_emitter_pgx

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,12 +38,9 @@ func TestMockTokenBucketStore_TryTake(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockTokenBucketStore{
-			TryTakeFunc:           nil,
-			WaitDurationFunc:      nil,
-			DeleteBucketFunc:      nil,
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
+			TryTakeFunc:      nil,
+			WaitDurationFunc: nil,
+			DeleteBucketFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -54,7 +50,7 @@ func TestMockTokenBucketStore_TryTake(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.False(t, allowed)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TryTakeCallCount))
+		assert.Equal(t, int64(1), mock.TryTakeCallCount.Load())
 	})
 
 	t.Run("delegates to TryTakeFunc", func(t *testing.T) {
@@ -64,11 +60,8 @@ func TestMockTokenBucketStore_TryTake(t *testing.T) {
 			TryTakeFunc: func(_ context.Context, _ string, _ float64, _ *ratelimiter_dto.TokenBucketConfig) (bool, error) {
 				return true, nil
 			},
-			WaitDurationFunc:      nil,
-			DeleteBucketFunc:      nil,
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
+			WaitDurationFunc: nil,
+			DeleteBucketFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -78,7 +71,7 @@ func TestMockTokenBucketStore_TryTake(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.True(t, allowed)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TryTakeCallCount))
+		assert.Equal(t, int64(1), mock.TryTakeCallCount.Load())
 	})
 
 	t.Run("propagates error from TryTakeFunc", func(t *testing.T) {
@@ -88,11 +81,8 @@ func TestMockTokenBucketStore_TryTake(t *testing.T) {
 			TryTakeFunc: func(_ context.Context, _ string, _ float64, _ *ratelimiter_dto.TokenBucketConfig) (bool, error) {
 				return false, errors.New("bucket corrupted")
 			},
-			WaitDurationFunc:      nil,
-			DeleteBucketFunc:      nil,
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
+			WaitDurationFunc: nil,
+			DeleteBucketFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -103,7 +93,7 @@ func TestMockTokenBucketStore_TryTake(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "bucket corrupted", err.Error())
 		assert.False(t, allowed)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TryTakeCallCount))
+		assert.Equal(t, int64(1), mock.TryTakeCallCount.Load())
 	})
 }
 
@@ -125,11 +115,8 @@ func TestMockTokenBucketStore_TryTake_PassesArguments(t *testing.T) {
 			capturedConfig = config
 			return true, nil
 		},
-		WaitDurationFunc:      nil,
-		DeleteBucketFunc:      nil,
-		TryTakeCallCount:      0,
-		WaitDurationCallCount: 0,
-		DeleteBucketCallCount: 0,
+		WaitDurationFunc: nil,
+		DeleteBucketFunc: nil,
 	}
 
 	type ctxKey struct{}
@@ -152,12 +139,9 @@ func TestMockTokenBucketStore_WaitDuration(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockTokenBucketStore{
-			TryTakeFunc:           nil,
-			WaitDurationFunc:      nil,
-			DeleteBucketFunc:      nil,
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
+			TryTakeFunc:      nil,
+			WaitDurationFunc: nil,
+			DeleteBucketFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -167,7 +151,7 @@ func TestMockTokenBucketStore_WaitDuration(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, time.Duration(0), dur)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WaitDurationCallCount))
+		assert.Equal(t, int64(1), mock.WaitDurationCallCount.Load())
 	})
 
 	t.Run("delegates to WaitDurationFunc", func(t *testing.T) {
@@ -178,10 +162,7 @@ func TestMockTokenBucketStore_WaitDuration(t *testing.T) {
 			WaitDurationFunc: func(_ context.Context, _ string, _ float64, _ *ratelimiter_dto.TokenBucketConfig) (time.Duration, error) {
 				return 500 * time.Millisecond, nil
 			},
-			DeleteBucketFunc:      nil,
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
+			DeleteBucketFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -191,7 +172,7 @@ func TestMockTokenBucketStore_WaitDuration(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, 500*time.Millisecond, dur)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WaitDurationCallCount))
+		assert.Equal(t, int64(1), mock.WaitDurationCallCount.Load())
 	})
 
 	t.Run("propagates error from WaitDurationFunc", func(t *testing.T) {
@@ -202,10 +183,7 @@ func TestMockTokenBucketStore_WaitDuration(t *testing.T) {
 			WaitDurationFunc: func(_ context.Context, _ string, _ float64, _ *ratelimiter_dto.TokenBucketConfig) (time.Duration, error) {
 				return 0, errors.New("calculation failed")
 			},
-			DeleteBucketFunc:      nil,
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
+			DeleteBucketFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -216,7 +194,7 @@ func TestMockTokenBucketStore_WaitDuration(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "calculation failed", err.Error())
 		assert.Equal(t, time.Duration(0), dur)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WaitDurationCallCount))
+		assert.Equal(t, int64(1), mock.WaitDurationCallCount.Load())
 	})
 }
 
@@ -239,10 +217,7 @@ func TestMockTokenBucketStore_WaitDuration_PassesArguments(t *testing.T) {
 			capturedConfig = config
 			return 0, nil
 		},
-		DeleteBucketFunc:      nil,
-		TryTakeCallCount:      0,
-		WaitDurationCallCount: 0,
-		DeleteBucketCallCount: 0,
+		DeleteBucketFunc: nil,
 	}
 
 	type ctxKey struct{}
@@ -265,19 +240,16 @@ func TestMockTokenBucketStore_DeleteBucket(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockTokenBucketStore{
-			TryTakeFunc:           nil,
-			WaitDurationFunc:      nil,
-			DeleteBucketFunc:      nil,
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
+			TryTakeFunc:      nil,
+			WaitDurationFunc: nil,
+			DeleteBucketFunc: nil,
 		}
 
 		ctx := context.Background()
 		err := mock.DeleteBucket(ctx, "key-to-delete")
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DeleteBucketCallCount))
+		assert.Equal(t, int64(1), mock.DeleteBucketCallCount.Load())
 	})
 
 	t.Run("delegates to DeleteBucketFunc", func(t *testing.T) {
@@ -292,9 +264,6 @@ func TestMockTokenBucketStore_DeleteBucket(t *testing.T) {
 				called = true
 				return nil
 			},
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
 		}
 
 		ctx := context.Background()
@@ -302,7 +271,7 @@ func TestMockTokenBucketStore_DeleteBucket(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DeleteBucketCallCount))
+		assert.Equal(t, int64(1), mock.DeleteBucketCallCount.Load())
 	})
 
 	t.Run("propagates error from DeleteBucketFunc", func(t *testing.T) {
@@ -314,9 +283,6 @@ func TestMockTokenBucketStore_DeleteBucket(t *testing.T) {
 			DeleteBucketFunc: func(_ context.Context, _ string) error {
 				return errors.New("delete not permitted")
 			},
-			TryTakeCallCount:      0,
-			WaitDurationCallCount: 0,
-			DeleteBucketCallCount: 0,
 		}
 
 		ctx := context.Background()
@@ -324,7 +290,7 @@ func TestMockTokenBucketStore_DeleteBucket(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Equal(t, "delete not permitted", err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DeleteBucketCallCount))
+		assert.Equal(t, int64(1), mock.DeleteBucketCallCount.Load())
 	})
 }
 
@@ -344,9 +310,6 @@ func TestMockTokenBucketStore_DeleteBucket_PassesArguments(t *testing.T) {
 			capturedKey = key
 			return nil
 		},
-		TryTakeCallCount:      0,
-		WaitDurationCallCount: 0,
-		DeleteBucketCallCount: 0,
 	}
 
 	type ctxKey struct{}
@@ -363,12 +326,9 @@ func TestMockTokenBucketStore_CallCountsAreIndependent(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockTokenBucketStore{
-		TryTakeFunc:           nil,
-		WaitDurationFunc:      nil,
-		DeleteBucketFunc:      nil,
-		TryTakeCallCount:      0,
-		WaitDurationCallCount: 0,
-		DeleteBucketCallCount: 0,
+		TryTakeFunc:      nil,
+		WaitDurationFunc: nil,
+		DeleteBucketFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -381,9 +341,9 @@ func TestMockTokenBucketStore_CallCountsAreIndependent(t *testing.T) {
 	_, _ = mock.WaitDuration(ctx, "k", 1.0, config)
 	_ = mock.DeleteBucket(ctx, "k")
 
-	assert.Equal(t, int64(3), atomic.LoadInt64(&mock.TryTakeCallCount))
-	assert.Equal(t, int64(2), atomic.LoadInt64(&mock.WaitDurationCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DeleteBucketCallCount))
+	assert.Equal(t, int64(3), mock.TryTakeCallCount.Load())
+	assert.Equal(t, int64(2), mock.WaitDurationCallCount.Load())
+	assert.Equal(t, int64(1), mock.DeleteBucketCallCount.Load())
 }
 
 func TestMockTokenBucketStore_ZeroValueIsUsable(t *testing.T) {
@@ -405,21 +365,18 @@ func TestMockTokenBucketStore_ZeroValueIsUsable(t *testing.T) {
 	err = mock.DeleteBucket(ctx, "zero-key")
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TryTakeCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WaitDurationCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DeleteBucketCallCount))
+	assert.Equal(t, int64(1), mock.TryTakeCallCount.Load())
+	assert.Equal(t, int64(1), mock.WaitDurationCallCount.Load())
+	assert.Equal(t, int64(1), mock.DeleteBucketCallCount.Load())
 }
 
 func TestMockTokenBucketStore_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockTokenBucketStore{
-		TryTakeFunc:           nil,
-		WaitDurationFunc:      nil,
-		DeleteBucketFunc:      nil,
-		TryTakeCallCount:      0,
-		WaitDurationCallCount: 0,
-		DeleteBucketCallCount: 0,
+		TryTakeFunc:      nil,
+		WaitDurationFunc: nil,
+		DeleteBucketFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -446,21 +403,18 @@ func TestMockTokenBucketStore_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.TryTakeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.WaitDurationCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.DeleteBucketCallCount))
+	assert.Equal(t, int64(goroutines), mock.TryTakeCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.WaitDurationCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.DeleteBucketCallCount.Load())
 }
 
 func TestMockTokenBucketStore_ImplementsTokenBucketStorePort(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockTokenBucketStore{
-		TryTakeFunc:           nil,
-		WaitDurationFunc:      nil,
-		DeleteBucketFunc:      nil,
-		TryTakeCallCount:      0,
-		WaitDurationCallCount: 0,
-		DeleteBucketCallCount: 0,
+		TryTakeFunc:      nil,
+		WaitDurationFunc: nil,
+		DeleteBucketFunc: nil,
 	}
 
 	var _ TokenBucketStorePort = mock

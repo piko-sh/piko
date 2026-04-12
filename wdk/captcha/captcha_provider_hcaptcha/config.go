@@ -18,7 +18,9 @@
 
 package captcha_provider_hcaptcha
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrSiteKeyEmpty is returned when the hCaptcha site key is empty.
@@ -30,12 +32,12 @@ var (
 
 // Config holds configuration for the hCaptcha captcha provider.
 type Config struct {
-	// SiteKey is the public site key from the hCaptcha dashboard. This is
-	// embedded in the frontend widget to identify the site.
+	// SiteKey is the public site key from the hCaptcha dashboard. This is embedded in the
+	// frontend widget to identify the site.
 	SiteKey string
 
-	// SecretKey is the secret key from the hCaptcha dashboard. This is used
-	// server-side to verify captcha tokens with the hCaptcha API.
+	// SecretKey is the secret key from the hCaptcha dashboard. This is used server-side to
+	// verify captcha tokens with the hCaptcha API.
 	SecretKey string
 }
 

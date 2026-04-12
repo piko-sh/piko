@@ -18,17 +18,15 @@
 
 package templater_dto
 
-// PreviewScenario describes a single named preview scenario for a component.
-// The Preview() convention function returns a slice of these, each providing
-// sample data for rendering the component in the dev tools preview.
+// PreviewScenario describes a single named preview scenario for a component. The
+// Preview() convention function returns a slice of these, each providing sample data for
+// rendering the component in the dev tools preview.
 type PreviewScenario struct {
-	// Props is the sample data to pass to the component's Render function.
-	// For partials, emails, and PDFs, this is passed as the props argument
-	// to RunPartialWithProps.
+	// Props is the sample data to pass to the component's Render function. For partials,
+	// emails, and PDFs, this is passed as the props argument to RunPartialWithProps.
 	Props any
 
-	// Name is the display name for this scenario (e.g., "empty cart",
-	// "with items").
+	// Name is the display name for this scenario (e.g., "empty cart", "with items").
 	Name string
 
 	// Description is an optional longer description shown in the dev tools.

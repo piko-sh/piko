@@ -30,15 +30,17 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-var _ notification_domain.NotificationProviderPort = (*NtfyProvider)(nil)
+var (
+	_ notification_domain.NotificationProviderPort = (*NtfyProvider)(nil)
+)
 
 const (
 	// ntfyMaxMessageLength is the maximum message length in bytes for ntfy.
 	ntfyMaxMessageLength = 4096
 )
 
-// NtfyProvider sends notifications to an Ntfy server using HTTP requests.
-// It implements NotificationProviderPort and io.Closer.
+// NtfyProvider sends notifications to an Ntfy server using HTTP requests. It implements
+// NotificationProviderPort and io.Closer.
 type NtfyProvider struct {
 	// httpClient sends HTTP requests to the ntfy server.
 	httpClient *http.Client
@@ -52,11 +54,11 @@ type NtfyProvider struct {
 
 // Send delivers a notification to Ntfy.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and context.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// context.
 //
-// Returns error when the request cannot be created or sent, or when Ntfy
-// returns a non-success status code.
+// Returns error when the request cannot be created or sent, or when Ntfy returns a
+// non-success status code.
 func (n *NtfyProvider) Send(ctx context.Context, params *notification_dto.SendParams) error {
 	message := n.formatNtfyMessage(params)
 
@@ -89,8 +91,8 @@ func (n *NtfyProvider) Send(ctx context.Context, params *notification_dto.SendPa
 
 // SendBulk sends multiple notifications.
 //
-// Takes notifications ([]*notification_dto.SendParams) which specifies the
-// notifications to send.
+// Takes notifications ([]*notification_dto.SendParams) which specifies the notifications
+// to send.
 //
 // Returns error when any notification fails to send.
 func (n *NtfyProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -111,8 +113,8 @@ func (*NtfyProvider) SupportsBulkSending() bool {
 
 // GetCapabilities returns the capabilities of the Ntfy provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes the
-// supported features and limits of this provider.
+// Returns notification_domain.ProviderCapabilities which describes the supported features
+// and limits of this provider.
 func (*NtfyProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: false,
@@ -133,8 +135,8 @@ func (*NtfyProvider) Close(_ context.Context) error {
 
 // formatNtfyMessage formats the notification as plain text for Ntfy.
 //
-// Takes params (*notification_dto.SendParams) which contains the message
-// content, fields, and context to format.
+// Takes params (*notification_dto.SendParams) which contains the message content, fields,
+// and context to format.
 //
 // Returns string which is the formatted plain text message.
 func (*NtfyProvider) formatNtfyMessage(params *notification_dto.SendParams) string {
@@ -164,8 +166,7 @@ func (*NtfyProvider) formatNtfyMessage(params *notification_dto.SendParams) stri
 
 // priorityToNtfyPriority maps notification priority to Ntfy priority level.
 //
-// Takes priority (NotificationPriority) which is the notification priority to
-// convert.
+// Takes priority (NotificationPriority) which is the notification priority to convert.
 //
 // Returns string which is the Ntfy priority level.
 func (*NtfyProvider) priorityToNtfyPriority(priority notification_dto.NotificationPriority) string {
@@ -201,8 +202,8 @@ func (*NtfyProvider) priorityToNtfyTags(priority notification_dto.NotificationPr
 //
 // Takes serverURL (string) which specifies the Ntfy server URL.
 // Takes topic (string) which specifies the topic to publish to.
-// Takes client (*http.Client) which provides the HTTP client. If nil, a default
-// client with a 30-second timeout is used.
+// Takes client (*http.Client) which provides the HTTP client. If nil, a default client
+// with a 30-second timeout is used.
 //
 // Returns notification_domain.NotificationProviderPort which is ready to send
 // notifications.

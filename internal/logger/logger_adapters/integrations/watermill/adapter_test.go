@@ -42,7 +42,9 @@ type recordingLogger struct {
 	withCalls [][]logger_domain.Attr
 }
 
-var _ logger_domain.Logger = (*recordingLogger)(nil)
+var (
+	_ logger_domain.Logger = (*recordingLogger)(nil)
+)
 
 func (r *recordingLogger) Error(message string, arguments ...logger_domain.Attr) {
 	r.calls = append(r.calls, logCall{method: "Error", message: message, fields: arguments})

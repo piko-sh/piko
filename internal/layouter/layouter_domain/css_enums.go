@@ -170,12 +170,11 @@ const (
 	// TextAlignJustify represents CSS text-align: justify.
 	TextAlignJustify
 
-	// TextAlignStart represents CSS text-align: start. Resolves
-	// to left in LTR and right in RTL.
+	// TextAlignStart represents CSS text-align: start. Resolves to left in LTR and right in
+	// RTL.
 	TextAlignStart
 
-	// TextAlignEnd represents CSS text-align: end. Resolves to
-	// right in LTR and left in RTL.
+	// TextAlignEnd represents CSS text-align: end. Resolves to right in LTR and left in RTL.
 	TextAlignEnd
 )
 
@@ -348,13 +347,12 @@ const (
 type BoxSizingType int
 
 const (
-	// BoxSizingContentBox means width/height set the content
-	// area size; padding and border are added outside.
+	// BoxSizingContentBox means width/height set the content area size; padding and border
+	// are added outside.
 	BoxSizingContentBox BoxSizingType = iota
 
-	// BoxSizingBorderBox means width/height set the border-box
-	// size; padding and border are subtracted to derive the
-	// content area.
+	// BoxSizingBorderBox means width/height set the border-box size; padding and border are
+	// subtracted to derive the content area.
 	BoxSizingBorderBox
 )
 
@@ -406,157 +404,159 @@ const (
 	HyphensAuto
 )
 
-// displayTypeNames maps DisplayType values to their CSS keyword strings.
-var displayTypeNames = [...]string{
-	DisplayBlock:            "block",
-	DisplayInline:           "inline",
-	DisplayInlineBlock:      "inline-block",
-	DisplayFlex:             "flex",
-	DisplayInlineFlex:       "inline-flex",
-	DisplayTable:            "table",
-	DisplayTableRow:         "table-row",
-	DisplayTableCell:        "table-cell",
-	DisplayTableRowGroup:    "table-row-group",
-	DisplayTableHeaderGroup: "table-header-group",
-	DisplayTableFooterGroup: "table-footer-group",
-	DisplayTableCaption:     "table-caption",
-	DisplayListItem:         "list-item",
-	DisplayGrid:             "grid",
-	DisplayInlineGrid:       "inline-grid",
-	DisplayNone:             cssKeywordNone,
-	DisplayContents:         "contents",
-}
+var (
+	// displayTypeNames maps DisplayType values to their CSS keyword strings.
+	displayTypeNames = [...]string{
+		DisplayBlock:            "block",
+		DisplayInline:           "inline",
+		DisplayInlineBlock:      "inline-block",
+		DisplayFlex:             "flex",
+		DisplayInlineFlex:       "inline-flex",
+		DisplayTable:            "table",
+		DisplayTableRow:         "table-row",
+		DisplayTableCell:        "table-cell",
+		DisplayTableRowGroup:    "table-row-group",
+		DisplayTableHeaderGroup: "table-header-group",
+		DisplayTableFooterGroup: "table-footer-group",
+		DisplayTableCaption:     "table-caption",
+		DisplayListItem:         "list-item",
+		DisplayGrid:             "grid",
+		DisplayInlineGrid:       "inline-grid",
+		DisplayNone:             cssKeywordNone,
+		DisplayContents:         "contents",
+	}
 
-// positionTypeNames maps PositionType values to their CSS keyword strings.
-var positionTypeNames = [...]string{
-	PositionStatic:   "static",
-	PositionRelative: "relative",
-	PositionAbsolute: "absolute",
-	PositionFixed:    "fixed",
-}
+	// positionTypeNames maps PositionType values to their CSS keyword strings.
+	positionTypeNames = [...]string{
+		PositionStatic:   "static",
+		PositionRelative: "relative",
+		PositionAbsolute: "absolute",
+		PositionFixed:    "fixed",
+	}
 
-// floatTypeNames maps FloatType values to their CSS keyword strings.
-var floatTypeNames = [...]string{
-	FloatNone:  cssKeywordNone,
-	FloatLeft:  cssKeywordLeft,
-	FloatRight: cssKeywordRight,
-}
+	// floatTypeNames maps FloatType values to their CSS keyword strings.
+	floatTypeNames = [...]string{
+		FloatNone:  cssKeywordNone,
+		FloatLeft:  cssKeywordLeft,
+		FloatRight: cssKeywordRight,
+	}
 
-// clearTypeNames maps ClearType values to their CSS keyword strings.
-var clearTypeNames = [...]string{
-	ClearNone:  cssKeywordNone,
-	ClearLeft:  cssKeywordLeft,
-	ClearRight: cssKeywordRight,
-	ClearBoth:  "both",
-}
+	// clearTypeNames maps ClearType values to their CSS keyword strings.
+	clearTypeNames = [...]string{
+		ClearNone:  cssKeywordNone,
+		ClearLeft:  cssKeywordLeft,
+		ClearRight: cssKeywordRight,
+		ClearBoth:  "both",
+	}
 
-// textAlignTypeNames maps TextAlignType values to their CSS keyword strings.
-var textAlignTypeNames = [...]string{
-	TextAlignLeft:    cssKeywordLeft,
-	TextAlignCentre:  cssKeywordCentre,
-	TextAlignRight:   cssKeywordRight,
-	TextAlignJustify: "justify",
-	TextAlignStart:   "start",
-	TextAlignEnd:     "end",
-}
+	// textAlignTypeNames maps TextAlignType values to their CSS keyword strings.
+	textAlignTypeNames = [...]string{
+		TextAlignLeft:    cssKeywordLeft,
+		TextAlignCentre:  cssKeywordCentre,
+		TextAlignRight:   cssKeywordRight,
+		TextAlignJustify: "justify",
+		TextAlignStart:   "start",
+		TextAlignEnd:     "end",
+	}
 
-// textDecorationStyleTypeNames maps TextDecorationStyleType
-// values to their CSS keyword strings.
-var textDecorationStyleTypeNames = [...]string{
-	TextDecorationStyleSolid:  "solid",
-	TextDecorationStyleDashed: "dashed",
-	TextDecorationStyleDotted: "dotted",
-	TextDecorationStyleDouble: "double",
-	TextDecorationStyleWavy:   "wavy",
-}
+	// textDecorationStyleTypeNames maps TextDecorationStyleType values to their CSS keyword
+	// strings.
+	textDecorationStyleTypeNames = [...]string{
+		TextDecorationStyleSolid:  "solid",
+		TextDecorationStyleDashed: "dashed",
+		TextDecorationStyleDotted: "dotted",
+		TextDecorationStyleDouble: "double",
+		TextDecorationStyleWavy:   "wavy",
+	}
 
-// textTransformTypeNames maps TextTransformType values to their CSS keyword strings.
-var textTransformTypeNames = [...]string{
-	TextTransformNone:       cssKeywordNone,
-	TextTransformUppercase:  "uppercase",
-	TextTransformLowercase:  "lowercase",
-	TextTransformCapitalise: "capitalise",
-}
+	// textTransformTypeNames maps TextTransformType values to their CSS keyword strings.
+	textTransformTypeNames = [...]string{
+		TextTransformNone:       cssKeywordNone,
+		TextTransformUppercase:  "uppercase",
+		TextTransformLowercase:  "lowercase",
+		TextTransformCapitalise: "capitalise",
+	}
 
-// whiteSpaceTypeNames maps WhiteSpaceType values to their CSS keyword strings.
-var whiteSpaceTypeNames = [...]string{
-	WhiteSpaceNormal:  "normal",
-	WhiteSpacePre:     "pre",
-	WhiteSpaceNowrap:  "nowrap",
-	WhiteSpacePreWrap: "pre-wrap",
-	WhiteSpacePreLine: "pre-line",
-}
+	// whiteSpaceTypeNames maps WhiteSpaceType values to their CSS keyword strings.
+	whiteSpaceTypeNames = [...]string{
+		WhiteSpaceNormal:  "normal",
+		WhiteSpacePre:     "pre",
+		WhiteSpaceNowrap:  "nowrap",
+		WhiteSpacePreWrap: "pre-wrap",
+		WhiteSpacePreLine: "pre-line",
+	}
 
-// wordBreakTypeNames maps WordBreakType values to their CSS keyword strings.
-var wordBreakTypeNames = [...]string{
-	WordBreakNormal:   "normal",
-	WordBreakBreakAll: "break-all",
-	WordBreakKeepAll:  "keep-all",
-}
+	// wordBreakTypeNames maps WordBreakType values to their CSS keyword strings.
+	wordBreakTypeNames = [...]string{
+		WordBreakNormal:   "normal",
+		WordBreakBreakAll: "break-all",
+		WordBreakKeepAll:  "keep-all",
+	}
 
-// overflowWrapTypeNames maps OverflowWrapType values to their CSS keyword strings.
-var overflowWrapTypeNames = [...]string{
-	OverflowWrapNormal:    "Normal",
-	OverflowWrapBreakWord: "BreakWord",
-	OverflowWrapAnywhere:  "Anywhere",
-}
+	// overflowWrapTypeNames maps OverflowWrapType values to their CSS keyword strings.
+	overflowWrapTypeNames = [...]string{
+		OverflowWrapNormal:    "Normal",
+		OverflowWrapBreakWord: "BreakWord",
+		OverflowWrapAnywhere:  "Anywhere",
+	}
 
-// overflowTypeNames maps OverflowType values to their CSS keyword strings.
-var overflowTypeNames = [...]string{
-	OverflowVisible: "visible",
-	OverflowHidden:  "hidden",
-	OverflowScroll:  "scroll",
-	OverflowAuto:    cssKeywordAuto,
-}
+	// overflowTypeNames maps OverflowType values to their CSS keyword strings.
+	overflowTypeNames = [...]string{
+		OverflowVisible: "visible",
+		OverflowHidden:  "hidden",
+		OverflowScroll:  "scroll",
+		OverflowAuto:    cssKeywordAuto,
+	}
 
-// visibilityTypeNames maps VisibilityType values to their CSS keyword strings.
-var visibilityTypeNames = [...]string{
-	VisibilityVisible:  "visible",
-	VisibilityHidden:   "hidden",
-	VisibilityCollapse: "collapse",
-}
+	// visibilityTypeNames maps VisibilityType values to their CSS keyword strings.
+	visibilityTypeNames = [...]string{
+		VisibilityVisible:  "visible",
+		VisibilityHidden:   "hidden",
+		VisibilityCollapse: "collapse",
+	}
 
-// borderStyleTypeNames maps BorderStyleType values to their CSS keyword strings.
-var borderStyleTypeNames = [...]string{
-	BorderStyleNone:   cssKeywordNone,
-	BorderStyleSolid:  "solid",
-	BorderStyleDashed: "dashed",
-	BorderStyleDotted: "dotted",
-	BorderStyleDouble: "double",
-	BorderStyleGroove: "groove",
-	BorderStyleRidge:  "ridge",
-	BorderStyleInset:  "inset",
-	BorderStyleOutset: "outset",
-}
+	// borderStyleTypeNames maps BorderStyleType values to their CSS keyword strings.
+	borderStyleTypeNames = [...]string{
+		BorderStyleNone:   cssKeywordNone,
+		BorderStyleSolid:  "solid",
+		BorderStyleDashed: "dashed",
+		BorderStyleDotted: "dotted",
+		BorderStyleDouble: "double",
+		BorderStyleGroove: "groove",
+		BorderStyleRidge:  "ridge",
+		BorderStyleInset:  "inset",
+		BorderStyleOutset: "outset",
+	}
 
-// boxSizingTypeNames maps BoxSizingType values to their CSS keyword strings.
-var boxSizingTypeNames = [...]string{
-	BoxSizingContentBox: "content-box",
-	BoxSizingBorderBox:  "border-box",
-}
+	// boxSizingTypeNames maps BoxSizingType values to their CSS keyword strings.
+	boxSizingTypeNames = [...]string{
+		BoxSizingContentBox: "content-box",
+		BoxSizingBorderBox:  "border-box",
+	}
 
-// directionTypeNames maps DirectionType values to their CSS keyword strings.
-var directionTypeNames = [...]string{
-	DirectionLTR: "ltr",
-	DirectionRTL: "rtl",
-}
+	// directionTypeNames maps DirectionType values to their CSS keyword strings.
+	directionTypeNames = [...]string{
+		DirectionLTR: "ltr",
+		DirectionRTL: "rtl",
+	}
 
-// unicodeBidiTypeNames maps UnicodeBidiType values to their CSS keyword strings.
-var unicodeBidiTypeNames = [...]string{
-	UnicodeBidiNormal:          "normal",
-	UnicodeBidiEmbed:           "embed",
-	UnicodeBidiIsolate:         "isolate",
-	UnicodeBidiBidiOverride:    "bidi-override",
-	UnicodeBidiIsolateOverride: "isolate-override",
-	UnicodeBidiPlaintext:       "plaintext",
-}
+	// unicodeBidiTypeNames maps UnicodeBidiType values to their CSS keyword strings.
+	unicodeBidiTypeNames = [...]string{
+		UnicodeBidiNormal:          "normal",
+		UnicodeBidiEmbed:           "embed",
+		UnicodeBidiIsolate:         "isolate",
+		UnicodeBidiBidiOverride:    "bidi-override",
+		UnicodeBidiIsolateOverride: "isolate-override",
+		UnicodeBidiPlaintext:       "plaintext",
+	}
 
-// hyphensTypeNames maps HyphensType values to their CSS keyword strings.
-var hyphensTypeNames = [...]string{
-	HyphensNone:   cssKeywordNone,
-	HyphensManual: "manual",
-	HyphensAuto:   cssKeywordAuto,
-}
+	// hyphensTypeNames maps HyphensType values to their CSS keyword strings.
+	hyphensTypeNames = [...]string{
+		HyphensNone:   cssKeywordNone,
+		HyphensManual: "manual",
+		HyphensAuto:   cssKeywordAuto,
+	}
+)
 
 // String returns the CSS keyword for this display type.
 //

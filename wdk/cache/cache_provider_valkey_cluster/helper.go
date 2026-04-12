@@ -29,11 +29,10 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// createValkeyClusterCache creates a Valkey Cluster cache for the given
-// namespace using type assertions.
+// createValkeyClusterCache creates a Valkey Cluster cache for the given namespace using
+// type assertions.
 //
-// Takes p (*ValkeyClusterProvider) which provides the Valkey Cluster
-// connection.
+// Takes p (*ValkeyClusterProvider) which provides the Valkey Cluster connection.
 // Takes namespace (string) which identifies the cache namespace.
 // Takes optionsAny (any) which specifies the cache options with type info.
 //
@@ -65,20 +64,16 @@ func createValkeyClusterCache(p *ValkeyClusterProvider, namespace string, option
 	}
 }
 
-// createNamespaceGeneric is a helper that handles the type-specific
-// Valkey Cluster cache creation.
+// createNamespaceGeneric is a helper that handles the type-specific Valkey Cluster cache
+// creation.
 //
-// Takes p (*ValkeyClusterProvider) which supplies the cluster client
-// and configuration.
-// Takes namespace (string) which identifies the cache namespace to
-// create or reuse.
-// Takes options (cache.Options[K, V]) which provides per-namespace
-// settings such as expiry and search schema.
+// Takes p (*ValkeyClusterProvider) which supplies the cluster client and configuration.
+// Takes namespace (string) which identifies the cache namespace to create or reuse.
+// Takes options (cache.Options[K, V]) which provides per-namespace settings such as
+// expiry and search schema.
 //
-// Returns cache.Cache[K, V] which is the created or reused cache
-// instance.
-// Returns error when the namespace already exists with incompatible
-// types.
+// Returns cache.Cache[K, V] which is the created or reused cache instance.
+// Returns error when the namespace already exists with incompatible types.
 //
 // Safe for concurrent use. Access is serialised by the provider mutex.
 func createNamespaceGeneric[K comparable, V any](p *ValkeyClusterProvider, namespace string, options cache.Options[K, V]) (cache.Cache[K, V], error) {

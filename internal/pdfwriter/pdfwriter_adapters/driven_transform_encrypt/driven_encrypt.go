@@ -41,8 +41,8 @@ const (
 	// defaultPriority is the execution order for the encrypt transformer.
 	defaultPriority = 400
 
-	// transformerName identifies this transformer for registry lookups and
-	// validation prefixes.
+	// transformerName identifies this transformer for registry lookups and validation
+	// prefixes.
 	transformerName = "pdf-encrypt"
 
 	// algorithmAES256 is the algorithm identifier for AES-256 encryption.
@@ -60,31 +60,30 @@ const (
 	// saltLength is the length of validation and key salts in bytes.
 	saltLength = 8
 
-	// uValueLength is the total length of the /U and /O values:
-	// hash(32) + validation_salt(8) + key_salt(8).
+	// uValueLength is the total length of the /U and /O values: hash(32) +
+	// validation_salt(8) + key_salt(8).
 	uValueLength = 48
 
 	// aesBlockSize is the AES block size in bytes.
 	aesBlockSize = 16
 
-	// permsPlaintextLength is the length of the Perms plaintext before
-	// AES-ECB encryption.
+	// permsPlaintextLength is the length of the Perms plaintext before AES-ECB encryption.
 	permsPlaintextLength = 16
 
-	// permsNoEncryptMetadataStart is the byte offset where the
-	// 0xFFFFFFFF "no EncryptMetadata restriction" field begins.
+	// permsNoEncryptMetadataStart is the byte offset where the 0xFFFFFFFF "no
+	// EncryptMetadata restriction" field begins.
 	permsNoEncryptMetadataStart = 4
 
-	// permsNoEncryptMetadataEnd is the byte offset after the last byte
-	// of the no-EncryptMetadata field.
+	// permsNoEncryptMetadataEnd is the byte offset after the last byte of the
+	// no-EncryptMetadata field.
 	permsNoEncryptMetadataEnd = 8
 
-	// permsNoEncryptMetadataFill is the byte value 0xFF used for each
-	// byte of the no-EncryptMetadata field.
+	// permsNoEncryptMetadataFill is the byte value 0xFF used for each byte of the
+	// no-EncryptMetadata field.
 	permsNoEncryptMetadataFill = 0xFF
 
-	// permsEncryptMetadataOffset is the byte offset for the
-	// EncryptMetadata flag ('T' for true).
+	// permsEncryptMetadataOffset is the byte offset for the EncryptMetadata flag ('T' for
+	// true).
 	permsEncryptMetadataOffset = 8
 
 	// permsMarkerOffset is the byte offset where the "adb" marker begins.
@@ -120,67 +119,66 @@ const (
 	// documentIDLength is the length of the /ID byte strings in the trailer.
 	documentIDLength = 16
 
-	// algorithm2BRepeatCount is the number of times the K1 block is repeated
-	// in algorithm 2.B before AES-128-CBC encryption.
+	// algorithm2BRepeatCount is the number of times the K1 block is repeated in algorithm
+	// 2.B before AES-128-CBC encryption.
 	algorithm2BRepeatCount = 64
 
-	// algorithm2BHashPrefixLen is the number of bytes from the encrypted
-	// output used to determine the next hash function in algorithm 2.B.
+	// algorithm2BHashPrefixLen is the number of bytes from the encrypted output used to
+	// determine the next hash function in algorithm 2.B.
 	algorithm2BHashPrefixLen = 16
 
 	// algorithm2BHashModulus selects the next hash function in algorithm 2.B.
 	algorithm2BHashModulus = 3
 
-	// algorithm2BMaxRounds caps Algorithm 2.B's outer loop as a defence
-	// against pathological inputs that would otherwise loop unbounded. The
-	// spec terminates with overwhelming probability well before 1024
-	// iterations; qpdf carries the same safety net.
+	// algorithm2BMaxRounds caps Algorithm 2.B's outer loop as a defence against pathological
+	// inputs that would otherwise loop unbounded. The spec terminates with overwhelming
+	// probability well before 1024 iterations; qpdf carries the same safety net.
 	algorithm2BMaxRounds = 1024
 
-	// algorithm2BMinRounds is the minimum 1-based round number before the
-	// termination condition in algorithm 2.B is evaluated. The PDF spec
-	// uses 1-based round counting (round 1 is the first AES iteration).
+	// algorithm2BMinRounds is the minimum 1-based round number before the termination
+	// condition in algorithm 2.B is evaluated. The PDF spec uses 1-based round counting
+	// (round 1 is the first AES iteration).
 	algorithm2BMinRounds = 64
 
-	// algorithm2BRoundOffset is the offset subtracted from the 1-based round
-	// number in the algorithm 2.B termination condition: terminate when the
-	// last byte of E is <= round_number - algorithm2BRoundOffset.
+	// algorithm2BRoundOffset is the offset subtracted from the 1-based round number in the
+	// algorithm 2.B termination condition: terminate when the last byte of E is <=
+	// round_number - algorithm2BRoundOffset.
 	algorithm2BRoundOffset = 32
 
-	// algorithm2BOutputLen is the length of the final hash output in bytes
-	// returned by algorithm 2.B.
+	// algorithm2BOutputLen is the length of the final hash output in bytes returned by
+	// algorithm 2.B.
 	algorithm2BOutputLen = 32
 
-	// defaultMaxObjectNestingDepth caps recursion when encrypting nested PDF
-	// dictionaries and arrays.
+	// defaultMaxObjectNestingDepth caps recursion when encrypting nested PDF dictionaries
+	// and arrays.
 	defaultMaxObjectNestingDepth = 256
 
-	// passwordMaxBytes is the maximum byte length passed to Algorithm 2.B
-	// per ISO 32000-2 section 7.6.4.3.2; longer prepared passwords are
-	// truncated. Truncation is by bytes, not runes, to match qpdf and
-	// other reference readers.
+	// passwordMaxBytes is the maximum byte length passed to Algorithm 2.B per ISO 32000-2
+	// section 7.6.4.3.2; longer prepared passwords are truncated. Truncation is by bytes,
+	// not runes, to match qpdf and other reference readers.
 	passwordMaxBytes = 127
 )
 
-// ErrObjectNestingTooDeep is returned when a PDF object's nested
-// dictionary/array structure exceeds the configured depth limit.
-var ErrObjectNestingTooDeep = errors.New("encrypt: PDF object nesting exceeds depth limit")
+var (
+	// ErrObjectNestingTooDeep is returned when a PDF object's nested dictionary/array
+	// structure exceeds the configured depth limit.
+	ErrObjectNestingTooDeep = errors.New("encrypt: PDF object nesting exceeds depth limit")
 
-// ErrAlgorithm2BNotConverging is returned when Algorithm 2.B fails to
-// reach its termination condition within algorithm2BMaxRounds rounds.
-var ErrAlgorithm2BNotConverging = errors.New("encrypt: algorithm 2.B exceeded round limit without terminating")
+	// ErrAlgorithm2BNotConverging is returned when Algorithm 2.B fails to reach its
+	// termination condition within algorithm2BMaxRounds rounds.
+	ErrAlgorithm2BNotConverging = errors.New("encrypt: algorithm 2.B exceeded round limit without terminating")
+)
 
-// EncryptTransformer applies AES-256 encryption to PDF documents per
-// ISO 32000-2 section 7.6.
+// EncryptTransformer applies AES-256 encryption to PDF documents per ISO 32000-2 section
+// 7.6.
 //
-// It generates a random 32-byte file encryption key, computes the /U, /UE,
-// /O, /OE, and /Perms values from the owner and user passwords, encrypts all
-// string and stream objects with AES-256-CBC, and adds the /Encrypt dictionary
-// to the trailer. Only the "aes-256" algorithm is currently implemented;
-// "aes-128" and "rc4-128" return an unsupported algorithm error.
+// It generates a random 32-byte file encryption key, computes the /U, /UE, /O, /OE, and
+// /Perms values from the owner and user passwords, encrypts all string and stream objects
+// with AES-256-CBC, and adds the /Encrypt dictionary to the trailer. Only the "aes-256"
+// algorithm is currently implemented; "aes-128" and "rc4-128" return an unsupported
+// algorithm error.
 type EncryptTransformer struct {
-	// randomSource supplies cryptographic randomness. Defaults to
-	// crypto/rand.Reader.
+	// randomSource supplies cryptographic randomness. Defaults to crypto/rand.Reader.
 	randomSource io.Reader
 
 	// name is the transformer identifier.
@@ -189,12 +187,14 @@ type EncryptTransformer struct {
 	// priority is the execution order.
 	priority int
 
-	// maxObjectNestingDepth caps recursion when walking nested
-	// dictionaries and arrays during encryption.
+	// maxObjectNestingDepth caps recursion when walking nested dictionaries and arrays
+	// during encryption.
 	maxObjectNestingDepth int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*EncryptTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*EncryptTransformer)(nil)
+)
 
 // Option configures an EncryptTransformer at construction time.
 type Option func(*EncryptTransformer)
@@ -208,9 +208,9 @@ func WithRandomSource(r io.Reader) Option {
 	return func(t *EncryptTransformer) { t.randomSource = r }
 }
 
-// WithMaxObjectNestingDepth overrides the maximum recursion depth permitted
-// when encrypting nested PDF dictionaries and arrays. A non-positive value
-// is ignored; callers that want to disable the limit must pass math.MaxInt.
+// WithMaxObjectNestingDepth overrides the maximum recursion depth permitted when
+// encrypting nested PDF dictionaries and arrays. A non-positive value is ignored; callers
+// that want to disable the limit must pass math.MaxInt.
 //
 // Takes depth (int) which is the maximum recursion depth.
 //
@@ -225,8 +225,8 @@ func WithMaxObjectNestingDepth(depth int) Option {
 
 // New creates a new encrypt transformer with default name and priority.
 //
-// Takes opts (...Option) which override defaults; callers wanting standard
-// production behaviour can omit them.
+// Takes opts (...Option) which override defaults; callers wanting standard production
+// behaviour can omit them.
 //
 // Returns *EncryptTransformer which is the initialised transformer.
 func New(opts ...Option) *EncryptTransformer {
@@ -249,8 +249,7 @@ func (t *EncryptTransformer) Name() string { return t.name }
 
 // Type returns TransformerSecurity.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a security
-// transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a security transformer.
 func (*EncryptTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerSecurity
 }
@@ -260,8 +259,8 @@ func (*EncryptTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *EncryptTransformer) Priority() int { return t.priority }
 
-// Transform applies AES-256 encryption to the PDF. Options must be
-// EncryptionOptions or *EncryptionOptions.
+// Transform applies AES-256 encryption to the PDF. Options must be EncryptionOptions or
+// *EncryptionOptions.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.
@@ -327,8 +326,8 @@ func (t *EncryptTransformer) Transform(ctx context.Context, pdf []byte, options 
 	return t.finaliseEncryptedPDF(writer, encryptObjNum)
 }
 
-// finaliseEncryptedPDF sets the /Encrypt reference in the trailer, ensures a
-// valid /ID array exists, and serialises the PDF.
+// finaliseEncryptedPDF sets the /Encrypt reference in the trailer, ensures a valid /ID
+// array exists, and serialises the PDF.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes encryptObjNum (int) which is the object number of the /Encrypt dictionary.
@@ -381,8 +380,8 @@ func castOptions(options any) (pdfwriter_dto.EncryptionOptions, error) {
 
 // validateOptions checks that the encryption options are valid.
 //
-// An empty Algorithm defaults to "aes-256". Only "aes-256" is currently
-// supported; "aes-128" and "rc4-128" return an unsupported algorithm error.
+// An empty Algorithm defaults to "aes-256". Only "aes-256" is currently supported;
+// "aes-128" and "rc4-128" return an unsupported algorithm error.
 //
 // Takes opts (*pdfwriter_dto.EncryptionOptions) which holds the options to validate.
 //
@@ -410,8 +409,7 @@ func validateOptions(opts *pdfwriter_dto.EncryptionOptions) error {
 	return nil
 }
 
-// generateFileKey generates a cryptographically random 32-byte file
-// encryption key.
+// generateFileKey generates a cryptographically random 32-byte file encryption key.
 //
 // Returns []byte which is the generated encryption key.
 // Returns error when random byte generation fails.
@@ -423,17 +421,16 @@ func (t *EncryptTransformer) generateFileKey() ([]byte, error) {
 	return key, nil
 }
 
-// preparePassword normalises and truncates a password for use in PDF 2.0
-// revision 6 encryption per ISO 32000-2 section 7.6.4.3.2.
+// preparePassword normalises and truncates a password for use in PDF 2.0 revision 6
+// encryption per ISO 32000-2 section 7.6.4.3.2.
 //
-// The PRECIS OpaqueString profile applies SASLprep-style Unicode
-// normalisation and rejects disallowed code points, which keeps generated
-// PDFs interoperable with conformant readers (qpdf, Acrobat). The result
-// is encoded as UTF-8 and truncated to passwordMaxBytes; truncation is by
-// bytes (not runes) so a multi-byte rune sitting on the boundary is
-// dropped, matching the qpdf reference implementation. Empty passwords
-// bypass PRECIS preparation: the spec permits them (open without prompt)
-// and PRECIS treats the empty string as invalid input.
+// The PRECIS OpaqueString profile applies SASLprep-style Unicode normalisation and
+// rejects disallowed code points, which keeps generated PDFs interoperable with
+// conformant readers (qpdf, Acrobat). The result is encoded as UTF-8 and truncated to
+// passwordMaxBytes; truncation is by bytes (not runes) so a multi-byte rune sitting on
+// the boundary is dropped, matching the qpdf reference implementation. Empty passwords
+// bypass PRECIS preparation: the spec permits them (open without prompt) and PRECIS
+// treats the empty string as invalid input.
 //
 // Takes password (string) which is the caller-supplied password.
 //
@@ -454,22 +451,21 @@ func preparePassword(password string) ([]byte, error) {
 	return bytesOut, nil
 }
 
-// algorithm2B implements the ISO 32000-2 section 7.6.4.3.4 "Algorithm 2.B"
-// hash computation used by revision 6 encryption. It takes a SHA-256 hash as
-// input and iteratively applies AES-128-CBC encryption followed by SHA-256,
-// SHA-384, or SHA-512 hashing based on the encrypted output, until a
-// termination condition is met.
+// algorithm2B implements the ISO 32000-2 section 7.6.4.3.4 "Algorithm 2.B" hash
+// computation used by revision 6 encryption. It takes a SHA-256 hash as input and
+// iteratively applies AES-128-CBC encryption followed by SHA-256, SHA-384, or SHA-512
+// hashing based on the encrypted output, until a termination condition is met.
 //
-// Takes input ([]byte) which is the initial data to hash (password + salt, or
-// password + salt + U for owner values).
-// Takes password ([]byte) which is the prepared UTF-8 password (max 127 bytes
-// per ISO 32000-2 section 7.6.4.3.2).
-// Takes userKey ([]byte) which is the 48-byte /U value for owner password
-// computations, or nil for user password computations.
+// Takes input ([]byte) which is the initial data to hash (password + salt, or password +
+// salt + U for owner values).
+// Takes password ([]byte) which is the prepared UTF-8 password (max 127 bytes per ISO
+// 32000-2 section 7.6.4.3.2).
+// Takes userKey ([]byte) which is the 48-byte /U value for owner password computations,
+// or nil for user password computations.
 //
 // Returns []byte which is the 32-byte hash result.
-// Returns error when AES cipher construction fails or the round limit is
-// exceeded without convergence.
+// Returns error when AES cipher construction fails or the round limit is exceeded without
+// convergence.
 func algorithm2B(input, password, userKey []byte) ([]byte, error) {
 	k := sha256Hash(input)
 
@@ -514,10 +510,9 @@ func algorithm2B(input, password, userKey []byte) ([]byte, error) {
 	return nil, ErrAlgorithm2BNotConverging
 }
 
-// hasherForByteSum returns the algorithm 2.B hash function selected by the
-// modulo-3 residue of the first 16 bytes of E. The spec defines the
-// selection as the big-endian integer mod 3; summing the bytes mod 3 is
-// equivalent because 256 mod 3 == 1.
+// hasherForByteSum returns the algorithm 2.B hash function selected by the modulo-3
+// residue of the first 16 bytes of E. The spec defines the selection as the big-endian
+// integer mod 3; summing the bytes mod 3 is equivalent because 256 mod 3 == 1.
 //
 // Takes residue (int) which must be 0, 1, or 2.
 //
@@ -546,14 +541,13 @@ func sha256Hash(data []byte) []byte {
 	return h[:]
 }
 
-// computeUserValues computes the /U and /UE values per ISO 32000-2
-// section 7.6.4.3.3.
+// computeUserValues computes the /U and /UE values per ISO 32000-2 section 7.6.4.3.3.
 //
-// U is 48 bytes: SHA-256(password + validation_salt) (32 bytes) +
-// validation_salt (8 bytes) + key_salt (8 bytes).
+// U is 48 bytes: SHA-256(password + validation_salt) (32 bytes) + validation_salt (8
+// bytes) + key_salt (8 bytes).
 //
-// UE is the file encryption key encrypted with AES-256-CBC using
-// SHA-256(password + key_salt) as the key, with a zero IV.
+// UE is the file encryption key encrypted with AES-256-CBC using SHA-256(password +
+// key_salt) as the key, with a zero IV.
 //
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
 // Takes userPassword ([]byte) which is the user password bytes.
@@ -599,14 +593,13 @@ func (t *EncryptTransformer) computeUserValues(fileKey, userPassword []byte) (uV
 	return uValue, ueValue, nil
 }
 
-// computeOwnerValues computes the /O and /OE values per ISO 32000-2
-// section 7.6.4.3.3.
+// computeOwnerValues computes the /O and /OE values per ISO 32000-2 section 7.6.4.3.3.
 //
-// O is 48 bytes: SHA-256(password + validation_salt + U) (32 bytes) +
-// validation_salt (8 bytes) + key_salt (8 bytes).
+// O is 48 bytes: SHA-256(password + validation_salt + U) (32 bytes) + validation_salt (8
+// bytes) + key_salt (8 bytes).
 //
-// OE is the file encryption key encrypted with AES-256-CBC using
-// SHA-256(password + key_salt + U) as the key, with a zero IV.
+// OE is the file encryption key encrypted with AES-256-CBC using SHA-256(password +
+// key_salt + U) as the key, with a zero IV.
 //
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
 // Takes ownerPassword ([]byte) which is the owner password bytes.
@@ -656,9 +649,9 @@ func (t *EncryptTransformer) computeOwnerValues(fileKey, ownerPassword, uBytes [
 	return oValue, oeValue, nil
 }
 
-// computePerms computes the /Perms value per ISO 32000-2 section 7.6.4.3.3.
-// The Perms value is a 16-byte AES-256-ECB encryption of a plaintext block
-// containing the permissions integer and the "adb" marker.
+// computePerms computes the /Perms value per ISO 32000-2 section 7.6.4.3.3. The Perms
+// value is a 16-byte AES-256-ECB encryption of a plaintext block containing the
+// permissions integer and the "adb" marker.
 //
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
 // Takes permissions (uint32) which is the PDF permission flags bitmask.
@@ -694,8 +687,7 @@ func (t *EncryptTransformer) computePerms(fileKey []byte, permissions uint32) ([
 	return encrypted, nil
 }
 
-// addEncryptDict creates the /Encrypt dictionary and adds it to the
-// writer.
+// addEncryptDict creates the /Encrypt dictionary and adds it to the writer.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes uValue ([]byte) which is the 48-byte /U value.
@@ -743,8 +735,8 @@ func addEncryptDict(
 	return writer.AddObject(pdfparse.DictObj(encryptDict))
 }
 
-// encryptObjects encrypts all string and stream objects in the PDF using
-// AES-256-CBC with the file encryption key.
+// encryptObjects encrypts all string and stream objects in the PDF using AES-256-CBC with
+// the file encryption key.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes doc (*pdfparse.Document) which provides the object numbers to iterate.
@@ -773,9 +765,9 @@ func (t *EncryptTransformer) encryptObjects(ctx context.Context, writer *pdfpars
 
 // encryptObject encrypts a single PDF object.
 //
-// For stream objects, the stream data is encrypted with AES-256-CBC. For
-// dictionary objects, string values within the dictionary are encrypted.
-// Other object types are returned unchanged.
+// For stream objects, the stream data is encrypted with AES-256-CBC. For dictionary
+// objects, string values within the dictionary are encrypted. Other object types are
+// returned unchanged.
 //
 // Takes obj (pdfparse.Object) which is the object to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
@@ -801,8 +793,8 @@ func (t *EncryptTransformer) encryptObject(obj pdfparse.Object, fileKey []byte) 
 	}
 }
 
-// encryptStreamObject encrypts a stream object's data with AES-256-CBC
-// and also encrypts any string values in its dictionary.
+// encryptStreamObject encrypts a stream object's data with AES-256-CBC and also encrypts
+// any string values in its dictionary.
 //
 // Takes obj (pdfparse.Object) which is the stream object to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
@@ -834,8 +826,8 @@ func (t *EncryptTransformer) encryptStreamObject(obj pdfparse.Object, fileKey []
 //
 // Takes dict (pdfparse.Dict) which is the dictionary to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
-// Takes depth (int) which is the current recursion depth; values exceeding
-// the configured cap return ErrObjectNestingTooDeep.
+// Takes depth (int) which is the current recursion depth; values exceeding the configured
+// cap return ErrObjectNestingTooDeep.
 //
 // Returns pdfparse.Dict which is the dictionary with encrypted values.
 // Returns error when encryption of any value fails.
@@ -856,8 +848,8 @@ func (t *EncryptTransformer) encryptDict(dict pdfparse.Dict, fileKey []byte, dep
 
 // encryptValue encrypts a single PDF object value.
 //
-// Strings and hex strings are encrypted with AES-256-CBC. Dictionaries and
-// arrays are processed recursively.
+// Strings and hex strings are encrypted with AES-256-CBC. Dictionaries and arrays are
+// processed recursively.
 //
 // Takes obj (pdfparse.Object) which is the value to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
@@ -878,8 +870,8 @@ func (t *EncryptTransformer) encryptValue(obj pdfparse.Object, fileKey []byte, d
 	}
 }
 
-// encryptStringValue encrypts a literal or hex string value with
-// AES-256-CBC and returns it as a hex string.
+// encryptStringValue encrypts a literal or hex string value with AES-256-CBC and returns
+// it as a hex string.
 //
 // Takes obj (pdfparse.Object) which is the string value to encrypt.
 // Takes fileKey ([]byte) which is the 32-byte file encryption key.
@@ -945,8 +937,8 @@ func (t *EncryptTransformer) encryptArrayValue(obj pdfparse.Object, fileKey []by
 	return pdfparse.Arr(encrypted...), nil
 }
 
-// aes256CBCEncrypt encrypts plaintext with AES-256-CBC using a random IV
-// prepended to the ciphertext.
+// aes256CBCEncrypt encrypts plaintext with AES-256-CBC using a random IV prepended to the
+// ciphertext.
 //
 // Takes key ([]byte) which is the 32-byte AES-256 encryption key.
 // Takes plaintext ([]byte) which is the data to encrypt.
@@ -973,8 +965,8 @@ func (t *EncryptTransformer) aes256CBCEncrypt(key, plaintext []byte) ([]byte, er
 	return ciphertext, nil
 }
 
-// aes256CBCEncryptZeroIV encrypts plaintext with AES-256-CBC using a
-// zero IV for /UE and /OE computation per the PDF spec.
+// aes256CBCEncryptZeroIV encrypts plaintext with AES-256-CBC using a zero IV for /UE and
+// /OE computation per the PDF spec.
 //
 // Takes key ([]byte) which is the 32-byte AES-256 encryption key.
 // Takes plaintext ([]byte) which is the data to encrypt.
@@ -1000,8 +992,8 @@ func aes256CBCEncryptZeroIV(key, plaintext []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-// permissionsToSigned reinterprets the uint32 permissions bitmask as a
-// signed int64 value for the PDF /P entry.
+// permissionsToSigned reinterprets the uint32 permissions bitmask as a signed int64 value
+// for the PDF /P entry.
 //
 // Takes p (uint32) which is the permissions bitmask.
 //

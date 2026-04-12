@@ -28,9 +28,9 @@ import (
 )
 
 const (
-	// MaxRetryAfterDuration caps the Retry-After hint honoured by the
-	// notification dispatcher so a hostile or misbehaving server cannot push
-	// the dispatcher into an excessively long sleep.
+	// MaxRetryAfterDuration caps the Retry-After hint honoured by the notification
+	// dispatcher so a hostile or misbehaving server cannot push the dispatcher into an
+	// excessively long sleep.
 	MaxRetryAfterDuration = 5 * time.Minute
 )
 
@@ -38,58 +38,53 @@ var (
 	// ErrProviderNotFound is returned when a requested provider is not registered.
 	ErrProviderNotFound = errors.New("notification provider not found")
 
-	// ErrNoProviders is returned when no providers are registered and no default
-	// exists.
+	// ErrNoProviders is returned when no providers are registered and no default exists.
 	ErrNoProviders = errors.New("no notification providers registered")
 
 	// ErrNoDefaultProvider is returned when no default provider has been set.
 	ErrNoDefaultProvider = errors.New("no default notification provider set")
 
-	// ErrProviderAlreadyExists is returned when attempting to register a provider
-	// with a name that already exists.
+	// ErrProviderAlreadyExists is returned when attempting to register a provider with a
+	// name that already exists.
 	ErrProviderAlreadyExists = errors.New("notification provider already exists")
 
 	// ErrInvalidConfig is returned when the notification settings are not valid.
 	ErrInvalidConfig = errors.New("invalid notification configuration")
 
-	// ErrNoDispatcher is returned when attempting dispatcher operations without a
-	// registered dispatcher.
+	// ErrNoDispatcher is returned when attempting dispatcher operations without a registered
+	// dispatcher.
 	ErrNoDispatcher = errors.New("no notification dispatcher registered")
 
-	// ErrDispatcherAlreadyRunning is returned when attempting to start an
-	// already-running dispatcher.
+	// ErrDispatcherAlreadyRunning is returned when attempting to start an already-running
+	// dispatcher.
 	ErrDispatcherAlreadyRunning = errors.New("notification dispatcher is already running")
 
-	// ErrDispatcherNotRunning is returned when attempting to stop a dispatcher
-	// that is not running.
+	// ErrDispatcherNotRunning is returned when attempting to stop a dispatcher that is not
+	// running.
 	ErrDispatcherNotRunning = errors.New("notification dispatcher is not running")
 
-	// ErrCircuitBreakerOpen is returned when the circuit breaker is open and
-	// preventing sends.
+	// ErrCircuitBreakerOpen is returned when the circuit breaker is open and preventing
+	// sends.
 	ErrCircuitBreakerOpen = errors.New("circuit breaker is open")
 
-	// ErrEmptyMessage is returned when attempting to send a notification with no
-	// message.
+	// ErrEmptyMessage is returned when attempting to send a notification with no message.
 	ErrEmptyMessage = errors.New("notification message cannot be empty")
 
-	// ErrEmptyTitle is returned when attempting to send a notification with no
-	// title.
+	// ErrEmptyTitle is returned when attempting to send a notification with no title.
 	ErrEmptyTitle = errors.New("notification title cannot be empty")
 
-	// ErrUnsupportedContentType is returned when a provider does not support the
-	// requested content type.
+	// ErrUnsupportedContentType is returned when a provider does not support the requested
+	// content type.
 	ErrUnsupportedContentType = errors.New("provider does not support this content type")
 
-	// ErrMessageTooLong is returned when a message exceeds the provider's maximum
-	// length.
+	// ErrMessageTooLong is returned when a message exceeds the provider's maximum length.
 	ErrMessageTooLong = errors.New("notification message exceeds provider maximum length")
 
-	// ErrNotificationEmpty is returned when a notification has neither a title
-	// nor a message.
+	// ErrNotificationEmpty is returned when a notification has neither a title nor a
+	// message.
 	ErrNotificationEmpty = errors.New("notification must have either a title or message")
 
-	// errDispatcherNil is returned when a nil dispatcher is provided during
-	// registration.
+	// errDispatcherNil is returned when a nil dispatcher is provided during registration.
 	errDispatcherNil = errors.New("dispatcher cannot be nil")
 )
 
@@ -101,9 +96,9 @@ type MultiError struct {
 
 // Error returns all collected error messages as a single string.
 //
-// Returns string which contains "no errors" when empty, the single error
-// message when only one error exists, or all messages joined by semicolons
-// with a count prefix when multiple errors exist.
+// Returns string which contains "no errors" when empty, the single error message when
+// only one error exists, or all messages joined by semicolons with a count prefix when
+// multiple errors exist.
 func (e *MultiError) Error() string {
 	if len(e.Errors) == 0 {
 		return "no errors"
@@ -137,8 +132,8 @@ func (e *MultiError) HasErrors() bool {
 	return len(e.Errors) > 0
 }
 
-// ProviderError wraps an error with the provider name for clearer error
-// messages. It implements the error interface.
+// ProviderError wraps an error with the provider name for clearer error messages. It
+// implements the error interface.
 type ProviderError struct {
 	// Err is the underlying error wrapped by this provider error.
 	Err error
@@ -146,15 +141,13 @@ type ProviderError struct {
 	// Provider is the name of the provider that caused the error.
 	Provider string
 
-	// StatusCode carries the upstream HTTP status code; zero when the failure
-	// was not status-driven (e.g. transport error).
+	// StatusCode carries the upstream HTTP status code; zero when the failure was not
+	// status-driven (e.g. transport error).
 	StatusCode int
 
-	// RetryAfter carries the parsed Retry-After hint from the upstream
-	// response.
+	// RetryAfter carries the parsed Retry-After hint from the upstream response.
 	//
-	// Zero when no hint was provided. Honoured by the dispatcher for 429
-	// and 503 responses.
+	// Zero when no hint was provided. Honoured by the dispatcher for 429 and 503 responses.
 	RetryAfter time.Duration
 }
 
@@ -174,16 +167,16 @@ func (e *ProviderError) Unwrap() error {
 
 // ParseRetryAfter converts a Retry-After header value into a duration.
 //
-// The header may carry either an integer number of seconds or an HTTP-date
-// timestamp. Returns the parsed duration capped at MaxRetryAfterDuration,
-// or zero when the header is absent or unparseable.
+// The header may carry either an integer number of seconds or an HTTP-date timestamp.
+// Returns the parsed duration capped at MaxRetryAfterDuration, or zero when the header is
+// absent or unparseable.
 //
 // Takes header (string) which is the raw Retry-After header value.
-// Takes now (time.Time) which is the reference time used to convert HTTP-date
-// values into a relative duration.
+// Takes now (time.Time) which is the reference time used to convert HTTP-date values into
+// a relative duration.
 //
-// Returns time.Duration which is the parsed value, capped at the maximum, or
-// zero when the header carries no usable hint.
+// Returns time.Duration which is the parsed value, capped at the maximum, or zero when
+// the header carries no usable hint.
 func ParseRetryAfter(header string, now time.Time) time.Duration {
 	header = strings.TrimSpace(header)
 	if header == "" {
@@ -209,8 +202,8 @@ func ParseRetryAfter(header string, now time.Time) time.Duration {
 	return 0
 }
 
-// capRetryAfter clamps duration to MaxRetryAfterDuration so a server hint
-// cannot push the retry into an unreasonably long sleep.
+// capRetryAfter clamps duration to MaxRetryAfterDuration so a server hint cannot push the
+// retry into an unreasonably long sleep.
 //
 // Takes duration (time.Duration) which is the parsed Retry-After value.
 //

@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package logger_dto defines configuration structs for logging outputs
-// and third-party integrations. All types support configuration via
-// environment variables, YAML, and JSON.
+// Package logger_dto defines configuration structs for logging outputs and third-party
+// integrations. All types support configuration via environment variables, YAML, and
+// JSON.
 package logger_dto

@@ -24,30 +24,29 @@ import (
 	"time"
 )
 
-// hyphenGlyph is the placeholder used by the CLI Printer for
-// missing values.
-const hyphenGlyph = "-"
+const (
+	// hyphenGlyph is the placeholder used by the CLI Printer for missing values.
+	hyphenGlyph = "-"
 
-// hoursPerDay is the duration unit used when formatting durations of
-// one day or more.
-const hoursPerDay = 24
+	// hoursPerDay is the duration unit used when formatting durations of one day or more.
+	hoursPerDay = 24
 
-// secondsPerMinute is the multiplier used when expanding minute and
-// hour components in the millisecond duration formatter.
-const secondsPerMinute = 60
+	// secondsPerMinute is the multiplier used when expanding minute and hour components in
+	// the millisecond duration formatter.
+	secondsPerMinute = 60
+)
 
-// FormatTimeSince returns a short human-readable string for the elapsed
-// time between past and now.
+// FormatTimeSince returns a short human-readable string for the elapsed time between past
+// and now.
 //
-// The output uses the largest unit that produces a non-zero value with
-// a single decimal place where helpful: "5s ago", "12m ago", "2h ago",
-// "3d ago".
+// The output uses the largest unit that produces a non-zero value with a single decimal
+// place where helpful: "5s ago", "12m ago", "2h ago", "3d ago".
 //
 // Takes now (time.Time) which is the reference time.
 // Takes past (time.Time) which is the earlier instant.
 //
-// Returns string which is the relative-time label. When past is zero
-// or in the future, hyphen is returned.
+// Returns string which is the relative-time label. When past is zero or later than now,
+// hyphen is returned.
 func FormatTimeSince(now, past time.Time) string {
 	if past.IsZero() || past.After(now) {
 		return hyphenGlyph
@@ -57,8 +56,8 @@ func FormatTimeSince(now, past time.Time) string {
 
 // FormatDuration renders d in the largest sensible unit.
 //
-// Values below one second are represented in milliseconds. Values are
-// non-negative; negative durations are treated as zero.
+// Values below one second are represented in milliseconds. Values are non-negative;
+// negative durations are treated as zero.
 //
 // Takes d (time.Duration) which is the duration to render.
 //
@@ -85,8 +84,8 @@ func FormatDuration(d time.Duration) string {
 	}
 }
 
-// FormatBytes returns a human-readable byte count using IEC binary
-// units (1024-based). Common UI choice for memory and file sizes.
+// FormatBytes returns a human-readable byte count using IEC binary units (1024-based).
+// Common UI choice for memory and file sizes.
 //
 // Takes bytes (uint64) which is the count to format.
 //
@@ -112,9 +111,9 @@ func FormatBytes(bytes uint64) string {
 	}
 }
 
-// FormatDetailTime renders a timestamp for a detail-pane row in the
-// shared "YYYY-MM-DD HH:MM:SS" layout. Zero values render as a
-// hyphen, so the row reads "Started -" instead of an old epoch.
+// FormatDetailTime renders a timestamp for a detail-pane row in the shared "YYYY-MM-DD
+// HH:MM:SS" layout. Zero values render as a hyphen, so the row reads "Started -" instead
+// of an old epoch.
 //
 // Takes t (time.Time) which is the timestamp to render.
 //
@@ -126,14 +125,13 @@ func FormatDetailTime(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
 }
 
-// FormatDurationNanos renders a proto-encoded nanosecond duration as a
-// human-readable string. Returns "disabled" for non-positive values
-// so callers that use 0 as "off" render a clean label.
+// FormatDurationNanos renders a proto-encoded nanosecond duration as a human-readable
+// string. Returns "disabled" for non-positive values so callers that use 0 as "off"
+// render a clean label.
 //
 // Takes nanos (int64) which is the proto-encoded nanosecond duration.
 //
-// Returns string which is "disabled" when nanos<=0, otherwise the
-// formatted duration.
+// Returns string which is "disabled" when nanos<=0, otherwise the formatted duration.
 func FormatDurationNanos(nanos int64) string {
 	if nanos <= 0 {
 		return "disabled"
@@ -141,13 +139,12 @@ func FormatDurationNanos(nanos int64) string {
 	return time.Duration(nanos).String()
 }
 
-// FormatOptionalTime renders a unix-millisecond timestamp as RFC 3339
-// time, or "never" when the value is zero.
+// FormatOptionalTime renders a unix-millisecond timestamp as RFC 3339 time, or "never"
+// when the value is zero.
 //
 // Takes ms (int64) which is the unix-millisecond timestamp.
 //
-// Returns string which is "never" for the zero timestamp, otherwise
-// the formatted time.
+// Returns string which is "never" for the zero timestamp, otherwise the formatted time.
 func FormatOptionalTime(ms int64) string {
 	if ms <= 0 {
 		return "never"
@@ -155,15 +152,13 @@ func FormatOptionalTime(ms int64) string {
 	return time.UnixMilli(ms).UTC().Format(time.RFC3339)
 }
 
-// FormatUnixSeconds renders an integer second-precision unix timestamp
-// using the same "YYYY-MM-DD HH:MM:SS" layout as the legacy CLI
-// describe output. Zero values render as hyphenGlyph so empty rows
-// match the historical "-" placeholder.
+// FormatUnixSeconds renders an integer second-precision unix timestamp using the same
+// "YYYY-MM-DD HH:MM:SS" layout as the legacy CLI describe output. Zero values render as
+// hyphenGlyph so empty rows match the historical "-" placeholder.
 //
 // Takes ts (int64) which is the unix timestamp in seconds.
 //
-// Returns string which is the formatted local-time stamp, or
-// hyphenGlyph when ts is zero.
+// Returns string which is the formatted local-time stamp, or hyphenGlyph when ts is zero.
 func FormatUnixSeconds(ts int64) string {
 	if ts == 0 {
 		return hyphenGlyph
@@ -171,9 +166,9 @@ func FormatUnixSeconds(ts int64) string {
 	return time.Unix(ts, 0).Format("2006-01-02 15:04:05")
 }
 
-// FormatMilliseconds renders a millisecond-precision duration in the
-// historical CLI describe layout: "500ms" below one second, "1.5s"
-// below one minute, "5m30s" below one hour, and "2h15m" otherwise.
+// FormatMilliseconds renders a millisecond-precision duration in the historical CLI
+// describe layout: "500ms" below one second, "1.5s" below one minute, "5m30s" below one
+// hour, and "2h15m" otherwise.
 //
 // Takes ms (int64) which is the duration in milliseconds.
 //
@@ -198,14 +193,13 @@ func FormatMilliseconds(ms int64) string {
 	return fmt.Sprintf("%dh%dm", h, m)
 }
 
-// matchesFilter reports whether name matches filter using the CLI
-// describe semantics: an empty filter matches everything, and a
-// non-empty filter matches when name equals or has the filter as a
-// case-insensitive prefix.
+// matchesFilter reports whether name matches filter using the CLI describe semantics: an
+// empty filter matches everything, and a non-empty filter matches when name equals or has
+// the filter as a case-insensitive prefix.
 //
 // Takes name (string) which is the value to test.
-// Takes filter (string) which is the filter to compare against; an
-// empty filter matches every name.
+// Takes filter (string) which is the filter to compare against; an empty filter matches
+// every name.
 //
 // Returns bool which reports whether name matches.
 func matchesFilter(name, filter string) bool {

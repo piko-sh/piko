@@ -18,24 +18,23 @@
 
 // Package cssinliner provides CSS @import resolution and processing.
 //
-// It recursively inlines imported stylesheets into a single merged AST, detects
-// circular dependencies, caches parsed files to avoid redundant work, and
-// optionally minifies the output. Shared between the annotator (which layers
-// selector scoping on top) and the compiler (which uses inlining only).
+// It recursively inlines imported stylesheets into a single merged AST, detects circular
+// dependencies, caches parsed files to avoid redundant work, and optionally minifies the
+// output. Shared between the annotator (which layers selector scoping on top) and the
+// compiler (which uses inlining only).
 //
 // # Dual API
 //
 // The [Processor] type provides two entry points to suit different consumers:
 //
-//   - [Processor.Process]: inlines @imports, cleans the AST, and prints the
-//     result to a CSS string. Used by the compiler adapter.
-//   - [Processor.InlineToAST]: inlines @imports and returns the raw AST for
-//     further manipulation. Used by the annotator to apply selector scoping
-//     before printing.
+//   - [Processor.Process]: inlines @imports, cleans the AST, and prints the result to a
+//     CSS string. Used by the compiler adapter.
+//   - [Processor.InlineToAST]: inlines @imports and returns the raw AST for further
+//     manipulation. Used by the annotator to apply selector scoping before printing.
 //
 // # Circular dependency detection
 //
-// The [Inliner] tracks visited file paths in a stack during recursive
-// resolution. If a path appears twice, a [CircularDependencyError] is
-// reported as a diagnostic and the import chain is aborted.
+// The [Inliner] tracks visited file paths in a stack during recursive resolution. If a
+// path appears twice, a [CircularDependencyError] is reported as a diagnostic and the
+// import chain is aborted.
 package cssinliner

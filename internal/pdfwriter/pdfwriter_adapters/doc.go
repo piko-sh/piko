@@ -17,6 +17,5 @@
 // strip others of their rights and dignity.
 
 // Package pdfwriter_adapters implements the driven port interfaces defined in
-// pdfwriter_domain, connecting the PDF writer to the layouter and template
-// runner.
+// pdfwriter_domain, connecting the PDF writer to the layouter and template runner.
 package pdfwriter_adapters

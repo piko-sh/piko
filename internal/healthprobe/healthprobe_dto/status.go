@@ -18,7 +18,9 @@
 
 package healthprobe_dto
 
-import "time"
+import (
+	"time"
+)
 
 // State represents the health state of a component.
 type State string
@@ -27,16 +29,16 @@ const (
 	// StateHealthy indicates the component is working normally.
 	StateHealthy State = "HEALTHY"
 
-	// StateDegraded indicates the component is working but with reduced
-	// performance or features.
+	// StateDegraded indicates the component is working but with reduced performance or
+	// features.
 	StateDegraded State = "DEGRADED"
 
 	// StateUnhealthy indicates the component has failed and cannot work.
 	StateUnhealthy State = "UNHEALTHY"
 )
 
-// Status is a structured report of a single component's health.
-// It can be nested to represent a tree of dependencies.
+// Status is a structured report of a single component's health. It can be nested to
+// represent a tree of dependencies.
 type Status struct {
 	// Name is the component being checked (e.g. "DatabaseConnection", "RedisCache").
 	Name string `json:"name"`

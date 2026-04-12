@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package ratelimiter_dto contains configuration and result types for the
-// centralised rate limiter, shared across the domain, adapters, and
-// consumer packages (email, storage, LLM, security).
+// Package ratelimiter_dto contains configuration and result types for the centralised
+// rate limiter, shared across the domain, adapters, and consumer packages (email,
+// storage, LLM, security).
 package ratelimiter_dto

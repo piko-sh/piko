@@ -27,9 +27,8 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// ProviderRateLimiter controls how quickly email providers can send messages.
-// It wraps the centralised rate limiter with a provider-specific token bucket
-// configuration.
+// ProviderRateLimiter controls how quickly email providers can send messages. It wraps
+// the centralised rate limiter with a provider-specific token bucket configuration.
 type ProviderRateLimiter struct {
 	// limiter is the underlying centralised rate limiter; nil disables rate limiting.
 	limiter *ratelimiter_domain.Limiter
@@ -38,17 +37,19 @@ type ProviderRateLimiter struct {
 	config ratelimiter_dto.TokenBucketConfig
 }
 
-// bucketKey is the fixed key used for the single bucket within each
-// provider's InMemoryTokenBucketStore instance.
-const bucketKey = "default"
+const (
+	// bucketKey is the fixed key used for the single bucket within each provider's
+	// InMemoryTokenBucketStore instance.
+	bucketKey = "default"
+)
 
 // ProviderRateLimitConfig holds rate limiting configuration for an email provider.
 type ProviderRateLimitConfig struct {
 	// Clock provides time operations for testing determinism; nil uses RealClock().
 	Clock clock.Clock
 
-	// CallsPerSecond is the maximum number of API calls allowed per second.
-	// A value of 0 or less disables rate limiting.
+	// CallsPerSecond is the maximum number of API calls allowed per second. A value of 0 or
+	// less disables rate limiting.
 	CallsPerSecond float64
 
 	// Burst is the maximum number of calls allowed at once; 0 uses CallsPerSecond.
@@ -82,14 +83,13 @@ type providerOptions struct {
 	RateLimitConfig ProviderRateLimitConfig
 }
 
-// ApplyProviderOptions applies functional options to a default rate limit
-// configuration and returns a configured rate limiter. This is used by email
-// provider implementations to create their rate limiters.
+// ApplyProviderOptions applies functional options to a default rate limit configuration
+// and returns a configured rate limiter. This is used by email provider implementations
+// to create their rate limiters.
 //
-// Takes defaults (ProviderRateLimitConfig) which specifies the base rate limit
-// settings.
-// Takes opts (...ProviderOption) which provides optional overrides for the
-// default configuration.
+// Takes defaults (ProviderRateLimitConfig) which specifies the base rate limit settings.
+// Takes opts (...ProviderOption) which provides optional overrides for the default
+// configuration.
 //
 // Returns *ProviderRateLimiter which is ready for use by an email provider.
 func ApplyProviderOptions(defaults ProviderRateLimitConfig, opts ...ProviderOption) *ProviderRateLimiter {
@@ -104,17 +104,16 @@ func ApplyProviderOptions(defaults ProviderRateLimitConfig, opts ...ProviderOpti
 	return newProviderRateLimiter(options.RateLimitConfig)
 }
 
-// newProviderRateLimiter creates a rate limiter for controlling API calls to a
-// provider.
+// newProviderRateLimiter creates a rate limiter for controlling API calls to a provider.
 //
-// When config has CallsPerSecond of zero or less, returns nil to show that no
-// rate limiting should be used.
+// When config has CallsPerSecond of zero or less, returns nil to show that no rate
+// limiting should be used.
 //
-// Takes config (ProviderRateLimitConfig) which gives the rate limit settings
-// including calls per second and optional burst size.
+// Takes config (ProviderRateLimitConfig) which gives the rate limit settings including
+// calls per second and optional burst size.
 //
-// Returns *ProviderRateLimiter which is the configured rate limiter, or nil if
-// rate limiting is disabled.
+// Returns *ProviderRateLimiter which is the configured rate limiter, or nil if rate
+// limiting is disabled.
 func newProviderRateLimiter(config ProviderRateLimitConfig) *ProviderRateLimiter {
 	if config.CallsPerSecond <= 0 {
 		return nil
@@ -150,8 +149,7 @@ func newProviderRateLimiter(config ProviderRateLimitConfig) *ProviderRateLimiter
 
 // withRateLimit sets the rate limit settings for a provider.
 //
-// Takes callsPerSecond (float64) which sets the maximum calls allowed per
-// second.
+// Takes callsPerSecond (float64) which sets the maximum calls allowed per second.
 // Takes burst (int) which sets the maximum burst size for short periods.
 //
 // Returns ProviderOption which applies the rate limit settings to a provider.

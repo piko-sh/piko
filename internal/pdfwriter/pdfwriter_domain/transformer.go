@@ -50,8 +50,8 @@ func NewPdfTransformerRegistry() *PdfTransformerRegistry {
 //
 // Takes transformer (PdfTransformerPort) which is the transformer to add.
 //
-// Returns error when transformer is nil, has an empty name, or a transformer
-// with the same name is already registered.
+// Returns error when transformer is nil, has an empty name, or a transformer with the
+// same name is already registered.
 func (r *PdfTransformerRegistry) Register(transformer PdfTransformerPort) error {
 	if transformer == nil {
 		return errTransformerNil
@@ -103,8 +103,8 @@ func (r *PdfTransformerRegistry) GetNames() []string {
 	return names
 }
 
-// PdfTransformerChain represents an ordered sequence of transformers to be
-// applied to PDF bytes.
+// PdfTransformerChain represents an ordered sequence of transformers to be applied to PDF
+// bytes.
 type PdfTransformerChain struct {
 	// config holds transformer options keyed by transformer name.
 	config *pdfwriter_dto.TransformConfig
@@ -113,21 +113,19 @@ type PdfTransformerChain struct {
 	transformers []PdfTransformerPort
 }
 
-// NewPdfTransformerChain creates and sorts a new transformer chain based on
-// a configuration. The chain is sorted by ascending priority and validated
-// for constraint violations before being returned.
+// NewPdfTransformerChain creates and sorts a new transformer chain based on a
+// configuration. The chain is sorted by ascending priority and validated for constraint
+// violations before being returned.
 //
 // When config is nil, returns an empty but valid chain.
 //
-// Takes registry (*PdfTransformerRegistry) which provides available
-// transformers.
-// Takes config (*pdfwriter_dto.TransformConfig) which specifies which
-// transformers to enable.
+// Takes registry (*PdfTransformerRegistry) which provides available transformers.
+// Takes config (*pdfwriter_dto.TransformConfig) which specifies which transformers to
+// enable.
 //
-// Returns *PdfTransformerChain which contains the sorted transformers ready
-// for use.
-// Returns error when the registry is nil, a transformer cannot be resolved,
-// or the chain violates ordering constraints.
+// Returns *PdfTransformerChain which contains the sorted transformers ready for use.
+// Returns error when the registry is nil, a transformer cannot be resolved, or the chain
+// violates ordering constraints.
 func NewPdfTransformerChain(registry *PdfTransformerRegistry, config *pdfwriter_dto.TransformConfig) (*PdfTransformerChain, error) {
 	if registry == nil {
 		return nil, errRegistryNil
@@ -167,8 +165,8 @@ func (c *PdfTransformerChain) IsEmpty() bool {
 	return len(c.transformers) == 0
 }
 
-// Transform applies all transformers in ascending priority order to the
-// provided PDF bytes.
+// Transform applies all transformers in ascending priority order to the provided PDF
+// bytes.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 // Takes pdf ([]byte) which is the input PDF document.

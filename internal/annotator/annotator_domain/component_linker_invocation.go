@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Processes individual partial invocations during the linking phase with
-// detailed prop validation and type coercion. Handles default values, factory
-// functions, dependency tracking, and automatic type conversions between
-// components.
+// Processes individual partial invocations during the linking phase with detailed prop
+// validation and type coercion. Handles default values, factory functions, dependency
+// tracking, and automatic type conversions between components.
 
 import (
 	"context"
@@ -37,15 +36,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// invocationLinkerPool reuses invocationLinker instances to reduce allocation pressure.
-var invocationLinkerPool = sync.Pool{
-	New: func() any {
-		return &invocationLinker{}
-	},
-}
+var (
+	// invocationLinkerPool reuses invocationLinker instances to reduce allocation pressure.
+	invocationLinkerPool = sync.Pool{
+		New: func() any {
+			return &invocationLinker{}
+		},
+	}
+)
 
-// finalisedInvocationData holds the resolved properties and dependencies for a
-// single template invocation after all processing is complete.
+// finalisedInvocationData holds the resolved properties and dependencies for a single
+// template invocation after all processing is complete.
 type finalisedInvocationData struct {
 	// canonicalProps maps property names to their resolved values.
 	canonicalProps map[string]ast_domain.PropValue
@@ -57,8 +58,8 @@ type finalisedInvocationData struct {
 	dependsOn []string
 }
 
-// propAssignmentParams groups the values needed for property assignment.
-// This reduces the number of arguments passed to helper methods.
+// propAssignmentParams groups the values needed for property assignment. This reduces the
+// number of arguments passed to helper methods.
 type propAssignmentParams struct {
 	// SourceExpression is the expression from the right side of the assignment.
 	SourceExpression ast_domain.Expression
@@ -81,8 +82,7 @@ type propAssignmentParams struct {
 	// NameLocation is the source position of the property name in the template.
 	NameLocation ast_domain.Location
 
-	// IsLoopDependent indicates whether the property value depends on loop
-	// variables.
+	// IsLoopDependent indicates whether the property value depends on loop variables.
 	IsLoopDependent bool
 }
 
@@ -106,23 +106,22 @@ type invocationLinker struct {
 	// validProps maps prop names to their allowed values for the target component.
 	validProps map[string]validPropInfo
 
-	// providedPropOrigins tracks where each prop was set, used to find conflicts
-	// when the same prop is set more than once.
+	// providedPropOrigins tracks where each prop was set, used to find conflicts when the
+	// same prop is set more than once.
 	providedPropOrigins map[string]propOrigin
 
 	// canonicalProps stores props after validation with defaults applied.
 	canonicalProps map[string]ast_domain.PropValue
 }
 
-// process links an invocation through several passes to build a canonical key.
-// It checks the invoker context, works out which props are valid, and gathers
-// dependency data.
+// process links an invocation through several passes to build a canonical key. It checks
+// the invoker context, works out which props are valid, and gathers dependency data.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for
-// expression parsing during invocation linking.
+// Takes ctx (context.Context) which controls cancellation and deadlines for expression
+// parsing during invocation linking.
 //
-// Returns *finalisedInvocationData which holds the canonical key, resolved
-// props, and dependency list for the invocation.
+// Returns *finalisedInvocationData which holds the canonical key, resolved props, and
+// dependency list for the invocation.
 // Returns error when the invoker context is nil or prop resolution fails.
 func (il *invocationLinker) process(ctx context.Context) (*finalisedInvocationData, error) {
 	if il.invokerCtx == nil {
@@ -152,9 +151,8 @@ func (il *invocationLinker) process(ctx context.Context) (*finalisedInvocationDa
 	}, nil
 }
 
-// applyRequestOverrides processes request overrides from the invocation and
-// stores valid properties. Logs a warning when an override refers to an
-// unknown property.
+// applyRequestOverrides processes request overrides from the invocation and stores valid
+// properties. Logs a warning when an override refers to an unknown property.
 func (il *invocationLinker) applyRequestOverrides(ctx context.Context) {
 	for propName, propValue := range il.invocation.RequestOverrides {
 		if propInfo, isValid := il.validProps[propName]; isValid {
@@ -169,11 +167,11 @@ func (il *invocationLinker) applyRequestOverrides(ctx context.Context) {
 	}
 }
 
-// processStandardProps handles standard prop bindings, which are only used as
-// props if they are declared.
+// processStandardProps handles standard prop bindings, which are only used as props if
+// they are declared.
 //
-// Takes standardProps (map[string]ast_domain.PropValue) which contains the
-// prop bindings to process, keyed by HTML attribute name.
+// Takes standardProps (map[string]ast_domain.PropValue) which contains the prop bindings
+// to process, keyed by HTML attribute name.
 func (il *invocationLinker) processStandardProps(ctx context.Context, standardProps map[string]ast_domain.PropValue) {
 	standardKeys := make([]string, 0, len(standardProps))
 	for k := range standardProps {
@@ -191,11 +189,11 @@ func (il *invocationLinker) processStandardProps(ctx context.Context, standardPr
 	}
 }
 
-// processServerProps handles server-only prop bindings, which are always
-// treated as props rather than attributes.
+// processServerProps handles server-only prop bindings, which are always treated as props
+// rather than attributes.
 //
-// Takes serverProps (map[string]ast_domain.PropValue) which contains the
-// server-side property bindings to process.
+// Takes serverProps (map[string]ast_domain.PropValue) which contains the server-side
+// property bindings to process.
 func (il *invocationLinker) processServerProps(ctx context.Context, serverProps map[string]ast_domain.PropValue) {
 	serverKeys := make([]string, 0, len(serverProps))
 	for k := range serverProps {
@@ -238,19 +236,15 @@ func (il *invocationLinker) processProvidedProps(ctx context.Context) {
 	il.processServerProps(ctx, serverProps)
 }
 
-// resolveAndStoreProp finds the type of an expression, checks it is valid,
-// and stores the final property value. It handles type conversion, checks for
-// loop dependencies, and reports any errors found.
+// resolveAndStoreProp finds the type of an expression, checks it is valid, and stores the
+// final property value. It handles type conversion, checks for loop dependencies, and
+// reports any errors found.
 //
 // Takes propName (string) which names the property being set.
-// Takes sourceExpression (ast_domain.Expression) which is the
-// expression to resolve.
-// Takes location (ast_domain.Location) which gives the assignment
-// location.
-// Takes nameLocation (ast_domain.Location) which gives the property
-// name location.
-// Takes propInfo (validPropInfo) which holds property details and
-// rules.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to resolve.
+// Takes location (ast_domain.Location) which gives the assignment location.
+// Takes nameLocation (ast_domain.Location) which gives the property name location.
+// Takes propInfo (validPropInfo) which holds property details and rules.
 func (il *invocationLinker) resolveAndStoreProp(
 	ctx context.Context,
 	propName string,
@@ -306,15 +300,12 @@ func (il *invocationLinker) buildDestinationTypeInfo(propInfo validPropInfo) *as
 	}
 }
 
-// isExpressionLoopDependent checks whether the given expression uses any loop
-// variable.
+// isExpressionLoopDependent checks whether the given expression uses any loop variable.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the
-// expression to check.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to check.
 // Takes propName (string) which is the property name used for logging.
 //
-// Returns bool which is true if the expression depends on a loop
-// variable.
+// Returns bool which is true if the expression depends on a loop variable.
 func (il *invocationLinker) isExpressionLoopDependent(sourceExpression ast_domain.Expression, propName string) bool {
 	isLoopDependent := false
 	ast_domain.VisitExpression(sourceExpression, func(expression ast_domain.Expression) bool {
@@ -340,8 +331,8 @@ func (il *invocationLinker) isExpressionLoopDependent(sourceExpression ast_domai
 //
 // Takes name (string) which is the variable name to check.
 //
-// Returns bool which is true if the variable exists in the current scope but
-// not in any parent scope.
+// Returns bool which is true if the variable exists in the current scope but not in any
+// parent scope.
 func (il *invocationLinker) isLoopVariable(name string) bool {
 	currentScope := il.invokerCtx.Symbols
 	if _, inCurrent := currentScope.symbols[name]; !inCurrent {
@@ -354,8 +345,8 @@ func (il *invocationLinker) isLoopVariable(name string) bool {
 	return !inParent
 }
 
-// tryDirectAssignment tries to assign a source expression directly to a
-// property without conversion.
+// tryDirectAssignment tries to assign a source expression directly to a property without
+// conversion.
 //
 // Takes p (*propAssignmentParams) which holds the assignment details.
 //
@@ -396,12 +387,12 @@ func (il *invocationLinker) tryCoercionAssignment(ctx context.Context, p *propAs
 	return false
 }
 
-// reportTypeMismatch reports a diagnostic when a property value type does not
-// match the expected type. It checks whether type coercion could fix the issue
-// and suggests adding a coerce tag if so.
+// reportTypeMismatch reports a diagnostic when a property value type does not match the
+// expected type. It checks whether type coercion could fix the issue and suggests adding
+// a coerce tag if so.
 //
-// Takes p (*propAssignmentParams) which holds the source type, target type,
-// and property details.
+// Takes p (*propAssignmentParams) which holds the source type, target type, and property
+// details.
 func (il *invocationLinker) reportTypeMismatch(ctx context.Context, p *propAssignmentParams) {
 	_, _, couldHaveCoerced := il.tryCoerce(ctx, p.SourceExpression, p.SourceAnnotation, p.DestTypeInfo, p.Loc, p.PropName)
 	message := fmt.Sprintf("Type mismatch for prop '%s'. Component <%s> expects type '%s', but received type '%s'",
@@ -421,19 +412,16 @@ func (il *invocationLinker) reportTypeMismatch(ctx context.Context, p *propAssig
 
 // tryCoerceToString attempts to convert a stringable type to a string.
 //
-// If successful, it returns the new transformed expression, its new
-// annotation, and true. Otherwise, it returns the originals and false.
+// If successful, it returns the new transformed expression, its new annotation, and true.
+// Otherwise, it returns the originals and false.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the
-// expression to coerce.
-// Takes sourceAnnotation (*ast_domain.GoGeneratorAnnotation) which
-// provides type and stringability information.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to coerce.
+// Takes sourceAnnotation (*ast_domain.GoGeneratorAnnotation) which provides type and
+// stringability information.
 // Takes propName (string) which identifies the property for logging.
 //
-// Returns ast_domain.Expression which is the coerced or original
-// expression.
-// Returns *ast_domain.GoGeneratorAnnotation which is the new or
-// original annotation.
+// Returns ast_domain.Expression which is the coerced or original expression.
+// Returns *ast_domain.GoGeneratorAnnotation which is the new or original annotation.
 // Returns bool which indicates whether coercion was applied.
 func (il *invocationLinker) tryCoerceToString(
 	sourceExpression ast_domain.Expression,
@@ -496,20 +484,19 @@ func (il *invocationLinker) tryCoerceToString(
 	return transformedExpr, newAnnotation, true
 }
 
-// tryCoerceStringLiteralToPrimitive attempts to convert a string literal to
-// a primitive type.
+// tryCoerceStringLiteralToPrimitive attempts to convert a string literal to a primitive
+// type.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the
-// expression to coerce.
-// Takes destinationTypeInfo (*ast_domain.ResolvedTypeInfo) which
-// specifies the target type for coercion.
-// Takes location (ast_domain.Location) which provides the source
-// location for type resolution.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to coerce.
+// Takes destinationTypeInfo (*ast_domain.ResolvedTypeInfo) which specifies the target
+// type for coercion.
+// Takes location (ast_domain.Location) which provides the source location for type
+// resolution.
 //
-// Returns ast_domain.Expression which is the coerced expression, or
-// the original if no coercion occurred.
-// Returns *ast_domain.GoGeneratorAnnotation which is the type
-// annotation for the coerced expression, or nil if unchanged.
+// Returns ast_domain.Expression which is the coerced expression, or the original if no
+// coercion occurred.
+// Returns *ast_domain.GoGeneratorAnnotation which is the type annotation for the coerced
+// expression, or nil if unchanged.
 // Returns bool which indicates whether coercion was performed.
 func (il *invocationLinker) tryCoerceStringLiteralToPrimitive(
 	ctx context.Context,
@@ -533,21 +520,17 @@ func (il *invocationLinker) tryCoerceStringLiteralToPrimitive(
 
 // tryCoerce attempts to convert an expression to match a destination type.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the
-// expression to coerce.
-// Takes sourceAnnotation (*ast_domain.GoGeneratorAnnotation) which
-// holds the source type metadata.
-// Takes destinationTypeInfo (*ast_domain.ResolvedTypeInfo) which
-// describes the target type.
-// Takes location (ast_domain.Location) which specifies where the
-// coercion occurs.
-// Takes propName (string) which identifies the property being
-// assigned.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to coerce.
+// Takes sourceAnnotation (*ast_domain.GoGeneratorAnnotation) which holds the source type
+// metadata.
+// Takes destinationTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the target
+// type.
+// Takes location (ast_domain.Location) which specifies where the coercion occurs.
+// Takes propName (string) which identifies the property being assigned.
 //
-// Returns ast_domain.Expression which is the coerced expression, or
-// the original if no coercion was applied.
-// Returns *ast_domain.GoGeneratorAnnotation which is the updated
-// annotation.
+// Returns ast_domain.Expression which is the coerced expression, or the original if no
+// coercion was applied.
+// Returns *ast_domain.GoGeneratorAnnotation which is the updated annotation.
 // Returns bool which indicates whether a coercion was applied.
 func (il *invocationLinker) tryCoerce(
 	ctx context.Context,
@@ -572,20 +555,16 @@ func (il *invocationLinker) tryCoerce(
 	return sourceExpression, sourceAnnotation, false
 }
 
-// buildStringConversionAST creates an AST node that converts a value to a
-// string.
+// buildStringConversionAST creates an AST node that converts a value to a string.
 //
-// It mirrors the logic from the generator's stringConverter to produce fast
-// code without reflection. It builds AST nodes for strconv calls or method
-// calls based on the type.
+// It mirrors the logic from the generator's stringConverter to produce fast code without
+// reflection. It builds AST nodes for strconv calls or method calls based on the type.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the
-// expression to convert.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type
-// and stringability metadata.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to convert.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type and stringability
+// metadata.
 //
-// Returns ast_domain.Expression which is the AST node for the
-// conversion.
+// Returns ast_domain.Expression which is the AST node for the conversion.
 func (*invocationLinker) buildStringConversionAST(sourceExpression ast_domain.Expression, ann *ast_domain.GoGeneratorAnnotation) ast_domain.Expression {
 	stringability := inspector_dto.StringabilityMethod(ann.Stringability)
 	typeStringified := goastutil.ASTToTypeString(ann.ResolvedType.TypeExpression, ann.ResolvedType.PackageAlias)
@@ -616,15 +595,13 @@ func (*invocationLinker) buildStringConversionAST(sourceExpression ast_domain.Ex
 // storeProp saves a validated prop value to the main props map.
 //
 // Takes propName (string) which is the standard name of the prop.
-// Takes expression (ast_domain.Expression) which is the validated
-// expression value.
+// Takes expression (ast_domain.Expression) which is the validated expression value.
 // Takes location (ast_domain.Location) which is the location of the prop value.
 // Takes nameLocation (ast_domain.Location) which is the location of the prop name.
 // Takes propInfo (validPropInfo) which holds field mapping details.
-// Takes annotation (*ast_domain.GoGeneratorAnnotation) which provides type and
-// symbol data.
-// Takes isLoopDependent (bool) which shows whether the prop depends on a loop
-// variable.
+// Takes annotation (*ast_domain.GoGeneratorAnnotation) which provides type and symbol
+// data.
+// Takes isLoopDependent (bool) which shows whether the prop depends on a loop variable.
 func (il *invocationLinker) storeProp(
 	propName string,
 	expression ast_domain.Expression,
@@ -653,11 +630,11 @@ func (il *invocationLinker) storeProp(
 	}
 }
 
-// storeOptionalProp creates an address-of expression for an optional prop and
-// stores it in the canonical props map.
+// storeOptionalProp creates an address-of expression for an optional prop and stores it
+// in the canonical props map.
 //
-// Takes p (*propAssignmentParams) which holds the source expression,
-// annotations, and target type for the optional prop.
+// Takes p (*propAssignmentParams) which holds the source expression, annotations, and
+// target type for the optional prop.
 func (il *invocationLinker) storeOptionalProp(p *propAssignmentParams) {
 	addrOfExpr := &ast_domain.UnaryExpression{
 		Right:            p.SourceExpression,
@@ -720,15 +697,12 @@ func (il *invocationLinker) storeOptionalProp(p *propAssignmentParams) {
 // getFinalExprAfterCoercion handles the coerce:"true" tag logic.
 //
 // Takes propName (string) which is the name of the property being coerced.
-// Takes sourceExpression (ast_domain.Expression) which is the
-// original expression.
-// Takes location (ast_domain.Location) which is the source location
-// for error messages.
-// Takes propInfo (validPropInfo) which holds the coercion settings
-// and target type.
+// Takes sourceExpression (ast_domain.Expression) which is the original expression.
+// Takes location (ast_domain.Location) which is the source location for error messages.
+// Takes propInfo (validPropInfo) which holds the coercion settings and target type.
 //
-// Returns ast_domain.Expression which is the coerced expression, or
-// the original if coercion was not needed or failed.
+// Returns ast_domain.Expression which is the coerced expression, or the original if
+// coercion was not needed or failed.
 func (il *invocationLinker) getFinalExprAfterCoercion(propName string, sourceExpression ast_domain.Expression, location ast_domain.Location, propInfo validPropInfo) ast_domain.Expression {
 	if !propInfo.ShouldCoerce {
 		return sourceExpression
@@ -750,11 +724,11 @@ func (il *invocationLinker) getFinalExprAfterCoercion(propName string, sourceExp
 	return sourceExpression
 }
 
-// processOmittedProps handles props that were not provided, checking for
-// required tags and injecting defaults.
+// processOmittedProps handles props that were not provided, checking for required tags
+// and injecting defaults.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for
-// parsing default values.
+// Takes ctx (context.Context) which controls cancellation and deadlines for parsing
+// default values.
 func (il *invocationLinker) processOmittedProps(ctx context.Context) {
 	for propName, propInfo := range il.validProps {
 		if _, wasProvided := il.providedPropOrigins[propName]; wasProvided {
@@ -774,8 +748,8 @@ func (il *invocationLinker) processOmittedProps(ctx context.Context) {
 	}
 }
 
-// handleFactoryDefault creates a default property value by calling the factory
-// function and checks that the returned type can be assigned to the property.
+// handleFactoryDefault creates a default property value by calling the factory function
+// and checks that the returned type can be assigned to the property.
 //
 // Takes propName (string) which is the name of the property being set.
 // Takes propInfo (validPropInfo) which holds the factory function details.
@@ -840,8 +814,8 @@ func (il *invocationLinker) handleFactoryDefault(ctx context.Context, propName s
 
 // handleLiteralDefault parses and checks a literal default value for a prop.
 //
-// Takes ctx (context.Context) which controls cancellation and deadlines for
-// parsing the default value expression.
+// Takes ctx (context.Context) which controls cancellation and deadlines for parsing the
+// default value expression.
 // Takes propName (string) which names the property being processed.
 // Takes propInfo (validPropInfo) which holds the default value and type.
 func (il *invocationLinker) handleLiteralDefault(ctx context.Context, propName string, propInfo validPropInfo) {
@@ -879,21 +853,19 @@ func (il *invocationLinker) handleLiteralDefault(ctx context.Context, propName s
 
 // calculateCanonicalKey computes a unique identifier for this invocation.
 //
-// Returns string which combines the partial alias, canonical properties, and
-// invoker key to tell apart nested partial invocations that share the same
-// expressions.
+// Returns string which combines the partial alias, canonical properties, and invoker key
+// to tell apart nested partial invocations that share the same expressions.
 func (il *invocationLinker) calculateCanonicalKey() string {
 	return calculateCanonicalKey(il.invocation.PartialAlias, il.canonicalProps, il.invocation.InvokerInvocationKey)
 }
 
-// buildPartialInvocation creates a PartialInvocation and locates the target
-// virtual component from the module registry. This shared logic is used by both
-// the pool-based and fresh-allocation paths.
+// buildPartialInvocation creates a PartialInvocation and locates the target virtual
+// component from the module registry. This shared logic is used by both the pool-based
+// and fresh-allocation paths.
 //
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains the invocation
-// details.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides the
-// component registry.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains the invocation details.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides the component
+// registry.
 //
 // Returns *annotator_dto.PartialInvocation which is the constructed invocation.
 // Returns *annotator_dto.VirtualComponent which is the target component.
@@ -927,16 +899,14 @@ func buildPartialInvocation(
 	return invocation, partialComp, nil
 }
 
-// getInvocationLinker retrieves an invocationLinker from the pool and
-// initialises it.
+// getInvocationLinker retrieves an invocationLinker from the pool and initialises it.
 //
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains the partial
-// invocation details to process.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which contains the partial invocation
+// details to process.
 // Takes resolver (*TypeResolver) which resolves types during analysis.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides the module
-// context and component registry.
-// Takes invokerCtx (*AnalysisContext) which provides the invoker's analysis
-// context.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides the module context
+// and component registry.
+// Takes invokerCtx (*AnalysisContext) which provides the invoker's analysis context.
 //
 // Returns *invocationLinker which is the initialised linker ready for use.
 // Returns error when the virtual component for the partial cannot be found.
@@ -984,13 +954,13 @@ func putInvocationLinker(il *invocationLinker) {
 
 // newInvocationLinker creates a linker for resolving a partial invocation.
 //
-// Takes pInfo (*ast_domain.PartialInvocationInfo) which holds the parsed
-// invocation details.
+// Takes pInfo (*ast_domain.PartialInvocationInfo) which holds the parsed invocation
+// details.
 // Takes resolver (*TypeResolver) which resolves types during linking.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides the module
-// context with available components.
-// Takes invokerCtx (*AnalysisContext) which provides the calling component's
-// analysis context.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides the module context
+// with available components.
+// Takes invokerCtx (*AnalysisContext) which provides the calling component's analysis
+// context.
 //
 // Returns *invocationLinker which is ready to process the invocation.
 // Returns error when the virtual component for the partial cannot be found.
@@ -1017,12 +987,11 @@ func newInvocationLinker(
 	}, nil
 }
 
-// collectDependenciesFromProps scans property values and collects unique
-// dependency keys from their annotations. These keys are used for sorting
-// during code generation.
+// collectDependenciesFromProps scans property values and collects unique dependency keys
+// from their annotations. These keys are used for sorting during code generation.
 //
-// Takes props (map[string]ast_domain.PropValue) which contains the property
-// values to scan for dependencies.
+// Takes props (map[string]ast_domain.PropValue) which contains the property values to
+// scan for dependencies.
 //
 // Returns []string which contains the sorted unique dependency keys found.
 func collectDependenciesFromProps(props map[string]ast_domain.PropValue) []string {
@@ -1065,16 +1034,16 @@ func collectDependenciesFromExpression(expression ast_domain.Expression, seen ma
 	})
 }
 
-// categorisePassedProps separates props into standard and server-only
-// categories based on the server prefix.
-//
-// Takes provisionalProps (map[string]ast_domain.PropValue) which contains all
-// props explicitly passed in the template.
-//
-// Returns standard (map[string]ast_domain.PropValue) which contains props
-// without the server prefix.
-// Returns server (map[string]ast_domain.PropValue) which contains props with
+// categorisePassedProps separates props into standard and server-only categories based on
 // the server prefix.
+//
+// Takes provisionalProps (map[string]ast_domain.PropValue) which contains all props
+// explicitly passed in the template.
+//
+// Returns standard (map[string]ast_domain.PropValue) which contains props without the
+// server prefix.
+// Returns server (map[string]ast_domain.PropValue) which contains props with the server
+// prefix.
 func categorisePassedProps(provisionalProps map[string]ast_domain.PropValue) (standard, server map[string]ast_domain.PropValue) {
 	standardProps := make(map[string]ast_domain.PropValue)
 	serverProps := make(map[string]ast_domain.PropValue)
@@ -1090,15 +1059,15 @@ func categorisePassedProps(provisionalProps map[string]ast_domain.PropValue) (st
 	return standardProps, serverProps
 }
 
-// createAnnotatedIdentifier creates an identifier with type and package details
-// for AST code generation.
+// createAnnotatedIdentifier creates an identifier with type and package details for AST
+// code generation.
 //
 // Takes name (string) which specifies the identifier name.
 // Takes packageAlias (string) which specifies the package alias for imports.
 // Takes packagePath (string) which specifies the full package path.
 //
-// Returns *ast_domain.Identifier which contains the identifier with its type
-// information set.
+// Returns *ast_domain.Identifier which contains the identifier with its type information
+// set.
 func createAnnotatedIdentifier(name, packageAlias, packagePath string) *ast_domain.Identifier {
 	identifier := &ast_domain.Identifier{
 		GoAnnotations:    nil,
@@ -1182,8 +1151,7 @@ func createStrconvCallAST(functionName string, arguments ...ast_domain.Expressio
 // Takes typeName (string) which is the target type name.
 // Takes argument (ast_domain.Expression) which is the value to cast.
 //
-// Returns *ast_domain.CallExpression which represents the type cast
-// as a call node.
+// Returns *ast_domain.CallExpression which represents the type cast as a call node.
 func createTypeCastCallAST(typeName string, argument ast_domain.Expression) *ast_domain.CallExpression {
 	return &ast_domain.CallExpression{
 		Callee:           createAnnotatedIdentifier(typeName, "", ""),
@@ -1210,11 +1178,11 @@ func createIntegerLiteralAST(value int) *ast_domain.IntegerLiteral {
 	}
 }
 
-// convertIntToString builds an AST that converts an integer to a string
-// using strconv.FormatInt.
+// convertIntToString builds an AST that converts an integer to a string using
+// strconv.FormatInt.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the integer
-// expression to convert.
+// Takes sourceExpression (ast_domain.Expression) which is the integer expression to
+// convert.
 //
 // Returns ast_domain.Expression which is the AST for the FormatInt call.
 func convertIntToString(sourceExpression ast_domain.Expression) ast_domain.Expression {
@@ -1227,8 +1195,7 @@ func convertIntToString(sourceExpression ast_domain.Expression) ast_domain.Expre
 // convertUintToString builds an AST that converts a uint to a string using
 // strconv.FormatUint.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the uint expression to
-// convert.
+// Takes sourceExpression (ast_domain.Expression) which is the uint expression to convert.
 //
 // Returns ast_domain.Expression which is the AST for the FormatUint call.
 func convertUintToString(sourceExpression ast_domain.Expression) ast_domain.Expression {
@@ -1238,8 +1205,8 @@ func convertUintToString(sourceExpression ast_domain.Expression) ast_domain.Expr
 	)
 }
 
-// convertFloatToString builds an AST node that converts a float value to a
-// string using strconv.FormatFloat.
+// convertFloatToString builds an AST node that converts a float value to a string using
+// strconv.FormatFloat.
 //
 // Takes sourceExpression (ast_domain.Expression) which is the float expression to
 // convert.
@@ -1264,11 +1231,11 @@ func convertFloatToString(sourceExpression ast_domain.Expression, typeString str
 	)
 }
 
-// convertBoolToString builds an AST node that converts a boolean to a string
-// using strconv.FormatBool.
+// convertBoolToString builds an AST node that converts a boolean to a string using
+// strconv.FormatBool.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the boolean
-// expression to convert.
+// Takes sourceExpression (ast_domain.Expression) which is the boolean expression to
+// convert.
 //
 // Returns ast_domain.Expression which is the AST for the FormatBool call.
 func convertBoolToString(sourceExpression ast_domain.Expression) ast_domain.Expression {
@@ -1277,22 +1244,20 @@ func convertBoolToString(sourceExpression ast_domain.Expression) ast_domain.Expr
 
 // convertRuneToString builds an AST node that converts a rune to a string.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the rune expression to
-// convert.
+// Takes sourceExpression (ast_domain.Expression) which is the rune expression to convert.
 //
 // Returns ast_domain.Expression which is the type cast call AST node.
 func convertRuneToString(sourceExpression ast_domain.Expression) ast_domain.Expression {
 	return createTypeCastCallAST(typeString, sourceExpression)
 }
 
-// convertViaStringerMethod builds an AST node that calls the String method on
-// the given expression.
+// convertViaStringerMethod builds an AST node that calls the String method on the given
+// expression.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the expression
-// to convert.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to convert.
 //
-// Returns ast_domain.Expression which is a call expression that invokes
-// the String method.
+// Returns ast_domain.Expression which is a call expression that invokes the String
+// method.
 func convertViaStringerMethod(sourceExpression ast_domain.Expression) ast_domain.Expression {
 	return &ast_domain.CallExpression{
 		Callee: &ast_domain.MemberExpression{
@@ -1318,14 +1283,13 @@ func convertViaStringerMethod(sourceExpression ast_domain.Expression) ast_domain
 	}
 }
 
-// convertViaRuntimeFallback builds an AST call expression that wraps the
-// source in pikoruntime.ValueToString.
+// convertViaRuntimeFallback builds an AST call expression that wraps the source in
+// pikoruntime.ValueToString.
 //
-// Takes sourceExpression (ast_domain.Expression) which is the expression
-// to convert.
+// Takes sourceExpression (ast_domain.Expression) which is the expression to convert.
 //
-// Returns ast_domain.Expression which is a call to pikoruntime.ValueToString
-// with the source expression as its argument.
+// Returns ast_domain.Expression which is a call to pikoruntime.ValueToString with the
+// source expression as its argument.
 func convertViaRuntimeFallback(sourceExpression ast_domain.Expression) ast_domain.Expression {
 	return &ast_domain.CallExpression{
 		Callee: &ast_domain.MemberExpression{
@@ -1356,10 +1320,10 @@ func convertViaRuntimeFallback(sourceExpression ast_domain.Expression) ast_domai
 	}
 }
 
-// updateExpressionBaseCodeGenVarName walks down an expression tree and sets
-// the BaseCodeGenVarName on the root identifier. This means property
-// expressions resolved in a given invocation context use the correct variable
-// names (for example, props_parent_xxx instead of props).
+// updateExpressionBaseCodeGenVarName walks down an expression tree and sets the
+// BaseCodeGenVarName on the root identifier. This means property expressions resolved in
+// a given invocation context use the correct variable names (for example,
+// props_parent_xxx instead of props).
 //
 // When baseCodeGenVarName is nil, returns without making changes.
 //

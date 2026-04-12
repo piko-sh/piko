@@ -23,18 +23,19 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// Container is a semantic alias for Row that stacks children vertically.
-// It implements pml_domain.Component and inherits rendering logic from Row,
-// activating the "stack-children" behaviour.
+// Container is a semantic alias for Row that stacks children vertically. It implements
+// pml_domain.Component and inherits rendering logic from Row, activating the
+// "stack-children" behaviour.
 type Container struct {
 	Row
 }
 
-var _ pml_domain.Component = (*Container)(nil)
+var (
+	_ pml_domain.Component = (*Container)(nil)
+)
 
-// NewContainer creates a new Container component instance.
-// A Container is a semantic alias for a Row that stacks its children
-// vertically.
+// NewContainer creates a new Container component instance. A Container is a semantic
+// alias for a Row that stacks its children vertically.
 //
 // Returns *Container which is the newly created container ready for use.
 func NewContainer() *Container {
@@ -59,12 +60,11 @@ func (*Container) AllowedParents() []string {
 	return []string{"pml-body"}
 }
 
-// DefaultAttributes returns the default attributes for this container,
-// overriding the padding inherited from pml-row.
+// DefaultAttributes returns the default attributes for this container, overriding the
+// padding inherited from pml-row.
 //
-// A wrapper's semantic purpose is to group sections, not add its own padding.
-// Setting padding to "0" by default prevents the "double padding" issue and
-// is more intuitive.
+// A wrapper's semantic purpose is to group sections, not add its own padding. Setting
+// padding to "0" by default prevents the "double padding" issue and is more intuitive.
 //
 // Returns map[string]string which contains the default attribute values.
 func (c *Container) DefaultAttributes() map[string]string {
@@ -73,17 +73,16 @@ func (c *Container) DefaultAttributes() map[string]string {
 	return defaults
 }
 
-// Transform delegates to Row.Transform after injecting the stack-children flag.
-// This means pml-container always uses vertical stacking for its children
-// (child sections are rendered in separate <tr> elements) instead of horizontal
-// column layout (child columns in a single <tr>).
+// Transform delegates to Row.Transform after injecting the stack-children flag. This
+// means pml-container always uses vertical stacking for its children (child sections are
+// rendered in separate <tr> elements) instead of horizontal column layout (child columns
+// in a single <tr>).
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides the transformation
-// context including configuration and style management.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation context
+// including configuration and style management.
 //
-// Returns *ast_domain.TemplateNode which is the transformed node with stacking
-// applied.
+// Returns *ast_domain.TemplateNode which is the transformed node with stacking applied.
 // Returns []*pml_domain.Error which contains any errors encountered during
 // transformation.
 func (c *Container) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {

@@ -19,11 +19,13 @@
 package compiler_domain
 
 import (
+	"slices"
+
 	parsejs "github.com/tdewolff/parse/v2/js"
 )
 
-// TdewolffRewriteContext holds state for rewriting a tdewolff AST.
-// It tracks built-in names, instance properties, and variable scopes.
+// TdewolffRewriteContext holds state for rewriting a tdewolff AST. It tracks built-in
+// names, instance properties, and variable scopes.
 type TdewolffRewriteContext struct {
 	// builtInNames holds JavaScript built-in names to skip during rewriting.
 	builtInNames map[string]bool
@@ -34,18 +36,17 @@ type TdewolffRewriteContext struct {
 	// scopes holds a stack of variable name sets for tracking lexical scope.
 	scopes []map[string]bool
 
-	// inClassMethod indicates whether the rewriter is currently
-	// inside a class method.
+	// inClassMethod indicates whether the rewriter is currently inside a class method.
 	inClassMethod bool
 }
 
 // NewTdewolffRewriteContext creates a context for tdewolff AST rewriting.
 //
-// Takes instanceProps ([]string) which specifies the property names that
-// belong to the component instance.
+// Takes instanceProps ([]string) which specifies the property names that belong to the
+// component instance.
 //
-// Returns *TdewolffRewriteContext which is the configured context ready for
-// AST rewriting operations.
+// Returns *TdewolffRewriteContext which is the configured context ready for AST rewriting
+// operations.
 func NewTdewolffRewriteContext(instanceProps []string) *TdewolffRewriteContext {
 	propsMap := make(map[string]bool)
 	for _, prop := range instanceProps {
@@ -77,12 +78,11 @@ func NewTdewolffRewriteContext(instanceProps []string) *TdewolffRewriteContext {
 	}
 }
 
-// RewriteTdewolffAST adds the this.$$ctx. prefix to identifiers in a tdewolff
-// parsed JavaScript AST.
+// RewriteTdewolffAST adds the this.$$ctx. prefix to identifiers in a tdewolff parsed
+// JavaScript AST.
 //
 // Takes ast (*parsejs.AST) which is the parsed JavaScript AST to rewrite.
-// Takes instanceProps ([]string) which lists the instance property names to
-// prefix.
+// Takes instanceProps ([]string) which lists the instance property names to prefix.
 func RewriteTdewolffAST(ast *parsejs.AST, instanceProps []string) {
 	if ast == nil || len(ast.List) == 0 {
 		return
@@ -120,8 +120,8 @@ func rewriteTdewolffStmt(statement parsejs.IStmt, ctx *TdewolffRewriteContext) {
 // Takes statement (parsejs.IStmt) which is the statement to check and rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 //
-// Returns bool which is true if the statement was a declaration type and was
-// rewritten, or false otherwise.
+// Returns bool which is true if the statement was a declaration type and was rewritten,
+// or false otherwise.
 func tryRewriteTdewolffDeclStmt(statement parsejs.IStmt, ctx *TdewolffRewriteContext) bool {
 	switch node := statement.(type) {
 	case *parsejs.BlockStmt:
@@ -141,14 +141,14 @@ func tryRewriteTdewolffDeclStmt(statement parsejs.IStmt, ctx *TdewolffRewriteCon
 	}
 }
 
-// tryRewriteTdewolffControlFlowStmt handles control flow statements by
-// dispatching to the appropriate rewrite function based on statement type.
+// tryRewriteTdewolffControlFlowStmt handles control flow statements by dispatching to the
+// appropriate rewrite function based on statement type.
 //
 // Takes statement (parsejs.IStmt) which is the statement to process.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 //
-// Returns bool which is true if the statement was a control flow statement
-// and was processed, or false if the statement type was not recognised.
+// Returns bool which is true if the statement was a control flow statement and was
+// processed, or false if the statement type was not recognised.
 //
 //nolint:dupl // parallel dispatch for AST types
 func tryRewriteTdewolffControlFlowStmt(statement parsejs.IStmt, ctx *TdewolffRewriteContext) bool {
@@ -199,8 +199,8 @@ func rewriteTdewolffExpressionStmt(statement parsejs.IStmt, ctx *TdewolffRewrite
 	}
 }
 
-// rewriteTdewolffBlockStmt processes all statements within a block statement.
-// It creates a new scope, rewrites each statement, then removes the scope.
+// rewriteTdewolffBlockStmt processes all statements within a block statement. It creates
+// a new scope, rewrites each statement, then removes the scope.
 //
 // Takes node (*parsejs.BlockStmt) which is the block statement to process.
 // Takes ctx (*TdewolffRewriteContext) which tracks the rewrite state.
@@ -212,8 +212,8 @@ func rewriteTdewolffBlockStmt(node *parsejs.BlockStmt, ctx *TdewolffRewriteConte
 	tdewolffPopScope(ctx)
 }
 
-// rewriteTdewolffIfStmt rewrites an if statement by processing its condition,
-// body, and else clause if present.
+// rewriteTdewolffIfStmt rewrites an if statement by processing its condition, body, and
+// else clause if present.
 //
 // Takes node (*parsejs.IfStmt) which is the if statement to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
@@ -225,19 +225,18 @@ func rewriteTdewolffIfStmt(node *parsejs.IfStmt, ctx *TdewolffRewriteContext) {
 	}
 }
 
-// rewriteTdewolffDoWhileStmt processes a do-while statement by rewriting its
-// body and condition expression.
+// rewriteTdewolffDoWhileStmt processes a do-while statement by rewriting its body and
+// condition expression.
 //
-// Takes node (*parsejs.DoWhileStmt) which is the do-while
-// statement to rewrite.
+// Takes node (*parsejs.DoWhileStmt) which is the do-while statement to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func rewriteTdewolffDoWhileStmt(node *parsejs.DoWhileStmt, ctx *TdewolffRewriteContext) {
 	rewriteTdewolffStmt(node.Body, ctx)
 	rewriteTdewolffExpr(node.Cond, false, ctx)
 }
 
-// rewriteTdewolffWhileStmt rewrites a while statement by processing its
-// condition and body.
+// rewriteTdewolffWhileStmt rewrites a while statement by processing its condition and
+// body.
 //
 // Takes node (*parsejs.WhileStmt) which is the while statement to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
@@ -286,15 +285,12 @@ func rewriteTdewolffTryStmt(node *parsejs.TryStmt, ctx *TdewolffRewriteContext) 
 	}
 }
 
-// rewriteTdewolffExpr rewrites a JavaScript expression by
-// passing it to the correct handler based on its type.
+// rewriteTdewolffExpr rewrites a JavaScript expression by passing it to the correct
+// handler based on its type.
 //
-// Takes expression (parsejs.IExpr) which is the expression to
-// rewrite.
-// Takes isLeft (bool) which shows if this is on the left side
-// of an assignment.
-// Takes ctx (*TdewolffRewriteContext) which holds the rewriting
-// state.
+// Takes expression (parsejs.IExpr) which is the expression to rewrite.
+// Takes isLeft (bool) which shows if this is on the left side of an assignment.
+// Takes ctx (*TdewolffRewriteContext) which holds the rewriting state.
 func rewriteTdewolffExpr(expression parsejs.IExpr, isLeft bool, ctx *TdewolffRewriteContext) {
 	if expression == nil {
 		return
@@ -316,16 +312,13 @@ func rewriteTdewolffExpr(expression parsejs.IExpr, isLeft bool, ctx *TdewolffRew
 	rewriteTdewolffCollectionOrFunctionExpr(expression, isLeft, ctx)
 }
 
-// tryRewriteTdewolffOperatorExpr checks if an expression is an
-// operator type and rewrites it.
+// tryRewriteTdewolffOperatorExpr checks if an expression is an operator type and rewrites
+// it.
 //
-// Takes expression (parsejs.IExpr) which is the expression to
-// check and rewrite.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// rewrite context.
+// Takes expression (parsejs.IExpr) which is the expression to check and rewrite.
+// Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 //
-// Returns bool which is true if the expression was an operator
-// type and was rewritten.
+// Returns bool which is true if the expression was an operator type and was rewritten.
 func tryRewriteTdewolffOperatorExpr(expression parsejs.IExpr, ctx *TdewolffRewriteContext) bool {
 	switch node := expression.(type) {
 	case *parsejs.UnaryExpr:
@@ -342,13 +335,10 @@ func tryRewriteTdewolffOperatorExpr(expression parsejs.IExpr, ctx *TdewolffRewri
 	}
 }
 
-// tryRewriteTdewolffMemberCallExpr handles member access and
-// call expressions.
+// tryRewriteTdewolffMemberCallExpr handles member access and call expressions.
 //
-// Takes expression (parsejs.IExpr) which is the expression to
-// check and rewrite.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// rewrite state.
+// Takes expression (parsejs.IExpr) which is the expression to check and rewrite.
+// Takes ctx (*TdewolffRewriteContext) which provides the rewrite state.
 //
 // Returns bool which is true if the expression was handled.
 func tryRewriteTdewolffMemberCallExpr(expression parsejs.IExpr, ctx *TdewolffRewriteContext) bool {
@@ -370,16 +360,12 @@ func tryRewriteTdewolffMemberCallExpr(expression parsejs.IExpr, ctx *TdewolffRew
 	}
 }
 
-// rewriteTdewolffCollectionOrFunctionExpr handles collection
-// literals and function expressions by passing them to the
-// correct rewriter.
+// rewriteTdewolffCollectionOrFunctionExpr handles collection literals and function
+// expressions by passing them to the correct rewriter.
 //
-// Takes expression (parsejs.IExpr) which is the expression to
-// rewrite.
-// Takes isLeft (bool) which shows if the expression is on the
-// left side.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// rewrite context.
+// Takes expression (parsejs.IExpr) which is the expression to rewrite.
+// Takes isLeft (bool) which shows if the expression is on the left side.
+// Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func rewriteTdewolffCollectionOrFunctionExpr(expression parsejs.IExpr, isLeft bool, ctx *TdewolffRewriteContext) {
 	switch node := expression.(type) {
 	case *parsejs.ArrayExpr:
@@ -397,12 +383,10 @@ func rewriteTdewolffCollectionOrFunctionExpr(expression parsejs.IExpr, isLeft bo
 	}
 }
 
-// rewriteTdewolffBinaryExpr rewrites a binary expression by processing both
-// operands. It marks the left operand as assigned if the operator is an
-// assignment operator.
+// rewriteTdewolffBinaryExpr rewrites a binary expression by processing both operands. It
+// marks the left operand as assigned if the operator is an assignment operator.
 //
-// Takes node (*parsejs.BinaryExpr) which is the binary
-// expression to rewrite.
+// Takes node (*parsejs.BinaryExpr) which is the binary expression to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which tracks the rewrite state.
 func rewriteTdewolffBinaryExpr(node *parsejs.BinaryExpr, ctx *TdewolffRewriteContext) {
 	isAssign := isAssignOp(node.Op)
@@ -410,24 +394,20 @@ func rewriteTdewolffBinaryExpr(node *parsejs.BinaryExpr, ctx *TdewolffRewriteCon
 	rewriteTdewolffExpr(node.Y, false, ctx)
 }
 
-// rewriteTdewolffCondExpr processes a ternary expression by rewriting its
-// condition and both branches.
+// rewriteTdewolffCondExpr processes a ternary expression by rewriting its condition and
+// both branches.
 //
-// Takes node (*parsejs.CondExpr) which is the ternary expression
-// to rewrite.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// rewriting context.
+// Takes node (*parsejs.CondExpr) which is the ternary expression to rewrite.
+// Takes ctx (*TdewolffRewriteContext) which provides the rewriting context.
 func rewriteTdewolffCondExpr(node *parsejs.CondExpr, ctx *TdewolffRewriteContext) {
 	rewriteTdewolffExpr(node.Cond, false, ctx)
 	rewriteTdewolffExpr(node.X, false, ctx)
 	rewriteTdewolffExpr(node.Y, false, ctx)
 }
 
-// rewriteTdewolffIndexExpr rewrites the base and index parts of an index
-// expression node.
+// rewriteTdewolffIndexExpr rewrites the base and index parts of an index expression node.
 //
-// Takes node (*parsejs.IndexExpr) which is the index expression
-// to rewrite.
+// Takes node (*parsejs.IndexExpr) which is the index expression to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func rewriteTdewolffIndexExpr(node *parsejs.IndexExpr, ctx *TdewolffRewriteContext) {
 	rewriteTdewolffExpr(node.X, false, ctx)
@@ -445,8 +425,7 @@ func rewriteTdewolffCallExpr(node *parsejs.CallExpr, ctx *TdewolffRewriteContext
 	}
 }
 
-// rewriteTdewolffNewExpr rewrites a JavaScript new expression
-// and its arguments.
+// rewriteTdewolffNewExpr rewrites a JavaScript new expression and its arguments.
 //
 // Takes node (*parsejs.NewExpr) which is the new expression to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
@@ -469,8 +448,8 @@ func rewriteTdewolffArrayExpr(node *parsejs.ArrayExpr, ctx *TdewolffRewriteConte
 	}
 }
 
-// rewriteTdewolffObjectExpr applies rewrite rules to each property value in an
-// object literal.
+// rewriteTdewolffObjectExpr applies rewrite rules to each property value in an object
+// literal.
 //
 // Takes node (*parsejs.ObjectExpr) which is the object expression to process.
 // Takes ctx (*TdewolffRewriteContext) which holds the rewrite state.
@@ -482,11 +461,10 @@ func rewriteTdewolffObjectExpr(node *parsejs.ObjectExpr, ctx *TdewolffRewriteCon
 	}
 }
 
-// rewriteTdewolffTemplateExpr processes a template expression node by
-// rewriting each embedded expression within the template.
+// rewriteTdewolffTemplateExpr processes a template expression node by rewriting each
+// embedded expression within the template.
 //
-// Takes node (*parsejs.TemplateExpr) which is the template expression to
-// process.
+// Takes node (*parsejs.TemplateExpr) which is the template expression to process.
 // Takes ctx (*TdewolffRewriteContext) which holds the rewrite state.
 func rewriteTdewolffTemplateExpr(node *parsejs.TemplateExpr, ctx *TdewolffRewriteContext) {
 	for i := range node.List {
@@ -494,19 +472,14 @@ func rewriteTdewolffTemplateExpr(node *parsejs.TemplateExpr, ctx *TdewolffRewrit
 	}
 }
 
-// rewriteTdewolffVar changes variable references to use the
-// component context.
+// rewriteTdewolffVar changes variable references to use the component context.
 //
-// When inside a class method, this rewrites instance property
-// references that are not in scope from their bare name to
-// "this.$$ctx.<name>" format.
+// When inside a class method, this rewrites instance property references that are not in
+// scope from their bare name to "this.$$ctx.<name>" format.
 //
-// Takes v (*parsejs.Var) which is the variable AST node to
-// rewrite.
-// Takes isLeft (bool) which shows if this is a left-hand side
-// assignment.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// rewriting context.
+// Takes v (*parsejs.Var) which is the variable AST node to rewrite.
+// Takes isLeft (bool) which shows if this is a left-hand side assignment.
+// Takes ctx (*TdewolffRewriteContext) which provides the rewriting context.
 func rewriteTdewolffVar(v *parsejs.Var, isLeft bool, ctx *TdewolffRewriteContext) {
 	if !ctx.inClassMethod {
 		return
@@ -529,12 +502,10 @@ func rewriteTdewolffVar(v *parsejs.Var, isLeft bool, ctx *TdewolffRewriteContext
 	v.Data = []byte("this.$$ctx." + name)
 }
 
-// rewriteTdewolffVarDecl handles a variable declaration node by
-// binding each declared variable and rewriting any default value
-// expressions.
+// rewriteTdewolffVarDecl handles a variable declaration node by binding each declared
+// variable and rewriting any default value expressions.
 //
-// Takes node (*parsejs.VarDecl) which is the variable
-// declaration to process.
+// Takes node (*parsejs.VarDecl) which is the variable declaration to process.
 // Takes ctx (*TdewolffRewriteContext) which holds the rewrite state.
 func rewriteTdewolffVarDecl(node *parsejs.VarDecl, ctx *TdewolffRewriteContext) {
 	for i := range node.List {
@@ -545,15 +516,12 @@ func rewriteTdewolffVarDecl(node *parsejs.VarDecl, ctx *TdewolffRewriteContext) 
 	}
 }
 
-// rewriteTdewolffFuncDecl processes a function declaration
-// node. It adds the function name to the current scope, creates
-// a new scope for the function body, binds each parameter,
-// rewrites all body statements, then removes the scope.
+// rewriteTdewolffFuncDecl processes a function declaration node. It adds the function
+// name to the current scope, creates a new scope for the function body, binds each
+// parameter, rewrites all body statements, then removes the scope.
 //
-// Takes node (*parsejs.FuncDecl) which is the function
-// declaration to process.
-// Takes ctx (*TdewolffRewriteContext) which holds the rewrite
-// state and scopes.
+// Takes node (*parsejs.FuncDecl) which is the function declaration to process.
+// Takes ctx (*TdewolffRewriteContext) which holds the rewrite state and scopes.
 func rewriteTdewolffFuncDecl(node *parsejs.FuncDecl, ctx *TdewolffRewriteContext) {
 	if node.Name != nil {
 		tdewolffAddNameToScope(string(node.Name.Name()), ctx)
@@ -568,14 +536,11 @@ func rewriteTdewolffFuncDecl(node *parsejs.FuncDecl, ctx *TdewolffRewriteContext
 	tdewolffPopScope(ctx)
 }
 
-// rewriteTdewolffArrowFunc handles an arrow function node by
-// binding its parameters and rewriting its body statements
-// within a new scope.
+// rewriteTdewolffArrowFunc handles an arrow function node by binding its parameters and
+// rewriting its body statements within a new scope.
 //
-// Takes node (*parsejs.ArrowFunc) which is the arrow function
-// to process.
-// Takes ctx (*TdewolffRewriteContext) which tracks the rewrite
-// state.
+// Takes node (*parsejs.ArrowFunc) which is the arrow function to process.
+// Takes ctx (*TdewolffRewriteContext) which tracks the rewrite state.
 func rewriteTdewolffArrowFunc(node *parsejs.ArrowFunc, ctx *TdewolffRewriteContext) {
 	tdewolffPushScope(ctx)
 	for i := range node.Params.List {
@@ -587,14 +552,11 @@ func rewriteTdewolffArrowFunc(node *parsejs.ArrowFunc, ctx *TdewolffRewriteConte
 	tdewolffPopScope(ctx)
 }
 
-// rewriteTdewolffClassDecl processes a class declaration node
-// by adding its name to the scope and rewriting each class
-// element.
+// rewriteTdewolffClassDecl processes a class declaration node by adding its name to the
+// scope and rewriting each class element.
 //
-// Takes node (*parsejs.ClassDecl) which is the class
-// declaration to process.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// rewrite context.
+// Takes node (*parsejs.ClassDecl) which is the class declaration to process.
+// Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func rewriteTdewolffClassDecl(node *parsejs.ClassDecl, ctx *TdewolffRewriteContext) {
 	if node.Name != nil {
 		tdewolffAddNameToScope(string(node.Name.Name()), ctx)
@@ -604,14 +566,11 @@ func rewriteTdewolffClassDecl(node *parsejs.ClassDecl, ctx *TdewolffRewriteConte
 	}
 }
 
-// rewriteTdewolffClassElement processes a single class element
-// by rewriting its method declaration or field initialiser
-// expression.
+// rewriteTdewolffClassElement processes a single class element by rewriting its method
+// declaration or field initialiser expression.
 //
-// Takes element (*parsejs.ClassElement) which is the class element
-// to process.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// rewrite context.
+// Takes element (*parsejs.ClassElement) which is the class element to process.
+// Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func rewriteTdewolffClassElement(element *parsejs.ClassElement, ctx *TdewolffRewriteContext) {
 	if element.Method != nil {
 		rewriteTdewolffMethodDecl(element.Method, ctx)
@@ -621,12 +580,10 @@ func rewriteTdewolffClassElement(element *parsejs.ClassElement, ctx *TdewolffRew
 	}
 }
 
-// rewriteTdewolffMethodDecl processes a method declaration
-// within a class by binding its parameters and rewriting its
-// body statements.
+// rewriteTdewolffMethodDecl processes a method declaration within a class by binding its
+// parameters and rewriting its body statements.
 //
-// Takes node (*parsejs.MethodDecl) which is the method
-// declaration to process.
+// Takes node (*parsejs.MethodDecl) which is the method declaration to process.
 // Takes ctx (*TdewolffRewriteContext) which holds the rewrite state.
 func rewriteTdewolffMethodDecl(node *parsejs.MethodDecl, ctx *TdewolffRewriteContext) {
 	wasInClassMethod := ctx.inClassMethod
@@ -665,11 +622,9 @@ func rewriteTdewolffForStmt(node *parsejs.ForStmt, ctx *TdewolffRewriteContext) 
 	rewriteTdewolffStmt(node.Body, ctx)
 }
 
-// rewriteTdewolffForInStmt rewrites a for-in statement during
-// AST processing.
+// rewriteTdewolffForInStmt rewrites a for-in statement during AST processing.
 //
-// Takes node (*parsejs.ForInStmt) which is the for-in
-// statement to rewrite.
+// Takes node (*parsejs.ForInStmt) which is the for-in statement to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func rewriteTdewolffForInStmt(node *parsejs.ForInStmt, ctx *TdewolffRewriteContext) {
 	if varDecl, ok := node.Init.(*parsejs.VarDecl); ok {
@@ -681,11 +636,10 @@ func rewriteTdewolffForInStmt(node *parsejs.ForInStmt, ctx *TdewolffRewriteConte
 	rewriteTdewolffStmt(node.Body, ctx)
 }
 
-// rewriteTdewolffForOfStmt rewrites a JavaScript for-of statement by
-// processing its initialiser, value expression, and body.
+// rewriteTdewolffForOfStmt rewrites a JavaScript for-of statement by processing its
+// initialiser, value expression, and body.
 //
-// Takes node (*parsejs.ForOfStmt) which is the for-of
-// statement to rewrite.
+// Takes node (*parsejs.ForOfStmt) which is the for-of statement to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func rewriteTdewolffForOfStmt(node *parsejs.ForOfStmt, ctx *TdewolffRewriteContext) {
 	if varDecl, ok := node.Init.(*parsejs.VarDecl); ok {
@@ -697,8 +651,8 @@ func rewriteTdewolffForOfStmt(node *parsejs.ForOfStmt, ctx *TdewolffRewriteConte
 	rewriteTdewolffStmt(node.Body, ctx)
 }
 
-// rewriteTdewolffSwitchCase rewrites a switch case clause by processing its
-// condition expression and body statements.
+// rewriteTdewolffSwitchCase rewrites a switch case clause by processing its condition
+// expression and body statements.
 //
 // Takes sc (*parsejs.CaseClause) which is the case clause to rewrite.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
@@ -711,17 +665,14 @@ func rewriteTdewolffSwitchCase(sc *parsejs.CaseClause, ctx *TdewolffRewriteConte
 	}
 }
 
-// tdewolffBindDeclaration registers a variable binding in the
-// current scope. It handles simple variables, array
-// destructuring, and object destructuring patterns from the
+// tdewolffBindDeclaration registers a variable binding in the current scope. It handles
+// simple variables, array destructuring, and object destructuring patterns from the
 // tdewolff parser.
 //
 // When binding is nil, returns straight away without action.
 //
-// Takes binding (parsejs.IBinding) which is the variable
-// binding to register.
-// Takes ctx (*TdewolffRewriteContext) which provides the
-// current scope context.
+// Takes binding (parsejs.IBinding) which is the variable binding to register.
+// Takes ctx (*TdewolffRewriteContext) which provides the current scope context.
 func tdewolffBindDeclaration(binding parsejs.IBinding, ctx *TdewolffRewriteContext) {
 	if binding == nil {
 		return
@@ -736,13 +687,10 @@ func tdewolffBindDeclaration(binding parsejs.IBinding, ctx *TdewolffRewriteConte
 	}
 }
 
-// tdewolffBindArrayElements binds each element in an array
-// binding pattern.
+// tdewolffBindArrayElements binds each element in an array binding pattern.
 //
-// Takes arr (*parsejs.BindingArray) which is the array pattern
-// to process.
-// Takes ctx (*TdewolffRewriteContext) which tracks binding
-// declarations.
+// Takes arr (*parsejs.BindingArray) which is the array pattern to process.
+// Takes ctx (*TdewolffRewriteContext) which tracks binding declarations.
 func tdewolffBindArrayElements(arr *parsejs.BindingArray, ctx *TdewolffRewriteContext) {
 	for _, item := range arr.List {
 		if item.Binding != nil {
@@ -754,11 +702,11 @@ func tdewolffBindArrayElements(arr *parsejs.BindingArray, ctx *TdewolffRewriteCo
 	}
 }
 
-// tdewolffBindObjectProperties binds all property declarations
-// within a destructuring object pattern.
+// tdewolffBindObjectProperties binds all property declarations within a destructuring
+// object pattern.
 //
-// Takes objectBinding (*parsejs.BindingObject) which contains the object
-// binding pattern to process.
+// Takes objectBinding (*parsejs.BindingObject) which contains the object binding pattern
+// to process.
 // Takes ctx (*TdewolffRewriteContext) which provides the rewrite context.
 func tdewolffBindObjectProperties(objectBinding *parsejs.BindingObject, ctx *TdewolffRewriteContext) {
 	for _, item := range objectBinding.List {
@@ -773,24 +721,21 @@ func tdewolffBindObjectProperties(objectBinding *parsejs.BindingObject, ctx *Tde
 
 // tdewolffPushScope pushes a new empty scope onto the scope stack.
 //
-// Takes ctx (*TdewolffRewriteContext) which holds the scope
-// stack to modify.
+// Takes ctx (*TdewolffRewriteContext) which holds the scope stack to modify.
 func tdewolffPushScope(ctx *TdewolffRewriteContext) {
 	ctx.scopes = append(ctx.scopes, make(map[string]bool))
 }
 
 // tdewolffPopScope removes the top scope from the rewrite context.
 //
-// Takes ctx (*TdewolffRewriteContext) which holds the current
-// scope stack.
+// Takes ctx (*TdewolffRewriteContext) which holds the current scope stack.
 func tdewolffPopScope(ctx *TdewolffRewriteContext) {
 	if len(ctx.scopes) > 0 {
 		ctx.scopes = ctx.scopes[:len(ctx.scopes)-1]
 	}
 }
 
-// tdewolffAddNameToScope adds a name to the current scope in the rewrite
-// context.
+// tdewolffAddNameToScope adds a name to the current scope in the rewrite context.
 //
 // Takes name (string) which is the identifier to add.
 // Takes ctx (*TdewolffRewriteContext) which holds the scope stack.
@@ -800,19 +745,15 @@ func tdewolffAddNameToScope(name string, ctx *TdewolffRewriteContext) {
 	}
 }
 
-// tdewolffIsNameInScope checks whether a variable name exists in any active
-// scope.
+// tdewolffIsNameInScope checks whether a variable name exists in any active scope.
 //
-// Takes name (string) which is the variable name to search
-// for.
-// Takes ctx (*TdewolffRewriteContext) which holds the stack of
-// active scopes.
+// Takes name (string) which is the variable name to search for.
+// Takes ctx (*TdewolffRewriteContext) which holds the stack of active scopes.
 //
-// Returns bool which is true if the name is found in any scope, false
-// otherwise.
+// Returns bool which is true if the name is found in any scope, false otherwise.
 func tdewolffIsNameInScope(name string, ctx *TdewolffRewriteContext) bool {
-	for i := len(ctx.scopes) - 1; i >= 0; i-- {
-		if ctx.scopes[i][name] {
+	for _, scope := range slices.Backward(ctx.scopes) {
+		if scope[name] {
 			return true
 		}
 	}

@@ -24,16 +24,17 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-var _ ItemRenderer[any] = (*SimpleRenderer[any])(nil)
+var (
+	_ ItemRenderer[any] = (*SimpleRenderer[any])(nil)
+)
 
-// ItemRenderer defines how to render items of a specific type.
-// Implement for each panel's data type.
+// ItemRenderer defines how to render items of a specific type. Implement for each panel's
+// data type.
 type ItemRenderer[T any] interface {
 	// RenderRow renders the main row for an item in the list view.
 	//
 	// Takes item (T) which is the item to render.
-	// Takes lineIndex (int) which is the line position in the view for cursor
-	// comparison.
+	// Takes lineIndex (int) which is the line position in the view for cursor comparison.
 	// Takes selected (bool) which indicates if this item is at the cursor position.
 	// Takes focused (bool) which indicates if the panel is focused.
 	// Takes width (int) which is the available content width.
@@ -41,8 +42,8 @@ type ItemRenderer[T any] interface {
 	// Returns string which is the rendered row content.
 	RenderRow(item T, lineIndex int, selected, focused bool, width int) string
 
-	// RenderExpanded renders detail lines for an expanded item. Returns nil or an
-	// empty slice if the item is not expandable or has no details.
+	// RenderExpanded renders detail lines for an expanded item. Returns nil or an empty
+	// slice if the item is not expandable or has no details.
 	//
 	// Takes item (T) which is the item to render in expanded form.
 	// Takes width (int) which specifies the available width in characters.
@@ -50,16 +51,15 @@ type ItemRenderer[T any] interface {
 	// Returns []string which contains one line per element for display.
 	RenderExpanded(item T, width int) []string
 
-	// GetID returns a unique identifier for the item, used for tracking
-	// expansion state.
+	// GetID returns a unique identifier for the item, used for tracking expansion state.
 	//
 	// Takes item (T) which is the item to get the identifier for.
 	//
 	// Returns string which is the unique identifier.
 	GetID(item T) string
 
-	// MatchesFilter checks whether the item matches the search query.
-	// The query is already in lowercase.
+	// MatchesFilter checks whether the item matches the search query. The query is already
+	// in lowercase.
 	//
 	// Takes item (T) which is the item to check.
 	// Takes query (string) which is the lowercase search text.
@@ -67,16 +67,15 @@ type ItemRenderer[T any] interface {
 	// Returns bool which is true if the item matches the query.
 	MatchesFilter(item T, query string) bool
 
-	// IsExpandable returns true if the given item can be expanded to show more
-	// details.
+	// IsExpandable returns true if the given item can be expanded to show more details.
 	//
 	// Takes item (T) which is the item to check.
 	//
 	// Returns bool which is true if the item can be expanded, false otherwise.
 	IsExpandable(item T) bool
 
-	// ExpandedLineCount returns the number of detail lines when expanded.
-	// This should match len(RenderExpanded(item, width)) for correct behaviour.
+	// ExpandedLineCount returns the number of detail lines when expanded. This should match
+	// len(RenderExpanded(item, width)) for correct behaviour.
 	//
 	// Takes item (T) which is the item to count lines for.
 	//
@@ -84,8 +83,8 @@ type ItemRenderer[T any] interface {
 	ExpandedLineCount(item T) int
 }
 
-// ScrollContext tracks visible lines and handles newlines when rendering
-// scrollable content.
+// ScrollContext tracks visible lines and handles newlines when rendering scrollable
+// content.
 type ScrollContext struct {
 	// content builds rendered lines for the visible part of the view.
 	content *strings.Builder
@@ -103,8 +102,8 @@ type ScrollContext struct {
 	firstLine bool
 }
 
-// NewScrollContext creates a new scroll context for rendering.
-// visibleStart and visibleEnd define the range of visible line indices.
+// NewScrollContext creates a new scroll context for rendering. visibleStart and
+// visibleEnd define the range of visible line indices.
 //
 // Takes content (*strings.Builder) which holds the rendered output.
 // Takes scrollOffset (int) which specifies the first visible line index.
@@ -123,8 +122,8 @@ func NewScrollContext(content *strings.Builder, scrollOffset, visibleHeight int)
 
 // WriteLineIfVisible writes a line if it falls within the visible range.
 //
-// The lineFunc is only called if the line is visible. This avoids extra work
-// when the line is outside the viewport.
+// The lineFunc is only called if the line is visible. This avoids extra work when the
+// line is outside the viewport.
 //
 // Takes lineFunc (func() string) which provides the line content when called.
 func (ctx *ScrollContext) WriteLineIfVisible(lineFunc func() string) {
@@ -144,8 +143,8 @@ func (ctx *ScrollContext) WriteLineIfVisible(lineFunc func() string) {
 	ctx.lineIndex++
 }
 
-// WriteLine writes a line to the output if it falls within the visible range.
-// Use this when the line content is ready.
+// WriteLine writes a line to the output if it falls within the visible range. Use this
+// when the line content is ready.
 //
 // Takes line (string) which is the content to write.
 func (ctx *ScrollContext) WriteLine(line string) {
@@ -165,8 +164,8 @@ func (ctx *ScrollContext) WriteLine(line string) {
 	ctx.lineIndex++
 }
 
-// SkipLines moves the line index forward without writing anything.
-// Use this for lines that are known to be outside the visible range.
+// SkipLines moves the line index forward without writing anything. Use this for lines
+// that are known to be outside the visible range.
 //
 // Takes count (int) which specifies the number of lines to skip.
 func (ctx *ScrollContext) SkipLines(count int) {
@@ -187,13 +186,11 @@ func (ctx *ScrollContext) IsVisible() bool {
 	return ctx.lineIndex >= ctx.visibleStart && ctx.lineIndex < ctx.visibleEnd
 }
 
-// SimpleRenderer provides a minimal ItemRenderer implementation using functions.
-// This reduces boilerplate for panels that don't need a full struct-based
-// renderer.
+// SimpleRenderer provides a minimal ItemRenderer implementation using functions. This
+// reduces boilerplate for panels that don't need a full struct-based renderer.
 //
-// Required fields: GetIDFunction, MatchesFilterFunction, RenderRowFunction.
-// Optional fields: RenderExpandedFunction, IsExpandableFunction,
-// ExpandedCountFunction.
+// Required fields: GetIDFunction, MatchesFilterFunction, RenderRowFunction. Optional
+// fields: RenderExpandedFunction, IsExpandableFunction, ExpandedCountFunction.
 //
 // Example usage:
 //
@@ -211,28 +208,27 @@ type SimpleRenderer[T any] struct {
 	// GetIDFunction returns a unique identifier for the item. Required.
 	GetIDFunction func(T) string
 
-	// MatchesFilterFunction returns true if the item matches the
-	// search query; required. The query is already lowercased.
+	// MatchesFilterFunction returns true if the item matches the search query; required. The
+	// query is already lowercased.
 	MatchesFilterFunction func(T, string) bool
 
 	// RenderRowFunction renders the main row for an item; required.
 	RenderRowFunction func(T, int, bool, bool, int) string
 
-	// RenderExpandedFunction renders detail lines for an expanded
-	// item. Optional; return nil if it has no content to expand.
+	// RenderExpandedFunction renders detail lines for an expanded item. Optional; return nil
+	// if it has no content to expand.
 	RenderExpandedFunction func(T, int) []string
 
-	// IsExpandableFunction checks whether an item can be expanded. Optional; defaults
-	// to false if nil.
+	// IsExpandableFunction checks whether an item can be expanded. Optional; defaults to
+	// false if nil.
 	IsExpandableFunction func(T) bool
 
-	// ExpandedCountFunction returns the number of detail lines when
-	// expanded. Optional; defaults to 0 if nil.
+	// ExpandedCountFunction returns the number of detail lines when expanded. Optional;
+	// defaults to 0 if nil.
 	ExpandedCountFunction func(T) int
 }
 
-// GetID returns the unique identifier for the given item. Implements
-// ItemRenderer.
+// GetID returns the unique identifier for the given item. Implements ItemRenderer.
 //
 // Takes item (T) which is the item to get the identifier for.
 //
@@ -269,8 +265,8 @@ func (r *SimpleRenderer[T]) RenderRow(item T, lineIndex int, selected, focused b
 // Takes item (T) which is the item to render in expanded form.
 // Takes width (int) which specifies the available width in characters.
 //
-// Returns []string which contains the rendered lines, or nil if no render
-// function is configured.
+// Returns []string which contains the rendered lines, or nil if no render function is
+// configured.
 func (r *SimpleRenderer[T]) RenderExpanded(item T, width int) []string {
 	if r.RenderExpandedFunction == nil {
 		return nil
@@ -290,8 +286,8 @@ func (r *SimpleRenderer[T]) IsExpandable(item T) bool {
 	return r.IsExpandableFunction(item)
 }
 
-// ExpandedLineCount returns the number of lines when an item is expanded.
-// Implements ItemRenderer.
+// ExpandedLineCount returns the number of lines when an item is expanded. Implements
+// ItemRenderer.
 //
 // Takes item (T) which is the item to measure.
 //
@@ -308,17 +304,16 @@ func (r *SimpleRenderer[T]) ExpandedLineCount(item T) int {
 // Takes selected (bool) which specifies whether the item is selected.
 // Takes focused (bool) which specifies whether the item has focus.
 //
-// Returns string which is a styled indicator if selected and focused, plain
-// if selected but unfocused, or spaces if not selected.
+// Returns string which is a styled indicator if selected and focused, plain if selected
+// but unfocused, or spaces if not selected.
 //
-// This is a convenience wrapper around RenderCursorStyled with
-// DefaultCursorConfig.
+// This is a convenience wrapper around RenderCursorStyled with DefaultCursorConfig.
 func RenderCursor(selected, focused bool) string {
 	return RenderCursorStyled(selected, focused, DefaultCursorConfig())
 }
 
-// RenderCursorWithIndent returns the cursor indicator with custom indent strings
-// based on selection and focus state.
+// RenderCursorWithIndent returns the cursor indicator with custom indent strings based on
+// selection and focus state.
 //
 // Takes selected (bool) which indicates whether the item is currently selected.
 // Takes focused (bool) which indicates whether the item has focus.
@@ -338,11 +333,10 @@ func RenderCursorWithIndent(selected, focused bool, inactiveIndent, activeIndent
 
 // RenderExpandIndicator returns the expand or collapse indicator symbol.
 //
-// Takes expanded (bool) which sets whether to show the expanded or collapsed
-// state.
+// Takes expanded (bool) which sets whether to show the expanded or collapsed state.
 //
-// Returns string which contains SymbolExpanded if expanded, or SymbolCollapsed
-// if collapsed, styled with a dim colour.
+// Returns string which contains SymbolExpanded if expanded, or SymbolCollapsed if
+// collapsed, styled with a dim colour.
 func RenderExpandIndicator(expanded bool) string {
 	indicator := SymbolCollapsed
 	if expanded {
@@ -353,8 +347,8 @@ func RenderExpandIndicator(expanded bool) string {
 
 // RenderName formats an item name for display with optional bold styling.
 //
-// The name is truncated if longer than maxWidth and padded with spaces to fill
-// the width. When both selected and focused are true, the text is styled bold.
+// The name is truncated if longer than maxWidth and padded with spaces to fill the width.
+// When both selected and focused are true, the text is styled bold.
 //
 // Takes name (string) which is the text to display.
 // Takes maxWidth (int) which is the width to truncate and pad to.

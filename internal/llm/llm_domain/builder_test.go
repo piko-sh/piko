@@ -22,7 +22,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -622,7 +621,7 @@ func TestCompletionBuilder_Complete(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, response)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&provider.CompleteCallCount))
+		assert.Equal(t, int64(1), provider.CompleteCallCount.Load())
 	})
 
 	t.Run("returns error when no provider", func(t *testing.T) {
@@ -738,7 +737,7 @@ func TestCompletionBuilder_FullChain(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, response)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&provider.CompleteCallCount))
+	assert.Equal(t, int64(1), provider.CompleteCallCount.Load())
 	require.NotNil(t, capturedReq)
 	assert.Equal(t, "gpt-4o", capturedReq.Model)
 	assert.Len(t, capturedReq.Messages, 2)
@@ -766,7 +765,7 @@ func TestCompletionBuilder_WithCacheAndExecution(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, resp1)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&provider.CompleteCallCount))
+	assert.Equal(t, int64(1), provider.CompleteCallCount.Load())
 
 	resp2, err := service.NewCompletion().
 		Model("gpt-4o").
@@ -777,7 +776,7 @@ func TestCompletionBuilder_WithCacheAndExecution(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp2)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&provider.CompleteCallCount))
+	assert.Equal(t, int64(1), provider.CompleteCallCount.Load())
 }
 
 func TestCompletionBuilder_WithMemoryAndExecution(t *testing.T) {

@@ -27,8 +27,8 @@ import (
 	"strings"
 )
 
-// ValidateProviderConfiguration checks that all default provider names match
-// registered providers. This finds setup errors early, before services start.
+// ValidateProviderConfiguration checks that all default provider names match registered
+// providers. This finds setup errors early, before services start.
 //
 // Returns error when a default provider is set but not registered.
 func (c *Container) ValidateProviderConfiguration() error {
@@ -67,8 +67,8 @@ func (c *Container) ValidateProviderConfiguration() error {
 
 // validateEmailProviders checks the email provider settings.
 //
-// Returns string which is empty when valid, or an error message when the
-// default provider is not found in the list of registered providers.
+// Returns string which is empty when valid, or an error message when the default provider
+// is not found in the list of registered providers.
 func (c *Container) validateEmailProviders() string {
 	if c.emailDefaultProvider == "" {
 		return ""
@@ -85,8 +85,7 @@ func (c *Container) validateEmailProviders() string {
 
 // validateStorageProviders checks the storage provider settings.
 //
-// Returns string which is empty when valid, or a message describing the
-// problem.
+// Returns string which is empty when valid, or a message describing the problem.
 func (c *Container) validateStorageProviders() string {
 	if c.storageDefaultProvider == "" {
 		return ""
@@ -120,8 +119,8 @@ func (c *Container) validateCacheProviders() string {
 
 // validateCryptoProviders checks the crypto provider settings.
 //
-// Returns string which holds an error message if the settings are not valid,
-// or an empty string if all is well.
+// Returns string which holds an error message if the settings are not valid, or an empty
+// string if all is well.
 func (c *Container) validateCryptoProviders() string {
 	if c.cryptoDefaultProvider == "" {
 		return ""
@@ -138,8 +137,8 @@ func (c *Container) validateCryptoProviders() string {
 
 // validateNotificationProviders checks the notification provider settings.
 //
-// Returns string which is empty if valid, or an error message if the default
-// provider is not found in the list of registered providers.
+// Returns string which is empty if valid, or an error message if the default provider is
+// not found in the list of registered providers.
 func (c *Container) validateNotificationProviders() string {
 	if c.notificationDefaultProvider == "" {
 		return ""
@@ -156,8 +155,7 @@ func (c *Container) validateNotificationProviders() string {
 
 // validateImageProviders checks the image transformer provider settings.
 //
-// Returns string which is empty if valid, or an error message describing the
-// problem.
+// Returns string which is empty if valid, or an error message describing the problem.
 func (c *Container) validateImageProviders() string {
 	if c.defaultImageTransformer == "" {
 		return ""
@@ -174,8 +172,8 @@ func (c *Container) validateImageProviders() string {
 
 // validateVideoProviders checks the video transcoder provider settings.
 //
-// Returns string which is empty if valid, or an error message that describes
-// what is wrong with the settings.
+// Returns string which is empty if valid, or an error message that describes what is
+// wrong with the settings.
 func (c *Container) validateVideoProviders() string {
 	if c.defaultVideoTranscoder == "" {
 		return ""
@@ -192,8 +190,8 @@ func (c *Container) validateVideoProviders() string {
 
 // validateLLMProviders checks that the LLM provider settings are correct.
 //
-// Returns string which is empty when valid, or an error message when the
-// default provider is not found among the registered providers.
+// Returns string which is empty when valid, or an error message when the default provider
+// is not found among the registered providers.
 func (c *Container) validateLLMProviders() string {
 	if c.llmDefaultProvider == "" {
 		return ""
@@ -212,8 +210,8 @@ func (c *Container) validateLLMProviders() string {
 //
 // Takes m (map[string]T) which is the map to get keys from.
 //
-// Returns string which contains the keys joined by commas, or "(none)" if
-// the map is empty.
+// Returns string which contains the keys joined by commas, or "(none)" if the map is
+// empty.
 func providerNames[T any](m map[string]T) string {
 	if len(m) == 0 {
 		return "(none)"

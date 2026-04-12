@@ -16,13 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package typegen_schema provides schema versioning for the LSP
-// Action Manifest FlatBuffers.
+// Package typegen_schema provides schema versioning for the LSP Action Manifest
+// FlatBuffers.
 //
-// It embeds the action_manifest.fbs schema file and computes a
-// SHA-256 hash at initialisation time. The [Pack], [PackInto],
-// and [Unpack] functions prefix serialised payloads with this
-// hash so that the cache is automatically invalidated when the
-// schema evolves. [Validate] performs a fast hash check without
-// extracting the payload.
+// It embeds the action_manifest.fbs schema file and computes a SHA-256 hash at
+// initialisation time. The [Pack], [PackInto], and [Unpack] functions prefix serialised
+// payloads with this hash so that the cache is automatically invalidated when the schema
+// evolves. [Validate] performs a fast hash check without extracting the payload.
 package typegen_schema

@@ -73,7 +73,9 @@ func (m *configurableCSRFService) ValidateCSRFPair(
 	return m.validateResult, m.validateErr
 }
 
-var _ security_domain.CSRFTokenService = (*configurableCSRFService)(nil)
+var (
+	_ security_domain.CSRFTokenService = (*configurableCSRFService)(nil)
+)
 
 func TestNewActionHandler(t *testing.T) {
 	t.Run("creates handler with empty registry", func(t *testing.T) {
@@ -1967,7 +1969,9 @@ func (*mockCaptchaService) HealthCheck(_ context.Context) error { return nil }
 
 func (*mockCaptchaService) Close(_ context.Context) error { return nil }
 
-var _ captcha_domain.CaptchaServicePort = (*mockCaptchaService)(nil)
+var (
+	_ captcha_domain.CaptchaServicePort = (*mockCaptchaService)(nil)
+)
 
 type mockCaptchaAction struct{}
 

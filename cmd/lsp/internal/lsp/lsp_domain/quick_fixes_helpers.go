@@ -74,8 +74,8 @@ func formatGoAST(fset *token.FileSet, node ast.Node) (string, error) {
 	return buffer.String(), nil
 }
 
-// safeExtractData extracts and converts diagnostic data to a typed struct.
-// This prevents runtime panics when accessing diagnostic data fields.
+// safeExtractData extracts and converts diagnostic data to a typed struct. This prevents
+// runtime panics when accessing diagnostic data fields.
 //
 // Takes data (any) which is the raw diagnostic data to extract from.
 //
@@ -133,8 +133,8 @@ func extractTypeMismatchData(dataMap map[string]any, r *typeMismatchData) {
 	}
 }
 
-// extractUndefinedVariableData reads undefined variable data from a map and
-// stores the values in the result struct.
+// extractUndefinedVariableData reads undefined variable data from a map and stores the
+// values in the result struct.
 //
 // Takes dataMap (map[string]any) which holds the raw data from a diagnostic.
 // Takes r (*undefinedVariableData) which receives the extracted values.
@@ -153,8 +153,8 @@ func extractUndefinedVariableData(dataMap map[string]any, r *undefinedVariableDa
 	}
 }
 
-// extractUndefinedPartialAliasData reads undefined partial alias data from a
-// map and stores the values in the given result struct.
+// extractUndefinedPartialAliasData reads undefined partial alias data from a map and
+// stores the values in the given result struct.
 //
 // Takes dataMap (map[string]any) which contains the raw data to read from.
 // Takes r (*undefinedPartialAliasData) which receives the extracted values.
@@ -170,8 +170,8 @@ func extractUndefinedPartialAliasData(dataMap map[string]any, r *undefinedPartia
 	}
 }
 
-// extractMissingRequiredPropData reads values from a map and stores them in
-// the given struct.
+// extractMissingRequiredPropData reads values from a map and stores them in the given
+// struct.
 //
 // Takes dataMap (map[string]any) which contains the raw diagnostic data.
 // Takes r (*missingRequiredPropData) which receives the extracted values.
@@ -200,16 +200,15 @@ func extractMissingImportData(dataMap map[string]any, r *missingImportData) {
 	}
 }
 
-// readFileContent reads a file using the workspace's document cache.
-// This reads the in-memory editor version rather than the
-// on-disk version.
+// readFileContent reads a file using the workspace's document cache. This reads the
+// in-memory editor version rather than the on-disk version.
 //
 // Takes ws (*workspace) which provides access to the document cache.
 // Takes uri (protocol.DocumentURI) which identifies the file to read.
 //
 // Returns []byte which contains the file content from the cache.
-// Returns error when the workspace or cache is nil, or the file is not
-// found in the cache.
+// Returns error when the workspace or cache is nil, or the file is not found in the
+// cache.
 func readFileContent(ws *workspace, uri protocol.DocumentURI) ([]byte, error) {
 	if ws == nil || ws.docCache == nil {
 		return nil, errors.New("workspace or docCache is nil")
@@ -242,15 +241,15 @@ func createSimpleTextEdit(startLine, startChar, endLine, endChar uint32, newText
 	}
 }
 
-// createTypoCorrectionAction creates a quick fix action that suggests a
-// corrected spelling for a misspelled identifier.
+// createTypoCorrectionAction creates a quick fix action that suggests a corrected
+// spelling for a misspelled identifier.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to modify.
 // Takes diagnostic (protocol.Diagnostic) which provides the error location.
 // Takes suggestion (string) which is the correct spelling to suggest.
 //
-// Returns protocol.CodeAction which replaces the misspelled identifier with
-// the suggested correction.
+// Returns protocol.CodeAction which replaces the misspelled identifier with the suggested
+// correction.
 func createTypoCorrectionAction(uri protocol.DocumentURI, diagnostic protocol.Diagnostic, suggestion string) protocol.CodeAction {
 	edit := protocol.WorkspaceEdit{
 		Changes: map[protocol.DocumentURI][]protocol.TextEdit{
@@ -275,16 +274,15 @@ func createTypoCorrectionAction(uri protocol.DocumentURI, diagnostic protocol.Di
 	}
 }
 
-// buildScriptBlockEdit creates a WorkspaceEdit that replaces a script block's
-// content. This is used by quick fixes that modify the Go script within an SFC
-// file.
+// buildScriptBlockEdit creates a WorkspaceEdit that replaces a script block's content.
+// This is used by quick fixes that modify the Go script within an SFC file.
 //
 // Takes targetURI (protocol.DocumentURI) which identifies the file to edit.
 // Takes goScript (*sfcparser.Script) which provides the script block location.
 // Takes newContent (string) which is the replacement content for the block.
 //
-// Returns protocol.WorkspaceEdit which contains the text edit for the script
-// block replacement.
+// Returns protocol.WorkspaceEdit which contains the text edit for the script block
+// replacement.
 func buildScriptBlockEdit(targetURI protocol.DocumentURI, goScript *sfcparser.Script, newContent string) protocol.WorkspaceEdit {
 	scriptRange := calculateScriptBlockRange(goScript)
 
@@ -300,14 +298,13 @@ func buildScriptBlockEdit(targetURI protocol.DocumentURI, goScript *sfcparser.Sc
 	}
 }
 
-// calculateScriptBlockRange calculates the LSP range for a script block's
+// calculateScriptBlockRange calculates the LSP range for a script block's content.
+//
+// Takes goScript (*sfcparser.Script) which contains the parsed script block with its
+// content and location information.
+//
+// Returns protocol.Range which spans from the script's start position to the end of its
 // content.
-//
-// Takes goScript (*sfcparser.Script) which contains the parsed script block
-// with its content and location information.
-//
-// Returns protocol.Range which spans from the script's start position to the
-// end of its content.
 func calculateScriptBlockRange(goScript *sfcparser.Script) protocol.Range {
 	scriptStartLine := safeconv.IntToUint32(goScript.ContentLocation.Line - 1)
 	scriptStartChar := safeconv.IntToUint32(goScript.ContentLocation.Column - 1)

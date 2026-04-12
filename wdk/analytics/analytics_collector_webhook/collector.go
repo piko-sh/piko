@@ -26,41 +26,39 @@ import (
 // Option configures a webhook collector.
 type Option = analytics_adapters.WebhookOption
 
-// NewCollector creates an analytics collector that batches events
-// and POSTs them as JSON to the given URL.
+// NewCollector creates an analytics collector that batches events and POSTs them as JSON
+// to the given URL.
 //
 // Takes url (string) which is the webhook endpoint.
 // Takes opts (...Option) which configure the collector.
 //
 // Returns analytics.Collector which posts JSON batches to the URL.
-// Returns error when the URL is empty or the batcher cannot be
-// created.
+// Returns error when the URL is empty or the batcher cannot be created.
 func NewCollector(url string, opts ...Option) (analytics.Collector, error) {
 	return analytics_adapters.NewWebhookCollector(url, opts...)
 }
 
-// WithHeaders sets custom HTTP headers sent with each batch POST
-// (e.g. Authorization).
-var WithHeaders = analytics_adapters.WithWebhookHeaders
+var (
+	// WithHeaders sets custom HTTP headers sent with each batch POST (e.g. Authorization).
+	WithHeaders = analytics_adapters.WithWebhookHeaders
 
-// WithBatchSize sets the maximum number of events per batch.
-// Defaults to 10.
-var WithBatchSize = analytics_adapters.WithWebhookBatchSize
+	// WithBatchSize sets the maximum number of events per batch. Defaults to 10.
+	WithBatchSize = analytics_adapters.WithWebhookBatchSize
 
-// WithFlushInterval sets the time between automatic batch flushes.
-// Defaults to 5 seconds.
-var WithFlushInterval = analytics_adapters.WithWebhookFlushInterval
+	// WithFlushInterval sets the time between automatic batch flushes. Defaults to 5
+	// seconds.
+	WithFlushInterval = analytics_adapters.WithWebhookFlushInterval
 
-// WithTimeout sets the HTTP client timeout for batch POSTs.
-// Defaults to 10 seconds.
-var WithTimeout = analytics_adapters.WithWebhookTimeout
+	// WithTimeout sets the HTTP client timeout for batch POSTs. Defaults to 10 seconds.
+	WithTimeout = analytics_adapters.WithWebhookTimeout
 
-// WithRetry enables retry with exponential backoff for failed batch
-// sends. Only retryable errors (network failures, 5xx) are retried;
-// permanent errors fail immediately.
-var WithRetry = analytics_adapters.WithWebhookRetry
+	// WithRetry enables retry with exponential backoff for failed batch sends. Only
+	// retryable errors (network failures, 5xx) are retried; permanent errors fail
+	// immediately.
+	WithRetry = analytics_adapters.WithWebhookRetry
 
-// WithCircuitBreaker enables a circuit breaker that stops sending
-// batches after consecutive failures. The circuit reopens after the
-// timeout expires and a probe request succeeds.
-var WithCircuitBreaker = analytics_adapters.WithWebhookCircuitBreaker
+	// WithCircuitBreaker enables a circuit breaker that stops sending batches after
+	// consecutive failures. The circuit reopens after the timeout expires and a probe
+	// request succeeds.
+	WithCircuitBreaker = analytics_adapters.WithWebhookCircuitBreaker
+)

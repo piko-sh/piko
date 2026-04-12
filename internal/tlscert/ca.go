@@ -25,13 +25,13 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// LoadClientCAs reads a PEM file from the provided sandbox and creates an
-// x509.CertPool for client certificate verification.
+// LoadClientCAs reads a PEM file from the provided sandbox and creates an x509.CertPool
+// for client certificate verification.
 //
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed file access to
-// the directory containing the CA file.
-// Takes filename (string) which is the name of the PEM-encoded CA bundle
-// within the sandbox.
+// Takes sandbox (safedisk.Sandbox) which provides sandboxed file access to the directory
+// containing the CA file.
+// Takes filename (string) which is the name of the PEM-encoded CA bundle within the
+// sandbox.
 //
 // Returns *x509.CertPool which contains the parsed CA certificates.
 // Returns error when the file cannot be read or contains no valid certificates.

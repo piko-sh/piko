@@ -19,12 +19,12 @@
 package pdfwriter_domain
 
 // Manages image XObject resources for PDF rendering. Follows the same
-// register-track-write lifecycle as FontEmbedder: images are registered
-// during painting, then written as PDF objects at the end.
+// register-track-write lifecycle as FontEmbedder: images are registered during painting,
+// then written as PDF objects at the end.
 //
-// JPEG images are embedded using DCTDecode (raw passthrough, no re-encoding).
-// PNG images are decoded to raw RGB pixels, compressed with FlateDecode,
-// and if an alpha channel is present, a separate SMask XObject is written.
+// JPEG images are embedded using DCTDecode (raw passthrough, no re-encoding). PNG images
+// are decoded to raw RGB pixels, compressed with FlateDecode, and if an alpha channel is
+// present, a separate SMask XObject is written.
 
 import (
 	"bytes"
@@ -44,10 +44,9 @@ const (
 	// maxAlpha holds the maximum alpha channel value for a fully opaque pixel.
 	maxAlpha = 255
 
-	// maxImagePixels caps the total pixel count (width * height) of a
-	// decoded image at one hundred million pixels (~10000 x 10000).
-	// Anything larger is treated as a denial-of-service attempt rather
-	// than a genuine document.
+	// maxImagePixels caps the total pixel count (width * height) of a decoded image at one
+	// hundred million pixels (~10000 x 10000). Anything larger is treated as a
+	// denial-of-service attempt rather than a genuine document.
 	maxImagePixels = 100_000_000
 
 	// jpegMarkerPrefix holds the byte that precedes every JPEG marker.
@@ -68,12 +67,12 @@ const (
 	// jpegJPGMarker holds the JPG extension marker byte, excluded from SOF detection.
 	jpegJPGMarker = 0xC8
 
-	// jpegDACMarker holds the Define Arithmetic Coding
-	// marker byte, excluded from SOF detection.
+	// jpegDACMarker holds the Define Arithmetic Coding marker byte, excluded from SOF
+	// detection.
 	jpegDACMarker = 0xCC
 
-	// jpegSOFDataOffset holds the byte offset within a
-	// SOF segment where dimension data begins.
+	// jpegSOFDataOffset holds the byte offset within a SOF segment where dimension data
+	// begins.
 	jpegSOFDataOffset = 7
 
 	// pngMinHeaderSize holds the minimum number of bytes required to read PNG dimensions.
@@ -95,11 +94,12 @@ const (
 	rgbChannelCount = 3
 )
 
-// ErrImageDimensionsTooLarge is returned when a decoded image exceeds
-// the configured pixel-area cap. The cap protects against malicious or
-// malformed images that would otherwise allocate gigabytes of pixel
-// buffer before any rendering work begins.
-var ErrImageDimensionsTooLarge = errors.New("image dimensions exceed maximum pixel area")
+var (
+	// ErrImageDimensionsTooLarge is returned when a decoded image exceeds the configured
+	// pixel-area cap. The cap protects against malicious or malformed images that would
+	// otherwise allocate gigabytes of pixel buffer before any rendering work begins.
+	ErrImageDimensionsTooLarge = errors.New("image dimensions exceed maximum pixel area")
+)
 
 // embeddedImageState holds the data for a single registered image.
 type embeddedImageState struct {
@@ -116,14 +116,14 @@ type embeddedImageState struct {
 	pixelHeight int
 }
 
-// ImageEmbedder tracks image XObjects needed for PDF rendering and
-// writes them as PDF objects.
+// ImageEmbedder tracks image XObjects needed for PDF rendering and writes them as PDF
+// objects.
 type ImageEmbedder struct {
 	// images maps resource names (Im1, Im2, ...) to their image data.
 	images map[string]*embeddedImageState
 
-	// sourceToName deduplicates registrations by mapping source paths
-	// to their existing resource names.
+	// sourceToName deduplicates registrations by mapping source paths to their existing
+	// resource names.
 	sourceToName map[string]string
 
 	// nextIndex is the counter for generating resource names.
@@ -140,11 +140,11 @@ func NewImageEmbedder() *ImageEmbedder {
 	}
 }
 
-// RegisterImage registers an image for embedding and returns its
-// resource name (e.g. "Im1").
+// RegisterImage registers an image for embedding and returns its resource name (e.g.
+// "Im1").
 //
-// If the same source has already been registered, the existing name is
-// returned without creating a duplicate entry.
+// If the same source has already been registered, the existing name is returned without
+// creating a duplicate entry.
 //
 // Takes source (string) which is the image source path for deduplication.
 // Takes data ([]byte) which is the raw image bytes.
@@ -177,14 +177,13 @@ func (e *ImageEmbedder) HasImages() bool {
 	return len(e.images) > 0
 }
 
-// WriteObjects writes all registered image XObjects as PDF objects
-// and returns the resource entries string for inclusion in the page
-// /Resources /XObject dictionary.
+// WriteObjects writes all registered image XObjects as PDF objects and returns the
+// resource entries string for inclusion in the page /Resources /XObject dictionary.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 //
-// Returns string with entries like " /Im1 5 0 R /Im2 6 0 R", and an
-// error if any PNG image fails to compress.
+// Returns string with entries like " /Im1 5 0 R /Im2 6 0 R", and an error if any PNG
+// image fails to compress.
 func (e *ImageEmbedder) WriteObjects(writer *PdfDocumentWriter) (string, error) {
 	sortedNames := make([]string, 0, len(e.images))
 	for name := range e.images {
@@ -210,8 +209,8 @@ func (e *ImageEmbedder) WriteObjects(writer *PdfDocumentWriter) (string, error) 
 	return entries.String(), nil
 }
 
-// writeJPEGXObject writes a JPEG image as an XObject with DCTDecode.
-// The raw JPEG bytes are passed through directly (no re-encoding).
+// writeJPEGXObject writes a JPEG image as an XObject with DCTDecode. The raw JPEG bytes
+// are passed through directly (no re-encoding).
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF object.
 // Takes state (*embeddedImageState) which holds the JPEG data and dimensions.
@@ -227,19 +226,16 @@ func (*ImageEmbedder) writeJPEGXObject(writer *PdfDocumentWriter, state *embedde
 	return objectNumber
 }
 
-// writePNGXObject decodes a PNG image, extracts raw RGB pixels,
-// compresses with zlib, and writes as an XObject with FlateDecode.
+// writePNGXObject decodes a PNG image, extracts raw RGB pixels, compresses with zlib, and
+// writes as an XObject with FlateDecode.
 //
-// If the PNG has an alpha channel, a separate SMask XObject is
-// written for transparency.
+// If the PNG has an alpha channel, a separate SMask XObject is written for transparency.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes state (*embeddedImageState) which holds the PNG data and dimensions.
 //
-// Returns int which is the object number of the written
-// XObject.
-// Returns error which is non-nil if zlib compression
-// fails.
+// Returns int which is the object number of the written XObject.
+// Returns error which is non-nil if zlib compression fails.
 func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embeddedImageState) (int, error) {
 	if state.pixelWidth > 0 && state.pixelHeight > 0 {
 		if int64(state.pixelWidth)*int64(state.pixelHeight) > maxImagePixels {
@@ -287,16 +283,14 @@ func (*ImageEmbedder) writePNGXObject(writer *PdfDocumentWriter, state *embedded
 	return objectNumber, nil
 }
 
-// extractPNGChannels walks every pixel in the image and emits the packed RGB
-// stream plus the alpha-mask stream. The hasAlpha flag is set when any pixel
-// is not fully opaque so callers can skip writing an SMask object.
+// extractPNGChannels walks every pixel in the image and emits the packed RGB stream plus
+// the alpha-mask stream. The hasAlpha flag is set when any pixel is not fully opaque so
+// callers can skip writing an SMask object.
 //
 // Takes img (image.Image) which is the decoded PNG image.
 // Takes bounds (image.Rectangle) which is the image's pixel bounds.
-// Takes width (int) which is the bounds.Dx() value, supplied to size the
-// preallocations.
-// Takes height (int) which is the bounds.Dy() value, supplied to size the
-// preallocations.
+// Takes width (int) which is the bounds.Dx() value, supplied to size the preallocations.
+// Takes height (int) which is the bounds.Dy() value, supplied to size the preallocations.
 //
 // Returns rgbPixels ([]byte) which holds the packed RGB pixel stream.
 // Returns alphaPixels ([]byte) which holds the alpha-channel stream.
@@ -320,10 +314,10 @@ func extractPNGChannels(img image.Image, bounds image.Rectangle, width, height i
 	return rgbPixels, alphaPixels, hasAlpha
 }
 
-// writePNGSMaskObject emits a soft-mask XObject when the image has any
-// translucent pixels, returning the dictionary fragment that should be spliced
-// into the parent Image dictionary so it references the SMask. When hasAlpha
-// is false, the returned reference is empty and no object is allocated.
+// writePNGSMaskObject emits a soft-mask XObject when the image has any translucent
+// pixels, returning the dictionary fragment that should be spliced into the parent Image
+// dictionary so it references the SMask. When hasAlpha is false, the returned reference
+// is empty and no object is allocated.
 //
 // Takes writer (*PdfDocumentWriter) which receives the SMask object.
 // Takes alphaPixels ([]byte) which holds the 8-bit alpha channel.
@@ -332,8 +326,7 @@ func extractPNGChannels(img image.Image, bounds image.Rectangle, width, height i
 // Takes hasAlpha (bool) which selects whether to emit an SMask at all.
 //
 // Returns string which is the " /SMask <ref>" fragment or an empty string.
-// Returns error which wraps the zlib failure when the alpha stream cannot be
-// compressed.
+// Returns error which wraps the zlib failure when the alpha stream cannot be compressed.
 func writePNGSMaskObject(writer *PdfDocumentWriter, alphaPixels []byte, width, height int, hasAlpha bool) (string, error) {
 	if !hasAlpha {
 		return "", nil
@@ -365,9 +358,8 @@ func writeAndCloseZlib(zw *zlib.Writer, data []byte) error {
 	return zw.Close()
 }
 
-// ExtractImageDimensions parses the dimensions from raw image data
-// without fully decoding the pixel data. For JPEG it reads the SOF
-// marker; for PNG it reads the IHDR chunk.
+// ExtractImageDimensions parses the dimensions from raw image data without fully decoding
+// the pixel data. For JPEG it reads the SOF marker; for PNG it reads the IHDR chunk.
 //
 // Takes data ([]byte) which is the raw image bytes.
 // Takes format (string) which is "jpeg" or "png".
@@ -384,13 +376,13 @@ func ExtractImageDimensions(data []byte, format string) (width, height int) {
 	}
 }
 
-// extractJPEGDimensions reads the SOF (Start of Frame) marker to
-// get image dimensions without decoding the full image.
+// extractJPEGDimensions reads the SOF (Start of Frame) marker to get image dimensions
+// without decoding the full image.
 //
 // Takes data ([]byte) which is the raw JPEG bytes.
 //
-// Returns (width, height int) in pixels, or (0, 0) if the data is
-// invalid or no SOF marker is found.
+// Returns (width, height int) in pixels, or (0, 0) if the data is invalid or no SOF
+// marker is found.
 func extractJPEGDimensions(data []byte) (width, height int) {
 	if len(data) < 2 || data[0] != jpegMarkerPrefix || data[1] != jpegSOIMarker {
 		return 0, 0
@@ -437,8 +429,8 @@ func extractJPEGDimensions(data []byte) (width, height int) {
 //
 // Takes data ([]byte) which is the raw PNG bytes.
 //
-// Returns (width, height int) in pixels, or (0, 0) if the data is
-// too short or the PNG signature is invalid.
+// Returns (width, height int) in pixels, or (0, 0) if the data is too short or the PNG
+// signature is invalid.
 func extractPNGDimensions(data []byte) (width, height int) {
 	if len(data) < pngMinHeaderSize {
 		return 0, 0

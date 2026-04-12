@@ -27,13 +27,12 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-// RequestDump captures the fully assembled state of a completion request after
-// RAG resolution and context injection but before the provider call. It
-// provides a structured, human-readable representation useful for debugging
-// and testing RAG pipelines.
+// RequestDump captures the fully assembled state of a completion request after RAG
+// resolution and context injection but before the provider call. It provides a
+// structured, human-readable representation useful for debugging and testing RAG
+// pipelines.
 //
-// Use [CompletionBuilder.DryRun] to obtain a RequestDump without executing the
-// completion.
+// Use CompletionBuilder.DryRun to obtain a RequestDump without executing the completion.
 type RequestDump struct {
 	// Timestamp is when the dump was captured.
 	Timestamp time.Time
@@ -53,25 +52,25 @@ type RequestDump struct {
 	// Messages is the full message list including injected RAG context.
 	Messages []llm_dto.Message
 
-	// Sources holds the raw vector search results used for RAG context.
-	// Empty when RAG was not configured or returned no results.
+	// Sources holds the raw vector search results used for RAG context. Empty when RAG was
+	// not configured or returned no results.
 	Sources []llm_dto.VectorSearchResult
 
 	// Tools lists the tool definitions registered on the builder.
 	Tools []llm_dto.ToolDefinition
 
-	// OriginalQuery is the base query text before rewriting. Empty when RAG
-	// is not configured or no query was available.
+	// OriginalQuery is the base query text before rewriting. Empty when RAG is not
+	// configured or no query was available.
 	OriginalQuery string
 
-	// RewrittenQueries holds the queries produced by the rewriter. Empty when
-	// no rewriter was configured or the rewriter returned no results.
+	// RewrittenQueries holds the queries produced by the rewriter. Empty when no rewriter
+	// was configured or the rewriter returned no results.
 	RewrittenQueries []string
 }
 
-// WriteTo writes a structured, human-readable representation of the request
-// to w. The format uses header lines and delimited sections, similar in spirit
-// to email .eml files but designed for LLM requests.
+// WriteTo writes a structured, human-readable representation of the request to w. The
+// format uses header lines and delimited sections, similar in spirit to email .eml files
+// but designed for LLM requests.
 //
 // Takes w (io.Writer) which receives the formatted output.
 //
@@ -114,8 +113,7 @@ func (d *RequestDump) writeHeaders(buffer *strings.Builder) {
 	_, _ = fmt.Fprintf(buffer, "Timestamp: %s\n", d.Timestamp.Format(time.RFC3339))
 }
 
-// writeQueryRewriting writes the query rewriting section when queries were
-// rewritten.
+// writeQueryRewriting writes the query rewriting section when queries were rewritten.
 //
 // Takes buffer (*strings.Builder) which receives the formatted output.
 func (d *RequestDump) writeQueryRewriting(buffer *strings.Builder) {
@@ -189,8 +187,8 @@ func (d *RequestDump) writeTools(buffer *strings.Builder) {
 	}
 }
 
-// metaString safely extracts a string value from a metadata map.
-// This is a package-level helper also used by the markdown splitter.
+// metaString safely extracts a string value from a metadata map. This is a package-level
+// helper also used by the markdown splitter.
 //
 // Takes meta (map[string]any) which is the metadata map to search.
 // Takes key (string) which is the key to look up.

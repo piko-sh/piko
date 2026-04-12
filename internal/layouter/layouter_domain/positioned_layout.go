@@ -22,29 +22,27 @@ import (
 	"context"
 )
 
-// layoutPositionedElements applies CSS absolute and fixed
-// positioning as a post-layout pass over the tree rooted at root.
+// layoutPositionedElements applies CSS absolute and fixed positioning as a post-layout
+// pass over the tree rooted at root.
 //
-// Takes ctx (context.Context) which carries deadlines and
-// cancellation signal through recursive layout.
+// Takes ctx (context.Context) which carries deadlines and cancellation signal through
+// recursive layout.
 // Takes root (*LayoutBox) which is the root of the layout tree.
-// Takes input (layoutInput) which carries font metrics and cache
-// from the parent context.
+// Takes input (layoutInput) which carries font metrics and cache from the parent context.
 func layoutPositionedElements(ctx context.Context, root *LayoutBox, input layoutInput) {
 	layoutPositionedSubtree(ctx, root, root, input)
 }
 
-// layoutPositionedSubtree recursively resolves positioned children
-// within the given subtree.
+// layoutPositionedSubtree recursively resolves positioned children within the given
+// subtree.
 //
 // Takes box (*LayoutBox) which is the current subtree root.
-// Takes root (*LayoutBox) which is the overall layout root used
-// as the containing block for fixed-position elements.
-// Takes input (layoutInput) which carries font metrics and cache
-// from the parent context.
+// Takes root (*LayoutBox) which is the overall layout root used as the containing block
+// for fixed-position elements.
+// Takes input (layoutInput) which carries font metrics and cache from the parent context.
 func layoutPositionedSubtree(ctx context.Context, box, root *LayoutBox, input layoutInput) {
 	for _, child := range box.Children {
-		switch child.Style.Position {
+		switch child.Style.Position { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case PositionAbsolute:
 			containingBlock := child.ContainingBlock
 			if containingBlock == nil {
@@ -63,8 +61,8 @@ func layoutPositionedSubtree(ctx context.Context, box, root *LayoutBox, input la
 	}
 }
 
-// dimensionFromOffsetsInput groups the parameters for resolving a
-// content dimension from explicit size or opposing offsets.
+// dimensionFromOffsetsInput groups the parameters for resolving a content dimension from
+// explicit size or opposing offsets.
 type dimensionFromOffsetsInput struct {
 	// style holds the element's computed style for box-sizing adjustment.
 	style *ComputedStyle
@@ -78,8 +76,8 @@ type dimensionFromOffsetsInput struct {
 	// endOffset holds the end-side offset (right or bottom).
 	endOffset Dimension
 
-	// current holds the fallback content size when neither explicit size
-	// nor opposing offsets are set.
+	// current holds the fallback content size when neither explicit size nor opposing
+	// offsets are set.
 	current float64
 
 	// containingSize holds the containing block size along this axis.
@@ -92,16 +90,15 @@ type dimensionFromOffsetsInput struct {
 	horizontal bool
 }
 
-// resolveDimensionFromOffsets computes the content size along a
-// single axis from explicit size or opposing offsets.
+// resolveDimensionFromOffsets computes the content size along a single axis from explicit
+// size or opposing offsets.
 //
-// When an explicit size is set, it is resolved and adjusted for
-// box-sizing. When both start and end offsets are set, the
-// content size is derived from the containing size minus offsets
-// and edges. Otherwise the fallback current value is returned.
+// When an explicit size is set, it is resolved and adjusted for box-sizing. When both
+// start and end offsets are set, the content size is derived from the containing size
+// minus offsets and edges. Otherwise the fallback current value is returned.
 //
-// Takes input (dimensionFromOffsetsInput) which holds all
-// parameters for the dimension resolution.
+// Takes input (dimensionFromOffsetsInput) which holds all parameters for the dimension
+// resolution.
 //
 // Returns float64 which is the resolved content size.
 func resolveDimensionFromOffsets(input dimensionFromOffsetsInput) float64 {
@@ -124,24 +121,18 @@ func resolveDimensionFromOffsets(input dimensionFromOffsetsInput) float64 {
 	return input.current
 }
 
-// resolvePositionFromOffset computes the content origin along a
-// single axis from the start offset, end offset, or the default
-// start-aligned position.
+// resolvePositionFromOffset computes the content origin along a single axis from the
+// start offset, end offset, or the default start-aligned position.
 //
-// Takes startOffset (Dimension) which is the start-side offset
-// (left or top).
-// Takes endOffset (Dimension) which is the end-side offset
-// (right or bottom).
-// Takes containingOrigin (float64) which is the containing
-// block origin along this axis.
-// Takes containingSize (float64) which is the containing
-// block size along this axis.
-// Takes contentSize (float64) which is the resolved content
-// size of the element.
-// Takes startEdges (float64) which is the total margin,
-// padding, and border on the start side.
-// Takes endEdges (float64) which is the total margin, padding,
-// and border on the end side.
+// Takes startOffset (Dimension) which is the start-side offset (left or top).
+// Takes endOffset (Dimension) which is the end-side offset (right or bottom).
+// Takes containingOrigin (float64) which is the containing block origin along this axis.
+// Takes containingSize (float64) which is the containing block size along this axis.
+// Takes contentSize (float64) which is the resolved content size of the element.
+// Takes startEdges (float64) which is the total margin, padding, and border on the start
+// side.
+// Takes endEdges (float64) which is the total margin, padding, and border on the end
+// side.
 //
 // Returns float64 which is the resolved content origin.
 func resolvePositionFromOffset(
@@ -163,8 +154,8 @@ func resolvePositionFromOffset(
 	return containingOrigin + startEdges
 }
 
-// positionedBoxContext holds the containing block geometry and
-// resolved edges needed during positioned box resolution.
+// positionedBoxContext holds the containing block geometry and resolved edges needed
+// during positioned box resolution.
 type positionedBoxContext struct {
 	// paddingBoxX holds the X origin of the containing block's padding box.
 	paddingBoxX float64
@@ -185,16 +176,12 @@ type positionedBoxContext struct {
 	margin BoxEdges
 }
 
-// resolvePositionedBox resolves the size and position of an
-// absolutely or fixed-positioned element against its containing
-// block.
+// resolvePositionedBox resolves the size and position of an absolutely or
+// fixed-positioned element against its containing block.
 //
-// Takes box (*LayoutBox) which is the positioned element to
-// resolve.
-// Takes containingBlock (*LayoutBox) which is the reference
-// block for offset resolution.
-// Takes input (layoutInput) which carries font metrics and cache
-// from the parent context.
+// Takes box (*LayoutBox) which is the positioned element to resolve.
+// Takes containingBlock (*LayoutBox) which is the reference block for offset resolution.
+// Takes input (layoutInput) which carries font metrics and cache from the parent context.
 func resolvePositionedBox(ctx context.Context, box *LayoutBox, containingBlock *LayoutBox, input layoutInput) {
 	positionedContext := buildPositionedBoxContext(box, containingBlock)
 
@@ -227,18 +214,18 @@ func resolvePositionedBox(ctx context.Context, box *LayoutBox, containingBlock *
 	buildPositionedFragment(box, containingBlock, &positionedContext, childResult, contentWidth, contentHeight)
 }
 
-// layoutPositionedChildren lays out the children of a positioned box
-// using either inline or block formatting.
+// layoutPositionedChildren lays out the children of a positioned box using either inline
+// or block formatting.
 //
 // Takes box (*LayoutBox) which is the positioned element.
 // Takes input (layoutInput) which carries available width and font metrics.
-// Takes positionedContext (*positionedBoxContext) which holds the
-// containing block geometry.
+// Takes positionedContext (*positionedBoxContext) which holds the containing block
+// geometry.
 //
-// Returns *formattingContextResult which holds the child layout result,
-// or nil when the box has no children.
-// Returns float64 which is the content height from children, or -1
-// when the box has no children.
+// Returns *formattingContextResult which holds the child layout result, or nil when the
+// box has no children.
+// Returns float64 which is the content height from children, or -1 when the box has no
+// children.
 func layoutPositionedChildren(
 	ctx context.Context,
 	box *LayoutBox,
@@ -258,14 +245,13 @@ func layoutPositionedChildren(
 	return nil, -1
 }
 
-// buildPositionedFragment constructs the final fragment for a
-// positioned box and writes it into the box tree.
+// buildPositionedFragment constructs the final fragment for a positioned box and writes
+// it into the box tree.
 //
 // Takes box (*LayoutBox) which is the positioned element.
 // Takes containingBlock (*LayoutBox) which is the reference block.
 // Takes ctx (*positionedBoxContext) which holds the containing block geometry.
-// Takes childResult (*formattingContextResult) which holds the child
-// layout output.
+// Takes childResult (*formattingContextResult) which holds the child layout output.
 // Takes contentWidth (float64) which is the resolved content width.
 // Takes contentHeight (float64) which is the resolved content height.
 func buildPositionedFragment(
@@ -308,8 +294,8 @@ func buildPositionedFragment(
 	writeFragmentsToBoxTree(fragment, containingBlock.ContentX, containingBlock.ContentY)
 }
 
-// buildPositionedBoxContext computes the containing block geometry,
-// resolved edges, and margins for a positioned box.
+// buildPositionedBoxContext computes the containing block geometry, resolved edges, and
+// margins for a positioned box.
 //
 // Takes box (*LayoutBox) which is the positioned element.
 // Takes containingBlock (*LayoutBox) which is the reference block.
@@ -334,8 +320,8 @@ func buildPositionedBoxContext(box, containingBlock *LayoutBox) positionedBoxCon
 	}
 }
 
-// resolvePositionedHorizontal resolves the content width of a
-// positioned box from explicit width or opposing left/right offsets.
+// resolvePositionedHorizontal resolves the content width of a positioned box from
+// explicit width or opposing left/right offsets.
 //
 // Takes box (*LayoutBox) which is the positioned element.
 // Takes ctx (*positionedBoxContext) which holds the containing block geometry.
@@ -354,8 +340,8 @@ func resolvePositionedHorizontal(box *LayoutBox, ctx *positionedBoxContext) floa
 	})
 }
 
-// resolvePositionedVertical resolves the content height of a
-// positioned box from explicit height or opposing top/bottom offsets.
+// resolvePositionedVertical resolves the content height of a positioned box from explicit
+// height or opposing top/bottom offsets.
 //
 // Takes box (*LayoutBox) which is the positioned element.
 // Takes ctx (*positionedBoxContext) which holds the containing block geometry.

@@ -16,12 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package i18n provides public access to the i18n FlatBuffer schema
-// for inspecting compiled i18n.bin files.
+// Package i18n provides public access to the i18n FlatBuffer schema for inspecting
+// compiled i18n.bin files.
 //
-// It exposes the schema hash, an [Unpack] function to strip the
-// version header, and [ConvertI18n] to decode the raw FlatBuffer
-// payload into a JSON-serialisable [I18nManifest] struct. The
-// manifest contains per-locale translation data including pre-parsed
-// template parts, plural forms, and placeholder names.
+// It exposes the schema hash, an [Unpack] function to strip the version header, and
+// [ConvertI18n] to decode the raw FlatBuffer payload into a JSON-serialisable
+// [I18nManifest] struct. The manifest contains per-locale translation data including
+// pre-parsed template parts, plural forms, and substitution-marker names.
 package i18n

@@ -22,36 +22,41 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this provider.
-const Language = "german"
+const (
 
-// stopWords contains common German stop words.
-var stopWords = map[string]bool{
-	"der": true, "die": true, "das": true, "den": true, "dem": true, "des": true,
-	"ein": true, "eine": true, "einer": true, "einem": true, "einen": true, "eines": true,
-	"ich": true, "du": true, "er": true, "sie": true, "es": true, "wir": true, "ihr": true,
-	"mich": true, "dich": true, "ihn": true, "uns": true, "euch": true, "ihnen": true,
-	"mir": true, "dir": true, "ihm": true,
-	"mein": true, "dein": true, "sein": true, "unser": true, "euer": true,
-	"meine": true, "deine": true, "seine": true, "ihre": true, "unsere": true, "eure": true,
-	"in": true, "an": true, "auf": true, "aus": true, "bei": true, "mit": true, "nach": true, "von": true, "zu": true, "um": true, "für": true, "über": true, "unter": true,
-	"vor": true, "hinter": true, "neben": true, "zwischen": true, "durch": true, "gegen": true, "ohne": true,
-	"und": true, "oder": true, "aber": true, "denn": true, "weil": true, "dass": true, "ob": true, "wenn": true, "als": true, "wie": true,
-	"ist": true, "sind": true, "war": true, "waren": true, "bin": true, "bist": true, "seid": true, "gewesen": true,
-	"hat": true, "haben": true, "hatte": true, "hatten": true, "habe": true, "hast": true, "habt": true,
-	"wird": true, "werden": true, "wurde": true, "wurden": true, "werde": true, "wirst": true, "werdet": true,
-	"kann": true, "können": true, "konnte": true, "konnten": true,
-	"muss": true, "müssen": true, "musste": true, "mussten": true,
-	"soll": true, "sollen": true, "sollte": true, "sollten": true,
-	"will": true, "wollen": true, "wollte": true, "wollten": true,
-	"dieser": true, "diese": true, "dieses": true, "jener": true, "jene": true, "jenes": true,
-	"nicht": true, "kein": true, "keine": true, "auch": true, "noch": true, "schon": true, "nur": true, "sehr": true, "mehr": true,
-	"hier": true, "dort": true, "da": true, "wo": true, "was": true, "wer": true, "wann": true, "warum": true,
-	"so": true, "dann": true, "doch": true, "also": true, "nun": true, "jetzt": true, "immer": true, "wieder": true,
-}
+	// Language is the language code for this provider.
+	Language = "german"
+)
 
-// Provider supplies German stop words for text analysis.
-// It implements the linguistics_domain.StopWordsProviderPort interface.
+var (
+	// stopWords contains common German stop words.
+	stopWords = map[string]bool{
+		"der": true, "die": true, "das": true, "den": true, "dem": true, "des": true,
+		"ein": true, "eine": true, "einer": true, "einem": true, "einen": true, "eines": true,
+		"ich": true, "du": true, "er": true, "sie": true, "es": true, "wir": true, "ihr": true,
+		"mich": true, "dich": true, "ihn": true, "uns": true, "euch": true, "ihnen": true,
+		"mir": true, "dir": true, "ihm": true,
+		"mein": true, "dein": true, "sein": true, "unser": true, "euer": true,
+		"meine": true, "deine": true, "seine": true, "ihre": true, "unsere": true, "eure": true,
+		"in": true, "an": true, "auf": true, "aus": true, "bei": true, "mit": true, "nach": true, "von": true, "zu": true, "um": true, "für": true, "über": true, "unter": true,
+		"vor": true, "hinter": true, "neben": true, "zwischen": true, "durch": true, "gegen": true, "ohne": true,
+		"und": true, "oder": true, "aber": true, "denn": true, "weil": true, "dass": true, "ob": true, "wenn": true, "als": true, "wie": true,
+		"ist": true, "sind": true, "war": true, "waren": true, "bin": true, "bist": true, "seid": true, "gewesen": true,
+		"hat": true, "haben": true, "hatte": true, "hatten": true, "habe": true, "hast": true, "habt": true,
+		"wird": true, "werden": true, "wurde": true, "wurden": true, "werde": true, "wirst": true, "werdet": true,
+		"kann": true, "können": true, "konnte": true, "konnten": true,
+		"muss": true, "müssen": true, "musste": true, "mussten": true,
+		"soll": true, "sollen": true, "sollte": true, "sollten": true,
+		"will": true, "wollen": true, "wollte": true, "wollten": true,
+		"dieser": true, "diese": true, "dieses": true, "jener": true, "jene": true, "jenes": true,
+		"nicht": true, "kein": true, "keine": true, "auch": true, "noch": true, "schon": true, "nur": true, "sehr": true, "mehr": true,
+		"hier": true, "dort": true, "da": true, "wo": true, "was": true, "wer": true, "wann": true, "warum": true,
+		"so": true, "dann": true, "doch": true, "also": true, "nun": true, "jetzt": true, "immer": true, "wieder": true,
+	}
+)
+
+// Provider supplies German stop words for text analysis. It implements the
+// linguistics_domain.StopWordsProviderPort interface.
 type Provider struct{}
 
 // GetStopWords returns the German stop words.
@@ -70,13 +75,15 @@ func (*Provider) SupportedLanguages() []string {
 	return []string{Language}
 }
 
-var _ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+var (
+	_ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+)
 
 // Factory creates a new German stop words provider instance. Use this with
 // linguistics_domain.RegisterStopWordsProviderFactory for explicit registration.
 //
-// Returns linguistics_domain.StopWordsProviderPort which provides German stop
-// words filtering.
+// Returns linguistics_domain.StopWordsProviderPort which provides German stop words
+// filtering.
 // Returns error when the provider cannot be created.
 func Factory() (linguistics_domain.StopWordsProviderPort, error) {
 	return New()

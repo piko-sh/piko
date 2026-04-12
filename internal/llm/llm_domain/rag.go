@@ -20,13 +20,14 @@ package llm_domain
 
 import (
 	"context"
+	"slices"
 
 	"piko.sh/piko/internal/llm/llm_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// ragConfig holds the configuration for automatic RAG context injection.
-// It is stored on the builder and resolved lazily during Do().
+// ragConfig holds the configuration for automatic RAG context injection. It is stored on
+// the builder and resolved lazily during Do().
 type ragConfig struct {
 	// filter specifies metadata criteria that documents must match.
 	filter map[string]any
@@ -34,20 +35,19 @@ type ragConfig struct {
 	// minScore filters out results below this similarity threshold.
 	minScore *float32
 
-	// rewriter transforms the query before embedding; nil uses the query as-is.
-	// Multiple returned queries trigger multi-query expansion with deduplication.
+	// rewriter transforms the query before embedding; nil uses the query as-is. Multiple
+	// returned queries trigger multi-query expansion with deduplication.
 	rewriter QueryRewriterFunc
 
-	// query is the explicit query text for embedding. If empty, the last user
-	// message content is used.
+	// query is the explicit query text for embedding. If empty, the last user message
+	// content is used.
 	query string
 
-	// embeddingProvider is the name of the embedding provider to use. If empty,
-	// the default embedding provider is used.
+	// embeddingProvider is the name of the embedding provider to use. If empty, the default
+	// embedding provider is used.
 	embeddingProvider string
 
-	// embeddingModel is the model to use for embedding. If empty, the default
-	// model is used.
+	// embeddingModel is the model to use for embedding. If empty, the default model is used.
 	embeddingModel string
 
 	// namespace is the vector store namespace to search.
@@ -56,24 +56,23 @@ type ragConfig struct {
 	// topK is the maximum number of results to return.
 	topK int
 
-	// enableHybridSearch enables combined vector + text search. When true, the
-	// query text is passed to the vector store alongside the embedding vector,
-	// enabling Reciprocal Rank Fusion of semantic and lexical results.
+	// enableHybridSearch enables combined vector + text search. When true, the query text is
+	// passed to the vector store alongside the embedding vector, enabling Reciprocal Rank
+	// Fusion of semantic and lexical results.
 	enableHybridSearch bool
 }
 
 // RAGOption is a functional option for configuring automatic RAG behaviour.
 type RAGOption func(*ragConfig)
 
-// RAG enables automatic retrieval-augmented generation for this request.
-// During Do(), the builder will embed the query text, search the vector store
-// in the given namespace, and inject the results as context.
+// RAG enables automatic retrieval-augmented generation for this request. During Do(), the
+// builder will embed the query text, search the vector store in the given namespace, and
+// inject the results as context.
 //
 // Takes namespace (string) which is the vector store namespace to search.
 // Takes topK (int) which is the maximum number of documents to retrieve.
 // Takes opts (...RAGOption) which are optional functional options for advanced
-// configuration such as [WithRAGQueryRewriter], [WithRAGMinScore], or
-// [WithRAGFilter].
+// configuration such as WithRAGQueryRewriter, WithRAGMinScore, or WithRAGFilter.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) RAG(namespace string, topK int, opts ...RAGOption) *CompletionBuilder {
@@ -87,17 +86,17 @@ func (b *CompletionBuilder) RAG(namespace string, topK int, opts ...RAGOption) *
 	return b
 }
 
-// resolveRAGContext performs the embed-and-search workflow when RAG is
-// configured. It stores the results on b.vectorContext so that the existing
-// injectVectorContext method formats and prepends them.
+// resolveRAGContext performs the embed-and-search workflow when RAG is configured. It
+// stores the results on b.vectorContext so that the existing injectVectorContext method
+// formats and prepends them.
 //
-// When a query rewriter is configured, the original query is rewritten (or
-// expanded into multiple queries) before embedding. Multi-query results are
-// deduplicated by document ID, keeping the highest score.
+// When a query rewriter is configured, the original query is rewritten (or expanded into
+// multiple queries) before embedding. Multi-query results are deduplicated by document
+// ID, keeping the highest score.
 //
-// Degrades gracefully: if any step fails (no query text, no embedding service, no
-// vector store, embedding error, rewriter error, no results), a debug log is emitted
-// and the completion proceeds without RAG context.
+// Degrades gracefully: if any step fails (no query text, no embedding service, no vector
+// store, embedding error, rewriter error, no results), a debug log is emitted and the
+// completion proceeds without RAG context.
 func (b *CompletionBuilder) resolveRAGContext(ctx context.Context) {
 	if b.ragConfig == nil || b.ragResolved {
 		return
@@ -131,8 +130,8 @@ func (b *CompletionBuilder) resolveRAGContext(ctx context.Context) {
 	b.resolveMultiQueryRAG(ctx, queries, embResp)
 }
 
-// resolveRAGQueries applies the query rewriter if configured and returns the
-// list of queries to embed.
+// resolveRAGQueries applies the query rewriter if configured and returns the list of
+// queries to embed.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes query (string) which is the original query text.
@@ -159,8 +158,8 @@ func (b *CompletionBuilder) resolveRAGQueries(ctx context.Context, query string)
 	return queries
 }
 
-// embedRAGQueries embeds the queries and validates the prerequisites. Returns
-// false when RAG should be skipped.
+// embedRAGQueries embeds the queries and validates the prerequisites. Returns false when
+// RAG should be skipped.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes queries ([]string) which contains the queries to embed.
@@ -195,8 +194,8 @@ func (b *CompletionBuilder) embedRAGQueries(ctx context.Context, queries []strin
 	return embResp, true
 }
 
-// resolveSingleQueryRAG performs vector search for a single query and stores
-// results on the builder.
+// resolveSingleQueryRAG performs vector search for a single query and stores results on
+// the builder.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes query (string) which is the query text.
@@ -233,8 +232,8 @@ func (b *CompletionBuilder) resolveSingleQueryRAG(ctx context.Context, query str
 	b.vectorContext = searchResp.Results
 }
 
-// resolveMultiQueryRAG performs vector search for each expanded query,
-// deduplicates results, and stores them on the builder.
+// resolveMultiQueryRAG performs vector search for each expanded query, deduplicates
+// results, and stores them on the builder.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes queries ([]string) which contains the expanded queries.
@@ -282,22 +281,20 @@ func (b *CompletionBuilder) resolveMultiQueryRAG(ctx context.Context, queries []
 	b.vectorContext = mergeSearchResults(resultSets, b.ragConfig.topK)
 }
 
-// lastUserMessageContent returns the content of the last user message in the
-// request.
+// lastUserMessageContent returns the content of the last user message in the request.
 //
-// Returns string which is the message content, or empty if there are no user
-// messages.
+// Returns string which is the message content, or empty if there are no user messages.
 func (b *CompletionBuilder) lastUserMessageContent() string {
-	for i := len(b.request.Messages) - 1; i >= 0; i-- {
-		if b.request.Messages[i].Role == llm_dto.RoleUser {
-			return b.request.Messages[i].Content
+	for _, message := range slices.Backward(b.request.Messages) {
+		if message.Role == llm_dto.RoleUser {
+			return message.Content
 		}
 	}
 	return ""
 }
 
-// WithRAGQuery sets an explicit query string for the embedding lookup. If not
-// set, the content of the last user message is used.
+// WithRAGQuery sets an explicit query string for the embedding lookup. If not set, the
+// content of the last user message is used.
 //
 // Takes query (string) which is the query text to embed.
 //
@@ -308,8 +305,8 @@ func WithRAGQuery(query string) RAGOption {
 	}
 }
 
-// WithRAGMinScore sets a minimum similarity score threshold. Results below
-// this score are excluded.
+// WithRAGMinScore sets a minimum similarity score threshold. Results below this score are
+// excluded.
 //
 // Takes score (float32) which is the minimum similarity score.
 //
@@ -320,8 +317,8 @@ func WithRAGMinScore(score float32) RAGOption {
 	}
 }
 
-// WithRAGFilter sets metadata filter criteria for the vector search. Only
-// documents matching the filter are returned.
+// WithRAGFilter sets metadata filter criteria for the vector search. Only documents
+// matching the filter are returned.
 //
 // Takes filter (map[string]any) which specifies metadata criteria.
 //
@@ -332,8 +329,8 @@ func WithRAGFilter(filter map[string]any) RAGOption {
 	}
 }
 
-// WithRAGEmbeddingProvider sets the embedding provider to use for the RAG
-// query. If not set, the default embedding provider is used.
+// WithRAGEmbeddingProvider sets the embedding provider to use for the RAG query. If not
+// set, the default embedding provider is used.
 //
 // Takes provider (string) which identifies the embedding provider.
 //
@@ -344,8 +341,8 @@ func WithRAGEmbeddingProvider(provider string) RAGOption {
 	}
 }
 
-// WithRAGEmbeddingModel sets the embedding model to use for the RAG query.
-// If not set, the default embedding model is used.
+// WithRAGEmbeddingModel sets the embedding model to use for the RAG query. If not set,
+// the default embedding model is used.
 //
 // Takes model (string) which identifies the embedding model.
 //
@@ -356,11 +353,10 @@ func WithRAGEmbeddingModel(model string) RAGOption {
 	}
 }
 
-// WithRAGQueryRewriter sets a query rewriter function for the RAG
-// pipeline, passing the original query through the rewriter before
-// embedding and, when multiple queries are returned, embedding and
-// searching each independently with results deduplicated by document
-// ID (highest score wins) and sorted by score.
+// WithRAGQueryRewriter sets a query rewriter function for the RAG pipeline, passing the
+// original query through the rewriter before embedding and, when multiple queries are
+// returned, embedding and searching each independently with results deduplicated by
+// document ID (highest score wins) and sorted by score.
 //
 // Takes rewriter (QueryRewriterFunc) which transforms the query.
 //
@@ -371,15 +367,15 @@ func WithRAGQueryRewriter(rewriter QueryRewriterFunc) RAGOption {
 	}
 }
 
-// WithRAGHybridSearch enables combined vector and text search for RAG
-// retrieval. When enabled, the query text is passed to the vector store
-// alongside the embedding vector, allowing the store to combine semantic
-// similarity with lexical text matching using Reciprocal Rank Fusion (RRF).
+// WithRAGHybridSearch enables combined vector and text search for RAG retrieval. When
+// enabled, the query text is passed to the vector store alongside the embedding vector,
+// allowing the store to combine semantic similarity with lexical text matching using
+// Reciprocal Rank Fusion (RRF).
 //
-// This requires the underlying vector store's cache to have TEXT fields
-// configured in its search schema, typically for the document Content field.
-// Use [cache_linguistics.NewTextAnalyser] to configure linguistic text
-// analysis on the cache schema.
+// This requires the underlying vector store's cache to have TEXT fields configured in its
+// search schema, typically for the document Content field. Use
+// [cache_linguistics.NewTextAnalyser] to configure linguistic text analysis on the cache
+// schema.
 //
 // Returns RAGOption which enables hybrid search on the RAG configuration.
 func WithRAGHybridSearch() RAGOption {

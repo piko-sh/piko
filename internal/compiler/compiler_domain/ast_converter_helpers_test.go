@@ -941,16 +941,35 @@ func TestConvertBinaryOp(t *testing.T) {
 		{name: "strict eq", op: js_ast.BinOpStrictEq, expected: parsejs.EqEqEqToken},
 		{name: "in", op: js_ast.BinOpIn, expected: parsejs.InToken},
 		{name: "instanceof", op: js_ast.BinOpInstanceof, expected: parsejs.InstanceofToken},
-		{name: "unknown op defaults to add", op: js_ast.OpCode(255), expected: parsejs.AddToken},
+		{name: "rem assign", op: js_ast.BinOpRemAssign, expected: parsejs.ModEqToken},
+		{name: "pow assign", op: js_ast.BinOpPowAssign, expected: parsejs.ExpEqToken},
+		{name: "shl assign", op: js_ast.BinOpShlAssign, expected: parsejs.LtLtEqToken},
+		{name: "shr assign", op: js_ast.BinOpShrAssign, expected: parsejs.GtGtEqToken},
+		{name: "ushr assign", op: js_ast.BinOpUShrAssign, expected: parsejs.GtGtGtEqToken},
+		{name: "bitwise or assign", op: js_ast.BinOpBitwiseOrAssign, expected: parsejs.BitOrEqToken},
+		{name: "bitwise and assign", op: js_ast.BinOpBitwiseAndAssign, expected: parsejs.BitAndEqToken},
+		{name: "bitwise xor assign", op: js_ast.BinOpBitwiseXorAssign, expected: parsejs.BitXorEqToken},
+		{name: "nullish coalescing assign", op: js_ast.BinOpNullishCoalescingAssign, expected: parsejs.NullishEqToken},
+		{name: "logical or assign", op: js_ast.BinOpLogicalOrAssign, expected: parsejs.OrEqToken},
+		{name: "logical and assign", op: js_ast.BinOpLogicalAndAssign, expected: parsejs.AndEqToken},
+		{name: "comma", op: js_ast.BinOpComma, expected: parsejs.CommaToken},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			result := convertBinaryOp(tc.op)
+			result, err := convertBinaryOp(tc.op)
+			require.NoError(t, err)
 			assert.Equal(t, tc.expected, result)
 		})
 	}
+
+	t.Run("unknown op returns error", func(t *testing.T) {
+		t.Parallel()
+		_, err := convertBinaryOp(js_ast.OpCode(255))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported JS binary operator")
+	})
 }
 
 func TestConvertUnaryOp(t *testing.T) {

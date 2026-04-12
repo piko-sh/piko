@@ -24,17 +24,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// Logger is the main interface for Piko's logging system. It provides methods
-// for logging at different levels and works with OpenTelemetry for tracing.
+// Logger is the main interface for Piko's logging system. It provides methods for logging
+// at different levels and works with OpenTelemetry for tracing.
 type Logger = logger_domain.Logger
 
-// Attr represents a single key-value pair for adding structured context to log
-// messages. It is an alias for the underlying slog.Attr type.
+// Attr represents a single key-value pair for adding structured context to log messages.
+// It is an alias for the underlying slog.Attr type.
 type Attr = logger_domain.Attr
 
 const (
-	// LevelTrace is the most verbose level for framework internals: loop
-	// iterations, variable states.
+	// LevelTrace is the most verbose level for framework internals: loop iterations,
+	// variable states.
 	LevelTrace = logger_domain.LevelTrace
 
 	// LevelDebug is for detailed debugging information in applications.
@@ -84,26 +84,26 @@ var (
 	// GetLogger retrieves a logger for a specific package or component.
 	GetLogger = logger_domain.GetLogger
 
-	// From retrieves the logger from context, enriching it with the fallback if
-	// no logger was previously stored.
+	// From retrieves the logger from context, enriching it with the fallback if no logger
+	// was previously stored.
 	//
-	// When a logger is already in the context (hot path), it returns the context
-	// and logger unchanged with zero allocations. When no logger is found (cold
-	// path), it stores the fallback in the context so that all downstream calls
-	// to From find it immediately, costing one context.WithValue allocation.
+	// When a logger is already in the context (hot path), it returns the context and logger
+	// unchanged with zero allocations. When no logger is found (cold path), it stores the
+	// fallback in the context so that all downstream calls to From find it immediately,
+	// costing one context.WithValue allocation.
 	From = logger_domain.From
 
 	// WithLogger stores a logger in the given context for later retrieval.
 	//
-	// Request-scoped data (such as request_id or user_id) then flows through the
-	// call stack without passing the logger as a parameter.
+	// Request-scoped data (such as request_id or user_id) then flows through the call stack
+	// without passing the logger as a parameter.
 	WithLogger = logger_domain.WithLogger
 
 	// MustFrom retrieves the logger from context, panicking if not present.
 	//
-	// Use this in code paths where a logger MUST be in context (e.g., after
-	// middleware that guarantees it). Panicking early catches middleware
-	// misconfiguration during development.
+	// Use this in code paths where a logger MUST be in context (e.g., after middleware that
+	// guarantees it). Panicking early catches middleware misconfiguration during
+	// development.
 	MustFrom = logger_domain.MustFrom
 
 	// HasLogger reports whether a logger is stored in the context.

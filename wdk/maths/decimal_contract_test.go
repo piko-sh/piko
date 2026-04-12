@@ -153,7 +153,9 @@ type decimalAPI interface {
 	MustIsMultipleOf(other Decimal) bool
 }
 
-var _ decimalAPI = (*Decimal)(nil)
+var (
+	_ decimalAPI = (*Decimal)(nil)
+)
 
 type decimalAggregateAPI interface {
 	SumDecimals(...Decimal) Decimal
@@ -185,4 +187,6 @@ func (decimalAggregateImpl) SortDecimalsReverse(decimals []Decimal) error {
 	return SortDecimalsReverse(decimals)
 }
 
-var _ decimalAggregateAPI = decimalAggregateImpl{}
+var (
+	_ decimalAggregateAPI = decimalAggregateImpl{}
+)

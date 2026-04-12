@@ -56,8 +56,8 @@ const (
 	opLessEqual = "<="
 )
 
-// arithmeticComparable constrains types that support arithmetic and comparison
-// operations with the same return-type pattern (Decimal, BigInt).
+// arithmeticComparable constrains types that support arithmetic and comparison operations
+// with the same return-type pattern (Decimal, BigInt).
 //
 // Takes T which is the self-referential numeric type.
 type arithmeticComparable[T any] interface {
@@ -88,9 +88,9 @@ type arithmeticComparable[T any] interface {
 
 // EvaluateTruthiness determines the boolean truth value of any Go value.
 //
-// It follows JavaScript-like semantics where empty strings, zero values,
-// nil, and "false" (case-insensitive) are considered falsy. This is used
-// by the template engine to evaluate p-if and p-show directives.
+// It follows JavaScript-like semantics where empty strings, zero values, nil, and "false"
+// (case-insensitive) are considered falsy. This is used by the template engine to
+// evaluate p-if and p-show directives.
 //
 // Takes value (any) which is the value to evaluate for truthiness.
 //
@@ -118,9 +118,8 @@ func EvaluateTruthiness(value any) bool {
 
 // ConvertToFloat64 converts any numeric or string value to a float64.
 //
-// Non-numeric types return 0.0. Booleans return 1.0 for true and 0.0 for
-// false. This is used by the template engine for numeric comparisons and
-// arithmetic.
+// Non-numeric types return 0.0. Booleans return 1.0 for true and 0.0 for false. This is
+// used by the template engine for numeric comparisons and arithmetic.
 //
 // Takes value (any) which is the value to convert.
 //
@@ -167,10 +166,9 @@ func ConvertToFloat64(value any) float64 {
 	}
 }
 
-// EvaluateLooseEquality compares two values for loose equality using JS-style
-// type coercion. Float64 values are compared directly; all other types are
-// compared by their string representation, enabling comparisons like 0 ~= "0"
-// to return true.
+// EvaluateLooseEquality compares two values for loose equality using JS-style type
+// coercion. Float64 values are compared directly; all other types are compared by their
+// string representation, enabling comparisons like 0 ~= "0" to return true.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
@@ -187,20 +185,19 @@ func EvaluateLooseEquality(a, b any) bool {
 	return fmt.Sprintf("%v", a) == fmt.Sprintf("%v", b)
 }
 
-// EvaluateStrictEquality compares two values for strict equality using Go-style
-// == comparison.
+// EvaluateStrictEquality compares two values for strict equality using Go-style ==
+// comparison.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
 //
-// Returns bool which is true when the values are strictly equal, or false if
-// the types do not match.
+// Returns bool which is true when the values are strictly equal, or false if the types do
+// not match.
 //
 // Uses optimised type-specific comparisons for common types, falling back to
-// reflect.DeepEqual for complex types. A typed nil (e.g., (*Image)(nil)) is
-// considered equal to untyped nil. This enables template expressions like
-// `p-if="props.FloorPlan != nil"` to work correctly when FloorPlan is a nil
-// pointer.
+// reflect.DeepEqual for complex types. A typed nil (e.g., (*Image)(nil)) is considered
+// equal to untyped nil. This enables template expressions like `p-if="props.FloorPlan !=
+// nil"` to work correctly when FloorPlan is a nil pointer.
 func EvaluateStrictEquality(a, b any) bool {
 	if b == nil {
 		if a == nil {
@@ -250,9 +247,9 @@ func EvaluateStrictEquality(a, b any) bool {
 	return reflect.DeepEqual(a, b)
 }
 
-// EvaluateOr returns the first truthy value, or the last value if none are
-// truthy. This uses JavaScript-style || operator rules, which differ from Go's
-// || that always returns a boolean.
+// EvaluateOr returns the first truthy value, or the last value if none are truthy. This
+// uses JavaScript-style || operator rules, which differ from Go's || that always returns
+// a boolean.
 //
 // Takes left (any) which is the first value to check for truthiness.
 // Takes right (any) which is the value to use if left is falsy.
@@ -267,8 +264,8 @@ func EvaluateOr(left, right any) any {
 
 // EvaluateCoalesce implements JavaScript-like nullish coalescing (??) operator.
 //
-// It returns left if it is not nil, otherwise right. Unlike the || operator,
-// it does not treat empty strings, zero, or false as nullish.
+// It returns left if it is not nil, otherwise right. Unlike the || operator, it does not
+// treat empty strings, zero, or false as nullish.
 //
 // Takes left (any) which is the primary value to check for nil.
 // Takes right (any) which is the fallback value returned if left is nil.
@@ -287,18 +284,18 @@ func EvaluateCoalesce(left, right any) any {
 
 // EvaluateBinary performs a binary operation on two values at runtime.
 //
-// It handles arithmetic (+, -, *, /, %) and comparison (>, <, >=, <=) operators
-// for maths types (maths.Decimal, maths.BigInt, maths.Money) and falls back to
-// float64 arithmetic for primitive numeric types.
+// It handles arithmetic (+, -, *, /, %) and comparison (>, <, >=, <=) operators for maths
+// types (maths.Decimal, maths.BigInt, maths.Money) and falls back to float64 arithmetic
+// for primitive numeric types.
 //
 // Takes left (any) which is the left operand.
-// Takes operator (string) which is the operator ("+", "-", "*", "/", "%", ">",
-// "<", ">=", "<=").
+// Takes operator (string) which is the operator ("+", "-", "*", "/", "%", ">", "<", ">=",
+// "<=").
 // Takes right (any) which is the right operand.
 //
-// Returns any which is the result of the operation. Arithmetic operators return
-// the same maths type as the operands; comparison operators return bool. For
-// unsupported types or operators, returns nil.
+// Returns any which is the result of the operation. Arithmetic operators return the same
+// maths type as the operands; comparison operators return bool. For unsupported types or
+// operators, returns nil.
 //
 //nolint:revive // dispatch table
 func EvaluateBinary(left any, operator string, right any) any {
@@ -321,8 +318,7 @@ func EvaluateBinary(left any, operator string, right any) any {
 //
 // Takes v (string) which is the value to check.
 //
-// Returns bool which is true unless v is empty, "0", or "false" (case does not
-// matter).
+// Returns bool which is true unless v is empty, "0", or "false" (case does not matter).
 func evaluateStringTruthiness(v string) bool {
 	if v == "" || v == "0" || strings.EqualFold(v, "false") {
 		return false
@@ -334,8 +330,8 @@ func evaluateStringTruthiness(v string) bool {
 //
 // Takes value (any) which is the value to check.
 //
-// Returns bool which is true if the value is not zero, or if the value is not
-// a signed integer type.
+// Returns bool which is true if the value is not zero, or if the value is not a signed
+// integer type.
 func evaluateSignedIntTruthiness(value any) bool {
 	switch v := value.(type) {
 	case int:
@@ -356,8 +352,8 @@ func evaluateSignedIntTruthiness(value any) bool {
 //
 // Takes value (any) which is the value to check.
 //
-// Returns bool which is true if the value is not zero, or true if the value is
-// not an unsigned integer type.
+// Returns bool which is true if the value is not zero, or true if the value is not an
+// unsigned integer type.
 func evaluateUnsignedIntTruthiness(value any) bool {
 	switch v := value.(type) {
 	case uint:
@@ -378,8 +374,8 @@ func evaluateUnsignedIntTruthiness(value any) bool {
 //
 // Takes value (any) which is the value to check.
 //
-// Returns bool which is true if the value is a non-zero float, or true if the
-// value is not a float type.
+// Returns bool which is true if the value is a non-zero float, or true if the value is
+// not a float type.
 func evaluateFloatTruthiness(value any) bool {
 	switch v := value.(type) {
 	case float32:
@@ -394,12 +390,12 @@ func evaluateFloatTruthiness(value any) bool {
 //
 // Takes value (any) which is the value to check using reflection.
 //
-// Returns bool which is true if the value is truthy. For pointer, interface,
-// map, slice, function, and channel types, returns true when the value is not
-// nil. For arrays and structs, always returns true.
+// Returns bool which is true if the value is truthy. For pointer, interface, map, slice,
+// function, and channel types, returns true when the value is not nil. For arrays and
+// structs, always returns true.
 func evaluateReflectTruthiness(value any) bool {
 	v := reflect.ValueOf(value)
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case reflect.Pointer, reflect.Interface, reflect.Map, reflect.Slice, reflect.Func, reflect.Chan:
 		return !v.IsNil()
 	case reflect.Array, reflect.Struct:
@@ -408,24 +404,23 @@ func evaluateReflectTruthiness(value any) bool {
 	return true
 }
 
-// isNilableValue checks whether a value is a nil pointer, interface, map,
-// slice, function, or channel. This is used by EvaluateStrictEquality to
-// compare typed nils with untyped nil correctly.
+// isNilableValue checks whether a value is a nil pointer, interface, map, slice,
+// function, or channel. This is used by EvaluateStrictEquality to compare typed nils with
+// untyped nil correctly.
 //
 // Takes value (any) which is the value to check.
 //
 // Returns bool which is true if value is a nilable type that is currently nil.
 func isNilableValue(value any) bool {
 	v := reflect.ValueOf(value)
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case reflect.Pointer, reflect.Interface, reflect.Map, reflect.Slice, reflect.Func, reflect.Chan:
 		return v.IsNil()
 	}
 	return false
 }
 
-// evaluateBinaryDecimal handles binary operations when either operand is
-// maths.Decimal.
+// evaluateBinaryDecimal handles binary operations when either operand is maths.Decimal.
 //
 // Takes left (any) which is the left-hand operand.
 // Takes right (any) which is the right-hand operand.
@@ -458,8 +453,8 @@ func coerceLeftDecimal(left any) (maths.Decimal, bool) {
 	return maths.Decimal{}, false
 }
 
-// coerceRightDecimal extracts a maths.Decimal from the right operand, falling
-// back to CoerceToDecimal for non-Decimal types.
+// coerceRightDecimal extracts a maths.Decimal from the right operand, falling back to
+// CoerceToDecimal for non-Decimal types.
 //
 // Takes right (any) which is the value to coerce.
 //
@@ -508,8 +503,7 @@ func dispatchArithmeticOperation[T arithmeticComparable[T]](left, right T, opera
 	}
 }
 
-// evaluateBinaryBigInt handles binary operations when either operand is
-// maths.BigInt.
+// evaluateBinaryBigInt handles binary operations when either operand is maths.BigInt.
 //
 // Takes left (any) which is the left-hand operand.
 // Takes right (any) which is the right-hand operand.
@@ -542,8 +536,8 @@ func coerceLeftBigInt(left any) (maths.BigInt, bool) {
 	return maths.BigInt{}, false
 }
 
-// coerceRightBigInt extracts a maths.BigInt from the right operand, falling
-// back to CoerceToBigInt for non-BigInt types.
+// coerceRightBigInt extracts a maths.BigInt from the right operand, falling back to
+// CoerceToBigInt for non-BigInt types.
 //
 // Takes right (any) which is the value to coerce.
 //
@@ -558,8 +552,7 @@ func coerceRightBigInt(right any) maths.BigInt {
 	return CoerceToBigInt(right)
 }
 
-// evaluateBinaryMoney handles binary operations when either operand is
-// maths.Money.
+// evaluateBinaryMoney handles binary operations when either operand is maths.Money.
 //
 // Takes left (any) which is the left-hand operand.
 // Takes right (any) which is the right-hand operand.
@@ -603,12 +596,12 @@ func evaluateBinaryMoney(left, right any, operator string) (any, bool) {
 	}
 }
 
-// evaluateMoneyAddSub handles addition and subtraction for Money values,
-// dispatching to Money-Money or Money-Decimal operations.
+// evaluateMoneyAddSub handles addition and subtraction for Money values, dispatching to
+// Money-Money or Money-Decimal operations.
 //
 // Takes lm (maths.Money) which is the left-hand money operand.
-// Takes rm (maths.Money) which is the right-hand money operand (valid only
-// when rightIsMoney is true).
+// Takes rm (maths.Money) which is the right-hand money operand (valid only when
+// rightIsMoney is true).
 // Takes right (any) which is the original right operand for decimal coercion.
 // Takes rightIsMoney (bool) which indicates whether the right operand is Money.
 // Takes operator (string) which is "+" or "-".
@@ -628,8 +621,8 @@ func evaluateMoneyAddSub(lm, rm maths.Money, right any, rightIsMoney bool, opera
 	return lm.SubtractDecimal(CoerceToDecimal(right)), true
 }
 
-// evaluateMoneyComparison handles comparison operators for Money values.
-// Comparisons require both operands to be Money.
+// evaluateMoneyComparison handles comparison operators for Money values. Comparisons
+// require both operands to be Money.
 //
 // Takes lm (maths.Money) which is the left-hand money operand.
 // Takes rm (maths.Money) which is the right-hand money operand.
@@ -656,8 +649,8 @@ func evaluateMoneyComparison(lm, rm maths.Money, rightIsMoney bool, operator str
 	}
 }
 
-// evaluateBinaryFloat64 handles binary operations by converting both operands
-// to float64. This is the fallback for primitive numeric types.
+// evaluateBinaryFloat64 handles binary operations by converting both operands to float64.
+// This is the fallback for primitive numeric types.
 //
 // Takes left (any) which is the left-hand operand.
 // Takes right (any) which is the right-hand operand.

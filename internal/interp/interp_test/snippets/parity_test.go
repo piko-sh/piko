@@ -20,6 +20,7 @@ package snippets_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -34,6 +35,10 @@ import (
 	"piko.sh/piko/internal/interp/interp_adapters/driven_system_symbols"
 	"piko.sh/piko/internal/interp/interp_domain"
 )
+
+type snippetSpec struct {
+	KnownBug string `json:"knownBug,omitempty"`
+}
 
 func TestParity(t *testing.T) {
 	if testing.Short() {
@@ -56,18 +61,25 @@ func TestParity(t *testing.T) {
 			evalPath := filepath.Join(directory, "eval.go")
 			requireFileExists(t, evalPath)
 
+			specPath := filepath.Join(directory, "testspec.json")
+			if data, err := os.ReadFile(specPath); err == nil {
+				var spec snippetSpec
+				require.NoError(t, json.Unmarshal(data, &spec), "parsing %s", specPath)
+				if spec.KnownBug != "" {
+					t.Skipf("known bug: %s", spec.KnownBug)
+				}
+			}
+
 			snippet := readFile(t, evalPath)
 
-			goProgram := buildParityProgram(snippet)
-			goOutput := runGoSource(t, goProgram)
-			expected := strings.TrimSpace(goOutput)
+			expected := parityExpectedOutput(t, name, snippet)
 
 			service := interp_domain.NewService()
 			service.UseSymbolProviders(driven_system_symbols.NewProvider())
 			result, evalErr := service.EvalFile(context.Background(), snippet, "run")
 			require.NoError(t, evalErr, "EvalFile failed for %s", name)
 
-			actual := fmt.Sprint(result)
+			actual := strings.TrimSpace(fmt.Sprint(result))
 
 			require.Equal(t, expected, actual,
 				"parity mismatch for %s\nsnippet:\n%s\ngo run: %q\neval:   %q",
@@ -76,17 +88,44 @@ func TestParity(t *testing.T) {
 	}
 }
 
+func parityExpectedOutput(t *testing.T, name, snippet string) string {
+	t.Helper()
+	dir := os.Getenv("PIKO_SNIPPETS_EXPECTED_DIR")
+	if dir == "" {
+		return strings.TrimSpace(runGoSource(t, buildParityProgram(snippet)))
+	}
+	path := filepath.Join(dir, name+".txt")
+	if data, err := os.ReadFile(path); err == nil {
+		return strings.TrimSpace(string(data))
+	}
+	expected := strings.TrimSpace(runGoSource(t, buildParityProgram(snippet)))
+	require.NoError(t, os.MkdirAll(dir, 0o755))
+	require.NoError(t, os.WriteFile(path, []byte(expected), 0o644))
+	return expected
+}
+
 func buildParityProgram(snippet string) string {
 
 	lines := strings.SplitN(snippet, "\n", 2)
 	var builder strings.Builder
 	builder.WriteString(lines[0])
-	builder.WriteString("\n\nimport \"fmt\"\n")
+	if !snippetImportsFmt(snippet) {
+		builder.WriteString("\n\nimport \"fmt\"\n")
+	} else {
+		builder.WriteString("\n")
+	}
 	if len(lines) > 1 {
 		builder.WriteString(lines[1])
 	}
 	builder.WriteString("\nfunc main() {\n\tfmt.Println(run())\n}\n")
 	return builder.String()
+}
+
+func snippetImportsFmt(snippet string) bool {
+	return strings.Contains(snippet, "\nimport \"fmt\"") ||
+		strings.Contains(snippet, "\n\t\"fmt\"") ||
+		strings.Contains(snippet, "import \"fmt\"\n") ||
+		strings.Contains(snippet, "\t\"fmt\"\n")
 }
 
 func runGoSource(t *testing.T, source string) string {
@@ -136,4 +175,45 @@ func readFile(t *testing.T, path string) string {
 	require.NoError(t, err)
 
 	return strings.TrimSpace(string(data))
+}
+
+func TestEvalParity(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping eval-parity tests in short mode")
+	}
+
+	testdataDir := filepath.Join("testdata_eval")
+	entries, err := os.ReadDir(testdataDir)
+	if err != nil {
+		t.Skipf("no eval-parity fixtures: %v", err)
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		directory := filepath.Join(testdataDir, name)
+
+		t.Run(name, func(t *testing.T) {
+			evalPath := filepath.Join(directory, "body.txt")
+			expectedPath := filepath.Join(directory, "expected.txt")
+			requireFileExists(t, evalPath)
+			requireFileExists(t, expectedPath)
+
+			snippet := readFile(t, evalPath)
+			expected := readFile(t, expectedPath)
+
+			service := interp_domain.NewService()
+			service.UseSymbolProviders(driven_system_symbols.NewProvider())
+			result, evalErr := service.Eval(context.Background(), snippet)
+			require.NoError(t, evalErr, "Service.Eval failed for %s", name)
+
+			actual := fmt.Sprint(result)
+			require.Equal(t, expected, actual,
+				"eval-parity mismatch for %s\nsnippet:\n%s\nwant: %q\ngot:  %q",
+				name, snippet, expected, actual)
+		})
+	}
 }

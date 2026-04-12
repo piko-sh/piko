@@ -47,9 +47,9 @@ const (
 	TrigraphLength = 3
 )
 
-// isSoftVowel reports whether the given character is a soft vowel that causes
-// softening of K and G in Swedish. The soft vowels are E, I, Y, Ae, and Oe, which
-// are represented as E, I, and Y after normalisation.
+// isSoftVowel reports whether the given character is a soft vowel that causes softening
+// of K and G in Swedish. The soft vowels are E, I, Y, Ae, and Oe, which are represented
+// as E, I, and Y after normalisation.
 //
 // Takes character (byte) which is the character to check.
 //

@@ -20,8 +20,8 @@
 
 package vectormaths
 
-// normaliseF32 normalises a float32 vector in place using NEON
-// SIMD instructions. NEON is mandatory on all arm64 CPUs.
+// normaliseF32 normalises a float32 vector in place using NEON SIMD instructions. NEON is
+// mandatory on all arm64 CPUs.
 //
 // Takes v ([]float32) which is modified in place to have unit length.
 //

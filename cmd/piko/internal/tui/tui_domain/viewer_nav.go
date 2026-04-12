@@ -18,37 +18,38 @@
 
 package tui_domain
 
-import tea "charm.land/bubbletea/v2"
+import (
+	"slices"
+
+	tea "charm.land/bubbletea/v2"
+)
 
 // NavigationMode controls how the cursor moves within an AssetViewer.
 type NavigationMode int
 
 const (
-	// NavigationSimple allows the cursor to move to every line, including expanded
-	// details.
+	// NavigationSimple allows the cursor to move to every line, including expanded details.
 	NavigationSimple NavigationMode = iota
 
-	// NavigationSkipLine moves the cursor only to item headers, skipping expanded
-	// detail lines. Use this when only top-level items should be selectable.
+	// NavigationSkipLine moves the cursor only to item headers, skipping expanded detail
+	// lines. Use this when only top-level items should be selectable.
 	NavigationSkipLine
 )
 
-// NavigablePositions returns the line positions of all items that can be
-// navigated to.
+// NavigablePositions returns the line positions of all items that can be navigated to.
 //
 // For NavigationSimple, this returns positions for all lines (0, 1, 2, ...,
-// totalLines-1). For NavigationSkipLine, this returns only the positions of
-// item header lines, skipping expanded detail lines.
+// totalLines-1). For NavigationSkipLine, this returns only the positions of item header
+// lines, skipping expanded detail lines.
 //
 // Takes itemCount (int) which specifies the number of items in the list.
-// Takes isExpanded (func(...)) which returns true if the item at the given
-// index is expanded.
-// Takes expandedLineCount (func(...)) which returns the number of detail lines
-// for an expanded item.
+// Takes isExpanded (func(...)) which returns true if the item at the given index is
+// expanded.
+// Takes expandedLineCount (func(...)) which returns the number of detail lines for an
+// expanded item.
 // Takes mode (NavigationMode) which specifies the navigation mode.
 //
-// Returns []int which contains the line positions of items that can be
-// navigated to.
+// Returns []int which contains the line positions of items that can be navigated to.
 func NavigablePositions(
 	itemCount int,
 	isExpanded func(index int) bool,
@@ -85,8 +86,7 @@ func NavigablePositions(
 // Takes cursorPosition (int) which is the current cursor position.
 // Takes positions ([]int) which holds the positions to move to.
 //
-// Returns int which is the next position after cursorPosition, or -1 if there is
-// none.
+// Returns int which is the next position after cursorPosition, or -1 if there is none.
 func NextNavigablePosition(cursorPosition int, positions []int) int {
 	for _, position := range positions {
 		if position > cursorPosition {
@@ -96,19 +96,17 @@ func NextNavigablePosition(cursorPosition int, positions []int) int {
 	return -1
 }
 
-// PreviousNavigablePosition finds the previous position that can
-// be navigated to before the cursor.
+// PreviousNavigablePosition finds the previous position that can be navigated to before
+// the cursor.
 //
 // Takes cursorPosition (int) which is the current cursor position.
-// Takes positions ([]int) which contains the positions that can be navigated
-// to.
+// Takes positions ([]int) which contains the positions that can be navigated to.
 //
-// Returns int which is the previous position, or -1 if there is no previous
-// position.
+// Returns int which is the previous position, or -1 if there is no previous position.
 func PreviousNavigablePosition(cursorPosition int, positions []int) int {
-	for i := len(positions) - 1; i >= 0; i-- {
-		if positions[i] < cursorPosition {
-			return positions[i]
+	for _, position := range slices.Backward(positions) {
+		if position < cursorPosition {
+			return position
 		}
 	}
 	return -1
@@ -116,19 +114,19 @@ func PreviousNavigablePosition(cursorPosition int, positions []int) int {
 
 // CursorToItemIndex converts a cursor position to the matching item index.
 //
-// When mode is NavigationSkipLine, this only matches item header positions.
-// When mode is NavigationSimple, this returns the item that contains the
-// cursor position, including any expanded content lines.
+// When mode is NavigationSkipLine, this only matches item header positions. When mode is
+// NavigationSimple, this returns the item that contains the cursor position, including
+// any expanded content lines.
 //
 // Takes cursorPosition (int) which is the cursor position to convert.
 // Takes itemCount (int) which is the total number of items.
 // Takes isExpanded (func(index int) bool) which checks if an item is expanded.
-// Takes expandedLineCount (func(index int) int) which returns the number of
-// extra lines for an expanded item.
+// Takes expandedLineCount (func(index int) int) which returns the number of extra lines
+// for an expanded item.
 // Takes mode (NavigationMode) which sets how cursor positions map to items.
 //
-// Returns int which is the item index at the cursor position, or -1 if the
-// cursor does not match any item.
+// Returns int which is the item index at the cursor position, or -1 if the cursor does
+// not match any item.
 func CursorToItemIndex(
 	cursorPosition int,
 	itemCount int,
@@ -164,8 +162,8 @@ func CursorToItemIndex(
 	return -1
 }
 
-// AdjustScrollForCursor adjusts the scroll position to keep the cursor visible
-// within the scroll window.
+// AdjustScrollForCursor adjusts the scroll position to keep the cursor visible within the
+// scroll window.
 //
 // Takes cursor (int) which is the current cursor line position.
 // Takes scrollOffset (int) which is the current scroll position.
@@ -197,14 +195,13 @@ func AdjustScrollForCursor(cursor, scrollOffset, visibleHeight, lineCount int) i
 	return scrollOffset
 }
 
-// CalculateLineCount returns the total number of lines including expanded
-// content.
+// CalculateLineCount returns the total number of lines including expanded content.
 //
 // Takes itemCount (int) which specifies how many items to count.
-// Takes isExpanded (func(index int) bool) which checks if an item at the given
-// index is expanded.
-// Takes expandedLineCount (func(index int) int) which returns how many lines an
-// expanded item uses.
+// Takes isExpanded (func(index int) bool) which checks if an item at the given index is
+// expanded.
+// Takes expandedLineCount (func(index int) int) which returns how many lines an expanded
+// item uses.
 //
 // Returns int which is the total line count across all items.
 func CalculateLineCount(
@@ -267,8 +264,8 @@ func HandleNavigationKey(
 	return newCursor, newScrollOffset, true
 }
 
-// cursorInExpandedRange checks if a cursor position falls within a range of
-// lines starting at a given position.
+// cursorInExpandedRange checks if a cursor position falls within a range of lines
+// starting at a given position.
 //
 // Takes linePos (int) which is the starting line position.
 // Takes cursorPosition (int) which is the cursor position to check.
@@ -330,8 +327,7 @@ func isKeyUp(keyString string) bool {
 	return keyString == "up" || keyString == "k"
 }
 
-// isKeyDown checks whether the given key string represents a key for moving
-// down.
+// isKeyDown checks whether the given key string represents a key for moving down.
 //
 // Takes keyString (string) which is the string form of the key.
 //
@@ -363,8 +359,8 @@ func isKeyPageDown(keyString string) bool {
 // Takes cursor (int) which is the current cursor position.
 // Takes positions ([]int) which contains the navigable positions.
 //
-// Returns int which is the new cursor position, or the current position if
-// there is no previous navigable position.
+// Returns int which is the new cursor position, or the current position if there is no
+// previous navigable position.
 func handleMoveUp(cursor int, positions []int) int {
 	previousPos := PreviousNavigablePosition(cursor, positions)
 	if previousPos >= 0 {
@@ -378,8 +374,8 @@ func handleMoveUp(cursor int, positions []int) int {
 // Takes cursor (int) which is the current cursor position.
 // Takes positions ([]int) which contains the valid positions for navigation.
 //
-// Returns int which is the next position below the cursor, or the current
-// position if there is no valid position below.
+// Returns int which is the next position below the cursor, or the current position if
+// there is no valid position below.
 func handleMoveDown(cursor int, positions []int) int {
 	nextPos := NextNavigablePosition(cursor, positions)
 	if nextPos >= 0 {
@@ -397,9 +393,9 @@ func handleMoveDown(cursor int, positions []int) int {
 // Returns int which is the new cursor position after moving up one page.
 func handlePageUp(cursor, visibleHeight int, positions []int) int {
 	targetPos := max(cursor-visibleHeight, 0)
-	for i := len(positions) - 1; i >= 0; i-- {
-		if positions[i] <= targetPos || i == 0 {
-			return positions[i]
+	for i, position := range slices.Backward(positions) {
+		if position <= targetPos || i == 0 {
+			return position
 		}
 	}
 	return cursor

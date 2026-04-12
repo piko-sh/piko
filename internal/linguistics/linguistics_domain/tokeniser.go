@@ -23,8 +23,8 @@ import (
 	"unicode"
 )
 
-// Tokeniser splits text into individual tokens with position tracking.
-// It implements TokeniserPort and uses NormaliserPort for dependency injection.
+// Tokeniser splits text into individual tokens with position tracking. It implements
+// TokeniserPort and uses NormaliserPort for dependency injection.
 type Tokeniser struct {
 	// normaliser converts raw token text into a standard form.
 	normaliser NormaliserPort
@@ -39,8 +39,8 @@ type Tokeniser struct {
 	maxTokenLength int
 }
 
-// NewTokeniser creates a new tokeniser with the given configuration.
-// This is the production constructor that uses a real Normaliser.
+// NewTokeniser creates a new tokeniser with the given configuration. This is the
+// production constructor that uses a real Normaliser.
 //
 // Takes config (AnalyserConfig) which specifies the tokeniser settings.
 //
@@ -56,8 +56,7 @@ func NewTokeniser(config AnalyserConfig) *Tokeniser {
 //
 // Takes text (string) which is the input text to split into tokens.
 //
-// Returns []Token which contains the tokens with their normalised forms and
-// positions.
+// Returns []Token which contains the tokens with their normalised forms and positions.
 func (t *Tokeniser) Tokenise(text string) []Token {
 	var tokens []Token
 	var currentToken strings.Builder
@@ -79,8 +78,8 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	return tokens
 }
 
-// TokeniseToStrings returns just the normalised token strings.
-// Useful when position information is not needed.
+// TokeniseToStrings returns just the normalised token strings. Useful when position
+// information is not needed.
 //
 // Takes text (string) which is the input to tokenise.
 //
@@ -94,8 +93,8 @@ func (t *Tokeniser) TokeniseToStrings(text string) []string {
 	return result
 }
 
-// flushToken creates a token from the current buffer if non-empty, appends it
-// to the tokens slice, and resets the buffer.
+// flushToken creates a token from the current buffer if non-empty, appends it to the
+// tokens slice, and resets the buffer.
 //
 // Takes currentToken (*strings.Builder) which holds the accumulated text.
 // Takes tokenStart (int) which marks where the token began.
@@ -123,8 +122,8 @@ func (t *Tokeniser) flushToken(
 	return tokens, position
 }
 
-// createToken creates a Token from the raw string, applying normalisation
-// and filtering. Returns nil if the token should be filtered out.
+// createToken creates a Token from the raw string, applying normalisation and filtering.
+// Returns nil if the token should be filtered out.
 //
 // Takes raw (string) which is the original token text.
 // Takes position (int) which is the token's position in the stream.
@@ -153,17 +152,14 @@ func (t *Tokeniser) createToken(raw string, position int, byteOffset int) *Token
 	}
 }
 
-// newTokeniserWithDeps creates a new tokeniser with injected
-// dependencies. This constructor enables dependency injection for
-// testing.
+// newTokeniserWithDeps creates a new tokeniser with injected dependencies. This
+// constructor enables dependency injection for testing.
 //
-// Use this in tests to inject a mock normaliser:
-// tokeniser := newTokeniserWithDeps(mockNormaliser, config)
+// Use this in tests to inject a mock normaliser: tokeniser :=
+// newTokeniserWithDeps(mockNormaliser, config)
 //
-// Takes normaliser (NormaliserPort) which handles text
-// normalisation.
-// Takes config (AnalyserConfig) which specifies token processing
-// settings.
+// Takes normaliser (NormaliserPort) which handles text normalisation.
+// Takes config (AnalyserConfig) which specifies token processing settings.
 //
 // Returns *Tokeniser which is ready for tokenising text.
 func newTokeniserWithDeps(normaliser NormaliserPort, config AnalyserConfig) *Tokeniser {
@@ -175,8 +171,8 @@ func newTokeniserWithDeps(normaliser NormaliserPort, config AnalyserConfig) *Tok
 	}
 }
 
-// extractWords splits text into lowercase words. Use this for simple text
-// processing when full Token metadata is not needed.
+// extractWords splits text into lowercase words. Use this for simple text processing when
+// full Token metadata is not needed.
 //
 // Takes text (string) which is the input text to split into words.
 //

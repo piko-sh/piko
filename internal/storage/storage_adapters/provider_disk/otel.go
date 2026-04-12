@@ -43,8 +43,8 @@ var (
 	// BytesTransferred tracks the total bytes read or written.
 	BytesTransferred metric.Int64Counter
 
-	// BatchOperationsTotal is the counter for batch operations such as PutMany
-	// and RemoveMany.
+	// BatchOperationsTotal is the counter for batch operations such as PutMany and
+	// RemoveMany.
 	BatchOperationsTotal metric.Int64Counter
 )
 

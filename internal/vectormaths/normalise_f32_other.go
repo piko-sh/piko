@@ -22,8 +22,8 @@ package vectormaths
 
 import "math"
 
-// normaliseF32 normalises a float32 vector in place using pure Go.
-// This fallback is used on architectures without SIMD support.
+// normaliseF32 normalises a float32 vector in place using pure Go. This fallback is used
+// on architectures without SIMD support.
 //
 // Takes v ([]float32) which is modified in place to have unit length.
 func normaliseF32(v []float32) {

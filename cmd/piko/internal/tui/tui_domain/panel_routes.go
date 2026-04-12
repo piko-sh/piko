@@ -41,15 +41,14 @@ const (
 	// routesStatsWidth is the fixed width in characters for route statistics.
 	routesStatsWidth = 40
 
-	// routesMinPathWidth is the smallest character width for the route path
-	// column.
+	// routesMinPathWidth is the smallest character width for the route path column.
 	routesMinPathWidth = 20
 
 	// routesSpacingAdjust is the spacing offset used when calculating path width.
 	routesSpacingAdjust = 6
 
-	// routesErrorRateHigh is the error rate threshold above which a route is
-	// considered unhealthy.
+	// routesErrorRateHigh is the error rate threshold above which a route is considered
+	// unhealthy.
 	routesErrorRateHigh = 10
 
 	// routesErrorRateLow is the error rate threshold below which routes are healthy.
@@ -61,8 +60,7 @@ const (
 	// routesRecentDisplayLimit is the maximum number of recent requests to display.
 	routesRecentDisplayLimit = 5
 
-	// routesPercentileP50 is the percentile value for calculating the median
-	// response time.
+	// routesPercentileP50 is the percentile value for calculating the median response time.
 	routesPercentileP50 = 50
 
 	// routesPercentileP90 is the 90th percentile threshold for route statistics.
@@ -95,8 +93,7 @@ type RouteStats struct {
 	// Path is the route pattern used to match incoming requests.
 	Path string
 
-	// Durations holds request durations in milliseconds for calculating
-	// statistics.
+	// Durations holds request durations in milliseconds for calculating statistics.
 	Durations []float64
 
 	// RecentSpans holds the most recent request spans for this route.
@@ -186,8 +183,7 @@ type RoutesRefreshMessage struct {
 // NewRoutesPanel creates a new routes panel.
 //
 // Takes provider (TracesProvider) which supplies trace data for route display.
-// Takes c (clock.Clock) which provides time functions; if nil, uses the real
-// clock.
+// Takes c (clock.Clock) which provides time functions; if nil, uses the real clock.
 //
 // Returns *RoutesPanel which is the configured panel ready for use.
 func NewRoutesPanel(provider TracesProvider, c clock.Clock) *RoutesPanel {
@@ -388,8 +384,8 @@ func (p *RoutesPanel) sortRoutesSlice(routes []RouteStats) {
 	})
 }
 
-// renderRoutesHeader renders the search box, totals header, filter status,
-// and error message.
+// renderRoutesHeader renders the search box, totals header, filter status, and error
+// message.
 //
 // Takes content (*strings.Builder) which receives the rendered header output.
 //
@@ -496,8 +492,7 @@ func (p *RoutesPanel) renderRouteLine(route RouteStats, selected, expanded bool)
 	return fmt.Sprintf("%s%s %s %s %s", cursor, indicator, expandChar, path, stats)
 }
 
-// renderExpandedRouteDetails renders the full details for a route when it is
-// expanded.
+// renderExpandedRouteDetails renders the full details for a route when it is expanded.
 //
 // Takes ctx (*ScrollContext) which manages which lines are shown on screen.
 // Takes route (RouteStats) which holds the route data to display.
@@ -573,8 +568,7 @@ func (*RoutesPanel) renderSpanLine(span Span, indent string, dimStyle *lipgloss.
 
 // refresh fetches new route data from traces.
 //
-// Returns tea.Cmd which gets and groups route statistics from the traces
-// provider.
+// Returns tea.Cmd which gets and groups route statistics from the traces provider.
 func (p *RoutesPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
@@ -621,8 +615,8 @@ func (r *routesRenderer) RenderRow(route RouteStats, _ int, selected, _ bool, _ 
 // Takes route (RouteStats) which holds the route data to expand.
 // Takes _ (int) which is the unused content width.
 //
-// Returns []string which contains the latency percentiles, range,
-// error count, and recent request lines.
+// Returns []string which contains the latency percentiles, range, error count, and recent
+// request lines.
 func (r *routesRenderer) RenderExpanded(route RouteStats, _ int) []string {
 	indent := "      "
 	dimStyle := lipgloss.NewStyle().Foreground(colourForegroundDim)
@@ -783,11 +777,10 @@ func updateRouteWithSpan(route *RouteStats, span Span) {
 
 // calculateRouteStats computes statistics for each route and returns them.
 //
-// Takes routeMap (map[string]*RouteStats) which contains the routes to
-// process.
+// Takes routeMap (map[string]*RouteStats) which contains the routes to process.
 //
-// Returns []RouteStats which contains the computed stats with average,
-// minimum, maximum, and percentile values (p50, p90, p95, p99).
+// Returns []RouteStats which contains the computed stats with average, minimum, maximum,
+// and percentile values (p50, p90, p95, p99).
 func calculateRouteStats(routeMap map[string]*RouteStats) []RouteStats {
 	routes := make([]RouteStats, 0, len(routeMap))
 

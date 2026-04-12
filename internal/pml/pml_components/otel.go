@@ -24,12 +24,11 @@ import (
 )
 
 var (
-	// log provides a package-level logger for all PikoML component operations,
-	// giving consistent logging context across different component files.
+	// log provides a package-level logger for all PikoML component operations, giving
+	// consistent logging context across different component files.
 	log = logger_domain.GetLogger("piko/internal/pml/pml_components")
 
-	// Meter provides a package-level OpenTelemetry meter for all PikoML
-	// components. Individual components emit metrics under this consistent
-	// namespace.
+	// Meter provides a package-level OpenTelemetry meter for all PikoML components.
+	// Individual components emit metrics under this consistent namespace.
 	Meter = otel.Meter("piko/internal/pml/pml_components")
 )

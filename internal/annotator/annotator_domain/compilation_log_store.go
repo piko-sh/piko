@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// Manages per-file compilation logs with in-memory buffers and optional
-// disk storage. Provides isolated logging for each component to help
-// developers debug compilation issues in parallel builds.
+// Manages per-file compilation logs with in-memory buffers and optional disk storage.
+// Provides isolated logging for each component to help developers debug compilation
+// issues in parallel builds.
 
 import (
 	"bytes"
@@ -48,63 +48,57 @@ const (
 	maxLogFileBackups = 1
 )
 
-// CompilationLogStore holds the logs for each file processed during a build.
-// It stores logs both in memory and on disk, and is safe for use by many
-// goroutines at once in a parallel build.
+// CompilationLogStore holds the logs for each file processed during a build. It stores
+// logs both in memory and on disk, and is safe for use by many goroutines at once in a
+// parallel build.
 type CompilationLogStore struct {
-	// sandboxFactory creates sandboxes when no sandbox is directly injected.
-	// When non-nil and sandbox is nil, this factory is used instead of
-	// safedisk.NewNoOpSandbox.
+	// sandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil
+	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
-	// sandbox is an optional filesystem sandbox for testing directory creation.
-	// When nil, a real sandbox is created during construction.
+	// sandbox is an optional filesystem sandbox for testing directory creation. When nil, a
+	// real sandbox is created during construction.
 	sandbox safedisk.Sandbox
 
-	// buffers maps entry point file paths to their in-memory log buffers,
-	// giving quick access to error details when a build fails.
+	// buffers maps entry point file paths to their in-memory log buffers, giving quick
+	// access to error details when a build fails.
 	buffers map[string]*bytes.Buffer
 
 	// logDir is the folder where log files for each component are saved.
 	logDir string
 
-	// closers tracks all open file writers (logrotate.Writer
-	// instances) to ensure they can be properly closed at the end of
-	// a build cycle.
+	// closers tracks all open file writers (logrotate.Writer instances) to ensure they can
+	// be properly closed at the end of a build cycle.
 	closers []io.Closer
 
-	// minLogLevel is the minimum log level for buffer and file handlers.
-	// It controls how much detail is logged, such as WARN in dev-i mode
-	// or DEBUG in dev mode.
+	// minLogLevel is the minimum log level for buffer and file handlers. It controls how
+	// much detail is logged, such as WARN in dev-i mode or DEBUG in dev mode.
 	minLogLevel slog.Level
 
-	// mu protects concurrent access to the maps and slices from
-	// parallel build workers.
+	// mu protects concurrent access to the maps and slices from parallel build workers.
 	mu sync.RWMutex
 
-	// enabled controls whether log files are written to disk; when false, logs
-	// are kept in memory only.
+	// enabled controls whether log files are written to disk; when false, logs are kept in
+	// memory only.
 	enabled bool
 }
 
-// CompilationLogStoreOption sets options for a CompilationLogStore when it is
-// created.
+// CompilationLogStoreOption sets options for a CompilationLogStore when it is created.
 type CompilationLogStoreOption func(*CompilationLogStore)
 
 // NewCompilationLogStore creates a new compilation log store.
 //
 // When file logging is enabled, it tries to create the log directory.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes enabled (bool) which controls whether file logging is active.
 // Takes logDir (string) which specifies the folder for log files.
 // Takes minLogLevel (slog.Level) which sets the lowest log level to record.
-// Takes opts (...CompilationLogStoreOption) which provides optional settings
-// such as WithLogStoreSandbox for testing.
+// Takes opts (...CompilationLogStoreOption) which provides optional settings such as
+// WithLogStoreSandbox for testing.
 //
-// Returns *CompilationLogStore which is the configured log store ready
-// for use.
+// Returns *CompilationLogStore which is the configured log store ready for use.
 // Returns error when the log directory cannot be created.
 func NewCompilationLogStore(ctx context.Context, enabled bool, logDir string, minLogLevel slog.Level, opts ...CompilationLogStoreOption) (*CompilationLogStore, error) {
 	store := &CompilationLogStore{
@@ -129,12 +123,12 @@ func NewCompilationLogStore(ctx context.Context, enabled bool, logDir string, mi
 	return store, nil
 }
 
-// StartSession creates a new logger for a specific component path.
-// The logger is separate from the main application logger and writes to both
-// an in-memory buffer and, if enabled, a log file.
+// StartSession creates a new logger for a specific component path. The logger is separate
+// from the main application logger and writes to both an in-memory buffer and, if
+// enabled, a log file.
 //
-// Takes ctx (context.Context) which controls the lifetime of the background
-// rotation goroutine for file-based session logs.
+// Takes ctx (context.Context) which controls the lifetime of the background rotation
+// goroutine for file-based session logs.
 // Takes entryPointPath (string) which identifies the compilation entry point.
 // Takes relativePath (string) which specifies the component's relative path.
 //
@@ -203,8 +197,8 @@ func (s *CompilationLogStore) GetLogs(filePath string) (string, bool) {
 	return buffer.String(), true
 }
 
-// Clear removes all stored logs and closes any open file handles from the
-// previous build. Call this before a new build starts to ensure a clean state.
+// Clear removes all stored logs and closes any open file handles from the previous build.
+// Call this before a new build starts to ensure a clean state.
 //
 // Safe for concurrent use.
 func (s *CompilationLogStore) Clear(ctx context.Context) {
@@ -222,9 +216,8 @@ func (s *CompilationLogStore) Clear(ctx context.Context) {
 	s.closers = []io.Closer{}
 }
 
-// Shutdown closes all open log file handles.
-// Call this after a build finishes or fails to flush buffers and free
-// resources.
+// Shutdown closes all open log file handles. Call this after a build finishes or fails to
+// flush buffers and free resources.
 //
 // Safe for concurrent use.
 func (s *CompilationLogStore) Shutdown(ctx context.Context) {
@@ -240,8 +233,7 @@ func (s *CompilationLogStore) Shutdown(ctx context.Context) {
 	s.closers = []io.Closer{}
 }
 
-// ensureLogDir creates the log directory using the configured or temporary
-// sandbox.
+// ensureLogDir creates the log directory using the configured or temporary sandbox.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes logDir (string) which specifies the directory to create.
@@ -281,24 +273,22 @@ func (s *CompilationLogStore) ensureLogDir(ctx context.Context, logDir string) e
 	return nil
 }
 
-// WithLogStoreSandbox sets a sandbox for testing log folder creation.
-// The caller must close the sandbox when done.
+// WithLogStoreSandbox sets a sandbox for testing log folder creation. The caller must
+// close the sandbox when done.
 //
 // Takes sandbox (safedisk.Sandbox) which provides file system access.
 //
-// Returns CompilationLogStoreOption which sets up the store to use the given
-// sandbox.
+// Returns CompilationLogStoreOption which sets up the store to use the given sandbox.
 func WithLogStoreSandbox(sandbox safedisk.Sandbox) CompilationLogStoreOption {
 	return func(s *CompilationLogStore) {
 		s.sandbox = sandbox
 	}
 }
 
-// WithLogStoreSandboxFactory sets a factory for creating sandboxes when no
-// sandbox is directly injected.
+// WithLogStoreSandboxFactory sets a factory for creating sandboxes when no sandbox is
+// directly injected.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for log directory
-// operations.
+// Takes factory (safedisk.Factory) which creates sandboxes for log directory operations.
 //
 // Returns CompilationLogStoreOption which sets the factory on the store.
 func WithLogStoreSandboxFactory(factory safedisk.Factory) CompilationLogStoreOption {

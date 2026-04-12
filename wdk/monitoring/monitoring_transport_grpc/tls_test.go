@@ -19,10 +19,10 @@
 package monitoring_transport_grpc
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"

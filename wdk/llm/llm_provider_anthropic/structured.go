@@ -30,21 +30,21 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// structuredOutputToolName is the name of the synthetic tool used for
-// structured output.
-const structuredOutputToolName = "__piko_structured_output__"
+const (
+	// structuredOutputToolName is the name of the synthetic tool used for structured output.
+	structuredOutputToolName = "__piko_structured_output__"
+)
 
-// completeWithStructuredOutput handles structured output requests by
-// translating them to tool use. Claude does not support
-// response_format.json_schema natively, so this creates a synthetic tool with
-// the schema and forces the model to call it.
+// completeWithStructuredOutput handles structured output requests by translating them to
+// tool use. Claude does not support response_format.json_schema natively, so this creates
+// a synthetic tool with the schema and forces the model to call it.
 //
-// Takes request (*llm_dto.CompletionRequest) which contains the structured output
-// schema and request parameters.
+// Takes request (*llm_dto.CompletionRequest) which contains the structured output schema
+// and request parameters.
 // Takes model (string) which specifies the Anthropic model to use.
 //
-// Returns *llm_dto.CompletionResponse which contains the structured output
-// extracted from the tool call result.
+// Returns *llm_dto.CompletionResponse which contains the structured output extracted from
+// the tool call result.
 // Returns error when the API request fails or response conversion fails.
 func (p *anthropicProvider) completeWithStructuredOutput(ctx context.Context, request *llm_dto.CompletionRequest, model string) (*llm_dto.CompletionResponse, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.anthropicProvider.completeWithStructuredOutput")
@@ -83,14 +83,14 @@ func (p *anthropicProvider) completeWithStructuredOutput(ctx context.Context, re
 	return p.convertStructuredOutputResponse(message, model)
 }
 
-// convertStructuredOutputResponse converts a tool-use response back to a
-// structured output response format.
+// convertStructuredOutputResponse converts a tool-use response back to a structured
+// output response format.
 //
 // Takes message (*anthropic.Message) which contains the raw Anthropic response.
 // Takes model (string) which identifies the model used for the completion.
 //
-// Returns *llm_dto.CompletionResponse which contains the converted response
-// with JSON content extracted from the synthetic tool use block.
+// Returns *llm_dto.CompletionResponse which contains the converted response with JSON
+// content extracted from the synthetic tool use block.
 // Returns error when the structured output cannot be marshalled to JSON.
 func (p *anthropicProvider) convertStructuredOutputResponse(message *anthropic.Message, model string) (*llm_dto.CompletionResponse, error) {
 	for i := range message.Content {

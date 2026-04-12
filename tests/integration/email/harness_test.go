@@ -81,8 +81,10 @@ type testCase struct {
 	EntryFile string
 }
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
-var sendEmails = flag.Bool("send", false, "Send rendered emails via Gmail (requires .env)")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+	sendEmails = flag.Bool("send", false, "Send rendered emails via Gmail (requires .env)")
+)
 
 type emailConfig struct {
 	ServerToken string

@@ -40,8 +40,7 @@ const (
 	// httpStatusOK is the HTTP status code for a successful response.
 	httpStatusOK = http.StatusOK
 
-	// httpStatusBadRequest indicates an invalid token format or missing
-	// parameters.
+	// httpStatusBadRequest indicates an invalid token format or missing parameters.
 	httpStatusBadRequest = http.StatusBadRequest
 
 	// httpStatusUnauthorised is the HTTP 401 status code for invalid credentials.
@@ -50,12 +49,11 @@ const (
 	// httpStatusForbidden is HTTP status 403, used for expired or reused tokens.
 	httpStatusForbidden = http.StatusForbidden
 
-	// httpStatusPayloadTooLarge is the HTTP status code for when a file is too
-	// large.
+	// httpStatusPayloadTooLarge is the HTTP status code for when a file is too large.
 	httpStatusPayloadTooLarge = http.StatusRequestEntityTooLarge
 
-	// httpStatusUnsupportedMediaType indicates a mismatch between the expected
-	// and actual Content-Type header values.
+	// httpStatusUnsupportedMediaType indicates a mismatch between the expected and actual
+	// Content-Type header values.
 	httpStatusUnsupportedMediaType = http.StatusUnsupportedMediaType
 
 	// httpStatusInternalError indicates a storage write failure.
@@ -73,12 +71,11 @@ const (
 	// headerLastModified is the HTTP header name for the last modified time.
 	headerLastModified = "Last-Modified"
 
-	// headerIfNoneMatch is the HTTP header name for conditional requests using
-	// ETags.
+	// headerIfNoneMatch is the HTTP header name for conditional requests using ETags.
 	headerIfNoneMatch = "If-None-Match"
 
-	// headerIfModifiedSince is the HTTP header name for requests that check
-	// whether a resource has changed since a given time.
+	// headerIfModifiedSince is the HTTP header name for requests that check whether a
+	// resource has changed since a given time.
 	headerIfModifiedSince = "If-Modified-Since"
 
 	// headerCacheControl is the HTTP header name for cache control settings.
@@ -87,14 +84,13 @@ const (
 	// headerContentDisposition is the HTTP header key for Content-Disposition.
 	headerContentDisposition = "Content-Disposition"
 
-	// defaultCacheControl is the Cache-Control header value used when no metadata
-	// is set.
+	// defaultCacheControl is the Cache-Control header value used when no metadata is set.
 	defaultCacheControl = "private, max-age=3600"
 )
 
 var (
-	// inlineTopLevelTypes lists MIME type categories (top-level types) that should
-	// be displayed inline. These cover the majority of browser-renderable content.
+	// inlineTopLevelTypes lists MIME type categories (top-level types) that should be
+	// displayed inline. These cover the majority of browser-renderable content.
 	inlineTopLevelTypes = map[string]struct{}{
 		"image": {},
 		"video": {},
@@ -103,8 +99,8 @@ var (
 		"font":  {},
 	}
 
-	// inlineApplicationTypes lists specific application/* MIME types that browsers
-	// can typically render inline.
+	// inlineApplicationTypes lists specific application/* MIME types that browsers can
+	// typically render inline.
 	inlineApplicationTypes = map[string]struct{}{
 		"application/pdf":                   {},
 		"application/json":                  {},
@@ -156,22 +152,19 @@ type errorWriteFunction func(
 	message string,
 )
 
-// Handler provides HTTP handling for presigned URL uploads.
-// It implements http.Handler.
+// Handler provides HTTP handling for presigned URL uploads. It implements http.Handler.
 type Handler struct {
 	// storageService writes uploaded files to storage.
 	storageService storage_domain.Service
 
-	// config holds the presign URL settings, including the secret and replay
-	// cache.
+	// config holds the presign URL settings, including the secret and replay cache.
 	config storage_domain.PresignConfig
 }
 
 // NewHandler creates a new presigned upload handler.
 //
 // Takes storageService (storage_domain.Service) which handles file storage.
-// Takes config (storage_domain.PresignConfig) which provides token verification
-// settings.
+// Takes config (storage_domain.PresignConfig) which provides token verification settings.
 //
 // Returns *Handler which is ready to handle upload requests.
 func NewHandler(
@@ -186,8 +179,8 @@ func NewHandler(
 
 // ServeHTTP handles presigned upload requests.
 //
-// It validates the token, checks rate limits, verifies content-type, enforces
-// size limits, and streams the upload to the storage provider.
+// It validates the token, checks rate limits, verifies content-type, enforces size
+// limits, and streams the upload to the storage provider.
 //
 // Takes w (http.ResponseWriter) which receives the response.
 // Takes r (*http.Request) which contains the upload request.
@@ -261,11 +254,9 @@ func (h *Handler) validateUploadRequest(w http.ResponseWriter, r *http.Request) 
 // checkReplayProtection verifies the token has not been used before.
 //
 // Takes w (http.ResponseWriter) which receives error responses on replay.
-// Takes tokenData (*storage_domain.PresignTokenData) which contains the token
-// to check.
+// Takes tokenData (*storage_domain.PresignTokenData) which contains the token to check.
 //
-// Returns bool which is true if the token is valid, or false if it was already
-// used.
+// Returns bool which is true if the token is valid, or false if it was already used.
 func (h *Handler) checkReplayProtection(ctx context.Context, w http.ResponseWriter, tokenData *storage_domain.PresignTokenData) bool {
 	if h.config.RIDCache == nil {
 		return true
@@ -282,17 +273,16 @@ func (h *Handler) checkReplayProtection(ctx context.Context, w http.ResponseWrit
 	return true
 }
 
-// validateRequestContentType checks if the request Content-Type header matches
-// the expected value from the token.
+// validateRequestContentType checks if the request Content-Type header matches the
+// expected value from the token.
 //
-// Takes w (http.ResponseWriter) which receives error responses when there is a
-// mismatch.
+// Takes w (http.ResponseWriter) which receives error responses when there is a mismatch.
 // Takes r (*http.Request) which provides the Content-Type header to check.
-// Takes tokenData (*storage_domain.PresignTokenData) which holds the expected
-// content type.
+// Takes tokenData (*storage_domain.PresignTokenData) which holds the expected content
+// type.
 //
-// Returns bool which is true when the content type matches or when no content
-// type is required.
+// Returns bool which is true when the content type matches or when no content type is
+// required.
 func (h *Handler) validateRequestContentType(w http.ResponseWriter, r *http.Request, tokenData *storage_domain.PresignTokenData) bool {
 	if tokenData.ContentType == "" {
 		return true
@@ -309,11 +299,10 @@ func (h *Handler) validateRequestContentType(w http.ResponseWriter, r *http.Requ
 // uploadFile streams the request body to the storage provider.
 //
 // Takes body (io.Reader) which provides the file content.
-// Takes tokenData (*storage_domain.PresignTokenData) which specifies where
-// to store the file.
+// Takes tokenData (*storage_domain.PresignTokenData) which specifies where to store the
+// file.
 // Takes providerName (string) which identifies the storage provider.
-// Takes contentLength (int64) which is the expected size from the
-// Content-Length header.
+// Takes contentLength (int64) which is the expected size from the Content-Length header.
 //
 // Returns int64 which is the number of bytes written.
 // Returns error when the upload fails.
@@ -428,8 +417,7 @@ type DownloadHandler struct {
 // NewDownloadHandler creates a new presigned download handler.
 //
 // Takes storageService (storage_domain.Service) which handles file retrieval.
-// Takes config (storage_domain.PresignConfig) which provides token verification
-// settings.
+// Takes config (storage_domain.PresignConfig) which provides token verification settings.
 //
 // Returns *DownloadHandler which is ready to handle download requests.
 func NewDownloadHandler(
@@ -444,8 +432,8 @@ func NewDownloadHandler(
 
 // ServeHTTP handles presigned download requests.
 //
-// It validates the download token, verifies it has not expired, and streams
-// the file to the client with appropriate headers.
+// It validates the download token, verifies it has not expired, and streams the file to
+// the client with appropriate headers.
 //
 // Takes w (http.ResponseWriter) which receives the file content and headers.
 // Takes r (*http.Request) which contains the download token and request data.
@@ -475,14 +463,14 @@ func (h *DownloadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.streamFile(ctx, w, providerName, tokenData)
 }
 
-// validateDownloadRequest checks that a download request is valid and extracts
-// token data.
+// validateDownloadRequest checks that a download request is valid and extracts token
+// data.
 //
 // Takes w (http.ResponseWriter) which receives error responses on failure.
 // Takes r (*http.Request) which provides the request to check.
 //
-// Returns *storage_domain.PresignDownloadTokenData which contains the parsed
-// token data on success, or nil on failure.
+// Returns *storage_domain.PresignDownloadTokenData which contains the parsed token data
+// on success, or nil on failure.
 // Returns string which is the provider name from the query, or "default".
 // Returns bool which shows whether the check passed.
 func (h *DownloadHandler) validateDownloadRequest(w http.ResponseWriter, r *http.Request) (*storage_domain.PresignDownloadTokenData, string, bool) {
@@ -512,8 +500,8 @@ func (h *DownloadHandler) validateDownloadRequest(w http.ResponseWriter, r *http
 //
 // Takes w (http.ResponseWriter) which receives error responses on failure.
 // Takes providerName (string) which identifies the storage provider to query.
-// Takes tokenData (*storage_domain.PresignDownloadTokenData) which contains
-// the repository and key for the file to look up.
+// Takes tokenData (*storage_domain.PresignDownloadTokenData) which contains the
+// repository and key for the file to look up.
 //
 // Returns *storage_domain.ObjectInfo which contains the file metadata.
 // Returns error when the storage service cannot get the file information.
@@ -533,15 +521,15 @@ func (h *DownloadHandler) statFile(ctx context.Context, w http.ResponseWriter, p
 	return info, nil
 }
 
-// checkConditionalRequest checks If-None-Match and If-Modified-Since headers
-// and returns 304 Not Modified if the client's cached version is still valid.
+// checkConditionalRequest checks If-None-Match and If-Modified-Since headers and returns
+// 304 Not Modified if the client's cached version is still valid.
 //
 // Takes w (http.ResponseWriter) which receives the 304 response if applicable.
 // Takes r (*http.Request) which provides the conditional request headers.
 // Takes info (*storage_domain.ObjectInfo) which provides ETag and LastModified.
 //
-// Returns bool which is true if a 304 response was sent and the caller should
-// return early.
+// Returns bool which is true if a 304 response was sent and the caller should return
+// early.
 func (*DownloadHandler) checkConditionalRequest(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -555,14 +543,14 @@ func (*DownloadHandler) checkConditionalRequest(
 
 // setDownloadHeaders sets the response headers for a file download.
 //
-// It sets caching headers (ETag, Last-Modified, Cache-Control) and
-// Content-Disposition based on the object metadata and token preferences.
+// It sets caching headers (ETag, Last-Modified, Cache-Control) and Content-Disposition
+// based on the object metadata and token preferences.
 //
 // Takes w (http.ResponseWriter) which receives the response headers.
-// Takes tokenData (*storage_domain.PresignDownloadTokenData) which provides
-// content type and filename preferences.
-// Takes info (*storage_domain.ObjectInfo) which provides object metadata
-// including ETag, LastModified, and custom metadata for cache control.
+// Takes tokenData (*storage_domain.PresignDownloadTokenData) which provides content type
+// and filename preferences.
+// Takes info (*storage_domain.ObjectInfo) which provides object metadata including ETag,
+// LastModified, and custom metadata for cache control.
 func (*DownloadHandler) setDownloadHeaders(
 	w http.ResponseWriter,
 	tokenData *storage_domain.PresignDownloadTokenData,
@@ -582,8 +570,8 @@ func (*DownloadHandler) setDownloadHeaders(
 //
 // Takes w (http.ResponseWriter) which receives the file data.
 // Takes providerName (string) which names the storage provider to use.
-// Takes tokenData (*storage_domain.PresignDownloadTokenData) which holds
-// the repository and key for the file to fetch.
+// Takes tokenData (*storage_domain.PresignDownloadTokenData) which holds the repository
+// and key for the file to fetch.
 func (h *DownloadHandler) streamFile(ctx context.Context, w http.ResponseWriter, providerName string, tokenData *storage_domain.PresignDownloadTokenData) {
 	ctx, l := logger_domain.From(ctx, log)
 	reader, err := h.storageService.GetObject(ctx, providerName, storage_dto.GetParams{
@@ -641,8 +629,8 @@ func (*DownloadHandler) writeError(ctx context.Context, w http.ResponseWriter, s
 	}
 }
 
-// isInlineContentType checks whether a MIME type should display inline rather
-// than as an attachment. Uses mime.ParseMediaType for parsing.
+// isInlineContentType checks whether a MIME type should display inline rather than as an
+// attachment. Uses mime.ParseMediaType for parsing.
 //
 // Takes contentType (string) which is the MIME type to check.
 //
@@ -676,8 +664,8 @@ func isInlineContentType(contentType string) bool {
 	return false
 }
 
-// etagMatches checks if a client ETag matches a server ETag.
-// Supports the "*" wildcard and comma-separated lists as per RFC 7232.
+// etagMatches checks if a client ETag matches a server ETag. Supports the "*" wildcard
+// and comma-separated lists as per RFC 7232.
 //
 // Takes clientETag (string) which is the value from the If-None-Match header.
 // Takes serverETag (string) which is the ETag of the current resource.
@@ -698,8 +686,8 @@ func etagMatches(clientETag, serverETag string) bool {
 	return false
 }
 
-// handleTokenValidationError maps token validation errors to HTTP
-// responses using the provided write function.
+// handleTokenValidationError maps token validation errors to HTTP responses using the
+// provided write function.
 //
 // Takes ctx (context.Context) which carries the request context.
 // Takes w (http.ResponseWriter) which receives the error response.
@@ -727,9 +715,8 @@ func handleTokenValidationError(
 	}
 }
 
-// contentTypeMatches checks if a request content type matches an expected type.
-// It compares only the media type part and ignores charset and other
-// parameters.
+// contentTypeMatches checks if a request content type matches an expected type. It
+// compares only the media type part and ignores charset and other parameters.
 //
 // When expectedCT is empty, returns true (no restriction is set).
 //
@@ -753,8 +740,8 @@ func contentTypeMatches(requestCT, expectedCT string) bool {
 	return strings.TrimSpace(strings.ToLower(requestMedia)) == strings.TrimSpace(strings.ToLower(expectedMedia))
 }
 
-// checkETagMatch checks the If-None-Match header and returns true if a 304
-// response was sent.
+// checkETagMatch checks the If-None-Match header and returns true if a 304 response was
+// sent.
 //
 // Takes w (http.ResponseWriter) which receives the 304 status if ETags match.
 // Takes r (*http.Request) which provides the If-None-Match header value.
@@ -773,13 +760,12 @@ func checkETagMatch(w http.ResponseWriter, r *http.Request, info *storage_domain
 	return false
 }
 
-// checkIfModifiedSince checks the If-Modified-Since header and returns true if
-// a 304 Not Modified response was sent.
+// checkIfModifiedSince checks the If-Modified-Since header and returns true if a 304 Not
+// Modified response was sent.
 //
 // Takes w (http.ResponseWriter) which receives the 304 status if applicable.
 // Takes r (*http.Request) which provides the If-Modified-Since header.
-// Takes info (*storage_domain.ObjectInfo) which contains the last modified
-// time.
+// Takes info (*storage_domain.ObjectInfo) which contains the last modified time.
 //
 // Returns bool which is true when a 304 response was sent, false otherwise.
 func checkIfModifiedSince(w http.ResponseWriter, r *http.Request, info *storage_domain.ObjectInfo) bool {
@@ -804,8 +790,8 @@ func checkIfModifiedSince(w http.ResponseWriter, r *http.Request, info *storage_
 	return false
 }
 
-// resolveContentType returns the content type to use, preferring the token's
-// value over the object's metadata.
+// resolveContentType returns the content type to use, preferring the token's value over
+// the object's metadata.
 //
 // Takes tokenCT (string) which is the content type from the token.
 // Takes infoCT (string) which is the content type from object metadata.
@@ -836,8 +822,7 @@ func setBasicHeaders(w http.ResponseWriter, info *storage_domain.ObjectInfo) {
 // setCacheControl sets the Cache-Control header from metadata or uses default.
 //
 // Takes w (http.ResponseWriter) which receives the Cache-Control header.
-// Takes info (*storage_domain.ObjectInfo) which provides metadata for cache
-// settings.
+// Takes info (*storage_domain.ObjectInfo) which provides metadata for cache settings.
 func setCacheControl(w http.ResponseWriter, info *storage_domain.ObjectInfo) {
 	cacheControl := defaultCacheControl
 	if info.Metadata != nil {
@@ -848,14 +833,13 @@ func setCacheControl(w http.ResponseWriter, info *storage_domain.ObjectInfo) {
 	w.Header().Set(headerCacheControl, cacheControl)
 }
 
-// setContentDisposition sets the Content-Disposition header based on metadata,
-// content type, and optional filename.
+// setContentDisposition sets the Content-Disposition header based on metadata, content
+// type, and optional filename.
 //
 // Takes w (http.ResponseWriter) which receives the header.
 // Takes fileName (string) which specifies the optional filename for the header.
 // Takes contentType (string) which determines the disposition type.
-// Takes metadata (map[string]string) which provides additional disposition
-// hints.
+// Takes metadata (map[string]string) which provides additional disposition hints.
 func setContentDisposition(w http.ResponseWriter, fileName, contentType string, metadata map[string]string) {
 	disposition := determineDisposition(contentType, metadata)
 
@@ -866,12 +850,11 @@ func setContentDisposition(w http.ResponseWriter, fileName, contentType string, 
 	}
 }
 
-// determineDisposition returns "inline" or "attachment" based on metadata
-// preference or content type.
+// determineDisposition returns "inline" or "attachment" based on metadata preference or
+// content type.
 //
 // Takes contentType (string) which specifies the MIME type of the content.
-// Takes metadata (map[string]string) which may contain a disposition
-// preference.
+// Takes metadata (map[string]string) which may contain a disposition preference.
 //
 // Returns string which is either "inline" or "attachment".
 func determineDisposition(contentType string, metadata map[string]string) string {

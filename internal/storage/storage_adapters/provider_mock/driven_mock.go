@@ -36,10 +36,12 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-// ErrObjectNotFound is a sentinel error returned by the mock provider when an
-// object does not exist. Tests should use `errors.Is(err,
-// provider_mock.ErrObjectNotFound)` to check for this condition.
-var ErrObjectNotFound = errors.New("object not found")
+var (
+	// ErrObjectNotFound is a sentinel error returned by the mock provider when an object
+	// does not exist. Tests should use `errors.Is(err, provider_mock.ErrObjectNotFound)` to
+	// check for this condition.
+	ErrObjectNotFound = errors.New("object not found")
+)
 
 // mockObject represents a file stored in the mock storage provider's memory.
 type mockObject struct {
@@ -56,9 +58,8 @@ type mockObject struct {
 	data []byte
 }
 
-// MockStorageProvider is a thread-safe, in-memory implementation of
-// StorageProviderPort for testing. It supports call inspection, state
-// verification, and error simulation.
+// MockStorageProvider is a thread-safe, in-memory implementation of StorageProviderPort
+// for testing. It supports call inspection, state verification, and error simulation.
 type MockStorageProvider struct {
 	// copyError is returned by copyInternal when set; nil means no error.
 	copyError error
@@ -69,8 +70,8 @@ type MockStorageProvider struct {
 	// putManyError is returned by PutMany when set; nil allows normal operation.
 	putManyError error
 
-	// presignError is returned by PresignURL and PresignDownloadURL when set;
-	// nil means no error.
+	// presignError is returned by PresignURL and PresignDownloadURL when set; nil means no
+	// error.
 	presignError error
 
 	// getHashError is the error returned by GetHash when set; nil means no error.
@@ -94,19 +95,17 @@ type MockStorageProvider struct {
 	// storage maps repository names to their objects, keyed by object key.
 	storage map[string]map[string]*mockObject
 
-	// hashToReturn is the hash value to return from GetHash; empty uses
-	// default behaviour.
+	// hashToReturn is the hash value to return from GetHash; empty uses default behaviour.
 	hashToReturn string
 
-	// presignedURLToReturn is the URL to return from PresignURL and
-	// PresignDownloadURL; empty uses default behaviour.
+	// presignedURLToReturn is the URL to return from PresignURL and PresignDownloadURL;
+	// empty uses default behaviour.
 	presignedURLToReturn string
 
 	// copyCalls records each copy operation for test verification.
 	copyCalls []storage_dto.CopyParams
 
-	// removeManyCalls records parameters from each RemoveMany call for test
-	// verification.
+	// removeManyCalls records parameters from each RemoveMany call for test verification.
 	removeManyCalls []storage_dto.RemoveManyParams
 
 	// putManyCalls stores the arguments from each PutMany call for later checking.
@@ -118,8 +117,7 @@ type MockStorageProvider struct {
 	// getHashCalls records the parameters passed to each GetHash call.
 	getHashCalls []storage_dto.GetParams
 
-	// removeCalls records the parameters of each Remove call for test
-	// verification.
+	// removeCalls records the parameters of each Remove call for test verification.
 	removeCalls []storage_dto.GetParams
 
 	// statCalls stores the parameters from each Stat method call.
@@ -135,13 +133,15 @@ type MockStorageProvider struct {
 	mu sync.RWMutex
 }
 
-var _ storage_domain.StorageProviderPort = (*MockStorageProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*MockStorageProvider)(nil)
+var (
+	_ storage_domain.StorageProviderPort = (*MockStorageProvider)(nil)
+
+	_ provider_domain.ProviderMetadata = (*MockStorageProvider)(nil)
+)
 
 // NewMockStorageProvider creates a new mock storage provider for use in tests.
 //
-// Returns *MockStorageProvider which is ready for use with all error fields
-// set to nil.
+// Returns *MockStorageProvider which is ready for use with all error fields set to nil.
 func NewMockStorageProvider() *MockStorageProvider {
 	return &MockStorageProvider{
 		copyError:            nil,
@@ -186,17 +186,14 @@ func (*MockStorageProvider) GetProviderMetadata() map[string]any {
 	}
 }
 
-// Put simulates an object upload, storing the data in memory and recording the
-// call.
+// Put simulates an object upload, storing the data in memory and recording the call.
 //
-// Takes params (*storage_dto.PutParams) which specifies the repository, key,
-// reader, and metadata for the object.
+// Takes params (*storage_dto.PutParams) which specifies the repository, key, reader, and
+// metadata for the object.
 //
-// Returns error when reading from the reader fails or a configured error is
-// set.
+// Returns error when reading from the reader fails or a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) Put(_ context.Context, params *storage_dto.PutParams) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -238,14 +235,13 @@ func (m *MockStorageProvider) Put(_ context.Context, params *storage_dto.PutPara
 
 // Get simulates retrieving an object, returning its data from memory.
 //
-// Takes params (storage_dto.GetParams) which specifies the repository, key,
-// and optional byte range.
+// Takes params (storage_dto.GetParams) which specifies the repository, key, and optional
+// byte range.
 //
 // Returns io.ReadCloser which provides the object data as a stream.
 // Returns error when the object is not found or a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) Get(_ context.Context, params storage_dto.GetParams) (io.ReadCloser, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -289,14 +285,12 @@ func (m *MockStorageProvider) Get(_ context.Context, params storage_dto.GetParam
 
 // Stat simulates retrieving object metadata.
 //
-// Takes params (storage_dto.GetParams) which specifies the repository and
-// key to query.
+// Takes params (storage_dto.GetParams) which specifies the repository and key to query.
 //
 // Returns *storage_domain.ObjectInfo which contains the object metadata.
 // Returns error when the object is not found or a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) Stat(_ context.Context, params storage_dto.GetParams) (*storage_domain.ObjectInfo, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -334,8 +328,7 @@ func (m *MockStorageProvider) Stat(_ context.Context, params storage_dto.GetPara
 // Takes srcKey (string) which specifies the source object key.
 // Takes dstKey (string) which specifies the destination object key.
 //
-// Returns error when the source object is not found or a configured error
-// is set.
+// Returns error when the source object is not found or a configured error is set.
 func (m *MockStorageProvider) Copy(_ context.Context, repo string, srcKey, dstKey string) error {
 	return m.copyInternal(storage_dto.CopyParams{
 		SourceRepository:      repo,
@@ -352,8 +345,7 @@ func (m *MockStorageProvider) Copy(_ context.Context, repo string, srcKey, dstKe
 // Takes dstRepo (string) which identifies the destination repository.
 // Takes dstKey (string) which specifies the destination object key.
 //
-// Returns error when the source object is not found or a configured error
-// is set.
+// Returns error when the source object is not found or a configured error is set.
 func (m *MockStorageProvider) CopyToAnotherRepository(_ context.Context, srcRepo string, srcKey string, dstRepo string, dstKey string) error {
 	return m.copyInternal(storage_dto.CopyParams{
 		SourceRepository:      srcRepo,
@@ -365,13 +357,11 @@ func (m *MockStorageProvider) CopyToAnotherRepository(_ context.Context, srcRepo
 
 // Remove simulates deleting an object from memory. It is idempotent.
 //
-// Takes params (storage_dto.GetParams) which specifies the repository and
-// key to delete.
+// Takes params (storage_dto.GetParams) which specifies the repository and key to delete.
 //
 // Returns error when a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) Remove(_ context.Context, params storage_dto.GetParams) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -391,8 +381,7 @@ func (m *MockStorageProvider) Remove(_ context.Context, params storage_dto.GetPa
 	return nil
 }
 
-// Rename simulates moving an object from one key to another within the same
-// repository.
+// Rename simulates moving an object from one key to another within the same repository.
 //
 // Takes repo (string) which identifies the repository containing the object.
 // Takes oldKey (string) which specifies the current object key.
@@ -416,17 +405,14 @@ func (m *MockStorageProvider) Rename(ctx context.Context, repo string, oldKey, n
 }
 
 // Exists checks if an object exists in the mock storage.
-// Returns (true, nil) if exists, (false, nil) if not exists, (false, error) on
-// failure.
+// Returns (true, nil) if exists, (false, nil) if not exists, (false, error) on failure.
 //
-// Takes params (storage_dto.GetParams) which specifies the repository and
-// key to check.
+// Takes params (storage_dto.GetParams) which specifies the repository and key to check.
 //
 // Returns bool which is true if the object exists, false otherwise.
 // Returns error when a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// read lock.
+// Safe for concurrent use. Access is serialised by an internal read lock.
 func (m *MockStorageProvider) Exists(_ context.Context, params storage_dto.GetParams) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -445,15 +431,13 @@ func (m *MockStorageProvider) Exists(_ context.Context, params storage_dto.GetPa
 
 // GetHash simulates calculating an object's MD5 hash.
 //
-// Takes params (storage_dto.GetParams) which specifies the repository and
-// key to hash.
+// Takes params (storage_dto.GetParams) which specifies the repository and key to hash.
 //
-// Returns string which is the hex-encoded hash of the object data, or a
-// configured hash value.
+// Returns string which is the hex-encoded hash of the object data, or a configured hash
+// value.
 // Returns error when the object is not found or a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) GetHash(_ context.Context, params storage_dto.GetParams) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -484,14 +468,13 @@ func (m *MockStorageProvider) GetHash(_ context.Context, params storage_dto.GetP
 
 // PresignURL simulates generating a presigned URL.
 //
-// Takes params (storage_dto.PresignParams) which specifies the repository,
-// key, and expiry settings.
+// Takes params (storage_dto.PresignParams) which specifies the repository, key, and
+// expiry settings.
 //
 // Returns string which is the generated presigned URL, or a configured URL.
 // Returns error when a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) PresignURL(_ context.Context, params storage_dto.PresignParams) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -513,15 +496,13 @@ func (m *MockStorageProvider) PresignURL(_ context.Context, params storage_dto.P
 
 // PresignDownloadURL simulates generating a presigned download URL.
 //
-// Takes params (storage_dto.PresignDownloadParams) which specifies the
-// repository, key, and download settings.
+// Takes params (storage_dto.PresignDownloadParams) which specifies the repository, key,
+// and download settings.
 //
-// Returns string which is the generated presigned download URL, or a
-// configured URL.
+// Returns string which is the generated presigned download URL, or a configured URL.
 // Returns error when a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) PresignDownloadURL(_ context.Context, params storage_dto.PresignDownloadParams) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -546,8 +527,8 @@ func (*MockStorageProvider) Name() string {
 	return "StorageProvider (Mock)"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// The mock storage provider is always healthy as it operates in-memory.
+// Check implements the healthprobe_domain.Probe interface. The mock storage provider is
+// always healthy as it operates in-memory.
 //
 // Returns healthprobe_dto.Status which always reports healthy.
 func (m *MockStorageProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -571,31 +552,28 @@ func (*MockStorageProvider) Close(_ context.Context) error {
 
 // SupportsMultipart returns whether the provider supports multipart uploads.
 //
-// Returns bool which is always true, as the mock can be used to test
-// multipart logic.
+// Returns bool which is always true, as the mock can be used to test multipart logic.
 func (*MockStorageProvider) SupportsMultipart() bool {
 	return true
 }
 
-// SupportsBatchOperations returns whether this provider supports batch
-// operations.
+// SupportsBatchOperations returns whether this provider supports batch operations.
 //
-// Returns bool which is always true, as the mock provides batch
-// implementations.
+// Returns bool which is always true, as the mock provides batch implementations.
 func (*MockStorageProvider) SupportsBatchOperations() bool {
 	return true
 }
 
-// SupportsRetry returns false; the service layer should handle retries for
-// testing purposes.
+// SupportsRetry returns false; the service layer should handle retries for testing
+// purposes.
 //
 // Returns bool which indicates whether the provider supports automatic retries.
 func (*MockStorageProvider) SupportsRetry() bool {
 	return false
 }
 
-// SupportsCircuitBreaking returns false; the service layer handles circuit
-// breaking for testing.
+// SupportsCircuitBreaking returns false; the service layer handles circuit breaking for
+// testing.
 //
 // Returns bool which indicates whether circuit breaking is supported.
 func (*MockStorageProvider) SupportsCircuitBreaking() bool {
@@ -604,14 +582,14 @@ func (*MockStorageProvider) SupportsCircuitBreaking() bool {
 
 // SupportsRateLimiting reports whether the provider supports rate limiting.
 //
-// Returns bool which is always false; the service layer handles rate limiting
-// for testing.
+// Returns bool which is always false; the service layer handles rate limiting for
+// testing.
 func (*MockStorageProvider) SupportsRateLimiting() bool {
 	return false
 }
 
-// SupportsPresignedURLs returns true since the mock provider can simulate
-// native presigned URL generation for testing.
+// SupportsPresignedURLs returns true since the mock provider can simulate native
+// presigned URL generation for testing.
 //
 // Returns bool which is always true for this provider.
 func (*MockStorageProvider) SupportsPresignedURLs() bool {
@@ -620,15 +598,14 @@ func (*MockStorageProvider) SupportsPresignedURLs() bool {
 
 // PutMany simulates batch upload operations with full call tracking.
 //
-// Takes params (*storage_dto.PutManyParams) which specifies the repository
-// and objects to upload.
+// Takes params (*storage_dto.PutManyParams) which specifies the repository and objects to
+// upload.
 //
-// Returns *storage_dto.BatchResult which contains counts and details of
-// successful and failed uploads.
+// Returns *storage_dto.BatchResult which contains counts and details of successful and
+// failed uploads.
 // Returns error when a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) PutMany(_ context.Context, params *storage_dto.PutManyParams) (*storage_dto.BatchResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -686,15 +663,14 @@ func (m *MockStorageProvider) PutMany(_ context.Context, params *storage_dto.Put
 
 // RemoveMany simulates batch delete operations. It is idempotent.
 //
-// Takes params (storage_dto.RemoveManyParams) which specifies the repository
-// and keys to delete.
+// Takes params (storage_dto.RemoveManyParams) which specifies the repository and keys to
+// delete.
 //
-// Returns *storage_dto.BatchResult which contains counts and details of
-// successful deletions.
+// Returns *storage_dto.BatchResult which contains counts and details of successful
+// deletions.
 // Returns error when a configured error is set.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex.
+// Safe for concurrent use. Access is serialised by an internal mutex.
 func (m *MockStorageProvider) RemoveMany(_ context.Context, params storage_dto.RemoveManyParams) (*storage_dto.BatchResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -741,8 +717,7 @@ func (m *MockStorageProvider) SetError(err error) {
 
 // SetPutError sets an error to be returned specifically by Put.
 //
-// Takes err (error) which is the error that Put will return on subsequent
-// calls.
+// Takes err (error) which is the error that Put will return on subsequent calls.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) SetPutError(err error) {
@@ -784,8 +759,7 @@ func (m *MockStorageProvider) SetRemoveError(err error) {
 	m.removeError = err
 }
 
-// SetCopyError sets an error to be returned by Copy and
-// CopyToAnotherRepository.
+// SetCopyError sets an error to be returned by Copy and CopyToAnotherRepository.
 //
 // Takes err (error) which is the error to return from copy operations.
 //
@@ -818,8 +792,7 @@ func (m *MockStorageProvider) SetPresignError(err error) {
 	m.presignError = err
 }
 
-// SetPresignedURL sets a specific URL to be returned by a successful
-// PresignURL call.
+// SetPresignedURL sets a specific URL to be returned by a successful PresignURL call.
 //
 // Takes url (string) which is the URL to return from future PresignURL calls.
 //
@@ -841,8 +814,7 @@ func (m *MockStorageProvider) SetHash(hash string) {
 	m.hashToReturn = hash
 }
 
-// GetObjectData is a test helper to directly access the stored data for an
-// object.
+// GetObjectData is a test helper to directly access the stored data for an object.
 //
 // Takes repo (string) which identifies the repository to search in.
 // Takes key (string) which identifies the object within the repository.
@@ -866,8 +838,8 @@ func (m *MockStorageProvider) GetObjectData(repo string, key string) ([]byte, bo
 
 // GetPutCalls returns a copy of all parameters passed to Put.
 //
-// Returns []storage_dto.PutParams which contains a copy of all recorded Put
-// call parameters.
+// Returns []storage_dto.PutParams which contains a copy of all recorded Put call
+// parameters.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) GetPutCalls() []storage_dto.PutParams {
@@ -880,8 +852,8 @@ func (m *MockStorageProvider) GetPutCalls() []storage_dto.PutParams {
 
 // GetLastPutCall returns the most recent parameters passed to Put.
 //
-// Returns storage_dto.PutParams which contains the parameters from the last
-// Put call, or an empty value if no calls have been made.
+// Returns storage_dto.PutParams which contains the parameters from the last Put call, or
+// an empty value if no calls have been made.
 // Returns bool which is true if a Put call was recorded, false otherwise.
 //
 // Safe for concurrent use.
@@ -921,8 +893,7 @@ func (m *MockStorageProvider) GetGetCalls() []storage_dto.GetParams {
 
 // GetLastGetCall returns the most recent parameters passed to Get.
 //
-// Returns storage_dto.GetParams which contains the parameters from the last
-// call.
+// Returns storage_dto.GetParams which contains the parameters from the last call.
 // Returns bool which indicates whether a call was recorded.
 //
 // Safe for concurrent use.
@@ -942,8 +913,7 @@ func (m *MockStorageProvider) GetLastGetCall() (storage_dto.GetParams, bool) {
 
 // GetStatCalls returns a copy of all parameters passed to Stat.
 //
-// Returns []storage_dto.GetParams which contains a copy of the recorded call
-// parameters.
+// Returns []storage_dto.GetParams which contains a copy of the recorded call parameters.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) GetStatCalls() []storage_dto.GetParams {
@@ -956,8 +926,7 @@ func (m *MockStorageProvider) GetStatCalls() []storage_dto.GetParams {
 
 // GetLastStatCall returns the most recent parameters passed to Stat.
 //
-// Returns storage_dto.GetParams which contains the parameters from the last
-// Stat call.
+// Returns storage_dto.GetParams which contains the parameters from the last Stat call.
 // Returns bool which indicates whether any Stat call has been recorded.
 //
 // Safe for concurrent use.
@@ -990,8 +959,7 @@ func (m *MockStorageProvider) GetRemoveCalls() []storage_dto.GetParams {
 
 // GetLastRemoveCall returns the most recent parameters passed to Remove.
 //
-// Returns storage_dto.GetParams which contains the parameters from the last
-// Remove call.
+// Returns storage_dto.GetParams which contains the parameters from the last Remove call.
 // Returns bool which indicates whether any Remove call has been recorded.
 //
 // Safe for concurrent use.
@@ -1012,11 +980,10 @@ func (m *MockStorageProvider) GetLastRemoveCall() (storage_dto.GetParams, bool) 
 // GetCopyCalls returns a copy of all parameters passed to Copy or
 // CopyToAnotherRepository.
 //
-// Returns []storage_dto.CopyParams which contains a copy of all recorded call
-// parameters.
+// Returns []storage_dto.CopyParams which contains a copy of all recorded call parameters.
 //
-// Safe for concurrent use. Acquires a read lock to protect access to the
-// internal call log.
+// Safe for concurrent use. Acquires a read lock to protect access to the internal call
+// log.
 func (m *MockStorageProvider) GetCopyCalls() []storage_dto.CopyParams {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -1048,8 +1015,7 @@ func (m *MockStorageProvider) GetLastCopyCall() (storage_dto.CopyParams, bool) {
 
 // GetGetHashCalls returns a copy of all parameters passed to GetHash.
 //
-// Returns []storage_dto.GetParams which contains a copy of the recorded call
-// parameters.
+// Returns []storage_dto.GetParams which contains a copy of the recorded call parameters.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) GetGetHashCalls() []storage_dto.GetParams {
@@ -1062,8 +1028,8 @@ func (m *MockStorageProvider) GetGetHashCalls() []storage_dto.GetParams {
 
 // GetLastGetHashCall returns the most recent parameters passed to GetHash.
 //
-// Returns storage_dto.GetParams which contains the parameters from the last
-// GetHash call, or a zero value if no calls have been made.
+// Returns storage_dto.GetParams which contains the parameters from the last GetHash call,
+// or a zero value if no calls have been made.
 // Returns bool which indicates whether a call was recorded.
 //
 // Safe for concurrent use.
@@ -1083,8 +1049,7 @@ func (m *MockStorageProvider) GetLastGetHashCall() (storage_dto.GetParams, bool)
 
 // GetPresignURLCalls returns a copy of all parameters passed to PresignURL.
 //
-// Returns []storage_dto.PresignParams which holds a copy of the recorded call
-// parameters.
+// Returns []storage_dto.PresignParams which holds a copy of the recorded call parameters.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) GetPresignURLCalls() []storage_dto.PresignParams {
@@ -1095,11 +1060,9 @@ func (m *MockStorageProvider) GetPresignURLCalls() []storage_dto.PresignParams {
 	return callsCopy
 }
 
-// GetLastPresignURLCall returns the most recent parameters passed to
-// PresignURL.
+// GetLastPresignURLCall returns the most recent parameters passed to PresignURL.
 //
-// Returns storage_dto.PresignParams which contains the parameters from the
-// last call.
+// Returns storage_dto.PresignParams which contains the parameters from the last call.
 // Returns bool which is true if a call was recorded, false otherwise.
 //
 // Safe for concurrent use.
@@ -1119,8 +1082,8 @@ func (m *MockStorageProvider) GetLastPresignURLCall() (storage_dto.PresignParams
 
 // GetPutManyCalls returns a copy of all parameters passed to PutMany.
 //
-// Returns []storage_dto.PutManyParams which contains copies of the arguments
-// from each PutMany call.
+// Returns []storage_dto.PutManyParams which contains copies of the arguments from each
+// PutMany call.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) GetPutManyCalls() []storage_dto.PutManyParams {
@@ -1133,8 +1096,7 @@ func (m *MockStorageProvider) GetPutManyCalls() []storage_dto.PutManyParams {
 
 // GetRemoveManyCalls returns a copy of all parameters passed to RemoveMany.
 //
-// Returns []storage_dto.RemoveManyParams which contains the recorded call
-// parameters.
+// Returns []storage_dto.RemoveManyParams which contains the recorded call parameters.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) GetRemoveManyCalls() []storage_dto.RemoveManyParams {
@@ -1145,8 +1107,8 @@ func (m *MockStorageProvider) GetRemoveManyCalls() []storage_dto.RemoveManyParam
 	return callsCopy
 }
 
-// GetTotalCallCount returns the total number of calls made to any of the mock
-// provider's main methods.
+// GetTotalCallCount returns the total number of calls made to any of the mock provider's
+// main methods.
 //
 // Returns int which is the sum of all method call counts.
 //
@@ -1159,8 +1121,8 @@ func (m *MockStorageProvider) GetTotalCallCount() int {
 		len(m.putManyCalls) + len(m.removeManyCalls)
 }
 
-// Reset clears all recorded calls, stored data, and configured errors,
-// preparing the mock for a new test case.
+// Reset clears all recorded calls, stored data, and configured errors, preparing the mock
+// for a new test case.
 //
 // Safe for concurrent use.
 func (m *MockStorageProvider) Reset() {
@@ -1195,8 +1157,8 @@ func (m *MockStorageProvider) Reset() {
 
 // copyInternal copies an object between repositories in the mock storage.
 //
-// Takes params (storage_dto.CopyParams) which specifies the source and
-// destination locations.
+// Takes params (storage_dto.CopyParams) which specifies the source and destination
+// locations.
 //
 // Returns error when the source repository or object does not exist.
 //

@@ -25,15 +25,14 @@ import (
 // ComponentOption configures optional behaviour for a ComponentTester.
 type ComponentOption func(*ComponentConfig)
 
-// ComponentConfig holds the configuration state for a ComponentTester.
-// It is populated by applying ComponentOption functions.
+// ComponentConfig holds the configuration state for a ComponentTester. It is populated by
+// applying ComponentOption functions.
 type ComponentConfig struct {
-	// Renderer is the service that renders templates to HTML during tests.
-	// When nil, HTML() calls on TestView will fail.
+	// Renderer is the service that renders templates to HTML during tests. When nil, HTML()
+	// calls on TestView will fail.
 	Renderer render_domain.RenderService
 
-	// PageID is the unique identifier for the page, used in error messages
-	// and debugging.
+	// PageID is the unique identifier for the page, used in error messages and debugging.
 	PageID string
 }
 

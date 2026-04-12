@@ -26,19 +26,19 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// topologicallySortInvocations builds a dependency graph and sorts a given
-// slice of partial invocations. It returns a new slice in an order that
-// respects dependencies, or a diagnostic if a circular dependency is detected.
+// topologicallySortInvocations builds a dependency graph and sorts a given slice of
+// partial invocations. It returns a new slice in an order that respects dependencies, or
+// a diagnostic if a circular dependency is detected.
 //
-// Takes invocations ([]*annotator_dto.PartialInvocation) which contains the
-// invocations to sort.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides module
-// context for diagnostic reporting.
+// Takes invocations ([]*annotator_dto.PartialInvocation) which contains the invocations
+// to sort.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides module context for
+// diagnostic reporting.
 //
-// Returns []*annotator_dto.PartialInvocation which contains the sorted
-// invocations, or nil if a cycle is detected.
-// Returns []*ast_domain.Diagnostic which contains a circular dependency
-// diagnostic when a cycle is detected.
+// Returns []*annotator_dto.PartialInvocation which contains the sorted invocations, or
+// nil if a cycle is detected.
+// Returns []*ast_domain.Diagnostic which contains a circular dependency diagnostic when a
+// cycle is detected.
 func (b *astBuilder) topologicallySortInvocations(
 	invocations []*annotator_dto.PartialInvocation,
 	virtualModule *annotator_dto.VirtualModule,
@@ -58,15 +58,14 @@ func (b *astBuilder) topologicallySortInvocations(
 	return sortedInvocations, nil
 }
 
-// buildDependencyGraph builds the adjacency list and in-degree map for
-// topological sorting. It uses the DependsOn field from the linking phase to
-// track dependencies.
+// buildDependencyGraph builds the adjacency list and in-degree map for topological
+// sorting. It uses the DependsOn field from the linking phase to track dependencies.
 //
-// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which
-// contains the partial invocations keyed by their invocation key.
+// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which contains the
+// partial invocations keyed by their invocation key.
 //
-// Returns map[string][]string which is the adjacency list mapping each key to
-// its dependents.
+// Returns map[string][]string which is the adjacency list mapping each key to its
+// dependents.
 // Returns map[string]int which is the in-degree count for each invocation key.
 // Returns []string which is a sorted list of all invocation keys.
 func (*astBuilder) buildDependencyGraph(
@@ -95,12 +94,12 @@ func (*astBuilder) buildDependencyGraph(
 
 // performTopologicalSort executes Kahn's algorithm for topological sorting.
 //
-// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which maps
-// keys to their partial invocation data.
-// Takes adj (map[string][]string) which defines the adjacency list of
-// dependencies between nodes.
-// Takes inDegree (map[string]int) which tracks the number of incoming edges
-// for each node.
+// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which maps keys to
+// their partial invocation data.
+// Takes adj (map[string][]string) which defines the adjacency list of dependencies
+// between nodes.
+// Takes inDegree (map[string]int) which tracks the number of incoming edges for each
+// node.
 // Takes allKeys ([]string) which lists all node keys to process.
 //
 // Returns []*annotator_dto.PartialInvocation which contains the invocations in
@@ -132,18 +131,17 @@ func (*astBuilder) performTopologicalSort(
 	return sortedInvocations
 }
 
-// buildCircularDependencyDiagnostic creates a diagnostic for circular
-// dependency errors.
+// buildCircularDependencyDiagnostic creates a diagnostic for circular dependency errors.
 //
-// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which
-// maps partial aliases to their call data.
-// Takes inDegree (map[string]int) which tracks the number of incoming
-// dependencies for each partial.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides the source
-// context for the diagnostic.
+// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which maps partial
+// aliases to their call data.
+// Takes inDegree (map[string]int) which tracks the number of incoming dependencies for
+// each partial.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides the source context
+// for the diagnostic.
 //
-// Returns []*ast_domain.Diagnostic which contains the circular dependency
-// error diagnostic, or nil if no cycle is found.
+// Returns []*ast_domain.Diagnostic which contains the circular dependency error
+// diagnostic, or nil if no cycle is found.
 func (*astBuilder) buildCircularDependencyDiagnostic(
 	invocationsMap map[string]*annotator_dto.PartialInvocation,
 	inDegree map[string]int,
@@ -167,11 +165,11 @@ func (*astBuilder) buildCircularDependencyDiagnostic(
 
 // buildInvocationsMap creates a lookup map from invocation key to invocation.
 //
-// Takes invocations ([]*annotator_dto.PartialInvocation) which provides the
-// list of invocations to index.
+// Takes invocations ([]*annotator_dto.PartialInvocation) which provides the list of
+// invocations to index.
 //
-// Returns map[string]*annotator_dto.PartialInvocation which maps each
-// invocation key to its matching invocation.
+// Returns map[string]*annotator_dto.PartialInvocation which maps each invocation key to
+// its matching invocation.
 func buildInvocationsMap(invocations []*annotator_dto.PartialInvocation) map[string]*annotator_dto.PartialInvocation {
 	invocationsMap := make(map[string]*annotator_dto.PartialInvocation, len(invocations))
 	for _, inv := range invocations {
@@ -182,8 +180,8 @@ func buildInvocationsMap(invocations []*annotator_dto.PartialInvocation) map[str
 
 // buildInitialQueue creates the initial queue of nodes with zero in-degree.
 //
-// Takes inDegree (map[string]int) which maps each node to the number of edges
-// pointing to it.
+// Takes inDegree (map[string]int) which maps each node to the number of edges pointing to
+// it.
 // Takes allKeys ([]string) which lists all node keys to check.
 //
 // Returns []string which contains nodes that have no incoming edges.
@@ -199,16 +197,16 @@ func buildInitialQueue(inDegree map[string]int, allKeys []string) []string {
 
 // findNodeInCycle finds any node that is part of a cycle.
 //
-// A node is part of a cycle if its in-degree is greater than zero after
-// topological sorting.
+// A node is part of a cycle if its in-degree is greater than zero after topological
+// sorting.
 //
-// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which
-// maps keys to their partial invocation data.
-// Takes inDegree (map[string]int) which tracks the in-degree count for each
-// node after sorting.
+// Takes invocationsMap (map[string]*annotator_dto.PartialInvocation) which maps keys to
+// their partial invocation data.
+// Takes inDegree (map[string]int) which tracks the in-degree count for each node after
+// sorting.
 //
-// Returns *annotator_dto.PartialInvocation which is a node from the cycle,
-// or nil if no cycle exists.
+// Returns *annotator_dto.PartialInvocation which is a node from the cycle, or nil if no
+// cycle exists.
 func findNodeInCycle(
 	invocationsMap map[string]*annotator_dto.PartialInvocation,
 	inDegree map[string]int,
@@ -221,13 +219,13 @@ func findNodeInCycle(
 	return nil
 }
 
-// getSourcePathForInvocation finds the source path for an invocation to use in
-// error messages.
+// getSourcePathForInvocation finds the source path for an invocation to use in error
+// messages.
 //
-// Takes invocation (*annotator_dto.PartialInvocation) which identifies the
-// invocation to look up.
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides the
-// component registry to search.
+// Takes invocation (*annotator_dto.PartialInvocation) which identifies the invocation to
+// look up.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides the component
+// registry to search.
 //
 // Returns string which is the source path, or an empty string if not found.
 func getSourcePathForInvocation(

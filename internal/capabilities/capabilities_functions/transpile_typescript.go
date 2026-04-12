@@ -31,15 +31,15 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// TranspileTypeScript returns a capability function that transpiles TypeScript
-// source code to JavaScript. It strips type annotations while preserving
-// runtime code, outputting ES module format.
+// TranspileTypeScript returns a capability function that transpiles TypeScript source
+// code to JavaScript. It strips type annotations while preserving runtime code,
+// outputting ES module format.
 //
-// The optional "sourcePath" parameter is used for error messages. If not
-// provided, the filename defaults to "input.ts".
+// The optional "sourcePath" parameter is used for error messages. If not provided, the
+// filename defaults to "input.ts".
 //
-// Returns capabilities_domain.CapabilityFunc which performs TypeScript
-// transpilation when invoked.
+// Returns capabilities_domain.CapabilityFunc which performs TypeScript transpilation when
+// invoked.
 func TranspileTypeScript() capabilities_domain.CapabilityFunc {
 	transpiler := generator_domain.NewJSTranspiler()
 

@@ -27,7 +27,9 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-var _ provider_domain.ResourceDescriptor = (*collectionService)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*collectionService)(nil)
+)
 
 // ResourceType returns the CLI resource name for the collection hexagon.
 //
@@ -36,11 +38,9 @@ func (*collectionService) ResourceType() string {
 	return "collection"
 }
 
-// ResourceListColumns returns column definitions for the collection provider
-// list table.
+// ResourceListColumns returns column definitions for the collection provider list table.
 //
-// Returns []provider_domain.ColumnDefinition which describes the NAME and TYPE
-// columns.
+// Returns []provider_domain.ColumnDefinition which describes the NAME and TYPE columns.
 func (*collectionService) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
 		{Header: "NAME", Key: "name"},
@@ -48,11 +48,9 @@ func (*collectionService) ResourceListColumns() []provider_domain.ColumnDefiniti
 	}
 }
 
-// ResourceListProviders returns all registered collection providers as list
-// rows.
+// ResourceListProviders returns all registered collection providers as list rows.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// provider.
+// Returns []provider_domain.ProviderListEntry which contains one entry per provider.
 func (s *collectionService) ResourceListProviders(_ context.Context) []provider_domain.ProviderListEntry {
 	names := s.registry.List()
 	slices.Sort(names)
@@ -77,13 +75,12 @@ func (s *collectionService) ResourceListProviders(_ context.Context) []provider_
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a single named
-// collection provider.
+// ResourceDescribeProvider returns detailed information for a single named collection
+// provider.
 //
 // Takes name (string) which identifies the provider to describe.
 //
-// Returns *provider_domain.ProviderDetail which contains the structured
-// sections.
+// Returns *provider_domain.ProviderDetail which contains the structured sections.
 // Returns error when the named provider is not found.
 func (s *collectionService) ResourceDescribeProvider(_ context.Context, name string) (*provider_domain.ProviderDetail, error) {
 	provider, ok := s.registry.Get(name)

@@ -93,8 +93,7 @@ func (s *CacheSpy) Get(ctx context.Context, key string) (*annotator_dto.ProjectA
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes key (string) which identifies the cache entry.
-// Takes result (*annotator_dto.ProjectAnnotationResult) which is the value to
-// store.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which is the value to store.
 //
 // Returns error when the underlying cache fails to store the entry.
 func (s *CacheSpy) Set(ctx context.Context, key string, result *annotator_dto.ProjectAnnotationResult) error {
@@ -187,8 +186,8 @@ func NewIntrospectionCacheSpy(underlying coordinator_domain.IntrospectionCachePo
 //
 // Takes key (string) which identifies the cache entry to retrieve.
 //
-// Returns *coordinator_domain.IntrospectionCacheEntry which is the cached
-// entry if found.
+// Returns *coordinator_domain.IntrospectionCacheEntry which is the cached entry if
+// found.
 // Returns error when the key is not found or the underlying cache fails.
 //
 // Safe for concurrent use. Access to spy counters is protected by a mutex.
@@ -214,8 +213,8 @@ func (s *IntrospectionCacheSpy) Get(ctx context.Context, key string) (*coordinat
 // Set stores an introspection cache entry under the given key.
 //
 // Takes key (string) which identifies the cache entry.
-// Takes entry (*coordinator_domain.IntrospectionCacheEntry) which is the value
-// to store.
+// Takes entry (*coordinator_domain.IntrospectionCacheEntry) which is the value to
+// store.
 //
 // Returns error when the underlying cache fails to store the entry.
 func (s *IntrospectionCacheSpy) Set(ctx context.Context, key string, entry *coordinator_domain.IntrospectionCacheEntry) error {

@@ -29,9 +29,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// htmlLinksCache stores pre-computed font and favicon HTML bytes keyed by
-// config pointer. This eliminates per-request allocations since these values
-// are constant for a given site configuration.
+// htmlLinksCache stores pre-computed font and favicon HTML bytes keyed by config pointer.
+// This eliminates per-request allocations since these values are constant for a given
+// site configuration.
 type htmlLinksCache struct {
 	// fontLinks stores the pre-rendered HTML link tags for web fonts.
 	fontLinks []byte
@@ -41,9 +41,9 @@ type htmlLinksCache struct {
 }
 
 const (
-	// DefaultCSSResetSimple is a minimal CSS reset that zeroes margins and padding
-	// and sets border-box sizing on all elements. This is the default reset used
-	// when WithCSSReset is called without sub-options.
+	// DefaultCSSResetSimple is a minimal CSS reset that zeroes margins and padding and sets
+	// border-box sizing on all elements. This is the default reset used when WithCSSReset is
+	// called without sub-options.
 	DefaultCSSResetSimple = `*, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -51,9 +51,8 @@ const (
 }
 `
 
-	// DefaultCSSResetComplete is the comprehensive legacy CSS reset including
-	// element-level resets, typography defaults, heading sizes via theme variables,
-	// and focus-ring styles.
+	// DefaultCSSResetComplete is the comprehensive legacy CSS reset including element-level
+	// resets, typography defaults, heading sizes via theme variables, and focus-ring styles.
 	DefaultCSSResetComplete = `*, *::before, *::after {
   box-sizing: border-box;
 }
@@ -137,13 +136,15 @@ p {
 `
 )
 
-// cachedHTMLLinks provides thread-safe caching for font and favicon HTML.
-// The map key is the config pointer address, which is stable for a deployment.
-var cachedHTMLLinks sync.Map
+var (
+	// cachedHTMLLinks provides thread-safe caching for font and favicon HTML. The map key is
+	// the config pointer address, which is stable for a deployment.
+	cachedHTMLLinks sync.Map
+)
 
-// BuildThemeCSS generates CSS content from the website theme configuration.
-// It creates CSS custom properties from theme values and optionally includes a
-// CSS reset when one has been configured via WithCSSResetCSS.
+// BuildThemeCSS generates CSS content from the website theme configuration. It creates
+// CSS custom properties from theme values and optionally includes a CSS reset when one
+// has been configured via WithCSSResetCSS.
 //
 // Takes websiteConfig (*config.WebsiteConfig) which specifies the theme settings.
 //
@@ -172,8 +173,8 @@ func (ro *RenderOrchestrator) BuildThemeCSS(
 //
 // Takes websiteConfig (*config.WebsiteConfig) which provides the theme settings.
 //
-// Returns string which contains the full CSS with theme variables and,
-// when configured, the CSS reset styles.
+// Returns string which contains the full CSS with theme variables and, when configured,
+// the CSS reset styles.
 func (ro *RenderOrchestrator) buildThemeCSSContent(websiteConfig *config.WebsiteConfig) string {
 	var builder strings.Builder
 	builder.Grow(initialThemeCSSCapacity)
@@ -187,12 +188,11 @@ func (ro *RenderOrchestrator) buildThemeCSSContent(websiteConfig *config.Website
 	return builder.String()
 }
 
-// getCachedHTMLLinks returns cached font and favicon HTML link elements for
-// the given configuration, computing and caching them on first access. Returns
-// nil slices when websiteConfig is nil.
+// getCachedHTMLLinks returns cached font and favicon HTML link elements for the given
+// configuration, computing and caching them on first access. Returns nil slices when
+// websiteConfig is nil.
 //
-// Takes websiteConfig (*config.WebsiteConfig) which provides font
-// and favicon settings.
+// Takes websiteConfig (*config.WebsiteConfig) which provides font and favicon settings.
 //
 // Returns fontLinks ([]byte) which contains font link elements.
 // Returns faviconLinks ([]byte) which contains favicon link elements.
@@ -218,27 +218,26 @@ func (ro *RenderOrchestrator) getCachedHTMLLinks(websiteConfig *config.WebsiteCo
 	return fontLinks, faviconLinks
 }
 
-// buildFaviconLinks creates HTML link elements for the set favicons.
-// Uses caching to avoid allocations on each request.
+// buildFaviconLinks creates HTML link elements for the set favicons. Uses caching to
+// avoid allocations on each request.
 //
 // Takes websiteConfig (*config.WebsiteConfig) which provides the favicon settings.
 //
-// Returns []byte which contains the joined HTML link elements, or
-// nil if websiteConfig is nil or has no favicons.
+// Returns []byte which contains the joined HTML link elements, or nil if websiteConfig is
+// nil or has no favicons.
 func (ro *RenderOrchestrator) buildFaviconLinks(websiteConfig *config.WebsiteConfig) []byte {
 	_, faviconLinks := ro.getCachedHTMLLinks(websiteConfig)
 	return faviconLinks
 }
 
-// buildFaviconLinksUncached generates HTML link elements for favicons without
-// caching. Used internally by getCachedHTMLLinks.
+// buildFaviconLinksUncached generates HTML link elements for favicons without caching.
+// Used internally by getCachedHTMLLinks.
 //
-// Takes websiteConfig (*config.WebsiteConfig) which specifies the
-// favicon definitions.
+// Takes websiteConfig (*config.WebsiteConfig) which specifies the favicon definitions.
 //
-// Returns []byte which contains the rendered HTML link elements, or nil if
-// websiteConfig is nil or has no favicons. Returns bytes to avoid
-// string allocation when caching.
+// Returns []byte which contains the rendered HTML link elements, or nil if websiteConfig
+// is nil or has no favicons.
+// Returns bytes to avoid string allocation when caching.
 func (*RenderOrchestrator) buildFaviconLinksUncached(websiteConfig *config.WebsiteConfig) []byte {
 	if websiteConfig == nil || len(websiteConfig.Favicons) == 0 {
 		return nil
@@ -271,27 +270,25 @@ func (*RenderOrchestrator) buildFaviconLinksUncached(websiteConfig *config.Websi
 	return result
 }
 
-// buildFontLinks generates HTML link elements for loading web fonts.
-// Uses caching to avoid repeated allocations per request.
+// buildFontLinks generates HTML link elements for loading web fonts. Uses caching to
+// avoid repeated allocations per request.
 //
-// Takes websiteConfig (*config.WebsiteConfig) which specifies the
-// fonts to include.
+// Takes websiteConfig (*config.WebsiteConfig) which specifies the fonts to include.
 //
-// Returns []byte which contains the HTML link elements, or nil if no fonts
-// are set up. Includes preconnect hints for Google Fonts when detected.
+// Returns []byte which contains the HTML link elements, or nil if no fonts are set up.
+// Includes preconnect hints for Google Fonts when detected.
 func (ro *RenderOrchestrator) buildFontLinks(websiteConfig *config.WebsiteConfig) []byte {
 	fontLinks, _ := ro.getCachedHTMLLinks(websiteConfig)
 	return fontLinks
 }
 
-// buildFontLinksUncached generates HTML link elements for web fonts without
-// caching. Used internally by getCachedHTMLLinks.
+// buildFontLinksUncached generates HTML link elements for web fonts without caching. Used
+// internally by getCachedHTMLLinks.
 //
-// Takes websiteConfig (*config.WebsiteConfig) which provides the
-// font configuration.
+// Takes websiteConfig (*config.WebsiteConfig) which provides the font configuration.
 //
-// Returns []byte which contains the HTML link elements, avoiding string
-// allocation when caching.
+// Returns []byte which contains the HTML link elements, avoiding string allocation when
+// caching.
 func (*RenderOrchestrator) buildFontLinksUncached(websiteConfig *config.WebsiteConfig) []byte {
 	if websiteConfig == nil || len(websiteConfig.Fonts) == 0 {
 		return nil
@@ -328,18 +325,16 @@ func (*RenderOrchestrator) buildFontLinksUncached(websiteConfig *config.WebsiteC
 	return result
 }
 
-// ClearHTMLLinksCache resets the cached HTML links to an empty state.
-// This is intended for test isolation between iterations.
+// ClearHTMLLinksCache resets the cached HTML links to an empty state. This is intended
+// for test isolation between iterations.
 func ClearHTMLLinksCache() {
 	cachedHTMLLinks = sync.Map{}
 }
 
-// writeThemeVariables writes CSS custom properties to a :root block from theme
-// settings.
+// writeThemeVariables writes CSS custom properties to a :root block from theme settings.
 //
 // Takes builder (*strings.Builder) which receives the generated CSS output.
-// Takes websiteConfig (*config.WebsiteConfig) which provides the
-// theme variable mappings.
+// Takes websiteConfig (*config.WebsiteConfig) which provides the theme variable mappings.
 func writeThemeVariables(builder *strings.Builder, websiteConfig *config.WebsiteConfig) {
 	builder.WriteString(":root {\n")
 

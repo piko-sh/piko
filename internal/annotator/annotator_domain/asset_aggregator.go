@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Aggregates static asset dependencies from multiple page results into a single project-wide manifest.
-// Merges transformation parameters, de-duplicates entries, and produces deterministic sorted output for build consistency.
+// Aggregates static asset dependencies from multiple page results into a single
+// project-wide manifest. Merges transformation parameters, de-duplicates entries, and
+// produces deterministic sorted output for build consistency.
 
 import (
 	"cmp"
@@ -29,12 +30,12 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// aggregatedAsset is a private intermediate data structure used for efficient
-// merging and de-duplication of asset transformation parameters. The inner map
-// acts as a set to store unique parameter values.
+// aggregatedAsset is a private intermediate data structure used for efficient merging and
+// de-duplication of asset transformation parameters. The inner map acts as a set to store
+// unique parameter values.
 type aggregatedAsset struct {
-	// Params holds transformation parameters grouped by name, where each name maps
-	// to a set of values. For example, "widths" maps to {"300", "600"}.
+	// Params holds transformation parameters grouped by name, where each name maps to a set
+	// of values. For example, "widths" maps to {"300", "600"}.
 	Params map[string]map[string]struct{}
 
 	// SourcePath is the original file path of the asset.
@@ -44,15 +45,15 @@ type aggregatedAsset struct {
 	AssetType string
 }
 
-// AggregateProjectAssets creates a single, de-duplicated, and merged asset
-// manifest for the entire project from all page results. Acts as the final step
-// in asset processing within the annotator hexagon.
+// AggregateProjectAssets creates a single, de-duplicated, and merged asset manifest for
+// the entire project from all page results. Acts as the final step in asset processing
+// within the annotator hexagon.
 //
-// Takes pageResults ([]*annotator_dto.AnnotationResult) which contains the
-// annotation results from all processed pages.
+// Takes pageResults ([]*annotator_dto.AnnotationResult) which contains the annotation
+// results from all processed pages.
 //
-// Returns []*annotator_dto.FinalAssetDependency which is the merged and sorted
-// asset manifest ready for output.
+// Returns []*annotator_dto.FinalAssetDependency which is the merged and sorted asset
+// manifest ready for output.
 func AggregateProjectAssets(pageResults []*annotator_dto.AnnotationResult) []*annotator_dto.FinalAssetDependency {
 	aggregated := collectAndMergeDependencies(pageResults)
 	finalManifest := convertToFinalManifest(aggregated)
@@ -60,14 +61,14 @@ func AggregateProjectAssets(pageResults []*annotator_dto.AnnotationResult) []*an
 	return finalManifest
 }
 
-// collectAndMergeDependencies groups assets by their unique key (type and
-// source path) and merges their settings into a single entry per asset.
+// collectAndMergeDependencies groups assets by their unique key (type and source path)
+// and merges their settings into a single entry per asset.
 //
-// Takes pageResults ([]*annotator_dto.AnnotationResult) which contains the
-// annotation results to process.
+// Takes pageResults ([]*annotator_dto.AnnotationResult) which contains the annotation
+// results to process.
 //
-// Returns map[string]*aggregatedAsset which maps unique asset keys to their
-// merged asset data.
+// Returns map[string]*aggregatedAsset which maps unique asset keys to their merged asset
+// data.
 func collectAndMergeDependencies(pageResults []*annotator_dto.AnnotationResult) map[string]*aggregatedAsset {
 	aggregated := make(map[string]*aggregatedAsset)
 
@@ -87,8 +88,8 @@ func collectAndMergeDependencies(pageResults []*annotator_dto.AnnotationResult) 
 
 // getOrCreateAggregatedAsset finds or creates an aggregated asset entry.
 //
-// Takes aggregated (map[string]*aggregatedAsset) which holds the existing
-// aggregated assets, keyed by type and source path.
+// Takes aggregated (map[string]*aggregatedAsset) which holds the existing aggregated
+// assets, keyed by type and source path.
 // Takes dependency (*annotator_dto.StaticAssetDependency) which provides the asset
 // details used to find or create the entry.
 //
@@ -112,9 +113,8 @@ func getOrCreateAggregatedAsset(
 	return agg
 }
 
-// mergeTransformationParams adds transformation parameters to an aggregated
-// asset. When a parameter key already exists, the new values are joined with
-// the existing ones.
+// mergeTransformationParams adds transformation parameters to an aggregated asset. When a
+// parameter key already exists, the new values are joined with the existing ones.
 //
 // Takes agg (*aggregatedAsset) which is the target asset to merge into.
 // Takes params (map[string]string) which holds the parameters to add.
@@ -128,8 +128,8 @@ func mergeTransformationParams(agg *aggregatedAsset, params map[string]string) {
 	}
 }
 
-// addCommaSeparatedValues splits a comma-separated string and adds each
-// trimmed, non-empty value to the given set.
+// addCommaSeparatedValues splits a comma-separated string and adds each trimmed,
+// non-empty value to the given set.
 //
 // Takes valueSet (map[string]struct{}) which receives the parsed values.
 // Takes paramValue (string) which contains the comma-separated values to parse.
@@ -142,14 +142,13 @@ func addCommaSeparatedValues(valueSet map[string]struct{}, paramValue string) {
 	}
 }
 
-// convertToFinalManifest converts grouped asset data into the final output
-// format.
+// convertToFinalManifest converts grouped asset data into the final output format.
 //
-// Takes aggregated (map[string]*aggregatedAsset) which contains asset data
-// grouped by name.
+// Takes aggregated (map[string]*aggregatedAsset) which contains asset data grouped by
+// name.
 //
-// Returns []*annotator_dto.FinalAssetDependency which is the list of assets
-// ready for output.
+// Returns []*annotator_dto.FinalAssetDependency which is the list of assets ready for
+// output.
 func convertToFinalManifest(aggregated map[string]*aggregatedAsset) []*annotator_dto.FinalAssetDependency {
 	finalManifest := make([]*annotator_dto.FinalAssetDependency, 0, len(aggregated))
 
@@ -165,8 +164,8 @@ func convertToFinalManifest(aggregated map[string]*aggregatedAsset) []*annotator
 //
 // Takes agg (*aggregatedAsset) which holds the collected asset data.
 //
-// Returns *annotator_dto.FinalAssetDependency which contains the converted
-// asset with sorted parameters for consistent output.
+// Returns *annotator_dto.FinalAssetDependency which contains the converted asset with
+// sorted parameters for consistent output.
 func convertAggregatedToFinal(agg *aggregatedAsset) *annotator_dto.FinalAssetDependency {
 	finalDep := &annotator_dto.FinalAssetDependency{
 		SourcePath:           agg.SourcePath,
@@ -195,11 +194,11 @@ func sortedValuesFromSet(valueSet map[string]struct{}) []string {
 	return values
 }
 
-// sortManifestForDeterminism sorts the manifest to give the same output each
-// time. It sorts first by source path, then by asset type.
+// sortManifestForDeterminism sorts the manifest to give the same output each time. It
+// sorts first by source path, then by asset type.
 //
-// Takes finalManifest ([]*annotator_dto.FinalAssetDependency) which is the
-// manifest to sort in place.
+// Takes finalManifest ([]*annotator_dto.FinalAssetDependency) which is the manifest to
+// sort in place.
 func sortManifestForDeterminism(finalManifest []*annotator_dto.FinalAssetDependency) {
 	slices.SortFunc(finalManifest, func(a, b *annotator_dto.FinalAssetDependency) int {
 		return cmp.Or(

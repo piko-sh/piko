@@ -28,12 +28,18 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// valueUnknown is the fallback display value for unavailable counts.
-const valueUnknown = "unknown"
+const (
+	// valueUnknown is the fallback display value for unavailable counts.
+	valueUnknown = "unknown"
+)
 
-var _ provider_domain.ResourceDescriptor = (*service)(nil)
-var _ provider_domain.SubResourceDescriptor = (*service)(nil)
-var _ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*service)(nil)
+
+	_ provider_domain.SubResourceDescriptor = (*service)(nil)
+
+	_ provider_domain.ResourceTypeDescriptor = (*service)(nil)
+)
 
 // ResourceType returns the CLI resource name for the cache hexagon.
 //
@@ -42,11 +48,9 @@ func (*service) ResourceType() string {
 	return "cache"
 }
 
-// ResourceListColumns returns column definitions for the cache provider list
-// table.
+// ResourceListColumns returns column definitions for the cache provider list table.
 //
-// Returns []provider_domain.ColumnDefinition which describes the NAME and TYPE
-// columns.
+// Returns []provider_domain.ColumnDefinition which describes the NAME and TYPE columns.
 func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
 		{Header: "NAME", Key: "name"},
@@ -56,8 +60,7 @@ func (*service) ResourceListColumns() []provider_domain.ColumnDefinition {
 
 // ResourceListProviders returns all registered cache providers as list rows.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// provider.
+// Returns []provider_domain.ProviderListEntry which contains one entry per provider.
 //
 // Safe for concurrent use. Uses a read lock to access the provider map.
 func (s *service) ResourceListProviders(_ context.Context) []provider_domain.ProviderListEntry {
@@ -88,13 +91,12 @@ func (s *service) ResourceListProviders(_ context.Context) []provider_domain.Pro
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a single named
-// cache provider.
+// ResourceDescribeProvider returns detailed information for a single named cache
+// provider.
 //
 // Takes name (string) which identifies the provider to describe.
 //
-// Returns *provider_domain.ProviderDetail which contains the structured
-// sections.
+// Returns *provider_domain.ProviderDetail which contains the structured sections.
 // Returns error when the named provider is not found.
 //
 // Safe for concurrent use; reads are protected by a read lock.
@@ -127,11 +129,11 @@ func (*service) ResourceSubResourceName() string {
 	return "namespaces"
 }
 
-// ResourceSubResourceColumns returns column definitions for the namespace
-// sub-resource table.
+// ResourceSubResourceColumns returns column definitions for the namespace sub-resource
+// table.
 //
-// Returns []provider_domain.ColumnDefinition which describes the NAMESPACE and
-// ENTRIES columns.
+// Returns []provider_domain.ColumnDefinition which describes the NAMESPACE and ENTRIES
+// columns.
 func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition {
 	return []provider_domain.ColumnDefinition{
 		{Header: "NAMESPACE", Key: "namespace"},
@@ -143,10 +145,8 @@ func (*service) ResourceSubResourceColumns() []provider_domain.ColumnDefinition 
 //
 // Takes providerName (string) which identifies the provider.
 //
-// Returns []provider_domain.ProviderListEntry which contains one entry per
-// namespace.
-// Returns error when the provider is not found or does not support namespace
-// listing.
+// Returns []provider_domain.ProviderListEntry which contains one entry per namespace.
+// Returns error when the provider is not found or does not support namespace listing.
 //
 // Safe for concurrent use.
 func (s *service) ResourceListSubResources(_ context.Context, providerName string) ([]provider_domain.ProviderListEntry, error) {
@@ -193,8 +193,8 @@ func (s *service) ResourceListSubResources(_ context.Context, providerName strin
 
 // ResourceDescribeType returns a service-level overview of the cache system.
 //
-// Returns *provider_domain.ProviderDetail which contains provider count and
-// default provider information.
+// Returns *provider_domain.ProviderDetail which contains provider count and default
+// provider information.
 //
 // Safe for concurrent use. Uses a read lock to access provider state.
 func (s *service) ResourceDescribeType(_ context.Context) *provider_domain.ProviderDetail {
@@ -246,8 +246,8 @@ func cacheOverviewSection(name string, providerAny any, isDefault bool) provider
 	}
 }
 
-// appendCacheConfigSection appends a Configuration section when the provider
-// exposes metadata.
+// appendCacheConfigSection appends a Configuration section when the provider exposes
+// metadata.
 //
 // Takes sections ([]provider_domain.InfoSection) which is the current list.
 // Takes providerAny (any) which is the provider instance to inspect.
@@ -279,8 +279,8 @@ func appendCacheConfigSection(sections []provider_domain.InfoSection, providerAn
 	})
 }
 
-// appendCacheNamespacesSection appends a Namespaces section when the provider
-// supports namespace listing and has entries.
+// appendCacheNamespacesSection appends a Namespaces section when the provider supports
+// namespace listing and has entries.
 //
 // Takes sections ([]provider_domain.InfoSection) which is the current list.
 // Takes providerAny (any) which is the provider instance to inspect.

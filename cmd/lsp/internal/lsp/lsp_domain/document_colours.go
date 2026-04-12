@@ -25,9 +25,9 @@ import (
 )
 
 const (
-	// utf16BMPMaxRune is the highest Unicode code point representable in a
-	// single UTF-16 code unit (the Basic Multilingual Plane upper bound).
-	// Code points above this require a surrogate pair (two UTF-16 units).
+	// utf16BMPMaxRune is the highest Unicode code point representable in a single UTF-16
+	// code unit (the Basic Multilingual Plane upper bound). Code points above this require a
+	// surrogate pair (two UTF-16 units).
 	utf16BMPMaxRune = 0xFFFF
 
 	// hexLengthShort is the length of a short hex colour (such as #RGB).
@@ -57,8 +57,7 @@ const (
 	// alphaFullOpaque is the threshold above which alpha is treated as fully opaque.
 	alphaFullOpaque = 0.99
 
-	// alphaFullTrans is the threshold below which alpha is treated as fully
-	// transparent.
+	// alphaFullTrans is the threshold below which alpha is treated as fully transparent.
 	alphaFullTrans = 0.01
 
 	// decimalBase is the base value for decimal number conversion.
@@ -88,16 +87,15 @@ const (
 	// rgbArgCount is the number of arguments for CSS rgb() and hsl() functions.
 	rgbArgCount = 3
 
-	// rgbaArgCount is the expected number of arguments for rgba() and hsla()
-	// colour functions.
+	// rgbaArgCount is the expected number of arguments for rgba() and hsla() colour
+	// functions.
 	rgbaArgCount = 4
 
 	// cssArgSeparator is the separator between arguments in CSS functions.
 	cssArgSeparator = ", "
 )
 
-// GetDocumentColors finds and returns colour information from CSS in style
-// blocks.
+// GetDocumentColors finds and returns colour information from CSS in style blocks.
 //
 // Returns []protocol.ColorInformation which contains the colours found.
 // Returns error when processing fails.
@@ -147,8 +145,8 @@ type hexColorMatch struct {
 // Takes baseLine (int) which is the starting line number for position offsets.
 // Takes baseCol (int) which is the starting column for position offsets.
 //
-// Returns []protocol.ColorInformation which contains the found colours with
-// their positions.
+// Returns []protocol.ColorInformation which contains the found colours with their
+// positions.
 func (*document) findHexColorsWithOffset(content string, baseLine, baseCol int) []protocol.ColorInformation {
 	var colours []protocol.ColorInformation
 
@@ -188,8 +186,8 @@ type colorFuncMatch struct {
 // Takes baseLine (int) which is the starting line number for position offsets.
 // Takes baseCol (int) which is the starting column for position offsets.
 //
-// Returns []protocol.ColorInformation which contains all found colours with
-// their positions adjusted by the base offsets.
+// Returns []protocol.ColorInformation which contains all found colours with their
+// positions adjusted by the base offsets.
 func (*document) findRGBColorsWithOffset(content string, baseLine, baseCol int) []protocol.ColorInformation {
 	colours := []protocol.ColorInformation{}
 
@@ -233,8 +231,8 @@ var (
 // Takes baseLine (int) which is the line offset for position calculation.
 // Takes baseCol (int) which is the column offset for position calculation.
 //
-// Returns []protocol.ColorInformation which contains the found colours with
-// their positions.
+// Returns []protocol.ColorInformation which contains the found colours with their
+// positions.
 func (*document) findHSLColorsWithOffset(content string, baseLine, baseCol int) []protocol.ColorInformation {
 	colours := []protocol.ColorInformation{}
 
@@ -255,13 +253,13 @@ func (*document) findHSLColorsWithOffset(content string, baseLine, baseCol int) 
 	return colours
 }
 
-// GetColorPresentations provides alternate representations for a colour value.
-// This is called when the user picks a colour from the colour picker.
+// GetColorPresentations provides alternate representations for a colour value. This is
+// called when the user picks a colour from the colour picker.
 //
 // Takes color (protocol.Color) which specifies the colour to convert.
 //
-// Returns []protocol.ColorPresentation which contains the colour in hex and
-// RGB/RGBA formats.
+// Returns []protocol.ColorPresentation which contains the colour in hex and RGB/RGBA
+// formats.
 // Returns error when the conversion fails.
 func (*document) GetColorPresentations(color protocol.Color) ([]protocol.ColorPresentation, error) {
 	presentations := []protocol.ColorPresentation{}
@@ -300,10 +298,9 @@ func (*document) GetColorPresentations(color protocol.Color) ([]protocol.ColorPr
 
 // convertCharPosToLineColumn maps a byte offset to LSP line and column.
 //
-// The column is reported in UTF-16 code units to comply with LSP 3.17,
-// which mandates UTF-16 positions: ASCII and BMP runes count as one unit
-// while supplementary characters (such as most emoji) consume a surrogate
-// pair and count as two units.
+// The column is reported in UTF-16 code units to comply with LSP 3.17, which mandates
+// UTF-16 positions: ASCII and BMP runes count as one unit while supplementary characters
+// (such as most emoji) consume a surrogate pair and count as two units.
 //
 // Takes content (string) which holds the text to search through.
 // Takes charPos (int) which is the byte offset to change.
@@ -327,13 +324,12 @@ func convertCharPosToLineColumn(content string, charPos int) (line, column int) 
 	return line, column
 }
 
-// byteOffsetToUTF16Column counts the UTF-16 code units between the start of
-// line and byteOffset. LSP 3.17 column positions are UTF-16-based, so byte
-// offsets must be translated whenever the line contains multi-byte runes.
+// byteOffsetToUTF16Column counts the UTF-16 code units between the start of line and
+// byteOffset. LSP 3.17 column positions are UTF-16-based, so byte offsets must be
+// translated whenever the line contains multi-byte runes.
 //
 // Takes line (string) which is the single line of source text being measured.
-// Takes byteOffset (int) which is the byte offset within line whose column is
-// required.
+// Takes byteOffset (int) which is the byte offset within line whose column is required.
 //
 // Returns int which is the UTF-16 code-unit column corresponding to byteOffset.
 func byteOffsetToUTF16Column(line string, byteOffset int) int {
@@ -347,10 +343,9 @@ func byteOffsetToUTF16Column(line string, byteOffset int) int {
 	return column
 }
 
-// utf16UnitsForRune reports how many UTF-16 code units the given rune occupies.
-// BMP code points (including ASCII and most letters) take a single unit;
-// supplementary code points above U+FFFF (such as emoji) are encoded with a
-// surrogate pair and take two units.
+// utf16UnitsForRune reports how many UTF-16 code units the given rune occupies. BMP code
+// points (including ASCII and most letters) take a single unit; supplementary code points
+// above U+FFFF (such as emoji) are encoded with a surrogate pair and take two units.
 //
 // Takes runeValue (rune) which is the code point being measured.
 //
@@ -367,8 +362,8 @@ func utf16UnitsForRune(runeValue rune) int {
 // Takes content (string) which is the text to search within.
 // Takes position (int) which is the position to start matching from.
 //
-// Returns *hexColorMatch which holds the matched hex colour, or nil if no
-// valid hex colour is found at the given position.
+// Returns *hexColorMatch which holds the matched hex colour, or nil if no valid hex
+// colour is found at the given position.
 func matchHexColor(content string, position int) *hexColorMatch {
 	if content[position] != '#' || position+1 >= len(content) {
 		return nil
@@ -397,8 +392,8 @@ func matchHexColor(content string, position int) *hexColorMatch {
 //
 // Takes length (int) which is the number of characters in the hex value.
 //
-// Returns bool which is true when the length matches a valid hex format
-// (short, standard, or with alpha).
+// Returns bool which is true when the length matches a valid hex format (short, standard,
+// or with alpha).
 func isValidHexLength(length int) bool {
 	return length == hexLengthShort || length == hexLengthStandard || length == hexLengthWithAlpha
 }
@@ -410,8 +405,8 @@ func isValidHexLength(length int) bool {
 // Takes baseLine (int) which is the starting line offset.
 // Takes baseCol (int) which is the starting column offset.
 //
-// Returns protocol.ColorInformation which holds the colour and its position
-// in the document.
+// Returns protocol.ColorInformation which holds the colour and its position in the
+// document.
 func buildHexColorInfo(content string, match *hexColorMatch, baseLine, baseCol int) protocol.ColorInformation {
 	r, g, b, a := parseHexColor(match.hexValue)
 	return buildColourInfo(content, &colorFuncMatch{
@@ -428,8 +423,7 @@ func buildHexColorInfo(content string, match *hexColorMatch, baseLine, baseCol i
 // Takes position (int) which is the position to start matching from.
 // Takes m (colorFuncMatcher) which defines the function prefixes to match.
 //
-// Returns *colorFuncMatch which holds the match details, or nil if no match
-// is found.
+// Returns *colorFuncMatch which holds the match details, or nil if no match is found.
 func matchColorFunc(content string, position int, m colorFuncMatcher) *colorFuncMatch {
 	baseLen := len(m.basePrefix)
 	alphaLen := len(m.alphaPrefix)
@@ -476,8 +470,8 @@ func matchRGBFunc(content string, position int) *colorFuncMatch {
 
 // parseRGBColour parses RGB or RGBA colour function arguments.
 //
-// Takes match (*colorFuncMatch) which contains the function name and argument
-// string to parse.
+// Takes match (*colorFuncMatch) which contains the function name and argument string to
+// parse.
 //
 // Returns protocol.Color which holds the parsed RGBA colour values.
 // Returns bool which is true when parsing succeeds, false otherwise.
@@ -502,8 +496,7 @@ func parseRGBColour(match *colorFuncMatch) (protocol.Color, bool) {
 	return protocol.Color{Red: r, Green: g, Blue: b, Alpha: a}, true
 }
 
-// matchHSLFunc tries to match an HSL or HSLA colour function at the given
-// position.
+// matchHSLFunc tries to match an HSL or HSLA colour function at the given position.
 //
 // Takes content (string) which is the text to search for a colour function.
 // Takes position (int) which is the position in content to start matching from.
@@ -515,8 +508,7 @@ func matchHSLFunc(content string, position int) *colorFuncMatch {
 
 // parseHSLColour parses HSL or HSLA colour arguments and converts them to RGB.
 //
-// Takes match (*colorFuncMatch) which contains the function name and arguments
-// to parse.
+// Takes match (*colorFuncMatch) which contains the function name and arguments to parse.
 //
 // Returns protocol.Color which is the parsed colour converted to RGB values.
 // Returns bool which indicates whether parsing succeeded.
@@ -542,14 +534,14 @@ func parseHSLColour(match *colorFuncMatch) (protocol.Color, bool) {
 	return protocol.Color{Red: r, Green: g, Blue: b, Alpha: a}, true
 }
 
-// findClosingParen finds the position after the closing parenthesis, handling
-// nested parentheses.
+// findClosingParen finds the position after the closing parenthesis, handling nested
+// parentheses.
 //
 // Takes content (string) which is the text to search within.
 // Takes start (int) which is the position to begin searching from.
 //
-// Returns int which is the position after the closing parenthesis, or -1 if no
-// matching closing parenthesis is found.
+// Returns int which is the position after the closing parenthesis, or -1 if no matching
+// closing parenthesis is found.
 func findClosingParen(content string, start int) int {
 	parenCount := 1
 	j := start
@@ -571,8 +563,7 @@ func findClosingParen(content string, start int) int {
 // buildColourInfo creates a ColorInformation from a colour function match.
 //
 // Takes content (string) which is the document text used to convert positions.
-// Takes match (*colorFuncMatch) which holds the start and end character
-// positions.
+// Takes match (*colorFuncMatch) which holds the start and end character positions.
 // Takes baseLine (int) which is the line offset added to the result.
 // Takes baseCol (int) which is the column offset added to the first line.
 // Takes color (protocol.Color) which is the parsed colour value.
@@ -608,11 +599,11 @@ func buildColourInfo(content string, match *colorFuncMatch, baseLine, baseCol in
 
 // parseColorArgs splits a CSS function argument string into separate values.
 //
-// Handles both comma-separated formats like rgb(255, 0, 0) and
-// space-separated formats like rgb(255 0 0).
+// Handles both comma-separated formats like rgb(255, 0, 0) and space-separated formats
+// like rgb(255 0 0).
 //
-// Takes argumentsString (string) which contains the raw argument string from a CSS
-// colour function.
+// Takes argumentsString (string) which contains the raw argument string from a CSS colour
+// function.
 //
 // Returns []string which contains the trimmed individual arguments.
 func parseColorArgs(argumentsString string) []string {
@@ -633,8 +624,8 @@ func parseColorArgs(argumentsString string) []string {
 	return splitByWhitespace(argumentsString)
 }
 
-// parseColorComponent parses a colour component value (0-maxValue) and returns
-// it normalised to the 0.0-1.0 range.
+// parseColorComponent parses a colour component value (0-maxValue) and returns it
+// normalised to the 0.0-1.0 range.
 //
 // Takes s (string) which contains the colour value, optionally with a % suffix.
 // Takes maxValue (int) which specifies the maximum absolute value for scaling.
@@ -656,8 +647,8 @@ func parseColorComponent(s string, maxValue int) float64 {
 
 // parseAlphaComponent parses an alpha value from a string.
 //
-// Takes s (string) which contains the alpha value, either as a decimal (0-1)
-// or as a percentage (0%-100%).
+// Takes s (string) which contains the alpha value, either as a decimal (0-1) or as a
+// percentage (0%-100%).
 //
 // Returns float64 which is the alpha value in the range 0-1.
 func parseAlphaComponent(s string) float64 {
@@ -670,11 +661,10 @@ func parseAlphaComponent(s string) float64 {
 	return parseFloat(s)
 }
 
-// parseHueComponent parses a hue value (0-360 degrees) and returns it
-// normalised to the 0.0-1.0 range.
+// parseHueComponent parses a hue value (0-360 degrees) and returns it normalised to the
+// 0.0-1.0 range.
 //
-// Takes s (string) which contains the hue value, optionally with a "deg"
-// suffix.
+// Takes s (string) which contains the hue value, optionally with a "deg" suffix.
 //
 // Returns float64 which is the hue normalised to the 0.0-1.0 range.
 func parseHueComponent(s string) float64 {
@@ -694,8 +684,8 @@ func parseHueComponent(s string) float64 {
 	return value / hueDegreesMaxF
 }
 
-// parsePercentComponent parses a percentage value (0%-100%) and returns it as
-// a number between 0.0 and 1.0.
+// parsePercentComponent parses a percentage value (0%-100%) and returns it as a number
+// between 0.0 and 1.0.
 //
 // Takes s (string) which contains the percentage value to parse.
 //
@@ -877,8 +867,7 @@ func splitByChar(s string, delimiter byte) []string {
 	return result
 }
 
-// splitByWhitespace splits a string into parts using whitespace as the
-// separator.
+// splitByWhitespace splits a string into parts using whitespace as the separator.
 //
 // Takes s (string) which is the input string to split.
 //
@@ -918,8 +907,8 @@ func isHexDigit(c byte) bool {
 
 // parseHexColor converts a hex colour string to RGBA values (0.0-1.0 range).
 //
-// Takes hex (string) which is the colour without the # prefix (RGB, RRGGBB,
-// or RRGGBBAA format).
+// Takes hex (string) which is the colour without the # prefix (RGB, RRGGBB, or RRGGBBAA
+// format).
 //
 // Returns r (float64) which is the red channel value.
 // Returns g (float64) which is the green channel value.
@@ -974,8 +963,7 @@ func colorToHex(r, g, b int) string {
 	return "#" + intToHex(r) + intToHex(g) + intToHex(b)
 }
 
-// colorToHexAlpha converts RGBA colour values to a hex string in #RRGGBBAA
-// format.
+// colorToHexAlpha converts RGBA colour values to a hex string in #RRGGBBAA format.
 //
 // Takes r (int) which is the red component (0-255).
 // Takes g (int) which is the green component (0-255).
@@ -1053,8 +1041,8 @@ func intToString(n int) string {
 
 // floatToString converts a float to a string with up to 2 decimal places.
 //
-// Takes f (float64) which is the value to convert. This is typically an alpha
-// value between 0.0 and 1.0.
+// Takes f (float64) which is the value to convert. This is typically an alpha value
+// between 0.0 and 1.0.
 //
 // Returns string which is the formatted decimal value.
 func floatToString(f float64) string {

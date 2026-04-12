@@ -16,18 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package formatter_domain handles formatting of Piko template files
-// (.pk), covering all Single File Component (SFC) blocks (template,
-// script, style, and i18n) with consistent, opinionated rules that
-// preserve semantic meaning while improving readability. It supports
-// full-file and range-based formatting for LSP integration.
+// Package formatter_domain handles formatting of Piko template files (.pk), covering all
+// Single File Component (SFC) blocks (template, script, style, and i18n) with consistent,
+// opinionated rules that preserve semantic meaning while improving readability. It
+// supports full-file and range-based formatting for LSP integration.
 //
 // # Block formatting
 //
 // Each SFC block type uses specialised formatting:
 //
-//   - Template: AST-based pretty-printing with intelligent inline vs block
-//     decisions, attribute sorting, and whitespace normalisation
+//   - Template: AST-based pretty-printing with intelligent inline vs block decisions,
+//     attribute sorting, and whitespace normalisation
 //   - Script (Go): Formatted using go/format for standard Go style
 //   - Style (CSS): Formatted using esbuild's CSS parser and printer
 //   - i18n (JSON): Formatted with consistent 2-space indentation
@@ -50,6 +49,6 @@
 //
 // # Thread safety
 //
-// formatterServiceImpl instances are safe for concurrent use. Each Format call
-// creates its own internal state and does not modify shared mutable state.
+// formatterServiceImpl instances are safe for concurrent use. Each Format call creates
+// its own internal state and does not modify shared mutable state.
 package formatter_domain

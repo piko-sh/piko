@@ -1170,7 +1170,10 @@ func TestWriteAcroformObjects_NoFields_ReturnsZero(t *testing.T) {
 	pageObjNumbers := []int{1}
 	pageAnnotRefs := [][]string{{}}
 
-	result := painter.writeAcroformObjects(writer, pageObjNumbers, pageAnnotRefs, 1)
+	result, err := painter.writeAcroformObjects(writer, pageObjNumbers, pageAnnotRefs, 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if result != 0 {
 		t.Errorf("expected 0 for no acroform fields, got %d", result)
 	}

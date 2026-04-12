@@ -32,12 +32,11 @@ import (
 )
 
 const (
-	// defaultTokenBucketNamespace is the default cache namespace for token bucket
-	// state.
+	// defaultTokenBucketNamespace is the default cache namespace for token bucket state.
 	defaultTokenBucketNamespace = "ratelimiter:tb"
 
-	// defaultTokenBucketMaxSize is the default maximum number of entries for
-	// in-memory cache providers.
+	// defaultTokenBucketMaxSize is the default maximum number of entries for in-memory cache
+	// providers.
 	defaultTokenBucketMaxSize = 10000
 )
 
@@ -49,21 +48,20 @@ type CacheTokenBucketStoreConfig struct {
 	// Clock provides time operations. If nil, clock.RealClock() is used.
 	Clock clock.Clock
 
-	// Provider specifies the cache provider. If empty, uses the service's
-	// default provider.
+	// Provider specifies the cache provider. If empty, uses the service's default provider.
 	Provider string
 
 	// Namespace is the key prefix for all entries. Defaults to "ratelimiter:tb".
 	Namespace string
 
-	// MaximumSize is the maximum number of entries for in-memory
-	// providers, ignored by remote providers and defaulting to 10000.
+	// MaximumSize is the maximum number of entries for in-memory providers, ignored by
+	// remote providers and defaulting to 10000.
 	MaximumSize int
 }
 
-// CacheTokenBucketStore implements TokenBucketStorePort using a cache backend.
-// It uses the cache's atomic Compute method to ensure thread-safe token bucket
-// operations across all backends (Otter, Redis, Redis Cluster).
+// CacheTokenBucketStore implements TokenBucketStorePort using a cache backend. It uses
+// the cache's atomic Compute method to ensure thread-safe token bucket operations across
+// all backends (Otter, Redis, Redis Cluster).
 type CacheTokenBucketStore struct {
 	// clock provides the current time for refill calculations.
 	clock clock.Clock
@@ -72,10 +70,11 @@ type CacheTokenBucketStore struct {
 	cache cache_domain.Cache[string, *ratelimiter_domain.TokenBucketState]
 }
 
-var _ ratelimiter_domain.TokenBucketStorePort = (*CacheTokenBucketStore)(nil)
+var (
+	_ ratelimiter_domain.TokenBucketStorePort = (*CacheTokenBucketStore)(nil)
+)
 
-// NewCacheTokenBucketStore creates a token bucket store backed by the cache
-// hexagon.
+// NewCacheTokenBucketStore creates a token bucket store backed by the cache hexagon.
 //
 // Takes config (CacheTokenBucketStoreConfig) which configures the store.
 //
@@ -101,13 +100,12 @@ func NewCacheTokenBucketStore(ctx context.Context, config CacheTokenBucketStoreC
 	}, nil
 }
 
-// TryTake atomically attempts to take n tokens from the bucket. It first
-// refills based on elapsed time, then attempts to deduct tokens.
+// TryTake atomically attempts to take n tokens from the bucket. It first refills based on
+// elapsed time, then attempts to deduct tokens.
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens to take.
-// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket
-// parameters.
+// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket parameters.
 //
 // Returns bool which is true if tokens were successfully taken.
 // Returns error when the config is nil.
@@ -150,11 +148,10 @@ func (s *CacheTokenBucketStore) TryTake(ctx context.Context, key string, n float
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens needed.
-// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket
-// parameters.
+// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket parameters.
 //
-// Returns time.Duration which is zero if tokens are available, otherwise the
-// estimated wait time.
+// Returns time.Duration which is zero if tokens are available, otherwise the estimated
+// wait time.
 // Returns error when the config is nil.
 func (s *CacheTokenBucketStore) WaitDuration(ctx context.Context, key string, n float64, config *ratelimiter_dto.TokenBucketConfig) (time.Duration, error) {
 	if config == nil {

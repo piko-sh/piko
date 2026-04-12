@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_stopwords_french provides French stop words
-// for text analysis and search indexing.
+// Package linguistics_stopwords_french provides French stop words for text analysis and
+// search indexing.
 //
-// The word list is stored in normalised form without accents. It
-// self-registers via an init function so that a blank import is
-// sufficient to make French stop words available through the
-// registry.
+// The word list is stored in normalised form without accents. It self-registers via an
+// init function so that a blank import is sufficient to make French stop words available
+// through the registry.
 package linguistics_stopwords_french

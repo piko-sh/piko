@@ -18,30 +18,27 @@
 
 package interp_domain
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
-// Debugger provides the public API for controlling interpreter
-// debugging.
+// Debugger provides the public API for controlling interpreter debugging.
 //
-// It is created before execution and attached to the VM via
-// WithDebugger. The debugger synchronises with the VM goroutine
-// using channels; the VM blocks on resume when paused, and the
-// caller blocks on paused when waiting for a pause.
+// It is created before execution and attached to the VM via WithDebugger. The debugger
+// synchronises with the VM goroutine using channels; the VM blocks on resume when paused,
+// and the caller blocks on paused when waiting for a pause.
 type Debugger struct {
-	// state holds breakpoints and stepping state, accessed by the
-	// VM goroutine.
+	// state holds breakpoints and stepping state, accessed by the VM goroutine.
 	state *debugState
 
-	// active is shared with the VM and set to 1 when debugging is
-	// active. The VM checks this via atomic load in the hot loop.
+	// active is shared with the VM and set to 1 when debugging is active. The VM checks this
+	// via atomic load in the hot loop.
 	active *atomic.Uint32
 
-	// paused is sent on by the VM goroutine when it hits a debug
-	// pause point.
+	// paused is sent on by the VM goroutine when it hits a debug pause point.
 	paused chan struct{}
 
-	// resume is received from by the VM goroutine after pausing,
-	// to get the next action.
+	// resume is received from by the VM goroutine after pausing, to get the next action.
 	resume chan DebugAction
 
 	// snapshot holds the execution state at the most recent pause.
@@ -51,11 +48,9 @@ type Debugger struct {
 	vm *VM
 }
 
-// NewDebugger creates a new Debugger ready to be attached to a VM
-// via WithDebugger.
+// NewDebugger creates a new Debugger ready to be attached to a VM via WithDebugger.
 //
-// Returns *Debugger which can be configured with breakpoints before
-// execution begins.
+// Returns *Debugger which can be configured with breakpoints before execution begins.
 func NewDebugger() *Debugger {
 	return &Debugger{
 		state:  newDebugState(),
@@ -65,8 +60,8 @@ func NewDebugger() *Debugger {
 	}
 }
 
-// SetBreakpoint registers a breakpoint at the given file and line.
-// The file path should match the path used during compilation.
+// SetBreakpoint registers a breakpoint at the given file and line. The file path should
+// match the path used during compilation.
 //
 // Takes file (string) which is the source file path.
 // Takes line (int) which is the 1-based line number.
@@ -91,14 +86,13 @@ func (d *Debugger) Continue() {
 	d.resume <- DebugActionContinue
 }
 
-// StepIn resumes execution until the next source line, entering
-// function calls.
+// StepIn resumes execution until the next source line, entering function calls.
 func (d *Debugger) StepIn() {
 	d.resume <- DebugActionStepIn
 }
 
-// StepOver resumes execution until the next source line at the same
-// or shallower call depth.
+// StepOver resumes execution until the next source line at the same or shallower call
+// depth.
 func (d *Debugger) StepOver() {
 	d.resume <- DebugActionStepOver
 }
@@ -113,18 +107,17 @@ func (d *Debugger) Stop() {
 	d.resume <- DebugActionStop
 }
 
-// WaitForPause blocks until the VM pauses at a breakpoint or step
-// point. Returns the snapshot of the execution state at the pause.
+// WaitForPause blocks until the VM pauses at a breakpoint or step point. Returns the
+// snapshot of the execution state at the pause.
 //
-// Returns *DebugSnapshot which describes the paused location and
-// stack trace.
+// Returns *DebugSnapshot which describes the paused location and stack trace.
 func (d *Debugger) WaitForPause() *DebugSnapshot {
 	<-d.paused
 	return d.snapshot
 }
 
-// Variables returns the variables visible at the given stack frame
-// index (0 = innermost/current frame).
+// Variables returns the variables visible at the given stack frame index (0 =
+// innermost/current frame).
 //
 // Takes frameIndex (int) which is the stack frame to inspect.
 //
@@ -140,20 +133,20 @@ func (d *Debugger) Variables(frameIndex int) []VariableInfo {
 	}
 
 	frame := &d.vm.callStack[targetFP]
-	fn := frame.function
-	if fn.debugVarTable == nil {
+	function := frame.function
+	if function.debugVarTable == nil {
 		return nil
 	}
 
 	pc := frame.programCounter
 
-	live := fn.debugVarTable.LiveVariables(pc)
+	live := function.debugVarTable.LiveVariables(pc)
 	result := make([]VariableInfo, 0, len(live))
 	for _, entry := range live {
-		val := readVariable(frame, entry)
+		value := readVariable(frame, entry)
 		result = append(result, VariableInfo{
 			Name:  entry.name,
-			Value: val,
+			Value: value,
 			Kind:  entry.location.kind.String(),
 		})
 	}
@@ -167,26 +160,24 @@ func (d *Debugger) Snapshot() *DebugSnapshot {
 	return d.snapshot
 }
 
-// debugHookImpl is the DebugHook implementation used when a
-// Debugger is attached to a VM. It checks breakpoints and stepping
-// conditions, builds a snapshot, signals the pause, and blocks
-// until the caller sends a resume action.
+// debugHookImpl is the DebugHook implementation used when a Debugger is attached to a VM.
+// It checks breakpoints and stepping conditions, builds a snapshot, signals the pause,
+// and blocks until the caller sends a resume action.
 //
-// Takes ctx (DebugContext) which provides the current execution
-// state including function, program counter, and frame pointer.
+// Takes ctx (DebugContext) which provides the current execution state including function,
+// program counter, and frame pointer.
 //
 // Returns DebugAction which tells the VM how to proceed.
 func (d *Debugger) debugHookImpl(ctx DebugContext) DebugAction {
-	fn := ctx.Function
+	function := ctx.Function
 	pc := ctx.ProgramCounter
 
-	hitBreakpoint := d.state.hasBreakpoint(fn, pc)
-
-	shouldStep, stepEvent := d.state.shouldStep(fn, pc, ctx.FramePointer)
+	hitBreakpoint := d.state.hasBreakpoint(function, pc)
+	shouldStep, stepEvent := d.state.shouldStep(function, pc, ctx.FramePointer)
 
 	if !hitBreakpoint && !shouldStep {
-		if fn.debugSourceMap != nil && ctx.FramePointer == d.state.lastBreakpointFrame {
-			file, line, _ := fn.debugSourceMap.SourcePosition(pc)
+		if function.debugSourceMap != nil && ctx.FramePointer == d.state.lastBreakpointFrame {
+			file, line, _ := function.debugSourceMap.SourcePosition(pc)
 			if line > 0 && (file != d.state.lastBreakpointFile || line != d.state.lastBreakpointLine) {
 				d.state.lastBreakpointFile = ""
 				d.state.lastBreakpointLine = 0
@@ -202,7 +193,7 @@ func (d *Debugger) debugHookImpl(ctx DebugContext) DebugAction {
 		event = stepEvent
 	}
 
-	d.snapshot = d.buildSnapshot(fn, pc, ctx.FramePointer, event)
+	d.snapshot = d.buildSnapshot(function, pc, ctx.FramePointer, event)
 
 	if hitBreakpoint {
 		d.state.lastBreakpointFile = d.snapshot.File
@@ -223,32 +214,29 @@ func (d *Debugger) debugHookImpl(ctx DebugContext) DebugAction {
 	return action
 }
 
-// buildSnapshot constructs a DebugSnapshot from the current VM
-// state.
+// buildSnapshot constructs a DebugSnapshot from the current VM state.
 //
-// Takes fn (*CompiledFunction) which is the function being
-// executed.
+// Takes function (*CompiledFunction) which is the function being executed.
 // Takes pc (int) which is the current program counter.
-// Takes framePointer (int) which is the current call stack frame
-// index.
+// Takes framePointer (int) which is the current call stack frame index.
 // Takes event (DebugEvent) which describes why execution paused.
 //
-// Returns *DebugSnapshot which captures the file, line, column,
-// function name, event, and stack trace.
+// Returns *DebugSnapshot which captures the file, line, column, function name, event, and
+// stack trace.
 func (d *Debugger) buildSnapshot(
-	fn *CompiledFunction,
+	function *CompiledFunction,
 	pc int,
 	framePointer int,
 	event DebugEvent,
 ) *DebugSnapshot {
 	file, line, col := "", 0, 0
-	if fn.debugSourceMap != nil {
-		file, line, col = fn.debugSourceMap.SourcePosition(pc)
+	if function.debugSourceMap != nil {
+		file, line, col = function.debugSourceMap.SourcePosition(pc)
 	}
 
 	snap := &DebugSnapshot{
 		File:         file,
-		FunctionName: fn.name,
+		FunctionName: function.name,
 		Line:         line,
 		Column:       col,
 		Event:        event,
@@ -261,39 +249,46 @@ func (d *Debugger) buildSnapshot(
 	return snap
 }
 
-// buildStackTrace walks the VM call stack from the current frame
-// pointer down to frame 0, producing a slice of StackFrame
-// entries.
+// buildStackTrace walks the VM call stack from the current frame pointer down to frame 0,
+// producing a slice of StackFrame entries.
 //
-// Takes framePointer (int) which is the topmost frame index to
-// start from.
+// Takes framePointer (int) which is the topmost frame index to start from.
 //
-// Returns []StackFrame which lists each frame from innermost to
-// outermost.
+// Returns []StackFrame which lists each frame from innermost to outermost.
 func (d *Debugger) buildStackTrace(framePointer int) []StackFrame {
 	var frames []StackFrame
 	for fp := framePointer; fp >= 0; fp-- {
 		frame := &d.vm.callStack[fp]
-		fn := frame.function
+		function := frame.function
 		pc := max(frame.programCounter-1, 0)
 
-		sf := StackFrame{
-			FunctionName: fn.name,
+		stackFrame := StackFrame{
+			FunctionName: function.name,
 		}
-		if fn.debugSourceMap != nil {
-			sf.File, sf.Line, sf.Column = fn.debugSourceMap.SourcePosition(pc)
+		if function.debugSourceMap != nil {
+			stackFrame.File, stackFrame.Line, stackFrame.Column = function.debugSourceMap.SourcePosition(pc)
 		}
-		frames = append(frames, sf)
+		frames = append(frames, stackFrame)
 	}
 	return frames
 }
 
-// readVariable extracts the runtime value of a variable from a
-// call frame using the variable's location information.
+// attachToVM connects the debugger to a VM, setting up the debug hook and shared state.
+//
+// Takes vm (*VM) which is the virtual machine to attach to.
+func (d *Debugger) attachToVM(vm *VM) {
+	d.vm = vm
+	vm.debugHook = d.debugHookImpl
+	vm.debugState = d.state
+	vm.debugActive = d.active
+	d.active.Store(1)
+}
+
+// readVariable extracts the runtime value of a variable from a call frame using the
+// variable's location information.
 //
 // Takes frame (*callFrame) which is the call frame to read from.
-// Takes entry (debugVarEntry) which describes the variable's
-// storage location.
+// Takes entry (debugVarEntry) which describes the variable's storage location.
 //
 // Returns any which is the variable's current value.
 func readVariable(frame *callFrame, entry debugVarEntry) any {
@@ -304,15 +299,13 @@ func readVariable(frame *callFrame, entry debugVarEntry) any {
 	return readRegisterValue(&frame.registers, loc)
 }
 
-// readUpvalue extracts a captured variable's value from the
-// frame's upvalue table.
+// readUpvalue extracts a captured variable's value from the frame's upvalue table.
 //
-// Takes frame (*callFrame) which is the call frame containing the
-// upvalue table.
+// Takes frame (*callFrame) which is the call frame containing the upvalue table.
 // Takes loc (varLocation) which identifies the upvalue index.
 //
-// Returns any which is the captured variable's value, or nil if
-// the upvalue is out of bounds or empty.
+// Returns any which is the captured variable's value, or nil if the upvalue is out of
+// bounds or empty.
 func readUpvalue(frame *callFrame, loc varLocation) any {
 	if frame.upvalues == nil || loc.upvalueIndex >= len(frame.upvalues) {
 		return nil
@@ -324,15 +317,13 @@ func readUpvalue(frame *callFrame, loc varLocation) any {
 	return readUpvalueCell(uv.value)
 }
 
-// readRegisterValue reads a variable's value from the typed
-// register banks using its location.
+// readRegisterValue reads a variable's value from the typed register banks using its
+// location.
 //
 // Takes regs (*Registers) which holds the typed register banks.
-// Takes loc (varLocation) which identifies the register kind and
-// index.
+// Takes loc (varLocation) which identifies the register kind and index.
 //
-// Returns any which is the register value, or nil if out of
-// bounds.
+// Returns any which is the register value, or nil if out of bounds.
 func readRegisterValue(regs *Registers, loc varLocation) any {
 	index := int(loc.register)
 	switch loc.kind {
@@ -362,18 +353,18 @@ func readRegisterValue(regs *Registers, loc varLocation) any {
 		if index < len(regs.complex) {
 			return regs.complex[loc.register]
 		}
+	default:
 	}
 	return nil
 }
 
-// readGeneralRegister reads a reflect.Value register, returning
-// its concrete value or nil if invalid or out of bounds.
+// readGeneralRegister reads a reflect.Value register, returning its concrete value or nil
+// if invalid or out of bounds.
 //
 // Takes regs (*Registers) which holds the general register bank.
 // Takes index (int) which is the register index to read.
 //
-// Returns any which is the concrete value, or nil if out of bounds
-// or invalid.
+// Returns any which is the concrete value, or nil if out of bounds or invalid.
 func readGeneralRegister(regs *Registers, index int) any {
 	if index >= len(regs.general) {
 		return nil
@@ -385,13 +376,11 @@ func readGeneralRegister(regs *Registers, index int) any {
 	return nil
 }
 
-// readUpvalueCell extracts the value from an upvalue cell based
-// on its kind.
+// readUpvalueCell extracts the value from an upvalue cell based on its kind.
 //
 // Takes cell (*upvalueCell) which is the cell to read.
 //
-// Returns any which is the stored value from the appropriate
-// typed field.
+// Returns any which is the stored value from the appropriate typed field.
 func readUpvalueCell(cell *upvalueCell) any {
 	switch cell.kind {
 	case registerInt:
@@ -414,16 +403,4 @@ func readUpvalueCell(cell *upvalueCell) any {
 	default:
 		return nil
 	}
-}
-
-// attachToVM connects the debugger to a VM, setting up the debug
-// hook and shared state.
-//
-// Takes vm (*VM) which is the virtual machine to attach to.
-func (d *Debugger) attachToVM(vm *VM) {
-	d.vm = vm
-	vm.debugHook = d.debugHookImpl
-	vm.debugState = d.state
-	vm.debugActive = d.active
-	d.active.Store(1)
 }

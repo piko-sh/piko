@@ -26,10 +26,12 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-var _ linguistics_domain.StopWordsProviderPort = (*MockStopWordsProvider)(nil)
+var (
+	_ linguistics_domain.StopWordsProviderPort = (*MockStopWordsProvider)(nil)
+)
 
-// MockStopWordsProvider is a configurable stop words provider for testing.
-// It allows tests to define custom stop word sets and track calls.
+// MockStopWordsProvider is a configurable stop words provider for testing. It allows
+// tests to define custom stop word sets and track calls.
 type MockStopWordsProvider struct {
 	// getStopWordsFunc is an optional custom function for GetStopWords.
 	getStopWordsFunc func(language string) map[string]bool
@@ -47,9 +49,8 @@ type MockStopWordsProvider struct {
 	passThrough bool
 }
 
-// GetStopWords returns the stop words for the specified language,
-// delegating to a custom function if set and falling back to the
-// configured stop words or an empty map.
+// GetStopWords returns the stop words for the specified language, delegating to a custom
+// function if set and falling back to the configured stop words or an empty map.
 //
 // Takes language (string) which specifies the language code.
 //
@@ -79,8 +80,7 @@ func (m *MockStopWordsProvider) GetStopWords(language string) map[string]bool {
 	return make(map[string]bool)
 }
 
-// SupportedLanguages returns the list of languages that have stop words
-// configured.
+// SupportedLanguages returns the list of languages that have stop words configured.
 //
 // Returns []string which contains the configured language codes.
 //
@@ -110,8 +110,8 @@ func (m *MockStopWordsProvider) SetStopWords(language string, words map[string]b
 	m.stopWords[language] = words
 }
 
-// SetPassThrough enables or disables pass-through mode.
-// When enabled, GetStopWords returns empty maps regardless of configuration.
+// SetPassThrough enables or disables pass-through mode. When enabled, GetStopWords
+// returns empty maps regardless of configuration.
 //
 // Takes enabled (bool) which controls pass-through mode.
 //
@@ -123,8 +123,8 @@ func (m *MockStopWordsProvider) SetPassThrough(enabled bool) {
 	m.passThrough = enabled
 }
 
-// SetGetStopWordsFunc sets a custom function to handle GetStopWords calls.
-// When set, the override is called instead of using the configured stop words.
+// SetGetStopWordsFunc sets a custom function to handle GetStopWords calls. When set, the
+// override is called instead of using the configured stop words.
 //
 // Takes override (func(string) map[string]bool) which is the custom function.
 //

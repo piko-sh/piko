@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_mock is a test double for [llm_domain.LLMProviderPort]
-// that supports canned responses, error simulation, and call recording
-// for both synchronous completions and streaming responses.
+// Package provider_mock is a test double for [llm_domain.LLMProviderPort] that supports
+// canned responses, error simulation, and call recording for both synchronous completions
+// and streaming responses.
 //
 // # Usage
 //
@@ -45,7 +45,6 @@
 //
 // # Thread safety
 //
-// All methods on [MockProvider] are safe for concurrent use. Internal
-// state is protected by a [sync.RWMutex], and getter methods return
-// copies to prevent data races.
+// All methods on [MockProvider] are safe for concurrent use. Internal state is protected
+// by a [sync.RWMutex], and getter methods return copies to prevent data races.
 package provider_mock

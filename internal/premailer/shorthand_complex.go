@@ -24,11 +24,12 @@ import (
 	"strings"
 )
 
-// cssBackgroundImage is the CSS property name for background images.
-const cssBackgroundImage = "background-image"
+const (
+	// cssBackgroundImage is the CSS property name for background images.
+	cssBackgroundImage = "background-image"
+)
 
-// backgroundKeywordMaps holds keyword classification maps for background
-// properties.
+// backgroundKeywordMaps holds keyword classification maps for background properties.
 type backgroundKeywordMaps struct {
 	// repeat maps valid CSS background-repeat keywords to true.
 	repeat map[string]bool
@@ -45,8 +46,7 @@ type fontProperties struct {
 	// style is the CSS font-style value, such as "italic" or "oblique".
 	style string
 
-	// variant is the font variant value (normal or small-caps); empty means not
-	// set.
+	// variant is the font variant value (normal or small-caps); empty means not set.
 	variant string
 
 	// weight is the font-weight value (normal, bold, bolder, lighter, or 100-900).
@@ -62,8 +62,8 @@ type fontProperties struct {
 	family string
 }
 
-// expandBackgroundShorthand splits a background shorthand property into its
-// separate parts for email client support.
+// expandBackgroundShorthand splits a background shorthand property into its separate
+// parts for email client support.
 //
 // Handles common email patterns including:
 //   - background: colour;
@@ -72,14 +72,14 @@ type fontProperties struct {
 //   - background: url(image.png) centre fixed;
 //   - background: linear-gradient(...), linear-gradient(...);
 //
-// Supports: image, position, size (with /), repeat, attachment, colour.
-// Multiple comma-separated background layers are supported; each layer's
-// background-image values are combined into a single comma-separated list.
+// Supports: image, position, size (with /), repeat, attachment, colour. Multiple
+// comma-separated background layers are supported; each layer's background-image values
+// are combined into a single comma-separated list.
 //
 // Takes value (string) which is the background shorthand value to expand.
 //
-// Returns map[string]string which contains the expanded background properties,
-// or nil when the value cannot be parsed.
+// Returns map[string]string which contains the expanded background properties, or nil
+// when the value cannot be parsed.
 func expandBackgroundShorthand(value string) map[string]string {
 	layers := splitCommaOutsideParens(value)
 
@@ -129,8 +129,8 @@ func expandBackgroundShorthand(value string) map[string]string {
 //
 // Takes value (string) which is the CSS background layer shorthand value.
 //
-// Returns map[string]string which maps individual background property names
-// to their values, or nil when no properties are found.
+// Returns map[string]string which maps individual background property names to their
+// values, or nil when no properties are found.
 func expandSingleBackgroundLayer(value string) map[string]string {
 	result := make(map[string]string)
 
@@ -173,14 +173,13 @@ func extractBackgroundSize(value string, result map[string]string) string {
 	return positionAndSize + literalSpace + remainingValue
 }
 
-// parseBackgroundSizeValue extracts the background-size value from parsed
-// parts.
+// parseBackgroundSizeValue extracts the background-size value from parsed parts.
 //
-// Takes sizeAndRest ([]string) which contains the size value and any leftover
-// background shorthand parts.
+// Takes sizeAndRest ([]string) which contains the size value and any leftover background
+// shorthand parts.
 //
-// Returns size (string) which is the extracted background-size value. This is
-// either a single value like "cover" or a two-value pair like "100% 50%".
+// Returns size (string) which is the extracted background-size value. This is either a
+// single value like "cover" or a two-value pair like "100% 50%".
 // Returns remaining (string) which contains any leftover parts after the size.
 func parseBackgroundSizeValue(sizeAndRest []string) (size string, remaining string) {
 	if len(sizeAndRest) >= 2 && !isBackgroundKeyword(sizeAndRest[1]) {
@@ -193,11 +192,10 @@ func parseBackgroundSizeValue(sizeAndRest []string) (size string, remaining stri
 	return size, remaining
 }
 
-// classifyBackgroundParts groups background shorthand parts by property type
-// and stores them in the result map.
+// classifyBackgroundParts groups background shorthand parts by property type and stores
+// them in the result map.
 //
-// Takes parts ([]string) which contains the background shorthand parts to
-// classify.
+// Takes parts ([]string) which contains the background shorthand parts to classify.
 // Takes result (map[string]string) which receives the classified properties.
 func classifyBackgroundParts(parts []string, result map[string]string) {
 	keywords := buildBackgroundKeywordMaps()
@@ -249,8 +247,8 @@ func classifyBackgroundParts(parts []string, result map[string]string) {
 
 // buildBackgroundKeywordMaps creates lookup maps for CSS background keywords.
 //
-// Returns backgroundKeywordMaps which holds maps for repeat, attachment, and
-// position keywords used when parsing background properties.
+// Returns backgroundKeywordMaps which holds maps for repeat, attachment, and position
+// keywords used when parsing background properties.
 func buildBackgroundKeywordMaps() backgroundKeywordMaps {
 	return backgroundKeywordMaps{
 		repeat: map[string]bool{
@@ -266,9 +264,8 @@ func buildBackgroundKeywordMaps() backgroundKeywordMaps {
 	}
 }
 
-// isBackgroundKeyword reports whether a value is a background-related CSS
-// keyword such as repeat, attachment, or URL to help tell it apart from
-// background-size values.
+// isBackgroundKeyword reports whether a value is a background-related CSS keyword such as
+// repeat, attachment, or URL to help tell it apart from background-size values.
 //
 // Takes value (string) which is the CSS value to check.
 //
@@ -288,20 +285,19 @@ func isBackgroundKeyword(value string) bool {
 	return false
 }
 
-// expandFontShorthand breaks a CSS font shorthand value into its separate
-// properties.
+// expandFontShorthand breaks a CSS font shorthand value into its separate properties.
 //
-// CSS font shorthand follows this pattern:
-// [font-style] [font-variant] [font-weight] font-size[/line-height] font-family
+// CSS font shorthand follows this pattern: [font-style] [font-variant] [font-weight]
+// font-size[/line-height] font-family
 //
-// The size and family are required. The style, variant, and weight are optional but
-// must appear in that order. Needed because many email clients do not handle the
-// font shorthand well.
+// The size and family are required. The style, variant, and weight are optional but must
+// appear in that order. Needed because many email clients do not handle the font
+// shorthand well.
 //
 // Takes value (string) which is the CSS font shorthand value to expand.
 //
-// Returns map[string]string which holds the separate font properties, or nil
-// when the value is empty, is a system font keyword, or cannot be parsed.
+// Returns map[string]string which holds the separate font properties, or nil when the
+// value is empty, is a system font keyword, or cannot be parsed.
 func expandFontShorthand(value string) map[string]string {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -325,8 +321,8 @@ func expandFontShorthand(value string) map[string]string {
 	return buildFontPropertiesMap(props)
 }
 
-// isSystemFont reports whether the given value is a system font keyword.
-// System font keywords should not be expanded during font shorthand processing.
+// isSystemFont reports whether the given value is a system font keyword. System font
+// keywords should not be expanded during font shorthand processing.
 //
 // Takes value (string) which is the font value to check.
 //
@@ -341,8 +337,9 @@ func isSystemFont(value string) bool {
 //
 // Takes parts ([]string) which contains the font shorthand values to parse.
 //
-// Returns *fontProperties which holds the parsed font style, variant, weight,
-// size, line height, and family. Returns nil when required values are missing.
+// Returns *fontProperties which holds the parsed font style, variant, weight, size, line
+// height, and family.
+// Returns nil when required values are missing.
 func parseFontProperties(parts []string) *fontProperties {
 	props := &fontProperties{}
 	i := 0
@@ -375,15 +372,14 @@ func parseFontProperties(parts []string) *fontProperties {
 	return props
 }
 
-// parseFontSizeAndLineHeight extracts the font size and optional line height
-// from a font shorthand value.
+// parseFontSizeAndLineHeight extracts the font size and optional line height from a font
+// shorthand value.
 //
 // Takes parts ([]string) which contains the font shorthand tokens to parse.
 // Takes index (int) which specifies the position to read from in parts.
 // Takes props (*fontProperties) which receives the parsed size and line height.
 //
-// Returns bool which is true if parsing succeeded, false if index is out of
-// bounds.
+// Returns bool which is true if parsing succeeded, false if index is out of bounds.
 func parseFontSizeAndLineHeight(parts []string, index int, props *fontProperties) bool {
 	if index >= len(parts) {
 		return false
@@ -402,13 +398,12 @@ func parseFontSizeAndLineHeight(parts []string, index int, props *fontProperties
 	return true
 }
 
-// buildFontPropertiesMap builds a map of CSS font properties from parsed
-// components.
+// buildFontPropertiesMap builds a map of CSS font properties from parsed components.
 //
 // Takes props (*fontProperties) which contains the parsed font property values.
 //
-// Returns map[string]string which maps CSS property names to their values, or
-// nil when no properties are set.
+// Returns map[string]string which maps CSS property names to their values, or nil when no
+// properties are set.
 func buildFontPropertiesMap(props *fontProperties) map[string]string {
 	result := make(map[string]string)
 
@@ -441,8 +436,8 @@ func buildFontPropertiesMap(props *fontProperties) map[string]string {
 //
 // Takes value (string) which is the CSS value to check.
 //
-// Returns bool which is true if the value is "normal", "italic", or "oblique",
-// false otherwise.
+// Returns bool which is true if the value is "normal", "italic", or "oblique", false
+// otherwise.
 func isFontStyle(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 	return value == "normal" || value == "italic" || value == "oblique"
@@ -462,8 +457,8 @@ func isFontVariant(value string) bool {
 //
 // Takes value (string) which is the font-weight value to check.
 //
-// Returns bool which is true if the value is a valid keyword (normal, bold,
-// bolder, lighter) or a number from 100 to 900 in steps of 100.
+// Returns bool which is true if the value is a valid keyword (normal, bold, bolder,
+// lighter) or a number from 100 to 900 in steps of 100.
 func isFontWeight(value string) bool {
 	value = strings.ToLower(strings.TrimSpace(value))
 

@@ -24,8 +24,7 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_domain"
 )
 
-// InMemoryRegistry is a thread-safe, in-memory implementation of the Registry
-// interface.
+// InMemoryRegistry is a thread-safe, in-memory implementation of the Registry interface.
 type InMemoryRegistry struct {
 	// probes holds the registered health probes.
 	probes []healthprobe_domain.Probe

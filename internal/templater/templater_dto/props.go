@@ -18,6 +18,6 @@
 
 package templater_dto
 
-// NoProps is an empty struct used as the props type for components that
-// do not accept any props. It is a type-safe placeholder.
+// NoProps is an empty struct used as the props type for components that do not accept any
+// props. It is a type-safe placeholder.
 type NoProps struct{}

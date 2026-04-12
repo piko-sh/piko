@@ -18,14 +18,16 @@
 
 package collection_dto
 
-import "go/ast"
+import (
+	"go/ast"
+)
 
-// DynamicCollectionInfo contains instructions for the Generator to emit
-// dynamic collection fetcher code.
+// DynamicCollectionInfo contains instructions for the Generator to emit dynamic
+// collection fetcher code.
 //
-// Created by the Collection Service during annotation and consumed by the
-// Generator during code emission. Bridges the gap between collection provider
-// blueprints and final Go code generation.
+// Created by the Collection Service during annotation and consumed by the Generator
+// during code emission. Bridges the gap between collection provider blueprints and final
+// Go code generation.
 //
 // Design Philosophy:
 //   - Created at build-time by CollectionService
@@ -45,22 +47,21 @@ type DynamicCollectionInfo struct {
 
 	// FetcherCode holds the runtime fetch code blueprint from the provider.
 	//
-	// Contains the AST for a function that fetches data at runtime.
-	// The generator clones the function, renames it, and adds it to the
-	// component file.
+	// Contains the AST for a function that fetches data at runtime. The generator clones the
+	// function, renames it, and adds it to the component file.
 	//
-	// For pure dynamic providers: always set.
-	// For hybrid providers: may be nil (uses RevalidatorCode instead).
+	// For pure dynamic providers: always set. For hybrid providers: may be nil (uses
+	// RevalidatorCode instead).
 	FetcherCode *RuntimeFetcherCode
 
-	// HybridConfig holds the hybrid mode settings when HybridMode is true;
-	// nil when hybrid mode is not in use.
+	// HybridConfig holds the hybrid mode settings when HybridMode is true; nil when hybrid
+	// mode is not in use.
 	HybridConfig *HybridConfig
 
 	// RevalidatorCode is the AST for the revalidation function.
 	//
-	// Checks the ETag and fetches new content if it has changed.
-	// The Generator clones the function and adds it to the component file.
+	// Checks the ETag and fetches new content if it has changed. The Generator clones the
+	// function and adds it to the component file.
 	//
 	// Only set when HybridMode is true.
 	RevalidatorCode *RuntimeFetcherCode
@@ -70,15 +71,14 @@ type DynamicCollectionInfo struct {
 	// pikoruntime.FetchCollection in generated code.
 	ProviderName string
 
-	// CollectionName is the name of the collection to fetch, such as "blog",
-	// "products", or "team". This value is passed to pikoruntime.FetchCollection
-	// in the generated code.
+	// CollectionName is the name of the collection to fetch, such as "blog", "products", or
+	// "team". This value is passed to pikoruntime.FetchCollection in the generated code.
 	CollectionName string
 
 	// SnapshotETag is the ETag computed at build time.
 	//
-	// Used for staleness detection during runtime revalidation.
-	// Format depends on provider (e.g., "md-{xxhash64}" for markdown).
+	// Used for staleness detection during runtime revalidation. Format depends on provider
+	// (e.g., "md-{xxhash64}" for markdown).
 	//
 	// Only populated when HybridMode is true.
 	SnapshotETag string
@@ -86,8 +86,8 @@ type DynamicCollectionInfo struct {
 	// HybridMode indicates this is a hybrid (ISR) collection.
 	//
 	// When true, the generator emits code that:
-	//   1. Returns the embedded static snapshot immediately
-	//   2. Triggers background revalidation if TTL expired
-	//   3. Updates cache when ETag changes
+	//  1. Returns the embedded static snapshot immediately
+	//  2. Triggers background revalidation if TTL expired
+	//  3. Updates cache when ETag changes
 	HybridMode bool
 }

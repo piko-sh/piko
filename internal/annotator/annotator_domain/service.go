@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Implements the main annotator service that orchestrates the entire
-// compilation pipeline from parsing to code generation. Coordinates graph
-// building, module virtualisation, type inspection, partial expansion, semantic
-// analysis, and asset processing.
+// Implements the main annotator service that orchestrates the entire compilation pipeline
+// from parsing to code generation. Coordinates graph building, module virtualisation,
+// type inspection, partial expansion, semantic analysis, and asset processing.
 
 import (
 	"context"
@@ -50,30 +49,30 @@ const (
 	attributeKeyDiagnosticCount = "diagnostic_count"
 )
 
-// annotationOptions holds settings that control how the annotation pipeline
-// handles errors during processing.
+// annotationOptions holds settings that control how the annotation pipeline handles
+// errors during processing.
 type annotationOptions struct {
-	// resolver overrides the default resolver for this request. Used in LSP mode
-	// to provide per-module resolvers.
+	// resolver overrides the default resolver for this request. Used in LSP mode to provide
+	// per-module resolvers.
 	resolver resolver_domain.ResolverPort
 
-	// changedComponents limits the fast-path rebuild to only the specified
-	// components (by hashed name).
+	// changedComponents limits the fast-path rebuild to only the specified components (by
+	// hashed name).
 	//
-	// When nil, all components are processed. When set, only components in
-	// this set are refreshed, annotated, and have artefacts generated.
+	// When nil, all components are processed. When set, only components in this set are
+	// refreshed, annotated, and have artefacts generated.
 	changedComponents map[string]bool
 
-	// faultTolerant allows annotation to continue when errors occur. Used in LSP
-	// mode to return partial results instead of stopping on the first error.
+	// faultTolerant allows annotation to continue when errors occur. Used in LSP mode to
+	// return partial results instead of stopping on the first error.
 	faultTolerant bool
 }
 
 // AnnotationOption is a function type that changes how annotations behave.
 type AnnotationOption func(*annotationOptions)
 
-// AnnotatorService is the main part of the Piko compilation pipeline.
-// It implements AnnotatorPort and manages the full annotation workflow.
+// AnnotatorService is the main part of the Piko compilation pipeline. It implements
+// AnnotatorPort and manages the full annotation workflow.
 type AnnotatorService struct {
 	// resolver provides path resolution and module information lookup.
 	resolver resolver_domain.ResolverPort
@@ -90,8 +89,8 @@ type AnnotatorService struct {
 	// typeInspector builds type information for the code being analysed.
 	typeInspector TypeInspectorBuilderPort
 
-	// componentRegistry provides lookup of registered PKC components. If nil,
-	// custom tag collection uses heuristic detection instead.
+	// componentRegistry provides lookup of registered PKC components. If nil, custom tag
+	// collection uses heuristic detection instead.
 	componentRegistry ComponentRegistryPort
 
 	// cssProcessor parses and transforms CSS during component expansion.
@@ -103,21 +102,20 @@ type AnnotatorService struct {
 	// logStore holds compilation log entries for the current operation.
 	logStore *CompilationLogStore
 
-	// pathsConfig holds the path settings needed by the annotator for
-	// directory resolution, route calculation, and asset URL generation.
+	// pathsConfig holds the path settings needed by the annotator for directory resolution,
+	// route calculation, and asset URL generation.
 	pathsConfig AnnotatorPathsConfig
 
-	// assetsConfig holds asset profiles, screen sizes, and densities for
-	// compile-time static asset analysis. Separate from ServerConfig because
-	// assets are configured programmatically via WithAssets().
+	// assetsConfig holds asset profiles, screen sizes, and densities for compile-time static
+	// asset analysis. Separate from ServerConfig because assets are configured
+	// programmatically via WithAssets().
 	assetsConfig config.AssetsConfig
 
 	// inMemoryMode skips file system operations such as reading directories.
 	inMemoryMode bool
 }
 
-// AnnotatorServiceConfig groups the dependencies needed to create an
-// AnnotatorService.
+// AnnotatorServiceConfig groups the dependencies needed to create an AnnotatorService.
 type AnnotatorServiceConfig struct {
 	// Resolver provides path resolution and base directory lookup.
 	Resolver resolver_domain.ResolverPort
@@ -131,50 +129,46 @@ type AnnotatorServiceConfig struct {
 	// CollectionService handles collection operations for the annotator.
 	CollectionService CollectionServicePort
 
-	// TypeInspector provides type information for template
-	// compilation.
+	// TypeInspector provides type information for template compilation.
 	TypeInspector TypeInspectorBuilderPort
 
-	// ComponentRegistry provides lookup of registered PKC components.
-	// If nil, custom tag collection uses heuristic detection instead.
+	// ComponentRegistry provides lookup of registered PKC components. If nil, custom tag
+	// collection uses heuristic detection instead.
 	ComponentRegistry ComponentRegistryPort
 
-	// CSSProcessor handles CSS extraction and scoping for
-	// component templates.
+	// CSSProcessor handles CSS extraction and scoping for component templates.
 	CSSProcessor *CSSProcessor
 
-	// AssetsConfig holds asset profiles and responsive image settings for
-	// compile-time analysis. If nil, an empty config is used.
+	// AssetsConfig holds asset profiles and responsive image settings for compile-time
+	// analysis. If nil, an empty config is used.
 	AssetsConfig *config.AssetsConfig
 
-	// PathsConfig holds the path settings needed by the annotator for
-	// directory resolution, route calculation, and asset URL generation.
+	// PathsConfig holds the path settings needed by the annotator for directory resolution,
+	// route calculation, and asset URL generation.
 	PathsConfig AnnotatorPathsConfig
 
-	// DebugLogDir specifies the directory for debug log files.
-	// Defaults to config.CompilerDebugLogDir.
+	// DebugLogDir specifies the directory for debug log files. Defaults to
+	// config.CompilerDebugLogDir.
 	DebugLogDir string
 
 	// CompilationLogLevel sets the log level for compilation output.
 	CompilationLogLevel slog.Level
 
-	// EnableDebugLogFiles controls whether the compiler writes a detailed debug
-	// log for each component. Defaults to config.CompilerEnableDebugLogFiles.
+	// EnableDebugLogFiles controls whether the compiler writes a detailed debug log for each
+	// component. Defaults to config.CompilerEnableDebugLogFiles.
 	EnableDebugLogFiles bool
 
-	// InMemoryMode skips filesystem operations such as walking the directory for
-	// Go files. Use this for WASM or testing where file I/O is not available.
+	// InMemoryMode skips filesystem operations such as walking the directory for Go files.
+	// Use this for WASM or testing where file I/O is not available.
 	InMemoryMode bool
 }
 
-// NewAnnotatorService creates a new AnnotatorService with the provided
-// configuration.
+// NewAnnotatorService creates a new AnnotatorService with the provided configuration.
 //
-// Use slog.LevelDebug for development and compiled modes, slog.LevelWarn for
-// interpreted mode.
+// Use slog.LevelDebug for development and compiled modes, slog.LevelWarn for interpreted
+// mode.
 //
-// Takes serviceConfig (*AnnotatorServiceConfig) which specifies the service
-// settings.
+// Takes serviceConfig (*AnnotatorServiceConfig) which specifies the service settings.
 //
 // Returns *AnnotatorService which is the configured service ready for use.
 // Returns error when the compilation log store cannot be initialised.
@@ -214,23 +208,23 @@ func NewAnnotatorService(ctx context.Context, serviceConfig *AnnotatorServiceCon
 
 // AnnotateProject is the primary entry point for a full project build.
 //
-// Performs a complete, multi-stage analysis of all components in the dependency
-// graph (both pages and partials) and returns a single, full result. Runs both
-// Phase 1 (expensive type introspection) and Phase 2 (annotation). For
-// template-only changes, use AnnotateProjectWithCachedIntrospection to skip
-// Phase 1.
+// Performs a complete, multi-stage analysis of all components in the dependency graph
+// (both pages and partials) and returns a single, full result. Runs both the
+// introspection stage (expensive type introspection) and the annotation stage. For
+// template-only changes, use AnnotateProjectWithCachedIntrospection to skip the
+// introspection stage.
 //
-// Actions are auto-discovered from the actions/ directory during Phase 1.
+// Actions are auto-discovered from the actions/ directory during the introspection stage.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the
-// components to analyse.
-// Takes scriptHashes (map[string]string) which contains SHA1 hashes of script
-// block content for cache invalidation. Pass nil if script hashes are not
-// available (will disable script-based cache invalidation).
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the components to
+// analyse.
+// Takes scriptHashes (map[string]string) which contains SHA1 hashes of script block
+// content for cache invalidation. Pass nil if script hashes are not available (will
+// disable script-based cache invalidation).
 // Takes opts (...AnnotationOption) which configures annotation behaviour.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the complete
-// analysis results for all components.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the complete analysis
+// results for all components.
 // Returns *CompilationLogStore which contains logs from the compilation.
 // Returns error when introspection or annotation fails.
 func (s *AnnotatorService) AnnotateProject(
@@ -284,31 +278,29 @@ func (s *AnnotatorService) AnnotateProject(
 	return s.runPhase2Annotation(ctx, componentGraph, virtualModule, typeResolver, phase1Diagnostics, nil, options)
 }
 
-// AnnotateProjectWithCachedIntrospection is the fast path for template-only
-// changes. It skips Phase 1 (expensive type introspection) and jumps directly
-// to Phase 2 (annotation) using cached introspection data from a previous
-// build.
+// AnnotateProjectWithCachedIntrospection is the fast path for template-only changes. It
+// skips the introspection stage (expensive type introspection) and jumps directly to the
+// annotation stage using cached introspection data from a previous build.
 //
-// Achieves 5-10x performance improvement when only <template>, <style>, or
-// <i18n> blocks have changed, as it avoids the expensive packages.Load() call
-// for Go type introspection.
+// Achieves 5-10x performance improvement when only <template>, <style>, or <i18n> blocks
+// have changed, as it avoids the expensive packages.Load() call for Go type
+// introspection.
 //
-// Should be called by the coordinator when Tier 2 cache (full annotation) misses,
-// Tier 1 cache (introspection) hits, and the introspection hash matches the
-// cached entry.
+// Should be called by the coordinator when Tier 2 cache (full annotation) misses, Tier 1
+// cache (introspection) hits, and the introspection hash matches the cached entry.
 //
 // Actions are auto-discovered from the cached ActionManifest in VirtualModule.
 //
-// Takes cachedComponentGraph (*annotator_dto.ComponentGraph) which provides
-// the component graph from a previous build.
-// Takes cachedVirtualModule (*annotator_dto.VirtualModule) which provides the
-// virtual module data from a previous build.
-// Takes cachedTypeResolver (*TypeResolver) which provides the type resolver
-// from a previous build.
+// Takes cachedComponentGraph (*annotator_dto.ComponentGraph) which provides the component
+// graph from a previous build.
+// Takes cachedVirtualModule (*annotator_dto.VirtualModule) which provides the virtual
+// module data from a previous build.
+// Takes cachedTypeResolver (*TypeResolver) which provides the type resolver from a
+// previous build.
 // Takes opts (...AnnotationOption) which provides optional behaviour controls.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation
-// results for the project.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation results
+// for the project.
 // Returns *CompilationLogStore which contains the compilation logs.
 // Returns error when refreshing mutable component data fails.
 func (s *AnnotatorService) AnnotateProjectWithCachedIntrospection(
@@ -343,18 +335,18 @@ func (s *AnnotatorService) AnnotateProjectWithCachedIntrospection(
 	return s.runPhase2Annotation(ctx, cachedComponentGraph, cachedVirtualModule, cachedTypeResolver, initialDiagnostics, nil, options)
 }
 
-// Annotate runs the full annotation process for a single entry point. It is a
-// helper for development and single-file generation that calls AnnotateProject
-// and extracts the result for the given path.
+// Annotate runs the full annotation process for a single entry point. It is a helper for
+// development and single-file generation that calls AnnotateProject and extracts the
+// result for the given path.
 //
 // Takes mainSourcePath (string) which specifies the path to the entry point.
 // Takes isPage (bool) which indicates whether the entry point is a page.
 //
-// Returns *annotator_dto.AnnotationResult which contains the annotation for the
-// single entry point.
+// Returns *annotator_dto.AnnotationResult which contains the annotation for the single
+// entry point.
 // Returns *CompilationLogStore which contains the compilation logs.
-// Returns error when path resolution fails or the entry point is not found in
-// the project result.
+// Returns error when path resolution fails or the entry point is not found in the project
+// result.
 func (s *AnnotatorService) Annotate(ctx context.Context, mainSourcePath string, isPage bool) (*annotator_dto.AnnotationResult, *CompilationLogStore, error) {
 	ctx, span, l := log.Span(ctx, "AnnotatorService.Annotate", logger_domain.String("entryPoint", mainSourcePath))
 	defer span.End()
@@ -388,24 +380,23 @@ func (s *AnnotatorService) Annotate(ctx context.Context, mainSourcePath string, 
 	return singleResult, compilationLogs, nil
 }
 
-// RunPhase1IntrospectionAndAnnotate runs the full two-phase annotation
-// pipeline and returns both the intermediate Phase 1 introspection results
-// (for Tier 1 caching) and the final Phase 2 annotation results (for Tier 2
-// caching).
+// RunPhase1IntrospectionAndAnnotate runs the full two-stage annotation pipeline and
+// returns both the intermediate introspection results (for Tier 1 caching) and the final
+// annotation results (for Tier 2 caching).
 //
-// Designed for the coordinator's slow path to enable populating the
-// introspection cache after a full build.
+// Designed for the coordinator's slow path to enable populating the introspection cache
+// after a full build.
 //
-// Actions are auto-discovered from the actions/ directory during Phase 1.
+// Actions are auto-discovered from the actions/ directory during the introspection stage.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry
-// points to process.
-// Takes scriptHashes (map[string]string) which contains SHA1 hashes of script
-// block content for cache invalidation.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry points to
+// process.
+// Takes scriptHashes (map[string]string) which contains SHA1 hashes of script block
+// content for cache invalidation.
 // Takes opts (...AnnotationOption) which provides optional behaviour controls.
 //
-// Returns *Phase1Result which contains component graph, virtual module, type
-// resolver, annotations, and logs.
+// Returns *Phase1Result which contains component graph, virtual module, type resolver,
+// annotations, and logs.
 // Returns error when introspection or annotation fails.
 func (s *AnnotatorService) RunPhase1IntrospectionAndAnnotate(
 	ctx context.Context,
@@ -453,8 +444,8 @@ func (s *AnnotatorService) RunPhase1IntrospectionAndAnnotate(
 	}, nil
 }
 
-// getEffectiveResolver returns the resolver from options if set, or the
-// service's default resolver otherwise.
+// getEffectiveResolver returns the resolver from options if set, or the service's default
+// resolver otherwise.
 //
 // Takes opts (*annotationOptions) which may contain a resolver override.
 //
@@ -466,25 +457,24 @@ func (s *AnnotatorService) getEffectiveResolver(opts *annotationOptions) resolve
 	return s.resolver
 }
 
-// runPhase2Annotation executes Phase 2 of the annotation pipeline:
-// per-component annotation, asset aggregation, and srcset annotation. This is
-// extracted as a separate method so it can be reused by both the full build
-// path and the fast path (cached introspection).
+// runPhase2Annotation executes the annotation stage of the pipeline: per-component
+// annotation, asset aggregation, and srcset annotation. This is extracted as a separate
+// method so it can be reused by both the full build path and the fast path (cached
+// introspection).
 //
-// Takes componentGraph (*annotator_dto.ComponentGraph) which provides the
-// graph of components and their relationships.
-// Takes virtualModule (*annotator_dto.VirtualModule) which contains the
-// components to annotate, keyed by hash.
-// Takes typeResolver (*TypeResolver) which resolves type information during
+// Takes componentGraph (*annotator_dto.ComponentGraph) which provides the graph of
+// components and their relationships.
+// Takes virtualModule (*annotator_dto.VirtualModule) which contains the components to
+// annotate, keyed by hash.
+// Takes typeResolver (*TypeResolver) which resolves type information during annotation.
+// Takes initialDiagnostics ([]*ast_domain.Diagnostic) which contains any diagnostics from
+// earlier phases.
+// Takes actions (map[string]ActionInfoProvider) which provides action metadata for
 // annotation.
-// Takes initialDiagnostics ([]*ast_domain.Diagnostic) which contains any
-// diagnostics from earlier phases.
-// Takes actions (map[string]ActionInfoProvider) which provides action metadata
-// for annotation.
 // Takes options (*annotationOptions) which configures the annotation behaviour.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the aggregated
-// annotation results, diagnostics, and asset manifest.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the aggregated annotation
+// results, diagnostics, and asset manifest.
 // Returns *CompilationLogStore which provides the compilation log for this run.
 // Returns error when the worker pool fails or severe semantic errors occur.
 func (s *AnnotatorService) runPhase2Annotation(
@@ -554,20 +544,20 @@ func (s *AnnotatorService) runPhase2Annotation(
 	return handlePhase2Completion(ctx, finalResult, s.logStore, options)
 }
 
-// handlePhase1Error builds a Phase1Result when Phase 1 fails.
+// handlePhase1Error builds a Phase1Result when the introspection stage fails.
 //
-// This helper makes sure the LSP can show error messages even when Phase 1
-// does not work. It creates a basic result with any error messages that are
+// This helper makes sure the LSP can show error messages even when the introspection
+// stage does not complete. It creates a basic result with any error messages that are
 // ready, or an empty result if there are none.
 //
 // Takes ctx (context.Context) which carries the logger and tracing data.
-// Takes phase1Result (*Phase1IntrospectionResult) which holds partial results
-// and error messages from the failed step.
-// Takes phase1Err (error) which is the error from Phase 1.
+// Takes phase1Result (*Phase1IntrospectionResult) which holds partial results and error
+// messages from the failed step.
+// Takes phase1Err (error) which is the introspection-stage error.
 //
-// Returns *Phase1Result which holds a basic result with any error messages
-// for the LSP to show.
-// Returns error when Phase 1 has failed.
+// Returns *Phase1Result which holds a basic result with any error messages for the LSP to
+// show.
+// Returns error which wraps the introspection-stage failure.
 func (s *AnnotatorService) handlePhase1Error(
 	ctx context.Context,
 	phase1Result *Phase1IntrospectionResult,
@@ -609,24 +599,24 @@ func (s *AnnotatorService) handlePhase1Error(
 	}, phase1Err
 }
 
-// Phase1IntrospectionResult contains the artefacts from Phase 1 introspection.
+// Phase1IntrospectionResult contains the artefacts produced by the introspection stage of
+// the annotation pipeline.
 type Phase1IntrospectionResult struct {
 	// ComponentGraph holds the dependency graph of components found in the source.
 	ComponentGraph *annotator_dto.ComponentGraph
 
-	// VirtualModule holds data about the virtual module found during
-	// introspection.
+	// VirtualModule holds data about the virtual module found during introspection.
 	VirtualModule *annotator_dto.VirtualModule
 
 	// TypeResolver provides type information lookup for documentation analysis.
 	TypeResolver *TypeResolver
 
-	// Diagnostics holds any errors or warnings found during phase 1 analysis.
+	// Diagnostics holds any errors or warnings found during introspection.
 	Diagnostics []*ast_domain.Diagnostic
 }
 
-// Phase1Result contains all artefacts from Phase 1 including annotation results
-// and logs.
+// Phase1Result contains all artefacts produced by the introspection stage together with
+// the annotation results and logs.
 type Phase1Result struct {
 	// ComponentGraph holds the links between components that depend on each other.
 	ComponentGraph *annotator_dto.ComponentGraph
@@ -637,31 +627,30 @@ type Phase1Result struct {
 	// TypeResolver holds the resolver used to look up type information.
 	TypeResolver *TypeResolver
 
-	// Annotations holds the results from phase one processing.
+	// Annotations holds the results from annotation processing.
 	Annotations *annotator_dto.ProjectAnnotationResult
 
 	// Logs holds compiler output and error messages from the analysis phase.
 	Logs *CompilationLogStore
 }
 
-// runPhase1Introspection executes the expensive type introspection phase of
-// annotation. This includes building the component graph, virtualising the
-// module, and initialising the type resolver via packages.Load().
+// runPhase1Introspection executes the expensive type introspection stage of annotation.
+// This includes building the component graph, virtualising the module, and initialising
+// the type resolver via packages.Load().
 //
-// This is Phase 1 of the annotation pipeline and can be cached separately from
-// Phase 2 because it only depends on <script> blocks and .go files, not on
-// <template>, <style>, or <i18n> blocks.
+// The introspection stage can be cached separately from the annotation stage because it
+// only depends on <script> blocks and .go files, not on <template>, <style>, or <i18n>
+// blocks.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the
-// components to process.
-// Takes scriptHashes (map[string]string) which provides hashes for cache
-// validation.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the components to
+// process.
+// Takes scriptHashes (map[string]string) which provides hashes for cache validation.
 // Takes options (*annotationOptions) which controls annotation behaviour.
 //
-// Returns *Phase1IntrospectionResult which contains the component graph,
-// virtual module, type resolver, and diagnostics.
-// Returns error when graph building, expansion, virtualisation, or type
-// resolver initialisation fails.
+// Returns *Phase1IntrospectionResult which contains the component graph, virtual module,
+// type resolver, and diagnostics.
+// Returns error when graph building, expansion, virtualisation, or type resolver
+// initialisation fails.
 func (s *AnnotatorService) runPhase1Introspection(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
@@ -709,8 +698,8 @@ func (s *AnnotatorService) runPhase1Introspection(
 
 // checkGraphErrors handles error recovery for graph processing failures.
 //
-// Takes allDiagnostics ([]*ast_domain.Diagnostic) which contains errors found
-// during graph processing.
+// Takes allDiagnostics ([]*ast_domain.Diagnostic) which contains errors found during
+// graph processing.
 // Takes options (*annotationOptions) which controls error handling behaviour.
 //
 // Returns error when diagnostics contain errors and fast-fail mode is enabled.
@@ -734,18 +723,14 @@ func (*AnnotatorService) checkGraphErrors(
 	return nil
 }
 
-// buildUnifiedGraph builds a unified component graph from the given entry
-// points.
+// buildUnifiedGraph builds a unified component graph from the given entry points.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the paths to
-// process.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the paths to process.
 // Takes options (*annotationOptions) which controls how errors are handled.
 //
 // Returns *annotator_dto.ComponentGraph which contains the parsed components.
-// Returns []*ast_domain.Diagnostic which contains any parsing warnings or
-// errors found.
-// Returns error when graph building fails or when parsing errors occur in
-// strict mode.
+// Returns []*ast_domain.Diagnostic which contains any parsing warnings or errors found.
+// Returns error when graph building fails or when parsing errors occur in strict mode.
 func (s *AnnotatorService) buildUnifiedGraph(
 	ctx context.Context,
 	entryPoints []annotator_dto.EntryPoint,
@@ -779,15 +764,14 @@ func (s *AnnotatorService) buildUnifiedGraph(
 	return componentGraph, graphDiags, nil
 }
 
-// expandSingleCollectionComponent expands a single collection component into
-// multiple entry points.
+// expandSingleCollectionComponent expands a single collection component into multiple
+// entry points.
 //
-// For static providers (markdown): creates one entry point per content item.
-// For dynamic providers (CMS): creates one entry point with a dynamic route
-// pattern.
+// For static providers (markdown): creates one entry point per content item. For dynamic
+// providers (CMS): creates one entry point with a dynamic route pattern.
 //
-// Takes parsedComp (*annotator_dto.ParsedComponent) which contains the parsed
-// collection component with its provider and collection name.
+// Takes parsedComp (*annotator_dto.ParsedComponent) which contains the parsed collection
+// component with its provider and collection name.
 // Takes options (*annotationOptions) which provides settings for the process.
 //
 // Returns []annotator_dto.EntryPoint which contains the expanded entry points.
@@ -828,15 +812,15 @@ func (s *AnnotatorService) expandSingleCollectionComponent(
 	return s.convertCollectionToAnnotatorEntryPointsWithResolver(collectionEntryPoints, resolver), nil
 }
 
-// convertCollectionToAnnotatorEntryPointsWithResolver converts collection
-// entry points into annotator format using the given resolver.
+// convertCollectionToAnnotatorEntryPointsWithResolver converts collection entry points
+// into annotator format using the given resolver.
 //
-// Takes collectionEPs ([]*collection_dto.CollectionEntryPoint) which provides
-// the collection entry points to convert.
+// Takes collectionEPs ([]*collection_dto.CollectionEntryPoint) which provides the
+// collection entry points to convert.
 // Takes resolver (resolver_domain.ResolverPort) which provides path resolution.
 //
-// Returns []annotator_dto.EntryPoint which contains the converted entry points
-// with paths relative to the module.
+// Returns []annotator_dto.EntryPoint which contains the converted entry points with paths
+// relative to the module.
 func (*AnnotatorService) convertCollectionToAnnotatorEntryPointsWithResolver(
 	collectionEPs []*collection_dto.CollectionEntryPoint,
 	resolver resolver_domain.ResolverPort,
@@ -872,20 +856,20 @@ func (*AnnotatorService) convertCollectionToAnnotatorEntryPointsWithResolver(
 	return result
 }
 
-// expandCollectionDirectives processes collection directives and turns them
-// into separate entry points.
+// expandCollectionDirectives processes collection directives and turns them into separate
+// entry points.
 //
-// Takes componentGraph (*annotator_dto.ComponentGraph) which holds the parsed
-// components to check for collection directives.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which provides the starting
-// entry points to expand.
+// Takes componentGraph (*annotator_dto.ComponentGraph) which holds the parsed components
+// to check for collection directives.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which provides the starting entry points
+// to expand.
 // Takes options (*annotationOptions) which provides the resolver override.
 //
 // Returns []annotator_dto.EntryPoint which contains the expanded entry points.
-// Returns []*ast_domain.Diagnostic which contains any warning diagnostics for
-// skipped collection components.
-// Returns error when expanding a collection component fails for a reason other
-// than a missing provider.
+// Returns []*ast_domain.Diagnostic which contains any warning diagnostics for skipped
+// collection components.
+// Returns error when expanding a collection component fails for a reason other than a
+// missing provider.
 func (s *AnnotatorService) expandCollectionDirectives(
 	ctx context.Context,
 	componentGraph *annotator_dto.ComponentGraph,
@@ -944,14 +928,13 @@ func (s *AnnotatorService) expandCollectionDirectives(
 	return expandedEntryPoints, diagnostics, nil
 }
 
-// providerNotFoundDiagnostic builds a warning diagnostic for a collection
-// component whose provider is not registered.
+// providerNotFoundDiagnostic builds a warning diagnostic for a collection component whose
+// provider is not registered.
 //
-// Takes comp (*annotator_dto.ParsedComponent) which provides the source path
-// and provider name for the diagnostic.
+// Takes comp (*annotator_dto.ParsedComponent) which provides the source path and provider
+// name for the diagnostic.
 //
-// Returns *ast_domain.Diagnostic which is a warning-severity diagnostic with
-// code T153.
+// Returns *ast_domain.Diagnostic which is a warning-severity diagnostic with code T153.
 func providerNotFoundDiagnostic(comp *annotator_dto.ParsedComponent) *ast_domain.Diagnostic {
 	return ast_domain.NewDiagnosticWithCode(
 		ast_domain.Warning,
@@ -969,8 +952,8 @@ func providerNotFoundDiagnostic(comp *annotator_dto.ParsedComponent) *ast_domain
 	)
 }
 
-// providerEnableHint returns a user-facing hint for how to enable a given
-// collection provider.
+// providerEnableHint returns a user-facing hint for how to enable a given collection
+// provider.
 //
 // Takes providerName (string) which is the name of the missing provider.
 //
@@ -984,8 +967,8 @@ func providerEnableHint(providerName string) string {
 	}
 }
 
-// discoverActions scans the actions/ directory and discovers action structs
-// that embed piko.ActionMetadata. This is Stage 1.6 of the Phase 1 pipeline.
+// discoverActions scans the actions/ directory and discovers action structs that embed
+// piko.ActionMetadata. This is stage 1.6 of the introspection pipeline.
 //
 // Takes options (*annotationOptions) which provides the resolver override.
 //
@@ -1015,12 +998,11 @@ func (s *AnnotatorService) discoverActions(
 	return manifest, diagnostics
 }
 
-// calculateBaseRoutePathWithResolver converts a source file path into a URL
-// route path using the given resolver.
+// calculateBaseRoutePathWithResolver converts a source file path into a URL route path
+// using the given resolver.
 //
 // Takes sourcePath (string) which is the full path to the source file.
-// Takes resolver (resolver_domain.ResolverPort) which provides the base
-// directory.
+// Takes resolver (resolver_domain.ResolverPort) which provides the base directory.
 //
 // Returns string which is the URL path for routing.
 func (s *AnnotatorService) calculateBaseRoutePathWithResolver(
@@ -1054,16 +1036,15 @@ func (s *AnnotatorService) calculateBaseRoutePathWithResolver(
 
 // virtualiseModule creates a virtual module from the component graph.
 //
-// Takes componentGraph (*annotator_dto.ComponentGraph) which defines how
-// components relate to each other.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the starting
-// points for the analysis.
+// Takes componentGraph (*annotator_dto.ComponentGraph) which defines how components
+// relate to each other.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the starting points for the
+// analysis.
 // Takes options (*annotationOptions) which provides the resolver settings.
 //
-// Returns *annotator_dto.VirtualModule which contains the virtual module
-// with source overlays.
-// Returns error when collecting Go files fails or when creating the virtual
-// module fails.
+// Returns *annotator_dto.VirtualModule which contains the virtual module with source
+// overlays.
+// Returns error when collecting Go files fails or when creating the virtual module fails.
 func (s *AnnotatorService) virtualiseModule(
 	ctx context.Context,
 	componentGraph *annotator_dto.ComponentGraph,
@@ -1089,13 +1070,13 @@ func (s *AnnotatorService) virtualiseModule(
 	return virtualModule, nil
 }
 
-// initialiseTypeResolver builds the type inspector and creates a shared
-// TypeResolver for the given virtual module.
+// initialiseTypeResolver builds the type inspector and creates a shared TypeResolver for
+// the given virtual module.
 //
-// Takes virtualModule (*annotator_dto.VirtualModule) which contains the source
-// overlay and module settings.
-// Takes scriptHashes (map[string]string) which maps script paths to their
-// content hashes for finding changes.
+// Takes virtualModule (*annotator_dto.VirtualModule) which contains the source overlay
+// and module settings.
+// Takes scriptHashes (map[string]string) which maps script paths to their content hashes
+// for finding changes.
 // Takes options (*annotationOptions) which provides the resolver override.
 //
 // Returns *TypeResolver which provides type information queries.
@@ -1136,11 +1117,11 @@ func (s *AnnotatorService) initialiseTypeResolver(
 	return typeResolver, nil
 }
 
-// collectOriginalGoFilesWithResolver walks the project's base directory to
-// find all non-test .go files using the provided resolver.
+// collectOriginalGoFilesWithResolver walks the project's base directory to find all
+// non-test .go files using the provided resolver.
 //
-// Takes resolver (resolver_domain.ResolverPort) which provides the base
-// directory to walk.
+// Takes resolver (resolver_domain.ResolverPort) which provides the base directory to
+// walk.
 //
 // Returns map[string][]byte which contains the file paths and their contents.
 // Returns error when walking the directory fails or a file cannot be read.
@@ -1187,13 +1168,13 @@ func (s *AnnotatorService) collectOriginalGoFilesWithResolver(
 	return goFiles, nil
 }
 
-// refreshMutableComponentData re-parses only the parts of components that can
-// change without script changes (template, styles, i18n) from their current
-// files on disk. The fast path uses this to update cached component data
-// without running expensive type checking again.
+// refreshMutableComponentData re-parses only the parts of components that can change
+// without script changes (template, styles, i18n) from their current files on disk. The
+// fast path uses this to update cached component data without running expensive type
+// checking again.
 //
-// Takes componentGraph (*annotator_dto.ComponentGraph) which contains the
-// cached components to refresh.
+// Takes componentGraph (*annotator_dto.ComponentGraph) which contains the cached
+// components to refresh.
 //
 // Returns error when reading or parsing component files fails.
 //
@@ -1202,13 +1183,13 @@ func (s *AnnotatorService) collectOriginalGoFilesWithResolver(
 //   - StyleBlocks (raw style data)
 //   - LocalTranslations (i18n data)
 //
-// It keeps the cached Script data unchanged, as parsing scripts is expensive
-// and script content has not changed if we are on the fast path.
+// It keeps the cached Script data unchanged, as parsing scripts is expensive and script
+// content has not changed if we are on the fast path.
 //
-// Design note: The Tier 1 cache stores ComponentGraph, which includes parsed
-// templates. This is not ideal because templates can change on their own,
-// without script changes. Rather than changing the whole cache structure, we
-// fix this by refreshing templates on the fast path.
+// Design note: The Tier 1 cache stores ComponentGraph, which includes parsed templates.
+// This is not ideal because templates can change on their own, without script changes.
+// Rather than changing the whole cache structure, we fix this by refreshing templates on
+// the fast path.
 func (s *AnnotatorService) refreshMutableComponentData(ctx context.Context, componentGraph *annotator_dto.ComponentGraph, changedComponents map[string]bool) error {
 	refreshCount := len(componentGraph.Components)
 	if changedComponents != nil {
@@ -1272,9 +1253,9 @@ func (s *AnnotatorService) refreshMutableComponentData(ctx context.Context, comp
 
 // WithFaultTolerance enables fault-tolerant mode for the annotator.
 //
-// In fault-tolerant mode, the annotator keeps processing code even when it
-// finds errors. This lets LSP features work on valid parts of the code.
-// Without this option, the annotator stops at the first error (generator mode).
+// In fault-tolerant mode, the annotator keeps processing code even when it finds errors.
+// This lets LSP features work on valid parts of the code. Without this option, the
+// annotator stops at the first error (generator mode).
 //
 // Returns AnnotationOption which sets up the annotator for fault tolerance.
 func WithFaultTolerance() AnnotationOption {
@@ -1285,11 +1266,11 @@ func WithFaultTolerance() AnnotationOption {
 
 // WithResolver sets a custom resolver for this request, replacing the default.
 //
-// Use this in LSP mode to provide a resolver that has been set up for the
-// specific project being checked.
+// Use this in LSP mode to provide a resolver that has been set up for the specific
+// project being checked.
 //
-// Takes resolver (resolver_domain.ResolverPort) which provides path resolution
-// for the current request.
+// Takes resolver (resolver_domain.ResolverPort) which provides path resolution for the
+// current request.
 //
 // Returns AnnotationOption which configures the resolver for the request.
 func WithResolver(resolver resolver_domain.ResolverPort) AnnotationOption {
@@ -1298,18 +1279,17 @@ func WithResolver(resolver resolver_domain.ResolverPort) AnnotationOption {
 	}
 }
 
-// WithChangedComponents limits a fast-path rebuild to only the specified
-// components (identified by their hashed names).
+// WithChangedComponents limits a fast-path rebuild to only the specified components
+// (identified by their hashed names).
 //
-// Components not in this set are skipped during template refresh, Phase 2
-// annotation, and artefact generation. This dramatically reduces rebuild time
-// when only a small subset of components are affected by a file change.
+// Components not in this set are skipped during template refresh, annotation, and
+// artefact generation. This dramatically reduces rebuild time when only a small subset of
+// components are affected by a file change.
 //
-// When this option is not provided, all components are processed (existing
-// behaviour).
+// When this option is not provided, all components are processed (existing behaviour).
 //
-// Takes hashedNames ([]string) which lists the hashed names of components
-// that need rebuilding (the changed file plus its transitive dependents).
+// Takes hashedNames ([]string) which lists the hashed names of components that need
+// rebuilding (the changed file plus its transitive dependents).
 //
 // Returns AnnotationOption which scopes the rebuild to the given components.
 func WithChangedComponents(hashedNames []string) AnnotationOption {
@@ -1321,16 +1301,13 @@ func WithChangedComponents(hashedNames []string) AnnotationOption {
 	}
 }
 
-// newPhase1Result creates a Phase1IntrospectionResult with fields in a
-// set order.
+// newPhase1Result creates a Phase1IntrospectionResult with fields in a set order.
 //
-// Takes graph (*annotator_dto.ComponentGraph) which provides the
-// component dependency graph.
-// Takes vm (*annotator_dto.VirtualModule) which represents the virtual
-// module.
+// Takes graph (*annotator_dto.ComponentGraph) which provides the component dependency
+// graph.
+// Takes vm (*annotator_dto.VirtualModule) which represents the virtual module.
 // Takes tr (*TypeResolver) which resolves type information.
-// Takes diagnostics ([]*ast_domain.Diagnostic) which contains any
-// diagnostics found.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which contains any diagnostics found.
 //
 // Returns *Phase1IntrospectionResult which is the assembled result.
 func newPhase1Result(
@@ -1347,8 +1324,7 @@ func newPhase1Result(
 	}
 }
 
-// shouldSkipEntry checks whether a directory entry should be skipped during
-// traversal.
+// shouldSkipEntry checks whether a directory entry should be skipped during traversal.
 //
 // Takes matcher (*ignoreMatcher) which provides the ignore pattern matching.
 // Takes entry (os.DirEntry) which is the directory entry to check.
@@ -1358,8 +1334,7 @@ func shouldSkipEntry(matcher *ignoreMatcher, entry os.DirEntry) bool {
 	return matcher.Matches(entry.Name())
 }
 
-// shouldIncludeGoFile reports whether a file is a Go source file that is not a
-// test file.
+// shouldIncludeGoFile reports whether a file is a Go source file that is not a test file.
 //
 // Takes filename (string) which is the name of the file to check.
 //
@@ -1384,15 +1359,15 @@ func readAndStoreGoFile(ctx context.Context, reader FSReaderPort, path string, g
 	return nil
 }
 
-// getMainComponent finds the main virtual component for an annotation result.
-// This is a key helper for reading the output of the annotation pipeline.
+// getMainComponent finds the main virtual component for an annotation result. This is a
+// key helper for reading the output of the annotation pipeline.
 //
-// Takes result (*annotator_dto.AnnotationResult) which holds the annotated AST
-// and virtual module data to search.
+// Takes result (*annotator_dto.AnnotationResult) which holds the annotated AST and
+// virtual module data to search.
 //
 // Returns *annotator_dto.VirtualComponent which is the found main component.
-// Returns error when result is nil, required fields are missing, or internal
-// data is not consistent.
+// Returns error when result is nil, required fields are missing, or internal data is not
+// consistent.
 func getMainComponent(result *annotator_dto.AnnotationResult) (*annotator_dto.VirtualComponent, error) {
 	if result == nil || result.VirtualModule == nil {
 		return nil, errors.New("internal error: result or its virtual module is nil")

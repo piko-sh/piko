@@ -23,13 +23,17 @@ import (
 	"sync"
 )
 
-// defaultResolveMessageBufCapacity is the default buffer capacity for message
-// resolution.
-const defaultResolveMessageBufCapacity = 256
+const (
+	// defaultResolveMessageBufCapacity is the default buffer capacity for message
+	// resolution.
+	defaultResolveMessageBufCapacity = 256
+)
 
-// resolveMessageBufPool is a package-level buffer pool for message resolution.
-// This avoids allocating a new StrBuf on every ResolveMessage call.
-var resolveMessageBufPool = NewStrBufPool(defaultResolveMessageBufCapacity)
+var (
+	// resolveMessageBufPool is a package-level buffer pool for message resolution. This
+	// avoids allocating a new StrBuf on every ResolveMessage call.
+	resolveMessageBufPool = NewStrBufPool(defaultResolveMessageBufCapacity)
+)
 
 // Entry represents a single translation entry with pre-parsed template data.
 type Entry struct {
@@ -58,8 +62,8 @@ type localeData struct {
 	locale string
 }
 
-// Store holds translations for multiple locales with fallback support.
-// It implements messageResolver and is safe for concurrent access.
+// Store holds translations for multiple locales with fallback support. It implements
+// messageResolver and is safe for concurrent access.
 type Store struct {
 	// locales maps locale codes to their translation data.
 	locales map[string]*localeData
@@ -67,8 +71,8 @@ type Store struct {
 	// fallbackChain maps each locale to its ordered list of fallback locales.
 	fallbackChain map[string][]string
 
-	// defaultLocale is the fallback locale used when a key is not found in the
-	// requested locale.
+	// defaultLocale is the fallback locale used when a key is not found in the requested
+	// locale.
 	defaultLocale string
 
 	// mu guards all store fields for concurrent access.
@@ -77,8 +81,7 @@ type Store struct {
 
 // NewStore creates a new translation store.
 //
-// Takes defaultLocale (string) which specifies the fallback locale for
-// translations.
+// Takes defaultLocale (string) which specifies the fallback locale for translations.
 //
 // Returns *Store which is an empty store ready to have locales added.
 func NewStore(defaultLocale string) *Store {
@@ -92,8 +95,8 @@ func NewStore(defaultLocale string) *Store {
 
 // NewStoreFromTranslations creates a populated Store from a Translations map.
 //
-// Takes translations (Translations) which maps locale codes to key-value
-// translation pairs.
+// Takes translations (Translations) which maps locale codes to key-value translation
+// pairs.
 // Takes defaultLocale (string) which specifies the fallback locale.
 //
 // Returns *Store which is the populated store ready for use.
@@ -136,12 +139,11 @@ func (s *Store) AddLocale(locale string, entries map[string]*Entry) {
 	s.fallbackChain[locale] = buildFallbackChain(locale, s.defaultLocale)
 }
 
-// AddTranslations adds raw translation strings for a locale, parsing them
-// into entries.
+// AddTranslations adds raw translation strings for a locale, parsing them into entries.
 //
 // Takes locale (string) which identifies the target locale.
-// Takes translations (map[string]string) which provides the raw translation
-// strings to parse.
+// Takes translations (map[string]string) which provides the raw translation strings to
+// parse.
 func (s *Store) AddTranslations(locale string, translations map[string]string) {
 	entries := make(map[string]*Entry, len(translations))
 	for key, template := range translations {
@@ -150,9 +152,8 @@ func (s *Store) AddTranslations(locale string, translations map[string]string) {
 	s.AddLocale(locale, entries)
 }
 
-// Get retrieves a translation entry for the given locale and key.
-// It follows the fallback chain if the key is not found in the requested
-// locale.
+// Get retrieves a translation entry for the given locale and key. It follows the fallback
+// chain if the key is not found in the requested locale.
 //
 // Takes locale (string) which specifies the preferred locale for the entry.
 // Takes key (string) which identifies the translation to retrieve.
@@ -215,13 +216,13 @@ func (s *Store) Locales() []string {
 	return locales
 }
 
-// GetEntriesForLocale returns all entries for a specific locale.
-// This is used by the FlatBuffer emitter to serialise translations.
+// GetEntriesForLocale returns all entries for a specific locale. This is used by the
+// FlatBuffer emitter to serialise translations.
 //
 // Takes locale (string) which specifies the locale to retrieve entries for.
 //
-// Returns map[string]*Entry which contains all entries for the locale, or nil
-// if the locale does not exist.
+// Returns map[string]*Entry which contains all entries for the locale, or nil if the
+// locale does not exist.
 //
 // Safe for concurrent use.
 func (s *Store) GetEntriesForLocale(locale string) map[string]*Entry {
@@ -246,11 +247,10 @@ func (s *Store) DefaultLocale() string {
 	return s.defaultLocale
 }
 
-// ResolveMessage implements the MessageResolver interface for linked message
-// resolution.
+// ResolveMessage implements the MessageResolver interface for linked message resolution.
 //
-// The key is a dot-separated path like "common.greeting" which maps directly
-// to translation keys.
+// The key is a dot-separated path like "common.greeting" which maps directly to
+// translation keys.
 //
 // Takes key (string) which specifies the dot-separated path to the message.
 // Takes locale (string) which identifies the target language.
@@ -297,8 +297,7 @@ func (s *Store) ResolveMessage(key, locale string, scope map[string]any, depth i
 // Takes locale (string) which identifies the locale to search.
 // Takes key (string) which specifies the entry key to look up.
 //
-// Returns *Entry which is the found entry, or nil if the locale or key does
-// not exist.
+// Returns *Entry which is the found entry, or nil if the locale or key does not exist.
 func (s *Store) getFromLocale(locale, key string) *Entry {
 	data, ok := s.locales[locale]
 	if !ok {
@@ -307,7 +306,9 @@ func (s *Store) getFromLocale(locale, key string) *Entry {
 	return data.entries[key]
 }
 
-var _ messageResolver = (*Store)(nil)
+var (
+	_ messageResolver = (*Store)(nil)
+)
 
 // parseEntry parses a template string into an Entry.
 //
@@ -343,8 +344,8 @@ func parseEntry(template string) *Entry {
 	return entry
 }
 
-// preparseExpressions parses all expression ASTs in the given parts at load
-// time rather than at render time.
+// preparseExpressions parses all expression ASTs in the given parts at load time rather
+// than at render time.
 //
 // Takes parts ([]TemplatePart) which contains the template parts to process.
 func preparseExpressions(parts []TemplatePart) {
@@ -355,12 +356,11 @@ func preparseExpressions(parts []TemplatePart) {
 	}
 }
 
-// buildFallbackChain creates a list of base language codes to try in order.
-// For example, "en-GB" falls back to "en", then to the default locale.
+// buildFallbackChain creates a list of base language codes to try in order. For example,
+// "en-GB" falls back to "en", then to the default locale.
 //
 // Takes locale (string) which is the main locale to build fallbacks for.
-// Takes defaultLocale (string) which is the fallback when the main locale is
-// not found.
+// Takes defaultLocale (string) which is the fallback when the main locale is not found.
 //
 // Returns []string which contains the base language codes to try in order.
 func buildFallbackChain(locale, defaultLocale string) []string {

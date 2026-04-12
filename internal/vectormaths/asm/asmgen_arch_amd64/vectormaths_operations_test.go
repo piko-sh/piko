@@ -76,7 +76,7 @@ func TestEmitEuclideanDistanceSquaredAVX2(t *testing.T) {
 	})
 
 	assert.Contains(t, output, "VSUBPS")
-	assert.Contains(t, output, "VMULPS")
+	assert.Contains(t, output, "VFMADD231PS")
 	assert.Contains(t, output, "VZEROUPPER")
 	assert.Contains(t, output, "RET")
 }

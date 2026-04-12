@@ -25,8 +25,7 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// strconvHandler defines how to emit a typed append call for a strconv
-// function.
+// strconvHandler defines how to emit a typed append call for a strconv function.
 type strconvHandler struct {
 	// emitter builds an AST statement for the strconv optimisation.
 	emitter func(ae *attributeEmitter, dwVar *goast.Ident, argument goast.Expr) goast.Stmt
@@ -34,28 +33,28 @@ type strconvHandler struct {
 	// convertToInt indicates whether to wrap the argument with int64() for Itoa.
 	convertToInt bool
 
-	// isFloat indicates a FormatFloat call that needs special handling
-	// in p-key context.
+	// isFloat indicates a FormatFloat call that needs special handling in p-key context.
 	isFloat bool
 }
 
-// strconvHandlers maps strconv function names to their optimised handlers.
-var strconvHandlers = map[string]strconvHandler{
-	"FormatInt":   {emitter: (*attributeEmitter).emitAppendInt, convertToInt: false, isFloat: false},
-	"Itoa":        {emitter: (*attributeEmitter).emitAppendInt, convertToInt: true, isFloat: false},
-	"FormatUint":  {emitter: (*attributeEmitter).emitAppendUint, convertToInt: false, isFloat: false},
-	"FormatFloat": {emitter: (*attributeEmitter).emitAppendFloat, convertToInt: false, isFloat: true},
-	"FormatBool":  {emitter: (*attributeEmitter).emitAppendBool, convertToInt: false, isFloat: false},
-}
+var (
+	// strconvHandlers maps strconv function names to their optimised handlers.
+	strconvHandlers = map[string]strconvHandler{
+		"FormatInt":   {emitter: (*attributeEmitter).emitAppendInt, convertToInt: false, isFloat: false},
+		"Itoa":        {emitter: (*attributeEmitter).emitAppendInt, convertToInt: true, isFloat: false},
+		"FormatUint":  {emitter: (*attributeEmitter).emitAppendUint, convertToInt: false, isFloat: false},
+		"FormatFloat": {emitter: (*attributeEmitter).emitAppendFloat, convertToInt: false, isFloat: true},
+		"FormatBool":  {emitter: (*attributeEmitter).emitAppendBool, convertToInt: false, isFloat: false},
+	}
+)
 
-// emitKeyWriterParts generates code to build a DirectWriter from expression
-// parts via AttributeWriters. It decomposes string concatenations into typed
-// Append calls for zero-allocation rendering.
+// emitKeyWriterParts generates code to build a DirectWriter from expression parts via
+// AttributeWriters. It decomposes string concatenations into typed Append calls for
+// zero-allocation rendering.
 //
-// Strategy: First emit the Piko expression to get the Go AST, ensuring it is
-// converted to string via valueToString. Then decompose the Go AST to
-// intercept strconv patterns and emit the optimal Append method for each part
-// (AppendInt, AppendUint, etc.).
+// Strategy: First emit the Piko expression to get the Go AST, ensuring it is converted to
+// string via valueToString. Then decompose the Go AST to intercept strconv patterns and
+// emit the optimal Append method for each part (AppendInt, AppendUint, etc.).
 //
 // Takes nodeVar (*goast.Ident) which identifies the node to append writers to.
 // Takes keyExpr (ast_domain.Expression) which is the key expression to emit.
@@ -96,17 +95,16 @@ func (ae *attributeEmitter) emitKeyWriterParts(
 	return statements, diagnostics
 }
 
-// decomposeGoExpr recursively decomposes a Go AST expression into
-// DirectWriter Append calls. This handles Go binary expressions (string
-// concatenation), string literals, and strconv.Format* calls to extract the
-// optimal Append method for each part.
+// decomposeGoExpr recursively decomposes a Go AST expression into DirectWriter Append
+// calls. This handles Go binary expressions (string concatenation), string literals, and
+// strconv.Format* calls to extract the optimal Append method for each part.
 //
 // Takes dwVar (*goast.Ident) which is the DirectWriter variable to append to.
 // Takes expression (goast.Expr) which is the expression to decompose.
-// Takes ctx (decomposeContext) which controls how dynamic expressions are
-// handled: decomposeContextAttribute uses AppendEscapeString for untrusted
-// strings (XSS protection), decomposeContextPKey uses AppendFNV* for untrusted
-// strings/floats/any (bounded safe output).
+// Takes ctx (decomposeContext) which controls how dynamic expressions are handled:
+// decomposeContextAttribute uses AppendEscapeString for untrusted strings (XSS
+// protection), decomposeContextPKey uses AppendFNV* for untrusted strings/floats/any
+// (bounded safe output).
 //
 // Returns []goast.Stmt which contains the generated Append call statements.
 //
@@ -137,8 +135,8 @@ func (ae *attributeEmitter) decomposeGoExpr(dwVar *goast.Ident, expression goast
 	}
 }
 
-// decomposeBinaryExpr handles binary expressions such as string joining and
-// other operators.
+// decomposeBinaryExpr handles binary expressions such as string joining and other
+// operators.
 //
 // Takes dwVar (*goast.Ident) which is the variable to append results to.
 // Takes e (*goast.BinaryExpr) which is the binary expression to process.
@@ -153,16 +151,14 @@ func (ae *attributeEmitter) decomposeBinaryExpr(dwVar *goast.Ident, e *goast.Bin
 	return append(statements, ae.decomposeGoExpr(dwVar, e.Y, ctx)...)
 }
 
-// decomposeBasicLit handles literal values (strings, ints, floats),
-// where all literals are safe developer-controlled content and float
-// literals are deterministic compile-time constants.
+// decomposeBasicLit handles literal values (strings, ints, floats), where all literals
+// are safe developer-controlled content and float literals are deterministic compile-time
+// constants.
 //
-// Takes dwVar (*goast.Ident) which is the DirectWriter variable to
-// append to.
+// Takes dwVar (*goast.Ident) which is the DirectWriter variable to append to.
 // Takes e (*goast.BasicLit) which is the literal expression to emit.
 //
-// Returns []goast.Stmt which contains the append statement for the
-// literal value.
+// Returns []goast.Stmt which contains the append statement for the literal value.
 func (ae *attributeEmitter) decomposeBasicLit(dwVar *goast.Ident, e *goast.BasicLit, _ decomposeContext) []goast.Stmt {
 	switch e.Kind {
 	case token.STRING:
@@ -179,8 +175,8 @@ func (ae *attributeEmitter) decomposeBasicLit(dwVar *goast.Ident, e *goast.Basic
 	}
 }
 
-// decomposeCallExpr handles function calls, using faster strconv.Format*
-// patterns when possible.
+// decomposeCallExpr handles function calls, using faster strconv.Format* patterns when
+// possible.
 //
 // Takes dwVar (*goast.Ident) which is the variable to store the result.
 // Takes e (*goast.CallExpr) which is the call expression to process.
@@ -194,18 +190,18 @@ func (ae *attributeEmitter) decomposeCallExpr(dwVar *goast.Ident, e *goast.CallE
 	return []goast.Stmt{ae.emitDynamicExpr(dwVar, e, ctx)}
 }
 
-// tryEmitStrconvOptimisation checks if a call is a strconv function and
-// emits an optimised append statement.
+// tryEmitStrconvOptimisation checks if a call is a strconv function and emits an
+// optimised append statement.
 //
 // Takes dwVar (*goast.Ident) which is the variable to append to.
 // Takes call (*goast.CallExpr) which is the strconv call to optimise.
 // Takes ctx (decomposeContext) which is the decomposition context.
 //
-// Returns goast.Stmt which is the optimised append statement, or nil if not a
-// strconv call or if the call has too few arguments.
+// Returns goast.Stmt which is the optimised append statement, or nil if not a strconv
+// call or if the call has too few arguments.
 //
-// In p-key context, floats are FNV-hashed to avoid precision issues in the
-// string representation.
+// In p-key context, floats are FNV-hashed to avoid precision issues in the string
+// representation.
 func (ae *attributeEmitter) tryEmitStrconvOptimisation(dwVar *goast.Ident, call *goast.CallExpr, ctx decomposeContext) goast.Stmt {
 	functionName := ae.getStrconvFuncName(call)
 	handler, ok := strconvHandlers[functionName]
@@ -233,8 +229,8 @@ func (ae *attributeEmitter) tryEmitStrconvOptimisation(dwVar *goast.Ident, call 
 //
 // Returns goast.Stmt which is the created append call statement.
 //
-// For attribute context, uses AppendEscapeString to stop XSS attacks.
-// For p-key context, uses AppendFNVString to produce bounded, safe output.
+// For attribute context, uses AppendEscapeString to stop XSS attacks. For p-key context,
+// uses AppendFNVString to produce bounded, safe output.
 func (ae *attributeEmitter) emitDynamicExpr(dwVar *goast.Ident, expression goast.Expr, ctx decomposeContext) goast.Stmt {
 	if ctx == decomposeContextPKey {
 		return ae.emitAppendFNVString(dwVar, expression)
@@ -242,13 +238,13 @@ func (ae *attributeEmitter) emitDynamicExpr(dwVar *goast.Ident, expression goast
 	return ae.emitAppendEscapeString(dwVar, expression)
 }
 
-// getStrconvFuncName checks if a call expression is a strconv function and
-// returns its name.
+// getStrconvFuncName checks if a call expression is a strconv function and returns its
+// name.
 //
 // Takes call (*goast.CallExpr) which is the call expression to check.
 //
-// Returns string which is the strconv function name, or an empty string if
-// the call is not a strconv function.
+// Returns string which is the strconv function name, or an empty string if the call is
+// not a strconv function.
 func (*attributeEmitter) getStrconvFuncName(call *goast.CallExpr) string {
 	selectorExpression, ok := call.Fun.(*goast.SelectorExpr)
 	if !ok {
@@ -326,9 +322,8 @@ func (*attributeEmitter) emitAppendString(dwVar *goast.Ident, strExpr goast.Expr
 	}}
 }
 
-// emitAppendEscapeString generates a dw.AppendEscapeString(expr) statement.
-// Used for dynamic string expressions that may contain user input requiring
-// HTML escaping.
+// emitAppendEscapeString generates a dw.AppendEscapeString(expr) statement. Used for
+// dynamic string expressions that may contain user input requiring HTML escaping.
 //
 // Takes dwVar (*goast.Ident) which is the document writer variable.
 // Takes strExpr (goast.Expr) which is the string expression to escape.
@@ -341,8 +336,8 @@ func (*attributeEmitter) emitAppendEscapeString(dwVar *goast.Ident, strExpr goas
 	}}
 }
 
-// emitAppendFNVString generates a statement that calls dw.AppendFNVString
-// with the given expression for FNV-32 hashing of dynamic strings.
+// emitAppendFNVString generates a statement that calls dw.AppendFNVString with the given
+// expression for FNV-32 hashing of dynamic strings.
 //
 // Takes dwVar (*goast.Ident) which is the data writer variable.
 // Takes strExpr (goast.Expr) which is the string expression to hash.
@@ -355,17 +350,17 @@ func (*attributeEmitter) emitAppendFNVString(dwVar *goast.Ident, strExpr goast.E
 	}}
 }
 
-// emitAppendFNVFloat generates a statement that appends an FNV-hashed float
-// to the data writer.
+// emitAppendFNVFloat generates a statement that appends an FNV-hashed float to the data
+// writer.
 //
 // Takes dwVar (*goast.Ident) which identifies the data writer variable.
 // Takes floatExpr (goast.Expr) which is the float expression to hash.
 //
 // Returns goast.Stmt which is the generated dw.AppendFNVFloat(expr) call.
 //
-// Used for p-key values where floats need FNV-32 hashing to avoid confusion
-// with key path delimiters (floats contain '.') and to produce consistent
-// 8-character output regardless of precision.
+// Used for p-key values where floats need FNV-32 hashing to avoid confusion with key path
+// delimiters (floats contain '.') and to produce consistent 8-character output regardless
+// of precision.
 func (*attributeEmitter) emitAppendFNVFloat(dwVar *goast.Ident, floatExpr goast.Expr) goast.Stmt {
 	return &goast.ExprStmt{X: &goast.CallExpr{
 		Fun:  &goast.SelectorExpr{X: dwVar, Sel: cachedIdent("AppendFNVFloat")},
@@ -373,17 +368,14 @@ func (*attributeEmitter) emitAppendFNVFloat(dwVar *goast.Ident, floatExpr goast.
 	}}
 }
 
-// emitDynamicAttributeWriter creates DirectWriter-based code for a dynamic
-// attribute, rendering without memory allocation and with proper HTML escaping
-// at render time.
+// emitDynamicAttributeWriter creates DirectWriter-based code for a dynamic attribute,
+// rendering without memory allocation and with proper HTML escaping at render time.
 //
-// Takes nodeVar (*goast.Ident) which identifies the node to attach the
-// attribute writer to.
+// Takes nodeVar (*goast.Ident) which identifies the node to attach the attribute writer
+// to.
 // Takes attributeName (string) which specifies the HTML attribute name.
-// Takes pikoExpr (ast_domain.Expression) which provides the dynamic value
-// expression.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which supplies generation
-// metadata.
+// Takes pikoExpr (ast_domain.Expression) which provides the dynamic value expression.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which supplies generation metadata.
 //
 // Returns []goast.Stmt which contains the generated Go statements.
 // Returns []*ast_domain.Diagnostic which contains any diagnostics found.

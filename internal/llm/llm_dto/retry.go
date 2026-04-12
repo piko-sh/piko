@@ -18,38 +18,38 @@
 
 package llm_dto
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// DefaultRetryMaxRetries is the default number of retry attempts.
 	DefaultRetryMaxRetries = 3
 
-	// DefaultRetryInitialBackoff is the default delay before the first retry
-	// attempt.
+	// DefaultRetryInitialBackoff is the default delay before the first retry attempt.
 	DefaultRetryInitialBackoff = 500 * time.Millisecond
 
 	// DefaultRetryMaxBackoff is the default maximum delay between retry attempts.
 	DefaultRetryMaxBackoff = 8 * time.Second
 
-	// DefaultRetryBackoffMultiplier is the default factor by which backoff
-	// increases after each retry.
+	// DefaultRetryBackoffMultiplier is the default factor by which backoff increases after
+	// each retry.
 	DefaultRetryBackoffMultiplier = 2.0
 
-	// DefaultRetryJitterFraction is the default maximum fraction of backoff to add
-	// as random jitter.
+	// DefaultRetryJitterFraction is the default maximum fraction of backoff to add as random
+	// jitter.
 	DefaultRetryJitterFraction = 0.1
 )
 
-// RetryPolicy configures the retry behaviour for LLM completion requests. It
-// supports exponential backoff with jitter to avoid thundering herd problems.
+// RetryPolicy configures the retry behaviour for LLM completion requests. It supports
+// exponential backoff with jitter to avoid thundering herd problems.
 type RetryPolicy struct {
-	// OnRetry is an optional callback invoked before each retry attempt. It
-	// receives the attempt number (1-based), the error that triggered the retry,
-	// and the backoff duration before the next attempt.
+	// OnRetry is an optional callback invoked before each retry attempt. It receives the
+	// attempt number (1-based), the error that triggered the retry, and the backoff duration
+	// before the next attempt.
 	OnRetry func(attempt int, err error, nextBackoff time.Duration)
 
-	// MaxRetries is the maximum number of retry attempts, not including the
-	// initial attempt.
+	// MaxRetries is the maximum number of retry attempts, not including the initial attempt.
 	MaxRetries int
 
 	// InitialBackoff is the delay before the first retry attempt.
@@ -61,14 +61,14 @@ type RetryPolicy struct {
 	// BackoffMultiplier is the value used to increase the delay after each retry.
 	BackoffMultiplier float64
 
-	// JitterFraction is the maximum fraction of the backoff to add as random
-	// jitter. For example, 0.1 means up to 10% of the backoff is added as jitter.
+	// JitterFraction is the maximum fraction of the backoff to add as random jitter. For
+	// example, 0.1 means up to 10% of the backoff is added as jitter.
 	JitterFraction float64
 }
 
-// DefaultRetryPolicy returns a retry policy with sensible defaults for LLM
-// requests. It uses exponential backoff starting at 500ms, doubling each
-// attempt up to 8s, with 10% jitter and a maximum of 3 retries.
+// DefaultRetryPolicy returns a retry policy with sensible defaults for LLM requests. It
+// uses exponential backoff starting at 500ms, doubling each attempt up to 8s, with 10%
+// jitter and a maximum of 3 retries.
 //
 // Returns *RetryPolicy configured with sensible defaults.
 func DefaultRetryPolicy() *RetryPolicy {

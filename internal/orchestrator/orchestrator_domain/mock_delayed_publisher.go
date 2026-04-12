@@ -23,9 +23,8 @@ import (
 	"sync/atomic"
 )
 
-// MockDelayedPublisher is a test double for DelayedPublisher where nil
-// function fields return zero values and call counts are tracked
-// atomically.
+// MockDelayedPublisher is a test double for DelayedPublisher where nil function fields
+// return zero values and call counts are tracked atomically.
 type MockDelayedPublisher struct {
 	// ScheduleFunc is the function called by Schedule.
 	ScheduleFunc func(ctx context.Context, task *Task) error
@@ -36,25 +35,20 @@ type MockDelayedPublisher struct {
 	// StopFunc is the function called by Stop.
 	StopFunc func()
 
-	// PendingCountFunc is the function called by
-	// PendingCount.
+	// PendingCountFunc is the function called by PendingCount.
 	PendingCountFunc func() int
 
-	// ScheduleCallCount tracks how many times Schedule
-	// was called.
-	ScheduleCallCount int64
+	// ScheduleCallCount tracks how many times Schedule was called.
+	ScheduleCallCount atomic.Int64
 
-	// StartCallCount tracks how many times Start was
-	// called.
-	StartCallCount int64
+	// StartCallCount tracks how many times Start was called.
+	StartCallCount atomic.Int64
 
-	// StopCallCount tracks how many times Stop was
-	// called.
-	StopCallCount int64
+	// StopCallCount tracks how many times Stop was called.
+	StopCallCount atomic.Int64
 
-	// PendingCountCallCount tracks how many times
-	// PendingCount was called.
-	PendingCountCallCount int64
+	// PendingCountCallCount tracks how many times PendingCount was called.
+	PendingCountCallCount atomic.Int64
 }
 
 // Schedule enqueues a task for delayed execution.
@@ -64,7 +58,7 @@ type MockDelayedPublisher struct {
 //
 // Returns error, or nil if ScheduleFunc is nil.
 func (m *MockDelayedPublisher) Schedule(ctx context.Context, task *Task) error {
-	atomic.AddInt64(&m.ScheduleCallCount, 1)
+	m.ScheduleCallCount.Add(1)
 	if m.ScheduleFunc != nil {
 		return m.ScheduleFunc(ctx, task)
 	}
@@ -73,7 +67,7 @@ func (m *MockDelayedPublisher) Schedule(ctx context.Context, task *Task) error {
 
 // Start begins processing delayed tasks.
 func (m *MockDelayedPublisher) Start(ctx context.Context) {
-	atomic.AddInt64(&m.StartCallCount, 1)
+	m.StartCallCount.Add(1)
 	if m.StartFunc != nil {
 		m.StartFunc(ctx)
 	}
@@ -81,17 +75,17 @@ func (m *MockDelayedPublisher) Start(ctx context.Context) {
 
 // Stop halts processing of delayed tasks.
 func (m *MockDelayedPublisher) Stop() {
-	atomic.AddInt64(&m.StopCallCount, 1)
+	m.StopCallCount.Add(1)
 	if m.StopFunc != nil {
 		m.StopFunc()
 	}
 }
 
-// PendingCount returns the number of tasks awaiting execution.
+// PendingCount returns the number of tasks queued for execution.
 //
 // Returns int, or 0 if PendingCountFunc is nil.
 func (m *MockDelayedPublisher) PendingCount() int {
-	atomic.AddInt64(&m.PendingCountCallCount, 1)
+	m.PendingCountCallCount.Add(1)
 	if m.PendingCountFunc != nil {
 		return m.PendingCountFunc()
 	}

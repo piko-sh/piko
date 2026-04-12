@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package annotator_adapters implements driven adapters for the
-// annotator domain.
+// Package annotator_adapters implements driven adapters for the annotator domain.
 //
-// It caches parsed component data in memory using the Otter v2 cache
-// library with stampede-proof loading semantics. All
-// methods on the component cache are safe for concurrent use.
+// It caches parsed component data in memory using the Otter v2 cache library with
+// stampede-proof loading semantics. All methods on the component cache are safe for
+// concurrent use.
 package annotator_adapters

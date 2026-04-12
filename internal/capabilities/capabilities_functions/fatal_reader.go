@@ -25,9 +25,9 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 )
 
-// fatalReader wraps an io.Reader and marks any non-EOF read errors as fatal
-// capability errors. This is used by lazy capabilities (like minifiers) whose
-// parse errors surface during Read rather than at creation time.
+// fatalReader wraps an io.Reader and marks any non-EOF read errors as fatal capability
+// errors. This is used by lazy capabilities (like minifiers) whose parse errors surface
+// during Read rather than at creation time.
 type fatalReader struct {
 	// inner is the wrapped reader that provides the raw data.
 	inner io.Reader
@@ -47,8 +47,8 @@ func (r *fatalReader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-// newFatalReader wraps a reader so that any non-EOF error from Read is tagged
-// as a fatal capability error via capabilities_domain.NewFatalError.
+// newFatalReader wraps a reader so that any non-EOF error from Read is tagged as a fatal
+// capability error via capabilities_domain.NewFatalError.
 //
 // Takes r (io.Reader) which is the underlying reader to wrap.
 //

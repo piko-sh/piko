@@ -42,20 +42,23 @@ import (
 	"piko.sh/piko/wdk/media/image_provider_mock"
 )
 
-// mockProviderName is the name used to register mock providers in tests.
-const mockProviderName = "mock"
+const (
+	// mockProviderName is the name used to register mock providers in tests.
+	mockProviderName = "mock"
+)
 
-// mockEmailTemplateService implements EmailTemplateService for testing.
-// It returns empty content for tests that need a working email system without
-// rendering real templates.
+// mockEmailTemplateService implements EmailTemplateService for testing. It returns empty
+// content for tests that need a working email system without rendering real templates.
 type mockEmailTemplateService struct{}
 
-var _ templater_domain.EmailTemplateService = (*mockEmailTemplateService)(nil)
+var (
+	_ templater_domain.EmailTemplateService = (*mockEmailTemplateService)(nil)
+)
 
 // Render implements templater_domain.EmailTemplateService.
 //
-// Returns *templater_dto.RenderedEmailContent which contains simple mock
-// content with basic HTML, suitable for testing.
+// Returns *templater_dto.RenderedEmailContent which contains simple mock content with
+// basic HTML, suitable for testing.
 // Returns error which is always nil in this mock.
 func (*mockEmailTemplateService) Render(
 	_ context.Context,
@@ -73,8 +76,8 @@ func (*mockEmailTemplateService) Render(
 	}, nil
 }
 
-// InitialiseForTesting initialises Piko's global services with minimal
-// dependencies suitable for unit and integration tests.
+// InitialiseForTesting initialises Piko's global services with minimal dependencies
+// suitable for unit and integration tests.
 //
 // Creates a fully mocked Piko environment with:
 //   - In-memory cache provider (no Redis/external cache)
@@ -87,15 +90,14 @@ func (*mockEmailTemplateService) Render(
 //
 // This keeps tests fast, isolated, and free of any persistent state.
 //
-// Takes mockEmailProvider (EmailProviderPort) which provides a mock email
-// sending implementation.
-// Takes emailProviderName (string) which identifies the email provider for
-// logging and debugging.
+// Takes mockEmailProvider (EmailProviderPort) which provides a mock email sending
+// implementation.
+// Takes emailProviderName (string) which identifies the email provider for logging and
+// debugging.
 //
-// Returns *Container which provides access to services and cleanup methods.
-// When the in-memory event provider fails to initialise the container is
-// returned in a degraded state and subsequent calls to GetEventBus surface
-// the underlying error.
+// Returns *Container which provides access to services and cleanup methods. When the
+// in-memory event provider fails to initialise the container is returned in a degraded
+// state and subsequent calls to GetEventBus surface the underlying error.
 func InitialiseForTesting(mockEmailProvider email_domain.EmailProviderPort, emailProviderName string) *Container {
 	container := NewContainer()
 
@@ -109,12 +111,12 @@ func InitialiseForTesting(mockEmailProvider email_domain.EmailProviderPort, emai
 	return container
 }
 
-// initialiseTestingRegistryService sets up the registry service
-// with in-memory mocks for testing.
+// initialiseTestingRegistryService sets up the registry service with in-memory mocks for
+// testing.
 //
-// On failure to create or start the GoChannel provider, the container's
-// eventBusErr is populated so callers of GetEventBus surface the cause; the
-// container is returned in a degraded state rather than panicking.
+// On failure to create or start the GoChannel provider, the container's eventBusErr is
+// populated so callers of GetEventBus surface the cause; the container is returned in a
+// degraded state rather than panicking.
 //
 // Takes container (*Container) which receives the mock registry service.
 func initialiseTestingRegistryService(container *Container) {
@@ -173,8 +175,7 @@ func initialiseTestingRegistryService(container *Container) {
 // testing.
 //
 // Takes container (*Container) which holds the service dependencies.
-// Takes mockEmailProvider (EmailProviderPort) which provides the mock email
-// sender.
+// Takes mockEmailProvider (EmailProviderPort) which provides the mock email sender.
 // Takes emailProviderName (string) which names the provider.
 func initialiseTestingEmailService(container *Container, mockEmailProvider email_domain.EmailProviderPort, emailProviderName string) {
 	if mockEmailProvider != nil {
@@ -206,8 +207,8 @@ func initialiseTestingCacheService(container *Container) {
 	})
 }
 
-// initialiseTestingStorageService sets up the storage service with a mock provider
-// that stores data in memory.
+// initialiseTestingStorageService sets up the storage service with a mock provider that
+// stores data in memory.
 //
 // Takes container (*Container) which holds the service dependencies.
 func initialiseTestingStorageService(container *Container) {
@@ -216,8 +217,8 @@ func initialiseTestingStorageService(container *Container) {
 	container.SetStorageDefaultProvider(storage_dto.StorageProviderDefault)
 }
 
-// initialiseTestingImageService sets up the image service with a mock transformer
-// for use in tests.
+// initialiseTestingImageService sets up the image service with a mock transformer for use
+// in tests.
 //
 // Takes container (*Container) which holds the dependencies to set up.
 func initialiseTestingImageService(container *Container) {

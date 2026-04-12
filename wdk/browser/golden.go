@@ -32,17 +32,16 @@ const (
 	// goldenFileMode is the file permission mode for golden test files.
 	goldenFileMode = 0644
 
-	// goldenDir is the directory under the test working directory where golden
-	// files are stored.
+	// goldenDir is the directory under the test working directory where golden files are
+	// stored.
 	goldenDir = "testdata/golden"
 )
 
-// compareGolden compares actual HTML against a golden file. If the
-// PIKO_UPDATE_GOLDEN environment variable is set to "1", the golden file is
-// created or overwritten instead.
+// compareGolden compares actual HTML against a golden file. If the PIKO_UPDATE_GOLDEN
+// environment variable is set to "1", the golden file is created or overwritten instead.
 //
-// Golden files are stored at testdata/golden/<name>.html relative to the test
-// working directory.
+// Golden files are stored at testdata/golden/<name>.html relative to the test working
+// directory.
 //
 // Takes t (testing.TB) which is the test instance for logging.
 // Takes name (string) which is the golden file name without extension.

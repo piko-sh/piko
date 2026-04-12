@@ -18,14 +18,15 @@
 
 package asm
 
-import "piko.sh/piko/wdk/asmgen"
+import (
+	"piko.sh/piko/wdk/asmgen"
+)
 
-// euclideanDistanceHandlers returns the handler definitions
-// for the squared Euclidean distance SIMD functions across
-// all supported architectures.
+// euclideanDistanceHandlers returns the handler definitions for the squared Euclidean
+// distance SIMD functions across all supported architectures.
 //
-// Returns []asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// containing SSE, AVX2, and NEON variants.
+// Returns []asmgen.HandlerDefinition[VectormathsArchitecturePort] containing SSE, AVX2,
+// and NEON variants.
 func euclideanDistanceHandlers() []asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return []asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		handlerEuclidSqF32SSE(),
@@ -34,15 +35,15 @@ func euclideanDistanceHandlers() []asmgen.HandlerDefinition[VectormathsArchitect
 	}
 }
 
-// handlerEuclidSqF32SSE returns the handler definition for
-// the SSE squared Euclidean distance function.
+// handlerEuclidSqF32SSE returns the handler definition for the SSE squared Euclidean
+// distance function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting amd64 with a $0-52 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting amd64 with a
+// $0-52 NOSPLIT frame.
 func handlerEuclidSqF32SSE() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "euclidSqF32SSE",
-		Comment:       "func euclidSqF32SSE(a, b []float32) float32",
+		Comment:       "euclidSqF32SSE computes sum((a[i]-b[i])^2) for f32 vectors using 4-way SSE unrolling.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureAMD64},
 		FrameSize:     "$0-52", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {
@@ -51,15 +52,15 @@ func handlerEuclidSqF32SSE() asmgen.HandlerDefinition[VectormathsArchitecturePor
 	}
 }
 
-// handlerEuclidSqF32AVX2 returns the handler definition for
-// the AVX2 squared Euclidean distance function.
+// handlerEuclidSqF32AVX2 returns the handler definition for the AVX2 squared Euclidean
+// distance function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting amd64 with a $0-52 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting amd64 with a
+// $0-52 NOSPLIT frame.
 func handlerEuclidSqF32AVX2() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "euclidSqF32AVX2",
-		Comment:       "func euclidSqF32AVX2(a, b []float32) float32",
+		Comment:       "euclidSqF32AVX2 computes sum((a[i]-b[i])^2) for f32 vectors using 8-way AVX2 FMA unrolling.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureAMD64},
 		FrameSize:     "$0-52", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {
@@ -68,15 +69,15 @@ func handlerEuclidSqF32AVX2() asmgen.HandlerDefinition[VectormathsArchitecturePo
 	}
 }
 
-// handlerEuclidSqF32NEON returns the handler definition for
-// the NEON squared Euclidean distance function.
+// handlerEuclidSqF32NEON returns the handler definition for the NEON squared Euclidean
+// distance function.
 //
-// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort]
-// targeting arm64 with a $0-52 NOSPLIT frame.
+// Returns asmgen.HandlerDefinition[VectormathsArchitecturePort] targeting arm64 with a
+// $0-52 NOSPLIT frame.
 func handlerEuclidSqF32NEON() asmgen.HandlerDefinition[VectormathsArchitecturePort] {
 	return asmgen.HandlerDefinition[VectormathsArchitecturePort]{
 		Name:          "euclidSqF32Kern",
-		Comment:       "func euclidSqF32Kern(a, b []float32) float32",
+		Comment:       "euclidSqF32Kern computes sum((a[i]-b[i])^2) for f32 vectors using 8-way NEON unrolling.",
 		Architectures: []asmgen.Architecture{asmgen.ArchitectureARM64},
 		FrameSize:     "$0-52", Flags: "NOSPLIT",
 		Emit: func(emitter *asmgen.Emitter, architecture VectormathsArchitecturePort) {

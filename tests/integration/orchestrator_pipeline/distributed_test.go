@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -216,10 +217,10 @@ func newDistributedHarness(t *testing.T, nodeCount int, opts ...distributedOptio
 
 	t.Cleanup(func() {
 
-		for i := len(h.nodes) - 1; i >= 0; i-- {
-			h.nodes[i].cancel(fmt.Errorf("test: cleanup"))
-			h.nodes[i].wg.Wait()
-			_ = h.nodes[i].provider.Close()
+		for _, node := range slices.Backward(h.nodes) {
+			node.cancel(fmt.Errorf("test: cleanup"))
+			node.wg.Wait()
+			_ = node.provider.Close()
 		}
 		cancel()
 		_ = dal.Close()

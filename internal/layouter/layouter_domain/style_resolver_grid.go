@@ -24,17 +24,15 @@ import (
 )
 
 const (
-	// gridAreaRowEndIndex is the index of the row-end part in a
-	// grid-area shorthand.
+	// gridAreaRowEndIndex is the index of the row-end part in a grid-area shorthand.
 	gridAreaRowEndIndex = 3
 
-	// gridAreaColumnEndIndex is the index of the column-end part in a
-	// grid-area shorthand.
+	// gridAreaColumnEndIndex is the index of the column-end part in a grid-area shorthand.
 	gridAreaColumnEndIndex = 4
 )
 
-// gridTrackListResult holds the parsed tracks and any deferred
-// auto-repeat pattern from a grid-template-columns/rows value.
+// gridTrackListResult holds the parsed tracks and any deferred auto-repeat pattern from a
+// grid-template-columns/rows value.
 type gridTrackListResult struct {
 	// autoRepeat holds the deferred auto-repeat pattern, if present.
 	autoRepeat *GridAutoRepeat
@@ -43,8 +41,8 @@ type gridTrackListResult struct {
 	tracks []GridTrack
 }
 
-// parseGridTrackList parses a CSS grid-template-columns or grid-template-rows
-// value into explicit tracks and an optional auto-repeat pattern.
+// parseGridTrackList parses a CSS grid-template-columns or grid-template-rows value into
+// explicit tracks and an optional auto-repeat pattern.
 //
 // Takes value (string) which is the CSS track list value.
 // Takes context (ResolutionContext) which provides unit resolution values.
@@ -83,15 +81,14 @@ func parseGridTrackList(value string, context ResolutionContext) gridTrackListRe
 	return gridTrackListResult{tracks: tracks, autoRepeat: autoRepeat}
 }
 
-// parseRepeat parses a CSS repeat() function from a token list, returning
-// either expanded tracks for integer repetitions or a GridAutoRepeat for
-// auto-fill/auto-fit.
+// parseRepeat parses a CSS repeat() function from a token list, returning either expanded
+// tracks for integer repetitions or a GridAutoRepeat for auto-fill/auto-fit.
 //
 // Takes tokens ([]string) which is the full token list.
 // Takes startIndex (int) which is the index of the repeat() token.
 // Takes context (ResolutionContext) which provides unit resolution values.
-// Takes insertIndex (int) which is the position in the track list for
-// auto-repeat insertion.
+// Takes insertIndex (int) which is the position in the track list for auto-repeat
+// insertion.
 //
 // Returns []GridTrack which is the expanded tracks for integer repeat.
 // Returns *GridAutoRepeat which is non-nil for auto-fill or auto-fit.
@@ -145,9 +142,8 @@ func parseRepeat(
 	return result, nil, consumed
 }
 
-// countConsumedTokens calculates how many tokens from startIndex
-// were consumed by the repeat() expression ending at
-// closeParenthesis in the combined string.
+// countConsumedTokens calculates how many tokens from startIndex were consumed by the
+// repeat() expression ending at closeParenthesis in the combined string.
 //
 // Takes tokens ([]string) which is the full token list.
 // Takes startIndex (int) which is the first token index.
@@ -242,8 +238,8 @@ func parseGridLine(value string) GridLine {
 	return GridLine{Line: lineNumber}
 }
 
-// parseGridShorthand parses a CSS grid-column or grid-row shorthand value
-// into start and end grid lines.
+// parseGridShorthand parses a CSS grid-column or grid-row shorthand value into start and
+// end grid lines.
 //
 // Takes value (string) which is the CSS shorthand value.
 //
@@ -259,17 +255,15 @@ func parseGridShorthand(value string) (startLine, endLine GridLine) {
 	return start, end
 }
 
-// parseGridTemplateAreas parses a CSS grid-template-areas value
-// into a 2D grid of area names.
-//
-// Each quoted string defines one row; tokens within a quoted row
-// define cell names. A "." token represents an unnamed cell.
-//
-// Takes value (string) which is the CSS grid-template-areas
-// value.
-//
-// Returns [][]string which is the parsed 2D grid of area
+// parseGridTemplateAreas parses a CSS grid-template-areas value into a 2D grid of area
 // names.
+//
+// Each quoted string defines one row; tokens within a quoted row define cell names. A "."
+// token represents an unnamed cell.
+//
+// Takes value (string) which is the CSS grid-template-areas value.
+//
+// Returns [][]string which is the parsed 2D grid of area names.
 func parseGridTemplateAreas(value string) [][]string {
 	var areas [][]string
 	inQuote := false
@@ -292,9 +286,9 @@ func parseGridTemplateAreas(value string) [][]string {
 	return areas
 }
 
-// parseGridAreaShorthand parses the CSS grid-area shorthand,
-// which can be a named area reference or up to four slash-separated
-// grid line values (row-start / column-start / row-end / column-end).
+// parseGridAreaShorthand parses the CSS grid-area shorthand, which can be a named area
+// reference or up to four slash-separated grid line values (row-start / column-start /
+// row-end / column-end).
 //
 // Takes style (*ComputedStyle) which is the style to modify.
 // Takes value (string) which is the CSS grid-area value.

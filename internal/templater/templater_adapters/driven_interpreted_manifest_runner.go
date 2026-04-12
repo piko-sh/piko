@@ -35,9 +35,9 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// InterpretedManifestRunner implements ManifestRunnerPort for development
-// environments. It provides live-reloading template execution via lazy JIT
-// compilation, deferring work until pages are visited for fast feedback.
+// InterpretedManifestRunner implements ManifestRunnerPort for development environments.
+// It provides live-reloading template execution via lazy JIT compilation, deferring work
+// until pages are visited for fast feedback.
 type InterpretedManifestRunner struct {
 	// progCache maps manifest keys to their cached page entries.
 	progCache map[string]*PageEntry
@@ -65,8 +65,8 @@ type JITCompiler interface {
 	// Returns error when compilation fails.
 	JITCompile(ctx context.Context, relPath string) error
 
-	// GetCachedEntry retrieves a compiled page entry from the cache.
-	// Uses proper locking when reading shared state.
+	// GetCachedEntry retrieves a compiled page entry from the cache. Uses proper locking
+	// when reading shared state.
 	//
 	// Takes relPath (string) which is the path to look up in the cache.
 	//
@@ -82,12 +82,10 @@ type JITCompiler interface {
 
 // RunPage serves a page request in interpreted mode.
 //
-// It performs lazy JIT compilation if the requested page is dirty, then
-// serves the page. It delegates to runPageWithRedirectLoop to handle
-// ServerRedirect logic.
+// It performs lazy JIT compilation if the requested page is dirty, then serves the page.
+// It delegates to runPageWithRedirectLoop to handle ServerRedirect logic.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the incoming HTTP request.
 //
 // Returns *ast_domain.TemplateAST which contains the parsed template tree.
@@ -102,11 +100,9 @@ func (r *InterpretedManifestRunner) RunPage(
 	return r.runPageWithRedirectLoop(ctx, pageDef, request, 0)
 }
 
-// RunPartial delegates to RunPage as the lookup and execution logic is the
-// same.
+// RunPartial delegates to RunPage as the lookup and execution logic is the same.
 //
-// Takes pageDef (templater_dto.PageDefinition) which defines the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which defines the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 //
 // Returns *ast_domain.TemplateAST which is the parsed template tree.
@@ -121,12 +117,10 @@ func (r *InterpretedManifestRunner) RunPartial(
 	return r.RunPage(ctx, pageDef, request)
 }
 
-// RunPartialWithProps runs a partial and passes props through to the
-// interpreted BuildAST function. It performs lazy JIT compilation if the
-// requested partial is dirty.
+// RunPartialWithProps runs a partial and passes props through to the interpreted BuildAST
+// function. It performs lazy JIT compilation if the requested partial is dirty.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// render.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to render.
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes props (any) which contains properties to pass to the BuildAST function.
 //
@@ -206,13 +200,13 @@ func (r *InterpretedManifestRunner) GetPageEntry(_ context.Context, manifestKey 
 
 // GetKeys returns all known component paths in the cache.
 //
-// Keys are sorted by route specificity for correct Chi router matching,
-// ensuring static routes are registered before dynamic routes.
+// Keys are sorted by route specificity for correct Chi router matching, ensuring static
+// routes are registered before dynamic routes.
 //
 // Returns []string which contains the sorted component paths.
 //
-// Safe for concurrent use when an orchestrator is present. When using the
-// local cache fallback, a read lock protects access.
+// Safe for concurrent use when an orchestrator is present. When using the local cache
+// fallback, a read lock protects access.
 func (r *InterpretedManifestRunner) GetKeys() []string {
 	var keys []string
 	var entryLookup func(string) *PageEntry
@@ -262,12 +256,10 @@ func (r *InterpretedManifestRunner) GetPageEntryByPath(path string) (templater_d
 	return entry, found
 }
 
-// runPageWithRedirectLoop handles page execution with server-side redirect
-// support. It recursively follows ServerRedirect metadata up to
-// maxServerRedirectHops times.
+// runPageWithRedirectLoop handles page execution with server-side redirect support. It
+// recursively follows ServerRedirect metadata up to maxServerRedirectHops times.
 //
-// Takes pageDef (templater_dto.PageDefinition) which specifies the page to
-// execute.
+// Takes pageDef (templater_dto.PageDefinition) which specifies the page to execute.
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes hopCount (int) which tracks the current redirect depth.
 //
@@ -324,8 +316,7 @@ func (r *InterpretedManifestRunner) runPageWithRedirectLoop(
 	return astRoot, internalMeta, pageEntry.GetStyling(), nil
 }
 
-// handleRedirectLoopError returns an error when the redirect hop limit is
-// reached.
+// handleRedirectLoopError returns an error when the redirect hop limit is reached.
 //
 // Takes originalPath (string) which is the path that caused the loop.
 //
@@ -383,8 +374,7 @@ func (r *InterpretedManifestRunner) lookupPageEntry(path string) (*PageEntry, bo
 // Takes normalisedPath (string) which identifies the request path for errors.
 // Takes pageEntry (*PageEntry) which provides local translations for the page.
 //
-// Returns *templater_dto.RequestData which contains the parsed request with
-// i18n support.
+// Returns *templater_dto.RequestData which contains the parsed request with i18n support.
 // Returns error when the request data cannot be parsed.
 func (r *InterpretedManifestRunner) prepareRequestData(
 	request *http.Request,
@@ -405,17 +395,16 @@ func (r *InterpretedManifestRunner) prepareRequestData(
 	return reqData, nil
 }
 
-// handleServerRedirect processes a server-side redirect by fetching the target
-// page.
+// handleServerRedirect processes a server-side redirect by fetching the target page.
 //
 // Takes redirectURL (string) which specifies the target URL.
 // Takes request (*http.Request) which provides the original request context.
 // Takes hopCount (int) which tracks the current redirect depth.
 //
-// Returns *ast_domain.TemplateAST which contains the parsed template from the
-// redirected page.
-// Returns templater_dto.InternalMetadata which provides metadata from the
-// redirected page.
+// Returns *ast_domain.TemplateAST which contains the parsed template from the redirected
+// page.
+// Returns templater_dto.InternalMetadata which provides metadata from the redirected
+// page.
 // Returns string which contains the final resolved path.
 // Returns error when the redirect fails or the hop limit is exceeded.
 func (r *InterpretedManifestRunner) handleServerRedirect(
@@ -440,21 +429,20 @@ func (r *InterpretedManifestRunner) handleServerRedirect(
 	return r.runPageWithRedirectLoop(ctx, newPageDef, request, hopCount+1)
 }
 
-// NewInterpretedManifestRunner creates a runner with a shared cache and JIT
-// compiler for on-demand compilation.
+// NewInterpretedManifestRunner creates a runner with a shared cache and JIT compiler for
+// on-demand compilation.
 //
-// This constructor is called by DaemonService after the initial build to create
-// the runner that will serve requests with lazy compilation support. The
-// progCache is shared with the orchestrator and will be updated as components
-// are lazily compiled.
+// This constructor is called by DaemonService after the initial build to create the
+// runner that will serve requests with lazy compilation support. The progCache is shared
+// with the orchestrator and will be updated as components are lazily compiled.
 //
 // Takes i18nService (i18n_domain.Service) which provides translation support.
 // Takes progCache (map[string]*PageEntry) which stores compiled page entries.
 // Takes orchestrator (JITCompiler) which handles lazy compilation of components.
 // Takes defaultLocale (string) which specifies the fallback locale.
 //
-// Returns templater_domain.ManifestRunnerPort which serves requests with lazy
-// compilation support.
+// Returns templater_domain.ManifestRunnerPort which serves requests with lazy compilation
+// support.
 func NewInterpretedManifestRunner(
 	i18nService i18n_domain.Service,
 	progCache map[string]*PageEntry,

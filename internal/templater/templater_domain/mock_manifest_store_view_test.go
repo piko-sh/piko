@@ -20,7 +20,6 @@ package templater_domain_test
 
 import (
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -67,8 +66,8 @@ func TestMockManifestStoreView_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetKeysCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetPageEntryCallCount))
+	assert.Equal(t, int64(goroutines), m.GetKeysCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetPageEntryCallCount.Load())
 }
 
 func TestMockManifestStoreView_GetKeys(t *testing.T) {
@@ -79,7 +78,7 @@ func TestMockManifestStoreView_GetKeys(t *testing.T) {
 		m := &templater_domain.MockManifestStoreView{}
 		got := m.GetKeys()
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetKeysCallCount))
+		assert.Equal(t, int64(1), m.GetKeysCallCount.Load())
 	})
 
 	t.Run("delegates to GetKeysFunc", func(t *testing.T) {
@@ -90,7 +89,7 @@ func TestMockManifestStoreView_GetKeys(t *testing.T) {
 		}
 		got := m.GetKeys()
 		assert.Equal(t, expected, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetKeysCallCount))
+		assert.Equal(t, int64(1), m.GetKeysCallCount.Load())
 	})
 }
 
@@ -103,7 +102,7 @@ func TestMockManifestStoreView_GetPageEntry(t *testing.T) {
 		entry, ok := m.GetPageEntry("pages/home.pk")
 		assert.Nil(t, entry)
 		assert.False(t, ok)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetPageEntryCallCount))
+		assert.Equal(t, int64(1), m.GetPageEntryCallCount.Load())
 	})
 
 	t.Run("delegates to GetPageEntryFunc", func(t *testing.T) {
@@ -120,6 +119,6 @@ func TestMockManifestStoreView_GetPageEntry(t *testing.T) {
 		entry, ok := m.GetPageEntry("pages/home.pk")
 		assert.True(t, ok)
 		assert.Equal(t, "pages/home.pk", entry.GetOriginalPath())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetPageEntryCallCount))
+		assert.Equal(t, int64(1), m.GetPageEntryCallCount.Load())
 	})
 }

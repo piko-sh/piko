@@ -36,37 +36,37 @@ const (
 	goTypeTimePointer = "*Time"
 )
 
-// TypeMapper maps SQL types to Go types using a structured category-based
-// approach with a hierarchical lookup: first by exact engine name within a
-// category, then by category alone.
+// TypeMapper maps SQL types to Go types using a structured category-based approach with a
+// hierarchical lookup: first by exact engine name within a category, then by category
+// alone.
 type TypeMapper struct {
-	// typeCatalogue holds the engine-specific type catalogue used to resolve
-	// SQL type names to their categories.
+	// typeCatalogue holds the engine-specific type catalogue used to resolve SQL type names
+	// to their categories.
 	typeCatalogue *querier_dto.TypeCatalogue
 }
 
 // NewTypeMapper creates a new type mapper with the given type catalogue.
 //
-// Takes typeCatalogue (*querier_dto.TypeCatalogue) which holds the
-// engine-specific SQL type definitions.
+// Takes typeCatalogue (*querier_dto.TypeCatalogue) which holds the engine-specific SQL
+// type definitions.
 //
-// Returns *TypeMapper which is ready to build mapping tables and resolve
-// SQL-to-Go type mappings.
+// Returns *TypeMapper which is ready to build mapping tables and resolve SQL-to-Go type
+// mappings.
 func NewTypeMapper(typeCatalogue *querier_dto.TypeCatalogue) *TypeMapper {
 	return &TypeMapper{
 		typeCatalogue: typeCatalogue,
 	}
 }
 
-// BuildMappingTable creates a complete type mapping table by combining the
-// framework defaults with user-provided overrides. User overrides take
-// precedence over framework defaults.
+// BuildMappingTable creates a complete type mapping table by combining the framework
+// defaults with user-provided overrides. User overrides take precedence over framework
+// defaults.
 //
-// Takes overrides ([]querier_dto.TypeOverride) which holds user-provided
-// SQL-to-Go type override definitions.
+// Takes overrides ([]querier_dto.TypeOverride) which holds user-provided SQL-to-Go type
+// override definitions.
 //
-// Returns *querier_dto.TypeMappingTable which holds the combined mapping table
-// with defaults followed by overrides.
+// Returns *querier_dto.TypeMappingTable which holds the combined mapping table with
+// defaults followed by overrides.
 func (m *TypeMapper) BuildMappingTable(
 	overrides []querier_dto.TypeOverride,
 ) *querier_dto.TypeMappingTable {
@@ -92,19 +92,17 @@ func (m *TypeMapper) BuildMappingTable(
 	}
 }
 
-// MapType maps a SQL type to its corresponding Go type based on the mapping
-// table.
+// MapType maps a SQL type to its corresponding Go type based on the mapping table.
 //
-// Matches by exact engine name first, then falls back to category-only
-// matching. Later entries in the table override earlier ones.
+// Matches by exact engine name first, then falls back to category-only matching. Later
+// entries in the table override earlier ones.
 //
 // Takes sqlType (querier_dto.SQLType) which is the SQL type to map.
 // Takes nullable (bool) which indicates whether the column allows NULL values.
-// Takes mappings (*querier_dto.TypeMappingTable) which holds the mapping table
-// to search.
+// Takes mappings (*querier_dto.TypeMappingTable) which holds the mapping table to search.
 //
-// Returns querier_dto.GoType which is the resolved Go type for the given SQL
-// type and nullability.
+// Returns querier_dto.GoType which is the resolved Go type for the given SQL type and
+// nullability.
 func (*TypeMapper) MapType(
 	sqlType querier_dto.SQLType,
 	nullable bool,
@@ -113,7 +111,7 @@ func (*TypeMapper) MapType(
 	var categoryMatch *querier_dto.TypeMapping
 	var exactMatch *querier_dto.TypeMapping
 
-	for i := len(mappings.Mappings) - 1; i >= 0; i-- {
+	for i := range slices.Backward(mappings.Mappings) {
 		mapping := &mappings.Mappings[i]
 		if mapping.SQLCategory != sqlType.Category {
 			continue
@@ -147,15 +145,13 @@ func (*TypeMapper) MapType(
 	return chosen.NotNull
 }
 
-// resolveOverrideType resolves a user-provided type override to its SQL type
-// by looking up the type name in the catalogue, falling back to an unknown
-// category if not found.
+// resolveOverrideType resolves a user-provided type override to its SQL type by looking
+// up the type name in the catalogue, falling back to an unknown category if not found.
 //
-// Takes override (querier_dto.TypeOverride) which holds the SQL type name
-// to resolve.
+// Takes override (querier_dto.TypeOverride) which holds the SQL type name to resolve.
 //
-// Returns querier_dto.SQLType which is the resolved SQL type with its category
-// and engine name.
+// Returns querier_dto.SQLType which is the resolved SQL type with its category and engine
+// name.
 func (m *TypeMapper) resolveOverrideType(override querier_dto.TypeOverride) querier_dto.SQLType {
 	if m.typeCatalogue != nil {
 		if sqlType, exists := m.typeCatalogue.Types[strings.ToLower(override.SQLTypeName)]; exists {
@@ -169,13 +165,12 @@ func (m *TypeMapper) resolveOverrideType(override querier_dto.TypeOverride) quer
 	}
 }
 
-// defaultMappings returns the framework-owned default SQL-to-Go type mapping
-// table. These mappings use Piko's maths types for precise numeric handling
-// (Decimal, Money, BigInt) rather than the lossy float64 conversions used by
-// most code generators.
+// defaultMappings returns the framework-owned default SQL-to-Go type mapping table. These
+// mappings use Piko's maths types for precise numeric handling (Decimal, Money, BigInt)
+// rather than the lossy float64 conversions used by most code generators.
 //
-// Returns []querier_dto.TypeMapping which holds the default mapping entries
-// covering numeric, scalar, temporal, and complex types.
+// Returns []querier_dto.TypeMapping which holds the default mapping entries covering
+// numeric, scalar, temporal, and complex types.
 func defaultMappings() []querier_dto.TypeMapping {
 	return slices.Concat(
 		numericMappings(),
@@ -185,11 +180,9 @@ func defaultMappings() []querier_dto.TypeMapping {
 	)
 }
 
-// numericMappings returns the default mappings for integer, float, and decimal
-// SQL types.
+// numericMappings returns the default mappings for integer, float, and decimal SQL types.
 //
-// Returns []querier_dto.TypeMapping which holds the numeric type mapping
-// entries.
+// Returns []querier_dto.TypeMapping which holds the numeric type mapping entries.
 func numericMappings() []querier_dto.TypeMapping {
 	return []querier_dto.TypeMapping{
 		{SQLCategory: querier_dto.TypeCategoryInteger, SQLName: querier_dto.CanonicalInt2, NotNull: querier_dto.GoType{Name: "int16"}, Nullable: querier_dto.GoType{Name: "*int16"}},
@@ -207,11 +200,9 @@ func numericMappings() []querier_dto.TypeMapping {
 	}
 }
 
-// scalarMappings returns the default mappings for boolean, text, and bytea
-// SQL types.
+// scalarMappings returns the default mappings for boolean, text, and bytea SQL types.
 //
-// Returns []querier_dto.TypeMapping which holds the scalar type mapping
-// entries.
+// Returns []querier_dto.TypeMapping which holds the scalar type mapping entries.
 func scalarMappings() []querier_dto.TypeMapping {
 	return []querier_dto.TypeMapping{
 		{SQLCategory: querier_dto.TypeCategoryBoolean, NotNull: querier_dto.GoType{Name: "bool"}, Nullable: querier_dto.GoType{Name: "*bool"}},
@@ -220,11 +211,10 @@ func scalarMappings() []querier_dto.TypeMapping {
 	}
 }
 
-// temporalMappings returns the default mappings for timestamp, date, time, and
-// interval SQL types.
+// temporalMappings returns the default mappings for timestamp, date, time, and interval
+// SQL types.
 //
-// Returns []querier_dto.TypeMapping which holds the temporal type mapping
-// entries.
+// Returns []querier_dto.TypeMapping which holds the temporal type mapping entries.
 func temporalMappings() []querier_dto.TypeMapping {
 	timeType := querier_dto.GoType{Package: goPackageTime, Name: goTypeTime}
 	timePointer := querier_dto.GoType{Package: goPackageTime, Name: goTypeTimePointer}
@@ -243,11 +233,10 @@ func temporalMappings() []querier_dto.TypeMapping {
 	}
 }
 
-// complexMappings returns the default mappings for JSON, UUID, enum, array,
-// struct, map, and union SQL types.
+// complexMappings returns the default mappings for JSON, UUID, enum, array, struct, map,
+// and union SQL types.
 //
-// Returns []querier_dto.TypeMapping which holds the complex type mapping
-// entries.
+// Returns []querier_dto.TypeMapping which holds the complex type mapping entries.
 func complexMappings() []querier_dto.TypeMapping {
 	goTypeAny := querier_dto.GoType{Name: "any"}
 	goTypeAnySlice := querier_dto.GoType{Name: "[]any"}

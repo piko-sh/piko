@@ -26,30 +26,30 @@ import (
 )
 
 // HeadlessRendererAdapter adapts RenderOrchestrator to implement
-// wasm_domain.HeadlessRendererPort. It allows the WASM module to use the main
-// render orchestrator for headless rendering without HTTP context.
+// wasm_domain.HeadlessRendererPort. It allows the WASM module to use the main render
+// orchestrator for headless rendering without HTTP context.
 type HeadlessRendererAdapter struct {
 	// orchestrator provides the rendering logic for converting AST to string.
 	orchestrator *render_domain.RenderOrchestrator
 }
 
-var _ wasm_domain.HeadlessRendererPort = (*HeadlessRendererAdapter)(nil)
+var (
+	_ wasm_domain.HeadlessRendererPort = (*HeadlessRendererAdapter)(nil)
+)
 
 // NewHeadlessRendererAdapter creates a new headless renderer adapter.
 //
-// Takes orchestrator (*render_domain.RenderOrchestrator) which provides the
-// rendering implementation.
+// Takes orchestrator (*render_domain.RenderOrchestrator) which provides the rendering
+// implementation.
 //
-// Returns *HeadlessRendererAdapter which implements
-// wasm_domain.HeadlessRendererPort.
+// Returns *HeadlessRendererAdapter which implements wasm_domain.HeadlessRendererPort.
 func NewHeadlessRendererAdapter(orchestrator *render_domain.RenderOrchestrator) *HeadlessRendererAdapter {
 	return &HeadlessRendererAdapter{orchestrator: orchestrator}
 }
 
 // RenderASTToString renders an AST to an HTML string without HTTP context.
 //
-// Takes opts (wasm_domain.HeadlessRenderOptions) which configures the
-// rendering.
+// Takes opts (wasm_domain.HeadlessRenderOptions) which configures the rendering.
 //
 // Returns string which contains the rendered HTML.
 // Returns error when rendering fails.

@@ -33,24 +33,26 @@ import (
 )
 
 const (
-	// CertReloadDebounce is the debounce duration for certificate hot-reload.
-	// This allows both cert and key files to settle after being written.
+	// CertReloadDebounce is the debounce duration for certificate hot-reload. This allows
+	// both cert and key files to settle after being written.
 	CertReloadDebounce = 500 * time.Millisecond
 
-	// certExpiryWarningDays is the number of days before expiry at which a
-	// warning is logged.
+	// certExpiryWarningDays is the number of days before expiry at which a warning is
+	// logged.
 	certExpiryWarningDays = 30
 )
 
-// log is the package-level logger for the tlscert package.
-var log = logger_domain.GetLogger("piko/internal/tlscert")
+var (
+	// log is the package-level logger for the tlscert package.
+	log = logger_domain.GetLogger("piko/internal/tlscert")
+)
 
 // LoaderOption configures the CertificateLoader.
 type LoaderOption func(*CertificateLoader)
 
-// CertificateLoader manages loading and reloading TLS certificates from disk.
-// It supports atomic hot-reload via fsnotify file watching and provides the
-// GetCertificate callback for tls.Config.
+// CertificateLoader manages loading and reloading TLS certificates from disk. It supports
+// atomic hot-reload via fsnotify file watching and provides the GetCertificate callback
+// for tls.Config.
 type CertificateLoader struct {
 	// cert holds the current certificate, swapped atomically on reload.
 	cert atomic.Pointer[tls.Certificate]
@@ -74,11 +76,11 @@ type CertificateLoader struct {
 	keyFile string
 }
 
-// NewCertificateLoader loads the initial certificate pair and optionally starts
-// a file watcher for hot-reload.
+// NewCertificateLoader loads the initial certificate pair and optionally starts a file
+// watcher for hot-reload.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes certFile (string) which is the path to the PEM-encoded certificate.
 // Takes keyFile (string) which is the path to the PEM-encoded private key.
 // Takes hotReload (bool) which enables watching for file changes.
@@ -115,8 +117,8 @@ func NewCertificateLoader(ctx context.Context, certFile, keyFile string, hotRelo
 // GetCertificate returns the currently loaded certificate. It implements the
 // tls.Config.GetCertificate callback signature.
 //
-// Takes hello (*tls.ClientHelloInfo) which contains the TLS handshake info
-// including SNI server name.
+// Takes hello (*tls.ClientHelloInfo) which contains the TLS handshake info including SNI
+// server name.
 //
 // Returns *tls.Certificate which is the current server certificate.
 // Returns error when no certificate is loaded.
@@ -139,8 +141,7 @@ func (cl *CertificateLoader) Close() error {
 	return nil
 }
 
-// loadCertificate loads the certificate pair from disk and stores it
-// atomically.
+// loadCertificate loads the certificate pair from disk and stores it atomically.
 //
 // Returns error when the X509 key pair cannot be loaded.
 func (cl *CertificateLoader) loadCertificate() error {
@@ -155,8 +156,8 @@ func (cl *CertificateLoader) loadCertificate() error {
 
 // checkCertificateExpiry logs a warning if the certificate expires soon.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 func (cl *CertificateLoader) checkCertificateExpiry(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	cert := cl.cert.Load()
@@ -182,18 +183,15 @@ func (cl *CertificateLoader) checkCertificateExpiry(ctx context.Context) {
 	}
 }
 
-// startWatcher creates a file watcher on the directories containing the
-// cert and key files and starts a background goroutine to handle reload
-// events.
+// startWatcher creates a file watcher on the directories containing the cert and key
+// files and starts a background goroutine to handle reload events.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 //
-// Returns error when the watcher cannot be created or a directory cannot
-// be watched.
+// Returns error when the watcher cannot be created or a directory cannot be watched.
 //
-// Concurrency: Spawns a goroutine that runs the watch loop until Close
-// is called.
+// Concurrency: Spawns a goroutine that runs the watch loop until Close is called.
 func (cl *CertificateLoader) startWatcher(ctx context.Context) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -225,11 +223,10 @@ func (cl *CertificateLoader) startWatcher(ctx context.Context) error {
 	return nil
 }
 
-// watchLoop handles file system events and reloads certificates with
-// debouncing.
+// watchLoop handles file system events and reloads certificates with debouncing.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 func (cl *CertificateLoader) watchLoop(ctx context.Context) {
 	var debounceTimer *time.Timer
 
@@ -257,15 +254,15 @@ func (cl *CertificateLoader) watchLoop(ctx context.Context) {
 	}
 }
 
-// handleWatchEvent processes a single file system event. If the event is a
-// write or create for a watched certificate file, it resets the debounce
-// timer to trigger a reload.
+// handleWatchEvent processes a single file system event. If the event is a write or
+// create for a watched certificate file, it resets the debounce timer to trigger a
+// reload.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes event (fsnotify.Event) which is the file system event to process.
-// Takes debounceTimer (*time.Timer) which is the current debounce timer, or
-// nil if none is active.
+// Takes debounceTimer (*time.Timer) which is the current debounce timer, or nil if none
+// is active.
 //
 // Returns *time.Timer which is the updated debounce timer.
 func (cl *CertificateLoader) handleWatchEvent(ctx context.Context, event fsnotify.Event, debounceTimer *time.Timer) *time.Timer {
@@ -285,8 +282,8 @@ func (cl *CertificateLoader) handleWatchEvent(ctx context.Context, event fsnotif
 	})
 }
 
-// isCertificateFile reports whether the given path matches the cert or key
-// file by base name.
+// isCertificateFile reports whether the given path matches the cert or key file by base
+// name.
 //
 // Takes name (string) which is the file path to check.
 //
@@ -296,11 +293,11 @@ func (cl *CertificateLoader) isCertificateFile(name string) bool {
 	return basename == filepath.Base(cl.certFile) || basename == filepath.Base(cl.keyFile)
 }
 
-// reloadCertificate attempts to reload the certificate from disk. On failure,
-// the old certificate is kept.
+// reloadCertificate attempts to reload the certificate from disk. On failure, the old
+// certificate is kept.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 func (cl *CertificateLoader) reloadCertificate(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	if err := cl.loadCertificate(); err != nil {
@@ -320,8 +317,7 @@ func (cl *CertificateLoader) reloadCertificate(ctx context.Context) {
 	}
 }
 
-// WithOnReload sets a callback invoked after a successful certificate
-// reload.
+// WithOnReload sets a callback invoked after a successful certificate reload.
 //
 // Takes callback (func()) which is invoked after each successful reload.
 //
@@ -332,8 +328,7 @@ func WithOnReload(callback func()) LoaderOption {
 	}
 }
 
-// WithOnError sets a callback invoked after a failed certificate reload
-// attempt.
+// WithOnError sets a callback invoked after a failed certificate reload attempt.
 //
 // Takes callback (func(error)) which is invoked with the reload error.
 //

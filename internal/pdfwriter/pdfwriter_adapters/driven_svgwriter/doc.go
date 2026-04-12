@@ -16,10 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_svgwriter parses SVG markup and emits native PDF vector
-// drawing commands into a content stream.
+// Package driven_svgwriter parses SVG markup and emits native PDF vector drawing commands
+// into a content stream.
 //
-// SVG images are rendered as crisp vector paths, fills, strokes, and
-// gradients instead of being rasterised. On any parse or render error
-// the painter silently falls back to the raster image path.
+// SVG images are rendered as crisp vector paths, fills, strokes, and gradients instead of
+// being rasterised. On any parse or render error the painter silently falls back to the
+// raster image path.
 package driven_svgwriter

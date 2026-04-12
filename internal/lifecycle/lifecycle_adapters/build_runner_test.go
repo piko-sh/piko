@@ -277,8 +277,10 @@ func (s *stubOrchestratorService) DispatchDirect(_ context.Context, _ *orchestra
 	return nil, nil
 }
 
-var _ orchestrator_domain.TaskDispatcher = (*stubTaskDispatcher)(nil)
-var _ orchestrator_domain.OrchestratorService = (*stubOrchestratorService)(nil)
+var (
+	_ orchestrator_domain.TaskDispatcher = (*stubTaskDispatcher)(nil)
+	_ orchestrator_domain.OrchestratorService = (*stubOrchestratorService)(nil)
+)
 
 func TestBuildService_buildResult(t *testing.T) {
 	t.Parallel()

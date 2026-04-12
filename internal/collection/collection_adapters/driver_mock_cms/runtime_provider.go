@@ -23,14 +23,14 @@ import (
 	"fmt"
 	"sync"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/collection/collection_dto"
+	"piko.sh/piko/internal/json"
 )
 
 // MockCMSRuntimeProvider is a runtime provider that simulates fetching from a CMS.
 //
-// This provider implements the RuntimeProvider interface and is designed to
-// work with the MockCMSProvider build-time provider.
+// This provider implements the RuntimeProvider interface and is designed to work with the
+// MockCMSProvider build-time provider.
 //
 // Design Philosophy:
 //   - In-memory mock: Stores data in a map for testing
@@ -55,11 +55,11 @@ type MockCMSRuntimeProvider struct {
 
 // NewMockCMSRuntimeProvider creates a new mock CMS runtime provider.
 //
-// Takes name (string) which specifies the provider name (must match the
-// build-time provider name).
+// Takes name (string) which specifies the provider name (must match the build-time
+// provider name).
 //
-// Returns *MockCMSRuntimeProvider which is a fully initialised mock provider
-// ready for use.
+// Returns *MockCMSRuntimeProvider which is a fully initialised mock provider ready for
+// use.
 func NewMockCMSRuntimeProvider(name string) *MockCMSRuntimeProvider {
 	return &MockCMSRuntimeProvider{
 		name: name,
@@ -69,8 +69,8 @@ func NewMockCMSRuntimeProvider(name string) *MockCMSRuntimeProvider {
 
 // Name returns the unique identifier for this provider.
 //
-// This must match the build-time provider's name so the runtime
-// can correctly route fetch requests.
+// This must match the build-time provider's name so the runtime can correctly route fetch
+// requests.
 //
 // Returns string which is the provider's unique name.
 func (p *MockCMSRuntimeProvider) Name() string {
@@ -79,17 +79,16 @@ func (p *MockCMSRuntimeProvider) Name() string {
 
 // Fetch retrieves collection data at runtime.
 //
-// Called by pikoruntime.FetchCollection() when generated code needs to fetch
-// dynamic data.
+// Called by pikoruntime.FetchCollection() when generated code needs to fetch dynamic
+// data.
 //
 // Takes collectionName (string) which identifies the collection to fetch.
-// Takes target (any) which is a pointer to a slice to populate with the
-// fetched data (e.g. *[]Post).
+// Takes target (any) which is a pointer to a slice to populate with the fetched data
+// (e.g. *[]Post).
 //
 // Returns error when JSON unmarshalling of the mock data fails.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// read lock on the data map.
+// Safe for concurrent use. Access is serialised by an internal read lock on the data map.
 func (p *MockCMSRuntimeProvider) Fetch(
 	_ context.Context,
 	collectionName string,

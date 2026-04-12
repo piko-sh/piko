@@ -28,7 +28,6 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 )
 
-// Compile-time interface checks.
 var (
 	_ driver.Stmt = (*d1Stmt)(nil)
 
@@ -37,10 +36,9 @@ var (
 	_ driver.StmtQueryContext = (*d1Stmt)(nil)
 )
 
-// d1Stmt implements driver.Stmt, driver.StmtExecContext, and
-// driver.StmtQueryContext. Each execution issues an HTTP request to the D1 API
-// unless a transaction is active, in which case the statement is queued for
-// batch execution on Commit.
+// d1Stmt implements driver.Stmt, driver.StmtExecContext, and driver.StmtQueryContext.
+// Each execution issues an HTTP request to the D1 API unless a transaction is active, in
+// which case the statement is queued for batch execution on Commit.
 type d1Stmt struct {
 	// conn is the parent connection that owns this statement.
 	conn *d1Conn
@@ -64,8 +62,8 @@ func (*d1Stmt) NumInput() int {
 	return -1
 }
 
-// Exec executes the statement with the given arguments. It delegates to
-// ExecContext with a background context.
+// Exec executes the statement with the given arguments. It delegates to ExecContext with
+// a background context.
 //
 // Takes args ([]driver.Value) which are the positional parameters.
 //
@@ -79,8 +77,8 @@ func (s *d1Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	return s.ExecContext(context.Background(), named)
 }
 
-// Query executes the statement and returns rows. It delegates to QueryContext
-// with a background context.
+// Query executes the statement and returns rows. It delegates to QueryContext with a
+// background context.
 //
 // Takes args ([]driver.Value) which are the positional parameters.
 //
@@ -94,10 +92,9 @@ func (s *d1Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	return s.QueryContext(context.Background(), named)
 }
 
-// ExecContext executes the statement via the D1 HTTP API and returns the
-// result metadata. When a transaction is active on the connection, the
-// statement is queued for batch execution on Commit instead of executing
-// immediately.
+// ExecContext executes the statement via the D1 HTTP API and returns the result metadata.
+// When a transaction is active on the connection, the statement is queued for batch
+// execution on Commit instead of executing immediately.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes args ([]driver.NamedValue) which are the query parameters.
@@ -113,9 +110,9 @@ func (s *d1Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (dri
 	return s.execDirect(ctx, args)
 }
 
-// QueryContext executes the statement via the D1 HTTP API and returns rows.
-// D1 does not support queries within transactions since batch execution
-// cannot return intermediate row results.
+// QueryContext executes the statement via the D1 HTTP API and returns rows. D1 does not
+// support queries within transactions since batch execution cannot return intermediate
+// row results.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes args ([]driver.NamedValue) which are the query parameters.
@@ -131,6 +128,12 @@ func (s *d1Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (dr
 }
 
 // execDirect executes the statement immediately against the D1 API.
+//
+// Takes ctx (context.Context) which controls cancellation and timeouts.
+// Takes args ([]driver.NamedValue) which are the query parameters.
+//
+// Returns driver.Result which contains last-insert ID and rows-affected counts.
+// Returns error when the D1 query fails or returns a failure status.
 func (s *d1Stmt) execDirect(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
 	results, err := s.conn.api.QueryD1Database(ctx, s.conn.rc, cloudflare.QueryD1DatabaseParams{
 		DatabaseID: s.conn.databaseID,
@@ -155,8 +158,13 @@ func (s *d1Stmt) execDirect(ctx context.Context, args []driver.NamedValue) (driv
 	}, nil
 }
 
-// queryDirect executes the statement immediately against the D1 API and
-// returns rows.
+// queryDirect executes the statement immediately against the D1 API and returns rows.
+//
+// Takes ctx (context.Context) which controls cancellation and timeouts.
+// Takes args ([]driver.NamedValue) which are the query parameters.
+//
+// Returns driver.Rows which iterates over the query results.
+// Returns error when the D1 query fails or returns a failure status.
 func (s *d1Stmt) queryDirect(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
 	results, err := s.conn.api.QueryD1Database(ctx, s.conn.rc, cloudflare.QueryD1DatabaseParams{
 		DatabaseID: s.conn.databaseID,

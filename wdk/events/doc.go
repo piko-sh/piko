@@ -16,19 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package events provides access to Piko's message bus infrastructure
-// powered by Watermill.
+// Package events provides access to Piko's message bus infrastructure powered by
+// Watermill.
 //
-// Unlike other Piko facades, the events facade intentionally does NOT wrap
-// Watermill types. Users should import Watermill types directly for Message,
-// Publisher, Subscriber, and Router:
+// Unlike other Piko facades, the events facade intentionally does NOT wrap Watermill
+// types. Users should import Watermill types directly for Message, Publisher, Subscriber,
+// and Router:
 //
 //	import "github.com/ThreeDotsLabs/watermill/message"
 //
 // # Quick start
 //
-// After Piko is initialised, you can access the shared Watermill
-// infrastructure:
+// After Piko is initialised, you can access the shared Watermill infrastructure:
 //
 //	import (
 //	    "github.com/ThreeDotsLabs/watermill/message"
@@ -50,9 +49,9 @@
 //
 // # Shared infrastructure
 //
-// Piko and your application share the same Watermill Router, Publisher,
-// and Subscriber. This gives you a single connection pool, consistent
-// configuration, and unified shutdown handling.
+// Piko and your application share the same Watermill Router, Publisher, and Subscriber.
+// This gives you a single connection pool, consistent configuration, and unified shutdown
+// handling.
 //
 // # Publishing messages
 //
@@ -66,13 +65,12 @@
 //
 // # Back-pressure
 //
-// The default GoChannel provider has BlockPublishUntilSubscriberAck
-// enabled. This means Publish() will block until all subscribers have
-// acknowledged the message. This prevents message loss but may reduce
-// throughput for high-volume scenarios.
+// The default GoChannel provider has BlockPublishUntilSubscriberAck enabled. This means
+// Publish() will block until all subscribers have acknowledged the message. This prevents
+// message loss but may reduce throughput for high-volume scenarios.
 //
 // # Available providers
 //
-// Provider adapters are available in the events_provider_* sub-packages.
-// The default is an in-memory GoChannel with back-pressure enabled.
+// Provider adapters are available in the events_provider_* sub-packages. The default is
+// an in-memory GoChannel with back-pressure enabled.
 package events

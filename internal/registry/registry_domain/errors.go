@@ -18,40 +18,39 @@
 
 package registry_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrArtefactNotFound is returned when an artefact cannot be found by its ID.
 	ErrArtefactNotFound = errors.New("artefact not found")
 
-	// ErrArtefactExists is returned when attempting to create an artefact that
-	// already exists.
+	// ErrArtefactExists is returned when attempting to create an artefact that already
+	// exists.
 	ErrArtefactExists = errors.New("artefact already exists")
 
-	// ErrVariantNotFound is returned when a specific variant is not found in an
-	// artefact.
+	// ErrVariantNotFound is returned when a specific variant is not found in an artefact.
 	ErrVariantNotFound = errors.New("variant not found")
 
 	// ErrChunkNotFound is returned when a chunk cannot be found in a variant.
 	ErrChunkNotFound = errors.New("chunk not found")
 
-	// ErrBlobNotFound is returned when a blob cannot be found in the storage
-	// backend.
+	// ErrBlobNotFound is returned when a blob cannot be found in the storage backend.
 	ErrBlobNotFound = errors.New("blob not found")
 
-	// ErrBlobReferenceNotFound is returned when a blob reference count entry
-	// does not exist for a given storage key. This is expected after a restart
-	// when using in-memory stores, since blob ref counts are ephemeral.
+	// ErrBlobReferenceNotFound is returned when a blob reference count entry does not exist
+	// for a given storage key. This is expected after a restart when using in-memory stores,
+	// since blob ref counts are ephemeral.
 	ErrBlobReferenceNotFound = errors.New("blob reference not found")
 
 	// ErrCacheMiss is returned when an artefact is not found in the cache.
 	ErrCacheMiss = errors.New("artefact not found in cache")
 
-	// ErrSearchUnsupported is returned when a search operation is not supported by
-	// the adapter.
+	// ErrSearchUnsupported is returned when a search operation is not supported by the
+	// adapter.
 	ErrSearchUnsupported = errors.New("search operation is not supported by this adapter")
 
-	// ErrRangeNotSatisfiable is returned when a requested byte range cannot be
-	// satisfied.
+	// ErrRangeNotSatisfiable is returned when a requested byte range cannot be satisfied.
 	ErrRangeNotSatisfiable = errors.New("requested range is not satisfiable")
 )

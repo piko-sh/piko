@@ -28,39 +28,37 @@ import (
 )
 
 const (
-	// maxInlineTextLength is the maximum character count for single text child
-	// elements to be formatted inline. Elements exceeding this are formatted as
-	// blocks.
+	// maxInlineTextLength is the maximum character count for single text child elements to
+	// be formatted inline. Elements exceeding this are formatted as blocks.
 	maxInlineTextLength = 60
 
-	// maxListItemLength is the maximum content length for list items (li, dt, dd)
-	// to be shown on one line. Items longer than this are shown as blocks.
+	// maxListItemLength is the maximum content length for list items (li, dt, dd) to be
+	// shown on one line. Items longer than this are shown as blocks.
 	maxListItemLength = 80
 
-	// maxMixedContentLength is the longest content length for elements with mixed
-	// inline children (text and inline elements) that can be formatted on one
-	// line.
+	// maxMixedContentLength is the longest content length for elements with mixed inline
+	// children (text and inline elements) that can be formatted on one line.
 	maxMixedContentLength = 80
 
-	// maxInlineCommentLength is the maximum length for inline comments.
-	// Comments longer than this are placed on their own line.
+	// maxInlineCommentLength is the maximum length for inline comments. Comments longer than
+	// this are placed on their own line.
 	maxInlineCommentLength = 40
 
-	// interpolationLength is the number of extra characters added by an
-	// interpolation. This includes the {{ and }} markers plus spaces.
+	// interpolationLength is the number of extra characters added by an interpolation. This
+	// includes the {{ and }} markers plus spaces.
 	interpolationLength = 6
 
-	// approximateElementOverhead is the estimated character count for an element's
-	// opening and closing tags (used for content length calculations).
+	// approximateElementOverhead is the estimated character count for an element's opening
+	// and closing tags (used for content length calculations).
 	approximateElementOverhead = 5
 
-	// approximateCommentOverhead is the extra characters added by comment markers
-	// such as <!-- -->.
+	// approximateCommentOverhead is the extra characters added by comment markers such as
+	// <!-- -->.
 	approximateCommentOverhead = 10
 )
 
-// prettyPrinter formats a TemplateAST into clean, consistent source code.
-// It implements the ast_domain.Visitor interface.
+// prettyPrinter formats a TemplateAST into clean, consistent source code. It implements
+// the ast_domain.Visitor interface.
 type prettyPrinter struct {
 	// options holds the formatting settings for output generation.
 	options *FormatOptions
@@ -68,12 +66,10 @@ type prettyPrinter struct {
 	// builder accumulates the formatted output.
 	builder strings.Builder
 
-	// formattingModeStack tracks whether each nested element uses inline
-	// formatting.
+	// formattingModeStack tracks whether each nested element uses inline formatting.
 	formattingModeStack []bool
 
-	// parentBlockFormattedStack tracks whether each parent node uses block
-	// formatting.
+	// parentBlockFormattedStack tracks whether each parent node uses block formatting.
 	parentBlockFormattedStack []bool
 
 	// indentationLevel tracks the current nesting depth for indentation.
@@ -82,25 +78,23 @@ type prettyPrinter struct {
 	// lastWasBlock tracks whether the previous element was a block element.
 	lastWasBlock bool
 
-	// inlineContext indicates whether text and comments should use inline
-	// formatting.
+	// inlineContext indicates whether text and comments should use inline formatting.
 	inlineContext bool
 
-	// formattingInline indicates whether content is formatted inline rather than
-	// in block mode with newlines and indentation.
+	// formattingInline indicates whether content is formatted inline rather than in block
+	// mode with newlines and indentation.
 	formattingInline bool
 
-	// pendingIndent indicates the next element needs indentation even if in inline
-	// mode. This is set when a block-formatted child ends with a newline,
-	// requiring the next sibling to be indented.
+	// pendingIndent indicates the next element needs indentation even if in inline mode.
+	// This is set when a block-formatted child ends with a newline, requiring the next
+	// sibling to be indented.
 	pendingIndent bool
 }
 
-// contentAnalysis holds details about an element's children to guide
-// formatting choices. Fields are ordered for optimal memory alignment.
+// contentAnalysis holds details about an element's children to guide formatting choices.
+// Fields are ordered for optimal memory alignment.
 type contentAnalysis struct {
-	// textLength is the total character count of text content, excluding
-	// whitespace.
+	// textLength is the total character count of text content, excluding whitespace.
 	textLength int
 
 	// totalContentLength is the total character count of all child content.
@@ -115,8 +109,7 @@ type contentAnalysis struct {
 	// hasElementChildren indicates whether this node has any child elements.
 	hasElementChildren bool
 
-	// hasBlockChildren indicates whether any child element is a block-level
-	// element.
+	// hasBlockChildren indicates whether any child element is a block-level element.
 	hasBlockChildren bool
 
 	// allChildrenInline indicates whether all child elements are inline elements.
@@ -134,9 +127,8 @@ func (p *prettyPrinter) String() string {
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to process.
 //
-// Returns ast_domain.Visitor which is the visitor to use for children.
-// Returning nil skips visiting children (used for whitespace-sensitive
-// elements).
+// Returns ast_domain.Visitor which is the visitor to use for children. Returning nil
+// skips visiting children (used for whitespace-sensitive elements).
 // Returns error when processing fails.
 func (p *prettyPrinter) Enter(_ context.Context, node *ast_domain.TemplateNode) (ast_domain.Visitor, error) {
 	if node == nil {
@@ -169,11 +161,11 @@ func (p *prettyPrinter) Enter(_ context.Context, node *ast_domain.TemplateNode) 
 	return p, nil
 }
 
-// Exit handles post-visit processing for a template node after its children
-// have been visited.
+// Exit handles post-visit processing for a template node after its children have been
+// visited.
 //
-// Closing tag logic is decomposed into focused helpers for whitespace-sensitive
-// and standard elements.
+// Closing tag logic is decomposed into focused helpers for whitespace-sensitive and
+// standard elements.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node being exited.
 //
@@ -192,8 +184,8 @@ func (p *prettyPrinter) Exit(_ context.Context, node *ast_domain.TemplateNode) e
 	return nil
 }
 
-// exitWhitespaceSensitiveElement handles exiting whitespace-sensitive elements
-// (pre, code, textarea).
+// exitWhitespaceSensitiveElement handles exiting whitespace-sensitive elements (pre,
+// code, textarea).
 //
 // Takes node (*ast_domain.TemplateNode) which is the element being exited.
 func (p *prettyPrinter) exitWhitespaceSensitiveElement(node *ast_domain.TemplateNode) {
@@ -204,11 +196,10 @@ func (p *prettyPrinter) exitWhitespaceSensitiveElement(node *ast_domain.Template
 	p.pendingIndent = true
 }
 
-// exitStandardElement writes the closing tag for a standard element. Uses guard
-// clauses with early returns to flatten the logic.
+// exitStandardElement writes the closing tag for a standard element. Uses guard clauses
+// with early returns to flatten the logic.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the element being
-// exited.
+// Takes node (*ast_domain.TemplateNode) which provides the element being exited.
 func (p *prettyPrinter) exitStandardElement(node *ast_domain.TemplateNode) {
 	parentIsAlsoInline := p.isParentAlsoInline()
 
@@ -242,8 +233,8 @@ func (p *prettyPrinter) isParentAlsoInline() bool {
 
 // popFormattingMode removes and returns the top formatting mode from the stack.
 //
-// Returns bool which is true if the popped mode was inline, or false if the
-// stack was empty.
+// Returns bool which is true if the popped mode was inline, or false if the stack was
+// empty.
 func (p *prettyPrinter) popFormattingMode() bool {
 	if len(p.formattingModeStack) == 0 {
 		return false
@@ -254,8 +245,8 @@ func (p *prettyPrinter) popFormattingMode() bool {
 	return wasInline
 }
 
-// restoreParentFormattingContext restores the parent's formatting mode for
-// the next sibling. This lets siblings know the correct formatting context.
+// restoreParentFormattingContext restores the parent's formatting mode for the next
+// sibling. This lets siblings know the correct formatting context.
 func (p *prettyPrinter) restoreParentFormattingContext() {
 	if len(p.formattingModeStack) > 0 {
 		p.formattingInline = p.formattingModeStack[len(p.formattingModeStack)-1]
@@ -281,8 +272,8 @@ func (p *prettyPrinter) popFromParentBlockStack() {
 	}
 }
 
-// writeNestedInlineClosingTag writes a closing tag for nested inline elements.
-// No newline is added to keep the parent's inline flow.
+// writeNestedInlineClosingTag writes a closing tag for nested inline elements. No newline
+// is added to keep the parent's inline flow.
 //
 // Takes tagName (string) which specifies the HTML tag name to close.
 func (p *prettyPrinter) writeNestedInlineClosingTag(tagName string) {
@@ -290,9 +281,9 @@ func (p *prettyPrinter) writeNestedInlineClosingTag(tagName string) {
 	p.lastWasBlock = false
 }
 
-// writeTopLevelInlineClosingTag writes a closing tag for a top-level inline
-// element and adds a newline. This is used when the element is not nested
-// within another inline element.
+// writeTopLevelInlineClosingTag writes a closing tag for a top-level inline element and
+// adds a newline. This is used when the element is not nested within another inline
+// element.
 //
 // Takes tagName (string) which specifies the HTML tag name to close.
 func (p *prettyPrinter) writeTopLevelInlineClosingTag(tagName string) {
@@ -305,8 +296,8 @@ func (p *prettyPrinter) writeTopLevelInlineClosingTag(tagName string) {
 	p.pendingIndent = true
 }
 
-// writeBlockClosingTag writes a closing tag for block-formatted elements
-// with correct indentation.
+// writeBlockClosingTag writes a closing tag for block-formatted elements with correct
+// indentation.
 //
 // Takes tagName (string) which specifies the element name for the closing tag.
 func (p *prettyPrinter) writeBlockClosingTag(tagName string) {
@@ -317,11 +308,10 @@ func (p *prettyPrinter) writeBlockClosingTag(tagName string) {
 	p.pendingIndent = true
 }
 
-// shouldFormatInline decides whether an element should be formatted inline
-// or as a block.
+// shouldFormatInline decides whether an element should be formatted inline or as a block.
 //
-// It respects AST formatting hints when available, and falls back to
-// heuristics based on parent context, element-specific rules, and content.
+// It respects AST formatting hints when available, and falls back to heuristics based on
+// parent context, element-specific rules, and content.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to evaluate.
 //
@@ -365,13 +355,13 @@ func (p *prettyPrinter) shouldFormatInline(node *ast_domain.TemplateNode) bool {
 	return p.applyInlineHeuristics(node)
 }
 
-// parentForcesBlockFormatting checks if the parent context requires block
-// formatting for the given node.
+// parentForcesBlockFormatting checks if the parent context requires block formatting for
+// the given node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true when the parent is block-formatted and the node
-// is a block-level element.
+// Returns bool which is true when the parent is block-formatted and the node is a
+// block-level element.
 func (p *prettyPrinter) parentForcesBlockFormatting(node *ast_domain.TemplateNode) bool {
 	if len(p.parentBlockFormattedStack) > 0 && p.parentBlockFormattedStack[len(p.parentBlockFormattedStack)-1] {
 		return isBlockElement(node.TagName)
@@ -379,8 +369,8 @@ func (p *prettyPrinter) parentForcesBlockFormatting(node *ast_domain.TemplateNod
 	return false
 }
 
-// applyInlineHeuristics checks the content of a template node to decide
-// whether to use inline or block formatting.
+// applyInlineHeuristics checks the content of a template node to decide whether to use
+// inline or block formatting.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -411,8 +401,8 @@ func (*prettyPrinter) applyInlineHeuristics(node *ast_domain.TemplateNode) bool 
 	return false
 }
 
-// formatElement formats an HTML element with its attributes and directives.
-// The formatting logic is split into steps for clarity.
+// formatElement formats an HTML element with its attributes and directives. The
+// formatting logic is split into steps for clarity.
 //
 // Takes node (*ast_domain.TemplateNode) which specifies the element to format.
 func (p *prettyPrinter) formatElement(node *ast_domain.TemplateNode) {
@@ -437,8 +427,8 @@ func (p *prettyPrinter) formatElement(node *ast_domain.TemplateNode) {
 	p.formatElementWithChildren(node)
 }
 
-// writeOpeningTag writes an HTML opening tag with its attributes.
-// It wraps attributes onto separate lines if the tag would be too long.
+// writeOpeningTag writes an HTML opening tag with its attributes. It wraps attributes
+// onto separate lines if the tag would be too long.
 //
 // Takes tagName (string) which specifies the HTML tag to write.
 // Takes attrs ([]string) which provides the attributes to include in the tag.
@@ -451,12 +441,10 @@ func (p *prettyPrinter) writeOpeningTag(tagName string, attrs []string) {
 	}
 }
 
-// writeWrappedOpeningTag writes an opening tag with its attributes on separate
-// lines.
+// writeWrappedOpeningTag writes an opening tag with its attributes on separate lines.
 //
 // Takes tagName (string) which specifies the tag name to write.
-// Takes attrs ([]string) which contains the attributes to write, each on its
-// own line.
+// Takes attrs ([]string) which contains the attributes to write, each on its own line.
 func (p *prettyPrinter) writeWrappedOpeningTag(tagName string, attrs []string) {
 	p.write("<%s\n", tagName)
 	attributeIndent := p.indentationLevel + p.options.AttributeWrapIndent
@@ -467,8 +455,7 @@ func (p *prettyPrinter) writeWrappedOpeningTag(tagName string, attrs []string) {
 	p.writeIndent()
 }
 
-// writeSingleLineOpeningTag writes an opening tag with all attributes on a
-// single line.
+// writeSingleLineOpeningTag writes an opening tag with all attributes on a single line.
 //
 // Takes tagName (string) which specifies the element name.
 // Takes attrs ([]string) which provides the attributes to include.
@@ -492,8 +479,8 @@ func (p *prettyPrinter) handleEmptyElement(node *ast_domain.TemplateNode) {
 	p.pendingIndent = true
 }
 
-// formatElementWithChildren formats an element that has children, choosing
-// either inline or block formatting based on the element's content.
+// formatElementWithChildren formats an element that has children, choosing either inline
+// or block formatting based on the element's content.
 //
 // Takes node (*ast_domain.TemplateNode) which specifies the element to format.
 func (p *prettyPrinter) formatElementWithChildren(node *ast_domain.TemplateNode) {
@@ -508,17 +495,16 @@ func (p *prettyPrinter) formatElementWithChildren(node *ast_domain.TemplateNode)
 	}
 }
 
-// setupInlineFormatting prepares the printer for inline child formatting.
-// It increases the indentation level so that if a child ends with a newline
-// and sets pendingIndent, later siblings will be indented correctly.
+// setupInlineFormatting prepares the printer for inline child formatting. It increases
+// the indentation level so that if a child ends with a newline and sets pendingIndent,
+// later siblings will be indented correctly.
 func (p *prettyPrinter) setupInlineFormatting() {
 	p.write(">")
 	p.indentationLevel++
 	p.parentBlockFormattedStack = append(p.parentBlockFormattedStack, false)
 }
 
-// setupBlockFormatting prepares the printer to format child elements within a
-// block.
+// setupBlockFormatting prepares the printer to format child elements within a block.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to format.
 func (p *prettyPrinter) setupBlockFormatting(node *ast_domain.TemplateNode) {
@@ -534,8 +520,8 @@ func (p *prettyPrinter) setupBlockFormatting(node *ast_domain.TemplateNode) {
 	}
 }
 
-// handleWhitespaceSensitiveContent writes the content of elements like pre,
-// code, and textarea exactly as it appears, without changing the format.
+// handleWhitespaceSensitiveContent writes the content of elements like pre, code, and
+// textarea exactly as it appears, without changing the format.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the element to process.
 func (p *prettyPrinter) handleWhitespaceSensitiveContent(node *ast_domain.TemplateNode) {
@@ -546,11 +532,10 @@ func (p *prettyPrinter) handleWhitespaceSensitiveContent(node *ast_domain.Templa
 	}
 }
 
-// formatText formats a text node by normalising its whitespace and handling
-// any embedded values.
+// formatText formats a text node by normalising its whitespace and handling any embedded
+// values.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the text content to
-// format.
+// Takes node (*ast_domain.TemplateNode) which contains the text content to format.
 func (p *prettyPrinter) formatText(node *ast_domain.TemplateNode) {
 	content, hasContent := buildTextContent(node)
 	if !hasContent {
@@ -590,9 +575,8 @@ func (p *prettyPrinter) formatBlockText(normalised string) {
 	p.lastWasBlock = false
 }
 
-// formatComment outputs a comment node with smart placement.
-// Short comments in an inline context stay on the same line, while longer
-// comments are placed on their own line.
+// formatComment outputs a comment node with smart placement. Short comments in an inline
+// context stay on the same line, while longer comments are placed on their own line.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the comment to format.
 func (p *prettyPrinter) formatComment(node *ast_domain.TemplateNode) {
@@ -608,15 +592,14 @@ func (p *prettyPrinter) formatComment(node *ast_domain.TemplateNode) {
 	p.lastWasBlock = false
 }
 
-// writeIndent writes spaces to the output based on the current indentation
-// level.
+// writeIndent writes spaces to the output based on the current indentation level.
 func (p *prettyPrinter) writeIndent() {
 	indent := strings.Repeat(" ", p.indentationLevel*p.options.IndentSize)
 	p.builder.WriteString(indent)
 }
 
-// writeIndentLevel writes spaces for a given indentation depth.
-// Used for attribute wrapping where attributes need custom indentation.
+// writeIndentLevel writes spaces for a given indentation depth. Used for attribute
+// wrapping where attributes need custom indentation.
 //
 // Takes level (int) which specifies the indentation depth to write.
 func (p *prettyPrinter) writeIndentLevel(level int) {
@@ -632,18 +615,16 @@ func (p *prettyPrinter) write(format string, arguments ...any) {
 	_, _ = fmt.Fprintf(&p.builder, format, arguments...)
 }
 
-// shouldAddEmptyLineBefore checks if an empty line should come before this
-// node for better visual grouping.
+// shouldAddEmptyLineBefore checks if an empty line should come before this node for
+// better visual grouping.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true when an empty line should be added before the
-// node.
+// Returns bool which is true when an empty line should be added before the node.
 //
-// Only applies when PreserveEmptyLines is enabled. Checks the printer's
-// current state and options to decide. Returns true for directive nodes
-// (if, for) and major block elements (header, main, footer, section,
-// article, form).
+// Only applies when PreserveEmptyLines is enabled. Checks the printer's current state and
+// options to decide. Returns true for directive nodes (if, for) and major block elements
+// (header, main, footer, section, article, form).
 func (p *prettyPrinter) shouldAddEmptyLineBefore(node *ast_domain.TemplateNode) bool {
 	if node == nil || node.NodeType != ast_domain.NodeElement {
 		return false
@@ -671,8 +652,8 @@ func (p *prettyPrinter) shouldAddEmptyLineBefore(node *ast_domain.TemplateNode) 
 
 // newPrettyPrinter creates a new prettyPrinter with the given options.
 //
-// Takes opts (*FormatOptions) which sets the formatting options. If nil, uses
-// default options.
+// Takes opts (*FormatOptions) which sets the formatting options. If nil, uses default
+// options.
 //
 // Returns *prettyPrinter which is ready to format output.
 func newPrettyPrinter(opts *FormatOptions) *prettyPrinter {
@@ -693,14 +674,14 @@ func newPrettyPrinter(opts *FormatOptions) *prettyPrinter {
 	}
 }
 
-// analyseElementContent examines the children of an element to understand their
-// structure and help decide between inline and block formatting.
+// analyseElementContent examines the children of an element to understand their structure
+// and help decide between inline and block formatting.
 //
-// Takes node (*ast_domain.TemplateNode) which is the element whose children
-// should be analysed.
+// Takes node (*ast_domain.TemplateNode) which is the element whose children should be
+// analysed.
 //
-// Returns contentAnalysis which contains counts and flags about child types and
-// content length.
+// Returns contentAnalysis which contains counts and flags about child types and content
+// length.
 func analyseElementContent(node *ast_domain.TemplateNode) contentAnalysis {
 	if node == nil {
 		return contentAnalysis{}
@@ -756,8 +737,7 @@ func analyseTextChild(analysis *contentAnalysis, child *ast_domain.TemplateNode)
 	}
 }
 
-// analyseElementChild updates the content analysis with details from an
-// element node.
+// analyseElementChild updates the content analysis with details from an element node.
 //
 // Takes analysis (*contentAnalysis) which is the analysis state to update.
 // Takes child (*ast_domain.TemplateNode) which is the element node to analyse.
@@ -780,14 +760,14 @@ func analyseCommentChild(analysis *contentAnalysis, child *ast_domain.TemplateNo
 	analysis.totalContentLength += len(child.TextContent) + approximateCommentOverhead
 }
 
-// containsShadowRootChild checks whether any direct child of the node is a
-// <template> element with a shadowrootmode attribute.
+// containsShadowRootChild checks whether any direct child of the node is a <template>
+// element with a shadowrootmode attribute.
 //
-// Takes node (*ast_domain.TemplateNode) which is the parent node whose
-// children are inspected.
+// Takes node (*ast_domain.TemplateNode) which is the parent node whose children are
+// inspected.
 //
-// Returns bool which is true when at least one direct child is a
-// <template> element with a shadowrootmode attribute.
+// Returns bool which is true when at least one direct child is a <template> element with
+// a shadowrootmode attribute.
 func containsShadowRootChild(node *ast_domain.TemplateNode) bool {
 	for _, child := range node.Children {
 		if child.NodeType == ast_domain.NodeElement &&
@@ -799,13 +779,13 @@ func containsShadowRootChild(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// containsNestedBlockElement checks if a block-level element contains a direct
-// child that is also a block-level element.
+// containsNestedBlockElement checks if a block-level element contains a direct child that
+// is also a block-level element.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to check.
 //
-// Returns bool which is true when the node is a block element and at least one
-// direct child is also a block element.
+// Returns bool which is true when the node is a block element and at least one direct
+// child is also a block element.
 func containsNestedBlockElement(node *ast_domain.TemplateNode) bool {
 	if len(node.Children) == 0 || !isBlockElement(node.TagName) {
 		return false
@@ -818,11 +798,11 @@ func containsNestedBlockElement(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// shouldFormatAsBlockDueToMultipleChildren checks if an element should use
-// block format because it has multiple element children.
+// shouldFormatAsBlockDueToMultipleChildren checks if an element should use block format
+// because it has multiple element children.
 //
-// This stops complex nesting from being put on one line. Pure function with no
-// printer state needed.
+// This stops complex nesting from being put on one line. Pure function with no printer
+// state needed.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to check.
 // Takes analysis (contentAnalysis) which provides content metrics.
@@ -847,8 +827,8 @@ func shouldFormatAsBlockDueToMultipleChildren(node *ast_domain.TemplateNode, ana
 //
 // Takes analysis (contentAnalysis) which holds the parsed content details.
 //
-// Returns bool which is true when the element has a single text child that fits
-// within the maximum inline text length.
+// Returns bool which is true when the element has a single text child that fits within
+// the maximum inline text length.
 func isSingleShortTextChild(analysis contentAnalysis) bool {
 	return analysis.childCount == 1 &&
 		analysis.hasTextChildren &&
@@ -856,14 +836,14 @@ func isSingleShortTextChild(analysis contentAnalysis) bool {
 		analysis.textLength <= maxInlineTextLength
 }
 
-// isSimpleListItem checks if an element is a list item with short, simple
-// content. List items are often formatted inline even with nested elements.
+// isSimpleListItem checks if an element is a list item with short, simple content. List
+// items are often formatted inline even with nested elements.
 //
 // Takes node (*ast_domain.TemplateNode) which is the element to check.
 // Takes analysis (contentAnalysis) which provides content metrics for the node.
 //
-// Returns bool which is true if the node is a list item with short content and
-// no block-level children.
+// Returns bool which is true if the node is a list item with short content and no
+// block-level children.
 func isSimpleListItem(node *ast_domain.TemplateNode, analysis contentAnalysis) bool {
 	isListItem := node.TagName == "li" || node.TagName == "dt" || node.TagName == "dd"
 	return isListItem &&
@@ -871,29 +851,27 @@ func isSimpleListItem(node *ast_domain.TemplateNode, analysis contentAnalysis) b
 		!analysis.hasBlockChildren
 }
 
-// isShortMixedInlineContent checks if an element has only inline children and
-// text, with a short total length.
+// isShortMixedInlineContent checks if an element has only inline children and text, with
+// a short total length.
 //
 // Takes analysis (contentAnalysis) which holds the parsed content metrics.
 //
-// Returns bool which is true when the content has only inline elements and is
-// short enough for mixed inline rendering.
+// Returns bool which is true when the content has only inline elements and is short
+// enough for mixed inline rendering.
 func isShortMixedInlineContent(analysis contentAnalysis) bool {
 	return analysis.allChildrenInline &&
 		!analysis.hasBlockChildren &&
 		analysis.totalContentLength <= maxMixedContentLength
 }
 
-// shouldWrapAttributes checks whether attributes should be spread across
-// multiple lines.
+// shouldWrapAttributes checks whether attributes should be spread across multiple lines.
 //
 // Takes tagName (string) which is the HTML tag name.
 // Takes attrs ([]string) which holds the attribute strings.
 // Takes maxLineLength (int) which is the maximum line length allowed.
 // Takes currentIndent (int) which is the current indent level.
 //
-// Returns bool which is true when the tag line would be longer than
-// maxLineLength.
+// Returns bool which is true when the tag line would be longer than maxLineLength.
 func shouldWrapAttributes(tagName string, attrs []string, maxLineLength, currentIndent int) bool {
 	if maxLineLength == 0 || len(attrs) == 0 {
 		return false
@@ -911,14 +889,14 @@ func shouldWrapAttributes(tagName string, attrs []string, maxLineLength, current
 	return tagLineBuilder.Len()+currentIndent > maxLineLength
 }
 
-// buildTextContent extracts text content from a node, handling both plain text
-// and rich text with interpolations.
+// buildTextContent extracts text content from a node, handling both plain text and rich
+// text with interpolations.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// extract content from.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to extract
+// content from.
 //
-// Returns content (string) which contains the extracted text or rebuilt
-// interpolation blocks.
+// Returns content (string) which contains the extracted text or rebuilt interpolation
+// blocks.
 // Returns hasContent (bool) which indicates whether any content was found.
 func buildTextContent(node *ast_domain.TemplateNode) (content string, hasContent bool) {
 	var contentBuilder strings.Builder
@@ -941,23 +919,23 @@ func buildTextContent(node *ast_domain.TemplateNode) (content string, hasContent
 	return "", false
 }
 
-// collectAttributesInOrder gathers all attributes from a node and returns them
-// as formatted strings in their original order.
+// collectAttributesInOrder gathers all attributes from a node and returns them as
+// formatted strings in their original order.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to extract
-// attributes from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to extract attributes
+// from.
 //
-// Returns []string which contains the formatted attribute strings in their
-// original order.
+// Returns []string which contains the formatted attribute strings in their original
+// order.
 func collectAttributesInOrder(node *ast_domain.TemplateNode) []string {
 	return collectAttributesCore(node)
 }
 
-// collectAttributesSorted gathers all attributes from a node and returns them
-// as formatted strings sorted in alphabetical order for consistent output.
+// collectAttributesSorted gathers all attributes from a node and returns them as
+// formatted strings sorted in alphabetical order for consistent output.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to collect
-// attributes from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to collect attributes
+// from.
 //
 // Returns []string which contains the formatted attributes in sorted order.
 func collectAttributesSorted(node *ast_domain.TemplateNode) []string {
@@ -966,14 +944,14 @@ func collectAttributesSorted(node *ast_domain.TemplateNode) []string {
 	return attrs
 }
 
-// collectAttributesCore gathers all attributes from a template node.
-// This is a pure function with no printer state needed.
+// collectAttributesCore gathers all attributes from a template node. This is a pure
+// function with no printer state needed.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// get attributes from.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to get
+// attributes from.
 //
-// Returns []string which contains the formatted static attributes, dynamic
-// attributes, and directives in canonical order.
+// Returns []string which contains the formatted static attributes, dynamic attributes,
+// and directives in canonical order.
 func collectAttributesCore(node *ast_domain.TemplateNode) []string {
 	attrs := make([]string, 0)
 
@@ -996,14 +974,13 @@ func collectAttributesCore(node *ast_domain.TemplateNode) []string {
 	return attrs
 }
 
-// formatDirectives collects all directives from a node in a standard order.
-// This is a pure function that needs no printer state.
+// formatDirectives collects all directives from a node in a standard order. This is a
+// pure function that needs no printer state.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the directives to
-// format.
+// Takes node (*ast_domain.TemplateNode) which contains the directives to format.
 //
-// Returns []string which contains the formatted directives grouped by type:
-// structural, display, content, style, bind, event, and other.
+// Returns []string which contains the formatted directives grouped by type: structural,
+// display, content, style, bind, event, and other.
 func formatDirectives(node *ast_domain.TemplateNode) []string {
 	directives := make([]string, 0)
 
@@ -1018,15 +995,14 @@ func formatDirectives(node *ast_domain.TemplateNode) []string {
 	return directives
 }
 
-// appendStructuralDirectives adds structural directives to the given list.
-// Structural directives are if, else-if, else, and for.
+// appendStructuralDirectives adds structural directives to the given list. Structural
+// directives are if, else-if, else, and for.
 //
 // Takes directives ([]string) which is the list to add to.
-// Takes node (*ast_domain.TemplateNode) which holds the structural directive
-// fields to check.
+// Takes node (*ast_domain.TemplateNode) which holds the structural directive fields to
+// check.
 //
-// Returns []string which is the updated list with any structural directives
-// added.
+// Returns []string which is the updated list with any structural directives added.
 func appendStructuralDirectives(directives []string, node *ast_domain.TemplateNode) []string {
 	if node.DirIf != nil {
 		directives = append(directives, fmt.Sprintf("p-if=%q", node.DirIf.RawExpression))
@@ -1078,8 +1054,7 @@ func appendContentDirectives(directives []string, node *ast_domain.TemplateNode)
 // appendStyleDirectives adds style and class binding directives to a list.
 //
 // Takes directives ([]string) which is the list to add to.
-// Takes node (*ast_domain.TemplateNode) which holds the style and class
-// bindings.
+// Takes node (*ast_domain.TemplateNode) which holds the style and class bindings.
 //
 // Returns []string which is the list with any style or class directives added.
 func appendStyleDirectives(directives []string, node *ast_domain.TemplateNode) []string {
@@ -1117,8 +1092,7 @@ func appendBindDirectives(directives []string, node *ast_domain.TemplateNode) []
 	return directives
 }
 
-// appendEventDirectives adds p-on event handler directives to the list in
-// sorted order.
+// appendEventDirectives adds p-on event handler directives to the list in sorted order.
 //
 // Takes directives ([]string) which is the current list of directives.
 // Takes node (*ast_domain.TemplateNode) which holds the event handlers.
@@ -1150,8 +1124,8 @@ func appendEventDirectives(directives []string, node *ast_domain.TemplateNode) [
 	return directives
 }
 
-// appendOtherDirectives adds extra directives to the list if they are present
-// in the node. These include model, ref, context, format, and scaffold.
+// appendOtherDirectives adds extra directives to the list if they are present in the
+// node. These include model, ref, context, format, and scaffold.
 //
 // Takes directives ([]string) which is the existing list to add to.
 // Takes node (*ast_domain.TemplateNode) which holds the directive values.
@@ -1175,8 +1149,8 @@ func appendOtherDirectives(directives []string, node *ast_domain.TemplateNode) [
 
 // isSelfClosing checks whether an HTML element is a void element.
 //
-// Void elements cannot have content and must be self-closing, such as br, img,
-// and input. This is a standalone function as it does not need printer state.
+// Void elements cannot have content and must be self-closing, such as br, img, and input.
+// This is a standalone function as it does not need printer state.
 //
 // Takes node (*ast_domain.TemplateNode) which specifies the element to check.
 //
@@ -1192,8 +1166,8 @@ func isSelfClosing(node *ast_domain.TemplateNode) bool {
 	return voidElements[strings.ToLower(node.TagName)]
 }
 
-// isBlockElement checks whether a tag should be formatted as a block element.
-// This is a standalone function as it does not need printer state.
+// isBlockElement checks whether a tag should be formatted as a block element. This is a
+// standalone function as it does not need printer state.
 //
 // Takes tagName (string) which is the HTML or Piko tag name to check.
 //
@@ -1218,8 +1192,8 @@ func isBlockElement(tagName string) bool {
 	return blockElements[strings.ToLower(tagName)]
 }
 
-// isInlineElement checks if an HTML tag should be formatted inline.
-// This is a standalone function as it does not need printer state.
+// isInlineElement checks if an HTML tag should be formatted inline. This is a standalone
+// function as it does not need printer state.
 //
 // Takes tagName (string) which is the HTML tag name to check.
 //
@@ -1242,8 +1216,8 @@ func isInlineElement(tagName string) bool {
 	return inlineElements[strings.ToLower(tagName)]
 }
 
-// isWhitespaceSensitive checks if an HTML element keeps its content spacing.
-// This is a standalone function as it does not need printer state.
+// isWhitespaceSensitive checks if an HTML element keeps its content spacing. This is a
+// standalone function as it does not need printer state.
 //
 // Takes tagName (string) which is the HTML element name to check.
 //
@@ -1262,8 +1236,7 @@ func isWhitespaceSensitive(tagName string) bool {
 //
 // Takes s (string) which is the input text to normalise.
 //
-// Returns string which is the input with runs of whitespace made into
-// single spaces.
+// Returns string which is the input with runs of whitespace made into single spaces.
 func normaliseWhitespace(s string) string {
 	if s == "" {
 		return s

@@ -39,20 +39,17 @@ var (
 	// ErrProviderUnavailable indicates the captcha provider is not available.
 	ErrProviderUnavailable = errors.New("captcha provider unavailable")
 
-	// ErrTokenTooLong indicates the captcha token exceeds the maximum allowed
-	// length.
+	// ErrTokenTooLong indicates the captcha token exceeds the maximum allowed length.
 	ErrTokenTooLong = errors.New("captcha token exceeds maximum length")
 
-	// ErrScoreBelowThreshold indicates the captcha score is below the required
-	// threshold for score-based providers like reCAPTCHA v3.
+	// ErrScoreBelowThreshold indicates the captcha score is below the required threshold for
+	// score-based providers like reCAPTCHA v3.
 	ErrScoreBelowThreshold = errors.New("captcha score below threshold")
 
-	// ErrRateLimited indicates the client has exceeded the captcha verification
-	// rate limit.
+	// ErrRateLimited indicates the client has exceeded the captcha verification rate limit.
 	ErrRateLimited = errors.New("captcha rate limit exceeded")
 
-	// ErrActionTooLong indicates the action name exceeds the maximum allowed
-	// length.
+	// ErrActionTooLong indicates the action name exceeds the maximum allowed length.
 	ErrActionTooLong = errors.New("captcha action name exceeds maximum length")
 )
 
@@ -85,8 +82,8 @@ func NewCaptchaError(operation, provider string, err error) *CaptchaError {
 
 // Error implements the error interface for CaptchaError.
 //
-// Returns string which describes the failed captcha operation, including the
-// provider name.
+// Returns string which describes the failed captcha operation, including the provider
+// name.
 func (e *CaptchaError) Error() string {
 	return fmt.Sprintf("captcha %s failed with provider %s: %v", e.Operation, e.Provider, e.Err)
 }

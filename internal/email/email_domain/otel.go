@@ -31,12 +31,12 @@ var (
 	// meter is the OpenTelemetry meter for the email domain package.
 	meter = otel.Meter("piko/internal/email/email_domain")
 
-	// dispatcherStartCount tracks the number of times a dispatcher has been
-	// started during its lifecycle.
+	// dispatcherStartCount tracks the number of times a dispatcher has been started during
+	// its lifecycle.
 	dispatcherStartCount metric.Int64Counter
 
-	// dispatcherStopCount is a metric that tracks how many times the dispatcher
-	// has been stopped.
+	// dispatcherStopCount is a metric that tracks how many times the dispatcher has been
+	// stopped.
 	dispatcherStopCount metric.Int64Counter
 
 	// emailQueuedCount tracks the number of emails added to the queue.
@@ -60,16 +60,15 @@ var (
 	// emailSendErrorCount is a counter metric that tracks email sending failures.
 	emailSendErrorCount metric.Int64Counter
 
-	// retryScheduledCount is a metric that tracks the number of retries scheduled
-	// for dead-letter handling.
+	// retryScheduledCount is a metric that tracks the number of retries scheduled for
+	// dead-letter handling.
 	retryScheduledCount metric.Int64Counter
 
-	// retryAttemptCount is a counter metric that tracks the number of retry
-	// attempts made during operations.
+	// retryAttemptCount is a counter metric that tracks the number of retry attempts made
+	// during operations.
 	retryAttemptCount metric.Int64Counter
 
-	// deadLetterCount is the metric counter for messages sent to the dead letter
-	// queue.
+	// deadLetterCount is the metric counter for messages sent to the dead letter queue.
 	deadLetterCount metric.Int64Counter
 
 	// builderSendCount tracks the number of send operations at the builder level.

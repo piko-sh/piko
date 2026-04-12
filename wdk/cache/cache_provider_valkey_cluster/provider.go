@@ -30,9 +30,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// ValkeyClusterProvider implements the cache.Provider interface for Valkey
-// Cluster. It manages a single shared client connection across all namespaces,
-// where each namespace becomes a key prefix (e.g., "users:", "products:").
+// ValkeyClusterProvider implements the cache.Provider interface for Valkey Cluster. It
+// manages a single shared client connection across all namespaces, where each namespace
+// becomes a key prefix (e.g., "users:", "products:").
 type ValkeyClusterProvider struct {
 	// client is the shared Valkey Cluster client connection.
 	client valkey.Client
@@ -47,14 +47,16 @@ type ValkeyClusterProvider struct {
 	mu sync.RWMutex
 }
 
-var _ cache.Provider = (*ValkeyClusterProvider)(nil)
+var (
+	_ cache.Provider = (*ValkeyClusterProvider)(nil)
+)
 
-// NewValkeyClusterProvider creates a new Valkey Cluster provider with a shared
-// client connection. All namespaces created from this provider share the same
-// Valkey Cluster connection.
+// NewValkeyClusterProvider creates a new Valkey Cluster provider with a shared client
+// connection. All namespaces created from this provider share the same Valkey Cluster
+// connection.
 //
-// Takes config (Config) which specifies the cluster addresses, password, timeouts,
-// and encoding registry.
+// Takes config (Config) which specifies the cluster addresses, password, timeouts, and
+// encoding registry.
 //
 // Returns *ValkeyClusterProvider which is the configured provider ready for use.
 // Returns error when the registry is nil or the cluster cannot be reached.
@@ -107,12 +109,12 @@ func NewValkeyClusterProvider(config Config) (*ValkeyClusterProvider, error) {
 	return provider, nil
 }
 
-// CreateNamespaceTyped creates a new Valkey Cluster cache instance for the
-// given namespace.
+// CreateNamespaceTyped creates a new Valkey Cluster cache instance for the given
+// namespace.
 //
-// The namespace is used as a key prefix, and the same Valkey Cluster client
-// is shared across all namespaces. This is a non-generic method that uses
-// type erasure; call via CreateNamespace[K,V]() for type safety.
+// The namespace is used as a key prefix, and the same Valkey Cluster client is shared
+// across all namespaces. This is a non-generic method that uses type erasure; call via
+// CreateNamespace[K,V]() for type safety.
 //
 // Takes namespace (string) which specifies the key prefix for cache entries.
 // Takes options (any) which provides configuration for the cache instance.
@@ -123,8 +125,8 @@ func (p *ValkeyClusterProvider) CreateNamespaceTyped(namespace string, options a
 	return createValkeyClusterCache(p, namespace, options)
 }
 
-// Close releases all resources managed by this provider.
-// For Valkey Cluster, this closes the shared client connection.
+// Close releases all resources managed by this provider. For Valkey Cluster, this closes
+// the shared client connection.
 //
 // Returns error when the Valkey Cluster client fails to close.
 //

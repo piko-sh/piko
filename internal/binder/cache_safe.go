@@ -22,11 +22,12 @@ package binder
 
 import (
 	"reflect"
+	"slices"
 	"sync"
 )
 
-// binderCache is a thread-safe cache for struct metadata. It uses sync.Map
-// with reflect.Type keys for storage.
+// binderCache is a thread-safe cache for struct metadata. It uses sync.Map with
+// reflect.Type keys for storage.
 type binderCache struct {
 	// cache stores struct metadata, keyed by reflect.Type.
 	cache sync.Map
@@ -42,8 +43,8 @@ type binderCache struct {
 //
 // Returns *structInfo which contains the cached or newly built metadata.
 //
-// Safe for concurrent use. Uses double-checked locking to avoid doing the
-// same work twice when multiple goroutines request the same type at once.
+// Safe for concurrent use. Uses double-checked locking to avoid doing the same work twice
+// when multiple goroutines request the same type at once.
 func (c *binderCache) get(t reflect.Type, maxDepth int) *structInfo {
 	if cached, ok := c.cache.Load(t); ok {
 		if info, isStructInfo := cached.(*structInfo); isStructInfo {
@@ -65,8 +66,7 @@ func (c *binderCache) get(t reflect.Type, maxDepth int) *structInfo {
 	return info
 }
 
-// build performs one-time reflection to analyse a struct type and create its
-// metadata.
+// build performs one-time reflection to analyse a struct type and create its metadata.
 //
 // Takes t (reflect.Type) which specifies the struct type to analyse.
 // Takes maxDepth (int) which limits how deep to walk nested structs.
@@ -93,7 +93,7 @@ func (c *binderCache) walk(t reflect.Type, info *structInfo, parentIndex []int, 
 		return
 	}
 
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
@@ -102,9 +102,8 @@ func (c *binderCache) walk(t reflect.Type, info *structInfo, parentIndex []int, 
 	}
 }
 
-// processField handles all logic for a single struct field during the cache
-// walk. It takes a pointer to a `reflect.StructField` to satisfy the 'hugeParam'
-// linter.
+// processField handles all logic for a single struct field during the cache walk. It
+// takes a pointer to a `reflect.StructField` to satisfy the 'hugeParam' linter.
 //
 // Takes field (*reflect.StructField) which is the struct field to process.
 // Takes index (int) which is the field's position within its parent struct.
@@ -123,12 +122,10 @@ func (c *binderCache) processField(field *reflect.StructField, index int, info *
 		return
 	}
 
-	currentIndex := make([]int, len(parentIndex)+1)
-	copy(currentIndex, parentIndex)
-	currentIndex[len(parentIndex)] = index
+	currentIndex := append(slices.Clone(parentIndex), index)
 	fieldType := field.Type
 	effectiveType := fieldType
-	if effectiveType.Kind() == reflect.Ptr {
+	if effectiveType.Kind() == reflect.Pointer {
 		effectiveType = effectiveType.Elem()
 	}
 
@@ -142,7 +139,7 @@ func (c *binderCache) processField(field *reflect.StructField, index int, info *
 	unmarshalerInstance, _ := implementsTextUnmarshaler(effectiveType)
 
 	canDirect := len(currentIndex) == 1 &&
-		fieldType.Kind() != reflect.Ptr &&
+		fieldType.Kind() != reflect.Pointer &&
 		isPrimitiveKind(fieldType.Kind()) &&
 		!hasWellKnownConverter(fieldType) &&
 		unmarshalerInstance == nil

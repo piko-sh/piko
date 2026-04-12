@@ -77,8 +77,7 @@ func newStringLiteral(s string) js_ast.Expr {
 	return js_ast.Expr{Data: &js_ast.EString{Value: helpers.StringToUTF16(s)}}
 }
 
-// newIdentifier creates a JavaScript identifier expression and registers its
-// name.
+// newIdentifier creates a JavaScript identifier expression and registers its name.
 //
 // Takes name (string) which specifies the identifier name to use.
 //
@@ -105,8 +104,8 @@ func newNullLiteral() js_ast.Expr {
 	return js_ast.Expr{Data: js_ast.ENullShared}
 }
 
-// parseFloat64 parses a string to float64 for use in JavaScript number
-// literals. Returns 0 if the string cannot be parsed.
+// parseFloat64 parses a string to float64 for use in JavaScript number literals. Returns
+// 0 if the string cannot be parsed.
 //
 // Takes s (string) which is the decimal string to parse.
 //
@@ -118,8 +117,7 @@ func parseFloat64(s string) float64 {
 
 // isNull checks whether the given expression is a null literal.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// check.
+// Takes expression (js_ast.Expr) which is the expression to check.
 //
 // Returns bool which is true if the expression is a null literal.
 func isNull(expression js_ast.Expr) bool {
@@ -131,8 +129,8 @@ func isNull(expression js_ast.Expr) bool {
 //
 // Takes snippet (string) which contains the JavaScript expression to parse.
 //
-// Returns js_ast.Expr which is the parsed expression with identifiers
-// registered for later use.
+// Returns js_ast.Expr which is the parsed expression with identifiers registered for
+// later use.
 // Returns error when the snippet fails to parse or is not a valid expression.
 func parseSnippetAsExpr(snippet string) (js_ast.Expr, error) {
 	wrappedSnippet := "(" + snippet + ")"
@@ -159,9 +157,9 @@ func parseSnippetAsExpr(snippet string) (js_ast.Expr, error) {
 
 // appendToKeyExpr adds a suffix to a key expression.
 //
-// For simple string keys, it joins the strings directly. For complex
-// expressions (such as those with loop variables), it uses binary addition
-// to keep the original expression intact.
+// For simple string keys, it joins the strings directly. For complex expressions (such as
+// those with loop variables), it uses binary addition to keep the original expression
+// intact.
 //
 // Takes keyExpr (js_ast.Expr) which is the key expression to extend.
 // Takes suffix (string) which is the string to add to the key.
@@ -183,15 +181,12 @@ func appendToKeyExpr(keyExpr js_ast.Expr, suffix string) js_ast.Expr {
 	}}
 }
 
-// expressionToJSValueString converts a JS expression to its
-// string form.
+// expressionToJSValueString converts a JS expression to its string form.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// convert.
+// Takes expression (js_ast.Expr) which is the expression to convert.
 //
-// Returns string which is the value for strings, numbers, and
-// booleans, or a type name like "null", "identifier", or "expr"
-// for other expression types.
+// Returns string which is the value for strings, numbers, and booleans, or a type name
+// like "null", "identifier", or "expr" for other expression types.
 func expressionToJSValueString(expression js_ast.Expr) string {
 	if expression.Data == nil {
 		return "null"
@@ -219,8 +214,8 @@ func expressionToJSValueString(expression js_ast.Expr) string {
 //
 // Takes original (*ast_domain.TemplateNode) which is the node to copy.
 //
-// Returns *ast_domain.TemplateNode which is a new node with all attributes,
-// directives, events, and children copied recursively.
+// Returns *ast_domain.TemplateNode which is a new node with all attributes, directives,
+// events, and children copied recursively.
 func cloneNode(original *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	copiedNode := *original
 	if original.Attributes != nil {
@@ -262,11 +257,10 @@ func cloneNode(original *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 
 // filterOutKeyAttrs removes :key dynamic attributes from the given slice.
 //
-// Takes dyn ([]ast_domain.DynamicAttribute) which contains the attributes to
-// filter.
+// Takes dyn ([]ast_domain.DynamicAttribute) which contains the attributes to filter.
 //
-// Returns []ast_domain.DynamicAttribute which contains all attributes except
-// those named "key" (case-insensitive comparison).
+// Returns []ast_domain.DynamicAttribute which contains all attributes except those named
+// "key" (case-insensitive comparison).
 func filterOutKeyAttrs(dyn []ast_domain.DynamicAttribute) []ast_domain.DynamicAttribute {
 	var out []ast_domain.DynamicAttribute
 	for dynamicAttributeIndex := range dyn {
@@ -279,11 +273,10 @@ func filterOutKeyAttrs(dyn []ast_domain.DynamicAttribute) []ast_domain.DynamicAt
 
 // filterOutKeyAttrsHTML removes any HTML attribute named "key" from the list.
 //
-// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to
-// filter.
+// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to filter.
 //
-// Returns []ast_domain.HTMLAttribute which contains all attributes except
-// those named "key" (case-insensitive match).
+// Returns []ast_domain.HTMLAttribute which contains all attributes except those named
+// "key" (case-insensitive match).
 func filterOutKeyAttrsHTML(attrs []ast_domain.HTMLAttribute) []ast_domain.HTMLAttribute {
 	var out []ast_domain.HTMLAttribute
 	for atIndex := range attrs {
@@ -298,8 +291,8 @@ func filterOutKeyAttrsHTML(attrs []ast_domain.HTMLAttribute) []ast_domain.HTMLAt
 //
 // Takes s (string) which is the input text to process.
 //
-// Returns string which contains the input with all runs of whitespace
-// (including newlines, carriage returns, and tabs) replaced by single spaces.
+// Returns string which contains the input with all runs of whitespace (including
+// newlines, carriage returns, and tabs) replaced by single spaces.
 func squashWhitespace(s string) string {
 	s = strings.ReplaceAll(s, "\r", strSpace)
 	s = strings.ReplaceAll(s, "\n", strSpace)
@@ -321,13 +314,12 @@ func escapeString(raw string) string {
 	return raw
 }
 
-// isNumericOrBoolOrNull checks whether a string value represents a number,
-// boolean, null, or undefined.
+// isNumericOrBoolOrNull checks whether a string value represents a number, boolean, null,
+// or undefined.
 //
 // Takes value (string) which is the value to check.
 //
-// Returns bool which is true if the value is a number, boolean, null, or
-// undefined.
+// Returns bool which is true if the value is a number, boolean, null, or undefined.
 func isNumericOrBoolOrNull(value string) bool {
 	trimmed := strings.ToLower(strings.TrimSpace(value))
 	if trimmed == "true" || trimmed == "false" || trimmed == "null" || trimmed == "undefined" {

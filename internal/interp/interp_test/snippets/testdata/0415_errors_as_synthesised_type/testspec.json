@@ -1,0 +1,3 @@
+{
+  "description": "errors.As called with a piko-synthesised pointer-to-struct walks the chain and assigns through the **MyErr target. Piko intercepts the call by symbol pointer and consults the method table directly so synthesised reflect.Types are treated as error implementers."
+}

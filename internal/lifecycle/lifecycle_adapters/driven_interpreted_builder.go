@@ -44,8 +44,8 @@ import (
 )
 
 const (
-	// debugFilePermission is the permission mode for debug temp files.
-	// Only the owner has read and write access.
+	// debugFilePermission is the permission mode for debug temp files. Only the owner has
+	// read and write access.
 	debugFilePermission = 0600
 
 	// fieldAbsolutePath is the log field name for absolute file paths.
@@ -61,19 +61,17 @@ const (
 	linkedFunctionCount = 4
 )
 
-// InterpretedBuildOrchestrator handles the conversion of build artefacts into a
-// runnable InterpretedManifestRunner. It implements
-// InterpretedBuildOrchestrator and JITCompiler interfaces.
+// InterpretedBuildOrchestrator handles the conversion of build artefacts into a runnable
+// InterpretedManifestRunner. It implements InterpretedBuildOrchestrator and JITCompiler
+// interfaces.
 //
-// This orchestrator uses a pre-warmed interpreter pool for performance. Instead
-// of creating fresh interpreters with New()+Use(), it clones from a golden
-// interpreter with pre-loaded stdlib symbols, then resets and returns after
-// use.
+// This orchestrator uses a pre-warmed interpreter pool for performance. Instead of
+// creating fresh interpreters with New()+Use(), it clones from a golden interpreter with
+// pre-loaded stdlib symbols, then resets and returns after use.
 //
-// On file save (via MarkDirty), it only marks components as dirty without
-// recompiling. On HTTP request (via JITCompile), it compiles dirty components
-// just-in-time. This improves hot-reload performance by eliminating wasted
-// compilation work.
+// On file save (via MarkDirty), it only marks components as dirty without recompiling. On
+// HTTP request (via JITCompile), it compiles dirty components just-in-time. This improves
+// hot-reload performance by eliminating wasted compilation work.
 type InterpretedBuildOrchestrator struct {
 	// compileGroup stops repeated JIT compilations for the same path.
 	compileGroup singleflight.Group
@@ -87,8 +85,7 @@ type InterpretedBuildOrchestrator struct {
 	// cachedManifest holds the manifest from the last build for JIT compilation.
 	cachedManifest *generator_dto.Manifest
 
-	// interpSemaphore limits how many interpreter runs can happen at the same
-	// time.
+	// interpSemaphore limits how many interpreter runs can happen at the same time.
 	interpSemaphore chan struct{}
 
 	// vfsAdapter is the virtual file system adapter for resolving imports.
@@ -97,12 +94,11 @@ type InterpretedBuildOrchestrator struct {
 	// progCache maps relative paths to compiled page entries.
 	progCache map[string]*templater_adapters.PageEntry
 
-	// dirtyCodeCache maps relative paths to their updated source code awaiting JIT
+	// dirtyCodeCache maps relative paths to their updated source code pending JIT
 	// compilation.
 	dirtyCodeCache map[string][]byte
 
-	// reverseDepsMap maps component paths to the list of components that depend on
-	// them.
+	// reverseDepsMap maps component paths to the list of components that depend on them.
 	reverseDepsMap map[string][]string
 
 	// interpreterPool holds reusable interpreters for template processing.
@@ -111,8 +107,7 @@ type InterpretedBuildOrchestrator struct {
 	// artefactByPackagePath maps Go package paths to their generated artefacts.
 	artefactByPackagePath map[string]*generator_dto.GeneratedArtefact
 
-	// sandboxFactory creates sandboxes for filesystem access within the
-	// orchestrator.
+	// sandboxFactory creates sandboxes for filesystem access within the orchestrator.
 	sandboxFactory safedisk.Factory
 
 	// pathsConfig holds the resolved path settings for the generator.
@@ -127,16 +122,15 @@ type InterpretedBuildOrchestrator struct {
 	// moduleName is the Go module path used to resolve imports.
 	moduleName string
 
-	// stateLock guards access to orchestrator state fields for safe concurrent
-	// use.
+	// stateLock guards access to orchestrator state fields for safe concurrent use.
 	stateLock sync.RWMutex
 
 	// interpLock guards interpreter access during code interpretation and linking.
 	interpLock sync.Mutex
 }
 
-// InterpretedBuildOrchestratorDeps holds the dependencies required to
-// construct an InterpretedBuildOrchestrator.
+// InterpretedBuildOrchestratorDeps holds the dependencies required to construct an
+// InterpretedBuildOrchestrator.
 type InterpretedBuildOrchestratorDeps struct {
 	// InterpreterPool provides pooled interpreters for template execution.
 	InterpreterPool templater_domain.InterpreterPoolPort
@@ -163,14 +157,14 @@ type InterpretedBuildOrchestratorDeps struct {
 	ProjectRoot string
 }
 
-// NewInterpretedBuildOrchestrator creates a new orchestrator for building
-// interpreted runners.
+// NewInterpretedBuildOrchestrator creates a new orchestrator for building interpreted
+// runners.
 //
-// Takes deps (InterpretedBuildOrchestratorDeps) which provides all required
-// dependencies for the orchestrator.
+// Takes deps (InterpretedBuildOrchestratorDeps) which provides all required dependencies
+// for the orchestrator.
 //
-// Returns *InterpretedBuildOrchestrator which is ready for use with a
-// concurrency limit based on runtime.NumCPU.
+// Returns *InterpretedBuildOrchestrator which is ready for use with a concurrency limit
+// based on runtime.NumCPU.
 func NewInterpretedBuildOrchestrator(
 	deps InterpretedBuildOrchestratorDeps,
 ) *InterpretedBuildOrchestrator {
@@ -198,17 +192,16 @@ func NewInterpretedBuildOrchestrator(
 	}
 }
 
-// BuildRunner creates a new InterpretedManifestRunner from build artefacts.
-// Orchestrates the entire JIT compilation pipeline: creates a VFS adapter, sorts
-// artefacts topologically, creates a fresh interpreter, interprets all artefacts in
-// dependency order, creates a PageEntry cache, and returns a new runner with the
-// populated cache.
+// BuildRunner creates a new InterpretedManifestRunner from build artefacts. Orchestrates
+// the entire JIT compilation pipeline: creates a VFS adapter, sorts artefacts
+// topologically, creates a fresh interpreter, interprets all artefacts in dependency
+// order, creates a PageEntry cache, and returns a new runner with the populated cache.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the
-// annotated project artefacts to compile.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the annotated
+// project artefacts to compile.
 //
-// Returns templater_domain.ManifestRunnerPort which is the configured runner
-// ready for template execution.
+// Returns templater_domain.ManifestRunnerPort which is the configured runner ready for
+// template execution.
 // Returns error when artefact extraction, sorting, or interpretation fails.
 func (o *InterpretedBuildOrchestrator) BuildRunner(
 	ctx context.Context,
@@ -268,14 +261,14 @@ func (o *InterpretedBuildOrchestrator) BuildRunner(
 
 // MarkDirty is the fast-path method called on file save.
 //
-// It marks components as dirty without recompiling them, enabling sub-second
-// hot-reload feedback. Stores new Go code for each changed component in
-// dirtyCodeCache, propagates dirty flags to all dependent components using
-// reverseDepsMap, and returns immediately (~10-50ms) without compilation. Actual
-// compilation happens later via JITCompile when a page is requested.
+// It marks components as dirty without recompiling them, enabling sub-second hot-reload
+// feedback. Stores new Go code for each changed component in dirtyCodeCache, propagates
+// dirty flags to all dependent components using reverseDepsMap, and returns immediately
+// (~10-50ms) without compilation. Actual compilation happens later via JITCompile when a
+// page is requested.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// annotation results for changed files.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the annotation
+// results for changed files.
 //
 // Returns error when artefact extraction or manifest building fails.
 //
@@ -321,15 +314,13 @@ func (o *InterpretedBuildOrchestrator) MarkDirty(
 	return nil
 }
 
-// IsInitialised returns true if the orchestrator has completed an initial
-// full build.
+// IsInitialised returns true if the orchestrator has completed an initial full build.
 //
-// This is used by the daemon service to distinguish between the initial build
-// (which requires BuildRunner) and subsequent incremental builds (which use
-// MarkDirty).
+// This is used by the daemon service to distinguish between the initial build (which
+// requires BuildRunner) and subsequent incremental builds (which use MarkDirty).
 //
-// Returns bool which is true when the interpreter pool exists and the program
-// cache is populated.
+// Returns bool which is true when the interpreter pool exists and the program cache is
+// populated.
 //
 // Safe for concurrent use. Uses a read lock to access internal state.
 func (o *InterpretedBuildOrchestrator) IsInitialised() bool {
@@ -338,8 +329,8 @@ func (o *InterpretedBuildOrchestrator) IsInitialised() bool {
 	return o.interpreterPool != nil && len(o.progCache) > 0
 }
 
-// GetCachedEntry retrieves a compiled page entry from the cache. Part of the
-// JITCompiler interface used by InterpretedManifestRunner.
+// GetCachedEntry retrieves a compiled page entry from the cache. Part of the JITCompiler
+// interface used by InterpretedManifestRunner.
 //
 // Takes relPath (string) which specifies the relative path to look up.
 //
@@ -354,8 +345,8 @@ func (o *InterpretedBuildOrchestrator) GetCachedEntry(relPath string) (*template
 	return entry, found
 }
 
-// GetAllCachedKeys returns all keys in the prog cache. Part of the JITCompiler
-// interface used by InterpretedManifestRunner.
+// GetAllCachedKeys returns all keys in the prog cache. Part of the JITCompiler interface
+// used by InterpretedManifestRunner.
 //
 // Returns []string which contains all cached program keys.
 //
@@ -366,9 +357,8 @@ func (o *InterpretedBuildOrchestrator) GetAllCachedKeys() []string {
 	return slices.Collect(maps.Keys(o.progCache))
 }
 
-// JITCompile performs on-demand compilation when a dirty page is requested.
-// It compiles only the specific requested component and its dependencies if
-// needed.
+// JITCompile performs on-demand compilation when a dirty page is requested. It compiles
+// only the specific requested component and its dependencies if needed.
 //
 // The method:
 //  1. Checks if the component is dirty (has code in dirtyCodeCache)
@@ -379,8 +369,7 @@ func (o *InterpretedBuildOrchestrator) GetAllCachedKeys() []string {
 //
 // This means only visited pages pay the compilation cost.
 //
-// Takes relPath (string) which specifies the relative path of the component
-// to compile.
+// Takes relPath (string) which specifies the relative path of the component to compile.
 //
 // Returns error when compilation fails.
 func (o *InterpretedBuildOrchestrator) JITCompile(
@@ -400,14 +389,14 @@ func (o *InterpretedBuildOrchestrator) JITCompile(
 	return nil
 }
 
-// GetAffectedComponents returns all component paths that transitively depend
-// on the given component. It performs a BFS traversal of the reverse
-// dependency map starting from relPath.
+// GetAffectedComponents returns all component paths that transitively depend on the given
+// component. It performs a BFS traversal of the reverse dependency map starting from
+// relPath.
 //
 // Takes relPath (string) which is the relative path of the changed component.
 //
-// Returns []string which contains the relative paths of all transitively
-// dependent components, not including relPath itself.
+// Returns []string which contains the relative paths of all transitively dependent
+// components, not including relPath itself.
 //
 // Safe for concurrent use; acquires a read lock on the state.
 func (o *InterpretedBuildOrchestrator) GetAffectedComponents(relPath string) []string {
@@ -435,17 +424,16 @@ func (o *InterpretedBuildOrchestrator) GetAffectedComponents(relPath string) []s
 	return affected
 }
 
-// MarkComponentsDirty marks changed components for recompilation, merging the
-// partial build result into the existing manifest rather than replacing it.
-// This is used by targeted rebuilds where the result only contains a subset
-// of components.
+// MarkComponentsDirty marks changed components for recompilation, merging the partial
+// build result into the existing manifest rather than replacing it. This is used by
+// targeted rebuilds where the result only contains a subset of components.
 //
-// The method is identical to MarkDirty except that it merges the new manifest
-// entries into the cached manifest instead of replacing it, preserving entries
-// for components not included in the targeted build.
+// The method is identical to MarkDirty except that it merges the new manifest entries
+// into the cached manifest instead of replacing it, preserving entries for components not
+// included in the targeted build.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// annotation results for changed files.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the annotation
+// results for changed files.
 //
 // Returns error when artefact extraction or manifest building fails.
 //
@@ -493,17 +481,16 @@ func (o *InterpretedBuildOrchestrator) MarkComponentsDirty(
 	return nil
 }
 
-// ProactiveRecompile JIT-compiles all components currently in the dirty code
-// cache. This runs compilation eagerly rather than waiting for an HTTP request
-// to trigger it.
+// ProactiveRecompile JIT-compiles all components currently in the dirty code cache. This
+// runs compilation eagerly rather than waiting for an HTTP request to trigger it.
 //
-// Compilation errors for individual components are logged but do not stop the
-// batch; all dirty components are attempted.
+// Compilation errors for individual components are logged but do not stop the batch; all
+// dirty components are attempted.
 //
 // Returns error only when a systemic failure prevents all compilation.
 //
-// Safe for concurrent use; reads dirtyCodeCache keys under a read lock, then
-// calls JITCompile which acquires its own locks.
+// Safe for concurrent use; reads dirtyCodeCache keys under a read lock, then calls
+// JITCompile which acquires its own locks.
 func (o *InterpretedBuildOrchestrator) ProactiveRecompile(ctx context.Context) error {
 	ctx, span, l := log.Span(ctx, "InterpretedBuildOrchestrator.ProactiveRecompile")
 	defer span.End()
@@ -540,19 +527,18 @@ func (o *InterpretedBuildOrchestrator) ProactiveRecompile(ctx context.Context) e
 
 // isEmptyVirtualModule checks if the virtual module has no components.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the
-// module to check.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which contains the module to
+// check.
 //
-// Returns bool which is true when the virtual module is nil or has no
-// components.
+// Returns bool which is true when the virtual module is nil or has no components.
 func (*InterpretedBuildOrchestrator) isEmptyVirtualModule(result *annotator_dto.ProjectAnnotationResult) bool {
 	return result.VirtualModule == nil || len(result.VirtualModule.ComponentsByHash) == 0
 }
 
 // createEmptyRunner creates a runner with no cached entries.
 //
-// Returns templater_domain.ManifestRunnerPort which is a runner with an empty
-// page cache and no manifest.
+// Returns templater_domain.ManifestRunnerPort which is a runner with an empty page cache
+// and no manifest.
 func (o *InterpretedBuildOrchestrator) createEmptyRunner() templater_domain.ManifestRunnerPort {
 	return templater_adapters.NewInterpretedManifestRunner(
 		o.i18nService,
@@ -564,8 +550,7 @@ func (o *InterpretedBuildOrchestrator) createEmptyRunner() templater_domain.Mani
 
 // getDefaultLocale returns the default locale from the configuration.
 //
-// Returns string which is the configured default locale, or "en" if none is
-// set.
+// Returns string which is the configured default locale, or "en" if none is set.
 func (o *InterpretedBuildOrchestrator) getDefaultLocale() string {
 	if o.i18nDefaultLocale != "" {
 		return o.i18nDefaultLocale
@@ -576,13 +561,12 @@ func (o *InterpretedBuildOrchestrator) getDefaultLocale() string {
 // extractArtefacts gets and checks the artefacts from a build result.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the build
-// output with the generated artefacts.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the build output with
+// the generated artefacts.
 //
-// Returns []*generator_dto.GeneratedArtefact which holds the checked artefacts
-// ready for use.
-// Returns error when FinalGeneratedArtefacts is nil, has the wrong type, or
-// is empty.
+// Returns []*generator_dto.GeneratedArtefact which holds the checked artefacts ready for
+// use.
+// Returns error when FinalGeneratedArtefacts is nil, has the wrong type, or is empty.
 func (*InterpretedBuildOrchestrator) extractArtefacts(
 	ctx context.Context,
 	result *annotator_dto.ProjectAnnotationResult,
@@ -614,11 +598,11 @@ func (*InterpretedBuildOrchestrator) extractArtefacts(
 // buildManifest creates a manifest from the given artefacts.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// generated items to include in the manifest.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated items
+// to include in the manifest.
 //
-// Returns *generator_dto.Manifest which contains the organised pages, partials,
-// and emails.
+// Returns *generator_dto.Manifest which contains the organised pages, partials, and
+// emails.
 // Returns error when the manifest builder fails to process the artefacts.
 func (o *InterpretedBuildOrchestrator) buildManifest(
 	ctx context.Context,
@@ -638,17 +622,15 @@ func (o *InterpretedBuildOrchestrator) buildManifest(
 	return manifest, nil
 }
 
-// createVFSAdapter creates and configures the VFS adapter for import
-// resolution.
+// createVFSAdapter creates and configures the VFS adapter for import resolution.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// generated code artefacts to include in the virtual filesystem.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated code
+// artefacts to include in the virtual filesystem.
 //
-// Returns *templater_adapters.RegistryVFSAdapter which provides the configured
-// virtual filesystem for the interpreter.
-// Returns error when the path resolution fails or the adapter cannot be
-// created.
+// Returns *templater_adapters.RegistryVFSAdapter which provides the configured virtual
+// filesystem for the interpreter.
+// Returns error when the path resolution fails or the adapter cannot be created.
 func (o *InterpretedBuildOrchestrator) createVFSAdapter(
 	ctx context.Context,
 	artefacts []*generator_dto.GeneratedArtefact,
@@ -693,15 +675,14 @@ func (o *InterpretedBuildOrchestrator) createVFSAdapter(
 	return vfsAdapter, nil
 }
 
-// buildVFSPathMap builds a map from canonical package paths to relative
-// artefact paths.
+// buildVFSPathMap builds a map from canonical package paths to relative artefact paths.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// generated artefacts to map.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated
+// artefacts to map.
 //
-// Returns map[string]string which maps canonical Go package paths to their
-// relative file paths from the project root.
+// Returns map[string]string which maps canonical Go package paths to their relative file
+// paths from the project root.
 func (o *InterpretedBuildOrchestrator) buildVFSPathMap(
 	ctx context.Context,
 	artefacts []*generator_dto.GeneratedArtefact,
@@ -734,16 +715,16 @@ func (o *InterpretedBuildOrchestrator) buildVFSPathMap(
 
 // interpretArtefacts interprets all artefacts and builds the program cache.
 //
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the
-// artefacts to interpret in dependency order.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the artefacts
+// to interpret in dependency order.
 // Takes manifest (*generator_dto.Manifest) which contains the build manifest.
-// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides the
-// virtual filesystem for source code access.
+// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides the virtual
+// filesystem for source code access.
 //
-// Returns map[string]*templater_adapters.PageEntry which maps relative paths to
-// their interpreted page entries.
-// Returns error when the interpreter cannot be obtained from the pool or when
-// any artefact fails to interpret.
+// Returns map[string]*templater_adapters.PageEntry which maps relative paths to their
+// interpreted page entries.
+// Returns error when the interpreter cannot be obtained from the pool or when any
+// artefact fails to interpret.
 func (o *InterpretedBuildOrchestrator) interpretArtefacts(
 	ctx context.Context,
 	sortedArtefacts []*generator_dto.GeneratedArtefact,
@@ -766,21 +747,19 @@ func (o *InterpretedBuildOrchestrator) interpretArtefacts(
 	return o.interpretArtefactsIncremental(ctx, freshInterpreter, sortedArtefacts, manifest, vfsAdapter)
 }
 
-// interpretArtefactsBatch compiles all artefacts as a single program
-// using the batch compilation path.
+// interpretArtefactsBatch compiles all artefacts as a single program using the batch
+// compilation path.
 //
-// This collects all generated source code, calls CompileAndExecute to
-// compile and run init functions, then links the registered functions
-// to page entries.
+// This collects all generated source code, calls CompileAndExecute to compile and run
+// init functions, then links the registered functions to page entries.
 //
 // Takes ctx (context.Context) which carries the logger and deadline.
-// Takes batchInterp (templater_domain.BatchInterpreterPort) which
-// executes the batch compilation.
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which
-// are the artefacts to compile, in dependency order.
+// Takes batchInterp (templater_domain.BatchInterpreterPort) which executes the batch
+// compilation.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts to
+// compile, in dependency order.
 //
-// Returns map[string]*PageEntry which maps relative paths
-// to their linked page entries.
+// Returns map[string]*PageEntry which maps relative paths to their linked page entries.
 // Returns error when batch compilation or linking fails.
 func (o *InterpretedBuildOrchestrator) interpretArtefactsBatch(
 	ctx context.Context,
@@ -810,16 +789,16 @@ func (o *InterpretedBuildOrchestrator) interpretArtefactsBatch(
 	return o.linkAllArtefacts(ctx, components, manifest)
 }
 
-// collectArtefactSources collects generated source code from all
-// artefacts into the format expected by CompileProgram.
+// collectArtefactSources collects generated source code from all artefacts into the
+// format expected by CompileProgram.
 //
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which
-// are the artefacts whose source code is collected.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts
+// whose source code is collected.
 //
-// Returns map[string]map[string]string mapping relative package
-// paths to filename-to-source maps.
-// Returns map[string]*annotator_dto.VirtualComponent mapping
-// relative paths to their virtual components for later linking.
+// Returns map[string]map[string]string mapping relative package paths to
+// filename-to-source maps.
+// Returns map[string]*annotator_dto.VirtualComponent mapping relative paths to their
+// virtual components for later linking.
 func (o *InterpretedBuildOrchestrator) collectArtefactSources(
 	ctx context.Context,
 	sortedArtefacts []*generator_dto.GeneratedArtefact,
@@ -855,24 +834,21 @@ func (o *InterpretedBuildOrchestrator) collectArtefactSources(
 	return packages, components
 }
 
-// discoverUserPackages finds user-written Go packages that are
-// actually imported by the generated code and adds them to the
-// packages map for batch compilation.
+// discoverUserPackages finds user-written Go packages that are actually imported by the
+// generated code and adds them to the packages map for batch compilation.
 //
-// Only packages reachable through the import graph are included;
-// unrelated project packages are ignored. Discovery is
-// import-driven: import statements are parsed from the generated
-// sources, filtered to local imports (those prefixed with the
-// module name), and resolved from disk. Newly discovered packages
-// are scanned for their own local imports, repeating until all
-// transitive dependencies are found. Packages that are already
-// available in the symbol registry are skipped because their types
-// are pre-registered and do not need source compilation.
+// Only packages reachable through the import graph are included; unrelated project
+// packages are ignored. Discovery is import-driven: import statements are parsed from the
+// generated sources, filtered to local imports (those prefixed with the module name), and
+// resolved from disk. Newly discovered packages are scanned for their own local imports,
+// repeating until all transitive dependencies are found. Packages that are already
+// available in the symbol registry are skipped because their types are pre-registered and
+// do not need source compilation.
 //
-// Takes packages (map[string]map[string]string) which is the
-// mutable map to populate with discovered package sources.
-// Takes batchInterpreter (templater_domain.BatchInterpreterPort)
-// which checks whether a package is already registered.
+// Takes packages (map[string]map[string]string) which is the mutable map to populate with
+// discovered package sources.
+// Takes batchInterpreter (templater_domain.BatchInterpreterPort) which checks whether a
+// package is already registered.
 func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 	ctx context.Context,
 	packages map[string]map[string]string,
@@ -911,27 +887,25 @@ func (o *InterpretedBuildOrchestrator) discoverUserPackages(
 	}
 }
 
-// resolveImportedPackage attempts to resolve a single local import
-// path into a user package.
+// resolveImportedPackage attempts to resolve a single local import path into a user
+// package.
 //
-// When the package is found and not already known, its source files
-// are added to packages and any transitive local imports are
-// returned for further processing.
+// When the package is found and not already known, its source files are added to packages
+// and any transitive local imports are returned for further processing.
 //
-// Takes importPath (string) which is the fully qualified Go import
-// path to resolve.
-// Takes modulePrefix (string) which is the module name followed by
-// a slash, used to identify local imports.
-// Takes packages (map[string]map[string]string) which is the
-// mutable map to populate with discovered sources.
-// Takes sandbox (safedisk.Sandbox) which provides safe filesystem
-// access for reading user source files.
-// Takes batchInterpreter (templater_domain.BatchInterpreterPort)
-// which checks whether a package is already registered.
+// Takes importPath (string) which is the fully qualified Go import path to resolve.
+// Takes modulePrefix (string) which is the module name followed by a slash, used to
+// identify local imports.
+// Takes packages (map[string]map[string]string) which is the mutable map to populate with
+// discovered sources.
+// Takes sandbox (safedisk.Sandbox) which provides safe filesystem access for reading user
+// source files.
+// Takes batchInterpreter (templater_domain.BatchInterpreterPort) which checks whether a
+// package is already registered.
 // Takes l (logger_domain.Logger) which logs discovery progress.
 //
-// Returns []string containing any transitive local import paths
-// discovered in the resolved package.
+// Returns []string containing any transitive local import paths discovered in the
+// resolved package.
 func (o *InterpretedBuildOrchestrator) resolveImportedPackage(
 	importPath string,
 	modulePrefix string,
@@ -968,16 +942,16 @@ func (o *InterpretedBuildOrchestrator) resolveImportedPackage(
 	return transitive
 }
 
-// collectLocalImports scans all source files in the packages map
-// and returns import paths that belong to the current module.
+// collectLocalImports scans all source files in the packages map and returns import paths
+// that belong to the current module.
 //
-// Takes packages (map[string]map[string]string) which maps
-// relative package paths to their filename-to-source maps.
-// Takes modulePrefix (string) which is used to filter imports to
-// only those belonging to the current module.
+// Takes packages (map[string]map[string]string) which maps relative package paths to
+// their filename-to-source maps.
+// Takes modulePrefix (string) which is used to filter imports to only those belonging to
+// the current module.
 //
-// Returns []string containing the deduplicated local import paths
-// found across all source files.
+// Returns []string containing the deduplicated local import paths found across all source
+// files.
 func (*InterpretedBuildOrchestrator) collectLocalImports(
 	packages map[string]map[string]string,
 	modulePrefix string,
@@ -993,17 +967,16 @@ func (*InterpretedBuildOrchestrator) collectLocalImports(
 	return localImports
 }
 
-// parseLocalImportPaths extracts import paths from Go source code
-// that match the given module prefix.
+// parseLocalImportPaths extracts import paths from Go source code that match the given
+// module prefix.
 //
-// Uses go/parser with ImportsOnly for efficiency, since only the
-// import block is parsed, not function bodies. All import styles
-// (standard, aliased, blank, dot) are handled because the path is
-// always extracted from importSpec.Path.Value.
+// Uses go/parser with ImportsOnly for efficiency, since only the import block is parsed,
+// not function bodies. All import styles (standard, aliased, blank, dot) are handled
+// because the path is always extracted from importSpec.Path.Value.
 //
 // Takes source (string) which is the Go source code to parse.
-// Takes modulePrefix (string) which filters imports to only those
-// belonging to the current module.
+// Takes modulePrefix (string) which filters imports to only those belonging to the
+// current module.
 //
 // Returns []string containing the matching import paths.
 func parseLocalImportPaths(source string, modulePrefix string) []string {
@@ -1026,17 +999,16 @@ func parseLocalImportPaths(source string, modulePrefix string) []string {
 	return result
 }
 
-// readUserGoFiles reads all non-test .go files from a directory
-// using the provided sandbox.
+// readUserGoFiles reads all non-test .go files from a directory using the provided
+// sandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides safe filesystem
-// access scoped to the project root.
-// Takes relDir (string) which is the relative directory path to
-// read Go files from.
+// Takes sandbox (safedisk.Sandbox) which provides safe filesystem access scoped to the
+// project root.
+// Takes relDir (string) which is the relative directory path to read Go files from.
 // Takes l (logger_domain.Logger) which logs read errors.
 //
-// Returns map[string]string mapping filenames to their source
-// content, or nil when the directory cannot be read.
+// Returns map[string]string mapping filenames to their source content, or nil when the
+// directory cannot be read.
 func (*InterpretedBuildOrchestrator) readUserGoFiles(
 	sandbox safedisk.Sandbox,
 	relDir string,
@@ -1063,18 +1035,17 @@ func (*InterpretedBuildOrchestrator) readUserGoFiles(
 	return goFiles
 }
 
-// linkAllArtefacts creates PageEntry objects for all components and
-// links their registered functions from the global FunctionRegistry.
+// linkAllArtefacts creates PageEntry objects for all components and links their
+// registered functions from the global FunctionRegistry.
 //
-// Takes components (map[string]*annotator_dto.VirtualComponent)
-// which maps relative paths to virtual components to link.
-// Takes manifest (*generator_dto.Manifest) which provides build
-// metadata for page entry creation.
+// Takes components (map[string]*annotator_dto.VirtualComponent) which maps relative paths
+// to virtual components to link.
+// Takes manifest (*generator_dto.Manifest) which provides build metadata for page entry
+// creation.
 //
-// Returns map[string]*PageEntry which maps relative paths
-// to their fully linked page entries.
-// Returns error when function linking fails for any
-// component.
+// Returns map[string]*PageEntry which maps relative paths to their fully linked page
+// entries.
+// Returns error when function linking fails for any component.
 func (o *InterpretedBuildOrchestrator) linkAllArtefacts(
 	ctx context.Context,
 	components map[string]*annotator_dto.VirtualComponent,
@@ -1101,21 +1072,20 @@ func (o *InterpretedBuildOrchestrator) linkAllArtefacts(
 	return progCache, nil
 }
 
-// interpretArtefactsIncremental evaluates artefacts one-by-one
-// using the incremental Eval() path with VFS-based import
-// resolution.
+// interpretArtefactsIncremental evaluates artefacts one-by-one using the incremental
+// Eval() path with VFS-based import resolution.
 //
-// Takes freshInterpreter (templater_domain.InterpreterPort) which
-// executes the generated code for each artefact.
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which
-// are the artefacts to evaluate, in dependency order.
-// Takes manifest (*generator_dto.Manifest) which provides build
-// metadata for page entry creation.
-// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which
-// provides the virtual filesystem for import resolution.
+// Takes freshInterpreter (templater_domain.InterpreterPort) which executes the generated
+// code for each artefact.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which are the artefacts to
+// evaluate, in dependency order.
+// Takes manifest (*generator_dto.Manifest) which provides build metadata for page entry
+// creation.
+// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides the virtual
+// filesystem for import resolution.
 //
-// Returns map[string]*PageEntry which maps relative paths
-// to their interpreted page entries.
+// Returns map[string]*PageEntry which maps relative paths to their interpreted page
+// entries.
 // Returns error when interpretation fails for any artefact.
 func (o *InterpretedBuildOrchestrator) interpretArtefactsIncremental(
 	ctx context.Context,
@@ -1146,8 +1116,7 @@ func (o *InterpretedBuildOrchestrator) interpretArtefactsIncremental(
 
 // getInterpreterFromPool retrieves a pre-warmed interpreter from the pool.
 //
-// Returns templater_domain.InterpreterPort which is a ready-to-use interpreter
-// instance.
+// Returns templater_domain.InterpreterPort which is a ready-to-use interpreter instance.
 // Returns error when the pool returns an invalid type.
 func (o *InterpretedBuildOrchestrator) getInterpreterFromPool() (templater_domain.InterpreterPort, error) {
 	interp, err := o.interpreterPool.Get()
@@ -1160,8 +1129,8 @@ func (o *InterpretedBuildOrchestrator) getInterpreterFromPool() (templater_domai
 // returnInterpreterToPool resets and returns the interpreter to the pool.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes interpreter (templater_domain.InterpreterPort) which is the
-// interpreter to reset and return to the pool.
+// Takes interpreter (templater_domain.InterpreterPort) which is the interpreter to reset
+// and return to the pool.
 func (o *InterpretedBuildOrchestrator) returnInterpreterToPool(ctx context.Context, interpreter templater_domain.InterpreterPort) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Internal("[JIT-BUILD] Resetting and returning interpreter to pool")
@@ -1169,19 +1138,16 @@ func (o *InterpretedBuildOrchestrator) returnInterpreterToPool(ctx context.Conte
 	o.interpreterPool.Put(interpreter)
 }
 
-// interpretSingleArtefact interprets a single artefact and returns its
-// PageEntry.
+// interpretSingleArtefact interprets a single artefact and returns its PageEntry.
 //
-// Takes interpreter (templater_domain.InterpreterPort) which executes the
-// generated code.
-// Takes artefact (*generator_dto.GeneratedArtefact) which contains the
-// generated content to interpret.
+// Takes interpreter (templater_domain.InterpreterPort) which executes the generated code.
+// Takes artefact (*generator_dto.GeneratedArtefact) which contains the generated content
+// to interpret.
 // Takes manifest (*generator_dto.Manifest) which provides build metadata.
 //
-// Returns map[string]*templater_adapters.PageEntry which contains one
-// entry per virtual instance for collection-backed pages (keyed by
-// instance.ManifestKey) and a single entry keyed by the relative path
-// otherwise. Nil when no main component exists.
+// Returns map[string]*templater_adapters.PageEntry which contains one entry per virtual
+// instance for collection-backed pages (keyed by instance.ManifestKey) and a single entry
+// keyed by the relative path otherwise. Nil when no main component exists.
 // Returns string which is the relative path to the artefact.
 // Returns error when interpretation or linking fails.
 func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
@@ -1226,14 +1192,14 @@ func (o *InterpretedBuildOrchestrator) interpretSingleArtefact(
 	return entries, relativePath, nil
 }
 
-// buildReverseDependencyMap creates a map from import paths to the components
-// that depend on them.
+// buildReverseDependencyMap creates a map from import paths to the components that depend
+// on them.
 //
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the
-// build artefacts in dependency order.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the build
+// artefacts in dependency order.
 //
-// Returns map[string][]string which maps each import path to the list of
-// component paths that depend on it.
+// Returns map[string][]string which maps each import path to the list of component paths
+// that depend on it.
 func (o *InterpretedBuildOrchestrator) buildReverseDependencyMap(
 	sortedArtefacts []*generator_dto.GeneratedArtefact,
 ) map[string][]string {
@@ -1258,10 +1224,9 @@ func (o *InterpretedBuildOrchestrator) buildReverseDependencyMap(
 	return reverseDepsMap
 }
 
-// rebuildReverseDependencyMapFromState rebuilds the reverse dependency map
-// from the current artefact state. Called after targeted builds to ensure
-// imports added or removed during the build are reflected in future
-// GetAffectedComponents lookups.
+// rebuildReverseDependencyMapFromState rebuilds the reverse dependency map from the
+// current artefact state. Called after targeted builds so that imports added or removed
+// during the build are reflected in subsequent GetAffectedComponents lookups.
 //
 // Must be called with stateLock held.
 func (o *InterpretedBuildOrchestrator) rebuildReverseDependencyMapFromState() {
@@ -1276,8 +1241,8 @@ func (o *InterpretedBuildOrchestrator) rebuildReverseDependencyMapFromState() {
 //
 // Takes importPath (string) which is the full import path to process.
 //
-// Returns string which is the part after the first slash, or the original
-// path if no slash is found.
+// Returns string which is the part after the first slash, or the original path if no
+// slash is found.
 func (*InterpretedBuildOrchestrator) extractImportRelativePath(importPath string) string {
 	parts := strings.SplitN(importPath, "/", 2)
 	if len(parts) > 1 {
@@ -1286,14 +1251,13 @@ func (*InterpretedBuildOrchestrator) extractImportRelativePath(importPath string
 	return filepath.ToSlash(importPath)
 }
 
-// buildArtefactLookupMap builds a map from canonical package paths to
-// artefacts.
+// buildArtefactLookupMap builds a map from canonical package paths to artefacts.
 //
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides
-// the artefacts to index by their main component's package path.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which provides the artefacts
+// to index by their main component's package path.
 //
-// Returns map[string]*generator_dto.GeneratedArtefact which maps canonical
-// package paths to their matching artefacts.
+// Returns map[string]*generator_dto.GeneratedArtefact which maps canonical package paths
+// to their matching artefacts.
 func (*InterpretedBuildOrchestrator) buildArtefactLookupMap(
 	sortedArtefacts []*generator_dto.GeneratedArtefact,
 ) map[string]*generator_dto.GeneratedArtefact {
@@ -1307,18 +1271,16 @@ func (*InterpretedBuildOrchestrator) buildArtefactLookupMap(
 	return artefactByPackagePath
 }
 
-// updateOrchestratorState updates the orchestrator's internal state after a
-// build.
+// updateOrchestratorState updates the orchestrator's internal state after a build.
 //
-// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides
-// virtual filesystem access for templates.
-// Takes progCache (map[string]*templater_adapters.PageEntry) which contains
-// cached page entries by path.
+// Takes vfsAdapter (*templater_adapters.RegistryVFSAdapter) which provides virtual
+// filesystem access for templates.
+// Takes progCache (map[string]*templater_adapters.PageEntry) which contains cached page
+// entries by path.
 // Takes manifest (*generator_dto.Manifest) which holds the build manifest.
-// Takes reverseDepsMap (map[string][]string) which maps paths to their
-// dependents.
-// Takes artefactByPackagePath (map[string]*generator_dto.GeneratedArtefact) which
-// maps package paths to generated artefacts.
+// Takes reverseDepsMap (map[string][]string) which maps paths to their dependents.
+// Takes artefactByPackagePath (map[string]*generator_dto.GeneratedArtefact) which maps
+// package paths to generated artefacts.
 //
 // Safe for concurrent use; acquires stateLock before updating fields.
 func (o *InterpretedBuildOrchestrator) updateOrchestratorState(
@@ -1338,15 +1300,15 @@ func (o *InterpretedBuildOrchestrator) updateOrchestratorState(
 	o.dirtyCodeCache = make(map[string][]byte)
 }
 
-// extractMarkDirtyArtefacts gets artefacts from the annotation result for the
-// MarkDirty operation.
+// extractMarkDirtyArtefacts gets artefacts from the annotation result for the MarkDirty
+// operation.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the
-// annotation result with its generated artefacts.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which holds the annotation result
+// with its generated artefacts.
 //
-// Returns []*generator_dto.GeneratedArtefact which holds the extracted
-// artefacts, or nil if there are none.
+// Returns []*generator_dto.GeneratedArtefact which holds the extracted artefacts, or nil
+// if there are none.
 // Returns error when FinalGeneratedArtefacts has an unexpected type.
 func (*InterpretedBuildOrchestrator) extractMarkDirtyArtefacts(
 	ctx context.Context,
@@ -1373,15 +1335,14 @@ func (*InterpretedBuildOrchestrator) extractMarkDirtyArtefacts(
 	return artefacts, nil
 }
 
-// updateArtefactLookupAndVFS updates the artefact lookup map and builds
-// the VFS path map. Must be called with stateLock held.
+// updateArtefactLookupAndVFS updates the artefact lookup map and builds the VFS path map.
+// Must be called with stateLock held.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// generated artefacts to register.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated
+// artefacts to register.
 //
-// Returns map[string]string which maps canonical package paths to relative
-// file paths.
+// Returns map[string]string which maps canonical package paths to relative file paths.
 func (o *InterpretedBuildOrchestrator) updateArtefactLookupAndVFS(
 	ctx context.Context,
 	artefacts []*generator_dto.GeneratedArtefact,
@@ -1410,14 +1371,14 @@ func (o *InterpretedBuildOrchestrator) updateArtefactLookupAndVFS(
 	return newPathMap
 }
 
-// updateVFSAdapterIfNeeded updates the VFS adapter with new path mappings
-// and artefacts. Must be called with stateLock held.
+// updateVFSAdapterIfNeeded updates the VFS adapter with new path mappings and artefacts.
+// Must be called with stateLock held.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// newly created artefacts to add to the VFS cache.
-// Takes newPathMap (map[string]string) which provides the path mappings to
-// update in the VFS adapter.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the newly created
+// artefacts to add to the VFS cache.
+// Takes newPathMap (map[string]string) which provides the path mappings to update in the
+// VFS adapter.
 func (o *InterpretedBuildOrchestrator) updateVFSAdapterIfNeeded(
 	ctx context.Context,
 	artefacts []*generator_dto.GeneratedArtefact,
@@ -1441,15 +1402,15 @@ func (o *InterpretedBuildOrchestrator) updateVFSAdapterIfNeeded(
 	}
 }
 
-// markDirectlyChangedComponents marks components as dirty based on generated
-// code. Must be called with stateLock held.
+// markDirectlyChangedComponents marks components as dirty based on generated code. Must
+// be called with stateLock held.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// generated code to process.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the generated code
+// to process.
 //
-// Returns directlyChanged (map[string]bool) which tracks paths changed
-// directly by this operation.
+// Returns directlyChanged (map[string]bool) which tracks paths changed directly by this
+// operation.
 // Returns allDirty (map[string]bool) which tracks all paths marked as dirty.
 func (o *InterpretedBuildOrchestrator) markDirectlyChangedComponents(
 	ctx context.Context,
@@ -1486,14 +1447,13 @@ func (o *InterpretedBuildOrchestrator) markDirectlyChangedComponents(
 	return directlyChanged, allDirty
 }
 
-// propagateDirtyFlags marks all dependents as dirty using the reverse
-// dependency map.
+// propagateDirtyFlags marks all dependents as dirty using the reverse dependency map.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes directlyChanged (map[string]bool) which contains paths that were
-// changed and need their dependents marked dirty.
-// Takes allDirty (map[string]bool) which collects all paths marked dirty,
-// including those affected through other dependents.
+// Takes directlyChanged (map[string]bool) which contains paths that were changed and need
+// their dependents marked dirty.
+// Takes allDirty (map[string]bool) which collects all paths marked dirty, including those
+// affected through other dependents.
 //
 // Must be called with stateLock held.
 func (o *InterpretedBuildOrchestrator) propagateDirtyFlags(
@@ -1524,8 +1484,8 @@ func (o *InterpretedBuildOrchestrator) propagateDirtyFlags(
 	}
 }
 
-// addDependentToDirtyCache finds the dependent's artefact code and adds it to
-// the dirty cache for later recompilation.
+// addDependentToDirtyCache finds the dependent's artefact code and adds it to the dirty
+// cache for later recompilation.
 //
 // Must be called with stateLock held.
 //
@@ -1560,12 +1520,11 @@ func (o *InterpretedBuildOrchestrator) addDependentToDirtyCache(
 	}
 }
 
-// mergeManifest merges entries from newManifest into the cached manifest
-// without removing existing entries. This preserves manifest data for
-// components not included in a targeted build.
+// mergeManifest merges entries from newManifest into the cached manifest without removing
+// existing entries. This preserves manifest data for components not included in a
+// targeted build.
 //
-// Takes newManifest (*generator_dto.Manifest) which contains the entries to
-// merge.
+// Takes newManifest (*generator_dto.Manifest) which contains the entries to merge.
 //
 // Must be called with stateLock held.
 func (o *InterpretedBuildOrchestrator) mergeManifest(newManifest *generator_dto.Manifest) {

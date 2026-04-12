@@ -62,7 +62,7 @@ func main() {
 
 	result := map[string]any{
 		"fetch_by_priority_and_statuses": fetched,
-		"count_by_statuses":             counted,
+		"count_by_statuses":              counted,
 	}
 
 	encoder := json.NewEncoder(os.Stdout)

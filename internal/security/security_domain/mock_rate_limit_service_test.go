@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,15 +38,14 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockRateLimitService{
-			CheckLimitFunc:      nil,
-			CheckLimitCallCount: 0,
+			CheckLimitFunc: nil,
 		}
 
 		result, err := mock.CheckLimit(context.Background(), "key-1", 100, time.Minute)
 
 		require.NoError(t, err)
 		assert.Equal(t, ratelimiter_dto.Result{}, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CheckLimitCallCount))
+		assert.Equal(t, int64(1), mock.CheckLimitCallCount.Load())
 	})
 
 	t.Run("delegates to CheckLimitFunc", func(t *testing.T) {
@@ -73,7 +71,6 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 				capturedWindow = window
 				return expected, nil
 			},
-			CheckLimitCallCount: 0,
 		}
 
 		result, err := mock.CheckLimit(context.Background(), "api:user:42", 50, 5*time.Minute)
@@ -83,7 +80,7 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 		assert.Equal(t, "api:user:42", capturedKey)
 		assert.Equal(t, 50, capturedLimit)
 		assert.Equal(t, 5*time.Minute, capturedWindow)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CheckLimitCallCount))
+		assert.Equal(t, int64(1), mock.CheckLimitCallCount.Load())
 	})
 
 	t.Run("propagates error from CheckLimitFunc", func(t *testing.T) {
@@ -93,7 +90,6 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 			CheckLimitFunc: func(_ context.Context, _ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 				return ratelimiter_dto.Result{}, errors.New("rate limiter unavailable")
 			},
-			CheckLimitCallCount: 0,
 		}
 
 		result, err := mock.CheckLimit(context.Background(), "key", 10, time.Second)
@@ -101,7 +97,7 @@ func TestMockRateLimitService_CheckLimit(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "rate limiter unavailable", err.Error())
 		assert.Equal(t, ratelimiter_dto.Result{}, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CheckLimitCallCount))
+		assert.Equal(t, int64(1), mock.CheckLimitCallCount.Load())
 	})
 }
 
@@ -114,15 +110,14 @@ func TestMockRateLimitService_ZeroValueIsUsable(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, ratelimiter_dto.Result{}, result)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CheckLimitCallCount))
+	assert.Equal(t, int64(1), mock.CheckLimitCallCount.Load())
 }
 
 func TestMockRateLimitService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockRateLimitService{
-		CheckLimitFunc:      nil,
-		CheckLimitCallCount: 0,
+		CheckLimitFunc: nil,
 	}
 
 	const goroutines = 50
@@ -139,5 +134,5 @@ func TestMockRateLimitService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.CheckLimitCallCount))
+	assert.Equal(t, int64(goroutines), mock.CheckLimitCallCount.Load())
 }

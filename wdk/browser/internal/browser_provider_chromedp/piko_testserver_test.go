@@ -31,7 +31,9 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_frontend"
 )
 
-var pikoAssetStoreOnce sync.Once
+var (
+	pikoAssetStoreOnce sync.Once
+)
 
 func initPikoAssetStore() error {
 	var initErr error

@@ -23,9 +23,8 @@ import (
 	"fmt"
 )
 
-// BatchEncryptBuilder provides a fluent interface for batch encryption.
-// It uses envelope encryption to reduce provider calls (for example, one KMS
-// call instead of many).
+// BatchEncryptBuilder provides a fluent interface for batch encryption. It uses envelope
+// encryption to reduce provider calls (for example, one KMS call instead of many).
 type BatchEncryptBuilder struct {
 	// service provides encryption operations for processing batch requests.
 	service CryptoServicePort
@@ -46,8 +45,8 @@ func (b *BatchEncryptBuilder) Items(plaintexts []string) *BatchEncryptBuilder {
 
 // Do executes the batch encryption operation.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns []string which contains the encrypted values.
 // Returns error when encryption fails.

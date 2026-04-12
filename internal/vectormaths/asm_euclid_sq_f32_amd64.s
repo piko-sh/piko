@@ -22,15 +22,57 @@
 
 #include "textflag.h"
 
-// func euclidSqF32SSE(a, b []float32) float32
+// euclidSqF32SSE computes sum((a[i]-b[i])^2) for f32 vectors using 4-way SSE unrolling.
 TEXT ·euclidSqF32SSE(SB), NOSPLIT, $0-52
 	MOVQ    a_base+0(FP), SI
 	MOVQ    a_len+8(FP), CX
 	MOVQ    b_base+24(FP), DI
 
 	XORPS   X0, X0
+	XORPS   X4, X4
+	XORPS   X5, X5
+	XORPS   X6, X6
 	XORPS   X3, X3
 
+	CMPQ    CX, $16
+	JL      euclidsse_tail4
+
+euclidsse_loop16:
+	MOVUPS  0(SI), X1
+	MOVUPS  0(DI), X2
+	SUBPS   X2, X1
+	MULPS   X1, X1
+	ADDPS   X1, X0
+
+	MOVUPS  16(SI), X1
+	MOVUPS  16(DI), X2
+	SUBPS   X2, X1
+	MULPS   X1, X1
+	ADDPS   X1, X4
+
+	MOVUPS  32(SI), X1
+	MOVUPS  32(DI), X2
+	SUBPS   X2, X1
+	MULPS   X1, X1
+	ADDPS   X1, X5
+
+	MOVUPS  48(SI), X1
+	MOVUPS  48(DI), X2
+	SUBPS   X2, X1
+	MULPS   X1, X1
+	ADDPS   X1, X6
+
+	ADDQ    $64, SI
+	ADDQ    $64, DI
+	SUBQ    $16, CX
+	CMPQ    CX, $16
+	JGE     euclidsse_loop16
+
+	ADDPS   X4, X0
+	ADDPS   X5, X0
+	ADDPS   X6, X0
+
+euclidsse_tail4:
 	CMPQ    CX, $4
 	JL      euclidsse_tail
 
@@ -73,24 +115,80 @@ euclidsse_reduce:
 	MOVSS   X0, ret+48(FP)
 	RET
 
-// func euclidSqF32AVX2(a, b []float32) float32
+// euclidSqF32AVX2 computes sum((a[i]-b[i])^2) for f32 vectors using 8-way AVX2 FMA unrolling.
 TEXT ·euclidSqF32AVX2(SB), NOSPLIT, $0-52
 	MOVQ    a_base+0(FP), SI
 	MOVQ    a_len+8(FP), CX
 	MOVQ    b_base+24(FP), DI
 
 	VXORPS  Y0, Y0, Y0
+	VXORPS  Y4, Y4, Y4
+	VXORPS  Y5, Y5, Y5
+	VXORPS  Y6, Y6, Y6
+	VXORPS  Y7, Y7, Y7
+	VXORPS  Y8, Y8, Y8
+	VXORPS  Y9, Y9, Y9
+	VXORPS  Y10, Y10, Y10
 	VXORPS  X3, X3, X3
 
+	CMPQ    CX, $64
+	JL      euclidavx_tail8
+
+euclidavx_loop64:
+	VMOVUPS 0(SI), Y1
+	VSUBPS  0(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y0
+
+	VMOVUPS 32(SI), Y1
+	VSUBPS  32(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y4
+
+	VMOVUPS 64(SI), Y1
+	VSUBPS  64(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y5
+
+	VMOVUPS 96(SI), Y1
+	VSUBPS  96(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y6
+
+	VMOVUPS 128(SI), Y1
+	VSUBPS  128(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y7
+
+	VMOVUPS 160(SI), Y1
+	VSUBPS  160(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y8
+
+	VMOVUPS 192(SI), Y1
+	VSUBPS  192(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y9
+
+	VMOVUPS 224(SI), Y1
+	VSUBPS  224(DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y10
+
+	ADDQ    $256, SI
+	ADDQ    $256, DI
+	SUBQ    $64, CX
+	CMPQ    CX, $64
+	JGE     euclidavx_loop64
+
+	VADDPS  Y4, Y0, Y0
+	VADDPS  Y5, Y0, Y0
+	VADDPS  Y6, Y0, Y0
+	VADDPS  Y7, Y0, Y0
+	VADDPS  Y8, Y0, Y0
+	VADDPS  Y9, Y0, Y0
+	VADDPS  Y10, Y0, Y0
+
+euclidavx_tail8:
 	CMPQ    CX, $8
 	JL      euclidavx_tail
 
 euclidavx_loop8:
 	VMOVUPS (SI), Y1
-	VMOVUPS (DI), Y2
-	VSUBPS  Y2, Y1, Y1
-	VMULPS  Y1, Y1, Y1
-	VADDPS  Y1, Y0, Y0
+	VSUBPS  (DI), Y1, Y1
+	VFMADD231PS Y1, Y1, Y0
 	ADDQ    $32, SI
 	ADDQ    $32, DI
 	SUBQ    $8, CX
@@ -103,10 +201,8 @@ euclidavx_tail:
 
 euclidavx_tail_loop:
 	VMOVSS  (SI), X1
-	VMOVSS  (DI), X2
-	VSUBSS  X2, X1, X1
-	VMULSS  X1, X1, X1
-	VADDSS  X1, X3, X3
+	VSUBSS  (DI), X1, X1
+	VFMADD231SS X1, X1, X3
 	ADDQ    $4, SI
 	ADDQ    $4, DI
 	DECQ    CX
@@ -119,9 +215,7 @@ euclidavx_reduce:
 	VADDPS  X1, X0, X0
 	VSHUFPS $0x55, X0, X0, X1
 	VADDSS  X1, X0, X0
-
 	VADDSS  X3, X0, X0
-
 	VZEROUPPER
 	MOVSS   X0, ret+48(FP)
 	RET

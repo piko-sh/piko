@@ -24,6 +24,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -284,9 +285,9 @@ func reverseAndUnwrap(t *testing.T, raw []byte, transformers []cache_domain.Cach
 	ctx := testContext(t)
 	current := tv.Data
 
-	for i := len(transformers) - 1; i >= 0; i-- {
-		current, err = transformers[i].Reverse(ctx, current, nil)
-		require.NoError(t, err, "reversing with %s", transformers[i].Name())
+	for _, transformer := range slices.Backward(transformers) {
+		current, err = transformer.Reverse(ctx, current, nil)
+		require.NoError(t, err, "reversing with %s", transformer.Name())
 	}
 
 	return current

@@ -26,9 +26,8 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// TagKey represents a known system tag key for fast array-based lookup.
-// New tags must be appended before tagKeyCount; never reorder or remove
-// existing tags.
+// TagKey represents a known system tag key for fast array-based lookup. New tags must be
+// appended before tagKeyCount; never reorder or remove existing tags.
 type TagKey uint8
 
 const (
@@ -70,8 +69,8 @@ const (
 )
 
 var (
-	// tagKeyNames maps TagKey to string name for encoding.
-	// Order MUST match the const block above.
+	// tagKeyNames maps TagKey to string name for encoding. Order MUST match the const block
+	// above.
 	tagKeyNames = [tagKeyCount]string{
 		TagType:            "type",
 		TagEtag:            "etag",
@@ -96,9 +95,9 @@ var (
 	}()
 )
 
-// Tags stores variant metadata with fast array lookup for system tags
-// and a map for user-defined custom tags. Implements json.Marshaler and
-// json.Unmarshaler for serialisation.
+// Tags stores variant metadata with fast array lookup for system tags and a map for
+// user-defined custom tags. Implements json.Marshaler and json.Unmarshaler for
+// serialisation.
 type Tags struct {
 	// Custom holds user-defined tags that are not in the standard System set.
 	Custom map[string]string
@@ -124,8 +123,8 @@ func (t *Tags) Set(key TagKey, value string) {
 	t.System[key] = value
 }
 
-// GetByName returns a tag value by string name.
-// Checks system tags first, then custom tags.
+// GetByName returns a tag value by string name. Checks system tags first, then custom
+// tags.
 //
 // Takes name (string) which specifies the tag to look up.
 //
@@ -143,9 +142,8 @@ func (t *Tags) GetByName(name string) (string, bool) {
 	return "", false
 }
 
-// SetByName sets a tag by its name.
-// Known system tags are stored in the array, unknown tags are stored in the
-// Custom map.
+// SetByName sets a tag by its name. Known system tags are stored in the array, unknown
+// tags are stored in the Custom map.
 //
 // Takes name (string) which specifies the tag name to set.
 // Takes value (string) which specifies the value to assign to the tag.
@@ -190,8 +188,7 @@ func (t *Tags) IsEmpty() bool {
 
 // All returns an iterator over all non-empty tags (system + custom).
 //
-// Returns iter.Seq2[string, string] which yields each tag name and value
-// pair.
+// Returns iter.Seq2[string, string] which yields each tag name and value pair.
 func (t *Tags) All() iter.Seq2[string, string] {
 	return func(yield func(string, string) bool) {
 		for i := range tagKeyCount {
@@ -224,8 +221,7 @@ func (t *Tags) Clone() Tags {
 	return clone
 }
 
-// ToMap converts the Tags to a map[string]string.
-// Useful for serialisation and tests.
+// ToMap converts the Tags to a map[string]string. Useful for serialisation and tests.
 //
 // Returns map[string]string which contains all system and custom tags.
 func (t *Tags) ToMap() map[string]string {
@@ -239,8 +235,7 @@ func (t *Tags) ToMap() map[string]string {
 	return m
 }
 
-// MarshalJSON implements json.Marshaler.
-// Serialises as a flat map for API compatibility.
+// MarshalJSON implements json.Marshaler. Serialises as a flat map for API compatibility.
 //
 // Returns []byte which contains the JSON-encoded tag map.
 // Returns error when serialisation fails.
@@ -248,8 +243,8 @@ func (t Tags) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t.ToMap())
 }
 
-// UnmarshalJSON implements json.Unmarshaler.
-// Deserialises from a flat map, routing to System or Custom as appropriate.
+// UnmarshalJSON implements json.Unmarshaler. Deserialises from a flat map, routing to
+// System or Custom as appropriate.
 //
 // Takes data ([]byte) which contains the JSON-encoded map to deserialise.
 //
@@ -265,8 +260,8 @@ func (t *Tags) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// TagsFromMap creates a Tags struct from a map of key-value pairs. This is
-// useful for tests and migrations from the old map-based format.
+// TagsFromMap creates a Tags struct from a map of key-value pairs. This is useful for
+// tests and migrations from the old map-based format.
 //
 // Takes m (map[string]string) which contains the tag names and values.
 //
@@ -283,8 +278,8 @@ func TagsFromMap(m map[string]string) Tags {
 //
 // Takes key (TagKey) which specifies the tag key to look up.
 //
-// Returns string which is the name of the tag key, or an empty string if the
-// key is out of range.
+// Returns string which is the name of the tag key, or an empty string if the key is out
+// of range.
 func tagKeyName(key TagKey) string {
 	if key < tagKeyCount {
 		return tagKeyNames[key]

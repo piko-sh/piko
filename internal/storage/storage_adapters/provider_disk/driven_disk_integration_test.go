@@ -36,7 +36,9 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-const testRepo = "test-repo"
+const (
+	testRepo = "test-repo"
+)
 
 func newRealProvider(t *testing.T) storage_domain.StorageProviderPort {
 	t.Helper()

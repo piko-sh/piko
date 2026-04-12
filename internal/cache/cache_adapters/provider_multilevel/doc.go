@@ -16,26 +16,24 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_multilevel implements a two-tier cache provider that
-// orchestrates an L1 (fast, local) and L2 (slower, distributed) cache.
+// Package provider_multilevel implements a two-tier cache provider that orchestrates an
+// L1 (fast, local) and L2 (slower, distributed) cache.
 //
-// The adapter presents a single cache provider interface whilst transparently
-// managing cache lookups across both levels. On a read, L1 is checked first;
-// on an L1 miss the adapter falls through to L2 and automatically
-// back-populates L1 with the result. Writes use a write-through policy,
-// storing values in both levels.
+// The adapter presents a single cache provider interface whilst transparently managing
+// cache lookups across both levels. On a read, L1 is checked first; on an L1 miss the
+// adapter falls through to L2 and automatically back-populates L1 with the result. Writes
+// use a write-through policy, storing values in both levels.
 //
 // # Resilience
 //
-// All L2 operations are guarded by a circuit breaker. When consecutive L2
-// failures exceed a configurable threshold, the circuit opens and L2 calls
-// are short-circuited so that the system degrades gracefully to L1-only
-// operation. The circuit breaker automatically re-tests L2 after a
-// configurable timeout.
+// All L2 operations are guarded by a circuit breaker. When consecutive L2 failures exceed
+// a configurable threshold, the circuit opens and L2 calls are short-circuited so that
+// the system degrades gracefully to L1-only operation. The circuit breaker automatically
+// re-tests L2 after a configurable timeout.
 //
 // # Thread safety
 //
-// All exported methods are safe for concurrent use. L2 write-back and bulk
-// store operations are performed asynchronously via goroutines, so they may
-// complete after the calling method returns.
+// All exported methods are safe for concurrent use. L2 write-back and bulk store
+// operations are performed asynchronously via goroutines, so they may complete after the
+// calling method returns.
 package provider_multilevel

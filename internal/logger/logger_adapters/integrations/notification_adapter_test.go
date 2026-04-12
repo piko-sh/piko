@@ -37,7 +37,9 @@ type mockNotificationService struct {
 	calls        []*notification_dto.SendParams
 }
 
-var _ notification_domain.Service = (*mockNotificationService)(nil)
+var (
+	_ notification_domain.Service = (*mockNotificationService)(nil)
+)
 
 func (m *mockNotificationService) NewNotification() *notification_domain.NotificationBuilder {
 	return nil

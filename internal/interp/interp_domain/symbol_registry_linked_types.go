@@ -28,37 +28,100 @@ import (
 )
 
 const (
-	// maxLinkedDescriptorDepth caps how deeply the synthesiser will
-	// recurse into nested Element/Key/TypeArgs positions of a
-	// GenericFieldType descriptor. Reached only by pathological or
-	// hostile generated code; the cap prevents stack exhaustion
-	// without blocking any realistic Go type.
+	// maxLinkedDescriptorDepth caps how deeply the synthesiser will recurse into nested
+	// Element/Key/TypeArgs positions of a GenericFieldType descriptor. Reached only by
+	// pathological or hostile generated code; the cap prevents stack exhaustion without
+	// blocking any realistic Go type.
 	maxLinkedDescriptorDepth = 64
 
-	// maxLinkedTypeArgCount caps how many type parameters a linked
-	// generic may declare. Go's type system supports any count, but
-	// real APIs rarely exceed three; clamping at 32 means a malformed
-	// or hostile descriptor cannot drive unbounded allocation in
+	// maxLinkedTypeArgCount caps how many type parameters a linked generic may declare. Go's
+	// type system supports any count, but real APIs rarely exceed three; clamping at 32
+	// means a malformed or hostile descriptor cannot drive unbounded allocation in
 	// makeLinkedTypeParams or resolveLinkedNamedGeneric.
 	maxLinkedTypeArgCount = 32
+
+	// logFieldPackage is the structured-log field key carrying a symbol's owning package
+	// path.
+	logFieldPackage = "package"
+
+	// logFieldName is the structured-log field key carrying a symbol's source-level name.
+	logFieldName = "name"
 )
 
-// linkedGenericTypeReflectType is cached once so the synthesis path
-// can type-assert against it without rebuilding the descriptor per
-// symbol.
-var linkedGenericTypeReflectType = reflect.TypeFor[interp_link.LinkedGenericType]()
+var (
+	// linkedGenericTypeReflectType is cached once so the synthesis path can type-assert
+	// against it without rebuilding the descriptor per symbol.
+	linkedGenericTypeReflectType = reflect.TypeFor[interp_link.LinkedGenericType]()
 
-// registerLinkedGenericTypes scans the exports map for
-// interp_link.LinkedGenericType sentinels and installs a generic
-// *types.Named for each one in pkg's scope. Field types reference
-// *types.TypeParam placeholders so go/types can instantiate the
-// generic when user code writes pkg.Name[Concrete]; Underlying() on
-// the instantiated named then returns a struct with the concrete
-// type arguments substituted.
+	// nativeBackedGenericTypeReflectType is cached for the native-backed generic synthesis
+	// path's type assertion.
+	nativeBackedGenericTypeReflectType = reflect.TypeFor[interp_link.NativeBackedGenericType]()
+)
+
+// registerNativeBackedGenericTypes installs sentinel-backed generic types.
+//
+// Scans exports for interp_link.NativeBackedGenericType sentinels and installs a generic
+// *types.Named for each, carrying the type's REAL native method set (synthesised from the
+// sentinel's canonical erased reflect.Type). Unlike registerLinkedGenericTypes (which
+// builds a structural reflect.StructOf lookalike with no methods), the path is for
+// generic stdlib types whose state is unexported (atomic.Pointer) and which therefore
+// cannot be reproduced structurally.
 //
 // Takes pkg (*types.Package) which is the synthesised package.
-// Takes exports (map[string]reflect.Value) which is the export table
-// being synthesised.
+// Takes exports (map[string]reflect.Value) which is the export table.
+// Takes converter (*reflectTypeConverter) which converts the erased method signatures'
+// non-parametric types.
+func (*SymbolRegistry) registerNativeBackedGenericTypes(
+	pkg *types.Package,
+	exports map[string]reflect.Value,
+	converter *reflectTypeConverter,
+) {
+	scope := pkg.Scope()
+	for name, value := range exports {
+		if value.Type() != nativeBackedGenericTypeReflectType {
+			continue
+		}
+		native, ok := reflect.TypeAssert[interp_link.NativeBackedGenericType](value)
+		if !ok || native.TypeArgCount <= 0 || native.TypeArgCount > maxLinkedTypeArgCount ||
+			native.ErasedType == nil || len(native.ErasureArgs) != native.TypeArgCount {
+			log.Warn("Skipping malformed NativeBackedGenericType sentinel",
+				logger_domain.String(logFieldPackage, pkg.Path()),
+				logger_domain.String(logFieldName, name),
+				logger_domain.Int("type_arg_count", native.TypeArgCount),
+				logger_domain.Int("erasure_arg_count", len(native.ErasureArgs)))
+			continue
+		}
+		if native.ErasedType.Kind() != reflect.Struct {
+			log.Warn("Skipping NativeBackedGenericType sentinel with non-struct erased type",
+				logger_domain.String(logFieldPackage, pkg.Path()),
+				logger_domain.String(logFieldName, name))
+			continue
+		}
+		if scope.Lookup(name) != nil {
+			log.Warn("Skipping already-registered name",
+				logger_domain.String(logFieldPackage, pkg.Path()),
+				logger_domain.String(logFieldName, name))
+			continue
+		}
+		typeName := types.NewTypeName(0, pkg, name, nil)
+		named := types.NewNamed(typeName, nil, nil)
+		typeParams := makeLinkedTypeParams(pkg, native.TypeArgCount)
+		named.SetTypeParams(typeParams)
+		named.SetUnderlying(types.NewStruct(nil, nil))
+		converter.synthesiseNativeBackedMethods(
+			reflect.PointerTo(native.ErasedType), named, pkg, len(typeParams), native.ErasureArgs)
+		scope.Insert(typeName)
+	}
+}
+
+// registerLinkedGenericTypes scans the exports map for interp_link.LinkedGenericType
+// sentinels and installs a generic *types.Named for each one in pkg's scope. Field types
+// reference *types.TypeParam placeholders so go/types can instantiate the generic when
+// user code writes pkg.Name[Concrete]; Underlying() on the instantiated named then
+// returns a struct with the concrete type arguments substituted.
+//
+// Takes pkg (*types.Package) which is the synthesised package.
+// Takes exports (map[string]reflect.Value) which is the export table being synthesised.
 func (r *SymbolRegistry) registerLinkedGenericTypes(
 	pkg *types.Package,
 	exports map[string]reflect.Value,
@@ -68,26 +131,26 @@ func (r *SymbolRegistry) registerLinkedGenericTypes(
 		if value.Type() != linkedGenericTypeReflectType {
 			continue
 		}
-		linked, ok := value.Interface().(interp_link.LinkedGenericType)
+		linked, ok := reflect.TypeAssert[interp_link.LinkedGenericType](value)
 		if !ok || linked.TypeArgCount <= 0 {
 			log.Warn("Skipping malformed LinkedGenericType sentinel",
-				logger_domain.String("package", pkg.Path()),
-				logger_domain.String("name", name),
+				logger_domain.String(logFieldPackage, pkg.Path()),
+				logger_domain.String(logFieldName, name),
 				logger_domain.Int("type_arg_count", linked.TypeArgCount))
 			continue
 		}
 		if linked.TypeArgCount > maxLinkedTypeArgCount {
 			log.Warn("Skipping generic with too many type parameters",
-				logger_domain.String("package", pkg.Path()),
-				logger_domain.String("name", name),
+				logger_domain.String(logFieldPackage, pkg.Path()),
+				logger_domain.String(logFieldName, name),
 				logger_domain.Int("type_arg_count", linked.TypeArgCount),
 				logger_domain.Int("limit", maxLinkedTypeArgCount))
 			continue
 		}
 		if scope.Lookup(name) != nil {
 			log.Warn("Skipping already-registered name",
-				logger_domain.String("package", pkg.Path()),
-				logger_domain.String("name", name))
+				logger_domain.String(logFieldPackage, pkg.Path()),
+				logger_domain.String(logFieldName, name))
 			continue
 		}
 		typeName := types.NewTypeName(0, pkg, name, nil)
@@ -102,10 +165,92 @@ func (r *SymbolRegistry) registerLinkedGenericTypes(
 	}
 }
 
-// makeLinkedTypeParams produces a []*types.TypeParam for a linked
-// generic's TypeArgCount declaration. The constraint is the empty
-// interface (the `any` constraint) because the interpreter never
-// enforces custom type constraints and accepting `any` matches every
+// resolveNamedForLinkedField looks up a non-generic named type that a linked generic's
+// field references.
+//
+// The registry's own reflectToTypes cache is authoritative; the lookup falls back to nil
+// when the type is not yet synthesised.
+//
+// Takes packagePath (string) which is the referenced import path.
+// Takes typeName (string) which is the referenced identifier.
+//
+// Returns the resolved types.Type or nil on failure.
+//
+// Concurrency: takes the registry's read lock; safe for concurrent readers, and does not
+// hold the lock across any blocking call.
+func (r *SymbolRegistry) resolveNamedForLinkedField(packagePath, typeName string) types.Type {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if pkg, ok := r.synthesised[packagePath]; ok {
+		if obj := pkg.Scope().Lookup(typeName); obj != nil {
+			return obj.Type()
+		}
+	}
+	return nil
+}
+
+// IsLinkedGenericType reports whether the registry has a linked generic type sentinel for
+// the given package and type name.
+//
+// The compiler uses this hint to skip the per-type sentinel reflect field when
+// synthesising struct types, because linked generics rely on structural identity of the
+// reflect.Type rather than a baked-in package/type-name tag. Without the skip, a sibling
+// that builds a SearchResult[Post] via its own reflect.StructOf call would produce a
+// structurally identical but nominally distinct reflect.Type from the one the interpreter
+// synthesises at the call site.
+//
+// Takes packagePath (string) which is the owning import path.
+// Takes typeName (string) which is the generic's exported name.
+//
+// Returns true when a LinkedGenericType sentinel is registered.
+//
+// Safe for concurrent use by multiple goroutines.
+func (r *SymbolRegistry) IsLinkedGenericType(packagePath, typeName string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	exports, ok := r.symbols[packagePath]
+	if !ok {
+		return false
+	}
+	value, ok := exports[typeName]
+	if !ok || !value.IsValid() {
+		return false
+	}
+	return value.Type() == linkedGenericTypeReflectType
+}
+
+// NativeBackedReflectType returns the canonical erased reflect.Type registered for a
+// native-backed generic type: the real, method-bearing type the compiler resolves every
+// instantiation to.
+//
+// Takes packagePath (string) which is the owning import path.
+// Takes typeName (string) which is the generic's exported name.
+//
+// Returns the erased reflect.Type and true, or nil and false when no native-backed
+// sentinel is registered.
+//
+// Safe for concurrent use by multiple goroutines.
+func (r *SymbolRegistry) NativeBackedReflectType(packagePath, typeName string) (reflect.Type, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	exports, ok := r.symbols[packagePath]
+	if !ok {
+		return nil, false
+	}
+	value, ok := exports[typeName]
+	if !ok || !value.IsValid() || value.Type() != nativeBackedGenericTypeReflectType {
+		return nil, false
+	}
+	native, ok := reflect.TypeAssert[interp_link.NativeBackedGenericType](value)
+	if !ok {
+		return nil, false
+	}
+	return native.ErasedType, true
+}
+
+// makeLinkedTypeParams produces a []*types.TypeParam for a linked generic's TypeArgCount
+// declaration. The constraint is the empty interface (the `any` constraint) because the
+// interpreter never enforces custom type constraints and accepting `any` matches every
 // call site a user is likely to write.
 //
 // Takes pkg (*types.Package) which owns the synthesised type names.
@@ -116,33 +261,30 @@ func makeLinkedTypeParams(pkg *types.Package, count int) []*types.TypeParam {
 	if count <= 0 {
 		return nil
 	}
-	if count > maxLinkedTypeArgCount {
-		count = maxLinkedTypeArgCount
-	}
-	params := make([]*types.TypeParam, count)
+	count = min(count, maxLinkedTypeArgCount)
+	parameters := make([]*types.TypeParam, count)
 	anyInterface := types.NewInterfaceType(nil, nil)
 	for index := range count {
-		paramName := "T"
+		parameterName := "T"
 		if index > 0 {
-			paramName = "T" + strconv.Itoa(index+1)
+			parameterName = "T" + strconv.Itoa(index+1)
 		}
-		typeName := types.NewTypeName(0, pkg, paramName, nil)
-		params[index] = types.NewTypeParam(typeName, anyInterface)
+		typeName := types.NewTypeName(0, pkg, parameterName, nil)
+		parameters[index] = types.NewTypeParam(typeName, anyInterface)
 	}
-	return params
+	return parameters
 }
 
-// buildLinkedStruct converts a LinkedGenericType sentinel into a
-// go/types.Struct whose field types mix concrete types with the
-// supplied TypeParam placeholders. Only exported fields are emitted;
-// unexported fields would collide with the package-local visibility
+// buildLinkedStruct converts a LinkedGenericType sentinel into a go/types.Struct whose
+// field types mix concrete types with the supplied TypeParam placeholders. Only exported
+// fields are emitted; unexported fields would collide with the package-local visibility
 // rules of the synthesised package.
 //
-// Takes registry (*SymbolRegistry) which resolves named non-generic
-// cross-package references.
+// Takes registry (*SymbolRegistry) which resolves named non-generic cross-package
+// references.
 // Takes linked (interp_link.LinkedGenericType) which is the sentinel.
-// Takes typeParams ([]*types.TypeParam) which are the declaration-
-// order type parameters already attached to the owning *types.Named.
+// Takes typeParams ([]*types.TypeParam) which are the declaration- order type parameters
+// already attached to the owning *types.Named.
 //
 // Returns the *types.Struct ready to be set as the Named's underlying.
 func buildLinkedStruct(
@@ -169,20 +311,18 @@ func buildLinkedStruct(
 	return types.NewStruct(fields, tags)
 }
 
-// linkedFieldToType recursively converts a GenericFieldType descriptor
-// into a go/types.Type, substituting type-arg references with the
-// supplied TypeParam placeholders. Recursion is bounded by
-// maxLinkedDescriptorDepth.
+// linkedFieldToType recursively converts a GenericFieldType descriptor into a
+// go/types.Type, substituting type-arg references with the supplied TypeParam
+// placeholders. Recursion is bounded by maxLinkedDescriptorDepth.
 //
-// Takes registry (*SymbolRegistry) which resolves cross-package named
-// type references.
+// Takes registry (*SymbolRegistry) which resolves cross-package named type references.
 // Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which are the owning generic's
-// type parameters in declaration order.
+// Takes typeParams ([]*types.TypeParam) which are the owning generic's type parameters in
+// declaration order.
 // Takes depth (int) which tracks the current recursion depth.
 //
-// Returns the corresponding go/types.Type or nil when the descriptor
-// cannot be resolved (caller substitutes interface{} in that case).
+// Returns the corresponding go/types.Type or nil when the descriptor cannot be resolved
+// (caller substitutes any in that case).
 func linkedFieldToType(
 	registry *SymbolRegistry,
 	descriptor interp_link.GenericFieldType,
@@ -214,15 +354,14 @@ func linkedFieldToType(
 	return nil
 }
 
-// linkedTypeArgToType resolves a FieldKindTypeArg descriptor to the
-// owning generic's declaration-order TypeParam.
+// linkedTypeArgToType resolves a FieldKindTypeArg descriptor to the owning generic's
+// declaration-order TypeParam.
 //
 // Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which are the owning generic's
-// declared parameters.
+// Takes typeParams ([]*types.TypeParam) which are the owning generic's declared
+// parameters.
 //
-// Returns the matched TypeParam, or nil when the index is out of
-// range.
+// Returns the matched TypeParam, or nil when the index is out of range.
 func linkedTypeArgToType(
 	descriptor interp_link.GenericFieldType,
 	typeParams []*types.TypeParam,
@@ -233,17 +372,15 @@ func linkedTypeArgToType(
 	return typeParams[descriptor.TypeArgIndex]
 }
 
-// linkedSingleElementToType builds a slice, pointer, or chan type
-// from the descriptor's Element.
+// linkedSingleElementToType builds a slice, pointer, or chan type from the descriptor's
+// Element.
 //
 // Takes registry (*SymbolRegistry) which resolves Named references.
 // Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter references.
 // Takes depth (int) which is the already-incremented recursion depth.
 //
-// Returns the composite type, or nil for an unsupported kind or
-// missing element.
+// Returns the composite type, or nil for an unsupported kind or missing element.
 func linkedSingleElementToType(
 	registry *SymbolRegistry,
 	descriptor interp_link.GenericFieldType,
@@ -261,6 +398,7 @@ func linkedSingleElementToType(
 		return types.NewPointer(elementType)
 	case interp_link.FieldKindChan:
 		return types.NewChan(types.SendRecv, elementType)
+	default:
 	}
 	return nil
 }
@@ -269,8 +407,7 @@ func linkedSingleElementToType(
 //
 // Takes registry (*SymbolRegistry) which resolves Named references.
 // Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter references.
 // Takes depth (int) which is the already-incremented recursion depth.
 //
 // Returns the array type, or nil when Element is missing.
@@ -293,8 +430,7 @@ func linkedArrayToType(
 //
 // Takes registry (*SymbolRegistry) which resolves Named references.
 // Takes descriptor (interp_link.GenericFieldType) which is the node.
-// Takes typeParams ([]*types.TypeParam) which resolve type parameter
-// references.
+// Takes typeParams ([]*types.TypeParam) which resolve type parameter references.
 // Takes depth (int) which is the already-incremented recursion depth.
 //
 // Returns the map type, or nil when Key or Element is missing.
@@ -313,15 +449,14 @@ func linkedMapToType(
 	)
 }
 
-// linkedNamedToType resolves a non-generic named reference through
-// the registry.
+// linkedNamedToType resolves a non-generic named reference through the registry.
 //
 // Takes registry (*SymbolRegistry) which holds synthesised packages.
-// Takes descriptor (interp_link.GenericFieldType) which carries
-// NamedPackage and NamedName.
+// Takes descriptor (interp_link.GenericFieldType) which carries NamedPackage and
+// NamedName.
 //
-// Returns the resolved type; the empty interface when the target is
-// unknown; nil when the descriptor is empty.
+// Returns the resolved type; the empty interface when the target is unknown; nil when the
+// descriptor is empty.
 func linkedNamedToType(
 	registry *SymbolRegistry,
 	descriptor interp_link.GenericFieldType,
@@ -335,14 +470,13 @@ func linkedNamedToType(
 	return types.NewInterfaceType(nil, nil)
 }
 
-// basicKindToType maps a reflect.Kind to its go/types.Basic equivalent
-// so linked field descriptors can reference primitive types without
-// serialising the go/types enum.
+// basicKindToType maps a reflect.Kind to its go/types.Basic equivalent so linked field
+// descriptors can reference primitive types without serialising the go/types enum.
 //
 // Takes kind (reflect.Kind) which is the primitive kind to translate.
 //
-// Returns the matching *types.Basic, or the empty-interface fallback
-// when the kind has no direct go/types counterpart.
+// Returns the matching *types.Basic, or the empty-interface fallback when the kind has no
+// direct go/types counterpart.
 func basicKindToType(kind reflect.Kind) types.Type {
 	switch kind {
 	case reflect.Bool:
@@ -379,61 +513,7 @@ func basicKindToType(kind reflect.Kind) types.Type {
 		return types.Typ[types.Complex128]
 	case reflect.String:
 		return types.Typ[types.String]
+	default:
 	}
 	return types.NewInterfaceType(nil, nil)
-}
-
-// resolveNamedForLinkedField looks up a non-generic named type that a
-// linked generic's field references.
-//
-// The registry's own reflectToTypes cache is authoritative; the
-// lookup falls back to nil when the type is not yet synthesised.
-//
-// Takes packagePath (string) which is the referenced import path.
-// Takes typeName (string) which is the referenced identifier.
-//
-// Returns the resolved types.Type or nil on failure.
-//
-// Concurrency: takes the registry's read lock; safe for concurrent
-// readers, and does not hold the lock across any blocking call.
-func (r *SymbolRegistry) resolveNamedForLinkedField(packagePath, typeName string) types.Type {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	if pkg, ok := r.synthesised[packagePath]; ok {
-		if obj := pkg.Scope().Lookup(typeName); obj != nil {
-			return obj.Type()
-		}
-	}
-	return nil
-}
-
-// IsLinkedGenericType reports whether the registry has a linked
-// generic type sentinel for the given package and type name.
-//
-// The compiler uses this hint to skip the per-type sentinel reflect
-// field when synthesising struct types, because linked generics rely
-// on structural identity of the reflect.Type rather than a baked-in
-// package/type-name tag. Without the skip, a sibling that builds a
-// SearchResult[Post] via its own reflect.StructOf call would produce
-// a structurally identical but nominally distinct reflect.Type from
-// the one the interpreter synthesises at the call site.
-//
-// Takes packagePath (string) which is the owning import path.
-// Takes typeName (string) which is the generic's exported name.
-//
-// Returns true when a LinkedGenericType sentinel is registered.
-//
-// Safe for concurrent use by multiple goroutines.
-func (r *SymbolRegistry) IsLinkedGenericType(packagePath, typeName string) bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	exports, ok := r.symbols[packagePath]
-	if !ok {
-		return false
-	}
-	value, ok := exports[typeName]
-	if !ok || !value.IsValid() {
-		return false
-	}
-	return value.Type() == linkedGenericTypeReflectType
 }

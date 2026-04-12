@@ -126,23 +126,23 @@ type sectionLikeNode struct {
 }
 
 type linkedListNode struct {
-	Value int
 	Next  *linkedListNode
+	Value int
 }
 
 type treeByKey struct {
-	Name     string
 	Children map[string]*treeByKey
+	Name     string
 }
 
 type mutualA struct {
-	Label string
 	B     *mutualB
+	Label string
 }
 
 type mutualB struct {
-	Marker int
 	A      *mutualA
+	Marker int
 }
 
 type recursiveDAG struct {
@@ -314,7 +314,9 @@ func TestSymbolRegistrySelfReferentialStructTypeChecks(t *testing.T) {
 	})
 
 	result, err := service.Eval(context.Background(), `
-import "tree"
+import (
+	"tree"
+)
 func walk(node tree.Node) int {
 	total := 1
 	for _, child := range node.Children {
@@ -345,7 +347,9 @@ func TestSymbolRegistryMutuallyRecursiveTypeChecks(t *testing.T) {
 	})
 
 	result, err := service.Eval(context.Background(), `
-import "pair"
+import (
+	"pair"
+)
 a := pair.Make()
 a.Label + "/" + a.B.A.Label
 `)

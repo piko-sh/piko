@@ -31,59 +31,59 @@ const (
 	// DefaultMaxLength is the default maximum length for Spanish phonetic codes.
 	DefaultMaxLength = 6
 
-	// latinAlphabetSize is the number of letters in the Latin alphabet after
-	// Unicode normalisation.
+	// latinAlphabetSize is the number of letters in the Latin alphabet after Unicode
+	// normalisation.
 	latinAlphabetSize = 26
 )
 
-// charHandler processes a character at the given position and returns the next
-// position.
+// charHandler processes a character at the given position and returns the next position.
 type charHandler func(word string, position int, result *strings.Builder) int
 
-// charHandlers is an array dispatch table for character processing.
-// Index is calculated as character - 'A' for uppercase letters
-// (A=0, B=1, ..., Z=25).
-var charHandlers = [latinAlphabetSize]charHandler{
-	0:  handleA,
-	1:  handleB,
-	2:  handleC,
-	3:  handleD,
-	4:  handleE,
-	5:  handleF,
-	6:  handleG,
-	7:  handleH,
-	8:  handleI,
-	9:  handleJ,
-	10: handleK,
-	11: handleL,
-	12: handleM,
-	13: handleN,
-	14: handleO,
-	15: handleP,
-	16: handleQ,
-	17: handleR,
-	18: handleS,
-	19: handleT,
-	20: handleU,
-	21: handleV,
-	22: handleW,
-	23: handleX,
-	24: handleY,
-	25: handleZ,
-}
+var (
+	// charHandlers is an array dispatch table for character processing. Index is calculated
+	// as character - 'A' for uppercase letters (A=0, B=1, ..., Z=25).
+	charHandlers = [latinAlphabetSize]charHandler{
+		0:  handleA,
+		1:  handleB,
+		2:  handleC,
+		3:  handleD,
+		4:  handleE,
+		5:  handleF,
+		6:  handleG,
+		7:  handleH,
+		8:  handleI,
+		9:  handleJ,
+		10: handleK,
+		11: handleL,
+		12: handleM,
+		13: handleN,
+		14: handleO,
+		15: handleP,
+		16: handleQ,
+		17: handleR,
+		18: handleS,
+		19: handleT,
+		20: handleU,
+		21: handleV,
+		22: handleW,
+		23: handleX,
+		24: handleY,
+		25: handleZ,
+	}
+)
 
-// Encoder provides phonetic encoding using Spanish phonetic rules.
-// It implements the linguistics_domain.PhoneticEncoderPort interface.
+// Encoder provides phonetic encoding using Spanish phonetic rules. It implements the
+// linguistics_domain.PhoneticEncoderPort interface.
 //
-// The encoder handles Spanish-specific patterns including yeismo (LL->Y),
-// seseo (Z/C before E,I -> S), and B/V merger.
+// The encoder handles Spanish-specific patterns including yeismo (LL->Y), seseo (Z/C
+// before E,I -> S), and B/V merger.
 type Encoder struct {
 	// maxLength is the maximum number of characters in the output code.
 	maxLength int
 }
 
-// NewWithMaxLength creates a new Spanish phonetic encoder with a custom maximum
-// code length.
+// NewWithMaxLength creates a new Spanish phonetic encoder with a custom maximum code
+// length.
 //
 // Takes maxLength (int) which controls the maximum length of phonetic codes.
 //
@@ -100,8 +100,8 @@ func NewWithMaxLength(maxLength int) (*Encoder, error) {
 
 // Encode returns the phonetic encoding of a Spanish word.
 //
-// Takes word (string) which is the word to encode phonetically. The word should
-// be normalised for best results.
+// Takes word (string) which is the word to encode phonetically. The word should be
+// normalised for best results.
 //
 // Returns string which is the phonetic code.
 func (e *Encoder) Encode(word string) string {
@@ -132,15 +132,16 @@ func (*Encoder) GetLanguage() string {
 	return Language
 }
 
-var _ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+var (
+	_ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+)
 
 // Factory creates a new Spanish phonetic encoder instance.
 //
-// Use this with linguistics_domain.RegisterPhoneticEncoderFactory for
-// explicit registration.
+// Use this with linguistics_domain.RegisterPhoneticEncoderFactory for explicit
+// registration.
 //
-// Returns linguistics_domain.PhoneticEncoderPort which is the encoder ready
-// for use.
+// Returns linguistics_domain.PhoneticEncoderPort which is the encoder ready for use.
 // Returns error when the encoder cannot be created.
 func Factory() (linguistics_domain.PhoneticEncoderPort, error) {
 	return New()
@@ -154,8 +155,8 @@ func New() (*Encoder, error) {
 	return NewWithMaxLength(DefaultMaxLength)
 }
 
-// processCharacter processes a single character and returns the next position.
-// Uses array dispatch table for O(1) handler lookup.
+// processCharacter processes a single character and returns the next position. Uses array
+// dispatch table for O(1) handler lookup.
 //
 // Takes word (string) which is the input text being processed.
 // Takes position (int) which is the current position in the word.
@@ -497,9 +498,9 @@ func handleX(_ string, position int, result *strings.Builder) int {
 
 // handleY processes the letter Y and writes its phonetic representation.
 //
-// When Y appears at the end of a word or is followed by a consonant, it is
-// converted to I. Otherwise, Y followed by a vowel becomes J, following the
-// yeismo pattern where Y sounds like LL.
+// When Y appears at the end of a word or is followed by a consonant, it is converted to
+// I. Otherwise, Y followed by a vowel becomes J, following the yeismo pattern where Y
+// sounds like LL.
 //
 // Takes word (string) which is the word being processed.
 // Takes position (int) which is the current position of Y in the word.
@@ -540,8 +541,8 @@ func handleZ(_ string, position int, result *strings.Builder) int {
 // Takes code (string) which is the phonetic code to write.
 // Takes result (*strings.Builder) which accumulates the output.
 //
-// Returns int which is the next position to process, skipping the second
-// consonant if doubled.
+// Returns int which is the next position to process, skipping the second consonant if
+// doubled.
 func handleDoubleConsonant(word string, position int, letter byte, code string, result *strings.Builder) int {
 	_, _ = result.WriteString(code)
 	if position+1 < len(word) && word[position+1] == letter {

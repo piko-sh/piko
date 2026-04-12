@@ -40,7 +40,9 @@ type testCase struct {
 	Path string
 }
 
-var csrfTokenRegex = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
+var (
+	csrfTokenRegex = regexp.MustCompile(`<meta name="csrf-(token|ephemeral)" content="[^"]*">`)
+)
 
 func normaliseHTML(html []byte) []byte {
 	return csrfTokenRegex.ReplaceAll(html, []byte(`<meta name="csrf-$1" content="[NORMALIZED]">`))

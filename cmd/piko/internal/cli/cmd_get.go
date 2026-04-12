@@ -50,8 +50,8 @@ var (
 	// getFormats lists the output formats supported by the get command.
 	getFormats = []string{"table", "wide", "json"}
 
-	// getResourceList is the sorted, comma-separated list of available get
-	// resources, derived from the getResources dispatch map.
+	// getResourceList is the sorted, comma-separated list of available get resources,
+	// derived from the getResources dispatch map.
 	getResourceList = buildResourceList(getResources)
 
 	// getResources maps resource names to their handler functions.
@@ -148,7 +148,8 @@ var (
 		{Header: "COUNT"},
 	}
 
-	// dlqSummaryColumns defines the table column layout for dead-letter queue summary output.
+	// dlqSummaryColumns defines the table column layout for dead-letter queue summary
+	// output.
 	dlqSummaryColumns = []Column{
 		{Header: "TYPE"},
 		{Header: "QUEUED"},
@@ -161,7 +162,8 @@ var (
 		{Header: "UPTIME", WideOnly: true},
 	}
 
-	// dlqEntryColumns defines the table column layout for individual dead-letter queue entries.
+	// dlqEntryColumns defines the table column layout for individual dead-letter queue
+	// entries.
 	dlqEntryColumns = []Column{
 		{Header: "ID"},
 		{Header: "TYPE"},
@@ -188,8 +190,7 @@ var (
 // runGet dispatches to the appropriate get subcommand.
 //
 // Takes cc (*CommandContext) which provides the command execution context.
-// Takes arguments ([]string) which contains the resource type and
-// any subarguments.
+// Takes arguments ([]string) which contains the resource type and any subarguments.
 //
 // Returns error when the resource type is missing or unknown.
 func runGet(ctx context.Context, cc *CommandContext, arguments []string) error {
@@ -242,8 +243,7 @@ func getHealth(ctx context.Context, conn monitoringConnection, p *Printer, argum
 	return nil
 }
 
-// buildHealthRows creates table rows for health probes, applying an optional
-// name filter.
+// buildHealthRows creates table rows for health probes, applying an optional name filter.
 //
 // Takes p (*Printer) which handles output formatting.
 // Takes response (*pb.GetHealthResponse) which contains the health data.
@@ -311,8 +311,8 @@ func formatReady(status *pb.HealthStatus) string {
 
 // getTasks displays recent tasks.
 //
-// Takes conn (*provider_grpc.Connection) which provides the orchestrator
-// client for fetching tasks.
+// Takes conn (*provider_grpc.Connection) which provides the orchestrator client for
+// fetching tasks.
 // Takes p (*Printer) which handles output formatting as JSON or table.
 // Takes arguments ([]string) which may contain a name filter and limit flag.
 //
@@ -446,13 +446,12 @@ func getArtefacts(ctx context.Context, conn monitoringConnection, p *Printer, ar
 
 // getVariants displays variant summary by status.
 //
-// Takes conn (*provider_grpc.Connection) which provides the gRPC connection
-// to the registry service.
+// Takes conn (*provider_grpc.Connection) which provides the gRPC connection to the
+// registry service.
 // Takes p (*Printer) which handles output formatting.
 // Takes arguments ([]string) which contains command-line arguments to parse.
 //
-// Returns error when argument parsing fails or the variant summary cannot be
-// fetched.
+// Returns error when argument parsing fails or the variant summary cannot be fetched.
 func getVariants(ctx context.Context, conn monitoringConnection, p *Printer, arguments []string) error {
 	fs := newResourceFlagSet("piko get variants", "piko get variants [flags]", "Display variant summary by status.", getFormatHelp, getDefaultFormat, p.w)
 	positional, err := parseInterspersed(fs, arguments)
@@ -584,8 +583,8 @@ func getTraces(ctx context.Context, conn monitoringConnection, p *Printer, argum
 
 // getOpenResources displays open resources grouped by category.
 //
-// Takes conn (*provider_grpc.Connection) which provides the gRPC connection
-// for fetching metrics.
+// Takes conn (*provider_grpc.Connection) which provides the gRPC connection for fetching
+// metrics.
 // Takes p (*Printer) which handles output formatting.
 // Takes arguments ([]string) which contains command-line arguments and flags.
 //
@@ -662,15 +661,14 @@ func getRateLimiter(ctx context.Context, conn monitoringConnection, p *Printer, 
 
 // getDLQ displays dispatcher summaries or DLQ entries for a specific type.
 //
-// When no arguments are provided, displays a summary of all dispatchers.
-// When a dispatcher type is specified, displays the DLQ entries for that type.
+// When no arguments are provided, displays a summary of all dispatchers. When a
+// dispatcher type is specified, displays the DLQ entries for that type.
 //
 // Usage: piko get dlq [type] [--limit N]
 //
 // Takes conn (*provider_grpc.Connection) which provides the gRPC connection.
 // Takes p (*Printer) which handles output formatting.
-// Takes arguments ([]string) which contains the optional
-// dispatcher type and flags.
+// Takes arguments ([]string) which contains the optional dispatcher type and flags.
 //
 // Returns error when the gRPC request fails or the dispatcher type is invalid.
 func getDLQ(ctx context.Context, conn monitoringConnection, p *Printer, arguments []string) error {
@@ -765,13 +763,11 @@ func getDLQEntries(ctx context.Context, conn monitoringConnection, p *Printer, d
 	return nil
 }
 
-// getProviders displays registered providers for a resource type, or lists
-// available resource types if none is specified.
+// getProviders displays registered providers for a resource type, or lists available
+// resource types if none is specified.
 //
-// Usage:
-// piko get providers           - lists available resource types
-// piko get providers email     - lists email providers
-// piko get providers storage   - lists storage providers
+// Usage: piko get providers - lists available resource types piko get providers email -
+// lists email providers piko get providers storage - lists storage providers
 //
 // Takes conn (*provider_grpc.Connection) which provides the gRPC connection.
 // Takes p (*Printer) which handles output formatting.
@@ -818,13 +814,13 @@ func getProviderResourceTypes(ctx context.Context, conn monitoringConnection, p 
 	return nil
 }
 
-// getProviderList lists providers for a specific resource type, or
-// sub-resources when a provider name is given and the service supports it.
+// getProviderList lists providers for a specific resource type, or sub-resources when a
+// provider name is given and the service supports it.
 //
-// When a provider name is given (e.g. `piko get providers cache otter`), the
-// command first tries ListSubResources. If the service supports sub-resources,
-// a table of sub-resources is shown (e.g. namespaces). If the service does
-// not support sub-resources, it falls back to the filtered provider list.
+// When a provider name is given (e.g. `piko get providers cache otter`), the command
+// first tries ListSubResources. If the service supports sub-resources, a table of
+// sub-resources is shown (e.g. namespaces). If the service does not support
+// sub-resources, it falls back to the filtered provider list.
 //
 // Takes conn (*provider_grpc.Connection) which provides the gRPC connection.
 // Takes p (*Printer) which handles output formatting.
@@ -874,13 +870,12 @@ func getProviderList(ctx context.Context, conn monitoringConnection, p *Printer,
 	return nil
 }
 
-// buildProviderRows creates columns and rows from the gRPC provider list
-// response. A DEFAULT indicator column is prepended with a green dot for the
-// default provider.
+// buildProviderRows creates columns and rows from the gRPC provider list response. A
+// DEFAULT indicator column is prepended with a green dot for the default provider.
 //
 // Takes p (*Printer) which provides colouring support.
-// Takes response (*pb.ListProvidersResponse) which contains column definitions
-// and provider rows.
+// Takes response (*pb.ListProvidersResponse) which contains column definitions and
+// provider rows.
 // Takes filter (string) which optionally restricts results to a named provider.
 //
 // Returns []Column which contains the column definitions for the table.
@@ -924,11 +919,11 @@ func buildProviderRows(p *Printer, response *pb.ListProvidersResponse, filter st
 	return columns, rows
 }
 
-// buildSubResourceRows creates columns and rows from a ListSubResources
-// response. Unlike buildProviderRows, no DEFAULT indicator column is prepended.
+// buildSubResourceRows creates columns and rows from a ListSubResources response. Unlike
+// buildProviderRows, no DEFAULT indicator column is prepended.
 //
-// Takes response (*pb.ListSubResourcesResponse) which contains the sub-resource
-// column definitions and rows.
+// Takes response (*pb.ListSubResourcesResponse) which contains the sub-resource column
+// definitions and rows.
 //
 // Returns []Column which contains the column definitions for the table.
 // Returns [][]string which contains the formatted rows.
@@ -955,14 +950,13 @@ func buildSubResourceRows(response *pb.ListSubResourcesResponse) ([]Column, [][]
 	return columns, rows
 }
 
-// newResourceFlagSet creates a FlagSet for a resource command with formatted
-// help output.
+// newResourceFlagSet creates a FlagSet for a resource command with formatted help output.
 //
 // Takes name (string) which identifies the flag set.
 // Takes usage (string) which is the usage line shown in help.
 // Takes description (string) which explains what the command does.
-// Takes formatHelp (string) which lists supported output formats for this
-// command type (e.g. "table, wide, json" for get, "text, json" for describe).
+// Takes formatHelp (string) which lists supported output formats for this command type
+// (e.g. "table, wide, json" for get, "text, json" for describe).
 // Takes defaultFormat (string) which is the default output format.
 // Takes w (io.Writer) which receives help output.
 //
@@ -1026,8 +1020,7 @@ func filterErrorSpans(spans []*pb.Span) []*pb.Span {
 // Takes s (string) which is the string to shorten.
 // Takes maxLen (int) which is the maximum length of the result.
 //
-// Returns string which is the original string or a truncated version with
-// "..." appended.
+// Returns string which is the original string or a truncated version with "..." appended.
 func truncate(s string, maxLen int) string {
 	if maxLen <= getTruncateLen || len(s) <= maxLen {
 		return s

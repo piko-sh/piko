@@ -26,25 +26,25 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// argumentScoreExactMatch holds the score awarded when an argument type
-// matches the expected parameter type exactly.
-const argumentScoreExactMatch = 3
+const (
+	// argumentScoreExactMatch holds the score awarded when an argument type matches the
+	// expected parameter type exactly.
+	argumentScoreExactMatch = 3
+)
 
-// functionResolver matches function calls against their overloaded signatures
-// using PostgreSQL-style overload resolution. It scores argument types and
-// selects the most specific match rather than picking the first match by
-// name and arity.
+// functionResolver matches function calls against their overloaded signatures using
+// PostgreSQL-style overload resolution. It scores argument types and selects the most
+// specific match rather than picking the first match by name and arity.
 type functionResolver struct {
-	// functions holds the merged map of lowercase function names to their
-	// overloaded signatures.
+	// functions holds the merged map of lowercase function names to their overloaded
+	// signatures.
 	functions map[string][]*querier_dto.FunctionSignature
 
-	// catalogue holds the user-defined schema catalogue used for fallback
-	// resolution.
+	// catalogue holds the user-defined schema catalogue used for fallback resolution.
 	catalogue *querier_dto.Catalogue
 
-	// engine holds the engine type system used for implicit cast checks and
-	// engine-specific function resolution.
+	// engine holds the engine type system used for implicit cast checks and engine-specific
+	// function resolution.
 	engine EngineTypeSystemPort
 }
 
@@ -53,34 +53,32 @@ type functionMatch struct {
 	// returnType holds the SQL type returned by the matched function overload.
 	returnType querier_dto.SQLType
 
-	// nullableBehaviour holds the nullable propagation behaviour of the matched
-	// function.
+	// nullableBehaviour holds the nullable propagation behaviour of the matched function.
 	nullableBehaviour querier_dto.FunctionNullableBehaviour
 
 	// dataAccess holds whether the function reads or modifies data.
 	dataAccess querier_dto.FunctionDataAccess
 
-	// isAggregate indicates whether the matched function is an aggregate
-	// function.
+	// isAggregate indicates whether the matched function is an aggregate function.
 	isAggregate bool
 
 	// returnsSet indicates whether the matched function returns a set of rows.
 	returnsSet bool
 }
 
-// newFunctionResolver creates a function resolver by merging built-in functions
-// from the engine with user-defined functions from the catalogue. User-defined
-// functions with the same name and argument types override built-ins.
+// newFunctionResolver creates a function resolver by merging built-in functions from the
+// engine with user-defined functions from the catalogue. User-defined functions with the
+// same name and argument types override built-ins.
 //
-// Takes builtins (*querier_dto.FunctionCatalogue) which holds the engine's
-// built-in function signatures.
-// Takes catalogue (*querier_dto.Catalogue) which holds user-defined schema
-// objects including functions.
-// Takes engine (EngineTypeSystemPort) which provides implicit cast checks and
-// optional engine-level function resolution.
+// Takes builtins (*querier_dto.FunctionCatalogue) which holds the engine's built-in
+// function signatures.
+// Takes catalogue (*querier_dto.Catalogue) which holds user-defined schema objects
+// including functions.
+// Takes engine (EngineTypeSystemPort) which provides implicit cast checks and optional
+// engine-level function resolution.
 //
-// Returns *functionResolver which holds the merged function map ready for
-// overload resolution.
+// Returns *functionResolver which holds the merged function map ready for overload
+// resolution.
 func newFunctionResolver(
 	builtins *querier_dto.FunctionCatalogue,
 	catalogue *querier_dto.Catalogue,
@@ -98,13 +96,13 @@ func newFunctionResolver(
 	}
 }
 
-// mergeBuiltinFunctions copies all built-in function signatures into the
-// merged map, keyed by lowercase function name.
+// mergeBuiltinFunctions copies all built-in function signatures into the merged map,
+// keyed by lowercase function name.
 //
-// Takes merged (map[string][]*querier_dto.FunctionSignature) which is the
-// target map to populate.
-// Takes builtins (*querier_dto.FunctionCatalogue) which holds the engine's
-// built-in function signatures.
+// Takes merged (map[string][]*querier_dto.FunctionSignature) which is the target map to
+// populate.
+// Takes builtins (*querier_dto.FunctionCatalogue) which holds the engine's built-in
+// function signatures.
 func mergeBuiltinFunctions(
 	merged map[string][]*querier_dto.FunctionSignature,
 	builtins *querier_dto.FunctionCatalogue,
@@ -118,14 +116,13 @@ func mergeBuiltinFunctions(
 	}
 }
 
-// mergeCatalogueFunctions copies user-defined function signatures from the
-// catalogue into the merged map, replacing any built-in signature with matching
-// argument types.
+// mergeCatalogueFunctions copies user-defined function signatures from the catalogue into
+// the merged map, replacing any built-in signature with matching argument types.
 //
-// Takes merged (map[string][]*querier_dto.FunctionSignature) which is the
-// target map to populate.
-// Takes catalogue (*querier_dto.Catalogue) which holds user-defined schema
-// objects including functions.
+// Takes merged (map[string][]*querier_dto.FunctionSignature) which is the target map to
+// populate.
+// Takes catalogue (*querier_dto.Catalogue) which holds user-defined schema objects
+// including functions.
 func mergeCatalogueFunctions(
 	merged map[string][]*querier_dto.FunctionSignature,
 	catalogue *querier_dto.Catalogue,
@@ -143,16 +140,15 @@ func mergeCatalogueFunctions(
 	}
 }
 
-// mergeOrAppendSignature replaces an existing overload with matching argument
-// types, or appends the signature if no match is found.
+// mergeOrAppendSignature replaces an existing overload with matching argument types, or
+// appends the signature if no match is found.
 //
-// Takes existing ([]*querier_dto.FunctionSignature) which holds the current
-// set of overloads for a function name.
-// Takes signature (*querier_dto.FunctionSignature) which is the new overload
-// to merge or append.
+// Takes existing ([]*querier_dto.FunctionSignature) which holds the current set of
+// overloads for a function name.
+// Takes signature (*querier_dto.FunctionSignature) which is the new overload to merge or
+// append.
 //
-// Returns []*querier_dto.FunctionSignature which holds the updated overload
-// list.
+// Returns []*querier_dto.FunctionSignature which holds the updated overload list.
 func mergeOrAppendSignature(
 	existing []*querier_dto.FunctionSignature,
 	signature *querier_dto.FunctionSignature,
@@ -166,27 +162,25 @@ func mergeOrAppendSignature(
 	return append(existing, signature)
 }
 
-// Resolve finds the best matching function overload for the given name and
-// argument types.
+// Resolve finds the best matching function overload for the given name and argument
+// types.
 //
 // Resolution algorithm (follows PostgreSQL's func_match):
 //  1. Filter candidates by name (case-insensitive).
 //  2. Filter by arity (number of arguments).
-//  3. Score each candidate: exact type match (3), same category (2),
-//     implicit cast possible (1), no match (0).
+//  3. Score each candidate: exact type match (3), same category (2), implicit cast
+//     possible (1), no match (0).
 //  4. Highest total score wins; ties broken by most exact matches.
 //  5. No candidate matches -> Q005 error.
 //
 // Takes name (string) which is the function name to resolve.
-// Takes schema (string) which is the schema qualifier, or empty for
-// unqualified calls.
-// Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types
-// of the call-site arguments.
+// Takes schema (string) which is the schema qualifier, or empty for unqualified calls.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the resolved types of the
+// call-site arguments.
 //
-// Returns *functionMatch which holds the resolved overload metadata, or nil
-// on failure.
-// Returns *querier_dto.SourceError which holds a Q005 diagnostic when no
-// matching overload is found.
+// Returns *functionMatch which holds the resolved overload metadata, or nil on failure.
+// Returns *querier_dto.SourceError which holds a Q005 diagnostic when no matching
+// overload is found.
 func (r *functionResolver) Resolve(
 	name string,
 	schema string,
@@ -236,17 +230,16 @@ func (r *functionResolver) Resolve(
 	}, nil
 }
 
-// findBestCandidate iterates over the candidate overloads, scores each one
-// against the actual argument types, and returns the highest-scoring match.
+// findBestCandidate iterates over the candidate overloads, scores each one against the
+// actual argument types, and returns the highest-scoring match.
 //
-// Takes candidates ([]*querier_dto.FunctionSignature) which holds the
-// overloads to evaluate.
+// Takes candidates ([]*querier_dto.FunctionSignature) which holds the overloads to
+// evaluate.
 // Takes schema (string) which filters candidates by schema when non-empty.
-// Takes argumentTypes ([]querier_dto.SQLType) which holds the call-site
-// argument types.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the call-site argument types.
 //
-// Returns *querier_dto.FunctionSignature which is the best matching overload,
-// or nil if no candidate is viable.
+// Returns *querier_dto.FunctionSignature which is the best matching overload, or nil if
+// no candidate is viable.
 func (r *functionResolver) findBestCandidate(
 	candidates []*querier_dto.FunctionSignature,
 	schema string,
@@ -276,19 +269,16 @@ func (r *functionResolver) findBestCandidate(
 	return bestMatch
 }
 
-// scoreCandidate scores a single candidate overload against the actual argument
-// types by summing per-argument scores and checking arity constraints.
+// scoreCandidate scores a single candidate overload against the actual argument types by
+// summing per-argument scores and checking arity constraints.
 //
-// Takes candidate (*querier_dto.FunctionSignature) which is the overload to
-// score.
-// Takes argumentTypes ([]querier_dto.SQLType) which holds the call-site
-// argument types.
+// Takes candidate (*querier_dto.FunctionSignature) which is the overload to score.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the call-site argument types.
 //
 // Returns totalScore (int) which is the sum of per-argument match scores.
-// Returns exactCount (int) which is the number of arguments that matched
-// exactly.
-// Returns viable (bool) which indicates whether the candidate passed arity
-// checks and all arguments matched.
+// Returns exactCount (int) which is the number of arguments that matched exactly.
+// Returns viable (bool) which indicates whether the candidate passed arity checks and all
+// arguments matched.
 func (r *functionResolver) scoreCandidate(
 	candidate *querier_dto.FunctionSignature,
 	argumentTypes []querier_dto.SQLType,
@@ -334,16 +324,15 @@ func (r *functionResolver) scoreCandidate(
 	return totalScore, exactCount, true
 }
 
-// tryEngineResolver attempts to resolve a function call through the engine's
-// own resolver, if the engine implements FunctionResolverPort.
+// tryEngineResolver attempts to resolve a function call through the engine's own
+// resolver, if the engine implements FunctionResolverPort.
 //
 // Takes name (string) which is the function name.
 // Takes schema (string) which is the schema qualifier.
-// Takes argumentTypes ([]querier_dto.SQLType) which holds the call-site
-// argument types.
+// Takes argumentTypes ([]querier_dto.SQLType) which holds the call-site argument types.
 //
-// Returns *functionMatch which holds the resolved overload metadata, or nil
-// if the engine does not support function resolution or resolution fails.
+// Returns *functionMatch which holds the resolved overload metadata, or nil if the engine
+// does not support function resolution or resolution fails.
 func (r *functionResolver) tryEngineResolver(
 	name string,
 	schema string,
@@ -366,14 +355,14 @@ func (r *functionResolver) tryEngineResolver(
 	}
 }
 
-// scoreArgument scores how well an actual argument type matches an expected
-// parameter type. Returns 3 for exact match, 2 for same category, 1 for
-// implicitly castable, 0 for no match.
+// scoreArgument scores how well an actual argument type matches an expected parameter
+// type. Returns 3 for exact match, 2 for same category, 1 for implicitly castable, 0 for
+// no match.
 //
-// Takes expected (querier_dto.SQLType) which is the parameter type declared
-// by the function signature.
-// Takes actual (querier_dto.SQLType) which is the resolved type of the
-// call-site argument.
+// Takes expected (querier_dto.SQLType) which is the parameter type declared by the
+// function signature.
+// Takes actual (querier_dto.SQLType) which is the resolved type of the call-site
+// argument.
 //
 // Returns int which is the match score from 0 (no match) to 3 (exact match).
 func (r *functionResolver) scoreArgument(expected querier_dto.SQLType, actual querier_dto.SQLType) int {

@@ -469,7 +469,9 @@ func TestDisplayBytes(t *testing.T) {
 	}
 }
 
-const walFormatVersionForTest uint8 = 1
+const (
+	walFormatVersionForTest uint8 = 1
+)
 
 func buildTestWALEntry(key, value string, op uint8, timestamp, expiresAt int64, tags []string) []byte {
 	keyBytes := []byte(key)

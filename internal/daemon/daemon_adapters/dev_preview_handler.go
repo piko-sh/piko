@@ -38,9 +38,9 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// DevPreviewHandler serves dev-mode preview endpoints for listing and
-// rendering previewable templates. It is only mounted when the dev widget
-// is enabled and is not accessible in production.
+// DevPreviewHandler serves dev-mode preview endpoints for listing and rendering
+// previewable templates. It is only mounted when the dev widget is enabled and is not
+// accessible in production.
 type DevPreviewHandler struct {
 	// store provides access to manifest entries and their preview metadata.
 	store templater_domain.ManifestStoreView
@@ -57,8 +57,8 @@ type DevPreviewHandler struct {
 	// renderer converts template ASTs to HTML output.
 	renderer templater_domain.RendererPort
 
-	// registry provides component metadata lookups for injecting the dev
-	// widget's compiled JS on preview pages.
+	// registry provides component metadata lookups for injecting the dev widget's compiled
+	// JS on preview pages.
 	registry render_domain.RegistryPort
 }
 
@@ -68,8 +68,8 @@ type previewListResponse struct {
 	Groups []previewGroup `json:"groups"`
 }
 
-// previewGroup represents a collection of templates sharing the same component
-// type (e.g. page, email, pdf).
+// previewGroup represents a collection of templates sharing the same component type (e.g.
+// page, email, pdf).
 type previewGroup struct {
 	// Type is the component type for this group (e.g. "page", "email", "pdf").
 	Type string `json:"type"`
@@ -87,8 +87,8 @@ type previewTemplate struct {
 	Scenarios []previewScenario `json:"scenarios"`
 }
 
-// previewScenario describes a single named preview scenario with optional
-// description text.
+// previewScenario describes a single named preview scenario with optional description
+// text.
 type previewScenario struct {
 	// Name is the identifier for this preview scenario.
 	Name string `json:"name"`
@@ -101,15 +101,13 @@ const (
 	// componentTypePdf is the component type identifier for PDF templates.
 	componentTypePdf = "pdf"
 
-	// componentTypePartial is the component type identifier for partial
-	// templates.
+	// componentTypePartial is the component type identifier for partial templates.
 	componentTypePartial = "partial"
 
 	// sourceExtension is the file extension for Piko source files.
 	sourceExtension = ".pk"
 
-	// previewActionButtonStyle is the inline CSS for the floating preview
-	// copy button.
+	// previewActionButtonStyle is the inline CSS for the floating preview copy button.
 	previewActionButtonStyle = `position:fixed;top:16px;right:16px;z-index:99999;` +
 		`width:36px;height:36px;border-radius:8px;` +
 		`border:1px solid rgba(255,255,255,0.1);` +
@@ -118,8 +116,8 @@ const (
 		`cursor:pointer;display:flex;align-items:center;justify-content:center;` +
 		`color:#a78bfa;transition:all 0.15s;padding:0`
 
-	// svgCopyIcon is a clipboard icon. Attributes use single quotes so the
-	// SVG can be safely embedded inside double-quoted JavaScript strings.
+	// svgCopyIcon is a clipboard icon. Attributes use single quotes so the SVG can be safely
+	// embedded inside double-quoted JavaScript strings.
 	svgCopyIcon = `<svg width='18' height='18' viewBox='0 0 24 24' fill='none' ` +
 		`stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>` +
 		`<rect x='9' y='9' width='13' height='13' rx='2' ry='2'/>` +
@@ -131,23 +129,27 @@ const (
 		`<polyline points='20 6 9 17 4 12'/></svg>`
 )
 
-// copyButtonScript is the JavaScript that powers the copy-to-clipboard
-// button in email previews. It is defined at package level so its CSP
-// hash can be pre-computed once at init time.
-var copyButtonScript = `(function(){` +
-	`var b=document.getElementById("piko-copy-email");` +
-	`b.addEventListener("click",function(){` +
-	`var s=document.getElementById("piko-email-source").textContent;` +
-	`var html=new TextDecoder().decode(Uint8Array.from(atob(s),function(c){return c.charCodeAt(0)}));` +
-	`navigator.clipboard.writeText(html).then(function(){` +
-	`var o=b.innerHTML;b.innerHTML="` + svgCheckIcon + `";b.style.color="#4ade80";` +
-	`setTimeout(function(){b.innerHTML=o;b.style.color="#a78bfa"},1500)` +
-	`})})` +
-	`}())`
+var (
+	// copyButtonScript is the JavaScript that powers the copy-to-clipboard button in email
+	// previews. It is defined at package level so its CSP hash can be pre-computed once at
+	// init time.
+	copyButtonScript = `(function(){` +
+		`var b=document.getElementById("piko-copy-email");` +
+		`b.addEventListener("click",function(){` +
+		`var s=document.getElementById("piko-email-source").textContent;` +
+		`var html=new TextDecoder().decode(Uint8Array.from(atob(s),function(c){return c.charCodeAt(0)}));` +
+		`navigator.clipboard.writeText(html).then(function(){` +
+		`var o=b.innerHTML;b.innerHTML="` + svgCheckIcon + `";b.style.color="#4ade80";` +
+		`setTimeout(function(){b.innerHTML=o;b.style.color="#a78bfa"},1500)` +
+		`})})` +
+		`}())`
+)
 
-// copyButtonScriptCSPHash is the SHA-256 hash of copyButtonScript,
-// formatted for inclusion in a Content-Security-Policy header.
-var copyButtonScriptCSPHash string
+var (
+	// copyButtonScriptCSPHash is the SHA-256 hash of copyButtonScript, formatted for
+	// inclusion in a Content-Security-Policy header.
+	copyButtonScriptCSPHash string
+)
 
 func init() {
 	hash := sha256.Sum256([]byte(copyButtonScript))
@@ -156,16 +158,13 @@ func init() {
 
 // NewDevPreviewHandler creates a handler for dev preview endpoints.
 //
-// Takes store (templater_domain.ManifestStoreView) which provides manifest
-// access.
+// Takes store (templater_domain.ManifestStoreView) which provides manifest access.
 // Takes runner (templater_domain.ManifestRunnerPort) which executes templates.
-// Takes renderer (templater_domain.RendererPort) which converts template ASTs
-// to HTML output.
-// Takes emailService (templater_domain.EmailTemplateService) which renders
-// emails.
+// Takes renderer (templater_domain.RendererPort) which converts template ASTs to HTML
+// output.
+// Takes emailService (templater_domain.EmailTemplateService) which renders emails.
 // Takes pdfService (pdfwriter_domain.PdfWriterService) which renders PDFs.
-// Takes registry (render_domain.RegistryPort) which provides component metadata
-// lookups.
+// Takes registry (render_domain.RegistryPort) which provides component metadata lookups.
 //
 // Returns *DevPreviewHandler which is the initialised handler.
 func NewDevPreviewHandler(
@@ -188,18 +187,16 @@ func NewDevPreviewHandler(
 
 // Mount registers the preview API and render routes on the router.
 //
-// Takes r (chi.Router) which is the router to register
-// preview routes on.
+// Takes r (chi.Router) which is the router to register preview routes on.
 func (h *DevPreviewHandler) Mount(r chi.Router) {
 	r.Get("/_piko/dev/api/previews", h.handleListPreviews)
 	r.Get("/_piko/dev/preview/{type}/*", h.handleRenderPreview)
 }
 
-// handleListPreviews returns a JSON listing of all templates that have
-// Preview functions, grouped by component type.
+// handleListPreviews returns a JSON listing of all templates that have Preview functions,
+// grouped by component type.
 //
-// Takes w (http.ResponseWriter) which receives the JSON
-// response.
+// Takes w (http.ResponseWriter) which receives the JSON response.
 func (h *DevPreviewHandler) handleListPreviews(w http.ResponseWriter, _ *http.Request) {
 	entries := h.store.ListPreviewEntries()
 
@@ -232,15 +229,13 @@ func (h *DevPreviewHandler) handleListPreviews(w http.ResponseWriter, _ *http.Re
 	writeJSON(w, http.StatusOK, previewListResponse{Groups: groups})
 }
 
-// handleRenderPreview renders a specific preview scenario for a template.
-// URL format: /_piko/dev/preview/{type}/{path...}?scenario={name}
-// For PDFs, /_piko/dev/preview/pdf/{path...}/render returns raw PDF bytes
-// with X-Frame-Options relaxed to SAMEORIGIN so the wrapper page can embed it.
+// handleRenderPreview renders a specific preview scenario for a template. URL format:
+// /_piko/dev/preview/{type}/{path...}?scenario={name} For PDFs,
+// /_piko/dev/preview/pdf/{path...}/render returns raw PDF bytes with X-Frame-Options
+// relaxed to SAMEORIGIN so the wrapper page can embed it.
 //
-// Takes w (http.ResponseWriter) which receives the rendered
-// preview output.
-// Takes r (*http.Request) which carries the URL parameters
-// and query string.
+// Takes w (http.ResponseWriter) which receives the rendered preview output.
+// Takes r (*http.Request) which carries the URL parameters and query string.
 func (h *DevPreviewHandler) handleRenderPreview(w http.ResponseWriter, r *http.Request) {
 	componentType := chi.URLParam(r, "type")
 	rawPath := chi.URLParam(r, "*")
@@ -278,13 +273,11 @@ func (h *DevPreviewHandler) handleRenderPreview(w http.ResponseWriter, r *http.R
 
 // findScenario looks up a preview scenario by source path and scenario name.
 //
-// Takes sourcePath (string) which is the .pk source file path
-// to look up.
-// Takes scenarioName (string) which is the name of the
-// scenario to find, or empty for the first available.
+// Takes sourcePath (string) which is the .pk source file path to look up.
+// Takes scenarioName (string) which is the name of the scenario to find, or empty for the
+// first available.
 //
-// Returns *templater_dto.PreviewScenario which is the matched
-// scenario.
+// Returns *templater_dto.PreviewScenario which is the matched scenario.
 // Returns error when the template or scenario is not found.
 func (h *DevPreviewHandler) findScenario(sourcePath, scenarioName string) (*templater_dto.PreviewScenario, error) {
 	entry, ok := h.store.GetPageEntry(sourcePath)
@@ -310,13 +303,11 @@ func (h *DevPreviewHandler) findScenario(sourcePath, scenarioName string) (*temp
 	return nil, fmt.Errorf("scenario %q not found for template %s", scenarioName, sourcePath)
 }
 
-// buildSourcePath converts a component type and URL path back to a source path.
-// For example, ("email", "welcome") becomes "emails/welcome.pk".
+// buildSourcePath converts a component type and URL path back to a source path. For
+// example, ("email", "welcome") becomes "emails/welcome.pk".
 //
-// Takes componentType (string) which is the component type
-// (e.g. "email", "pdf", "page").
-// Takes path (string) which is the URL path segment to
-// convert.
+// Takes componentType (string) which is the component type (e.g. "email", "pdf", "page").
+// Takes path (string) which is the URL path segment to convert.
 //
 // Returns string which is the resolved source file path.
 func buildSourcePath(componentType, path string) string {
@@ -336,16 +327,13 @@ func buildSourcePath(componentType, path string) string {
 	}
 }
 
-// renderEmailPreview renders an email template with the scenario's props and
-// returns the CSS-inlined HTML with the dev widget injected.
+// renderEmailPreview renders an email template with the scenario's props and returns the
+// CSS-inlined HTML with the dev widget injected.
 //
-// Takes w (http.ResponseWriter) which receives the rendered
-// email HTML.
+// Takes w (http.ResponseWriter) which receives the rendered email HTML.
 // Takes r (*http.Request) which provides the request context.
-// Takes sourcePath (string) which is the .pk source file path
-// to render.
-// Takes scenario (*templater_dto.PreviewScenario) which holds
-// the props for the preview.
+// Takes sourcePath (string) which is the .pk source file path to render.
+// Takes scenario (*templater_dto.PreviewScenario) which holds the props for the preview.
 func (h *DevPreviewHandler) renderEmailPreview(w http.ResponseWriter, r *http.Request, sourcePath string, scenario *templater_dto.PreviewScenario) {
 	if h.emailService == nil {
 		http.Error(w, "email service not available", http.StatusServiceUnavailable)
@@ -372,16 +360,14 @@ func (h *DevPreviewHandler) renderEmailPreview(w http.ResponseWriter, r *http.Re
 	_, _ = w.Write([]byte(html))
 }
 
-// renderPdfPreview serves an HTML wrapper page with an embedded PDF viewer
-// and the dev widget.
+// renderPdfPreview serves an HTML wrapper page with an embedded PDF viewer and the dev
+// widget.
 //
-// Takes w (http.ResponseWriter) which receives the HTML
-// wrapper page.
+// Takes w (http.ResponseWriter) which receives the HTML wrapper page.
 // Takes r (*http.Request) which provides the request context.
-// Takes sourcePath (string) which is the .pk source file path
-// for the PDF template.
-// Takes scenarioName (string) which is the scenario name for
-// the render URL query parameter.
+// Takes sourcePath (string) which is the .pk source file path for the PDF template.
+// Takes scenarioName (string) which is the scenario name for the render URL query
+// parameter.
 func (h *DevPreviewHandler) renderPdfPreview(w http.ResponseWriter, r *http.Request, sourcePath string, _ *templater_dto.PreviewScenario, scenarioName string) {
 	rawPath := strings.TrimPrefix(sourcePath, "pdfs/")
 	rawPath = strings.TrimSuffix(rawPath, sourceExtension)
@@ -406,13 +392,10 @@ func (h *DevPreviewHandler) renderPdfPreview(w http.ResponseWriter, r *http.Requ
 
 // renderPdfRaw renders a PDF template and returns the raw PDF bytes.
 //
-// Takes w (http.ResponseWriter) which receives the raw PDF
-// byte output.
+// Takes w (http.ResponseWriter) which receives the raw PDF byte output.
 // Takes r (*http.Request) which provides the request context.
-// Takes sourcePath (string) which is the .pk source file path
-// to render.
-// Takes scenario (*templater_dto.PreviewScenario) which holds
-// the props for the preview.
+// Takes sourcePath (string) which is the .pk source file path to render.
+// Takes scenario (*templater_dto.PreviewScenario) which holds the props for the preview.
 func (h *DevPreviewHandler) renderPdfRaw(w http.ResponseWriter, r *http.Request, sourcePath string, scenario *templater_dto.PreviewScenario) {
 	if h.pdfService == nil {
 		http.Error(w, "PDF service not available", http.StatusServiceUnavailable)
@@ -431,18 +414,15 @@ func (h *DevPreviewHandler) renderPdfRaw(w http.ResponseWriter, r *http.Request,
 	_, _ = w.Write(result.Content)
 }
 
-// renderComponentPreview renders a page or partial with the scenario's props
-// and returns the HTML.
+// renderComponentPreview renders a page or partial with the scenario's props and returns
+// the HTML.
 //
-// Takes w (http.ResponseWriter) which receives the rendered
-// HTML output.
+// Takes w (http.ResponseWriter) which receives the rendered HTML output.
 // Takes r (*http.Request) which provides the request context.
-// Takes sourcePath (string) which is the .pk source file path
-// to render.
-// Takes scenario (*templater_dto.PreviewScenario) which holds
-// the props for the preview.
-// Takes componentType (string) which indicates "page" or
-// "partial", where "partial" enables fragment rendering.
+// Takes sourcePath (string) which is the .pk source file path to render.
+// Takes scenario (*templater_dto.PreviewScenario) which holds the props for the preview.
+// Takes componentType (string) which indicates "page" or "partial", where "partial"
+// enables fragment rendering.
 func (h *DevPreviewHandler) renderComponentPreview(w http.ResponseWriter, r *http.Request, sourcePath string, scenario *templater_dto.PreviewScenario, componentType string) {
 	if h.runner == nil || h.renderer == nil {
 		http.Error(w, "template runner or renderer not available", http.StatusServiceUnavailable)
@@ -484,12 +464,11 @@ func (h *DevPreviewHandler) renderComponentPreview(w http.ResponseWriter, r *htt
 	}
 }
 
-// devWidgetSnippet returns an HTML snippet that injects the full dev widget
-// (including its PKC component definition) and hot-reload scripts into a
-// preview page.
+// devWidgetSnippet returns an HTML snippet that injects the full dev widget (including
+// its PKC component definition) and hot-reload scripts into a preview page.
 //
-// Returns string which is the combined HTML snippet for the
-// dev widget and associated module scripts.
+// Returns string which is the combined HTML snippet for the dev widget and associated
+// module scripts.
 func (h *DevPreviewHandler) devWidgetSnippet(ctx context.Context) string {
 	widgetHTML := daemon_frontend.GetDevWidgetHTML()
 	if widgetHTML == "" {
@@ -518,15 +497,14 @@ func (h *DevPreviewHandler) devWidgetSnippet(ctx context.Context) string {
 	)
 }
 
-// emailCopyButtonSnippet returns an HTML snippet containing a floating button
-// that copies the raw email HTML to the clipboard when clicked.
+// emailCopyButtonSnippet returns an HTML snippet containing a floating button that copies
+// the raw email HTML to the clipboard when clicked.
 //
-// The raw HTML is base64-encoded and stored in a hidden script element so
-// that it can be decoded and copied without the dev widget markup. After a
-// successful copy the button icon briefly changes to a checkmark.
+// The raw HTML is base64-encoded and stored in a hidden script element so that it can be
+// decoded and copied without the dev widget markup. After a successful copy the button
+// icon briefly changes to a checkmark.
 //
-// Takes rawHTML (string) which is the original email HTML before dev widget
-// injection.
+// Takes rawHTML (string) which is the original email HTML before dev widget injection.
 //
 // Returns string which is the HTML snippet to inject into the preview page.
 func emailCopyButtonSnippet(rawHTML string) string {
@@ -537,13 +515,12 @@ func emailCopyButtonSnippet(rawHTML string) string {
 		`<script>` + copyButtonScript + `</script>`
 }
 
-// addCopyScriptHashToCSP modifies the Content-Security-Policy header to
-// allow the inline copy button script by adding its pre-computed hash.
-// If the CSP already contains a script-src-elem directive the hash is
-// appended to it; otherwise a new directive is added.
+// addCopyScriptHashToCSP modifies the Content-Security-Policy header to allow the inline
+// copy button script by adding its pre-computed hash. If the CSP already contains a
+// script-src-elem directive the hash is appended to it; otherwise a new directive is
+// added.
 //
-// Takes w (http.ResponseWriter) which provides the response headers to
-// modify.
+// Takes w (http.ResponseWriter) which provides the response headers to modify.
 func addCopyScriptHashToCSP(w http.ResponseWriter) {
 	csp := w.Header().Get("Content-Security-Policy")
 	if csp == "" {

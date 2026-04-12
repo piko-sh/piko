@@ -45,8 +45,8 @@ const (
 
 // collectionService implements the CollectionService interface.
 //
-// This is the core domain service that manages provider interactions. It acts
-// as a facade between other hexagons and the provider system.
+// This is the core domain service that manages provider interactions. It acts as a facade
+// between other hexagons and the provider system.
 type collectionService struct {
 	// registry provides access to collection providers by name.
 	registry ProviderRegistryPort
@@ -63,15 +63,15 @@ type collectionService struct {
 	// defaultSandbox provides filesystem access for local content collections.
 	defaultSandbox safedisk.Sandbox
 
-	// resolver provides module resolution for external content sources
-	// (p-collection-source directives).
+	// resolver provides module resolution for external content sources (p-collection-source
+	// directives).
 	resolver resolver_domain.ResolverPort
 
 	// cache stores content items by provider and collection name.
 	cache map[string][]collection_dto.ContentItem
 
-	// externalSandboxes tracks sandboxes created for external module content
-	// sources so they can be closed when the service shuts down.
+	// externalSandboxes tracks sandboxes created for external module content sources so they
+	// can be closed when the service shuts down.
 	externalSandboxes []safedisk.Sandbox
 
 	// cacheMutex guards concurrent access to the cache map.
@@ -81,21 +81,19 @@ type collectionService struct {
 	sandboxMutex sync.Mutex
 }
 
-// CollectionServiceOption is a functional option for configuring
-// CollectionService.
+// CollectionServiceOption is a functional option for configuring CollectionService.
 type CollectionServiceOption func(*collectionService)
 
-// ProcessCollectionDirective expands a p-collection directive into entry
-// points.
+// ProcessCollectionDirective expands a p-collection directive into entry points.
 //
-// Acts as the public interface called by the Annotator. Uses DTO types for
-// cross-hexagon communication.
+// Acts as the public interface called by the Annotator. Uses DTO types for cross-hexagon
+// communication.
 //
 // Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the
 // collection to expand, including provider name, collection name, and layout.
 //
-// Returns []*collection_dto.CollectionEntryPoint which contains the expanded
-// entry points for the collection.
+// Returns []*collection_dto.CollectionEntryPoint which contains the expanded entry points
+// for the collection.
 // Returns error when the provider is unknown or has an unrecognised type.
 func (s *collectionService) ProcessCollectionDirective(
 	ctx context.Context,
@@ -139,20 +137,19 @@ func (s *collectionService) ProcessCollectionDirective(
 
 // ProcessGetCollectionCall handles data.GetCollection() in user code.
 //
-// This is called by the Annotator when it encounters a GetCollection() call.
-// It receives semantic information extracted from the Piko AST and generates
-// the appropriate annotation for the Generator based on provider type.
+// This is called by the Annotator when it encounters a GetCollection() call. It receives
+// semantic information extracted from the Piko AST and generates the appropriate
+// annotation for the Generator based on provider type.
 //
 // Takes collectionName (string) which identifies the collection to retrieve.
 // Takes targetTypeName (string) which specifies the name of the target type.
-// Takes targetTypeExpr (ast.Expr) which provides the AST expression for the
-// target type.
+// Takes targetTypeExpr (ast.Expr) which provides the AST expression for the target type.
 // Takes optionsRaw (any) which contains provider-specific options.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the generated
-// annotation for the code generator.
-// Returns error when options parsing fails, the provider is not found, or the
-// target type is invalid for the provider.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the generated annotation for
+// the code generator.
+// Returns error when options parsing fails, the provider is not found, or the target type
+// is invalid for the provider.
 func (s *collectionService) ProcessGetCollectionCall(
 	ctx context.Context,
 	collectionName string,
@@ -192,8 +189,7 @@ func (s *collectionService) ProcessGetCollectionCall(
 //
 // Call this at application startup to fail fast on misconfiguration.
 //
-// Takes config (*Config) which specifies the providers and collections to
-// validate.
+// Takes config (*Config) which specifies the providers and collections to validate.
 //
 // Returns error when any provider or collection configuration is invalid.
 func (s *collectionService) ValidateConfiguration(
@@ -224,11 +220,11 @@ func (s *collectionService) ValidateConfiguration(
 	return nil
 }
 
-// Close releases resources held by the service, including any sandboxes
-// created for external module content sources.
+// Close releases resources held by the service, including any sandboxes created for
+// external module content sources.
 //
-// Returns error when one or more sandbox closes fail. The first error is
-// returned, but all sandboxes are attempted.
+// Returns error when one or more sandbox closes fail. The first error is returned, but
+// all sandboxes are attempted.
 //
 // Concurrency: acquires sandboxMutex to drain the external sandboxes list.
 func (s *collectionService) Close() error {
@@ -260,8 +256,7 @@ func (s *collectionService) validateDefaultProvider(config *Config, errors []str
 	return errors
 }
 
-// validateProviders checks that all explicitly configured providers are
-// registered.
+// validateProviders checks that all explicitly configured providers are registered.
 //
 // Takes config (*Config) which contains the provider configurations to check.
 // Takes errors ([]string) which is the existing error list to append to.
@@ -296,17 +291,16 @@ func (s *collectionService) validateCollections(config *Config, errors []string)
 	return errors
 }
 
-// validateCollectionProvider validates a single collection's provider
-// configuration.
+// validateCollectionProvider validates a single collection's provider configuration.
 //
 // Takes config (*Config) which provides the default provider setting.
 // Takes collectionName (string) which identifies the collection being checked.
-// Takes collectionConfig (CollectionConfigEntry) which holds the collection's
-// provider reference.
+// Takes collectionConfig (CollectionConfigEntry) which holds the collection's provider
+// reference.
 // Takes errors ([]string) which accumulates validation errors.
 //
-// Returns []string which contains the updated error list with any new
-// validation failures appended.
+// Returns []string which contains the updated error list with any new validation failures
+// appended.
 func (s *collectionService) validateCollectionProvider(
 	config *Config,
 	collectionName string,
@@ -332,8 +326,8 @@ func (s *collectionService) validateCollectionProvider(
 
 // reportValidationErrors logs validation errors and returns an error.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes errors ([]string) which contains the validation error messages to log.
 //
 // Returns error when called, with the error count in the message.
@@ -352,8 +346,7 @@ func (*collectionService) reportValidationErrors(ctx context.Context, errors []s
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which identifies the collection.
 //
-// Returns string which is the combined cache key in "provider:collection"
-// format.
+// Returns string which is the combined cache key in "provider:collection" format.
 func (*collectionService) getCacheKey(providerName, collectionName string) string {
 	return fmt.Sprintf("%s:%s", providerName, collectionName)
 }
@@ -379,8 +372,7 @@ func (s *collectionService) getCachedContent(providerName, collectionName string
 //
 // Takes providerName (string) which identifies the content provider.
 // Takes collectionName (string) which identifies the collection.
-// Takes items ([]collection_dto.ContentItem) which contains the content to
-// cache.
+// Takes items ([]collection_dto.ContentItem) which contains the content to cache.
 //
 // Safe for concurrent use. Uses a mutex to protect the cache.
 func (s *collectionService) setCachedContent(providerName, collectionName string, items []collection_dto.ContentItem) {
@@ -410,16 +402,15 @@ func (*collectionService) parseGetCollectionOptions(optionsRaw any) (collection_
 	return opts, nil
 }
 
-// resolveProviderName determines which provider to use, defaulting to
-// "markdown".
+// resolveProviderName determines which provider to use, defaulting to "markdown".
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
-// Takes options (*collection_dto.FetchOptions) which contains the requested
-// provider name.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
+// Takes options (*collection_dto.FetchOptions) which contains the requested provider
+// name.
 //
-// Returns string which is the provider name from options, or "markdown" if
-// none was specified.
+// Returns string which is the provider name from options, or "markdown" if none was
+// specified.
 func (*collectionService) resolveProviderName(ctx context.Context, options *collection_dto.FetchOptions) string {
 	_, l := logger_domain.From(ctx, log)
 	if options.ProviderName != "" {
@@ -451,8 +442,7 @@ func (s *collectionService) lookupProvider(providerName string) (CollectionProvi
 	return provider, nil
 }
 
-// dispatchProviderAnnotation generates the appropriate annotation based on
-// provider type.
+// dispatchProviderAnnotation generates the appropriate annotation based on provider type.
 //
 // Takes provider (CollectionProvider) which specifies the source of items.
 // Takes collectionName (string) which identifies the target collection.
@@ -489,13 +479,11 @@ func (s *collectionService) dispatchProviderAnnotation(
 
 // NewCollectionService creates a new CollectionService.
 //
-// Takes registry (ProviderRegistryPort) which provides lookup for content
-// providers.
-// Takes opts (...CollectionServiceOption) which provides optional functional
-// options for customising the service.
+// Takes registry (ProviderRegistryPort) which provides lookup for content providers.
+// Takes opts (...CollectionServiceOption) which provides optional functional options for
+// customising the service.
 //
-// Returns CollectionService which is a fully initialised service ready for
-// use.
+// Returns CollectionService which is a fully initialised service ready for use.
 func NewCollectionService(
 	_ context.Context,
 	registry ProviderRegistryPort,
@@ -519,11 +507,9 @@ func NewCollectionService(
 
 // withHybridRegistry sets a custom hybrid registry for the service.
 //
-// Takes registry (HybridRegistryPort) which provides the hybrid registry
-// implementation.
+// Takes registry (HybridRegistryPort) which provides the hybrid registry implementation.
 //
-// Returns CollectionServiceOption which configures the service to use the
-// given registry.
+// Returns CollectionServiceOption which configures the service to use the given registry.
 func withHybridRegistry(registry HybridRegistryPort) CollectionServiceOption {
 	return func(s *collectionService) {
 		s.hybridRegistry = registry
@@ -532,19 +518,18 @@ func withHybridRegistry(registry HybridRegistryPort) CollectionServiceOption {
 
 // withEncoder sets a custom encoder for the service.
 //
-// Takes encoder (CollectionEncoderPort) which provides custom
-// encoding logic for collection data.
+// Takes encoder (CollectionEncoderPort) which provides custom encoding logic for
+// collection data.
 //
-// Returns CollectionServiceOption which configures the service to use the
-// given encoder.
+// Returns CollectionServiceOption which configures the service to use the given encoder.
 func withEncoder(encoder CollectionEncoderPort) CollectionServiceOption {
 	return func(s *collectionService) {
 		s.encoder = encoder
 	}
 }
 
-// withServiceClock sets a custom clock for time operations. This is mainly
-// used for testing to make time-based logic deterministic.
+// withServiceClock sets a custom clock for time operations. This is mainly used for
+// testing to make time-based logic deterministic.
 //
 // Takes c (clock.Clock) which provides the clock implementation to use.
 //
@@ -557,8 +542,8 @@ func withServiceClock(c clock.Clock) CollectionServiceOption {
 
 // WithDefaultSandbox sets the default sandbox for local content collections.
 //
-// Takes sandbox (safedisk.Sandbox) which provides filesystem access for the
-// project's content/ directory.
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access for the project's
+// content/ directory.
 //
 // Returns CollectionServiceOption which configures the service sandbox.
 func WithDefaultSandbox(sandbox safedisk.Sandbox) CollectionServiceOption {
@@ -569,8 +554,8 @@ func WithDefaultSandbox(sandbox safedisk.Sandbox) CollectionServiceOption {
 
 // WithResolver sets the module resolver for external content sources.
 //
-// Takes resolver (resolver_domain.ResolverPort) which handles Go module path
-// resolution for p-collection-source directives.
+// Takes resolver (resolver_domain.ResolverPort) which handles Go module path resolution
+// for p-collection-source directives.
 //
 // Returns CollectionServiceOption which configures the service resolver.
 func WithResolver(resolver resolver_domain.ResolverPort) CollectionServiceOption {
@@ -581,8 +566,8 @@ func WithResolver(resolver resolver_domain.ResolverPort) CollectionServiceOption
 
 // defaultContentSource returns a ContentSource for local project content.
 //
-// This is used by code paths that don't have a directive (e.g.
-// GetAllCollectionItems calls in Go code) where the content is always local.
+// This is used by code paths that don't have a directive (e.g. GetAllCollectionItems
+// calls in Go code) where the content is always local.
 //
 // Returns collection_dto.ContentSource which provides local sandbox access.
 func (s *collectionService) defaultContentSource() collection_dto.ContentSource {
@@ -603,8 +588,7 @@ func (s *collectionService) trackExternalSandbox(sandbox safedisk.Sandbox) {
 	s.sandboxMutex.Unlock()
 }
 
-// newDefaultCollectionEncoder returns the default FlatBuffer encoder for
-// production use.
+// newDefaultCollectionEncoder returns the default FlatBuffer encoder for production use.
 //
 // Returns CollectionEncoderPort which provides the standard encoder.
 func newDefaultCollectionEncoder() CollectionEncoderPort {

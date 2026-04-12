@@ -16,13 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_provider_disk provides a filesystem-based storage
-// provider for the Piko storage system.
+// Package storage_provider_disk provides a filesystem-based storage provider for the Piko
+// storage system.
 //
-// This provider stores objects on the local filesystem using atomic
-// writes to prevent data corruption. It is suitable for development,
-// testing, and single-server deployments where distributed storage
-// is not required. All file operations are sandboxed for security.
+// This provider stores objects on the local filesystem using atomic writes to prevent
+// data corruption. It is suitable for development, testing, and single-server deployments
+// where distributed storage is not required. All file operations are sandboxed for
+// security.
 //
 // # Usage
 //
@@ -39,7 +39,7 @@
 //
 // # Limitations
 //
-// The disk provider does not support presigned URLs or multipart
-// uploads. The storage service layer provides fallback mechanisms
-// for presigned URL generation when using this provider.
+// The disk provider does not support presigned URLs or multipart uploads. The storage
+// service layer provides fallback mechanisms for presigned URL generation when using this
+// provider.
 package storage_provider_disk

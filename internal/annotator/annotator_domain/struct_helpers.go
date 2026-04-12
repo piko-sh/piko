@@ -18,19 +18,22 @@
 
 package annotator_domain
 
-// Provides helper functions for creating and manipulating AST node structures during compilation.
-// Contains utility methods for building fragment nodes, annotations, and other AST elements used throughout the annotator.
+// Provides helper functions for creating and manipulating AST node structures during
+// compilation. Contains utility methods for building fragment nodes, annotations, and
+// other AST elements used throughout the annotator.
 
-import "piko.sh/piko/internal/ast/ast_domain"
+import (
+	"piko.sh/piko/internal/ast/ast_domain"
+)
 
-// newFragmentNode creates a fragment TemplateNode with the given children.
-// All other fields are set to their zero values.
+// newFragmentNode creates a fragment TemplateNode with the given children. All other
+// fields are set to their zero values.
 //
-// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to
-// include in the fragment.
+// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to include in the
+// fragment.
 //
-// Returns *ast_domain.TemplateNode which is a fragment node containing the
-// given children.
+// Returns *ast_domain.TemplateNode which is a fragment node containing the given
+// children.
 func newFragmentNode(children []*ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	return &ast_domain.TemplateNode{
 		Key:                nil,
@@ -75,29 +78,27 @@ func newFragmentNode(children []*ast_domain.TemplateNode) *ast_domain.TemplateNo
 	}
 }
 
-// newAnnotationWithType creates a new GoGeneratorAnnotation with the given
-// resolved type. All other fields are set to their zero values.
+// newAnnotationWithType creates a new GoGeneratorAnnotation with the given resolved type.
+// All other fields are set to their zero values.
 //
-// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which holds the type
-// details for the annotation.
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which holds the type details for the
+// annotation.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains only the given
-// type information.
+// Returns *ast_domain.GoGeneratorAnnotation which contains only the given type
+// information.
 func newAnnotationWithType(resolvedType *ast_domain.ResolvedTypeInfo) *ast_domain.GoGeneratorAnnotation {
 	return newAnnotationWithTypeAndStringability(resolvedType, 0)
 }
 
-// newAnnotationWithTypeAndStringability creates a new GoGeneratorAnnotation
-// with the given resolved type and stringability. All other fields are set to
-// zero values.
+// newAnnotationWithTypeAndStringability creates a new GoGeneratorAnnotation with the
+// given resolved type and stringability. All other fields are set to zero values.
 //
-// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which holds the type
-// details for this annotation.
-// Takes stringability (int) which shows how the value can be turned into a
-// string.
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which holds the type details for this
+// annotation.
+// Takes stringability (int) which shows how the value can be turned into a string.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the type and
-// stringability settings.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the type and stringability
+// settings.
 func newAnnotationWithTypeAndStringability(resolvedType *ast_domain.ResolvedTypeInfo, stringability int) *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,
@@ -131,14 +132,13 @@ func newAnnotationWithTypeAndStringability(resolvedType *ast_domain.ResolvedType
 
 // newAnnotationFull creates a new GoGeneratorAnnotation with common fields set.
 //
-// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which holds the type
-// details for this annotation.
+// Takes resolvedType (*ast_domain.ResolvedTypeInfo) which holds the type details for this
+// annotation.
 // Takes sourcePath (*string) which is the path to the original source file.
-// Takes stringability (int) which shows how the value can be changed to a
-// string.
+// Takes stringability (int) which shows how the value can be changed to a string.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is an annotation with the
-// given fields set.
+// Returns *ast_domain.GoGeneratorAnnotation which is an annotation with the given fields
+// set.
 func newAnnotationFull(resolvedType *ast_domain.ResolvedTypeInfo, sourcePath *string, stringability int) *ast_domain.GoGeneratorAnnotation {
 	return &ast_domain.GoGeneratorAnnotation{
 		EffectiveKeyExpression:  nil,

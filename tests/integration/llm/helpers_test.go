@@ -45,7 +45,9 @@ import (
 	"piko.sh/piko/wdk/llm/llm_provider_zoltai"
 )
 
-const perTestTimeout = 10 * time.Minute
+const (
+	perTestTimeout = 10 * time.Minute
+)
 
 func skipIfNoOllama(t *testing.T) {
 	t.Helper()

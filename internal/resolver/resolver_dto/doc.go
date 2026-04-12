@@ -18,6 +18,6 @@
 
 // Package resolver_dto defines data transfer objects for the resolver module.
 //
-// It contains request/response types and configuration structs used
-// to pass data across boundaries within the resolver module.
+// It contains request/response types and configuration structs used to pass data across
+// boundaries within the resolver module.
 package resolver_dto

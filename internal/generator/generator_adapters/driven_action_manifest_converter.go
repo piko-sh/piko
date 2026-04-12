@@ -26,11 +26,10 @@ import (
 
 // ConvertManifestToSpecs converts an ActionManifest to a slice of ActionSpec.
 //
-// This bridges the annotator's auto-discovered actions to the existing
-// code generation infrastructure.
+// This bridges the annotator's auto-discovered actions to the existing code generation
+// infrastructure.
 //
-// Takes manifest (*annotator_dto.ActionManifest) which contains discovered
-// actions.
+// Takes manifest (*annotator_dto.ActionManifest) which contains discovered actions.
 //
 // Returns []annotator_dto.ActionSpec ready for the emitters.
 func ConvertManifestToSpecs(manifest *annotator_dto.ActionManifest) []annotator_dto.ActionSpec {
@@ -47,11 +46,11 @@ func ConvertManifestToSpecs(manifest *annotator_dto.ActionManifest) []annotator_
 
 // convertActionDefinitionToSpec converts a single ActionDefinition to ActionSpec.
 //
-// Takes action (*annotator_dto.ActionDefinition) which is the action definition
-// to convert.
+// Takes action (*annotator_dto.ActionDefinition) which is the action definition to
+// convert.
 //
-// Returns annotator_dto.ActionSpec which contains the converted action
-// specification ready for code generation.
+// Returns annotator_dto.ActionSpec which contains the converted action specification
+// ready for code generation.
 func convertActionDefinitionToSpec(action *annotator_dto.ActionDefinition) annotator_dto.ActionSpec {
 	spec := annotator_dto.ActionSpec{
 		Name:           action.Name,
@@ -84,8 +83,8 @@ func convertActionDefinitionToSpec(action *annotator_dto.ActionDefinition) annot
 	return spec
 }
 
-// convertCallParamsToParamSpecs converts a slice of ActionTypeInfo into
-// ParamSpec entries for code generation.
+// convertCallParamsToParamSpecs converts a slice of ActionTypeInfo into ParamSpec entries
+// for code generation.
 //
 // Takes params ([]annotator_dto.ActionTypeInfo) which are the call parameters.
 //
@@ -131,27 +130,26 @@ func convertCallParamsToParamSpecs(params []annotator_dto.ActionTypeInfo) []anno
 	return specs
 }
 
-// isPikoSpecialType checks if a type is a special piko type (FileUpload,
-// RawBody) by matching the type name and ensuring the package path is within
-// piko.
+// isPikoSpecialType checks if a type is a special piko type (FileUpload, RawBody) by
+// matching the type name and ensuring the package path is within piko.
 //
 // Takes typeName (string) which is the name of the type to check.
 // Takes packagePath (string) which is the package path where the type is defined.
 // Takes targetName (string) which is the special type name to match against.
 //
-// Returns bool which is true if the type matches the target name and the
-// package path starts with "piko.sh/piko".
+// Returns bool which is true if the type matches the target name and the package path
+// starts with "piko.sh/piko".
 func isPikoSpecialType(typeName, packagePath, targetName string) bool {
 	return typeName == targetName && strings.HasPrefix(packagePath, "piko.sh/piko")
 }
 
 // convertActionTypeInfoToTypeSpec converts ActionTypeInfo to TypeSpec.
 //
-// Takes info (*annotator_dto.ActionTypeInfo) which provides the type
-// information to convert.
+// Takes info (*annotator_dto.ActionTypeInfo) which provides the type information to
+// convert.
 //
-// Returns *annotator_dto.TypeSpec which is the converted type
-// specification, or nil if info is nil.
+// Returns *annotator_dto.TypeSpec which is the converted type specification, or nil if
+// info is nil.
 func convertActionTypeInfoToTypeSpec(info *annotator_dto.ActionTypeInfo) *annotator_dto.TypeSpec {
 	if info == nil {
 		return nil
@@ -168,11 +166,11 @@ func convertActionTypeInfoToTypeSpec(info *annotator_dto.ActionTypeInfo) *annota
 
 // convertFieldsToFieldSpecs converts a slice of ActionFieldInfo to FieldSpec.
 //
-// Takes fields ([]annotator_dto.ActionFieldInfo) which contains the action
-// field information to convert.
+// Takes fields ([]annotator_dto.ActionFieldInfo) which contains the action field
+// information to convert.
 //
-// Returns []annotator_dto.FieldSpec which contains the converted field
-// specifications, or nil if the input slice is empty.
+// Returns []annotator_dto.FieldSpec which contains the converted field specifications, or
+// nil if the input slice is empty.
 func convertFieldsToFieldSpecs(fields []annotator_dto.ActionFieldInfo) []annotator_dto.FieldSpec {
 	if len(fields) == 0 {
 		return nil
@@ -196,11 +194,11 @@ func convertFieldsToFieldSpecs(fields []annotator_dto.ActionFieldInfo) []annotat
 
 // deriveTransports determines the supported transports based on capabilities.
 //
-// Takes caps (annotator_dto.ActionCapabilities) which specifies the action
-// capabilities to check for transport support.
+// Takes caps (annotator_dto.ActionCapabilities) which specifies the action capabilities
+// to check for transport support.
 //
-// Returns []annotator_dto.Transport which contains the list of supported
-// transports, always including HTTP and optionally SSE.
+// Returns []annotator_dto.Transport which contains the list of supported transports,
+// always including HTTP and optionally SSE.
 func deriveTransports(caps annotator_dto.ActionCapabilities) []annotator_dto.Transport {
 	transports := []annotator_dto.Transport{annotator_dto.TransportHTTP}
 
@@ -212,11 +210,11 @@ func deriveTransports(caps annotator_dto.ActionCapabilities) []annotator_dto.Tra
 
 // convertRateLimitConfig converts RateLimitConfig to RateLimitSpec.
 //
-// Takes config (*annotator_dto.RateLimitConfig) which specifies the rate limit
-// settings to convert.
+// Takes config (*annotator_dto.RateLimitConfig) which specifies the rate limit settings
+// to convert.
 //
-// Returns *annotator_dto.RateLimitSpec which contains the converted rate
-// limit specification, or nil if config is nil.
+// Returns *annotator_dto.RateLimitSpec which contains the converted rate limit
+// specification, or nil if config is nil.
 func convertRateLimitConfig(config *annotator_dto.RateLimitConfig) *annotator_dto.RateLimitSpec {
 	if config == nil {
 		return nil
@@ -230,11 +228,11 @@ func convertRateLimitConfig(config *annotator_dto.RateLimitConfig) *annotator_dt
 
 // convertResourceLimitConfig converts ResourceLimitConfig to ResourceLimitSpec.
 //
-// Takes config (*annotator_dto.ResourceLimitConfig) which specifies the resource
-// limits to convert.
+// Takes config (*annotator_dto.ResourceLimitConfig) which specifies the resource limits
+// to convert.
 //
-// Returns *annotator_dto.ResourceLimitSpec which contains the converted
-// resource limits, or nil when config is nil.
+// Returns *annotator_dto.ResourceLimitSpec which contains the converted resource limits,
+// or nil when config is nil.
 func convertResourceLimitConfig(config *annotator_dto.ResourceLimitConfig) *annotator_dto.ResourceLimitSpec {
 	if config == nil {
 		return nil
@@ -255,8 +253,8 @@ func convertResourceLimitConfig(config *annotator_dto.ResourceLimitConfig) *anno
 //
 // Takes config (*annotator_dto.CacheConfig) which specifies the cache settings.
 //
-// Returns *annotator_dto.CacheConfigSpec which is the converted spec,
-// or nil if config is nil.
+// Returns *annotator_dto.CacheConfigSpec which is the converted spec, or nil if config is
+// nil.
 func convertCacheConfig(config *annotator_dto.CacheConfig) *annotator_dto.CacheConfigSpec {
 	if config == nil {
 		return nil

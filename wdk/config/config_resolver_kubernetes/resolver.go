@@ -33,27 +33,25 @@ import (
 	"piko.sh/piko/wdk/config"
 )
 
-var _ config.Resolver = (*Resolver)(nil)
+var (
+	_ config.Resolver = (*Resolver)(nil)
+)
 
-// Resolver fetches secrets from the Kubernetes API server.
-// It implements the config.Resolver interface.
+// Resolver fetches secrets from the Kubernetes API server. It implements the
+// config.Resolver interface.
 //
-// Circuit breaker protection is provided by the config Loader layer,
-// not by this resolver directly.
+// Circuit breaker protection is provided by the config Loader layer, not by this resolver
+// directly.
 //
-// AUTHENTICATION:
-// The resolver automatically handles both in-cluster and out-of-cluster
-// authentication. When running inside a pod with a service account, it
-// uses the service account token. When running locally, it uses the
-// standard kubeconfig file (~/.kube/config or the path in KUBECONFIG
-// env var).
+// AUTHENTICATION: The resolver automatically handles both in-cluster and out-of-cluster
+// authentication. When running inside a pod with a service account, it uses the service
+// account token. When running locally, it uses the standard kubeconfig file
+// (~/.kube/config or the path in KUBECONFIG env var).
 //
-// USAGE FORMAT:
-// The value is expected in the format:
-// "kubernetes-secret:[namespace/]secret-name#key"
-// 1. With namespace: "kubernetes-secret:my-app/api-credentials#api-key"
-// 2. Default namespace: "kubernetes-secret:db-credentials#password"
-// uses "default" namespace.
+// USAGE FORMAT: The value is expected in the format:
+// "kubernetes-secret:[namespace/]secret-name#key" 1. With namespace:
+// "kubernetes-secret:my-app/api-credentials#api-key" 2. Default namespace:
+// "kubernetes-secret:db-credentials#password" uses "default" namespace.
 type Resolver struct {
 	// clientset is the Kubernetes API client used to fetch secrets.
 	clientset *kubernetes.Clientset
@@ -64,10 +62,9 @@ type Resolver struct {
 
 // NewResolver creates and sets up a new Kubernetes secret resolver.
 //
-// Returns *Resolver which is ready to access secrets in the detected
-// namespace.
-// Returns error when the Kubernetes configuration cannot be loaded or the
-// client cannot be created.
+// Returns *Resolver which is ready to access secrets in the detected namespace.
+// Returns error when the Kubernetes configuration cannot be loaded or the client cannot
+// be created.
 func NewResolver() (*Resolver, error) {
 	restConfig, err := rest.InClusterConfig()
 	if err != nil {
@@ -117,8 +114,8 @@ func (*Resolver) GetPrefix() string {
 // "namespace/secret#key" or "secret#key" (uses the default namespace).
 //
 // Returns string which contains the decoded secret data.
-// Returns error when the format is invalid, the secret is not found, or the
-// key does not exist in the secret.
+// Returns error when the format is invalid, the secret is not found, or the key does not
+// exist in the secret.
 func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	secretRef, dataKey, ok := strings.Cut(value, "#")
 	if !ok || dataKey == "" {
@@ -127,9 +124,9 @@ func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 
 	namespace := r.namespace
 	secretName := secretRef
-	if parts := strings.SplitN(secretRef, "/", 2); len(parts) == 2 {
-		namespace = parts[0]
-		secretName = parts[1]
+	if ns, name, ok := strings.Cut(secretRef, "/"); ok {
+		namespace = ns
+		secretName = name
 	}
 
 	secret, err := r.clientset.CoreV1().Secrets(namespace).Get(ctx, secretName, metav1.GetOptions{})
@@ -148,9 +145,9 @@ func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	return secretValue, nil
 }
 
-// Register creates a new Kubernetes secret resolver and registers it in the
-// global resolver registry. This is a convenience function equivalent to
-// [NewResolver] followed by [config.RegisterResolver].
+// Register creates a new Kubernetes secret resolver and registers it in the global
+// resolver registry. This is a convenience function equivalent to NewResolver followed by
+// config.RegisterResolver.
 //
 // Returns error when resolver creation or registration fails.
 //

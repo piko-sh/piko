@@ -53,9 +53,8 @@ const (
 	mockTokensPerInput = 5
 )
 
-// MockLLMProvider is a test double for LLMProviderPort that returns
-// zero values from nil function fields and tracks call counts
-// atomically.
+// MockLLMProvider is a test double for LLMProviderPort that returns zero values from nil
+// function fields and tracks call counts atomically.
 type MockLLMProvider struct {
 	// CompleteFunc is the function called by Complete.
 	CompleteFunc func(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
@@ -63,35 +62,28 @@ type MockLLMProvider struct {
 	// StreamFunc is the function called by Stream.
 	StreamFunc func(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error)
 
-	// ListModelsFunc is the function called by
-	// ListModels.
+	// ListModelsFunc is the function called by ListModels.
 	ListModelsFunc func(ctx context.Context) ([]llm_dto.ModelInfo, error)
 
 	// CloseFunc is the function called by Close.
 	CloseFunc func(ctx context.Context) error
 
-	// DefaultModelValue is the model name returned by
-	// DefaultModel.
+	// DefaultModelValue is the model name returned by DefaultModel.
 	DefaultModelValue string
 
-	// CompleteCallCount tracks how many times Complete
-	// was called.
-	CompleteCallCount int64
+	// CompleteCallCount tracks how many times Complete was called.
+	CompleteCallCount atomic.Int64
 
-	// StreamCallCount tracks how many times Stream was
-	// called.
-	StreamCallCount int64
+	// StreamCallCount tracks how many times Stream was called.
+	StreamCallCount atomic.Int64
 
-	// SupportsStreamingValue is the value returned by
-	// SupportsStreaming.
+	// SupportsStreamingValue is the value returned by SupportsStreaming.
 	SupportsStreamingValue bool
 
-	// SupportsStructuredValue is the value returned by
-	// SupportsStructuredOutput.
+	// SupportsStructuredValue is the value returned by SupportsStructuredOutput.
 	SupportsStructuredValue bool
 
-	// SupportsToolsValue is the value returned by
-	// SupportsTools.
+	// SupportsToolsValue is the value returned by SupportsTools.
 	SupportsToolsValue bool
 
 	// SupportsPenaltiesValue is the value returned by SupportsPenalties.
@@ -100,8 +92,7 @@ type MockLLMProvider struct {
 	// SupportsSeedValue is the value returned by SupportsSeed.
 	SupportsSeedValue bool
 
-	// SupportsParallelToolCallsValue is the value returned by
-	// SupportsParallelToolCalls.
+	// SupportsParallelToolCallsValue is the value returned by SupportsParallelToolCalls.
 	SupportsParallelToolCallsValue bool
 
 	// SupportsMessageNameValue is the value returned by SupportsMessageName.
@@ -127,7 +118,7 @@ func NewMockLLMProvider() *MockLLMProvider {
 //
 // Returns (zero, nil) if CompleteFunc is nil.
 func (m *MockLLMProvider) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
-	atomic.AddInt64(&m.CompleteCallCount, 1)
+	m.CompleteCallCount.Add(1)
 
 	if m.CompleteFunc != nil {
 		return m.CompleteFunc(ctx, request)
@@ -162,10 +153,10 @@ func (m *MockLLMProvider) Complete(ctx context.Context, request *llm_dto.Complet
 //
 // Returns (zero, nil) if StreamFunc is nil.
 //
-// Concurrent; spawns a goroutine that sends a done event and closes the
-// channel when StreamFunc is nil.
+// Concurrent; spawns a goroutine that sends a done event and closes the channel when
+// StreamFunc is nil.
 func (m *MockLLMProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
-	atomic.AddInt64(&m.StreamCallCount, 1)
+	m.StreamCallCount.Add(1)
 
 	if m.StreamFunc != nil {
 		return m.StreamFunc(ctx, request)
@@ -188,8 +179,7 @@ func (m *MockLLMProvider) SupportsStreaming() bool {
 
 // SupportsStructuredOutput implements LLMProviderPort.SupportsStructuredOutput.
 //
-// Returns bool which indicates whether this provider supports structured
-// output.
+// Returns bool which indicates whether this provider supports structured output.
 func (m *MockLLMProvider) SupportsStructuredOutput() bool {
 	return m.SupportsStructuredValue
 }
@@ -267,27 +257,24 @@ func (m *MockLLMProvider) SetResponse(response *llm_dto.CompletionResponse) {
 	}
 }
 
-// MockEmbeddingProvider is a test double for EmbeddingProviderPort that
-// returns zero values from nil function fields and tracks call counts
-// atomically.
+// MockEmbeddingProvider is a test double for EmbeddingProviderPort that returns zero
+// values from nil function fields and tracks call counts atomically.
 type MockEmbeddingProvider struct {
-	// EmbedFunc is called when Embed is invoked; if nil, a default response is
-	// used.
+	// EmbedFunc is called when Embed is invoked; if nil, a default response is used.
 	EmbedFunc func(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error)
 
-	// ListModelsFunc is called by ListEmbeddingModels when set; nil uses the
-	// default behaviour.
+	// ListModelsFunc is called by ListEmbeddingModels when set; nil uses the default
+	// behaviour.
 	ListModelsFunc func(ctx context.Context) ([]llm_dto.ModelInfo, error)
 
-	// CloseFunc is called by Close to release resources; if nil, Close returns
-	// nil.
+	// CloseFunc is called by Close to release resources; if nil, Close returns nil.
 	CloseFunc func(ctx context.Context) error
 
 	// EmbeddingDimensionsFunc is called by EmbeddingDimensions; if nil, returns 0.
 	EmbeddingDimensionsFunc func() int
 
 	// EmbedCallCount tracks the number of calls to Embed.
-	EmbedCallCount int64
+	EmbedCallCount atomic.Int64
 }
 
 // NewMockEmbeddingProvider creates a new MockEmbeddingProvider.
@@ -299,8 +286,7 @@ func NewMockEmbeddingProvider() *MockEmbeddingProvider {
 
 // SetEmbedFunc sets the implementation for the Embed method.
 //
-// Takes f (func(...)) which provides the function to call when Embed is
-// invoked.
+// Takes f (func(...)) which provides the function to call when Embed is invoked.
 func (m *MockEmbeddingProvider) SetEmbedFunc(f func(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error)) {
 	m.EmbedFunc = f
 }
@@ -313,7 +299,7 @@ func (m *MockEmbeddingProvider) SetEmbedFunc(f func(ctx context.Context, request
 //
 // Returns (zero, nil) if EmbedFunc is nil.
 func (m *MockEmbeddingProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
-	atomic.AddInt64(&m.EmbedCallCount, 1)
+	m.EmbedCallCount.Add(1)
 
 	if m.EmbedFunc != nil {
 		return m.EmbedFunc(ctx, request)
@@ -498,8 +484,7 @@ type MockBudgetStore struct {
 	// GetStatusFunc is the mock implementation for the GetStatus method.
 	GetStatusFunc func(ctx context.Context, scope string) (*llm_dto.BudgetStatus, error)
 
-	// CheckAndReserveFunc is the mock implementation for the CheckAndReserve
-	// method.
+	// CheckAndReserveFunc is the mock implementation for the CheckAndReserve method.
 	CheckAndReserveFunc func(ctx context.Context, scope string, estimatedCost maths.Money, limits llm_dto.BudgetLimits) error
 
 	// UnreserveFunc is the mock implementation for the Unreserve method.
@@ -563,8 +548,7 @@ func (m *MockBudgetStore) Record(ctx context.Context, scope string, cost *llm_dt
 //
 // Takes scope (string) which identifies the budget scope to retrieve.
 //
-// Returns *llm_dto.BudgetStatus which contains the current budget status for
-// the scope.
+// Returns *llm_dto.BudgetStatus which contains the current budget status for the scope.
 // Returns error when the status cannot be retrieved.
 //
 // Safe for concurrent use; protected by mutex.
@@ -785,8 +769,8 @@ func (m *MockMemoryStore) Save(_ context.Context, state *llm_dto.ConversationSta
 	return nil
 }
 
-// Delete removes the conversation state for the given identifier.
-// Implements the memory store Delete method.
+// Delete removes the conversation state for the given identifier. Implements the memory
+// store Delete method.
 //
 // Takes conversationID (string) which identifies the conversation to remove.
 //
@@ -818,14 +802,14 @@ func (m *MockMemoryStore) List(_ context.Context, _ string) ([]string, error) {
 	return ids, nil
 }
 
-// MockSummariser is a test double for the summariser that returns zero
-// values from nil function fields and tracks call counts atomically.
+// MockSummariser is a test double for the summariser that returns zero values from nil
+// function fields and tracks call counts atomically.
 type MockSummariser struct {
 	// CompleteFunc is called when Complete is invoked; nil uses the default stub.
 	CompleteFunc func(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
 
 	// CompleteCallCount tracks the number of calls to Complete.
-	CompleteCallCount int64
+	CompleteCallCount atomic.Int64
 }
 
 // NewMockSummariser creates a new MockSummariser.
@@ -843,7 +827,7 @@ func NewMockSummariser() *MockSummariser {
 //
 // Returns (zero, nil) if CompleteFunc is nil.
 func (m *MockSummariser) Complete(ctx context.Context, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
-	atomic.AddInt64(&m.CompleteCallCount, 1)
+	m.CompleteCallCount.Add(1)
 
 	if m.CompleteFunc != nil {
 		return m.CompleteFunc(ctx, request)
@@ -894,14 +878,14 @@ func NewMockRateLimiterStore() *MockRateLimiterStore {
 	}
 }
 
-// NewMockRateLimiterStoreWithClock creates a new MockRateLimiterStore with a
-// custom clock.
+// NewMockRateLimiterStoreWithClock creates a new MockRateLimiterStore with a custom
+// clock.
 //
-// Takes clock (func() time.Time) which provides the current time for rate
-// limiting calculations.
+// Takes clock (func() time.Time) which provides the current time for rate limiting
+// calculations.
 //
-// Returns *MockRateLimiterStore which is the configured mock store ready for
-// use in tests.
+// Returns *MockRateLimiterStore which is the configured mock store ready for use in
+// tests.
 func NewMockRateLimiterStoreWithClock(clock func() time.Time) *MockRateLimiterStore {
 	return &MockRateLimiterStore{
 		buckets: make(map[string]*ratelimiter_domain.TokenBucketState),
@@ -913,8 +897,7 @@ func NewMockRateLimiterStoreWithClock(clock func() time.Time) *MockRateLimiterSt
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens to take.
-// Takes config (*ratelimiter_dto.TokenBucketConfig) which provides bucket
-// settings.
+// Takes config (*ratelimiter_dto.TokenBucketConfig) which provides bucket settings.
 //
 // Returns bool which is true if the tokens were taken successfully.
 // Returns error when the operation fails.
@@ -959,8 +942,7 @@ func (m *MockRateLimiterStore) TryTake(ctx context.Context, key string, n float6
 // Takes config (*ratelimiter_dto.TokenBucketConfig) which provides the bucket
 // configuration.
 //
-// Returns time.Duration which is the time to wait before n tokens are
-// available.
+// Returns time.Duration which is the time to wait before n tokens are available.
 // Returns error when the wait duration cannot be calculated.
 //
 // Safe for concurrent use. Uses a mutex to protect bucket state access.

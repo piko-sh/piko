@@ -16,19 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package highlight_chroma provides a Chroma-based syntax
-// highlighter for Piko.
+// Package highlight_chroma provides a Chroma-based syntax highlighter for Piko.
 //
-// It implements the highlight domain's Highlighter interface using
-// the alecthomas/chroma library. The package handles tokenisation,
-// styling, and HTML output generation for code blocks.
+// It implements the highlight domain's Highlighter interface using the alecthomas/chroma
+// library. The package handles tokenisation, styling, and HTML output generation for code
+// blocks.
 //
-// A custom lexer for Piko Single File Components (.pk, .pkc) is
-// registered automatically on import, covering SFC blocks,
-// directives, interpolation, and embedded languages. All 200+
-// Chroma languages are also available.
+// A custom lexer for Piko Single File Components (.pk, .pkc) is registered automatically
+// on import, covering SFC blocks, directives, interpolation, and embedded languages. All
+// 200+ Chroma languages are also available.
 //
-// When WithClasses is true in the config, the output uses CSS class
-// names instead of inline styles. Highlighter instances are safe
-// for concurrent use.
+// When WithClasses is true in the config, the output uses CSS class names instead of
+// inline styles. Highlighter instances are safe for concurrent use.
 package highlight_chroma

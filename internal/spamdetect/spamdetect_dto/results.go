@@ -18,12 +18,14 @@
 
 package spamdetect_dto
 
-import "time"
+import (
+	"time"
+)
 
 // AnalysisResult is the composite verdict from the spam detection service.
 type AnalysisResult struct {
-	// SubmissionID is a unique identifier for correlating async detector
-	// results with this submission. Empty when no async detectors run.
+	// SubmissionID is a unique identifier for correlating async detector results with this
+	// submission. Empty when no async detectors run.
 	SubmissionID string
 
 	// DetectorResults contains the verdict from each detector that ran.
@@ -32,19 +34,17 @@ type AnalysisResult struct {
 	// FieldResults contains per-field score breakdowns.
 	FieldResults []FieldResult
 
-	// FormReasons collects top-level reasons from detectors that analyse
-	// the submission as a whole (e.g. honeypot, timing) rather than
-	// individual fields.
+	// FormReasons collects top-level reasons from detectors that analyse the submission as a
+	// whole (e.g. honeypot, timing) rather than individual fields.
 	FormReasons []string
 
-	// PendingDetectors lists the names of async detectors that have been
-	// dispatched but have not yet returned a result.
+	// PendingDetectors lists the names of async detectors that have been dispatched but have
+	// not yet returned a result.
 	PendingDetectors []string
 
-	// TruncatedFields lists the submission field keys that were truncated
-	// or dropped during sanitisation. Callers can reject submissions
-	// whose protected fields appear here rather than scoring on a
-	// partial view of the input.
+	// TruncatedFields lists the submission field keys that were truncated or dropped during
+	// sanitisation. Callers can reject submissions whose protected fields appear here rather
+	// than scoring on a partial view of the input.
 	TruncatedFields []string
 
 	// Duration is the total wall-clock time for all synchronous detectors.
@@ -59,52 +59,47 @@ type AnalysisResult struct {
 	// IsSpam is the composite verdict after aggregating all detectors.
 	IsSpam bool
 
-	// PendingAsync is true when async detectors have been dispatched and
-	// their results will arrive later via the schema's AsyncResultHandler.
+	// PendingAsync is true when async detectors have been dispatched and their results will
+	// arrive later via the schema's AsyncResultHandler.
 	PendingAsync bool
 
-	// Truncated is true when any submission field was truncated or
-	// dropped during sanitisation. Inspect TruncatedFields for the
-	// affected keys.
+	// Truncated is true when any submission field was truncated or dropped during
+	// sanitisation. Inspect TruncatedFields for the affected keys.
 	Truncated bool
 }
 
 // DetectorResult is the verdict from a single detector.
 type DetectorResult struct {
-	// Error is non-nil when the detector failed, in which case the Score
-	// and FieldScores are excluded from composite aggregation; the
-	// service returns ErrAllDetectorsFailed only when every matching
-	// detector reports a non-nil Error.
+	// Error is non-nil when the detector failed, in which case the Score and FieldScores are
+	// excluded from composite aggregation; the service returns ErrAllDetectorsFailed only
+	// when every matching detector reports a non-nil Error.
 	Error error
 
-	// FieldReasons maps field keys to field-specific explanations from
-	// this detector.
+	// FieldReasons maps field keys to field-specific explanations from this detector.
 	FieldReasons map[string][]string
 
-	// FieldScores maps field keys to their individual scores from this
-	// detector.
+	// FieldScores maps field keys to their individual scores from this detector.
 	FieldScores map[string]float64
 
 	// Detector is the registered name of the detector.
 	Detector string
 
-	// Reasons lists detector-level explanations not specific to any
-	// single field.
+	// Reasons lists detector-level explanations not specific to any single field.
 	Reasons []string
 
 	// Duration is how long the detector took to respond.
 	Duration time.Duration
 
-	// Score is the overall spam likelihood from the detector
-	// (0.0 = clean, 1.0 = definite spam).
+	// Score is the overall spam likelihood from the detector (0.0 = clean, 1.0 = definite
+	// spam).
 	Score float64
 
 	// IsSpam is the detector's binary verdict.
 	IsSpam bool
 }
 
-// FieldResult is the aggregated score for a single form field across
-// all detectors that analysed it.
+// FieldResult is the aggregated score for a single form field across all detectors that
+// analysed it.
 type FieldResult struct {
 	// Key is the form field key from the schema.
 	Key string
@@ -112,17 +107,15 @@ type FieldResult struct {
 	// Type is the semantic field type from the schema.
 	Type FieldType
 
-	// Reasons lists field-specific explanations from detectors that
-	// flagged the field.
+	// Reasons lists field-specific explanations from detectors that flagged the field.
 	Reasons []string
 
 	// Score is the aggregated spam score for the field.
 	Score float64
 }
 
-// SubmissionRecord bundles a submission with its analysis result and
-// feedback verdict. Used by the FeedbackStore to persist complete
-// training records.
+// SubmissionRecord bundles a submission with its analysis result and feedback verdict.
+// Used by the FeedbackStore to persist complete training records.
 type SubmissionRecord struct {
 	// Submission is the original form data that was analysed.
 	Submission *Submission

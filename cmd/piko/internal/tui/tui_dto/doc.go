@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package tui_dto contains data transfer objects for the TUI monitoring
-// module.
+// Package tui_dto contains data transfer objects for the TUI monitoring module.
 //
-// It defines configuration structs and default constants used to pass
-// settings between the public facade, domain service layer, and adapter
-// providers. The [Config] type captures endpoint addresses, refresh
-// intervals, and theming options for the terminal interface.
+// It defines configuration structs and default constants used to pass settings between
+// the public facade, domain service layer, and adapter providers. The [Config] type
+// captures endpoint addresses, refresh intervals, and theming options for the terminal
+// interface.
 package tui_dto

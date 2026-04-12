@@ -33,13 +33,12 @@ const (
 	// extensionJS is the JavaScript file extension.
 	extensionJS = ".js"
 
-	// aliasPrefix is the import path prefix that triggers module alias
-	// resolution.
+	// aliasPrefix is the import path prefix that triggers module alias resolution.
 	aliasPrefix = "@/"
 )
 
-// NormaliseExtension ensures an import path has a .js extension when it refers
-// to a JavaScript or TypeScript source file, leaving other extensions unchanged.
+// NormaliseExtension ensures an import path has a .js extension when it refers to a
+// JavaScript or TypeScript source file, leaving other extensions unchanged.
 //
 // Takes importPath (string) which is the import path to normalise.
 //
@@ -55,8 +54,8 @@ func NormaliseExtension(importPath string) string {
 	return importPath
 }
 
-// IsTransformable reports whether the given import path uses the @/ alias and
-// can be rewritten to a served asset path.
+// IsTransformable reports whether the given import path uses the @/ alias and can be
+// rewritten to a served asset path.
 //
 // Takes importPath (string) which is the path to check.
 //
@@ -65,9 +64,9 @@ func IsTransformable(importPath string) bool {
 	return strings.HasPrefix(importPath, aliasPrefix)
 }
 
-// ResolveModuleAlias rewrites an @/ prefixed import path to the corresponding
-// served asset URL. The @/ prefix is replaced with
-// /_piko/assets/{moduleName}/ and the extension is normalised to .js.
+// ResolveModuleAlias rewrites an @/ prefixed import path to the corresponding served
+// asset URL. The @/ prefix is replaced with /_piko/assets/{moduleName}/ and the extension
+// is normalised to .js.
 //
 // For example, with a GitHub-hosted moduleName such as "example.com/org/repo":
 //
@@ -84,9 +83,9 @@ func ResolveModuleAlias(importPath, moduleName string) string {
 	return NormaliseExtension(assetpath.DefaultServePath + "/" + moduleName + "/" + subpath)
 }
 
-// ResolveModulePath returns the module-qualified path (without the serve
-// prefix) for an @/ import. This is used by the compiler to build dependency
-// records that track which artefacts a component depends on.
+// ResolveModulePath returns the module-qualified path (without the serve prefix) for an
+// @/ import. This is used by the compiler to build dependency records that track which
+// artefacts a component depends on.
 //
 // For example, with a GitHub-hosted moduleName such as "example.com/org/repo":
 //
@@ -101,14 +100,14 @@ func ResolveModulePath(importPath, moduleName string) string {
 	return NormaliseExtension(moduleName + "/" + subpath)
 }
 
-// RewriteImportRecords rewrites import paths in parsed esbuild AST import
-// records in place, handling alias resolution, .ts-to-.js conversion, and
-// extensionless relative import normalisation.
+// RewriteImportRecords rewrites import paths in parsed esbuild AST import records in
+// place, handling alias resolution, .ts-to-.js conversion, and extensionless relative
+// import normalisation.
 //
-// Takes records ([]ast.ImportRecord) which are the parsed import records to
-// modify in place.
-// Takes moduleName (string) which is the Go module name for @/ resolution,
-// or empty to skip alias resolution.
+// Takes records ([]ast.ImportRecord) which are the parsed import records to modify in
+// place.
+// Takes moduleName (string) which is the Go module name for @/ resolution, or empty to
+// skip alias resolution.
 func RewriteImportRecords(records []ast.ImportRecord, moduleName string) {
 	for i := range records {
 		importPath := records[i].Path.Text
@@ -132,8 +131,8 @@ func RewriteImportRecords(records []ast.ImportRecord, moduleName string) {
 	}
 }
 
-// isRelativePath reports whether a path starts with ./ or ../ and therefore
-// refers to a local file rather than a bare module specifier or URL.
+// isRelativePath reports whether a path starts with ./ or ../ and therefore refers to a
+// local file rather than a bare module specifier or URL.
 //
 // Takes importPath (string) which is the import path to check.
 //

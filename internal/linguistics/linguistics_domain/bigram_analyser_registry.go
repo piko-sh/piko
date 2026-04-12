@@ -21,11 +21,12 @@ package linguistics_domain
 // BigramAnalyserFactory creates a bigram analyser for a given language.
 type BigramAnalyserFactory = factoryFunc[BigramAnalyserPort]
 
-// bigramAnalyserRegistry holds all registered bigram analyser factories.
-var bigramAnalyserRegistry = newRegistry[BigramAnalyserPort]("bigram_analyser")
+var (
+	// bigramAnalyserRegistry holds all registered bigram analyser factories.
+	bigramAnalyserRegistry = newRegistry[BigramAnalyserPort]("bigram_analyser")
+)
 
-// RegisterBigramAnalyserFactory registers a bigram analyser factory for a
-// language.
+// RegisterBigramAnalyserFactory registers a bigram analyser factory for a language.
 //
 // Takes language (string) which is the language code.
 // Takes factory (BigramAnalyserFactory) which creates the analyser.
@@ -37,8 +38,7 @@ func RegisterBigramAnalyserFactory(language string, factory BigramAnalyserFactor
 //
 // Takes language (string) which is the language code to look up.
 //
-// Returns BigramAnalyserPort which is the analyser, or nil if no factory is
-// registered.
+// Returns BigramAnalyserPort which is the analyser, or nil if no factory is registered.
 func CreateBigramAnalyser(language string) BigramAnalyserPort {
 	factory, ok := getBigramAnalyserFactory(language)
 	if !ok {
@@ -53,8 +53,8 @@ func CreateBigramAnalyser(language string) BigramAnalyserPort {
 	return analyser
 }
 
-// RegisteredBigramAnalyserFactories returns the names of languages that
-// have bigram analyser factories registered.
+// RegisteredBigramAnalyserFactories returns the names of languages that have bigram
+// analyser factories registered.
 //
 // Returns []string which contains the registered language codes.
 func RegisteredBigramAnalyserFactories() []string {

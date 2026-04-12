@@ -20,7 +20,6 @@ package i18n_domain
 
 import (
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,18 +33,15 @@ func TestMockService_GetStore(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockService{
-			GetStoreFunc:           nil,
-			GetStrBufPoolFunc:      nil,
-			DefaultLocaleFunc:      nil,
-			GetStoreCallCount:      0,
-			GetStrBufPoolCallCount: 0,
-			DefaultLocaleCallCount: 0,
+			GetStoreFunc:      nil,
+			GetStrBufPoolFunc: nil,
+			DefaultLocaleFunc: nil,
 		}
 
 		result := mock.GetStore()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStoreCallCount))
+		assert.Equal(t, int64(1), mock.GetStoreCallCount.Load())
 	})
 
 	t.Run("delegates to GetStoreFunc", func(t *testing.T) {
@@ -57,18 +53,15 @@ func TestMockService_GetStore(t *testing.T) {
 			GetStoreFunc: func() *Store {
 				return expectedStore
 			},
-			GetStrBufPoolFunc:      nil,
-			DefaultLocaleFunc:      nil,
-			GetStoreCallCount:      0,
-			GetStrBufPoolCallCount: 0,
-			DefaultLocaleCallCount: 0,
+			GetStrBufPoolFunc: nil,
+			DefaultLocaleFunc: nil,
 		}
 
 		result := mock.GetStore()
 
 		require.NotNil(t, result)
 		assert.Same(t, expectedStore, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStoreCallCount))
+		assert.Equal(t, int64(1), mock.GetStoreCallCount.Load())
 	})
 }
 
@@ -79,18 +72,15 @@ func TestMockService_GetStrBufPool(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockService{
-			GetStoreFunc:           nil,
-			GetStrBufPoolFunc:      nil,
-			DefaultLocaleFunc:      nil,
-			GetStoreCallCount:      0,
-			GetStrBufPoolCallCount: 0,
-			DefaultLocaleCallCount: 0,
+			GetStoreFunc:      nil,
+			GetStrBufPoolFunc: nil,
+			DefaultLocaleFunc: nil,
 		}
 
 		result := mock.GetStrBufPool()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStrBufPoolCallCount))
+		assert.Equal(t, int64(1), mock.GetStrBufPoolCallCount.Load())
 	})
 
 	t.Run("delegates to GetStrBufPoolFunc", func(t *testing.T) {
@@ -103,17 +93,14 @@ func TestMockService_GetStrBufPool(t *testing.T) {
 			GetStrBufPoolFunc: func() *StrBufPool {
 				return expectedPool
 			},
-			DefaultLocaleFunc:      nil,
-			GetStoreCallCount:      0,
-			GetStrBufPoolCallCount: 0,
-			DefaultLocaleCallCount: 0,
+			DefaultLocaleFunc: nil,
 		}
 
 		result := mock.GetStrBufPool()
 
 		require.NotNil(t, result)
 		assert.Same(t, expectedPool, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStrBufPoolCallCount))
+		assert.Equal(t, int64(1), mock.GetStrBufPoolCallCount.Load())
 	})
 }
 
@@ -124,18 +111,15 @@ func TestMockService_DefaultLocale(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockService{
-			GetStoreFunc:           nil,
-			GetStrBufPoolFunc:      nil,
-			DefaultLocaleFunc:      nil,
-			GetStoreCallCount:      0,
-			GetStrBufPoolCallCount: 0,
-			DefaultLocaleCallCount: 0,
+			GetStoreFunc:      nil,
+			GetStrBufPoolFunc: nil,
+			DefaultLocaleFunc: nil,
 		}
 
 		result := mock.DefaultLocale()
 
 		assert.Equal(t, "", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DefaultLocaleCallCount))
+		assert.Equal(t, int64(1), mock.DefaultLocaleCallCount.Load())
 	})
 
 	t.Run("delegates to DefaultLocaleFunc", func(t *testing.T) {
@@ -147,15 +131,12 @@ func TestMockService_DefaultLocale(t *testing.T) {
 			DefaultLocaleFunc: func() string {
 				return "en-GB"
 			},
-			GetStoreCallCount:      0,
-			GetStrBufPoolCallCount: 0,
-			DefaultLocaleCallCount: 0,
 		}
 
 		result := mock.DefaultLocale()
 
 		assert.Equal(t, "en-GB", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DefaultLocaleCallCount))
+		assert.Equal(t, int64(1), mock.DefaultLocaleCallCount.Load())
 	})
 }
 
@@ -173,21 +154,18 @@ func TestMockService_ZeroValueIsUsable(t *testing.T) {
 	locale := mock.DefaultLocale()
 	assert.Equal(t, "", locale)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStoreCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetStrBufPoolCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DefaultLocaleCallCount))
+	assert.Equal(t, int64(1), mock.GetStoreCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetStrBufPoolCallCount.Load())
+	assert.Equal(t, int64(1), mock.DefaultLocaleCallCount.Load())
 }
 
 func TestMockService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockService{
-		GetStoreFunc:           nil,
-		GetStrBufPoolFunc:      nil,
-		DefaultLocaleFunc:      nil,
-		GetStoreCallCount:      0,
-		GetStrBufPoolCallCount: 0,
-		DefaultLocaleCallCount: 0,
+		GetStoreFunc:      nil,
+		GetStrBufPoolFunc: nil,
+		DefaultLocaleFunc: nil,
 	}
 
 	const goroutines = 50
@@ -212,7 +190,7 @@ func TestMockService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetStoreCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetStrBufPoolCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.DefaultLocaleCallCount))
+	assert.Equal(t, int64(goroutines), mock.GetStoreCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetStrBufPoolCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.DefaultLocaleCallCount.Load())
 }

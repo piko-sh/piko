@@ -16,11 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_dto defines data transfer objects for the email
-// module.
+// Package email_dto defines data transfer objects for the email module.
 //
-// It contains request/response types, configuration structs, and
-// parameter objects used to pass data across architectural boundaries
-// within the email subsystem. These types have no behaviour beyond
-// data transfer and configuration defaults.
+// It contains request/response types, configuration structs, and parameter objects used
+// to pass data across architectural boundaries within the email subsystem. These types
+// have no behaviour beyond data transfer and configuration defaults.
 package email_dto

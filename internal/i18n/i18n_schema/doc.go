@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package i18n_schema provides versioned serialisation for the
-// internationalisation (i18n) hexagon's FlatBuffer representation.
+// Package i18n_schema provides versioned serialisation for the internationalisation
+// (i18n) hexagon's FlatBuffer representation.
 //
-// It embeds the i18n.fbs schema file and computes a SHA-256 hash at
-// init time. This hash is prepended to every serialised payload so
-// the cache invalidates automatically whenever the schema evolves.
-// The sub-package i18n_schema_gen contains the generated FlatBuffer
-// types that define the binary format for persisting translation and
-// locale data.
+// It embeds the i18n.fbs schema file and computes a SHA-256 hash at init time. This hash
+// is prepended to every serialised payload so the cache invalidates automatically
+// whenever the schema evolves. The sub-package i18n_schema_gen contains the generated
+// FlatBuffer types that define the binary format for persisting translation and locale
+// data.
 package i18n_schema

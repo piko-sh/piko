@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -47,7 +46,7 @@ func TestMockOnDemandVariantGenerator_GenerateVariant(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateVariantCallCount))
+		assert.Equal(t, int64(1), mock.GenerateVariantCallCount.Load())
 	})
 
 	t.Run("delegates to GenerateVariantFunc", func(t *testing.T) {
@@ -81,7 +80,7 @@ func TestMockOnDemandVariantGenerator_GenerateVariant(t *testing.T) {
 		assert.Equal(t, ctx, capturedCtx)
 		assert.Equal(t, artefact, capturedArtefact)
 		assert.Equal(t, "image_w240_webp", capturedProfile)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateVariantCallCount))
+		assert.Equal(t, int64(1), mock.GenerateVariantCallCount.Load())
 	})
 
 	t.Run("propagates error from GenerateVariantFunc", func(t *testing.T) {
@@ -103,7 +102,7 @@ func TestMockOnDemandVariantGenerator_GenerateVariant(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, expectedErr.Error(), err.Error())
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateVariantCallCount))
+		assert.Equal(t, int64(1), mock.GenerateVariantCallCount.Load())
 	})
 }
 
@@ -118,7 +117,7 @@ func TestMockOnDemandVariantGenerator_ParseProfileName(t *testing.T) {
 		result := mock.ParseProfileName("image_w240_webp")
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ParseProfileNameCallCount))
+		assert.Equal(t, int64(1), mock.ParseProfileNameCallCount.Load())
 	})
 
 	t.Run("delegates to ParseProfileNameFunc", func(t *testing.T) {
@@ -143,7 +142,7 @@ func TestMockOnDemandVariantGenerator_ParseProfileName(t *testing.T) {
 
 		assert.Equal(t, expectedProfile, result)
 		assert.Equal(t, "image_w240_webp", capturedProfileName)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ParseProfileNameCallCount))
+		assert.Equal(t, int64(1), mock.ParseProfileNameCallCount.Load())
 	})
 }
 
@@ -160,12 +159,12 @@ func TestMockOnDemandVariantGenerator_ZeroValueIsUsable(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateVariantCallCount))
+	assert.Equal(t, int64(1), mock.GenerateVariantCallCount.Load())
 
 	profile := mock.ParseProfileName("image_w240_webp")
 
 	assert.Nil(t, profile)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ParseProfileNameCallCount))
+	assert.Equal(t, int64(1), mock.ParseProfileNameCallCount.Load())
 }
 
 func TestMockOnDemandVariantGenerator_ConcurrentAccess(t *testing.T) {
@@ -194,8 +193,8 @@ func TestMockOnDemandVariantGenerator_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GenerateVariantCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ParseProfileNameCallCount))
+	assert.Equal(t, int64(goroutines), mock.GenerateVariantCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ParseProfileNameCallCount.Load())
 }
 
 func TestMockOnDemandVariantGenerator_CallCountsAreIndependent(t *testing.T) {
@@ -207,8 +206,8 @@ func TestMockOnDemandVariantGenerator_CallCountsAreIndependent(t *testing.T) {
 	_, _ = mock.GenerateVariant(context.Background(), &registry_dto.ArtefactMeta{}, "p2")
 	_ = mock.ParseProfileName("p1")
 
-	assert.Equal(t, int64(2), atomic.LoadInt64(&mock.GenerateVariantCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ParseProfileNameCallCount))
+	assert.Equal(t, int64(2), mock.GenerateVariantCallCount.Load())
+	assert.Equal(t, int64(1), mock.ParseProfileNameCallCount.Load())
 }
 
 func TestMockOnDemandVariantGenerator_ImplementsOnDemandVariantGenerator(t *testing.T) {

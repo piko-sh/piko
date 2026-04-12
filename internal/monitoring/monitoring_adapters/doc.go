@@ -16,20 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package monitoring_adapters implements gRPC services and noop factories for
-// the monitoring hexagon.
+// Package monitoring_adapters implements gRPC services and noop factories for the
+// monitoring hexagon.
 //
-// It exposes telemetry data (metrics, traces, health checks, system
-// statistics) to external consumers via gRPC, and supplies noop defaults
-// for span processing and metrics collection when the OTEL SDK module
-// (wdk/logger/logger_otel_sdk) is not imported.
+// It exposes telemetry data (metrics, traces, health checks, system statistics) to
+// external consumers via gRPC, and supplies noop defaults for span processing and metrics
+// collection when the OTEL SDK module (wdk/logger/logger_otel_sdk) is not imported.
 //
 // # Integration
 //
-// Service registration is centralised through [DefaultServiceFactories],
-// which returns noop factory functions. For real OTEL SDK factories,
-// import wdk/logger/logger_otel_sdk and use
-// piko.WithMonitoringOtelFactories().
+// Service registration is centralised through [DefaultServiceFactories], which returns
+// noop factory functions. For real OTEL SDK factories, import wdk/logger/logger_otel_sdk
+// and use piko.WithMonitoringOtelFactories().
 //
 // # Thread safety
 //

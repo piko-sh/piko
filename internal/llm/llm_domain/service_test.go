@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -657,7 +656,7 @@ func TestService_Complete_UsesProviderDefaultModel(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, response)
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&provider.CompleteCallCount))
+		assert.Equal(t, int64(1), provider.CompleteCallCount.Load())
 		assert.Equal(t, "default-model", capturedModel)
 	})
 
@@ -692,7 +691,7 @@ func TestService_Complete_UsesProviderDefaultModel(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, response)
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&provider.CompleteCallCount))
+		assert.Equal(t, int64(1), provider.CompleteCallCount.Load())
 		assert.Equal(t, "explicit-model", capturedModel)
 	})
 }
@@ -727,7 +726,7 @@ func TestService_Stream_UsesProviderDefaultModel(t *testing.T) {
 	for range events {
 	}
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&provider.StreamCallCount))
+	assert.Equal(t, int64(1), provider.StreamCallCount.Load())
 	assert.Equal(t, "default-model", capturedModel)
 }
 

@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package typegen_dto defines data transfer objects for the type generation
-// module.
+// Package typegen_dto defines data transfer objects for the type generation module.
 //
-// It contains the data structures representing action metadata extracted
-// from Go source code, serialised into formats consumed by LSP completions
-// and TypeScript client generation.
+// It contains the data structures representing action metadata extracted from Go source
+// code, serialised into formats consumed by LSP completions and TypeScript client
+// generation.
 package typegen_dto

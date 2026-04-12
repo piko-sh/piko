@@ -50,7 +50,9 @@ func TestRegisteredType_StructLiteral_PreservesTypeAndFields(t *testing.T) {
 
 	source := `package main
 
-import "example.com/sdk"
+import (
+	"example.com/sdk"
+)
 
 func entrypoint() sdk.Metadata {
 	return sdk.Metadata{
@@ -80,8 +82,8 @@ func TestRegisteredType_MultiReturn_ViaClosureCallback(t *testing.T) {
 
 	type callResult struct {
 		response any
-		metadata registeredMetadata
 		err      error
+		metadata registeredMetadata
 	}
 	var captured callResult
 

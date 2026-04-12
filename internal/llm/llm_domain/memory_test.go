@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -437,7 +436,7 @@ func TestSummaryMemory_AddMessage(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		assert.Greater(t, atomic.LoadInt64(&summariser.CompleteCallCount), int64(0))
+		assert.Greater(t, summariser.CompleteCallCount.Load(), int64(0))
 
 		state, err := store.Load(ctx, "conv-1")
 		require.NoError(t, err)

@@ -49,8 +49,8 @@ const (
 	// specificityWeightID is the weight for ID selectors in specificity calculations.
 	specificityWeightID = 100
 
-	// specificityWeightClass is the multiplier for class, attribute, and
-	// pseudo-class selectors in CSS specificity calculations.
+	// specificityWeightClass is the multiplier for class, attribute, and pseudo-class
+	// selectors in CSS specificity calculations.
 	specificityWeightClass = 10
 
 	// specificityWeightElement is the weight multiplier for element selectors.
@@ -128,8 +128,8 @@ const (
 	// literalNewline is the newline character used to separate CSS blocks.
 	literalNewline = "\n"
 
-	// literalStyle is the attribute name for inline CSS styles and the tag name
-	// for style elements in HTML.
+	// literalStyle is the attribute name for inline CSS styles and the tag name for style
+	// elements in HTML.
 	literalStyle = "style"
 
 	// stringZero is the string representation of zero for comparison.

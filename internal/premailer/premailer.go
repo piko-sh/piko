@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/internal/esbuild/logger"
 )
 
-// Premailer applies CSS styles inline to a TemplateAST.
-// It bridges the TemplateAST and the CSS processing logic.
+// Premailer applies CSS styles inline to a TemplateAST. It bridges the TemplateAST and
+// the CSS processing logic.
 type Premailer struct {
 	// tree holds the parsed template AST for walking and modifying nodes.
 	tree *ast_domain.TemplateAST
@@ -40,14 +40,13 @@ type Premailer struct {
 	// log stores CSS parsing errors and warnings to report later.
 	log logger.Log
 
-	// originalInlineStyles caches the original inline styles before CSS
-	// application.
+	// originalInlineStyles caches the original inline styles before CSS application.
 	originalInlineStyles map[*ast_domain.TemplateNode]map[string]bool
 }
 
-// Transform processes an email template by inlining CSS and preparing it for
-// email clients. It extracts stylesheets, removes comments and scripts, applies
-// CSS rules to the AST, validates HTML tags, and appends link query parameters.
+// Transform processes an email template by inlining CSS and preparing it for email
+// clients. It extracts stylesheets, removes comments and scripts, applies CSS rules to
+// the AST, validates HTML tags, and appends link query parameters.
 //
 // Returns *ast_domain.TemplateAST which contains the transformed template.
 // Returns error when processing fails.
@@ -72,29 +71,28 @@ func (p *Premailer) Transform() (*ast_domain.TemplateAST, error) {
 	return p.tree, nil
 }
 
-// ResolvedProperties contains CSS properties matched to nodes without
-// modifying the template AST. Used by the layouter for CSS resolution.
+// ResolvedProperties contains CSS properties matched to nodes without modifying the
+// template AST. Used by the layouter for CSS resolution.
 type ResolvedProperties struct {
 	// Elements maps each template node to its cascade-resolved CSS properties.
 	Elements map[*ast_domain.TemplateNode]map[string]string
 
-	// PseudoElements maps each template node to its pseudo-element properties,
-	// keyed by pseudo-element name ("before" or "after").
+	// PseudoElements maps each template node to its pseudo-element properties, keyed by
+	// pseudo-element name ("before" or "after").
 	PseudoElements map[*ast_domain.TemplateNode]map[string]map[string]string
 
 	// Diagnostics contains any warnings or errors found during processing.
 	Diagnostics []*ast_domain.Diagnostic
 }
 
-// ResolveProperties resolves the CSS cascade for each node and returns
-// property maps without modifying the template AST. This is the non-mutating
-// counterpart to Transform(), designed for layout engines that need CSS
-// resolution without email-specific transformations.
+// ResolveProperties resolves the CSS cascade for each node and returns property maps
+// without modifying the template AST. This is the non-mutating counterpart to
+// Transform(), designed for layout engines that need CSS resolution without
+// email-specific transformations.
 //
-// The method parses CSS from the ExternalCSS option, resolves variables,
-// matches selectors, and merges with inline style attributes. It does not
-// remove <style> tags, write styles back to the AST, or apply HTML attribute
-// mappings.
+// The method parses CSS from the ExternalCSS option, resolves variables, matches
+// selectors, and merges with inline style attributes. It does not remove <style> tags,
+// write styles back to the AST, or apply HTML attribute mappings.
 //
 // Returns *ResolvedProperties which contains per-node property maps.
 // Returns error when CSS parsing fails.
@@ -122,12 +120,12 @@ func (p *Premailer) ResolveProperties() (*ResolvedProperties, error) {
 	return result, nil
 }
 
-// collectInlineStyles walks the tree and collects existing inline style
-// attributes from element nodes, parsing !important flags. When
-// ExpandShorthands is enabled, shorthand properties are expanded to longhands.
+// collectInlineStyles walks the tree and collects existing inline style attributes from
+// element nodes, parsing !important flags. When ExpandShorthands is enabled, shorthand
+// properties are expanded to longhands.
 //
-// Returns map[*ast_domain.TemplateNode]map[string]property which maps nodes
-// to their parsed inline style properties with importance tracking.
+// Returns map[*ast_domain.TemplateNode]map[string]property which maps nodes to their
+// parsed inline style properties with importance tracking.
 func (p *Premailer) collectInlineStyles() map[*ast_domain.TemplateNode]map[string]property {
 	inlineStyles := make(map[*ast_domain.TemplateNode]map[string]property)
 	p.tree.Walk(func(node *ast_domain.TemplateNode) bool {
@@ -147,13 +145,13 @@ func (p *Premailer) collectInlineStyles() map[*ast_domain.TemplateNode]map[strin
 	return inlineStyles
 }
 
-// parseInlineStyleWithImportance parses an inline style attribute, extracting
-// !important flags from each declaration.
+// parseInlineStyleWithImportance parses an inline style attribute, extracting !important
+// flags from each declaration.
 //
 // Takes styleAttr (string) which is the style attribute value to parse.
 //
-// Returns map[string]property which maps property names to their values and
-// importance flags.
+// Returns map[string]property which maps property names to their values and importance
+// flags.
 func parseInlineStyleWithImportance(styleAttr string) map[string]property {
 	styles := make(map[string]property)
 	if styleAttr == "" {
@@ -185,8 +183,8 @@ func parseInlineStyleWithImportance(styleAttr string) map[string]property {
 	return styles
 }
 
-// expandInlineShorthandsWithImportance expands shorthand CSS properties in an
-// inline style map to their longhand equivalents, preserving importance flags.
+// expandInlineShorthandsWithImportance expands shorthand CSS properties in an inline
+// style map to their longhand equivalents, preserving importance flags.
 //
 // Takes styles (map[string]property) which contains the parsed inline styles.
 //
@@ -209,11 +207,9 @@ func expandInlineShorthandsWithImportance(styles map[string]property) map[string
 	return expanded
 }
 
-// parseRuleSet parses CSS and produces a RuleSet, appending diagnostics to
-// the result.
+// parseRuleSet parses CSS and produces a RuleSet, appending diagnostics to the result.
 //
-// Takes cssString (string) which is the CSS to parse; empty returns an
-// empty RuleSet.
+// Takes cssString (string) which is the CSS to parse; empty returns an empty RuleSet.
 // Takes result (*ResolvedProperties) which receives diagnostics.
 //
 // Returns *RuleSet which contains the processed rules.
@@ -237,9 +233,9 @@ func (p *Premailer) parseRuleSet(cssString string, result *ResolvedProperties) *
 	return ruleSet
 }
 
-// mergeMatchedWithInline walks the tree and merges rule-matched properties
-// with inline styles, respecting cascade priorities. The merged results
-// are stored in result.Elements.
+// mergeMatchedWithInline walks the tree and merges rule-matched properties with inline
+// styles, respecting cascade priorities. The merged results are stored in
+// result.Elements.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the template to walk.
 // Takes matched (map) which contains rule-matched properties per node.
@@ -268,18 +264,18 @@ func mergeMatchedWithInline(
 	})
 }
 
-// mergeRuleAndInlineProperties merges CSS rule properties with inline style
-// properties, applying the full CSS cascade priority.
+// mergeRuleAndInlineProperties merges CSS rule properties with inline style properties,
+// applying the full CSS cascade priority.
 //
 // The priority order is:
 //   - Inline !important beats stylesheet !important
 //   - Stylesheet !important beats inline normal
 //   - Inline normal beats stylesheet normal
 //
-// Takes ruleProps (map[string]property) which contains the rule-matched
-// properties with importance flags.
-// Takes nodeInline (map[string]property) which contains the inline style
-// properties with importance flags.
+// Takes ruleProps (map[string]property) which contains the rule-matched properties with
+// importance flags.
+// Takes nodeInline (map[string]property) which contains the inline style properties with
+// importance flags.
 //
 // Returns map[string]string which contains the merged property values.
 func mergeRuleAndInlineProperties(
@@ -314,8 +310,8 @@ func mergeRuleAndInlineProperties(
 	return merged
 }
 
-// resolvePseudoElementProperties matches pseudo-element rules and converts
-// the results into string property maps, storing them in result.PseudoElements.
+// resolvePseudoElementProperties matches pseudo-element rules and converts the results
+// into string property maps, storing them in result.PseudoElements.
 //
 // Takes ruleSet (*RuleSet) which contains the pseudo-element rules.
 // Takes result (*ResolvedProperties) which receives the resolved properties.
@@ -332,14 +328,13 @@ func (p *Premailer) resolvePseudoElementProperties(ruleSet *RuleSet, result *Res
 	}
 }
 
-// convertPseudoProperties converts a pseudo-element property map with
-// importance flags into a plain string property map.
+// convertPseudoProperties converts a pseudo-element property map with importance flags
+// into a plain string property map.
 //
-// Takes pseudoMap (map[string]map[string]property) which maps pseudo-element
-// names to their property maps.
+// Takes pseudoMap (map[string]map[string]property) which maps pseudo-element names to
+// their property maps.
 //
-// Returns map[string]map[string]string which contains the converted
-// properties.
+// Returns map[string]map[string]string which contains the converted properties.
 func convertPseudoProperties(
 	pseudoMap map[string]map[string]property,
 ) map[string]map[string]string {
@@ -382,8 +377,8 @@ type collectionData struct {
 	// cssString holds the combined CSS text to apply; empty means no CSS rules.
 	cssString string
 
-	// nodesToRemove holds nodes to remove after processing, such as style tags,
-	// comments, and scripts.
+	// nodesToRemove holds nodes to remove after processing, such as style tags, comments,
+	// and scripts.
 	nodesToRemove []*ast_domain.TemplateNode
 
 	// originalInlineStyles maps nodes to their original inline style properties.
@@ -396,9 +391,9 @@ type collectionData struct {
 	diagnostics []*ast_domain.Diagnostic
 }
 
-// collectAndValidate performs a unified tree walk that collects CSS, nodes to
-// remove, inline styles, anchor targets, and validates HTML structure. This
-// consolidates what were previously 6+ separate tree walks into a single pass.
+// collectAndValidate performs a unified tree walk that collects CSS, nodes to remove,
+// inline styles, anchor targets, and validates HTML structure. This consolidates what
+// were previously 6+ separate tree walks into a single pass.
 //
 // Returns *collectionData which contains all collected information.
 func (p *Premailer) collectAndValidate() *collectionData {
@@ -416,8 +411,7 @@ func (p *Premailer) collectAndValidate() *collectionData {
 	return data
 }
 
-// initializeCollectionData creates and initialises the collection data
-// structure.
+// initializeCollectionData creates and initialises the collection data structure.
 //
 // Returns *collectionData which holds the state for CSS inlining operations.
 func (*Premailer) initializeCollectionData() *collectionData {
@@ -434,8 +428,7 @@ func (*Premailer) initializeCollectionData() *collectionData {
 //
 // Takes data (*collectionData) which holds the collected CSS string to append.
 //
-// Returns strings.Builder which contains the combined external and collected
-// CSS.
+// Returns strings.Builder which contains the combined external and collected CSS.
 func (p *Premailer) initializeCSSBuilder(data *collectionData) strings.Builder {
 	var cssBuilder strings.Builder
 
@@ -458,8 +451,8 @@ func (p *Premailer) initializeCSSBuilder(data *collectionData) strings.Builder {
 // Takes cssBuilder (*strings.Builder) which accumulates extracted CSS.
 // Takes sourcePath (string) which identifies the template being processed.
 //
-// Returns func(*ast_domain.TemplateNode) bool which visits each node,
-// collecting styles and validation data, and always returns true to continue.
+// Returns func(*ast_domain.TemplateNode) bool which visits each node, collecting styles
+// and validation data, and always returns true to continue.
 func (p *Premailer) createCollectionWalker(data *collectionData, cssBuilder *strings.Builder, sourcePath string) func(*ast_domain.TemplateNode) bool {
 	return func(node *ast_domain.TemplateNode) bool {
 		if !p.options.SkipStyleExtraction {
@@ -547,8 +540,7 @@ func (*Premailer) captureInlineStyles(node *ast_domain.TemplateNode, data *colle
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to validate.
 // Takes data (*collectionData) which collects the resulting diagnostics.
-// Takes sourcePath (string) which identifies the source file for error
-// messages.
+// Takes sourcePath (string) which identifies the source file for error messages.
 func (*Premailer) validateHTMLTag(node *ast_domain.TemplateNode, data *collectionData, sourcePath string) {
 	if node.NodeType != ast_domain.NodeElement {
 		return
@@ -583,11 +575,10 @@ func (p *Premailer) captureAnchorTargets(node *ast_domain.TemplateNode, data *co
 	}
 }
 
-// performCleanup runs the final cleanup tasks in a single pass.
-// This combines what were previously three or more separate tree walks.
+// performCleanup runs the final cleanup tasks in a single pass. This combines what were
+// previously three or more separate tree walks.
 //
-// Takes anchorTargets (map[string]bool) which contains IDs that anchors
-// point to.
+// Takes anchorTargets (map[string]bool) which contains IDs that anchors point to.
 func (p *Premailer) performCleanup(anchorTargets map[string]bool) {
 	if !p.shouldPerformCleanup() {
 		return
@@ -598,20 +589,18 @@ func (p *Premailer) performCleanup(anchorTargets map[string]bool) {
 
 // shouldPerformCleanup checks if any cleanup operations are configured.
 //
-// Returns bool which is true when class removal, ID removal, or link query
-// parameters are configured.
+// Returns bool which is true when class removal, ID removal, or link query parameters are
+// configured.
 func (p *Premailer) shouldPerformCleanup() bool {
 	return p.options.RemoveClasses || p.options.RemoveIDs || len(p.options.LinkQueryParams) > 0
 }
 
-// createCleanupWalker returns a walker function that performs cleanup on each
-// element.
+// createCleanupWalker returns a walker function that performs cleanup on each element.
 //
-// Takes anchorTargets (map[string]bool) which identifies anchor IDs to
-// preserve.
+// Takes anchorTargets (map[string]bool) which identifies anchor IDs to preserve.
 //
-// Returns func(*ast_domain.TemplateNode) bool which walks nodes and applies
-// cleanup operations.
+// Returns func(*ast_domain.TemplateNode) bool which walks nodes and applies cleanup
+// operations.
 func (p *Premailer) createCleanupWalker(anchorTargets map[string]bool) func(*ast_domain.TemplateNode) bool {
 	return func(node *ast_domain.TemplateNode) bool {
 		if node.NodeType != ast_domain.NodeElement {
@@ -635,12 +624,12 @@ func (p *Premailer) removeClassIfConfigured(node *ast_domain.TemplateNode) {
 	}
 }
 
-// removeIDIfConfigured removes the ID attribute from a node if configured,
-// unless the ID is an anchor target.
+// removeIDIfConfigured removes the ID attribute from a node if configured, unless the ID
+// is an anchor target.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to process.
-// Takes anchorTargets (map[string]bool) which contains IDs that are anchor
-// targets and should be preserved.
+// Takes anchorTargets (map[string]bool) which contains IDs that are anchor targets and
+// should be preserved.
 func (p *Premailer) removeIDIfConfigured(node *ast_domain.TemplateNode, anchorTargets map[string]bool) {
 	if !p.options.RemoveIDs {
 		return
@@ -656,8 +645,7 @@ func (p *Premailer) removeIDIfConfigured(node *ast_domain.TemplateNode, anchorTa
 	}
 }
 
-// appendLinkParamsIfConfigured appends query parameters to anchor links if
-// configured.
+// appendLinkParamsIfConfigured appends query parameters to anchor links if configured.
 //
 // Takes node (*ast_domain.TemplateNode) which is the HTML element to process.
 func (p *Premailer) appendLinkParamsIfConfigured(node *ast_domain.TemplateNode) {
@@ -683,16 +671,13 @@ func (p *Premailer) appendLinkParamsIfConfigured(node *ast_domain.TemplateNode) 
 	node.SetAttribute("href", parsedURL.String())
 }
 
-// New creates a Premailer for a given template AST with optional
-// configuration.
+// New creates a Premailer for a given template AST with optional configuration.
 //
-// Use functional options to configure behaviour:
-// premailer.New(tree, premailer.WithKeepBangImportant(true))
+// Use functional options to configure behaviour: premailer.New(tree,
+// premailer.WithKeepBangImportant(true))
 //
-// Takes tree (*ast_domain.TemplateAST) which is the parsed template
-// to process.
-// Takes opts (...Option) which are functional options to configure
-// behaviour.
+// Takes tree (*ast_domain.TemplateAST) which is the parsed template to process.
+// Takes opts (...Option) which are functional options to configure behaviour.
 //
 // Returns *Premailer which is ready to inline CSS styles.
 func New(tree *ast_domain.TemplateAST, opts ...Option) *Premailer {
@@ -728,11 +713,10 @@ func parseInlineStyle(styleAttr string) map[string]string {
 
 // determineSourcePath returns the source path for diagnostic reporting.
 //
-// Takes sourcePath (*string) which points to a custom path, or nil to use the
-// default.
+// Takes sourcePath (*string) which points to a custom path, or nil to use the default.
 //
-// Returns string which is the source path. Defaults to "inline-styles" when
-// sourcePath is nil.
+// Returns string which is the source path. Defaults to "inline-styles" when sourcePath is
+// nil.
 func determineSourcePath(sourcePath *string) string {
 	if sourcePath != nil {
 		return *sourcePath
@@ -740,8 +724,8 @@ func determineSourcePath(sourcePath *string) string {
 	return "inline-styles"
 }
 
-// shouldIgnoreStyleNode checks if a style node has the data-premailer="ignore"
-// attribute set.
+// shouldIgnoreStyleNode checks if a style node has the data-premailer="ignore" attribute
+// set.
 //
 // Takes node (*ast_domain.TemplateNode) which is the style node to check.
 //
@@ -751,11 +735,11 @@ func shouldIgnoreStyleNode(node *ast_domain.TemplateNode) bool {
 	return exists && value == "ignore"
 }
 
-// shouldSkipStyleNodeMedia checks if a style node should be skipped based on
-// its media attribute.
+// shouldSkipStyleNodeMedia checks if a style node should be skipped based on its media
+// attribute.
 //
-// Only inline styles for "all", "screen", or no media attribute are processed.
-// Style nodes with other media types (such as "print") are skipped.
+// Only inline styles for "all", "screen", or no media attribute are processed. Style
+// nodes with other media types (such as "print") are skipped.
 //
 // Takes node (*ast_domain.TemplateNode) which is the style node to check.
 //

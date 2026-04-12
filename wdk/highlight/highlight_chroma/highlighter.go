@@ -20,6 +20,7 @@ package highlight_chroma
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"hash/maphash"
 	"html"
@@ -41,8 +42,8 @@ const (
 	defaultBufferSize = 4096
 )
 
-// Highlighter provides syntax highlighting using the Chroma library.
-// It implements the highlight_domain.Highlighter interface.
+// Highlighter provides syntax highlighting using the Chroma library. It implements the
+// highlight_domain.Highlighter interface.
 type Highlighter struct {
 	// style is the colour scheme used for syntax highlighting.
 	style *chroma.Style
@@ -50,38 +51,40 @@ type Highlighter struct {
 	// formatter converts tokenised code into HTML output.
 	formatter *chromahtml.Formatter
 
-	// lexerCache caches coalesced lexers by language name, avoiding repeated
-	// lexers.Get + chroma.Coalesce calls.
+	// lexerCache caches coalesced lexers by language name, avoiding repeated lexers.Get +
+	// chroma.Coalesce calls.
 	lexerCache sync.Map
 
 	// bufPool pools bytes.Buffer instances for formatter output.
 	bufPool sync.Pool
 
-	// resultCache caches highlight results by a hash of (language, code),
-	// avoiding redundant tokenisation and formatting for identical inputs.
+	// resultCache caches highlight results by a hash of (language, code), avoiding redundant
+	// tokenisation and formatting for identical inputs.
 	resultCache sync.Map
 
 	// hashSeed is used for consistent hashing of cache keys.
 	hashSeed maphash.Seed
 }
 
-var _ highlight_domain.Highlighter = (*Highlighter)(nil)
+var (
+	_ highlight_domain.Highlighter = (*Highlighter)(nil)
+)
 
 // Config holds configuration options for the Chroma highlighter.
 type Config struct {
-	// Style is the Chroma style name (for example "dracula", "monokai", or
-	// a GitHub-themed style). Defaults to "dracula" if empty.
+	// Style is the Chroma style name (for example "dracula", "monokai", or a GitHub-themed
+	// style). Defaults to "dracula" if empty.
 	Style string
 
-	// WithClasses outputs CSS class names instead of inline styles. When true
-	// (the default), you must include appropriate CSS in your page.
+	// WithClasses outputs CSS class names instead of inline styles. When true (the default),
+	// you must include appropriate CSS in your page.
 	WithClasses bool
 
 	// WithLineNumbers enables line numbers in the output. Defaults to false.
 	WithLineNumbers bool
 
-	// LineNumbersInTable renders line numbers in a separate table cell when
-	// WithLineNumbers is true. Defaults to false.
+	// LineNumbersInTable renders line numbers in a separate table cell when WithLineNumbers
+	// is true. Defaults to false.
 	LineNumbersInTable bool
 
 	// TabWidth sets the number of spaces for tab characters. Defaults to 4.
@@ -90,18 +93,14 @@ type Config struct {
 
 // NewChromaHighlighter creates a new Highlighter with the given settings.
 //
-// Takes config (Config) which sets the highlighting style and format options.
-// Zero values are replaced with sensible defaults.
+// Takes config (Config) which sets the highlighting style and format options. Zero values
+// are replaced with sensible defaults.
 //
 // Returns *Highlighter which is set up and ready to use.
 func NewChromaHighlighter(config Config) *Highlighter {
 	_, l := logger.From(context.Background(), log)
-	if config.Style == "" {
-		config.Style = "dracula"
-	}
-	if config.TabWidth == 0 {
-		config.TabWidth = defaultTabWidth
-	}
+	config.Style = cmp.Or(config.Style, "dracula")
+	config.TabWidth = cmp.Or(config.TabWidth, defaultTabWidth)
 
 	style := styles.Get(config.Style)
 	if style == nil {
@@ -139,8 +138,8 @@ func NewChromaHighlighter(config Config) *Highlighter {
 // Takes code (string) which is the source code to highlight.
 // Takes language (string) which specifies the programming language.
 //
-// Returns string which contains the highlighted HTML output, or a plain code
-// block if highlighting fails.
+// Returns string which contains the highlighted HTML output, or a plain code block if
+// highlighting fails.
 func (h *Highlighter) Highlight(code, language string) string {
 	key := h.cacheKey(language, code)
 	if cached, ok := h.resultCache.Load(key); ok {
@@ -185,11 +184,9 @@ func (h *Highlighter) Highlight(code, language string) string {
 
 // getLexer returns a cached, coalesced lexer for the given language.
 //
-// Takes language (string) which specifies the programming language to
-// look up.
+// Takes language (string) which specifies the programming language to look up.
 //
-// Returns chroma.Lexer which is the coalesced lexer, or nil if no
-// lexer is available.
+// Returns chroma.Lexer which is the coalesced lexer, or nil if no lexer is available.
 func (h *Highlighter) getLexer(language string) chroma.Lexer {
 	if cached, ok := h.lexerCache.Load(language); ok {
 		if l, castOK := cached.(chroma.Lexer); castOK {
@@ -240,8 +237,8 @@ func DefaultConfig() Config {
 // plainCodeBlock returns a simple HTML code block without highlighting.
 //
 // Takes code (string) which is the source code to display.
-// Takes language (string) which sets the language class attribute, or empty
-// for no language class.
+// Takes language (string) which sets the language class attribute, or empty for no
+// language class.
 //
 // Returns string which is the HTML-escaped code wrapped in pre and code tags.
 func plainCodeBlock(code, language string) string {

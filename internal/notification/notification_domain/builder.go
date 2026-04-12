@@ -96,8 +96,7 @@ func (b *NotificationBuilder) Image(imageURL string) *NotificationBuilder {
 
 // Priority sets the notification priority level.
 //
-// Takes priority (notification_dto.NotificationPriority) which is the urgency
-// level.
+// Takes priority (notification_dto.NotificationPriority) which is the urgency level.
 //
 // Returns *NotificationBuilder for method chaining.
 func (b *NotificationBuilder) Priority(priority notification_dto.NotificationPriority) *NotificationBuilder {
@@ -117,8 +116,7 @@ func (b *NotificationBuilder) Source(source string) *NotificationBuilder {
 
 // Environment sets the environment identifier for the notification.
 //
-// Takes environment (string) which identifies the environment (e.g. "dev",
-// "prod").
+// Takes environment (string) which identifies the environment (e.g. "dev", "prod").
 //
 // Returns *NotificationBuilder for method chaining.
 func (b *NotificationBuilder) Environment(environment string) *NotificationBuilder {
@@ -128,8 +126,7 @@ func (b *NotificationBuilder) Environment(environment string) *NotificationBuild
 
 // Service sets the service identifier for the notification.
 //
-// Takes service (string) which identifies the service that generated the
-// notification.
+// Takes service (string) which identifies the service that generated the notification.
 //
 // Returns *NotificationBuilder for method chaining.
 func (b *NotificationBuilder) Service(service string) *NotificationBuilder {
@@ -149,8 +146,8 @@ func (b *NotificationBuilder) TraceID(traceID string) *NotificationBuilder {
 
 // Type sets the notification content type.
 //
-// Takes notificationType (notification_dto.NotificationType) which specifies
-// the formatting.
+// Takes notificationType (notification_dto.NotificationType) which specifies the
+// formatting.
 //
 // Returns *NotificationBuilder for method chaining.
 func (b *NotificationBuilder) Type(notificationType notification_dto.NotificationType) *NotificationBuilder {
@@ -207,8 +204,8 @@ func (b *NotificationBuilder) ProviderOptions(options map[string]any) *Notificat
 
 // Do sends the notification using the configured providers.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns error when validation fails or the notification cannot be sent.
 func (b *NotificationBuilder) Do(ctx context.Context) error {

@@ -18,10 +18,9 @@
 
 // Package search_domain defines the core search abstractions and business logic.
 //
-// It defines port interfaces for full-text search and implements index
-// building, BM25 ranking, and query processing. It supports both Fast mode
-// (basic normalisation) and Smart mode (stemming, phonetic matching, and
-// fuzzy search).
+// It defines port interfaces for full-text search and implements index building, BM25
+// ranking, and query processing. It supports both Fast mode (basic normalisation) and
+// Smart mode (stemming, phonetic matching, and fuzzy search).
 //
 // # Search modes
 //
@@ -49,7 +48,7 @@
 //
 // # Thread safety
 //
-// IndexBuilder, QueryProcessor, and BM25Scorer instances are safe for
-// concurrent use after initialisation. The IndexReaderPort implementations
-// provide thread-safe read access to FlatBuffer indexes.
+// IndexBuilder, QueryProcessor, and BM25Scorer instances are safe for concurrent use
+// after initialisation. The IndexReaderPort implementations provide thread-safe read
+// access to FlatBuffer indexes.
 package search_domain

@@ -25,9 +25,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// SecretManager coordinates the lifecycle of all Secret[T] instances,
-// providing registration, stats tracking, batch refresh, and graceful shutdown.
-// It implements handlerShutdown and contextShutdown interfaces.
+// SecretManager coordinates the lifecycle of all Secret[T] instances, providing
+// registration, stats tracking, batch refresh, and graceful shutdown. It implements
+// handlerShutdown and contextShutdown interfaces.
 type SecretManager struct {
 	// secrets tracks all registered secret holders for lifecycle management.
 	secrets map[secretCloser]struct{}
@@ -75,16 +75,16 @@ func (sm *SecretManager) Stats() SecretStats {
 	}
 }
 
-// Shutdown closes all registered secrets, releasing their resources. This
-// should be called during application shutdown.
+// Shutdown closes all registered secrets, releasing their resources. This should be
+// called during application shutdown.
 //
-// The context can be used to set a timeout for the shutdown process. If the
-// context is cancelled, remaining secrets will still be force-closed.
+// The context can be used to set a timeout for the shutdown process. If the context is
+// cancelled, remaining secrets will still be force-closed.
 //
 // Returns error when the last secret fails to close.
 //
-// Safe for concurrent use. Collects secrets under lock, then closes each
-// without holding the lock.
+// Safe for concurrent use. Collects secrets under lock, then closes each without holding
+// the lock.
 func (sm *SecretManager) Shutdown(ctx context.Context) error {
 	sm.mu.Lock()
 	secretLog.Internal("Shutting down secret manager",
@@ -128,8 +128,8 @@ func (sm *SecretManager) Count() int {
 	return len(sm.secrets)
 }
 
-// register adds a secret to the manager.
-// This is called automatically by Secret[T].UnmarshalText.
+// register adds a secret to the manager. This is called automatically by
+// Secret[T].UnmarshalText.
 //
 // Takes secret (secretCloser) which is the secret to track for cleanup.
 //
@@ -141,8 +141,8 @@ func (sm *SecretManager) register(secret secretCloser) {
 	sm.secrets[secret] = struct{}{}
 }
 
-// unregister removes a secret from the manager.
-// This is called automatically by Secret[T].Close.
+// unregister removes a secret from the manager. This is called automatically by
+// Secret[T].Close.
 //
 // Takes secret (secretCloser) which is the secret to remove.
 //
@@ -156,8 +156,8 @@ func (sm *SecretManager) unregister(secret secretCloser) {
 
 // GetSecretManager returns the singleton secret manager.
 //
-// Returns *SecretManager which is the global secret manager instance,
-// created on first call.
+// Returns *SecretManager which is the global secret manager instance, created on first
+// call.
 func GetSecretManager() *SecretManager {
 	globalSecretManagerOnce.Do(func() {
 		globalSecretManager = &SecretManager{
@@ -167,8 +167,8 @@ func GetSecretManager() *SecretManager {
 	return globalSecretManager
 }
 
-// ResetSecretManager resets the global secret manager singleton. This is
-// mainly for testing to ensure test isolation.
+// ResetSecretManager resets the global secret manager singleton. This is mainly for
+// testing to ensure test isolation.
 //
 // Closes all registered secrets before resetting.
 //

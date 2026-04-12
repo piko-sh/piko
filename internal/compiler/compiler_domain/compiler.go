@@ -57,16 +57,18 @@ type SFCCompiler interface {
 
 // sfcCompiler implements SFCCompiler with a separate registry for each build.
 type sfcCompiler struct {
-	// cssPreProcessor resolves CSS @import statements before CSS is embedded
-	// into compiled output. When nil, raw CSS is used as-is.
+	// cssPreProcessor resolves CSS @import statements before CSS is embedded into compiled
+	// output. When nil, raw CSS is used as-is.
 	cssPreProcessor CSSPreProcessorPort
 
-	// moduleName is the Go module name from go.mod, such as a GitHub-hosted
-	// module path. Used to resolve @/ aliases in asset paths.
+	// moduleName is the Go module name from go.mod, such as a GitHub-hosted module path.
+	// Used to resolve @/ aliases in asset paths.
 	moduleName string
 }
 
-var _ SFCCompiler = (*sfcCompiler)(nil)
+var (
+	_ SFCCompiler = (*sfcCompiler)(nil)
+)
 
 // CompileSFC implements the SFCCompiler interface.
 //
@@ -84,12 +86,12 @@ type sfcCompilationContext struct {
 	// registry holds the component registry for tracking dependencies.
 	registry *RegistryContext
 
-	// moduleName is the Go module name from go.mod, such as a GitHub-hosted
-	// module path. Used to resolve @/ aliases in asset paths.
+	// moduleName is the Go module name from go.mod, such as a GitHub-hosted module path.
+	// Used to resolve @/ aliases in asset paths.
 	moduleName string
 
-	// cssPreProcessor resolves CSS @import statements before CSS is embedded
-	// into compiled output. When nil, raw CSS is used as-is.
+	// cssPreProcessor resolves CSS @import statements before CSS is embedded into compiled
+	// output. When nil, raw CSS is used as-is.
 	cssPreProcessor CSSPreProcessorPort
 
 	// jsParseResult holds the parsed JavaScript AST and type assertions.
@@ -119,33 +121,30 @@ type sfcCompilationContext struct {
 	// stylesDefault holds the combined CSS from default style blocks.
 	stylesDefault string
 
-	// sourceFilename is the filesystem path of the SFC source file, used
-	// for deriving the component name when no explicit name is set.
+	// sourceFilename is the filesystem path of the SFC source file, used for deriving the
+	// component name when no explicit name is set.
 	sourceFilename string
 
-	// scaffoldHTML is the static HTML scaffold for server-side rendering.
-	// Defaults to "<slot></slot>" when no template is provided or when
-	// scaffold building fails.
+	// scaffoldHTML is the static HTML scaffold for server-side rendering. Defaults to
+	// "<slot></slot>" when no template is provided or when scaffold building fails.
 	scaffoldHTML string
 
 	// astDump holds the text form of the template AST for debugging.
 	astDump string
 
-	// enabledBehaviours holds the list of behaviours enabled for this component.
-	// Parsed from the script tag's enable attribute.
+	// enabledBehaviours holds the list of behaviours enabled for this component. Parsed from
+	// the script tag's enable attribute.
 	enabledBehaviours []string
 
-	// timelineJSON holds the parsed piko:timeline block as a JSON string,
-	// ready for injection as a static property on the component class.
+	// timelineJSON holds the parsed piko:timeline block as a JSON string, ready for
+	// injection as a static property on the component class.
 	timelineJSON string
 
-	// jsDependencies holds JavaScript import paths that need registry
-	// registration.
+	// jsDependencies holds JavaScript import paths that need registry registration.
 	jsDependencies []compiler_dto.JSDependency
 
-	// diagnostics collects non-fatal issues encountered during
-	// compilation; these flow into CompiledArtefact.Diagnostics so
-	// callers can surface them to the user.
+	// diagnostics collects non-fatal issues encountered during compilation; these flow into
+	// CompiledArtefact.Diagnostics so callers can surface them to the user.
 	diagnostics []compiler_dto.CompilationDiagnostic
 }
 
@@ -153,8 +152,8 @@ type sfcCompilationContext struct {
 //
 // Takes span (trace.Span) which receives the compilation metrics as attributes.
 // Takes startTime (time.Time) which marks when compilation started.
-// Takes artefact (*compiler_dto.CompiledArtefact) which provides the compiled
-// output for size measurement.
+// Takes artefact (*compiler_dto.CompiledArtefact) which provides the compiled output for
+// size measurement.
 func (cc *sfcCompilationContext) recordCompilationMetrics(ctx context.Context, span trace.Span, startTime time.Time, artefact *compiler_dto.CompiledArtefact) {
 	ctx, l := logger_domain.From(ctx, log)
 	compilationDuration := time.Since(startTime)
@@ -174,8 +173,7 @@ func (cc *sfcCompilationContext) recordCompilationMetrics(ctx context.Context, s
 	span.SetStatus(codes.Ok, "SFC compilation completed successfully")
 }
 
-// extractScriptAndStyles fills the script and style fields from parsed SFC
-// data.
+// extractScriptAndStyles fills the script and style fields from parsed SFC data.
 func (cc *sfcCompilationContext) extractScriptAndStyles() {
 	if jsScript, found := cc.sfcParseResult.JavaScriptScript(); found {
 		cc.scriptCode = jsScript.Content
@@ -198,10 +196,9 @@ func (cc *sfcCompilationContext) extractScriptAndStyles() {
 	cc.stylesDefault = stylesBuilder.String()
 }
 
-// preProcessStyles resolves CSS @import statements in the concatenated style
-// content using the CSSPreProcessorPort stored on the compilation context.
-// When no pre-processor is available or processing fails, the raw CSS is kept
-// as-is.
+// preProcessStyles resolves CSS @import statements in the concatenated style content
+// using the CSSPreProcessorPort stored on the compilation context. When no pre-processor
+// is available or processing fails, the raw CSS is kept as-is.
 func (cc *sfcCompilationContext) preProcessStyles(ctx context.Context) {
 	if cc.stylesDefault == "" {
 		return
@@ -219,14 +216,13 @@ func (cc *sfcCompilationContext) preProcessStyles(ctx context.Context) {
 	cc.stylesDefault = processed
 }
 
-// extractTimeline parses the piko:timeline blocks, if present, and stores the
-// resulting JSON in cc.timelineJSON for later injection into the component
-// class.
+// extractTimeline parses the piko:timeline blocks, if present, and stores the resulting
+// JSON in cc.timelineJSON for later injection into the component class.
 //
-// When a single timeline block has no media attribute, the output is a flat
-// JSON array of actions for backward compatibility. When multiple blocks exist
-// or any block has a media attribute, the output is a JSON array of objects
-// with "media" (string or null) and "actions" (array) fields.
+// When a single timeline block has no media attribute, the output is a flat JSON array of
+// actions for backward compatibility. When multiple blocks exist or any block has a media
+// attribute, the output is a JSON array of objects with "media" (string or null) and
+// "actions" (array) fields.
 func (cc *sfcCompilationContext) extractTimeline(ctx context.Context) {
 	if len(cc.sfcParseResult.Timelines) == 0 {
 		return
@@ -276,8 +272,8 @@ func (cc *sfcCompilationContext) extractTimeline(ctx context.Context) {
 		logger_domain.String("timelineJSON", cc.timelineJSON))
 }
 
-// injectTimelineData adds the $$timeline static property to the component
-// class when timeline data has been parsed.
+// injectTimelineData adds the $$timeline static property to the component class when
+// timeline data has been parsed.
 func (cc *sfcCompilationContext) injectTimelineData(ctx context.Context) {
 	if cc.timelineJSON == "" {
 		return
@@ -295,8 +291,8 @@ func (cc *sfcCompilationContext) injectTimelineData(ctx context.Context) {
 //  1. <template name="..."> attribute
 //  2. Source filename without extension (e.g. my-counter.pkc -> my-counter)
 //
-// Returns error when the resolved name does not contain a hyphen, which is
-// required by the web component specification.
+// Returns error when the resolved name does not contain a hyphen, which is required by
+// the web component specification.
 func (cc *sfcCompilationContext) setupNaming() error {
 	if name, ok := cc.sfcParseResult.TemplateAttributes["name"]; ok && name != "" {
 		cc.tagName = name
@@ -336,8 +332,7 @@ func (cc *sfcCompilationContext) setupNamingAndContext(ctx context.Context, span
 	return logger_domain.WithLogger(ctx, enrichedL), nil
 }
 
-// processJavaScript handles JS parsing, metadata extraction, and reactive
-// transformation.
+// processJavaScript handles JS parsing, metadata extraction, and reactive transformation.
 //
 // Returns error when the user script contains parse errors such as duplicate
 // declarations.
@@ -352,9 +347,9 @@ func (cc *sfcCompilationContext) processJavaScript(ctx context.Context) error {
 
 // parseJavaScript parses the user script and fills in the AST fields.
 //
-// Returns error when the user script contains parse errors such as duplicate
-// variable declarations. The error signals a permanent compilation failure
-// that should not be retried.
+// Returns error when the user script contains parse errors such as duplicate variable
+// declarations. The error signals a permanent compilation failure that should not be
+// retried.
 func (cc *sfcCompilationContext) parseJavaScript(ctx context.Context) error {
 	var parseErr error
 	cc.jsParseResult, parseErr = ParseUserScript(ctx, cc.scriptCode, cc.tagName+".ts")
@@ -418,8 +413,8 @@ func (cc *sfcCompilationContext) transformReactiveState(ctx context.Context) {
 	}
 }
 
-// processTemplate parses the SFC template and transforms it into scaffold HTML
-// and a VDOM render method.
+// processTemplate parses the SFC template and transforms it into scaffold HTML and a VDOM
+// render method.
 //
 // Returns error when the template contains syntax errors.
 func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
@@ -452,13 +447,12 @@ func (cc *sfcCompilationContext) processTemplate(ctx context.Context) error {
 	return cc.buildVDOMRenderMethod(ctx, tAST, cc.moduleName)
 }
 
-// buildScaffoldHTML creates the static HTML scaffold for server-side
-// rendering.
+// buildScaffoldHTML creates the static HTML scaffold for server-side rendering.
 //
 // Takes tAST (*ast_domain.TemplateAST) which is the parsed template structure.
 //
-// Reads scaffold settings from the context when available. If scaffold
-// building fails, logs a warning and uses a simple slot element as a fallback.
+// Reads scaffold settings from the context when available. If scaffold building fails,
+// logs a warning and uses a simple slot element as a fallback.
 func (cc *sfcCompilationContext) buildScaffoldHTML(ctx context.Context, tAST *ast_domain.TemplateAST) {
 	ctx, l := logger_domain.From(ctx, log)
 	var scaffoldErr error
@@ -473,16 +467,14 @@ func (cc *sfcCompilationContext) buildScaffoldHTML(ctx context.Context, tAST *as
 	}
 }
 
-// buildVDOMRenderMethod builds the virtual DOM render method from the template
-// AST and adds it to the JavaScript AST.
+// buildVDOMRenderMethod builds the virtual DOM render method from the template AST and
+// adds it to the JavaScript AST.
 //
-// Takes tAST (*ast_domain.TemplateAST) which provides the parsed template
-// structure.
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
+// Takes tAST (*ast_domain.TemplateAST) which provides the parsed template structure.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
 //
-// Returns error when building fails, though currently returns nil after
-// logging a warning.
+// Returns error when building fails, though currently returns nil after logging a
+// warning.
 func (cc *sfcCompilationContext) buildVDOMRenderMethod(ctx context.Context, tAST *ast_domain.TemplateAST, moduleName string) error {
 	ctx, l := logger_domain.From(ctx, log)
 	events := newEventBindingCollection(cc.registry)
@@ -524,9 +516,9 @@ func (cc *sfcCompilationContext) insertStaticCSS(ctx context.Context) {
 	}
 }
 
-// finaliseAST completes AST processing by rewriting it, adding custom element
-// definitions when needed, and prepending the import preamble. It also gathers
-// JavaScript dependencies from @/ imports for registry registration.
+// finaliseAST completes AST processing by rewriting it, adding custom element definitions
+// when needed, and prepending the import preamble. It also gathers JavaScript
+// dependencies from @/ imports for registry registration.
 func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	l.Trace("Rewriting AST")
@@ -544,8 +536,8 @@ func (cc *sfcCompilationContext) finaliseAST(ctx context.Context) {
 	}
 }
 
-// addCustomElementsDefine appends a customElements.define statement to the
-// JavaScript AST, linking the component's tag name to its class.
+// addCustomElementsDefine appends a customElements.define statement to the JavaScript
+// AST, linking the component's tag name to its class.
 func (cc *sfcCompilationContext) addCustomElementsDefine(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	l.Trace("Adding customElements.define statement",
@@ -561,8 +553,8 @@ func (cc *sfcCompilationContext) addCustomElementsDefine(ctx context.Context) {
 
 // buildArtefact creates the final compiled output from the compilation state.
 //
-// Returns *compiler_dto.CompiledArtefact which holds the generated JavaScript
-// code and metadata for the component.
+// Returns *compiler_dto.CompiledArtefact which holds the generated JavaScript code and
+// metadata for the component.
 func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) *compiler_dto.CompiledArtefact {
 	var builder strings.Builder
 	if cc.astDump != "" {
@@ -588,10 +580,9 @@ func (cc *sfcCompilationContext) buildArtefact(ctx context.Context) *compiler_dt
 
 // NewSFCCompiler creates a new compiler for single-file components.
 //
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
-// Takes cssPreProcessor (CSSPreProcessorPort) which resolves CSS @import
-// statements, or nil when not needed.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
+// Takes cssPreProcessor (CSSPreProcessorPort) which resolves CSS @import statements, or
+// nil when not needed.
 //
 // Returns SFCCompiler which is ready to compile single-file components.
 func NewSFCCompiler(moduleName string, cssPreProcessor CSSPreProcessorPort) SFCCompiler {
@@ -602,8 +593,8 @@ func NewSFCCompiler(moduleName string, cssPreProcessor CSSPreProcessorPort) SFCC
 //
 // Takes tree (*js_ast.AST) which is the parsed AST to extract statements from.
 //
-// Returns []js_ast.Stmt which contains all statements from all parts of the
-// AST, or nil when tree is nil.
+// Returns []js_ast.Stmt which contains all statements from all parts of the AST, or nil
+// when tree is nil.
 func getStmtsFromAST(tree *js_ast.AST) []js_ast.Stmt {
 	if tree == nil {
 		return nil
@@ -615,8 +606,7 @@ func getStmtsFromAST(tree *js_ast.AST) []js_ast.Stmt {
 	return statements
 }
 
-// setStmtsInAST sets the statements in an esbuild AST, placing them into a
-// single Part.
+// setStmtsInAST sets the statements in an esbuild AST, placing them into a single Part.
 //
 // When tree is nil, returns without making changes.
 //
@@ -637,8 +627,8 @@ func setStmtsInAST(tree *js_ast.AST, statements []js_ast.Stmt) {
 
 // appendStatementToAST adds a statement to the start of an esbuild AST.
 //
-// When tree is nil, returns at once without changes. When tree has no parts,
-// creates an empty part before adding the statement.
+// When tree is nil, returns at once without changes. When tree has no parts, creates an
+// empty part before adding the statement.
 //
 // Takes tree (*js_ast.AST) which is the AST to modify.
 // Takes statement (js_ast.Stmt) which is the statement to add.
@@ -656,10 +646,9 @@ func appendStatementToAST(tree *js_ast.AST, statement js_ast.Stmt) {
 //
 // Takes sourceID (string) which identifies the source file being compiled.
 // Takes rawSFC ([]byte) which contains the raw SFC content to compile.
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
-// Takes cssPreProcessor (CSSPreProcessorPort) which resolves CSS @import
-// statements, or nil when not needed.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
+// Takes cssPreProcessor (CSSPreProcessorPort) which resolves CSS @import statements, or
+// nil when not needed.
 //
 // Returns *compiler_dto.CompiledArtefact which contains the compiled output.
 // Returns error when SFC parsing or template processing fails.
@@ -724,8 +713,8 @@ func compileSFC(ctx context.Context, sourceID string, rawSFC []byte, moduleName 
 	return artefact, nil
 }
 
-// ensurePPElementClass creates a default PPElement subclass if one does not
-// already exist in the AST.
+// ensurePPElementClass creates a default PPElement subclass if one does not already exist
+// in the AST.
 //
 // When a class with the given name already exists, returns without changes.
 //
@@ -755,8 +744,7 @@ func ensurePPElementClass(ctx context.Context, tree *js_ast.AST, className strin
 	}
 }
 
-// insertMethodIntoClass adds a method to an existing class declaration in the
-// AST.
+// insertMethodIntoClass adds a method to an existing class declaration in the AST.
 //
 // Takes fullAst (*js_ast.AST) which is the parsed JavaScript AST to modify.
 // Takes className (string) which is the name of the target class.
@@ -817,26 +805,23 @@ func buildClassName(rawTag string) string {
 	return result.String()
 }
 
-// prependPreambleToAST modifies the AST by adding imports at the start and
-// wrapping existing statements in an IIFE.
+// prependPreambleToAST modifies the AST by adding imports at the start and wrapping
+// existing statements in an IIFE.
 //
-// Extracts imports from the source code using AST-based parsing rather than
-// regex. Handles all valid JavaScript import syntax including multi-line
-// imports, aliased imports, and type imports. Converts @/ alias paths to served
-// asset paths.
+// Extracts imports from the source code using AST-based parsing rather than regex.
+// Handles all valid JavaScript import syntax including multi-line imports, aliased
+// imports, and type imports. Converts @/ alias paths to served asset paths.
 //
-// When enabledBehaviours includes "animation", a side-effect import for the
-// animation extension is prepended before the core import so that the
-// extension's global is registered before the component class is defined.
+// When enabledBehaviours includes "animation", a side-effect import for the animation
+// extension is prepended before the core import so that the extension's global is
+// registered before the component class is defined.
 //
 // Takes tree (*js_ast.AST) which is the syntax tree to modify in place.
-// Takes sourceCode (string) which is the original source for extracting
-// import text.
-// Takes enabledBehaviours ([]string) which lists behaviours enabled on the
-// component.
+// Takes sourceCode (string) which is the original source for extracting import text.
+// Takes enabledBehaviours ([]string) which lists behaviours enabled on the component.
 //
-// Returns []compiler_dto.JSDependency which contains dependencies that need
-// registry registration.
+// Returns []compiler_dto.JSDependency which contains dependencies that need registry
+// registration.
 func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode string, enabledBehaviours []string, moduleName string) []compiler_dto.JSDependency {
 	existingStmts := getStmtsFromAST(tree)
 
@@ -867,12 +852,11 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 	return dependencies
 }
 
-// buildImportStatementsFromSource builds SImport statements by extracting the
-// original import text from source code.
+// buildImportStatementsFromSource builds SImport statements by extracting the original
+// import text from source code.
 //
-// This keeps the exact import syntax (named vs namespace) from the source. This
-// matters because esbuild may change named imports to namespace imports
-// internally.
+// This keeps the exact import syntax (named vs namespace) from the source. This matters
+// because esbuild may change named imports to namespace imports internally.
 //
 // The function uses ImportRecords for:
 //   - Range data to find import paths in source
@@ -889,8 +873,7 @@ func prependPreambleToAST(ctx context.Context, tree *js_ast.AST, sourceCode stri
 // Takes sourceCode (string) which is the original source code.
 //
 // Returns []js_ast.Stmt which holds the built import statements.
-// Returns []compiler_dto.JSDependency which holds dependencies for the
-// registry.
+// Returns []compiler_dto.JSDependency which holds dependencies for the registry.
 func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sourceCode string, moduleName string) ([]js_ast.Stmt, []compiler_dto.JSDependency) {
 	ctx, l := logger_domain.From(ctx, log)
 	if tree == nil || len(tree.ImportRecords) == 0 {
@@ -939,19 +922,17 @@ func buildImportStatementsFromSource(ctx context.Context, tree *js_ast.AST, sour
 	return statements, dependencies
 }
 
-// extractImportTextFromSource gets the full import statement text from source
-// code using the ImportRecord's Range data.
+// extractImportTextFromSource gets the full import statement text from source code using
+// the ImportRecord's Range data.
 //
-// The Range in ImportRecord points to the path string, including quotes. This
-// function searches backwards for the "import" keyword and forwards for the
-// statement end to get the complete import text.
+// The Range in ImportRecord points to the path string, including quotes. Searches
+// backwards for the "import" keyword and forwards for the statement end to get the
+// complete import text.
 //
 // Takes sourceCode (string) which is the full source code.
-// Takes record (ast.ImportRecord) which contains the Range pointing to the
-// path.
+// Takes record (ast.ImportRecord) which contains the Range pointing to the path.
 //
-// Returns string which is the full import statement text, or empty if not
-// found.
+// Returns string which is the full import statement text, or empty if not found.
 func extractImportTextFromSource(sourceCode string, record ast.ImportRecord) string {
 	if sourceCode == "" {
 		return ""
@@ -974,13 +955,11 @@ func extractImportTextFromSource(sourceCode string, record ast.ImportRecord) str
 	return strings.TrimSpace(sourceCode[importStart:statementEnd])
 }
 
-// findImportKeyword searches backwards from pathStart to find the "import"
-// keyword. It checks that "import" is at a word boundary and not part of a
-// longer name.
+// findImportKeyword searches backwards from pathStart to find the "import" keyword. It
+// checks that "import" is at a word boundary and not part of a longer name.
 //
 // Takes sourceCode (string) which contains the source text to search.
-// Takes pathStart (int) which is the position to start searching backwards
-// from.
+// Takes pathStart (int) which is the position to start searching backwards from.
 //
 // Returns int which is the start index of "import", or -1 if not found.
 func findImportKeyword(sourceCode string, pathStart int) int {
@@ -1007,8 +986,8 @@ func findImportKeyword(sourceCode string, pathStart int) int {
 	return -1
 }
 
-// findStatementEnd finds where an import statement ends in the source code.
-// It starts from the given position and looks for a semicolon or newline.
+// findStatementEnd finds where an import statement ends in the source code. It starts
+// from the given position and looks for a semicolon or newline.
 //
 // Takes sourceCode (string) which is the source text to search.
 // Takes pathEnd (int) which is the position after the closing quote.
@@ -1034,26 +1013,24 @@ func findStatementEnd(sourceCode string, pathEnd int) int {
 //
 // Takes c (byte) which is the character to check.
 //
-// Returns bool which is true if c is a letter, digit, underscore, or dollar
-// sign.
+// Returns bool which is true if c is a letter, digit, underscore, or dollar sign.
 func isIdentifierChar(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
 		(c >= '0' && c <= '9') || c == '_' || c == '$'
 }
 
-// separateImportsFromAST walks the AST statements and separates SImport
-// statements from all other statements. Used to place imports at module top
-// level while wrapping other code in an IIFE.
+// separateImportsFromAST walks the AST statements and separates SImport statements from
+// all other statements. Used to place imports at module top level while wrapping other
+// code in an IIFE.
 //
-// esbuild stores import information in two places:
-// 1. ImportRecords - contains path, range, and metadata for each import
-// 2. Parts[].Stmts - contains SImport statements with ImportRecordIndex
+// esbuild stores import information in two places: 1. ImportRecords - contains path,
+// range, and metadata for each import 2. Parts[].Stmts - contains SImport statements with
+// ImportRecordIndex
 //
-// Extracts SImport statements from Parts[].Stmts so they can be placed at
-// module top level, while other statements get wrapped in an IIFE.
+// Extracts SImport statements from Parts[].Stmts so they can be placed at module top
+// level, while other statements get wrapped in an IIFE.
 //
-// Takes statements ([]js_ast.Stmt) which contains all statements from the parsed
-// AST.
+// Takes statements ([]js_ast.Stmt) which contains all statements from the parsed AST.
 //
 // Returns imports ([]js_ast.Stmt) which contains only the import statements.
 // Returns nonImports ([]js_ast.Stmt) which contains all non-import statements.
@@ -1071,8 +1048,8 @@ func separateImportsFromAST(statements []js_ast.Stmt) (imports []js_ast.Stmt, no
 	return imports, nonImports
 }
 
-// buildIIFEWrapper wraps the given statements in an immediately invoked
-// function expression (IIFE).
+// buildIIFEWrapper wraps the given statements in an immediately invoked function
+// expression (IIFE).
 //
 // Takes statements ([]js_ast.Stmt) which contains the statements to wrap.
 //
@@ -1098,8 +1075,8 @@ func buildIIFEWrapper(statements []js_ast.Stmt) js_ast.Stmt {
 //
 // Takes tree (*js_ast.AST) which receives the new import record.
 //
-// Returns js_ast.Stmt which is the import statement for the core framework
-// module. This imports the piko namespace.
+// Returns js_ast.Stmt which is the import statement for the core framework module. This
+// imports the piko namespace.
 func buildCoreImport(tree *js_ast.AST) js_ast.Stmt {
 	coreImportPath := "/_piko/dist/ppframework.core.es.js"
 	coreImportRecord := ast.ImportRecord{
@@ -1120,13 +1097,12 @@ func buildCoreImport(tree *js_ast.AST) js_ast.Stmt {
 	}}
 }
 
-// buildComponentsImport creates the components extension import statement for
-// the AST.
+// buildComponentsImport creates the components extension import statement for the AST.
 //
 // Takes tree (*js_ast.AST) which receives the new import record.
 //
-// Returns js_ast.Stmt which is the import statement for the components
-// extension. This imports PPElement, dom, and makeReactive.
+// Returns js_ast.Stmt which is the import statement for the components extension. This
+// imports PPElement, dom, and makeReactive.
 func buildComponentsImport(tree *js_ast.AST) js_ast.Stmt {
 	componentsImportPath := "/_piko/dist/ppframework.components.es.js"
 	componentsImportRecord := ast.ImportRecord{
@@ -1151,13 +1127,13 @@ func buildComponentsImport(tree *js_ast.AST) js_ast.Stmt {
 
 // buildActionsImport creates the import statement for project actions.
 //
-// This imports the generated action namespace from the asset server. It allows
-// pkc components to use typed action calls like action.media.search({}).call().
+// This imports the generated action namespace from the asset server. It allows pkc
+// components to use typed action calls like action.media.search({}).call().
 //
 // Takes tree (*js_ast.AST) which receives the new import record.
 //
-// Returns js_ast.Stmt which is the import statement for the project's generated
-// actions module.
+// Returns js_ast.Stmt which is the import statement for the project's generated actions
+// module.
 func buildActionsImport(tree *js_ast.AST) js_ast.Stmt {
 	actionsImportPath := "/_piko/assets/pk-js/pk/actions.gen.js"
 	actionsImportRecord := ast.ImportRecord{
@@ -1178,9 +1154,9 @@ func buildActionsImport(tree *js_ast.AST) js_ast.Stmt {
 	}}
 }
 
-// buildAnimationExtensionImport creates a side-effect import for the animation
-// extension. This is a bare import with no bindings; it runs the extension's
-// module-level code which registers the timeline setup function on a global.
+// buildAnimationExtensionImport creates a side-effect import for the animation extension.
+// This is a bare import with no bindings; it runs the extension's module-level code which
+// registers the timeline setup function on a global.
 //
 // Takes tree (*js_ast.AST) which receives the new import record.
 //
@@ -1200,15 +1176,14 @@ func buildAnimationExtensionImport(tree *js_ast.AST) js_ast.Stmt {
 	}}
 }
 
-// mergeImportRecords combines import records from a statement AST into the main
-// tree AST. It updates symbol and import record indices to avoid conflicts.
+// mergeImportRecords combines import records from a statement AST into the main tree AST.
+// It updates symbol and import record indices to avoid conflicts.
 //
 // When statementAST is nil or has no import records, returns at once.
 //
 // Takes tree (*js_ast.AST) which is the target AST to merge records into.
 // Takes statementAST (*js_ast.AST) which holds the import records to merge.
-// Takes statement (*js_ast.Stmt) which is the import statement to update indices
-// for.
+// Takes statement (*js_ast.Stmt) which is the import statement to update indices for.
 func mergeImportRecords(tree *js_ast.AST, statementAST *js_ast.AST, statement *js_ast.Stmt) {
 	if statementAST == nil || len(statementAST.ImportRecords) == 0 {
 		return
@@ -1238,16 +1213,15 @@ func mergeImportRecords(tree *js_ast.AST, statementAST *js_ast.AST, statement *j
 	}
 }
 
-// printAST converts an esbuild AST to JavaScript source code and rewrites
-// identifiers to add this.$$ctx. prefix for instance properties.
+// printAST converts an esbuild AST to JavaScript source code and rewrites identifiers to
+// add this.$$ctx. prefix for instance properties.
 //
 // Takes tree (*js_ast.AST) which is the esbuild AST to convert.
-// Takes instanceProps ([]string) which lists the instance property names to
-// prefix.
+// Takes instanceProps ([]string) which lists the instance property names to prefix.
 // Takes registry (*RegistryContext) which provides the context for conversion.
 //
-// Returns string which is the generated JavaScript source code, or an empty
-// string if tree is nil.
+// Returns string which is the generated JavaScript source code, or an empty string if
+// tree is nil.
 func printAST(ctx context.Context, tree *js_ast.AST, instanceProps []string, registry *RegistryContext) string {
 	_, l := logger_domain.From(ctx, log)
 	if tree == nil {
@@ -1276,8 +1250,8 @@ func printAST(ctx context.Context, tree *js_ast.AST, instanceProps []string, reg
 //
 // Takes tree (*parsejs.AST) which is the parsed JavaScript syntax tree.
 //
-// Returns string which contains the JavaScript source code, or an empty string
-// if tree is nil.
+// Returns string which contains the JavaScript source code, or an empty string if tree is
+// nil.
 func printTdewolffAST(tree *parsejs.AST) string {
 	if tree == nil {
 		return ""

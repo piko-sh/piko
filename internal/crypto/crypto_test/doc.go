@@ -18,7 +18,6 @@
 
 // Package crypto_test provides test doubles for the crypto module.
 //
-// It contains a function-pointer-based mock of the crypto service port.
-// Nil function fields return zero values. Call counts are tracked
-// atomically for safe concurrent use.
+// It contains a function-pointer-based mock of the crypto service port. Nil function
+// fields return zero values. Call counts are tracked atomically for safe concurrent use.
 package crypto_test

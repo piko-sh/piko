@@ -135,7 +135,9 @@ type bigIntAPI interface {
 	MustIsMultipleOf(other BigInt) bool
 }
 
-var _ bigIntAPI = (*BigInt)(nil)
+var (
+	_ bigIntAPI = (*BigInt)(nil)
+)
 
 type bigIntAggregateAPI interface {
 	SumBigInts(...BigInt) BigInt
@@ -165,4 +167,6 @@ func (bigIntAggregateImpl) SortBigIntsReverse(bigints []BigInt) error {
 	return SortBigIntsReverse(bigints)
 }
 
-var _ bigIntAggregateAPI = bigIntAggregateImpl{}
+var (
+	_ bigIntAggregateAPI = bigIntAggregateImpl{}
+)

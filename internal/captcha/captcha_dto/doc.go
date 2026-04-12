@@ -18,13 +18,12 @@
 
 // Package captcha_dto defines data transfer objects for the captcha module.
 //
-// It contains request/response types, configuration structs, provider type
-// identifiers, and sentinel errors used across architectural boundaries in
-// the captcha verification subsystem.
+// It contains request/response types, configuration structs, provider type identifiers,
+// and sentinel errors used across architectural boundaries in the captcha verification
+// subsystem.
 //
-// The [VerifyResponse] type carries a normalised Score field ranging from
-// 0.0 (bot) to 1.0 (human), allowing callers to apply adaptive thresholds
-// regardless of the upstream provider's native scoring convention.
-// Configuration types such as [ServiceConfig] and [ProviderType] are
-// intended to be set once at initialisation and read thereafter.
+// The [VerifyResponse] type carries a normalised Score field ranging from 0.0 (bot) to
+// 1.0 (human), allowing callers to apply adaptive thresholds regardless of the upstream
+// provider's native scoring convention. Configuration types such as [ServiceConfig] and
+// [ProviderType] are intended to be set once at initialisation and read thereafter.
 package captcha_dto

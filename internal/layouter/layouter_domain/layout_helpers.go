@@ -18,21 +18,18 @@
 
 package layouter_domain
 
-import "math"
+import (
+	"math"
+)
 
-// clampStretchDimension applies min/max constraints to a
-// stretched content size. When isWidth is true the width
-// constraints are used; otherwise height constraints apply.
+// clampStretchDimension applies min/max constraints to a stretched content size. When
+// isWidth is true the width constraints are used; otherwise height constraints apply.
 //
-// This is shared by both flex and grid layout when
-// stretching items along the cross axis.
+// This is shared by both flex and grid layout when stretching items along the cross axis.
 //
-// Takes size (float64) which is the content-box size
-// before clamping.
-// Takes style (*ComputedStyle) which is the item style
-// carrying min/max constraints.
-// Takes isWidth (bool) which selects width or height
-// constraints.
+// Takes size (float64) which is the content-box size before clamping.
+// Takes style (*ComputedStyle) which is the item style carrying min/max constraints.
+// Takes isWidth (bool) which selects width or height constraints.
 //
 // Returns the clamped content-box size.
 func clampStretchDimension(size float64, style *ComputedStyle, isWidth bool) float64 {

@@ -30,22 +30,21 @@ import (
 )
 
 const (
-	// caCertFilename is the expected CA certificate file name in the certs
-	// directory. This file is required.
+	// caCertFilename is the expected CA certificate file name in the certs directory. This
+	// file is required.
 	caCertFilename = "ca.pem"
 
-	// clientCertFilename is the expected client certificate file name in the
-	// certs directory. This file is optional; when present alongside
-	// clientKeyFilename, mTLS is enabled.
+	// clientCertFilename is the expected client certificate file name in the certs
+	// directory. This file is optional; when present alongside clientKeyFilename, mTLS is
+	// enabled.
 	clientCertFilename = "client.pem"
 
-	// clientKeyFilename is the expected client private key file name in the
-	// certs directory.
+	// clientKeyFilename is the expected client private key file name in the certs directory.
 	clientKeyFilename = "client-key.pem"
 )
 
-// loadTLSCredentials loads TLS transport credentials from an opinionated
-// certificate directory layout.
+// loadTLSCredentials loads TLS transport credentials from an opinionated certificate
+// directory layout.
 //
 // Required file:
 //   - ca.pem: CA certificate for server verification.
@@ -54,12 +53,11 @@ const (
 //   - client.pem: Client certificate.
 //   - client-key.pem: Client private key.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 // Takes directory (string) which is the path to the certificate directory.
 //
-// Returns credentials.TransportCredentials which is the configured TLS
-// credentials for gRPC.
+// Returns credentials.TransportCredentials which is the configured TLS credentials for
+// gRPC.
 // Returns error when the CA file cannot be loaded or client cert is invalid.
 func loadTLSCredentials(factory safedisk.Factory, directory string) (credentials.TransportCredentials, error) {
 	sandbox, err := factory.Create("tls-credentials", directory, safedisk.ModeReadOnly)

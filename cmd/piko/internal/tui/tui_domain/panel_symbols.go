@@ -56,24 +56,20 @@ const (
 	IndentMetadata = 6
 )
 
-// CursorConfig holds configuration for cursor rendering with customisable
-// indentation.
+// CursorConfig holds configuration for cursor rendering with customisable indentation.
 type CursorConfig struct {
-	// ActiveIndent is the number of spaces before the cursor when the item is
-	// selected.
+	// ActiveIndent is the number of spaces before the cursor when the item is selected.
 	ActiveIndent int
 
-	// InactiveIndent is the number of spaces when the item is not selected. This
-	// should typically be ActiveIndent + len(SymbolCursorActive) to maintain
-	// alignment.
+	// InactiveIndent is the number of spaces when the item is not selected. This should
+	// typically be ActiveIndent + len(SymbolCursorActive) to maintain alignment.
 	InactiveIndent int
 }
 
-// DefaultCursorConfig returns the standard cursor settings for top-level items.
-// Active items have no prefix spacing, while inactive items have two spaces.
+// DefaultCursorConfig returns the standard cursor settings for top-level items. Active
+// items have no prefix spacing, while inactive items have two spaces.
 //
-// Returns CursorConfig which contains the default active and inactive indent
-// settings.
+// Returns CursorConfig which contains the default active and inactive indent settings.
 func DefaultCursorConfig() CursorConfig {
 	return CursorConfig{
 		ActiveIndent:   0,
@@ -81,9 +77,9 @@ func DefaultCursorConfig() CursorConfig {
 	}
 }
 
-// ChildCursorConfig returns cursor settings for child or nested items. The
-// active cursor uses a two-space prefix with an arrow, whilst the inactive
-// cursor uses a four-space indent.
+// ChildCursorConfig returns cursor settings for child or nested items. The active cursor
+// uses a two-space prefix with an arrow, whilst the inactive cursor uses a four-space
+// indent.
 //
 // Returns CursorConfig which contains the active and inactive indent settings.
 func ChildCursorConfig() CursorConfig {
@@ -93,12 +89,11 @@ func ChildCursorConfig() CursorConfig {
 	}
 }
 
-// MetadataCursorConfig returns cursor settings for metadata and detail rows.
-// Active rows use a four-space prefix with an arrow, inactive rows use six
-// spaces.
+// MetadataCursorConfig returns cursor settings for metadata and detail rows. Active rows
+// use a four-space prefix with an arrow, inactive rows use six spaces.
 //
-// Returns CursorConfig which contains the indent settings for active and
-// inactive metadata rows.
+// Returns CursorConfig which contains the indent settings for active and inactive
+// metadata rows.
 func MetadataCursorConfig() CursorConfig {
 	return CursorConfig{
 		ActiveIndent:   IndentChild,
@@ -106,19 +101,16 @@ func MetadataCursorConfig() CursorConfig {
 	}
 }
 
-// RenderCursorStyled renders a cursor indicator with configurable
-// indentation, showing a styled arrow when selected or blank space
-// to maintain alignment otherwise.
+// RenderCursorStyled renders a cursor indicator with configurable indentation, showing a
+// styled arrow when selected or blank space to maintain alignment otherwise.
 //
-// Takes selected (bool) which indicates whether the item is
-// currently selected.
-// Takes focused (bool) which indicates whether the panel has
-// keyboard focus.
-// Takes config (CursorConfig) which provides the indent settings
-// for active and inactive states.
+// Takes selected (bool) which indicates whether the item is currently selected.
+// Takes focused (bool) which indicates whether the panel has keyboard focus.
+// Takes config (CursorConfig) which provides the indent settings for active and inactive
+// states.
 //
-// Returns string which is the rendered cursor indicator with the
-// correct indentation and styling.
+// Returns string which is the rendered cursor indicator with the correct indentation and
+// styling.
 func RenderCursorStyled(selected, focused bool, config CursorConfig) string {
 	if !selected {
 		return strings.Repeat(" ", config.InactiveIndent)

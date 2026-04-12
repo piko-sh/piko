@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Parses .pikoignore files and matches file paths against ignore patterns to exclude files from compilation.
-// Supports gitignore-style patterns including wildcards, negation, and directory matching for flexible file filtering.
+// Parses .pikoignore files and matches file paths against ignore patterns to exclude
+// files from compilation. Supports gitignore-style patterns including wildcards,
+// negation, and directory matching for flexible file filtering.
 
 import (
 	"bufio"
@@ -33,25 +34,27 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// defaultIgnorePatterns is a list of common files and directories to ignore.
-var defaultIgnorePatterns = []string{
-	".git", ".svn", ".hg", ".bzr",
+var (
+	// defaultIgnorePatterns is a list of common files and directories to ignore.
+	defaultIgnorePatterns = []string{
+		".git", ".svn", ".hg", ".bzr",
 
-	"dist", "node_modules", "vendor",
+		"dist", "node_modules", "vendor",
 
-	"__pycache__", ".venv", "venv", ".tox", ".eggs", "*.egg-info",
-	"vendor/bundle", ".bundle",
-	"_build", "deps",
-	"target", "build", ".gradle",
-	"bin", "obj",
+		"__pycache__", ".venv", "venv", ".tox", ".eggs", "*.egg-info",
+		"vendor/bundle", ".bundle",
+		"_build", "deps",
+		"target", "build", ".gradle",
+		"bin", "obj",
 
-	".idea", ".vscode", ".vs",
-	"*.swp", "*.swo",
+		".idea", ".vscode", ".vs",
+		"*.swp", "*.swo",
 
-	".DS_Store", "Thumbs.db",
+		".DS_Store", "Thumbs.db",
 
-	"coverage", "logs",
-}
+		"coverage", "logs",
+	}
+)
 
 // ignoreMatcher holds glob patterns and checks if file paths match them.
 type ignoreMatcher struct {
@@ -64,17 +67,16 @@ type ignoreMatcherOption func(*ignoreMatcherConfig)
 
 // ignoreMatcherConfig holds configuration for creating an ignoreMatcher.
 type ignoreMatcherConfig struct {
-	// sandboxFactory creates sandboxes when no sandbox is directly injected.
-	// When non-nil and sandbox is nil, this factory is used instead of
-	// safedisk.NewNoOpSandbox.
+	// sandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil
+	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
 	// sandbox is an optional sandbox for testing file operations.
 	sandbox safedisk.Sandbox
 }
 
-// Matches checks if a given path (file or directory name) matches any of the
-// ignore patterns.
+// Matches checks if a given path (file or directory name) matches any of the ignore
+// patterns.
 //
 // Takes name (string) which is the file or directory name to check.
 //
@@ -88,31 +90,27 @@ func (m *ignoreMatcher) Matches(name string) bool {
 	return false
 }
 
-// withIgnoreMatcherSandbox injects a sandbox for testing .pikoignore file
-// parsing. The caller is responsible for closing the sandbox.
+// withIgnoreMatcherSandbox injects a sandbox for testing .pikoignore file parsing. The
+// caller is responsible for closing the sandbox.
 //
 // Takes sandbox (safedisk.Sandbox) which provides filesystem access.
 //
-// Returns ignoreMatcherOption which configures the matcher with the given
-// sandbox.
+// Returns ignoreMatcherOption which configures the matcher with the given sandbox.
 func withIgnoreMatcherSandbox(sandbox safedisk.Sandbox) ignoreMatcherOption {
 	return func(c *ignoreMatcherConfig) {
 		c.sandbox = sandbox
 	}
 }
 
-// newIgnoreMatcher creates a new matcher from several sources of patterns.
-// It combines default patterns, patterns from a .pikoignore file, and
-// user-set patterns.
+// newIgnoreMatcher creates a new matcher from several sources of patterns. It combines
+// default patterns, patterns from a .pikoignore file, and user-set patterns.
 //
-// Takes baseDir (string) which is the directory containing the .pikoignore
-// file.
+// Takes baseDir (string) which is the directory containing the .pikoignore file.
 // Takes configPatterns ([]string) which provides user-set ignore patterns.
-// Takes opts (...ignoreMatcherOption) which provides optional configuration
-// such as withIgnoreMatcherSandbox for testing.
+// Takes opts (...ignoreMatcherOption) which provides optional configuration such as
+// withIgnoreMatcherSandbox for testing.
 //
-// Returns *ignoreMatcher which is ready to match paths against all combined
-// patterns.
+// Returns *ignoreMatcher which is ready to match paths against all combined patterns.
 func newIgnoreMatcher(baseDir string, configPatterns []string, opts ...ignoreMatcherOption) *ignoreMatcher {
 	config := &ignoreMatcherConfig{}
 	for _, opt := range opts {
@@ -133,17 +131,17 @@ func newIgnoreMatcher(baseDir string, configPatterns []string, opts ...ignoreMat
 	return &ignoreMatcher{patterns: finalPatterns}
 }
 
-// parseIgnoreFile reads a gitignore-style file and returns the patterns it
-// contains. It skips empty lines and comment lines (those starting with #).
+// parseIgnoreFile reads a gitignore-style file and returns the patterns it contains. It
+// skips empty lines and comment lines (those starting with #).
 //
 // When the file does not exist, returns nil without error.
 //
 // Takes path (string) which specifies the file to read.
-// Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for
-// testing. When nil, a sandbox is created for the file's parent directory.
-// Takes factory (safedisk.Factory) which is an optional factory for creating
-// sandboxes. When non-nil and injectedSandbox is nil, this factory is used
-// instead of safedisk.NewNoOpSandbox.
+// Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for testing. When
+// nil, a sandbox is created for the file's parent directory.
+// Takes factory (safedisk.Factory) which is an optional factory for creating sandboxes.
+// When non-nil and injectedSandbox is nil, this factory is used instead of
+// safedisk.NewNoOpSandbox.
 //
 // Returns []string which contains the parsed patterns from the file.
 // Returns error when the file cannot be read.
@@ -183,21 +181,15 @@ func parseIgnoreFile(path string, injectedSandbox safedisk.Sandbox, factory safe
 	return patterns, nil
 }
 
-// resolveIgnoreSandbox returns the sandbox to use for reading
-// the ignore file, preferring an injected sandbox and falling
-// back to a factory or no-op sandbox.
+// resolveIgnoreSandbox returns the sandbox to use for reading the ignore file, preferring
+// an injected sandbox and falling back to a factory or no-op sandbox.
 //
-// Takes cleanPath (string) which is the cleaned path used to
-// derive the parent directory.
-// Takes injectedSandbox (safedisk.Sandbox) which is an
-// optional pre-built sandbox.
-// Takes factory (safedisk.Factory) which creates sandboxes
-// when injectedSandbox is nil.
+// Takes cleanPath (string) which is the cleaned path used to derive the parent directory.
+// Takes injectedSandbox (safedisk.Sandbox) which is an optional pre-built sandbox.
+// Takes factory (safedisk.Factory) which creates sandboxes when injectedSandbox is nil.
 //
-// Returns safedisk.Sandbox which provides filesystem access,
-// or nil on failure.
-// Returns bool which indicates whether the caller owns (and
-// must close) the sandbox.
+// Returns safedisk.Sandbox which provides filesystem access, or nil on failure.
+// Returns bool which indicates whether the caller owns (and must close) the sandbox.
 func resolveIgnoreSandbox(cleanPath string, injectedSandbox safedisk.Sandbox, factory safedisk.Factory) (safedisk.Sandbox, bool) {
 	if injectedSandbox != nil {
 		return injectedSandbox, false

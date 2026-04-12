@@ -24,9 +24,9 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// ActionManifestProvider provides access to the action manifest from the last
-// successful build. This abstraction allows the TypeInfoService to remain
-// decoupled from the coordinator implementation.
+// ActionManifestProvider provides access to the action manifest from the last successful
+// build. This abstraction allows the TypeInfoService to remain decoupled from the
+// coordinator implementation.
 type ActionManifestProvider interface {
 	// GetLastSuccessfulBuild returns the most recent successful build result.
 	//
@@ -35,11 +35,11 @@ type ActionManifestProvider interface {
 	GetLastSuccessfulBuild() (*annotator_dto.ProjectAnnotationResult, bool)
 }
 
-// TypeInfoService provides TypeScript type information for LSP intellisense.
-// It is the single source of truth for piko.* and action.* completions.
+// TypeInfoService provides TypeScript type information for LSP intellisense. It is the
+// single source of truth for piko.* and action.* completions.
 type TypeInfoService struct {
-	// actionProvider gives access to actions found by the coordinator. It may be
-	// nil if not set, in which case completions will be empty.
+	// actionProvider gives access to actions found by the coordinator. It may be nil if not
+	// set, in which case completions will be empty.
 	actionProvider ActionManifestProvider
 }
 
@@ -63,8 +63,8 @@ func NewTypeInfoService(opts ...TypeInfoServiceOption) *TypeInfoService {
 //
 // Takes namespace (string) which specifies the piko API namespace to query.
 //
-// Returns []CompletionItem which contains the available completions, or nil
-// if the namespace is not found.
+// Returns []CompletionItem which contains the available completions, or nil if the
+// namespace is not found.
 func (*TypeInfoService) GetPikoCompletions(namespace string) []CompletionItem {
 	key := "piko"
 	if namespace != "" {
@@ -100,17 +100,16 @@ func (*TypeInfoService) GetPikoSubNamespaces() []string {
 	return PikoSubNamespaces
 }
 
-// GetActionCompletions returns completions for registered actions matching a
-// prefix.
+// GetActionCompletions returns completions for registered actions matching a prefix.
 //
-// If an ActionManifestProvider is configured, it returns real actions from the
-// last successful build. Otherwise, it returns nil.
+// If an ActionManifestProvider is configured, it returns real actions from the last
+// successful build. Otherwise, it returns nil.
 //
-// Takes prefix (string) which filters actions by their TypeScript function
-// name. Pass an empty string to return all actions.
+// Takes prefix (string) which filters actions by their TypeScript function name. Pass an
+// empty string to return all actions.
 //
-// Returns []CompletionItem which contains matching action completions, or nil
-// if no provider is configured or no build results are available.
+// Returns []CompletionItem which contains matching action completions, or nil if no
+// provider is configured or no build results are available.
 func (s *TypeInfoService) GetActionCompletions(prefix string) []CompletionItem {
 	if s.actionProvider == nil {
 		return nil
@@ -164,8 +163,8 @@ type pikoAPIFunction struct {
 }
 
 var (
-	// PikoSubNamespaces lists all available sub-namespaces under piko.
-	// Exported so LSP can use it for trigger detection.
+	// PikoSubNamespaces lists all available sub-namespaces under piko. Exported so LSP can
+	// use it for trigger detection.
 	PikoSubNamespaces = []string{
 		"nav",
 		"form",
@@ -276,8 +275,7 @@ var (
 	}
 )
 
-// WithActionProvider sets the action manifest provider for real action
-// completions.
+// WithActionProvider sets the action manifest provider for real action completions.
 //
 // Takes provider (ActionManifestProvider) which supplies action manifests.
 //
@@ -288,11 +286,10 @@ func WithActionProvider(provider ActionManifestProvider) TypeInfoServiceOption {
 	}
 }
 
-// buildActionSignature constructs a TypeScript function signature for an
-// action.
+// buildActionSignature constructs a TypeScript function signature for an action.
 //
-// Takes action (*annotator_dto.ActionDefinition) which provides the action
-// metadata including input and output types.
+// Takes action (*annotator_dto.ActionDefinition) which provides the action metadata
+// including input and output types.
 //
 // Returns string which is the formatted TypeScript signature.
 func buildActionSignature(action *annotator_dto.ActionDefinition) string {
@@ -312,8 +309,8 @@ func buildActionSignature(action *annotator_dto.ActionDefinition) string {
 	return action.TSFunctionName + "(" + params + "): ActionBuilder<void>"
 }
 
-// buildCallParamList builds a comma-separated list of TypeScript parameter
-// types from a slice of ActionTypeInfo.
+// buildCallParamList builds a comma-separated list of TypeScript parameter types from a
+// slice of ActionTypeInfo.
 //
 // Takes params ([]annotator_dto.ActionTypeInfo) which are the call parameters.
 //

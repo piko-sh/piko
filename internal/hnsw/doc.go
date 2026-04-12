@@ -16,28 +16,25 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package hnsw implements a Hierarchical Navigable Small World (HNSW)
-// graph for approximate nearest neighbour search over float32 vectors.
+// Package hnsw implements a Hierarchical Navigable Small World (HNSW) graph for
+// approximate nearest neighbour search over float32 vectors.
 //
-// The implementation is generic over the key type K (any comparable
-// type) and supports concurrent reads and writes. It provides
-// configurable parameters for index quality versus build speed
-// trade-offs, including maxNeighboursPerLayer (neighbours per node),
-// constructionCandidateCount (build-time candidate list size), and
-// searchCandidateCount (query-time candidate list size). Supported
-// distance metrics include Euclidean, cosine similarity, and dot
-// product.
+// The implementation is generic over the key type K (any comparable type) and supports
+// concurrent reads and writes. It provides configurable parameters for index quality
+// versus build speed trade-offs, including maxNeighboursPerLayer (neighbours per node),
+// constructionCandidateCount (build-time candidate list size), and searchCandidateCount
+// (query-time candidate list size). Supported distance metrics include Euclidean, cosine
+// similarity, and dot product.
 //
 // # Design rationale
 //
-// HNSW was chosen over other approximate nearest neighbour algorithms
-// (LSH, KD-trees, IVF) because its layered skip-list structure gives
-// logarithmic search complexity whilst maintaining high recall, and it
-// handles incremental inserts and deletions without full reindexing.
-// The parameters M (maxNeighboursPerLayer) and efConstruction
-// (constructionCandidateCount) let callers trade index build time and
-// memory for query accuracy, making the same code suitable for both
-// latency-sensitive serving and offline batch indexing.
+// HNSW was chosen over other approximate nearest neighbour algorithms (LSH, KD-trees,
+// IVF) because its layered skip-list structure gives logarithmic search complexity whilst
+// maintaining high recall, and it handles incremental inserts and deletions without full
+// reindexing. The parameters M (maxNeighboursPerLayer) and efConstruction
+// (constructionCandidateCount) let callers trade index build time and memory for query
+// accuracy, making the same code suitable for both latency-sensitive serving and offline
+// batch indexing.
 //
 // # Usage
 //

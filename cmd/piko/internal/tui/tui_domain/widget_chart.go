@@ -41,13 +41,13 @@ const (
 	// chartYSteps is the number of tick steps on the Y axis.
 	chartYSteps = 3
 
-	// chartRangePadFraction adds 5% above and below the data span so
-	// the line is not jammed against the top or bottom edge.
+	// chartRangePadFraction adds 5% above and below the data span so the line is not jammed
+	// against the top or bottom edge.
 	chartRangePadFraction = 0.05
 
-	// chartFlatPadFraction is the symmetric padding applied to a
-	// constant-valued series (where min == max). 10% of the absolute
-	// value gives a visible line; for value 0 we fall back to +/-1.
+	// chartFlatPadFraction is the symmetric padding applied to a constant-valued series
+	// (where min == max). 10% of the absolute value gives a visible line; for value 0 we
+	// fall back to +/-1.
 	chartFlatPadFraction = 0.1
 )
 
@@ -60,12 +60,12 @@ type ChartPoint struct {
 	Value float64
 }
 
-// ChartSeries describes a named line plotted on the chart. Severity drives
-// the line colour through the active Theme, so a "warning" series renders
-// in the theme's warning hue regardless of which palette is active.
+// ChartSeries describes a named line plotted on the chart. Severity drives the line
+// colour through the active Theme, so a "warning" series renders in the theme's warning
+// hue regardless of which palette is active.
 type ChartSeries struct {
-	// Name uniquely identifies the series within the chart. Used as the
-	// dataset key in the underlying ntcharts model.
+	// Name uniquely identifies the series within the chart. Used as the dataset key in the
+	// underlying ntcharts model.
 	Name string
 
 	// Points are the samples drawn for this series, in time order.
@@ -99,10 +99,9 @@ type ChartConfig struct {
 	Height int
 }
 
-// Chart wraps an ntcharts time-series line chart with our theme system.
-// The chart owns its bubblezone manager privately so hover-on-data-point
-// support can land in a future phase without leaking bubblezone into the
-// rest of the codebase.
+// Chart wraps an ntcharts time-series line chart with our theme system. The chart owns
+// its bubblezone manager privately so hover-on-data-point support can be added without
+// leaking bubblezone into the rest of the codebase.
 type Chart struct {
 	// model is the underlying ntcharts time-series chart.
 	model *tslc.Model
@@ -117,14 +116,12 @@ type Chart struct {
 	height int
 }
 
-// NewChart constructs a Chart with the supplied configuration. Width and
-// height should be the inner content dimensions (already net of any
-// surrounding pane chrome).
+// NewChart constructs a Chart with the supplied configuration. Width and height should be
+// the inner content dimensions (already net of any surrounding pane chrome).
 //
-// The chart's Y range is computed from the supplied series values
-// with a small symmetric padding so a near-constant series still
-// shows variation. The X range covers the full time span of all
-// supplied points.
+// The chart's Y range is computed from the supplied series values with a small symmetric
+// padding so a near-constant series still shows variation. The X range covers the full
+// time span of all supplied points.
 //
 // Takes config (ChartConfig) which configures the chart.
 //
@@ -164,9 +161,9 @@ func NewChart(config ChartConfig) *Chart {
 	return chart
 }
 
-// chartYRange returns a (min, max) Y axis range covering every value
-// in series with a small symmetric padding so near-constant data
-// still shows visible variation. Returns (0, 0) for an empty input.
+// chartYRange returns a (min, max) Y axis range covering every value in series with a
+// small symmetric padding so near-constant data still shows visible variation. Returns
+// (0, 0) for an empty input.
 //
 // Takes series ([]ChartSeries) which holds the plotted points.
 //
@@ -180,8 +177,8 @@ func chartYRange(series []ChartSeries) (minY, maxY float64) {
 	return paddedYRange(minY, maxY)
 }
 
-// minMaxValue scans series and returns the min and max value across
-// all points. The bool result is false when no points were supplied.
+// minMaxValue scans series and returns the min and max value across all points. The bool
+// result is false when no points were supplied.
 //
 // Takes series ([]ChartSeries) which holds the plotted points.
 //
@@ -208,10 +205,9 @@ func minMaxValue(series []ChartSeries) (minVal, maxVal float64, ok bool) {
 	return minVal, maxVal, ok
 }
 
-// paddedYRange applies symmetric padding around (minVal, maxVal) so
-// the rendered line never sits flush against the chart edges. A
-// constant series (min == max) gets +/-10% of its absolute value (or
-// +/-1 when the value is exactly zero).
+// paddedYRange applies symmetric padding around (minVal, maxVal) so the rendered line
+// never sits flush against the chart edges. A constant series (min == max) gets +/-10% of
+// its absolute value (or +/-1 when the value is exactly zero).
 //
 // Takes minVal (float64) which is the unpadded lower bound.
 // Takes maxVal (float64) which is the unpadded upper bound.
@@ -231,8 +227,8 @@ func paddedYRange(minVal, maxVal float64) (paddedMin, paddedMax float64) {
 	return minVal - pad, maxVal + pad
 }
 
-// chartTimeRange returns the earliest and latest timestamps across all
-// series. Returns (zero, zero) for empty input.
+// chartTimeRange returns the earliest and latest timestamps across all series. Returns
+// (zero, zero) for empty input.
 //
 // Takes series ([]ChartSeries) which holds the plotted points.
 //
@@ -298,13 +294,12 @@ func (c *Chart) Resize(width, height int) {
 	c.model.DrawAll()
 }
 
-// Render redraws the chart and returns its string view, padded to the
-// configured dimensions. Uses braille runes for higher visual density;
-// each cell encodes a 2x4 sub-pixel grid so flat trends still read as
-// a recognisable line.
+// Render redraws the chart and returns its string view, padded to the configured
+// dimensions. Uses braille runes for higher visual density; each cell encodes a 2x4
+// sub-pixel grid so flat trends still read as a recognisable line.
 //
-// PadRightANSI is applied per-line so multi-line chart output is not
-// collapsed into a single row by the global truncation path.
+// PadRightANSI is applied per-line so multi-line chart output is not collapsed into a
+// single row by the global truncation path.
 //
 // Returns string with the rendered chart sized to width x height.
 func (c *Chart) Render() string {
@@ -321,9 +316,9 @@ func (c *Chart) Render() string {
 	return strings.Join(lines, "\n")
 }
 
-// applySeries pushes each series into the underlying chart, applying
-// severity-driven styles. Existing data is cleared first so callers can
-// rebuild the chart from a fresh snapshot.
+// applySeries pushes each series into the underlying chart, applying severity-driven
+// styles. Existing data is cleared first so callers can rebuild the chart from a fresh
+// snapshot.
 //
 // Takes series ([]ChartSeries) which is the new data set.
 func (c *Chart) applySeries(series []ChartSeries) {
@@ -341,9 +336,9 @@ func (c *Chart) applySeries(series []ChartSeries) {
 	}
 }
 
-// severityStyle maps Severity to a lipgloss style for drawing the line.
-// Falls back to a sensible foreground colour when no theme is set so
-// tests can construct charts without configuring a theme.
+// severityStyle maps Severity to a lipgloss style for drawing the line. Falls back to a
+// sensible foreground colour when no theme is set so tests can construct charts without
+// configuring a theme.
 //
 // Takes s (Severity) which is the severity classification of the series.
 //
@@ -357,10 +352,9 @@ func (c *Chart) severityStyle(s Severity) lipgloss.Style {
 	return style.Inline(true)
 }
 
-// cachedSeries inspects the model's current dataset names to allow
-// re-styling on theme changes. ntcharts does not expose dataset names
-// directly, so we cache the slice of (name, severity) pairs at apply
-// time.
+// cachedSeries inspects the model's current dataset names to allow re-styling on theme
+// changes. ntcharts does not expose dataset names directly, so we cache the slice of
+// (name, severity) pairs at apply time.
 //
 // Returns []ChartSeries with names + severities only (Points unused).
 func (*Chart) cachedSeries() []ChartSeries {

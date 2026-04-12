@@ -16,11 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package registry_dal defines data access layer abstractions for the
-// registry hexagon.
+// Package registry_dal defines data access layer abstractions for the registry hexagon.
 //
-// Storage backends implement these port interfaces to persist and
-// query artefact metadata, blob references, and garbage collection
-// hints. The package also defines sentinel errors for
-// database-agnostic error handling and supports atomic operations.
+// Storage backends implement these port interfaces to persist and query artefact
+// metadata, blob references, and garbage collection hints. The package also defines
+// sentinel errors for database-agnostic error handling and supports atomic operations.
 package registry_dal

@@ -24,26 +24,37 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// MySQLDialect holds configuration for a MySQL variant. Flavours such as
-// MariaDB override specific fields to customise types, functions, and semantic
-// rules without forking the parser.
+// MySQLDialect holds configuration for a MySQL variant. Flavours such as MariaDB override
+// specific fields to customise types, functions, and semantic rules without forking the
+// parser.
 type MySQLDialect struct {
+	// ExtraTypes are dialect-specific SQL types merged into the catalogue after the built-in
+	// MySQL types are registered.
 	ExtraTypes map[string]querier_dto.SQLType
 
+	// ExtraFunctions registers additional functions after the built-in MySQL function
+	// catalogue is constructed.
 	ExtraFunctions func(*FunctionCatalogueBuilder)
 
+	// TypeNormaliserHook overrides type-name normalisation when non-nil.
 	TypeNormaliserHook func(name string, modifiers []int) *querier_dto.SQLType
 
+	// ImplicitCastHook overrides implicit cast rules when non-nil.
 	ImplicitCastHook func(from, to querier_dto.SQLTypeCategory) *bool
 
+	// PromoteTypeHook overrides type promotion rules when non-nil.
 	PromoteTypeHook func(left, right querier_dto.SQLType) *querier_dto.SQLType
 
+	// JSONTypeOverride replaces the default JSON type mapping when set.
 	JSONTypeOverride *querier_dto.SQLType
 
+	// SupportsReturning toggles RETURNING-clause support when non-nil.
 	SupportsReturning *bool
 
+	// Name is the dialect identifier, e.g. "mysql" or "mariadb".
 	Name string
 
+	// SupportsSequences enables sequence syntax for dialects such as MariaDB.
 	SupportsSequences bool
 }
 
@@ -51,72 +62,117 @@ type MySQLDialect struct {
 type Option func(*MySQLDialect)
 
 // WithDialectName sets the dialect name (e.g. "mariadb").
+//
+// Takes name (string) which is the dialect identifier to record.
+//
+// Returns Option which applies the dialect name when used.
 func WithDialectName(name string) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.Name = name
 	}
 }
 
-// WithExtraTypes adds extra type definitions that are merged into the type
-// catalogue after the built-in MySQL types.
+// WithExtraTypes adds dialect-specific SQL type definitions.
+//
+// Takes types (map[string]querier_dto.SQLType) which holds the additional type entries
+// merged after the built-in MySQL types.
+//
+// Returns Option which installs the extra types on a dialect.
 func WithExtraTypes(types map[string]querier_dto.SQLType) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.ExtraTypes = types
 	}
 }
 
-// WithExtraFunctions registers additional functions after the built-in
-// MySQL function catalogue is built.
+// WithExtraFunctions registers additional functions after the built-ins.
+//
+// Takes register (func(*FunctionCatalogueBuilder)) which receives the catalogue builder
+// for adding dialect-specific functions.
+//
+// Returns Option which installs the registration callback.
 func WithExtraFunctions(register func(*FunctionCatalogueBuilder)) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.ExtraFunctions = register
 	}
 }
 
-// WithTypeNormaliserHook installs a hook that is called first in
-// NormaliseTypeName. If it returns non-nil, the result is used instead of the
-// default normalisation.
+// WithTypeNormaliserHook installs a type-normalisation override.
+//
+// The hook runs first in NormaliseTypeName; if it returns non-nil, the result replaces
+// the default normalisation.
+//
+// Takes hook (func(string, []int) *querier_dto.SQLType) which inspects the raw type name
+// and modifiers and may return a normalised type.
+//
+// Returns Option which installs the hook on a dialect.
 func WithTypeNormaliserHook(hook func(string, []int) *querier_dto.SQLType) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.TypeNormaliserHook = hook
 	}
 }
 
-// WithImplicitCastHook installs a hook that is called first in
-// CanImplicitCast. If it returns non-nil, the result is used instead of the
-// default rules.
+// WithImplicitCastHook installs an implicit-cast override.
+//
+// The hook runs first in CanImplicitCast; if it returns non-nil, the boolean it points to
+// replaces the default rules.
+//
+// Takes hook (func(from, to querier_dto.SQLTypeCategory) *bool) which inspects category
+// pairs and may force a cast decision.
+//
+// Returns Option which installs the hook on a dialect.
 func WithImplicitCastHook(hook func(from, to querier_dto.SQLTypeCategory) *bool) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.ImplicitCastHook = hook
 	}
 }
 
-// WithPromoteTypeHook installs a hook that is called first in PromoteType. If
-// it returns non-nil, the result is used instead of the default promotion.
+// WithPromoteTypeHook installs a type-promotion override.
+//
+// The hook runs first in PromoteType; if it returns non-nil, the result replaces the
+// default promotion.
+//
+// Takes hook (func(left, right querier_dto.SQLType) *querier_dto.SQLType) which inspects
+// operand types and may return a promoted type.
+//
+// Returns Option which installs the hook on a dialect.
 func WithPromoteTypeHook(hook func(left, right querier_dto.SQLType) *querier_dto.SQLType) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.PromoteTypeHook = hook
 	}
 }
 
-// WithReturningSupport overrides the default RETURNING clause support. MySQL
-// does not support RETURNING by default, but MariaDB does.
+// WithReturningSupport overrides RETURNING-clause support.
+//
+// MySQL does not support RETURNING by default, but MariaDB does.
+//
+// Takes supported (bool) which records whether RETURNING is permitted.
+//
+// Returns Option which installs the support flag on a dialect.
 func WithReturningSupport(supported bool) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.SupportsReturning = &supported
 	}
 }
 
-// WithSequenceSupport enables sequence support. MySQL does not have sequences
-// by default, but MariaDB does.
+// WithSequenceSupport enables sequence support.
+//
+// MySQL does not have sequences by default, but MariaDB does.
+//
+// Takes supported (bool) which toggles sequence syntax handling.
+//
+// Returns Option which installs the support flag on a dialect.
 func WithSequenceSupport(supported bool) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.SupportsSequences = supported
 	}
 }
 
-// WithJSONTypeOverride replaces the default JSON type mapping with a custom
-// SQLType definition.
+// WithJSONTypeOverride replaces the default JSON type mapping.
+//
+// Takes sqlType (querier_dto.SQLType) which is the custom mapping that replaces the
+// dialect's default JSON type.
+//
+// Returns Option which installs the override on a dialect.
 func WithJSONTypeOverride(sqlType querier_dto.SQLType) Option {
 	return func(dialect *MySQLDialect) {
 		dialect.JSONTypeOverride = &sqlType
@@ -125,15 +181,22 @@ func WithJSONTypeOverride(sqlType querier_dto.SQLType) Option {
 
 // MySQLEngine implements the querier EnginePort for MySQL.
 type MySQLEngine struct {
+	// functions is the MySQL function catalogue used for resolution.
 	functions *querier_dto.FunctionCatalogue
 
+	// types is the MySQL type catalogue used for normalisation.
 	types *querier_dto.TypeCatalogue
 
+	// dialect captures dialect-level overrides for this engine instance.
 	dialect MySQLDialect
 }
 
-// NewMySQLEngine creates a new MySQL engine adapter with optional dialect
-// overrides.
+// NewMySQLEngine creates a new MySQL engine adapter.
+//
+// Takes options (...Option) which apply dialect overrides to the base MySQL configuration
+// before catalogues are built.
+//
+// Returns *MySQLEngine which implements the querier EnginePort.
 func NewMySQLEngine(options ...Option) *MySQLEngine {
 	dialect := MySQLDialect{
 		Name: "mysql",
@@ -149,7 +212,12 @@ func NewMySQLEngine(options ...Option) *MySQLEngine {
 	}
 }
 
-// ParseStatements tokenises and classifies SQL statements for the MySQL dialect.
+// ParseStatements tokenises and classifies SQL statements.
+//
+// Takes sql (string) which is the SQL source to scan.
+//
+// Returns []querier_dto.ParsedStatement which holds one entry per classified statement.
+// Returns error when tokenisation fails.
 func (*MySQLEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, error) {
 	tokens, tokeniseError := tokenise(sql)
 	if tokeniseError != nil {
@@ -174,35 +242,45 @@ func (*MySQLEngine) ParseStatements(sql string) ([]querier_dto.ParsedStatement, 
 // ddlHandler is a function that parses a DDL statement into a catalogue mutation.
 type ddlHandler func(*parser, *MySQLEngine) (*querier_dto.CatalogueMutation, error)
 
-var ddlHandlers = [statementKindCount]ddlHandler{
-	statementKindCreateTable: func(p *parser, engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateTable(engine)
-	},
-	statementKindDropTable: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropTable() },
-	statementKindAlterTable: func(p *parser, engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseAlterTable(engine)
-	},
-	statementKindCreateView:  func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateView() },
-	statementKindDropView:    func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropView() },
-	statementKindCreateIndex: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateIndex() },
-	statementKindDropIndex:   func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropIndex() },
-	statementKindCreateTrigger: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateOrDropTrigger(statementKindCreateTrigger)
-	},
-	statementKindDropTrigger: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateOrDropTrigger(statementKindDropTrigger)
-	},
-	statementKindCreateDatabase: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateDatabase()
-	},
-	statementKindDropDatabase: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropDatabase() },
-	statementKindCreateFunction: func(p *parser, engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
-		return p.parseCreateFunction(engine)
-	},
-	statementKindDropFunction: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropFunction() },
-}
+var (
+	// ddlHandlers dispatches DDL statement kinds to their parser entry points.
+	ddlHandlers = [statementKindCount]ddlHandler{
+		statementKindCreateTable: func(p *parser, engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateTable(engine)
+		},
+		statementKindDropTable: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropTable() },
+		statementKindAlterTable: func(p *parser, engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseAlterTable(engine)
+		},
+		statementKindCreateView:  func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateView() },
+		statementKindDropView:    func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropView() },
+		statementKindCreateIndex: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseCreateIndex() },
+		statementKindDropIndex:   func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropIndex() },
+		statementKindCreateTrigger: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateOrDropTrigger(statementKindCreateTrigger)
+		},
+		statementKindDropTrigger: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateOrDropTrigger(statementKindDropTrigger)
+		},
+		statementKindCreateDatabase: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateDatabase()
+		},
+		statementKindDropDatabase: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropDatabase() },
+		statementKindCreateFunction: func(p *parser, engine *MySQLEngine) (*querier_dto.CatalogueMutation, error) {
+			return p.parseCreateFunction(engine)
+		},
+		statementKindDropFunction: func(p *parser, _ *MySQLEngine) (*querier_dto.CatalogueMutation, error) { return p.parseDropFunction() },
+	}
+)
 
-// ApplyDDL applies a DDL statement to the catalogue for the MySQL dialect.
+// ApplyDDL applies a DDL statement to the catalogue.
+//
+// Takes statement (querier_dto.ParsedStatement) which carries the parsed token stream
+// produced by ParseStatements.
+//
+// Returns *querier_dto.CatalogueMutation which describes the change, or nil when no DDL
+// handler matches.
+// Returns error when the statement payload type is wrong or parsing fails.
 func (engine *MySQLEngine) ApplyDDL(
 	statement querier_dto.ParsedStatement,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -220,7 +298,15 @@ func (engine *MySQLEngine) ApplyDDL(
 	return nil, nil
 }
 
-// AnalyseQuery performs structural analysis of a DML statement for the MySQL dialect.
+// AnalyseQuery performs structural analysis of a DML statement.
+//
+// Takes _ (*querier_dto.Catalogue) which is the catalogue context (unused).
+// Takes statement (querier_dto.ParsedStatement) which carries the parsed token stream
+// produced by ParseStatements.
+//
+// Returns *querier_dto.RawQueryAnalysis which summarises the statement shape, or an empty
+// result for statements without DML analysis.
+// Returns error when the statement payload type is wrong or analysis fails.
 func (*MySQLEngine) AnalyseQuery(
 	_ *querier_dto.Catalogue,
 	statement querier_dto.ParsedStatement,
@@ -249,26 +335,42 @@ func (*MySQLEngine) AnalyseQuery(
 }
 
 // BuiltinFunctions returns the MySQL built-in function catalogue.
+//
+// Returns *querier_dto.FunctionCatalogue which lists the engine's resolved function
+// definitions.
 func (engine *MySQLEngine) BuiltinFunctions() *querier_dto.FunctionCatalogue {
 	return engine.functions
 }
 
 // BuiltinTypes returns the MySQL built-in type catalogue.
+//
+// Returns *querier_dto.TypeCatalogue which lists the engine's resolved type definitions.
 func (engine *MySQLEngine) BuiltinTypes() *querier_dto.TypeCatalogue {
 	return engine.types
 }
 
-// NormaliseTypeName resolves a raw type name to a structured SQLType for MySQL.
+// NormaliseTypeName resolves a raw type name to a structured SQLType.
+//
+// Takes name (string) which is the raw type name from the SQL source.
+// Takes modifiers (...int) which carry optional precision and scale modifiers parsed from
+// the type expression.
+//
+// Returns querier_dto.SQLType which describes the normalised type.
 func (engine *MySQLEngine) NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
 	return normaliseTypeName(name, engine.dialect.TypeNormaliserHook, modifiers...)
 }
 
 // ParameterStyle returns the question-mark parameter style used by MySQL.
+//
+// Returns querier_dto.ParameterStyle which identifies the MySQL placeholder convention.
 func (*MySQLEngine) ParameterStyle() querier_dto.ParameterStyle {
 	return querier_dto.ParameterStyleQuestion
 }
 
-// SupportedDirectivePrefixes returns the parameter prefixes valid in MySQL directives.
+// SupportedDirectivePrefixes returns valid MySQL directive prefixes.
+//
+// Returns []querier_dto.DirectiveParameterPrefix which lists positional and named
+// placeholder prefixes accepted by the engine.
 func (*MySQLEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParameterPrefix {
 	return []querier_dto.DirectiveParameterPrefix{
 		{Prefix: '?', IsNamed: false},
@@ -276,8 +378,11 @@ func (*MySQLEngine) SupportedDirectivePrefixes() []querier_dto.DirectiveParamete
 	}
 }
 
-// SupportsReturning reports whether the MySQL dialect supports RETURNING clauses.
-// Standard MySQL does not; MariaDB does via the dialect hook.
+// SupportsReturning reports whether RETURNING clauses are supported.
+//
+// Standard MySQL does not support RETURNING; MariaDB does via the dialect hook.
+//
+// Returns bool which is true when the configured dialect allows RETURNING.
 func (engine *MySQLEngine) SupportsReturning() bool {
 	if engine.dialect.SupportsReturning != nil {
 		return *engine.dialect.SupportsReturning
@@ -285,14 +390,20 @@ func (engine *MySQLEngine) SupportsReturning() bool {
 	return false
 }
 
-// Dialect returns the dialect name for this engine instance. Defaults to
-// "mysql" but derivatives (e.g. MariaDB) override via WithDialectName.
+// Dialect returns the dialect name for this engine instance.
+//
+// Defaults to "mysql" but derivatives such as MariaDB override via WithDialectName.
+//
+// Returns string which is the configured dialect identifier.
 func (engine *MySQLEngine) Dialect() string {
 	return engine.dialect.Name
 }
 
 // SupportedExpressions returns the expression features supported by MySQL.
-// String concatenation (||) is excluded because MySQL treats || as logical OR.
+//
+// String concatenation via || is excluded because MySQL treats || as logical OR.
+//
+// Returns querier_dto.SQLExpressionFeature which is the engine's feature bitmap.
 func (*MySQLEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 	return (querier_dto.SQLFeaturesBase &^ querier_dto.SQLFeatureStringConcat) |
 		querier_dto.SQLFeatureWindowFunction |
@@ -301,18 +412,28 @@ func (*MySQLEngine) SupportedExpressions() querier_dto.SQLExpressionFeature {
 		querier_dto.SQLFeatureBitwiseOp
 }
 
-// DefaultSchema returns an empty string, as MySQL does not have a default schema
-// in the PostgreSQL sense.
+// DefaultSchema returns the engine's default schema name.
+//
+// MySQL has no default schema in the PostgreSQL sense, so the result is an empty string.
+//
+// Returns string which is always empty for MySQL.
 func (*MySQLEngine) DefaultSchema() string {
 	return ""
 }
 
 // CommentStyle returns the standard SQL comment style.
+//
+// Returns querier_dto.CommentStyle which is the default SQL comment convention.
 func (*MySQLEngine) CommentStyle() querier_dto.CommentStyle {
 	return querier_dto.DefaultSQLCommentStyle()
 }
 
-// TableValuedFunctionColumns returns output columns for a known table-valued function.
+// TableValuedFunctionColumns returns output columns for a known TVF.
+//
+// Takes functionName (string) which is the table-valued function name.
+//
+// Returns []querier_dto.ScopedColumn which lists output columns, or nil when the function
+// is not recognised.
 func (*MySQLEngine) TableValuedFunctionColumns(functionName string) []querier_dto.ScopedColumn {
 	columns, exists := tableValuedFunctionColumns[functionName]
 	if !exists {
@@ -323,9 +444,16 @@ func (*MySQLEngine) TableValuedFunctionColumns(functionName string) []querier_dt
 	return result
 }
 
-// TableValuedFunctionColumnsFromCatalogue resolves user-defined functions
-// returning composite or set-of types by looking up the function signature
-// and return type in the catalogue.
+// TableValuedFunctionColumnsFromCatalogue resolves set-returning UDFs.
+//
+// Looks up the function signature and return type in the catalogue to recover column
+// definitions for composite or set-of return types.
+//
+// Takes catalogue (*querier_dto.Catalogue) which is the schema catalogue to search.
+// Takes functionName (string) which is the table-valued function name.
+//
+// Returns []querier_dto.ScopedColumn which lists output columns, or nil when no matching
+// set-returning signature is found.
 func (*MySQLEngine) TableValuedFunctionColumnsFromCatalogue(
 	catalogue *querier_dto.Catalogue,
 	functionName string,
@@ -348,6 +476,16 @@ func (*MySQLEngine) TableValuedFunctionColumnsFromCatalogue(
 	return nil
 }
 
+// resolveCompositeColumns expands a composite return type into columns.
+//
+// Takes catalogue (*querier_dto.Catalogue) which carries the schemas to consult for
+// composite type lookups.
+// Takes declaringSchema (*querier_dto.Schema) which is the schema declaring the calling
+// function.
+// Takes returnType (querier_dto.SQLType) which is the composite return type to expand.
+//
+// Returns []querier_dto.ScopedColumn which lists one entry per composite field, or nil
+// when the type is not a known composite.
 func resolveCompositeColumns(
 	catalogue *querier_dto.Catalogue,
 	declaringSchema *querier_dto.Schema,
@@ -383,7 +521,12 @@ func resolveCompositeColumns(
 	return nil
 }
 
-// PromoteType returns the wider type within the same category for MySQL.
+// PromoteType returns the wider type within the same category.
+//
+// Takes left (querier_dto.SQLType) which is the left operand type.
+// Takes right (querier_dto.SQLType) which is the right operand type.
+//
+// Returns querier_dto.SQLType which is the promoted type for the pair.
 func (engine *MySQLEngine) PromoteType(
 	left querier_dto.SQLType,
 	right querier_dto.SQLType,
@@ -414,8 +557,12 @@ func (engine *MySQLEngine) PromoteType(
 	}
 }
 
-// CanImplicitCast reports whether MySQL allows implicit conversion between
-// type categories.
+// CanImplicitCast reports whether implicit conversion is permitted.
+//
+// Takes from (querier_dto.SQLTypeCategory) which is the source category.
+// Takes to (querier_dto.SQLTypeCategory) which is the destination category.
+//
+// Returns bool which is true when MySQL allows the implicit conversion.
 func (engine *MySQLEngine) CanImplicitCast(
 	from querier_dto.SQLTypeCategory,
 	to querier_dto.SQLTypeCategory,
@@ -441,6 +588,16 @@ func (engine *MySQLEngine) CanImplicitCast(
 }
 
 // ResolveFunctionCall resolves a function call using MySQL overload rules.
+//
+// Takes catalogue (*querier_dto.Catalogue) which is the schema catalogue to search.
+// Takes name (string) which is the function name to resolve.
+// Takes schema (string) which scopes the lookup, or empty for any schema.
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types
+// provided at the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the chosen signature, or nil
+// when no overload matches.
+// Returns error when resolution fails.
 func (*MySQLEngine) ResolveFunctionCall(
 	catalogue *querier_dto.Catalogue,
 	name string,

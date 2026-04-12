@@ -18,13 +18,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package video_provider_astiav implements video transcoding using FFmpeg
-// via the go-astiav bindings.
+// Package video_provider_astiav implements video transcoding using FFmpeg via the
+// go-astiav bindings.
 //
-// This provider offers codec-aware video transcoding, thumbnail
-// extraction, and video metadata analysis. It requires FFmpeg
-// libraries to be installed on the system and is only built when
-// the "ffmpeg" build tag is set.
+// This provider offers codec-aware video transcoding, thumbnail extraction, and video
+// metadata analysis. It requires FFmpeg libraries to be installed on the system and is
+// only built when the "ffmpeg" build tag is set.
 //
 // # Usage
 //
@@ -45,7 +44,7 @@
 //
 // # Thread safety
 //
-// [Provider] methods are safe for concurrent use. A semaphore limits
-// the number of concurrent transcode and thumbnail operations to the
-// value set by [Config].MaxConcurrentTranscodes (default 10).
+// [Provider] methods are safe for concurrent use. A semaphore limits the number of
+// concurrent transcode and thumbnail operations to the value set by
+// [Config].MaxConcurrentTranscodes (default 10).
 package video_provider_astiav

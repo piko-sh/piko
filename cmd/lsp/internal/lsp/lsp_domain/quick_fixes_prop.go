@@ -39,17 +39,16 @@ type propInsertionInfo struct {
 	isSelfClosing bool
 }
 
-// generateAddMissingPropFix creates a fix to add a missing required prop.
-// This uses AST-based tag detection to find the exact insertion point.
+// generateAddMissingPropFix creates a fix to add a missing required prop. This uses
+// AST-based tag detection to find the exact insertion point.
 //
-// Takes diagnostic (protocol.Diagnostic) which contains the missing
-// prop error and associated fix data.
-// Takes document (*document) which provides the annotated AST and document
-// content for locating the insertion point.
+// Takes diagnostic (protocol.Diagnostic) which contains the missing prop error and
+// associated fix data.
+// Takes document (*document) which provides the annotated AST and document content for
+// locating the insertion point.
 //
-// Returns *protocol.CodeAction which is the add-prop fix action, or
-// nil if the diagnostic lacks a prop name or the insertion point
-// cannot be determined.
+// Returns *protocol.CodeAction which is the add-prop fix action, or nil if the diagnostic
+// lacks a prop name or the insertion point cannot be determined.
 func generateAddMissingPropFix(ctx context.Context, diagnostic protocol.Diagnostic, document *document, _ *workspace) *protocol.CodeAction {
 	_, l := logger_domain.From(ctx, log)
 
@@ -84,8 +83,8 @@ func generateAddMissingPropFix(ctx context.Context, diagnostic protocol.Diagnost
 // Takes position (protocol.Position) which specifies the cursor position.
 //
 // Returns *propInsertionInfo which contains the insertion point details.
-// Returns error when the document has no annotated AST, no component tag is
-// found at the position, or the tag end position cannot be found.
+// Returns error when the document has no annotated AST, no component tag is found at the
+// position, or the tag end position cannot be found.
 func findPropInsertionPoint(document *document, position protocol.Position) (*propInsertionInfo, error) {
 	if document.AnnotationResult == nil || document.AnnotationResult.AnnotatedAST == nil || len(document.AnnotationResult.AnnotatedAST.RootNodes) == 0 {
 		return nil, errors.New("no annotated AST available")
@@ -116,8 +115,8 @@ func findPropInsertionPoint(document *document, position protocol.Position) (*pr
 //
 // Takes suggestedValue (string) which is the value to check.
 //
-// Returns string which is the original value if not empty, or an empty string
-// literal ("") if the input was empty.
+// Returns string which is the original value if not empty, or an empty string literal
+// ("") if the input was empty.
 func getDefaultSuggestedValue(suggestedValue string) string {
 	if suggestedValue == "" {
 		return "\"\""

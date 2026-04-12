@@ -28,8 +28,8 @@ var (
 	// log is a package-level logger instance specific to the generator adapters.
 	log = logger_domain.GetLogger("piko/internal/generator/generator_adapters")
 
-	// meter is the OpenTelemetry Meter for the generator adapters, used to create metrics for
-	// all adapters.
+	// meter is the OpenTelemetry Meter for the generator adapters, used to create metrics
+	// for all adapters.
 	meter = otel.Meter("piko/internal/generator/generator_adapters")
 
 	// fileReadCount tracks the total number of file read operations.

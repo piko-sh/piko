@@ -18,8 +18,8 @@
 
 package ast_domain
 
-// Provides a pooled arena allocator that replaces per-object sync.Pool
-// operations with a single arena allocation per request.
+// Provides a pooled arena allocator that replaces per-object sync.Pool operations with a
+// single arena allocation per request.
 
 import (
 	"sync"
@@ -54,8 +54,8 @@ const (
 	// maxAnnotations is the limit at which the annotations slice is reallocated.
 	maxAnnotations = initialAnnotations * 8
 
-	// maxBucketMultiplier is the growth threshold for slab reallocation.
-	// When a bucket exceeds this multiple of its initial size, it is reset.
+	// maxBucketMultiplier is the growth threshold for slab reallocation. When a bucket
+	// exceeds this multiple of its initial size, it is reset.
 	maxBucketMultiplier = 8
 
 	// maxByteBufCapacity is the maximum capacity in bytes before a buffer is reset.
@@ -69,33 +69,32 @@ var (
 	// attributeBucketCapacities defines the bucket capacities for attribute slices.
 	attributeBucketCapacities = [7]int{2, 4, 6, 8, 10, 12, 16}
 
-	// attributeWriterBucketCapacities defines the slice bucket
-	// capacities for the attribute writer, using sizes
-	// 2, 4, 8, 10, 12, and 16.
+	// attributeWriterBucketCapacities defines the slice bucket capacities for the attribute
+	// writer, using sizes 2, 4, 8, 10, 12, and 16.
 	attributeWriterBucketCapacities = [6]int{2, 4, 8, 10, 12, 16}
 
-	// rootNodesBucketCaps defines the bucket capacities for root nodes slices.
-	// Values are: 1, 2, 4, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128.
+	// rootNodesBucketCaps defines the bucket capacities for root nodes slices. Values are:
+	// 1, 2, 4, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128.
 	rootNodesBucketCaps = [14]int{1, 2, 4, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128}
 
-	// initialChildCounts holds the initial bucket counts for high-water mark
-	// comparisons during Reset. These values match those used in newRenderArena.
+	// initialChildCounts holds the initial bucket counts for high-water mark comparisons
+	// during Reset. These values match those used in newRenderArena.
 	initialChildCounts = [13]int{128, 96, 64, 48, 32, 32, 16, 16, 8, 8, 4, 4, 4}
 
 	// initialAttrCounts holds the initial bucket counts for attribute slab allocation.
 	initialAttrCounts = [7]int{192, 128, 64, 32, 16, 16, 8}
 
-	// initialWriterCounts holds the initial bucket counts for attribute writer slab allocation.
+	// initialWriterCounts holds the initial bucket counts for attribute writer slab
+	// allocation.
 	initialWriterCounts = [6]int{128, 64, 32, 16, 16, 8}
 
 	// initialRootNodesCounts holds the initial bucket counts for root node slab allocation.
 	initialRootNodesCounts = [14]int{8, 8, 8, 4, 4, 4, 4, 4, 2, 2, 2, 2, 2, 2}
 
-	// arenaPool holds the active sync.Pool for arena instances. Wrapped in
-	// atomic.Pointer so ResetArenaPool can swap in a fresh pool without
-	// racing concurrent Get/Put callers (a direct struct-copy assignment of
-	// sync.Pool tears the (local, localSize) pair under the race detector
-	// and crashes in sync.indexLocal).
+	// arenaPool holds the active sync.Pool for arena instances. Wrapped in atomic.Pointer so
+	// ResetArenaPool can swap in a fresh pool without racing concurrent Get/Put callers (a
+	// direct struct-copy assignment of sync.Pool tears the (local, localSize) pair under the
+	// race detector and crashes in sync.indexLocal).
 	arenaPool atomic.Pointer[sync.Pool]
 )
 
@@ -103,8 +102,8 @@ func init() {
 	arenaPool.Store(newArenaPool())
 }
 
-// newArenaPool builds a fresh sync.Pool whose New func returns a default
-// RenderArena. Used by init and ResetArenaPool to populate arenaPool.
+// newArenaPool builds a fresh sync.Pool whose New func returns a default RenderArena.
+// Used by init and ResetArenaPool to populate arenaPool.
 //
 // Returns *sync.Pool which is the freshly constructed pool.
 func newArenaPool() *sync.Pool {
@@ -127,9 +126,9 @@ type slabBucket[T any] struct {
 	cap int
 }
 
-// RenderArena is a pooled container holding pre-allocated slabs for all AST
-// types used during a single render request. The entire arena is obtained and
-// released as a single unit, rather than managing each allocation separately.
+// RenderArena is a pooled container holding pre-allocated slabs for all AST types used
+// during a single render request. The entire arena is obtained and released as a single
+// unit, rather than managing each allocation separately.
 type RenderArena struct {
 	// ast holds the reusable TemplateAST; typically one per render.
 	ast TemplateAST
@@ -146,24 +145,23 @@ type RenderArena struct {
 	// annotations is a slab of RuntimeAnnotation values for reuse.
 	annotations []RuntimeAnnotation
 
-	// rootNodesSlabs holds pre-allocated slices of template node pointers,
-	// organised by capacity bucket for efficient reuse.
+	// rootNodesSlabs holds pre-allocated slices of template node pointers, organised by
+	// capacity bucket for efficient reuse.
 	rootNodesSlabs [14]slabBucket[[]*TemplateNode]
 
-	// childSlabs holds the child slice slabs organised by capacity bucket.
-	// Buckets: 2, 4, 6, 8, 10, 12, 16, 24, 32, 48, 64, 96, 128.
+	// childSlabs holds the child slice slabs organised by capacity bucket. Buckets: 2, 4, 6,
+	// 8, 10, 12, 16, 24, 32, 48, 64, 96, 128.
 	childSlabs [13]slabBucket[[]*TemplateNode]
 
-	// attributeSlabs holds attribute slice storage organised by capacity bucket.
-	// Buckets have capacities: 2, 4, 6, 8, 10, 12, 16.
+	// attributeSlabs holds attribute slice storage organised by capacity bucket. Buckets
+	// have capacities: 2, 4, 6, 8, 10, 12, 16.
 	attributeSlabs [7]slabBucket[[]HTMLAttribute]
 
-	// attributeWriterSlabs holds buckets for attribute writer slices, sized at
-	// capacities 2, 4, 8, 10, 12, and 16.
+	// attributeWriterSlabs holds buckets for attribute writer slices, sized at capacities 2,
+	// 4, 8, 10, 12, and 16.
 	attributeWriterSlabs [6]slabBucket[[]*DirectWriter]
 
-	// byteBufferIndex is the next available index in byteBufs;
-	// reset to 0 on arena reset.
+	// byteBufferIndex is the next available index in byteBufs; reset to 0 on arena reset.
 	byteBufferIndex int
 
 	// directWriterIndex is the next available index in the directWriters slab.
@@ -196,10 +194,10 @@ func (a *RenderArena) GetNode() *TemplateNode {
 //
 // Takes capacity (int) which specifies the minimum slice capacity required.
 //
-// Returns *[]*TemplateNode which is a pointer to the backing slice for API
-// compatibility, or nil if capacity exceeds the maximum bucket size.
-// Returns []*TemplateNode which is the slice ready for use, or nil if
-// capacity is zero or negative.
+// Returns *[]*TemplateNode which is a pointer to the backing slice for API compatibility,
+// or nil if capacity exceeds the maximum bucket size.
+// Returns []*TemplateNode which is the slice ready for use, or nil if capacity is zero or
+// negative.
 func (a *RenderArena) GetChildSlice(capacity int) (*[]*TemplateNode, []*TemplateNode) {
 	if capacity <= 0 {
 		return nil, nil
@@ -218,10 +216,10 @@ func (a *RenderArena) GetChildSlice(capacity int) (*[]*TemplateNode, []*Template
 //
 // Takes capacity (int) which specifies the minimum slice capacity needed.
 //
-// Returns *[]HTMLAttribute which is the backing slice pointer for reuse, or nil
-// if capacity is zero or negative, or if the capacity exceeds bucket sizes.
-// Returns []HTMLAttribute which is the slice ready for use, or nil if capacity
-// is zero or negative.
+// Returns *[]HTMLAttribute which is the backing slice pointer for reuse, or nil if
+// capacity is zero or negative, or if the capacity exceeds bucket sizes.
+// Returns []HTMLAttribute which is the slice ready for use, or nil if capacity is zero or
+// negative.
 func (a *RenderArena) GetAttrSlice(capacity int) (*[]HTMLAttribute, []HTMLAttribute) {
 	if capacity <= 0 {
 		return nil, nil
@@ -236,13 +234,13 @@ func (a *RenderArena) GetAttrSlice(capacity int) (*[]HTMLAttribute, []HTMLAttrib
 	return getSliceFromBucket(&a.attributeSlabs[bucketIndex], a.growAttrBucket, bucketIndex, func(s *[]HTMLAttribute) { *s = (*s)[:0] })
 }
 
-// GetAttrWriterSlice returns an attribute writer slice of at least the
-// requested capacity.
+// GetAttrWriterSlice returns an attribute writer slice of at least the requested
+// capacity.
 //
 // Takes capacity (int) which specifies the minimum size of the slice.
 //
-// Returns *[]*DirectWriter which is the backing array pointer for reuse, or
-// nil if the slice cannot be pooled.
+// Returns *[]*DirectWriter which is the backing array pointer for reuse, or nil if the
+// slice cannot be pooled.
 // Returns []*DirectWriter which is the slice ready for use.
 func (a *RenderArena) GetAttrWriterSlice(capacity int) (*[]*DirectWriter, []*DirectWriter) {
 	if capacity <= 0 {
@@ -285,8 +283,8 @@ func (a *RenderArena) GetByteBuf() *[]byte {
 
 // GetRuntimeAnnotation returns a RuntimeAnnotation from the slab.
 //
-// Returns *RuntimeAnnotation which is the next available annotation from the
-// arena, growing the pool if needed.
+// Returns *RuntimeAnnotation which is the next available annotation from the arena,
+// growing the pool if needed.
 func (a *RenderArena) GetRuntimeAnnotation() *RuntimeAnnotation {
 	if a.annotationIndex >= len(a.annotations) {
 		a.growAnnotations()
@@ -308,13 +306,12 @@ func (a *RenderArena) GetTemplateAST() *TemplateAST {
 	return &a.ast
 }
 
-// GetRootNodesSlice returns a root nodes slice of at least the requested
-// capacity.
+// GetRootNodesSlice returns a root nodes slice of at least the requested capacity.
 //
 // Takes capacity (int) which specifies the minimum slice capacity needed.
 //
-// Returns []*TemplateNode which is a slice with the requested capacity, or nil
-// if capacity is zero or negative.
+// Returns []*TemplateNode which is a slice with the requested capacity, or nil if
+// capacity is zero or negative.
 func (a *RenderArena) GetRootNodesSlice(capacity int) []*TemplateNode {
 	if capacity <= 0 {
 		return nil
@@ -335,12 +332,12 @@ func (a *RenderArena) GetRootNodesSlice(capacity int) []*TemplateNode {
 	return backing[:0]
 }
 
-// Reset clears all indices and resets used objects, preparing the arena for
-// reuse. This is called by PutArena before returning the arena to the pool.
+// Reset clears all indices and resets used objects, preparing the arena for reuse. This
+// is called by PutArena before returning the arena to the pool.
 //
-// For DoS protection, slabs that have grown beyond high-water mark limits
-// are shrunk back to initial size. This prevents memory bloat from malicious
-// or pathological requests while allowing legitimate growth to be retained.
+// For DoS protection, slabs that have grown beyond high-water mark limits are shrunk back
+// to initial size. This prevents memory bloat from malicious or pathological requests
+// while allowing legitimate growth to be retained.
 func (a *RenderArena) Reset() {
 	a.resetNodes()
 	a.resetChildSlabs()
@@ -465,8 +462,8 @@ func (*RenderArena) attributeWriterBucketIndex(capacity int) int {
 	}
 }
 
-// growAttrWriterBucket doubles the capacity of the attribute writer bucket at
-// the given index.
+// growAttrWriterBucket doubles the capacity of the attribute writer bucket at the given
+// index.
 //
 // Takes index (int) which specifies the bucket index to grow.
 func (a *RenderArena) growAttrWriterBucket(index int) {
@@ -542,8 +539,7 @@ func (*RenderArena) rootNodesBucketIndex(capacity int) int {
 
 //revive:enable:add-constant
 
-// growRootNodesBucket doubles the capacity of the root nodes bucket at the
-// given index.
+// growRootNodesBucket doubles the capacity of the root nodes bucket at the given index.
 //
 // Takes index (int) which specifies the bucket index to grow.
 func (a *RenderArena) growRootNodesBucket(index int) {
@@ -576,8 +572,8 @@ func (a *RenderArena) resetAttrSlabs() {
 	}
 }
 
-// resetAttrWriterSlabs clears all attribute writer slabs and shrinks oversized
-// buckets back to their initial capacity.
+// resetAttrWriterSlabs clears all attribute writer slabs and shrinks oversized buckets
+// back to their initial capacity.
 func (a *RenderArena) resetAttrWriterSlabs() {
 	for i := range a.attributeWriterSlabs {
 		resetSlabBucket(&a.attributeWriterSlabs[i], initialWriterCounts[i], func(c int) []*DirectWriter { return make([]*DirectWriter, 0, c) })
@@ -642,8 +638,7 @@ func (a *RenderArena) resetRootNodesSlabs() {
 
 // GetArena retrieves a RenderArena from the pool.
 //
-// Returns *RenderArena which is a reusable arena, either from the pool or
-// newly created.
+// Returns *RenderArena which is a reusable arena, either from the pool or newly created.
 func GetArena() *RenderArena {
 	arena, ok := arenaPool.Load().Get().(*RenderArena)
 	if !ok {
@@ -663,8 +658,8 @@ func PutArena(arena *RenderArena) {
 	arenaPool.Load().Put(arena)
 }
 
-// ResetArenaPool atomically swaps in a fresh arena pool for test isolation.
-// Safe to call concurrently with Get/Put.
+// ResetArenaPool atomically swaps in a fresh arena pool for test isolation. Safe to call
+// concurrently with Get/Put.
 func ResetArenaPool() {
 	arenaPool.Store(newArenaPool())
 }
@@ -707,8 +702,7 @@ func newRenderArena() *RenderArena {
 //
 // Takes count (int) which specifies the number of slices to create.
 // Takes sliceCap (int) which sets the initial capacity of each slice.
-// Takes makeSlice (func(int) T) which creates a new slice of the
-// given capacity.
+// Takes makeSlice (func(int) T) which creates a new slice of the given capacity.
 //
 // Returns slabBucket[T] which contains the allocated backing slices.
 func newSlabBucket[T any](count, sliceCap int, makeSlice func(int) T) slabBucket[T] {
@@ -750,8 +744,7 @@ func getSliceFromBucket[T any](
 // growSlabBucket doubles the capacity of a slab bucket's backing store.
 //
 // Takes bucket (*slabBucket[T]) which is the bucket to grow.
-// Takes makeSlice (func(int) T) which creates new slices with the given
-// capacity.
+// Takes makeSlice (func(int) T) which creates new slices with the given capacity.
 func growSlabBucket[T any](bucket *slabBucket[T], makeSlice func(int) T) {
 	newCount := len(bucket.backing) * 2
 	if newCount == 0 {
@@ -767,9 +760,8 @@ func growSlabBucket[T any](bucket *slabBucket[T], makeSlice func(int) T) {
 
 // resetSlabBucket clears all used slices in the bucket and resets it for reuse.
 //
-// When the backing array has grown beyond the initial count multiplied by the
-// maximum bucket multiplier, it reallocates the backing array to the initial
-// size.
+// When the backing array has grown beyond the initial count multiplied by the maximum
+// bucket multiplier, it reallocates the backing array to the initial size.
 //
 // Takes bucket (*slabBucket[T]) which is the bucket to reset.
 // Takes initialCount (int) which is the target size for the backing array.

@@ -24,14 +24,13 @@ import (
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 )
 
-// RefillBucket updates the bucket state based on elapsed time since the last
-// refill. Tokens are added at the configured refill rate, capped at MaxTokens.
+// RefillBucket updates the bucket state based on elapsed time since the last refill.
+// Tokens are added at the configured refill rate, capped at MaxTokens.
 //
 // Takes state (*TokenBucketState) which holds the current bucket state.
 // Takes nowNano (int64) which is the current time in nanoseconds.
 //
-// Returns *TokenBucketState which is the updated bucket state, or nil if
-// state is nil.
+// Returns *TokenBucketState which is the updated bucket state, or nil if state is nil.
 func RefillBucket(state *TokenBucketState, nowNano int64) *TokenBucketState {
 	if state == nil {
 		return nil
@@ -55,11 +54,10 @@ func RefillBucket(state *TokenBucketState, nowNano int64) *TokenBucketState {
 	}
 }
 
-// NewBucketState creates initial bucket state from configuration. The bucket
-// starts full (tokens equal to max capacity).
+// NewBucketState creates initial bucket state from configuration. The bucket starts full
+// (tokens equal to max capacity).
 //
-// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket
-// parameters.
+// Takes config (*ratelimiter_dto.TokenBucketConfig) which defines bucket parameters.
 // Takes nowNano (int64) which is the current time in nanoseconds.
 //
 // Returns *TokenBucketState which is the initial bucket state.

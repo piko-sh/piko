@@ -30,10 +30,12 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-var _ tui_domain.MetricsProvider = (*MetricsProvider)(nil)
+var (
+	_ tui_domain.MetricsProvider = (*MetricsProvider)(nil)
+)
 
-// MetricsProvider provides metrics data through a gRPC connection.
-// It implements tui_domain.MetricsProvider and is safe for concurrent use.
+// MetricsProvider provides metrics data through a gRPC connection. It implements
+// tui_domain.MetricsProvider and is safe for concurrent use.
 type MetricsProvider struct {
 	// conn holds the gRPC connection with health and metrics clients.
 	conn *Connection
@@ -144,8 +146,8 @@ func (p *MetricsProvider) ListMetrics(_ context.Context) ([]string, error) {
 //
 // Takes metric (string) which is the name of the metric to look up.
 //
-// Returns *tui_domain.MetricSeries which contains the time series
-// data for the requested metric.
+// Returns *tui_domain.MetricSeries which contains the time series data for the requested
+// metric.
 // Returns error when the metric is not found.
 //
 // Safe for concurrent use; protected by a read lock.
@@ -183,11 +185,10 @@ func (p *MetricsProvider) Current(_ context.Context, metric string) (*tui_domain
 
 // convertMetrics converts protobuf metrics to domain format.
 //
-// Takes response (*pb.GetMetricsResponse) which contains the
-// protobuf metrics data.
+// Takes response (*pb.GetMetricsResponse) which contains the protobuf metrics data.
 //
-// Returns map[string]*tui_domain.MetricSeries which maps metric names to their
-// series data.
+// Returns map[string]*tui_domain.MetricSeries which maps metric names to their series
+// data.
 // Returns []string which contains the ordered list of metric names.
 func convertMetrics(response *pb.GetMetricsResponse) (map[string]*tui_domain.MetricSeries, []string) {
 	metrics := make(map[string]*tui_domain.MetricSeries)

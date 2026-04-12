@@ -28,12 +28,10 @@ var (
 	// errTagNameEmpty is returned when a component tag name is empty.
 	errTagNameEmpty = errors.New("component tag name cannot be empty")
 
-	// htmlElements contains all standard HTML element names that cannot be used
-	// as custom element tag names. This list includes all elements from the
-	// HTML Living Standard.
+	// htmlElements contains all standard HTML element names that cannot be used as custom
+	// element tag names. This list includes all elements from the HTML Living Standard.
 	//
-	// Custom elements must not shadow these names to avoid conflicts with
-	// browser behaviour.
+	// Custom elements must not shadow these names to avoid conflicts with browser behaviour.
 	htmlElements = map[string]bool{
 		"html":       true,
 		"base":       true,
@@ -182,8 +180,8 @@ var (
 	}
 )
 
-// IsHTMLElement checks if the given tag name is a standard HTML element.
-// The check is case-insensitive.
+// IsHTMLElement checks if the given tag name is a standard HTML element. The check is
+// case-insensitive.
 //
 // Takes tagName (string) which is the HTML tag name to check.
 //
@@ -201,8 +199,8 @@ func IsHTMLElement(tagName string) bool {
 //
 // Takes tagName (string) which is the proposed custom element tag name.
 //
-// Returns error when the tag name is empty, uses a reserved prefix, lacks a
-// hyphen, or shadows a standard HTML element.
+// Returns error when the tag name is empty, uses a reserved prefix, lacks a hyphen, or
+// shadows a standard HTML element.
 func ValidateTagName(tagName string) error {
 	if tagName == "" {
 		return errTagNameEmpty

@@ -24,13 +24,13 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// state represents the current status of the coordinator service.
-// It implements fmt.Stringer for readable output.
+// state represents the current status of the coordinator service. It implements
+// fmt.Stringer for readable output.
 type state int
 
 const (
-	// stateIdle indicates the coordinator has not yet performed a build or has
-	// been invalidated.
+	// stateIdle indicates the coordinator has not yet performed a build or has been
+	// invalidated.
 	stateIdle state = iota
 
 	// stateBuilding indicates that a build is currently in progress.
@@ -61,8 +61,8 @@ func (s state) String() string {
 	}
 }
 
-// buildStatus is a snapshot of the coordinator's state at a single point in
-// time. It is the primary DTO for consumers who need the project build status.
+// buildStatus is a snapshot of the coordinator's state at a single point in time. It is
+// the primary DTO for consumers who need the project build status.
 type buildStatus struct {
 	// LastBuildTime is when the build status was last updated.
 	LastBuildTime time.Time
@@ -77,8 +77,7 @@ type buildStatus struct {
 	State state
 }
 
-// BuildNotification is the event payload sent to all subscribers when a build
-// completes.
+// BuildNotification is the event payload sent to all subscribers when a build completes.
 type BuildNotification struct {
 	// Result holds the build output; nil if the build failed.
 	Result *annotator_dto.ProjectAnnotationResult

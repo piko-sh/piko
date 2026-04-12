@@ -16,10 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package capabilities_dto defines data transfer objects for the capabilities
-// module.
+// Package capabilities_dto defines data transfer objects for the capabilities module.
 //
-// It contains the [Capability] type and standard capability identifiers
-// used throughout the framework to reference pluggable content
-// transformation functions.
+// It contains the [Capability] type and standard capability identifiers used throughout
+// the framework to reference pluggable content transformation functions.
 package capabilities_dto

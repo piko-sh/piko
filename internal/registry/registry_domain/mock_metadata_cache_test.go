@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestMockMetadataCache_Get(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCallCount))
+		assert.Equal(t, int64(1), m.GetCallCount.Load())
 	})
 
 	t.Run("delegates to GetFunc", func(t *testing.T) {
@@ -59,7 +58,7 @@ func TestMockMetadataCache_Get(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetCallCount))
+		assert.Equal(t, int64(1), m.GetCallCount.Load())
 	})
 
 	t.Run("propagates error from GetFunc", func(t *testing.T) {
@@ -89,7 +88,7 @@ func TestMockMetadataCache_GetMultiple(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.Nil(t, misses)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMultipleCallCount))
+		assert.Equal(t, int64(1), m.GetMultipleCallCount.Load())
 	})
 
 	t.Run("delegates to GetMultipleFunc", func(t *testing.T) {
@@ -107,7 +106,7 @@ func TestMockMetadataCache_GetMultiple(t *testing.T) {
 
 		assert.Equal(t, wantHits, got)
 		assert.Equal(t, wantMisses, misses)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMultipleCallCount))
+		assert.Equal(t, int64(1), m.GetMultipleCallCount.Load())
 	})
 }
 
@@ -120,7 +119,7 @@ func TestMockMetadataCache_Set(t *testing.T) {
 
 		m.Set(context.Background(), &registry_dto.ArtefactMeta{ID: "art-1"})
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SetCallCount))
+		assert.Equal(t, int64(1), m.SetCallCount.Load())
 	})
 
 	t.Run("delegates to SetFunc", func(t *testing.T) {
@@ -134,7 +133,7 @@ func TestMockMetadataCache_Set(t *testing.T) {
 
 		m.Set(context.Background(), art)
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SetCallCount))
+		assert.Equal(t, int64(1), m.SetCallCount.Load())
 	})
 }
 
@@ -147,7 +146,7 @@ func TestMockMetadataCache_SetMultiple(t *testing.T) {
 
 		m.SetMultiple(context.Background(), []*registry_dto.ArtefactMeta{{ID: "a"}})
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SetMultipleCallCount))
+		assert.Equal(t, int64(1), m.SetMultipleCallCount.Load())
 	})
 
 	t.Run("delegates to SetMultipleFunc", func(t *testing.T) {
@@ -161,7 +160,7 @@ func TestMockMetadataCache_SetMultiple(t *testing.T) {
 
 		m.SetMultiple(context.Background(), arts)
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SetMultipleCallCount))
+		assert.Equal(t, int64(1), m.SetMultipleCallCount.Load())
 	})
 }
 
@@ -174,7 +173,7 @@ func TestMockMetadataCache_Delete(t *testing.T) {
 
 		m.Delete(context.Background(), "art-1")
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DeleteCallCount))
+		assert.Equal(t, int64(1), m.DeleteCallCount.Load())
 	})
 
 	t.Run("delegates to DeleteFunc", func(t *testing.T) {
@@ -187,7 +186,7 @@ func TestMockMetadataCache_Delete(t *testing.T) {
 
 		m.Delete(context.Background(), "art-1")
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DeleteCallCount))
+		assert.Equal(t, int64(1), m.DeleteCallCount.Load())
 	})
 }
 
@@ -201,7 +200,7 @@ func TestMockMetadataCache_Close(t *testing.T) {
 		err := m.Close(context.Background())
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 
 	t.Run("delegates to CloseFunc", func(t *testing.T) {
@@ -218,7 +217,7 @@ func TestMockMetadataCache_Close(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 
 	t.Run("propagates error from CloseFunc", func(t *testing.T) {
@@ -291,10 +290,10 @@ func TestMockMetadataCache_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetMultipleCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SetCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SetMultipleCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DeleteCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CloseCallCount))
+	assert.Equal(t, int64(goroutines), m.GetCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetMultipleCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SetCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SetMultipleCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DeleteCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CloseCallCount.Load())
 }

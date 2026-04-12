@@ -16,12 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_stemmer_mock provides a configurable mock
-// stemmer for testing.
+// Package linguistics_stemmer_mock provides a configurable mock stemmer for testing.
 //
-// The mock implements the StemmerPort interface with configurable
-// word-to-stem mappings, custom stem functions, pass-through mode,
-// and call tracking for test assertions.
+// The mock implements the StemmerPort interface with configurable word-to-stem mappings,
+// custom stem functions, pass-through mode, and call tracking for test assertions.
 //
 // All methods on [MockStemmer] are safe for concurrent use.
 package linguistics_stemmer_mock

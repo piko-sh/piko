@@ -32,17 +32,16 @@ import (
 )
 
 const (
-	// defaultCounterNamespace is the default cache namespace for fixed window
-	// counters.
+	// defaultCounterNamespace is the default cache namespace for fixed window counters.
 	defaultCounterNamespace = "ratelimiter:fw"
 
-	// defaultCounterMaxSize is the default maximum number of entries for in-memory
-	// cache providers.
+	// defaultCounterMaxSize is the default maximum number of entries for in-memory cache
+	// providers.
 	defaultCounterMaxSize = 100000
 )
 
-// counterEntry holds the internal state of a fixed-window counter, including
-// the count and the time the window started.
+// counterEntry holds the internal state of a fixed-window counter, including the count
+// and the time the window started.
 type counterEntry struct {
 	// Count is the number of requests in the current window.
 	Count int64
@@ -59,21 +58,20 @@ type CacheCounterStoreConfig struct {
 	// Clock provides time operations. If nil, clock.RealClock() is used.
 	Clock clock.Clock
 
-	// Provider specifies the cache provider. If empty, uses the service's
-	// default provider.
+	// Provider specifies the cache provider. If empty, uses the service's default provider.
 	Provider string
 
 	// Namespace is the key prefix for all entries. Defaults to "ratelimiter:fw".
 	Namespace string
 
-	// MaximumSize is the maximum entry count for in-memory providers; remote
-	// providers ignore this. Defaults to 100000.
+	// MaximumSize is the maximum entry count for in-memory providers; remote providers
+	// ignore this. Defaults to 100000.
 	MaximumSize int
 }
 
-// CacheCounterStore implements CounterStorePort using a cache backend.
-// It uses the cache's atomic ComputeWithTTL method to implement fixed-window
-// rate limiting where the TTL is set only on the first increment.
+// CacheCounterStore implements CounterStorePort using a cache backend. It uses the
+// cache's atomic ComputeWithTTL method to implement fixed-window rate limiting where the
+// TTL is set only on the first increment.
 type CacheCounterStore struct {
 	// clock provides the current time for window start tracking.
 	clock clock.Clock
@@ -82,7 +80,9 @@ type CacheCounterStore struct {
 	cache cache_domain.Cache[string, *counterEntry]
 }
 
-var _ ratelimiter_domain.CounterStorePort = (*CacheCounterStore)(nil)
+var (
+	_ ratelimiter_domain.CounterStorePort = (*CacheCounterStore)(nil)
+)
 
 // NewCacheCounterStore creates a counter store backed by the cache hexagon.
 //
@@ -110,16 +110,16 @@ func NewCacheCounterStore(ctx context.Context, config CacheCounterStoreConfig) (
 	}, nil
 }
 
-// IncrementAndGet atomically increments the counter for key by delta. The
-// TTL is set only when the counter is first created, implementing a
-// fixed-window strategy where the window starts on the first request.
+// IncrementAndGet atomically increments the counter for key by delta. The TTL is set only
+// when the counter is first created, implementing a fixed-window strategy where the
+// window starts on the first request.
 //
 // Takes key (string) which identifies the rate limit counter.
 // Takes delta (int64) which is the amount to increment by.
 // Takes window (time.Duration) which is the TTL for new counters.
 //
-// Returns ratelimiter_dto.CounterResult which contains the counter value
-// after incrementing and the window start time.
+// Returns ratelimiter_dto.CounterResult which contains the counter value after
+// incrementing and the window start time.
 // Returns error when the cache operation fails.
 func (s *CacheCounterStore) IncrementAndGet(ctx context.Context, key string, delta int64, window time.Duration) (ratelimiter_dto.CounterResult, error) {
 	now := s.clock.Now()
@@ -187,9 +187,8 @@ type cacheStoreParams struct {
 	DefaultMaxSize int
 }
 
-// newCacheStore validates configuration, applies defaults, and creates a typed
-// cache instance. This is shared by both the counter and token bucket store
-// constructors.
+// newCacheStore validates configuration, applies defaults, and creates a typed cache
+// instance. This is shared by both the counter and token bucket store constructors.
 //
 // Takes params (cacheStoreParams) which holds the cache configuration.
 //

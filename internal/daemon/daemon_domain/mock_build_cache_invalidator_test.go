@@ -20,7 +20,6 @@ package daemon_domain
 
 import (
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,7 +35,7 @@ func TestMockBuildCacheInvalidator_InvalidateBuildCache(t *testing.T) {
 
 		mock.InvalidateBuildCache()
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.InvalidateBuildCacheCallCount))
+		assert.Equal(t, int64(1), mock.InvalidateBuildCacheCallCount.Load())
 	})
 
 	t.Run("delegates to InvalidateBuildCacheFunc", func(t *testing.T) {
@@ -52,7 +51,7 @@ func TestMockBuildCacheInvalidator_InvalidateBuildCache(t *testing.T) {
 		mock.InvalidateBuildCache()
 
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.InvalidateBuildCacheCallCount))
+		assert.Equal(t, int64(1), mock.InvalidateBuildCacheCallCount.Load())
 	})
 }
 
@@ -63,7 +62,7 @@ func TestMockBuildCacheInvalidator_ZeroValueIsUsable(t *testing.T) {
 
 	mock.InvalidateBuildCache()
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.InvalidateBuildCacheCallCount))
+	assert.Equal(t, int64(1), mock.InvalidateBuildCacheCallCount.Load())
 }
 
 func TestMockBuildCacheInvalidator_ConcurrentAccess(t *testing.T) {
@@ -84,7 +83,7 @@ func TestMockBuildCacheInvalidator_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.InvalidateBuildCacheCallCount))
+	assert.Equal(t, int64(goroutines), mock.InvalidateBuildCacheCallCount.Load())
 }
 
 func TestMockBuildCacheInvalidator_MultipleCalls(t *testing.T) {
@@ -102,7 +101,7 @@ func TestMockBuildCacheInvalidator_MultipleCalls(t *testing.T) {
 	mock.InvalidateBuildCache()
 
 	assert.Equal(t, 3, callCount)
-	assert.Equal(t, int64(3), atomic.LoadInt64(&mock.InvalidateBuildCacheCallCount))
+	assert.Equal(t, int64(3), mock.InvalidateBuildCacheCallCount.Load())
 }
 
 func TestMockBuildCacheInvalidator_ImplementsBuildCacheInvalidator(t *testing.T) {

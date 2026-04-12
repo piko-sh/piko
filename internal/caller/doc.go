@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package caller captures stack frames with zero allocations on the
-// hot path.
+// Package caller captures stack frames with zero allocations on the hot path.
 //
-// It is an optimised alternative to Go's [runtime.Caller] and
-// [runtime.Callers] functions, using go:linkname to access
-// runtime.callers directly, constructing [runtime.Frames] on the
-// stack to avoid heap allocation, and caching resolved frame
+// It is an optimised alternative to Go's [runtime.Caller] and [runtime.Callers]
+// functions, using go:linkname to access runtime.callers directly, constructing
+// [runtime.Frames] on the stack to avoid heap allocation, and caching resolved frame
 // information for repeated lookups.
 //
 // # Usage
@@ -38,19 +36,17 @@
 //
 // # Performance
 //
-// The default implementation uses unsafe operations to avoid
-// allocations. [Caller] and cached [PC.NameFileLine] calls are
-// allocation-free. Resolved frame information is cached in a
-// [sync.Map] for efficient concurrent access.
+// The default implementation uses unsafe operations to avoid allocations. [Caller] and
+// cached [PC.NameFileLine] calls are allocation-free. Resolved frame information is
+// cached in a [sync.Map] for efficient concurrent access.
 //
 // # Safe mode
 //
-// Build with the "safe" tag to use allocating implementations
-// that avoid unsafe operations. This is useful for debugging
-// memory issues.
+// Build with the "safe" tag to use allocating implementations that avoid unsafe
+// operations. This is useful for debugging memory issues.
 //
 // # Thread safety
 //
-// All exported functions and methods are safe for concurrent use.
-// The frame cache uses [sync.Map] internally.
+// All exported functions and methods are safe for concurrent use. The frame cache uses
+// [sync.Map] internally.
 package caller

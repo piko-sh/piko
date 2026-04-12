@@ -1,0 +1,4 @@
+{
+  "description": "Variadic call within a single multi-file package",
+  "expected": "sum=15"
+}

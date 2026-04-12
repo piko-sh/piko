@@ -26,9 +26,9 @@ import (
 	"piko.sh/piko/internal/premailer"
 )
 
-// RenderedEmail represents the HTML and PlainText bodies produced by the templater
-// for use in email sending. This keeps the email domain decoupled from the
-// templater_domain package types.
+// RenderedEmail represents the HTML and PlainText bodies produced by the templater for
+// use in email sending. This keeps the email domain decoupled from the templater_domain
+// package types.
 type RenderedEmail struct {
 	// HTML is the rendered HTML version of the email body.
 	HTML string
@@ -40,8 +40,8 @@ type RenderedEmail struct {
 	AttachmentRequests []*email_dto.EmailAssetRequest
 }
 
-// TemplaterAdapterPort provides the email templating capability needed by the
-// email domain. Adapter implementations live in internal/email/email_adapters.
+// TemplaterAdapterPort provides the email templating capability needed by the email
+// domain. Adapter implementations live in internal/email/email_adapters.
 type TemplaterAdapterPort interface {
 	// Render generates an email from a template with the given properties.
 	//

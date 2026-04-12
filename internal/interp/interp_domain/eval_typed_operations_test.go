@@ -29,30 +29,30 @@ import (
 func TestUintIncDec(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{uint64(6), "uint_inc", `var a uint = 5; a++; a`},
-		{uint64(4), "uint_dec", `var a uint = 5; a--; a`},
+		{expect: uint64(6), name: "uint_inc", code: `var a uint = 5; a++; a`},
+		{expect: uint64(4), name: "uint_dec", code: `var a uint = 5; a--; a`},
 	})
 }
 
 func TestGoDispatchUintIncDec(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{uint64(6), "uint_inc", `var a uint = 5; a++; a`},
-		{uint64(4), "uint_dec", `var a uint = 5; a--; a`},
+		{expect: uint64(6), name: "uint_inc", code: `var a uint = 5; a++; a`},
+		{expect: uint64(4), name: "uint_dec", code: `var a uint = 5; a--; a`},
 	})
 }
 
 func TestUintBitNot(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{uint64(0xFFFFFFFFFFFFFF00), "uint_bitnot", `var a uint = 0xFF; ^a`},
+		{expect: uint64(0xFFFFFFFFFFFFFF00), name: "uint_bitnot", code: `var a uint = 0xFF; ^a`},
 	})
 }
 
 func TestGoDispatchUintBitNot(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{uint64(0xFFFFFFFFFFFFFF00), "uint_bitnot", `var a uint = 0xFF; ^a`},
+		{expect: uint64(0xFFFFFFFFFFFFFF00), name: "uint_bitnot", code: `var a uint = 0xFF; ^a`},
 	})
 }
 
@@ -60,28 +60,28 @@ func TestMapCommaOkAssign(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(1), "comma_ok_assign_found", `
+		{expect: int64(1), name: "comma_ok_assign_found", code: `
 m := map[string]int{"a": 1}
 v := 0
 ok := false
 v, ok = m["a"]
 _ = ok
 v`},
-		{true, "comma_ok_assign_ok", `
+		{expect: true, name: "comma_ok_assign_ok", code: `
 m := map[string]int{"a": 1}
 v := 0
 ok := false
 v, ok = m["a"]
 _ = v
 ok`},
-		{int64(0), "comma_ok_assign_missing", `
+		{expect: int64(0), name: "comma_ok_assign_missing", code: `
 m := map[string]int{"a": 1}
 v := 0
 ok := false
 v, ok = m["b"]
 _ = ok
 v`},
-		{false, "comma_ok_assign_missing_ok", `
+		{expect: false, name: "comma_ok_assign_missing_ok", code: `
 m := map[string]int{"a": 1}
 v := 0
 ok := false
@@ -97,8 +97,8 @@ func TestRuneStringConcat(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{"Hello", "rune_concat_prefix", `r := 'H'; string(r) + "ello"`},
-		{"aX", "rune_concat_suffix", `s := "a"; r := 'X'; s + string(r)`},
+		{expect: "Hello", name: "rune_concat_prefix", code: `r := 'H'; string(r) + "ello"`},
+		{expect: "aX", name: "rune_concat_suffix", code: `s := "a"; r := 'X'; s + string(r)`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -108,8 +108,8 @@ func TestGoDispatchRuneStringConcat(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{"Hello", "rune_concat_prefix", `r := 'H'; string(r) + "ello"`},
-		{"aX", "rune_concat_suffix", `s := "a"; r := 'X'; s + string(r)`},
+		{expect: "Hello", name: "rune_concat_prefix", code: `r := 'H'; string(r) + "ello"`},
+		{expect: "aX", name: "rune_concat_suffix", code: `s := "a"; r := 'X'; s + string(r)`},
 	}
 
 	runEvalTable(t, []Option{WithForceGoDispatch()}, tests)
@@ -119,8 +119,8 @@ func TestSliceUintSetGet(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{uint64(10), "uint_slice_set", `s := []uint{1, 2, 3}; s[0] = 10; s[0]`},
-		{uint64(3), "uint_slice_get", `s := []uint{1, 2, 3}; s[2]`},
+		{expect: uint64(10), name: "uint_slice_set", code: `s := []uint{1, 2, 3}; s[0] = 10; s[0]`},
+		{expect: uint64(3), name: "uint_slice_get", code: `s := []uint{1, 2, 3}; s[2]`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -130,8 +130,8 @@ func TestGoDispatchSliceUint(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{uint64(10), "uint_slice_set", `s := []uint{1, 2, 3}; s[0] = 10; s[0]`},
-		{uint64(3), "uint_slice_get", `s := []uint{1, 2, 3}; s[2]`},
+		{expect: uint64(10), name: "uint_slice_set", code: `s := []uint{1, 2, 3}; s[0] = 10; s[0]`},
+		{expect: uint64(3), name: "uint_slice_get", code: `s := []uint{1, 2, 3}; s[2]`},
 	}
 
 	runEvalTable(t, []Option{WithForceGoDispatch()}, tests)
@@ -141,8 +141,8 @@ func TestCompoundAssignMapExtended(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(15), "compound_map_int_key", `m := map[int]int{1: 10}; m[1] += 5; m[1]`},
-		{"helloworld", "compound_map_string_val", `m := map[string]string{"a": "hello"}; m["a"] += "world"; m["a"]`},
+		{expect: int64(15), name: "compound_map_int_key", code: `m := map[int]int{1: 10}; m[1] += 5; m[1]`},
+		{expect: "helloworld", name: "compound_map_string_val", code: `m := map[string]string{"a": "hello"}; m["a"] += "world"; m["a"]`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -152,11 +152,11 @@ func TestVariousZeroValues(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(0), "zero_int", `var x int; x`},
-		{float64(0), "zero_float", `var x float64; x`},
-		{"", "zero_string", `var x string; x`},
-		{false, "zero_bool", `var x bool; x`},
-		{uint64(0), "zero_uint", `var x uint; x`},
+		{expect: int64(0), name: "zero_int", code: `var x int; x`},
+		{expect: float64(0), name: "zero_float", code: `var x float64; x`},
+		{expect: "", name: "zero_string", code: `var x string; x`},
+		{expect: false, name: "zero_bool", code: `var x bool; x`},
+		{expect: uint64(0), name: "zero_uint", code: `var x uint; x`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -166,11 +166,11 @@ func TestGoDispatchVariousZeroValues(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(0), "zero_int", `var x int; x`},
-		{float64(0), "zero_float", `var x float64; x`},
-		{"", "zero_string", `var x string; x`},
-		{false, "zero_bool", `var x bool; x`},
-		{uint64(0), "zero_uint", `var x uint; x`},
+		{expect: int64(0), name: "zero_int", code: `var x int; x`},
+		{expect: float64(0), name: "zero_float", code: `var x float64; x`},
+		{expect: "", name: "zero_string", code: `var x string; x`},
+		{expect: false, name: "zero_bool", code: `var x bool; x`},
+		{expect: uint64(0), name: "zero_uint", code: `var x uint; x`},
 	}
 
 	runEvalTable(t, []Option{WithForceGoDispatch()}, tests)
@@ -180,10 +180,10 @@ func TestMultiCaseSwitch(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(10), "multi_case_1", `x := 1; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
-		{int64(10), "multi_case_2", `x := 2; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
-		{int64(20), "multi_case_4", `x := 4; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
-		{int64(99), "multi_case_default", `x := 99; switch x { case 1, 2, 3: x = 10; default: x = 99 }; x`},
+		{expect: int64(10), name: "multi_case_1", code: `x := 1; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
+		{expect: int64(10), name: "multi_case_2", code: `x := 2; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
+		{expect: int64(20), name: "multi_case_4", code: `x := 4; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
+		{expect: int64(99), name: "multi_case_default", code: `x := 99; switch x { case 1, 2, 3: x = 10; default: x = 99 }; x`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -192,9 +192,9 @@ func TestMultiCaseSwitch(t *testing.T) {
 func TestGoDispatchMultiCaseSwitch(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(10), "multi_case_1", `x := 1; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
-		{int64(10), "multi_case_2", `x := 2; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
-		{int64(20), "multi_case_4", `x := 4; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
+		{expect: int64(10), name: "multi_case_1", code: `x := 1; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
+		{expect: int64(10), name: "multi_case_2", code: `x := 2; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
+		{expect: int64(20), name: "multi_case_4", code: `x := 4; switch x { case 1, 2, 3: x = 10; case 4, 5: x = 20 }; x`},
 	})
 }
 
@@ -202,12 +202,12 @@ func TestIncDecSelector(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(6), "inc_selector", `
+		{expect: int64(6), name: "inc_selector", code: `
 type S struct { X int }
 s := S{X: 5}
 s.X++
 s.X`},
-		{int64(4), "dec_selector", `
+		{expect: int64(4), name: "dec_selector", code: `
 type S struct { X int }
 s := S{X: 5}
 s.X--
@@ -220,12 +220,12 @@ s.X`},
 func TestGoDispatchIncDecSelector(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(6), "inc_selector", `
+		{expect: int64(6), name: "inc_selector", code: `
 type S struct { X int }
 s := S{X: 5}
 s.X++
 s.X`},
-		{int64(4), "dec_selector", `
+		{expect: int64(4), name: "dec_selector", code: `
 type S struct { X int }
 s := S{X: 5}
 s.X--
@@ -237,9 +237,9 @@ func TestCompoundAssignSliceExtended(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(15), "slice_add_assign", `s := []int{10, 20}; s[0] += 5; s[0]`},
-		{int64(5), "slice_sub_assign", `s := []int{10, 20}; s[0] -= 5; s[0]`},
-		{int64(50), "slice_mul_assign", `s := []int{10, 20}; s[0] *= 5; s[0]`},
+		{expect: int64(15), name: "slice_add_assign", code: `s := []int{10, 20}; s[0] += 5; s[0]`},
+		{expect: int64(5), name: "slice_sub_assign", code: `s := []int{10, 20}; s[0] -= 5; s[0]`},
+		{expect: int64(50), name: "slice_mul_assign", code: `s := []int{10, 20}; s[0] *= 5; s[0]`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -249,17 +249,17 @@ func TestCompoundAssignSelectorExtended(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(15), "selector_add_assign", `
+		{expect: int64(15), name: "selector_add_assign", code: `
 type S struct { X int }
 s := S{X: 10}
 s.X += 5
 s.X`},
-		{int64(5), "selector_sub_assign", `
+		{expect: int64(5), name: "selector_sub_assign", code: `
 type S struct { X int }
 s := S{X: 10}
 s.X -= 5
 s.X`},
-		{int64(50), "selector_mul_assign", `
+		{expect: int64(50), name: "selector_mul_assign", code: `
 type S struct { X int }
 s := S{X: 10}
 s.X *= 5
@@ -273,11 +273,11 @@ func TestForLoopRangeString(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(5), "range_string_count", `
+		{expect: int64(5), name: "range_string_count", code: `
 count := 0
 for range "hello" { count++ }
 count`},
-		{int64(532), "range_string_rune_sum", `
+		{expect: int64(532), name: "range_string_rune_sum", code: `
 sum := 0
 for _, r := range "hello" { sum += int(r) }
 sum`},
@@ -289,7 +289,7 @@ sum`},
 func TestGoDispatchForLoopRangeString(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(5), "range_string_count", `
+		{expect: int64(5), name: "range_string_count", code: `
 count := 0
 for range "hello" { count++ }
 count`},
@@ -300,12 +300,12 @@ func TestAddressOfSelector(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "addr_of_field", `
+		{expect: int64(42), name: "addr_of_field", code: `
 type S struct { X int }
 s := S{X: 42}
 p := &s.X
 *p`},
-		{int64(99), "write_through_addr", `
+		{expect: int64(99), name: "write_through_addr", code: `
 type S struct { X int }
 s := S{X: 42}
 p := &s.X
@@ -320,15 +320,15 @@ func TestMultiReturnFunctions(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(3), "multi_return_first", `
+		{expect: int64(3), name: "multi_return_first", code: `
 func f() (int, string) { return 3, "hello" }
 x, _ := f()
 x`},
-		{"hello", "multi_return_second", `
+		{expect: "hello", name: "multi_return_second", code: `
 func f() (int, string) { return 3, "hello" }
 _, s := f()
 s`},
-		{int64(10), "multi_return_sum", `
+		{expect: int64(10), name: "multi_return_sum", code: `
 func f() (int, int) { return 3, 7 }
 a, b := f()
 a + b`},
@@ -340,11 +340,11 @@ a + b`},
 func TestGoDispatchMultiReturn(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(3), "multi_return_first", `
+		{expect: int64(3), name: "multi_return_first", code: `
 func f() (int, string) { return 3, "hello" }
 x, _ := f()
 x`},
-		{"hello", "multi_return_second", `
+		{expect: "hello", name: "multi_return_second", code: `
 func f() (int, string) { return 3, "hello" }
 _, s := f()
 s`},
@@ -355,12 +355,12 @@ func TestShortVarRedeclare(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(5), "redecl_first", `
+		{expect: int64(5), name: "redecl_first", code: `
 x := 1
 x, y := 5, 10
 _ = y
 x`},
-		{int64(10), "redecl_second", `
+		{expect: int64(10), name: "redecl_second", code: `
 x := 1
 x, y := 5, 10
 _ = x
@@ -374,21 +374,21 @@ func TestForLoopWithBreakContinue(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(5), "for_break", `
+		{expect: int64(5), name: "for_break", code: `
 sum := 0
 for i := 0; i < 100; i++ {
 	if i >= 5 { break }
 	sum++
 }
 sum`},
-		{int64(50), "for_continue", `
+		{expect: int64(50), name: "for_continue", code: `
 sum := 0
 for i := 0; i < 100; i++ {
 	if i%2 != 0 { continue }
 	sum++
 }
 sum`},
-		{int64(3), "for_range_break", `
+		{expect: int64(3), name: "for_range_break", code: `
 count := 0
 for _, v := range []int{1, 2, 3, 4, 5} {
 	if v > 3 { break }
@@ -403,14 +403,14 @@ count`},
 func TestGoDispatchForLoopBreakContinue(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(5), "for_break", `
+		{expect: int64(5), name: "for_break", code: `
 sum := 0
 for i := 0; i < 100; i++ {
 	if i >= 5 { break }
 	sum++
 }
 sum`},
-		{int64(50), "for_continue", `
+		{expect: int64(50), name: "for_continue", code: `
 sum := 0
 for i := 0; i < 100; i++ {
 	if i%2 != 0 { continue }
@@ -424,14 +424,14 @@ func TestClosureCaptureAndCall(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(15), "closure_capture", `
+		{expect: int64(15), name: "closure_capture", code: `
 func make() func() int {
 	x := 15
 	return func() int { return x }
 }
 f := make()
 f()`},
-		{int64(10), "closure_counter", `
+		{expect: int64(10), name: "closure_counter", code: `
 func counter() func() int {
 	n := 0
 	return func() int { n++; return n }
@@ -440,7 +440,7 @@ c := counter()
 sum := 0
 for i := 0; i < 4; i++ { sum += c() }
 sum`},
-		{int64(120), "recursive_closure", `
+		{expect: int64(120), name: "recursive_closure", code: `
 func factorial(n int) int {
 	if n <= 1 { return 1 }
 	return n * factorial(n-1)
@@ -454,14 +454,14 @@ factorial(5)`},
 func TestGoDispatchClosuresExtended(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(15), "closure_capture", `
+		{expect: int64(15), name: "closure_capture", code: `
 func make() func() int {
 	x := 15
 	return func() int { return x }
 }
 f := make()
 f()`},
-		{int64(120), "recursive_closure", `
+		{expect: int64(120), name: "recursive_closure", code: `
 func factorial(n int) int {
 	if n <= 1 { return 1 }
 	return n * factorial(n-1)
@@ -474,7 +474,7 @@ func TestInterfaceTypeSwitch(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(1), "type_switch_int", `
+		{expect: int64(1), name: "type_switch_int", code: `
 var x any = 42
 result := 0
 switch x.(type) {
@@ -482,7 +482,7 @@ case int: result = 1
 case string: result = 2
 }
 result`},
-		{int64(2), "type_switch_string", `
+		{expect: int64(2), name: "type_switch_string", code: `
 var x any = "hello"
 result := 0
 switch x.(type) {
@@ -490,7 +490,7 @@ case int: result = 1
 case string: result = 2
 }
 result`},
-		{int64(3), "type_switch_default", `
+		{expect: int64(3), name: "type_switch_default", code: `
 var x any = 3.14
 result := 0
 switch x.(type) {
@@ -507,7 +507,7 @@ result`},
 func TestGoDispatchTypeSwitch(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(1), "type_switch_int", `
+		{expect: int64(1), name: "type_switch_int", code: `
 var x any = 42
 result := 0
 switch x.(type) {
@@ -515,7 +515,7 @@ case int: result = 1
 case string: result = 2
 }
 result`},
-		{int64(3), "type_switch_default", `
+		{expect: int64(3), name: "type_switch_default", code: `
 var x any = 3.14
 result := 0
 switch x.(type) {
@@ -530,7 +530,7 @@ func TestDeferWithPanic(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "defer_recover", `
+		{expect: int64(42), name: "defer_recover", code: `
 func f() int {
 	defer func() { recover() }()
 	panic("test")
@@ -541,7 +541,7 @@ func g() int {
 	return 42
 }
 g()`},
-		{"caught", "recover_message", `
+		{expect: "caught", name: "recover_message", code: `
 func f() string {
 	defer func() {
 		if r := recover(); r != nil {
@@ -562,11 +562,11 @@ func TestChannelOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "chan_send_recv", `
+		{expect: int64(42), name: "chan_send_recv", code: `
 ch := make(chan int, 1)
 ch <- 42
 <-ch`},
-		{int64(10), "chan_buffered", `
+		{expect: int64(10), name: "chan_buffered", code: `
 ch := make(chan int, 3)
 ch <- 10
 ch <- 20
@@ -580,7 +580,7 @@ ch <- 30
 func TestGoDispatchChannelOps(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(42), "chan_send_recv", `
+		{expect: int64(42), name: "chan_send_recv", code: `
 ch := make(chan int, 1)
 ch <- 42
 <-ch`},
@@ -590,8 +590,8 @@ ch <- 42
 func TestGoDispatchComplexMoveAndLoad(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{complex128(1 + 2i), "complex_move", `a := 1+2i; b := a; b`},
-		{complex128(5 + 0i), "complex_load_const", `a := 5+0i; a`},
+		{expect: complex128(1 + 2i), name: "complex_move", code: `a := 1+2i; b := a; b`},
+		{expect: complex128(5 + 0i), name: "complex_load_const", code: `a := 5+0i; a`},
 	})
 }
 
@@ -609,36 +609,36 @@ func TestNativeFunctionCaching(t *testing.T) {
 	})
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"string_int_cached", `import "fp"
+		{name: "string_int_cached", code: `import "fp"
 a := fp.StringInt("hello")
 b := fp.StringInt("world")
-a + b`, int64(10)},
-		{"float_cached", `import "fp"
+a + b`, expect: int64(10)},
+		{name: "float_cached", code: `import "fp"
 a := fp.Float64Float64(2.0)
 b := fp.Float64Float64(3.0)
-a + b`, float64(10.0)},
-		{"bool_cached", `import "fp"
+a + b`, expect: float64(10.0)},
+		{name: "bool_cached", code: `import "fp"
 a := fp.IntBool(5)
 b := fp.IntBool(-1)
-a && !b`, true},
-		{"string_bool_cached", `import "fp"
+a && !b`, expect: true},
+		{name: "string_bool_cached", code: `import "fp"
 a := fp.StringBool("hi")
 b := fp.StringBool("")
-a && !b`, true},
-		{"float2_cached", `import "fp"
+a && !b`, expect: true},
+		{name: "float2_cached", code: `import "fp"
 a := fp.Float642Float64(1.0, 2.0)
 b := fp.Float642Float64(3.0, 4.0)
-a + b`, float64(10.0)},
+a + b`, expect: float64(10.0)},
 
-		{"loop_cached", `import "fp"
+		{name: "loop_cached", code: `import "fp"
 sum := 0
 for i := 0; i < 10; i++ { sum += fp.StringInt("ab") }
-sum`, int64(20)},
+sum`, expect: int64(20)},
 	}
 
 	for _, tt := range tests {
@@ -656,16 +656,16 @@ func TestNarrowIntTypes(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(127), "int8_max", `var x int8 = 127; int(x)`},
-		{int64(32767), "int16_max", `var x int16 = 32767; int(x)`},
-		{int64(42), "int32_val", `var x int32 = 42; int(x)`},
-		{int64(100), "int64_val", `var x int64 = 100; int(x)`},
-		{uint64(255), "uint8_val", `var x uint8 = 255; uint(x)`},
-		{uint64(65535), "uint16_val", `var x uint16 = 65535; uint(x)`},
-		{uint64(42), "uint32_val", `var x uint32 = 42; uint(x)`},
-		{uint64(100), "uint64_val", `var x uint64 = 100; uint(x)`},
-		{int64(3), "byte_slice_len", `s := []byte{1, 2, 3}; len(s)`},
-		{int64(65), "byte_to_int", `var b byte = 'A'; int(b)`},
+		{expect: int64(127), name: "int8_max", code: `var x int8 = 127; int(x)`},
+		{expect: int64(32767), name: "int16_max", code: `var x int16 = 32767; int(x)`},
+		{expect: int64(42), name: "int32_val", code: `var x int32 = 42; int(x)`},
+		{expect: int64(100), name: "int64_val", code: `var x int64 = 100; int(x)`},
+		{expect: uint64(255), name: "uint8_val", code: `var x uint8 = 255; uint(x)`},
+		{expect: uint64(65535), name: "uint16_val", code: `var x uint16 = 65535; uint(x)`},
+		{expect: uint64(42), name: "uint32_val", code: `var x uint32 = 42; uint(x)`},
+		{expect: uint64(100), name: "uint64_val", code: `var x uint64 = 100; uint(x)`},
+		{expect: int64(3), name: "byte_slice_len", code: `s := []byte{1, 2, 3}; len(s)`},
+		{expect: int64(65), name: "byte_to_int", code: `var b byte = 'A'; int(b)`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -674,9 +674,9 @@ func TestNarrowIntTypes(t *testing.T) {
 func TestGoDispatchNarrowInt(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(127), "int8_max", `var x int8 = 127; int(x)`},
-		{uint64(255), "uint8_val", `var x uint8 = 255; uint(x)`},
-		{int64(42), "int32_val", `var x int32 = 42; int(x)`},
+		{expect: int64(127), name: "int8_max", code: `var x int8 = 127; int(x)`},
+		{expect: uint64(255), name: "uint8_val", code: `var x uint8 = 255; uint(x)`},
+		{expect: int64(42), name: "int32_val", code: `var x int32 = 42; int(x)`},
 	})
 }
 
@@ -684,11 +684,11 @@ func TestMapOperationsExtended(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(3), "map_len", `m := map[string]int{"a": 1, "b": 2, "c": 3}; len(m)`},
-		{int64(0), "map_empty_len", `m := map[string]int{}; len(m)`},
-		{int64(2), "map_after_delete", `m := map[string]int{"a": 1, "b": 2, "c": 3}; delete(m, "b"); len(m)`},
-		{true, "map_check_after_set", `m := map[string]bool{}; m["key"] = true; m["key"]`},
-		{int64(6), "map_range_sum", `
+		{expect: int64(3), name: "map_len", code: `m := map[string]int{"a": 1, "b": 2, "c": 3}; len(m)`},
+		{expect: int64(0), name: "map_empty_len", code: `m := map[string]int{}; len(m)`},
+		{expect: int64(2), name: "map_after_delete", code: `m := map[string]int{"a": 1, "b": 2, "c": 3}; delete(m, "b"); len(m)`},
+		{expect: true, name: "map_check_after_set", code: `m := map[string]bool{}; m["key"] = true; m["key"]`},
+		{expect: int64(6), name: "map_range_sum", code: `
 m := map[string]int{"a": 1, "b": 2, "c": 3}
 sum := 0
 for _, v := range m { sum += v }
@@ -701,8 +701,8 @@ sum`},
 func TestGoDispatchMapOps(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(3), "map_len", `m := map[string]int{"a": 1, "b": 2, "c": 3}; len(m)`},
-		{int64(2), "map_after_delete", `m := map[string]int{"a": 1, "b": 2, "c": 3}; delete(m, "b"); len(m)`},
+		{expect: int64(3), name: "map_len", code: `m := map[string]int{"a": 1, "b": 2, "c": 3}; len(m)`},
+		{expect: int64(2), name: "map_after_delete", code: `m := map[string]int{"a": 1, "b": 2, "c": 3}; delete(m, "b"); len(m)`},
 	})
 }
 
@@ -710,19 +710,19 @@ func TestStructMethodCalls(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "value_method", `
+		{expect: int64(42), name: "value_method", code: `
 type S struct { X int }
 func (s S) Get() int { return s.X }
 s := S{X: 42}
 s.Get()`},
-		{int64(99), "pointer_method", `
+		{expect: int64(99), name: "pointer_method", code: `
 type S struct { X int }
 func (s *S) Set(v int) { s.X = v }
 func (s S) Get() int { return s.X }
 s := S{X: 0}
 s.Set(99)
 s.Get()`},
-		{int64(15), "method_chain", `
+		{expect: int64(15), name: "method_chain", code: `
 type Acc struct { Total int }
 func (a *Acc) Add(n int) *Acc { a.Total += n; return a }
 a := &Acc{}
@@ -736,12 +736,12 @@ a.Total`},
 func TestGoDispatchStructMethods(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(42), "value_method", `
+		{expect: int64(42), name: "value_method", code: `
 type S struct { X int }
 func (s S) Get() int { return s.X }
 s := S{X: 42}
 s.Get()`},
-		{int64(99), "pointer_method", `
+		{expect: int64(99), name: "pointer_method", code: `
 type S struct { X int }
 func (s *S) Set(v int) { s.X = v }
 func (s S) Get() int { return s.X }
@@ -755,12 +755,12 @@ func TestNestedStructs(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "nested_field", `
+		{expect: int64(42), name: "nested_field", code: `
 type Inner struct { X int }
 type Outer struct { I Inner }
 o := Outer{I: Inner{X: 42}}
 o.I.X`},
-		{int64(99), "nested_set", `
+		{expect: int64(99), name: "nested_set", code: `
 type Inner struct { X int }
 type Outer struct { I Inner }
 o := Outer{I: Inner{X: 0}}
@@ -774,7 +774,7 @@ o.I.X`},
 func TestGoDispatchNestedStructs(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(42), "nested_field", `
+		{expect: int64(42), name: "nested_field", code: `
 type Inner struct { X int }
 type Outer struct { I Inner }
 o := Outer{I: Inner{X: 42}}
@@ -786,12 +786,12 @@ func TestEmbeddedStructs(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "embedded_field", `
+		{expect: int64(42), name: "embedded_field", code: `
 type Base struct { X int }
 type Derived struct { Base }
 d := Derived{Base: Base{X: 42}}
 d.X`},
-		{int64(99), "embedded_method", `
+		{expect: int64(99), name: "embedded_method", code: `
 type Base struct { X int }
 func (b Base) Value() int { return b.X }
 type Derived struct { Base }
@@ -805,12 +805,12 @@ d.Value()`},
 func TestGoDispatchEmbeddedStructs(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(42), "embedded_field", `
+		{expect: int64(42), name: "embedded_field", code: `
 type Base struct { X int }
 type Derived struct { Base }
 d := Derived{Base: Base{X: 42}}
 d.X`},
-		{int64(99), "embedded_method", `
+		{expect: int64(99), name: "embedded_method", code: `
 type Base struct { X int }
 func (b Base) Value() int { return b.X }
 type Derived struct { Base }
@@ -822,21 +822,21 @@ d.Value()`},
 func TestCompoundAssignSliceFloat(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{float64(15.5), "float_slice_add_assign", `s := []float64{10.5}; s[0] += 5.0; s[0]`},
+		{expect: float64(15.5), name: "float_slice_add_assign", code: `s := []float64{10.5}; s[0] += 5.0; s[0]`},
 	})
 }
 
 func TestGoDispatchCompoundAssignSliceFloat(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{float64(15.5), "float_slice_add_assign", `s := []float64{10.5}; s[0] += 5.0; s[0]`},
+		{expect: float64(15.5), name: "float_slice_add_assign", code: `s := []float64{10.5}; s[0] += 5.0; s[0]`},
 	})
 }
 
 func TestCompoundAssignSelectorFloat(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{float64(15.0), "float_selector_add", `
+		{expect: float64(15.0), name: "float_selector_add", code: `
 type S struct { X float64 }
 s := S{X: 10.0}
 s.X += 5.0
@@ -847,7 +847,7 @@ s.X`},
 func TestCompoundAssignSelectorString(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{"hello world", "string_selector_add", `
+		{expect: "hello world", name: "string_selector_add", code: `
 type S struct { X string }
 s := S{X: "hello"}
 s.X += " world"
@@ -858,12 +858,12 @@ s.X`},
 func TestZeroValueComposite(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{int64(0), "zero_array", `var a [3]int; a[0]`},
-		{int64(0), "zero_struct", `
+		{expect: int64(0), name: "zero_array", code: `var a [3]int; a[0]`},
+		{expect: int64(0), name: "zero_struct", code: `
 type S struct { X int; Y string }
 var s S
 s.X`},
-		{"", "zero_struct_string", `
+		{expect: "", name: "zero_struct_string", code: `
 type S struct { X int; Y string }
 var s S
 s.Y`},
@@ -873,8 +873,8 @@ s.Y`},
 func TestGoDispatchZeroValueComposite(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(0), "zero_array", `var a [3]int; a[0]`},
-		{int64(0), "zero_struct", `
+		{expect: int64(0), name: "zero_array", code: `var a [3]int; a[0]`},
+		{expect: int64(0), name: "zero_struct", code: `
 type S struct { X int; Y string }
 var s S
 s.X`},
@@ -885,17 +885,17 @@ func TestForLoopVariousPatterns(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
 
-		{int64(10), "for_ge_limit", `
+		{expect: int64(10), name: "for_ge_limit", code: `
 sum := 0
 for i := 10; i >= 1; i-- { sum++ }
 sum`},
 
-		{int64(5), "for_step_3", `
+		{expect: int64(5), name: "for_step_3", code: `
 count := 0
 for i := 0; i < 15; i += 3 { count++ }
 count`},
 
-		{int64(10), "infinite_break", `
+		{expect: int64(10), name: "infinite_break", code: `
 i := 0
 for { if i >= 10 { break }; i++ }
 i`},
@@ -905,15 +905,15 @@ i`},
 func TestGoDispatchForLoopVariousPatterns(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(10), "for_ge_limit", `
+		{expect: int64(10), name: "for_ge_limit", code: `
 sum := 0
 for i := 10; i >= 1; i-- { sum++ }
 sum`},
-		{int64(5), "for_step_3", `
+		{expect: int64(5), name: "for_step_3", code: `
 count := 0
 for i := 0; i < 15; i += 3 { count++ }
 count`},
-		{int64(10), "infinite_break", `
+		{expect: int64(10), name: "infinite_break", code: `
 i := 0
 for { if i >= 10 { break }; i++ }
 i`},
@@ -923,18 +923,18 @@ i`},
 func TestInterfaceConversions(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{int(42), "type_assert_int", `var x any = 42; x.(int)`},
-		{"hello", "type_assert_string", `var x any = "hello"; x.(string)`},
-		{float64(3.14), "type_assert_float", `var x any = 3.14; x.(float64)`},
-		{true, "type_assert_bool", `var x any = true; x.(bool)`},
+		{expect: int(42), name: "type_assert_int", code: `var x any = 42; x.(int)`},
+		{expect: "hello", name: "type_assert_string", code: `var x any = "hello"; x.(string)`},
+		{expect: float64(3.14), name: "type_assert_float", code: `var x any = 3.14; x.(float64)`},
+		{expect: true, name: "type_assert_bool", code: `var x any = true; x.(bool)`},
 	})
 }
 
 func TestGoDispatchInterfaceConversions(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int(42), "type_assert_int", `var x any = 42; x.(int)`},
-		{"hello", "type_assert_string", `var x any = "hello"; x.(string)`},
+		{expect: int(42), name: "type_assert_int", code: `var x any = 42; x.(int)`},
+		{expect: "hello", name: "type_assert_string", code: `var x any = "hello"; x.(string)`},
 	})
 }
 
@@ -942,10 +942,10 @@ func TestSliceOfSlice(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{int64(42), "nested_slice", `
+		{expect: int64(42), name: "nested_slice", code: `
 s := [][]int{{1, 2}, {3, 4}, {42}}
 s[2][0]`},
-		{int64(6), "slice_slice", `s := []int{1, 2, 3, 4, 5}; t := s[1:3]; len(s) - len(t) + t[1]`},
+		{expect: int64(6), name: "slice_slice", code: `s := []int{1, 2, 3, 4, 5}; t := s[1:3]; len(s) - len(t) + t[1]`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -955,10 +955,10 @@ func TestNilTestOps(t *testing.T) {
 	t.Parallel()
 
 	tests := []evalTestCase{
-		{true, "nil_test_nil", `var p *int; p == nil`},
-		{false, "nil_test_nonnull", `x := 42; p := &x; p == nil`},
-		{true, "nil_slice", `var s []int; s == nil`},
-		{false, "nil_map_false", `m := map[string]int{}; m == nil`},
+		{expect: true, name: "nil_test_nil", code: `var p *int; p == nil`},
+		{expect: false, name: "nil_test_nonnull", code: `x := 42; p := &x; p == nil`},
+		{expect: true, name: "nil_slice", code: `var s []int; s == nil`},
+		{expect: false, name: "nil_map_false", code: `m := map[string]int{}; m == nil`},
 	}
 
 	runEvalTable(t, nil, tests)
@@ -967,42 +967,42 @@ func TestNilTestOps(t *testing.T) {
 func TestClosureCaptureTypes(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{float64(3.14), "capture_float", `
+		{expect: float64(3.14), name: "capture_float", code: `
 func make() func() float64 {
 	x := 3.14
 	return func() float64 { return x }
 }
 f := make()
 f()`},
-		{"hello", "capture_string", `
+		{expect: "hello", name: "capture_string", code: `
 func make() func() string {
 	x := "hello"
 	return func() string { return x }
 }
 f := make()
 f()`},
-		{true, "capture_bool", `
+		{expect: true, name: "capture_bool", code: `
 func make() func() bool {
 	x := true
 	return func() bool { return x }
 }
 f := make()
 f()`},
-		{int64(10), "capture_mutate", `
+		{expect: int64(10), name: "capture_mutate", code: `
 func make() func() int {
 	x := 0
 	return func() int { x += 10; return x }
 }
 f := make()
 f()`},
-		{float64(5.0), "capture_mutate_float", `
+		{expect: float64(5.0), name: "capture_mutate_float", code: `
 func make() func() float64 {
 	x := 0.0
 	return func() float64 { x += 5.0; return x }
 }
 f := make()
 f()`},
-		{"ab", "capture_mutate_string", `
+		{expect: "ab", name: "capture_mutate_string", code: `
 func make() func() string {
 	x := "a"
 	return func() string { x += "b"; return x }
@@ -1015,21 +1015,21 @@ f()`},
 func TestGoDispatchClosureCaptureTypes(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{float64(3.14), "capture_float", `
+		{expect: float64(3.14), name: "capture_float", code: `
 func make() func() float64 {
 	x := 3.14
 	return func() float64 { return x }
 }
 f := make()
 f()`},
-		{"hello", "capture_string", `
+		{expect: "hello", name: "capture_string", code: `
 func make() func() string {
 	x := "hello"
 	return func() string { return x }
 }
 f := make()
 f()`},
-		{true, "capture_bool", `
+		{expect: true, name: "capture_bool", code: `
 func make() func() bool {
 	x := true
 	return func() bool { return x }
@@ -1042,13 +1042,13 @@ f()`},
 func TestMethodValuesExtended(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{int64(42), "method_value", `
+		{expect: int64(42), name: "method_value", code: `
 type S struct { X int }
 func (s S) Get() int { return s.X }
 s := S{X: 42}
 f := s.Get
 f()`},
-		{int64(99), "method_value_ptr", `
+		{expect: int64(99), name: "method_value_ptr", code: `
 type S struct { X int }
 func (s *S) Get() int { return s.X }
 s := &S{X: 99}
@@ -1060,7 +1060,7 @@ f()`},
 func TestGoDispatchMethodValues(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{int64(42), "method_value", `
+		{expect: int64(42), name: "method_value", code: `
 type S struct { X int }
 func (s S) Get() int { return s.X }
 s := S{X: 42}
@@ -1072,15 +1072,15 @@ f()`},
 func TestRangeWithDifferentTypes(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{float64(6.0), "range_float_slice", `
+		{expect: float64(6.0), name: "range_float_slice", code: `
 sum := 0.0
 for _, v := range []float64{1.0, 2.0, 3.0} { sum += v }
 sum`},
-		{"abc", "range_string_slice", `
+		{expect: "abc", name: "range_string_slice", code: `
 result := ""
 for _, s := range []string{"a", "b", "c"} { result += s }
 result`},
-		{int64(2), "range_bool_count", `
+		{expect: int64(2), name: "range_bool_count", code: `
 count := 0
 for _, b := range []bool{true, false, true} { if b { count++ } }
 count`},
@@ -1090,11 +1090,11 @@ count`},
 func TestGoDispatchRangeTypes(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{float64(6.0), "range_float_slice", `
+		{expect: float64(6.0), name: "range_float_slice", code: `
 sum := 0.0
 for _, v := range []float64{1.0, 2.0, 3.0} { sum += v }
 sum`},
-		{"abc", "range_string_slice", `
+		{expect: "abc", name: "range_string_slice", code: `
 result := ""
 for _, s := range []string{"a", "b", "c"} { result += s }
 result`},
@@ -1105,15 +1105,15 @@ func TestCrossBankAssign(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
 
-		{float64(5), "int_to_float_assign", `
+		{expect: float64(5), name: "int_to_float_assign", code: `
 func f() float64 { x := 5; return float64(x) }
 f()`},
 
-		{int64(3), "float_to_int_assign", `
+		{expect: int64(3), name: "float_to_int_assign", code: `
 func f() int { x := 3.9; return int(x) }
 f()`},
 
-		{int64(1), "bool_to_int", `
+		{expect: int64(1), name: "bool_to_int", code: `
 func f() int { b := true; if b { return 1 }; return 0 }
 f()`},
 	})
@@ -1122,10 +1122,10 @@ f()`},
 func TestGoDispatchCrossBankAssign(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{float64(5), "int_to_float_assign", `
+		{expect: float64(5), name: "int_to_float_assign", code: `
 func f() float64 { x := 5; return float64(x) }
 f()`},
-		{int64(3), "float_to_int_assign", `
+		{expect: int64(3), name: "float_to_int_assign", code: `
 func f() int { x := 3.9; return int(x) }
 f()`},
 	})
@@ -1134,19 +1134,19 @@ f()`},
 func TestMultiReturnWithDifferentTypes(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{float64(3.14), "multi_ret_float_bool", `
+		{expect: float64(3.14), name: "multi_ret_float_bool", code: `
 func f() (float64, bool) { return 3.14, true }
 v, _ := f()
 v`},
-		{true, "multi_ret_bool", `
+		{expect: true, name: "multi_ret_bool", code: `
 func f() (float64, bool) { return 3.14, true }
 _, b := f()
 b`},
-		{"hello", "multi_ret_string_int", `
+		{expect: "hello", name: "multi_ret_string_int", code: `
 func f() (string, int) { return "hello", 42 }
 s, _ := f()
 s`},
-		{int64(42), "multi_ret_int_from_string_int", `
+		{expect: int64(42), name: "multi_ret_int_from_string_int", code: `
 func f() (string, int) { return "hello", 42 }
 _, n := f()
 n`},
@@ -1156,11 +1156,11 @@ n`},
 func TestGoDispatchMultiReturnTypes(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{float64(3.14), "multi_ret_float_bool", `
+		{expect: float64(3.14), name: "multi_ret_float_bool", code: `
 func f() (float64, bool) { return 3.14, true }
 v, _ := f()
 v`},
-		{"hello", "multi_ret_string_int", `
+		{expect: "hello", name: "multi_ret_string_int", code: `
 func f() (string, int) { return "hello", 42 }
 s, _ := f()
 s`},
@@ -1170,7 +1170,7 @@ s`},
 func TestDeferOrder(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{"cba", "defer_lifo_order", `
+		{expect: "cba", name: "defer_lifo_order", code: `
 func f() (result string) {
 	defer func() { result += "a" }()
 	defer func() { result += "b" }()
@@ -1184,7 +1184,7 @@ f()`},
 func TestGoDispatchDeferOrder(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{"cba", "defer_lifo_order", `
+		{expect: "cba", name: "defer_lifo_order", code: `
 func f() (result string) {
 	defer func() { result += "a" }()
 	defer func() { result += "b" }()
@@ -1198,24 +1198,24 @@ f()`},
 func TestComplexConstants(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, nil, []evalTestCase{
-		{complex128(0), "complex_zero", `var c complex128; c`},
-		{complex128(1i), "complex_imag_only", `c := 1i; c`},
-		{complex128(3.14), "complex_real_only", `c := complex128(3.14); c`},
+		{expect: complex128(0), name: "complex_zero", code: `var c complex128; c`},
+		{expect: complex128(1i), name: "complex_imag_only", code: `c := 1i; c`},
+		{expect: complex128(3.14), name: "complex_real_only", code: `c := complex128(3.14); c`},
 	})
 }
 
 func TestGoDispatchComplexConstants(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{complex128(0), "complex_zero", `var c complex128; c`},
-		{complex128(1i), "complex_imag_only", `c := 1i; c`},
+		{expect: complex128(0), name: "complex_zero", code: `var c complex128; c`},
+		{expect: complex128(1i), name: "complex_imag_only", code: `c := 1i; c`},
 	})
 }
 
 func TestGoDispatchNilTest(t *testing.T) {
 	t.Parallel()
 	runEvalTable(t, []Option{WithForceGoDispatch()}, []evalTestCase{
-		{true, "nil_test_nil", `var p *int; p == nil`},
-		{false, "nil_test_nonnull", `x := 42; p := &x; p == nil`},
+		{expect: true, name: "nil_test_nil", code: `var p *int; p == nil`},
+		{expect: false, name: "nil_test_nonnull", code: `x := 42; p := &x; p == nil`},
 	})
 }

@@ -51,9 +51,9 @@ const (
 	sendTypeBulk = "bulk"
 )
 
-// MockEmailProvider is a thread-safe test implementation of the
-// EmailProviderPort interface. It records calls and simulates provider
-// behaviour for unit and integration tests.
+// MockEmailProvider is a thread-safe test implementation of the EmailProviderPort
+// interface. It records calls and simulates provider behaviour for unit and integration
+// tests.
 type MockEmailProvider struct {
 	// sendError is the error to return from Send; nil means success.
 	sendError error
@@ -80,11 +80,13 @@ type MockEmailProvider struct {
 	supportsBulk bool
 }
 
-var _ email_domain.EmailProviderPort = (*MockEmailProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*MockEmailProvider)(nil)
+var (
+	_ email_domain.EmailProviderPort = (*MockEmailProvider)(nil)
 
-// NewMockEmailProvider creates a new mock email provider ready for use in
-// tests.
+	_ provider_domain.ProviderMetadata = (*MockEmailProvider)(nil)
+)
+
+// NewMockEmailProvider creates a new mock email provider ready for use in tests.
 //
 // Returns *MockEmailProvider which is set up with empty call records.
 func NewMockEmailProvider() *MockEmailProvider {
@@ -113,8 +115,8 @@ func (*MockEmailProvider) GetProviderMetadata() map[string]any {
 
 // Send records the call and returns a pre-set error.
 //
-// It handles nil inputs safely and stores a copy of the params to stop the
-// caller from changing them later.
+// It handles nil inputs safely and stores a copy of the params to stop the caller from
+// changing them later.
 //
 // Takes params (*email_dto.SendParams) which specifies the email to send.
 //
@@ -150,8 +152,8 @@ func (m *MockEmailProvider) Send(ctx context.Context, params *email_dto.SendPara
 	return m.sendError
 }
 
-// SendBulk records the bulk call and returns a pre-configured error.
-// It stores a copy of the email data to ensure test data integrity.
+// SendBulk records the bulk call and returns a pre-configured error. It stores a copy of
+// the email data to ensure test data integrity.
 //
 // Takes emails ([]*email_dto.SendParams) which specifies the emails to send.
 //
@@ -211,8 +213,8 @@ func (*MockEmailProvider) Name() string {
 	return "EmailProvider (Mock)"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// The mock email provider is always healthy as it operates in-memory.
+// Check implements the healthprobe_domain.Probe interface. The mock email provider is
+// always healthy as it operates in-memory.
 //
 // Returns healthprobe_dto.Status which always reports healthy.
 func (m *MockEmailProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -245,8 +247,8 @@ func (m *MockEmailProvider) SetSupportsBulk(supports bool) {
 	m.supportsBulk = supports
 }
 
-// SetSendError sets the error to return from subsequent Send calls, allowing
-// tests to simulate a failure for single send calls.
+// SetSendError sets the error to return from subsequent Send calls, allowing tests to
+// simulate a failure for single send calls.
 //
 // Takes err (error) which is the error to return, or nil to clear.
 //
@@ -259,8 +261,7 @@ func (m *MockEmailProvider) SetSendError(err error) {
 
 // SetBulkSendError allows tests to simulate a failure for bulk send calls.
 //
-// Takes err (error) which is the error to return from subsequent BulkSend
-// calls.
+// Takes err (error) which is the error to return from subsequent BulkSend calls.
 //
 // Safe for concurrent use.
 func (m *MockEmailProvider) SetBulkSendError(err error) {
@@ -269,8 +270,8 @@ func (m *MockEmailProvider) SetBulkSendError(err error) {
 	m.bulkSendError = err
 }
 
-// GetSendCalls returns a copy of all emails recorded from Send calls.
-// Returning a copy prevents tests from modifying the mock's internal state.
+// GetSendCalls returns a copy of all emails recorded from Send calls. Returning a copy
+// prevents tests from modifying the mock's internal state.
 //
 // Returns []email_dto.SendParams which contains all recorded send parameters.
 //
@@ -283,8 +284,7 @@ func (m *MockEmailProvider) GetSendCalls() []email_dto.SendParams {
 	return callsCopy
 }
 
-// GetBulkSendCalls returns a copy of all email batches recorded from
-// SendBulk calls.
+// GetBulkSendCalls returns a copy of all email batches recorded from SendBulk calls.
 //
 // Returns [][]email_dto.SendParams which contains a copy of each batch sent.
 //
@@ -319,8 +319,8 @@ func (m *MockEmailProvider) GetBulkSendCallCount() int {
 	return m.bulkSendCallCount
 }
 
-// Reset clears all recorded calls and resets errors, preparing the mock for
-// a new test case.
+// Reset clears all recorded calls and resets errors, preparing the mock for a new test
+// case.
 //
 // Safe for concurrent use.
 func (m *MockEmailProvider) Reset() {

@@ -1,0 +1,5 @@
+{
+  "description": "runtime.Goexit from interpreted main is intercepted: the VM unwinds its own frame stack running interpreted defers and surfaces errGoexit. The host Go goroutine running the VM exits via normal return - real runtime.Goexit is never called.",
+  "shouldError": true,
+  "errorContains": "runtime.Goexit"
+}

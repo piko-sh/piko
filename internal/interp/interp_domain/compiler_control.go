@@ -20,45 +20,44 @@ package interp_domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
 	"reflect"
+	"slices"
 
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// isTailCallEligible checks whether a return statement can be compiled
-// as a tail call.
+// isTailCallEligible checks whether a return statement can be compiled as a tail call.
 //
-// Tail calls require: exactly one return expression, that expression is a
-// direct *ast.CallExpr (not type conversion), callee is a known compiled
-// function (in funcTable), no defers in the current function, and callee
-// and caller have matching result signatures.
+// Tail calls require: exactly one return expression, that expression is a direct
+// *ast.CallExpr (not type conversion), callee is a known compiled function (in
+// funcTable), no defers in the current function, and callee and caller have matching
+// result signatures.
 //
-// Takes statement (*ast.ReturnStmt) which is the return statement to check
-// for tail call eligibility.
+// Takes statement (*ast.ReturnStmt) which is the return statement to check for tail call
+// eligibility.
 //
 // Returns the call expression if eligible, or nil otherwise.
 func (c *compiler) isTailCallEligible(_ context.Context, statement *ast.ReturnStmt) *ast.CallExpr {
 	if c.hasDefers || len(statement.Results) != 1 {
 		return nil
 	}
-	callExpr, ok := statement.Results[0].(*ast.CallExpr)
+	callExpression, ok := statement.Results[0].(*ast.CallExpr)
 	if !ok {
 		return nil
 	}
 
-	if tv, ok := c.info.Types[callExpr.Fun]; ok && tv.IsType() {
+	if tv, ok := c.info.Types[callExpression.Fun]; ok && tv.IsType() {
 		return nil
 	}
 
-	if _, ok := callExpr.Fun.(*ast.SelectorExpr); ok {
+	if _, ok := callExpression.Fun.(*ast.SelectorExpr); ok {
 		return nil
 	}
-	identifier, ok := callExpr.Fun.(*ast.Ident)
+	identifier, ok := callExpression.Fun.(*ast.Ident)
 	if !ok {
 		return nil
 	}
@@ -82,36 +81,105 @@ func (c *compiler) isTailCallEligible(_ context.Context, statement *ast.ReturnSt
 			return nil
 		}
 	}
-	return callExpr
+	return callExpression
 }
 
 // compileTailCall compiles a tail call for the given call expression.
 //
-// Takes callExpr (*ast.CallExpr) which is the call expression to compile
-// as a tail call.
+// Takes callExpression (*ast.CallExpr) which is the call expression to compile as a tail
+// call.
 //
 // Returns the compiled location and any error encountered.
-func (c *compiler) compileTailCall(ctx context.Context, callExpr *ast.CallExpr) (varLocation, error) {
-	identifier, ok := callExpr.Fun.(*ast.Ident)
+func (c *compiler) compileTailCall(ctx context.Context, callExpression *ast.CallExpr) (varLocation, error) {
+	identifier, ok := callExpression.Fun.(*ast.Ident)
 	if !ok {
-		return varLocation{}, errors.New("tail call target is not an identifier")
+		return varLocation{}, ErrCompileTailCallTargetNotIdent
 	}
 	funcIndex := c.funcTable[identifier.Name]
 	callee := c.rootFunction.functions[funcIndex]
 
-	argLocs, err := c.compileCallArgs(ctx, callExpr, callee)
+	argumentLocations, err := c.compileCallArguments(ctx, callExpression, callee)
 	if err != nil {
 		return varLocation{}, err
 	}
 
+	tailReuseFrameInPlace := callee == c.function && c.function.numRegisters == callee.numRegisters
 	site := callSite{
-		funcIndex: funcIndex,
-		arguments: argLocs,
+		funcIndex:             funcIndex,
+		arguments:             argumentLocations,
+		tailReuseFrameInPlace: tailReuseFrameInPlace,
+		tailArgsAlias:         tailReuseFrameInPlace && detectTailCallArgsAlias(argumentLocations, callee.parameterKinds),
 	}
-	siteIndex := c.function.addCallSite(site)
+	site.cachedCallee = callee
+	site.argCopyProgram = buildCallArgCopyProgram(argumentLocations, callee.parameterKinds, callee.parameterRegisters)
+	siteIndex, addErr := c.function.addCallSite(&site)
+	if addErr != nil {
+		return varLocation{}, addErr
+	}
 	c.function.emitWide(opTailCall, 0, siteIndex)
 
 	return varLocation{}, nil
+}
+
+// rewriteTrailingCallAsTailCall is a post-compile pass that upgrades a void function's
+// trailing opCall to opTailCall when the function is eligible. Bodies that end with
+// `someFunc(arg)` as the final statement have the implicit return after the call, making
+// it a tail position even though there is no explicit `return X()` syntax.
+//
+// Runs after compileStmtList so register liveness analysis sees the real last-use indices
+// for the full body. The rewrite changes only the opcode byte and patches the existing
+// callSite with the tail-call flags (tailReuseFrameInPlace, tailArgsAlias); no new call
+// site is added and no registers are allocated.
+//
+// Skips the rewrite when cf has a non-zero result count (a trailing bare call cannot be
+// cf's actual return value), has defers (defer semantics require the post-call unwind
+// frame to remain), the last instruction is not opCall (no trailing call to upgrade), the
+// call site is closure / native / method / variadic / not statically resolvable (these
+// can't be turned into a direct tail call against the funcTable), or the cached callee
+// yields non-zero values (a void caller cannot ignore non-void callee returns at the
+// implicit return).
+//
+// Takes cf (*CompiledFunction) which is the function whose body has just been emitted
+// into c.function.
+func (c *compiler) rewriteTrailingCallAsTailCall(cf *CompiledFunction) {
+	if len(cf.resultKinds) != 0 {
+		return
+	}
+	if c.hasDefers {
+		return
+	}
+	if len(cf.body) == 0 {
+		return
+	}
+	lastInstruction := &cf.body[len(cf.body)-1]
+	if lastInstruction.op != opCall {
+		return
+	}
+	siteIndex := lastInstruction.wideIndex()
+	if int(siteIndex) >= len(cf.callSites) {
+		return
+	}
+	site := &cf.callSites[siteIndex]
+	if site.isClosure || site.isNative || site.isMethod || site.isEllipsisSpread {
+		return
+	}
+	if site.cachedCallee == nil {
+		return
+	}
+	callee := site.cachedCallee
+	if len(callee.resultKinds) != 0 {
+		return
+	}
+	if callee.isVariadic {
+		return
+	}
+	if site.runtimeVariadicSliceType != nil {
+		return
+	}
+	tailReuseFrameInPlace := callee == cf && cf.numRegisters == callee.numRegisters
+	site.tailReuseFrameInPlace = tailReuseFrameInPlace
+	site.tailArgsAlias = tailReuseFrameInPlace && detectTailCallArgsAlias(site.arguments, callee.parameterKinds)
+	lastInstruction.op = opTailCall
 }
 
 // compileReturn compiles a return statement.
@@ -128,12 +196,12 @@ func (c *compiler) compileReturn(ctx context.Context, statement *ast.ReturnStmt)
 		return c.compileBareReturn(ctx)
 	}
 
-	if len(c.function.namedResultLocs) > 0 {
+	if len(c.function.namedResultLocations) > 0 {
 		return c.compileNamedExplicitReturn(ctx, statement)
 	}
 
-	if callExpr := c.isTailCallEligible(ctx, statement); callExpr != nil {
-		return c.compileTailCall(ctx, callExpr)
+	if callExpression := c.isTailCallEligible(ctx, statement); callExpression != nil {
+		return c.compileTailCall(ctx, callExpression)
 	}
 
 	return c.compileExplicitReturn(ctx, statement)
@@ -145,34 +213,67 @@ func (c *compiler) compileReturn(ctx context.Context, statement *ast.ReturnStmt)
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileBareReturn(ctx context.Context) (varLocation, error) {
-	if len(c.function.namedResultLocs) > 0 {
+	if len(c.function.namedResultLocations) > 0 {
 		c.emitNamedResultReturn(ctx)
 		return varLocation{}, nil
 	}
-	c.function.emit(opReturnVoid, 0, 0, 0)
+	c.function.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 	return varLocation{}, nil
 }
 
-// emitNamedResultReturn moves named result locations into return
-// positions and emits an opReturn instruction.
+// emitNamedResultReturn emits the opReturn for a bare named-result return.
+//
+// The actual placement of each named result into its canonical return slot happens at
+// runtime in syncNamedResults, which runs after deferred calls and therefore observes any
+// mutations defers made via heap pointers, captured upvalue cells, or direct writes.
+// Emitting moves here would clobber heap-pointer slots before defers can read them, so
+// the syncNamedResults slow path owns this responsibility exclusively.
+//
+// However, the ASM-inline return fast path (handlerReturnInline in
+// asm_vm_dispatch_inline_amd64.s) reads the callee's registers.<kind>[0] slot directly
+// without consulting namedResultLocations, so heap-promoted named results (where the live
+// value lives behind a *T cell, not in the typed-bank slot) would be read as their stale
+// uninitialised zero. The pre-emit materialisation here writes the dereffed value into
+// the canonical bank-0 slot so the ASM-inline path observes the correct value.
+// syncNamedResults still runs on the slow/defer path and overwrites with the post-defer
+// value, preserving correctness for defer-mutated named results.
 func (c *compiler) emitNamedResultReturn(ctx context.Context) {
-	var bankCounters [NumRegisterKinds]uint8
-	for _, location := range c.function.namedResultLocs {
-		destReg := bankCounters[location.kind]
-		bankCounters[location.kind]++
-		dest := varLocation{register: destReg, kind: location.kind}
-		if location.register != dest.register || location.kind != dest.kind {
-			c.emitMove(ctx, dest, location)
-		}
-	}
-	c.function.emit(opReturn, safeconv.MustIntToUint8(len(c.function.namedResultLocs)), 0, 0)
+	c.materialiseIndirectNamedResults(ctx)
+	c.function.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), safeconv.MustIntToUint8(len(c.function.namedResultLocations)))
 }
 
-// compileNamedExplicitReturn compiles a return statement with explicit
-// values when the function has named result variables.
+// materialiseIndirectNamedResults derefs each heap-promoted named result into its
+// canonical typed-bank return slot (register 0 of originalKind) so the ASM-inline return
+// fast path can read the live value without needing syncNamedResults. No-op for
+// non-indirect named results.
 //
-// Takes statement (*ast.ReturnStmt) which is the return statement containing
-// the explicit values.
+// Takes ctx (context.Context) for cancellation propagation.
+func (c *compiler) materialiseIndirectNamedResults(ctx context.Context) {
+	var bankCounters [NumRegisterKinds]uint8
+	for _, location := range c.function.namedResultLocations {
+		if !location.isIndirect {
+			bankCounters[location.kind]++
+			continue
+		}
+		dereffed, err := c.emitIndirectRead(ctx, location)
+		if err != nil {
+			c.recordStickyError(err)
+			return
+		}
+		destRegister := bankCounters[location.originalKind]
+		bankCounters[location.originalKind]++
+		c.scopes.alloc.ensureMin(location.originalKind, uint32(destRegister)+1)
+		canonical := varLocation{register: destRegister, kind: location.originalKind}
+		c.emitMove(ctx, canonical, dereffed)
+		c.scopes.alloc.freeTemp(dereffed.kind, dereffed.register)
+	}
+}
+
+// compileNamedExplicitReturn compiles a return statement with explicit values when the
+// function has named result variables.
+//
+// Takes statement (*ast.ReturnStmt) which is the return statement containing the explicit
+// values.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileNamedExplicitReturn(ctx context.Context, statement *ast.ReturnStmt) (varLocation, error) {
@@ -181,21 +282,23 @@ func (c *compiler) compileNamedExplicitReturn(ctx context.Context, statement *as
 		if err != nil {
 			return varLocation{}, err
 		}
-		dest := c.function.namedResultLocs[i]
-		c.emitMove(ctx, dest, location)
+		dest := c.function.namedResultLocations[i]
+		c.emitMoveTyped(ctx, dest, location, c.staticTypeOf(result))
 
-		c.function.emit(opWriteSharedCell, dest.register, uint8(dest.kind), 0)
+		if !dest.isIndirect {
+			c.function.emit(opWriteSharedCell, dest.register, uint8(dest.kind), 0)
+		}
 	}
 
 	c.emitNamedResultReturn(ctx)
 	return varLocation{}, nil
 }
 
-// compileExplicitReturn compiles a return statement with explicit values
-// for non-named results.
+// compileExplicitReturn compiles a return statement with explicit values for non-named
+// results.
 //
-// Takes statement (*ast.ReturnStmt) which is the return statement containing
-// the explicit values.
+// Takes statement (*ast.ReturnStmt) which is the return statement containing the explicit
+// values.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileExplicitReturn(ctx context.Context, statement *ast.ReturnStmt) (varLocation, error) {
@@ -212,34 +315,44 @@ func (c *compiler) compileExplicitReturn(ctx context.Context, statement *ast.Ret
 		}
 	}
 
-	c.function.emit(opReturn, safeconv.MustIntToUint8(len(statement.Results)), 0, 0)
+	c.function.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), safeconv.MustIntToUint8(len(statement.Results)))
 	return varLocation{}, nil
 }
 
-// compileReturnExprs compiles all return expressions into temporary
-// registers to avoid clobbering.
+// compileReturnExprs compiles all return expressions into temporary registers to avoid
+// clobbering.
 //
-// For example, "return b, a" where a and b are params would clobber
-// without temporaries.
+// For example, "return b, a" where a and b are params would clobber without temporaries.
 //
-// Takes statement (*ast.ReturnStmt) which is the return statement whose
-// expressions are compiled.
+// Takes statement (*ast.ReturnStmt) which is the return statement whose expressions are
+// compiled.
 //
-// Returns the compiled locations for each return expression and any
-// error encountered.
+// Returns the compiled locations for each return expression and any error encountered.
 func (c *compiler) compileReturnExprs(ctx context.Context, statement *ast.ReturnStmt) ([]varLocation, error) {
 	locs := make([]varLocation, len(statement.Results))
 	for i, result := range statement.Results {
-		location, err := c.compileExpression(ctx, result)
-		if err != nil {
-			return nil, err
+		var expectedType types.Type
+		if i < len(c.currentResultTypes) {
+			expectedType = c.currentResultTypes[i]
+		}
+		location, handled, herr := c.compileTypedNilOrExpression(ctx, result, expectedType)
+		if herr != nil {
+			return nil, herr
+		}
+		if !handled {
+			var err error
+			location, err = c.compileExpression(ctx, result)
+			if err != nil {
+				return nil, err
+			}
 		}
 		location = c.coerceEvalBoolResult(ctx, c.info, result, location)
+		location = c.snapshotReturnValueIfNeeded(result, location)
 		if len(statement.Results) > 1 {
-			tmp := c.scopes.alloc.allocTemp(location.kind)
-			tmpLocation := varLocation{register: tmp, kind: location.kind}
-			c.emitMove(ctx, tmpLocation, location)
-			locs[i] = tmpLocation
+			temp := c.scopes.alloc.allocTemp(location.kind)
+			tempLocation := varLocation{register: temp, kind: location.kind}
+			c.emitMoveTyped(ctx, tempLocation, location, c.staticTypeOf(result))
+			locs[i] = tempLocation
 		} else {
 			locs[i] = location
 		}
@@ -247,26 +360,65 @@ func (c *compiler) compileReturnExprs(ctx context.Context, statement *ast.Return
 	return locs, nil
 }
 
-// moveLocsToReturnPositions moves compiled expression locations into
-// their return-slot positions.
+// snapshotReturnValueIfNeeded materialises a fresh return-value copy.
 //
-// Uses the function's declared ResultKinds so cross-bank conversions
-// are emitted (e.g. registerInt -> registerBool).
+// Without this copy, a general-bank return slot loaded out of a heap-promoted captured
+// local ends up holding a reflect.Value whose backing storage aliases the heap cell
+// mutated by any deferred closure that ran between the function's logical "return X"
+// point and the caller's observation. Go's value-copy semantics for slice headers, struct
+// values, map references, and other reference-type-by-header values would normally yield
+// an independent header in the caller; piko mimics that here by emitting `opDeref
+// c=derefSnapshot` over the just-loaded general value, which the runtime turns into a
+// reflect.New + Set copy.
 //
-// Takes locs ([]varLocation) which is the compiled expression locations
-// to move.
+// Only fires when the AST expression is a bare identifier and the identifier resolves to
+// an indirect (heap-promoted) local with originalKind=registerGeneral.
+//
+// Other return shapes (literals, calls, selectors) build their own freshly-allocated
+// values and do not alias heap memory; emitting a snapshot would just waste an
+// allocation.
+//
+// Takes expression (ast.Expr) which is the return expression as written.
+// Takes location (varLocation) which is the compiled value location.
+//
+// Returns the snapshot temporary location when a fresh copy was emitted, or location
+// unchanged when no snapshot is needed.
+func (c *compiler) snapshotReturnValueIfNeeded(expression ast.Expr, location varLocation) varLocation {
+	if location.kind != registerGeneral {
+		return location
+	}
+	identifier, ok := expression.(*ast.Ident)
+	if !ok {
+		return location
+	}
+	declared, found := c.scopes.lookupVar(identifier.Name)
+	if !found || !declared.isIndirect || declared.originalKind != registerGeneral {
+		return location
+	}
+	dest := c.scopes.alloc.allocTemp(registerGeneral)
+	c.function.emit(opDeref, dest, location.register, derefSnapshot)
+	return varLocation{register: dest, kind: registerGeneral}
+}
+
+// moveLocsToReturnPositions moves compiled expression locations into their return-slot
+// positions.
+//
+// Uses the function's declared ResultKinds so cross-bank conversions are emitted (e.g.
+// registerInt -> registerBool).
+//
+// Takes locs ([]varLocation) which is the compiled expression locations to move.
 //
 // Returns the bank counters array tracking register usage per kind.
 func (c *compiler) moveLocsToReturnPositions(ctx context.Context, locs []varLocation) [NumRegisterKinds]uint8 {
 	var bankCounters [NumRegisterKinds]uint8
 	for i, location := range locs {
-		destKind := location.kind
+		destinationKind := location.kind
 		if i < len(c.function.resultKinds) {
-			destKind = c.function.resultKinds[i]
+			destinationKind = c.function.resultKinds[i]
 		}
-		destReg := bankCounters[destKind]
-		bankCounters[destKind]++
-		dest := varLocation{register: destReg, kind: destKind}
+		destinationRegister := bankCounters[destinationKind]
+		bankCounters[destinationKind]++
+		dest := varLocation{register: destinationRegister, kind: destinationKind}
 		if location.register != dest.register || location.kind != dest.kind {
 			c.emitMove(ctx, dest, location)
 		}
@@ -302,7 +454,7 @@ func (c *compiler) compileIf(ctx context.Context, statement *ast.IfStmt) (varLoc
 	}
 
 	if statement.Else != nil {
-		jumpToEnd := c.function.emitJump(opJump, 0)
+		jumpToEnd := c.function.emitTier1Jump()
 		c.function.patchJump(jumpToElse)
 
 		if _, err := c.compileStmt(ctx, statement.Else); err != nil {
@@ -326,8 +478,28 @@ func (c *compiler) compileFor(ctx context.Context, statement *ast.ForStmt) (varL
 	if err := c.checkFeature(InterpFeatureForLoops, statement.For); err != nil {
 		return varLocation{}, err
 	}
+	if recogniser, recogniserToken, ok := tryRecogniseForStmt(c.astPatternRecogniseContext(), statement); ok {
+		return recogniser.Emit(ctx, c.astPatternEmitContext(), statement, recogniserToken)
+	}
+	return c.compileForFallback(ctx, statement)
+}
+
+// compileForFallback is the scalar emission path for a for-statement.
+//
+// Extracted so AST-pattern recognisers can delegate back to it when their Emit declines
+// partway (e.g. an operand resolves to a register kind the SIMD opcode cannot index).
+// Mirrors compileFor's body sans the recogniser hook and the feature gate (already
+// enforced).
+//
+// Takes ctx (context.Context).
+// Takes statement (*ast.ForStmt) which is the loop.
+//
+// Returns the loop's varLocation (always zero) and any error.
+func (c *compiler) compileForFallback(ctx context.Context, statement *ast.ForStmt) (varLocation, error) {
 	c.scopes.pushScope()
 	defer c.scopes.popScope()
+	c.loopDepth++
+	defer func() { c.loopDepth-- }()
 
 	if statement.Init != nil {
 		if _, err := c.compileStmt(ctx, statement.Init); err != nil {
@@ -357,18 +529,12 @@ func (c *compiler) compileFor(ctx context.Context, statement *ast.ForStmt) (varL
 
 	c.patchContinueJumps(ctx)
 
-	if statement.Post != nil {
-		c.inLoopPost = true
-		if _, err := c.compileStmt(ctx, statement.Post); err != nil {
-			c.inLoopPost = false
-			return varLocation{}, err
-		}
-		c.inLoopPost = false
+	if err := c.compileForPost(ctx, statement); err != nil {
+		return varLocation{}, err
 	}
 
-	offset := safeconv.MustIntToInt16(loopStart - c.function.currentPC() - 1)
-	lo, hi := splitOffset(offset)
-	c.function.emit(opJump, 0, lo, hi)
+	lo, hi := c.function.encodeJumpOffset(loopStart - c.function.currentPC() - 1)
+	c.function.emit(opDrillTier1, uint8(subOpJump), lo, hi)
 
 	if hasCondJump {
 		c.function.patchJump(jumpToEnd)
@@ -382,13 +548,33 @@ func (c *compiler) compileFor(ctx context.Context, statement *ast.ForStmt) (varL
 	return varLocation{}, nil
 }
 
+// compileForPost compiles the post statement of a for loop, tracking the init-declared
+// registers so post-statement writes mirror into shared cells for closures captured in
+// the loop body.
+//
+// Takes statement (*ast.ForStmt) which is the for statement whose post clause is
+// compiled.
+//
+// Returns any compilation error from the post statement.
+func (c *compiler) compileForPost(ctx context.Context, statement *ast.ForStmt) error {
+	if statement.Post == nil {
+		return nil
+	}
+	previousPostInitDecls := c.loopPostInitDeclRegisters
+	c.loopPostInitDeclRegisters = c.collectForInitDeclaredRegisters(statement.Init)
+	c.inLoopPost = true
+	_, err := c.compileStmt(ctx, statement.Post)
+	c.inLoopPost = false
+	c.loopPostInitDeclRegisters = previousPostInitDecls
+	return err
+}
+
 // compileForCondition compiles the loop condition expression if present.
 //
-// Takes condition (ast.Expr) which is the condition expression to compile,
-// or nil if absent.
+// Takes condition (ast.Expr) which is the condition expression to compile, or nil if
+// absent.
 //
-// Returns the jump-to-end offset, whether a condition jump was emitted,
-// and any error.
+// Returns the jump-to-end offset, whether a condition jump was emitted, and any error.
 func (c *compiler) compileForCondition(ctx context.Context, condition ast.Expr) (int, bool, error) {
 	if condition == nil {
 		return 0, false, nil
@@ -402,14 +588,13 @@ func (c *compiler) compileForCondition(ctx context.Context, condition ast.Expr) 
 	return jumpToEnd, true, nil
 }
 
-// resetSharedCellsForInit emits opResetSharedCell for each variable
-// declared in a for-loop init statement.
+// resetSharedCellsForInit emits opResetSharedCell for each variable declared in a
+// for-loop init statement.
 //
-// This ensures closures captured in the loop body see per-iteration
-// values.
+// This ensures closures captured in the loop body see per-iteration values.
 //
-// Takes init (ast.Stmt) which is the for-loop init statement to scan
-// for declared variables.
+// Takes init (ast.Stmt) which is the for-loop init statement to scan for declared
+// variables.
 func (c *compiler) resetSharedCellsForInit(_ context.Context, init ast.Stmt) {
 	initAssign, ok := init.(*ast.AssignStmt)
 	if !ok || initAssign.Tok != token.DEFINE {
@@ -420,31 +605,70 @@ func (c *compiler) resetSharedCellsForInit(_ context.Context, init ast.Stmt) {
 		if !ok || identifier.Name == blankIdentName {
 			continue
 		}
-		if location, found := c.scopes.lookupVar(identifier.Name); found && !location.isSpilled {
+		if location, found := c.scopes.lookupVar(identifier.Name); found && !location.isSpilled && c.closureCapturedNames[identifier.Name] {
 			c.function.emit(opResetSharedCell, location.register, uint8(location.kind), 0)
 		}
 	}
 }
 
-// patchContinueJumps patches all continue jumps in the current
-// breakable context to the current PC (the post statement or
-// back-jump location).
+// loopPostDeclKey identifies a register slot occupied by a for-stmt-init-declared
+// variable, scoped by its register-bank kind so the same numeric index in different banks
+// doesn't collide.
+type loopPostDeclKey struct {
+	// kind is the register-bank kind (registerInt, registerGeneral, etc.).
+	kind registerKind
+
+	// register is the per-bank slot index.
+	register uint8
+}
+
+// collectForInitDeclaredRegisters returns init-declared registers.
+//
+// Used by emitSyncCaptured to scope the opWriteSharedCell suppression to variables that
+// participate in Go 1.22+ per-iteration scoping; variables in the enclosing scope (`for ;
+// i < 3; i++`) are not in this set and continue to receive sync writes so captured
+// closures see post-loop state.
+//
+// Takes init (ast.Stmt) which is the for-stmt init clause; nil and non-DEFINE forms
+// return an empty set.
+//
+// Returns a key -> struct{} set; nil when no DEFINE-declared names resolve to a register
+// location.
+func (c *compiler) collectForInitDeclaredRegisters(init ast.Stmt) map[loopPostDeclKey]struct{} {
+	initAssign, ok := init.(*ast.AssignStmt)
+	if !ok || initAssign.Tok != token.DEFINE {
+		return nil
+	}
+	result := make(map[loopPostDeclKey]struct{}, len(initAssign.Lhs))
+	for _, leftHandSide := range initAssign.Lhs {
+		identifier, ok := leftHandSide.(*ast.Ident)
+		if !ok || identifier.Name == blankIdentName {
+			continue
+		}
+		location, found := c.scopes.lookupVar(identifier.Name)
+		if !found || location.isSpilled {
+			continue
+		}
+		result[loopPostDeclKey{kind: location.kind, register: location.register}] = struct{}{}
+	}
+	return result
+}
+
+// patchContinueJumps patches all continue jumps in the current breakable context to the
+// current PC (the post statement or back-jump location).
 func (c *compiler) patchContinueJumps(_ context.Context) {
 	breakable := &c.breakables[len(c.breakables)-1]
 	continueTarget := c.function.currentPC()
 	for _, pc := range breakable.continueJumps {
-		offset := safeconv.MustIntToInt16(continueTarget - pc - 1)
-		lo, hi := splitOffset(offset)
+		lo, hi := c.function.encodeJumpOffset(continueTarget - pc - 1)
 		c.function.body[pc].b = lo
 		c.function.body[pc].c = hi
 	}
 }
 
-// compileBranch compiles a break, continue, goto, or fallthrough
-// statement.
+// compileBranch compiles a break, continue, goto, or fallthrough statement.
 //
-// Takes statement (*ast.BranchStmt) which is the branch statement AST node
-// to compile.
+// Takes statement (*ast.BranchStmt) which is the branch statement AST node to compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileBranch(ctx context.Context, statement *ast.BranchStmt) (varLocation, error) {
@@ -462,24 +686,22 @@ func (c *compiler) compileBranch(ctx context.Context, statement *ast.BranchStmt)
 	}
 }
 
-// compileBranchBreak compiles a break statement by searching the
-// breakable context stack.
+// compileBranchBreak compiles a break statement by searching the breakable context stack.
 //
-// Falls back to range-over-func state-flag unwinding when the target
-// is outside the yield closure.
+// Falls back to range-over-func state-flag unwinding when the target is outside the yield
+// closure.
 //
-// Takes statement (*ast.BranchStmt) which is the break statement AST node
-// to compile.
+// Takes statement (*ast.BranchStmt) which is the break statement AST node to compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileBranchBreak(ctx context.Context, statement *ast.BranchStmt) (varLocation, error) {
 	labelName := branchLabelName(statement)
-	for i := len(c.breakables) - 1; i >= 0; i-- {
+	for i := range slices.Backward(c.breakables) {
 		breakable := &c.breakables[i]
 		if labelName != "" && breakable.label != labelName {
 			continue
 		}
-		jumpPC := c.function.emitJump(opJump, 0)
+		jumpPC := c.function.emitTier1Jump()
 		breakable.breakJumps = append(breakable.breakJumps, jumpPC)
 		return varLocation{}, nil
 	}
@@ -495,22 +717,21 @@ func (c *compiler) compileBranchBreak(ctx context.Context, statement *ast.Branch
 	if c.rangeOverFunc != nil {
 		return c.emitRangeOverFuncBreak(ctx)
 	}
-	return varLocation{}, errors.New("break outside loop or switch")
+	return varLocation{}, ErrCompileBreakOutsideLoopOrSwitch
 }
 
-// compileBranchContinue compiles a continue statement by searching the
-// breakable context stack.
+// compileBranchContinue compiles a continue statement by searching the breakable context
+// stack.
 //
-// Falls back to range-over-func state-flag unwinding when the target
-// loop is outside the yield closure.
+// Falls back to range-over-func state-flag unwinding when the target loop is outside the
+// yield closure.
 //
-// Takes statement (*ast.BranchStmt) which is the continue statement AST node
-// to compile.
+// Takes statement (*ast.BranchStmt) which is the continue statement AST node to compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileBranchContinue(ctx context.Context, statement *ast.BranchStmt) (varLocation, error) {
 	labelName := branchLabelName(statement)
-	for i := len(c.breakables) - 1; i >= 0; i-- {
+	for i := range slices.Backward(c.breakables) {
 		breakable := &c.breakables[i]
 		if !breakable.isLoop {
 			continue
@@ -518,7 +739,7 @@ func (c *compiler) compileBranchContinue(ctx context.Context, statement *ast.Bra
 		if labelName != "" && breakable.label != labelName {
 			continue
 		}
-		jumpPC := c.function.emitJump(opJump, 0)
+		jumpPC := c.function.emitTier1Jump()
 		breakable.continueJumps = append(breakable.continueJumps, jumpPC)
 		return varLocation{}, nil
 	}
@@ -535,16 +756,15 @@ func (c *compiler) compileBranchContinue(ctx context.Context, statement *ast.Bra
 		c.emitYieldReturn(ctx, true)
 		return varLocation{}, nil
 	}
-	return varLocation{}, errors.New("continue outside loop")
+	return varLocation{}, ErrCompileContinueOutsideLoop
 }
 
 // compileBranchGoto compiles a goto statement.
 //
-// Emits a backward jump if the label target is already known, otherwise
-// records a forward goto for later patching.
+// Emits a backward jump if the label target is already known, otherwise records a forward
+// goto for later patching.
 //
-// Takes statement (*ast.BranchStmt) which is the goto statement AST node to
-// compile.
+// Takes statement (*ast.BranchStmt) which is the goto statement AST node to compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileBranchGoto(_ context.Context, statement *ast.BranchStmt) (varLocation, error) {
@@ -553,13 +773,12 @@ func (c *compiler) compileBranchGoto(_ context.Context, statement *ast.BranchStm
 	}
 	label := statement.Label.Name
 	if pc, found := c.labelTable[label]; found {
-		offset := safeconv.MustIntToInt16(pc - c.function.currentPC() - 1)
-		lo, hi := splitOffset(offset)
-		c.function.emit(opJump, 0, lo, hi)
+		lo, hi := c.function.encodeJumpOffset(pc - c.function.currentPC() - 1)
+		c.function.emit(opDrillTier1, uint8(subOpJump), lo, hi)
 		return varLocation{}, nil
 	}
 
-	jumpPC := c.function.emitJump(opJump, 0)
+	jumpPC := c.function.emitTier1Jump()
 	if c.forwardGotos == nil {
 		c.forwardGotos = make(map[string][]int)
 	}
@@ -569,53 +788,54 @@ func (c *compiler) compileBranchGoto(_ context.Context, statement *ast.BranchStm
 
 // compileBranchFallthrough compiles a fallthrough statement.
 //
-// Finds the nearest switch (non-loop) breakable context and records a
-// fallthrough jump.
+// Finds the nearest switch (non-loop) breakable context and records a fallthrough jump.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileBranchFallthrough(_ context.Context) (varLocation, error) {
-	for i := len(c.breakables) - 1; i >= 0; i-- {
+	for i := range slices.Backward(c.breakables) {
 		breakable := &c.breakables[i]
 		if !breakable.isLoop {
-			jumpPC := c.function.emitJump(opJump, 0)
+			jumpPC := c.function.emitTier1Jump()
 			breakable.fallthroughJumps = append(breakable.fallthroughJumps, jumpPC)
 			return varLocation{}, nil
 		}
 	}
-	return varLocation{}, errors.New("fallthrough outside switch")
+	return varLocation{}, ErrCompileFallthroughOutsideSwitch
 }
 
-// emitRangeOverFuncBreak emits instructions to break out of a
-// range-over-func loop.
+// emitRangeOverFuncBreak emits instructions to break out of a range-over-func loop.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) emitRangeOverFuncBreak(ctx context.Context) (varLocation, error) {
 	return c.emitRangeOverFuncLabelledBreak(ctx, 1)
 }
 
-// emitRangeOverFuncLabelledBreak emits instructions to set the state
-// flag and return false from the yield callback.
+// emitRangeOverFuncLabelledBreak emits instructions to set the state flag and return
+// false from the yield callback.
 //
-// Takes flagValue (int64) which is the state flag value to set (1 for
-// plain break, 3+ for labelled break/continue).
+// Takes flagValue (int64) which is the state flag value to set (1 for plain break, 3+ for
+// labelled break/continue).
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) emitRangeOverFuncLabelledBreak(ctx context.Context, flagValue int64) (varLocation, error) {
 	rangeContext := c.rangeOverFunc
-	index := c.function.addIntConstant(flagValue)
-	tmpReg := c.scopes.alloc.allocTemp(registerInt)
-	c.function.emitWide(opLoadIntConst, tmpReg, index)
-	c.function.emit(opSetUpvalue, tmpReg, safeconv.MustIntToUint8(rangeContext.stateFlagUpvalueIndex), uint8(registerInt))
-	c.scopes.alloc.freeTemp(registerInt, tmpReg)
+	index, err := c.function.addIntConstant(flagValue)
+	if err != nil {
+		return varLocation{}, err
+	}
+	temporaryRegister := c.scopes.alloc.allocTemp(registerInt)
+	c.function.emitWide(opLoadIntConst, temporaryRegister, index)
+	c.function.emit(opSetUpvalue, temporaryRegister, safeconv.MustIntToUint8(rangeContext.stateFlagUpvalueIndex), uint8(registerInt))
+	c.scopes.alloc.freeTemp(registerInt, temporaryRegister)
 	c.emitYieldReturn(ctx, false)
 	return varLocation{}, nil
 }
 
-// compileRangeOverFuncReturn compiles a return statement inside a
-// range-over-func yield body.
+// compileRangeOverFuncReturn compiles a return statement inside a range-over-func yield
+// body.
 //
-// Takes statement (*ast.ReturnStmt) which is the return statement to compile
-// within the yield body.
+// Takes statement (*ast.ReturnStmt) which is the return statement to compile within the
+// yield body.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileRangeOverFuncReturn(ctx context.Context, statement *ast.ReturnStmt) (varLocation, error) {
@@ -629,11 +849,14 @@ func (c *compiler) compileRangeOverFuncReturn(ctx context.Context, statement *as
 		c.function.emit(opSetUpvalue, location.register, safeconv.MustIntToUint8(rangeContext.returnStashUpvalueIndices[i]), uint8(location.kind))
 	}
 
-	returnPendingIndex := c.function.addIntConstant(rangeOverFuncReturnPendingFlag)
-	tmpReg := c.scopes.alloc.allocTemp(registerInt)
-	c.function.emitWide(opLoadIntConst, tmpReg, returnPendingIndex)
-	c.function.emit(opSetUpvalue, tmpReg, safeconv.MustIntToUint8(rangeContext.stateFlagUpvalueIndex), uint8(registerInt))
-	c.scopes.alloc.freeTemp(registerInt, tmpReg)
+	returnPendingIndex, err := c.function.addIntConstant(rangeOverFuncReturnPendingFlag)
+	if err != nil {
+		return varLocation{}, err
+	}
+	temporaryRegister := c.scopes.alloc.allocTemp(registerInt)
+	c.function.emitWide(opLoadIntConst, temporaryRegister, returnPendingIndex)
+	c.function.emit(opSetUpvalue, temporaryRegister, safeconv.MustIntToUint8(rangeContext.stateFlagUpvalueIndex), uint8(registerInt))
+	c.scopes.alloc.freeTemp(registerInt, temporaryRegister)
 
 	c.emitYieldReturn(ctx, false)
 	return varLocation{}, nil
@@ -641,11 +864,10 @@ func (c *compiler) compileRangeOverFuncReturn(ctx context.Context, statement *as
 
 // compileLabeledStmt compiles a labelled statement.
 //
-// The label is recorded for goto targets and attached to any inner
-// loop/switch for labelled break/continue.
+// The label is recorded for goto targets and attached to any inner loop/switch for
+// labelled break/continue.
 //
-// Takes statement (*ast.LabeledStmt) which is the labelled statement AST
-// node to compile.
+// Takes statement (*ast.LabeledStmt) which is the labelled statement AST node to compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileLabeledStmt(ctx context.Context, statement *ast.LabeledStmt) (varLocation, error) {
@@ -671,8 +893,7 @@ func (c *compiler) compileLabeledStmt(ctx context.Context, statement *ast.Labele
 
 // consumePendingLabel returns the current pending label and clears it.
 //
-// Returns the pending label string, or empty string if no label was
-// pending.
+// Returns the pending label string, or empty string if no label was pending.
 func (c *compiler) consumePendingLabel(_ context.Context) string {
 	label := c.pendingLabel
 	c.pendingLabel = ""
@@ -681,8 +902,7 @@ func (c *compiler) consumePendingLabel(_ context.Context) string {
 
 // compileSwitch compiles a switch statement.
 //
-// Takes statement (*ast.SwitchStmt) which is the switch statement AST node
-// to compile.
+// Takes statement (*ast.SwitchStmt) which is the switch statement AST node to compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileSwitch(ctx context.Context, statement *ast.SwitchStmt) (varLocation, error) {
@@ -743,20 +963,14 @@ func (c *compiler) compileSwitch(ctx context.Context, statement *ast.SwitchStmt)
 	return varLocation{}, nil
 }
 
-// compileSwitchCaseClause compiles a single case clause within a switch
-// statement.
+// compileSwitchCaseClause compiles a single case clause within a switch statement.
 //
-// Takes cc (*ast.CaseClause) which is the case clause AST node to
-// compile.
-// Takes hasTag (bool) which indicates whether the switch has a tag
-// expression.
-// Takes tagLocation (varLocation) which is the location of the compiled tag
-// expression.
-// Takes isLastCase (bool) which indicates whether this is the final
-// case in the switch.
+// Takes cc (*ast.CaseClause) which is the case clause AST node to compile.
+// Takes hasTag (bool) which indicates whether the switch has a tag expression.
+// Takes tagLocation (varLocation) which is the location of the compiled tag expression.
+// Takes isLastCase (bool) which indicates whether this is the final case in the switch.
 //
-// Returns the end-of-case jump offset (or -1 if a fallthrough was
-// emitted) and any error.
+// Returns the end-of-case jump offset (or -1 if a fallthrough was emitted) and any error.
 func (c *compiler) compileSwitchCaseClause(ctx context.Context,
 	cc *ast.CaseClause,
 	hasTag bool,
@@ -784,7 +998,7 @@ func (c *compiler) compileSwitchCaseClause(ctx context.Context,
 
 	endJump := -1
 	if !hasFallthrough || isLastCase {
-		endJump = c.function.emitJump(opJump, 0)
+		endJump = c.function.emitTier1Jump()
 	}
 
 	if !isDefault {
@@ -794,9 +1008,8 @@ func (c *compiler) compileSwitchCaseClause(ctx context.Context,
 	return endJump, nil
 }
 
-// patchAndClearFallthroughJumps patches all pending fallthrough
-// jumps in the current breakable context to the current PC, then
-// clears the list.
+// patchAndClearFallthroughJumps patches all pending fallthrough jumps in the current
+// breakable context to the current PC, then clears the list.
 func (c *compiler) patchAndClearFallthroughJumps(_ context.Context) {
 	breakable := &c.breakables[len(c.breakables)-1]
 	for _, pc := range breakable.fallthroughJumps {
@@ -807,8 +1020,7 @@ func (c *compiler) patchAndClearFallthroughJumps(_ context.Context) {
 
 // compileScopedBody compiles a list of statements within a new scope.
 //
-// Takes statements ([]ast.Stmt) which is the list of statement AST nodes to
-// compile.
+// Takes statements ([]ast.Stmt) which is the list of statement AST nodes to compile.
 //
 // Returns any error encountered during compilation.
 func (c *compiler) compileScopedBody(ctx context.Context, statements []ast.Stmt) error {
@@ -823,45 +1035,42 @@ func (c *compiler) compileScopedBody(ctx context.Context, statements []ast.Stmt)
 	return nil
 }
 
-// compileCaseMatch compiles the condition for a tagged switch case using
-// OR logic.
+// compileCaseMatch compiles the condition for a tagged switch case using OR logic.
 //
-// Takes tagLocation (varLocation) which is the location of the compiled tag
-// expression.
-// Takes exprs ([]ast.Expr) which is the list of case value expressions
-// to compare against.
+// Takes tagLocation (varLocation) which is the location of the compiled tag expression.
+// Takes exprs ([]ast.Expr) which is the list of case value expressions to compare
+// against.
 //
 // Returns the jump instruction offset to patch for the no-match path.
 func (c *compiler) compileCaseMatch(ctx context.Context, tagLocation varLocation, exprs []ast.Expr) int {
 	if len(exprs) == 1 {
-		valLocation, _ := c.compileExpression(ctx, exprs[0])
+		valueLocation, _ := c.compileExpression(ctx, exprs[0])
 		cmpLocation, _ := c.emitCompareOp(ctx,
 			opEqInt, opEqFloat, opEqString, opEqGeneral,
-			tagLocation, valLocation,
+			tagLocation, valueLocation,
 		)
 		return c.function.emitJump(opJumpIfFalse, cmpLocation.register)
 	}
 
-	resultReg := c.scopes.alloc.alloc(registerInt)
-	c.function.emit(opLoadBool, resultReg, 0, 0)
+	resultRegister := c.scopes.alloc.alloc(registerInt)
+	c.function.emit(opDrillTier1, uint8(subOpLoadBool), resultRegister, 0)
 
 	for _, expression := range exprs {
-		valLocation, _ := c.compileExpression(ctx, expression)
+		valueLocation, _ := c.compileExpression(ctx, expression)
 		cmpLocation, _ := c.emitCompareOp(ctx,
 			opEqInt, opEqFloat, opEqString, opEqGeneral,
-			tagLocation, valLocation,
+			tagLocation, valueLocation,
 		)
 
-		c.function.emit(opBitOr, resultReg, resultReg, cmpLocation.register)
+		c.function.emit(opBitOr, resultRegister, resultRegister, cmpLocation.register)
 	}
 
-	return c.function.emitJump(opJumpIfFalse, resultReg)
+	return c.function.emitJump(opJumpIfFalse, resultRegister)
 }
 
 // compileCaseCondition compiles the condition for a tagless switch case.
 //
-// Takes exprs ([]ast.Expr) which is the list of boolean case expressions
-// to evaluate.
+// Takes exprs ([]ast.Expr) which is the list of boolean case expressions to evaluate.
 //
 // Returns the jump instruction offset to patch for the no-match path.
 func (c *compiler) compileCaseCondition(ctx context.Context, exprs []ast.Expr) int {
@@ -871,22 +1080,22 @@ func (c *compiler) compileCaseCondition(ctx context.Context, exprs []ast.Expr) i
 		return c.function.emitJump(opJumpIfFalse, condLocation.register)
 	}
 
-	resultReg := c.scopes.alloc.alloc(registerInt)
-	c.function.emit(opLoadBool, resultReg, 0, 0)
+	resultRegister := c.scopes.alloc.alloc(registerInt)
+	c.function.emit(opDrillTier1, uint8(subOpLoadBool), resultRegister, 0)
 
 	for _, expression := range exprs {
 		condLocation, _ := c.compileExpression(ctx, expression)
 		condLocation = c.ensureIntForBranch(ctx, condLocation)
-		c.function.emit(opBitOr, resultReg, resultReg, condLocation.register)
+		c.function.emit(opBitOr, resultRegister, resultRegister, condLocation.register)
 	}
 
-	return c.function.emitJump(opJumpIfFalse, resultReg)
+	return c.function.emitJump(opJumpIfFalse, resultRegister)
 }
 
 // compileTypeSwitch compiles a type switch statement.
 //
-// Takes statement (*ast.TypeSwitchStmt) which is the type switch statement
-// AST node to compile.
+// Takes statement (*ast.TypeSwitchStmt) which is the type switch statement AST node to
+// compile.
 //
 // Returns the compiled location and any error encountered.
 func (c *compiler) compileTypeSwitch(ctx context.Context, statement *ast.TypeSwitchStmt) (varLocation, error) {
@@ -899,7 +1108,7 @@ func (c *compiler) compileTypeSwitch(ctx context.Context, statement *ast.TypeSwi
 		}
 	}
 
-	srcLocation, assignName, err := c.compileTypeSwitchAssign(ctx, statement.Assign)
+	sourceLocation, assignName, err := c.compileTypeSwitchAssign(ctx, statement.Assign)
 	if err != nil {
 		return varLocation{}, err
 	}
@@ -915,10 +1124,10 @@ func (c *compiler) compileTypeSwitch(ctx context.Context, statement *ast.TypeSwi
 	}
 
 	var endJumps []int
-	okReg := c.scopes.alloc.alloc(registerInt)
+	okRegister := c.scopes.alloc.alloc(registerInt)
 
 	for _, cc := range cases {
-		endJump, err := c.compileTypeSwitchCase(ctx, cc, srcLocation, assignName, okReg)
+		endJump, err := c.compileTypeSwitchCase(ctx, cc, sourceLocation, assignName, okRegister)
 		if err != nil {
 			return varLocation{}, err
 		}
@@ -926,7 +1135,7 @@ func (c *compiler) compileTypeSwitch(ctx context.Context, statement *ast.TypeSwi
 	}
 
 	if defaultCase != nil {
-		if err := c.compileTypeSwitchDefault(ctx, defaultCase, srcLocation, assignName); err != nil {
+		if err := c.compileTypeSwitchDefault(ctx, defaultCase, sourceLocation, assignName); err != nil {
 			return varLocation{}, err
 		}
 	}
@@ -945,13 +1154,12 @@ func (c *compiler) compileTypeSwitch(ctx context.Context, statement *ast.TypeSwi
 
 // compileTypeSwitchAssign compiles the assign portion of a type switch.
 //
-// Takes assign (ast.Stmt) which is the assignment or expression
-// statement from the type switch header.
+// Takes assign (ast.Stmt) which is the assignment or expression statement from the type
+// switch header.
 //
-// Returns the source location, the assignment name (empty if none), and
-// any error.
+// Returns the source location, the assignment name (empty if none), and any error.
 func (c *compiler) compileTypeSwitchAssign(ctx context.Context, assign ast.Stmt) (varLocation, string, error) {
-	var srcLocation varLocation
+	var sourceLocation varLocation
 	var assignName string
 	var err error
 
@@ -962,32 +1170,29 @@ func (c *compiler) compileTypeSwitchAssign(ctx context.Context, assign ast.Stmt)
 		}
 		typeAssert, ok := a.Rhs[0].(*ast.TypeAssertExpr)
 		if !ok {
-			return varLocation{}, "", errors.New("type switch assign RHS is not a type assertion")
+			return varLocation{}, "", ErrCompileTypeSwitchAssignNotTypeAssert
 		}
-		srcLocation, err = c.compileExpression(ctx, typeAssert.X)
+		sourceLocation, err = c.compileExpression(ctx, typeAssert.X)
 	case *ast.ExprStmt:
 		typeAssert, ok := a.X.(*ast.TypeAssertExpr)
 		if !ok {
-			return varLocation{}, "", errors.New("type switch expression is not a type assertion")
+			return varLocation{}, "", ErrCompileTypeSwitchExprNotTypeAssert
 		}
-		srcLocation, err = c.compileExpression(ctx, typeAssert.X)
+		sourceLocation, err = c.compileExpression(ctx, typeAssert.X)
 	}
 	if err != nil {
 		return varLocation{}, "", err
 	}
 
-	c.boxToGeneral(ctx, &srcLocation)
-	return srcLocation, assignName, nil
+	c.boxToGeneral(ctx, &sourceLocation)
+	return sourceLocation, assignName, nil
 }
 
-// collectSwitchCases separates the case clauses from the default clause
-// in a switch body.
+// collectSwitchCases separates the case clauses from the default clause in a switch body.
 //
-// Takes body (*ast.BlockStmt) which is the switch body block statement
-// to scan.
+// Takes body (*ast.BlockStmt) which is the switch body block statement to scan.
 //
-// Returns the non-default case clauses, the default case clause (or
-// nil), and any error.
+// Returns the non-default case clauses, the default case clause (or nil), and any error.
 func (*compiler) collectSwitchCases(_ context.Context, body *ast.BlockStmt) ([]*ast.CaseClause, *ast.CaseClause, error) {
 	var cases []*ast.CaseClause
 	var defaultCase *ast.CaseClause
@@ -1005,27 +1210,24 @@ func (*compiler) collectSwitchCases(_ context.Context, body *ast.BlockStmt) ([]*
 	return cases, defaultCase, nil
 }
 
-// compileTypeSwitchCase compiles a single non-default case clause in a
-// type switch.
+// compileTypeSwitchCase compiles a single non-default case clause in a type switch.
 //
-// Takes cc (*ast.CaseClause) which is the case clause AST node to
-// compile.
-// Takes srcLocation (varLocation) which is the location of the source value
-// being switched on.
-// Takes assignName (string) which is the variable name for the narrowed
-// type, or empty if none.
-// Takes okReg (uint8) which is the register to use for the type
-// assertion ok flag.
+// Takes cc (*ast.CaseClause) which is the case clause AST node to compile.
+// Takes sourceLocation (varLocation) which is the location of the source value being
+// switched on.
+// Takes assignName (string) which is the variable name for the narrowed type, or empty if
+// none.
+// Takes okRegister (uint8) which is the register to use for the type assertion ok flag.
 //
 // Returns the end-of-case jump offset and any error encountered.
 func (c *compiler) compileTypeSwitchCase(ctx context.Context,
 	cc *ast.CaseClause,
-	srcLocation varLocation,
+	sourceLocation varLocation,
 	assignName string,
-	okReg uint8,
+	okRegister uint8,
 ) (int, error) {
-	c.function.emit(opLoadBool, okReg, 0, 0)
-	destReg := c.scopes.alloc.alloc(registerGeneral)
+	c.function.emit(opDrillTier1, uint8(subOpLoadBool), okRegister, 0)
+	destinationRegister := c.scopes.alloc.alloc(registerGeneral)
 
 	for _, typeExpr := range cc.List {
 		tv := c.info.Types[typeExpr]
@@ -1033,22 +1235,26 @@ func (c *compiler) compileTypeSwitchCase(ctx context.Context,
 		if basic, ok := tv.Type.(*types.Basic); ok && basic.Kind() == types.UntypedNil {
 			reflectType = nil
 		} else {
-			reflectType = c.typeToReflect(ctx, tv.Type)
+			reflectType = c.typeAssertReflectType(ctx, tv.Type)
 		}
-		typeIndex := c.function.addTypeRef(reflectType)
+		methodNames := interfaceTargetMethodNames(tv.Type)
+		typeIndex, err := c.function.addTypeRefWithMethods(reflectType, methodNames)
+		if err != nil {
+			return 0, err
+		}
 
-		tmpOk := c.scopes.alloc.allocTemp(registerInt)
-		c.function.emit(opTypeAssert, destReg, srcLocation.register, tmpOk)
-		c.function.emitExtension(typeIndex, 0)
-		c.function.emit(opBitOr, okReg, okReg, tmpOk)
-		c.scopes.alloc.freeTemp(registerInt, tmpOk)
+		temporaryOk := c.scopes.alloc.allocTemp(registerInt)
+		c.function.emit(opTypeAssert, destinationRegister, sourceLocation.register, temporaryOk)
+		c.function.emitExtension(typeIndex, typeAssertModeTypeSwitch)
+		c.function.emit(opBitOr, okRegister, okRegister, temporaryOk)
+		c.scopes.alloc.freeTemp(registerInt, temporaryOk)
 	}
 
-	nextCaseJump := c.function.emitJump(opJumpIfFalse, okReg)
+	nextCaseJump := c.function.emitJump(opJumpIfFalse, okRegister)
 
 	c.scopes.pushScope()
 	if assignName != "" {
-		c.declareNarrowedTypeSwitchVar(ctx, assignName, cc.List, destReg)
+		c.declareNarrowedTypeSwitchVar(ctx, assignName, cc.List, destinationRegister)
 	}
 	for _, bodyStmt := range cc.Body {
 		if _, err := c.compileStmt(ctx, bodyStmt); err != nil {
@@ -1058,64 +1264,65 @@ func (c *compiler) compileTypeSwitchCase(ctx context.Context,
 	}
 	c.scopes.popScope()
 
-	endJump := c.function.emitJump(opJump, 0)
+	endJump := c.function.emitTier1Jump()
 	c.function.patchJump(nextCaseJump)
 	return endJump, nil
 }
 
-// declareNarrowedTypeSwitchVar declares the type-switched variable with
-// a narrowed kind.
+// declareNarrowedTypeSwitchVar declares the type-switched variable with a narrowed kind
+// so handlers downstream of the case clause can read it from the appropriate register
+// bank rather than the general bank.
 //
+// Takes ctx (context.Context) for cancellation propagation.
 // Takes assignName (string) which is the variable name to declare.
-// Takes typeList ([]ast.Expr) which is the type expressions for the
-// case clause.
-// Takes destReg (uint8) which is the register holding the type-asserted
+// Takes typeList ([]ast.Expr) which is the type expressions for the case clause.
+// Takes destinationRegister (uint8) which is the register holding the type-asserted
 // value.
-func (c *compiler) declareNarrowedTypeSwitchVar(ctx context.Context, assignName string, typeList []ast.Expr, destReg uint8) {
+func (c *compiler) declareNarrowedTypeSwitchVar(ctx context.Context, assignName string, typeList []ast.Expr, destinationRegister uint8) {
 	var narrowedKind registerKind
+	var narrowedType types.Type
 	if len(typeList) == 1 {
 		tv := c.info.Types[typeList[0]]
-		narrowedKind = kindForType(tv.Type)
+		narrowedType = tv.Type
+		narrowedKind = c.kindFor(tv.Type)
 	} else {
 		narrowedKind = registerGeneral
 	}
 	location := c.scopes.declareVar(assignName, narrowedKind)
 	if location.isSpilled {
 		if narrowedKind == registerGeneral {
-			c.emitSpillStore(ctx, destReg, registerGeneral, location.spillSlot)
+			c.emitSpillStore(ctx, destinationRegister, registerGeneral, location.spillSlot)
 		} else {
 			scratch := c.scopes.alloc.allocTemp(narrowedKind)
-			c.function.emit(opUnpackInterface, scratch, destReg, uint8(narrowedKind))
+			c.function.emit(opUnpackInterface, scratch, destinationRegister, uint8(narrowedKind))
 			c.emitSpillStore(ctx, scratch, narrowedKind, location.spillSlot)
 			c.scopes.alloc.freeTemp(narrowedKind, scratch)
 		}
 	} else if narrowedKind == registerGeneral {
-		c.function.emit(opMoveGeneral, location.register, destReg, 0)
+		c.function.emit(opMoveGeneral, location.register, destinationRegister, generalMoveModeFor(narrowedType))
 	} else {
-		c.function.emit(opUnpackInterface, location.register, destReg, uint8(narrowedKind))
+		c.function.emit(opUnpackInterface, location.register, destinationRegister, uint8(narrowedKind))
 	}
 }
 
-// compileTypeSwitchDefault compiles the default case of a type switch
-// statement.
+// compileTypeSwitchDefault compiles the default case of a type switch statement.
 //
-// Takes defaultCase (*ast.CaseClause) which is the default case clause
-// AST node.
-// Takes srcLocation (varLocation) which is the location of the source value
-// being switched on.
-// Takes assignName (string) which is the variable name for the default
-// case, or empty if none.
+// Takes defaultCase (*ast.CaseClause) which is the default case clause AST node.
+// Takes sourceLocation (varLocation) which is the location of the source value being
+// switched on.
+// Takes assignName (string) which is the variable name for the default case, or empty if
+// none.
 //
 // Returns any error encountered during compilation.
 func (c *compiler) compileTypeSwitchDefault(ctx context.Context,
 	defaultCase *ast.CaseClause,
-	srcLocation varLocation,
+	sourceLocation varLocation,
 	assignName string,
 ) error {
 	c.scopes.pushScope()
 	if assignName != "" {
-		location := c.scopes.declareVar(assignName, srcLocation.kind)
-		c.emitMove(ctx, location, srcLocation)
+		location := c.scopes.declareVar(assignName, sourceLocation.kind)
+		c.emitMove(ctx, location, sourceLocation)
 	}
 	for _, bodyStmt := range defaultCase.Body {
 		if _, err := c.compileStmt(ctx, bodyStmt); err != nil {
@@ -1127,11 +1334,51 @@ func (c *compiler) compileTypeSwitchDefault(ctx context.Context,
 	return nil
 }
 
-// branchLabelName returns the label name from a branch statement, or
-// the empty string if no label is present.
+// interfaceTargetMethodNames returns the case target's method names.
 //
-// Takes statement (*ast.BranchStmt) which is the branch statement to extract
-// the label from.
+// Gathers the explicit and embedded method names of the interface type a type-switch case
+// targets, or nil when the target is not an interface (or is the empty interface). The
+// returned slice is recorded in CompiledFunction.typeTableInterfaceMethods so
+// handleTypeAssert can enforce method-set membership at runtime; piko collapses every
+// interface type to reflect.TypeFor[any]() during reflect synthesis (no
+// reflect.InterfaceOf exists), making the runtime Implements check useless for
+// distinguishing `case error:` from `case fmt.Stringer:` without this sidecar.
+//
+// Takes target (types.Type) which is the case-clause target type.
+//
+// Returns []string with the sorted, deduplicated method names a value must expose to
+// satisfy the interface; nil for non-interfaces and for empty interface targets (any).
+func interfaceTargetMethodNames(target types.Type) []string {
+	if target == nil {
+		return nil
+	}
+	intf, ok := target.Underlying().(*types.Interface)
+	if !ok {
+		return nil
+	}
+	intf = intf.Complete()
+	count := intf.NumMethods()
+	if count == 0 {
+		return nil
+	}
+	names := make([]string, 0, count)
+	seen := make(map[string]struct{}, count)
+	for i := range count {
+		methodName := intf.Method(i).Name()
+		if _, ok := seen[methodName]; ok {
+			continue
+		}
+		seen[methodName] = struct{}{}
+		names = append(names, methodName)
+	}
+	return names
+}
+
+// branchLabelName returns the label name from a branch statement, or the empty string if
+// no label is present.
+//
+// Takes statement (*ast.BranchStmt) which is the branch statement to extract the label
+// from.
 //
 // Returns the label name string, or empty string if unlabelled.
 func branchLabelName(statement *ast.BranchStmt) string {

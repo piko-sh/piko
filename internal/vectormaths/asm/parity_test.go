@@ -42,7 +42,7 @@ func TestVectormathsInstructionParityWithOriginals(t *testing.T) {
 	groups := FileGroups()
 	writer := &memWriter{files: make(map[string][]byte)}
 
-	err := asmgen.GenerateFiles(writer, architectures, groups, nil)
+	err := asmgen.GenerateFiles(writer, architectures, groups, nil, nil)
 	if err != nil {
 		t.Fatalf("generate error: %v", err)
 	}
@@ -103,7 +103,9 @@ func extractInstructions(content string) []string {
 	return result
 }
 
-var inlineCommentRegexp = regexp.MustCompile(`\s+//.*$`)
+var (
+	inlineCommentRegexp = regexp.MustCompile(`\s+//.*$`)
+)
 
 func stripInlineComment(line string) string {
 	trimmed := strings.TrimSpace(line)

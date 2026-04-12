@@ -16,30 +16,27 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_adapters implements driven adapters for the backend
-// analytics subsystem.
+// Package analytics_adapters implements driven adapters for the backend analytics
+// subsystem.
 //
-// It provides an HTTP middleware that automatically fires page view
-// events for every request, and a built-in webhook collector that
-// batches events and POSTs them as JSON to a configurable endpoint.
+// It provides an HTTP middleware that automatically fires page view events for every
+// request, and a built-in webhook collector that batches events and POSTs them as JSON to
+// a configurable endpoint.
 //
 // # Middleware
 //
-// [AnalyticsMiddleware] is installed after auth and before rate
-// limiting in the HTTP middleware chain. It wraps the response writer
-// to capture the status code and duration, enriches events from
-// [daemon_dto.PikoRequestCtx] (client IP, locale, matched pattern,
-// user ID), and sends them to the analytics service. When no
-// collectors are registered the middleware is not installed, ensuring
-// zero overhead.
+// [AnalyticsMiddleware] is installed after auth and before rate limiting in the HTTP
+// middleware chain. It wraps the response writer to capture the status code and duration,
+// enriches events from [daemon_dto.PikoRequestCtx] (client IP, locale, matched pattern,
+// user ID), and sends them to the analytics service. When no collectors are registered
+// the middleware is not installed, ensuring zero overhead.
 //
 // # Webhook collector
 //
-// [WebhookCollector] is a built-in adapter that demonstrates the
-// collector pattern. It batches event snapshots in an internal buffer
-// and flushes them as JSON to a configurable URL on a timer or when
-// the batch reaches a configurable size. Custom headers (e.g.
-// Authorization) can be set via [WithWebhookHeaders].
+// [WebhookCollector] is a built-in adapter that demonstrates the collector pattern. It
+// batches event snapshots in an internal buffer and flushes them as JSON to a
+// configurable URL on a timer or when the batch reaches a configurable size. Custom
+// headers (e.g. Authorization) can be set via [WithWebhookHeaders].
 //
 // # Thread safety
 //

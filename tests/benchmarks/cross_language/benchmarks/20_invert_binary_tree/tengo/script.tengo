@@ -1,0 +1,123 @@
+// Tengo translation of bench 20 invert_binary_tree. Mirrors
+// ../go/piko_source.go. Tengo has no struct types so each node is a
+// map with value/left/right fields. Map references are mutable, so
+// the recursive invert() walks fine.
+
+fmt := import("fmt")
+os := import("os")
+times := import("times")
+
+TREE_DEPTH := 15
+FOLD_MASK := 0xFFFFFFFF
+FOLD_MULTIPLIER := 31
+
+int_to_decimal := func(value) {
+	if value == 0 {
+		return "0"
+	}
+	negative := value < 0
+	if negative {
+		value = -value
+	}
+	digits := []
+	for value > 0 {
+		digits = append(digits, char(int('0') + value % 10))
+		value = value / 10
+	}
+	out := ""
+	for i := len(digits) - 1; i >= 0; i-- {
+		out += digits[i]
+	}
+	if negative {
+		return "-" + out
+	}
+	return out
+}
+
+make_tree := undefined
+make_tree = func(depth, value) {
+	node := {value: value, left: undefined, right: undefined}
+	if depth > 0 {
+		node.left = make_tree(depth - 1, (value * 2) & FOLD_MASK)
+		node.right = make_tree(depth - 1, (value * 2 + 1) & FOLD_MASK)
+	}
+	return node
+}
+
+count_nodes := undefined
+count_nodes = func(t) {
+	if is_undefined(t) {
+		return 0
+	}
+	return 1 + count_nodes(t.left) + count_nodes(t.right)
+}
+
+invert := undefined
+invert = func(t) {
+	if is_undefined(t) {
+		return undefined
+	}
+	temp := t.left
+	t.left = t.right
+	t.right = temp
+	invert(t.left)
+	invert(t.right)
+	return undefined
+}
+
+inorder_fold := undefined
+inorder_fold = func(t, state) {
+	if is_undefined(t) {
+		return state
+	}
+	state = inorder_fold(t.left, state)
+	state = (state * FOLD_MULTIPLIER + t.value) & FOLD_MASK
+	state = inorder_fold(t.right, state)
+	return state
+}
+
+do_invert_binary_tree := func() {
+	tree := make_tree(TREE_DEPTH, 1)
+	pre_count := count_nodes(tree)
+	pre_fold := inorder_fold(tree, 0)
+	invert(tree)
+	post_count := count_nodes(tree)
+	post_fold := inorder_fold(tree, 0)
+	return int_to_decimal(pre_count) + "," + int_to_decimal(pre_fold) + "," + int_to_decimal(post_count) + "," + int_to_decimal(post_fold)
+}
+
+run := func() {
+	return do_invert_binary_tree()
+}
+
+run_inner := func(k) {
+	start_nanos := times.time_unix_nano(times.now())
+	last := ""
+	for index := 0; index < k; index++ {
+		last = do_invert_binary_tree()
+	}
+	elapsed_nanos := times.time_unix_nano(times.now()) - start_nanos
+	return [last, elapsed_nanos]
+}
+
+args := os.args()
+mode := "endtoend"
+k := 0
+for i := 0; i < len(args); i++ {
+	if args[i] == "--mode" && i+1 < len(args) {
+		mode = args[i+1]
+	}
+	if args[i] == "--k" && i+1 < len(args) {
+		k = int(args[i+1])
+	}
+}
+
+if mode == "inner" {
+	result := run_inner(k)
+	fmt.println(result[0])
+	stderr := os.create("/dev/stderr")
+	stderr.write_string(fmt.sprintf("INNER_ELAPSED_NS=%d\n", result[1]))
+	stderr.close()
+} else {
+	fmt.println(run())
+}

@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package transformer_crypto implements storage stream encryption
-// using the centralised crypto service.
+// Package transformer_crypto implements storage stream encryption using the centralised
+// crypto service.
 //
-// It delegates to crypto_domain.CryptoServicePort and uses streaming
-// encryption with constant memory usage (~64KB) regardless of file
-// size. The recommended priority is 250, placing encryption after
-// compression transformers in the processing chain.
+// It delegates to crypto_domain.CryptoServicePort and uses streaming encryption with
+// constant memory usage (~64KB) regardless of file size. The recommended priority is 250,
+// placing encryption after compression transformers in the processing chain.
 //
-// CryptoTransformer is safe for concurrent use. Each Transform and
-// Reverse call creates independent streaming operations.
+// CryptoTransformer is safe for concurrent use. Each Transform and Reverse call creates
+// independent streaming operations.
 package transformer_crypto

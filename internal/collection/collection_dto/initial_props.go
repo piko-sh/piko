@@ -20,8 +20,8 @@ package collection_dto
 
 // InitialProps represents data that should be injected into a component's props.
 //
-// This is used for virtual pages generated from collections, where the page
-// needs access to its corresponding collection item data at render time.
+// This is used for virtual pages generated from collections, where the page needs access
+// to its corresponding collection item data at render time.
 //
 // Design Philosophy:
 //   - Type-safe: Props are strongly typed based on the component's prop structure
@@ -30,13 +30,12 @@ package collection_dto
 type InitialProps struct {
 	// Props holds the map of prop names to their values.
 	//
-	// The keys must match the component's prop structure.
-	// The values must be data that can be serialised (such as primitives, maps,
-	// or slices).
+	// The keys must match the component's prop structure. The values must be data that can
+	// be serialised (such as primitives, maps, or slices).
 	Props map[string]any
 
-	// CollectionContext holds details about the collection item and is available
-	// to all virtual pages.
+	// CollectionContext holds details about the collection item and is available to all
+	// virtual pages.
 	CollectionContext *CollectionContext
 
 	// ComponentPath is the path to the component template file.
@@ -45,15 +44,15 @@ type InitialProps struct {
 
 // CollectionContext provides metadata about the collection item.
 //
-// This is automatically injected into all virtual pages and accessible
-// via the component's props.
+// This is automatically injected into all virtual pages and accessible via the
+// component's props.
 type CollectionContext struct {
-	// Metadata holds extra data from the content provider.
-	// This is passed through from ContentItem.Metadata.
+	// Metadata holds extra data from the content provider. This is passed through from
+	// ContentItem.Metadata.
 	Metadata map[string]any
 
-	// CollectionName is the name of the collection this item belongs to,
-	// such as "blog", "products", or "authors".
+	// CollectionName is the name of the collection this item belongs to, such as "blog",
+	// "products", or "authors".
 	CollectionName string
 
 	// ProviderName is the provider that supplied this item.
@@ -71,7 +70,7 @@ type CollectionContext struct {
 	// URL is the public URL path for this virtual page.
 	URL string
 
-	// AvailableTranslations lists locales where translations exist.
-	// This enables language switcher components.
+	// AvailableTranslations lists locales where translations exist. This enables language
+	// switcher components.
 	AvailableTranslations []string
 }

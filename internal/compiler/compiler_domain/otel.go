@@ -28,12 +28,11 @@ const (
 	// jsThis is the JavaScript keyword that refers to the current object.
 	jsThis = "this"
 
-	// jsString is the JavaScript String constructor name used to convert values
-	// to strings.
+	// jsString is the JavaScript String constructor name used to convert values to strings.
 	jsString = "String"
 
-	// identifierUnderscore is the underscore character used to replace special
-	// characters in JavaScript identifiers.
+	// identifierUnderscore is the underscore character used to replace special characters in
+	// JavaScript identifiers.
 	identifierUnderscore = "_"
 
 	// typeArray is the type name for array values.
@@ -86,20 +85,16 @@ var (
 	// Meter is the OpenTelemetry meter for the compiler domain package.
 	Meter = otel.Meter("piko/internal/compiler/compiler_domain")
 
-	// DecoratorProcessingCount tracks how many times decorators have been
-	// processed.
+	// DecoratorProcessingCount tracks how many times decorators have been processed.
 	DecoratorProcessingCount metric.Int64Counter
 
-	// DecoratorProcessingDuration tracks the duration of decorator processing
-	// operations.
+	// DecoratorProcessingDuration tracks the duration of decorator processing operations.
 	DecoratorProcessingDuration metric.Float64Histogram
 
-	// DecoratedVarsCount is a counter that tracks how many variables have
-	// been decorated.
+	// DecoratedVarsCount is a counter that tracks how many variables have been decorated.
 	DecoratedVarsCount metric.Int64Counter
 
-	// DecoratedFuncsCount is a counter that tracks how many functions have been
-	// decorated.
+	// DecoratedFuncsCount is a counter that tracks how many functions have been decorated.
 	DecoratedFuncsCount metric.Int64Counter
 
 	// VDOMBuildCount counts how many times the VDOM has been built.
@@ -148,35 +143,34 @@ var (
 	// ImportExtractionCount tracks the number of import extraction operations.
 	ImportExtractionCount metric.Int64Counter
 
-	// ImportExtractionDuration tracks the duration of import extraction
-	// operations.
+	// ImportExtractionDuration tracks the duration of import extraction operations.
 	ImportExtractionDuration metric.Float64Histogram
 
 	// ImportExtractionErrorCount counts the number of import extraction errors.
 	ImportExtractionErrorCount metric.Int64Counter
 
-	// OrchestratorCompilationCount tracks the number of compilations initiated by
-	// the orchestrator.
+	// OrchestratorCompilationCount tracks the number of compilations initiated by the
+	// orchestrator.
 	OrchestratorCompilationCount metric.Int64Counter
 
-	// OrchestratorCompilationDuration tracks the duration of compilations
-	// initiated by the orchestrator.
+	// OrchestratorCompilationDuration tracks the duration of compilations initiated by the
+	// orchestrator.
 	OrchestratorCompilationDuration metric.Float64Histogram
 
-	// OrchestratorCompilationErrorCount tracks the number of compilation errors in
-	// the orchestrator.
+	// OrchestratorCompilationErrorCount tracks the number of compilation errors in the
+	// orchestrator.
 	OrchestratorCompilationErrorCount metric.Int64Counter
 
-	// OrchestratorTransformationCount tracks the number of transformations
-	// initiated by the orchestrator.
+	// OrchestratorTransformationCount tracks the number of transformations initiated by the
+	// orchestrator.
 	OrchestratorTransformationCount metric.Int64Counter
 
-	// OrchestratorTransformationDuration tracks the duration of transformations
-	// initiated by the orchestrator.
+	// OrchestratorTransformationDuration tracks the duration of transformations initiated by
+	// the orchestrator.
 	OrchestratorTransformationDuration metric.Float64Histogram
 
-	// OrchestratorTransformationErrorCount tracks the number of transformation
-	// errors in the orchestrator.
+	// OrchestratorTransformationErrorCount tracks the number of transformation errors in the
+	// orchestrator.
 	OrchestratorTransformationErrorCount metric.Int64Counter
 
 	// HTMLExtractionCount tracks how many HTML extraction operations have run.
@@ -188,15 +182,14 @@ var (
 	// HTMLExtractionErrorCount tracks the number of HTML extraction errors.
 	HTMLExtractionErrorCount metric.Int64Counter
 
-	// SFCCompilationCount tracks the number of SFC compilations that have
-	// happened.
+	// SFCCompilationCount tracks the number of SFC compilations that have happened.
 	SFCCompilationCount metric.Int64Counter
 
 	// SFCCompilationDuration records how long SFC compilations take.
 	SFCCompilationDuration metric.Float64Histogram
 
-	// SFCCompilationErrorCount tracks the number of single-file component
-	// compilation errors.
+	// SFCCompilationErrorCount tracks the number of single-file component compilation
+	// errors.
 	SFCCompilationErrorCount metric.Int64Counter
 
 	// ASTTransformationCount counts the number of AST changes made.
@@ -205,8 +198,8 @@ var (
 	// ASTTransformationDuration tracks the duration of AST transformations.
 	ASTTransformationDuration metric.Float64Histogram
 
-	// ASTTransformationErrorCount counts errors that occur when transforming the
-	// abstract syntax tree.
+	// ASTTransformationErrorCount counts errors that occur when transforming the abstract
+	// syntax tree.
 	ASTTransformationErrorCount metric.Int64Counter
 
 	// MethodInsertionCount counts how many times methods are inserted.
@@ -224,8 +217,7 @@ var (
 	// CSSInsertionDuration records how long CSS insertions take.
 	CSSInsertionDuration metric.Float64Histogram
 
-	// CSSInsertionErrorCount tracks the number of CSS insertion errors that have
-	// occurred.
+	// CSSInsertionErrorCount tracks the number of CSS insertion errors that have occurred.
 	CSSInsertionErrorCount metric.Int64Counter
 
 	// CSSMinificationCount tracks the number of CSS minifications.
@@ -240,23 +232,22 @@ var (
 	// ConstructorCreationCount tracks how many constructors have been created.
 	ConstructorCreationCount metric.Int64Counter
 
-	// ConstructorStandardisationCount tracks the number of constructors that have
-	// been standardised.
+	// ConstructorStandardisationCount tracks the number of constructors that have been
+	// standardised.
 	ConstructorStandardisationCount metric.Int64Counter
 
-	// ConnectedCallbackCreationCount tracks the number of connectedCallback
-	// methods created.
+	// ConnectedCallbackCreationCount tracks the number of connectedCallback methods created.
 	ConnectedCallbackCreationCount metric.Int64Counter
 
-	// ConnectedCallbackInjectionCount tracks the number of injections into
-	// connectedCallback methods.
+	// ConnectedCallbackInjectionCount tracks the number of injections into connectedCallback
+	// methods.
 	ConnectedCallbackInjectionCount metric.Int64Counter
 
 	// EventBindingCreationCount tracks the number of event bindings created.
 	EventBindingCreationCount metric.Int64Counter
 
-	// EventBindingCreationErrorCount tracks the number of errors during event
-	// binding creation.
+	// EventBindingCreationErrorCount tracks the number of errors during event binding
+	// creation.
 	EventBindingCreationErrorCount metric.Int64Counter
 
 	// EventBindingInjectionCount tracks the number of event bindings injected into
@@ -267,8 +258,8 @@ var (
 	// operations.
 	EventBindingInjectionDuration metric.Float64Histogram
 
-	// EventBindingInjectionErrorCount tracks the number of errors during event
-	// binding injection.
+	// EventBindingInjectionErrorCount tracks the number of errors during event binding
+	// injection.
 	EventBindingInjectionErrorCount metric.Int64Counter
 )
 

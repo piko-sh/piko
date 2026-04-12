@@ -44,8 +44,7 @@ const (
 	// maxDisplayValueLen is the maximum length for displayed values in hovers.
 	maxDisplayValueLen = 50
 
-	// truncatedDisplayLen is the length to truncate display values to before
-	// adding "...".
+	// truncatedDisplayLen is the length to truncate display values to before adding "...".
 	truncatedDisplayLen = 47
 
 	// logKeyTypeExpr is the log field key for type expressions.
@@ -55,17 +54,16 @@ const (
 	fieldPadding = "                    "
 )
 
-// formatHoverContentsEnhanced creates rich hover tooltips with better
-// categorization and links. This provides improved DX with clearer symbol
-// information and external package links.
+// formatHoverContentsEnhanced creates rich hover tooltips with better categorization and
+// links. This provides improved DX with clearer symbol information and external package
+// links.
 //
 // Takes expression (ast_domain.Expression) which is the expression to hover over.
-// Takes memberContext (*ast_domain.MemberExpression) which is the containing
-// MemberExpr when the cursor is on a method property identifier
-// (e.g., "String" in "x.String()").
+// Takes memberContext (*ast_domain.MemberExpression) which is the containing MemberExpr
+// when the cursor is on a method property identifier (e.g., "String" in "x.String()").
 //
-// Returns string which is the formatted markdown hover content, or an
-// empty string if the expression has no type annotation.
+// Returns string which is the formatted markdown hover content, or an empty string if the
+// expression has no type annotation.
 func (d *document) formatHoverContentsEnhanced(ctx context.Context, expression ast_domain.Expression, _ protocol.Position, memberContext *ast_domain.MemberExpression) string {
 	if tl, ok := expression.(*ast_domain.TemplateLiteral); ok {
 		return d.formatTemplateLiteralHover(tl)
@@ -94,11 +92,10 @@ func (d *document) formatHoverContentsEnhanced(ctx context.Context, expression a
 	return d.formatNonFieldHover(ctx, expression, ann, symbolKind, displayName, typeString, memberContext)
 }
 
-// formatTemplateLiteralHover formats hover content for template literal
-// expressions. Template literals are always strings.
+// formatTemplateLiteralHover formats hover content for template literal expressions.
+// Template literals are always strings.
 //
-// Takes tl (*ast_domain.TemplateLiteral) which is the template literal to
-// format.
+// Takes tl (*ast_domain.TemplateLiteral) which is the template literal to format.
 //
 // Returns string which is the formatted hover content.
 func (*document) formatTemplateLiteralHover(tl *ast_domain.TemplateLiteral) string {
@@ -112,8 +109,8 @@ func (*document) formatTemplateLiteralHover(tl *ast_domain.TemplateLiteral) stri
 
 // formatFieldHover formats hover content for struct field symbols.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the field
-// annotation data including optional field tags.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the field annotation data
+// including optional field tags.
 // Takes displayName (string) which specifies the field name to display.
 // Takes typeString (string) which specifies the field type as a string.
 //
@@ -142,13 +139,12 @@ func (d *document) formatFieldHover(ctx context.Context, ann *ast_domain.GoGener
 // formatNonFieldHover formats hover content for non-field symbols.
 //
 // Takes expression (ast_domain.Expression) which is the expression being hovered.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the symbol
-// annotation data.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the symbol annotation
+// data.
 // Takes symbolKind (string) which specifies the kind of symbol being formatted.
 // Takes displayName (string) which is the name to display in the hover.
 // Takes typeString (string) which is the type signature to show.
-// Takes memberContext (*ast_domain.MemberExpression) which is the containing
-// MemberExpr
+// Takes memberContext (*ast_domain.MemberExpression) which is the containing MemberExpr
 // when hovering over a method property identifier.
 //
 // Returns string which is the formatted hover content with code blocks.
@@ -178,16 +174,15 @@ func (d *document) formatNonFieldHover(
 	return b.String()
 }
 
-// getSyntheticTypeHover generates hover documentation for synthetic types.
-// Synthetic types are JavaScript-only placeholders (like $event) that exist for
-// type-checking purposes but do not correspond to real Go types.
+// getSyntheticTypeHover generates hover documentation for synthetic types. Synthetic
+// types are JavaScript-only placeholders (like $event) that exist for type-checking
+// purposes but do not correspond to real Go types.
 //
 // Takes expression (ast_domain.Expression) which is the expression being hovered.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type
-// annotation.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type annotation.
 //
-// Returns string which is the formatted markdown hover content explaining
-// the synthetic type and its valid usage context.
+// Returns string which is the formatted markdown hover content explaining the synthetic
+// type and its valid usage context.
 func (*document) getSyntheticTypeHover(expression ast_domain.Expression, ann *ast_domain.GoGeneratorAnnotation) string {
 	typeString := goastutil.ASTToTypeString(ann.ResolvedType.TypeExpression, ann.ResolvedType.PackageAlias)
 	name := expression.String()
@@ -227,14 +222,13 @@ func (*document) getSyntheticTypeHover(expression ast_domain.Expression, ann *as
 	return b.String()
 }
 
-// categoriseSymbol determines what kind of symbol this is for better hover
-// display.
+// categoriseSymbol determines what kind of symbol this is for better hover display.
 //
 // Takes expression (ast_domain.Expression) which is the expression to categorise.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides symbol metadata.
 //
-// Returns kind (string) which is the symbol category (e.g. "attribute",
-// "function", "value").
+// Returns kind (string) which is the symbol category (e.g. "attribute", "function",
+// "value").
 // Returns displayName (string) which is the human-readable name for display.
 func (d *document) categoriseSymbol(expression ast_domain.Expression, ann *ast_domain.GoGeneratorAnnotation) (kind, displayName string) {
 	if isAttributeSymbol(ann) {
@@ -274,8 +268,7 @@ func (*document) categoriseFunctionSymbol(expression ast_domain.Expression, disp
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides symbol metadata.
 // Takes displayName (string) which is the name to use in the result.
 //
-// Returns kind (string) which is the category: "property", "field", or
-// "variable".
+// Returns kind (string) which is the category: "property", "field", or "variable".
 // Returns name (string) which is the display name passed through unchanged.
 func (d *document) categoriseNamedSymbol(expression ast_domain.Expression, ann *ast_domain.GoGeneratorAnnotation, displayName string) (kind, name string) {
 	if d.isPropUsage(expression) {
@@ -295,8 +288,7 @@ func (d *document) categoriseNamedSymbol(expression ast_domain.Expression, ann *
 
 // isFieldSymbol checks whether a symbol represents a struct field.
 //
-// Takes ann (*GoGeneratorAnnotation) which provides the symbol annotation to
-// check.
+// Takes ann (*GoGeneratorAnnotation) which provides the symbol annotation to check.
 //
 // Returns bool which is true when the symbol is a field reference.
 func (d *document) isFieldSymbol(ann *ast_domain.GoGeneratorAnnotation) bool {
@@ -316,8 +308,8 @@ func (d *document) isFieldSymbol(ann *ast_domain.GoGeneratorAnnotation) bool {
 
 // getStateTypeHover creates hover text for the special "state" variable.
 //
-// Returns string which contains the formatted hover text, including the state
-// variable type and a preview of the type definition when one is available.
+// Returns string which contains the formatted hover text, including the state variable
+// type and a preview of the type definition when one is available.
 func (d *document) getStateTypeHover() string {
 	scriptResult, err := d.parseOriginalScriptBlock()
 	if err != nil || scriptResult == nil {
@@ -346,17 +338,16 @@ func (d *document) getStateTypeHover() string {
 	return b.String()
 }
 
-// getTypePreviewForAnySymbol generates a type preview for any symbol by
-// resolving type information and extracting element types from slices.
-// Unlike getTypePreview, this does not require OriginalSourcePath to be set.
+// getTypePreviewForAnySymbol generates a type preview for any symbol by resolving type
+// information and extracting element types from slices. Unlike getTypePreview, this does
+// not require OriginalSourcePath to be set.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the resolved
-// type information for the symbol.
-// Takes maxFields (int) which limits the number of fields shown in the
-// preview.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which contains the resolved type
+// information for the symbol.
+// Takes maxFields (int) which limits the number of fields shown in the preview.
 //
-// Returns string which contains the formatted type preview, or empty if the
-// type cannot be resolved.
+// Returns string which contains the formatted type preview, or empty if the type cannot
+// be resolved.
 func (d *document) getTypePreviewForAnySymbol(ctx context.Context, ann *ast_domain.GoGeneratorAnnotation, maxFields int) string {
 	_, l := logger_domain.From(ctx, log)
 
@@ -408,11 +399,11 @@ func (d *document) getTypePreviewForAnySymbol(ctx context.Context, ann *ast_doma
 
 // getResolvedFilePath returns the file path for type resolution.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation
-// that may contain an original source path.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation that may
+// contain an original source path.
 //
-// Returns string which is the original source path from the annotation if set,
-// otherwise the filename from the document URI.
+// Returns string which is the original source path from the annotation if set, otherwise
+// the filename from the document URI.
 func (d *document) getResolvedFilePath(ann *ast_domain.GoGeneratorAnnotation) string {
 	if ann.OriginalSourcePath != nil {
 		return *ann.OriginalSourcePath
@@ -422,12 +413,12 @@ func (d *document) getResolvedFilePath(ann *ast_domain.GoGeneratorAnnotation) st
 
 // getTypePreview builds a preview of a struct type's fields from the inspector.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type info
-// and source path for resolution.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type info and source
+// path for resolution.
 // Takes maxFields (int) which limits how many fields to show in the preview.
 //
-// Returns string which contains the formatted struct preview, or an empty
-// string when the type cannot be resolved or has no fields.
+// Returns string which contains the formatted struct preview, or an empty string when the
+// type cannot be resolved or has no fields.
 func (d *document) getTypePreview(ctx context.Context, ann *ast_domain.GoGeneratorAnnotation, maxFields int) string {
 	_, l := logger_domain.From(ctx, log)
 
@@ -465,11 +456,11 @@ func (d *document) getTypePreview(ctx context.Context, ann *ast_domain.GoGenerat
 	return buildMethodPreviewString(typeDTO, maxFields)
 }
 
-// getTypeResolutionContext determines the package path and file path to use
-// for resolving a type expression. It prefers the initial context if available.
+// getTypeResolutionContext determines the package path and file path to use for resolving
+// a type expression. It prefers the initial context if available.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type
-// resolution information.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type resolution
+// information.
 //
 // Returns packagePath (string) which is the canonical or initial package path.
 // Returns filePath (string) which is the original or initial source file path.
@@ -483,8 +474,8 @@ func (*document) getTypeResolutionContext(ann *ast_domain.GoGeneratorAnnotation)
 	return packagePath, filePath
 }
 
-// addPackageLinkWithRule adds a gopls-style package link with a horizontal
-// rule and the full type path.
+// addPackageLinkWithRule adds a gopls-style package link with a horizontal rule and the
+// full type path.
 //
 // Takes b (*strings.Builder) which receives the formatted output.
 // Takes ann (*GoGeneratorAnnotation) which provides the resolved type info.
@@ -501,8 +492,7 @@ func (d *document) addPackageLinkWithRule(b *strings.Builder, ann *ast_domain.Go
 		ann.ResolvedType.CanonicalPackagePath)
 }
 
-// addPackageLink appends a pkg.go.dev link to the builder for non-field
-// hovers.
+// addPackageLink appends a pkg.go.dev link to the builder for non-field hovers.
 //
 // Takes b (*strings.Builder) which receives the formatted link text.
 // Takes ann (*GoGeneratorAnnotation) which provides the resolved type info.
@@ -517,14 +507,13 @@ func (d *document) addPackageLink(b *strings.Builder, ann *ast_domain.GoGenerato
 		ann.ResolvedType.CanonicalPackagePath)
 }
 
-// shouldShowPackageLink checks if a pkg.go.dev link should be shown for a
-// package.
+// shouldShowPackageLink checks if a pkg.go.dev link should be shown for a package.
 //
 // Takes packagePath (string) which is the import path of the package to check.
 //
 // Returns bool which is true for external packages with a domain in the path.
-// Returns false for local project packages, standard library packages, and
-// relative paths.
+// Returns false for local project packages, standard library packages, and relative
+// paths.
 func (d *document) shouldShowPackageLink(packagePath string) bool {
 	if packagePath == "" {
 		return false
@@ -550,11 +539,9 @@ func (d *document) shouldShowPackageLink(packagePath string) bool {
 
 // isFunctionType checks whether the given type info represents a function type.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which holds the resolved type
-// to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which holds the resolved type to check.
 //
-// Returns bool which is true if the type is a function type or has the name
-// "function".
+// Returns bool which is true if the type is a function type or has the name "function".
 func (*document) isFunctionType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return false
@@ -576,19 +563,17 @@ func (*document) isPropUsage(expression ast_domain.Expression) bool {
 	return identifier != nil && identifier.Name == "props"
 }
 
-// getFunctionSignatureForHover attempts to get a full function signature for
-// hover display. It first tries the local script block, then falls back to the
-// TypeQuerier for package functions or method lookups.
+// getFunctionSignatureForHover attempts to get a full function signature for hover
+// display. It first tries the local script block, then falls back to the TypeQuerier for
+// package functions or method lookups.
 //
 // Takes expression (ast_domain.Expression) which is the expression being hovered.
 // Takes functionName (string) which is the name of the function to look up.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides package context.
-// Takes memberContext (*ast_domain.MemberExpression) which is the containing
-// MemberExpr
+// Takes memberContext (*ast_domain.MemberExpression) which is the containing MemberExpr
 // when hovering over a method property identifier.
 //
-// Returns string which is the full function signature, or empty string if not
-// found.
+// Returns string which is the full function signature, or empty string if not found.
 func (d *document) getFunctionSignatureForHover(expression ast_domain.Expression, functionName string, ann *ast_domain.GoGeneratorAnnotation, memberContext *ast_domain.MemberExpression) string {
 	if signature := d.getLocalFunctionSignature(functionName); signature != "" {
 		return signature
@@ -611,13 +596,12 @@ func (d *document) getFunctionSignatureForHover(expression ast_domain.Expression
 	return ""
 }
 
-// getLocalFunctionSignature looks up a function in the local script block and
-// returns its signature string.
+// getLocalFunctionSignature looks up a function in the local script block and returns its
+// signature string.
 //
 // Takes functionName (string) which is the name of the function to find.
 //
-// Returns string which is the function signature, or an empty string if not
-// found.
+// Returns string which is the function signature, or an empty string if not found.
 func (d *document) getLocalFunctionSignature(functionName string) string {
 	scriptResult, err := d.parseOriginalScriptBlock()
 	if err != nil || scriptResult == nil {
@@ -637,14 +621,13 @@ func (d *document) getLocalFunctionSignature(functionName string) string {
 	return ""
 }
 
-// getFunctionSignatureFromInspector looks up a function signature using the
-// TypeQuerier.
+// getFunctionSignatureFromInspector looks up a function signature using the TypeQuerier.
 //
 // Takes functionName (string) which is the function name to look up.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides package context.
 //
-// Returns string which is the function signature from the inspector, or empty
-// string if not found.
+// Returns string which is the function signature from the inspector, or empty string if
+// not found.
 func (d *document) getFunctionSignatureFromInspector(functionName string, ann *ast_domain.GoGeneratorAnnotation) string {
 	if d.TypeInspector == nil || ann.ResolvedType == nil {
 		return ""
@@ -661,11 +644,10 @@ func (d *document) getFunctionSignatureFromInspector(functionName string, ann *a
 	return ""
 }
 
-// getMethodSignatureFromInspector looks up a method signature using the
-// TypeInspector based on the base expression's type.
+// getMethodSignatureFromInspector looks up a method signature using the TypeInspector
+// based on the base expression's type.
 //
-// Takes memberExpr (*ast_domain.MemberExpression) which is the method call
-// expression.
+// Takes memberExpr (*ast_domain.MemberExpression) which is the method call expression.
 // Takes methodName (string) which is the name of the method to look up.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which provides type context.
 //
@@ -721,14 +703,13 @@ func formatSymbolDeclaration(symbolKind, displayName, typeString string) string 
 //
 // Takes ann (*GoGeneratorAnnotation) which is the annotation to check.
 //
-// Returns bool which is true if the annotation has a symbol but no base
-// code generation variable name.
+// Returns bool which is true if the annotation has a symbol but no base code generation
+// variable name.
 func isAttributeSymbol(ann *ast_domain.GoGeneratorAnnotation) bool {
 	return ann.Symbol != nil && ann.BaseCodeGenVarName == nil
 }
 
-// isFrameworkIdentifier checks if a symbol name is a special framework
-// identifier.
+// isFrameworkIdentifier checks if a symbol name is a special framework identifier.
 //
 // Takes name (string) which is the symbol name to check.
 //
@@ -741,8 +722,8 @@ func isFrameworkIdentifier(name string) bool {
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
-// Returns goast.Expr which is the element type if typeExpr is an array or
-// slice, or the original typeExpr if not.
+// Returns goast.Expr which is the element type if typeExpr is an array or slice, or the
+// original typeExpr if not.
 // Returns bool which is true if typeExpr was an array or slice type.
 func extractElementType(typeExpr goast.Expr) (goast.Expr, bool) {
 	if arrayType, ok := typeExpr.(*goast.ArrayType); ok {
@@ -751,15 +732,15 @@ func extractElementType(typeExpr goast.Expr) (goast.Expr, bool) {
 	return typeExpr, false
 }
 
-// buildMethodPreviewString formats a non-struct named type as a preview
-// showing its underlying type and methods. Used for types like
-// `type RichText []Paragraph` where there are no struct fields to show.
+// buildMethodPreviewString formats a non-struct named type as a preview showing its
+// underlying type and methods. Used for types like `type RichText []Paragraph` where
+// there are no struct fields to show.
 //
 // Takes typeDTO (*inspector_dto.Type) which provides the type data.
 // Takes maxMethods (int) which limits how many methods to show.
 //
-// Returns string which contains the formatted preview, or empty if the type
-// has no methods.
+// Returns string which contains the formatted preview, or empty if the type has no
+// methods.
 func buildMethodPreviewString(typeDTO *inspector_dto.Type, maxMethods int) string {
 	if len(typeDTO.Methods) == 0 {
 		return ""
@@ -781,13 +762,13 @@ func buildMethodPreviewString(typeDTO *inspector_dto.Type, maxMethods int) strin
 	return b.String()
 }
 
-// formatMethodParams formats a method's parameters and return types for
-// display in a method preview.
+// formatMethodParams formats a method's parameters and return types for display in a
+// method preview.
 //
 // Takes method (*inspector_dto.Method) which provides the signature.
 //
-// Returns string which contains the formatted parameter list and return type
-// (e.g. "(data []byte) error").
+// Returns string which contains the formatted parameter list and return type (e.g. "(data
+// []byte) error").
 func formatMethodParams(method *inspector_dto.Method) string {
 	params := strings.Join(method.Signature.Params, ", ")
 	results := strings.Join(method.Signature.Results, ", ")
@@ -829,14 +810,13 @@ func buildTypePreviewString(typeDTO *inspector_dto.Type, isSlice bool, maxFields
 	return b.String()
 }
 
-// formatInspectorStructPreview formats a struct type as a preview with limited
-// fields.
+// formatInspectorStructPreview formats a struct type as a preview with limited fields.
 //
 // Takes typeDTO (*inspector_dto.Type) which provides the struct type to format.
 // Takes maxFields (int) which limits how many fields to show in the preview.
 //
-// Returns string which contains the formatted struct preview with type
-// declaration and fields.
+// Returns string which contains the formatted struct preview with type declaration and
+// fields.
 func formatInspectorStructPreview(typeDTO *inspector_dto.Type, maxFields int) string {
 	var b strings.Builder
 	_, _ = fmt.Fprintf(&b, "type %s struct {", typeDTO.Name)
@@ -865,8 +845,8 @@ func formatInspectorFieldLine(field *inspector_dto.Field) string {
 	return builder.String()
 }
 
-// writeInspectorFieldLine writes a single struct field line to the
-// builder with aligned name, type, and optional tag.
+// writeInspectorFieldLine writes a single struct field line to the builder with aligned
+// name, type, and optional tag.
 //
 // Takes builder (*strings.Builder) which accumulates the output text.
 // Takes field (*inspector_dto.Field) which holds the field name, type, and raw tag.
@@ -884,14 +864,14 @@ func writeInspectorFieldLine(builder *strings.Builder, field *inspector_dto.Fiel
 	}
 }
 
-// extractBaseIdentifier walks an expression tree to find the base identifier.
-// It follows MemberExpr, IndexExpr, and CallExpr nodes by checking their base
-// or callee fields until it finds an identifier.
+// extractBaseIdentifier walks an expression tree to find the base identifier. It follows
+// MemberExpr, IndexExpr, and CallExpr nodes by checking their base or callee fields until
+// it finds an identifier.
 //
 // Takes expression (ast_domain.Expression) which is the expression tree to search.
 //
-// Returns *ast_domain.Identifier which is the base identifier, or nil if no
-// identifier is found.
+// Returns *ast_domain.Identifier which is the base identifier, or nil if no identifier is
+// found.
 func extractBaseIdentifier(expression ast_domain.Expression) *ast_domain.Identifier {
 	current := expression
 	for current != nil {

@@ -61,9 +61,9 @@ func main() {
 	}
 
 	result := map[string]any{
-		"extract_parts":    extracted,
+		"extract_parts":     extracted,
 		"truncate_to_month": truncated,
-		"event_duration":   durations,
+		"event_duration":    durations,
 	}
 
 	encoder := json.NewEncoder(os.Stdout)

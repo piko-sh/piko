@@ -30,8 +30,8 @@ import (
 )
 
 const (
-	// maxRedactedContentLength is the maximum number of characters to keep in
-	// redacted message content.
+	// maxRedactedContentLength is the maximum number of characters to keep in redacted
+	// message content.
 	maxRedactedContentLength = 50
 
 	// fieldConversationID is the structured log field for conversation identifiers.
@@ -39,8 +39,8 @@ const (
 )
 
 // CompletionBuilder provides a fluent API for building and running LLM completion
-// requests. Builder functions like Model, System, and User return the builder to
-// allow method chaining.
+// requests. Builder functions like Model, System, and User return the builder to allow
+// method chaining.
 type CompletionBuilder struct {
 	// memory stores conversation history for multi-turn interactions.
 	memory Memory
@@ -51,17 +51,15 @@ type CompletionBuilder struct {
 	// request holds the completion request being built.
 	request *llm_dto.CompletionRequest
 
-	// ragConfig holds the configuration for automatic RAG context injection.
-	// When set, Do() will embed the query, search the vector store, and inject
-	// results before calling the LLM.
+	// ragConfig holds the configuration for automatic RAG context injection. When set, Do()
+	// will embed the query, search the vector store, and inject results before calling the
+	// LLM.
 	ragConfig *ragConfig
 
-	// service provides access to the LLM completion service for executing
-	// requests.
+	// service provides access to the LLM completion service for executing requests.
 	service *service
 
-	// retryPolicy configures retry behaviour for failed requests; nil disables
-	// retries.
+	// retryPolicy configures retry behaviour for failed requests; nil disables retries.
 	retryPolicy *llm_dto.RetryPolicy
 
 	// fallbackConfig specifies providers to try if the primary provider fails.
@@ -70,10 +68,9 @@ type CompletionBuilder struct {
 	// cacheConfig holds the cache settings for completions; nil disables caching.
 	cacheConfig *llm_dto.CacheConfig
 
-	// responseValidator is an optional post-processing function that validates
-	// the final LLM response after tool dispatch. When set and it returns an
-	// error, Do() fails with that error and the response is not recorded to
-	// memory.
+	// responseValidator is an optional post-processing function that validates the final LLM
+	// response after tool dispatch. When set and it returns an error, Do() fails with that
+	// error and the response is not recorded to memory.
 	responseValidator ResponseValidatorFunc
 
 	// maxCost is the maximum cost allowed for this completion request.
@@ -82,8 +79,7 @@ type CompletionBuilder struct {
 	// conversationID identifies the conversation for memory storage and retrieval.
 	conversationID string
 
-	// providerName specifies the LLM provider to use; empty uses the service
-	// default.
+	// providerName specifies the LLM provider to use; empty uses the service default.
 	providerName string
 
 	// originalQuery is the base query text before rewriting. Captured during
@@ -96,31 +92,31 @@ type CompletionBuilder struct {
 	// vectorContext holds retrieved vector search results for RAG injection.
 	vectorContext []llm_dto.VectorSearchResult
 
-	// toolLoopMessages collects intermediate assistant and tool_result messages
-	// generated during the tool dispatch loop, for recording to memory.
+	// toolLoopMessages collects intermediate assistant and tool_result messages generated
+	// during the tool dispatch loop, for recording to memory.
 	toolLoopMessages []llm_dto.Message
 
 	// rewrittenQueries holds queries produced by the rewriter. Captured during
 	// resolveRAGContext for RequestDump visibility.
 	rewrittenQueries []string
 
-	// maxToolRounds is the maximum number of tool dispatch rounds. A value of
-	// 0 uses DefaultMaxToolRounds; negative allows unlimited rounds.
+	// maxToolRounds is the maximum number of tool dispatch rounds. A value of 0 uses
+	// DefaultMaxToolRounds; negative allows unlimited rounds.
 	maxToolRounds int
 
-	// ragResolved is true after resolveRAGContext has run, preventing duplicate
-	// resolution when DryRun is called before Do.
+	// ragResolved is true after resolveRAGContext has run, preventing duplicate resolution
+	// when DryRun is called before Do.
 	ragResolved bool
 
-	// vectorInjected is true after injectVectorContext has run, preventing
-	// duplicate message injection when DryRun is called before Do.
+	// vectorInjected is true after injectVectorContext has run, preventing duplicate message
+	// injection when DryRun is called before Do.
 	vectorInjected bool
 }
 
 // Model sets the model to use for the completion.
 //
-// Takes model (string) which identifies the model to use
-// (e.g., "gpt-4o", "claude-3-5-sonnet").
+// Takes model (string) which identifies the model to use (e.g., "gpt-4o",
+// "claude-3-5-sonnet").
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) Model(model string) *CompletionBuilder {
@@ -160,13 +156,11 @@ func (b *CompletionBuilder) UserWithImage(text, imageURL string) *CompletionBuil
 	return b
 }
 
-// UserWithImageData adds a user message with text and inline image data.
-// This enables vision and multi-modal requests where an inline image is sent
-// alongside text.
+// UserWithImageData adds a user message with text and inline image data. This enables
+// vision and multi-modal requests where an inline image is sent alongside text.
 //
 // Takes text (string) which is the text content of the message.
-// Takes mimeType (string) which is the MIME type of the image (e.g.,
-// "image/png").
+// Takes mimeType (string) which is the MIME type of the image (e.g., "image/png").
 // Takes base64Data (string) which is the base64-encoded image data.
 //
 // Returns *CompletionBuilder for method chaining.
@@ -175,13 +169,11 @@ func (b *CompletionBuilder) UserWithImageData(text, mimeType, base64Data string)
 	return b
 }
 
-// UserWithImages adds a user message with text and multiple images.
-// This enables vision and multi-modal requests where multiple images are sent
-// alongside text.
+// UserWithImages adds a user message with text and multiple images. This enables vision
+// and multi-modal requests where multiple images are sent alongside text.
 //
 // Takes text (string) which is the text content of the message.
-// Takes images (...llm_dto.ContentPart) which are the image content parts to
-// include.
+// Takes images (...llm_dto.ContentPart) which are the image content parts to include.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) UserWithImages(text string, images ...llm_dto.ContentPart) *CompletionBuilder {
@@ -411,11 +403,10 @@ func (b *CompletionBuilder) Metadata(key, value string) *CompletionBuilder {
 	return b
 }
 
-// BudgetScope sets the budget scope for this request.
-// Costs will be tracked and limits enforced against this scope.
+// BudgetScope sets the budget scope for this request. Costs will be tracked and limits
+// enforced against this scope.
 //
-// Takes scope (string) which identifies the budget scope, such as
-// "global" or "user:123".
+// Takes scope (string) which identifies the budget scope, such as "global" or "user:123".
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) BudgetScope(scope string) *CompletionBuilder {
@@ -423,8 +414,8 @@ func (b *CompletionBuilder) BudgetScope(scope string) *CompletionBuilder {
 	return b
 }
 
-// MaxCost sets a per-request cost limit. The request will fail with
-// ErrMaxCostExceeded if the estimated cost exceeds this limit.
+// MaxCost sets a per-request cost limit. The request will fail with ErrMaxCostExceeded if
+// the estimated cost exceeds this limit.
 //
 // Takes maxCost (maths.Money) which is the maximum cost.
 //
@@ -434,9 +425,8 @@ func (b *CompletionBuilder) MaxCost(maxCost maths.Money) *CompletionBuilder {
 	return b
 }
 
-// Retry configures retry behaviour for the completion request.
-// Retries are triggered for transient errors such as rate limits, timeouts,
-// and provider overload conditions.
+// Retry configures retry behaviour for the completion request. Retries are triggered for
+// transient errors such as rate limits, timeouts, and provider overload conditions.
 //
 // Takes policy (*llm_dto.RetryPolicy) which configures the retry behaviour.
 //
@@ -446,9 +436,9 @@ func (b *CompletionBuilder) Retry(policy *llm_dto.RetryPolicy) *CompletionBuilde
 	return b
 }
 
-// DefaultRetry enables retry with the default policy.
-// The default policy uses exponential backoff starting at 500ms, doubling each
-// attempt up to 8s maximum, with 10% jitter and a maximum of 3 retries.
+// DefaultRetry enables retry with the default policy. The default policy uses exponential
+// backoff starting at 500ms, doubling each attempt up to 8s maximum, with 10% jitter and
+// a maximum of 3 retries.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) DefaultRetry() *CompletionBuilder {
@@ -456,12 +446,11 @@ func (b *CompletionBuilder) DefaultRetry() *CompletionBuilder {
 	return b
 }
 
-// Fallback configures fallback behaviour for the completion request. When the
-// primary provider fails, the request will be retried with subsequent providers
-// in the configured order.
+// Fallback configures fallback behaviour for the completion request. When the primary
+// provider fails, the request will be retried with subsequent providers in the configured
+// order.
 //
-// Takes config (*llm_dto.FallbackConfig) which configures the fallback
-// behaviour.
+// Takes config (*llm_dto.FallbackConfig) which configures the fallback behaviour.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) Fallback(config *llm_dto.FallbackConfig) *CompletionBuilder {
@@ -469,9 +458,9 @@ func (b *CompletionBuilder) Fallback(config *llm_dto.FallbackConfig) *Completion
 	return b
 }
 
-// FallbackProviders is a convenience method to configure fallback with a list
-// of provider names. The first provider is used as the primary, with subsequent
-// providers used as fallbacks in order.
+// FallbackProviders is a convenience method to configure fallback with a list of provider
+// names. The first provider is used as the primary, with subsequent providers used as
+// fallbacks in order.
 //
 // Takes providers (...string) which are the provider names in priority order.
 //
@@ -481,8 +470,8 @@ func (b *CompletionBuilder) FallbackProviders(providers ...string) *CompletionBu
 	return b
 }
 
-// Cache enables response caching with the specified TTL. Cached responses will
-// be returned for identical requests within the TTL period.
+// Cache enables response caching with the specified TTL. Cached responses will be
+// returned for identical requests within the TTL period.
 //
 // Takes ttl (time.Duration) which is the time-to-live for cached responses.
 //
@@ -511,8 +500,8 @@ func (b *CompletionBuilder) CacheConfig(config *llm_dto.CacheConfig) *Completion
 
 // ProviderCache enables provider-specific caching.
 //
-// This uses the provider's native caching mechanism (e.g., Anthropic
-// prompt caching) rather than the local cache.
+// This uses the provider's native caching mechanism (e.g., Anthropic prompt caching)
+// rather than the local cache.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) ProviderCache() *CompletionBuilder {
@@ -530,9 +519,9 @@ func (b *CompletionBuilder) ProviderCache() *CompletionBuilder {
 	return b
 }
 
-// Memory enables conversation memory for this request.
-// Messages from previous interactions in the same conversation will be
-// automatically prepended to the request, and the response will be recorded.
+// Memory enables conversation memory for this request. Messages from previous
+// interactions in the same conversation will be automatically prepended to the request,
+// and the response will be recorded.
 //
 // Takes memory (Memory) which is the memory implementation to use.
 // Takes conversationID (string) which identifies the conversation.
@@ -544,8 +533,8 @@ func (b *CompletionBuilder) Memory(memory Memory, conversationID string) *Comple
 	return b
 }
 
-// BufferMemory enables buffer memory for this request. This is a convenience
-// method that creates a BufferMemory with the given store.
+// BufferMemory enables buffer memory for this request. This is a convenience method that
+// creates a BufferMemory with the given store.
 //
 // Takes store (MemoryStorePort) which handles persistence.
 // Takes conversationID (string) which identifies the conversation.
@@ -558,13 +547,12 @@ func (b *CompletionBuilder) BufferMemory(store MemoryStorePort, conversationID s
 	return b
 }
 
-// ResponseValidator sets a post-processing validation function that runs after
-// the LLM produces its final response (after tool dispatch completes). If the
-// validator returns a non-nil error, Do() fails with that error and the
-// response is not recorded to memory.
+// ResponseValidator sets a post-processing validation function that runs after the LLM
+// produces its final response (after tool dispatch completes). If the validator returns a
+// non-nil error, Do() fails with that error and the response is not recorded to memory.
 //
-// Takes validatorFunction (ResponseValidatorFunc) which validates the
-// completion response.
+// Takes validatorFunction (ResponseValidatorFunc) which validates the completion
+// response.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) ResponseValidator(validatorFunction ResponseValidatorFunc) *CompletionBuilder {
@@ -572,13 +560,12 @@ func (b *CompletionBuilder) ResponseValidator(validatorFunction ResponseValidato
 	return b
 }
 
-// WithVectorContext injects retrieved vector search results as context into
-// the completion request. The results are prepended as a system message
-// summarising the retrieved documents, enabling retrieval-augmented generation
-// (RAG).
+// WithVectorContext injects retrieved vector search results as context into the
+// completion request. The results are prepended as a system message summarising the
+// retrieved documents, enabling retrieval-augmented generation (RAG).
 //
-// Takes results ([]llm_dto.VectorSearchResult) which are the documents to
-// include as context.
+// Takes results ([]llm_dto.VectorSearchResult) which are the documents to include as
+// context.
 //
 // Returns *CompletionBuilder for method chaining.
 func (b *CompletionBuilder) WithVectorContext(results []llm_dto.VectorSearchResult) *CompletionBuilder {
@@ -596,12 +583,11 @@ func (b *CompletionBuilder) Build() llm_dto.CompletionRequest {
 	return *b.request
 }
 
-// DryRun resolves RAG context and assembles the full request without calling
-// the LLM provider. Use this to inspect exactly what would be sent to the
-// model.
+// DryRun resolves RAG context and assembles the full request without calling the LLM
+// provider. Use this to inspect exactly what would be sent to the model.
 //
-// Returns *RequestDump which contains the final messages, retrieved sources,
-// and all request parameters.
+// Returns *RequestDump which contains the final messages, retrieved sources, and all
+// request parameters.
 func (b *CompletionBuilder) DryRun(ctx context.Context) *RequestDump {
 	b.resolveRAGContext(ctx)
 	b.injectVectorContext()
@@ -620,9 +606,9 @@ func (b *CompletionBuilder) DryRun(ctx context.Context) *RequestDump {
 	}
 }
 
-// DryRunRedacted returns the same data as DryRun but truncates message
-// content to a maximum of 50 characters and replaces tool arguments with
-// "[redacted]". Use this in production to avoid leaking sensitive data.
+// DryRunRedacted returns the same data as DryRun but truncates message content to a
+// maximum of 50 characters and replaces tool arguments with "[redacted]". Use this in
+// production to avoid leaking sensitive data.
 //
 // Returns *RequestDump with redacted content.
 func (b *CompletionBuilder) DryRunRedacted(ctx context.Context) *RequestDump {
@@ -675,9 +661,8 @@ func (b *CompletionBuilder) Stream(ctx context.Context) (<-chan llm_dto.StreamEv
 	return b.service.Stream(ctx, b.request)
 }
 
-// executePipeline runs the full completion pipeline: load history, resolve
-// RAG context, execute with caching, run tool loop, validate, and record to
-// memory.
+// executePipeline runs the full completion pipeline: load history, resolve RAG context,
+// execute with caching, run tool loop, validate, and record to memory.
 //
 // Returns *llm_dto.CompletionResponse which contains the model's response.
 // Returns error when any pipeline step fails or the context is cancelled.
@@ -707,8 +692,8 @@ func (b *CompletionBuilder) executePipeline(ctx context.Context) (*llm_dto.Compl
 	return response, nil
 }
 
-// prepareContext loads conversation history, resolves RAG context, and injects
-// vector context into the request messages.
+// prepareContext loads conversation history, resolves RAG context, and injects vector
+// context into the request messages.
 //
 // Returns error when the context is cancelled during preparation.
 func (b *CompletionBuilder) prepareContext(ctx context.Context) error {
@@ -726,8 +711,8 @@ func (b *CompletionBuilder) prepareContext(ctx context.Context) error {
 	return nil
 }
 
-// runCompletionAndTools executes the completion with caching and runs the
-// tool dispatch loop.
+// runCompletionAndTools executes the completion with caching and runs the tool dispatch
+// loop.
 //
 // Takes providerName (string) which identifies the LLM provider to use.
 //
@@ -757,8 +742,8 @@ func (b *CompletionBuilder) runCompletionAndTools(ctx context.Context, providerN
 	return response, nil
 }
 
-// validateResponse runs the optional response validator and records an error
-// metric on failure.
+// validateResponse runs the optional response validator and records an error metric on
+// failure.
 //
 // Takes response (*llm_dto.CompletionResponse) which is the response to validate.
 //
@@ -774,8 +759,8 @@ func (b *CompletionBuilder) validateResponse(ctx context.Context, response *llm_
 	return nil
 }
 
-// resolveProviderName returns the provider name to use, defaulting to the
-// service default.
+// resolveProviderName returns the provider name to use, defaulting to the service
+// default.
 //
 // Returns string which is the configured provider name or the service default.
 func (b *CompletionBuilder) resolveProviderName() string {
@@ -785,8 +770,8 @@ func (b *CompletionBuilder) resolveProviderName() string {
 	return b.service.defaultProvider
 }
 
-// loadConversationHistory prepends conversation history to the request if
-// memory is configured.
+// loadConversationHistory prepends conversation history to the request if memory is
+// configured.
 func (b *CompletionBuilder) loadConversationHistory(ctx context.Context) {
 	if b.memory == nil || b.conversationID == "" {
 		return
@@ -812,9 +797,9 @@ func (b *CompletionBuilder) loadConversationHistory(ctx context.Context) {
 	b.request.Messages = allMessages
 }
 
-// injectVectorContext prepends a system message containing the retrieved
-// vector search results. This enables retrieval-augmented generation by
-// providing relevant context from the vector store to the model.
+// injectVectorContext prepends a system message containing the retrieved vector search
+// results. This enables retrieval-augmented generation by providing relevant context from
+// the vector store to the model.
 func (b *CompletionBuilder) injectVectorContext() {
 	if len(b.vectorContext) == 0 || b.vectorInjected {
 		return
@@ -856,13 +841,12 @@ func (b *CompletionBuilder) executeWithCaching(ctx context.Context, providerName
 	return execute()
 }
 
-// createExecuteFunc creates the execution function with fallback/retry
-// handling.
+// createExecuteFunc creates the execution function with fallback/retry handling.
 //
 // Takes providerName (string) which identifies the LLM provider to use.
 //
-// Returns func() (*llm_dto.CompletionResponse, error) which executes the
-// completion request with configured fallback and retry behaviour.
+// Returns func() (*llm_dto.CompletionResponse, error) which executes the completion
+// request with configured fallback and retry behaviour.
 func (b *CompletionBuilder) createExecuteFunc(ctx context.Context, providerName string) func() (*llm_dto.CompletionResponse, error) {
 	return func() (*llm_dto.CompletionResponse, error) {
 		if b.fallbackConfig != nil && len(b.fallbackConfig.Providers) > 0 {
@@ -879,8 +863,8 @@ func (b *CompletionBuilder) createExecuteFunc(ctx context.Context, providerName 
 
 // executeWithFallback executes the request with fallback routing.
 //
-// Returns *llm_dto.CompletionResponse which contains the completion result
-// with fallback information attached if a fallback was used.
+// Returns *llm_dto.CompletionResponse which contains the completion result with fallback
+// information attached if a fallback was used.
 // Returns error when the request fails on all configured providers.
 func (b *CompletionBuilder) executeWithFallback(ctx context.Context) (*llm_dto.CompletionResponse, error) {
 	router := NewFallbackRouter(b.service)
@@ -906,10 +890,9 @@ func (b *CompletionBuilder) executeWithRetry(ctx context.Context, providerName s
 
 // recordToMemory records messages to memory if configured.
 //
-// Takes originalMessages ([]llm_dto.Message) which contains the user messages
-// to record.
-// Takes response (*llm_dto.CompletionResponse) which contains the assistant
-// response to record.
+// Takes originalMessages ([]llm_dto.Message) which contains the user messages to record.
+// Takes response (*llm_dto.CompletionResponse) which contains the assistant response to
+// record.
 func (b *CompletionBuilder) recordToMemory(ctx context.Context, originalMessages []llm_dto.Message, response *llm_dto.CompletionResponse) {
 	if b.memory == nil || b.conversationID == "" || response == nil {
 		return
@@ -940,8 +923,8 @@ func (b *CompletionBuilder) recordToMemory(ctx context.Context, originalMessages
 
 // recordAssistantResponse records the assistant's response to memory.
 //
-// Takes response (*llm_dto.CompletionResponse) which contains the assistant's
-// response content and any tool calls to store.
+// Takes response (*llm_dto.CompletionResponse) which contains the assistant's response
+// content and any tool calls to store.
 func (b *CompletionBuilder) recordAssistantResponse(ctx context.Context, response *llm_dto.CompletionResponse) {
 	content := response.Content()
 	if content == "" {

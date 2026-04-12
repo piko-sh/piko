@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Resolves member access expressions including struct fields, methods, and embedded type navigation with full type inference.
-// Handles pointer dereferencing, method set resolution, and provides detailed diagnostics for invalid member access attempts.
+// Resolves member access expressions including struct fields, methods, and embedded type
+// navigation with full type inference. Handles pointer dereferencing, method set
+// resolution, and provides detailed diagnostics for invalid member access attempts.
 
 import (
 	"context"
@@ -44,14 +45,14 @@ import (
 //   - mapping virtual locations to original locations
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation
-// for the struct type to search.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation for the
+// struct type to search.
 // Takes propName (string) which is the name of the field to find.
-// Takes location (ast_domain.Location) which is the source location for the
-// result annotation.
+// Takes location (ast_domain.Location) which is the source location for the result
+// annotation.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the annotation for the
-// found field, or nil if not found.
+// Returns *ast_domain.GoGeneratorAnnotation which is the annotation for the found field,
+// or nil if not found.
 // Returns map[string]goast.Expr which contains any type parameters.
 // Returns bool which shows whether the field was found.
 func (tr *TypeResolver) tryResolveField(
@@ -84,17 +85,16 @@ func (tr *TypeResolver) tryResolveField(
 	return tr.buildFieldAnnotation(goCtx, ctx, baseAnn, fieldInfo, location)
 }
 
-// determineFieldLookupContext finds the package and file paths to use when
-// looking up fields.
+// determineFieldLookupContext finds the package and file paths to use when looking up
+// fields.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which describes the base
-// type being analysed.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which describes the base type being
+// analysed.
 //
 // Returns importerPackagePath (string) which is the package path to use for field
 // lookups.
-// Returns importerFilePath (string) which is the file path to use for field
-// lookups.
+// Returns importerFilePath (string) which is the file path to use for field lookups.
 func (tr *TypeResolver) determineFieldLookupContext(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -111,28 +111,22 @@ func (tr *TypeResolver) determineFieldLookupContext(
 	return importerPackagePath, importerFilePath
 }
 
-// switchContextForExternalType switches the lookup context to an external
-// package.
+// switchContextForExternalType switches the lookup context to an external package.
 //
-// This helper implements two strategies for determining the correct file
-// context:
-//  1. Find the type DTO and use its defining file (when TypeExpr is valid in
-//     canonical context)
-//  2. Use any file from the canonical package (when TypeExpr has qualifiers
-//     only valid from parent context)
+// This helper implements two strategies for determining the correct file context:
+//  1. Find the type DTO and use its defining file (when TypeExpr is valid in canonical
+//     context)
+//  2. Use any file from the canonical package (when TypeExpr has qualifiers only valid
+//     from parent context)
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which contains the
-// resolved type information for the external type.
-// Takes importerPackagePath (string) which is the package path of the importing
-// context.
-// Takes importerFilePath (string) which is the file path of the importing
-// context.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which contains the resolved type
+// information for the external type.
+// Takes importerPackagePath (string) which is the package path of the importing context.
+// Takes importerFilePath (string) which is the file path of the importing context.
 //
-// Returns newPackagePath (string) which is the package path to use for the new
-// context.
-// Returns newFilePath (string) which is the file path to use for the new
-// context.
+// Returns newPackagePath (string) which is the package path to use for the new context.
+// Returns newFilePath (string) which is the file path to use for the new context.
 func (tr *TypeResolver) switchContextForExternalType(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -187,11 +181,10 @@ func (tr *TypeResolver) switchContextForExternalType(
 	return importerPackagePath, importerFilePath
 }
 
-// findDefiningFileFromTypeData looks up a type by name in the canonical
-// package's type data and returns the file where it is defined. This handles
-// the case where external packages loaded from export data have no file
-// imports registered, but their named types still carry the defining file
-// path.
+// findDefiningFileFromTypeData looks up a type by name in the canonical package's type
+// data and returns the file where it is defined. This handles the case where external
+// packages loaded from export data have no file imports registered, but their named types
+// still carry the defining file path.
 //
 // Takes typeExpression (goast.Expr) which is the type expression to look up.
 // Takes canonicalPackagePath (string) which is the canonical package path.
@@ -217,24 +210,23 @@ func (tr *TypeResolver) findDefiningFileFromTypeData(typeExpression goast.Expr, 
 	return namedType.DefinedInFilePath
 }
 
-// resolveBaseType resolves the base type through any aliases and determines
-// the effective context.
+// resolveBaseType resolves the base type through any aliases and determines the effective
+// context.
 //
-// This helper extracts the logic of resolving type aliases and determining
-// which context (package path and file path) should be used for subsequent
-// inspector queries.
+// This helper extracts the logic of resolving type aliases and determining which context
+// (package path and file path) should be used for subsequent inspector queries.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which specifies the type
-// annotation to resolve.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which specifies the type annotation
+// to resolve.
 // Takes importerPackagePath (string) which is the package path of the caller.
 // Takes importerFilePath (string) which is the file path of the caller.
 //
 // Returns resolvedAST (goast.Expr) which is the resolved type expression.
-// Returns effectivePackagePath (string) which is the package path to use for
-// subsequent lookups.
-// Returns effectiveFilePath (string) which is the file path to use for
-// subsequent lookups.
+// Returns effectivePackagePath (string) which is the package path to use for subsequent
+// lookups.
+// Returns effectiveFilePath (string) which is the file path to use for subsequent
+// lookups.
 func (tr *TypeResolver) resolveBaseType(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -256,22 +248,21 @@ func (tr *TypeResolver) resolveBaseType(
 	return resolvedBaseTypeAST, effectivePackagePath, effectiveFilePath
 }
 
-// inspectFieldInType calls the inspector to find field information and logs
-// the result.
+// inspectFieldInType calls the inspector to find field information and logs the result.
 //
-// This helper encapsulates the inspector call and result logging, making the
-// main tryResolveField function more focused on the high-level flow.
+// This helper encapsulates the inspector call and result logging, making the main
+// tryResolveField function more focused on the high-level flow.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
-// Takes resolvedBaseTypeAST (goast.Expr) which is the resolved base type to
-// search within.
+// Takes resolvedBaseTypeAST (goast.Expr) which is the resolved base type to search
+// within.
 // Takes propName (string) which is the name of the field to find.
 // Takes effectivePackagePath (string) which is the package path for resolution.
 // Takes effectiveFilePath (string) which is the file path for resolution.
 // Takes packageAlias (string) which is the package alias for type string output.
 //
-// Returns *inspector_dto.FieldInfo which contains the field details, or nil
-// if the field is not found.
+// Returns *inspector_dto.FieldInfo which contains the field details, or nil if the field
+// is not found.
 func (tr *TypeResolver) inspectFieldInType(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -332,20 +323,19 @@ func (*TypeResolver) logAliasResolution(
 
 // buildFieldAnnotation constructs the final annotation for a resolved field.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state,
-// source paths, and logger.
-// Takes fieldInfo (*inspector_dto.FieldInfo) which contains the
-// resolved field details including type, location, and tags.
-// Takes location (ast_domain.Location) which is the source location of the
-// field access expression.
+// Takes ctx (*AnalysisContext) which provides the analysis state, source paths, and
+// logger.
+// Takes fieldInfo (*inspector_dto.FieldInfo) which contains the resolved field details
+// including type, location, and tags.
+// Takes location (ast_domain.Location) which is the source location of the field access
+// expression.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the complete
-// annotation for the field with resolved type, symbol, and
-// stringability information.
-// Returns map[string]goast.Expr which contains any generic type
-// parameter substitutions from the field's parent type.
-// Returns bool which is always true since the call only happens when
-// the field has been found.
+// Returns *ast_domain.GoGeneratorAnnotation which is the complete annotation for the
+// field with resolved type, symbol, and stringability information.
+// Returns map[string]goast.Expr which contains any generic type parameter substitutions
+// from the field's parent type.
+// Returns bool which is always true since the call only happens when the field has been
+// found.
 func (tr *TypeResolver) buildFieldAnnotation(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -399,13 +389,12 @@ func (tr *TypeResolver) buildFieldAnnotation(
 	return finalAnnotation, fieldInfo.SubstMap, true
 }
 
-// correctFieldTypeContext fixes the package path and alias for a resolved
-// field type when the original values are incorrect.
+// correctFieldTypeContext fixes the package path and alias for a resolved field type when
+// the original values are incorrect.
 //
 // Takes ctx (*AnalysisContext) which holds the analysis state and logger.
 // Takes fieldInfo (*inspector_dto.FieldInfo) which contains the field details.
-// Takes finalFieldTypeAST (goast.Expr) which is the AST node for the field
-// type.
+// Takes finalFieldTypeAST (goast.Expr) which is the AST node for the field type.
 //
 // Returns finalCanonicalPath (string) which is the fixed package path.
 // Returns finalPackageAlias (string) which is the fixed package alias.
@@ -435,8 +424,7 @@ func (tr *TypeResolver) correctFieldTypeContext(
 	return finalCanonicalPath, finalPackageAlias
 }
 
-// fieldTypeNeedsCorrection checks if the resolved field type differs from the
-// original.
+// fieldTypeNeedsCorrection checks if the resolved field type differs from the original.
 //
 // Takes finalFieldTypeAST (goast.Expr) which is the resolved type expression.
 // Takes fieldInfo (*inspector_dto.FieldInfo) which contains the original type.
@@ -446,19 +434,17 @@ func (*TypeResolver) fieldTypeNeedsCorrection(finalFieldTypeAST goast.Expr, fiel
 	return goastutil.ASTToTypeString(finalFieldTypeAST) != goastutil.ASTToTypeString(fieldInfo.Type)
 }
 
-// resolveCorrectFieldContext finds the correct package path and alias for a
-// resolved field type.
-//
-// Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes fieldInfo (*inspector_dto.FieldInfo) which describes the field being
-// resolved.
-// Takes finalFieldTypeAST (goast.Expr) which is the AST expression for the
+// resolveCorrectFieldContext finds the correct package path and alias for a resolved
 // field type.
 //
-// Returns canonicalPath (string) which is the full package path for the type,
+// Takes ctx (*AnalysisContext) which provides the analysis context.
+// Takes fieldInfo (*inspector_dto.FieldInfo) which describes the field being resolved.
+// Takes finalFieldTypeAST (goast.Expr) which is the AST expression for the field type.
+//
+// Returns canonicalPath (string) which is the full package path for the type, or empty if
+// the type cannot be resolved.
+// Returns packageAlias (string) which is the package alias used in the type expression,
 // or empty if the type cannot be resolved.
-// Returns packageAlias (string) which is the package alias used in the type
-// expression, or empty if the type cannot be resolved.
 func (tr *TypeResolver) resolveCorrectFieldContext(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -490,8 +476,8 @@ func (tr *TypeResolver) resolveCorrectFieldContext(
 // tryResolveMethod looks up a method on a type.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation
-// for the type to search.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation for the type
+// to search.
 // Takes propName (string) which is the method name to find.
 // Takes location (ast_domain.Location) which is the source location for errors.
 //
@@ -542,8 +528,7 @@ func (tr *TypeResolver) tryResolveMethod(
 	return tr.buildMethodAnnotation(ctx, baseAnn, methodInfo, propName, location), true
 }
 
-// determineMethodLookupContext determines the correct context for method
-// lookup.
+// determineMethodLookupContext determines the correct context for method lookup.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
 // Takes baseAnn (*GoGeneratorAnnotation) which contains the base type info.
@@ -577,17 +562,15 @@ func (tr *TypeResolver) determineMethodLookupContext(
 
 // buildMethodAnnotation constructs an annotation for a resolved method.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and source
-// path.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which supplies the base
-// type information to inherit.
-// Takes methodInfo (*inspector_dto.Method) which contains the method
-// definition details.
+// Takes ctx (*AnalysisContext) which provides the analysis state and source path.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which supplies the base type
+// information to inherit.
+// Takes methodInfo (*inspector_dto.Method) which contains the method definition details.
 // Takes propName (string) which specifies the property name for the symbol.
 // Takes location (ast_domain.Location) which indicates the reference location.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the constructed
-// annotation with resolved type and symbol information.
+// Returns *ast_domain.GoGeneratorAnnotation which is the constructed annotation with
+// resolved type and symbol information.
 func (tr *TypeResolver) buildMethodAnnotation(
 	ctx *AnalysisContext,
 	baseAnn *ast_domain.GoGeneratorAnnotation,
@@ -644,20 +627,17 @@ func (tr *TypeResolver) buildMethodAnnotation(
 	}
 }
 
-// handleUnknownMember creates a diagnostic for an unknown field or method
-// access.
+// handleUnknownMember creates a diagnostic for an unknown field or method access.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state for adding
-// diagnostics.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation of
-// the base expression being accessed.
+// Takes ctx (*AnalysisContext) which provides the analysis state for adding diagnostics.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation of the base
+// expression being accessed.
 // Takes propName (string) which is the name of the unknown property.
 // Takes n (*ast_domain.MemberExpression) which is the member expression node.
-// Takes location (ast_domain.Location) which is the source location for the
-// diagnostic.
+// Takes location (ast_domain.Location) which is the source location for the diagnostic.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is a fallback annotation for
-// error recovery.
+// Returns *ast_domain.GoGeneratorAnnotation which is a fallback annotation for error
+// recovery.
 func (tr *TypeResolver) handleUnknownMember(
 	goCtx context.Context,
 	ctx *AnalysisContext,
@@ -691,19 +671,17 @@ func (tr *TypeResolver) handleUnknownMember(
 	return newFallbackAnnotation()
 }
 
-// findCallSignature finds the function signature for a method call
-// expression.
+// findCallSignature finds the function signature for a method call expression.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes callee (*ast_domain.MemberExpression) which is the method
-// call expression to look up.
+// Takes callee (*ast_domain.MemberExpression) which is the method call expression to look
+// up.
 //
-// Returns *inspector_dto.FunctionSignature which is the found signature, or nil
-// if not found.
-// Returns *ast_domain.GoGeneratorAnnotation which is the base annotation from
-// the callee.
-// Returns *inspector_dto.Method which holds the method details if this is a
-// method call, or nil for package functions.
+// Returns *inspector_dto.FunctionSignature which is the found signature, or nil if not
+// found.
+// Returns *ast_domain.GoGeneratorAnnotation which is the base annotation from the callee.
+// Returns *inspector_dto.Method which holds the method details if this is a method call,
+// or nil for package functions.
 // Returns bool which is true when the signature was found.
 func (tr *TypeResolver) findCallSignature(
 	goCtx context.Context,
@@ -741,14 +719,14 @@ func (tr *TypeResolver) findCallSignature(
 // findPackageFunctionSignature looks up a function in a package.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which contains the
-// resolved package information.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which contains the resolved package
+// information.
 // Takes functionName (string) which is the name of the function to find.
 // Takes callee (*ast_domain.MemberExpression) which is the member expression being
 // resolved.
 //
-// Returns *inspector_dto.FunctionSignature which is the found signature, or
-// nil if not found.
+// Returns *inspector_dto.FunctionSignature which is the found signature, or nil if not
+// found.
 // Returns *ast_domain.GoGeneratorAnnotation which is the base annotation.
 // Returns bool which is true if the function was found.
 func (tr *TypeResolver) findPackageFunctionSignature(
@@ -779,15 +757,14 @@ func (tr *TypeResolver) findPackageFunctionSignature(
 // findMethodOnTypeSignature looks up a method on a type.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which holds the resolved
-// base type details.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which holds the resolved base type
+// details.
 // Takes methodName (string) which specifies the method to find.
 // Takes callee (*ast_domain.MemberExpression) which is the member expression being
 // resolved.
 //
 // Returns *inspector_dto.FunctionSignature which is the method signature.
-// Returns *ast_domain.GoGeneratorAnnotation which is the base annotation for
-// context.
+// Returns *ast_domain.GoGeneratorAnnotation which is the base annotation for context.
 // Returns *inspector_dto.Method which provides extra method details.
 // Returns bool which is true when the method was found.
 func (tr *TypeResolver) findMethodOnTypeSignature(
@@ -853,14 +830,12 @@ func (tr *TypeResolver) findMethodOnTypeSignature(
 	return nil, baseAnn, nil, false
 }
 
-// findFuncDeclInCurrentContext finds a function declaration in the current
-// component.
+// findFuncDeclInCurrentContext finds a function declaration in the current component.
 //
 // Takes ctx (*AnalysisContext) which provides the package context to search.
 // Takes functionName (string) which specifies the function name to find.
 //
-// Returns *goast.FuncDecl which is the matching declaration, or nil if not
-// found.
+// Returns *goast.FuncDecl which is the matching declaration, or nil if not found.
 func (tr *TypeResolver) findFuncDeclInCurrentContext(ctx *AnalysisContext, functionName string) *goast.FuncDecl {
 	if ctx == nil {
 		return nil
@@ -884,18 +859,18 @@ func (tr *TypeResolver) findFuncDeclInCurrentContext(ctx *AnalysisContext, funct
 	return nil
 }
 
-// findUnexportedFuncDeclInCurrentContext searches for an unexported function
-// with the given name in the current component's script AST.
+// findUnexportedFuncDeclInCurrentContext searches for an unexported function with the
+// given name in the current component's script AST.
 //
-// This helps provide useful error messages when users try to call unexported
-// functions from templates. Unexported functions (names starting with a
-// lowercase letter) are not registered as symbols but may exist in the source.
+// This helps provide useful error messages when users try to call unexported functions
+// from templates. Unexported functions (names starting with a lowercase letter) are not
+// registered as symbols but may exist in the source.
 //
 // Takes ctx (*AnalysisContext) which provides the package context to search.
 // Takes functionName (string) which specifies the function name to find.
 //
-// Returns *goast.FuncDecl which is the matching unexported declaration, or nil
-// if not found or if the function is exported.
+// Returns *goast.FuncDecl which is the matching unexported declaration, or nil if not
+// found or if the function is exported.
 func (tr *TypeResolver) findUnexportedFuncDeclInCurrentContext(ctx *AnalysisContext, functionName string) *goast.FuncDecl {
 	if ctx == nil {
 		return nil
@@ -919,17 +894,14 @@ func (tr *TypeResolver) findUnexportedFuncDeclInCurrentContext(ctx *AnalysisCont
 	return nil
 }
 
-// parseSignatureFromFuncDecl extracts a function signature from a Go AST
-// function declaration.
+// parseSignatureFromFuncDecl extracts a function signature from a Go AST function
+// declaration.
 //
-// Takes functionDeclaration (*goast.FuncDecl) which is the function
-// declaration to parse.
-// Takes ctx (*AnalysisContext) which provides the current package
-// context.
+// Takes functionDeclaration (*goast.FuncDecl) which is the function declaration to parse.
+// Takes ctx (*AnalysisContext) which provides the current package context.
 //
-// Returns *inspector_dto.FunctionSignature which contains the parsed
-// parameter and return types, or nil if functionDeclaration or
-// functionDeclaration.Type is nil.
+// Returns *inspector_dto.FunctionSignature which contains the parsed parameter and return
+// types, or nil if functionDeclaration or functionDeclaration.Type is nil.
 func (*TypeResolver) parseSignatureFromFuncDecl(functionDeclaration *goast.FuncDecl, ctx *AnalysisContext) *inspector_dto.FunctionSignature {
 	if functionDeclaration == nil || functionDeclaration.Type == nil {
 		return nil
@@ -949,14 +921,13 @@ func isUnexportedName(name string) bool {
 	return len(name) > 0 && name[0] >= 'a' && name[0] <= 'z'
 }
 
-// matchUnexportedFuncDecl checks if a declaration is a matching unexported
-// function.
+// matchUnexportedFuncDecl checks if a declaration is a matching unexported function.
 //
 // Takes declaration (goast.Decl) which is the declaration to check.
 // Takes functionName (string) which is the function name to match.
 //
-// Returns *goast.FuncDecl which is the matching function, or nil if the
-// declaration is not a function, is a method, or has a different name.
+// Returns *goast.FuncDecl which is the matching function, or nil if the declaration is
+// not a function, is a method, or has a different name.
 func matchUnexportedFuncDecl(declaration goast.Decl, functionName string) *goast.FuncDecl {
 	functionDeclaration, isFunc := declaration.(*goast.FuncDecl)
 	if !isFunc {

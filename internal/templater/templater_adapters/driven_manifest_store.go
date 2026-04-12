@@ -41,30 +41,30 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// routeType groups route patterns by how specific they are.
-// Static routes are most specific, then dynamic segments, then catch-alls.
+// routeType groups route patterns by how specific they are. Static routes are most
+// specific, then dynamic segments, then catch-alls.
 type routeType int
 
 const (
-	// routeTypeStatic represents routes with no dynamic segments (e.g., "/docs",
-	// "/about").
+	// routeTypeStatic represents routes with no dynamic segments (e.g., "/docs", "/about").
 	routeTypeStatic routeType = iota
 
-	// routeTypeDynamic represents routes with dynamic segments (e.g.,
-	// "/docs/{id}").
+	// routeTypeDynamic represents routes with dynamic segments (e.g., "/docs/{id}").
 	routeTypeDynamic
 
 	// routeTypeCatchAll represents catch-all routes (e.g., "/docs/{path}*").
 	routeTypeCatchAll
 )
 
-// pathSeparator is the separator used between path segments.
-const pathSeparator = "/"
+const (
+	// pathSeparator is the separator used between path segments.
+	pathSeparator = "/"
+)
 
-// ManifestStore is the runtime representation of the compiled manifest.
-// It implements ManifestStoreView and loads static data from a provider
-// (JSON or FlatBuffers), dynamically linking it with the live function
-// pointers registered by the compiled components' init() functions.
+// ManifestStore is the runtime representation of the compiled manifest. It implements
+// ManifestStoreView and loads static data from a provider (JSON or FlatBuffers),
+// dynamically linking it with the live function pointers registered by the compiled
+// components' init() functions.
 type ManifestStore struct {
 	// registry provides template functions; uses the global registry if nil.
 	registry templater_domain.FunctionRegistry
@@ -81,35 +81,35 @@ type ManifestStore struct {
 	// pdfs maps PDF template paths to their page entries.
 	pdfs map[string]*PageEntry
 
-	// errorPages maps HTTP status codes to sorted lists of error page entries.
-	// Each list is sorted by scope specificity (longest ScopePath first) so
-	// the most specific error page for a request path is found first.
+	// errorPages maps HTTP status codes to sorted lists of error page entries. Each list is
+	// sorted by scope specificity (longest ScopePath first) so the most specific error page
+	// for a request path is found first.
 	errorPages map[int][]*errorPageEntry
 
-	// rangeErrorPages holds range-based error pages (e.g., !400-499.pk).
-	// Sorted by scope specificity (longest ScopePath first).
+	// rangeErrorPages holds range-based error pages (e.g., !400-499.pk). Sorted by scope
+	// specificity (longest ScopePath first).
 	rangeErrorPages []*rangeErrorPageEntry
 
-	// catchAllErrorPages holds catch-all error pages (!error.pk).
-	// Sorted by scope specificity (longest ScopePath first).
+	// catchAllErrorPages holds catch-all error pages (!error.pk). Sorted by scope
+	// specificity (longest ScopePath first).
 	catchAllErrorPages []*errorPageEntry
 
-	// jsArtefactToPartialName maps JS artefact IDs to their partial names,
-	// enabling the frontend to scope partial JS functions by their friendly
-	// partial name (e.g., "modal-wrapper") rather than the hashed ID. Only
-	// populated for partials that have JS scripts.
+	// jsArtefactToPartialName maps JS artefact IDs to their partial names, enabling the
+	// frontend to scope partial JS functions by their friendly partial name (e.g.,
+	// "modal-wrapper") rather than the hashed ID. Only populated for partials that have JS
+	// scripts.
 	jsArtefactToPartialName map[string]string
 
-	// baseDir is the project root folder used to build full paths from relative
-	// paths in runtime error messages.
+	// baseDir is the project root folder used to build full paths from relative paths in
+	// runtime error messages.
 	baseDir string
 
 	// keys holds all template keys sorted by route specificity.
 	keys []string
 }
 
-// errorPageEntry pairs an error page's scope path with its linked PageEntry
-// for runtime rendering.
+// errorPageEntry pairs an error page's scope path with its linked PageEntry for runtime
+// rendering.
 type errorPageEntry struct {
 	// pageEntry is the linked page entry used for rendering.
 	pageEntry *PageEntry
@@ -129,50 +129,48 @@ type rangeErrorPageEntry struct {
 	statusCodeMax int
 }
 
-// ErrorPageDispatch holds the routing metadata for an error page entry.
-// It is set on PageEntry when the entry originates from an error page
-// (!NNN.pk, !NNN-NNN.pk, or !error.pk) so the interpreted store can
-// look the entry up by status code and scope without a parallel
-// indexing structure.
+// ErrorPageDispatch holds the routing metadata for an error page entry. It is set on
+// PageEntry when the entry originates from an error page (!NNN.pk, !NNN-NNN.pk, or
+// !error.pk) so the interpreted store can look the entry up by status code and scope
+// without a parallel indexing structure.
 type ErrorPageDispatch struct {
-	// ScopePath is the URL path prefix this error page covers, derived
-	// from the directory the error page lives in relative to pages/.
+	// ScopePath is the URL path prefix this error page covers, derived from the directory
+	// the error page lives in relative to pages/.
 	ScopePath string
 
-	// StatusCode is the exact HTTP status code the page handles
-	// (non-zero only for exact !NNN.pk entries).
+	// StatusCode is the exact HTTP status code the page handles (non-zero only for exact
+	// !NNN.pk entries).
 	StatusCode int
 
-	// StatusCodeMin is the lower bound of a range error page
-	// (non-zero only for !NNN-NNN.pk entries).
+	// StatusCodeMin is the lower bound of a range error page (non-zero only for !NNN-NNN.pk
+	// entries).
 	StatusCodeMin int
 
-	// StatusCodeMax is the upper bound of a range error page
-	// (non-zero only for !NNN-NNN.pk entries).
+	// StatusCodeMax is the upper bound of a range error page (non-zero only for !NNN-NNN.pk
+	// entries).
 	StatusCodeMax int
 
 	// IsCatchAll is true for !error.pk pages that handle every status.
 	IsCatchAll bool
 }
 
-// PageEntry is the concrete, in-memory implementation of the PageEntryView
-// interface. It holds both the static data loaded from the manifest file and
-// the dynamic function pointers retrieved from the runtime registry.
+// PageEntry is the concrete, in-memory implementation of the PageEntryView interface. It
+// holds both the static data loaded from the manifest file and the dynamic function
+// pointers retrieved from the runtime registry.
 type PageEntry struct {
 	// ModTime is when the page was last modified.
 	ModTime time.Time
 
-	// ErrorDispatch carries error page routing metadata when the entry
-	// originates from a !NNN.pk/!NNN-NNN.pk/!error.pk file; nil for
-	// regular pages and partials.
+	// ErrorDispatch carries error page routing metadata when the entry originates from a
+	// !NNN.pk/!NNN-NNN.pk/!error.pk file; nil for regular pages and partials.
 	ErrorDispatch *ErrorPageDispatch
 
-	// registry is the function registry used to look up compiled functions.
-	// It is injected from the ManifestStore; nil uses the default registry.
+	// registry is the function registry used to look up compiled functions. It is injected
+	// from the ManifestStore; nil uses the default registry.
 	registry templater_domain.FunctionRegistry
 
-	// astFunc holds the compiled AST builder for this component, set by LinkFuncs
-	// or SetASTFunc.
+	// astFunc holds the compiled AST builder for this component, set by LinkFuncs or
+	// SetASTFunc.
 	astFunc templater_domain.ASTFunc
 
 	// cachePolicyFunc returns the cache policy for a given request.
@@ -191,42 +189,44 @@ type PageEntry struct {
 	previewFunc templater_domain.PreviewFunc
 
 	// jsArtefactToPartialName maps JS artefact IDs to partial names. Used by
-	// GetJSScriptMetas for frontend function scoping; an empty string means a
-	// page-level script.
+	// GetJSScriptMetas for frontend function scoping; an empty string means a page-level
+	// script.
 	jsArtefactToPartialName map[string]string
 
-	// localStore holds the pre-built translation Store for this page's local
-	// translations, built once at manifest load time from LocalTranslations.
+	// localStore holds the pre-built translation Store for this page's local translations,
+	// built once at manifest load time from LocalTranslations.
 	localStore *i18n_domain.Store
 
-	// baseDir is the project root folder used to make relative paths into full
-	// paths when showing runtime errors.
+	// baseDir is the project root folder used to make relative paths into full paths when
+	// showing runtime errors.
 	baseDir string
 
-	// cachedJSScriptMetas holds pre-computed JS script metadata to avoid
-	// per-request allocations. Computed once during manifest loading.
+	// cachedJSScriptMetas holds pre-computed JS script metadata to avoid per-request
+	// allocations. Computed once during manifest loading.
 	cachedJSScriptMetas []templater_dto.JSScriptMeta
 
 	// ManifestPageEntry contains static metadata loaded from the manifest file.
 	generator_dto.ManifestPageEntry
 
-	// cachedStaticMetadata holds pre-computed static metadata (AssetRefs,
-	// CustomTags, SupportedLocales) to avoid per-request allocations.
+	// cachedStaticMetadata holds pre-computed static metadata (AssetRefs, CustomTags,
+	// SupportedLocales) to avoid per-request allocations.
 	cachedStaticMetadata templater_dto.InternalMetadata
 }
 
-var _ templater_domain.ManifestStoreView = (*ManifestStore)(nil)
+var (
+	_ templater_domain.ManifestStoreView = (*ManifestStore)(nil)
 
-var _ templater_domain.PageEntryView = (*PageEntry)(nil)
+	_ templater_domain.PageEntryView = (*PageEntry)(nil)
+)
 
 // ManifestStoreOption is a function type that sets options for a ManifestStore.
 type ManifestStoreOption func(*ManifestStore)
 
 // NewManifestStore creates a runtime manifest store from the given provider.
 //
-// It loads the manifest data, then links that data to the registered
-// functions. Static routes are sorted before dynamic routes to ensure
-// exact matches take precedence over pattern matches.
+// It loads the manifest data, then links that data to the registered functions. Static
+// routes are sorted before dynamic routes to ensure exact matches take precedence over
+// pattern matches.
 //
 // Optional configuration can be provided via functional options:
 //   - withRegistry: Inject a custom registry (useful for testing)
@@ -268,12 +268,11 @@ func NewManifestStore(ctx context.Context, provider generator_domain.ManifestPro
 	return store, nil
 }
 
-// warnUnlinkedPages checks whether any pages failed to link their AST
-// functions from the runtime registry and logs a diagnostic warning.
-// If the registry is entirely empty it hints at a missing dist import.
+// warnUnlinkedPages checks whether any pages failed to link their AST functions from the
+// runtime registry and logs a diagnostic warning. If the registry is entirely empty it
+// hints at a missing dist import.
 //
-// Takes store (*ManifestStore) which is the manifest store to inspect for
-// unlinked pages.
+// Takes store (*ManifestStore) which is the manifest store to inspect for unlinked pages.
 func warnUnlinkedPages(store *ManifestStore) {
 	var unlinked []string
 	for key, entry := range store.pages {
@@ -314,10 +313,9 @@ func warnUnlinkedPages(store *ManifestStore) {
 	}
 }
 
-// FindErrorPage looks up the most specific error page for the given
-// HTTP status code and request path, using a three-tier fallback chain
-// (exact match, range match, catch-all) where the longest matching
-// ScopePath takes priority within each tier.
+// FindErrorPage looks up the most specific error page for the given HTTP status code and
+// request path, using a three-tier fallback chain (exact match, range match, catch-all)
+// where the longest matching ScopePath takes priority within each tier.
 //
 // Takes statusCode (int) which is the HTTP status code to find a page for.
 // Takes requestPath (string) which is the URL path being requested.
@@ -334,8 +332,8 @@ func (s *ManifestStore) FindErrorPage(statusCode int, requestPath string) (templ
 	return s.findCatchAllErrorPage(requestPath)
 }
 
-// LinkFuncs connects a static manifest entry to the compiled functions that
-// were registered during the application's init phase. Exported so that
+// LinkFuncs connects a static manifest entry to the compiled functions that were
+// registered during the application's init phase. Exported so that
 // InterpretedBuildOrchestrator can call it.
 func (pe *PageEntry) LinkFuncs() {
 	registry := pe.registry
@@ -353,109 +351,105 @@ func (pe *PageEntry) LinkFuncs() {
 	pe.initialiseCachedStaticMetadata()
 }
 
-// InitialiseCachedMetadata rebuilds the pre-computed JS script metadata and
-// static metadata caches.
+// InitialiseCachedMetadata rebuilds the pre-computed JS script metadata and static
+// metadata caches.
 //
-// Call after linking functions from a registry when LinkFuncs is not used
-// (e.g. the JIT interpreted build path). The supportedLocalesFunc must be set
-// before calling because initialiseCachedStaticMetadata invokes it.
+// Call after linking functions from a registry when LinkFuncs is not used (e.g. the JIT
+// interpreted build path). The supportedLocalesFunc must be set before calling because
+// initialiseCachedStaticMetadata invokes it.
 func (pe *PageEntry) InitialiseCachedMetadata() {
 	pe.initialiseCachedJSScriptMetas()
 	pe.initialiseCachedStaticMetadata()
 }
 
-// SetBaseDir sets the project root directory used to build full paths from
-// relative paths in runtime error diagnostics.
+// SetBaseDir sets the project root directory used to build full paths from relative paths
+// in runtime error diagnostics.
 //
 // Takes dir (string) which specifies the project root directory path.
 func (pe *PageEntry) SetBaseDir(dir string) {
 	pe.baseDir = dir
 }
 
-// SetJSArtefactToPartialNameMap sets the shared mapping from JS artefact IDs
-// to partial names. This is used by initialiseCachedJSScriptMetas to populate
-// the PartialName field for frontend function scoping.
+// SetJSArtefactToPartialNameMap sets the shared mapping from JS artefact IDs to partial
+// names. This is used by initialiseCachedJSScriptMetas to populate the PartialName field
+// for frontend function scoping.
 //
 // Takes m (map[string]string) which maps artefact IDs to partial names.
 func (pe *PageEntry) SetJSArtefactToPartialNameMap(m map[string]string) {
 	pe.jsArtefactToPartialName = m
 }
 
-// InitialiseLocalStore builds the pre-computed translation store from
-// LocalTranslations if any are present. This must be called during entry
-// setup for pages and emails that use component-scoped i18n.
+// InitialiseLocalStore builds the pre-computed translation store from LocalTranslations
+// if any are present. This must be called during entry setup for pages and emails that
+// use component-scoped i18n.
 func (pe *PageEntry) InitialiseLocalStore() {
 	if len(pe.LocalTranslations) > 0 {
 		pe.localStore = i18n_domain.NewStoreFromTranslations(pe.LocalTranslations, "")
 	}
 }
 
-// GetStaticMetadata returns a pointer to the pre-computed static metadata.
-// This avoids per-request allocations for probe operations.
+// GetStaticMetadata returns a pointer to the pre-computed static metadata. This avoids
+// per-request allocations for probe operations.
 //
-// Returns *templater_dto.InternalMetadata which contains the cached static
-// metadata. The caller MUST NOT modify this data.
+// Returns *templater_dto.InternalMetadata which contains the cached static metadata. The
+// caller MUST NOT modify this data.
 func (pe *PageEntry) GetStaticMetadata() *templater_dto.InternalMetadata {
 	return &pe.cachedStaticMetadata
 }
 
 // SetASTFunc sets the function used to build the AST.
 //
-// Takes registryFunction (templater_domain.ASTFunc) which is the
-// function to build the AST.
+// Takes registryFunction (templater_domain.ASTFunc) which is the function to build the
+// AST.
 func (pe *PageEntry) SetASTFunc(registryFunction templater_domain.ASTFunc) {
 	pe.astFunc = registryFunction
 }
 
 // SetCachePolicyFunc sets the cache policy function for this page entry.
 //
-// Takes registryFunction (CachePolicyFunc) which specifies the cache
-// policy to apply.
+// Takes registryFunction (CachePolicyFunc) which specifies the cache policy to apply.
 func (pe *PageEntry) SetCachePolicyFunc(registryFunction templater_domain.CachePolicyFunc) {
 	pe.cachePolicyFunc = registryFunction
 }
 
 // SetMiddlewareFunc sets the middleware function pointer directly.
 //
-// Takes registryFunction (MiddlewareFunc) which provides the
-// middleware handling logic.
+// Takes registryFunction (MiddlewareFunc) which provides the middleware handling logic.
 func (pe *PageEntry) SetMiddlewareFunc(registryFunction templater_domain.MiddlewareFunc) {
 	pe.middlewareFunc = registryFunction
 }
 
 // SetSupportedLocalesFunc sets the function used to look up supported locales.
 //
-// Takes registryFunction (SupportedLocalesFunc) which provides the
-// locale lookup function.
+// Takes registryFunction (SupportedLocalesFunc) which provides the locale lookup
+// function.
 func (pe *PageEntry) SetSupportedLocalesFunc(registryFunction templater_domain.SupportedLocalesFunc) {
 	pe.supportedLocalesFunc = registryFunction
 }
 
 // GetASTRoot executes the compiled BuildAST function for the component.
 //
-// If the function was not found in the registry, it returns a diagnostic AST
-// to display the error.
+// If the function was not found in the registry, it returns a diagnostic AST to display
+// the error.
 //
-// Takes r (*templater_dto.RequestData) which provides the request context for
-// AST generation.
+// Takes r (*templater_dto.RequestData) which provides the request context for AST
+// generation.
 //
 // Returns *ast_domain.TemplateAST which is the generated AST for the component.
-// Returns templater_dto.InternalMetadata which contains metadata from the AST
-// function.
+// Returns templater_dto.InternalMetadata which contains metadata from the AST function.
 func (pe *PageEntry) GetASTRoot(r *templater_dto.RequestData) (*ast_domain.TemplateAST, templater_dto.InternalMetadata) {
 	return pe.GetASTRootWithProps(r, nil)
 }
 
-// GetASTRootWithProps executes the compiled BuildAST function with the
-// provided props data.
+// GetASTRootWithProps executes the compiled BuildAST function with the provided props
+// data.
 //
 // Takes r (*templater_dto.RequestData) which provides the request context.
 // Takes props (any) which contains the properties to pass to the AST function.
 //
-// Returns *ast_domain.TemplateAST which is the generated template AST, or an
-// error AST if the function is not registered.
-// Returns templater_dto.InternalMetadata which contains metadata from the AST
-// generation.
+// Returns *ast_domain.TemplateAST which is the generated template AST, or an error AST if
+// the function is not registered.
+// Returns templater_dto.InternalMetadata which contains metadata from the AST generation.
 func (pe *PageEntry) GetASTRootWithProps(r *templater_dto.RequestData, props any) (*ast_domain.TemplateAST, templater_dto.InternalMetadata) {
 	if pe.astFunc == nil {
 		registry := pe.registry
@@ -492,16 +486,16 @@ func (pe *PageEntry) GetASTRootWithProps(r *templater_dto.RequestData, props any
 	return ast, metadata
 }
 
-// GetKeys returns a sorted list of all known component paths, including both
-// pages and partials.
+// GetKeys returns a sorted list of all known component paths, including both pages and
+// partials.
 //
 // Returns []string which contains the component paths in sorted order.
 func (s *ManifestStore) GetKeys() []string {
 	return s.keys
 }
 
-// GetPageEntry provides a unified lookup for pages, partials, and emails
-// by their original source path.
+// GetPageEntry provides a unified lookup for pages, partials, and emails by their
+// original source path.
 //
 // Takes path (string) which is the original source path to look up.
 //
@@ -523,8 +517,7 @@ func (s *ManifestStore) GetPageEntry(path string) (templater_domain.PageEntryVie
 	return nil, false
 }
 
-// GetIsPage determines if the entry is a page or a partial based on its
-// route patterns.
+// GetIsPage determines if the entry is a page or a partial based on its route patterns.
 //
 // Returns bool which is true if the entry is a page, false if it is a partial.
 func (pe *PageEntry) GetIsPage() bool {
@@ -545,8 +538,8 @@ func (pe *PageEntry) GetCachePolicy(r *templater_dto.RequestData) templater_dto.
 
 // GetMiddlewares executes the compiled Middlewares function for the component.
 //
-// Returns []func(http.Handler) http.Handler which contains the middleware chain
-// for this page entry.
+// Returns []func(http.Handler) http.Handler which contains the middleware chain for this
+// page entry.
 func (pe *PageEntry) GetMiddlewares() []func(http.Handler) http.Handler {
 	return pe.middlewareFunc()
 }
@@ -625,8 +618,8 @@ func (pe *PageEntry) GetHasPreview() bool {
 
 // GetPreviewScenarios returns the preview scenarios for this component.
 //
-// Returns []templater_dto.PreviewScenario which contains the scenarios, or nil
-// if no Preview function is defined.
+// Returns []templater_dto.PreviewScenario which contains the scenarios, or nil if no
+// Preview function is defined.
 func (pe *PageEntry) GetPreviewScenarios() []templater_dto.PreviewScenario {
 	if pe.previewFunc == nil {
 		return nil
@@ -637,22 +630,21 @@ func (pe *PageEntry) GetPreviewScenarios() []templater_dto.PreviewScenario {
 // GetLocalStore returns the pre-built translation Store for this page's local
 // translations. Returns nil if the page has no local translations.
 //
-// Returns *i18n_domain.Store which provides pre-parsed, zero-allocation lookups
-// for component-scoped translations.
+// Returns *i18n_domain.Store which provides pre-parsed, zero-allocation lookups for
+// component-scoped translations.
 func (pe *PageEntry) GetLocalStore() *i18n_domain.Store {
 	return pe.localStore
 }
 
-// GetJSScriptMetas returns metadata for all client-side JavaScript modules
-// needed by this page.
+// GetJSScriptMetas returns metadata for all client-side JavaScript modules needed by this
+// page.
 //
-// This includes the page's own script plus scripts from all embedded partials.
-// Each artefact ID is resolved to the standard asset serving URL pattern.
-// Partial scripts include their friendly partial name for frontend function
-// scoping.
+// This includes the page's own script plus scripts from all embedded partials. Each
+// artefact ID is resolved to the standard asset serving URL pattern. Partial scripts
+// include their friendly partial name for frontend function scoping.
 //
-// Returns []templater_dto.JSScriptMeta which contains script URLs and partial
-// names, or nil if there are no scripts.
+// Returns []templater_dto.JSScriptMeta which contains script URLs and partial names, or
+// nil if there are no scripts.
 func (pe *PageEntry) GetJSScriptMetas() []templater_dto.JSScriptMeta {
 	return pe.cachedJSScriptMetas
 }
@@ -666,8 +658,8 @@ func (pe *PageEntry) GetOriginalPath() string {
 
 // GetRoutePattern returns the first route pattern from RoutePatterns.
 //
-// This is primarily used for partials (which have a single pattern) and for
-// logging. For pages with i18n routing, use GetRoutePatterns instead.
+// This is primarily used for partials (which have a single pattern) and for logging. For
+// pages with i18n routing, use GetRoutePatterns instead.
 //
 // Returns string which is the first route pattern, or empty if none exist.
 func (pe *PageEntry) GetRoutePattern() string {
@@ -677,8 +669,7 @@ func (pe *PageEntry) GetRoutePattern() string {
 	return ""
 }
 
-// GetRoutePatterns returns the full map of route patterns with their locale
-// keys.
+// GetRoutePatterns returns the full map of route patterns with their locale keys.
 //
 // Returns map[string]string which maps locale keys to their route patterns.
 func (pe *PageEntry) GetRoutePatterns() map[string]string {
@@ -692,33 +683,32 @@ func (pe *PageEntry) GetI18nStrategy() string {
 	return pe.I18nStrategy
 }
 
-// GetMiddlewareFuncName returns the original name of the middleware function,
-// used for runtime logging, debugging, and observability.
+// GetMiddlewareFuncName returns the original name of the middleware function, used for
+// runtime logging, debugging, and observability.
 //
 // Returns string which is the middleware function name from the manifest.
 func (pe *PageEntry) GetMiddlewareFuncName() string {
 	return pe.MiddlewareFuncName
 }
 
-// GetCachePolicyFuncName returns the original name of the cache policy
-// function, useful for runtime logging and debugging.
+// GetCachePolicyFuncName returns the original name of the cache policy function, useful
+// for runtime logging and debugging.
 //
 // Returns string which is the function name from the manifest.
 func (pe *PageEntry) GetCachePolicyFuncName() string {
 	return pe.CachePolicyFuncName
 }
 
-// GetIsE2EOnly reports whether this entry is from the e2e/ directory.
-// E2E components are only served when Build.E2EMode is enabled at runtime.
+// GetIsE2EOnly reports whether this entry is from the e2e/ directory. E2E components are
+// only served when Build.E2EMode is enabled at runtime.
 //
 // Returns bool which is true if this is an E2E-only component.
 func (pe *PageEntry) GetIsE2EOnly() bool {
 	return pe.IsE2EOnly
 }
 
-// initialiseCachedJSScriptMetas pre-computes JS script
-// metadata once during manifest load to avoid per-request
-// allocations.
+// initialiseCachedJSScriptMetas pre-computes JS script metadata once during manifest load
+// to avoid per-request allocations.
 func (pe *PageEntry) initialiseCachedJSScriptMetas() {
 	ids := pe.JSArtefactIDs
 	if len(ids) == 0 {
@@ -733,8 +723,8 @@ func (pe *PageEntry) initialiseCachedJSScriptMetas() {
 	}
 }
 
-// initialiseCachedStaticMetadata pre-computes static metadata once during manifest
-// load to avoid per-request struct allocations in ProbePage/ProbePartial.
+// initialiseCachedStaticMetadata pre-computes static metadata once during manifest load
+// to avoid per-request struct allocations in ProbePage/ProbePartial.
 func (pe *PageEntry) initialiseCachedStaticMetadata() {
 	pe.cachedStaticMetadata = templater_dto.InternalMetadata{
 		AssetRefs:        pe.AssetRefs,
@@ -744,9 +734,9 @@ func (pe *PageEntry) initialiseCachedStaticMetadata() {
 	}
 }
 
-// WithBaseDir sets the project root directory for the manifest store.
-// Used to build full paths from relative paths in runtime diagnostics, making
-// error messages easier to use for IDE navigation.
+// WithBaseDir sets the project root directory for the manifest store. Used to build full
+// paths from relative paths in runtime diagnostics, making error messages easier to use
+// for IDE navigation.
 //
 // Takes baseDir (string) which specifies the project root directory path.
 //
@@ -757,8 +747,8 @@ func WithBaseDir(baseDir string) ManifestStoreOption {
 	}
 }
 
-// withRegistry sets a custom function registry, mainly for testing.
-// If not set, the store uses the global default registry.
+// withRegistry sets a custom function registry, mainly for testing. If not set, the store
+// uses the global default registry.
 //
 // Takes registry (FunctionRegistry) which provides the custom registry to use.
 //
@@ -772,8 +762,8 @@ func withRegistry(registry templater_domain.FunctionRegistry) ManifestStoreOptio
 // processPages loads and links all page entries from the manifest.
 //
 // Takes store (*ManifestStore) which receives the processed page entries.
-// Takes pages (map[string]generator_dto.ManifestPageEntry) which contains the
-// raw manifest page data to process.
+// Takes pages (map[string]generator_dto.ManifestPageEntry) which contains the raw
+// manifest page data to process.
 func processPages(store *ManifestStore, pages map[string]generator_dto.ManifestPageEntry) {
 	for key := range pages {
 		pageData := pages[key]
@@ -797,16 +787,15 @@ func processPages(store *ManifestStore, pages map[string]generator_dto.ManifestP
 	}
 }
 
-// processPartials loads and links all partial entries, adapting them to the
-// PageEntry structure.
+// processPartials loads and links all partial entries, adapting them to the PageEntry
+// structure.
 //
-// Partials use single-pattern routing with query-only locale detection. This
-// function also builds the jsArtefactToPartialName mapping for frontend
-// function scoping.
+// Partials use single-pattern routing with query-only locale detection. processPartials
+// also builds the jsArtefactToPartialName mapping for frontend function scoping.
 //
 // Takes store (*ManifestStore) which receives the processed partial entries.
-// Takes partials (map[string]generator_dto.ManifestPartialEntry) which
-// provides the raw partial data to process.
+// Takes partials (map[string]generator_dto.ManifestPartialEntry) which provides the raw
+// partial data to process.
 func processPartials(store *ManifestStore, partials map[string]generator_dto.ManifestPartialEntry) {
 	for key, partialData := range partials {
 		if partialData.JSArtefactID != "" {
@@ -846,8 +835,8 @@ func processPartials(store *ManifestStore, partials map[string]generator_dto.Man
 	}
 }
 
-// localisableManifestData holds the fields shared between email and PDF
-// manifest entries, used to avoid duplicating PageEntry construction logic.
+// localisableManifestData holds the fields shared between email and PDF manifest entries,
+// used to avoid duplicating PageEntry construction logic.
 type localisableManifestData struct {
 	// localTranslations holds the per-locale translation key-value pairs.
 	localTranslations i18n_domain.Translations
@@ -868,8 +857,8 @@ type localisableManifestData struct {
 	hasPreview bool
 }
 
-// buildLocalisablePageEntry constructs a PageEntry from the common fields of
-// email and PDF manifest entries.
+// buildLocalisablePageEntry constructs a PageEntry from the common fields of email and
+// PDF manifest entries.
 //
 // Takes store (*ManifestStore) which provides the registry and base directory.
 // Takes data (localisableManifestData) which holds the shared entry fields.
@@ -893,12 +882,12 @@ func buildLocalisablePageEntry(store *ManifestStore, data localisableManifestDat
 	return entry
 }
 
-// processEmails loads and links all email entries, adapting them to the
-// PageEntry structure.
+// processEmails loads and links all email entries, adapting them to the PageEntry
+// structure.
 //
 // Takes store (*ManifestStore) which receives the processed email entries.
-// Takes emails (map[string]generator_dto.ManifestEmailEntry) which provides
-// the raw email manifest data to process.
+// Takes emails (map[string]generator_dto.ManifestEmailEntry) which provides the raw email
+// manifest data to process.
 func processEmails(store *ManifestStore, emails map[string]generator_dto.ManifestEmailEntry) {
 	for key, emailData := range emails {
 		entry := buildLocalisablePageEntry(store, localisableManifestData{
@@ -914,12 +903,11 @@ func processEmails(store *ManifestStore, emails map[string]generator_dto.Manifes
 	}
 }
 
-// processPdfs loads and links all PDF entries, adapting them to the
-// PageEntry structure.
+// processPdfs loads and links all PDF entries, adapting them to the PageEntry structure.
 //
 // Takes store (*ManifestStore) which receives the processed PDF entries.
-// Takes pdfs (map[string]generator_dto.ManifestPdfEntry) which provides
-// the raw PDF manifest data to process.
+// Takes pdfs (map[string]generator_dto.ManifestPdfEntry) which provides the raw PDF
+// manifest data to process.
 func processPdfs(store *ManifestStore, pdfs map[string]generator_dto.ManifestPdfEntry) {
 	for key, pdfData := range pdfs {
 		entry := buildLocalisablePageEntry(store, localisableManifestData{
@@ -935,11 +923,11 @@ func processPdfs(store *ManifestStore, pdfs map[string]generator_dto.ManifestPdf
 	}
 }
 
-// ListPreviewEntries returns all manifest entries that have a Preview function
-// defined, sorted by source path.
+// ListPreviewEntries returns all manifest entries that have a Preview function defined,
+// sorted by source path.
 //
-// Returns []templater_domain.PreviewCatalogueEntry which contains the filtered
-// and sorted preview entries.
+// Returns []templater_domain.PreviewCatalogueEntry which contains the filtered and sorted
+// preview entries.
 func (s *ManifestStore) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
 	var entries []templater_domain.PreviewCatalogueEntry
 
@@ -969,8 +957,8 @@ func (s *ManifestStore) ListPreviewEntries() []templater_domain.PreviewCatalogue
 	return entries
 }
 
-// findExactErrorPage searches for an error page matching the exact status code
-// and request path scope.
+// findExactErrorPage searches for an error page matching the exact status code and
+// request path scope.
 //
 // Takes statusCode (int) which is the HTTP status code to match.
 // Takes requestPath (string) which is the URL path being requested.
@@ -990,8 +978,8 @@ func (s *ManifestStore) findExactErrorPage(statusCode int, requestPath string) (
 	return nil, false
 }
 
-// findRangeErrorPage searches for an error page whose status code range
-// contains the given code and whose scope path matches the request path.
+// findRangeErrorPage searches for an error page whose status code range contains the
+// given code and whose scope path matches the request path.
 //
 // Takes statusCode (int) which is the HTTP status code to match.
 // Takes requestPath (string) which is the URL path being requested.
@@ -1009,8 +997,8 @@ func (s *ManifestStore) findRangeErrorPage(statusCode int, requestPath string) (
 	return nil, false
 }
 
-// findCatchAllErrorPage searches for a catch-all error page whose scope path
-// matches the request path.
+// findCatchAllErrorPage searches for a catch-all error page whose scope path matches the
+// request path.
 //
 // Takes requestPath (string) which is the URL path being requested.
 //
@@ -1025,13 +1013,13 @@ func (s *ManifestStore) findCatchAllErrorPage(requestPath string) (templater_dom
 	return nil, false
 }
 
-// processErrorPages loads and links error page entries from the manifest.
-// Error pages are grouped by status code and sorted by scope specificity
-// (longest scope path first) so the most specific error page is matched.
+// processErrorPages loads and links error page entries from the manifest. Error pages are
+// grouped by status code and sorted by scope specificity (longest scope path first) so
+// the most specific error page is matched.
 //
 // Takes store (*ManifestStore) which receives the processed error page entries.
-// Takes errorPages (map[string]generator_dto.ManifestErrorPageEntry) which
-// contains the raw error page data to process.
+// Takes errorPages (map[string]generator_dto.ManifestErrorPageEntry) which contains the
+// raw error page data to process.
 func processErrorPages(store *ManifestStore, errorPages map[string]generator_dto.ManifestErrorPageEntry) {
 	for key := range errorPages {
 		epData := errorPages[key]
@@ -1085,15 +1073,13 @@ func processErrorPages(store *ManifestStore, errorPages map[string]generator_dto
 	})
 }
 
-// partialJSArtefactIDsToSlice converts a single JS artefact ID to a slice. This
-// handles the partial manifest entry format where partials have a single
-// JSArtefactID field that needs to be converted to the unified JSArtefactIDs
-// slice.
+// partialJSArtefactIDsToSlice converts a single JS artefact ID to a slice. This handles
+// the partial manifest entry format where partials have a single JSArtefactID field that
+// needs to be converted to the unified JSArtefactIDs slice.
 //
 // Takes id (string) which is the JS artefact ID, or empty if no script exists.
 //
-// Returns []string which contains the ID as a single-element slice, or nil if
-// empty.
+// Returns []string which contains the ID as a single-element slice, or nil if empty.
 func partialJSArtefactIDsToSlice(id string) []string {
 	if id == "" {
 		return nil
@@ -1101,17 +1087,16 @@ func partialJSArtefactIDsToSlice(id string) []string {
 	return []string{id}
 }
 
-// sortKeysByRouteSpecificity sorts manifest keys so that static routes come
-// before dynamic routes. This order is needed for correct matching in Chi's
-// radix tree router.
+// sortKeysByRouteSpecificity sorts manifest keys so that static routes come before
+// dynamic routes. This order is needed for correct matching in Chi's radix tree router.
 //
 // Sort priority (highest to lowest):
 //   - Static routes (no dynamic parts) - e.g., "/docs", "/about"
 //   - Dynamic segment routes - e.g., "/docs/{id}", "/{slug}"
 //   - Catch-all routes - e.g., "/docs/{path}*"
 //
-// Within each group, routes with more path segments come first. Alphabetical
-// order is used as a tiebreaker for consistent results.
+// Within each group, routes with more path segments come first. Alphabetical order is
+// used as a tiebreaker for consistent results.
 //
 // Takes store (*ManifestStore) which contains the keys to sort in place.
 func sortKeysByRouteSpecificity(store *ManifestStore) {
@@ -1128,14 +1113,14 @@ func sortKeysByRouteSpecificity(store *ManifestStore) {
 	})
 }
 
-// sortKeysByRouteSpecificityWithLookup sorts route keys by how specific they
-// are, with more specific routes first. This version accepts a lookup function
-// instead of a store reference, so it works with both ManifestStore (compiled
-// mode) and InterpretedManifestRunner (interpreted mode).
+// sortKeysByRouteSpecificityWithLookup sorts route keys by how specific they are, with
+// more specific routes first. This version accepts a lookup function instead of a store
+// reference, so it works with both ManifestStore (compiled mode) and
+// InterpretedManifestRunner (interpreted mode).
 //
 // Takes keys ([]string) which contains the route keys to sort in place.
-// Takes lookup (func(string) *PageEntry) which returns the PageEntry for a
-// given key, or nil if not found.
+// Takes lookup (func(string) *PageEntry) which returns the PageEntry for a given key, or
+// nil if not found.
 func sortKeysByRouteSpecificityWithLookup(keys []string, lookup func(string) *PageEntry) {
 	slices.SortFunc(keys, func(a, b string) int {
 		patternA := getPatternFromEntry(lookup(a))
@@ -1154,8 +1139,7 @@ func sortKeysByRouteSpecificityWithLookup(keys []string, lookup func(string) *Pa
 //
 // Takes entry (*PageEntry) which is the page entry to extract the pattern from.
 //
-// Returns string which is the canonical route pattern, or empty if entry is
-// nil.
+// Returns string which is the canonical route pattern, or empty if entry is nil.
 func getPatternFromEntry(entry *PageEntry) string {
 	if entry == nil {
 		return ""
@@ -1165,13 +1149,13 @@ func getPatternFromEntry(entry *PageEntry) string {
 
 // getPrimaryRoutePattern returns the main route pattern for a manifest key.
 //
-// For pages, this returns a pattern from RoutePatterns, choosing the default
-// locale when several are present. For partials, this is the single
-// RoutePattern. For emails, returns an empty string as emails have no routes.
+// For pages, this returns a pattern from RoutePatterns, choosing the default locale when
+// several are present. For partials, this is the single RoutePattern. For emails, returns
+// an empty string as emails have no routes.
 //
-// When RoutePatterns has many entries (for example, with many locales), this
-// function picks a pattern using locale order: empty key (default) first, then
-// "en", then the first locale in alphabetical order.
+// When RoutePatterns has many entries (for example, with many locales),
+// getPrimaryRoutePattern picks a pattern using locale order: empty key (default) first,
+// then "en", then the first locale in alphabetical order.
 //
 // Takes store (*ManifestStore) which contains the manifest entries to search.
 // Takes key (string) which identifies the manifest entry.
@@ -1189,12 +1173,12 @@ func getPrimaryRoutePattern(store *ManifestStore, key string) string {
 	return selectCanonicalRoutePattern(patterns)
 }
 
-// selectCanonicalRoutePattern returns a consistent route pattern from a map of
-// locale codes to patterns.
+// selectCanonicalRoutePattern returns a consistent route pattern from a map of locale
+// codes to patterns.
 //
-// It selects the pattern in this order: empty key (default locale), then "en",
-// then the first locale in alphabetical order. This produces the same result
-// each time, even though Go maps do not have a fixed iteration order.
+// It selects the pattern in this order: empty key (default locale), then "en", then the
+// first locale in alphabetical order. This produces the same result each time, even
+// though Go maps do not have a fixed iteration order.
 //
 // Takes patterns (map[string]string) which maps locale codes to route patterns.
 //
@@ -1217,13 +1201,11 @@ func selectCanonicalRoutePattern(patterns map[string]string) string {
 	return patterns[locales[0]]
 }
 
-// classifyRoutePattern finds what kind of route a pattern is based on its
-// content.
+// classifyRoutePattern finds what kind of route a pattern is based on its content.
 //
 // Takes pattern (string) which is the route pattern to check.
 //
-// Returns routeType which shows if the pattern is static, dynamic, or
-// catch-all.
+// Returns routeType which shows if the pattern is static, dynamic, or catch-all.
 func classifyRoutePattern(pattern string) routeType {
 	if pattern == "" {
 		return routeTypeStatic
@@ -1240,8 +1222,8 @@ func classifyRoutePattern(pattern string) routeType {
 	return routeTypeStatic
 }
 
-// countPathSegments counts the number of path segments in a route pattern.
-// For example, "/docs/api/v1" has 3 segments, while "/" has 0 segments.
+// countPathSegments counts the number of path segments in a route pattern. For example,
+// "/docs/api/v1" has 3 segments, while "/" has 0 segments.
 //
 // Takes pattern (string) which is the route pattern to count.
 //
@@ -1259,9 +1241,8 @@ func countPathSegments(pattern string) int {
 	return len(strings.Split(trimmed, pathSeparator))
 }
 
-// countStaticSegments counts the number of static (non-dynamic) segments in a
-// route pattern. For example, "/docs/{id}/edit" has 2 static segments ("docs"
-// and "edit").
+// countStaticSegments counts the number of static (non-dynamic) segments in a route
+// pattern. For example, "/docs/{id}/edit" has 2 static segments ("docs" and "edit").
 //
 // Takes pattern (string) which is the route pattern to analyse.
 //
@@ -1286,8 +1267,8 @@ func countStaticSegments(pattern string) int {
 	return count
 }
 
-// buildErrorAST creates an AST that displays an error message in the browser,
-// showing runtime failures to the user.
+// buildErrorAST creates an AST that displays an error message in the browser, showing
+// runtime failures to the user.
 //
 // Takes err (error) which is the error to display.
 // Takes filePath (string) which is the name of the component that failed.

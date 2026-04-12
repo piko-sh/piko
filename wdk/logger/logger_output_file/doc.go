@@ -16,15 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package logger_output_file provides file-based log output with
-// automatic rotation for Piko's logging system.
+// Package logger_output_file provides file-based log output with automatic rotation for
+// Piko's logging system.
 //
-// An opt-in output driver: import only when you need to write logs to files on
-// disc. If file output is not required, omitting the import keeps the rotation
-// dependencies out of your binary entirely.
+// An opt-in output driver: import only when you need to write logs to files on disc. If
+// file output is not required, omitting the import keeps the rotation dependencies out of
+// your binary entirely.
 //
-// Call [Enable] to register a rotating file handler with the global logger.
-// Files are automatically rotated by size and age, with gzip compression of
-// rotated files. Both structured JSON and human-readable text output formats
-// are supported via [Config.AsJSON].
+// Call [Enable] to register a rotating file handler with the global logger. Files are
+// automatically rotated by size and age, with gzip compression of rotated files. Both
+// structured JSON and human-readable text output formats are supported via
+// [Config.AsJSON].
 package logger_output_file

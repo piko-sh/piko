@@ -20,6 +20,7 @@ package ast_adapters
 
 import (
 	"fmt"
+	"slices"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -28,8 +29,10 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// uoffsetTSize is the size in bytes of a FlatBuffers UOffsetT.
-const uoffsetTSize = 4
+const (
+	// uoffsetTSize is the size in bytes of a FlatBuffers UOffsetT.
+	uoffsetTSize = 4
+)
 
 // buildLocation creates a FlatBuffer representation of a source location.
 //
@@ -50,8 +53,7 @@ func (s *encoder) buildLocation(location *ast_domain.Location) (flatbuffers.UOff
 
 // unpackLocation converts a FlatBuffer location to a domain location.
 //
-// Takes fb (*ast_schema_gen.LocationFB) which is the FlatBuffer location to
-// convert.
+// Takes fb (*ast_schema_gen.LocationFB) which is the FlatBuffer location to convert.
 //
 // Returns ast_domain.Location which contains the line, column, and offset.
 // Returns error which is always nil as conversion cannot fail.
@@ -120,8 +122,8 @@ func (d *decoder) unpackRange(fb *ast_schema_gen.RangeFB) (ast_domain.Range, err
 
 // buildDiagnosticRelatedInfo serialises diagnostic related info to FlatBuffers.
 //
-// Takes info (*ast_domain.DiagnosticRelatedInfo) which contains the related
-// info to serialise.
+// Takes info (*ast_domain.DiagnosticRelatedInfo) which contains the related info to
+// serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised data.
 // Returns error when building the location fails.
@@ -146,8 +148,7 @@ func (s *encoder) buildDiagnosticRelatedInfo(info *ast_domain.DiagnosticRelatedI
 //
 // Takes diagnostic (*ast_domain.Diagnostic) which is the diagnostic to convert.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the converted
-// diagnostic.
+// Returns flatbuffers.UOffsetT which is the offset of the converted diagnostic.
 // Returns error when building nested parts fails.
 func (s *encoder) buildDiagnostic(diagnostic *ast_domain.Diagnostic) (flatbuffers.UOffsetT, error) {
 	if diagnostic == nil {
@@ -187,11 +188,10 @@ func (s *encoder) buildDiagnostic(diagnostic *ast_domain.Diagnostic) (flatbuffer
 	return ast_schema_gen.DiagnosticFBEnd(s.builder), nil
 }
 
-// unpackDiagnosticRelatedInfo converts a FlatBuffer diagnostic related info
-// into its domain representation.
+// unpackDiagnosticRelatedInfo converts a FlatBuffer diagnostic related info into its
+// domain representation.
 //
-// Takes fb (*ast_schema_gen.DiagnosticRelatedInfoFB) which is the FlatBuffer
-// to unpack.
+// Takes fb (*ast_schema_gen.DiagnosticRelatedInfoFB) which is the FlatBuffer to unpack.
 //
 // Returns ast_domain.DiagnosticRelatedInfo which contains the unpacked data.
 // Returns error when the location cannot be unpacked.
@@ -219,8 +219,8 @@ func (d *decoder) unpackDiagnosticRelatedInfo(fb *ast_schema_gen.DiagnosticRelat
 //
 // Takes fb (*ast_schema_gen.DiagnosticFB) which is the FlatBuffer to convert.
 //
-// Returns *ast_domain.Diagnostic which is the converted domain object, or nil
-// if fb is nil.
+// Returns *ast_domain.Diagnostic which is the converted domain object, or nil if fb is
+// nil.
 // Returns error when unpacking the location, related info, or data fails.
 func (d *decoder) unpackDiagnostic(fb *ast_schema_gen.DiagnosticFB) (*ast_domain.Diagnostic, error) {
 	if fb == nil {
@@ -257,8 +257,8 @@ func (d *decoder) unpackDiagnostic(fb *ast_schema_gen.DiagnosticFB) (*ast_domain
 	return diagnostic, nil
 }
 
-// buildVectorOfValues builds a FlatBuffers vector from a slice of Go struct
-// values using a generic helper pattern.
+// buildVectorOfValues builds a FlatBuffers vector from a slice of Go struct values using
+// a generic helper pattern.
 //
 // When the items slice is empty, returns zero offset without error.
 //
@@ -283,15 +283,14 @@ func buildVectorOfValues[T any](s *encoder, items []T, builder buildFunc[T]) (fl
 	return createVector(s, offsets), nil
 }
 
-// buildVectorOfPtrs builds a FlatBuffers vector from a slice of pointers to
-// Go structs.
+// buildVectorOfPtrs builds a FlatBuffers vector from a slice of pointers to Go structs.
 //
 // Takes s (*encoder) which provides the FlatBuffers builder state.
 // Takes items ([]*T) which contains the pointer items to convert.
 // Takes builder (buildFunc[T]) which turns each item into a FlatBuffers offset.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector, or
-// zero if items is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or zero if
+// items is empty.
 // Returns error when building any item fails.
 func buildVectorOfPtrs[T any](s *encoder, items []*T, builder buildFunc[T]) (flatbuffers.UOffsetT, error) {
 	if len(items) == 0 {
@@ -308,30 +307,29 @@ func buildVectorOfPtrs[T any](s *encoder, items []*T, builder buildFunc[T]) (fla
 	return createVector(s, offsets), nil
 }
 
-// createVector writes a slice of FlatBuffers offsets into the buffer as a
-// vector.
+// createVector writes a slice of FlatBuffers offsets into the buffer as a vector.
 //
 // Takes s (*encoder) which provides the FlatBuffers builder instance.
 // Takes offsets ([]flatbuffers.UOffsetT) which contains the offsets to write.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector, or
-// zero when the offsets slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or zero when
+// the offsets slice is empty.
 func createVector(s *encoder, offsets []flatbuffers.UOffsetT) flatbuffers.UOffsetT {
 	if len(offsets) == 0 {
 		return 0
 	}
 
 	s.builder.StartVector(uoffsetTSize, len(offsets), uoffsetTSize)
-	for i := len(offsets) - 1; i >= 0; i-- {
-		s.builder.PrependUOffsetT(offsets[i])
+	for _, offset := range slices.Backward(offsets) {
+		s.builder.PrependUOffsetT(offset)
 	}
 	return s.builder.EndVector(len(offsets))
 }
 
 // unpackVector converts a FlatBuffers vector into a slice of Go types.
 //
-// FBType is the FlatBuffers struct type (e.g., ast_schema_gen.HTMLAttributeFB).
-// GoType is the domain struct type (e.g., ast_domain.HTMLAttribute).
+// FBType is the FlatBuffers struct type (e.g., ast_schema_gen.HTMLAttributeFB). GoType is
+// the domain struct type (e.g., ast_domain.HTMLAttribute).
 //
 // Takes d (*decoder) which provides the decoding context.
 // Takes length (int) which specifies how many items are in the vector.
@@ -358,11 +356,10 @@ func unpackVector[FBType any, GoType any](d *decoder, length int, getter func(*F
 	return result, nil
 }
 
-// unpackPtrVector deserialises a FlatBuffers vector into a slice of Go
-// pointer types.
+// unpackPtrVector deserialises a FlatBuffers vector into a slice of Go pointer types.
 //
-// FBType is the FlatBuffers struct type (e.g., ast_schema_gen.TemplateNodeFB).
-// GoType is the domain struct type (e.g., ast_domain.TemplateNode).
+// FBType is the FlatBuffers struct type (e.g., ast_schema_gen.TemplateNodeFB). GoType is
+// the domain struct type (e.g., ast_domain.TemplateNode).
 //
 // Takes d (*decoder) which provides the deserialisation context.
 // Takes length (int) which specifies the number of items in the vector.

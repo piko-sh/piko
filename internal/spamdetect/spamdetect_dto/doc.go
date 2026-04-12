@@ -16,21 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package spamdetect_dto defines data transfer objects for the spam
-// detection module.
+// Package spamdetect_dto defines data transfer objects for the spam detection module.
 //
-// It contains the schema builder for declaring form field signals
-// ([NewSchema], [TextField], [Honeypot], [Timing], [FieldGroup]), the
-// submission type that carries form data for analysis ([Submission]),
-// analysis result types with per-detector and per-field breakdowns
-// ([AnalysisResult], [DetectorResult], [FieldResult],
-// [SubmissionRecord]), signal and priority constants, configuration
-// types ([ServiceConfig]), and sentinel errors used across
-// architectural boundaries.
+// It contains the schema builder for declaring form field signals ([NewSchema],
+// [TextField], [Honeypot], [Timing], [FieldGroup]), the submission type that carries form
+// data for analysis ([Submission]), analysis result types with per-detector and per-field
+// breakdowns ([AnalysisResult], [DetectorResult], [FieldResult], [SubmissionRecord]),
+// signal and priority constants, configuration types ([ServiceConfig]), and sentinel
+// errors used across architectural boundaries.
 //
-// Schemas built via [NewSchema] are immutable after construction and
-// safe for concurrent use. Configuration types such as [ServiceConfig]
-// are intended to be set once at initialisation and read thereafter.
-// Sentinel errors are exported so callers can branch on specific
-// failure modes using [errors.Is].
+// Schemas built via [NewSchema] are immutable after construction and safe for concurrent
+// use. Configuration types such as [ServiceConfig] are intended to be set once at
+// initialisation and read thereafter. Sentinel errors are exported so callers can branch
+// on specific failure modes using [errors.Is].
 package spamdetect_dto

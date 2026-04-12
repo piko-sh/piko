@@ -16,6 +16,5 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config_resolver_aws resolves configuration values from AWS
-// Secrets Manager.
+// Package config_resolver_aws resolves configuration values from AWS Secrets Manager.
 package config_resolver_aws

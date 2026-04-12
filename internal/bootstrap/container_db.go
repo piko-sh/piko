@@ -18,8 +18,8 @@
 
 package bootstrap
 
-// This file contains the otter in-memory backend setup for the default
-// persistence path (when no SQL database is registered via AddDatabase).
+// This file contains the otter in-memory backend setup for the default persistence path
+// (when no SQL database is registered via AddDatabase).
 
 import (
 	"context"
@@ -30,9 +30,9 @@ import (
 	"piko.sh/piko/internal/wal/wal_domain"
 )
 
-// getOtterProvider returns the default otter persistence provider, creating
-// and connecting it on first call. The otter provider manages in-memory
-// caches with WAL persistence for both registry and orchestrator data.
+// getOtterProvider returns the default otter persistence provider, creating and
+// connecting it on first call. The otter provider manages in-memory caches with WAL
+// persistence for both registry and orchestrator data.
 //
 // Returns *persistence.Provider which is the connected otter provider.
 // Returns error when the provider fails to connect.

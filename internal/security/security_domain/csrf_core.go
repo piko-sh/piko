@@ -55,8 +55,8 @@ const (
 	// timestampBase is the number base for changing timestamps to and from strings.
 	timestampBase = 10
 
-	// expectedCSRFParts is the number of parts in a valid CSRF token.
-	// The format is cookie_token^binder^ephemeral^timestamp.
+	// expectedCSRFParts is the number of parts in a valid CSRF token. The format is
+	// cookie_token^binder^ephemeral^timestamp.
 	expectedCSRFParts = 4
 
 	// csrfPartIndexCookie is the position of the cookie token in the CSRF payload.
@@ -65,8 +65,8 @@ const (
 	// csrfPartIndexBinder is the index of the binder field in a CSRF token.
 	csrfPartIndexBinder = 1
 
-	// csrfPartIndexEphemeral is the index of the ephemeral token in the signed
-	// CSRF payload parts.
+	// csrfPartIndexEphemeral is the index of the ephemeral token in the signed CSRF payload
+	// parts.
 	csrfPartIndexEphemeral = 2
 
 	// csrfPartIndexTimestamp is the index of the timestamp in the CSRF payload.
@@ -89,25 +89,25 @@ type csrfPayloadParts struct {
 }
 
 var (
-	// b64BufPool reuses byte slices to reduce allocation pressure during base64
-	// encoding of CSRF tokens.
+	// b64BufPool reuses byte slices to reduce allocation pressure during base64 encoding of
+	// CSRF tokens.
 	b64BufPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, 24))
 		},
 	}
 
-	// randomBytesPool reuses byte slices to reduce allocation pressure during
-	// CSRF ephemeral token generation.
+	// randomBytesPool reuses byte slices to reduce allocation pressure during CSRF ephemeral
+	// token generation.
 	randomBytesPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, csrfEphemeralTokenBytes))
 		},
 	}
 
-	// hmacPool reuses HMAC-SHA256 instances to avoid per-request allocation.
-	// Reset() clears internal state but preserves the application-wide immutable
-	// secret key, making reuse safe.
+	// hmacPool reuses HMAC-SHA256 instances to avoid per-request allocation. Reset() clears
+	// internal state but preserves the application-wide immutable secret key, making reuse
+	// safe.
 	hmacPool sync.Pool
 )
 
@@ -135,8 +135,8 @@ func putRandomBytes(bufferPointer *[]byte) {
 	randomBytesPool.Put(bufferPointer)
 }
 
-// initialiseHMACPool sets up the HMAC pool with the given secret key.
-// Must be called once during service setup, before any CSRF operations.
+// initialiseHMACPool sets up the HMAC pool with the given secret key. Must be called once
+// during service setup, before any CSRF operations.
 //
 // Takes secretKey ([]byte) which is the secret key used to sign tokens.
 func initialiseHMACPool(secretKey []byte) {
@@ -147,17 +147,17 @@ func initialiseHMACPool(secretKey []byte) {
 	}
 }
 
-// resetHMACPoolForTesting clears the HMAC pool. Only for use in tests to
-// ensure that tests using different secret keys create fresh HMAC instances.
+// resetHMACPoolForTesting clears the HMAC pool. Only for use in tests to ensure that
+// tests using different secret keys create fresh HMAC instances.
 func resetHMACPoolForTesting() {
 	hmacPool = sync.Pool{}
 }
 
-// getHMAC retrieves a pooled HMAC-SHA256 instance ready for use. The caller
-// must call putHMAC after use.
+// getHMAC retrieves a pooled HMAC-SHA256 instance ready for use. The caller must call
+// putHMAC after use.
 //
-// Returns hash.Hash which is the HMAC instance, or nil if the pool has not
-// been initialised or the type assertion fails.
+// Returns hash.Hash which is the HMAC instance, or nil if the pool has not been
+// initialised or the type assertion fails.
 func getHMAC() hash.Hash {
 	if hmacPool.New == nil {
 		return nil
@@ -169,8 +169,8 @@ func getHMAC() hash.Hash {
 	return h
 }
 
-// putHMAC returns an HMAC instance to the pool after resetting it.
-// Safe to call even if the pool is not set up (will do nothing).
+// putHMAC returns an HMAC instance to the pool after resetting it. Safe to call even if
+// the pool is not set up (will do nothing).
 //
 // Takes h (hash.Hash) which is the HMAC to return.
 // Takes pooled (bool) which shows whether h came from the pool.
@@ -207,17 +207,16 @@ func generateCSRFEphemeralToken() (string, error) {
 	return result, nil
 }
 
-// buildCSRFPayload constructs a CSRF token payload in the given buffer.
-// The format is: cookie_token^binder^ephemeral^timestamp.
+// buildCSRFPayload constructs a CSRF token payload in the given buffer. The format is:
+// cookie_token^binder^ephemeral^timestamp.
 //
 // Takes buffer (*bytes.Buffer) which receives the constructed payload.
-// Takes cookieToken (string) which is the CSRF cookie value for the
-// Double Submit Cookie pattern.
-// Takes binderValue (string) which binds the token to a specific context
-// (e.g., IP).
+// Takes cookieToken (string) which is the CSRF cookie value for the Double Submit Cookie
+// pattern.
+// Takes binderValue (string) which binds the token to a specific context (e.g., IP).
 // Takes rawCSRFEphemeralToken (string) which is the ephemeral token value.
-// Takes timestamp (time.Time) which provides the token creation time for
-// safety-net expiry.
+// Takes timestamp (time.Time) which provides the token creation time for safety-net
+// expiry.
 func buildCSRFPayload(buffer *bytes.Buffer, cookieToken string, binderValue string, rawCSRFEphemeralToken string, timestamp time.Time) {
 	buffer.Reset()
 	_, _ = buffer.WriteString(cookieToken)
@@ -235,8 +234,7 @@ func buildCSRFPayload(buffer *bytes.Buffer, cookieToken string, binderValue stri
 // Takes payload ([]byte) which is the data to sign.
 // Takes secretKey ([]byte) which is the key used for signing.
 //
-// Returns string which is the base64 URL-encoded signature, shortened for
-// storage.
+// Returns string which is the base64 URL-encoded signature, shortened for storage.
 // Returns error when the secret key is empty.
 func signCSRFPayload(payload []byte, secretKey []byte) (string, error) {
 	if len(secretKey) == 0 {
@@ -254,9 +252,9 @@ func signCSRFPayload(payload []byte, secretKey []byte) (string, error) {
 	return base64.RawURLEncoding.EncodeToString(truncatedSignature), nil
 }
 
-// appendCSRFSignatureToBuffer computes the HMAC signature and writes it
-// to the buffer. This avoids extra memory use for base64 encoding by using a
-// pooled buffer and writing directly.
+// appendCSRFSignatureToBuffer computes the HMAC signature and writes it to the buffer.
+// This avoids extra memory use for base64 encoding by using a pooled buffer and writing
+// directly.
 //
 // Takes buffer (*bytes.Buffer) which receives the encoded signature.
 // Takes payload ([]byte) which is the data to sign.
@@ -288,14 +286,13 @@ func appendCSRFSignatureToBuffer(buffer *bytes.Buffer, payload []byte, secretKey
 	return nil
 }
 
-// parseSignedCSRFPayload extracts components from the signed CSRF payload.
-// The expected format is: cookie_token^binder^ephemeral^timestamp.
+// parseSignedCSRFPayload extracts components from the signed CSRF payload. The expected
+// format is: cookie_token^binder^ephemeral^timestamp.
 //
-// Takes signedPayloadString (string) which is the payload portion of the action
-// token.
+// Takes signedPayloadString (string) which is the payload portion of the action token.
 //
-// Returns csrfPayloadParts which contains the extracted cookie token, binder,
-// ephemeral token, and timestamp.
+// Returns csrfPayloadParts which contains the extracted cookie token, binder, ephemeral
+// token, and timestamp.
 // Returns error when the payload format is invalid.
 func parseSignedCSRFPayload(signedPayloadString string) (csrfPayloadParts, error) {
 	parts := strings.SplitN(signedPayloadString, string(csrfDelimiter), expectedCSRFParts)
@@ -327,8 +324,8 @@ func parseSignedCSRFPayload(signedPayloadString string) (csrfPayloadParts, error
 	}, nil
 }
 
-// verifyCSRFSignature checks whether the given signature matches the expected
-// signature for the payload using constant-time comparison.
+// verifyCSRFSignature checks whether the given signature matches the expected signature
+// for the payload using constant-time comparison.
 //
 // Takes payloadToVerify ([]byte) which is the data that was signed.
 // Takes signatureProvided (string) which is the signature to check.

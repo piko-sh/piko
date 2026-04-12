@@ -24,12 +24,10 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// DetailView renders the detail-pane body showing the diagnostic
-// runner's current state: phase, recent run start/end, error, and
-// cooldown information.
+// DetailView renders the detail-pane body showing the diagnostic runner's current state:
+// phase, recent run start/end, error, and cooldown information.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *WatchdogDiagnosticPanel) DetailView(width, height int) string {
@@ -37,11 +35,10 @@ func (p *WatchdogDiagnosticPanel) DetailView(width, height int) string {
 	return RenderDetailBody(p.theme, body, width, height)
 }
 
-// buildDetailBody assembles the structured detail content for the
-// diagnostic runner. There is no row cursor here; the detail always
-// reflects the current run state.
+// buildDetailBody assembles the structured detail content for the diagnostic runner.
+// There is no row cursor here; the detail always reflects the current run state.
 //
-// Returns inspector.DetailBody describing the runner's current phase and history.
+// Returns inspector.DetailBody describing the runner's active stage and history.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (p *WatchdogDiagnosticPanel) buildDetailBody() inspector.DetailBody {

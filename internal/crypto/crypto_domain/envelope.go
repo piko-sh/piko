@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// envelopeData holds the envelope format for encrypted data.
-// It provides the details needed for decryption and key rotation.
+// envelopeData holds the envelope format for encrypted data. It provides the details
+// needed for decryption and key rotation.
 type envelopeData struct {
 	// KeyID is the identifier of the encryption key used for this envelope.
 	KeyID string `json:"key_id"`
@@ -59,8 +59,7 @@ type ciphertextMetadata struct {
 	EncryptedDataKey string
 }
 
-// createEnvelopedCiphertext wraps ciphertext with metadata in a base64-encoded
-// envelope.
+// createEnvelopedCiphertext wraps ciphertext with metadata in a base64-encoded envelope.
 //
 // Takes keyID (string) which identifies the encryption key used.
 // Takes provider (string) which specifies the key provider name.
@@ -90,10 +89,10 @@ func createEnvelopedCiphertext(keyID, provider, ciphertext, encryptedDataKey str
 //
 // Takes envelopedCiphertext (string) which is the base64-encoded envelope.
 //
-// Returns *ciphertextMetadata which contains the extracted key ID, provider,
-// ciphertext, and encrypted data key.
-// Returns error when the envelope cannot be decoded, parsed, or has an
-// unsupported version.
+// Returns *ciphertextMetadata which contains the extracted key ID, provider, ciphertext,
+// and encrypted data key.
+// Returns error when the envelope cannot be decoded, parsed, or has an unsupported
+// version.
 func extractCiphertextMetadata(envelopedCiphertext string) (*ciphertextMetadata, error) {
 	envelopeJSON, err := base64.StdEncoding.DecodeString(envelopedCiphertext)
 	if err != nil {

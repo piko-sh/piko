@@ -29,7 +29,10 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 )
 
-const driverName = "d1"
+const (
+	// driverName is the database/sql driver registration name for D1.
+	driverName = "d1"
+)
 
 func init() {
 	sql.Register(driverName, &d1Driver{})
@@ -76,11 +79,11 @@ func (*d1Driver) Open(dsn string) (driver.Conn, error) {
 	}, nil
 }
 
-// Open opens a D1 database using the provided configuration and returns a
-// standard *sql.DB handle.
+// Open opens a D1 database using the provided configuration and returns a standard
+// *sql.DB handle.
 //
-// Takes config (Config) which provides the API token, account ID, and
-// database ID for the D1 database.
+// Takes config (Config) which provides the API token, account ID, and database ID for the
+// D1 database.
 //
 // Returns *sql.DB which is the configured database connection pool.
 // Returns error when the configuration is invalid or the connection fails.
@@ -99,7 +102,7 @@ func Open(config Config) (*sql.DB, error) {
 	return sql.Open(driverName, dsn)
 }
 
-// DriverName returns the database/sql driver name used by this package.
+// DriverName returns the database/sql driver name used for D1 registration.
 //
 // Returns string which is "d1".
 func DriverName() string {

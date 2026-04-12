@@ -24,9 +24,8 @@ import (
 	"piko.sh/piko/internal/retry"
 )
 
-// Collector is the interface that backend analytics adapters
-// implement. Collector implementations must be safe for concurrent
-// use from multiple goroutines.
+// Collector is the interface that backend analytics adapters implement. Collector
+// implementations must be safe for concurrent use from multiple goroutines.
 type Collector = analytics_domain.Collector
 
 // Event carries the data for a single backend analytics event.
@@ -35,12 +34,11 @@ type Event = analytics_dto.Event
 // EventType classifies a backend analytics event.
 type EventType = analytics_dto.EventType
 
-// RetryConfig configures retry with exponential backoff for
-// analytics collectors.
+// RetryConfig configures retry with exponential backoff for analytics collectors.
 type RetryConfig = retry.Config
 
-// CircuitBreakerConfig configures the circuit breaker that protects
-// the send path of analytics collectors.
+// CircuitBreakerConfig configures the circuit breaker that protects the send path of
+// analytics collectors.
 type CircuitBreakerConfig = analytics_domain.CircuitBreakerConfig
 
 const (
@@ -50,7 +48,6 @@ const (
 	// EventAction is fired when a server action executes.
 	EventAction = analytics_dto.EventAction
 
-	// EventCustom is a user-defined event fired manually from action
-	// handlers.
+	// EventCustom is a user-defined event fired manually from action handlers.
 	EventCustom = analytics_dto.EventCustom
 )

@@ -20,11 +20,13 @@
 
 package caller
 
-import _ "unsafe" // Required for go:linkname
+import (
+	_ "unsafe" // Required for go:linkname
+)
 
-// callers captures multiple stack frames into the provided slice.
-// This is a direct link to runtime.callers, avoiding the overhead of
-// runtime.Callers which creates a slice header on each call.
+// callers captures multiple stack frames into the provided slice. This is a direct link
+// to runtime.callers, avoiding the overhead of runtime.Callers which creates a slice
+// header on each call.
 //
 // Takes skip (int) which specifies the number of stack frames to skip.
 // Takes pc ([]PC) which is the slice to fill with program counter values.
@@ -37,9 +39,9 @@ func callers(skip int, pc []PC) int
 
 // caller1 captures a single stack frame at the given skip depth.
 //
-// By passing a pointer with explicit length and capacity, this avoids slice
-// header allocation entirely. This is the same runtime.callers function but
-// called with pointer semantics for maximum efficiency.
+// By passing a pointer with explicit length and capacity, this avoids slice header
+// allocation entirely. This is the same runtime.callers function but called with pointer
+// semantics for maximum efficiency.
 //
 // Takes skip (int) which specifies the number of stack frames to skip.
 // Takes pc (*PC) which receives the captured program counter.

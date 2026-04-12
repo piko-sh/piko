@@ -24,9 +24,8 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// WizardBase provides shared state for interactive wizard flows. Embed in your
-// model to get standard cursor, selection, step, abort, and spinner state
-// management.
+// WizardBase provides shared state for interactive wizard flows. Embed in your model to
+// get standard cursor, selection, step, abort, and spinner state management.
 type WizardBase struct {
 	// Selected tracks which items are checked in multi-select steps.
 	Selected []bool
@@ -44,8 +43,8 @@ type WizardBase struct {
 	Aborted bool
 }
 
-// NewWizardBase creates a WizardBase with a spinner initialised to
-// the standard Piko wizard style (dot spinner, blue foreground).
+// NewWizardBase creates a WizardBase with a spinner initialised to the standard Piko
+// wizard style (dot spinner, blue foreground).
 //
 // Returns WizardBase which is ready to use.
 func NewWizardBase() WizardBase {
@@ -63,8 +62,8 @@ func (w *WizardBase) HandleAbort() tea.Cmd {
 	return tea.Quit
 }
 
-// HandleNavigation processes up/k and down/j keys against the given
-// maximum cursor position (inclusive).
+// HandleNavigation processes up/k and down/j keys against the given maximum cursor
+// position (inclusive).
 //
 // Takes message (tea.KeyPressMsg) which is the key event to process.
 // Takes maxCursor (int) which is the maximum cursor position (inclusive).
@@ -86,8 +85,8 @@ func (w *WizardBase) HandleNavigation(message tea.KeyPressMsg, maxCursor int) bo
 	return false
 }
 
-// HandleToggle toggles the Selected flag at the current cursor
-// position, provided the cursor is within the Selected slice bounds.
+// HandleToggle toggles the Selected flag at the current cursor position, provided the
+// cursor is within the Selected slice bounds.
 //
 // Returns bool which is true if a toggle occurred.
 func (w *WizardBase) HandleToggle() bool {
@@ -110,8 +109,7 @@ func (w *WizardBase) AnySelected() bool {
 	return false
 }
 
-// UpdateSpinner delegates a message to the spinner and returns the
-// resulting command.
+// UpdateSpinner delegates a message to the spinner and returns the resulting command.
 //
 // Takes message (tea.Msg) which is the message to forward.
 //

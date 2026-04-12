@@ -27,14 +27,12 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_dto"
 )
 
-// WASMService defines the main interface for WASM runtime operations.
-// This is the driving port that JavaScript calls into.
+// WASMService defines the main interface for WASM runtime operations. This is the driving
+// port that JavaScript calls into.
 type WASMService interface {
-	// Analyse parses and checks Go source code and returns type
-	// information.
+	// Analyse parses and checks Go source code and returns type information.
 	//
-	// Takes request (*wasm_dto.AnalyseRequest) which contains the
-	// source code to check.
+	// Takes request (*wasm_dto.AnalyseRequest) which contains the source code to check.
 	//
 	// Returns *wasm_dto.AnalyseResponse which contains the type information.
 	// Returns error when parsing or analysis fails.
@@ -42,11 +40,10 @@ type WASMService interface {
 
 	// GetCompletions returns code completion suggestions for a given position.
 	//
-	// Takes request (*wasm_dto.CompletionRequest) which specifies the position and
-	// context for completions.
+	// Takes request (*wasm_dto.CompletionRequest) which specifies the position and context
+	// for completions.
 	//
-	// Returns *wasm_dto.CompletionResponse which contains the suggested
-	// completions.
+	// Returns *wasm_dto.CompletionResponse which contains the suggested completions.
 	// Returns error when the completion request fails.
 	GetCompletions(ctx context.Context, request *wasm_dto.CompletionRequest) (*wasm_dto.CompletionResponse, error)
 
@@ -60,8 +57,7 @@ type WASMService interface {
 
 	// Validates Go source code for errors.
 	//
-	// Takes request (*wasm_dto.ValidateRequest) which contains the source code to
-	// check.
+	// Takes request (*wasm_dto.ValidateRequest) which contains the source code to check.
 	//
 	// Returns *wasm_dto.ValidateResponse which contains the validation results.
 	// Returns error when validation fails.
@@ -69,8 +65,7 @@ type WASMService interface {
 
 	// ParseTemplate parses a PK template and returns its structure.
 	//
-	// Takes request (*wasm_dto.ParseTemplateRequest) which contains the template to
-	// parse.
+	// Takes request (*wasm_dto.ParseTemplateRequest) which contains the template to parse.
 	//
 	// Returns *wasm_dto.ParseTemplateResponse which holds the parsed structure.
 	// Returns error when parsing fails.
@@ -94,20 +89,20 @@ type WASMService interface {
 	// Generates code artefacts from in-memory sources.
 	//
 	// Takes ctx (context.Context) which is the request context.
-	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source
-	// files and configuration.
+	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
+	// and configuration.
 	//
-	// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated
-	// artefacts and manifest.
+	// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated artefacts
+	// and manifest.
 	// Returns error when the generator is not configured.
 	Generate(ctx context.Context, request *wasm_dto.GenerateFromSourcesRequest) (*wasm_dto.GenerateFromSourcesResponse, error)
 
-	// Render produces HTML from in-memory sources.
-	// Only supports static templates (no Go code execution).
+	// Render produces HTML from in-memory sources. Only supports static templates (no Go
+	// code execution).
 	//
 	// Takes ctx (context.Context) which is the request context.
-	// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source
-	// files and configuration.
+	// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source files and
+	// configuration.
 	//
 	// Returns *wasm_dto.RenderFromSourcesResponse which contains the rendered HTML.
 	// Returns error when the renderer is not configured.
@@ -116,8 +111,8 @@ type WASMService interface {
 
 // StdlibLoaderPort defines the interface for loading pre-bundled stdlib type data.
 type StdlibLoaderPort interface {
-	// Load returns the pre-bundled stdlib TypeData.
-	// The data is loaded from an embedded FlatBuffer file.
+	// Load returns the pre-bundled stdlib TypeData. The data is loaded from an embedded
+	// FlatBuffer file.
 	//
 	// Returns *TypeData which contains the standard library type information.
 	// Returns error when loading fails.
@@ -129,13 +124,12 @@ type StdlibLoaderPort interface {
 	GetPackageList() []string
 }
 
-// JSInteropPort defines the interface for JavaScript interoperability.
-// It abstracts syscall/js to allow testing without a JavaScript runtime.
+// JSInteropPort defines the interface for JavaScript interoperability. It abstracts
+// syscall/js to allow testing without a JavaScript runtime.
 type JSInteropPort interface {
 	// RegisterFunction registers a Go function to be callable from JavaScript.
 	//
-	// Takes name (string) which is the name used to call the function from
-	// JavaScript.
+	// Takes name (string) which is the name used to call the function from JavaScript.
 	// Takes handler (func(arguments []any) (any, error)) which is the Go function to
 	// register.
 	RegisterFunction(name string, handler func(arguments []any) (any, error))
@@ -164,8 +158,8 @@ type JSInteropPort interface {
 	UnmarshalFromJS(jsValue any, target any) error
 }
 
-// ConsolePort provides console output for WASM modules.
-// It replaces standard logging with JavaScript console output.
+// ConsolePort provides console output for WASM modules. It replaces standard logging with
+// JavaScript console output.
 type ConsolePort interface {
 	// Debug logs a message at debug level.
 	//
@@ -192,18 +186,17 @@ type ConsolePort interface {
 	Error(message string, arguments ...any)
 }
 
-// GeneratorPort provides code generation capabilities for WASM.
-// It allows generating Go code from in-memory PK template sources without
-// requiring file system access.
+// GeneratorPort provides code generation capabilities for WASM. It allows generating Go
+// code from in-memory PK template sources without requiring file system access.
 type GeneratorPort interface {
 	// Generates code artefacts from in-memory sources.
 	//
 	// Takes ctx (context.Context) which is the request context.
-	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source
-	// files and configuration.
+	// Takes request (*wasm_dto.GenerateFromSourcesRequest) which contains the source files
+	// and configuration.
 	//
-	// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated
-	// artefacts and manifest.
+	// Returns *wasm_dto.GenerateFromSourcesResponse which contains the generated artefacts
+	// and manifest.
 	// Returns error when generation fails.
 	Generate(ctx context.Context, request *wasm_dto.GenerateFromSourcesRequest) (*wasm_dto.GenerateFromSourcesResponse, error)
 }
@@ -221,8 +214,8 @@ type Config struct {
 	// DefaultModuleName is the module name used when none is given.
 	DefaultModuleName string
 
-	// StdlibPackages lists the standard library packages to include.
-	// If empty, uses the default set.
+	// StdlibPackages lists the standard library packages to include. If empty, uses the
+	// default set.
 	StdlibPackages []string
 
 	// MaxSourceSize is the maximum size of source code in bytes.
@@ -235,79 +228,72 @@ type Config struct {
 // Option is a function that configures the WASM orchestrator.
 type Option func(*Orchestrator)
 
-// RenderPort provides HTML rendering capabilities for WASM.
-// It allows rendering PK templates to HTML strings without requiring
-// file system access or Go code execution (static templates only).
+// RenderPort provides HTML rendering capabilities for WASM. It allows rendering PK
+// templates to HTML strings without requiring file system access or Go code execution
+// (static templates only).
 type RenderPort interface {
 	// Render produces HTML from in-memory sources.
 	//
 	// Takes ctx (context.Context) which is the request context.
-	// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source
-	// files and configuration.
+	// Takes request (*wasm_dto.RenderFromSourcesRequest) which contains the source files and
+	// configuration.
 	//
 	// Returns *wasm_dto.RenderFromSourcesResponse which contains the rendered HTML.
 	// Returns error when rendering fails.
 	Render(ctx context.Context, request *wasm_dto.RenderFromSourcesRequest) (*wasm_dto.RenderFromSourcesResponse, error)
 
-	// RenderFromAST produces HTML from a pre-built TemplateAST.
-	// This is used for dynamic rendering where the AST comes from
-	// interpreter execution rather than annotation.
+	// RenderFromAST produces HTML from a pre-built TemplateAST. This is used for dynamic
+	// rendering where the AST comes from interpreter execution rather than annotation.
 	//
 	// Takes ctx (context.Context) which is the request context.
-	// Takes request (*wasm_dto.RenderFromASTRequest) which contains the AST and
-	// metadata.
+	// Takes request (*wasm_dto.RenderFromASTRequest) which contains the AST and metadata.
 	//
 	// Returns *wasm_dto.RenderFromASTResponse which contains the rendered HTML.
 	// Returns error when rendering fails.
 	RenderFromAST(ctx context.Context, request *wasm_dto.RenderFromASTRequest) (*wasm_dto.RenderFromASTResponse, error)
 }
 
-// InterpreterPort provides Go code interpretation capabilities for WASM.
-// It executes generated Go code to produce template ASTs with evaluated
-// expressions.
+// InterpreterPort provides Go code interpretation capabilities for WASM. It executes
+// generated Go code to produce template ASTs with evaluated expressions.
 type InterpreterPort interface {
 	// Interpret executes generated Go code and returns the template AST.
 	//
 	// Takes ctx (context.Context) which is the request context.
-	// Takes request (*wasm_dto.InterpretRequest) which contains the generated code
-	// and configuration.
+	// Takes request (*wasm_dto.InterpretRequest) which contains the generated code and
+	// configuration.
 	//
-	// Returns *wasm_dto.InterpretResponse which contains the template AST and
-	// metadata.
+	// Returns *wasm_dto.InterpretResponse which contains the template AST and metadata.
 	// Returns error when interpretation fails.
 	Interpret(ctx context.Context, request *wasm_dto.InterpretRequest) (*wasm_dto.InterpretResponse, error)
 }
 
-// SymbolLoaderPort abstracts symbol loading for WASM interpreters,
-// letting wasm_adapters accept symbol providers without depending on a
-// concrete interpreter implementation.
+// SymbolLoaderPort abstracts symbol loading for WASM interpreters, letting wasm_adapters
+// accept symbol providers without depending on a concrete interpreter implementation.
 type SymbolLoaderPort interface {
 	// Use loads symbols into an interpreter.
 	//
-	// Takes interp (any) which is the interpreter to load symbols into.
-	// The concrete type depends on the interpreter implementation.
+	// Takes interp (any) which is the interpreter to load symbols into. The concrete type
+	// depends on the interpreter implementation.
 	//
 	// Returns error when symbol loading fails.
 	Use(interp any) error
 }
 
-// InterpreterFactoryPort creates fresh interpreter instances.
-// This abstracts interpreter creation so the adapter does not need
-// to import interpreter implementations directly.
+// InterpreterFactoryPort creates fresh interpreter instances. This abstracts interpreter
+// creation so the adapter does not need to import interpreter implementations directly.
 type InterpreterFactoryPort interface {
 	// NewInterpreter creates a new interpreter instance.
 	//
-	// Returns any which is the interpreter instance. The concrete type
-	// depends on the interpreter implementation.
+	// Returns any which is the interpreter instance. The concrete type depends on the
+	// interpreter implementation.
 	NewInterpreter() any
 }
 
-// HeadlessRendererPort provides AST-to-HTML rendering without HTTP context.
-// This is implemented by the main render orchestrator and used by the WASM
-// adapter for headless rendering scenarios.
+// HeadlessRendererPort provides AST-to-HTML rendering without HTTP context. This is
+// implemented by the main render orchestrator and used by the WASM adapter for headless
+// rendering scenarios.
 type HeadlessRendererPort interface {
-	// RenderASTToString renders an AST to an HTML string without requiring
-	// HTTP context.
+	// RenderASTToString renders an AST to an HTML string without requiring HTTP context.
 	//
 	// Takes ctx (context.Context) which provides cancellation.
 	// Takes opts (HeadlessRenderOptions) which configures the rendering.
@@ -328,8 +314,8 @@ type HeadlessRenderOptions struct {
 	// Styling specifies the CSS styles to include in the output.
 	Styling string
 
-	// IncludeDocumentWrapper determines whether to wrap output in full HTML
-	// document structure.
+	// IncludeDocumentWrapper determines whether to wrap output in full HTML document
+	// structure.
 	IncludeDocumentWrapper bool
 }
 
@@ -381,8 +367,7 @@ func WithJSInterop(interop JSInteropPort) Option {
 
 // WithConsole sets the console output adapter.
 //
-// Takes console (ConsolePort) which provides the output interface for console
-// messages.
+// Takes console (ConsolePort) which provides the output interface for console messages.
 //
 // Returns Option which configures the Orchestrator with the given console.
 func WithConsole(console ConsolePort) Option {
@@ -415,8 +400,7 @@ func WithRenderer(renderer RenderPort) Option {
 
 // WithInterpreter sets the Go code interpreter adapter.
 //
-// Takes interpreter (InterpreterPort) which provides code interpretation
-// capabilities.
+// Takes interpreter (InterpreterPort) which provides code interpretation capabilities.
 //
 // Returns Option which configures the Orchestrator with the given interpreter.
 func WithInterpreter(interpreter InterpreterPort) Option {

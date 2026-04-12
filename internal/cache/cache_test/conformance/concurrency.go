@@ -244,8 +244,8 @@ func testConcurrentInvalidation(t *testing.T, config StringConfig) {
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache provider factory.
 //
-// Concurrency: Spawns 50 goroutines that simultaneously request the same key
-// and verifies the loader is called at most 5 times.
+// Concurrency: Spawns 50 goroutines that simultaneously request the same key and verifies
+// the loader is called at most 5 times.
 func testThunderingHerd(t *testing.T, config StringConfig) {
 	t.Helper()
 

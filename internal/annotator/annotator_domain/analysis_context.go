@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// Provides the core context and symbol table structures for analysing
-// component templates. Tracks variables, scopes, and type information
-// whilst collecting diagnostics during template processing.
+// Provides the core context and symbol table structures for analysing component
+// templates. Tracks variables, scopes, and type information whilst collecting diagnostics
+// during template processing.
 
 import (
 	"fmt"
@@ -38,14 +38,13 @@ const (
 	// typeBuiltInFunction is the type name used for Go built-in functions.
 	typeBuiltInFunction = "builtin_function"
 
-	// initialSymbolCapacity is the starting size for symbol maps in a
-	// symbol table.
+	// initialSymbolCapacity is the starting size for symbol maps in a symbol table.
 	initialSymbolCapacity = 8
 )
 
-// Symbol represents a variable or identifier within a specific scope. It
-// stores the resolved type, source location, and the final variable name for
-// use in generated Go code.
+// Symbol represents a variable or identifier within a specific scope. It stores the
+// resolved type, source location, and the final variable name for use in generated Go
+// code.
 type Symbol struct {
 	// TypeInfo holds the resolved type information for this symbol.
 	TypeInfo *ast_domain.ResolvedTypeInfo
@@ -53,39 +52,39 @@ type Symbol struct {
 	// Name is the identifier for the symbol.
 	Name string
 
-	// CodeGenVarName is the Go variable name for this symbol in generated code.
-	// For partials, it is 'props_<invocationKey>' for props or
+	// CodeGenVarName is the Go variable name for this symbol in generated code. For
+	// partials, it is 'props_<invocationKey>' for props or
 	// '<partialHashedName>Data_<invocationKey>' for state.
 	CodeGenVarName string
 
-	// SourceInvocationKey is the invocation key of the partial this
-	// symbol originates from, used for explicit dependency tracking
-	// between partial invocations.
+	// SourceInvocationKey is the invocation key of the partial this symbol originates from,
+	// used for explicit dependency tracking between partial invocations.
 	//
-	// Empty for symbols not originating from a partial invocation
-	// (e.g., request, built-ins).
+	// Empty for symbols not originating from a partial invocation (e.g., request,
+	// built-ins).
 	SourceInvocationKey string
 }
 
-// reservedSystemSymbols maps identifier names reserved by the
-// template runtime that trigger a warning when shadowed.
-var reservedSystemSymbols = map[string]struct{}{
-	"request": {},
-	"req":     {},
-	"r":       {},
-	"state":   {},
-	"s":       {},
-	"props":   {},
-	"p":       {},
-	"T":       {},
-	"LT":      {},
-	"F":       {},
-	"LF":      {},
-}
+var (
+	// reservedSystemSymbols maps identifier names reserved by the template runtime that
+	// trigger a warning when shadowed.
+	reservedSystemSymbols = map[string]struct{}{
+		"request": {},
+		"req":     {},
+		"r":       {},
+		"state":   {},
+		"s":       {},
+		"props":   {},
+		"p":       {},
+		"T":       {},
+		"LT":      {},
+		"F":       {},
+		"LF":      {},
+	}
+)
 
-// SymbolTable tracks variable definitions and their visibility within scopes.
-// It forms a linked list through the parent pointer to represent nested
-// scopes.
+// SymbolTable tracks variable definitions and their visibility within scopes. It forms a
+// linked list through the parent pointer to represent nested scopes.
 type SymbolTable struct {
 	// parent points to the outer scope; nil for the top-level scope.
 	parent *SymbolTable
@@ -102,8 +101,8 @@ type SymbolTable struct {
 
 // NewSymbolTable creates a new symbol table with an optional parent scope.
 //
-// Takes parent (*SymbolTable) which specifies the enclosing scope for symbol
-// lookup, or nil for a root scope.
+// Takes parent (*SymbolTable) which specifies the enclosing scope for symbol lookup, or
+// nil for a root scope.
 //
 // Returns *SymbolTable which is the newly created symbol table.
 func NewSymbolTable(parent *SymbolTable) *SymbolTable {
@@ -121,13 +120,12 @@ func (st *SymbolTable) Define(symbol Symbol) {
 	st.namesCached = false
 }
 
-// Find searches for a symbol by name, starting in the current scope and
-// traversing up to parent scopes until the symbol is found.
+// Find searches for a symbol by name, starting in the current scope and traversing up to
+// parent scopes until the symbol is found.
 //
 // Takes name (string) which specifies the symbol name to search for.
 //
-// Returns Symbol which is the found symbol if it exists in any accessible
-// scope.
+// Returns Symbol which is the found symbol if it exists in any accessible scope.
 // Returns bool which indicates whether the symbol was found.
 func (st *SymbolTable) Find(name string) (Symbol, bool) {
 	current := st
@@ -140,11 +138,11 @@ func (st *SymbolTable) Find(name string) (Symbol, bool) {
 	return Symbol{}, false
 }
 
-// AllSymbolNames returns a sorted list of all unique symbol names visible
-// from the current scope.
+// AllSymbolNames returns a sorted list of all unique symbol names visible from the
+// current scope.
 //
-// Returns []string which contains the symbol names from this scope and all
-// parent scopes, sorted alphabetically.
+// Returns []string which contains the symbol names from this scope and all parent scopes,
+// sorted alphabetically.
 func (st *SymbolTable) AllSymbolNames() []string {
 	if st.namesCached {
 		return st.cachedNames
@@ -172,14 +170,13 @@ func (st *SymbolTable) AllSymbolNames() []string {
 	return result
 }
 
-// TranslationKeySet holds translation keys used for compile-time validation.
-// It provides O(1) lookup to check if a key exists.
+// TranslationKeySet holds translation keys used for compile-time validation. It provides
+// O(1) lookup to check if a key exists.
 type TranslationKeySet struct {
 	// LocalKeys holds translation keys from the component's <i18n> block.
 	LocalKeys map[string]struct{}
 
-	// GlobalKeys holds keys that can be used with T() from
-	// project-level translations.
+	// GlobalKeys holds keys that can be used with T() from project-level translations.
 	GlobalKeys map[string]struct{}
 }
 
@@ -209,10 +206,9 @@ func (t *TranslationKeySet) HasGlobalKey(key string) bool {
 	return ok
 }
 
-// AnalysisContext is a lightweight, passive data structure that provides
-// all the necessary context for the TypeResolver to analyse an
-// expression. It represents the state at a specific point in the AST
-// walk.
+// AnalysisContext is a lightweight, passive data structure that provides all the
+// necessary context for the TypeResolver to analyse an expression. It represents the
+// state at a specific point in the AST walk.
 type AnalysisContext struct {
 	// Logger provides structured logging for analysis operations.
 	Logger logger_domain.Logger
@@ -226,9 +222,8 @@ type AnalysisContext struct {
 	// TranslationKeys holds the set of valid translation keys for checking.
 	TranslationKeys *TranslationKeySet
 
-	// KnownNonNilExpressions tracks expressions that are guaranteed non-nil
-	// in the current scope, keyed by canonical string form (e.g.,
-	// "props.FloorPlan").
+	// KnownNonNilExpressions tracks expressions that are guaranteed non-nil in the current
+	// scope, keyed by canonical string form (e.g., "props.FloorPlan").
 	//
 	// Populated when entering p-if blocks that guard against nil.
 	KnownNonNilExpressions map[string]bool
@@ -246,20 +241,16 @@ type AnalysisContext struct {
 	SFCSourcePath string
 }
 
-// NewRootAnalysisContext creates the top-level context for a component's
-// analysis.
+// NewRootAnalysisContext creates the top-level context for a component's analysis.
 //
-// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any issues
-// found during analysis.
-// Takes goPackagePath (string) which specifies the full import path of the
-// package.
+// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any issues found during
+// analysis.
+// Takes goPackagePath (string) which specifies the full import path of the package.
 // Takes goPackageName (string) which specifies the package name.
 // Takes goSourcePath (string) which specifies the path to the Go source file.
-// Takes sfcSourcePath (string) which specifies the path to the SFC source
-// file.
+// Takes sfcSourcePath (string) which specifies the path to the SFC source file.
 //
-// Returns *AnalysisContext which is the initialised root context ready for
-// analysis.
+// Returns *AnalysisContext which is the initialised root context ready for analysis.
 func NewRootAnalysisContext(diagnostics *[]*ast_domain.Diagnostic, goPackagePath, goPackageName, goSourcePath, sfcSourcePath string) *AnalysisContext {
 	return &AnalysisContext{
 		Symbols:                  NewSymbolTable(nil),
@@ -273,12 +264,11 @@ func NewRootAnalysisContext(diagnostics *[]*ast_domain.Diagnostic, goPackagePath
 	}
 }
 
-// ForChildScope creates a new context for a nested scope, such as inside a
-// p-for loop. The new context inherits from the parent but has its own symbol
-// table.
+// ForChildScope creates a new context for a nested scope, such as inside a p-for loop.
+// The new context inherits from the parent but has its own symbol table.
 //
-// Returns *AnalysisContext which is the child context with inherited settings
-// and a fresh symbol table.
+// Returns *AnalysisContext which is the child context with inherited settings and a fresh
+// symbol table.
 func (ac *AnalysisContext) ForChildScope() *AnalysisContext {
 	return &AnalysisContext{
 		Symbols:                  NewSymbolTable(ac.Symbols),
@@ -293,8 +283,8 @@ func (ac *AnalysisContext) ForChildScope() *AnalysisContext {
 	}
 }
 
-// ForChildScopeWithNilGuards creates a child scope with extra nil guards.
-// The new context keeps the parent's guards and adds the ones provided.
+// ForChildScopeWithNilGuards creates a child scope with extra nil guards. The new context
+// keeps the parent's guards and adds the ones provided.
 //
 // Takes guards ([]string) which contains expressions known to be non-nil.
 //
@@ -313,14 +303,12 @@ func (ac *AnalysisContext) ForChildScopeWithNilGuards(guards []string) *Analysis
 	return child
 }
 
-// IsKnownNonNil checks if an expression is guaranteed non-nil in the current
-// scope.
+// IsKnownNonNil checks if an expression is guaranteed non-nil in the current scope.
 //
-// Only direct matches are considered. If "props.FloorPlan" is guarded,
-// accessing props.FloorPlan.URL is safe because the base (props.FloorPlan) is
-// directly guarded. However, props.User being guarded does NOT make
-// props.User.Profile safe if props.User.Profile is itself a pointer field that
-// could be nil.
+// Only direct matches are considered. If "props.FloorPlan" is guarded, accessing
+// props.FloorPlan.URL is safe because the base (props.FloorPlan) is directly guarded.
+// However, props.User being guarded does NOT make props.User.Profile safe if
+// props.User.Profile is itself a pointer field that could be nil.
 //
 // Takes expressionString (string) which is the expression string to check.
 //
@@ -332,15 +320,14 @@ func (ac *AnalysisContext) IsKnownNonNil(expressionString string) bool {
 	return ac.KnownNonNilExpressions[expressionString]
 }
 
-// ForNewPackageContext creates a new context for analysing content from a
-// different component (e.g., slotted content). It resets the symbol table and
-// updates the package context.
+// ForNewPackageContext creates a new context for analysing content from a different
+// component (e.g., slotted content). It resets the symbol table and updates the package
+// context.
 //
 // Takes goPackagePath (string) which specifies the full Go package path.
 // Takes goPackageName (string) which specifies the Go package name.
 // Takes goSourcePath (string) which specifies the path to the Go source file.
-// Takes sfcSourcePath (string) which specifies the path to the SFC
-// source file.
+// Takes sfcSourcePath (string) which specifies the path to the SFC source file.
 //
 // Returns *AnalysisContext which is the new context with inherited settings.
 func (ac *AnalysisContext) ForNewPackageContext(goPackagePath, goPackageName, goSourcePath, sfcSourcePath string) *AnalysisContext {
@@ -359,17 +346,14 @@ func (ac *AnalysisContext) ForNewPackageContext(goPackagePath, goPackageName, go
 
 // SetTranslationKeys sets the translation keys for this context.
 //
-// Takes keys (*TranslationKeySet) which provides the keys used for
-// translation.
+// Takes keys (*TranslationKeySet) which provides the keys used for translation.
 func (ac *AnalysisContext) SetTranslationKeys(keys *TranslationKeySet) {
 	ac.TranslationKeys = keys
 }
 
-// SetLocalTranslationKeys updates the local translation keys for partial
-// contexts.
+// SetLocalTranslationKeys updates the local translation keys for partial contexts.
 //
-// Takes localKeys (map[string]struct{}) which contains the translation keys
-// to set.
+// Takes localKeys (map[string]struct{}) which contains the translation keys to set.
 func (ac *AnalysisContext) SetLocalTranslationKeys(localKeys map[string]struct{}) {
 	if ac.TranslationKeys == nil {
 		ac.TranslationKeys = &TranslationKeySet{}
@@ -377,16 +361,14 @@ func (ac *AnalysisContext) SetLocalTranslationKeys(localKeys map[string]struct{}
 	ac.TranslationKeys.LocalKeys = localKeys
 }
 
-// WithSymbol adds a symbol with the given name and type expression,
-// then returns the context. This builder-style method simplifies test
-// setup by enabling method chaining.
+// WithSymbol adds a symbol with the given name and type expression, then returns the
+// context. This builder-style method simplifies test setup by enabling method chaining.
 //
 // Takes name (string) which specifies the symbol name.
-// Takes typeExpression (goast.Expr) which specifies the Go type expression for
-// the symbol.
+// Takes typeExpression (goast.Expr) which specifies the Go type expression for the
+// symbol.
 //
-// Returns *AnalysisContext which is the same context, enabling method
-// chaining.
+// Returns *AnalysisContext which is the same context, enabling method chaining.
 func (ac *AnalysisContext) WithSymbol(name string, typeExpression goast.Expr) *AnalysisContext {
 	ac.Symbols.Define(Symbol{
 		Name:           name,
@@ -396,28 +378,27 @@ func (ac *AnalysisContext) WithSymbol(name string, typeExpression goast.Expr) *A
 	return ac
 }
 
-// WithTypedSymbol adds a fully-specified symbol to the context and returns
-// the context. This builder-style method simplifies test setup by enabling
-// method chaining for complex symbol definitions.
+// WithTypedSymbol adds a fully-specified symbol to the context and returns the context.
+// This builder-style method simplifies test setup by enabling method chaining for complex
+// symbol definitions.
 //
 // Takes symbol (Symbol) which specifies the complete symbol to define.
 //
-// Returns *AnalysisContext which is the same context, enabling method
-// chaining.
+// Returns *AnalysisContext which is the same context, enabling method chaining.
 func (ac *AnalysisContext) WithTypedSymbol(symbol Symbol) *AnalysisContext {
 	ac.Symbols.Define(symbol)
 	return ac
 }
 
-// addDiagnosticWithPath adds a diagnostic to the context's list with a custom
-// source path.
+// addDiagnosticWithPath adds a diagnostic to the context's list with a custom source
+// path.
 //
 // Takes sev (ast_domain.Severity) which sets the severity level.
 // Takes message (string) which provides the message text.
 // Takes expression (string) which contains the expression that caused the issue.
 // Takes location (ast_domain.Location) which specifies where the issue occurred.
-// Takes path (string) which sets a custom source path. If empty, uses the
-// default path from the context.
+// Takes path (string) which sets a custom source path. If empty, uses the default path
+// from the context.
 func (ac *AnalysisContext) addDiagnosticWithPath(sev ast_domain.Severity, message, expression string, location ast_domain.Location, path, code string) {
 	sourcePath := ac.SFCSourcePath
 	if path != "" {
@@ -426,18 +407,15 @@ func (ac *AnalysisContext) addDiagnosticWithPath(sev ast_domain.Severity, messag
 	*ac.Diagnostics = append(*ac.Diagnostics, ast_domain.NewDiagnosticWithCode(sev, message, expression, code, location, sourcePath))
 }
 
-// addDiagnostic is a convenience method for adding a diagnostic to the
-// context's collection.
+// addDiagnostic is a convenience method for adding a diagnostic to the context's
+// collection.
 //
-// Takes severity (ast_domain.Severity) which specifies the diagnostic
-// severity.
+// Takes severity (ast_domain.Severity) which specifies the diagnostic severity.
 // Takes message (string) which provides the diagnostic message.
-// Takes expression (string) which identifies the expression being
-// diagnosed.
-// Takes location (ast_domain.Location) which specifies the source
-// location.
-// Takes annotations (*ast_domain.GoGeneratorAnnotation) which provides
-// optional source path override.
+// Takes expression (string) which identifies the expression being diagnosed.
+// Takes location (ast_domain.Location) which specifies the source location.
+// Takes annotations (*ast_domain.GoGeneratorAnnotation) which provides optional source
+// path override.
 func (ac *AnalysisContext) addDiagnostic(severity ast_domain.Severity, message, expression string, location ast_domain.Location, annotations *ast_domain.GoGeneratorAnnotation, code string) {
 	sourcePath := ac.SFCSourcePath
 	if annotations != nil && annotations.OriginalSourcePath != nil {
@@ -448,15 +426,12 @@ func (ac *AnalysisContext) addDiagnostic(severity ast_domain.Severity, message, 
 
 // addDiagnosticForExpression adds a diagnostic with accurate SourceLength.
 //
-// Takes severity (ast_domain.Severity) which specifies the diagnostic
-// severity.
+// Takes severity (ast_domain.Severity) which specifies the diagnostic severity.
 // Takes message (string) which provides the diagnostic message.
-// Takes expression (ast_domain.Expression) which identifies the code
-// element.
-// Takes location (ast_domain.Location) which specifies where the
-// diagnostic occurs.
-// Takes annotations (*ast_domain.GoGeneratorAnnotation) which provides
-// the original source path if available.
+// Takes expression (ast_domain.Expression) which identifies the code element.
+// Takes location (ast_domain.Location) which specifies where the diagnostic occurs.
+// Takes annotations (*ast_domain.GoGeneratorAnnotation) which provides the original
+// source path if available.
 func (ac *AnalysisContext) addDiagnosticForExpression(
 	severity ast_domain.Severity, message string, expression ast_domain.Expression,
 	location ast_domain.Location, annotations *ast_domain.GoGeneratorAnnotation, code string,
@@ -470,17 +445,16 @@ func (ac *AnalysisContext) addDiagnosticForExpression(
 	*ac.Diagnostics = append(*ac.Diagnostics, diagnostic)
 }
 
-// PopulateRootContext creates the top-level context for a main page component.
-// It sets up standard variable names for the page's state and props.
+// PopulateRootContext creates the top-level context for a main page component. It sets up
+// standard variable names for the page's state and props.
 //
-// When the component has a collection, this also adds a 'data' symbol to hold
-// the collection items.
+// When the component has a collection, this also adds a 'data' symbol to hold the
+// collection items.
 //
 // Takes ctx (*AnalysisContext) which receives the symbol definitions.
-// Takes typeResolver (*TypeResolver) which resolves types for the
-// component's data.
-// Takes virtualComponent (*annotator_dto.VirtualComponent) which
-// provides the component source and collection metadata.
+// Takes typeResolver (*TypeResolver) which resolves types for the component's data.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which provides the component
+// source and collection metadata.
 func PopulateRootContext(ctx *AnalysisContext, typeResolver *TypeResolver, virtualComponent *annotator_dto.VirtualComponent) {
 	populateContext(ctx, typeResolver, virtualComponent, "pageData", "props", "")
 
@@ -498,10 +472,9 @@ func PopulateRootContext(ctx *AnalysisContext, typeResolver *TypeResolver, virtu
 
 // defineGlobalSymbols adds symbols that are available in all component scopes.
 //
-// These include request aliases (request, req, r), translation functions
-// (T, LT), formatting functions (F, LF), Go built-in functions (len, cap,
-// append, min, max), and type conversion functions (string, int, float, bool,
-// and others).
+// These include request aliases (request, req, r), translation functions (T, LT),
+// formatting functions (F, LF), Go built-in functions (len, cap, append, min, max), and
+// type conversion functions (string, int, float, bool, and others).
 //
 // Takes ctx (*AnalysisContext) which provides the symbol table to populate.
 // Takes typeResolver (*TypeResolver) which resolves types for the defined symbols.
@@ -549,20 +522,17 @@ func defineGlobalSymbols(ctx *AnalysisContext, typeResolver *TypeResolver) {
 
 // defineComponentSymbols adds the state and props symbols for a component.
 //
-// It defines both full names (state, props) and short aliases (s, p) in the
-// symbol table. When the component has no script, it returns without action.
+// It defines both full names (state, props) and short aliases (s, p) in the symbol table.
+// When the component has no script, it returns without action.
 //
 // Takes ctx (*AnalysisContext) which holds the symbol table to update.
-// Takes typeResolver (*TypeResolver) which resolves type expressions
-// to type info.
-// Takes virtualComponent (*annotator_dto.VirtualComponent) which is
-// the component to define symbols for.
-// Takes stateVar (string) which is the variable name for state in
-// code output.
-// Takes propsVar (string) which is the variable name for props in
-// code output.
-// Takes sourceInvocationKey (string) which is the invocation key for
-// partial contexts, or empty for root pages.
+// Takes typeResolver (*TypeResolver) which resolves type expressions to type info.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which is the component to
+// define symbols for.
+// Takes stateVar (string) which is the variable name for state in code output.
+// Takes propsVar (string) which is the variable name for props in code output.
+// Takes sourceInvocationKey (string) which is the invocation key for partial contexts, or
+// empty for root pages.
 func defineComponentSymbols(ctx *AnalysisContext, typeResolver *TypeResolver, virtualComponent *annotator_dto.VirtualComponent, stateVar, propsVar, sourceInvocationKey string) {
 	if virtualComponent.Source.Script == nil {
 		return
@@ -579,13 +549,12 @@ func defineComponentSymbols(ctx *AnalysisContext, typeResolver *TypeResolver, vi
 	}
 }
 
-// defineAndValidateLocalFunctions adds local function symbols to the symbol
-// table and warns when user-defined functions hide reserved names.
+// defineAndValidateLocalFunctions adds local function symbols to the symbol table and
+// warns when user-defined functions hide reserved names.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and
-// symbol table.
-// Takes virtualComponent (*annotator_dto.VirtualComponent) which
-// contains the script AST to process.
+// Takes ctx (*AnalysisContext) which provides the analysis state and symbol table.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which contains the script AST
+// to process.
 func defineAndValidateLocalFunctions(ctx *AnalysisContext, virtualComponent *annotator_dto.VirtualComponent) {
 	if virtualComponent.Source.Script == nil || virtualComponent.Source.Script.AST == nil {
 		return
@@ -636,15 +605,13 @@ func defineAndValidateLocalFunctions(ctx *AnalysisContext, virtualComponent *ann
 	defineExportedConstantsAndVariables(ctx, virtualComponent)
 }
 
-// defineExportedConstantsAndVariables adds exported package-level constants
-// and variables from the script block to the symbol table. These are needed
-// in templates and require cross-package names when the component is embedded
-// in another.
+// defineExportedConstantsAndVariables adds exported package-level constants and variables
+// from the script block to the symbol table. These are needed in templates and require
+// cross-package names when the component is embedded in another.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and
-// symbol table.
-// Takes virtualComponent (*annotator_dto.VirtualComponent) which
-// contains the script AST to process.
+// Takes ctx (*AnalysisContext) which provides the analysis state and symbol table.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which contains the script AST
+// to process.
 func defineExportedConstantsAndVariables(ctx *AnalysisContext, virtualComponent *annotator_dto.VirtualComponent) {
 	if virtualComponent.Source.Script == nil || virtualComponent.Source.Script.AST == nil {
 		return
@@ -673,8 +640,7 @@ func processConstVarDecl(ctx *AnalysisContext, declaration goast.Decl) {
 	}
 }
 
-// processValueSpec handles a single value spec from a const or var
-// declaration.
+// processValueSpec handles a single value spec from a const or var declaration.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
 // Takes spec (goast.Spec) which is the value spec to process.
@@ -695,8 +661,7 @@ func processValueSpec(ctx *AnalysisContext, spec goast.Spec) {
 //
 // When typeExpr is nil, uses "any" as the type.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and symbol
-// table.
+// Takes ctx (*AnalysisContext) which provides the analysis state and symbol table.
 // Takes symbolName (string) which is the name of the symbol to define.
 // Takes typeExpr (goast.Expr) which is the type expression for the symbol.
 func defineExportedSymbol(ctx *AnalysisContext, symbolName string, typeExpr goast.Expr) {
@@ -726,14 +691,13 @@ func defineExportedSymbol(ctx *AnalysisContext, symbolName string, typeExpr goas
 
 // inferDataType returns the Go type for the data variable on collection pages.
 //
-// Was planned to scan Render() for piko.GetData[T](r) calls to find typed data.
-// However, the design changed: components now use GetData[T](r) directly in
-// their Render function and pass processed data to templates via state. The
-// data symbol is kept for possible future use but templates do not currently
-// use it.
+// Was planned to scan Render() for piko.GetData[T](r) calls to find typed data. However,
+// the design changed: components now use GetData[T](r) directly in their Render function
+// and pass processed data to templates via state. The data symbol is kept for possible
+// future use but templates do not currently use it.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is map[string]interface{} as a
-// fallback type.
+// Returns *ast_domain.ResolvedTypeInfo which is map[string]interface{} as a fallback
+// type.
 func inferDataType(_ *TypeResolver, _ *annotator_dto.VirtualComponent) *ast_domain.ResolvedTypeInfo {
 	return &ast_domain.ResolvedTypeInfo{
 		TypeExpression: &goast.MapType{
@@ -751,20 +715,16 @@ func inferDataType(_ *TypeResolver, _ *annotator_dto.VirtualComponent) *ast_doma
 
 // populateContext sets up the symbol table for a component's scope.
 //
-// It defines all standard symbols available within the component's template.
-// These include state, props, request, their aliases, and any top-level
-// functions.
+// It defines all standard symbols available within the component's template. These
+// include state, props, request, their aliases, and any top-level functions.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis context to
-// set up.
-// Takes typeResolver (*TypeResolver) which resolves types for symbol
-// definitions.
-// Takes virtualComponent (*annotator_dto.VirtualComponent) which
-// specifies the component.
+// Takes ctx (*AnalysisContext) which provides the analysis context to set up.
+// Takes typeResolver (*TypeResolver) which resolves types for symbol definitions.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which specifies the component.
 // Takes stateVar (string) which names the state variable alias.
 // Takes propsVar (string) which names the props variable alias.
-// Takes sourceInvocationKey (string) which is the invocation key if
-// this is a partial context, or empty for root pages.
+// Takes sourceInvocationKey (string) which is the invocation key if this is a partial
+// context, or empty for root pages.
 func populateContext(ctx *AnalysisContext, typeResolver *TypeResolver, virtualComponent *annotator_dto.VirtualComponent, stateVar, propsVar, sourceInvocationKey string) {
 	ctx.Logger.Trace("[populateContext] Populating full context.", logger_domain.String("component", virtualComponent.Source.SourcePath))
 	defineGlobalSymbols(ctx, typeResolver)
@@ -772,17 +732,16 @@ func populateContext(ctx *AnalysisContext, typeResolver *TypeResolver, virtualCo
 	defineAndValidateLocalFunctions(ctx, virtualComponent)
 }
 
-// populatePartialContext creates the context for a partial component that has
-// been called. It builds unique variable names for this specific call to avoid
-// name clashes in the output code.
+// populatePartialContext creates the context for a partial component that has been
+// called. It builds unique variable names for this specific call to avoid name clashes in
+// the output code.
 //
 // Takes ctx (*AnalysisContext) which holds the current analysis state.
-// Takes typeResolver (*TypeResolver) which resolves types during
-// analysis.
-// Takes virtualComponent (*annotator_dto.VirtualComponent) which is
-// the partial component.
-// Takes partialInfo (*ast_domain.PartialInvocationInfo) which provides
-// call details including the package name and unique key.
+// Takes typeResolver (*TypeResolver) which resolves types during analysis.
+// Takes virtualComponent (*annotator_dto.VirtualComponent) which is the partial
+// component.
+// Takes partialInfo (*ast_domain.PartialInvocationInfo) which provides call details
+// including the package name and unique key.
 func populatePartialContext(ctx *AnalysisContext, typeResolver *TypeResolver, virtualComponent *annotator_dto.VirtualComponent, partialInfo *ast_domain.PartialInvocationInfo) {
 	stateVar := fmt.Sprintf("%sData_%s", partialInfo.PartialPackageName, partialInfo.InvocationKey)
 	propsVar := fmt.Sprintf("props_%s", partialInfo.InvocationKey)

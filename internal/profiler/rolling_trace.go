@@ -26,8 +26,8 @@ import (
 	"time"
 )
 
-// traceRecorder captures the runtime/trace.FlightRecorder surface so tests can
-// exercise rolling trace behaviour without depending on the global runtime hook.
+// traceRecorder captures the runtime/trace.FlightRecorder surface so tests can exercise
+// rolling trace behaviour without depending on the global runtime hook.
 type traceRecorder interface {
 	// Enabled reports whether the recorder is actively capturing trace data.
 	Enabled() bool
@@ -54,13 +54,13 @@ type rollingTraceRecorder struct {
 	maxBytes uint64
 }
 
-// newRollingTraceRecorder creates and starts a rolling trace recorder when the
-// config enables it.
+// newRollingTraceRecorder creates and starts a rolling trace recorder when the config
+// enables it.
 //
 // Takes config (Config) which provides rolling trace settings.
 //
-// Returns *rollingTraceRecorder which is the started recorder, or nil when
-// rolling trace is disabled.
+// Returns *rollingTraceRecorder which is the started recorder, or nil when rolling trace
+// is disabled.
 // Returns error when the recorder cannot be started.
 func newRollingTraceRecorder(config Config) (*rollingTraceRecorder, error) {
 	if !config.EnableRollingTrace {
@@ -101,8 +101,7 @@ func startRollingTraceRecorder(config Config, recorder traceRecorder) (*rollingT
 
 // Enabled reports whether rolling trace capture is active.
 //
-// Returns bool which is true when the recorder is non-nil and actively
-// capturing.
+// Returns bool which is true when the recorder is non-nil and actively capturing.
 func (r *rollingTraceRecorder) Enabled() bool {
 	return r != nil && r.recorder != nil && r.recorder.Enabled()
 }

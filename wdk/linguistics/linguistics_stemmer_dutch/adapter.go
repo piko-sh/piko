@@ -23,13 +23,17 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this stemmer.
-const Language = "dutch"
+const (
+	// Language is the language code for this stemmer.
+	Language = "dutch"
+)
 
-var _ linguistics_domain.StemmerPort = (*Stemmer)(nil)
+var (
+	_ linguistics_domain.StemmerPort = (*Stemmer)(nil)
+)
 
-// Stemmer provides Dutch word stemming using the dchest/stemmer library.
-// It implements the linguistics_domain.StemmerPort interface.
+// Stemmer provides Dutch word stemming using the dchest/stemmer library. It implements
+// the linguistics_domain.StemmerPort interface.
 type Stemmer struct{}
 
 // Stem reduces a word to its root form using Dutch stemming rules.
@@ -54,8 +58,7 @@ func (*Stemmer) GetLanguage() string {
 
 // Factory creates a new Dutch stemmer instance.
 //
-// Use this with linguistics_domain.RegisterStemmerFactory for explicit
-// registration.
+// Use this with linguistics_domain.RegisterStemmerFactory for explicit registration.
 //
 // Returns linguistics_domain.StemmerPort which is the configured stemmer.
 // Returns error when the stemmer cannot be created.

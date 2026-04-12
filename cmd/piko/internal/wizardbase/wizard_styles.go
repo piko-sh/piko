@@ -18,7 +18,9 @@
 
 package wizardbase
 
-import "charm.land/lipgloss/v2"
+import (
+	"charm.land/lipgloss/v2"
+)
 
 var (
 	// TitleStyle is the bold coloured style used for step headings.

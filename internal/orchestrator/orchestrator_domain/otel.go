@@ -55,29 +55,25 @@ var (
 	// WorkflowCompletionDuration records how long each workflow takes to complete.
 	WorkflowCompletionDuration metric.Float64Histogram
 
-	// WorkflowSuccessCount counts the number of workflows that complete without
-	// error.
+	// WorkflowSuccessCount counts the number of workflows that complete without error.
 	WorkflowSuccessCount metric.Int64Counter
 
 	// WorkflowFailureCount counts the number of failed workflows.
 	WorkflowFailureCount metric.Int64Counter
 
-	// DispatcherFetchDuration measures the time taken to fetch tasks from the
-	// store.
+	// DispatcherFetchDuration measures the time taken to fetch tasks from the store.
 	DispatcherFetchDuration metric.Float64Histogram
 
 	// TaskFetchErrorCount counts the number of task fetch errors.
 	TaskFetchErrorCount metric.Int64Counter
 
-	// SchedulerPromotionDuration measures the time taken to promote scheduled
-	// tasks.
+	// SchedulerPromotionDuration measures the time taken to promote scheduled tasks.
 	SchedulerPromotionDuration metric.Float64Histogram
 
 	// ActiveTasksCount tracks the number of currently active tasks.
 	ActiveTasksCount metric.Int64UpDownCounter
 
-	// ActiveWorkflowsCount tracks the number of workflows that are currently
-	// running.
+	// ActiveWorkflowsCount tracks the number of workflows that are currently running.
 	ActiveWorkflowsCount metric.Int64UpDownCounter
 
 	// ExecutorRegistrationCount tracks how many times executors have registered.
@@ -86,12 +82,10 @@ var (
 	// ExecutorRegistrationErrorCount counts executor registration errors.
 	ExecutorRegistrationErrorCount metric.Int64Counter
 
-	// WorkflowStatusCheckDuration measures the time taken to check workflow
-	// status.
+	// WorkflowStatusCheckDuration measures the time taken to check workflow status.
 	WorkflowStatusCheckDuration metric.Float64Histogram
 
-	// WorkflowStatusCheckErrorCount counts the number of workflow status check
-	// errors.
+	// WorkflowStatusCheckErrorCount counts the number of workflow status check errors.
 	WorkflowStatusCheckErrorCount metric.Int64Counter
 
 	// TaskDispatchErrorCount counts the number of task dispatch errors.
@@ -109,39 +103,35 @@ var (
 	// TaskPersistenceDuration measures how long it takes to save a task.
 	TaskPersistenceDuration metric.Float64Histogram
 
-	// DelayedTaskPublishErrorCount tracks the number of failures when publishing
-	// delayed tasks.
+	// DelayedTaskPublishErrorCount tracks the number of failures when publishing delayed
+	// tasks.
 	DelayedTaskPublishErrorCount metric.Int64Counter
 
 	// DelayedTaskPublishedCount records the number of delayed tasks that have been
 	// published.
 	DelayedTaskPublishedCount metric.Int64Counter
 
-	// DispatcherValidationErrorCount counts the number of task validation errors
-	// in the dispatcher.
+	// DispatcherValidationErrorCount counts the number of task validation errors in the
+	// dispatcher.
 	DispatcherValidationErrorCount metric.Int64Counter
 
-	// DispatcherTasksQueuedCount counts the number of tasks queued by the
-	// dispatcher.
+	// DispatcherTasksQueuedCount counts the number of tasks queued by the dispatcher.
 	DispatcherTasksQueuedCount metric.Int64Counter
 
-	// DispatcherBackpressureCount counts the number of times backpressure was
-	// applied.
+	// DispatcherBackpressureCount counts the number of times backpressure was applied.
 	DispatcherBackpressureCount metric.Int64Counter
 
-	// TaskRecoveryCount tracks the number of stale tasks recovered from PROCESSING
-	// state.
+	// TaskRecoveryCount tracks the number of stale tasks recovered from PROCESSING state.
 	TaskRecoveryCount metric.Int64Counter
 
-	// TaskRecoveryErrorCount tracks the number of errors during task recovery
-	// operations.
+	// TaskRecoveryErrorCount tracks the number of errors during task recovery operations.
 	TaskRecoveryErrorCount metric.Int64Counter
 
 	// TaskDeduplicationBlockedCount tracks tasks blocked by deduplication.
 	TaskDeduplicationBlockedCount metric.Int64Counter
 
-	// TaskGracefulReleaseCount tracks how many tasks were released during a
-	// graceful shutdown.
+	// TaskGracefulReleaseCount tracks how many tasks were released during a graceful
+	// shutdown.
 	TaskGracefulReleaseCount metric.Int64Counter
 )
 

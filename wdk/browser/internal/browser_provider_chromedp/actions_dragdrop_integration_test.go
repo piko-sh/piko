@@ -22,53 +22,55 @@ import (
 	"testing"
 )
 
-const testHTMLDragDrop = `<!DOCTYPE html>
-<html>
-<head>
-<title>Drag Drop Test</title>
-<style>
-#source, #target {
-	width: 100px;
-	height: 100px;
-	margin: 20px;
-	padding: 10px;
-	border: 2px solid black;
-}
-#source { background: lightblue; }
-#target { background: lightgreen; }
-</style>
-</head>
-<body>
-<div id="source" draggable="true">Drag Me</div>
-<div id="target">Drop Here</div>
-<div id="result"></div>
-<script>
-var source = document.getElementById('source');
-var target = document.getElementById('target');
-var result = document.getElementById('result');
-
-source.addEventListener('dragstart', function(e) {
-	e.dataTransfer.setData('text/plain', 'dragged');
-	result.textContent = 'dragstart';
-});
-
-target.addEventListener('dragover', function(e) {
-	e.preventDefault();
-});
-
-target.addEventListener('drop', function(e) {
-	e.preventDefault();
-	result.textContent = 'dropped:' + e.dataTransfer.getData('text/plain');
-});
-
-source.addEventListener('dragend', function() {
-	if (result.textContent.startsWith('dropped')) {
-		result.textContent += ':dragend';
+const (
+	testHTMLDragDrop = `<!DOCTYPE html>
+	<html>
+	<head>
+	<title>Drag Drop Test</title>
+	<style>
+	#source, #target {
+		width: 100px;
+		height: 100px;
+		margin: 20px;
+		padding: 10px;
+		border: 2px solid black;
 	}
-});
-</script>
-</body>
-</html>`
+	#source { background: lightblue; }
+	#target { background: lightgreen; }
+	</style>
+	</head>
+	<body>
+	<div id="source" draggable="true">Drag Me</div>
+	<div id="target">Drop Here</div>
+	<div id="result"></div>
+	<script>
+	var source = document.getElementById('source');
+	var target = document.getElementById('target');
+	var result = document.getElementById('result');
+
+	source.addEventListener('dragstart', function(e) {
+		e.dataTransfer.setData('text/plain', 'dragged');
+		result.textContent = 'dragstart';
+	});
+
+	target.addEventListener('dragover', function(e) {
+		e.preventDefault();
+	});
+
+	target.addEventListener('drop', function(e) {
+		e.preventDefault();
+		result.textContent = 'dropped:' + e.dataTransfer.getData('text/plain');
+	});
+
+	source.addEventListener('dragend', function() {
+		if (result.textContent.startsWith('dropped')) {
+			result.textContent += ':dragend';
+		}
+	});
+	</script>
+	</body>
+	</html>`
+)
 
 func TestDragAndDropHTML5(t *testing.T) {
 	t.Parallel()

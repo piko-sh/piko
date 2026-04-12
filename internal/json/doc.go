@@ -16,17 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package json wraps JSON encoding and decoding behind a pluggable
-// [Provider] interface. By default all operations delegate to
-// [encoding/json]; a higher-performance provider (such as sonic) can
-// replace the defaults at runtime via [Activate].
+// Package json wraps JSON encoding and decoding behind a pluggable [Provider] interface.
+// By default all operations delegate to [encoding/json]; a higher-performance provider
+// (such as sonic) can replace the defaults at runtime via [Activate].
 //
 // # Provider activation
 //
-// Providers are activated during application bootstrap via
-// [piko.WithJSONProvider]. All function variables ([Marshal], [Unmarshal],
-// etc.) and API variables ([ConfigStd], [ConfigDefault]) are swapped
-// atomically. Frozen configurations created via [Freeze] resolve lazily on
-// first use, so they automatically pick up whichever provider is active at
-// call time.
+// Providers are activated during application bootstrap via [piko.WithJSONProvider]. All
+// function variables ([Marshal], [Unmarshal], etc.) and API variables ([ConfigStd],
+// [ConfigDefault]) are swapped atomically. Frozen configurations created via [Freeze]
+// resolve lazily on first use, so they automatically pick up whichever provider is active
+// at call time.
 package json

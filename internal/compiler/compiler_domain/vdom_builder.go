@@ -31,8 +31,7 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// nodeBuildContext holds shared state passed through the VDOM node building
-// functions.
+// nodeBuildContext holds shared state passed through the VDOM node building functions.
 type nodeBuildContext struct {
 	// events collects event bindings discovered during template traversal.
 	events *eventBindingCollection
@@ -47,13 +46,12 @@ type nodeBuildContext struct {
 	booleanProps []string
 }
 
-// VDOMBuilder defines the interface for building VDOM render functions from
-// template ASTs.
+// VDOMBuilder defines the interface for building VDOM render functions from template
+// ASTs.
 type VDOMBuilder interface {
 	// BuildRenderVDOM builds a render function that produces a virtual DOM tree.
 	//
-	// Takes tmplAST (*ast_domain.TemplateAST) which is the parsed template to
-	// render.
+	// Takes tmplAST (*ast_domain.TemplateAST) which is the parsed template to render.
 	// Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 	// properties, and the module name for the build.
 	//
@@ -63,19 +61,22 @@ type VDOMBuilder interface {
 		buildContext *nodeBuildContext) (*js_ast.EFunction, error)
 }
 
-// vdomBuilder builds a virtual DOM for rendering components.
-// It implements the VDOMBuilder interface.
+// vdomBuilder builds a virtual DOM for rendering components. It implements the
+// VDOMBuilder interface.
 type vdomBuilder struct{}
 
-// attributeIs is the HTML "is" attribute used for customised built-in elements.
-const attributeIs = "is"
+const (
+	// attributeIs is the HTML "is" attribute used for customised built-in elements.
+	attributeIs = "is"
+)
 
-var _ VDOMBuilder = (*vdomBuilder)(nil)
+var (
+	_ VDOMBuilder = (*vdomBuilder)(nil)
+)
 
 // BuildRenderVDOM builds the renderVDOM method from a template AST.
 //
-// Takes tmplAST (*ast_domain.TemplateAST) which provides the parsed template
-// structure.
+// Takes tmplAST (*ast_domain.TemplateAST) which provides the parsed template structure.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 //
@@ -121,12 +122,11 @@ func NewVDOMBuilder() VDOMBuilder {
 
 // buildFinalExpr builds the final expression from a slice of expressions.
 //
-// When the slice is empty, returns a null literal. When there is exactly one
-// expression, returns it unchanged. Otherwise, wraps all expressions in a
-// DOM fragment call.
+// When the slice is empty, returns a null literal. When there is exactly one expression,
+// returns it unchanged. Otherwise, wraps all expressions in a DOM fragment call.
 //
-// Takes topLevelExprs ([]js_ast.Expr) which contains the expressions to
-// combine into the final result.
+// Takes topLevelExprs ([]js_ast.Expr) which contains the expressions to combine into the
+// final result.
 //
 // Returns js_ast.Expr which is the resulting expression for the template.
 func buildFinalExpr(topLevelExprs []js_ast.Expr) js_ast.Expr {
@@ -199,8 +199,8 @@ func getKeyJSExpr(n *ast_domain.TemplateNode, registry *RegistryContext) (js_ast
 
 // buildForLoopAST builds a JavaScript AST for a p-for directive loop.
 //
-// Takes n (*ast_domain.TemplateNode) which is the template node containing the
-// p-for directive.
+// Takes n (*ast_domain.TemplateNode) which is the template node containing the p-for
+// directive.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 //
@@ -272,12 +272,11 @@ func buildForLoopAST(
 	return mapCall, nil
 }
 
-// buildRuntimeNormaliseCollection creates a runtime check that handles both
-// arrays and objects in p-for loops.
+// buildRuntimeNormaliseCollection creates a runtime check that handles both arrays and
+// objects in p-for loops.
 //
-// For arrays, the collection passes through unchanged. For objects, the
-// collection is converted to Object.entries() which returns key-value pairs
-// as [[key, value], ...].
+// For arrays, the collection passes through unchanged. For objects, the collection is
+// converted to Object.entries() which returns key-value pairs as [[key, value], ...].
 //
 // Takes collectionExpr (js_ast.Expr) which is the collection to iterate.
 // Takes registry (*RegistryContext) which provides identifier creation.
@@ -326,8 +325,8 @@ func buildRuntimeNormaliseCollection(collectionExpr js_ast.Expr, registry *Regis
 //
 // Takes src (map[string]bool) which is the source map to copy.
 //
-// Returns map[string]bool which is a new map with the same entries, or an
-// empty map if src is nil.
+// Returns map[string]bool which is a new map with the same entries, or an empty map if
+// src is nil.
 func copyLoopVars(src map[string]bool) map[string]bool {
 	if src == nil {
 		return map[string]bool{}
@@ -337,15 +336,15 @@ func copyLoopVars(src map[string]bool) map[string]bool {
 	return dst
 }
 
-// copyLoopVarsWith copies loop variables and adds the given item and index
-// names to the result.
+// copyLoopVarsWith copies loop variables and adds the given item and index names to the
+// result.
 //
 // Takes src (map[string]bool) which holds the current loop variables.
 // Takes itemName (string) which is the loop item variable name to add.
 // Takes idxName (string) which is the loop index variable name to add.
 //
-// Returns map[string]bool which holds the copied variables with any non-empty
-// item and index names added.
+// Returns map[string]bool which holds the copied variables with any non-empty item and
+// index names added.
 func copyLoopVarsWith(src map[string]bool, itemName, idxName string) map[string]bool {
 	dst := copyLoopVars(src)
 	if itemName != "" {
@@ -359,11 +358,9 @@ func copyLoopVarsWith(src map[string]bool, itemName, idxName string) map[string]
 
 // getLoopVarNames extracts the variable names from a loop variables map.
 //
-// Takes loopVars (map[string]bool) which contains the loop variable names as
-// keys.
+// Takes loopVars (map[string]bool) which contains the loop variable names as keys.
 //
-// Returns []string which contains the variable names, or nil if loopVars is
-// nil.
+// Returns []string which contains the variable names, or nil if loopVars is nil.
 func getLoopVarNames(loopVars map[string]bool) []string {
 	if loopVars == nil {
 		return nil
@@ -376,8 +373,7 @@ func getLoopVarNames(loopVars map[string]bool) []string {
 // Takes n (*ast_domain.TemplateNode) which is the template node to convert.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
-// Takes keyJSExpr (js_ast.Expr) which provides the key expression for the
-// element.
+// Takes keyJSExpr (js_ast.Expr) which provides the key expression for the element.
 //
 // Returns js_ast.Expr which is the constructed element call expression.
 // Returns error when property or child AST building fails.
@@ -424,8 +420,8 @@ func buildElementNodeAST(
 	return elementCall, nil
 }
 
-// buildPikoElementNodeAST handles <piko:element :is="expr"> by compiling the
-// dynamic :is expression and using dom.resolveTag(expr) as the tag argument.
+// buildPikoElementNodeAST handles <piko:element :is="expr"> by compiling the dynamic :is
+// expression and using dom.resolveTag(expr) as the tag argument.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes n (*ast_domain.TemplateNode) which is the piko:element node.
@@ -493,14 +489,11 @@ func buildPikoElementNodeAST(
 	return elementCall, nil
 }
 
-// buildPikoElementPropsAST builds props for a piko:element,
-// excluding the :is attribute which is consumed for the dynamic
-// tag name.
+// buildPikoElementPropsAST builds props for a piko:element, excluding the :is attribute
+// which is consumed for the dynamic tag name.
 //
-// Takes n (*ast_domain.TemplateNode) which is the piko:element
-// node.
-// Takes events (*eventBindingCollection) which collects event
-// bindings.
+// Takes n (*ast_domain.TemplateNode) which is the piko:element node.
+// Takes events (*eventBindingCollection) which collects event bindings.
 // Takes loopVars (map[string]bool) which tracks loop variables.
 // Takes booleanProps ([]string) which lists boolean properties.
 //
@@ -553,8 +546,8 @@ func buildPikoElementPropsAST(
 
 // pickTagName returns the tag name to use for a template node.
 //
-// When isLink is true, returns "a" for anchor elements. Otherwise, returns the
-// tag name from the node.
+// When isLink is true, returns "a" for anchor elements. Otherwise, returns the tag name
+// from the node.
 //
 // Takes n (*ast_domain.TemplateNode) which provides the default tag name.
 // Takes isLink (bool) which shows whether the element is a link.
@@ -569,18 +562,17 @@ func pickTagName(n *ast_domain.TemplateNode, isLink bool) string {
 
 // buildChildFragmentAST handles rendering of a fragment's children.
 //
-// When there are no children, returns a null literal. When there is exactly
-// one child, returns that child directly. Otherwise, wraps the children in a
-// fragment with a derived key.
+// When there are no children, returns a null literal. When there is exactly one child,
+// returns that child directly. Otherwise, wraps the children in a fragment with a derived
+// key.
 //
-// Takes parentNode (*ast_domain.TemplateNode) which provides the parent
-// element and its children to process.
+// Takes parentNode (*ast_domain.TemplateNode) which provides the parent element and its
+// children to process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 //
 // Returns js_ast.Expr which is the JavaScript AST expression for the children.
-// Returns error when child processing fails or the fragment key cannot be
-// derived.
+// Returns error when child processing fails or the fragment key cannot be derived.
 func buildChildFragmentAST(
 	ctx context.Context,
 	parentNode *ast_domain.TemplateNode,
@@ -611,11 +603,10 @@ func buildChildFragmentAST(
 	return buildDOMCall("frag", fragmentKeyJS, js_ast.Expr{Data: &js_ast.EArray{Items: childExprs}}), nil
 }
 
-// deriveFragmentKeyJSExpr creates a child key from a parent key by adding a
-// suffix to make it unique.
+// deriveFragmentKeyJSExpr creates a child key from a parent key by adding a suffix to
+// make it unique.
 //
-// Takes parentKey (js_ast.Expr) which is the parent key expression to build
-// from.
+// Takes parentKey (js_ast.Expr) which is the parent key expression to build from.
 //
 // Returns js_ast.Expr which is the new child key expression.
 // Returns error when the parent key cannot be processed.

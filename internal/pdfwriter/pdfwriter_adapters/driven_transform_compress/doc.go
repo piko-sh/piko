@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_compress implements byte-level compression as a
-// PDF post-processing transformer.
+// Package driven_transform_compress implements byte-level compression as a PDF
+// post-processing transformer.
 //
-// It compresses the final PDF output using a configurable algorithm,
-// defaulting to Zstandard. The compressed output is no longer a valid PDF
-// and must be decompressed before use. This transformer should run after
-// all PDF-structural transforms in the chain.
+// It compresses the final PDF output using a configurable algorithm, defaulting to
+// Zstandard. The compressed output is no longer a valid PDF and must be decompressed
+// before use. This transformer should run after all PDF-structural transforms in the
+// chain.
 package driven_transform_compress

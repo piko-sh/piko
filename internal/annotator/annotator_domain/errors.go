@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Defines custom error types for compilation failures including parsing errors,
-// semantic validation issues, and circular dependencies. Provides diagnostic
-// formatting utilities to present compilation errors with source context for
-// developers.
+// Defines custom error types for compilation failures including parsing errors, semantic
+// validation issues, and circular dependencies. Provides diagnostic formatting utilities
+// to present compilation errors with source context for developers.
 
 import (
 	"errors"
@@ -32,10 +31,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// IsParseSoftError reports whether err originated from a tolerable
-// parse failure during .pk file processing. Script-block syntax
-// errors and template-diagnostic errors are considered soft so
-// discovery (which only cares about imports) can continue past them;
+// IsParseSoftError reports whether err originated from a tolerable parse failure during
+// .pk file processing. Script-block syntax errors and template-diagnostic errors are
+// considered soft so discovery (which only cares about imports) can continue past them;
 // every other error is treated as fatal.
 //
 // Takes err (error) which is the error to classify.
@@ -52,8 +50,7 @@ func IsParseSoftError(err error) bool {
 	return errors.As(err, &diagErr)
 }
 
-// ParseDiagnosticError represents an error that occurred during parsing of a
-// template.
+// ParseDiagnosticError represents an error that occurred during parsing of a template.
 type ParseDiagnosticError struct {
 	// SourcePath is the path to the file where the parsing error occurred.
 	SourcePath string
@@ -65,15 +62,14 @@ type ParseDiagnosticError struct {
 	Diagnostics []*ast_domain.Diagnostic
 }
 
-// NewParseDiagnosticError creates a new ParseDiagnosticError with the given
-// diagnostics and source details.
+// NewParseDiagnosticError creates a new ParseDiagnosticError with the given diagnostics
+// and source details.
 //
 // Takes diagnostics ([]*ast_domain.Diagnostic) which contains the parsing errors.
 // Takes sourcePath (string) which is the path to the source file.
 // Takes templateSource (string) which is the original template content.
 //
-// Returns *ParseDiagnosticError which wraps the diagnostics with source
-// context.
+// Returns *ParseDiagnosticError which wraps the diagnostics with source context.
 func NewParseDiagnosticError(diagnostics []*ast_domain.Diagnostic, sourcePath, templateSource string) *ParseDiagnosticError {
 	return &ParseDiagnosticError{
 		Diagnostics:    diagnostics,
@@ -84,8 +80,7 @@ func NewParseDiagnosticError(diagnostics []*ast_domain.Diagnostic, sourcePath, t
 
 // Error implements the error interface.
 //
-// Returns string which contains the number of parsing errors and the source
-// file path.
+// Returns string which contains the number of parsing errors and the source file path.
 func (e *ParseDiagnosticError) Error() string {
 	if len(e.Diagnostics) == 1 {
 		return fmt.Sprintf("found 1 parsing error in %s", e.SourcePath)
@@ -93,8 +88,8 @@ func (e *ParseDiagnosticError) Error() string {
 	return fmt.Sprintf("found %d parsing errors in %s", len(e.Diagnostics), e.SourcePath)
 }
 
-// SemanticError represents an error found during semantic analysis.
-// It implements the error interface.
+// SemanticError represents an error found during semantic analysis. It implements the
+// error interface.
 type SemanticError struct {
 	// Diagnostics holds the errors and warnings found during semantic analysis.
 	Diagnostics []*ast_domain.Diagnostic
@@ -102,8 +97,8 @@ type SemanticError struct {
 
 // NewSemanticError creates a new SemanticError with the given diagnostics.
 //
-// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostic
-// messages describing the semantic issues found.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostic messages
+// describing the semantic issues found.
 //
 // Returns *SemanticError which wraps the diagnostics for error reporting.
 func NewSemanticError(diagnostics []*ast_domain.Diagnostic) *SemanticError {
@@ -114,8 +109,8 @@ func NewSemanticError(diagnostics []*ast_domain.Diagnostic) *SemanticError {
 
 // Error implements the error interface.
 //
-// Returns string which contains the count of semantic validation errors and
-// warnings found during analysis.
+// Returns string which contains the count of semantic validation errors and warnings
+// found during analysis.
 func (e *SemanticError) Error() string {
 	_, _, warningCount, errorCount := getDiagnosticCounts(e.Diagnostics)
 
@@ -125,18 +120,17 @@ func (e *SemanticError) Error() string {
 	return fmt.Sprintf("found %d semantic validation errors and %d semantic validation warnings", errorCount, warningCount)
 }
 
-// CircularDependencyError represents a loop in the component graph where
-// packages depend on each other in a cycle. It implements the error interface.
+// CircularDependencyError represents a loop in the component graph where packages depend
+// on each other in a cycle. It implements the error interface.
 type CircularDependencyError struct {
 	// Path lists the package names that form the dependency cycle.
 	Path []string
 }
 
-// NewCircularDependencyError creates a new CircularDependencyError with the
-// given dependency path.
+// NewCircularDependencyError creates a new CircularDependencyError with the given
+// dependency path.
 //
-// Takes path ([]string) which specifies the chain of dependencies that form
-// the cycle.
+// Takes path ([]string) which specifies the chain of dependencies that form the cycle.
 //
 // Returns *CircularDependencyError which represents the circular dependency.
 func NewCircularDependencyError(path []string) *CircularDependencyError {
@@ -150,16 +144,16 @@ func (e *CircularDependencyError) Error() string {
 	return fmt.Sprintf("circular dependency detected: %s", strings.Join(e.Path, " -> "))
 }
 
-// FormatAllDiagnostics formats all diagnostics grouped by source file into a
-// string that is easy to read.
+// FormatAllDiagnostics formats all diagnostics grouped by source file into a string that
+// is easy to read.
 //
-// Takes diagnostics ([]*ast_domain.Diagnostic) which provides the list of
-// diagnostics to format.
-// Takes sourceContents (map[string][]byte) which maps file paths to their
-// source code for context display.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which provides the list of diagnostics to
+// format.
+// Takes sourceContents (map[string][]byte) which maps file paths to their source code for
+// context display.
 //
-// Returns string which contains the formatted output, or an empty string if
-// there are no diagnostics.
+// Returns string which contains the formatted output, or an empty string if there are no
+// diagnostics.
 func FormatAllDiagnostics(diagnostics []*ast_domain.Diagnostic, sourceContents map[string][]byte) string {
 	if len(diagnostics) == 0 {
 		return ""
@@ -203,8 +197,7 @@ func FormatAllDiagnostics(diagnostics []*ast_domain.Diagnostic, sourceContents m
 
 // getDiagnosticCounts counts diagnostics by severity level.
 //
-// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostics to
-// count.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which contains the diagnostics to count.
 //
 // Returns debugCount (int) which is the number of debug-level diagnostics.
 // Returns infoCount (int) which is the number of info-level diagnostics.

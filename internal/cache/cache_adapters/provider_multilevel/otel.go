@@ -34,12 +34,10 @@ var (
 	// l1HitsTotal counts cache hits served from the L1 (in-memory) cache.
 	l1HitsTotal metric.Int64Counter
 
-	// l2HitsTotal counts cache hits served from the L2 (distributed) cache after
-	// an L1 miss.
+	// l2HitsTotal counts cache hits served from the L2 (distributed) cache after an L1 miss.
 	l2HitsTotal metric.Int64Counter
 
-	// totalMissesTotal counts cache misses on both L1 and L2 that need a loader
-	// call.
+	// totalMissesTotal counts cache misses on both L1 and L2 that need a loader call.
 	totalMissesTotal metric.Int64Counter
 
 	// l2ErrorsTotal counts errors encountered when communicating with the L2 cache.

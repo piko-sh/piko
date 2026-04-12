@@ -1,0 +1,14 @@
+{
+  "name": "00_smoke_addition",
+  "description": "Smoke benchmark: sum 0..999, return as decimal string. Used to validate harness plumbing end-to-end; not in the canonical 12 benchmarks.",
+  "args": [],
+  "expected_stdout_sha256": "c53287c86c50a889ed2d476b02483064365754d5a3424d7e44ec3aaeb95eba93",
+  "k_inner": 100,
+  "timeout_seconds": 60,
+  "source_sha256": {
+    "go/native_main.go": "f882ea612ec157f7fd3d7ebe9962c081e6c01a074d4b56d0353ef1134595d026",
+    "go/piko_source.go": "222424bcf5dc1efa22dcc16ed922553122c8170a97e040db019ccdd99de11ca3",
+    "py/cpython.py": "a6666c2aea207f27f7df6ec12d8e105829f2c532b6e6c08b03e0ad8b78d65f4c",
+    "py/pypy.py": "a6666c2aea207f27f7df6ec12d8e105829f2c532b6e6c08b03e0ad8b78d65f4c"
+  }
+}

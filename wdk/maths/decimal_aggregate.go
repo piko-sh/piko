@@ -24,9 +24,8 @@ import (
 	"slices"
 )
 
-// Allocate splits a Decimal value into parts based on the given ratios.
-// Any remainder is added to the last part so the sum of parts equals the
-// original value.
+// Allocate splits a Decimal value into parts based on the given ratios. Any remainder is
+// added to the last part so the sum of parts equals the original value.
 //
 // Takes ratios (...int64) which specifies the proportions for splitting.
 //
@@ -57,7 +56,8 @@ func (d Decimal) Allocate(ratios ...int64) ([]Decimal, error) {
 //
 // Takes decimals (...Decimal) which are the values to add together.
 //
-// Returns Decimal which is the total sum. Returns zero if no values are given.
+// Returns Decimal which is the total sum.
+// Returns zero if no values are given.
 func SumDecimals(decimals ...Decimal) Decimal {
 	sum := ZeroDecimal()
 	for _, d := range decimals {
@@ -70,8 +70,8 @@ func SumDecimals(decimals ...Decimal) Decimal {
 //
 // Takes decimals (...Decimal) which are the values to average.
 //
-// Returns Decimal which is the calculated average, or an error-state Decimal
-// if the slice is empty.
+// Returns Decimal which is the calculated average, or an error-state Decimal if the slice
+// is empty.
 func AverageDecimals(decimals ...Decimal) Decimal {
 	if len(decimals) == 0 {
 		return Decimal{err: errors.New("maths: cannot calculate average of an empty slice")}
@@ -85,8 +85,8 @@ func AverageDecimals(decimals ...Decimal) Decimal {
 // Takes d1 (Decimal) which is the first value to compare.
 // Takes others (...Decimal) which are extra values to compare.
 //
-// Returns Decimal which is the smallest value found. If any input has an
-// error or the comparison fails, returns the first value that has an error.
+// Returns Decimal which is the smallest value found. If any input has an error or the
+// comparison fails, returns the first value that has an error.
 func MinDecimal(d1 Decimal, others ...Decimal) Decimal {
 	if d1.err != nil {
 		return d1
@@ -112,8 +112,8 @@ func MinDecimal(d1 Decimal, others ...Decimal) Decimal {
 // Takes d1 (Decimal) which is the first value to compare.
 // Takes others (...Decimal) which are extra values to compare.
 //
-// Returns Decimal which is the largest value found. If any input has an error
-// or the comparison fails, returns the first value that contains an error.
+// Returns Decimal which is the largest value found. If any input has an error or the
+// comparison fails, returns the first value that contains an error.
 func MaxDecimal(d1 Decimal, others ...Decimal) Decimal {
 	if d1.err != nil {
 		return d1
@@ -151,8 +151,8 @@ func AbsSumDecimals(decimals ...Decimal) Decimal {
 //
 // Takes decimals ([]Decimal) which is the slice to sort in place.
 //
-// Returns error when any decimal in the slice is in an error state or when
-// an unexpected comparison error occurs during sorting.
+// Returns error when any decimal in the slice is in an error state or when an unexpected
+// comparison error occurs during sorting.
 func SortDecimals(decimals []Decimal) error {
 	for i, d := range decimals {
 		if d.err != nil {
@@ -181,8 +181,8 @@ func SortDecimals(decimals []Decimal) error {
 //
 // Takes decimals ([]Decimal) which is the slice to sort in place.
 //
-// Returns error when any decimal in the slice is in an error state or when
-// an unexpected comparison error occurs during sorting.
+// Returns error when any decimal in the slice is in an error state or when an unexpected
+// comparison error occurs during sorting.
 func SortDecimalsReverse(decimals []Decimal) error {
 	for i, d := range decimals {
 		if d.err != nil {
@@ -207,9 +207,8 @@ func SortDecimalsReverse(decimals []Decimal) error {
 	return sortErr
 }
 
-// allocateDecimalPortions distributes a Decimal across the given ratios. The
-// last portion receives the remainder to ensure the sum equals the original
-// value.
+// allocateDecimalPortions distributes a Decimal across the given ratios. The last portion
+// receives the remainder to ensure the sum equals the original value.
 //
 // Takes d (Decimal) which is the value to distribute.
 // Takes ratios ([]int64) which specifies the distribution proportions.

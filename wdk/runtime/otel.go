@@ -18,7 +18,11 @@
 
 package runtime
 
-import "piko.sh/piko/wdk/logger"
+import (
+	"piko.sh/piko/wdk/logger"
+)
 
-// log is the package-level logger for the runtime package.
-var log = logger.GetLogger("piko/wdk/runtime")
+var (
+	// log is the package-level logger for the runtime package.
+	log = logger.GetLogger("piko/wdk/runtime")
+)

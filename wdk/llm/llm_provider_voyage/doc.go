@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_provider_voyage provides an embedding provider backed
-// by the Voyage AI API.
+// Package llm_provider_voyage provides an embedding provider backed by the Voyage AI API.
 //
-// Unlike other LLM providers, Voyage is an embedding-only service
-// and does not offer chat completions. Register it alongside a
-// separate LLM provider using [piko.WithEmbeddingProvider].
+// Unlike other LLM providers, Voyage is an embedding-only service and does not offer chat
+// completions. Register it alongside a separate LLM provider using
+// [piko.WithEmbeddingProvider].
 //
 // # Thread safety
 //

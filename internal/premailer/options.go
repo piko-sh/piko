@@ -38,42 +38,40 @@ type Options struct {
 	// RemoveIDs controls whether id attributes are stripped from all elements.
 	RemoveIDs bool
 
-	// MakeLeftoverImportant adds !important to leftover CSS rules that cannot be
-	// inlined into elements.
+	// MakeLeftoverImportant adds !important to leftover CSS rules that cannot be inlined
+	// into elements.
 	MakeLeftoverImportant bool
 
-	// ExpandShorthands enables expansion of CSS shorthand properties into their
-	// individual parts.
+	// ExpandShorthands enables expansion of CSS shorthand properties into their individual
+	// parts.
 	ExpandShorthands bool
 
-	// ResolvePseudoElements controls whether ::before and ::after pseudo-element
-	// rules are collected separately instead of being discarded. When true,
-	// pseudo-element rules are placed in RuleSet.PseudoElementRules rather than
-	// LeftoverRules.
+	// ResolvePseudoElements controls whether ::before and ::after pseudo-element rules are
+	// collected separately instead of being discarded. When true, pseudo-element rules are
+	// placed in RuleSet.PseudoElementRules rather than LeftoverRules.
 	ResolvePseudoElements bool
 
-	// SkipEmailValidation disables email-specific HTML tag and CSS property
-	// validation. Use this when processing templates for non-email output such
-	// as PDF layout.
+	// SkipEmailValidation disables email-specific HTML tag and CSS property validation. Use
+	// this when processing templates for non-email output such as PDF layout.
 	SkipEmailValidation bool
 
-	// SkipHTMLAttributeMapping disables the conversion of CSS properties back
-	// to HTML attributes (e.g. width, bgcolor).
+	// SkipHTMLAttributeMapping disables the conversion of CSS properties back to HTML
+	// attributes (e.g. width, bgcolor).
 	//
 	// Email clients need this mapping, but layout engines do not.
 	SkipHTMLAttributeMapping bool
 
-	// SkipStyleExtraction disables the removal of <style> tags from the AST
-	// during processing. Use this when the AST should not be modified.
+	// SkipStyleExtraction disables the removal of <style> tags from the AST during
+	// processing. Use this when the AST should not be modified.
 	SkipStyleExtraction bool
 }
 
 // Option is a functional option for configuring the Premailer.
 type Option func(*Options)
 
-// ToFunctionalOptions converts an Options struct into a slice of functional
-// Option values, so a settings struct can be passed to a function that accepts
-// functional options.
+// ToFunctionalOptions converts an Options struct into a slice of functional Option
+// values, so a settings struct can be passed to a function that accepts functional
+// options.
 //
 // Returns []Option which contains only options with non-default values.
 func (o *Options) ToFunctionalOptions() []Option {
@@ -119,14 +117,13 @@ func (o *Options) ToFunctionalOptions() []Option {
 	return opts
 }
 
-// WithKeepBangImportant returns an Option that sets whether to keep
-// !important declarations in both inline styles and the style block.
+// WithKeepBangImportant returns an Option that sets whether to keep !important
+// declarations in both inline styles and the style block.
 //
-// When enabled, CSS rules with !important declarations are both inlined and
-// kept in the <style> block. This creates dual-path styling that works well
-// with webmail clients. The inline styles (without !important) provide basic
-// rendering, while the <style> block rules (with !important) can override
-// styles added by the webmail client.
+// When enabled, CSS rules with !important declarations are both inlined and kept in the
+// <style> block. This creates dual-path styling that works well with webmail clients. The
+// inline styles (without !important) provide basic rendering, while the <style> block
+// rules (with !important) can override styles added by the webmail client.
 //
 // Takes keep (bool) which enables or disables !important preservation.
 //
@@ -139,9 +136,8 @@ func WithKeepBangImportant(keep bool) Option {
 
 // WithRemoveClasses returns an Option that sets the RemoveClasses setting.
 //
-// When enabled, class attributes are removed from elements after styles are
-// applied. This can reduce HTML size and prevent styling conflicts in email
-// clients.
+// When enabled, class attributes are removed from elements after styles are applied. This
+// can reduce HTML size and prevent styling conflicts in email clients.
 //
 // Takes remove (bool) which specifies whether to remove class attributes.
 //
@@ -152,13 +148,12 @@ func WithRemoveClasses(remove bool) Option {
 	}
 }
 
-// WithRemoveIDs returns an Option that sets whether to remove ID attributes
-// from elements after styles are applied.
+// WithRemoveIDs returns an Option that sets whether to remove ID attributes from elements
+// after styles are applied.
 //
 // When enabled, ID attributes are removed from elements. This helps with email
-// compatibility because webmail clients can have ID conflicts when emails are
-// added to pages with elements that share the same IDs. Removing IDs also makes
-// the HTML smaller.
+// compatibility because webmail clients can have ID conflicts when emails are added to
+// pages with elements that share the same IDs. Removing IDs also makes the HTML smaller.
 //
 // Takes remove (bool) which enables or disables ID removal.
 //
@@ -169,13 +164,13 @@ func WithRemoveIDs(remove bool) Option {
 	}
 }
 
-// WithMakeLeftoverImportant returns an Option that controls whether leftover
-// CSS properties are marked as !important.
+// WithMakeLeftoverImportant returns an Option that controls whether leftover CSS
+// properties are marked as !important.
 //
-// When enabled, all CSS properties in leftover rules (non-inlineable styles
-// like :hover, @media queries) are automatically marked as !important. This
-// is needed for email clients like Gmail, which often only respect styles in
-// <style> tags if they are marked !important.
+// When enabled, all CSS properties in leftover rules (non-inlineable styles like :hover,
+// @media queries) are automatically marked as !important. This is needed for email
+// clients like Gmail, which often only respect styles in <style> tags if they are marked
+// !important.
 //
 // Takes makeImportant (bool) which enables or disables the !important marking.
 //
@@ -188,10 +183,9 @@ func WithMakeLeftoverImportant(makeImportant bool) Option {
 
 // WithExpandShorthands returns an Option that sets ExpandShorthands.
 //
-// When enabled, CSS shorthand properties are expanded into their longhand
-// equivalents. This is critical for email compatibility, especially with
-// Outlook, which has poor support for CSS shorthands like margin, padding,
-// and border.
+// When enabled, CSS shorthand properties are expanded into their longhand equivalents.
+// This is critical for email compatibility, especially with Outlook, which has poor
+// support for CSS shorthands like margin, padding, and border.
 //
 // Takes expand (bool) which enables or disables shorthand expansion.
 //
@@ -202,11 +196,10 @@ func WithExpandShorthands(expand bool) Option {
 	}
 }
 
-// WithLinkQueryParams returns an Option that sets query parameters to append
-// to all HTTP/HTTPS links.
+// WithLinkQueryParams returns an Option that sets query parameters to append to all
+// HTTP/HTTPS links.
 //
-// Use it for email marketing analytics and campaign tracking such as UTM
-// parameters.
+// Use it for email marketing analytics and campaign tracking such as UTM parameters.
 //
 // The function intelligently merges parameters:
 //   - If the link already has query parameters, it appends with "&"
@@ -218,8 +211,8 @@ func WithExpandShorthands(expand bool) Option {
 //   - JavaScript pseudo-protocols (javascript:)
 //   - Anchor-only links (#section)
 //
-// Takes params (map[string]string) which specifies the query parameters to
-// append to each link.
+// Takes params (map[string]string) which specifies the query parameters to append to each
+// link.
 //
 // Returns Option which configures the link query parameters on the Options.
 func WithLinkQueryParams(params map[string]string) Option {
@@ -230,20 +223,20 @@ func WithLinkQueryParams(params map[string]string) Option {
 
 // WithTheme returns an Option that sets the CSS variable theme map.
 //
-// This map resolves var(--variable-name) functions into static values before
-// inlining. This is critical for email compatibility as email clients cannot
-// evaluate CSS variables at runtime.
+// This map resolves var(--variable-name) functions into static values before inlining.
+// This is critical for email compatibility as email clients cannot evaluate CSS variables
+// at runtime.
 //
-// The keys should be variable names without the leading "--" prefix.
-// The values can be static values or contain nested var() references.
+// The keys should be variable names without the leading "--" prefix. The values can be
+// static values or contain nested var() references.
 //
 // The resolver handles:
 //   - Nested variables (e.g., var(--border-colour) -> var(--gray-200) -> #CAD1D8)
 //   - Fallback values (e.g., var(--undefined, #FFF))
 //   - Circular reference detection
 //
-// Takes theme (map[string]string) which maps CSS variable names to their
-// values for resolution.
+// Takes theme (map[string]string) which maps CSS variable names to their values for
+// resolution.
 //
 // Returns Option which configures the theme map on the premailer options.
 func WithTheme(theme map[string]string) Option {
@@ -252,9 +245,9 @@ func WithTheme(theme map[string]string) Option {
 	}
 }
 
-// WithResolvePseudoElements returns an Option that controls whether
-// ::before and ::after pseudo-element rules are collected into
-// RuleSet.PseudoElementRules instead of being discarded as leftover rules.
+// WithResolvePseudoElements returns an Option that controls whether ::before and ::after
+// pseudo-element rules are collected into RuleSet.PseudoElementRules instead of being
+// discarded as leftover rules.
 //
 // Takes resolve (bool) which enables or disables pseudo-element collection.
 //
@@ -265,9 +258,9 @@ func WithResolvePseudoElements(resolve bool) Option {
 	}
 }
 
-// WithSkipEmailValidation returns an Option that disables email-specific
-// HTML tag and CSS property validation. Use this when processing templates
-// for non-email output such as PDF layout.
+// WithSkipEmailValidation returns an Option that disables email-specific HTML tag and CSS
+// property validation. Use this when processing templates for non-email output such as
+// PDF layout.
 //
 // Takes skip (bool) which enables or disables the validation skip.
 //
@@ -278,9 +271,9 @@ func WithSkipEmailValidation(skip bool) Option {
 	}
 }
 
-// WithSkipHTMLAttributeMapping returns an Option that disables the conversion
-// of CSS properties back to HTML attributes. Email clients need this mapping
-// for properties like width and bgcolor, but layout engines do not.
+// WithSkipHTMLAttributeMapping returns an Option that disables the conversion of CSS
+// properties back to HTML attributes. Email clients need this mapping for properties like
+// width and bgcolor, but layout engines do not.
 //
 // Takes skip (bool) which enables or disables the attribute mapping skip.
 //
@@ -291,9 +284,9 @@ func WithSkipHTMLAttributeMapping(skip bool) Option {
 	}
 }
 
-// WithSkipStyleExtraction returns an Option that prevents the removal of
-// <style> tags from the AST during processing. Use this when the AST
-// should not be modified, such as during layout resolution.
+// WithSkipStyleExtraction returns an Option that prevents the removal of <style> tags
+// from the AST during processing. Use this when the AST should not be modified, such as
+// during layout resolution.
 //
 // Takes skip (bool) which enables or disables the style extraction skip.
 //
@@ -306,10 +299,9 @@ func WithSkipStyleExtraction(skip bool) Option {
 
 // WithExternalCSS returns an Option that provides CSS from external sources.
 //
-// This CSS will be processed along with any CSS found in <style> tags within
-// the AST. Use it when the template and styles are kept separate, such as
-// in .pk SFC files where <style> and <template> sections are parsed on
-// their own.
+// This CSS will be processed along with any CSS found in <style> tags within the AST. Use
+// it when the template and styles are kept separate, such as in .pk SFC files where
+// <style> and <template> sections are parsed on their own.
 //
 // Takes css (string) which contains the CSS rules to process.
 //
@@ -344,8 +336,8 @@ func defaultOptions() *Options {
 //
 // Takes opts (...Option) which are functions that modify the default options.
 //
-// Returns *Options which contains the configured options after all functions
-// have been applied.
+// Returns *Options which contains the configured options after all functions have been
+// applied.
 func applyOptions(opts ...Option) *Options {
 	options := defaultOptions()
 	for _, opt := range opts {

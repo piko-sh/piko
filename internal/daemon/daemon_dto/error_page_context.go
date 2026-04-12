@@ -18,17 +18,19 @@
 
 package daemon_dto
 
-import "context"
+import (
+	"context"
+)
 
-// ErrorPageContext carries error details into a custom error page's Render
-// function. When a page returns an error (or a route is not found), the
-// runtime injects this context before rendering the matching error page.
+// ErrorPageContext carries error details into a custom error page's Render function. When
+// a page returns an error (or a route is not found), the runtime injects this context
+// before rendering the matching error page.
 type ErrorPageContext struct {
 	// Message is the human-readable error message safe for display to users.
 	Message string
 
-	// InternalMessage contains the full internal error details. This is only
-	// populated in development mode (dev or dev-i) and is empty in production.
+	// InternalMessage contains the full internal error details. This is only populated in
+	// development mode (dev or dev-i) and is empty in production.
 	InternalMessage string
 
 	// OriginalPath is the request path that triggered the error.
@@ -38,19 +40,16 @@ type ErrorPageContext struct {
 	StatusCode int
 }
 
-// ctxKeyErrorPage is the context key for ErrorPageContext.
-// Retained as a fallback for non-request contexts (tests).
+// ctxKeyErrorPage is the context key for ErrorPageContext. Retained as a fallback for
+// non-request contexts (tests).
 type ctxKeyErrorPage struct{}
 
-// WithErrorPageContext stores the given ErrorPageContext on the
-// PikoRequestCtx carrier if present, avoiding a context.WithValue
-// allocation.
+// WithErrorPageContext stores the given ErrorPageContext on the PikoRequestCtx carrier if
+// present, avoiding a context.WithValue allocation.
 //
-// Falls back to a standalone context value for non-request contexts
-// (e.g. tests).
+// Falls back to a standalone context value for non-request contexts (e.g. tests).
 //
-// Takes parent (context.Context) which is the original request
-// context.
+// Takes parent (context.Context) which is the original request context.
 // Takes epc (ErrorPageContext) which contains the error details.
 //
 // Returns context.Context with the error page context attached.
@@ -62,8 +61,8 @@ func WithErrorPageContext(parent context.Context, epc ErrorPageContext) context.
 	return context.WithValue(parent, ctxKeyErrorPage{}, epc)
 }
 
-// GetErrorPageContext retrieves the ErrorPageContext from the PikoRequestCtx
-// carrier first, falling back to a standalone context value.
+// GetErrorPageContext retrieves the ErrorPageContext from the PikoRequestCtx carrier
+// first, falling back to a standalone context value.
 //
 // Takes ctx (context.Context) which is the request context to inspect.
 //

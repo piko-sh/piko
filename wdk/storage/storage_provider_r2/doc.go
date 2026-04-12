@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_provider_r2 provides a Cloudflare R2 storage
-// adapter.
+// Package storage_provider_r2 provides a Cloudflare R2 storage adapter.
 //
-// It wraps the S3 provider with R2-specific defaults, automatically
-// constructing the endpoint URL from the configured Cloudflare account
-// ID. Because it delegates to the S3 provider, it inherits all of its
-// capabilities (multipart uploads, byte-range reads, server-side copy,
-// batch operations, rate limiting).
+// It wraps the S3 provider with R2-specific defaults, automatically constructing the
+// endpoint URL from the configured Cloudflare account ID. Because it delegates to the S3
+// provider, it inherits all of its capabilities (multipart uploads, byte-range reads,
+// server-side copy, batch operations, rate limiting).
 //
 // All methods are safe for concurrent use.
 package storage_provider_r2

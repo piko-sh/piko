@@ -22,6 +22,7 @@ package cache_integration_test
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -289,10 +290,10 @@ func TestEdge_TransformerPipeline_EmptyData(t *testing.T) {
 				require.NoError(t, err, "transforming empty data with %s", tr.Name())
 			}
 
-			for i := len(setup.transformers) - 1; i >= 0; i-- {
+			for _, transformer := range slices.Backward(setup.transformers) {
 				var err error
-				current, err = setup.transformers[i].Reverse(ctx, current, nil)
-				require.NoError(t, err, "reversing empty data with %s", setup.transformers[i].Name())
+				current, err = transformer.Reverse(ctx, current, nil)
+				require.NoError(t, err, "reversing empty data with %s", transformer.Name())
 			}
 
 			assert.Len(t, current, 0, "empty data round-trip should produce empty output for %s", setup.name)

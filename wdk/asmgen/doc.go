@@ -16,15 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package asmgen implements a text-based Plan 9 assembly code
-// generator. It defines architecture-neutral handler descriptions
-// that are translated to concrete Plan 9 assembly via pluggable
-// architecture adapters.
+// Package asmgen implements a text-based Plan 9 assembly code generator. It defines
+// architecture-neutral handler descriptions that are translated to concrete Plan 9
+// assembly via pluggable architecture adapters.
 //
-// The domain package has no knowledge of any specific processor
-// architecture. That knowledge lives entirely in the adapter
-// implementations. Assembly is treated as a text generation problem:
-// the generator performs no instruction encoding, no operand
-// validation, and no register allocation. It maps abstract operations
-// to text strings via architecture adapters.
+// The domain package has no knowledge of any specific processor architecture. That
+// knowledge lives entirely in the adapter implementations. Assembly is treated as a text
+// generation problem: the generator performs no instruction encoding, no operand
+// validation, and no register allocation. It maps abstract operations to text strings via
+// architecture adapters.
 package asmgen

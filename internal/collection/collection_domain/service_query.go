@@ -25,11 +25,11 @@ import (
 // applyQueryOptions applies filtering, sorting, and pagination to items.
 //
 // Takes items ([]collection_dto.ContentItem) which are the items to process.
-// Takes options (*collection_dto.FetchOptions) which specifies the query
-// options including locale, filters, sorting, and pagination settings.
+// Takes options (*collection_dto.FetchOptions) which specifies the query options
+// including locale, filters, sorting, and pagination settings.
 //
-// Returns []collection_dto.ContentItem which contains the filtered, sorted,
-// and paginated items.
+// Returns []collection_dto.ContentItem which contains the filtered, sorted, and paginated
+// items.
 func (*collectionService) applyQueryOptions(
 	items []collection_dto.ContentItem,
 	options *collection_dto.FetchOptions,
@@ -44,11 +44,10 @@ func (*collectionService) applyQueryOptions(
 
 // convertToPointerSlice changes a slice of values into a slice of pointers.
 //
-// Takes items ([]collection_dto.ContentItem) which is the slice of values to
-// change.
+// Takes items ([]collection_dto.ContentItem) which is the slice of values to change.
 //
-// Returns []*collection_dto.ContentItem which holds pointers to each element
-// in the original slice.
+// Returns []*collection_dto.ContentItem which holds pointers to each element in the
+// original slice.
 func convertToPointerSlice(items []collection_dto.ContentItem) []*collection_dto.ContentItem {
 	itemPtrs := make([]*collection_dto.ContentItem, len(items))
 	for i := range items {
@@ -59,8 +58,7 @@ func convertToPointerSlice(items []collection_dto.ContentItem) []*collection_dto
 
 // convertToValueSlice converts a slice of pointers to a slice of values.
 //
-// Takes itemPtrs ([]*collection_dto.ContentItem) which is the pointer slice to
-// convert.
+// Takes itemPtrs ([]*collection_dto.ContentItem) which is the pointer slice to convert.
 //
 // Returns []collection_dto.ContentItem which contains a copy of each item.
 func convertToValueSlice(itemPtrs []*collection_dto.ContentItem) []collection_dto.ContentItem {
@@ -74,11 +72,10 @@ func convertToValueSlice(itemPtrs []*collection_dto.ContentItem) []collection_dt
 // applyLocaleFilter filters items by locale if one is given.
 //
 // Takes items ([]*collection_dto.ContentItem) which is the list to filter.
-// Takes locale (string) which is the locale to match, or empty to skip
-// filtering.
+// Takes locale (string) which is the locale to match, or empty to skip filtering.
 //
-// Returns []*collection_dto.ContentItem which contains only items that match
-// the locale, or all items if locale is empty.
+// Returns []*collection_dto.ContentItem which contains only items that match the locale,
+// or all items if locale is empty.
 func applyLocaleFilter(items []*collection_dto.ContentItem, locale string) []*collection_dto.ContentItem {
 	if locale == "" {
 		return items
@@ -98,8 +95,8 @@ func applyLocaleFilter(items []*collection_dto.ContentItem, locale string) []*co
 // Takes items ([]*collection_dto.ContentItem) which is the list to filter.
 // Takes filters (map[string]any) which may contain a "_filterGroup" key.
 //
-// Returns []*collection_dto.ContentItem which contains items that match the
-// filter group, or the original items if no filter group is found.
+// Returns []*collection_dto.ContentItem which contains items that match the filter group,
+// or the original items if no filter group is found.
 func applyCustomFilters(items []*collection_dto.ContentItem, filters map[string]any) []*collection_dto.ContentItem {
 	filterGroupData, ok := filters["_filterGroup"]
 	if !ok {
@@ -123,8 +120,7 @@ func applyCustomFilters(items []*collection_dto.ContentItem, filters map[string]
 // applySorting sorts items based on options found in the filters map.
 //
 // Takes items ([]*collection_dto.ContentItem) which are the items to sort.
-// Takes filters (map[string]any) which may contain a "_sort" key with sort
-// options.
+// Takes filters (map[string]any) which may contain a "_sort" key with sort options.
 func applySorting(items []*collection_dto.ContentItem, filters map[string]any) {
 	sortData, ok := filters["_sort"]
 	if !ok {
@@ -144,8 +140,8 @@ func applySorting(items []*collection_dto.ContentItem, filters map[string]any) {
 // Takes items ([]*collection_dto.ContentItem) which is the list to paginate.
 // Takes filters (map[string]any) which may contain a "_pagination" key.
 //
-// Returns []*collection_dto.ContentItem which is the paginated subset, or the
-// original items if no pagination is set.
+// Returns []*collection_dto.ContentItem which is the paginated subset, or the original
+// items if no pagination is set.
 func applyPagination(items []*collection_dto.ContentItem, filters map[string]any) []*collection_dto.ContentItem {
 	paginationData, ok := filters["_pagination"]
 	if !ok {

@@ -115,7 +115,9 @@ type mockResolverPort struct {
 	GetModuleDirFunc       func(ctx context.Context, modulePath string) (string, error)
 }
 
-var _ resolver_domain.ResolverPort = (*mockResolverPort)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*mockResolverPort)(nil)
+)
 
 func (*mockResolverPort) DetectLocalModule(_ context.Context) error { return nil }
 func (*mockResolverPort) GetModuleName() string                     { return "" }

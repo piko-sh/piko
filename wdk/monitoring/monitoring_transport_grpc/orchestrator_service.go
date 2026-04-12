@@ -28,8 +28,8 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// OrchestratorInspectorService implements the gRPC service for inspecting
-// orchestrator tasks and workflows.
+// OrchestratorInspectorService implements the gRPC service for inspecting orchestrator
+// tasks and workflows.
 type OrchestratorInspectorService struct {
 	pb.UnimplementedOrchestratorInspectorServiceServer
 
@@ -39,11 +39,10 @@ type OrchestratorInspectorService struct {
 
 // NewOrchestratorInspectorService creates a new OrchestratorInspectorService.
 //
-// Takes inspector (OrchestratorInspector) which provides orchestrator
-// inspection capabilities.
+// Takes inspector (OrchestratorInspector) which provides orchestrator inspection
+// capabilities.
 //
-// Returns *OrchestratorInspectorService which is ready for use as a gRPC
-// service handler.
+// Returns *OrchestratorInspectorService which is ready for use as a gRPC service handler.
 func NewOrchestratorInspectorService(inspector orchestrator_domain.OrchestratorInspector) *OrchestratorInspectorService {
 	return &OrchestratorInspectorService{
 		UnimplementedOrchestratorInspectorServiceServer: pb.UnimplementedOrchestratorInspectorServiceServer{},
@@ -76,8 +75,7 @@ func (s *OrchestratorInspectorService) GetTaskSummary(ctx context.Context, _ *pb
 
 // ListRecentTasks returns the most recently updated tasks.
 //
-// Takes request (*pb.ListRecentTasksRequest) which specifies the
-// limit for results.
+// Takes request (*pb.ListRecentTasksRequest) which specifies the limit for results.
 //
 // Returns *pb.ListRecentTasksResponse which contains the list of recent tasks.
 // Returns error when the underlying inspector fails to retrieve tasks.
@@ -135,8 +133,8 @@ func (s *OrchestratorInspectorService) ListWorkflowSummary(ctx context.Context, 
 // WatchTasks streams task updates at the requested interval.
 //
 // Takes request (*pb.WatchTasksRequest) which specifies the update interval.
-// Takes stream (pb.OrchestratorInspectorService_WatchTasksServer) which
-// receives the streamed task updates.
+// Takes stream (pb.OrchestratorInspectorService_WatchTasksServer) which receives the
+// streamed task updates.
 //
 // Returns error when the context is cancelled or sending an update fails.
 func (s *OrchestratorInspectorService) WatchTasks(request *pb.WatchTasksRequest, stream pb.OrchestratorInspectorService_WatchTasksServer) error {
@@ -147,8 +145,8 @@ func (s *OrchestratorInspectorService) WatchTasks(request *pb.WatchTasksRequest,
 
 // sendTasksUpdate fetches and sends a single task update to the stream.
 //
-// Takes stream (pb.OrchestratorInspectorService_WatchTasksServer) which
-// receives the task update message.
+// Takes stream (pb.OrchestratorInspectorService_WatchTasksServer) which receives the task
+// update message.
 //
 // Returns error when the stream send fails.
 //
@@ -176,8 +174,8 @@ func (s *OrchestratorInspectorService) sendTasksUpdate(ctx context.Context, stre
 
 // convertTaskSummariesToPB converts domain task summaries to protobuf format.
 //
-// Takes summaries ([]orchestrator_domain.TaskSummary) which contains the domain
-// task summaries to convert.
+// Takes summaries ([]orchestrator_domain.TaskSummary) which contains the domain task
+// summaries to convert.
 //
 // Returns []*pb.TaskSummary which contains the converted protobuf summaries.
 func convertTaskSummariesToPB(summaries []orchestrator_domain.TaskSummary) []*pb.TaskSummary {
@@ -193,8 +191,8 @@ func convertTaskSummariesToPB(summaries []orchestrator_domain.TaskSummary) []*pb
 
 // convertTasksToPB converts domain tasks to protobuf format.
 //
-// Takes tasks ([]orchestrator_domain.TaskListItem) which contains the domain
-// task items to convert.
+// Takes tasks ([]orchestrator_domain.TaskListItem) which contains the domain task items
+// to convert.
 //
 // Returns []*pb.TaskListItem which contains the converted protobuf task items.
 func convertTasksToPB(tasks []orchestrator_domain.TaskListItem) []*pb.TaskListItem {

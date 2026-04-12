@@ -63,8 +63,8 @@ const (
 // DeletionCause represents the reason why an entry was removed from the cache.
 type DeletionCause int
 
-// DeletionEvent holds the details passed to deletion handlers when an entry
-// is removed from the cache.
+// DeletionEvent holds the details passed to deletion handlers when an entry is removed
+// from the cache.
 type DeletionEvent[K comparable, V any] struct {
 	// Key is the identifier for the deleted item.
 	Key K
@@ -83,12 +83,11 @@ func (de DeletionEvent[K, V]) WasEvicted() bool {
 	return de.Cause != CauseInvalidation && de.Cause != CauseReplacement
 }
 
-// ComputeAction represents the action to be taken after a compute function
-// executes.
+// ComputeAction represents the action to be taken after a compute function executes.
 type ComputeAction int
 
-// ComputeResult holds the result of a compute operation with optional TTL
-// override. A zero TTL means use the cache's default expiration policy.
+// ComputeResult holds the result of a compute operation with optional TTL override. A
+// zero TTL means use the cache's default expiration policy.
 type ComputeResult[V any] struct {
 	// Value is the computed value to store (when Action is ComputeActionSet).
 	Value V
@@ -96,14 +95,15 @@ type ComputeResult[V any] struct {
 	// Action specifies whether to set, delete, or do nothing.
 	Action ComputeAction
 
-	// TTL specifies a custom time-to-live for this entry; zero means use default.
-	// Only meaningful when Action is ComputeActionSet.
+	// TTL specifies a custom time-to-live for this entry; zero means use default. Only
+	// meaningful when Action is ComputeActionSet.
 	TTL time.Duration
 }
 
-// ErrNotFound is returned by a Loader when a value is missing from the data
-// source.
-var ErrNotFound = errors.New("key not found")
+var (
+	// ErrNotFound is returned by a Loader when a value is missing from the data source.
+	ErrNotFound = errors.New("key not found")
+)
 
 // Entry is a fixed snapshot of a key-value pair in the cache.
 type Entry[K comparable, V any] struct {
@@ -119,12 +119,11 @@ type Entry[K comparable, V any] struct {
 	// ExpiresAtNano is the Unix timestamp in nanoseconds when this entry expires.
 	ExpiresAtNano int64
 
-	// RefreshableAtNano is the Unix timestamp in nanoseconds when this entry
-	// becomes eligible for refresh.
+	// RefreshableAtNano is the Unix timestamp in nanoseconds when this entry becomes
+	// eligible for refresh.
 	RefreshableAtNano int64
 
-	// SnapshotAtNano is the Unix timestamp in nanoseconds when the snapshot was
-	// taken.
+	// SnapshotAtNano is the Unix timestamp in nanoseconds when the snapshot was taken.
 	SnapshotAtNano int64
 }
 
@@ -148,8 +147,7 @@ type Loader[K comparable, V any] interface {
 	Reload(ctx context.Context, key K, oldValue V) (V, error)
 }
 
-// LoaderFunc is an adapter that allows ordinary functions to be used as
-// loaders.
+// LoaderFunc is an adapter that allows ordinary functions to be used as loaders.
 type LoaderFunc[K comparable, V any] func(ctx context.Context, key K) (V, error)
 
 // Load implements the Loader interface by calling the underlying function.
@@ -162,8 +160,8 @@ func (lf LoaderFunc[K, V]) Load(ctx context.Context, key K) (V, error) {
 	return lf(ctx, key)
 }
 
-// Reload implements the Loader interface by calling the underlying function,
-// ignoring the old value.
+// Reload implements the Loader interface by calling the underlying function, ignoring the
+// old value.
 //
 // Takes key (K) which identifies the entry to reload.
 //
@@ -193,12 +191,10 @@ type BulkLoader[K comparable, V any] interface {
 	BulkReload(ctx context.Context, keys []K, oldValues []V) (map[K]V, error)
 }
 
-// BulkLoaderFunc is an adapter that allows ordinary functions to be used as
-// bulk loaders.
+// BulkLoaderFunc is an adapter that allows ordinary functions to be used as bulk loaders.
 type BulkLoaderFunc[K comparable, V any] func(ctx context.Context, keys []K) (map[K]V, error)
 
-// BulkLoad implements the BulkLoader interface by calling the underlying
-// function.
+// BulkLoad implements the BulkLoader interface by calling the underlying function.
 //
 // Takes keys ([]K) which specifies the keys to load values for.
 //
@@ -208,20 +204,19 @@ func (blf BulkLoaderFunc[K, V]) BulkLoad(ctx context.Context, keys []K) (map[K]V
 	return blf(ctx, keys)
 }
 
-// BulkReload implements the BulkLoader interface by calling the underlying
-// function, ignoring old values.
+// BulkReload implements the BulkLoader interface by calling the underlying function,
+// ignoring old values.
 //
 // Takes keys ([]K) which contains the cache keys to reload.
 //
-// Returns map[K]V which contains the reloaded values keyed by their cache
-// key.
+// Returns map[K]V which contains the reloaded values keyed by their cache key.
 // Returns error when the underlying function fails.
 func (blf BulkLoaderFunc[K, V]) BulkReload(ctx context.Context, keys []K, _ []V) (map[K]V, error) {
 	return blf(ctx, keys)
 }
 
-// LoadResult holds the outcome of an asynchronous load or refresh operation.
-// It is sent over a channel to signal when the operation is complete.
+// LoadResult holds the outcome of an asynchronous load or refresh operation. It is sent
+// over a channel to signal when the operation is complete.
 type LoadResult[V any] struct {
 	// Value holds the data that was loaded successfully.
 	Value V
@@ -230,19 +225,18 @@ type LoadResult[V any] struct {
 	Err error
 }
 
-// ExpiryCalculator sets when cache entries expire after being created, read,
-// or updated.
+// ExpiryCalculator sets when cache entries expire after being created, read, or updated.
 type ExpiryCalculator[K comparable, V any] interface {
-	// ExpireAfterCreate returns the duration after which a newly created entry
-	// should expire.
+	// ExpireAfterCreate returns the duration after which a newly created entry should
+	// expire.
 	//
 	// Takes entry (Entry[K, V]) which is the cache entry being created.
 	//
 	// Returns time.Duration which is the time until the entry expires.
 	ExpireAfterCreate(entry Entry[K, V]) time.Duration
 
-	// ExpireAfterUpdate returns the duration after which an entry should expire
-	// following an update.
+	// ExpireAfterUpdate returns the duration after which an entry should expire following an
+	// update.
 	//
 	// Takes entry (Entry[K, V]) which is the cache entry that was updated.
 	// Takes oldValue (V) which is the previous value before the update.
@@ -250,8 +244,8 @@ type ExpiryCalculator[K comparable, V any] interface {
 	// Returns time.Duration which specifies how long until the entry expires.
 	ExpireAfterUpdate(entry Entry[K, V], oldValue V) time.Duration
 
-	// ExpireAfterRead returns the duration after which an entry should expire
-	// following a read operation.
+	// ExpireAfterRead returns the duration after which an entry should expire following a
+	// read operation.
 	//
 	// Takes entry (Entry[K, V]) which is the cache entry that was read.
 	//
@@ -259,11 +253,10 @@ type ExpiryCalculator[K comparable, V any] interface {
 	ExpireAfterRead(entry Entry[K, V]) time.Duration
 }
 
-// RefreshCalculator calculates when cache entries should be asynchronously
-// refreshed.
+// RefreshCalculator calculates when cache entries should be asynchronously refreshed.
 type RefreshCalculator[K comparable, V any] interface {
-	// RefreshAfterCreate returns the duration after which a newly created entry
-	// should be refreshed.
+	// RefreshAfterCreate returns the duration after which a newly created entry should be
+	// refreshed.
 	//
 	// Takes entry (Entry[K, V]) which is the cache entry that was just created.
 	//
@@ -275,8 +268,7 @@ type RefreshCalculator[K comparable, V any] interface {
 	// Takes entry (Entry[K, V]) which is the cache entry being updated.
 	// Takes oldValue (V) which is the previous value before the update.
 	//
-	// Returns time.Duration which specifies how long until the entry should be
-	// refreshed.
+	// Returns time.Duration which specifies how long until the entry should be refreshed.
 	RefreshAfterUpdate(entry Entry[K, V], oldValue V) time.Duration
 
 	// RefreshAfterReload determines the refresh interval after reloading an entry.
@@ -287,8 +279,8 @@ type RefreshCalculator[K comparable, V any] interface {
 	// Returns time.Duration which is the time to wait before the next refresh.
 	RefreshAfterReload(entry Entry[K, V], oldValue V) time.Duration
 
-	// RefreshAfterReloadFailure returns the duration to wait before retrying
-	// after a failed reload.
+	// RefreshAfterReloadFailure returns the duration to wait before retrying after a failed
+	// reload.
 	//
 	// Takes entry (Entry[K, V]) which is the cache entry that failed to reload.
 	// Takes err (error) which is the error that caused the reload to fail.
@@ -297,15 +289,15 @@ type RefreshCalculator[K comparable, V any] interface {
 	RefreshAfterReloadFailure(entry Entry[K, V], err error) time.Duration
 }
 
-// Clock provides a way to get the current time. Inject a mock
-// implementation to test time-dependent code deterministically.
+// Clock provides a way to get the current time. Inject a mock implementation to test
+// time-dependent code deterministically.
 type Clock interface {
 	// Now returns the current time.
 	Now() time.Time
 }
 
-// Logger defines a logging interface for cache operations.
-// Implementations can use any logging framework.
+// Logger defines a logging interface for cache operations. Implementations can use any
+// logging framework.
 type Logger interface {
 	// Error logs an error message with optional key-value pairs.
 	//
@@ -316,8 +308,7 @@ type Logger interface {
 	// Warn logs a warning message with optional key-value pairs.
 	//
 	// Takes message (string) which is the warning message to log.
-	// Takes keysAndValues (...any) which provides extra context as key-value
-	// pairs.
+	// Takes keysAndValues (...any) which provides extra context as key-value pairs.
 	Warn(message string, keysAndValues ...any)
 
 	// Info logs a message at the informational level.
@@ -336,15 +327,15 @@ type Logger interface {
 // TransformerType identifies the kind of cache value transformer.
 type TransformerType string
 
-// TransformConfig configures value transformations for cache operations.
-// Transformers run in priority order on Set and are automatically reversed
-// on Get, with metadata embedded to enable reversal even if config changes.
+// TransformConfig configures value transformations for cache operations. Transformers run
+// in priority order on Set and are automatically reversed on Get, with metadata embedded
+// to enable reversal even if config changes.
 type TransformConfig struct {
 	// TransformerOptions maps transformer names to their settings.
 	TransformerOptions map[string]any
 
-	// EnabledTransformers is the ordered list of transformer names to apply.
-	// The actual execution order is determined by each transformer's priority.
+	// EnabledTransformers is the ordered list of transformer names to apply. The actual
+	// execution order is determined by each transformer's priority.
 	EnabledTransformers []string
 }
 
@@ -356,9 +347,9 @@ type Options[K comparable, V any] struct {
 	// Logger handles structured logging output; nil uses the default logger.
 	Logger Logger
 
-	// ProviderSpecific holds settings for a particular provider. The provider
-	// factory must type-assert this to its own Config type, for example
-	// provider_redis.Config{Address: "localhost:6379"}.
+	// ProviderSpecific holds settings for a particular provider. The provider factory must
+	// type-assert this to its own Config type, for example provider_redis.Config{Address:
+	// "localhost:6379"}.
 	ProviderSpecific any
 
 	// Clock provides time functions; if nil, the real system clock is used.
@@ -379,24 +370,23 @@ type Options[K comparable, V any] struct {
 	// OnDeletion is called when an entry is removed from the cache.
 	OnDeletion func(e DeletionEvent[K, V])
 
-	// OnAtomicDeletion is a callback called when an entry is removed from the
-	// cache.
+	// OnAtomicDeletion is a callback called when an entry is removed from the cache.
 	OnAtomicDeletion func(e DeletionEvent[K, V])
 
-	// TransformConfig specifies how to change cached values, such as compression
-	// or encryption. If nil, values are stored without changes.
+	// TransformConfig specifies how to change cached values, such as compression or
+	// encryption. If nil, values are stored without changes.
 	TransformConfig *TransformConfig
 
-	// SearchSchema defines which fields are searchable for query operations.
-	// If nil, Search() and Query() return ErrSearchNotSupported.
+	// SearchSchema defines which fields are searchable for query operations. If nil,
+	// Search() and Query() return ErrSearchNotSupported.
 	SearchSchema *SearchSchema
 
-	// Provider specifies which provider to use (e.g., "otter", "redis").
-	// If empty, the service's default provider is used.
+	// Provider specifies which provider to use (e.g., "otter", "redis"). If empty, the
+	// service's default provider is used.
 	Provider string
 
-	// Namespace is the logical identifier for this cache instance, used as a key
-	// prefix for Redis or for metrics in Otter; defaults to "default" if empty.
+	// Namespace is the logical identifier for this cache instance, used as a key prefix for
+	// Redis or for metrics in Otter; defaults to "default" if empty.
 	Namespace string
 
 	// InitialCapacity is the starting size for internal buffers; 0 uses a default.
@@ -409,8 +399,7 @@ type Options[K comparable, V any] struct {
 	MaximumSize int
 }
 
-// DefaultTransformConfig returns a TransformConfig with no transformations
-// enabled.
+// DefaultTransformConfig returns a TransformConfig with no transformations enabled.
 //
 // Returns TransformConfig which is ready for use with empty transformer lists.
 func DefaultTransformConfig() TransformConfig {

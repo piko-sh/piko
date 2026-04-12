@@ -32,22 +32,23 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// migrationFilePattern matches filenames in the {version}_{name}.{up|down}.sql
-// convention. The version is a numeric prefix, the name is a descriptive
-// segment, and the direction is either "up" or "down".
-var migrationFilePattern = regexp.MustCompile(`^(\d+)_(.+)\.(up|down)\.sql$`)
+var (
+	// migrationFilePattern matches filenames in the {version}_{name}.{up|down}.sql
+	// convention. The version is a numeric prefix, the name is a descriptive segment, and
+	// the direction is either "up" or "down".
+	migrationFilePattern = regexp.MustCompile(`^(\d+)_(.+)\.(up|down)\.sql$`)
+)
 
 // readMigrationFilesVersioned reads migration files matching the
 // {version}_{name}.{up|down}.sql naming convention from the given directory.
-// Returns files sorted by version ascending, then up before down within the
-// same version.
+// Returns files sorted by version ascending, then up before down within the same version.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes fileReader (FileReaderPort) which provides filesystem access.
 // Takes directory (string) which is the path to the migration files.
 //
-// Returns []querier_dto.MigrationFile which contains the parsed migration
-// files with checksums.
+// Returns []querier_dto.MigrationFile which contains the parsed migration files with
+// checksums.
 // Returns error when the directory cannot be read or filenames are malformed.
 func readMigrationFilesVersioned(
 	ctx context.Context,
@@ -110,8 +111,7 @@ func readMigrationFilesVersioned(
 	return files, nil
 }
 
-// computeChecksum returns the SHA-256 hex digest of the
-// given content.
+// computeChecksum returns the SHA-256 hex digest of the given content.
 //
 // Takes content ([]byte) which holds the raw bytes to hash.
 //

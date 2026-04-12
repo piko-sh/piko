@@ -18,10 +18,12 @@
 
 package notification_dto
 
-import "time"
+import (
+	"time"
+)
 
-// DeadLetterEntry represents a notification that failed to send after all
-// retries were exhausted.
+// DeadLetterEntry represents a notification that failed to send after all retries were
+// exhausted.
 type DeadLetterEntry struct {
 	// Params holds the original notification parameters.
 	Params SendParams `json:"params"`

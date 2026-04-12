@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package healthprobe_domain defines port interfaces (Probe, Registry,
-// Service) and the service that runs all registered probes concurrently,
-// aggregating their results into a unified health status.
+// Package healthprobe_domain defines port interfaces (Probe, Registry, Service) and the
+// service that runs all registered probes concurrently, aggregating their results into a
+// unified health status.
 //
 // # Health check types
 //
@@ -29,6 +29,6 @@
 //
 // # Thread safety
 //
-// The service executes all probes concurrently using goroutines with
-// individual timeouts. Probe implementations must be safe for concurrent use.
+// The service executes all probes concurrently using goroutines with individual timeouts.
+// Probe implementations must be safe for concurrent use.
 package healthprobe_domain

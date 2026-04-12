@@ -37,8 +37,8 @@ type CheckboxItem struct {
 	Selected bool
 }
 
-// RenderCheckboxList renders a multi-select checkbox list with a "Continue"
-// button, including cursor highlighting and check/uncheck indicators.
+// RenderCheckboxList renders a multi-select checkbox list with a "Continue" button,
+// including cursor highlighting and check/uncheck indicators.
 //
 // Takes items ([]CheckboxItem) which are the items to render.
 // Takes cursor (int) which is the currently highlighted position.
@@ -76,8 +76,7 @@ func RenderCheckboxList(items []CheckboxItem, cursor int) string {
 	return s.String()
 }
 
-// RenderChoiceList renders a single-select choice list with cursor
-// highlighting.
+// RenderChoiceList renders a single-select choice list with cursor highlighting.
 //
 // Takes choices ([]string) which are the options to display.
 // Takes cursor (int) which is the highlighted position.

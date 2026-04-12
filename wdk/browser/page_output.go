@@ -38,8 +38,8 @@ func (p *Page) Screenshot(selector string) []byte {
 	return buffer
 }
 
-// ScreenshotViewport captures a PNG screenshot of what is currently visible
-// in the browser window.
+// ScreenshotViewport captures a PNG screenshot of what is currently visible in the
+// browser window.
 //
 // Returns []byte which contains the raw PNG image data.
 func (p *Page) ScreenshotViewport() []byte {
@@ -61,12 +61,11 @@ func (p *Page) ScreenshotFull() []byte {
 	return buffer
 }
 
-// SaveScreenshot captures a screenshot of an element and saves it to a file.
-// The path is relative to the output directory configured via WithOutputDir.
+// SaveScreenshot captures a screenshot of an element and saves it to a file. The path is
+// relative to the output directory configured via WithOutputDir.
 //
 // Takes selector (string) which identifies the element to capture.
-// Takes path (string) which specifies the relative file path for the
-// screenshot.
+// Takes path (string) which specifies the relative file path for the screenshot.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) SaveScreenshot(selector, path string) *Page {
@@ -80,11 +79,10 @@ func (p *Page) SaveScreenshot(selector, path string) *Page {
 	return p
 }
 
-// SaveScreenshotViewport captures a viewport screenshot and saves it to a file.
-// The path is relative to the output directory configured via WithOutputDir.
+// SaveScreenshotViewport captures a viewport screenshot and saves it to a file. The path
+// is relative to the output directory configured via WithOutputDir.
 //
-// Takes path (string) which specifies the relative file path to save the
-// screenshot.
+// Takes path (string) which specifies the relative file path to save the screenshot.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) SaveScreenshotViewport(path string) *Page {
@@ -100,8 +98,8 @@ func (p *Page) SaveScreenshotViewport(path string) *Page {
 
 // ScreenshotJPEG captures a JPEG screenshot of the viewport.
 //
-// Takes quality (int) which specifies the image quality from 0 to 100, where
-// 100 is best quality but largest file size.
+// Takes quality (int) which specifies the image quality from 0 to 100, where 100 is best
+// quality but largest file size.
 //
 // Returns []byte which contains the JPEG image data.
 func (p *Page) ScreenshotJPEG(quality int) []byte {
@@ -112,11 +110,10 @@ func (p *Page) ScreenshotJPEG(quality int) []byte {
 	return buffer
 }
 
-// ScreenshotWebP captures a WebP screenshot of the viewport with the
-// specified quality.
+// ScreenshotWebP captures a WebP screenshot of the viewport with the specified quality.
 //
-// Takes quality (int) which specifies the image quality from 0 to 100,
-// where 100 is best quality.
+// Takes quality (int) which specifies the image quality from 0 to 100, where 100 is best
+// quality.
 //
 // Returns []byte which contains the encoded WebP image data.
 func (p *Page) ScreenshotWebP(quality int) []byte {
@@ -127,8 +124,8 @@ func (p *Page) ScreenshotWebP(quality int) []byte {
 	return buffer
 }
 
-// ScreenshotRegion captures a screenshot of a specific area of the viewport.
-// The coordinates are relative to the viewport, not the document.
+// ScreenshotRegion captures a screenshot of a specific area of the viewport. The
+// coordinates are relative to the viewport, not the document.
 //
 // Takes x (float64) which is the distance from the left edge in pixels.
 // Takes y (float64) which is the distance from the top edge in pixels.
@@ -144,8 +141,8 @@ func (p *Page) ScreenshotRegion(x, y, width, height float64) []byte {
 	return buffer
 }
 
-// ScreenshotElementWithPadding captures a screenshot of an element with extra
-// padding around it.
+// ScreenshotElementWithPadding captures a screenshot of an element with extra padding
+// around it.
 //
 // Takes selector (string) which identifies the element to capture.
 // Takes padding (float64) which specifies the extra space around the element.
@@ -159,11 +156,9 @@ func (p *Page) ScreenshotElementWithPadding(selector string, padding float64) []
 	return buffer
 }
 
-// ScreenshotWithOptions captures a screenshot with custom format and quality
-// options.
+// ScreenshotWithOptions captures a screenshot with custom format and quality options.
 //
-// Takes opts (ScreenshotOptions) which specifies the image format and quality
-// settings.
+// Takes opts (ScreenshotOptions) which specifies the image format and quality settings.
 //
 // Returns []byte which contains the screenshot image data.
 func (p *Page) ScreenshotWithOptions(opts browser_provider_chromedp.ScreenshotOptions) []byte {
@@ -174,14 +169,14 @@ func (p *Page) ScreenshotWithOptions(opts browser_provider_chromedp.ScreenshotOp
 	return buffer
 }
 
-// CompareScreenshots compares two screenshots and returns the percentage of
-// bytes that differ between them.
+// CompareScreenshots compares two screenshots and returns the percentage of bytes that
+// differ between them.
 //
 // Takes a ([]byte) which is the first screenshot to compare.
 // Takes b ([]byte) which is the second screenshot to compare.
 //
-// Returns float64 which is 0.0 if the screenshots are the same, or 1.0 if
-// they are completely different.
+// Returns float64 which is 0.0 if the screenshots are the same, or 1.0 if they are
+// completely different.
 func (p *Page) CompareScreenshots(a, b []byte) float64 {
 	diff, err := browser_provider_chromedp.CompareScreenshots(a, b)
 	if err != nil {
@@ -203,8 +198,8 @@ func (p *Page) PrintToPDF() []byte {
 
 // PrintToPDFWithOptions creates a PDF of the page with the given settings.
 //
-// Takes opts (browser_provider_chromedp.PDFOptions) which specifies the PDF
-// output settings.
+// Takes opts (browser_provider_chromedp.PDFOptions) which specifies the PDF output
+// settings.
 //
 // Returns []byte which contains the PDF file data.
 func (p *Page) PrintToPDFWithOptions(opts browser_provider_chromedp.PDFOptions) []byte {
@@ -237,8 +232,7 @@ func (p *Page) PrintToPDFA4() []byte {
 	return buffer
 }
 
-// PrintToPDFNoBackground creates a PDF of the page without background images
-// or colours.
+// PrintToPDFNoBackground creates a PDF of the page without background images or colours.
 //
 // Returns []byte which contains the PDF document data.
 func (p *Page) PrintToPDFNoBackground() []byte {
@@ -263,8 +257,8 @@ func (p *Page) PrintToPDFWithHeaderFooter(header, footer string) []byte {
 	return buffer
 }
 
-// PrintToPDFPageRange generates a PDF of specific pages.
-// Use pageRanges like "1-5, 8, 11-13" for specific pages.
+// PrintToPDFPageRange generates a PDF of specific pages. Use pageRanges like "1-5, 8,
+// 11-13" for specific pages.
 //
 // Takes pageRanges (string) which specifies pages to include in the PDF.
 //
@@ -277,11 +271,10 @@ func (p *Page) PrintToPDFPageRange(pageRanges string) []byte {
 	return buffer
 }
 
-// SavePDF generates a PDF of the current page and saves it to a file. The path
-// is relative to the output directory configured via WithOutputDir.
+// SavePDF generates a PDF of the current page and saves it to a file. The path is
+// relative to the output directory configured via WithOutputDir.
 //
-// Takes path (string) which specifies the relative file path where the PDF is
-// saved.
+// Takes path (string) which specifies the relative file path where the PDF is saved.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) SavePDF(path string) *Page {
@@ -544,8 +537,8 @@ func (p *Page) EmulateDesktop4K() *Page {
 
 // EmulateViewportByName sets the viewport to a common size by name.
 //
-// Valid names: "mobile-s", "mobile-m", "mobile-l", "tablet", "laptop",
-// "laptop-l", "desktop", "desktop-4k".
+// Valid names: "mobile-s", "mobile-m", "mobile-l", "tablet", "laptop", "laptop-l",
+// "desktop", "desktop-4k".
 //
 // Takes sizeName (string) which specifies the viewport preset name.
 //

@@ -32,28 +32,28 @@ import (
 )
 
 const (
-	// DefaultSearchResultLimit is the default number of results returned by search
-	// queries when no explicit limit is specified.
+	// DefaultSearchResultLimit is the default number of results returned by search queries
+	// when no explicit limit is specified.
 	DefaultSearchResultLimit = 10
 
 	// redisJSONPath is the root path selector for Redis JSON commands.
 	redisJSONPath = "$"
 
-	// redisLogKeyField is the attribute key for logging Redis keys in search
-	// operations.
+	// redisLogKeyField is the attribute key for logging Redis keys in search operations.
 	redisLogKeyField = "key"
 )
 
-// indexCreationMu protects concurrent index creation attempts.
-var indexCreationMu sync.Mutex
+var (
+	// indexCreationMu protects concurrent index creation attempts.
+	indexCreationMu sync.Mutex
+)
 
-// ensureIndexExists creates the RediSearch index if it does not already exist.
-// This is called lazily on the first search operation.
+// ensureIndexExists creates the RediSearch index if it does not already exist. This is
+// called lazily on the first search operation.
 //
 // Returns error when the index cannot be created or search is not supported.
 //
-// Safe for concurrent use. Uses a mutex to ensure only one goroutine creates
-// the index.
+// Safe for concurrent use. Uses a mutex to ensure only one goroutine creates the index.
 func (a *RedisClusterAdapter[K, V]) ensureIndexExists(ctx context.Context) error {
 	ctx, l := logger.From(ctx, log)
 
@@ -167,8 +167,8 @@ func (a *RedisClusterAdapter[K, V]) buildSearchQuery(textQuery string, filters [
 //
 // Takes f (cache.Filter) which specifies the filter operation and values.
 //
-// Returns string which is the RediSearch query clause, or empty if the filter
-// operation is not supported or has insufficient values.
+// Returns string which is the RediSearch query clause, or empty if the filter operation
+// is not supported or has insufficient values.
 func (*RedisClusterAdapter[K, V]) buildFilterClause(f cache.Filter) string {
 	switch f.Operation {
 	case cache.FilterOpEq:
@@ -213,13 +213,11 @@ func (*RedisClusterAdapter[K, V]) buildFilterClause(f cache.Filter) string {
 // executeSearch runs the FT.SEARCH command and returns raw results.
 //
 // Takes query (string) which specifies the RediSearch query to execute.
-// Takes opts (*cache.SearchOptions) which provides pagination and sorting
-// options.
+// Takes opts (*cache.SearchOptions) which provides pagination and sorting options.
 //
 // Returns []any which contains the raw result documents from the search.
 // Returns int64 which is the total count of matching documents.
-// Returns error when the search command fails or the result format is
-// unexpected.
+// Returns error when the search command fails or the result format is unexpected.
 func (a *RedisClusterAdapter[K, V]) executeSearch(ctx context.Context, query string, opts *cache.SearchOptions) ([]any, int64, error) {
 	arguments := []any{"FT.SEARCH", a.indexName, query}
 
@@ -264,15 +262,13 @@ func (a *RedisClusterAdapter[K, V]) executeSearch(ctx context.Context, query str
 
 // parseSearchResults converts raw FT.SEARCH results to SearchResult.
 //
-// Takes rawResults ([]any) which contains the document pairs from
-// the FT.SEARCH response.
-// Takes total (int64) which is the total number of matching
-// documents reported by Redis.
-// Takes opts (*cache.SearchOptions) which provides the pagination
-// settings for the result.
+// Takes rawResults ([]any) which contains the document pairs from the FT.SEARCH response.
+// Takes total (int64) which is the total number of matching documents reported by Redis.
+// Takes opts (*cache.SearchOptions) which provides the pagination settings for the
+// result.
 //
-// Returns the search result containing the parsed hits with
-// pagination metadata, and an error when result parsing fails.
+// Returns the search result containing the parsed hits with pagination metadata, and an
+// error when result parsing fails.
 func (a *RedisClusterAdapter[K, V]) parseSearchResults(ctx context.Context, rawResults []any, total int64, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	result := cache.SearchResult[K, V]{
 		Items: make([]cache.SearchHit[K, V], 0),
@@ -294,16 +290,12 @@ func (a *RedisClusterAdapter[K, V]) parseSearchResults(ctx context.Context, rawR
 	return result, nil
 }
 
-// parseSearchHit parses a single search hit from the raw results at the given
-// index.
+// parseSearchHit parses a single search hit from the raw results at the given index.
 //
-// Takes rawResults ([]any) which contains the raw FT.SEARCH
-// result pairs.
-// Takes i (int) which is the index of the key element in the
-// results slice.
+// Takes rawResults ([]any) which contains the raw FT.SEARCH result pairs.
+// Takes i (int) which is the index of the key element in the results slice.
 //
-// Returns cache.SearchHit[K, V] which contains the decoded key
-// and unmarshalled value.
+// Returns cache.SearchHit[K, V] which contains the decoded key and unmarshalled value.
 // Returns bool which indicates whether parsing succeeded.
 func (a *RedisClusterAdapter[K, V]) parseSearchHit(ctx context.Context, rawResults []any, i int) (cache.SearchHit[K, V], bool) {
 	_, l := logger.From(ctx, log)
@@ -379,8 +371,8 @@ func (a *RedisClusterAdapter[K, V]) setJSONValue(ctx context.Context, keyString 
 	return nil
 }
 
-// indexDocument stores a document for RediSearch indexing.
-// This is called from Set when a search schema is configured.
+// indexDocument stores a document for RediSearch indexing. This is called from Set when a
+// search schema is configured.
 //
 // Takes keyString (string) which is the Redis key for the document.
 // Takes value (V) which is the value to index.
@@ -409,11 +401,11 @@ func (a *RedisClusterAdapter[K, V]) indexDocument(ctx context.Context, keyString
 // searchWithRediSearch performs a full-text search using FT.SEARCH.
 //
 // Takes query (string) which is the text query to search for.
-// Takes opts (*cache.SearchOptions) which provides filters,
-// pagination, and sorting options.
+// Takes opts (*cache.SearchOptions) which provides filters, pagination, and sorting
+// options.
 //
-// Returns cache.SearchResult[K, V] which contains the matched
-// documents with pagination metadata.
+// Returns cache.SearchResult[K, V] which contains the matched documents with pagination
+// metadata.
 // Returns error when index creation or the search command fails.
 func (a *RedisClusterAdapter[K, V]) searchWithRediSearch(ctx context.Context, query string, opts *cache.SearchOptions) (cache.SearchResult[K, V], error) {
 	if err := a.ensureIndexExists(ctx); err != nil {
@@ -436,11 +428,11 @@ func (a *RedisClusterAdapter[K, V]) searchWithRediSearch(ctx context.Context, qu
 
 // queryWithRediSearch performs a structured query using FT.SEARCH.
 //
-// Takes opts (*cache.QueryOptions) which provides filters,
-// pagination, and sorting options.
+// Takes opts (*cache.QueryOptions) which provides filters, pagination, and sorting
+// options.
 //
-// Returns cache.SearchResult[K, V] which contains the matched
-// documents with pagination metadata.
+// Returns cache.SearchResult[K, V] which contains the matched documents with pagination
+// metadata.
 // Returns error when index creation or the search command fails.
 func (a *RedisClusterAdapter[K, V]) queryWithRediSearch(ctx context.Context, opts *cache.QueryOptions) (cache.SearchResult[K, V], error) {
 	if err := a.ensureIndexExists(ctx); err != nil {
@@ -475,8 +467,8 @@ func (a *RedisClusterAdapter[K, V]) queryWithRediSearch(ctx context.Context, opt
 	return a.parseSearchResults(ctx, rawResults, total, searchOpts)
 }
 
-// dropIndex removes the RediSearch index. Called during InvalidateAll if search
-// is enabled.
+// dropIndex removes the RediSearch index. Called during InvalidateAll if search is
+// enabled.
 func (a *RedisClusterAdapter[K, V]) dropIndex(ctx context.Context) {
 	ctx, l := logger.From(ctx, log)
 
@@ -495,8 +487,7 @@ func (a *RedisClusterAdapter[K, V]) dropIndex(ctx context.Context) {
 	a.indexCreated = false
 }
 
-// needsJSONStorage reports whether search is enabled and values should be
-// stored as JSON.
+// needsJSONStorage reports whether search is enabled and values should be stored as JSON.
 //
 // Returns bool which is true when a schema is configured.
 func (a *RedisClusterAdapter[K, V]) needsJSONStorage() bool {
@@ -538,8 +529,7 @@ func (a *RedisClusterAdapter[K, V]) getJSONValue(ctx context.Context, keyString 
 	return values[0], true, nil
 }
 
-// isUnknownIndexError reports whether the error indicates
-// an unknown RediSearch index.
+// isUnknownIndexError reports whether the error indicates an unknown RediSearch index.
 //
 // Takes err (error) which is the error to check for an unknown index message.
 //
@@ -552,8 +542,7 @@ func isUnknownIndexError(err error) bool {
 //
 // Takes v (any) which is the value to escape.
 //
-// Returns string which is the escaped value with backslash-prefixed special
-// characters.
+// Returns string which is the escaped value with backslash-prefixed special characters.
 func escapeTagValue(v any) string {
 	s := fmt.Sprintf("%v", v)
 	s = strings.ReplaceAll(s, ",", "\\,")

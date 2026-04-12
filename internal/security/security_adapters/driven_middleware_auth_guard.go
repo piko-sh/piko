@@ -31,15 +31,15 @@ const (
 	// defaultLoginPath holds the default URL path for the login page.
 	defaultLoginPath = "/login"
 
-	// defaultRedirectParam holds the default query parameter name for the
-	// post-login redirect target.
+	// defaultRedirectParam holds the default query parameter name for the post-login
+	// redirect target.
 	defaultRedirectParam = "redirect"
 )
 
-// AuthGuardMiddleware enforces authentication on routes not listed
-// in the public paths or prefixes. When a protected route is
-// accessed without valid authentication, the middleware either calls
-// a custom OnUnauthenticated handler or redirects to the login page.
+// AuthGuardMiddleware enforces authentication on routes not listed in the public paths or
+// prefixes. When a protected route is accessed without valid authentication, the
+// middleware either calls a custom OnUnauthenticated handler or redirects to the login
+// page.
 type AuthGuardMiddleware struct {
 	// loginPath holds the URL path used for login redirects.
 	loginPath string
@@ -51,14 +51,12 @@ type AuthGuardMiddleware struct {
 	config daemon_dto.AuthGuardConfig
 }
 
-// NewAuthGuardMiddleware creates an AuthGuardMiddleware with the
-// given configuration.
+// NewAuthGuardMiddleware creates an AuthGuardMiddleware with the given configuration.
 //
-// Takes config (daemon_dto.AuthGuardConfig) which specifies public
-// paths, login redirect, and optional custom handler.
+// Takes config (daemon_dto.AuthGuardConfig) which specifies public paths, login redirect,
+// and optional custom handler.
 //
-// Returns *AuthGuardMiddleware which is ready for use as HTTP
-// middleware.
+// Returns *AuthGuardMiddleware which is ready for use as HTTP middleware.
 func NewAuthGuardMiddleware(config daemon_dto.AuthGuardConfig) *AuthGuardMiddleware {
 	loginPath := config.LoginPath
 	if loginPath == "" {
@@ -77,8 +75,8 @@ func NewAuthGuardMiddleware(config daemon_dto.AuthGuardConfig) *AuthGuardMiddlew
 	}
 }
 
-// Handler returns an http.Handler middleware that enforces
-// authentication on non-public routes.
+// Handler returns an http.Handler middleware that enforces authentication on non-public
+// routes.
 //
 // Takes next (http.Handler) which is the next handler in the chain.
 //
@@ -131,8 +129,8 @@ func (m *AuthGuardMiddleware) isPublicPath(path string) bool {
 	return false
 }
 
-// redirectToLogin sends a redirect to the login page, preserving the
-// original path in a query parameter.
+// redirectToLogin sends a redirect to the login page, preserving the original path in a
+// query parameter.
 //
 // Takes writer (http.ResponseWriter) which receives the redirect response.
 // Takes request (*http.Request) which provides the original path.
@@ -140,13 +138,13 @@ func (m *AuthGuardMiddleware) redirectToLogin(writer http.ResponseWriter, reques
 	http.Redirect(writer, request, buildLoginRedirect(m.loginPath, m.redirectParam, request), http.StatusSeeOther)
 }
 
-// buildLoginRedirect constructs a redirect URL that preserves the full
-// request URI (path + query) and safely appends the redirect parameter
-// even when loginPath already contains a query string.
+// buildLoginRedirect constructs a redirect URL that preserves the full request URI (path
+// + query) and safely appends the redirect parameter even when loginPath already contains
+// a query string.
 //
 // Takes loginPath (string) which is the base login page URL.
-// Takes redirectParam (string) which is the query parameter name for the
-// post-login redirect target.
+// Takes redirectParam (string) which is the query parameter name for the post-login
+// redirect target.
 // Takes request (*http.Request) which provides the original request URI.
 //
 // Returns string containing the fully constructed redirect URL.

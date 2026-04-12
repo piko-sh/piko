@@ -18,10 +18,9 @@
 
 package bootstrap
 
-// StructValidator defines the minimal interface that a struct validator must
-// satisfy. It is implemented by the playground validator in the
-// validation_provider_playground WDK module, but any implementation that
-// provides a Struct(any) error method will work.
+// StructValidator defines the minimal interface that a struct validator must satisfy. It
+// is implemented by the playground validator in the validation_provider_playground WDK
+// module, but any implementation that provides a Struct(any) error method will work.
 type StructValidator interface {
 	// Struct validates a struct's exposed fields based on validation tags.
 	//

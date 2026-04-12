@@ -26,9 +26,9 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// RegistryContext holds per-compilation registry state for tracking AST nodes
-// created outside of esbuild's symbol table. Each compilation should use its
-// own RegistryContext to ensure test isolation and enable parallel execution.
+// RegistryContext holds per-compilation registry state for tracking AST nodes created
+// outside of esbuild's symbol table. Each compilation should use its own RegistryContext
+// to ensure test isolation and enable parallel execution.
 type RegistryContext struct {
 	// identifiers maps AST identifier nodes to their resolved names.
 	identifiers *identifierRegistryMap
@@ -40,8 +40,8 @@ type RegistryContext struct {
 	locRefs *locRefRegistryMap
 }
 
-// identifierRegistryMap tracks the names of EIdentifier pointers that were
-// created by hand.
+// identifierRegistryMap tracks the names of EIdentifier pointers that were created by
+// hand.
 type identifierRegistryMap struct {
 	// names maps identifier pointers to their resolved names.
 	names map[*js_ast.EIdentifier]string
@@ -59,8 +59,8 @@ type bindingRegistryMap struct {
 	mu sync.RWMutex
 }
 
-// locRefRegistryMap tracks names of LocRef instances that were created by hand
-// for class and function names.
+// locRefRegistryMap tracks names of LocRef instances that were created by hand for class
+// and function names.
 type locRefRegistryMap struct {
 	// names maps location references to their registered names.
 	names map[*ast.LocRef]string
@@ -71,8 +71,8 @@ type locRefRegistryMap struct {
 
 // NewRegistryContext creates a new registry context for a compilation.
 //
-// Returns *RegistryContext which holds thread-safe maps for tracking
-// identifiers, bindings, and location references during compilation.
+// Returns *RegistryContext which holds thread-safe maps for tracking identifiers,
+// bindings, and location references during compilation.
 func NewRegistryContext() *RegistryContext {
 	return &RegistryContext{
 		identifiers: &identifierRegistryMap{
@@ -90,21 +90,18 @@ func NewRegistryContext() *RegistryContext {
 	}
 }
 
-// MakeIdentifier creates an EIdentifier and registers its name in this
-// context.
+// MakeIdentifier creates an EIdentifier and registers its name in this context.
 //
 // Takes name (string) which specifies the identifier name to register.
 //
-// Returns *js_ast.EIdentifier which is the newly created and registered
-// identifier.
+// Returns *js_ast.EIdentifier which is the newly created and registered identifier.
 func (rc *RegistryContext) MakeIdentifier(name string) *js_ast.EIdentifier {
 	identifier := &js_ast.EIdentifier{Ref: ast.Ref{}}
 	rc.RegisterIdentifierName(identifier, name)
 	return identifier
 }
 
-// MakeIdentifierExpr creates a js_ast.Expr containing a registered
-// EIdentifier.
+// MakeIdentifierExpr creates a js_ast.Expr containing a registered EIdentifier.
 //
 // Takes name (string) which specifies the identifier name to register.
 //
@@ -128,11 +125,10 @@ func (rc *RegistryContext) RegisterIdentifierName(identifier *js_ast.EIdentifier
 	rc.identifiers.names[identifier] = name
 }
 
-// LookupIdentifierName retrieves the registered name for an EIdentifier.
-// Falls back to the global registry for identifiers from parsed snippets.
+// LookupIdentifierName retrieves the registered name for an EIdentifier. Falls back to
+// the global registry for identifiers from parsed snippets.
 //
-// Takes identifier (*js_ast.EIdentifier) which specifies the
-// identifier to look up.
+// Takes identifier (*js_ast.EIdentifier) which specifies the identifier to look up.
 //
 // Returns string which is the registered name, or empty string if not found.
 //
@@ -174,8 +170,8 @@ func (rc *RegistryContext) RegisterBindingName(bind *js_ast.BIdentifier, name st
 	rc.bindings.names[bind] = name
 }
 
-// LookupBindingName retrieves the registered name for a BIdentifier.
-// Falls back to the global registry for identifiers from parsed snippets.
+// LookupBindingName retrieves the registered name for a BIdentifier. Falls back to the
+// global registry for identifiers from parsed snippets.
 //
 // Takes bind (*js_ast.BIdentifier) which specifies the binding to look up.
 //
@@ -197,8 +193,7 @@ func (rc *RegistryContext) LookupBindingName(bind *js_ast.BIdentifier) string {
 //
 // Takes name (string) which specifies the name to register for the LocRef.
 //
-// Returns *ast.LocRef which is the newly created and registered location
-// reference.
+// Returns *ast.LocRef which is the newly created and registered location reference.
 func (rc *RegistryContext) MakeLocRef(name string) *ast.LocRef {
 	locRef := &ast.LocRef{Ref: ast.Ref{}}
 	rc.RegisterLocRefName(locRef, name)
@@ -220,9 +215,8 @@ func (rc *RegistryContext) RegisterLocRefName(locRef *ast.LocRef, name string) {
 	rc.locRefs.names[locRef] = name
 }
 
-// LookupLocRefName retrieves the registered name for a LocRef. Returns an
-// empty string if not found, falling back to the global registry for
-// identifiers from parsed snippets.
+// LookupLocRefName retrieves the registered name for a LocRef. Returns an empty string if
+// not found, falling back to the global registry for identifiers from parsed snippets.
 //
 // Takes locRef (*ast.LocRef) which specifies the location reference to look up.
 //

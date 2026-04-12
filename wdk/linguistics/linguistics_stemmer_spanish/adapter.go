@@ -23,13 +23,17 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for the Spanish stemmer.
-const Language = "spanish"
+const (
+	// Language is the language code for the Spanish stemmer.
+	Language = "spanish"
+)
 
-var _ linguistics_domain.StemmerPort = (*Stemmer)(nil)
+var (
+	_ linguistics_domain.StemmerPort = (*Stemmer)(nil)
+)
 
-// Stemmer provides Spanish word stemming using the Snowball algorithm.
-// It implements the linguistics_domain.StemmerPort interface.
+// Stemmer provides Spanish word stemming using the Snowball algorithm. It implements the
+// linguistics_domain.StemmerPort interface.
 type Stemmer struct{}
 
 // Stem reduces a word to its root form using the Snowball algorithm.
@@ -40,8 +44,7 @@ type Stemmer struct{}
 //
 // Takes word (string) which is the word to stem.
 //
-// Returns string which is the stemmed word, or the original word if stemming
-// fails.
+// Returns string which is the stemmed word, or the original word if stemming fails.
 func (*Stemmer) Stem(word string) string {
 	stemmed, err := snowball.Stem(word, Language, true)
 	if err != nil {
@@ -59,8 +62,7 @@ func (*Stemmer) GetLanguage() string {
 
 // Factory creates a new Spanish stemmer instance.
 //
-// Use this with linguistics_domain.RegisterStemmerFactory for explicit
-// registration.
+// Use this with linguistics_domain.RegisterStemmerFactory for explicit registration.
 //
 // Returns linguistics_domain.StemmerPort which is the Spanish stemmer.
 // Returns error when the stemmer cannot be created.

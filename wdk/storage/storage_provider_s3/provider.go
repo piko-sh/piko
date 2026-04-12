@@ -44,8 +44,8 @@ import (
 )
 
 const (
-	// defaultMultipartThreshold is the file size in bytes above which multipart
-	// uploads are used.
+	// defaultMultipartThreshold is the file size in bytes above which multipart uploads are
+	// used.
 	defaultMultipartThreshold = 100 * 1024 * 1024
 
 	// minPartSize is the smallest part size that S3 allows (5 MB).
@@ -54,8 +54,7 @@ const (
 	// md5HexLength is the number of characters in an MD5 hash in hexadecimal form.
 	md5HexLength = 32
 
-	// defaultCallsPerSecond is the default AWS S3 rate limit in requests per
-	// second.
+	// defaultCallsPerSecond is the default AWS S3 rate limit in requests per second.
 	defaultCallsPerSecond = 100.0
 
 	// defaultBurst is the maximum number of requests allowed in a single burst.
@@ -64,26 +63,26 @@ const (
 	// s3MaxKeysPerDelete is the most keys allowed in one S3 DeleteObjects call.
 	s3MaxKeysPerDelete = 1000
 
-	// defaultPutConcurrency is the number of concurrent uploads used when no
-	// value is specified.
+	// defaultPutConcurrency is the number of concurrent uploads used when no value is
+	// specified.
 	defaultPutConcurrency = 5
 
-	// errMessageRateLimiterWait is the format string for errors when the rate
-	// limiter wait fails.
+	// errMessageRateLimiterWait is the format string for errors when the rate limiter wait
+	// fails.
 	errMessageRateLimiterWait = "rate limiter wait failed: %w"
 
 	// attributeKeyName is the attribute key for logging S3 object key names.
 	attributeKeyName = "key"
 )
 
-// errS3ProviderClosed is returned by Close when the provider has already been
-// shut down.
-var errS3ProviderClosed = errors.New("s3 provider already closed")
+var (
+	// errS3ProviderClosed is returned by Close when the provider has already been shut down.
+	errS3ProviderClosed = errors.New("s3 provider already closed")
 
-var _ storage.ProviderPort = (*S3Provider)(nil)
+	_ storage.ProviderPort = (*S3Provider)(nil)
+)
 
-// S3Provider implements the StorageProviderPort interface using the AWS SDK for
-// Go V2.
+// S3Provider implements the StorageProviderPort interface using the AWS SDK for Go V2.
 type S3Provider struct {
 	// client is the AWS S3 client for storing and fetching objects.
 	client *s3.Client
@@ -119,8 +118,7 @@ type Config struct {
 	// EndpointURL is an optional custom S3 endpoint for S3-compatible services.
 	EndpointURL string
 
-	// UsePathStyle enables path-style S3 addressing instead of
-	// virtual-hosted-style.
+	// UsePathStyle enables path-style S3 addressing instead of virtual-hosted-style.
 	UsePathStyle bool
 
 	// DisableChecksum skips checksum checks for S3 requests and responses.
@@ -134,8 +132,7 @@ func (*S3Provider) SupportsMultipart() bool {
 	return true
 }
 
-// SupportsBatchOperations reports whether the S3 provider supports batch
-// operations.
+// SupportsBatchOperations reports whether the S3 provider supports batch operations.
 //
 // Returns bool which is true as S3 supports batch operations.
 func (*S3Provider) SupportsBatchOperations() bool {
@@ -149,24 +146,23 @@ func (*S3Provider) SupportsRetry() bool {
 	return true
 }
 
-// SupportsCircuitBreaking returns false; circuit breaking is handled at the
-// service layer.
+// SupportsCircuitBreaking returns false; circuit breaking is handled at the service
+// layer.
 //
 // Returns bool which is always false for this provider.
 func (*S3Provider) SupportsCircuitBreaking() bool {
 	return false
 }
 
-// SupportsRateLimiting reports whether the S3 provider implements rate
-// limiting.
+// SupportsRateLimiting reports whether the S3 provider implements rate limiting.
 //
 // Returns bool which is always true for this provider.
 func (*S3Provider) SupportsRateLimiting() bool {
 	return true
 }
 
-// Put uploads content to S3, choosing between simple or streaming multipart
-// upload based on file size and settings.
+// Put uploads content to S3, choosing between simple or streaming multipart upload based
+// on file size and settings.
 //
 // Takes params (*storage.PutParams) which specifies the upload details.
 //
@@ -195,11 +191,11 @@ func (p *S3Provider) Put(ctx context.Context, params *storage.PutParams) error {
 //
 // Supports byte range requests for partial content retrieval.
 //
-// Takes params (storage.GetParams) which specifies the object key, repository,
-// and optional byte range.
+// Takes params (storage.GetParams) which specifies the object key, repository, and
+// optional byte range.
 //
-// Returns io.ReadCloser which streams the object content. The caller must close
-// the reader when finished.
+// Returns io.ReadCloser which streams the object content. The caller must close the
+// reader when finished.
 // Returns error when the object is not found or the S3 request fails.
 func (p *S3Provider) Get(ctx context.Context, params storage.GetParams) (io.ReadCloser, error) {
 	ctx, l := logger.From(ctx, log)
@@ -236,11 +232,10 @@ func (p *S3Provider) Get(ctx context.Context, params storage.GetParams) (io.Read
 
 // Stat retrieves metadata for an object in S3 using a HeadObject call.
 //
-// Takes params (storage.GetParams) which specifies the object key and
-// repository.
+// Takes params (storage.GetParams) which specifies the object key and repository.
 //
-// Returns *storage.ObjectInfo which contains the object's size, content
-// type, last modified time, ETag, and metadata.
+// Returns *storage.ObjectInfo which contains the object's size, content type, last
+// modified time, ETag, and metadata.
 // Returns error when the object is not found or the S3 request fails.
 func (p *S3Provider) Stat(ctx context.Context, params storage.GetParams) (*storage.ObjectInfo, error) {
 	if err := p.rateLimiter.Wait(ctx); err != nil {
@@ -272,8 +267,7 @@ func (p *S3Provider) Stat(ctx context.Context, params storage.GetParams) (*stora
 	}, nil
 }
 
-// Copy performs an efficient, server-side copy of an object within the same
-// bucket.
+// Copy performs an efficient, server-side copy of an object within the same bucket.
 //
 // Takes repo (string) which identifies the repository containing both objects.
 // Takes srcKey (string) which specifies the source object key.
@@ -301,8 +295,8 @@ func (p *S3Provider) Copy(ctx context.Context, repo string, srcKey, dstKey strin
 	return nil
 }
 
-// CopyToAnotherRepository performs an efficient, server-side copy between
-// different buckets.
+// CopyToAnotherRepository performs an efficient, server-side copy between different
+// buckets.
 //
 // Takes srcRepo (string) which identifies the source repository.
 // Takes srcKey (string) which specifies the source object key.
@@ -337,8 +331,7 @@ func (p *S3Provider) CopyToAnotherRepository(ctx context.Context, srcRepo string
 
 // Remove deletes an object from S3. This operation is idempotent.
 //
-// Takes params (storage.GetParams) which specifies the object key and
-// repository.
+// Takes params (storage.GetParams) which specifies the object key and repository.
 //
 // Returns error when the delete operation fails.
 func (p *S3Provider) Remove(ctx context.Context, params storage.GetParams) error {
@@ -361,16 +354,15 @@ func (p *S3Provider) Remove(ctx context.Context, params storage.GetParams) error
 	return nil
 }
 
-// Rename performs a copy-then-delete to simulate atomic rename. S3 does not
-// have a native rename operation, so this uses CopyObject followed by
-// DeleteObject.
+// Rename performs a copy-then-delete to simulate atomic rename. S3 does not have a native
+// rename operation, so this uses CopyObject followed by DeleteObject.
 //
 // Takes repo (string) which identifies the target repository.
 // Takes oldKey (string) which specifies the source object key.
 // Takes newKey (string) which specifies the destination object key.
 //
-// Returns error when the copy phase fails. If the delete phase fails, a
-// warning is logged but no error is returned since the copy succeeded.
+// Returns error when the copy phase fails. If the delete phase fails, a warning is logged
+// but no error is returned since the copy succeeded.
 func (p *S3Provider) Rename(ctx context.Context, repo string, oldKey, newKey string) error {
 	ctx, l := logger.From(ctx, log)
 
@@ -395,8 +387,7 @@ func (p *S3Provider) Rename(ctx context.Context, repo string, oldKey, newKey str
 
 // Exists checks if an object exists in S3 using HeadObject.
 //
-// Takes params (storage.GetParams) which specifies the object key and
-// repository.
+// Takes params (storage.GetParams) which specifies the object key and repository.
 //
 // Returns bool which is true if the object exists.
 // Returns error when the rate limiter fails or the API call fails.
@@ -424,8 +415,8 @@ func (p *S3Provider) Exists(ctx context.Context, params storage.GetParams) (bool
 	return true, nil
 }
 
-// GetHash retrieves the MD5 hash of an object from S3 storage. It uses the
-// ETag when available, or falls back to streaming the object content.
+// GetHash retrieves the MD5 hash of an object from S3 storage. It uses the ETag when
+// available, or falls back to streaming the object content.
 //
 // Takes params (storage.GetParams) which specifies the object to retrieve.
 //
@@ -451,8 +442,8 @@ func (p *S3Provider) GetHash(ctx context.Context, params storage.GetParams) (str
 
 // PresignURL generates a signed URL for direct client-side uploads (HTTP PUT).
 //
-// Takes params (storage.PresignParams) which specifies the object key,
-// repository, content type, and expiration duration.
+// Takes params (storage.PresignParams) which specifies the object key, repository,
+// content type, and expiration duration.
 //
 // Returns string which is the pre-signed URL for the upload.
 // Returns error when URL generation fails.
@@ -482,11 +473,9 @@ func (p *S3Provider) PresignURL(ctx context.Context, params storage.PresignParam
 	return request.URL, nil
 }
 
-// PresignDownloadURL generates a signed URL for direct client-side downloads
-// (HTTP GET).
+// PresignDownloadURL generates a signed URL for direct client-side downloads (HTTP GET).
 //
-// Takes params (storage.PresignDownloadParams) which specifies the download
-// details.
+// Takes params (storage.PresignDownloadParams) which specifies the download details.
 //
 // Returns string which is the pre-signed URL for downloading.
 // Returns error when URL generation fails.
@@ -523,22 +512,19 @@ func (p *S3Provider) PresignDownloadURL(ctx context.Context, params storage.Pres
 	return request.URL, nil
 }
 
-// SupportsPresignedURLs reports whether the S3 provider supports presigned
-// URLs.
+// SupportsPresignedURLs reports whether the S3 provider supports presigned URLs.
 //
 // Returns bool which is always true as S3 supports presigned URLs natively.
 func (*S3Provider) SupportsPresignedURLs() bool {
 	return true
 }
 
-// Close marks the provider as shut down. The AWS SDK manages connection
-// pools so there is nothing to release; the closed flag exists so callers
-// can detect double-close.
+// Close marks the provider as shut down. The AWS SDK manages connection pools so there is
+// nothing to release; the closed flag exists so callers can detect double-close.
 //
 // Takes ctx (context.Context) which is unused but required by the interface.
 //
-// Returns error which is errS3ProviderClosed when invoked more than once,
-// otherwise nil.
+// Returns error which is errS3ProviderClosed when invoked more than once, otherwise nil.
 func (p *S3Provider) Close(context.Context) error {
 	if !p.closed.CompareAndSwap(false, true) {
 		return errS3ProviderClosed
@@ -548,11 +534,10 @@ func (p *S3Provider) Close(context.Context) error {
 
 // RemoveMany implements native batch delete using S3's DeleteObjects API.
 //
-// Takes params (storage.RemoveManyParams) which specifies the keys to
-// delete and error handling behaviour.
+// Takes params (storage.RemoveManyParams) which specifies the keys to delete and error
+// handling behaviour.
 //
-// Returns *storage.BatchResult which contains deletion outcomes for each
-// key.
+// Returns *storage.BatchResult which contains deletion outcomes for each key.
 // Returns error when a batch request fails and ContinueOnError is false.
 func (p *S3Provider) RemoveMany(ctx context.Context, params storage.RemoveManyParams) (*storage.BatchResult, error) {
 	if len(params.Keys) == 0 {
@@ -601,16 +586,15 @@ func (p *S3Provider) RemoveMany(ctx context.Context, params storage.RemoveManyPa
 	return result, nil
 }
 
-// PutMany uploads multiple objects to S3 in a batch with internal concurrency,
-// since S3 has no native batch upload API. The context is threaded through to
-// each Put call for cancellation support.
+// PutMany uploads multiple objects to S3 in a batch with internal concurrency, since S3
+// has no native batch upload API. The context is threaded through to each Put call for
+// cancellation support.
 //
-// Takes params (*storage.PutManyParams) which specifies the objects to upload
-// and concurrency settings.
+// Takes params (*storage.PutManyParams) which specifies the objects to upload and
+// concurrency settings.
 //
 // Returns *storage.BatchResult which contains upload outcomes for each object.
-// Returns error which is always nil; individual failures are recorded in the
-// result.
+// Returns error which is always nil; individual failures are recorded in the result.
 func (p *S3Provider) PutMany(ctx context.Context, params *storage.PutManyParams) (*storage.BatchResult, error) {
 	if len(params.Objects) == 0 {
 		return &storage.BatchResult{
@@ -671,8 +655,8 @@ func (p *S3Provider) getRepositoryBucket(repo string) (string, error) {
 // simpleUpload performs a standard single-request S3 PutObject operation.
 //
 // Takes bucketName (string) which specifies the target S3 bucket.
-// Takes params (*storage.PutParams) which provides the object key, content,
-// and optional metadata.
+// Takes params (*storage.PutParams) which provides the object key, content, and optional
+// metadata.
 //
 // Returns error when the upload fails.
 func (p *S3Provider) simpleUpload(ctx context.Context, bucketName string, params *storage.PutParams) error {
@@ -694,12 +678,12 @@ func (p *S3Provider) simpleUpload(ctx context.Context, bucketName string, params
 	return nil
 }
 
-// streamingMultipartUpload uploads large files to S3 using the AWS SDK's
-// high-level Uploader.
+// streamingMultipartUpload uploads large files to S3 using the AWS SDK's high-level
+// Uploader.
 //
 // Takes bucketName (string) which specifies the target S3 bucket.
-// Takes params (*storage.PutParams) which contains the upload settings
-// including the reader, key, content type, and multipart options.
+// Takes params (*storage.PutParams) which contains the upload settings including the
+// reader, key, content type, and multipart options.
 //
 // Returns error when the upload fails.
 func (p *S3Provider) streamingMultipartUpload(ctx context.Context, bucketName string, params *storage.PutParams) error {
@@ -772,8 +756,7 @@ func (p *S3Provider) fallbackToStreamingHash(ctx context.Context, params storage
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-// deleteS3Batch performs a single S3 DeleteObjects API call for a chunk of
-// keys.
+// deleteS3Batch performs a single S3 DeleteObjects API call for a chunk of keys.
 //
 // Takes bucketName (string) which specifies the target S3 bucket.
 // Takes keys ([]string) which contains the object keys to delete.
@@ -841,11 +824,9 @@ type batchResult struct {
 //
 // Takes s3Config (*Config) which specifies the S3 connection settings and bucket
 // mappings.
-// Takes opts (...storage.ProviderOption) which configures rate limiting
-// behaviour.
+// Takes opts (...storage.ProviderOption) which configures rate limiting behaviour.
 //
-// Returns storage.ProviderPort which is the configured storage
-// provider ready for use.
+// Returns storage.ProviderPort which is the configured storage provider ready for use.
 // Returns error when s3Config is nil or the AWS configuration cannot be loaded.
 func NewS3Provider(ctx context.Context, s3Config *Config, opts ...storage.ProviderOption) (storage.ProviderPort, error) {
 	if s3Config == nil {
@@ -893,8 +874,8 @@ func isS3NotFoundError(err error) bool {
 
 // loadAWSConfig loads the AWS SDK settings from the given configuration.
 //
-// Takes s3Config (*Config) which provides the S3 settings including region,
-// credentials, and checksum options.
+// Takes s3Config (*Config) which provides the S3 settings including region, credentials,
+// and checksum options.
 //
 // Returns aws.Config which contains the AWS SDK settings ready for use.
 // Returns error when the AWS settings cannot be loaded.
@@ -924,10 +905,9 @@ func loadAWSConfig(ctx context.Context, s3Config *Config) (aws.Config, error) {
 // createS3Client creates an S3 client with the given settings.
 //
 // Takes awsConfig (*aws.Config) which provides the base AWS settings.
-// Takes endpointURL (string) which sets a custom endpoint, or empty for the
-// default.
-// Takes usePathStyle (bool) which enables path-style addressing when using a
-// custom endpoint.
+// Takes endpointURL (string) which sets a custom endpoint, or empty for the default.
+// Takes usePathStyle (bool) which enables path-style addressing when using a custom
+// endpoint.
 //
 // Returns *s3.Client which is the configured S3 client with retry settings.
 func createS3Client(awsConfig *aws.Config, endpointURL string, usePathStyle bool) *s3.Client {
@@ -946,8 +926,7 @@ func createS3Client(awsConfig *aws.Config, endpointURL string, usePathStyle bool
 
 // buildRangeHeader builds an HTTP Range header string from a ByteRange.
 //
-// Takes byteRange (*storage.ByteRange) which specifies the byte range for the
-// request.
+// Takes byteRange (*storage.ByteRange) which specifies the byte range for the request.
 //
 // Returns string which is the formatted Range header value.
 func buildRangeHeader(byteRange *storage.ByteRange) string {
@@ -970,8 +949,8 @@ func isLikelyMD5(s string) bool {
 	return matched
 }
 
-// isRetryableS3ErrorCode checks whether an S3 error code from a batch
-// operation can be retried.
+// isRetryableS3ErrorCode checks whether an S3 error code from a batch operation can be
+// retried.
 //
 // Takes code (string) which is the S3 error code to check.
 //
@@ -985,24 +964,16 @@ func isRetryableS3ErrorCode(code string) bool {
 	}
 }
 
-// startBatchWorkers launches workers simultaneously to process
-// jobs from the jobs channel.
+// startBatchWorkers spawns concurrency worker goroutines tracked by the provided
+// WaitGroup; each processes jobs from the jobs channel.
 //
-// Takes ctx (context.Context) which is threaded to each worker for
-// cancellation.
+// Takes ctx (context.Context) which is threaded to each worker for cancellation.
 // Takes wg (*sync.WaitGroup) which tracks worker completion.
-// Takes concurrency (int) which specifies the number of
-// workers.
-// Takes jobs (<-chan batchJob[T]) which provides jobs for
-// workers to process.
-// Takes results (chan<- batchResult) which receives processing
-// outcomes.
-// Takes continueOnError (bool) which controls whether workers
-// stop on failure.
+// Takes concurrency (int) which specifies the number of workers.
+// Takes jobs (<-chan batchJob[T]) which provides jobs for workers to process.
+// Takes results (chan<- batchResult) which receives processing outcomes.
+// Takes continueOnError (bool) which controls whether workers stop on failure.
 // Takes workerFunc (func(...)) which processes each job item.
-//
-// Safe for concurrent use. Spawns worker goroutines tracked by the
-// provided WaitGroup.
 func startBatchWorkers[T any](
 	ctx context.Context,
 	wg *sync.WaitGroup,
@@ -1012,25 +983,22 @@ func startBatchWorkers[T any](
 	continueOnError bool,
 	workerFunc func(context.Context, T) (string, error),
 ) {
-	wg.Add(concurrency)
 	for range concurrency {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			processBatchJobs(ctx, jobs, results, continueOnError, workerFunc)
-		}()
+		})
 	}
 }
 
-// processBatchJobs reads jobs from a channel and processes each one until the
-// channel is closed or an error occurs (when continueOnError is false).
+// processBatchJobs reads jobs from a channel and processes each one until the channel is
+// closed or an error occurs (when continueOnError is false).
 //
 // Takes ctx (context.Context) which is passed to each worker function call.
 // Takes jobs (<-chan batchJob[T]) which provides the jobs to process.
 // Takes results (chan<- batchResult) which receives the processing results.
-// Takes continueOnError (bool) which controls whether to stop on the first
-// error.
-// Takes workerFunc (func(context.Context, T) (string, error)) which processes
-// each job item.
+// Takes continueOnError (bool) which controls whether to stop on the first error.
+// Takes workerFunc (func(context.Context, T) (string, error)) which processes each job
+// item.
 func processBatchJobs[T any](ctx context.Context, jobs <-chan batchJob[T], results chan<- batchResult, continueOnError bool, workerFunc func(context.Context, T) (string, error)) {
 	for {
 		select {
@@ -1065,10 +1033,8 @@ func drainJobsChannel[T any](jobs <-chan batchJob[T]) {
 
 // collectBatchResults gathers results from a channel into a batch result.
 //
-// Takes results (<-chan batchResult) which provides completed batch operation
-// outcomes.
-// Takes result (*storage.BatchResult) which collects the success and failure
-// counts.
+// Takes results (<-chan batchResult) which provides completed batch operation outcomes.
+// Takes result (*storage.BatchResult) which collects the success and failure counts.
 func collectBatchResults(results <-chan batchResult, result *storage.BatchResult) {
 	for batchRes := range results {
 		if batchRes.Err == nil {
@@ -1086,22 +1052,20 @@ func collectBatchResults(results <-chan batchResult, result *storage.BatchResult
 	}
 }
 
-// runBatchWorkers creates a worker pool to process a slice of items at the
-// same time.
+// runBatchWorkers creates a worker pool to process a slice of items at the same time.
 //
 // Takes ctx (context.Context) which is threaded to workers for cancellation.
 // Takes items ([]T) which contains the items to process.
 // Takes concurrency (int) which sets the number of workers to run in parallel.
-// Takes continueOnError (bool) which controls whether processing continues
-// after a failure.
-// Takes workerFunc (func(...)) which processes each item and returns a key or
-// an error.
+// Takes continueOnError (bool) which controls whether processing continues after a
+// failure.
+// Takes workerFunc (func(...)) which processes each item and returns a key or an error.
 //
-// Returns *storage.BatchResult which holds the results of processing,
-// including keys that succeeded and keys that failed.
+// Returns *storage.BatchResult which holds the results of processing, including keys that
+// succeeded and keys that failed.
 //
-// Safe for concurrent use. Spawns worker goroutines tracked by a
-// WaitGroup; closes the results channel when all workers finish.
+// Safe for concurrent use. Spawns worker goroutines tracked by a WaitGroup; closes the
+// results channel when all workers finish.
 func runBatchWorkers[T any](ctx context.Context, items []T, concurrency int, continueOnError bool, workerFunc func(context.Context, T) (string, error)) *storage.BatchResult {
 	result := &storage.BatchResult{
 		TotalRequested:  len(items),

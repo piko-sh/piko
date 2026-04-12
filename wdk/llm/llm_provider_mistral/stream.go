@@ -35,34 +35,36 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// llmStreamEventBufferSize bounds the producer/consumer queue for
-// stream events so a slow consumer cannot lockstep the upstream.
-const llmStreamEventBufferSize = 16
+const (
+	// llmStreamEventBufferSize bounds the producer/consumer queue for stream events so a
+	// slow consumer cannot lockstep the upstream.
+	llmStreamEventBufferSize = 16
+)
 
 const (
-	// maxSSELineBytes bounds a single SSE line so a malicious or malfunctioning
-	// peer cannot cause unbounded memory growth by streaming a single oversized
-	// `data:` line without a newline. Real SSE lines are typically much smaller,
-	// so 1 MiB is a generous ceiling.
+	// maxSSELineBytes bounds a single SSE line so a malicious or malfunctioning peer cannot
+	// cause unbounded memory growth by streaming a single oversized `data:` line without a
+	// newline. Real SSE lines are typically much smaller, so 1 MiB is a generous ceiling.
 	maxSSELineBytes = 1 * 1024 * 1024
 
-	// initialSSEScannerBufferBytes is the initial buffer size used by the SSE
-	// line scanner; it grows up to maxSSELineBytes as needed.
+	// initialSSEScannerBufferBytes is the initial buffer size used by the SSE line scanner;
+	// it grows up to maxSSELineBytes as needed.
 	initialSSEScannerBufferBytes = 64 * 1024
 )
 
-// ErrSSELineTooLarge indicates that a Mistral SSE stream line exceeded the
-// per-line size cap, suggesting either a hostile peer or a malfunctioning
-// upstream emitter.
-var ErrSSELineTooLarge = errors.New("mistral SSE line exceeded maximum size")
+var (
+	// ErrSSELineTooLarge indicates that a Mistral SSE stream line exceeded the per-line size
+	// cap, suggesting either a hostile peer or a malfunctioning upstream emitter.
+	ErrSSELineTooLarge = errors.New("mistral SSE line exceeded maximum size")
+)
 
 // streamState holds the data gathered during stream processing.
 type streamState struct {
 	// finalUsage stores the accumulated token usage after the stream completes.
 	finalUsage *llm_dto.Usage
 
-	// lastFinishReason stores the most recent finish reason from the LLM
-	// response; nil when no response has been received.
+	// lastFinishReason stores the most recent finish reason from the LLM response; nil when
+	// no response has been received.
 	lastFinishReason *llm_dto.FinishReason
 
 	// lastID is the most recent stream entry ID that was processed.
@@ -77,15 +79,15 @@ type streamState struct {
 
 // Stream sends a streaming completion request to Mistral.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters including model and messages.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters
+// including model and messages.
 //
-// Returns <-chan llm_dto.StreamEvent which yields streaming events as they
-// arrive from the API.
+// Returns <-chan llm_dto.StreamEvent which yields streaming events as they arrive from
+// the API.
 // Returns error when the request cannot be created or the API returns an error.
 //
-// Spawns a goroutine to process the stream. The channel is closed when the
-// stream ends or the context is cancelled.
+// Spawns a goroutine to process the stream. The channel is closed when the stream ends or
+// the context is cancelled.
 func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.mistralProvider.Stream")
 
@@ -144,9 +146,9 @@ func (p *mistralProvider) Stream(ctx context.Context, request *llm_dto.Completio
 // Takes response (*http.Response) which is the non-OK upstream response.
 //
 // Returns error which carries the classified upstream failure as either a
-// safeerror-wrapped 4xx (user-rejection) or a transient 5xx-style error;
-// the returned error wraps a *llm_domain.ProviderError so the retry
-// executor can classify the failure and honour any Retry-After hint.
+// safeerror-wrapped 4xx (user-rejection) or a transient 5xx-style error; the returned
+// error wraps a *llm_domain.ProviderError so the retry executor can classify the failure
+// and honour any Retry-After hint.
 func classifyStreamErrorResponse(response *http.Response) error {
 	respBody, readErr := readBoundedBody(response.Body)
 	detail := http.StatusText(response.StatusCode)
@@ -165,9 +167,9 @@ func classifyStreamErrorResponse(response *http.Response) error {
 	return providerErr
 }
 
-// streamContext returns a context that is cancelled when either the caller's
-// context is cancelled or the provider is closed. The returned cancel function
-// must be called when the stream goroutine completes to release the watcher.
+// streamContext returns a context that is cancelled when either the caller's context is
+// cancelled or the provider is closed. The returned cancel function must be called when
+// the stream goroutine completes to release the watcher.
 //
 // Takes ctx (context.Context) which is the caller's context.
 //
@@ -207,8 +209,8 @@ type mistralStreamChunk struct {
 	Created int64 `json:"created"`
 }
 
-// mistralStreamChunkChoice represents a single choice within a Mistral
-// streaming response chunk.
+// mistralStreamChunkChoice represents a single choice within a Mistral streaming response
+// chunk.
 type mistralStreamChunkChoice struct {
 	// FinishReason indicates why the model stopped generating tokens.
 	FinishReason string `json:"finish_reason,omitempty"`
@@ -235,8 +237,7 @@ type mistralDelta struct {
 // processStream reads from the Mistral stream and converts events.
 //
 // Takes response (*http.Response) which provides the SSE stream to read from.
-// Takes events (chan<- llm_dto.StreamEvent) which receives the converted stream
-// events.
+// Takes events (chan<- llm_dto.StreamEvent) which receives the converted stream events.
 func (p *mistralProvider) processStream(ctx context.Context, response *http.Response, events chan<- llm_dto.StreamEvent) {
 	defer p.streamWaitGroup.Done()
 	defer close(events)
@@ -282,8 +283,8 @@ func (p *mistralProvider) processStream(ctx context.Context, response *http.Resp
 }
 
 // newBoundedSSEScanner constructs a bufio.Scanner whose buffer is capped at
-// maxSSELineBytes. When a single SSE line exceeds the cap, scanner.Scan
-// returns false and scanner.Err returns bufio.ErrTooLong.
+// maxSSELineBytes. When a single SSE line exceeds the cap, scanner.Scan returns false and
+// scanner.Err returns bufio.ErrTooLong.
 //
 // Takes body (io.Reader) which is the SSE response body.
 //
@@ -294,11 +295,10 @@ func newBoundedSSEScanner(body io.Reader) *bufio.Scanner {
 	return scanner
 }
 
-// isContextCancelled checks if the context has been cancelled and sends an
-// error event.
+// isContextCancelled checks if the context has been cancelled and sends an error event.
 //
-// Takes events (chan<- llm_dto.StreamEvent) which receives an error event when
-// the context is cancelled.
+// Takes events (chan<- llm_dto.StreamEvent) which receives an error event when the
+// context is cancelled.
 //
 // Returns bool which is true when the context has been cancelled.
 func (*mistralProvider) isContextCancelled(ctx context.Context, events chan<- llm_dto.StreamEvent) bool {
@@ -314,17 +314,16 @@ func (*mistralProvider) isContextCancelled(ctx context.Context, events chan<- ll
 	}
 }
 
-// readSSELine reads a single line from the SSE stream via the bounded
-// scanner.
+// readSSELine reads a single line from the SSE stream via the bounded scanner.
 //
-// Takes events (chan<- llm_dto.StreamEvent) which receives error events when
-// stream reading fails or when an oversized line is detected.
+// Takes events (chan<- llm_dto.StreamEvent) which receives error events when stream
+// reading fails or when an oversized line is detected.
 // Takes scanner (*bufio.Scanner) which provides the bounded SSE stream.
 //
-// Returns []byte which contains the parsed data payload, or nil when the line
-// should be skipped or the stream has ended.
-// Returns bool which is true when the stream has ended (EOF, done signal, or
-// fatal read error), false when processing should continue.
+// Returns []byte which contains the parsed data payload, or nil when the line should be
+// skipped or the stream has ended.
+// Returns bool which is true when the stream has ended (EOF, done signal, or fatal read
+// error), false when processing should continue.
 func (*mistralProvider) readSSELine(ctx context.Context, events chan<- llm_dto.StreamEvent, scanner *bufio.Scanner) ([]byte, bool) {
 	if !scanner.Scan() {
 		err := scanner.Err()
@@ -415,8 +414,8 @@ func (p *mistralProvider) processChunkChoices(ctx context.Context, events chan<-
 // Takes choice (*mistralStreamChunkChoice) which contains the delta data.
 // Takes state (*streamState) which tracks the current streaming state.
 //
-// Returns *llm_dto.MessageDelta which contains the extracted role, content,
-// and tool calls from the chunk.
+// Returns *llm_dto.MessageDelta which contains the extracted role, content, and tool
+// calls from the chunk.
 func (p *mistralProvider) buildDelta(choice *mistralStreamChunkChoice, state *streamState) *llm_dto.MessageDelta {
 	delta := &llm_dto.MessageDelta{}
 
@@ -437,12 +436,10 @@ func (p *mistralProvider) buildDelta(choice *mistralStreamChunkChoice, state *st
 
 // buildToolCallDeltas converts Mistral tool calls to DTO tool call deltas.
 //
-// Takes toolCalls ([]mistralToolCall) which contains the Mistral tool calls to
-// convert.
+// Takes toolCalls ([]mistralToolCall) which contains the Mistral tool calls to convert.
 // Takes state (*streamState) which tracks the current streaming state.
 //
-// Returns []llm_dto.ToolCallDelta which contains the converted tool call
-// deltas.
+// Returns []llm_dto.ToolCallDelta which contains the converted tool call deltas.
 func (p *mistralProvider) buildToolCallDeltas(toolCalls []mistralToolCall, state *streamState) []llm_dto.ToolCallDelta {
 	deltas := make([]llm_dto.ToolCallDelta, len(toolCalls))
 	for i, tc := range toolCalls {
@@ -453,12 +450,9 @@ func (p *mistralProvider) buildToolCallDeltas(toolCalls []mistralToolCall, state
 
 // buildSingleToolCallDelta converts a single Mistral tool call to a DTO delta.
 //
-// Takes index (int) which specifies the position of this tool call in the
-// sequence.
-// Takes tc (mistralToolCall) which contains the Mistral tool call data to
-// convert.
-// Takes state (*streamState) which holds the accumulated tool calls for the
-// stream.
+// Takes index (int) which specifies the position of this tool call in the sequence.
+// Takes tc (mistralToolCall) which contains the Mistral tool call data to convert.
+// Takes state (*streamState) which holds the accumulated tool calls for the stream.
 //
 // Returns llm_dto.ToolCallDelta which contains the converted tool call delta.
 func (p *mistralProvider) buildSingleToolCallDelta(index int, tc mistralToolCall, state *streamState) llm_dto.ToolCallDelta {
@@ -480,11 +474,11 @@ func (p *mistralProvider) buildSingleToolCallDelta(index int, tc mistralToolCall
 
 // buildFunctionCallDelta builds a FunctionCallDelta from a Mistral function call.
 //
-// Takes functionCall (*mistralFunctionCall) which provides the
-// function name and arguments.
+// Takes functionCall (*mistralFunctionCall) which provides the function name and
+// arguments.
 //
-// Returns *llm_dto.FunctionCallDelta which contains the converted function call
-// data with optional name and arguments fields.
+// Returns *llm_dto.FunctionCallDelta which contains the converted function call data with
+// optional name and arguments fields.
 func (*mistralProvider) buildFunctionCallDelta(functionCall *mistralFunctionCall) *llm_dto.FunctionCallDelta {
 	fcd := &llm_dto.FunctionCallDelta{}
 	if functionCall.Name != "" {
@@ -501,8 +495,7 @@ func (*mistralProvider) buildFunctionCallDelta(functionCall *mistralFunctionCall
 // Takes choice (*mistralStreamChunkChoice) which contains the stream chunk data.
 // Takes state (*streamState) which holds the current streaming state.
 //
-// Returns *llm_dto.FinishReason which is the extracted reason, or nil if not
-// present.
+// Returns *llm_dto.FinishReason which is the extracted reason, or nil if not present.
 func (p *mistralProvider) extractFinishReason(choice *mistralStreamChunkChoice, state *streamState) *llm_dto.FinishReason {
 	if choice.FinishReason == "" {
 		return nil
@@ -550,8 +543,7 @@ func (*mistralProvider) sendEvent(ctx context.Context, events chan<- llm_dto.Str
 	}
 }
 
-// buildFinalResponse constructs the final completion response from
-// accumulated state.
+// buildFinalResponse constructs the final completion response from accumulated state.
 //
 // Takes state (*streamState) which holds the accumulated streaming data.
 //

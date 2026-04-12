@@ -63,6 +63,22 @@ struct UpvalueDescriptor {
     index: uint8;
     kind: RegisterKind;
     is_local: bool;
+    is_indirect: bool;
+    original_kind: RegisterKind;
+}
+
+struct StructFieldLayout {
+    offset: uint32;
+    type_index: uint16;
+    path_0: uint8;
+    path_1: uint8;
+    path_2: uint8;
+    path_3: uint8;
+    path_length: uint8;
+    kind: uint8;
+    register_kind: uint8;
+    flags: uint8;
+    field_type_index: uint16;
 }
 
 table VarLocation {
@@ -117,6 +133,7 @@ table CallSite {
 
     arguments: [VarLocation];
     returns: [VarLocation];
+    is_ellipsis_spread: bool;
 }
 
 table MethodTableEntry {
@@ -138,47 +155,60 @@ table CompiledFunction {
     name: string;
     source_file: string;
     is_variadic: bool;
-
     register_counts: [uint32];
-
     parameter_kinds: [RegisterKind];
     result_kinds: [RegisterKind];
-
     body: [Instruction];
-
     bool_constants: [bool];
     int_constants: [int64];
     float_constants: [float64];
     uint_constants: [uint64];
     complex_constants: [ComplexValue];
     string_constants: [string];
-
     general_constant_descriptors: [GeneralConstantDescriptor];
-
     type_table_descriptors: [TypeDescriptor];
-
     type_names: [TypeNameEntry];
-
     call_sites: [CallSite];
-
     upvalue_descriptors: [UpvalueDescriptor];
     functions: [CompiledFunction];
-
     named_result_locations: [VarLocation];
-
     method_table: [MethodTableEntry];
-
     variable_init_function: CompiledFunction;
+    struct_layout_table: [StructFieldLayout];
+    is_pointer_receiver: bool;
+    parameter_registers: [uint8];
+    type_table_interface_methods: [InterfaceMethodSet];
+}
+
+table InterfaceMethodSet {
+    methods: [string];
+}
+
+struct SlotAllocation {
+    int_count: uint16;
+    float_count: uint16;
+    string_count: uint16;
+    bool_count: uint16;
+    uint_count: uint16;
+    complex_count: uint16;
+    general_count: uint16;
+}
+
+table PackageVariableEntry {
+    name: string;
+    package_path: string;
+    type_descriptor: TypeDescriptor;
+    register_kind: RegisterKind;
+    relative_slot: uint16;
 }
 
 table CompiledFileSet {
     root: CompiledFunction;
-
     variable_init_function: CompiledFunction;
-
     entrypoints: [EntrypointEntry];
-
     initialisation_functions: [uint16];
+    slot_allocation: SlotAllocation;
+    package_variables: [PackageVariableEntry];
 }
 
 root_type CompiledFileSet;

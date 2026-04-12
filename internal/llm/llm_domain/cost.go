@@ -27,57 +27,62 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// tokensPerMillion is the divisor for converting per-million token pricing.
-const tokensPerMillion = 1_000_000
+const (
 
-// DefaultPricingTable contains built-in pricing for common LLM models
-// in USD per 1 million tokens, last updated February 2026.
-var DefaultPricingTable = &llm_dto.PricingTable{
-	Models: []llm_dto.ModelPricing{
-		{ModelID: "gpt-5", Provider: "openai", InputCostPer1M: decimal("1.25"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: decimal("0.125")},
-		{ModelID: "gpt-5-mini", Provider: "openai", InputCostPer1M: decimal("0.25"), OutputCostPer1M: decimal("2.00"), CachedInputPer1M: decimal("0.025")},
-		{ModelID: "gpt-5-nano", Provider: "openai", InputCostPer1M: decimal("0.05"), OutputCostPer1M: decimal("0.40"), CachedInputPer1M: decimal("0.005")},
-		{ModelID: "gpt-5.1", Provider: "openai", InputCostPer1M: decimal("1.25"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: decimal("0.125")},
-		{ModelID: "gpt-5.2", Provider: "openai", InputCostPer1M: decimal("1.75"), OutputCostPer1M: decimal("14.00"), CachedInputPer1M: decimal("0.175")},
-		{ModelID: "gpt-4.1", Provider: "openai", InputCostPer1M: decimal("2.00"), OutputCostPer1M: decimal("8.00"), CachedInputPer1M: decimal("0.50")},
-		{ModelID: "gpt-4.1-mini", Provider: "openai", InputCostPer1M: decimal("0.40"), OutputCostPer1M: decimal("1.60"), CachedInputPer1M: decimal("0.10")},
-		{ModelID: "gpt-4.1-nano", Provider: "openai", InputCostPer1M: decimal("0.10"), OutputCostPer1M: decimal("0.40"), CachedInputPer1M: decimal("0.025")},
-		{ModelID: "o3", Provider: "openai", InputCostPer1M: decimal("2.00"), OutputCostPer1M: decimal("8.00"), CachedInputPer1M: decimal("0.50")},
-		{ModelID: "o3-mini", Provider: "openai", InputCostPer1M: decimal("1.10"), OutputCostPer1M: decimal("4.40"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "o4-mini", Provider: "openai", InputCostPer1M: decimal("1.10"), OutputCostPer1M: decimal("4.40"), CachedInputPer1M: maths.ZeroDecimal()},
+	// tokensPerMillion is the divisor for converting per-million token pricing.
+	tokensPerMillion = 1_000_000
+)
 
-		{ModelID: "claude-opus-4-6", Provider: "anthropic", InputCostPer1M: decimal("5.00"), OutputCostPer1M: decimal("25.00"), CachedInputPer1M: decimal("0.50")},
-		{ModelID: "claude-opus-4-5-20251101", Provider: "anthropic", InputCostPer1M: decimal("5.00"), OutputCostPer1M: decimal("25.00"), CachedInputPer1M: decimal("0.50")},
-		{ModelID: "claude-sonnet-4-5-20250929", Provider: "anthropic", InputCostPer1M: decimal("3.00"), OutputCostPer1M: decimal("15.00"), CachedInputPer1M: decimal("0.30")},
-		{ModelID: "claude-sonnet-4-20250514", Provider: "anthropic", InputCostPer1M: decimal("3.00"), OutputCostPer1M: decimal("15.00"), CachedInputPer1M: decimal("0.30")},
-		{ModelID: "claude-haiku-4-5-20251001", Provider: "anthropic", InputCostPer1M: decimal("1.00"), OutputCostPer1M: decimal("5.00"), CachedInputPer1M: decimal("0.10")},
-		{ModelID: "claude-opus-4-1-20250805", Provider: "anthropic", InputCostPer1M: decimal("15.00"), OutputCostPer1M: decimal("75.00"), CachedInputPer1M: decimal("1.50")},
-		{ModelID: "claude-opus-4-20250514", Provider: "anthropic", InputCostPer1M: decimal("15.00"), OutputCostPer1M: decimal("75.00"), CachedInputPer1M: decimal("1.50")},
+var (
+	// DefaultPricingTable contains built-in pricing for common LLM models in USD per 1
+	// million tokens, last updated February 2026.
+	DefaultPricingTable = &llm_dto.PricingTable{
+		Models: []llm_dto.ModelPricing{
+			{ModelID: "gpt-5", Provider: "openai", InputCostPer1M: decimal("1.25"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: decimal("0.125")},
+			{ModelID: "gpt-5-mini", Provider: "openai", InputCostPer1M: decimal("0.25"), OutputCostPer1M: decimal("2.00"), CachedInputPer1M: decimal("0.025")},
+			{ModelID: "gpt-5-nano", Provider: "openai", InputCostPer1M: decimal("0.05"), OutputCostPer1M: decimal("0.40"), CachedInputPer1M: decimal("0.005")},
+			{ModelID: "gpt-5.1", Provider: "openai", InputCostPer1M: decimal("1.25"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: decimal("0.125")},
+			{ModelID: "gpt-5.2", Provider: "openai", InputCostPer1M: decimal("1.75"), OutputCostPer1M: decimal("14.00"), CachedInputPer1M: decimal("0.175")},
+			{ModelID: "gpt-4.1", Provider: "openai", InputCostPer1M: decimal("2.00"), OutputCostPer1M: decimal("8.00"), CachedInputPer1M: decimal("0.50")},
+			{ModelID: "gpt-4.1-mini", Provider: "openai", InputCostPer1M: decimal("0.40"), OutputCostPer1M: decimal("1.60"), CachedInputPer1M: decimal("0.10")},
+			{ModelID: "gpt-4.1-nano", Provider: "openai", InputCostPer1M: decimal("0.10"), OutputCostPer1M: decimal("0.40"), CachedInputPer1M: decimal("0.025")},
+			{ModelID: "o3", Provider: "openai", InputCostPer1M: decimal("2.00"), OutputCostPer1M: decimal("8.00"), CachedInputPer1M: decimal("0.50")},
+			{ModelID: "o3-mini", Provider: "openai", InputCostPer1M: decimal("1.10"), OutputCostPer1M: decimal("4.40"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "o4-mini", Provider: "openai", InputCostPer1M: decimal("1.10"), OutputCostPer1M: decimal("4.40"), CachedInputPer1M: maths.ZeroDecimal()},
 
-		{ModelID: "gemini-2.5-pro", Provider: "gemini", InputCostPer1M: decimal("1.25"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: decimal("0.125")},
-		{ModelID: "gemini-2.5-flash", Provider: "gemini", InputCostPer1M: decimal("0.30"), OutputCostPer1M: decimal("2.50"), CachedInputPer1M: decimal("0.03")},
-		{ModelID: "gemini-2.5-flash-lite", Provider: "gemini", InputCostPer1M: decimal("0.10"), OutputCostPer1M: decimal("0.40"), CachedInputPer1M: decimal("0.01")},
+			{ModelID: "claude-opus-4-6", Provider: "anthropic", InputCostPer1M: decimal("5.00"), OutputCostPer1M: decimal("25.00"), CachedInputPer1M: decimal("0.50")},
+			{ModelID: "claude-opus-4-5-20251101", Provider: "anthropic", InputCostPer1M: decimal("5.00"), OutputCostPer1M: decimal("25.00"), CachedInputPer1M: decimal("0.50")},
+			{ModelID: "claude-sonnet-4-5-20250929", Provider: "anthropic", InputCostPer1M: decimal("3.00"), OutputCostPer1M: decimal("15.00"), CachedInputPer1M: decimal("0.30")},
+			{ModelID: "claude-sonnet-4-20250514", Provider: "anthropic", InputCostPer1M: decimal("3.00"), OutputCostPer1M: decimal("15.00"), CachedInputPer1M: decimal("0.30")},
+			{ModelID: "claude-haiku-4-5-20251001", Provider: "anthropic", InputCostPer1M: decimal("1.00"), OutputCostPer1M: decimal("5.00"), CachedInputPer1M: decimal("0.10")},
+			{ModelID: "claude-opus-4-1-20250805", Provider: "anthropic", InputCostPer1M: decimal("15.00"), OutputCostPer1M: decimal("75.00"), CachedInputPer1M: decimal("1.50")},
+			{ModelID: "claude-opus-4-20250514", Provider: "anthropic", InputCostPer1M: decimal("15.00"), OutputCostPer1M: decimal("75.00"), CachedInputPer1M: decimal("1.50")},
 
-		{ModelID: "deepseek-chat", Provider: "deepseek", InputCostPer1M: decimal("0.28"), OutputCostPer1M: decimal("0.42"), CachedInputPer1M: decimal("0.028")},
-		{ModelID: "deepseek-reasoner", Provider: "deepseek", InputCostPer1M: decimal("0.28"), OutputCostPer1M: decimal("0.42"), CachedInputPer1M: decimal("0.028")},
+			{ModelID: "gemini-2.5-pro", Provider: "gemini", InputCostPer1M: decimal("1.25"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: decimal("0.125")},
+			{ModelID: "gemini-2.5-flash", Provider: "gemini", InputCostPer1M: decimal("0.30"), OutputCostPer1M: decimal("2.50"), CachedInputPer1M: decimal("0.03")},
+			{ModelID: "gemini-2.5-flash-lite", Provider: "gemini", InputCostPer1M: decimal("0.10"), OutputCostPer1M: decimal("0.40"), CachedInputPer1M: decimal("0.01")},
 
-		{ModelID: "mistral-large-latest", Provider: "mistral", InputCostPer1M: decimal("0.50"), OutputCostPer1M: decimal("1.50"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "mistral-medium-latest", Provider: "mistral", InputCostPer1M: decimal("0.40"), OutputCostPer1M: decimal("2.00"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "mistral-small-latest", Provider: "mistral", InputCostPer1M: decimal("0.03"), OutputCostPer1M: decimal("0.11"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "deepseek-chat", Provider: "deepseek", InputCostPer1M: decimal("0.28"), OutputCostPer1M: decimal("0.42"), CachedInputPer1M: decimal("0.028")},
+			{ModelID: "deepseek-reasoner", Provider: "deepseek", InputCostPer1M: decimal("0.28"), OutputCostPer1M: decimal("0.42"), CachedInputPer1M: decimal("0.028")},
 
-		{ModelID: "grok-4", Provider: "xai", InputCostPer1M: decimal("3.00"), OutputCostPer1M: decimal("15.00"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "grok-3-mini", Provider: "xai", InputCostPer1M: decimal("0.30"), OutputCostPer1M: decimal("0.50"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "mistral-large-latest", Provider: "mistral", InputCostPer1M: decimal("0.50"), OutputCostPer1M: decimal("1.50"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "mistral-medium-latest", Provider: "mistral", InputCostPer1M: decimal("0.40"), OutputCostPer1M: decimal("2.00"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "mistral-small-latest", Provider: "mistral", InputCostPer1M: decimal("0.03"), OutputCostPer1M: decimal("0.11"), CachedInputPer1M: maths.ZeroDecimal()},
 
-		{ModelID: "command-a", Provider: "cohere", InputCostPer1M: decimal("2.50"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "command-r-08-2024", Provider: "cohere", InputCostPer1M: decimal("0.15"), OutputCostPer1M: decimal("0.60"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "command-r7b-12-2024", Provider: "cohere", InputCostPer1M: decimal("0.04"), OutputCostPer1M: decimal("0.15"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "grok-4", Provider: "xai", InputCostPer1M: decimal("3.00"), OutputCostPer1M: decimal("15.00"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "grok-3-mini", Provider: "xai", InputCostPer1M: decimal("0.30"), OutputCostPer1M: decimal("0.50"), CachedInputPer1M: maths.ZeroDecimal()},
 
-		{ModelID: "amazon.nova-micro-v1:0", Provider: "amazon", InputCostPer1M: decimal("0.035"), OutputCostPer1M: decimal("0.14"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "amazon.nova-pro-v1:0", Provider: "amazon", InputCostPer1M: decimal("0.80"), OutputCostPer1M: decimal("3.20"), CachedInputPer1M: maths.ZeroDecimal()},
-		{ModelID: "amazon.nova-premier-v1:0", Provider: "amazon", InputCostPer1M: decimal("2.50"), OutputCostPer1M: decimal("12.50"), CachedInputPer1M: maths.ZeroDecimal()},
-	},
-	LastUpdated: time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC),
-}
+			{ModelID: "command-a", Provider: "cohere", InputCostPer1M: decimal("2.50"), OutputCostPer1M: decimal("10.00"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "command-r-08-2024", Provider: "cohere", InputCostPer1M: decimal("0.15"), OutputCostPer1M: decimal("0.60"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "command-r7b-12-2024", Provider: "cohere", InputCostPer1M: decimal("0.04"), OutputCostPer1M: decimal("0.15"), CachedInputPer1M: maths.ZeroDecimal()},
+
+			{ModelID: "amazon.nova-micro-v1:0", Provider: "amazon", InputCostPer1M: decimal("0.035"), OutputCostPer1M: decimal("0.14"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "amazon.nova-pro-v1:0", Provider: "amazon", InputCostPer1M: decimal("0.80"), OutputCostPer1M: decimal("3.20"), CachedInputPer1M: maths.ZeroDecimal()},
+			{ModelID: "amazon.nova-premier-v1:0", Provider: "amazon", InputCostPer1M: decimal("2.50"), OutputCostPer1M: decimal("12.50"), CachedInputPer1M: maths.ZeroDecimal()},
+		},
+		LastUpdated: time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC),
+	}
+)
 
 // CostCalculator calculates the cost of LLM API calls based on token usage.
 type CostCalculator struct {
@@ -135,8 +140,8 @@ func NewCostCalculatorWithPricing(table *llm_dto.PricingTable, opts ...CostCalcu
 // Takes provider (string) which is the provider name.
 // Takes usage (*llm_dto.Usage) which contains the token counts.
 //
-// Returns *llm_dto.CostEstimate containing the calculated costs, or nil if
-// the model pricing is not found or usage is nil.
+// Returns *llm_dto.CostEstimate containing the calculated costs, or nil if the model
+// pricing is not found or usage is nil.
 func (c *CostCalculator) Calculate(model, provider string, usage *llm_dto.Usage) *llm_dto.CostEstimate {
 	if usage == nil {
 		return nil
@@ -250,16 +255,15 @@ func (c *CostCalculator) GetPricingTable() *llm_dto.PricingTable {
 	return tableCopy
 }
 
-// EstimateRequestCost estimates the cost before making a request.
-// This is a rough estimate based on message content length, assuming
-// about 4 characters per token (a common approximation).
+// EstimateRequestCost estimates the cost before making a request. This is a rough
+// estimate based on message content length, assuming about 4 characters per token (a
+// common approximation).
 //
 // Takes model (string) which is the model identifier.
-// Takes estimatedInputTokens (int) which is the estimated number of
-// input tokens.
+// Takes estimatedInputTokens (int) which is the estimated number of input tokens.
 //
-// Returns maths.Money which is the estimated input cost in USD, or zero
-// if pricing is unknown.
+// Returns maths.Money which is the estimated input cost in USD, or zero if pricing is
+// unknown.
 func (c *CostCalculator) EstimateRequestCost(model string, estimatedInputTokens int) maths.Money {
 	pricing := c.GetPricing(model)
 	if pricing == nil {
@@ -269,8 +273,8 @@ func (c *CostCalculator) EstimateRequestCost(model string, estimatedInputTokens 
 	return maths.NewMoneyFromDecimal(costDecimal, llm_dto.CostCurrency)
 }
 
-// WithCostCalculatorClock sets the clock used for time operations.
-// If not set, clock.RealClock() is used.
+// WithCostCalculatorClock sets the clock used for time operations. If not set,
+// clock.RealClock() is used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //

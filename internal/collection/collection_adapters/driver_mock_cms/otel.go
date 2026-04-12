@@ -18,7 +18,9 @@
 
 package driver_mock_cms
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
 var (
 	// log is the package-level logger for the mock CMS collection driver.

@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics provides a provider-agnostic framework for
-// backend analytics event collection, with support for batching,
-// retry, and circuit breaking.
+// Package analytics provides a provider-agnostic framework for backend analytics event
+// collection, with support for batching, retry, and circuit breaking.
 //
-// Create collectors from the analytics_collector_* sub-packages
-// and register them with the Piko server via
-// [piko.WithBackendAnalytics].
+// Create collectors from the analytics_collector_* sub-packages and register them with
+// the Piko server via [piko.WithBackendAnalytics].
 //
 // # Usage
 //
@@ -42,11 +40,11 @@
 //
 // # Collectors
 //
-// Collector adapters for various analytics backends are available
-// in the analytics_collector_* sub-packages.
+// Collector adapters for various analytics backends are available in the
+// analytics_collector_* sub-packages.
 //
 // # Thread safety
 //
-// [Collector] implementations are safe for concurrent use once
-// started by the analytics service.
+// [Collector] implementations are safe for concurrent use once started by the analytics
+// service.
 package analytics

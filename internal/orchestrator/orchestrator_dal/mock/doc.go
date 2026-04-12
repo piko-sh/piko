@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package mock implements the orchestrator DAL interfaces for testing.
-// It is a fully functional in-memory implementation with configurable
-// behaviour, call tracking, and transaction simulation.
+// Package mock implements the orchestrator DAL interfaces for testing. It is a fully
+// functional in-memory implementation with configurable behaviour, call tracking, and
+// transaction simulation.
 //
-// Beyond the DAL interface, the mock exposes helper methods for test
-// setup and assertions: [OrchestratorDAL.SetTask],
-// [OrchestratorDAL.GetTask], [OrchestratorDAL.GetTasksByStatus], and
-// [OrchestratorDAL.GetTasksByWorkflow].
+// Beyond the DAL interface, the mock exposes helper methods for test setup and
+// assertions: [OrchestratorDAL.SetTask], [OrchestratorDAL.GetTask],
+// [OrchestratorDAL.GetTasksByStatus], and [OrchestratorDAL.GetTasksByWorkflow].
 //
 // All methods are safe for concurrent use.
 package mock

@@ -30,71 +30,61 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// MockRendererPort is a test double for RendererPort that returns zero
-// values from nil function fields and tracks call counts atomically.
+// MockRendererPort is a test double for RendererPort that returns zero values from nil
+// function fields and tracks call counts atomically.
 type MockRendererPort struct {
-	// CollectMetadataFunc is the function called by
-	// CollectMetadata.
+	// CollectMetadataFunc is the function called by CollectMetadata.
 	CollectMetadataFunc func(
 		ctx context.Context, request *http.Request,
 		metadata *templater_dto.InternalMetadata,
 		websiteConfig *config.WebsiteConfig,
 	) ([]render_dto.LinkHeader, *render_dto.ProbeData, error)
 
-	// RenderPageFunc is the function called by
-	// RenderPage.
+	// RenderPageFunc is the function called by RenderPage.
 	RenderPageFunc func(ctx context.Context, params RenderPageParams) error
 
-	// RenderPartialFunc is the function called by
-	// RenderPartial.
+	// RenderPartialFunc is the function called by RenderPartial.
 	RenderPartialFunc func(ctx context.Context, params RenderPageParams) error
 
-	// RenderEmailFunc is the function called by
-	// RenderEmail.
+	// RenderEmailFunc is the function called by RenderEmail.
 	RenderEmailFunc func(ctx context.Context, params RenderEmailParams) error
 
-	// RenderASTToPlainTextFunc is the function called
-	// by RenderASTToPlainText.
+	// RenderASTToPlainTextFunc is the function called by RenderASTToPlainText.
 	RenderASTToPlainTextFunc func(ctx context.Context, templateAST *ast_domain.TemplateAST) (string, error)
 
-	// GetLastEmailAssetRequestsFunc is the function
-	// called by GetLastEmailAssetRequests.
+	// GetLastEmailAssetRequestsFunc is the function called by GetLastEmailAssetRequests.
 	GetLastEmailAssetRequestsFunc func() []*email_dto.EmailAssetRequest
 
-	// CollectMetadataCallCount tracks how many times
-	// CollectMetadata was called.
-	CollectMetadataCallCount int64
+	// CollectMetadataCallCount tracks how many times CollectMetadata was called.
+	CollectMetadataCallCount atomic.Int64
 
-	// RenderPageCallCount tracks how many times
-	// RenderPage was called.
-	RenderPageCallCount int64
+	// RenderPageCallCount tracks how many times RenderPage was called.
+	RenderPageCallCount atomic.Int64
 
-	// RenderPartialCallCount tracks how many times
-	// RenderPartial was called.
-	RenderPartialCallCount int64
+	// RenderPartialCallCount tracks how many times RenderPartial was called.
+	RenderPartialCallCount atomic.Int64
 
-	// RenderEmailCallCount tracks how many times
-	// RenderEmail was called.
-	RenderEmailCallCount int64
+	// RenderEmailCallCount tracks how many times RenderEmail was called.
+	RenderEmailCallCount atomic.Int64
 
-	// RenderASTToPlainTextCallCount tracks how many
-	// times RenderASTToPlainText was called.
-	RenderASTToPlainTextCallCount int64
+	// RenderASTToPlainTextCallCount tracks how many times RenderASTToPlainText was called.
+	RenderASTToPlainTextCallCount atomic.Int64
 
-	// GetLastEmailAssetRequestsCallCount tracks how
-	// many times GetLastEmailAssetRequests was called.
-	GetLastEmailAssetRequestsCallCount int64
+	// GetLastEmailAssetRequestsCallCount tracks how many times GetLastEmailAssetRequests was
+	// called.
+	GetLastEmailAssetRequestsCallCount atomic.Int64
 }
 
-var _ RendererPort = (*MockRendererPort)(nil)
+var (
+	_ RendererPort = (*MockRendererPort)(nil)
+)
 
 // CollectMetadata gathers metadata from the request and configuration.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes request (*http.Request) which is the incoming HTTP request.
 // Takes metadata (*templater_dto.InternalMetadata) which holds the page metadata.
-// Takes websiteConfig (*config.WebsiteConfig) which provides the
-// website configuration.
+// Takes websiteConfig (*config.WebsiteConfig) which provides the website configuration.
 //
 // Returns ([]LinkHeader, error), or (nil, nil) if CollectMetadataFunc is nil.
 func (m *MockRendererPort) CollectMetadata(
@@ -103,7 +93,7 @@ func (m *MockRendererPort) CollectMetadata(
 	metadata *templater_dto.InternalMetadata,
 	websiteConfig *config.WebsiteConfig,
 ) ([]render_dto.LinkHeader, *render_dto.ProbeData, error) {
-	atomic.AddInt64(&m.CollectMetadataCallCount, 1)
+	m.CollectMetadataCallCount.Add(1)
 	if m.CollectMetadataFunc != nil {
 		return m.CollectMetadataFunc(ctx, request, metadata, websiteConfig)
 	}
@@ -117,7 +107,7 @@ func (m *MockRendererPort) CollectMetadata(
 //
 // Returns error, or nil if RenderPageFunc is nil.
 func (m *MockRendererPort) RenderPage(ctx context.Context, params RenderPageParams) error {
-	atomic.AddInt64(&m.RenderPageCallCount, 1)
+	m.RenderPageCallCount.Add(1)
 	if m.RenderPageFunc != nil {
 		return m.RenderPageFunc(ctx, params)
 	}
@@ -131,7 +121,7 @@ func (m *MockRendererPort) RenderPage(ctx context.Context, params RenderPagePara
 //
 // Returns error, or nil if RenderPartialFunc is nil.
 func (m *MockRendererPort) RenderPartial(ctx context.Context, params RenderPageParams) error {
-	atomic.AddInt64(&m.RenderPartialCallCount, 1)
+	m.RenderPartialCallCount.Add(1)
 	if m.RenderPartialFunc != nil {
 		return m.RenderPartialFunc(ctx, params)
 	}
@@ -145,7 +135,7 @@ func (m *MockRendererPort) RenderPartial(ctx context.Context, params RenderPageP
 //
 // Returns error, or nil if RenderEmailFunc is nil.
 func (m *MockRendererPort) RenderEmail(ctx context.Context, params RenderEmailParams) error {
-	atomic.AddInt64(&m.RenderEmailCallCount, 1)
+	m.RenderEmailCallCount.Add(1)
 	if m.RenderEmailFunc != nil {
 		return m.RenderEmailFunc(ctx, params)
 	}
@@ -159,7 +149,7 @@ func (m *MockRendererPort) RenderEmail(ctx context.Context, params RenderEmailPa
 //
 // Returns (string, error), or ("", nil) if RenderASTToPlainTextFunc is nil.
 func (m *MockRendererPort) RenderASTToPlainText(ctx context.Context, templateAST *ast_domain.TemplateAST) (string, error) {
-	atomic.AddInt64(&m.RenderASTToPlainTextCallCount, 1)
+	m.RenderASTToPlainTextCallCount.Add(1)
 	if m.RenderASTToPlainTextFunc != nil {
 		return m.RenderASTToPlainTextFunc(ctx, templateAST)
 	}
@@ -168,10 +158,9 @@ func (m *MockRendererPort) RenderASTToPlainText(ctx context.Context, templateAST
 
 // GetLastEmailAssetRequests returns the most recent email asset requests.
 //
-// Returns []*EmailAssetRequest, or nil if GetLastEmailAssetRequestsFunc
-// is nil.
+// Returns []*EmailAssetRequest, or nil if GetLastEmailAssetRequestsFunc is nil.
 func (m *MockRendererPort) GetLastEmailAssetRequests() []*email_dto.EmailAssetRequest {
-	atomic.AddInt64(&m.GetLastEmailAssetRequestsCallCount, 1)
+	m.GetLastEmailAssetRequestsCallCount.Add(1)
 	if m.GetLastEmailAssetRequestsFunc != nil {
 		return m.GetLastEmailAssetRequestsFunc()
 	}

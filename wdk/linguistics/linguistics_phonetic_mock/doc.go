@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_phonetic_mock provides a configurable mock
-// phonetic encoder for testing.
+// Package linguistics_phonetic_mock provides a configurable mock phonetic encoder for
+// testing.
 //
-// The mock implements the PhoneticEncoderPort interface with
-// configurable encode mappings, pass-through behaviour, custom
-// encode functions, and call tracking for test assertions.
+// The mock implements the PhoneticEncoderPort interface with configurable encode
+// mappings, pass-through behaviour, custom encode functions, and call tracking for test
+// assertions.
 //
 // All methods on [MockPhoneticEncoder] are safe for concurrent use.
 package linguistics_phonetic_mock

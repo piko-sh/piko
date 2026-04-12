@@ -45,23 +45,20 @@ const (
 	// outputIndent is the two-space indent used in formatted output.
 	outputIndent = "  "
 
-	// maxDetailSectionDepth caps recursion through nested detail
-	// sections.
+	// maxDetailSectionDepth caps recursion through nested detail sections.
 	maxDetailSectionDepth = 32
 
-	// maxHealthDependencyDepth caps recursion through nested health
-	// dependency trees.
+	// maxHealthDependencyDepth caps recursion through nested health dependency trees.
 	maxHealthDependencyDepth = 32
 )
 
 var (
-	// ansiPattern matches ANSI escape sequences for stripping when calculating
-	// visible string width.
+	// ansiPattern matches ANSI escape sequences for stripping when calculating visible
+	// string width.
 	ansiPattern = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
-	// statusColours maps lowercase status strings to ANSI colour codes.
-	// Green (2) = success, Yellow (3) = in-progress, Red (1) = failure,
-	// Grey (8) = unknown/default.
+	// statusColours maps lowercase status strings to ANSI colour codes. Green (2) = success,
+	// Yellow (3) = in-progress, Red (1) = failure, Grey (8) = unknown/default.
 	statusColours = map[string]color.Color{
 		"healthy":   lipgloss.Color("2"),
 		"ok":        lipgloss.Color("2"),
@@ -111,8 +108,7 @@ type Printer struct {
 // NewPrinter creates a new output printer.
 //
 // Takes w (io.Writer) which is the destination for output.
-// Takes format (string) which selects the output mode ("table", "wide", or
-// "json").
+// Takes format (string) which selects the output mode ("table", "wide", or "json").
 // Takes noColour (bool) which disables colour when true.
 // Takes noHeaders (bool) which omits table headers when true.
 //
@@ -187,16 +183,15 @@ func (p *Printer) IsWide() bool {
 
 // SetLimit sets the global item limit on the printer.
 //
-// Takes n (int) which is the limit value from global flags. Zero means
-// handlers should use their own default.
+// Takes n (int) which is the limit value from global flags. Zero means handlers should
+// use their own default.
 func (p *Printer) SetLimit(n int) {
 	p.limit = n
 }
 
 // GetLimit returns the global limit if set, otherwise the handler's default.
 //
-// Takes handlerDefault (int) which is the default limit for the calling
-// handler.
+// Takes handlerDefault (int) which is the default limit for the calling handler.
 //
 // Returns int which is the effective limit to use.
 func (p *Printer) GetLimit(handlerDefault int) int {
@@ -206,11 +201,11 @@ func (p *Printer) GetLimit(handlerDefault int) int {
 	return handlerDefault
 }
 
-// PrintResource writes rows as a column-filtered table, respecting wide mode
-// and no-headers settings.
+// PrintResource writes rows as a column-filtered table, respecting wide mode and
+// no-headers settings.
 //
-// Takes columns ([]Column) which defines all available columns including
-// wide-only columns.
+// Takes columns ([]Column) which defines all available columns including wide-only
+// columns.
 // Takes rows ([][]string) which contains one string per column per row.
 func (p *Printer) PrintResource(columns []Column, rows [][]string) {
 	indices := visibleColumnIndices(columns, p.IsWide())
@@ -228,8 +223,8 @@ func (p *Printer) PrintResource(columns []Column, rows [][]string) {
 	p.PrintTable(headers, filtered)
 }
 
-// PrintDetail writes sections in kubectl-style key-value format to the
-// printer's configured writer.
+// PrintDetail writes sections in kubectl-style key-value format to the printer's
+// configured writer.
 //
 // Takes sections ([]inspector.DetailSection) which contains the labelled field groups.
 func (p *Printer) PrintDetail(sections []inspector.DetailSection) {
@@ -252,8 +247,7 @@ func (p *Printer) ColourisedStatus(status string) string {
 
 // writeRow writes a single padded row to the printer's writer.
 //
-// Takes cells ([]string) which contains the cell values, possibly with ANSI
-// codes.
+// Takes cells ([]string) which contains the cell values, possibly with ANSI codes.
 // Takes colWidths ([]int) which contains the visible width for each column.
 func (p *Printer) writeRow(cells []string, colWidths []int) {
 	for i, cell := range cells {
@@ -269,9 +263,9 @@ func (p *Printer) writeRow(cells []string, colWidths []int) {
 	_, _ = fmt.Fprintln(p.w)
 }
 
-// printSection recursively renders a detail section with indentation.
-// Recursion is bounded by maxDetailSectionDepth so server-controlled
-// SubSections cannot exhaust the call stack.
+// printSection recursively renders a detail section with indentation. Recursion is
+// bounded by maxDetailSectionDepth so server-controlled SubSections cannot exhaust the
+// call stack.
 //
 // Takes section (inspector.DetailSection) which is the section to render.
 // Takes depth (int) which controls the indentation level.
@@ -325,8 +319,8 @@ func (p *Printer) statusStyle(status string) lipgloss.Style {
 	return lipgloss.NewStyle().Foreground(colour)
 }
 
-// visibleWidth returns the visible character count of s after stripping ANSI
-// escape sequences.
+// visibleWidth returns the visible character count of s after stripping ANSI escape
+// sequences.
 //
 // Takes s (string) which is the string to measure.
 //
@@ -350,8 +344,8 @@ func maxFieldKeyLength(fields []inspector.DetailRow) int {
 	return maxLen
 }
 
-// visibleColumnIndices returns the indices of columns to display based on
-// whether wide mode is active.
+// visibleColumnIndices returns the indices of columns to display based on whether wide
+// mode is active.
 //
 // Takes columns ([]Column) which defines all columns.
 // Takes isWide (bool) which indicates whether wide-only columns are included.
@@ -401,8 +395,8 @@ func filterRowColumns(rows [][]string, indices []int) [][]string {
 	return filtered
 }
 
-// computeColumnWidths returns the maximum visible width for each column across
-// headers and rows.
+// computeColumnWidths returns the maximum visible width for each column across headers
+// and rows.
 //
 // Takes headers ([]string) which contains the column headers.
 // Takes rows ([][]string) which contains the row data.
@@ -426,13 +420,12 @@ func computeColumnWidths(headers []string, rows [][]string) []int {
 // matchesFilter reports whether name matches the filter string. It performs
 // case-insensitive exact match first, then prefix match.
 //
-// The inspector package keeps an identical implementation (matchesFilter)
-// for its own callers; both forms must stay in sync. The CLI keeps its own
-// copy because inspector.matchesFilter is unexported.
+// The inspector package keeps an identical implementation (matchesFilter) for its own
+// callers; both forms must stay in sync. The CLI keeps its own copy because
+// inspector.matchesFilter is unexported.
 //
 // Takes name (string) which is the value to test.
-// Takes filter (string) which is the filter to match against. Empty matches
-// everything.
+// Takes filter (string) which is the filter to match against. Empty matches everything.
 //
 // Returns bool which indicates whether name matches.
 func matchesFilter(name, filter string) bool {
@@ -444,8 +437,8 @@ func matchesFilter(name, filter string) bool {
 	return lower == filterLower || strings.HasPrefix(lower, filterLower)
 }
 
-// extractFilter returns the first non-flag positional argument as the name
-// filter, or an empty string if none is present.
+// extractFilter returns the first non-flag positional argument as the name filter, or an
+// empty string if none is present.
 //
 // Takes arguments ([]string) which contains the command arguments.
 //
@@ -460,8 +453,7 @@ func extractFilter(arguments []string) string {
 	return arguments[0]
 }
 
-// argsAfterFilter returns arguments with the filter argument removed if it was
-// consumed.
+// argsAfterFilter returns arguments with the filter argument removed if it was consumed.
 //
 // Takes arguments ([]string) which contains the original arguments.
 // Takes filter (string) which is the filter value that was extracted.
@@ -474,16 +466,15 @@ func argsAfterFilter(arguments []string, filter string) []string {
 	return arguments[1:]
 }
 
-// parseInterspersed parses flags from arguments where flags and positional
-// arguments may be mixed together.
+// parseInterspersed parses flags from arguments where flags and positional arguments may
+// be mixed together.
 //
-// Go's flag.FlagSet.Parse stops at the first non-flag argument, so a command
-// like "Liveness --help" would never see --help. Separates flags from positional
-// arguments, parses the flags, and returns the positional arguments.
+// Go's flag.FlagSet.Parse stops at the first non-flag argument, so a command like
+// "Liveness --help" would never see --help. Separates flags from positional arguments,
+// parses the flags, and returns the positional arguments.
 //
 // Takes fs (*flag.FlagSet) which has flags already defined on it.
-// Takes arguments ([]string) which contains interspersed flags and
-// positional arguments.
+// Takes arguments ([]string) which contains interspersed flags and positional arguments.
 //
 // Returns []string which contains the positional (non-flag) arguments.
 // Returns error when flag parsing fails (including flag.ErrHelp for --help).
@@ -519,8 +510,7 @@ func parseInterspersed(fs *flag.FlagSet, arguments []string) ([]string, error) {
 //
 // Takes f (*flag.Flag) which is the flag to check.
 //
-// Returns bool which is true if the flag implements IsBoolFlag and returns
-// true.
+// Returns bool which is true if the flag implements IsBoolFlag and returns true.
 func isBoolFlag(f *flag.Flag) bool {
 	bf, ok := f.Value.(interface{ IsBoolFlag() bool })
 	return ok && bf.IsBoolFlag()
@@ -528,15 +518,14 @@ func isBoolFlag(f *flag.Flag) bool {
 
 // grpcError converts a gRPC error into a user-friendly message.
 //
-// When the error has status code Unimplemented, it returns a message stating
-// the service is not available. Otherwise it wraps the error with the provided
-// context.
+// When the error has status code Unimplemented, it returns a message stating the service
+// is not available. Otherwise it wraps the error with the provided context.
 //
 // Takes context (string) which describes what was being fetched.
 // Takes err (error) which is the gRPC error to convert.
 //
-// Returns error with a friendly message for Unimplemented, or the original
-// error wrapped with context.
+// Returns error with a friendly message for Unimplemented, or the original error wrapped
+// with context.
 func grpcError(context string, err error) error {
 	if s, ok := grpcstatus.FromError(err); ok && s.Code() == codes.Unimplemented {
 		return fmt.Errorf("%s: service not available on this server", context)
@@ -544,8 +533,8 @@ func grpcError(context string, err error) error {
 	return fmt.Errorf("%s: %w", context, err)
 }
 
-// validateOutputFormat checks that format is one of the allowed values. It
-// returns an error listing the supported formats if the format is invalid.
+// validateOutputFormat checks that format is one of the allowed values. It returns an
+// error listing the supported formats if the format is invalid.
 //
 // Takes format (string) which is the output format to validate.
 // Takes command (string) which is the command name for error messages.
@@ -560,9 +549,9 @@ func validateOutputFormat(format, command string, allowed []string) error {
 		format, command, strings.Join(allowed, ", "))
 }
 
-// formatTimestamp converts a Unix timestamp in seconds to a human-readable
-// string. Delegates to inspector.FormatUnixSeconds so the CLI shares the
-// inspector's hyphen-glyph-for-zero rendering.
+// formatTimestamp converts a Unix timestamp in seconds to a human-readable string.
+// Delegates to inspector.FormatUnixSeconds so the CLI shares the inspector's
+// hyphen-glyph-for-zero rendering.
 //
 // Takes ts (int64) which is the Unix timestamp in seconds.
 //
@@ -572,8 +561,8 @@ func formatTimestamp(ts int64) string {
 }
 
 // formatDuration formats a millisecond duration for display. Delegates to
-// inspector.FormatMilliseconds so the CLI uses the same "500ms / 1.5s /
-// 5m30s / 2h15m" layout as the rest of the project.
+// inspector.FormatMilliseconds so the CLI uses the same "500ms / 1.5s / 5m30s / 2h15m"
+// layout as the rest of the project.
 //
 // Takes ms (int64) which is the duration in milliseconds.
 //
@@ -582,14 +571,12 @@ func formatDuration(ms int64) string {
 	return inspector.FormatMilliseconds(ms)
 }
 
-// formatBytes formats a byte count for display. Delegates to
-// inspector.FormatBytes so the CLI shares the inspector's IEC unit ladder
-// (B / KiB / MiB / GiB / TiB).
+// formatBytes formats a byte count for display. Delegates to inspector.FormatBytes so the
+// CLI shares the inspector's IEC unit ladder (B / KiB / MiB / GiB / TiB).
 //
 // Takes n (uint64) which is the number of bytes to format.
 //
-// Returns string which is the human-readable size with the appropriate
-// unit suffix.
+// Returns string which is the human-readable size with the appropriate unit suffix.
 func formatBytes(n uint64) string {
 	return inspector.FormatBytes(n)
 }
@@ -613,9 +600,8 @@ func formatNanos(nanoseconds int64) string {
 	return fmt.Sprintf("%.2fs", d.Seconds())
 }
 
-// printHealthTree recursively prints a health status tree with
-// indentation. Recursion is bounded by maxHealthDependencyDepth so a
-// hostile server cannot exhaust the call stack.
+// printHealthTree recursively prints a health status tree with indentation. Recursion is
+// bounded by maxHealthDependencyDepth so a hostile server cannot exhaust the call stack.
 //
 // Takes w (io.Writer) which receives the formatted output.
 // Takes p (*Printer) which provides colourised status formatting.

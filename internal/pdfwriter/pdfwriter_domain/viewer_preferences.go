@@ -27,14 +27,14 @@ import (
 type ViewerPreferences struct {
 	// PageLayout controls how pages are arranged when the document is opened.
 	//
-	// Valid values: SinglePage, OneColumn, TwoColumnLeft, TwoColumnRight,
-	// TwoPageLeft, TwoPageRight. Empty string means viewer default.
+	// Valid values: SinglePage, OneColumn, TwoColumnLeft, TwoColumnRight, TwoPageLeft,
+	// TwoPageRight. Empty string means viewer default.
 	PageLayout string
 
 	// PageMode controls what panel is visible when the document is opened.
 	//
-	// Valid values: UseNone, UseOutlines, UseThumbs, FullScreen.
-	// Empty string means viewer default.
+	// Valid values: UseNone, UseOutlines, UseThumbs, FullScreen. Empty string means viewer
+	// default.
 	PageMode string
 
 	// HideToolbar requests that the viewer hide its toolbar.
@@ -43,25 +43,24 @@ type ViewerPreferences struct {
 	// HideMenubar requests that the viewer hide its menu bar.
 	HideMenubar bool
 
-	// HideWindowUI requests that the viewer hide UI elements in the
-	// document window (e.g. scroll bars, navigation controls).
+	// HideWindowUI requests that the viewer hide UI elements in the document window (e.g.
+	// scroll bars, navigation controls).
 	HideWindowUI bool
 
-	// FitWindow requests that the viewer resize its window to fit the
-	// first displayed page.
+	// FitWindow requests that the viewer resize its window to fit the first displayed page.
 	FitWindow bool
 
 	// CenterWindow requests that the viewer centre its window on screen.
 	CenterWindow bool
 
-	// DisplayDocTitle requests that the viewer display the document title
-	// from metadata rather than the filename in the title bar.
+	// DisplayDocTitle requests that the viewer display the document title from metadata
+	// rather than the filename in the title bar.
 	DisplayDocTitle bool
 }
 
-// buildViewerPreferencesDict writes the /ViewerPreferences dictionary object
-// if any boolean preferences are set, and returns the catalog-level entries
-// (PageLayout, PageMode, and ViewerPreferences reference).
+// buildViewerPreferencesDict writes the /ViewerPreferences dictionary object if any
+// boolean preferences are set, and returns the catalog-level entries (PageLayout,
+// PageMode, and ViewerPreferences reference).
 //
 // Takes vp (*ViewerPreferences) which holds the viewer preference settings.
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.

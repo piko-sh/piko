@@ -24,19 +24,20 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// GoEmitter implements CodeEmitterPort by delegating to the database/sql emitter.
-// Exists for backwards compatibility; new code should use
-// emitter_go_sql.NewSQLEmitter() directly.
+// GoEmitter implements CodeEmitterPort by delegating to the database/sql emitter. Exists
+// for backwards compatibility; new code should use emitter_go_sql.NewSQLEmitter()
+// directly.
 type GoEmitter struct {
-	// sql holds the underlying database/sql emitter that performs the actual
-	// code generation.
+	// sql holds the underlying database/sql emitter that performs the actual code
+	// generation.
 	sql *emitter_go_sql.SQLEmitter
 }
 
-var _ querier_domain.CodeEmitterPort = (*GoEmitter)(nil)
+var (
+	_ querier_domain.CodeEmitterPort = (*GoEmitter)(nil)
+)
 
-// NewGoEmitter creates a new Go code emitter that delegates to the database/sql
-// emitter.
+// NewGoEmitter creates a new Go code emitter that delegates to the database/sql emitter.
 //
 // Returns *GoEmitter which is ready to emit Go source code.
 func NewGoEmitter() *GoEmitter {
@@ -49,8 +50,7 @@ func NewGoEmitter() *GoEmitter {
 //
 // Takes packageName (string) which is the Go package name for generated files.
 // Takes catalogue (*querier_dto.Catalogue) which holds the schema state.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 //
 // Returns []querier_dto.GeneratedFile which contains the model source files.
 // Returns error when code emission fails.
@@ -65,10 +65,8 @@ func (emitter *GoEmitter) EmitModels(
 // EmitQueries generates Go source code for query methods.
 //
 // Takes packageName (string) which is the Go package name for generated files.
-// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked
-// queries.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked queries.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 //
 // Returns []querier_dto.GeneratedFile which contains the query source files.
 // Returns error when code emission fails.
@@ -80,12 +78,11 @@ func (emitter *GoEmitter) EmitQueries(
 	return emitter.sql.EmitQueries(packageName, queries, mappings)
 }
 
-// EmitQuerier generates the top-level querier scaffold. The second
-// parameter is ignored; use emitter_go_pgx for pgx-native code.
+// EmitQuerier generates the top-level querier scaffold. The second parameter is ignored;
+// use emitter_go_pgx for pgx-native code.
 //
 // Takes packageName (string) which is the Go package name.
-// Takes _ (querier_dto.QueryCapabilities) which is ignored by
-// this wrapper.
+// Takes _ (querier_dto.QueryCapabilities) which is ignored by this wrapper.
 //
 // Returns querier_dto.GeneratedFile which contains the querier source file.
 // Returns error when code emission fails.
@@ -99,8 +96,8 @@ func (emitter *GoEmitter) EmitQuerier(
 // EmitPrepared generates the PreparedDBTX wrapper.
 //
 // Takes packageName (string) which is the Go package name.
-// Takes queries ([]*querier_dto.AnalysedQuery) which provide the SQL constants
-// to eagerly prepare.
+// Takes queries ([]*querier_dto.AnalysedQuery) which provide the SQL constants to eagerly
+// prepare.
 //
 // Returns querier_dto.GeneratedFile which contains the prepared.go source.
 // Returns error when code emission fails.

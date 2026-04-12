@@ -23,29 +23,32 @@ import (
 	"piko.sh/piko/wdk/cache"
 )
 
-// Config holds settings for the zstd cache transformer.
-// This is re-exported from the internal adapter package.
+// Config holds settings for the zstd cache transformer. This is re-exported from the
+// internal adapter package.
 type Config = cache_transformer_zstd.Config
 
-// Option configures a zstd cache transformer at construction time. It is
-// re-exported from the internal adapter package so callers can use the
-// functional-options pattern without importing internal packages.
+// Option configures a zstd cache transformer at construction time. It is re-exported from
+// the internal adapter package so callers can use the functional-options pattern without
+// importing internal packages.
 type Option = cache_transformer_zstd.Option
 
-// DefaultMaxDecompressedCacheBytes is the default cap on the decompressed
-// output produced by Reverse. Re-exported from the internal adapter package.
-const DefaultMaxDecompressedCacheBytes = cache_transformer_zstd.DefaultMaxDecompressedCacheBytes
+const (
+	// DefaultMaxDecompressedCacheBytes is the default cap on the decompressed output
+	// produced by Reverse. Re-exported from the internal adapter package.
+	DefaultMaxDecompressedCacheBytes = cache_transformer_zstd.DefaultMaxDecompressedCacheBytes
+)
 
-// ErrDecompressedCacheTooLarge is surfaced by Reverse when a decompressed
-// payload exceeds the configured cap.
-//
-// Use errors.Is to detect this condition. Re-exported from the internal
-// adapter package.
-var ErrDecompressedCacheTooLarge = cache_transformer_zstd.ErrDecompressedCacheTooLarge
+var (
+	// ErrDecompressedCacheTooLarge is surfaced by Reverse when a decompressed payload
+	// exceeds the configured cap.
+	//
+	// Use errors.Is to detect this condition. Re-exported from the internal adapter package.
+	ErrDecompressedCacheTooLarge = cache_transformer_zstd.ErrDecompressedCacheTooLarge
+)
 
-// WithMaxDecompressedCacheBytes sets the maximum number of decompressed bytes
-// produced by Reverse before ErrDecompressedCacheTooLarge is surfaced. A
-// non-positive value disables the cap.
+// WithMaxDecompressedCacheBytes sets the maximum number of decompressed bytes produced by
+// Reverse before ErrDecompressedCacheTooLarge is surfaced. A non-positive value disables
+// the cap.
 //
 // Takes maxBytes (int64) which is the cap in bytes; non-positive disables.
 //
@@ -58,11 +61,10 @@ func WithMaxDecompressedCacheBytes(maxBytes int64) Option {
 //
 // Takes config (Config) which specifies the compression settings including name,
 // priority, and compression level.
-// Takes options (...Option) which override settings on the constructed
-// transformer (e.g. WithMaxDecompressedCacheBytes).
+// Takes options (...Option) which override settings on the constructed transformer (e.g.
+// WithMaxDecompressedCacheBytes).
 //
-// Returns cache.TransformerPort which is the configured transformer ready
-// for use.
+// Returns cache.TransformerPort which is the configured transformer ready for use.
 // Returns error when the transformer cannot be created.
 //
 // Example:

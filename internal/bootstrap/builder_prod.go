@@ -44,12 +44,14 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
-// defaultShutdownDrainDelay is the fallback drain delay used when no
-// explicit shutdown drain delay is configured.
-const defaultShutdownDrainDelay = 3 * time.Second
+const (
+	// defaultShutdownDrainDelay is the fallback drain delay used when no explicit shutdown
+	// drain delay is configured.
+	defaultShutdownDrainDelay = 3 * time.Second
+)
 
-// prodDaemonBuilder holds the state and logic needed to build the daemon for
-// production mode.
+// prodDaemonBuilder holds the state and logic needed to build the daemon for production
+// mode.
 type prodDaemonBuilder struct {
 	// c is the dependency injection container that provides services and settings.
 	c *Container
@@ -79,8 +81,8 @@ type prodDaemonBuilder struct {
 	finalRouter http.Handler
 }
 
-// build assembles the production daemon by calling a series of helper methods.
-// Follows the Extract Method pattern, with each step handled by a focused helper.
+// build assembles the production daemon by calling a series of helper methods. Follows
+// the Extract Method pattern, with each step handled by a focused helper.
 //
 // Returns daemon_domain.DaemonService which is the fully assembled daemon.
 // Returns error when any build step fails.
@@ -113,11 +115,10 @@ func (b *prodDaemonBuilder) build(ctx context.Context) (daemon_domain.DaemonServ
 	return daemon, nil
 }
 
-// resolveServices populates the builder struct with all necessary service
-// dependencies by requesting them from the DI container.
+// resolveServices populates the builder struct with all necessary service dependencies by
+// requesting them from the DI container.
 //
-// Returns error when a required service cannot be fetched from the
-// container.
+// Returns error when a required service cannot be fetched from the container.
 func (b *prodDaemonBuilder) resolveServices() (err error) {
 	b.i18nService, err = b.c.GetI18nService()
 	if err != nil {
@@ -130,16 +131,16 @@ func (b *prodDaemonBuilder) resolveServices() (err error) {
 	return nil
 }
 
-// wireMonitoringInspectors connects the orchestrator and registry inspectors
-// to the monitoring service if it is enabled, then starts the service.
+// wireMonitoringInspectors connects the orchestrator and registry inspectors to the
+// monitoring service if it is enabled, then starts the service.
 func (b *prodDaemonBuilder) wireMonitoringInspectors() {
 	wireMonitoringInspectors(b.c, b.renderRegistry)
 }
 
 // buildTemplater creates the caching template engine for production.
 //
-// Returns error when the manifest provider, store, or AST cache service cannot
-// be created.
+// Returns error when the manifest provider, store, or AST cache service cannot be
+// created.
 func (b *prodDaemonBuilder) buildTemplater(ctx context.Context) error {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -266,11 +267,11 @@ func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain
 	}), nil
 }
 
-// bootstrapASTCacheService creates the AST cache service based on config.
-// The AST cache improves performance by storing the parsed component tree.
+// bootstrapASTCacheService creates the AST cache service based on config. The AST cache
+// improves performance by storing the parsed component tree.
 //
-// Takes ctx (context.Context) which is the parent context for background
-// worker goroutines.
+// Takes ctx (context.Context) which is the parent context for background worker
+// goroutines.
 //
 // Returns ast_domain.ASTCacheService which is the configured cache service.
 // Returns error when the cache service cannot be created.
@@ -288,8 +289,8 @@ func (b *prodDaemonBuilder) bootstrapASTCacheService(ctx context.Context) (ast_d
 	return ast_adapters.NewASTCacheService(ctx, astCacheConfig)
 }
 
-// buildProdDaemon is the entry point for the production strategy.
-// It creates and runs a builder to assemble the daemon.
+// buildProdDaemon is the entry point for the production strategy. It creates and runs a
+// builder to assemble the daemon.
 //
 // Takes c (*Container) which provides the dependency injection container.
 // Takes deps (*Dependencies) which holds the resolved dependencies.

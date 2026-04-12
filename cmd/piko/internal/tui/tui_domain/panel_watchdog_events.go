@@ -32,25 +32,24 @@ import (
 )
 
 const (
-	// WatchdogEventsPanelID is the identifier used by the model to look
-	// up the watchdog Events panel.
+	// WatchdogEventsPanelID is the identifier used by the model to look up the watchdog
+	// Events panel.
 	WatchdogEventsPanelID = "watchdog-events"
 
-	// WatchdogEventsPanelTitle is the display title shown in the tab
-	// bar and panel frame.
+	// WatchdogEventsPanelTitle is the display title shown in the tab bar and panel frame.
 	WatchdogEventsPanelTitle = "Watchdog Events"
 
-	// eventsLocalCap is the maximum number of events buffered in the
-	// panel's local ring. Older events are evicted as new ones arrive.
+	// eventsLocalCap is the maximum number of events buffered in the panel's local ring.
+	// Older events are evicted as new ones arrive.
 	eventsLocalCap = 256
 
-	// eventsBackfillWindow is how far back the dispatcher subscription
-	// should deliver historical events at panel attach time.
+	// eventsBackfillWindow is how far back the dispatcher subscription should deliver
+	// historical events at panel attach time.
 	eventsBackfillWindow = time.Hour
 )
 
-// eventsViewMessage carries a single live event delivered through the
-// dispatcher subscription into the Events panel.
+// eventsViewMessage carries a single live event delivered through the dispatcher
+// subscription into the Events panel.
 type eventsViewMessage struct {
 	// Event is the watchdog event delivered by the dispatcher.
 	Event WatchdogEvent
@@ -59,9 +58,8 @@ type eventsViewMessage struct {
 	Done bool
 }
 
-// WatchdogEventsPanel renders the live event stream with priority
-// colouring, pause/resume, and inline detail expansion of the selected
-// row.
+// WatchdogEventsPanel renders the live event stream with priority colouring,
+// pause/resume, and inline detail expansion of the selected row.
 type WatchdogEventsPanel struct {
 	// clock yields the current time and supports test injection.
 	clock clock.Clock
@@ -109,10 +107,9 @@ var (
 
 // NewWatchdogEventsPanel constructs the Events panel.
 //
-// Takes dispatcher (*EventDispatcher) which streams live events. Pass
-// nil to render a placeholder; the panel functions but only shows a
-// "no event source" hint.
-// Takes clk (clock.Clock) which yields the current time.
+// Takes dispatcher (*EventDispatcher) which streams live events. Pass nil to render a
+// placeholder; the panel functions but only shows a "no event source" hint. Takes clk
+// (clock.Clock) which yields the current time.
 //
 // Returns *WatchdogEventsPanel ready for AddPanel.
 func NewWatchdogEventsPanel(dispatcher *EventDispatcher, clk clock.Clock) *WatchdogEventsPanel {
@@ -143,16 +140,15 @@ func (p *WatchdogEventsPanel) SetTheme(theme *Theme) {
 	p.theme = theme
 }
 
-// Init opens the dispatcher subscription if one is configured and
-// returns the command that awaits the first event.
+// Init opens the dispatcher subscription if one is configured and returns the command
+// that awaits the first event.
 //
 // Returns tea.Cmd which is the wait-for-first-event command, or nil.
 func (p *WatchdogEventsPanel) Init() tea.Cmd {
 	return p.subscribeCmd()
 }
 
-// Update handles event delivery, pause/resume, navigation, and filter
-// cycling.
+// Update handles event delivery, pause/resume, navigation, and filter cycling.
 //
 // Takes message (tea.Msg) which is the incoming update message.
 //
@@ -197,8 +193,7 @@ func (p *WatchdogEventsPanel) View(width, height int) string {
 
 // composeBody arranges the header, event rows, and footer of the panel.
 //
-// Takes width (int) and height (int) which are the inner content
-// dimensions.
+// Takes width (int) and height (int) which are the inner content dimensions.
 //
 // Returns string which is the composed body.
 func (p *WatchdogEventsPanel) composeBody(width, height int) string {
@@ -221,8 +216,7 @@ func (p *WatchdogEventsPanel) composeBody(width, height int) string {
 	return strings.Join(rows, "\n")
 }
 
-// renderHeaderRow shows the streaming state, total received, and
-// dropped counters.
+// renderHeaderRow shows the streaming state, total received, and dropped counters.
 //
 // Takes width (int) which is the available width.
 //
@@ -332,8 +326,8 @@ func (p *WatchdogEventsPanel) renderEventRow(_ time.Time, ev WatchdogEvent, widt
 	return PadRightANSI(row, width)
 }
 
-// renderEventDetail returns the indented key-value rows for the
-// expanded event detail view.
+// renderEventDetail returns the indented key-value rows for the expanded event detail
+// view.
 //
 // Takes ev (WatchdogEvent) and width (int).
 //
@@ -359,8 +353,8 @@ func (p *WatchdogEventsPanel) renderEventDetail(ev WatchdogEvent, width int) []s
 	return rows
 }
 
-// renderFooterRow shows the active priority filter and any keymap
-// hint relevant to the current state.
+// renderFooterRow shows the active priority filter and any keymap hint relevant to the
+// current state.
 //
 // Takes width (int).
 //
@@ -376,8 +370,7 @@ func (p *WatchdogEventsPanel) renderFooterRow(width int) string {
 	return PadRightANSI(body, width)
 }
 
-// streamStateLabel returns a human-readable label for the dispatcher's
-// connection state.
+// streamStateLabel returns a human-readable label for the dispatcher's connection state.
 //
 // Returns string which is the human-readable state label.
 func (p *WatchdogEventsPanel) streamStateLabel() string {
@@ -387,8 +380,8 @@ func (p *WatchdogEventsPanel) streamStateLabel() string {
 	return p.dispatcher.State()
 }
 
-// streamStateStyle styles the live indicator according to the
-// dispatcher's connection state and the panel's pause flag.
+// streamStateStyle styles the live indicator according to the dispatcher's connection
+// state and the panel's pause flag.
 //
 // Returns lipgloss.Style which is the styled live indicator.
 func (p *WatchdogEventsPanel) streamStateStyle() lipgloss.Style {
@@ -415,10 +408,9 @@ func (p *WatchdogEventsPanel) priorityFilterLabel() string {
 	}
 }
 
-// recordEvent appends ev to the panel's local ring, evicting the
-// oldest entry when at capacity. When the panel is paused, the event
-// is still recorded but the cursor does not auto-advance to the new
-// row.
+// recordEvent appends ev to the panel's local ring, evicting the oldest entry when at
+// capacity. When the panel is paused, the event is still recorded but the cursor does not
+// auto-advance to the new row.
 //
 // Takes ev (WatchdogEvent) which is the event to record.
 //
@@ -446,8 +438,7 @@ func (p *WatchdogEventsPanel) receivedCount() uint64 {
 	return p.totalReceived
 }
 
-// visibleEvents returns the events filtered by the active priority
-// filter, oldest-first.
+// visibleEvents returns the events filtered by the active priority filter, oldest-first.
 //
 // Returns []WatchdogEvent which is the filtered event list.
 //
@@ -536,8 +527,8 @@ func (p *WatchdogEventsPanel) handleKey(message tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
-// cyclePriorityFilter advances the priority filter through (all,
-// high+, critical only, all).
+// cyclePriorityFilter advances the priority filter through (all, high+, critical only,
+// all).
 func (p *WatchdogEventsPanel) cyclePriorityFilter() {
 	switch p.minimumPriority {
 	case 0:

@@ -31,10 +31,12 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-var _ tui_domain.HealthProvider = (*HealthProvider)(nil)
+var (
+	_ tui_domain.HealthProvider = (*HealthProvider)(nil)
+)
 
-// HealthProvider provides health status information using gRPC.
-// It implements tui_domain.HealthProvider.
+// HealthProvider provides health status information using gRPC. It implements
+// tui_domain.HealthProvider.
 type HealthProvider struct {
 	// conn holds the gRPC connection for health checks.
 	conn *Connection
@@ -158,8 +160,8 @@ func (p *HealthProvider) Readiness(_ context.Context) (*tui_domain.HealthStatus,
 	return p.readiness, nil
 }
 
-// parseProtoHealthStatus converts a proto HealthStatus to a domain
-// HealthStatus, recursively converting any dependencies.
+// parseProtoHealthStatus converts a proto HealthStatus to a domain HealthStatus,
+// recursively converting any dependencies.
 //
 // Takes pbStatus (*pb.HealthStatus) which is the protobuf status to convert.
 //

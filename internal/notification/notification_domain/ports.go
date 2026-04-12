@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/retry"
 )
 
-// Service is the driving port: the hexagon's public API for sending
-// notifications and managing providers. It implements io.Closer.
+// Service is the driving port: the hexagon's public API for sending notifications and
+// managing providers. It implements io.Closer.
 type Service interface {
 	// NewNotification creates a new notification builder for composing and sending
 	// notifications.
@@ -39,38 +39,34 @@ type Service interface {
 
 	// SendBulk sends multiple notifications in a single batch operation.
 	//
-	// Takes notifications ([]*notification_dto.SendParams) which contains the
-	// notification details to send.
+	// Takes notifications ([]*notification_dto.SendParams) which contains the notification
+	// details to send.
 	//
 	// Returns error when any notification fails to send.
 	SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error
 
-	// SendBulkWithProvider sends multiple notifications using the specified
-	// provider.
+	// SendBulkWithProvider sends multiple notifications using the specified provider.
 	//
 	// Takes providerName (string) which identifies the notification provider.
-	// Takes notifications ([]*notification_dto.SendParams) which contains the
-	// notifications to send.
+	// Takes notifications ([]*notification_dto.SendParams) which contains the notifications
+	// to send.
 	//
 	// Returns error when sending fails or the provider is not found.
 	SendBulkWithProvider(ctx context.Context, providerName string, notifications []*notification_dto.SendParams) error
 
-	// SendToProviders sends a single notification to multiple providers at
-	// once (multi-cast).
+	// SendToProviders sends a single notification to multiple providers at once
+	// (multi-cast).
 	//
-	// Takes params (*notification_dto.SendParams) which contains the
-	// notification details.
+	// Takes params (*notification_dto.SendParams) which contains the notification details.
 	// Takes providers ([]string) which specifies the provider names to send to.
 	//
-	// Returns error when sending fails. Partial failures are reported
-	// via MultiError.
+	// Returns error when sending fails. Partial failures are reported via MultiError.
 	SendToProviders(ctx context.Context, params *notification_dto.SendParams, providers []string) error
 
 	// RegisterProvider adds a notification provider to the registry.
 	//
 	// Takes name (string) which identifies the provider.
-	// Takes provider (NotificationProviderPort) which handles notification
-	// delivery.
+	// Takes provider (NotificationProviderPort) which handles notification delivery.
 	//
 	// Returns error when registration fails.
 	RegisterProvider(name string, provider NotificationProviderPort) error
@@ -94,11 +90,9 @@ type Service interface {
 	// Returns bool which is true if the provider exists, false otherwise.
 	HasProvider(name string) bool
 
-	// RegisterDispatcher sets the notification dispatcher for sending
-	// notifications.
+	// RegisterDispatcher sets the notification dispatcher for sending notifications.
 	//
-	// Takes dispatcher (NotificationDispatcherPort) which handles notification
-	// delivery.
+	// Takes dispatcher (NotificationDispatcherPort) which handles notification delivery.
 	//
 	// Returns error when the dispatcher cannot be registered.
 	RegisterDispatcher(dispatcher NotificationDispatcherPort) error
@@ -114,24 +108,22 @@ type Service interface {
 	Close(ctx context.Context) error
 }
 
-// NotificationProviderPort defines the interface that notification provider
-// adapters must implement. It is a driven port in the hexagonal architecture
-// pattern, allowing the domain to send notifications through different
-// providers such as Discord, Slack, Teams, and others.
+// NotificationProviderPort defines the interface that notification provider adapters must
+// implement. It is a driven port in the hexagonal architecture pattern, allowing the
+// domain to send notifications through different providers such as Discord, Slack, Teams,
+// and others.
 type NotificationProviderPort interface {
 	// Send delivers a notification using the provided parameters.
 	//
-	// Takes params (*notification_dto.SendParams) which specifies the notification
-	// details.
+	// Takes params (*notification_dto.SendParams) which specifies the notification details.
 	//
 	// Returns error when sending fails.
 	Send(ctx context.Context, params *notification_dto.SendParams) error
 
 	// SendBulk sends multiple notifications in a single operation.
 	//
-	// Takes notifications ([]*notification_dto.SendParams) which contains the
-	// notification parameters
-	// for each message to send.
+	// Takes notifications ([]*notification_dto.SendParams) which contains the notification
+	// parameters for each message to send.
 	//
 	// Returns error when the bulk send operation fails.
 	SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error
@@ -143,8 +135,7 @@ type NotificationProviderPort interface {
 
 	// GetCapabilities returns the capabilities of this provider.
 	//
-	// Returns ProviderCapabilities which describes what features this provider
-	// supports.
+	// Returns ProviderCapabilities which describes what features this provider supports.
 	GetCapabilities() ProviderCapabilities
 
 	// Close releases any resources held by the provider.
@@ -153,21 +144,19 @@ type NotificationProviderPort interface {
 	Close(ctx context.Context) error
 }
 
-// ProviderCapabilities describes the features and limits of a notification
-// provider.
+// ProviderCapabilities describes the features and limits of a notification provider.
 type ProviderCapabilities struct {
 	// MaxMessageLength is the maximum message length allowed; 0 means unlimited.
 	MaxMessageLength int
 
-	// SupportsRichFormatting indicates whether the provider supports markdown,
-	// HTML, or rich blocks/embeds.
+	// SupportsRichFormatting indicates whether the provider supports markdown, HTML, or rich
+	// blocks/embeds.
 	SupportsRichFormatting bool
 
 	// SupportsImages indicates whether the provider can display inline images.
 	SupportsImages bool
 
-	// SupportsAttachments indicates whether the provider can handle file
-	// attachments.
+	// SupportsAttachments indicates whether the provider can handle file attachments.
 	SupportsAttachments bool
 
 	// SupportsBulkSending indicates whether the provider has a bulk send API.
@@ -177,14 +166,13 @@ type ProviderCapabilities struct {
 	RequiresAuthentication bool
 }
 
-// NotificationDispatcherPort defines the interface for notification
-// dispatching services. It provides batched sending, retry handling,
-// dead letter queue management, and lifecycle control.
+// NotificationDispatcherPort defines the interface for notification dispatching services.
+// It provides batched sending, retry handling, dead letter queue management, and
+// lifecycle control.
 type NotificationDispatcherPort interface {
 	// Queue adds a notification to the batch queue for later sending.
 	//
-	// Takes params (*notification_dto.SendParams) which specifies the notification
-	// details.
+	// Takes params (*notification_dto.SendParams) which specifies the notification details.
 	//
 	// Returns error when the notification cannot be queued.
 	Queue(ctx context.Context, params *notification_dto.SendParams) error
@@ -273,8 +261,7 @@ type DispatcherStats struct {
 	// TotalSuccessful is the total number of notifications sent without error.
 	TotalSuccessful int64 `json:"total_successful"`
 
-	// TotalFailed is the number of notifications that failed and will not be
-	// retried.
+	// TotalFailed is the number of notifications that failed and will not be retried.
 	TotalFailed int64 `json:"total_failed"`
 
 	// TotalRetries is the total number of retry attempts made.

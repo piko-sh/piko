@@ -16,19 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package lifecycle provides utilities for managing application lifecycle
-// events, including graceful shutdown.
+// Package lifecycle provides utilities for managing application lifecycle events,
+// including graceful shutdown.
 //
-// Components can register cleanup functions that are automatically called
-// when the application receives a termination signal (SIGINT or SIGTERM).
-// Cleanup functions run in reverse registration order (LIFO), mirroring
-// Go's defer semantics, so that resources registered early (such as the
-// logger) are cleaned up last.
+// Components can register cleanup functions that are automatically called when the
+// application receives a termination signal (SIGINT or SIGTERM). Cleanup functions run in
+// reverse registration order (LIFO), mirroring Go's defer semantics, so that resources
+// registered early (such as the logger) are cleaned up last.
 //
 // # Usage
 //
-// Register a cleanup function by providing a name (used for logging and
-// observability) and a function that accepts a context:
+// Register a cleanup function by providing a name (used for logging and observability)
+// and a function that accepts a context:
 //
 //	lifecycle.Register("database", func(ctx context.Context) error {
 //	    return db.Close()
@@ -38,13 +37,11 @@
 //	    return cache.Flush(ctx)
 //	})
 //
-// Each cleanup function receives a context with a per-function timeout
-// budget so that the overall shutdown completes within the configured
-// deadline.
+// Each cleanup function receives a context with a per-function timeout budget so that the
+// overall shutdown completes within the configured deadline.
 //
 // # Thread safety
 //
-// [Register] is safe for concurrent use by multiple goroutines.
-// Registrations made after cleanup has begun are ignored with a
-// warning log.
+// [Register] is safe for concurrent use by multiple goroutines. Registrations made after
+// cleanup has begun are ignored with a warning log.
 package lifecycle

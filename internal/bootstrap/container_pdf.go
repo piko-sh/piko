@@ -18,22 +18,23 @@
 
 package bootstrap
 
-import "piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
+import (
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
+)
 
-// SetPdfWriterService sets the PDF writer service.
-// Called by the daemon builder to set the service built using the
-// selected manifest runner and layouter.
+// SetPdfWriterService sets the PDF writer service. Called by the daemon builder to set
+// the service built using the selected manifest runner and layouter.
 //
 // Takes s (PdfWriterService) which provides PDF rendering operations.
 func (c *Container) SetPdfWriterService(s pdfwriter_domain.PdfWriterService) {
 	c.pdfWriterService = s
 }
 
-// GetPdfWriterService returns the PdfWriterService previously registered
-// by the daemon builder.
+// GetPdfWriterService returns the PdfWriterService previously registered by the daemon
+// builder.
 //
-// Returns pdfwriter_domain.PdfWriterService which provides PDF rendering
-// operations, or nil if not yet initialised.
+// Returns pdfwriter_domain.PdfWriterService which provides PDF rendering operations, or
+// nil if not yet initialised.
 func (c *Container) GetPdfWriterService() pdfwriter_domain.PdfWriterService {
 	return c.pdfWriterService
 }

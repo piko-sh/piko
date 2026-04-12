@@ -102,7 +102,9 @@ func (t *testRegistryService) defaultGetVariantData(_ context.Context, variant *
 	return nil, registry_domain.ErrVariantNotFound
 }
 
-var _ registry_domain.RegistryService = (*testRegistryService)(nil)
+var (
+	_ registry_domain.RegistryService = (*testRegistryService)(nil)
+)
 
 func newMockCSRFService() *security_domain.MockCSRFTokenService {
 	return &security_domain.MockCSRFTokenService{

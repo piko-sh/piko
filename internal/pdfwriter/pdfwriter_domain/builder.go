@@ -37,25 +37,25 @@ const (
 	// builderDefaultFontSize is the root font size in points when none is specified.
 	builderDefaultFontSize = 12.0
 
-	// fontWeightStepSize is the interval between font weight instances
-	// when expanding a variable font.
+	// fontWeightStepSize is the interval between font weight instances when expanding a
+	// variable font.
 	fontWeightStepSize = 100
 
 	// segmentOpCubeTo is the cubic Bezier segment operation type.
 	segmentOpCubeTo = 3
 
-	// closingPointTolerance is the maximum coordinate difference for
-	// treating a closing point as a duplicate of the starting point.
+	// closingPointTolerance is the maximum coordinate difference for treating a closing
+	// point as a duplicate of the starting point.
 	closingPointTolerance = 0.5
 
-	// initialContourCapacity is the initial allocation size for contour
-	// point slices (enough for most simple glyph segments).
+	// initialContourCapacity is the initial allocation size for contour point slices (enough
+	// for most simple glyph segments).
 	initialContourCapacity = 6
 )
 
-// RenderBuilder constructs a PDF render operation using a fluent interface.
-// Create one via PdfWriterService.NewRender(), configure it with the fluent
-// methods, then call Do(ctx) to execute the render pipeline.
+// RenderBuilder constructs a PDF render operation using a fluent interface. Create one
+// via PdfWriterService.NewRender(), configure it with the fluent methods, then call
+// Do(ctx) to execute the render pipeline.
 type RenderBuilder struct {
 	// props holds the template data to pass during rendering.
 	props any
@@ -114,8 +114,7 @@ type RenderBuilder struct {
 
 // Template sets the path to the PDF template to render.
 //
-// Takes templatePath (string) which is the manifest key or path to the
-// PDF template.
+// Takes templatePath (string) which is the manifest key or path to the PDF template.
 //
 // Returns *RenderBuilder for method chaining.
 func (b *RenderBuilder) Template(templatePath string) *RenderBuilder {
@@ -123,8 +122,8 @@ func (b *RenderBuilder) Template(templatePath string) *RenderBuilder {
 	return b
 }
 
-// Request sets the HTTP request context for template rendering. In daemon
-// mode this provides the incoming request; in standalone mode it may be nil.
+// Request sets the HTTP request context for template rendering. In daemon mode this
+// provides the incoming request; in standalone mode it may be nil.
 //
 // Takes r (*http.Request) which provides the HTTP context.
 //
@@ -144,8 +143,8 @@ func (b *RenderBuilder) Props(props any) *RenderBuilder {
 	return b
 }
 
-// Metadata sets PDF document metadata fields (title, author, subject,
-// keywords, creator) that appear in the PDF info dictionary.
+// Metadata sets PDF document metadata fields (title, author, subject, keywords, creator)
+// that appear in the PDF info dictionary.
 //
 // Takes m (PdfMetadata) which holds the metadata fields.
 //
@@ -155,8 +154,8 @@ func (b *RenderBuilder) Metadata(m PdfMetadata) *RenderBuilder {
 	return b
 }
 
-// ViewerPreferences configures how PDF viewers display the document
-// (page layout, toolbar visibility, initial panel, etc.).
+// ViewerPreferences configures how PDF viewers display the document (page layout, toolbar
+// visibility, initial panel, etc.).
 //
 // Takes vp (ViewerPreferences) which holds the viewer preference fields.
 //
@@ -168,9 +167,8 @@ func (b *RenderBuilder) ViewerPreferences(vp ViewerPreferences) *RenderBuilder {
 
 // PageLabels configures page label ranges for the document.
 //
-// Each range applies from its PageIndex until the next range starts. For
-// example, to use lowercase roman numerals for the first 4 pages then
-// decimal from page 5:
+// Each range applies from its PageIndex until the next range starts. For example, to use
+// lowercase roman numerals for the first 4 pages then decimal from page 5:
 //
 //	builder.PageLabels(
 //	    PageLabelRange{PageIndex: 0, Style: LabelRomanLower, Start: 1},
@@ -185,8 +183,8 @@ func (b *RenderBuilder) PageLabels(ranges ...PageLabelRange) *RenderBuilder {
 	return b
 }
 
-// Watermark sets a diagonal text watermark rendered behind content on
-// every page using default styling (60pt, light grey, 45 degrees).
+// Watermark sets a diagonal text watermark rendered behind content on every page using
+// default styling (60pt, light grey, 45 degrees).
 //
 // Takes text (string) which is the watermark text.
 //
@@ -196,8 +194,8 @@ func (b *RenderBuilder) Watermark(text string) *RenderBuilder {
 	return b
 }
 
-// WatermarkConfig sets a watermark with full control over styling
-// (font size, colour, angle, opacity).
+// WatermarkConfig sets a watermark with full control over styling (font size, colour,
+// angle, opacity).
 //
 // Takes wm (WatermarkConfig) which holds the watermark settings.
 //
@@ -207,10 +205,9 @@ func (b *RenderBuilder) WatermarkConfig(wm WatermarkConfig) *RenderBuilder {
 	return b
 }
 
-// TaggedPDF enables PDF structure tagging for accessibility (PDF/UA).
-// When enabled, the painter wraps painted elements in marked content
-// sequences and builds a StructTreeRoot with semantic structure tags
-// derived from HTML elements.
+// TaggedPDF enables PDF structure tagging for accessibility (PDF/UA). When enabled, the
+// painter wraps painted elements in marked content sequences and builds a StructTreeRoot
+// with semantic structure tags derived from HTML elements.
 //
 // Returns *RenderBuilder for method chaining.
 func (b *RenderBuilder) TaggedPDF() *RenderBuilder {
@@ -220,8 +217,8 @@ func (b *RenderBuilder) TaggedPDF() *RenderBuilder {
 
 // PdfA enables PDF/A conformance output at the specified level.
 //
-// This adds an sRGB ICC output intent, XMP metadata, and PDF/A identification.
-// For PdfA2A, tagged PDF is automatically enabled.
+// This adds an sRGB ICC output intent, XMP metadata, and PDF/A identification. For
+// PdfA2A, tagged PDF is automatically enabled.
 //
 // Takes level (PdfALevel) which specifies the conformance level.
 //
@@ -234,9 +231,9 @@ func (b *RenderBuilder) PdfA(level PdfALevel) *RenderBuilder {
 	return b
 }
 
-// Stylesheet adds an additional CSS stylesheet to apply during layout,
-// after the user-agent stylesheet and before inline styles. Can be
-// called multiple times; stylesheets are applied in order.
+// Stylesheet adds an additional CSS stylesheet to apply during layout, after the
+// user-agent stylesheet and before inline styles. Can be called multiple times;
+// stylesheets are applied in order.
 //
 // Takes css (string) which is the raw CSS text to apply.
 //
@@ -246,14 +243,12 @@ func (b *RenderBuilder) Stylesheet(css string) *RenderBuilder {
 	return b
 }
 
-// Transformations configures post-processing transformations to apply
-// to the rendered PDF bytes. Transformations execute in priority order
-// after the paint step completes.
+// Transformations configures post-processing transformations to apply to the rendered PDF
+// bytes. Transformations execute in priority order after the paint step completes.
 //
-// Takes registry (*PdfTransformerRegistry) which holds the available
-// transformers.
-// Takes config (pdfwriter_dto.TransformConfig) which specifies which
-// transformers to enable and their options.
+// Takes registry (*PdfTransformerRegistry) which holds the available transformers.
+// Takes config (pdfwriter_dto.TransformConfig) which specifies which transformers to
+// enable and their options.
 //
 // Returns *RenderBuilder for method chaining.
 func (b *RenderBuilder) Transformations(registry *PdfTransformerRegistry, config pdfwriter_dto.TransformConfig) *RenderBuilder {
@@ -262,9 +257,8 @@ func (b *RenderBuilder) Transformations(registry *PdfTransformerRegistry, config
 	return b
 }
 
-// SVGWriter enables native SVG-to-PDF vector rendering with custom
-// writer and data ports. When set, SVG images are rendered as crisp
-// vector paths instead of rasterised images.
+// SVGWriter enables native SVG-to-PDF vector rendering with custom writer and data ports.
+// When set, SVG images are rendered as crisp vector paths instead of rasterised images.
 //
 // Takes writer (SVGWriterPort) which renders SVG to PDF drawing commands.
 // Takes data (SVGDataPort) which provides raw SVG markup for sources.
@@ -296,8 +290,8 @@ func (b *RenderBuilder) FontSize(size float64) *RenderBuilder {
 	return b
 }
 
-// LineHeight sets the root line-height multiplier. Defaults to 0 (use
-// the layouter's default) if not set.
+// LineHeight sets the root line-height multiplier. Defaults to 0 (use the layouter's
+// default) if not set.
 //
 // Takes height (float64) which is the unitless line-height multiplier.
 //
@@ -307,15 +301,14 @@ func (b *RenderBuilder) LineHeight(height float64) *RenderBuilder {
 	return b
 }
 
-// Do executes the full PDF render pipeline: runs the template, resolves
-// CSS, builds the box tree, lays out, substitutes page numbers, instances
-// variable fonts, paints to PDF, and applies any post-processing
-// transformations.
+// Do executes the full PDF render pipeline: runs the template, resolves CSS, builds the
+// box tree, lays out, substitutes page numbers, instances variable fonts, paints to PDF,
+// and applies any post-processing transformations.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
 //
-// Returns *pdfwriter_dto.PdfResult which contains the rendered PDF bytes,
-// page count, and optional layout dump.
+// Returns *pdfwriter_dto.PdfResult which contains the rendered PDF bytes, page count, and
+// optional layout dump.
 // Returns error when any stage of the pipeline fails.
 func (b *RenderBuilder) Do(ctx context.Context) (*pdfwriter_dto.PdfResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -374,11 +367,10 @@ func (b *RenderBuilder) Do(ctx context.Context) (*pdfwriter_dto.PdfResult, error
 	}, nil
 }
 
-// substitutePageNumbers replaces page number placeholders in the layout
-// tree and returns the total page count.
+// substitutePageNumbers replaces page number placeholders in the layout tree and returns
+// the total page count.
 //
-// Takes layoutResult (*layouter_dto.LayoutResult) which holds the layout
-// tree to update.
+// Takes layoutResult (*layouter_dto.LayoutResult) which holds the layout tree to update.
 //
 // Returns int which is the total page count.
 func (b *RenderBuilder) substitutePageNumbers(layoutResult *layouter_dto.LayoutResult) int {
@@ -392,8 +384,8 @@ func (b *RenderBuilder) substitutePageNumbers(layoutResult *layouter_dto.LayoutR
 	return pageCount
 }
 
-// buildLayoutConfig constructs the layout configuration from the builder
-// settings, applying defaults for page size and font size.
+// buildLayoutConfig constructs the layout configuration from the builder settings,
+// applying defaults for page size and font size.
 //
 // Returns layouter_dto.LayoutConfig which holds the resolved layout parameters.
 func (b *RenderBuilder) buildLayoutConfig() layouter_dto.LayoutConfig {
@@ -415,12 +407,11 @@ func (b *RenderBuilder) buildLayoutConfig() layouter_dto.LayoutConfig {
 	}
 }
 
-// paintPDF instances variable fonts, creates and configures the painter,
-// marks variable font instances, and paints the layout to PDF bytes.
+// paintPDF instances variable fonts, creates and configures the painter, marks variable
+// font instances, and paints the layout to PDF bytes.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes pageConfig (layouter_dto.PageConfig) which specifies the page
-// dimensions.
+// Takes pageConfig (layouter_dto.PageConfig) which specifies the page dimensions.
 //
 // Returns []byte which is the rendered PDF content.
 // Returns error when font instancing, context cancellation, or painting fails.
@@ -498,16 +489,15 @@ func (b *RenderBuilder) applyTransforms(ctx context.Context, pdfBytes []byte) ([
 	return pdfBytes, nil
 }
 
-// instanceVariableFonts converts variable fonts into per-weight static
-// instances suitable for PDF CIDFontType2 embedding.
+// instanceVariableFonts converts variable fonts into per-weight static instances suitable
+// for PDF CIDFontType2 embedding.
 //
-// Takes fontEntries ([]layouter_dto.FontEntry) which holds the font
-// entries to process.
-// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides
-// font face access for glyph instancing.
+// Takes fontEntries ([]layouter_dto.FontEntry) which holds the font entries to process.
+// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides font face access for
+// glyph instancing.
 //
-// Returns []layouter_dto.FontEntry which holds the expanded font entries
-// with variable fonts replaced by static per-weight instances.
+// Returns []layouter_dto.FontEntry which holds the expanded font entries with variable
+// fonts replaced by static per-weight instances.
 // Returns error when font instancing fails.
 func instanceVariableFonts(fontEntries []layouter_dto.FontEntry, fontMetrics layouter_domain.FontMetricsPort) ([]layouter_dto.FontEntry, error) {
 	painterFontEntries := make([]layouter_dto.FontEntry, 0, len(fontEntries))
@@ -544,13 +534,13 @@ func instanceVariableFonts(fontEntries []layouter_dto.FontEntry, fontMetrics lay
 
 // getFontFace retrieves the font face from font metrics.
 //
-// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides
-// font face access if it implements the fontFaceProvider interface.
-// Takes desc (layouter_domain.FontDescriptor) which identifies the
-// desired font family, weight, and style.
+// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides font face access if
+// it implements the fontFaceProvider interface.
+// Takes desc (layouter_domain.FontDescriptor) which identifies the desired font family,
+// weight, and style.
 //
-// Returns *font.Face which is the resolved font face, or nil if the
-// metrics port does not support face retrieval.
+// Returns *font.Face which is the resolved font face, or nil if the metrics port does not
+// support face retrieval.
 func getFontFace(fontMetrics layouter_domain.FontMetricsPort, desc layouter_domain.FontDescriptor) *font.Face {
 	type fontFaceProvider interface {
 		GetFontFace(desc layouter_domain.FontDescriptor) *font.Face
@@ -561,17 +551,16 @@ func getFontFace(fontMetrics layouter_domain.FontMetricsPort, desc layouter_doma
 	return nil
 }
 
-// instanceGlyphFromFace extracts the variation-instanced outline and advance
-// width for a glyph from a go-text Face.
+// instanceGlyphFromFace extracts the variation-instanced outline and advance width for a
+// glyph from a go-text Face.
 //
-// The Face must have its variations already set to the desired instance
-// (e.g. wght=700).
+// The Face must have its variations already set to the desired instance (e.g. wght=700).
 //
 // Takes face (*font.Face) which is the variation-instanced font face.
 // Takes gid (uint16) which is the glyph ID to extract.
 //
-// Returns InstancedGlyphData which holds the instanced outline contours
-// and advance width.
+// Returns InstancedGlyphData which holds the instanced outline contours and advance
+// width.
 func instanceGlyphFromFace(face *font.Face, gid uint16) InstancedGlyphData {
 	advance := uint16(math.Round(float64(face.HorizontalAdvance(font.GID(gid)))))
 
@@ -588,12 +577,11 @@ func instanceGlyphFromFace(face *font.Face, gid uint16) InstancedGlyphData {
 	}
 }
 
-// segmentsToContours converts go-text outline segments into TrueType-style
-// contour point lists.
+// segmentsToContours converts go-text outline segments into TrueType-style contour point
+// lists.
 //
-// Each contour is a closed sequence of on-curve and off-curve points. Closing
-// points that duplicate the first point are removed since TrueType contours
-// close implicitly.
+// Each contour is a closed sequence of on-curve and off-curve points. Closing points that
+// duplicate the first point are removed since TrueType contours close implicitly.
 //
 // Takes segments ([]font.Segment) which holds the go-text outline segments
 // (MoveTo/LineTo/QuadTo/CubeTo).
@@ -604,7 +592,7 @@ func segmentsToContours(segments []font.Segment) [][]GlyphOutlinePoint {
 	var current []GlyphOutlinePoint
 
 	for _, seg := range segments {
-		switch seg.Op {
+		switch seg.Op { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case 0:
 			if len(current) > 0 {
 				current = removeClosingPoint(current)
@@ -648,13 +636,13 @@ func segmentsToContours(segments []font.Segment) [][]GlyphOutlinePoint {
 	return contours
 }
 
-// removeClosingPoint strips the last on-curve point if it duplicates the
-// first on-curve point, since TrueType contours close implicitly.
+// removeClosingPoint strips the last on-curve point if it duplicates the first on-curve
+// point, since TrueType contours close implicitly.
 //
 // Takes contour ([]GlyphOutlinePoint) which is the contour to trim.
 //
-// Returns []GlyphOutlinePoint which is the contour with the duplicate
-// closing point removed if applicable.
+// Returns []GlyphOutlinePoint which is the contour with the duplicate closing point
+// removed if applicable.
 func removeClosingPoint(contour []GlyphOutlinePoint) []GlyphOutlinePoint {
 	if len(contour) < 2 {
 		return contour

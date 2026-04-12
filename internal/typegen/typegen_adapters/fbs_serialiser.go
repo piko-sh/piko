@@ -19,6 +19,7 @@
 package typegen_adapters
 
 import (
+	"slices"
 	"sync"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -26,20 +27,25 @@ import (
 	fbs "piko.sh/piko/internal/typegen/typegen_schema/typegen_schema"
 )
 
-// initialBuilderCapacity is the initial buffer capacity for FlatBuffer builders.
-const initialBuilderCapacity = 4096
+const (
 
-// builderPool provides reusable FlatBuffer builders to reduce allocations.
-var builderPool = sync.Pool{
-	New: func() any {
-		return flatbuffers.NewBuilder(initialBuilderCapacity)
-	},
-}
+	// initialBuilderCapacity is the initial buffer capacity for FlatBuffer builders.
+	initialBuilderCapacity = 4096
+)
+
+var (
+	// builderPool provides reusable FlatBuffer builders to reduce allocations.
+	builderPool = sync.Pool{
+		New: func() any {
+			return flatbuffers.NewBuilder(initialBuilderCapacity)
+		},
+	}
+)
 
 // GetBuilder retrieves a FlatBuffer builder from the pool.
 //
-// Returns *flatbuffers.Builder which is either a reused builder from the pool
-// or a newly created one if the pool is empty.
+// Returns *flatbuffers.Builder which is either a reused builder from the pool or a newly
+// created one if the pool is empty.
 func GetBuilder() *flatbuffers.Builder {
 	b, ok := builderPool.Get().(*flatbuffers.Builder)
 	if !ok {
@@ -56,11 +62,11 @@ func PutBuilder(b *flatbuffers.Builder) {
 	builderPool.Put(b)
 }
 
-// BuildActionManifest converts an ActionManifest DTO to a FlatBuffer byte slice.
-// The returned bytes are a copy and safe to store.
+// BuildActionManifest converts an ActionManifest DTO to a FlatBuffer byte slice. The
+// returned bytes are a copy and safe to store.
 //
-// Takes manifest (*typegen_dto.ActionManifest) which specifies the action
-// manifest to convert.
+// Takes manifest (*typegen_dto.ActionManifest) which specifies the action manifest to
+// convert.
 //
 // Returns []byte which contains the FlatBuffer encoded manifest data.
 func BuildActionManifest(manifest *typegen_dto.ActionManifest) []byte {
@@ -76,13 +82,12 @@ func BuildActionManifest(manifest *typegen_dto.ActionManifest) []byte {
 	return result
 }
 
-// BuildActionManifestInto converts an ActionManifest DTO to a FlatBuffer using
-// the provided builder.
+// BuildActionManifestInto converts an ActionManifest DTO to a FlatBuffer using the
+// provided builder.
 //
-// Takes builder (*flatbuffers.Builder) which is used to construct the
-// FlatBuffer.
-// Takes manifest (*typegen_dto.ActionManifest) which contains the action data
-// to serialise.
+// Takes builder (*flatbuffers.Builder) which is used to construct the FlatBuffer.
+// Takes manifest (*typegen_dto.ActionManifest) which contains the action data to
+// serialise.
 //
 // Returns []byte which contains the finished bytes directly (not a copy).
 func BuildActionManifestInto(builder *flatbuffers.Builder, manifest *typegen_dto.ActionManifest) []byte {
@@ -94,8 +99,8 @@ func BuildActionManifestInto(builder *flatbuffers.Builder, manifest *typegen_dto
 // buildActionManifestFB serialises an action manifest into FlatBuffers format.
 //
 // Takes builder (*flatbuffers.Builder) which is the FlatBuffers builder to use.
-// Takes manifest (*typegen_dto.ActionManifest) which contains the actions and
-// types to serialise.
+// Takes manifest (*typegen_dto.ActionManifest) which contains the actions and types to
+// serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised manifest.
 func buildActionManifestFB(builder *flatbuffers.Builder, manifest *typegen_dto.ActionManifest) flatbuffers.UOffsetT {
@@ -105,8 +110,8 @@ func buildActionManifestFB(builder *flatbuffers.Builder, manifest *typegen_dto.A
 	}
 
 	fbs.ActionManifestFBStartActionsVector(builder, len(actionOffsets))
-	for i := len(actionOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(actionOffsets[i])
+	for _, actionOffset := range slices.Backward(actionOffsets) {
+		builder.PrependUOffsetT(actionOffset)
 	}
 	actionsVectorOffset := builder.EndVector(len(actionOffsets))
 
@@ -116,8 +121,8 @@ func buildActionManifestFB(builder *flatbuffers.Builder, manifest *typegen_dto.A
 	}
 
 	fbs.ActionManifestFBStartTypesVector(builder, len(typeOffsets))
-	for i := len(typeOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(typeOffsets[i])
+	for _, typeOffset := range slices.Backward(typeOffsets) {
+		builder.PrependUOffsetT(typeOffset)
 	}
 	typesVectorOffset := builder.EndVector(len(typeOffsets))
 
@@ -149,8 +154,8 @@ func buildActionEntryFB(builder *flatbuffers.Builder, entry *typegen_dto.ActionE
 	}
 
 	fbs.ActionEntryFBStartParamsVector(builder, len(paramOffsets))
-	for i := len(paramOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(paramOffsets[i])
+	for _, paramOffset := range slices.Backward(paramOffsets) {
+		builder.PrependUOffsetT(paramOffset)
 	}
 	paramsVectorOffset := builder.EndVector(len(paramOffsets))
 
@@ -190,11 +195,10 @@ func buildActionParamFB(builder *flatbuffers.Builder, param *typegen_dto.ActionP
 // buildActionTypeFB serialises an ActionType to a FlatBuffers representation.
 //
 // Takes builder (*flatbuffers.Builder) which accumulates the serialised data.
-// Takes actionType (*typegen_dto.ActionType) which contains the type to
-// serialise.
+// Takes actionType (*typegen_dto.ActionType) which contains the type to serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the serialised ActionType
-// in the buffer.
+// Returns flatbuffers.UOffsetT which is the offset of the serialised ActionType in the
+// buffer.
 func buildActionTypeFB(builder *flatbuffers.Builder, actionType *typegen_dto.ActionType) flatbuffers.UOffsetT {
 	nameOffset := builder.CreateString(actionType.Name)
 	pkgPathOffset := builder.CreateString(actionType.PackagePath)
@@ -205,8 +209,8 @@ func buildActionTypeFB(builder *flatbuffers.Builder, actionType *typegen_dto.Act
 	}
 
 	fbs.ActionTypeFBStartFieldsVector(builder, len(fieldOffsets))
-	for i := len(fieldOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(fieldOffsets[i])
+	for _, fieldOffset := range slices.Backward(fieldOffsets) {
+		builder.PrependUOffsetT(fieldOffset)
 	}
 	fieldsVectorOffset := builder.EndVector(len(fieldOffsets))
 

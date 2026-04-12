@@ -26,12 +26,13 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 )
 
-// errProviderNameEmpty is returned when a provider is registered with an
-// empty name.
-var errProviderNameEmpty = errors.New("provider name cannot be empty")
+var (
+	// errProviderNameEmpty is returned when a provider is registered with an empty name.
+	errProviderNameEmpty = errors.New("provider name cannot be empty")
+)
 
-// MemoryRegistry is an in-memory implementation of ProviderRegistryPort.
-// It stores providers in a map and uses a read-write mutex for safe access.
+// MemoryRegistry is an in-memory implementation of ProviderRegistryPort. It stores
+// providers in a map and uses a read-write mutex for safe access.
 type MemoryRegistry struct {
 	// providers maps provider names to their instances for lookup and listing.
 	providers map[string]collection_domain.CollectionProvider
@@ -53,8 +54,8 @@ func NewMemoryRegistry() *MemoryRegistry {
 //
 // Takes provider (CollectionProvider) which is the provider to register.
 //
-// Returns error when provider is nil, provider.Name() returns an empty string,
-// or a provider with the same name is already registered.
+// Returns error when provider is nil, provider.Name() returns an empty string, or a
+// provider with the same name is already registered.
 //
 // Safe for concurrent use; protected by an internal mutex.
 func (r *MemoryRegistry) Register(provider collection_domain.CollectionProvider) error {
@@ -141,8 +142,8 @@ func (r *MemoryRegistry) count() int {
 
 // clear removes all registered providers.
 //
-// This is mainly useful for testing. In production, providers should be
-// registered once at startup and never cleared.
+// This is mainly useful for testing. In production, providers should be registered once
+// at startup and never cleared.
 //
 // Safe for concurrent use.
 func (r *MemoryRegistry) clear() {

@@ -23,9 +23,9 @@ import (
 	"time"
 )
 
-// VideoCapabilities holds the properties and supported output options for a
-// video file. It is returned by ExtractCapabilities and describes what the
-// input video contains and what formats can be produced from it.
+// VideoCapabilities holds the properties and supported output options for a video file.
+// It is returned by ExtractCapabilities and describes what the input video contains and
+// what formats can be produced from it.
 type VideoCapabilities struct {
 	// Format is the container format (e.g. "mp4", "webm", "mkv").
 	Format string `json:"format"`
@@ -72,8 +72,7 @@ type HLSSpec struct {
 	// PlaylistType specifies the HLS playlist type: VOD or EVENT.
 	PlaylistType string `json:"playlistType"`
 
-	// VariantBitrates contains multiple bitrate ladders for adaptive bitrate
-	// streaming.
+	// VariantBitrates contains multiple bitrate ladders for adaptive bitrate streaming.
 	VariantBitrates []int `json:"variantBitrates"`
 
 	// TranscodeSpec contains the base transcode settings
@@ -86,8 +85,8 @@ type HLSSpec struct {
 	IncludeIFramePlaylist bool `json:"includeIFramePlaylist"`
 }
 
-// HLSResult represents the output of an HLS generation operation.
-// It contains the master playlist, variant playlists, and video segments.
+// HLSResult represents the output of an HLS generation operation. It contains the master
+// playlist, variant playlists, and video segments.
 type HLSResult struct {
 	// MasterPlaylist is the main m3u8 file that points to variant playlists.
 	MasterPlaylist io.Reader `json:"-"`
@@ -144,14 +143,13 @@ type HLSSegment struct {
 	SizeBytes int64 `json:"sizeBytes"`
 }
 
-// DASHSpec defines the parameters for DASH (Dynamic Adaptive Streaming over
-// HTTP) generation.
+// DASHSpec defines the parameters for DASH (Dynamic Adaptive Streaming over HTTP)
+// generation.
 type DASHSpec struct {
 	// ProfileType is the DASH profile; either "live" or "on-demand".
 	ProfileType string `json:"profileType"`
 
-	// VariantBitrates contains multiple bitrate ladders for adaptive bitrate
-	// streaming.
+	// VariantBitrates contains multiple bitrate ladders for adaptive bitrate streaming.
 	VariantBitrates []int `json:"variantBitrates"`
 
 	// TranscodeSpec contains the base transcode settings
@@ -179,11 +177,9 @@ type DASHResult struct {
 	TotalDuration time.Duration `json:"totalDuration"`
 }
 
-// DASHRepresentation represents a single bitrate representation in a DASH
-// stream.
+// DASHRepresentation represents a single bitrate representation in a DASH stream.
 type DASHRepresentation struct {
-	// Resolution is the video resolution in width by height format (e.g.
-	// "1920x1080").
+	// Resolution is the video resolution in width by height format (e.g. "1920x1080").
 	Resolution string `json:"resolution"`
 
 	// Codec is the video codec used for this representation.

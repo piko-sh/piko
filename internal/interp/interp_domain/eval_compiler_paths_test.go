@@ -29,35 +29,35 @@ func TestCompilerAssignmentPatterns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"short_var_redecl", "x := 1; x, y := 2, 3; x + y", int64(5)},
+		{name: "short_var_redecl", code: "x := 1; x, y := 2, 3; x + y", expect: int64(5)},
 
-		{"compound_assign_slice", "s := []int{1, 2, 3}; s[0] += 10; s[0]", int64(11)},
-		{"compound_assign_slice_sub", "s := []int{10, 20, 30}; s[1] -= 5; s[1]", int64(15)},
-		{"compound_assign_slice_mul", "s := []int{3, 4, 5}; s[2] *= 10; s[2]", int64(50)},
+		{name: "compound_assign_slice", code: "s := []int{1, 2, 3}; s[0] += 10; s[0]", expect: int64(11)},
+		{name: "compound_assign_slice_sub", code: "s := []int{10, 20, 30}; s[1] -= 5; s[1]", expect: int64(15)},
+		{name: "compound_assign_slice_mul", code: "s := []int{3, 4, 5}; s[2] *= 10; s[2]", expect: int64(50)},
 
-		{"compound_assign_selector", `
+		{name: "compound_assign_selector", code: `
 type S struct { X int }
 s := S{X: 1}
 s.X += 5
-s.X`, int64(6)},
-		{"compound_assign_selector_mul", `
+s.X`, expect: int64(6)},
+		{name: "compound_assign_selector_mul", code: `
 type S struct { X int }
 s := S{X: 3}
 s.X *= 4
-s.X`, int64(12)},
+s.X`, expect: int64(12)},
 
-		{"compound_assign_map", "m := map[string]int{\"a\": 1}; m[\"a\"] += 5; m[\"a\"]", int64(6)},
-		{"compound_assign_map_sub", "m := map[string]int{\"x\": 100}; m[\"x\"] -= 30; m[\"x\"]", int64(70)},
+		{name: "compound_assign_map", code: "m := map[string]int{\"a\": 1}; m[\"a\"] += 5; m[\"a\"]", expect: int64(6)},
+		{name: "compound_assign_map_sub", code: "m := map[string]int{\"x\": 100}; m[\"x\"] -= 30; m[\"x\"]", expect: int64(70)},
 
-		{"zero_int", "var x int; x", int64(0)},
-		{"zero_string", "var s string; s", ""},
-		{"zero_float", "var f float64; f", float64(0)},
-		{"zero_bool", "var b bool; b", false},
+		{name: "zero_int", code: "var x int; x", expect: int64(0)},
+		{name: "zero_string", code: "var s string; s", expect: ""},
+		{name: "zero_float", code: "var f float64; f", expect: float64(0)},
+		{name: "zero_bool", code: "var b bool; b", expect: false},
 	}
 
 	for _, tt := range tests {
@@ -75,12 +75,12 @@ func TestCompilerControlFlow(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"switch_multi_case", `
+		{name: "switch_multi_case", code: `
 x := 3
 y := 0
 switch x {
@@ -89,9 +89,9 @@ case 1, 2, 3:
 case 4, 5:
     y = 20
 }
-y`, int64(10)},
+y`, expect: int64(10)},
 
-		{"type_switch_default", `
+		{name: "type_switch_default", code: `
 var x any = 3.14
 result := ""
 switch x.(type) {
@@ -102,9 +102,9 @@ case string:
 default:
     result = "other"
 }
-result`, "other"},
+result`, expect: "other"},
 
-		{"type_switch_string", `
+		{name: "type_switch_string", code: `
 var x any = "hello"
 result := ""
 switch v := x.(type) {
@@ -115,45 +115,45 @@ case string:
 default:
     result = "other"
 }
-result`, "hello"},
+result`, expect: "hello"},
 
-		{"inc_float", "x := 1.5; x++; x", float64(2.5)},
-		{"dec_float", "x := 3.5; x--; x", float64(2.5)},
+		{name: "inc_float", code: "x := 1.5; x++; x", expect: float64(2.5)},
+		{name: "dec_float", code: "x := 3.5; x--; x", expect: float64(2.5)},
 
-		{"inc_selector", `
+		{name: "inc_selector", code: `
 type S struct { X int }
 s := S{X: 10}
 s.X++
-s.X`, int64(11)},
-		{"dec_selector", `
+s.X`, expect: int64(11)},
+		{name: "dec_selector", code: `
 type S struct { X int }
 s := S{X: 10}
 s.X--
-s.X`, int64(9)},
+s.X`, expect: int64(9)},
 
-		{"multi_return", `
+		{name: "multi_return", code: `
 func swap(a, b int) (int, int) { return b, a }
 x, y := swap(1, 2)
-x*10 + y`, int64(21)},
+x*10 + y`, expect: int64(21)},
 
-		{"map_comma_ok_found", `
+		{name: "map_comma_ok_found", code: `
 m := map[string]int{"a": 42}
 v, ok := m["a"]
 result := -1
 if ok { result = v }
-result`, int64(42)},
-		{"map_comma_ok_missing", `
+result`, expect: int64(42)},
+		{name: "map_comma_ok_missing", code: `
 m := map[string]int{"a": 42}
 _, ok := m["z"]
-ok`, false},
+ok`, expect: false},
 
-		{"select_recv_discard", `
+		{name: "select_recv_discard", code: `
 ch := make(chan int, 1)
 ch <- 42
 select {
 case <-ch:
 }
-1`, int64(1)},
+1`, expect: int64(1)},
 	}
 
 	for _, tt := range tests {
@@ -171,18 +171,18 @@ func TestCompilerExpressions(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"uint_lt", "var a uint = 3; var b uint = 5; a < b", true},
-		{"uint_gt", "var a uint = 5; var b uint = 3; a > b", true},
-		{"uint_le", "var a uint = 5; var b uint = 5; a <= b", true},
-		{"uint_ge", "var a uint = 5; var b uint = 3; a >= b", true},
+		{name: "uint_lt", code: "var a uint = 3; var b uint = 5; a < b", expect: true},
+		{name: "uint_gt", code: "var a uint = 5; var b uint = 3; a > b", expect: true},
+		{name: "uint_le", code: "var a uint = 5; var b uint = 5; a <= b", expect: true},
+		{name: "uint_ge", code: "var a uint = 5; var b uint = 3; a >= b", expect: true},
 
-		{"complex_sub", "a := 3+4i; b := 1+2i; a - b", complex128(2 + 2i)},
-		{"complex_div", "a := 6+8i; b := 2+0i; a / b", complex128(3 + 4i)},
+		{name: "complex_sub", code: "a := 3+4i; b := 1+2i; a - b", expect: complex128(2 + 2i)},
+		{name: "complex_div", code: "a := 6+8i; b := 2+0i; a / b", expect: complex128(3 + 4i)},
 	}
 
 	for _, tt := range tests {
@@ -200,34 +200,34 @@ func TestCompilerClosures(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"addr_of_field", `
+		{name: "addr_of_field", code: `
 type S struct { X int }
 s := S{X: 42}
 p := &s.X
-*p`, int64(42)},
+*p`, expect: int64(42)},
 
-		{"method_value", `
+		{name: "method_value", code: `
 type Counter struct { N int }
 func (c *Counter) Inc() { c.N++ }
 c := &Counter{N: 0}
 f := c.Inc
 f()
 f()
-c.N`, int64(2)},
+c.N`, expect: int64(2)},
 
-		{"range_define_both", `
+		{name: "range_define_both", code: `
 sum := 0
 index := 0
 for i, v := range []int{10, 20, 30} {
     sum += v
     index = i
 }
-sum + index`, int64(62)},
+sum + index`, expect: int64(62)},
 	}
 
 	for _, tt := range tests {
@@ -245,31 +245,31 @@ func TestCompilerStatements(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"map_int_key_assign", "m := map[int]string{}; m[1] = \"one\"; m[1]", "one"},
-		{"map_string_key_assign", "m := map[string]int{}; m[\"x\"] = 42; m[\"x\"]", int64(42)},
+		{name: "map_int_key_assign", code: "m := map[int]string{}; m[1] = \"one\"; m[1]", expect: "one"},
+		{name: "map_string_key_assign", code: "m := map[string]int{}; m[\"x\"] = 42; m[\"x\"]", expect: int64(42)},
 
-		{"range_string_slice", `
+		{name: "range_string_slice", code: `
 result := ""
 for _, s := range []string{"hello", " ", "world"} {
     result += s
 }
-result`, "hello world"},
+result`, expect: "hello world"},
 
-		{"channel_send_recv", `
+		{name: "channel_send_recv", code: `
 ch := make(chan int, 1)
 ch <- 42
-<-ch`, int64(42)},
+<-ch`, expect: int64(42)},
 
-		{"star_assign", `
+		{name: "star_assign", code: `
 x := 10
 p := &x
 *p = 20
-x`, int64(20)},
+x`, expect: int64(20)},
 	}
 
 	for _, tt := range tests {
@@ -287,9 +287,9 @@ func TestCompilerCommaOkPatterns(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
 		{
@@ -352,10 +352,10 @@ func TestCompilerPackageLevelVars(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 
@@ -414,9 +414,9 @@ func TestCompilerUintOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
 		{
@@ -487,9 +487,9 @@ func TestCompilerComplexOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
 		{
@@ -550,10 +550,10 @@ func TestCompilerStructFieldIncDec(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "int_field_inc_dec",
@@ -685,10 +685,10 @@ func TestCompilerMultiReturnCall(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 
@@ -796,17 +796,19 @@ func TestCompilerUnsafeOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 
 			name: "unsafe_sizeof",
 			source: `package main
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func run() int { return int(unsafe.Sizeof(int(0))) }
 func main() {}
@@ -819,7 +821,9 @@ func main() {}
 			name: "unsafe_alignof",
 			source: `package main
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func run() int { return int(unsafe.Alignof(int(0))) }
 func main() {}
@@ -832,7 +836,9 @@ func main() {}
 			name: "unsafe_add",
 			source: `package main
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func run() bool {
 	x := 42
@@ -851,7 +857,9 @@ func main() {}
 			name: "unsafe_slice",
 			source: `package main
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func run() int {
 	arr := [3]int{10, 20, 30}
@@ -870,7 +878,9 @@ func main() {}
 			name: "unsafe_string",
 			source: `package main
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func run() string {
 	b := []byte("hello")
@@ -889,7 +899,9 @@ func main() {}
 			name: "unsafe_string_data",
 			source: `package main
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func run() bool {
 	s := "hello"
@@ -907,7 +919,9 @@ func main() {}
 			name: "unsafe_slice_data",
 			source: `package main
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
 func run() bool {
 	s := []int{1, 2, 3}
@@ -1129,7 +1143,7 @@ func main() {}
 	result, err := service.EvalFile(context.Background(), source, "run")
 	require.NoError(t, err)
 
-	require.Equal(t, int64(42), result)
+	require.Equal(t, 42, result)
 }
 
 func TestCompilerPointerDerefAssign(t *testing.T) {
@@ -1334,9 +1348,9 @@ func TestCompilerBuiltinMinMax(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 		{
 			name:   "min_two_ints",
@@ -1474,9 +1488,9 @@ func TestCompilerCapBuiltin(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 		{
 			name:   "cap_of_slice",
@@ -1505,10 +1519,10 @@ func TestCompilerCrossBankConversions(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "int_to_float",
@@ -1608,7 +1622,7 @@ func run() interface{} {
 func main() {}
 `,
 			entrypoint: "run",
-			expect:     int64(42),
+			expect:     42,
 		},
 		{
 			name: "interface_to_int",
@@ -1677,10 +1691,10 @@ func TestCompilerCommaOkReassign(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "map_comma_ok_reassign",
@@ -1733,10 +1747,10 @@ func TestCompilerGlobalZeroNamedTypes(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "named_int_type_zero",
@@ -1786,10 +1800,10 @@ func TestCompilerTypeConversionAfterTypeAssert(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "int_from_uint_assertion",

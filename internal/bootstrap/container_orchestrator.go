@@ -18,8 +18,7 @@
 
 package bootstrap
 
-// This file contains orchestrator and capability service related container
-// methods.
+// This file contains orchestrator and capability service related container methods.
 
 import (
 	"context"
@@ -49,8 +48,8 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// GetCapabilityService returns the capability detection service, creating it
-// if necessary.
+// GetCapabilityService returns the capability detection service, creating it if
+// necessary.
 //
 // Returns capabilities.Service which is the capability detection service.
 // Returns error when the service could not be created.
@@ -67,9 +66,8 @@ func (c *Container) GetCapabilityService() (capabilities.Service, error) {
 	return c.capabilityService, c.capabilityErr
 }
 
-// createDefaultCapabilityService sets up the default capability service with
-// image transformation, video transcoding, and optional component compilation
-// support.
+// createDefaultCapabilityService sets up the default capability service with image
+// transformation, video transcoding, and optional component compilation support.
 func (c *Container) createDefaultCapabilityService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default CapabilityService...")
@@ -107,15 +105,13 @@ func (c *Container) createDefaultCapabilityService() {
 	c.capabilityService, c.capabilityErr = c.createCapabilityWithCompiler(imageService, videoService, baseDir, componentsDir, localDirExists)
 }
 
-// createCapabilityWithCompiler sets up the compiler and creates the capability
-// service with compilation support.
+// createCapabilityWithCompiler sets up the compiler and creates the capability service
+// with compilation support.
 //
 // Takes imageService (any) which is the image service to register.
 // Takes videoService (any) which is the video service to register.
-// Takes baseDir (string) which is the project root directory for CSS import
-// resolution.
-// Takes componentsDir (string) which is the path to the local components
-// directory.
+// Takes baseDir (string) which is the project root directory for CSS import resolution.
+// Takes componentsDir (string) which is the path to the local components directory.
 // Takes localDirExists (bool) which indicates whether the directory exists.
 //
 // Returns capabilities.Service which is the configured capability service.
@@ -165,11 +161,11 @@ func (c *Container) createCapabilityWithCompiler(
 	)
 }
 
-// createCSSPreProcessor creates a CSS pre-processor that resolves @import
-// statements in component style blocks.
+// createCSSPreProcessor creates a CSS pre-processor that resolves @import statements in
+// component style blocks.
 //
-// Takes resolver (resolver_domain.ResolverPort) which resolves CSS import
-// paths including @/ aliases.
+// Takes resolver (resolver_domain.ResolverPort) which resolves CSS import paths including
+// @/ aliases.
 // Takes baseDir (string) which is the root directory for the sandbox.
 //
 // Returns compiler_domain.CSSPreProcessorPort which resolves CSS imports.
@@ -190,11 +186,11 @@ func (c *Container) createCSSPreProcessor(resolver resolver_domain.ResolverPort,
 	return compiler_adapters.NewCSSPreProcessor(processor, fsReader, resolver.GetModuleName(), baseDir), nil
 }
 
-// hasExternalModuleComponents returns true if any external component
-// definition carries a ModulePath, indicating it needs module resolution.
+// hasExternalModuleComponents returns true if any external component definition carries a
+// ModulePath, indicating it needs module resolution.
 //
-// Returns bool which is true when at least one external component has a
-// non-empty ModulePath.
+// Returns bool which is true when at least one external component has a non-empty
+// ModulePath.
 func (c *Container) hasExternalModuleComponents() bool {
 	for _, definition := range c.externalComponents {
 		if definition.ModulePath != "" {
@@ -204,11 +200,11 @@ func (c *Container) hasExternalModuleComponents() bool {
 	return false
 }
 
-// GetOrchestratorService returns the asset orchestration service, creating
-// it if necessary.
+// GetOrchestratorService returns the asset orchestration service, creating it if
+// necessary.
 //
-// Returns orchestrator_domain.OrchestratorService which provides asset
-// orchestration capabilities.
+// Returns orchestrator_domain.OrchestratorService which provides asset orchestration
+// capabilities.
 // Returns error when the service could not be created.
 func (c *Container) GetOrchestratorService() (orchestrator_domain.OrchestratorService, error) {
 	c.orchestratorOnce.Do(func() {
@@ -225,18 +221,18 @@ func (c *Container) GetOrchestratorService() (orchestrator_domain.OrchestratorSe
 
 // GetArtefactBridge returns the ArtefactWorkflowBridge.
 //
-// This must be called after GetOrchestratorService() as the bridge is created
-// during orchestrator initialisation.
+// This must be called after GetOrchestratorService() as the bridge is created during
+// orchestrator initialisation.
 //
-// Returns *orchestrator_adapters.ArtefactWorkflowBridge which provides
-// integration between artefacts and the workflow system.
+// Returns *orchestrator_adapters.ArtefactWorkflowBridge which provides integration
+// between artefacts and the workflow system.
 func (c *Container) GetArtefactBridge() *orchestrator_adapters.ArtefactWorkflowBridge {
 	_, _ = c.GetOrchestratorService()
 	return c.artefactBridge
 }
 
-// createDefaultOrchestratorService sets up the default orchestrator service
-// and its supporting parts.
+// createDefaultOrchestratorService sets up the default orchestrator service and its
+// supporting parts.
 func (c *Container) createDefaultOrchestratorService() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Creating default OrchestratorService...")
@@ -258,8 +254,8 @@ func (c *Container) createDefaultOrchestratorService() {
 	c.artefactBridge = bridge
 }
 
-// createOrchestratorServiceCore creates the orchestrator service and sets up
-// its executor.
+// createOrchestratorServiceCore creates the orchestrator service and sets up its
+// executor.
 //
 // Returns orchestrator.Service which is the configured orchestrator.
 // Returns registry_domain.RegistryService which provides registry access.
@@ -303,13 +299,11 @@ func (c *Container) createOrchestratorServiceCore() (orchestrator.Service, regis
 
 // setupOrchestratorBridge creates and starts the artefact workflow bridge.
 //
-// Takes orcService (orchestrator.Service) which provides orchestration
-// capabilities.
-// Takes registryService (registry_domain.RegistryService) which provides registry
-// access.
+// Takes orcService (orchestrator.Service) which provides orchestration capabilities.
+// Takes registryService (registry_domain.RegistryService) which provides registry access.
 //
-// Returns *orchestrator_adapters.ArtefactWorkflowBridge which is the
-// configured bridge ready for use.
+// Returns *orchestrator_adapters.ArtefactWorkflowBridge which is the configured bridge
+// ready for use.
 // Returns error when the bridge listener fails to start.
 //
 // Spawns a goroutine to wait for bridge events until the context is cancelled.
@@ -328,8 +322,7 @@ func (c *Container) setupOrchestratorBridge(orcService orchestrator.Service, reg
 	return bridge, nil
 }
 
-// startOrchestratorBackground starts the orchestrator service in a background
-// goroutine.
+// startOrchestratorBackground starts the orchestrator service in a background goroutine.
 //
 // Takes orcService (orchestrator.Service) which is the orchestrator to start.
 //
@@ -339,12 +332,11 @@ func (c *Container) startOrchestratorBackground(orcService orchestrator.Service)
 	shutdown.Register(c.GetAppContext(), "Orchestrator", func(_ context.Context) error { orcService.Stop(); return nil })
 }
 
-// ScheduleGCTasks seeds the GC task queue with the first hint processing and
-// orphan scan tasks. Deduplication keys prevent duplicate scheduling if the
-// system restarts.
+// ScheduleGCTasks seeds the GC task queue with the first hint processing and orphan scan
+// tasks. Deduplication keys prevent duplicate scheduling if the system restarts.
 //
-// Safe to call multiple times; panics from a stopped orchestrator (e.g. after
-// daemon restart in dev-interpreted mode) are recovered and silently ignored.
+// Safe to call multiple times; panics from a stopped orchestrator (e.g. after daemon
+// restart in dev-interpreted mode) are recovered and silently ignored.
 func (c *Container) ScheduleGCTasks() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -379,9 +371,9 @@ func (c *Container) ScheduleGCTasks() {
 	_, _ = orcService.Schedule(ctx, orphansTask, time.Now().Add(60*time.Second))
 }
 
-// createOrchestratorTaskStore creates the task store, using the querier-based
-// DAL adapter when a DatabaseNameOrchestrator database is registered, or
-// falling back to the default otter in-memory backend.
+// createOrchestratorTaskStore creates the task store, using the querier-based DAL adapter
+// when a DatabaseNameOrchestrator database is registered, or falling back to the default
+// otter in-memory backend.
 //
 // Returns orchestrator_domain.TaskStore which is the configured task store.
 // Returns error when the factory or database connection fails.
@@ -395,9 +387,8 @@ func (c *Container) createOrchestratorTaskStore() (orchestrator_domain.TaskStore
 	return c.createProviderOrchestratorDAL()
 }
 
-// createQuerierOrchestratorDAL creates an orchestrator DAL from a
-// querier-managed database connection registered via
-// AddDatabase(DatabaseNameOrchestrator, ...).
+// createQuerierOrchestratorDAL creates an orchestrator DAL from a querier-managed
+// database connection registered via AddDatabase(DatabaseNameOrchestrator, ...).
 //
 // Returns orchestrator_domain.TaskStore which is the querier-backed task store.
 // Returns error when the database connection cannot be obtained.
@@ -420,12 +411,11 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 	return dal, nil
 }
 
-// createProviderOrchestratorDAL creates an orchestrator DAL from the default
-// otter in-memory backend with WAL persistence.
+// createProviderOrchestratorDAL creates an orchestrator DAL from the default otter
+// in-memory backend with WAL persistence.
 //
 // Returns orchestrator_domain.TaskStore which is the otter-backed task store.
-// Returns error when the otter DAL cannot be created or does not implement
-// TaskStore.
+// Returns error when the otter DAL cannot be created or does not implement TaskStore.
 func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskStore, error) {
 	dalAny, err := c.createOtterOrchestratorDAL()
 	if err != nil {

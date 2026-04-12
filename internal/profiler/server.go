@@ -35,9 +35,11 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// serverReadHeaderTimeout is the maximum duration the pprof HTTP server
-// waits to read request headers.
-const serverReadHeaderTimeout = 10 * time.Second
+const (
+	// serverReadHeaderTimeout is the maximum duration the pprof HTTP server waits to read
+	// request headers.
+	serverReadHeaderTimeout = 10 * time.Second
+)
 
 const (
 	// serverReadTimeout bounds the total time spent reading a profiler request.
@@ -54,26 +56,27 @@ const (
 	// ProfilerStatusPath returns profiler feature and endpoint metadata.
 	ProfilerStatusPath = BasePath + "/profiler/status"
 
-	// RollingTracePath downloads the current rolling trace snapshot when
-	// rolling trace capture is enabled.
+	// RollingTracePath downloads the current rolling trace snapshot when rolling trace
+	// capture is enabled.
 	RollingTracePath = BasePath + "/profiler/trace/recent"
 )
 
-// ErrRollingTraceDisabled indicates that rolling trace capture is not enabled.
-var ErrRollingTraceDisabled = errors.New("rolling trace capture is not enabled")
+var (
+	// ErrRollingTraceDisabled indicates that rolling trace capture is not enabled.
+	ErrRollingTraceDisabled = errors.New("rolling trace capture is not enabled")
 
-// profilerErrorOutput is the fallback sink used when no structured error handler
-// has been attached to the server handle. Access via getErrorOutput/setErrorOutput
-// for concurrent safety.
-var profilerErrorOutput atomic.Value
+	// profilerErrorOutput is the fallback sink used when no structured error handler has
+	// been attached to the server handle. Access via getErrorOutput/setErrorOutput for
+	// concurrent safety.
+	profilerErrorOutput atomic.Value
+)
 
 func init() {
 	profilerErrorOutput.Store(io.Writer(os.Stdout))
 }
 
-// getErrorOutput returns the current error output writer,
-// falling back to stdout if the stored value is not a
-// valid writer.
+// getErrorOutput returns the current error output writer, falling back to stdout if the
+// stored value is not a valid writer.
 //
 // Returns io.Writer which is the active error output sink.
 func getErrorOutput() io.Writer {
@@ -83,16 +86,15 @@ func getErrorOutput() io.Writer {
 	return os.Stdout
 }
 
-// setErrorOutput replaces the error output writer used
-// by the profiler server.
+// setErrorOutput replaces the error output writer used by the profiler server.
 //
 // Takes w (io.Writer) which is the new error output sink.
 func setErrorOutput(w io.Writer) {
 	profilerErrorOutput.Store(w)
 }
 
-// RollingTraceStatus describes the rolling trace feature exposed by the
-// profiler HTTP server.
+// RollingTraceStatus describes the rolling trace feature exposed by the profiler HTTP
+// server.
 type RollingTraceStatus struct {
 	// MinAge is the minimum age of trace data retained, formatted as a duration string.
 	MinAge string `json:"min_age"`
@@ -119,8 +121,8 @@ type ServerStatus struct {
 	RollingTrace RollingTraceStatus `json:"rolling_trace"`
 }
 
-// ServerHandle wraps the HTTP server and any optional runtime profiler
-// extensions that need coordinated shutdown.
+// ServerHandle wraps the HTTP server and any optional runtime profiler extensions that
+// need coordinated shutdown.
 type ServerHandle struct {
 	// server is the pprof HTTP server instance.
 	server *http.Server
@@ -132,9 +134,9 @@ type ServerHandle struct {
 	onError func(error)
 }
 
-// StartServer creates and starts a pprof HTTP server on the address specified
-// in config. The server runs in a background goroutine and exposes the standard
-// pprof endpoints under /_piko/debug/pprof/.
+// StartServer creates and starts a pprof HTTP server on the address specified in config.
+// The server runs in a background goroutine and exposes the standard pprof endpoints
+// under /_piko/debug/pprof/.
 //
 // Takes config (Config) which provides Port and BindAddress.
 //
@@ -171,8 +173,8 @@ func StartServer(config Config) (*ServerHandle, error) {
 	return handle, nil
 }
 
-// Shutdown gracefully stops the profiler HTTP server and any auxiliary rolling
-// trace recorder.
+// Shutdown gracefully stops the profiler HTTP server and any auxiliary rolling trace
+// recorder.
 //
 // Returns error when the HTTP server shutdown fails.
 func (s *ServerHandle) Shutdown(ctx context.Context) error {
@@ -191,11 +193,11 @@ func (s *ServerHandle) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
-// SetErrorHandler configures an optional callback for asynchronous profiler
-// server errors.
+// SetErrorHandler configures an optional callback for asynchronous profiler server
+// errors.
 //
-// Takes fn (func(error)) which is the error callback to invoke when the
-// server encounters an asynchronous error.
+// Takes fn (func(error)) which is the error callback to invoke when the server encounters
+// an asynchronous error.
 func (s *ServerHandle) SetErrorHandler(fn func(error)) {
 	if s == nil {
 		return
@@ -203,9 +205,8 @@ func (s *ServerHandle) SetErrorHandler(fn func(error)) {
 	s.onError = fn
 }
 
-// reportError dispatches an error to the configured error
-// handler, or writes it to the fallback error output if
-// no handler is set.
+// reportError dispatches an error to the configured error handler, or writes it to the
+// fallback error output if no handler is set.
 //
 // Takes err (error) which is the error to report.
 func (s *ServerHandle) reportError(err error) {
@@ -219,12 +220,11 @@ func (s *ServerHandle) reportError(err error) {
 	_, _ = fmt.Fprintf(getErrorOutput(), "profiling server error: %v\n", err)
 }
 
-// newServerHandler builds the HTTP handler mux that
-// serves pprof endpoints, profiler status, and rolling
-// trace downloads.
+// newServerHandler builds the HTTP handler mux that serves pprof endpoints, profiler
+// status, and rolling trace downloads.
 //
-// Takes rollingTrace (*rollingTraceRecorder) which is
-// the optional rolling trace recorder (may be nil).
+// Takes rollingTrace (*rollingTraceRecorder) which is the optional rolling trace recorder
+// (may be nil).
 //
 // Returns http.Handler which serves all profiler routes.
 func newServerHandler(rollingTrace *rollingTraceRecorder) http.Handler {
@@ -257,13 +257,11 @@ func newServerHandler(rollingTrace *rollingTraceRecorder) http.Handler {
 	return mux
 }
 
-// writeProfilerStatus serialises the current profiler
-// status as JSON and writes it to the HTTP response.
+// writeProfilerStatus serialises the current profiler status as JSON and writes it to the
+// HTTP response.
 //
-// Takes w (http.ResponseWriter) which receives the JSON
-// response.
-// Takes rollingTrace (*rollingTraceRecorder) which
-// provides the rolling trace state.
+// Takes w (http.ResponseWriter) which receives the JSON response.
+// Takes rollingTrace (*rollingTraceRecorder) which provides the rolling trace state.
 func writeProfilerStatus(w http.ResponseWriter, rollingTrace *rollingTraceRecorder) {
 	data, err := json.Marshal(serverStatus(rollingTrace))
 	if err != nil {
@@ -276,15 +274,12 @@ func writeProfilerStatus(w http.ResponseWriter, rollingTrace *rollingTraceRecord
 	_, _ = w.Write(data)
 }
 
-// serverStatus builds a ServerStatus snapshot describing
-// the profiler server's current capabilities and rolling
-// trace state.
+// serverStatus builds a ServerStatus snapshot describing the profiler server's current
+// capabilities and rolling trace state.
 //
-// Takes rollingTrace (*rollingTraceRecorder) which
-// provides the rolling trace state.
+// Takes rollingTrace (*rollingTraceRecorder) which provides the rolling trace state.
 //
-// Returns ServerStatus which describes the server's
-// current capabilities.
+// Returns ServerStatus which describes the server's current capabilities.
 func serverStatus(rollingTrace *rollingTraceRecorder) ServerStatus {
 	status := ServerStatus{
 		PprofBasePath: BasePath + "/debug/pprof",
@@ -304,14 +299,11 @@ func serverStatus(rollingTrace *rollingTraceRecorder) ServerStatus {
 	return status
 }
 
-// writeRollingTrace streams the current rolling trace
-// snapshot to the HTTP response as an octet-stream
-// attachment.
+// writeRollingTrace streams the current rolling trace snapshot to the HTTP response as an
+// octet-stream attachment.
 //
-// Takes w (http.ResponseWriter) which receives the trace
-// data.
-// Takes rollingTrace (*rollingTraceRecorder) which
-// supplies the trace snapshot.
+// Takes w (http.ResponseWriter) which receives the trace data.
+// Takes rollingTrace (*rollingTraceRecorder) which supplies the trace snapshot.
 func writeRollingTrace(w http.ResponseWriter, rollingTrace *rollingTraceRecorder) {
 	if rollingTrace == nil {
 		http.Error(w, "rolling trace capture is not enabled", http.StatusNotFound)

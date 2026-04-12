@@ -16,7 +16,6 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package render_dto defines data transfer objects for the render module,
-// including page definitions, component trees, and the artefacts produced
-// by the rendering process.
+// Package render_dto defines data transfer objects for the render module, including page
+// definitions, component trees, and the artefacts produced by the rendering process.
 package render_dto

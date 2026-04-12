@@ -18,13 +18,15 @@
 
 package ratelimiter_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrRateLimited is returned when a request exceeds the configured rate limit.
 	ErrRateLimited = errors.New("rate limit exceeded")
 
-	// ErrStoreFailure is returned when the backing store encounters an error
-	// and the fail policy is set to FailClosed.
+	// ErrStoreFailure is returned when the backing store encounters an error and the fail
+	// policy is set to FailClosed.
 	ErrStoreFailure = errors.New("rate limit store failure")
 )

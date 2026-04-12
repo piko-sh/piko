@@ -18,7 +18,9 @@
 
 package logger_integration_sentry
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
 var (
 	// log is the package-level logger for the logger_integration_sentry package.

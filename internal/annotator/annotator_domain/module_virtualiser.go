@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Creates virtual Go modules from component templates by generating
-// synthetic Go source files for type inspection. Transforms template
-// scripts into valid Go code with proper package structures, enabling
-// the Go type checker to analyse component types.
+// Creates virtual Go modules from component templates by generating synthetic Go source
+// files for type inspection. Transforms template scripts into valid Go code with proper
+// package structures, enabling the Go type checker to analyse component types.
 
 import (
 	"context"
@@ -84,12 +83,13 @@ const (
 	sideEffectImportName = "_"
 )
 
-// dynamicParamRegex matches chi-style {paramName} patterns in filenames.
-// Used to replace {slug} with actual values when generating manifest keys.
-var dynamicParamRegex = regexp.MustCompile(`\{([a-zA-Z_][a-zA-Z0-9_]*)\}`)
+var (
+	// dynamicParamRegex matches chi-style {paramName} patterns in filenames. Used to replace
+	// {slug} with actual values when generating manifest keys.
+	dynamicParamRegex = regexp.MustCompile(`\{([a-zA-Z_][a-zA-Z0-9_]*)\}`)
+)
 
-// ModuleVirtualiser converts a Piko project structure into a virtual
-// Go module.
+// ModuleVirtualiser converts a Piko project structure into a virtual Go module.
 type ModuleVirtualiser struct {
 	// resolver finds and loads Go modules from import paths.
 	resolver resolver_domain.ResolverPort
@@ -100,8 +100,7 @@ type ModuleVirtualiser struct {
 
 // virtualisationContext holds the state for a single Virtualise operation.
 type virtualisationContext struct {
-	// graph holds the parsed component dependency graph used during
-	// virtualisation.
+	// graph holds the parsed component dependency graph used during virtualisation.
 	graph *annotator_dto.ComponentGraph
 
 	// originalGoFiles holds the original Go file contents before any changes.
@@ -120,8 +119,7 @@ type virtualisationContext struct {
 	entryPoints []annotator_dto.EntryPoint
 }
 
-// NewModuleVirtualiser creates a new ModuleVirtualiser with the given
-// settings.
+// NewModuleVirtualiser creates a new ModuleVirtualiser with the given settings.
 //
 // Takes resolver (ResolverPort) which provides module resolution.
 // Takes pathsConfig (AnnotatorPathsConfig) which specifies the path settings.
@@ -134,20 +132,19 @@ func NewModuleVirtualiser(resolver resolver_domain.ResolverPort, pathsConfig Ann
 	}
 }
 
-// Virtualise is the main entry point for this stage. It transforms a
-// ComponentGraph into a VirtualModule.
+// Virtualise is the main entry point for this stage. It transforms a ComponentGraph into
+// a VirtualModule.
 //
-// Takes graph (*annotator_dto.ComponentGraph) which contains the parsed
-// component relationships.
-// Takes originalGoFiles (map[string][]byte) which maps file paths to their
-// original source content.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry
-// points for virtualisation.
+// Takes graph (*annotator_dto.ComponentGraph) which contains the parsed component
+// relationships.
+// Takes originalGoFiles (map[string][]byte) which maps file paths to their original
+// source content.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry points for
+// virtualisation.
 //
-// Returns *annotator_dto.VirtualModule which contains the virtualised module
-// with source overlays and component mappings.
-// Returns error when boilerplate injection, AST rewriting, or source assembly
-// fails.
+// Returns *annotator_dto.VirtualModule which contains the virtualised module with source
+// overlays and component mappings.
+// Returns error when boilerplate injection, AST rewriting, or source assembly fails.
 func (mv *ModuleVirtualiser) Virtualise(
 	ctx context.Context,
 	graph *annotator_dto.ComponentGraph,
@@ -190,9 +187,9 @@ func (mv *ModuleVirtualiser) Virtualise(
 	return vCtx.virtualModule, nil
 }
 
-// injectDefaultBoilerplateFuncs adds missing Render and CachePolicy functions
-// to each component. If a component lacks either function, a safe default is
-// inserted into its Go AST before type analysis runs.
+// injectDefaultBoilerplateFuncs adds missing Render and CachePolicy functions to each
+// component. If a component lacks either function, a safe default is inserted into its Go
+// AST before type analysis runs.
 //
 // Takes ctx (context.Context) which carries cancellation and logging.
 //
@@ -240,8 +237,8 @@ func (vc *virtualisationContext) injectDefaultBoilerplateFuncs(ctx context.Conte
 	return nil
 }
 
-// createVirtualComponents builds virtual components from the parsed graph and
-// converts their paths to a standard format.
+// createVirtualComponents builds virtual components from the parsed graph and converts
+// their paths to a standard format.
 func (vc *virtualisationContext) createVirtualComponents(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	l.Internal("[VIRTUALISER-STEP 2/4] Creating virtual components and canonicalising paths...")
@@ -256,8 +253,7 @@ func (vc *virtualisationContext) createVirtualComponents(ctx context.Context) {
 	}
 }
 
-// entryPointMetadata holds details about entry points found during
-// code analysis.
+// entryPointMetadata holds details about entry points found during code analysis.
 type entryPointMetadata struct {
 	// isPage maps file paths to true if they are page entry points.
 	isPage map[string]bool
@@ -277,16 +273,13 @@ type entryPointMetadata struct {
 	// isErrorPage tracks which entry points are error pages (e.g., !404.pk).
 	isErrorPage map[string]bool
 
-	// errorStatusCode maps file paths to the HTTP status code the
-	// error page handles.
+	// errorStatusCode maps file paths to the HTTP status code the error page handles.
 	errorStatusCode map[string]int
 
-	// errorStatusCodeMin maps file paths to range lower bounds
-	// (e.g., 400 for !400-499.pk).
+	// errorStatusCodeMin maps file paths to range lower bounds (e.g., 400 for !400-499.pk).
 	errorStatusCodeMin map[string]int
 
-	// errorStatusCodeMax maps file paths to range upper bounds
-	// (e.g., 499 for !400-499.pk).
+	// errorStatusCodeMax maps file paths to range upper bounds (e.g., 499 for !400-499.pk).
 	errorStatusCodeMax map[string]int
 
 	// isCatchAllError tracks which error pages are catch-all (!error.pk).
@@ -298,8 +291,8 @@ type entryPointMetadata struct {
 
 // collectEntryPointMetadata gathers metadata for all entry points.
 //
-// Returns *entryPointMetadata which holds the flags and virtual page instances
-// for each entry point path.
+// Returns *entryPointMetadata which holds the flags and virtual page instances for each
+// entry point path.
 func (vc *virtualisationContext) collectEntryPointMetadata(ctx context.Context) *entryPointMetadata {
 	baseDir := vc.resolver.GetBaseDir()
 	meta := &entryPointMetadata{
@@ -327,8 +320,7 @@ func (vc *virtualisationContext) collectEntryPointMetadata(ctx context.Context) 
 	return meta
 }
 
-// recordEntryPointFlags stores the flags from an entry point into the metadata
-// maps.
+// recordEntryPointFlags stores the flags from an entry point into the metadata maps.
 //
 // Takes meta (*entryPointMetadata) which holds the flag maps to update.
 // Takes resolvedPath (string) which is the key for the metadata maps.
@@ -372,19 +364,18 @@ func (vc *virtualisationContext) recordVirtualPageSource(ctx context.Context, me
 	meta.virtualInstances[resolvedPath] = append(meta.virtualInstances[resolvedPath], instance)
 }
 
-// buildVirtualComponent creates a virtual component from parsed
-// component data.
+// buildVirtualComponent creates a virtual component from parsed component data.
 //
 // Takes hashedName (string) which is the unique name for the component.
-// Takes parsedComp (*annotator_dto.ParsedComponent) which holds the parsed
-// component data.
-// Takes meta (*entryPointMetadata) which provides page, public, and email
-// flags for the component.
+// Takes parsedComp (*annotator_dto.ParsedComponent) which holds the parsed component
+// data.
+// Takes meta (*entryPointMetadata) which provides page, public, and email flags for the
+// component.
 // Takes moduleName (string) which is the Go module path.
 // Takes baseDir (string) which is the base folder for output paths.
 //
-// Returns *annotator_dto.VirtualComponent which is the fully built virtual
-// component ready for code generation.
+// Returns *annotator_dto.VirtualComponent which is the fully built virtual component
+// ready for code generation.
 func (vc *virtualisationContext) buildVirtualComponent(
 	ctx context.Context,
 	hashedName string,
@@ -426,18 +417,18 @@ func (vc *virtualisationContext) buildVirtualComponent(
 	}
 }
 
-// resolveComponentPaths finds the target folder and partial paths for a
-// component based on its type.
+// resolveComponentPaths finds the target folder and partial paths for a component based
+// on its type.
 //
-// Takes parsedComp (*annotator_dto.ParsedComponent) which is the parsed
-// component to find paths for.
+// Takes parsedComp (*annotator_dto.ParsedComponent) which is the parsed component to find
+// paths for.
 // Takes baseDir (string) which is the base folder for path resolution.
 // Takes isPage (bool) which indicates if the component is a page.
 // Takes isEmail (bool) which indicates if the component is an email.
 // Takes isPdf (bool) which indicates if the component is a PDF.
-// Takes isErrorPage (bool) which indicates if the component is an error page
-// (e.g. !404.pk, !500.pk). Error pages live in the pages directory but are not
-// routable pages, so they are compiled into the pages target folder.
+// Takes isErrorPage (bool) which indicates if the component is an error page (e.g.
+// !404.pk, !500.pk). Error pages live in the pages directory but are not routable pages,
+// so they are compiled into the pages target folder.
 //
 // Returns targetSubDir (string) which is the target subfolder for output.
 // Returns partialName (string) which is the partial template name.
@@ -458,8 +449,8 @@ func (vc *virtualisationContext) resolveComponentPaths(
 	return vc.resolvePartialPaths(ctx, parsedComp.SourcePath, baseDir)
 }
 
-// resolvePartialPaths works out the target folder and partial paths from a
-// source file path.
+// resolvePartialPaths works out the target folder and partial paths from a source file
+// path.
 //
 // Takes sourcePath (string) which is the full path to the partial source file.
 // Takes baseDir (string) which is the base folder for path working out.
@@ -477,8 +468,8 @@ func (vc *virtualisationContext) resolvePartialPaths(ctx context.Context, source
 	return targetSubDir, partialName, partialSrc
 }
 
-// calculateRelativePartialPath works out a relative path from the partials
-// source folder to the given source path.
+// calculateRelativePartialPath works out a relative path from the partials source folder
+// to the given source path.
 //
 // Takes sourcePath (string) which is the full path to the partial file.
 // Takes baseDir (string) which is the base folder for path calculation.
@@ -503,18 +494,15 @@ func (vc *virtualisationContext) calculateRelativePartialPath(ctx context.Contex
 
 // createVirtualInstance builds a VirtualPageInstance from an entry point.
 //
-// The entry point must carry a VirtualPageSource. The returned instance holds
-// the slug and manifest key only; the per-item URL is computed later by the
-// manifest builder from the consuming page's route pattern, so the URL is a
-// function of where the page lives in `pages/` rather than the collection
-// name.
+// The entry point must carry a VirtualPageSource. The returned instance holds the slug
+// and manifest key only; the per-item URL is computed later by the manifest builder from
+// the consuming page's route pattern, so the URL is a function of where the page lives in
+// `pages/` rather than the collection name.
 //
 // Takes ep (annotator_dto.EntryPoint) which provides the virtual page source.
-// Takes baseDir (string) which is the project root used to compute the
-// manifest key.
+// Takes baseDir (string) which is the project root used to compute the manifest key.
 //
-// Returns annotator_dto.VirtualPageInstance which is ready for downstream
-// stages.
+// Returns annotator_dto.VirtualPageInstance which is ready for downstream stages.
 func (vc *virtualisationContext) createVirtualInstance(ctx context.Context, ep annotator_dto.EntryPoint, baseDir string) annotator_dto.VirtualPageInstance {
 	vps := ep.VirtualPageSource
 
@@ -535,11 +523,11 @@ func (vc *virtualisationContext) createVirtualInstance(ctx context.Context, ep a
 
 // extractItemSlug pulls the canonical slug from a VirtualPageSource.
 //
-// Takes vps (*annotator_dto.VirtualPageSource) which carries the page's
-// initial props. May be nil.
+// Takes vps (*annotator_dto.VirtualPageSource) which carries the page's initial props.
+// May be nil.
 //
-// Returns string which is the slug from page metadata, or "" when vps is
-// nil, InitialProps is nil, or the page metadata lacks a slug.
+// Returns string which is the slug from page metadata, or "" when vps is nil,
+// InitialProps is nil, or the page metadata lacks a slug.
 func extractItemSlug(vps *annotator_dto.VirtualPageSource) string {
 	if vps == nil || vps.InitialProps == nil {
 		return ""
@@ -557,18 +545,16 @@ func extractItemSlug(vps *annotator_dto.VirtualPageSource) string {
 
 // calculateVirtualManifestKey creates a manifest key for a virtual page.
 //
-// The slug is substituted into the consuming page's file-path-derived dynamic
-// parameter; for example a consuming page `pages/blog/{slug}.pk` with slug
-// "test-post" yields the key "pages/blog/test-post.pk". The key drives where
-// the generated dist package lives. Crucially the key is derived from the
-// consuming page's location, not the collection name, so a page at
-// `pages/Y/{slug}.pk` consuming collection X yields keys under `pages/Y/`
-// even when X != Y.
+// The slug is substituted into the consuming page's file-path-derived dynamic parameter;
+// for example a consuming page `pages/blog/{slug}.pk` with slug "test-post" yields the
+// key "pages/blog/test-post.pk". The key drives where the generated dist package lives.
+// Crucially the key is derived from the consuming page's location, not the collection
+// name, so a page at `pages/Y/{slug}.pk` consuming collection X yields keys under
+// `pages/Y/` even when X != Y.
 //
-// Takes vps (*annotator_dto.VirtualPageSource) which holds the virtual page
-// data including initial props with page metadata.
-// Takes baseDir (string) which is the base directory for working out relative
-// paths.
+// Takes vps (*annotator_dto.VirtualPageSource) which holds the virtual page data
+// including initial props with page metadata.
+// Takes baseDir (string) which is the base directory for working out relative paths.
 // Takes slug (string) which is the canonical slug of the collection item.
 //
 // Returns string which is the manifest key in the format "pages/path.pk".
@@ -585,8 +571,8 @@ func (*virtualisationContext) calculateVirtualManifestKey(vps *annotator_dto.Vir
 	return dynamicParamRegex.ReplaceAllString(key, slug)
 }
 
-// rewriteAllScriptASTs processes all component script ASTs and rewrites them
-// for virtualisation.
+// rewriteAllScriptASTs processes all component script ASTs and rewrites them for
+// virtualisation.
 //
 // Returns error when AST rewriting fails or a duplicate package path is found.
 func (vc *virtualisationContext) rewriteAllScriptASTs(ctx context.Context) error {
@@ -616,8 +602,8 @@ func (vc *virtualisationContext) rewriteAllScriptASTs(ctx context.Context) error
 	return nil
 }
 
-// assembleSourceOverlay copies original Go files and rewritten virtual
-// component ASTs into the source overlay.
+// assembleSourceOverlay copies original Go files and rewritten virtual component ASTs
+// into the source overlay.
 //
 // Returns error when printing a virtual Go file fails.
 func (vc *virtualisationContext) assembleSourceOverlay(ctx context.Context) error {
@@ -646,25 +632,22 @@ type pkgMemberResult struct {
 	member string
 }
 
-// getModuleRootAndMember finds the root identifier and first member from an
-// expression.
+// getModuleRootAndMember finds the root identifier and first member from an expression.
 //
-// For example, for util.FormatUser(state), it returns ("util", "FormatUser").
-// For util alone, it returns ("util", "").
+// For example, for util.FormatUser(state), it returns ("util", "FormatUser"). For util
+// alone, it returns ("util", "").
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns root (*ast_domain.Identifier) which is the package name, or nil if
-// not found.
-// Returns member (string) which is the first member name, or empty if there is
-// none.
+// Returns root (*ast_domain.Identifier) which is the package name, or nil if not found.
+// Returns member (string) which is the first member name, or empty if there is none.
 func getModuleRootAndMember(expression ast_domain.Expression) (root *ast_domain.Identifier, member string) {
 	root, member, _ = getModuleRootAndMemberWithCallInfo(expression)
 	return root, member
 }
 
-// getModuleRootAndMemberWithCallInfo finds the root identifier and first
-// member from an expression, and reports whether the member is being called.
+// getModuleRootAndMemberWithCallInfo finds the root identifier and first member from an
+// expression, and reports whether the member is being called.
 //
 // For example:
 //   - util.FormatUser(state) returns ("util", "FormatUser", true)
@@ -673,12 +656,9 @@ func getModuleRootAndMember(expression ast_domain.Expression) (root *ast_domain.
 //
 // Takes expression (ast_domain.Expression) which is the expression to check.
 //
-// Returns root (*ast_domain.Identifier) which is the package name, or nil if
-// not found.
-// Returns member (string) which is the first member name, or empty if none
-// exists.
-// Returns isCall (bool) which is true if the member is used as a function
-// call.
+// Returns root (*ast_domain.Identifier) which is the package name, or nil if not found.
+// Returns member (string) which is the first member name, or empty if none exists.
+// Returns isCall (bool) which is true if the member is used as a function call.
 func getModuleRootAndMemberWithCallInfo(expression ast_domain.Expression) (root *ast_domain.Identifier, member string, isCall bool) {
 	current := expression
 	wasCall := false
@@ -706,13 +686,13 @@ func getModuleRootAndMemberWithCallInfo(expression ast_domain.Expression) (root 
 	}
 }
 
-// tryExtractCallExprMember checks if a call expression is a direct call to a
-// package member (such as pkg.Func()) and extracts the pattern if found.
+// tryExtractCallExprMember checks if a call expression is a direct call to a package
+// member (such as pkg.Func()) and extracts the pattern if found.
 //
 // Takes n (*ast_domain.CallExpression) which is the call expression to check.
 //
-// Returns *pkgMemberResult which contains the root identifier and member name,
-// or nil if the expression is not a package member call.
+// Returns *pkgMemberResult which contains the root identifier and member name, or nil if
+// the expression is not a package member call.
 func tryExtractCallExprMember(n *ast_domain.CallExpression) *pkgMemberResult {
 	memberExpr, isMember := n.Callee.(*ast_domain.MemberExpression)
 	if !isMember {
@@ -725,15 +705,14 @@ func tryExtractCallExprMember(n *ast_domain.CallExpression) *pkgMemberResult {
 	return &pkgMemberResult{root: rootIdent, member: memberName}
 }
 
-// tryExtractPackageMemberPattern checks if a MemberExpr matches the pattern
-// `pkg.Member` and extracts the root identifier and member name if it does.
+// tryExtractPackageMemberPattern checks if a MemberExpr matches the pattern `pkg.Member`
+// and extracts the root identifier and member name if it does.
 //
 // Takes n (*ast_domain.MemberExpression) which is the member expression to check.
 //
-// Returns *ast_domain.Identifier which is the root package identifier, or nil
-// if the pattern does not match.
-// Returns string which is the member name, or empty if the pattern does not
-// match.
+// Returns *ast_domain.Identifier which is the root package identifier, or nil if the
+// pattern does not match.
+// Returns string which is the member name, or empty if the pattern does not match.
 // Returns bool which is true if the pattern matched.
 func tryExtractPackageMemberPattern(n *ast_domain.MemberExpression) (*ast_domain.Identifier, string, bool) {
 	rootIdent, isRoot := n.Base.(*ast_domain.Identifier)
@@ -784,8 +763,7 @@ func hasFuncDecl(scriptAST *goast.File, name string) bool {
 //
 // Takes scriptAST (*goast.File) which is the AST to check and modify.
 // Takes importPath (string) which is the import path to find or add.
-// Takes defaultAlias (string) which is the alias to use when adding
-// the import.
+// Takes defaultAlias (string) which is the alias to use when adding the import.
 //
 // Returns string which is the alias to use for the import.
 func ensureImportAndGetAlias(scriptAST *goast.File, importPath, defaultAlias string) string {
@@ -804,12 +782,12 @@ func ensureImportAndGetAlias(scriptAST *goast.File, importPath, defaultAlias str
 
 // buildDefaultRenderDecl builds the AST for a default Render function.
 //
-// When propsTypeExpr is provided, it uses that type in the function signature.
-// When propsTypeExpr is nil, it uses NoProps as the default type.
+// When propsTypeExpr is provided, it uses that type in the function signature. When
+// propsTypeExpr is nil, it uses NoProps as the default type.
 //
 // Takes dtoAlias (string) which is the package alias for the DTO types.
-// Takes propsTypeExpr (goast.Expr) which is the props type to use, or nil for
-// the default NoProps type.
+// Takes propsTypeExpr (goast.Expr) which is the props type to use, or nil for the default
+// NoProps type.
 //
 // Returns *goast.FuncDecl which is the complete function declaration AST.
 func buildDefaultRenderDecl(dtoAlias string, propsTypeExpr goast.Expr) *goast.FuncDecl {
@@ -857,8 +835,8 @@ func buildDefaultRenderDecl(dtoAlias string, propsTypeExpr goast.Expr) *goast.Fu
 	}
 }
 
-// buildDefaultCachePolicyDecl builds an AST function declaration that returns
-// a default cache policy struct.
+// buildDefaultCachePolicyDecl builds an AST function declaration that returns a default
+// cache policy struct.
 //
 // Takes dtoAlias (string) which is the package alias for the DTO type.
 //

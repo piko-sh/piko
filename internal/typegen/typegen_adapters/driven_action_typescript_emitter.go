@@ -49,8 +49,7 @@ const (
 	tsNestedCloseConst = "\n  }"
 )
 
-// ActionTypeScriptEmitter generates TypeScript type definitions and action
-// functions.
+// ActionTypeScriptEmitter generates TypeScript type definitions and action functions.
 type ActionTypeScriptEmitter struct{}
 
 // NewActionTypeScriptEmitter creates a new TypeScript action emitter.
@@ -62,8 +61,8 @@ func NewActionTypeScriptEmitter() *ActionTypeScriptEmitter {
 
 // EmitTypeScript generates TypeScript code from action specs.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// definitions to convert to TypeScript.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action definitions to
+// convert to TypeScript.
 //
 // Returns []byte which contains the generated TypeScript code.
 // Returns error when code generation fails.
@@ -105,8 +104,8 @@ func (e *ActionTypeScriptEmitter) EmitTypeScript(_ context.Context, specs []anno
 // emitInterface emits a TypeScript interface for a struct type.
 //
 // Takes b (*strings.Builder) which receives the generated TypeScript output.
-// Takes typeSpec (*annotator_dto.TypeSpec) which provides the struct type
-// definition to convert.
+// Takes typeSpec (*annotator_dto.TypeSpec) which provides the struct type definition to
+// convert.
 func (*ActionTypeScriptEmitter) emitInterface(b *strings.Builder, typeSpec *annotator_dto.TypeSpec) {
 	fmt.Fprintf(b, "export interface %s {\n", typeSpec.Name)
 	for _, field := range typeSpec.Fields {
@@ -158,8 +157,8 @@ func (*ActionTypeScriptEmitter) emitActionFunction(b *strings.Builder, spec *ann
 // emitNamespaceObject emits the nested action namespace object.
 //
 // Takes b (*strings.Builder) which receives the generated TypeScript output.
-// Takes specs ([]annotator_dto.ActionSpec) which provides the action
-// definitions to include.
+// Takes specs ([]annotator_dto.ActionSpec) which provides the action definitions to
+// include.
 func (*ActionTypeScriptEmitter) emitNamespaceObject(b *strings.Builder, specs []annotator_dto.ActionSpec) {
 	b.WriteString("export const action = {\n")
 
@@ -195,8 +194,8 @@ func toLowerCamelCase(name string) string {
 
 // actionTSSortNamespaces returns sorted namespace keys for consistent output.
 //
-// Takes groups (map[string][]annotator_dto.ActionSpec) which contains the
-// namespace to action mappings.
+// Takes groups (map[string][]annotator_dto.ActionSpec) which contains the namespace to
+// action mappings.
 //
 // Returns []string which contains the namespace keys in alphabetical order.
 func actionTSSortNamespaces(groups map[string][]annotator_dto.ActionSpec) []string {
@@ -206,8 +205,7 @@ func actionTSSortNamespaces(groups map[string][]annotator_dto.ActionSpec) []stri
 // emitTopLevelActions emits top-level actions without a namespace.
 //
 // Takes b (*strings.Builder) which receives the formatted output.
-// Takes actions ([]annotator_dto.ActionSpec) which provides the actions
-// to emit.
+// Takes actions ([]annotator_dto.ActionSpec) which provides the actions to emit.
 func emitTopLevelActions(b *strings.Builder, actions []annotator_dto.ActionSpec) {
 	for j := range actions {
 		if j > 0 {
@@ -221,8 +219,8 @@ func emitTopLevelActions(b *strings.Builder, actions []annotator_dto.ActionSpec)
 //
 // Takes b (*strings.Builder) which receives the generated TypeScript output.
 // Takes namespace (string) which specifies the namespace name.
-// Takes actions ([]annotator_dto.ActionSpec) which contains the action
-// specifications to emit.
+// Takes actions ([]annotator_dto.ActionSpec) which contains the action specifications to
+// emit.
 func emitNestedNamespace(b *strings.Builder, namespace string, actions []annotator_dto.ActionSpec) {
 	fmt.Fprintf(b, "  %s: {\n", namespace)
 	for j := range actions {
@@ -235,12 +233,12 @@ func emitNestedNamespace(b *strings.Builder, namespace string, actions []annotat
 	b.WriteString(tsNestedCloseConst)
 }
 
-// emitActionRegistrations writes registerActionFunction calls that map action
-// names to their TypeScript wrappers for DOMBinder resolution.
+// emitActionRegistrations writes registerActionFunction calls that map action names to
+// their TypeScript wrappers for DOMBinder resolution.
 //
 // Takes b (*strings.Builder) which receives the generated TypeScript output.
-// Takes specs ([]annotator_dto.ActionSpec) which provides the action
-// definitions to register.
+// Takes specs ([]annotator_dto.ActionSpec) which provides the action definitions to
+// register.
 func emitActionRegistrations(b *strings.Builder, specs []annotator_dto.ActionSpec) {
 	b.WriteString("\n")
 	for i := range specs {
@@ -250,11 +248,11 @@ func emitActionRegistrations(b *strings.Builder, specs []annotator_dto.ActionSpe
 
 // actionTSBuildParams builds the TypeScript parameter list string.
 //
-// Takes params ([]annotator_dto.ParamSpec) which contains the parameter
-// specifications to format.
+// Takes params ([]annotator_dto.ParamSpec) which contains the parameter specifications to
+// format.
 //
-// Returns string which is the formatted parameter list, or an empty string
-// when params is empty.
+// Returns string which is the formatted parameter list, or an empty string when params is
+// empty.
 func actionTSBuildParams(params []annotator_dto.ParamSpec) string {
 	if len(params) == 0 {
 		return ""
@@ -276,12 +274,12 @@ func actionTSBuildParams(params []annotator_dto.ParamSpec) string {
 
 // actionTSBuildArgObject builds the argument object for an action call.
 //
-// For a single struct parameter (the common case), it returns the parameter
-// name directly so its fields spread into the arguments. For multiple parameters,
-// it builds an object literal.
+// For a single struct parameter (the common case), it returns the parameter name directly
+// so its fields spread into the arguments. For multiple parameters, it builds an object
+// literal.
 //
-// Takes params ([]annotator_dto.ParamSpec) which specifies the parameters to
-// include in the argument object.
+// Takes params ([]annotator_dto.ParamSpec) which specifies the parameters to include in
+// the argument object.
 //
 // Returns string which is the formatted argument object for TypeScript code.
 func actionTSBuildArgObject(params []annotator_dto.ParamSpec) string {
@@ -309,18 +307,19 @@ func actionTSBuildArgObject(params []annotator_dto.ParamSpec) string {
 
 // actionTSCollectTypeSpecs collects unique TypeSpec from all action parameters.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// specifications to extract type specs from.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action specifications to
+// extract type specs from.
 //
-// Returns []*annotator_dto.TypeSpec which contains the unique type specs
-// sorted by name for consistent output.
+// Returns []*annotator_dto.TypeSpec which contains the unique type specs sorted by name
+// for consistent output.
 func actionTSCollectTypeSpecs(specs []annotator_dto.ActionSpec) []*annotator_dto.TypeSpec {
 	seen := make(map[string]bool)
 	result := make([]*annotator_dto.TypeSpec, 0, len(specs))
 
 	for i := range specs {
-		for j := range specs[i].CallParams {
-			p := &specs[i].CallParams[j]
+		callParams := specs[i].CallParams
+		for j := range callParams {
+			p := &callParams[j]
 			if p.Name == "_" || p.IsFileUpload || p.IsFileUploadSlice || p.IsRawBody {
 				continue
 			}
@@ -341,11 +340,11 @@ func actionTSCollectTypeSpecs(specs []annotator_dto.ActionSpec) []*annotator_dto
 
 // actionTSCollectResponseTypes collects unique response types from all actions.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the action
-// specifications to extract response types from.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the action specifications to
+// extract response types from.
 //
-// Returns []*annotator_dto.TypeSpec which contains the unique response
-// types sorted by name.
+// Returns []*annotator_dto.TypeSpec which contains the unique response types sorted by
+// name.
 func actionTSCollectResponseTypes(specs []annotator_dto.ActionSpec) []*annotator_dto.TypeSpec {
 	seen := make(map[string]bool)
 	var result []*annotator_dto.TypeSpec
@@ -365,8 +364,7 @@ func actionTSCollectResponseTypes(specs []annotator_dto.ActionSpec) []*annotator
 	return result
 }
 
-// actionTSCollectNestedTypes recursively collects nested TypeSpecs from a
-// type's fields.
+// actionTSCollectNestedTypes recursively collects nested TypeSpecs from a type's fields.
 //
 // Takes ts (*annotator_dto.TypeSpec) which is the parent type to inspect.
 // Takes seen (map[string]bool) which tracks already collected type names.
@@ -383,12 +381,10 @@ func actionTSCollectNestedTypes(ts *annotator_dto.TypeSpec, seen map[string]bool
 
 // actionTSGroupByNamespace groups actions by their namespace prefix.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which contains the actions to
-// group.
+// Takes specs ([]annotator_dto.ActionSpec) which contains the actions to group.
 //
-// Returns map[string][]annotator_dto.ActionSpec which maps namespace
-// prefixes to their actions. Actions without a namespace are grouped under an
-// empty string key.
+// Returns map[string][]annotator_dto.ActionSpec which maps namespace prefixes to their
+// actions. Actions without a namespace are grouped under an empty string key.
 func actionTSGroupByNamespace(specs []annotator_dto.ActionSpec) map[string][]annotator_dto.ActionSpec {
 	groups := make(map[string][]annotator_dto.ActionSpec)
 
@@ -405,8 +401,8 @@ func actionTSGroupByNamespace(specs []annotator_dto.ActionSpec) map[string][]ann
 	return groups
 }
 
-// actionTSExtractFunctionName extracts the function name portion after the
-// namespace prefix.
+// actionTSExtractFunctionName extracts the function name portion after the namespace
+// prefix.
 //
 // Takes tsFunctionName (string) which is the camelCase function name.
 // Takes namespace (string) which is the prefix to remove.

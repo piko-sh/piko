@@ -27,20 +27,19 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-// FactoryBlueprintName is the registered name for the LLM budget store factory
-// blueprint.
-const FactoryBlueprintName = "llm-budget-store"
+const (
+	// FactoryBlueprintName is the registered name for the LLM budget store factory
+	// blueprint.
+	FactoryBlueprintName = "llm-budget-store"
+)
 
-// createBudgetStoreCache is the factory function for creating typed LLM budget
-// store caches. It type-asserts the options and delegates to the Otter provider
-// factory.
+// createBudgetStoreCache is the factory function for creating typed LLM budget store
+// caches. It type-asserts the options and delegates to the Otter provider factory.
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *llm_dto.BudgetData].
+// Takes options (any) which must be cache_dto.Options[string, *llm_dto.BudgetData].
 //
 // Returns any which is the created cache instance.
-// Returns error when the options type is wrong or cache creation
-// fails.
+// Returns error when the options type is wrong or cache creation fails.
 func createBudgetStoreCache(
 	_ cache_domain.Service,
 	_ string,

@@ -4,7 +4,6 @@ package driven_system_symbols
 
 import (
 	"cmp"
-	"fmt"
 	"reflect"
 )
 
@@ -14,14 +13,30 @@ func wrappedCmpCompare(x any, y any) int {
 		return cmp.Compare(typedArg, coerce[string](y))
 	case int:
 		return cmp.Compare(typedArg, coerce[int](y))
+	case int8:
+		return cmp.Compare(typedArg, coerce[int8](y))
+	case int16:
+		return cmp.Compare(typedArg, coerce[int16](y))
+	case int32:
+		return cmp.Compare(typedArg, coerce[int32](y))
 	case int64:
 		return cmp.Compare(typedArg, coerce[int64](y))
+	case uint:
+		return cmp.Compare(typedArg, coerce[uint](y))
+	case uint8:
+		return cmp.Compare(typedArg, coerce[uint8](y))
+	case uint16:
+		return cmp.Compare(typedArg, coerce[uint16](y))
+	case uint32:
+		return cmp.Compare(typedArg, coerce[uint32](y))
+	case uint64:
+		return cmp.Compare(typedArg, coerce[uint64](y))
+	case float32:
+		return cmp.Compare(typedArg, coerce[float32](y))
 	case float64:
 		return cmp.Compare(typedArg, coerce[float64](y))
-	case byte:
-		return cmp.Compare(typedArg, coerce[byte](y))
 	default:
-		panic(fmt.Sprintf("cmp.Compare: unsupported type %T", x))
+		return reflectCmpCompare(x, y)
 	}
 }
 func wrappedCmpLess(x any, y any) bool {
@@ -30,14 +45,30 @@ func wrappedCmpLess(x any, y any) bool {
 		return cmp.Less(typedArg, coerce[string](y))
 	case int:
 		return cmp.Less(typedArg, coerce[int](y))
+	case int8:
+		return cmp.Less(typedArg, coerce[int8](y))
+	case int16:
+		return cmp.Less(typedArg, coerce[int16](y))
+	case int32:
+		return cmp.Less(typedArg, coerce[int32](y))
 	case int64:
 		return cmp.Less(typedArg, coerce[int64](y))
+	case uint:
+		return cmp.Less(typedArg, coerce[uint](y))
+	case uint8:
+		return cmp.Less(typedArg, coerce[uint8](y))
+	case uint16:
+		return cmp.Less(typedArg, coerce[uint16](y))
+	case uint32:
+		return cmp.Less(typedArg, coerce[uint32](y))
+	case uint64:
+		return cmp.Less(typedArg, coerce[uint64](y))
+	case float32:
+		return cmp.Less(typedArg, coerce[float32](y))
 	case float64:
 		return cmp.Less(typedArg, coerce[float64](y))
-	case byte:
-		return cmp.Less(typedArg, coerce[byte](y))
 	default:
-		panic(fmt.Sprintf("cmp.Less: unsupported type %T", x))
+		return reflectCmpLess(x, y)
 	}
 }
 func wrappedCmpOr(vals ...any) any {
@@ -58,10 +89,64 @@ func wrappedCmpOr(vals ...any) any {
 			typed[i] = coerce[int](v)
 		}
 		return cmp.Or(typed...)
+	case int8:
+		typed := make([]int8, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[int8](v)
+		}
+		return cmp.Or(typed...)
+	case int16:
+		typed := make([]int16, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[int16](v)
+		}
+		return cmp.Or(typed...)
+	case int32:
+		typed := make([]int32, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[int32](v)
+		}
+		return cmp.Or(typed...)
 	case int64:
 		typed := make([]int64, len(vals))
 		for i, v := range vals {
 			typed[i] = coerce[int64](v)
+		}
+		return cmp.Or(typed...)
+	case uint:
+		typed := make([]uint, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[uint](v)
+		}
+		return cmp.Or(typed...)
+	case uint8:
+		typed := make([]uint8, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[uint8](v)
+		}
+		return cmp.Or(typed...)
+	case uint16:
+		typed := make([]uint16, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[uint16](v)
+		}
+		return cmp.Or(typed...)
+	case uint32:
+		typed := make([]uint32, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[uint32](v)
+		}
+		return cmp.Or(typed...)
+	case uint64:
+		typed := make([]uint64, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[uint64](v)
+		}
+		return cmp.Or(typed...)
+	case float32:
+		typed := make([]float32, len(vals))
+		for i, v := range vals {
+			typed[i] = coerce[float32](v)
 		}
 		return cmp.Or(typed...)
 	case float64:
@@ -70,14 +155,8 @@ func wrappedCmpOr(vals ...any) any {
 			typed[i] = coerce[float64](v)
 		}
 		return cmp.Or(typed...)
-	case byte:
-		typed := make([]byte, len(vals))
-		for i, v := range vals {
-			typed[i] = coerce[byte](v)
-		}
-		return cmp.Or(typed...)
 	default:
-		panic(fmt.Sprintf("cmp.Or: unsupported type %T", vals[0]))
+		return reflectCmpOr(vals...)
 	}
 }
 func init() {

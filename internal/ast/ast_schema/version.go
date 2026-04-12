@@ -28,9 +28,9 @@ var (
 	// schemaContent holds the embedded FlatBuffers schema from template_ast.fbs.
 	schemaContent []byte
 
-	// SchemaHash is the SHA-256 hash of template_ast.fbs, computed at init time.
-	// This hash changes whenever the schema file is modified, so the
-	// cache invalidates automatically when the schema evolves.
+	// SchemaHash is the SHA-256 hash of template_ast.fbs, computed at init time. This hash
+	// changes whenever the schema file is modified, so the cache invalidates automatically
+	// when the schema evolves.
 	SchemaHash = fbs.ComputeSchemaHash(schemaContent)
 )
 
@@ -58,19 +58,17 @@ func PackInto(destination, payload []byte) int {
 
 // Unpack validates the schema hash and returns the raw FlatBuffer payload.
 //
-// Takes data ([]byte) which contains the packed FlatBuffer data with schema
-// hash prefix.
+// Takes data ([]byte) which contains the packed FlatBuffer data with schema hash prefix.
 //
 // Returns []byte which is a zero-copy view into the original data.
-// Returns error when the stored hash does not match the current schema
-// version, returning fbs.ErrSchemaVersionMismatch to indicate stale cache
-// data.
+// Returns error when the stored hash does not match the current schema version, returning
+// fbs.ErrSchemaVersionMismatch to indicate stale cache data.
 func Unpack(data []byte) ([]byte, error) {
 	return fbs.Unpack(SchemaHash, data)
 }
 
-// Validate checks if data was serialised with the current schema version.
-// This is a fast check that does not extract the payload.
+// Validate checks if data was serialised with the current schema version. This is a fast
+// check that does not extract the payload.
 //
 // Takes data ([]byte) which is the serialised data to validate.
 //

@@ -25,52 +25,41 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// MockMetadataStore is a test double for MetadataStore where nil
-// function fields return zero values and call counts are tracked
-// atomically.
+// MockMetadataStore is a test double for MetadataStore where nil function fields return
+// zero values and call counts are tracked atomically.
 type MockMetadataStore struct {
-	// GetArtefactFunc is the function called by
-	// GetArtefact.
+	// GetArtefactFunc is the function called by GetArtefact.
 	GetArtefactFunc func(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error)
 
-	// GetMultipleArtefactsFunc is the function called by
-	// GetMultipleArtefacts.
+	// GetMultipleArtefactsFunc is the function called by GetMultipleArtefacts.
 	GetMultipleArtefactsFunc func(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error)
 
-	// ListAllArtefactIDsFunc is the function called by
-	// ListAllArtefactIDs.
+	// ListAllArtefactIDsFunc is the function called by ListAllArtefactIDs.
 	ListAllArtefactIDsFunc func(ctx context.Context) ([]string, error)
 
-	// SearchArtefactsFunc is the function called by
-	// SearchArtefacts.
+	// SearchArtefactsFunc is the function called by SearchArtefacts.
 	SearchArtefactsFunc func(ctx context.Context, query SearchQuery) ([]*registry_dto.ArtefactMeta, error)
 
-	// SearchArtefactsByTagValuesFunc is the function
-	// called by SearchArtefactsByTagValues.
+	// SearchArtefactsByTagValuesFunc is the function called by SearchArtefactsByTagValues.
 	SearchArtefactsByTagValuesFunc func(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error)
 
-	// FindArtefactByVariantStorageKeyFunc is the function
-	// called by FindArtefactByVariantStorageKey.
+	// FindArtefactByVariantStorageKeyFunc is the function called by
+	// FindArtefactByVariantStorageKey.
 	FindArtefactByVariantStorageKeyFunc func(ctx context.Context, storageKey string) (*registry_dto.ArtefactMeta, error)
 
-	// PopGCHintsFunc is the function called by
-	// PopGCHints.
+	// PopGCHintsFunc is the function called by PopGCHints.
 	PopGCHintsFunc func(ctx context.Context, limit int) ([]registry_dto.GCHint, error)
 
-	// AtomicUpdateFunc is the function called by
-	// AtomicUpdate.
+	// AtomicUpdateFunc is the function called by AtomicUpdate.
 	AtomicUpdateFunc func(ctx context.Context, actions []registry_dto.AtomicAction) error
 
-	// IncrementBlobRefCountFunc is the function called
-	// by IncrementBlobRefCount.
+	// IncrementBlobRefCountFunc is the function called by IncrementBlobRefCount.
 	IncrementBlobRefCountFunc func(ctx context.Context, blob BlobReference) (int, error)
 
-	// DecrementBlobRefCountFunc is the function called
-	// by DecrementBlobRefCount.
+	// DecrementBlobRefCountFunc is the function called by DecrementBlobRefCount.
 	DecrementBlobRefCountFunc func(ctx context.Context, storageKey string) (int, bool, error)
 
-	// GetBlobRefCountFunc is the function called by
-	// GetBlobRefCount.
+	// GetBlobRefCountFunc is the function called by GetBlobRefCount.
 	GetBlobRefCountFunc func(ctx context.Context, storageKey string) (int, error)
 
 	// RunAtomicFunc is the function called by RunAtomic.
@@ -79,58 +68,46 @@ type MockMetadataStore struct {
 	// CloseFunc is the function called by Close.
 	CloseFunc func() error
 
-	// GetArtefactCallCount tracks how many times
-	// GetArtefact was called.
-	GetArtefactCallCount int64
+	// GetArtefactCallCount tracks how many times GetArtefact was called.
+	GetArtefactCallCount atomic.Int64
 
-	// GetMultipleArtefactsCallCount tracks how many
-	// times GetMultipleArtefacts was called.
-	GetMultipleArtefactsCallCount int64
+	// GetMultipleArtefactsCallCount tracks how many times GetMultipleArtefacts was called.
+	GetMultipleArtefactsCallCount atomic.Int64
 
-	// ListAllArtefactIDsCallCount tracks how many times
-	// ListAllArtefactIDs was called.
-	ListAllArtefactIDsCallCount int64
+	// ListAllArtefactIDsCallCount tracks how many times ListAllArtefactIDs was called.
+	ListAllArtefactIDsCallCount atomic.Int64
 
-	// SearchArtefactsCallCount tracks how many times
-	// SearchArtefacts was called.
-	SearchArtefactsCallCount int64
+	// SearchArtefactsCallCount tracks how many times SearchArtefacts was called.
+	SearchArtefactsCallCount atomic.Int64
 
-	// SearchArtefactsByTagValuesCallCount tracks how
-	// many times SearchArtefactsByTagValues was called.
-	SearchArtefactsByTagValuesCallCount int64
-
-	// FindArtefactByVariantStorageKeyCallCount tracks
-	// how many times FindArtefactByVariantStorageKey
+	// SearchArtefactsByTagValuesCallCount tracks how many times SearchArtefactsByTagValues
 	// was called.
-	FindArtefactByVariantStorageKeyCallCount int64
+	SearchArtefactsByTagValuesCallCount atomic.Int64
 
-	// PopGCHintsCallCount tracks how many times
-	// PopGCHints was called.
-	PopGCHintsCallCount int64
+	// FindArtefactByVariantStorageKeyCallCount tracks how many times
+	// FindArtefactByVariantStorageKey was called.
+	FindArtefactByVariantStorageKeyCallCount atomic.Int64
 
-	// AtomicUpdateCallCount tracks how many times
-	// AtomicUpdate was called.
-	AtomicUpdateCallCount int64
+	// PopGCHintsCallCount tracks how many times PopGCHints was called.
+	PopGCHintsCallCount atomic.Int64
 
-	// IncrementBlobRefCountCallCount tracks how many
-	// times IncrementBlobRefCount was called.
-	IncrementBlobRefCountCallCount int64
+	// AtomicUpdateCallCount tracks how many times AtomicUpdate was called.
+	AtomicUpdateCallCount atomic.Int64
 
-	// DecrementBlobRefCountCallCount tracks how many
-	// times DecrementBlobRefCount was called.
-	DecrementBlobRefCountCallCount int64
+	// IncrementBlobRefCountCallCount tracks how many times IncrementBlobRefCount was called.
+	IncrementBlobRefCountCallCount atomic.Int64
 
-	// GetBlobRefCountCallCount tracks how many times
-	// GetBlobRefCount was called.
-	GetBlobRefCountCallCount int64
+	// DecrementBlobRefCountCallCount tracks how many times DecrementBlobRefCount was called.
+	DecrementBlobRefCountCallCount atomic.Int64
 
-	// RunAtomicCallCount tracks how many times
-	// RunAtomic was called.
-	RunAtomicCallCount int64
+	// GetBlobRefCountCallCount tracks how many times GetBlobRefCount was called.
+	GetBlobRefCountCallCount atomic.Int64
 
-	// CloseCallCount tracks how many times Close was
-	// called.
-	CloseCallCount int64
+	// RunAtomicCallCount tracks how many times RunAtomic was called.
+	RunAtomicCallCount atomic.Int64
+
+	// CloseCallCount tracks how many times Close was called.
+	CloseCallCount atomic.Int64
 }
 
 // GetArtefact retrieves artefact metadata by ID.
@@ -140,7 +117,7 @@ type MockMetadataStore struct {
 //
 // Returns (*ArtefactMeta, error), or (nil, nil) if GetArtefactFunc is nil.
 func (m *MockMetadataStore) GetArtefact(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.GetArtefactCallCount, 1)
+	m.GetArtefactCallCount.Add(1)
 	if m.GetArtefactFunc != nil {
 		return m.GetArtefactFunc(ctx, artefactID)
 	}
@@ -152,10 +129,9 @@ func (m *MockMetadataStore) GetArtefact(ctx context.Context, artefactID string) 
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes artefactIDs ([]string) which lists the artefact IDs to look up.
 //
-// Returns ([]*ArtefactMeta, error), or (nil, nil) if
-// GetMultipleArtefactsFunc is nil.
+// Returns ([]*ArtefactMeta, error), or (nil, nil) if GetMultipleArtefactsFunc is nil.
 func (m *MockMetadataStore) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.GetMultipleArtefactsCallCount, 1)
+	m.GetMultipleArtefactsCallCount.Add(1)
 	if m.GetMultipleArtefactsFunc != nil {
 		return m.GetMultipleArtefactsFunc(ctx, artefactIDs)
 	}
@@ -166,7 +142,7 @@ func (m *MockMetadataStore) GetMultipleArtefacts(ctx context.Context, artefactID
 //
 // Returns ([]string, error), or (nil, nil) if ListAllArtefactIDsFunc is nil.
 func (m *MockMetadataStore) ListAllArtefactIDs(ctx context.Context) ([]string, error) {
-	atomic.AddInt64(&m.ListAllArtefactIDsCallCount, 1)
+	m.ListAllArtefactIDsCallCount.Add(1)
 	if m.ListAllArtefactIDsFunc != nil {
 		return m.ListAllArtefactIDsFunc(ctx)
 	}
@@ -178,10 +154,9 @@ func (m *MockMetadataStore) ListAllArtefactIDs(ctx context.Context) ([]string, e
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes query (SearchQuery) which defines the search criteria.
 //
-// Returns ([]*ArtefactMeta, error), or (nil, nil) if SearchArtefactsFunc
-// is nil.
+// Returns ([]*ArtefactMeta, error), or (nil, nil) if SearchArtefactsFunc is nil.
 func (m *MockMetadataStore) SearchArtefacts(ctx context.Context, query SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.SearchArtefactsCallCount, 1)
+	m.SearchArtefactsCallCount.Add(1)
 	if m.SearchArtefactsFunc != nil {
 		return m.SearchArtefactsFunc(ctx, query)
 	}
@@ -194,10 +169,10 @@ func (m *MockMetadataStore) SearchArtefacts(ctx context.Context, query SearchQue
 // Takes tagKey (string) which is the tag key to filter by.
 // Takes tagValues ([]string) which lists the tag values to match.
 //
-// Returns ([]*ArtefactMeta, error), or (nil, nil) if
-// SearchArtefactsByTagValuesFunc is nil.
+// Returns ([]*ArtefactMeta, error), or (nil, nil) if SearchArtefactsByTagValuesFunc is
+// nil.
 func (m *MockMetadataStore) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.SearchArtefactsByTagValuesCallCount, 1)
+	m.SearchArtefactsByTagValuesCallCount.Add(1)
 	if m.SearchArtefactsByTagValuesFunc != nil {
 		return m.SearchArtefactsByTagValuesFunc(ctx, tagKey, tagValues)
 	}
@@ -209,10 +184,10 @@ func (m *MockMetadataStore) SearchArtefactsByTagValues(ctx context.Context, tagK
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes storageKey (string) which is the variant storage key to search for.
 //
-// Returns (*ArtefactMeta, error), or (nil, nil) if
-// FindArtefactByVariantStorageKeyFunc is nil.
+// Returns (*ArtefactMeta, error), or (nil, nil) if FindArtefactByVariantStorageKeyFunc is
+// nil.
 func (m *MockMetadataStore) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (*registry_dto.ArtefactMeta, error) {
-	atomic.AddInt64(&m.FindArtefactByVariantStorageKeyCallCount, 1)
+	m.FindArtefactByVariantStorageKeyCallCount.Add(1)
 	if m.FindArtefactByVariantStorageKeyFunc != nil {
 		return m.FindArtefactByVariantStorageKeyFunc(ctx, storageKey)
 	}
@@ -226,7 +201,7 @@ func (m *MockMetadataStore) FindArtefactByVariantStorageKey(ctx context.Context,
 //
 // Returns ([]GCHint, error), or (nil, nil) if PopGCHintsFunc is nil.
 func (m *MockMetadataStore) PopGCHints(ctx context.Context, limit int) ([]registry_dto.GCHint, error) {
-	atomic.AddInt64(&m.PopGCHintsCallCount, 1)
+	m.PopGCHintsCallCount.Add(1)
 	if m.PopGCHintsFunc != nil {
 		return m.PopGCHintsFunc(ctx, limit)
 	}
@@ -240,7 +215,7 @@ func (m *MockMetadataStore) PopGCHints(ctx context.Context, limit int) ([]regist
 //
 // Returns error, or nil if AtomicUpdateFunc is nil.
 func (m *MockMetadataStore) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
-	atomic.AddInt64(&m.AtomicUpdateCallCount, 1)
+	m.AtomicUpdateCallCount.Add(1)
 	if m.AtomicUpdateFunc != nil {
 		return m.AtomicUpdateFunc(ctx, actions)
 	}
@@ -254,7 +229,7 @@ func (m *MockMetadataStore) AtomicUpdate(ctx context.Context, actions []registry
 //
 // Returns (int, error), or (0, nil) if IncrementBlobRefCountFunc is nil.
 func (m *MockMetadataStore) IncrementBlobRefCount(ctx context.Context, blob BlobReference) (int, error) {
-	atomic.AddInt64(&m.IncrementBlobRefCountCallCount, 1)
+	m.IncrementBlobRefCountCallCount.Add(1)
 	if m.IncrementBlobRefCountFunc != nil {
 		return m.IncrementBlobRefCountFunc(ctx, blob)
 	}
@@ -266,10 +241,9 @@ func (m *MockMetadataStore) IncrementBlobRefCount(ctx context.Context, blob Blob
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes storageKey (string) which identifies the blob to decrement.
 //
-// Returns (int, bool, error), or (0, false, nil) if
-// DecrementBlobRefCountFunc is nil.
+// Returns (int, bool, error), or (0, false, nil) if DecrementBlobRefCountFunc is nil.
 func (m *MockMetadataStore) DecrementBlobRefCount(ctx context.Context, storageKey string) (int, bool, error) {
-	atomic.AddInt64(&m.DecrementBlobRefCountCallCount, 1)
+	m.DecrementBlobRefCountCallCount.Add(1)
 	if m.DecrementBlobRefCountFunc != nil {
 		return m.DecrementBlobRefCountFunc(ctx, storageKey)
 	}
@@ -283,7 +257,7 @@ func (m *MockMetadataStore) DecrementBlobRefCount(ctx context.Context, storageKe
 //
 // Returns (int, error), or (0, nil) if GetBlobRefCountFunc is nil.
 func (m *MockMetadataStore) GetBlobRefCount(ctx context.Context, storageKey string) (int, error) {
-	atomic.AddInt64(&m.GetBlobRefCountCallCount, 1)
+	m.GetBlobRefCountCallCount.Add(1)
 	if m.GetBlobRefCountFunc != nil {
 		return m.GetBlobRefCountFunc(ctx, storageKey)
 	}
@@ -292,12 +266,11 @@ func (m *MockMetadataStore) GetBlobRefCount(ctx context.Context, storageKey stri
 
 // RunAtomic executes fn within a transaction.
 //
-// Takes fn which receives a transactional
-// MetadataStore for atomic operations.
+// Takes fn which receives a transactional MetadataStore for atomic operations.
 //
 // Returns error, or nil if RunAtomicFunc is nil.
 func (m *MockMetadataStore) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore MetadataStore) error) error {
-	atomic.AddInt64(&m.RunAtomicCallCount, 1)
+	m.RunAtomicCallCount.Add(1)
 	if m.RunAtomicFunc != nil {
 		return m.RunAtomicFunc(ctx, fn)
 	}
@@ -308,7 +281,7 @@ func (m *MockMetadataStore) RunAtomic(ctx context.Context, fn func(ctx context.C
 //
 // Returns error, or nil if CloseFunc is nil.
 func (m *MockMetadataStore) Close() error {
-	atomic.AddInt64(&m.CloseCallCount, 1)
+	m.CloseCallCount.Add(1)
 	if m.CloseFunc != nil {
 		return m.CloseFunc()
 	}

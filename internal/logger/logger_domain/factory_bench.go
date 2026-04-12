@@ -34,7 +34,9 @@ type noOpLogger struct {
 	ctx context.Context
 }
 
-var _ Logger = (*noOpLogger)(nil)
+var (
+	_ Logger = (*noOpLogger)(nil)
+)
 
 // Trace does nothing with the message and attributes.
 func (*noOpLogger) Trace(_ string, _ ...Attr) {}
@@ -107,8 +109,7 @@ func (*noOpLogger) ReportError(_ trace.Span, _ error, _ string, _ ...Attr) {}
 
 // RunInSpan executes the given function without creating a trace span.
 //
-// Takes operation (func(context.Context, Logger) error) which is the
-// function to run.
+// Takes operation (func(context.Context, Logger) error) which is the function to run.
 //
 // Returns error when the provided function returns an error.
 func (l *noOpLogger) RunInSpan(ctx context.Context, _ string, operation func(context.Context, Logger) error, _ ...Attr) error {
@@ -118,8 +119,7 @@ func (l *noOpLogger) RunInSpan(ctx context.Context, _ string, operation func(con
 // AddSpanLifecycleHook does nothing as this is a no-op logger implementation.
 func (*noOpLogger) AddSpanLifecycleHook(_ SpanLifecycleHook) {}
 
-// WithoutAutoCaller returns the logger unchanged as this is a no-op
-// implementation.
+// WithoutAutoCaller returns the logger unchanged as this is a no-op implementation.
 //
 // Returns Logger which is the same no-op logger instance.
 func (l *noOpLogger) WithoutAutoCaller() Logger {
@@ -129,8 +129,10 @@ func (l *noOpLogger) WithoutAutoCaller() Logger {
 // LogFactory provides a way to create log checkers.
 type LogFactory struct{}
 
-// DefaultFactory is the package-level log factory instance.
-var DefaultFactory *LogFactory
+var (
+	// DefaultFactory is the package-level log factory instance.
+	DefaultFactory *LogFactory
+)
 
 // GetLoggerForPackage returns a logger for the named package.
 //

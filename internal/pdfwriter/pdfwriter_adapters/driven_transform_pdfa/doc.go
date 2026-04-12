@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_pdfa applies PDF/A archival conformance as a
-// post-processing transformer.
+// Package driven_transform_pdfa applies PDF/A archival conformance as a post-processing
+// transformer.
 //
-// It adds XMP metadata with the appropriate pdfaid namespace declarations,
-// inserts an sRGB output intent into the document catalog, and removes
-// prohibited features such as additional actions (/AA), JavaScript, and
-// (for PDF/A-1b) transparency groups.
+// It adds XMP metadata with the appropriate pdfaid namespace declarations, inserts an
+// sRGB output intent into the document catalog, and removes prohibited features such as
+// additional actions (/AA), JavaScript, and (for PDF/A-1b) transparency groups.
 package driven_transform_pdfa

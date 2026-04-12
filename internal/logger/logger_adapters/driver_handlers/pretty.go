@@ -43,8 +43,8 @@ const (
 )
 
 var (
-	// builderPool reuses strings.Builder instances to reduce allocation pressure
-	// during log line formatting.
+	// builderPool reuses strings.Builder instances to reduce allocation pressure during log
+	// line formatting.
 	builderPool = sync.Pool{
 		New: func() any {
 			return &strings.Builder{}
@@ -115,9 +115,9 @@ type Options struct {
 	NoColour bool
 }
 
-// prettyHandler is a slog.Handler that formats log records for easy reading
-// in the console. It uses colours, padding, and ordered fields to make logs
-// clear and simple to scan.
+// prettyHandler is a slog.Handler that formats log records for easy reading in the
+// console. It uses colours, padding, and ordered fields to make logs clear and simple to
+// scan.
 type prettyHandler struct {
 	// w is the destination writer for formatted log output.
 	w io.Writer
@@ -138,19 +138,18 @@ type prettyHandler struct {
 	groups []string
 }
 
-// Enabled reports whether the handler handles the given log level.
-// This implements the slog.Handler interface.
+// Enabled reports whether the handler handles the given log level. This implements the
+// slog.Handler interface.
 //
 // Takes level (slog.Level) which is the log level to check.
 //
-// Returns bool which is true if the level meets or exceeds the handler's
-// minimum level.
+// Returns bool which is true if the level meets or exceeds the handler's minimum level.
 func (h *prettyHandler) Enabled(_ context.Context, level slog.Level) bool {
 	return level >= h.opts.Level.Level()
 }
 
-// WithAttrs returns a new prettyHandler with additional attributes.
-// This implements the slog.Handler interface.
+// WithAttrs returns a new prettyHandler with additional attributes. This implements the
+// slog.Handler interface.
 //
 // Takes attrs ([]slog.Attr) which specifies the attributes to add.
 //
@@ -166,8 +165,8 @@ func (h *prettyHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &newHandler
 }
 
-// WithGroup returns a new prettyHandler with an additional group name.
-// This implements the slog.Handler interface.
+// WithGroup returns a new prettyHandler with an additional group name. This implements
+// the slog.Handler interface.
 //
 // Takes name (string) which specifies the group name to add.
 //
@@ -180,8 +179,8 @@ func (h *prettyHandler) WithGroup(name string) slog.Handler {
 	return &newHandler
 }
 
-// Handle formats and outputs a log record to the configured writer.
-// This implements the slog.Handler interface.
+// Handle formats and outputs a log record to the configured writer. This implements the
+// slog.Handler interface.
 //
 // Takes r (slog.Record) which contains the log entry to format.
 //
@@ -211,8 +210,7 @@ func (h *prettyHandler) Handle(_ context.Context, r slog.Record) error {
 	return nil
 }
 
-// gatherAllAttrs collects all attributes from the handler and record into a
-// single map.
+// gatherAllAttrs collects all attributes from the handler and record into a single map.
 //
 // Takes r (*slog.Record) which provides the log record attributes to collect.
 //
@@ -230,8 +228,8 @@ func (h *prettyHandler) gatherAllAttrs(r *slog.Record) map[string]slog.Value {
 	return attrs
 }
 
-// writeMainFields writes the main fields (time, level, message, and others)
-// to the builder in the set order, with colour and separators.
+// writeMainFields writes the main fields (time, level, message, and others) to the
+// builder in the set order, with colour and separators.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes r (*slog.Record) which provides the log record data.
@@ -324,8 +322,7 @@ func (*prettyHandler) formatFieldValue(value string, found bool, key string) str
 // writeExtraAttrs writes any extra attributes not in the main field order.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
-// Takes attrs (map[string]slog.Value) which contains the extra attributes to
-// write.
+// Takes attrs (map[string]slog.Value) which contains the extra attributes to write.
 func (h *prettyHandler) writeExtraAttrs(builder *strings.Builder, attrs map[string]slog.Value) {
 	if len(attrs) == 0 {
 		return
@@ -377,11 +374,11 @@ func (h *prettyHandler) writeStackTrace(builder *strings.Builder, valueString sl
 
 // extractStackFrames extracts stack trace frames from a value.
 //
-// Takes valueString (slog.Value) which holds the stack trace data. Supports
-// StackTrace, []string, or string (split by newlines) formats.
+// Takes valueString (slog.Value) which holds the stack trace data. Supports StackTrace,
+// []string, or string (split by newlines) formats.
 //
-// Returns []string which holds the extracted stack frames, or nil if the
-// value type is not recognised.
+// Returns []string which holds the extracted stack frames, or nil if the value type is
+// not recognised.
 func (*prettyHandler) extractStackFrames(valueString slog.Value) []string {
 	anyVal := valueString.Any()
 
@@ -472,13 +469,12 @@ func (h *prettyHandler) collectAttrs(dst map[string]slog.Value, as []slog.Attr, 
 	}
 }
 
-// NewPrettyHandler creates a new pretty handler with the given writer and
-// options. If opts is nil, default options are used (Info level, colours
-// enabled).
+// NewPrettyHandler creates a new pretty handler with the given writer and options. If
+// opts is nil, default options are used (Info level, colours enabled).
 //
 // Takes w (io.Writer) which receives the formatted log output.
-// Takes opts (*Options) which sets handler behaviour such as log level and
-// colour settings.
+// Takes opts (*Options) which sets handler behaviour such as log level and colour
+// settings.
 //
 // Returns slog.Handler which is ready to use with slog.
 func NewPrettyHandler(w io.Writer, opts *Options) slog.Handler {
@@ -510,11 +506,10 @@ func NewPrettyHandler(w io.Writer, opts *Options) slog.Handler {
 // Takes input (string) which is the string to pad.
 // Takes padLength (int) which is the target length for the result.
 // Takes padString (string) which is the string used for padding.
-// Takes padType (string) which sets where to add padding: "LEFT", "RIGHT",
-// or "BOTH".
+// Takes padType (string) which sets where to add padding: "LEFT", "RIGHT", or "BOTH".
 //
-// Returns string which is the padded result, or the original input if it
-// already meets or exceeds the target length.
+// Returns string which is the padded result, or the original input if it already meets or
+// exceeds the target length.
 func strPad(input string, padLength int, padString string, padType string) string {
 	var output string
 	inputLength := len(input)

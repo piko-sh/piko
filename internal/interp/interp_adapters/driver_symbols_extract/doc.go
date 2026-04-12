@@ -16,13 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package driver_symbols_extract provides the code generation
-// tooling that produces vendored symbol tables for the bytecode
-// interpreter.
+// Package driver_symbols_extract provides the code generation tooling that produces
+// vendored symbol tables for the bytecode interpreter.
 //
-// It reads a YAML manifest specifying which Go packages to
-// extract, uses go/packages to load their exported symbols, and
-// generates Go source files containing reflect.Value map literals
-// for use by the interpreter's symbol registry. For packages with
-// generic functions, it also generates typed dispatch wrappers.
+// It reads a YAML manifest specifying which Go packages to extract, uses go/packages to
+// load their exported symbols, and generates Go source files containing reflect.Value map
+// literals for use by the interpreter's symbol registry. For packages with generic
+// functions, it also generates typed dispatch wrappers.
 package driver_symbols_extract

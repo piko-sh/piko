@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package system_memlimit_automemlimit provides automatic GOMEMLIMIT
-// configuration based on cgroup memory limits, using the automemlimit
-// library. It detects the container's memory ceiling and sets the Go
-// garbage collector's soft limit to a configurable fraction of it.
+// Package system_memlimit_automemlimit provides automatic GOMEMLIMIT configuration based
+// on cgroup memory limits, using the automemlimit library. It detects the container's
+// memory ceiling and sets the Go garbage collector's soft limit to a configurable
+// fraction of it.
 package system_memlimit_automemlimit

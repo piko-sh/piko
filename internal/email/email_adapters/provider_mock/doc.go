@@ -16,9 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_mock implements a mock email provider for testing.
-// It records all send operations and supports configurable error
-// injection to simulate failure scenarios.
+// Package provider_mock implements a mock email provider for testing. It records all send
+// operations and supports configurable error injection to simulate failure scenarios.
 //
 // All methods are safe for concurrent use.
 package provider_mock

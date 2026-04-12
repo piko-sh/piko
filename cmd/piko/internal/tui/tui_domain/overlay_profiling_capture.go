@@ -29,34 +29,34 @@ import (
 )
 
 const (
-	// profilingCaptureOverlayID identifies the capture overlay on the
-	// overlay-manager stack so the profiling panel can pop it when the
-	// capture finishes without disturbing other overlays.
+	// profilingCaptureOverlayID identifies the capture overlay on the overlay-manager stack
+	// so the profiling panel can pop it when the capture finishes without disturbing other
+	// overlays.
 	profilingCaptureOverlayID = "profiling-capture"
 
-	// captureOverlayMinWidth is the smallest width at which the capture
-	// overlay remains legible.
+	// captureOverlayMinWidth is the smallest width at which the capture overlay remains
+	// legible.
 	captureOverlayMinWidth = 40
 
-	// captureOverlayMinHeight is the smallest height at which the
-	// overlay's content fits without clipping.
+	// captureOverlayMinHeight is the smallest height at which the overlay's content fits
+	// without clipping.
 	captureOverlayMinHeight = 7
 
 	// captureProgressWidth is the cell width of the progress bar.
 	captureProgressWidth = 32
 )
 
-// captureOverlaySpinnerFrames is the small Braille spinner cycle used
-// while the capture is in flight. Six frames per second feels alive
-// without flashing.
-var captureOverlaySpinnerFrames = []string{"⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"}
+var (
+	// captureOverlaySpinnerFrames is the small Braille spinner cycle used while the capture
+	// is running. Six frames per second feels alive without flashing.
+	captureOverlaySpinnerFrames = []string{"⣷", "⣯", "⣟", "⡿", "⢿", "⣻", "⣽", "⣾"}
+)
 
-// ProfilingCaptureOverlay is the modal shown during a one-shot
-// profile capture.
+// ProfilingCaptureOverlay is the modal shown during a one-shot profile capture.
 //
-// It displays the profile name, an elapsed-time progress bar against
-// the total duration, and a small spinner. The overlay self-dismisses
-// when the panel emits a popOverlayMessage on completion.
+// It displays the profile name, an elapsed-time progress bar against the total duration,
+// and a small spinner. The overlay self-dismisses when the panel emits a
+// popOverlayMessage on completion.
 type ProfilingCaptureOverlay struct {
 	// clock supplies the current time for progress calculation.
 	clock clock.Clock
@@ -77,7 +77,9 @@ type ProfilingCaptureOverlay struct {
 	dismissed bool
 }
 
-var _ Overlay = (*ProfilingCaptureOverlay)(nil)
+var (
+	_ Overlay = (*ProfilingCaptureOverlay)(nil)
+)
 
 // NewProfilingCaptureOverlay constructs the overlay.
 //
@@ -130,8 +132,7 @@ func (o *ProfilingCaptureOverlay) Dismiss() bool { return o.dismissed }
 // Takes msg (tea.Msg) which is the message routed to the overlay.
 //
 // Returns Overlay which is the (possibly updated) receiver.
-// Returns tea.Cmd which is always nil; the overlay produces no
-// commands of its own.
+// Returns tea.Cmd which is always nil; the overlay produces no commands of its own.
 func (o *ProfilingCaptureOverlay) Update(msg tea.Msg) (Overlay, tea.Cmd) {
 	switch m := msg.(type) {
 	case tea.KeyPressMsg:
@@ -178,8 +179,8 @@ func (o *ProfilingCaptureOverlay) Render(width, height int) string {
 
 // captureProgressBar renders the elapsed-vs-total progress bar.
 //
-// Takes elapsed (time.Duration), total (time.Duration), width (int)
-// which sets the bar character width.
+// Takes elapsed (time.Duration), total (time.Duration), width (int) which sets the bar
+// character width.
 //
 // Returns string with a "[#####.....]" style bar.
 func captureProgressBar(elapsed, total time.Duration, width int) string {

@@ -25,10 +25,9 @@ import (
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
 )
 
-// MockHealthyBlobStore composes MockBlobStore with health probe methods
-// for blob stores that need to participate in health checking, where nil
-// function fields return zero values and call counts are tracked
-// atomically.
+// MockHealthyBlobStore composes MockBlobStore with health probe methods for blob stores
+// that need to participate in health checking, where nil function fields return zero
+// values and call counts are tracked atomically.
 type MockHealthyBlobStore struct {
 	// NameFunc is the function called by Name.
 	NameFunc func() string
@@ -38,20 +37,18 @@ type MockHealthyBlobStore struct {
 
 	MockBlobStore
 
-	// NameCallCount tracks how many times Name was
-	// called.
-	NameCallCount int64
+	// NameCallCount tracks how many times Name was called.
+	NameCallCount atomic.Int64
 
-	// CheckCallCount tracks how many times Check was
-	// called.
-	CheckCallCount int64
+	// CheckCallCount tracks how many times Check was called.
+	CheckCallCount atomic.Int64
 }
 
 // Name returns the identifier of the component being checked.
 //
 // Returns string, or "" if NameFunc is nil.
 func (m *MockHealthyBlobStore) Name() string {
-	atomic.AddInt64(&m.NameCallCount, 1)
+	m.NameCallCount.Add(1)
 	if m.NameFunc != nil {
 		return m.NameFunc()
 	}
@@ -61,12 +58,12 @@ func (m *MockHealthyBlobStore) Name() string {
 // Check performs the health check.
 //
 // Takes ctx (context.Context) which carries deadlines and cancellation signals.
-// Takes checkType (healthprobe_dto.CheckType) which
-// specifies the type of health check to perform.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
 //
 // Returns healthprobe_dto.Status, or zero value if CheckFunc is nil.
 func (m *MockHealthyBlobStore) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
-	atomic.AddInt64(&m.CheckCallCount, 1)
+	m.CheckCallCount.Add(1)
 	if m.CheckFunc != nil {
 		return m.CheckFunc(ctx, checkType)
 	}

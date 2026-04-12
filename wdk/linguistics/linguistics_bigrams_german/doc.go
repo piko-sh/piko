@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_bigrams_german provides German character bigram
-// frequency analysis for gibberish detection.
+// Package linguistics_bigrams_german provides German character bigram frequency analysis
+// for gibberish detection.
 //
-// It registers itself with the linguistics domain via init() and is
-// activated by blank import:
+// It registers itself with the linguistics domain via init() and is activated by blank
+// import:
 //
 //	import _ "piko.sh/piko/wdk/linguistics/linguistics_bigrams_german"
 //

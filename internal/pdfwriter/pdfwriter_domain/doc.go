@@ -16,15 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package pdfwriter_domain contains the core domain types, port interfaces,
-// and service implementation for the PDF writer.
+// Package pdfwriter_domain contains the core domain types, port interfaces, and service
+// implementation for the PDF writer.
 //
-// The PDF writer orchestrates the full pipeline from a compiled template AST
-// to a rendered PDF document. It uses the layouter as a driven adapter for
-// CSS resolution, box tree construction, and layout, then paints the result
-// to PDF.
+// The PDF writer orchestrates the full pipeline from a compiled template AST to a
+// rendered PDF document. It uses the layouter as a driven adapter for CSS resolution, box
+// tree construction, and layout, then paints the result to PDF.
 //
-// The pipeline has three stages: template execution produces an AST, layout
-// resolves CSS and builds a positioned box tree, and painting serialises
-// that tree into PDF bytes.
+// The pipeline has three stages: template execution produces an AST, layout resolves CSS
+// and builds a positioned box tree, and painting serialises that tree into PDF bytes.
 package pdfwriter_domain

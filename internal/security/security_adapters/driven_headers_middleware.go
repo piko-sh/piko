@@ -33,20 +33,19 @@ const (
 	// tokenByteLength is the number of random bytes used for CSP tokens.
 	tokenByteLength = 16
 
-	// requestTokenPlaceholder is the marker text replaced with the actual CSP
-	// token.
+	// requestTokenPlaceholder is the marker text replaced with the actual CSP token.
 	requestTokenPlaceholder = "{{REQUEST_TOKEN}}"
 
-	// maxStaticHeaders is the maximum number of static security headers that
-	// can be configured. This allows the staticHeaders array to be embedded
-	// directly in the struct with no separate backing array allocation.
+	// maxStaticHeaders is the maximum number of static security headers that can be
+	// configured. This allows the staticHeaders array to be embedded directly in the struct
+	// with no separate backing array allocation.
 	maxStaticHeaders = 9
 )
 
-// staticHeader is a pre-computed header entry with a reusable []string value.
-// By assigning directly to the header map (h[key] = value) instead of calling
-// Header.Set(), we avoid both the []string{v} allocation and the
-// CanonicalMIMEHeaderKey canonicalisation on every request.
+// staticHeader is a pre-computed header entry with a reusable []string value. By
+// assigning directly to the header map (h[key] = value) instead of calling Header.Set(),
+// we avoid both the []string{v} allocation and the CanonicalMIMEHeaderKey
+// canonicalisation on every request.
 type staticHeader struct {
 	// key is the canonical HTTP header name.
 	key string
@@ -55,38 +54,35 @@ type staticHeader struct {
 	value []string
 }
 
-// SecurityHeadersMiddleware adds OWASP-recommended HTTP security headers to
-// responses. It protects against common web vulnerabilities like clickjacking,
-// XSS, and MIME sniffing.
+// SecurityHeadersMiddleware adds OWASP-recommended HTTP security headers to responses. It
+// protects against common web vulnerabilities like clickjacking, XSS, and MIME sniffing.
 //
-// Static header values are pre-computed once at construction time as
-// []string slices and assigned directly to the header map on each request,
-// bypassing Header.Set() entirely. This eliminates ~10 allocations per
-// request from the security headers alone.
+// Static header values are pre-computed once at construction time as []string slices and
+// assigned directly to the header map on each request, bypassing Header.Set() entirely to
+// avoid per-request allocations for security headers.
 type SecurityHeadersMiddleware struct {
-	// tokenGenerator creates secure random per-request tokens for CSP.
-	// Defaults to generateSecureToken; injectable for testing.
+	// tokenGenerator creates secure random per-request tokens for CSP. Defaults to
+	// generateSecureToken; injectable for testing.
 	tokenGenerator func() string
 
-	// cspHeaderName is the pre-resolved CSP header key. Either
-	// "Content-Security-Policy" or "Content-Security-Policy-Report-Only".
+	// cspHeaderName is the pre-resolved CSP header key. Either "Content-Security-Policy" or
+	// "Content-Security-Policy-Report-Only".
 	cspHeaderName string
 
-	// staticHeaders holds pre-computed header entries that are assigned
-	// directly to the response header map on every request with zero
-	// allocations. The fixed-size array is embedded inline in the struct,
-	// avoiding a separate slice backing array allocation.
+	// staticHeaders holds pre-computed header entries that are assigned directly to the
+	// response header map on every request with zero allocations. The fixed-size array is
+	// embedded inline in the struct, avoiding a separate slice backing array allocation.
 	staticHeaders [maxStaticHeaders]staticHeader
 
 	// config holds the security header settings for the middleware.
 	config SecurityHeadersValues
 
-	// cspConfig holds the computed CSP configuration, kept separate from config
-	// to maintain immutability of the base config.
+	// cspConfig holds the computed CSP configuration, kept separate from config to maintain
+	// immutability of the base config.
 	cspConfig security_dto.CSPRuntimeConfig
 
-	// staticCSPValue is the pre-allocated CSP header value for policies that
-	// don't use per-request tokens. Nil when tokens are enabled.
+	// staticCSPValue is the pre-allocated CSP header value for policies that don't use
+	// per-request tokens. Nil when tokens are enabled.
 	staticCSPValue []string
 
 	// staticHeaderCount tracks how many entries in staticHeaders are populated.
@@ -96,13 +92,12 @@ type SecurityHeadersMiddleware struct {
 	forceHTTPS bool
 }
 
-// NewSecurityHeadersMiddleware creates a new security headers middleware
-// instance.
+// NewSecurityHeadersMiddleware creates a new security headers middleware instance.
 //
-// Takes config (SecurityHeadersValues) which specifies the security header
-// settings to apply.
-// Takes forceHTTPS (bool) which controls whether the
-// Strict-Transport-Security header is included.
+// Takes config (SecurityHeadersValues) which specifies the security header settings to
+// apply.
+// Takes forceHTTPS (bool) which controls whether the Strict-Transport-Security header is
+// included.
 // Takes cspConfig (CSPRuntimeConfig) which provides the computed CSP settings.
 // Takes reportingValues (ReportingValues) which provides the pre-built
 // Reporting-Endpoints header value.
@@ -166,8 +161,7 @@ func NewSecurityHeadersMiddleware(config SecurityHeadersValues, forceHTTPS bool,
 	return m
 }
 
-// Handler returns the middleware handler function for use with chi or other
-// routers.
+// Handler returns the middleware handler function for use with chi or other routers.
 //
 // Takes next (http.Handler) which is the next handler in the chain.
 //
@@ -201,11 +195,11 @@ func (m *SecurityHeadersMiddleware) Handler(next http.Handler) http.Handler {
 	})
 }
 
-// setSecurityHeaders assigns all pre-computed static headers to the response
-// and sets the CSP header (which may be dynamic when request tokens are used).
+// setSecurityHeaders assigns all pre-computed static headers to the response and sets the
+// CSP header (which may be dynamic when request tokens are used).
 //
-// Static headers are assigned directly to the header map, bypassing
-// Header.Set() and its per-call []string + CanonicalMIMEHeaderKey allocations.
+// Static headers are assigned directly to the header map, bypassing Header.Set() and its
+// per-call []string + CanonicalMIMEHeaderKey allocations.
 //
 // Takes w (http.ResponseWriter) which receives the security headers.
 // Takes r (*http.Request) which provides request context for CSP handling.
@@ -217,9 +211,8 @@ func (m *SecurityHeadersMiddleware) setSecurityHeaders(w http.ResponseWriter, r 
 	m.setCSPHeader(h, r)
 }
 
-// setCSPHeader sets the Content-Security-Policy header, reusing a
-// pre-allocated value for static policies and substituting per-request
-// tokens for dynamic ones.
+// setCSPHeader sets the Content-Security-Policy header, reusing a pre-allocated value for
+// static policies and substituting per-request tokens for dynamic ones.
 //
 // Takes h (http.Header) which receives the CSP header.
 // Takes r (*http.Request) which provides context for token replacement.
@@ -240,8 +233,8 @@ func (m *SecurityHeadersMiddleware) setCSPHeader(h http.Header, r *http.Request)
 	}
 }
 
-// headerStripperWriter wraps http.ResponseWriter to remove sensitive headers
-// before they reach the client. It implements io.Writer.
+// headerStripperWriter wraps http.ResponseWriter to remove sensitive headers before they
+// reach the client. It implements io.Writer.
 type headerStripperWriter struct {
 	http.ResponseWriter
 
@@ -255,8 +248,8 @@ type headerStripperWriter struct {
 	wroteHeader bool
 }
 
-// WriteHeader writes the HTTP status code after removing any headers that
-// should be stripped. Later calls are ignored.
+// WriteHeader writes the HTTP status code after removing any headers that should be
+// stripped. Later calls are ignored.
 //
 // Takes statusCode (int) which specifies the HTTP status code to write.
 func (w *headerStripperWriter) WriteHeader(statusCode int) {
@@ -286,9 +279,9 @@ func (w *headerStripperWriter) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-// Flush implements http.Flusher by forwarding to the underlying writer.
-// This is required for Server-Sent Events and other streaming responses
-// that need to flush buffered data to the client immediately.
+// Flush implements http.Flusher by forwarding to the underlying writer. This is required
+// for Server-Sent Events and other streaming responses that need to flush buffered data
+// to the client immediately.
 func (w *headerStripperWriter) Flush() {
 	if flusher, ok := w.ResponseWriter.(http.Flusher); ok {
 		if !w.wroteHeader {
@@ -305,11 +298,11 @@ func (w *headerStripperWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
 }
 
-// GetRequestTokenFromContext retrieves the CSP request token from the
-// PikoRequestCtx carrier in the context.
+// GetRequestTokenFromContext retrieves the CSP request token from the PikoRequestCtx
+// carrier in the context.
 //
-// Returns string which is the token, or an empty string if no token was set
-// for this request.
+// Returns string which is the token, or an empty string if no token was set for this
+// request.
 func GetRequestTokenFromContext(ctx context.Context) string {
 	if pctx := daemon_dto.PikoRequestCtxFromContext(ctx); pctx != nil {
 		return pctx.CSPToken
@@ -321,8 +314,8 @@ func GetRequestTokenFromContext(ctx context.Context) string {
 //
 // Returns string which is a base64-encoded token.
 //
-// Panics if crypto/rand fails, since this indicates a catastrophic system
-// problem (no entropy source) that would compromise all security guarantees.
+// Panics if crypto/rand fails, since this indicates a catastrophic system problem (no
+// entropy source) that would compromise all security guarantees.
 func generateSecureToken() string {
 	b := make([]byte, tokenByteLength)
 	if _, err := rand.Read(b); err != nil {
@@ -331,8 +324,8 @@ func generateSecureToken() string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-// formatCSPToken formats a per-request token for use in a CSP header.
-// The CSP specification requires the format 'nonce-<base64value>'.
+// formatCSPToken formats a per-request token for use in a CSP header. The CSP
+// specification requires the format 'nonce-<base64value>'.
 //
 // Takes token (string) which is the base64-encoded per-request token value.
 //

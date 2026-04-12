@@ -52,15 +52,18 @@ type githubRelease struct {
 	Prerelease bool `json:"prerelease"`
 }
 
-// resolveLatestVersion queries the GitHub releases API to find the latest
-// published version of piko.sh/piko. It prefers stable releases over
-// prereleases, falling back to the latest prerelease if no stable release
-// exists.
+// resolveLatestVersion queries the GitHub releases API to find the latest published
+// version of piko.sh/piko. It prefers stable releases over prereleases, falling back to
+// the latest prerelease if no stable release exists.
 //
 // Returns string which is the resolved version tag (e.g. "v0.1.0").
 // Returns error when the request fails or no releases are found.
 func resolveLatestVersion() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), versionRequestTimeout)
+	ctx, cancel := context.WithTimeoutCause(
+		context.Background(),
+		versionRequestTimeout,
+		errors.New("github releases lookup timed out"),
+	)
 	defer cancel()
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, releasesURL, nil)
@@ -90,9 +93,9 @@ func resolveLatestVersion() (string, error) {
 	return selectVersion(releases)
 }
 
-// selectVersion picks the best version from a list of GitHub releases. It
-// returns the first stable (non-prerelease, non-draft) release, or falls back
-// to the first prerelease if no stable release exists.
+// selectVersion picks the best version from a list of GitHub releases. It returns the
+// first stable (non-prerelease, non-draft) release, or falls back to the first prerelease
+// if no stable release exists.
 //
 // Takes releases ([]githubRelease) which is the list of releases to search.
 //

@@ -18,8 +18,6 @@
 
 package interp_domain
 
-import "errors"
-
 // stepMode identifies the current stepping state of the debugger.
 type stepMode uint8
 
@@ -30,17 +28,12 @@ const (
 	// stepModeIn steps to the next source line, entering calls.
 	stepModeIn
 
-	// stepModeOver steps to the next source line at same or
-	// shallower depth.
+	// stepModeOver steps to the next source line at same or shallower depth.
 	stepModeOver
 
 	// stepModeOut runs until the current function returns.
 	stepModeOut
 )
-
-// ErrDebuggerStop is returned when the debugger requests execution to
-// halt via DebugActionStop.
-var ErrDebuggerStop = errors.New("debugger: execution stopped")
 
 // breakpointKey identifies a breakpoint by file path and line number.
 type breakpointKey struct {
@@ -51,8 +44,8 @@ type breakpointKey struct {
 	line int
 }
 
-// debugState holds the mutable debug state used by the VM's debug
-// hook to evaluate breakpoints and stepping conditions.
+// debugState holds the mutable debug state used by the VM's debug hook to evaluate
+// breakpoints and stepping conditions.
 type debugState struct {
 	// breakpoints maps file:line keys to active breakpoints.
 	breakpoints map[breakpointKey]bool
@@ -60,55 +53,42 @@ type debugState struct {
 	// stepFile is the source file when stepping was initiated.
 	stepFile string
 
-	// lastBreakpointFile and lastBreakpointLine track the most
-	// recently fired breakpoint location. This prevents the same
-	// breakpoint from firing repeatedly when multiple bytecode
-	// instructions map to the same source line.
+	// lastBreakpointFile and lastBreakpointLine track the most recently fired breakpoint
+	// location. This prevents the same breakpoint from firing repeatedly when multiple
+	// bytecode instructions map to the same source line.
 	lastBreakpointFile string
 
-	// stepFramePointer is the frame depth at which stepping was
-	// initiated. Used by step-over (pause at same or shallower)
-	// and step-out (pause when shallower).
+	// stepFramePointer is the frame depth at which stepping was initiated. Used by step-over
+	// (pause at same or shallower) and step-out (pause when shallower).
 	stepFramePointer int
 
-	// stepLine is the source line when stepping was initiated.
-	// Step-over skips instructions on the same line.
+	// stepLine is the source line when stepping was initiated. Step-over skips instructions
+	// on the same line.
 	stepLine int
 
-	// lastBreakpointLine is the source line of the most recently
-	// fired breakpoint.
+	// lastBreakpointLine is the source line of the most recently fired breakpoint.
 	lastBreakpointLine int
 
-	// lastBreakpointFrame is the frame depth at which the most
-	// recently fired breakpoint occurred.
+	// lastBreakpointFrame is the frame depth at which the most recently fired breakpoint
+	// occurred.
 	lastBreakpointFrame int
 
 	// stepping is the current step mode.
 	stepping stepMode
 }
 
-// newDebugState creates a debugState with an initialised breakpoint
-// map.
+// hasBreakpoint checks whether the given function has a breakpoint at the given program
+// counter.
 //
-// Returns *debugState with an empty breakpoint map ready for use.
-func newDebugState() *debugState {
-	return &debugState{
-		breakpoints: make(map[breakpointKey]bool),
-	}
-}
-
-// hasBreakpoint checks whether the given function has a breakpoint
-// at the given program counter.
-//
-// Takes fn (*CompiledFunction) which provides the source map.
+// Takes cf (*CompiledFunction) which provides the source map.
 // Takes pc (int) which is the current program counter.
 //
 // Returns true if a breakpoint is registered at the source position.
-func (ds *debugState) hasBreakpoint(fn *CompiledFunction, pc int) bool {
-	if fn.debugSourceMap == nil {
+func (ds *debugState) hasBreakpoint(cf *CompiledFunction, pc int) bool {
+	if cf.debugSourceMap == nil {
 		return false
 	}
-	file, line, _ := fn.debugSourceMap.SourcePosition(pc)
+	file, line, _ := cf.debugSourceMap.SourcePosition(pc)
 	if line == 0 {
 		return false
 	}
@@ -120,15 +100,15 @@ func (ds *debugState) hasBreakpoint(fn *CompiledFunction, pc int) bool {
 	return ds.breakpoints[breakpointKey{file: file, line: line}]
 }
 
-// shouldStep determines whether the debugger should pause at the
-// current position based on the active step mode.
+// shouldStep determines whether the debugger should pause at the current position based
+// on the active step mode.
 //
-// Takes fn (*CompiledFunction) which provides the source map.
+// Takes cf (*CompiledFunction) which provides the source map.
 // Takes pc (int) which is the current program counter.
 // Takes framePointer (int) which is the current call stack depth.
 //
 // Returns true if the debugger should pause, and the event type.
-func (ds *debugState) shouldStep(fn *CompiledFunction, pc int, framePointer int) (bool, DebugEvent) {
+func (ds *debugState) shouldStep(cf *CompiledFunction, pc int, framePointer int) (bool, DebugEvent) {
 	if ds.stepping == stepModeNone {
 		return false, 0
 	}
@@ -140,11 +120,11 @@ func (ds *debugState) shouldStep(fn *CompiledFunction, pc int, framePointer int)
 		return false, 0
 	}
 
-	if fn.debugSourceMap == nil {
+	if cf.debugSourceMap == nil {
 		return false, 0
 	}
 
-	file, line, _ := fn.debugSourceMap.SourcePosition(pc)
+	file, line, _ := cf.debugSourceMap.SourcePosition(pc)
 	if line == 0 {
 		return false, 0
 	}
@@ -159,13 +139,14 @@ func (ds *debugState) shouldStep(fn *CompiledFunction, pc int, framePointer int)
 			(file != ds.stepFile || line != ds.stepLine) {
 			return true, DebugEventStep
 		}
+	default:
 	}
 
 	return false, 0
 }
 
-// applyAction updates the step mode based on the debug action
-// returned by the hook or debugger API.
+// applyAction updates the step mode based on the debug action returned by the hook or
+// debugger API.
 //
 // Takes action (DebugAction) which is the action to apply.
 // Takes framePointer (int) which is the current frame depth.
@@ -190,5 +171,15 @@ func (ds *debugState) applyAction(action DebugAction, framePointer int, file str
 		ds.stepFramePointer = framePointer
 		ds.stepFile = file
 		ds.stepLine = line
+	default:
+	}
+}
+
+// newDebugState creates a debugState with an initialised breakpoint map.
+//
+// Returns *debugState with an empty breakpoint map ready for use.
+func newDebugState() *debugState {
+	return &debugState{
+		breakpoints: make(map[breakpointKey]bool),
 	}
 }

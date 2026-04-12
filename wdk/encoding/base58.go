@@ -19,23 +19,22 @@
 //nolint:dupl // parallel typed API per alphabet.
 package encoding
 
-import "fmt"
+import (
+	"fmt"
+)
 
 var (
-	// base58Alphabet holds the Bitcoin Base58 character set, excluding visually
-	// ambiguous characters (0, O, I, l).
+	// base58Alphabet holds the Bitcoin Base58 character set, excluding visually ambiguous
+	// characters (0, O, I, l).
 	base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
-	// Base58Encoding is a pre-initialised encoding using
-	// the Bitcoin Base58 alphabet
-	// that excludes visually ambiguous characters (0, O, I, l). It is safe for
-	// concurrent use.
+	// Base58Encoding is a pre-initialised encoding using the Bitcoin Base58 alphabet that
+	// excludes visually ambiguous characters (0, O, I, l). It is safe for concurrent use.
 	Base58Encoding *Encoding
 )
 
-// EncodeBytesBase58 encodes raw bytes into a Base58 string representation.
-// The Base58 alphabet excludes visually ambiguous characters for improved
-// readability.
+// EncodeBytesBase58 encodes raw bytes into a Base58 string representation. The Base58
+// alphabet excludes visually ambiguous characters for improved readability.
 //
 // Takes data ([]byte) which is the raw bytes to encode.
 //
@@ -54,8 +53,8 @@ func DecodeBytesBase58(input string) ([]byte, error) {
 	return Base58Encoding.DecodeBytes(input)
 }
 
-// EncodeUint64Base58 encodes a uint64 value into a Base58 string,
-// producing short, readable identifiers from database IDs.
+// EncodeUint64Base58 encodes a uint64 value into a Base58 string, producing short,
+// readable identifiers from database IDs.
 //
 // Takes value (uint64) which is the number to encode.
 //

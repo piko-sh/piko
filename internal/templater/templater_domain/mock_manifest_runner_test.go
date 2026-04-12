@@ -24,7 +24,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -106,10 +105,10 @@ func TestMockManifestRunnerPort_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RunPageCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RunPartialCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RunPartialWithPropsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetPageEntryCallCount))
+	assert.Equal(t, int64(goroutines), m.RunPageCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RunPartialCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RunPartialWithPropsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetPageEntryCallCount.Load())
 }
 
 func TestMockManifestRunnerPort_RunPage(t *testing.T) {
@@ -124,7 +123,7 @@ func TestMockManifestRunnerPort_RunPage(t *testing.T) {
 		assert.Equal(t, templater_dto.InternalMetadata{}, meta)
 		assert.Empty(t, styling)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPageCallCount))
+		assert.Equal(t, int64(1), m.RunPageCallCount.Load())
 	})
 
 	t.Run("delegates to RunPageFunc", func(t *testing.T) {
@@ -143,7 +142,7 @@ func TestMockManifestRunnerPort_RunPage(t *testing.T) {
 		assert.Equal(t, expectedMeta, meta)
 		assert.Equal(t, "body{}", styling)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPageCallCount))
+		assert.Equal(t, int64(1), m.RunPageCallCount.Load())
 	})
 
 	t.Run("propagates error from RunPageFunc", func(t *testing.T) {
@@ -158,7 +157,7 @@ func TestMockManifestRunnerPort_RunPage(t *testing.T) {
 		astResult, _, _, err := m.RunPage(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil))
 		assert.Nil(t, astResult)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPageCallCount))
+		assert.Equal(t, int64(1), m.RunPageCallCount.Load())
 	})
 }
 
@@ -174,7 +173,7 @@ func TestMockManifestRunnerPort_RunPartial(t *testing.T) {
 		assert.Equal(t, templater_dto.InternalMetadata{}, meta)
 		assert.Empty(t, styling)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPartialCallCount))
+		assert.Equal(t, int64(1), m.RunPartialCallCount.Load())
 	})
 
 	t.Run("delegates to RunPartialFunc", func(t *testing.T) {
@@ -193,7 +192,7 @@ func TestMockManifestRunnerPort_RunPartial(t *testing.T) {
 		assert.Equal(t, expectedMeta, meta)
 		assert.Equal(t, "div{}", styling)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPartialCallCount))
+		assert.Equal(t, int64(1), m.RunPartialCallCount.Load())
 	})
 
 	t.Run("propagates error from RunPartialFunc", func(t *testing.T) {
@@ -208,7 +207,7 @@ func TestMockManifestRunnerPort_RunPartial(t *testing.T) {
 		astResult, _, _, err := m.RunPartial(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil))
 		assert.Nil(t, astResult)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPartialCallCount))
+		assert.Equal(t, int64(1), m.RunPartialCallCount.Load())
 	})
 }
 
@@ -224,7 +223,7 @@ func TestMockManifestRunnerPort_RunPartialWithProps(t *testing.T) {
 		assert.Equal(t, templater_dto.InternalMetadata{}, meta)
 		assert.Empty(t, styling)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPartialWithPropsCallCount))
+		assert.Equal(t, int64(1), m.RunPartialWithPropsCallCount.Load())
 	})
 
 	t.Run("delegates to RunPartialWithPropsFunc", func(t *testing.T) {
@@ -245,7 +244,7 @@ func TestMockManifestRunnerPort_RunPartialWithProps(t *testing.T) {
 		assert.Equal(t, expectedMeta, meta)
 		assert.Equal(t, "span{}", styling)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPartialWithPropsCallCount))
+		assert.Equal(t, int64(1), m.RunPartialWithPropsCallCount.Load())
 	})
 
 	t.Run("propagates error from RunPartialWithPropsFunc", func(t *testing.T) {
@@ -260,7 +259,7 @@ func TestMockManifestRunnerPort_RunPartialWithProps(t *testing.T) {
 		astResult, _, _, err := m.RunPartialWithProps(ctx, templater_dto.PageDefinition{}, httptest.NewRequest(http.MethodGet, "/", nil), nil)
 		assert.Nil(t, astResult)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunPartialWithPropsCallCount))
+		assert.Equal(t, int64(1), m.RunPartialWithPropsCallCount.Load())
 	})
 }
 
@@ -274,7 +273,7 @@ func TestMockManifestRunnerPort_GetPageEntry(t *testing.T) {
 		entry, err := m.GetPageEntry(ctx, "pages/home.pk")
 		assert.Nil(t, entry)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetPageEntryCallCount))
+		assert.Equal(t, int64(1), m.GetPageEntryCallCount.Load())
 	})
 
 	t.Run("delegates to GetPageEntryFunc", func(t *testing.T) {
@@ -293,7 +292,7 @@ func TestMockManifestRunnerPort_GetPageEntry(t *testing.T) {
 		entry, err := m.GetPageEntry(ctx, "pages/home.pk")
 		assert.NoError(t, err)
 		assert.Equal(t, "pages/home.pk", entry.GetOriginalPath())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetPageEntryCallCount))
+		assert.Equal(t, int64(1), m.GetPageEntryCallCount.Load())
 	})
 
 	t.Run("propagates error from GetPageEntryFunc", func(t *testing.T) {
@@ -308,6 +307,6 @@ func TestMockManifestRunnerPort_GetPageEntry(t *testing.T) {
 		entry, err := m.GetPageEntry(ctx, "missing.pk")
 		assert.Nil(t, entry)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetPageEntryCallCount))
+		assert.Equal(t, int64(1), m.GetPageEntryCallCount.Load())
 	})
 }

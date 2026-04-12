@@ -20,51 +20,47 @@ package orchestrator_domain
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
-	// ErrExecutorNotFound is returned when a task references an executor that
-	// has not been registered.
+	// ErrExecutorNotFound is returned when a task references an executor that has not been
+	// registered.
 	ErrExecutorNotFound = errors.New("orchestrator: executor not found")
 
-	// ErrTaskFailedMaxRetries is returned when a task has exhausted all retry
-	// attempts.
+	// ErrTaskFailedMaxRetries is returned when a task has exhausted all retry attempts.
 	ErrTaskFailedMaxRetries = errors.New("orchestrator: task failed after max retries")
 
-	// ErrServiceClosed is returned when an operation is tried on a stopped
-	// service.
+	// ErrServiceClosed is returned when an operation is tried on a stopped service.
 	ErrServiceClosed = errors.New("orchestrator: service is closed")
 
-	// ErrDuplicateTask is returned when attempting to create a task that
-	// duplicates an existing active task with the same deduplication key. Active
-	// tasks are those in SCHEDULED, PENDING, PROCESSING, or RETRYING status.
+	// ErrDuplicateTask is returned when attempting to create a task that duplicates an
+	// existing active task with the same deduplication key. Active tasks are those in
+	// SCHEDULED, PENDING, PROCESSING, or RETRYING status.
 	ErrDuplicateTask = errors.New("orchestrator: duplicate active task exists")
 
-	// ErrFatal signals that a task failed with a non-retryable error. When the
-	// orchestrator detects this sentinel in an error chain, it skips retry
-	// backoff and marks the task as failed immediately.
+	// ErrFatal signals that a task failed with a non-retryable error. When the orchestrator
+	// detects this sentinel in an error chain, it skips retry backoff and marks the task as
+	// failed immediately.
 	ErrFatal = errors.New("orchestrator: fatal error")
 
-	// ErrOrchestratorShuttingDown is returned by Dispatch and Schedule when the
-	// orchestrator service is shutting down and the task insertion channel has
-	// been closed. Callers should treat this as a terminal condition rather
-	// than a retryable backpressure signal.
+	// ErrOrchestratorShuttingDown is returned by Dispatch and Schedule when the orchestrator
+	// service is shutting down and the task insertion channel has been closed. Callers
+	// should treat this as a terminal condition rather than a retryable backpressure signal.
 	ErrOrchestratorShuttingDown = errors.New("orchestrator: orchestrator is shutting down")
 )
 
-// NewFatalError wraps an error to mark it as a fatal orchestrator failure that
-// should not be retried.
+// NewFatalError wraps an error to mark it as a fatal orchestrator failure that should not
+// be retried.
 //
 // Takes err (error) which is the underlying error to mark as fatal.
 //
 // Returns error which wraps both the original error and the ErrFatal sentinel.
 func NewFatalError(err error) error {
-	return fmt.Errorf("%w: %w", err, ErrFatal)
+	return errors.Join(err, ErrFatal)
 }
 
-// IsFatalError reports whether err or any error in its chain is a fatal
-// orchestrator error that should not be retried.
+// IsFatalError reports whether err or any error in its chain is a fatal orchestrator
+// error that should not be retried.
 //
 // Takes err (error) which is the error to check.
 //

@@ -57,4 +57,6 @@ func TestResolve_ValidationErrors(t *testing.T) {
 	})
 }
 
-var _ config.Resolver = (*Resolver)(nil)
+var (
+	_ config.Resolver = (*Resolver)(nil)
+)

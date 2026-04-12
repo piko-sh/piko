@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Processes and scopes CSS for components by parsing, inlining @import
-// statements, and applying component-specific attributes. Transforms CSS
-// selectors to ensure styles are isolated to their component, preventing
-// cross-component style leakage.
+// Processes and scopes CSS for components by parsing, inlining @import statements, and
+// applying component-specific attributes. Transforms CSS selectors to ensure styles are
+// isolated to their component, preventing cross-component style leakage.
 
 import (
 	"context"
@@ -33,9 +32,9 @@ import (
 
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/cssinliner"
 	es_ast "piko.sh/piko/internal/esbuild/ast"
 	"piko.sh/piko/internal/esbuild/config"
-	"piko.sh/piko/internal/cssinliner"
 	"piko.sh/piko/internal/esbuild/css_ast"
 	"piko.sh/piko/internal/esbuild/css_lexer"
 	"piko.sh/piko/internal/esbuild/css_printer"
@@ -44,9 +43,9 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-// CSSProcessor handles CSS scoping and processing using esbuild. It wraps
-// a shared cssinliner.Processor for @import inlining and adds
-// annotator-specific selector scoping on top.
+// CSSProcessor handles CSS scoping and processing using esbuild. It wraps a shared
+// cssinliner.Processor for @import inlining and adds annotator-specific selector scoping
+// on top.
 type CSSProcessor struct {
 	// processor provides CSS @import inlining and printing.
 	processor *cssinliner.Processor
@@ -74,17 +73,17 @@ func NewCSSProcessor(
 	}
 }
 
-// SetResolver updates the resolver used for @import resolution.
-// This is used by the LSP to provide per-module resolvers.
+// SetResolver updates the resolver used for @import resolution. This is used by the LSP
+// to provide per-module resolvers.
 //
 // Takes resolver (resolver_domain.ResolverPort) which provides path resolution.
 func (cp *CSSProcessor) SetResolver(resolver resolver_domain.ResolverPort) {
 	cp.processor.SetResolver(resolver)
 }
 
-// WithResolver returns a shallow copy of the CSSProcessor that uses the given
-// resolver. This is safe for concurrent use because the copy does not share
-// mutable state with the original.
+// WithResolver returns a shallow copy of the CSSProcessor that uses the given resolver.
+// This is safe for concurrent use because the copy does not share mutable state with the
+// original.
 //
 // Takes resolver (resolver_domain.ResolverPort) which provides path resolution.
 //
@@ -95,9 +94,9 @@ func (cp *CSSProcessor) WithResolver(resolver resolver_domain.ResolverPort) *CSS
 	}
 }
 
-// Process takes a raw CSS string, resolves all @import rules, processes it
-// (e.g., minifies), and returns the final bundled result. This is used for
-// global, unscoped style blocks.
+// Process takes a raw CSS string, resolves all @import rules, processes it (e.g.,
+// minifies), and returns the final bundled result. This is used for global, unscoped
+// style blocks.
 //
 // Takes cssBlock (string) which contains the raw CSS to process.
 // Takes sourcePath (string) which identifies the source file for diagnostics.
@@ -148,15 +147,15 @@ type processAndScopeParams struct {
 	startLocation ast_domain.Location
 }
 
-// ProcessAndScope processes and bundles a CSS block, then applies scoped CSS
-// rules. This is used for component-specific, non-global style blocks.
+// ProcessAndScope processes and bundles a CSS block, then applies scoped CSS rules. This
+// is used for component-specific, non-global style blocks.
 //
 // Takes ctx (context.Context) which carries cancellation, tracing, and logging.
-// Takes params (*processAndScopeParams) which contains the CSS block, scope ID,
-// template, and other processing options.
+// Takes params (*processAndScopeParams) which contains the CSS block, scope ID, template,
+// and other processing options.
 //
-// Returns []*ast_domain.Diagnostic which contains any warnings or issues found
-// during CSS processing.
+// Returns []*ast_domain.Diagnostic which contains any warnings or issues found during CSS
+// processing.
 // Returns error when the input validation fails.
 func (cp *CSSProcessor) ProcessAndScope(ctx context.Context, params *processAndScopeParams) ([]*ast_domain.Diagnostic, error) {
 	var l logger_domain.Logger
@@ -223,10 +222,8 @@ func (*CSSProcessor) validateCSSProcessingInputs(ctx context.Context, template *
 //
 // Takes tree (*css_ast.AST) which is the parsed CSS syntax tree to modify.
 // Takes scopeID (string) which is the unique identifier for scoping selectors.
-// Takes template (*ast_domain.TemplateAST) which provides template context for
-// scoping.
-// Takes markers (*scopingMarkers) which tracks elements that need scope
-// attributes.
+// Takes template (*ast_domain.TemplateAST) which provides template context for scoping.
+// Takes markers (*scopingMarkers) which tracks elements that need scope attributes.
 //
 // Returns []byte which is the printed CSS output.
 func (cp *CSSProcessor) transformAndPrintCSS(tree *css_ast.AST, scopeID string, template *ast_domain.TemplateAST, markers *scopingMarkers) []byte {
@@ -246,8 +243,8 @@ func (cp *CSSProcessor) transformAndPrintCSS(tree *css_ast.AST, scopeID string, 
 	return css_printer.Print(*tree, symMap, printOpts).CSS
 }
 
-// scopingMarkers holds information about :global() and :deep() pseudo-classes
-// that were detected during pre-processing.
+// scopingMarkers holds information about :global() and :deep() pseudo-classes that were
+// detected during pre-processing.
 type scopingMarkers struct {
 	// hasGlobal indicates whether any :global() markers were found.
 	hasGlobal bool
@@ -264,37 +261,35 @@ var (
 	deepPseudoRegex = regexp.MustCompile(`:deep\s*\(([^)]+)\)`)
 )
 
-// scopeDescendant adds a scope attribute selector to the start of a complex
-// selector.
+// scopeDescendant adds a scope attribute selector to the start of a complex selector.
 //
 // Takes selector (css_ast.ComplexSelector) which is the selector to change.
 // Takes scopeID (string) which is the scope attribute value to add.
-// Takes location (es_logger.Loc) which is the source location for the
-// new selector.
+// Takes location (es_logger.Loc) which is the source location for the new selector.
 //
-// Returns css_ast.ComplexSelector which is a new selector with the scope
-// attribute at the start.
+// Returns css_ast.ComplexSelector which is a new selector with the scope attribute at the
+// start.
 func scopeDescendant(selector css_ast.ComplexSelector, scopeID string, location es_logger.Loc) css_ast.ComplexSelector {
 	scopeComp := makeScopeAttributeCompound(scopeID, location)
 	newComps := append([]css_ast.CompoundSelector{scopeComp}, selector.Selectors...)
 	return css_ast.ComplexSelector{Selectors: newComps}
 }
 
-// scopeDirect adds a scope attribute to each compound selector in a complex
-// selector chain.
+// scopeDirect adds a scope attribute to each compound selector in a complex selector
+// chain.
 //
-// This maintains proper CSS isolation: each element in a descendant chain must
-// have the scope attribute to match. Elements like html, body, or those with
-// :root are skipped since they exist outside partial boundaries.
+// This maintains proper CSS isolation: each element in a descendant chain must have the
+// scope attribute to match. Elements like html, body, or those with :root are skipped
+// since they exist outside partial boundaries.
 //
-// The scope attribute is placed before any pseudo-class selectors to keep the
-// correct specificity order.
+// The scope attribute is placed before any pseudo-class selectors to keep the correct
+// specificity order.
 //
 // Takes selector (css_ast.ComplexSelector) which is the selector to scope.
 // Takes scopeID (string) which is the unique identifier for the scope.
 //
-// Returns css_ast.ComplexSelector which is a cloned selector with the scope
-// attribute added to each suitable compound selector.
+// Returns css_ast.ComplexSelector which is a cloned selector with the scope attribute
+// added to each suitable compound selector.
 func scopeDirect(selector css_ast.ComplexSelector, scopeID string) css_ast.ComplexSelector {
 	if len(selector.Selectors) == 0 {
 		return selector
@@ -316,8 +311,8 @@ func scopeDirect(selector css_ast.ComplexSelector, scopeID string) css_ast.Compl
 
 // shouldSkipCompoundScoping checks if a compound selector should not be scoped.
 //
-// Elements like html, body, or those with :root pseudo-class exist outside
-// partial boundaries and should not have the scope attribute added.
+// Elements like html, body, or those with :root pseudo-class exist outside partial
+// boundaries and should not have the scope attribute added.
 //
 // Takes comp (*css_ast.CompoundSelector) which is the selector to check.
 //
@@ -343,8 +338,8 @@ func shouldSkipCompoundScoping(comp *css_ast.CompoundSelector) bool {
 
 // addScopeToCompound adds a scope attribute to a compound selector.
 //
-// The scope attribute is placed before any pseudo-class selectors to keep the
-// correct specificity order.
+// The scope attribute is placed before any pseudo-class selectors to keep the correct
+// specificity order.
 //
 // Takes comp (*css_ast.CompoundSelector) which is the selector to modify.
 // Takes scopeID (string) which is the scope identifier to add.
@@ -359,11 +354,11 @@ func addScopeToCompound(comp *css_ast.CompoundSelector, scopeID string) {
 	comp.SubclassSelectors = newSubclass
 }
 
-// findPseudoClassInsertPosition finds the index where a scope attribute should
-// be inserted in a list of subclass selectors.
+// findPseudoClassInsertPosition finds the index where a scope attribute should be
+// inserted in a list of subclass selectors.
 //
-// The scope attribute must be placed before any pseudo-class selectors to keep
-// the correct CSS specificity order.
+// The scope attribute must be placed before any pseudo-class selectors to keep the
+// correct CSS specificity order.
 //
 // Takes selectors ([]css_ast.SubclassSelector) which is the list to search.
 //
@@ -378,8 +373,8 @@ func findPseudoClassInsertPosition(selectors []css_ast.SubclassSelector) int {
 	return len(selectors)
 }
 
-// makeScopeAttributeCompound creates a compound selector that holds a single
-// scope attribute selector.
+// makeScopeAttributeCompound creates a compound selector that holds a single scope
+// attribute selector.
 //
 // Takes scopeID (string) which sets the scope for the attribute.
 // Takes location (es_logger.Loc) which sets the source location.
@@ -391,15 +386,13 @@ func makeScopeAttributeCompound(scopeID string, location es_logger.Loc) css_ast.
 	}
 }
 
-// makeScopeAttributeSelector creates a CSS attribute selector for partial
-// scope matching.
+// makeScopeAttributeSelector creates a CSS attribute selector for partial scope matching.
 //
 // Takes scopeID (string) which is the scope value to match.
-// Takes location (es_logger.Loc) which specifies the source location for the
-// selector.
+// Takes location (es_logger.Loc) which specifies the source location for the selector.
 //
-// Returns css_ast.SubclassSelector which matches elements where the partial
-// attribute contains the scope ID.
+// Returns css_ast.SubclassSelector which matches elements where the partial attribute
+// contains the scope ID.
 func makeScopeAttributeSelector(scopeID string, location es_logger.Loc) css_ast.SubclassSelector {
 	r := es_logger.Range{Loc: location, Len: 0}
 	return css_ast.SubclassSelector{
@@ -414,14 +407,13 @@ func makeScopeAttributeSelector(scopeID string, location es_logger.Loc) css_ast.
 	}
 }
 
-// preprocessScopingPseudoClasses pre-processes CSS to replace :global() and
-// :deep() with marker classes that will survive esbuild's parsing.
+// preprocessScopingPseudoClasses pre-processes CSS to replace :global() and :deep() with
+// marker classes that will survive esbuild's parsing.
 //
 // Takes css (string) which is the raw CSS input to pre-process.
 //
 // Returns string which is the pre-processed CSS output.
-// Returns *scopingMarkers which tracks which
-// pseudo-classes were found.
+// Returns *scopingMarkers which tracks which pseudo-classes were found.
 func preprocessScopingPseudoClasses(css string) (string, *scopingMarkers) {
 	markers := &scopingMarkers{hasGlobal: false, hasDeep: false}
 	result := css

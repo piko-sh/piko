@@ -55,7 +55,9 @@ func newTestCacheService() cache_domain.Service {
 	return cache_domain.NewService("")
 }
 
-const benchmarkCacheKey = "benchmark-cache"
+const (
+	benchmarkCacheKey = "benchmark-cache"
+)
 
 type staticKeyGenerator struct{}
 

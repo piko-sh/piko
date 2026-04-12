@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package inspector_adapters implements type data caching and
-// serialisation for the inspector subsystem, with FlatBuffers binary,
-// JSON (debugging), and in-memory (testing) backends.
+// Package inspector_adapters implements type data caching and serialisation for the
+// inspector subsystem, with FlatBuffers binary, JSON (debugging), and in-memory (testing)
+// backends.
 //
 // All cache implementations are safe for concurrent use.
 package inspector_adapters

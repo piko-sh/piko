@@ -37,20 +37,22 @@ const (
 	tabWidth = 4
 )
 
-// RegisterEmitter is a driven adapter responsible for generating the single
-// Go file that imports all compiled component packages for their side effects,
-// ensuring they are linked into the final server binary.
+// RegisterEmitter is a driven adapter responsible for generating the single Go file that
+// imports all compiled component packages for their side effects, ensuring they are
+// linked into the final server binary.
 type RegisterEmitter struct {
 	// fsWriter writes the generated output to the file system.
 	fsWriter generator_domain.FSWriterPort
 }
 
-var _ generator_domain.RegisterEmitterPort = (*RegisterEmitter)(nil)
+var (
+	_ generator_domain.RegisterEmitterPort = (*RegisterEmitter)(nil)
+)
 
 // NewRegisterEmitter creates a new registry emitter.
 //
-// Takes fsWriter (generator_domain.FSWriterPort) which handles file system
-// write operations.
+// Takes fsWriter (generator_domain.FSWriterPort) which handles file system write
+// operations.
 //
 // Returns *RegisterEmitter which is ready to emit registry entries.
 func NewRegisterEmitter(fsWriter generator_domain.FSWriterPort) *RegisterEmitter {
@@ -59,8 +61,8 @@ func NewRegisterEmitter(fsWriter generator_domain.FSWriterPort) *RegisterEmitter
 
 // Generate generates the register file content for the given package paths.
 //
-// Takes allPackagePaths ([]string) which lists the canonical Go package paths
-// for the components that need to be included in the build.
+// Takes allPackagePaths ([]string) which lists the canonical Go package paths for the
+// components that need to be included in the build.
 //
 // Returns []byte which contains the formatted register file content.
 // Returns error when the file content cannot be formatted.
@@ -73,8 +75,8 @@ func (*RegisterEmitter) Generate(_ context.Context, allPackagePaths []string) ([
 // Emit creates and writes the register file (e.g., piko_register.go).
 //
 // Takes outputPath (string) which specifies the destination file path.
-// Takes allPackagePaths ([]string) which lists the Go package paths for the
-// components to include in the build.
+// Takes allPackagePaths ([]string) which lists the Go package paths for the components to
+// include in the build.
 //
 // Returns error when generation fails or the file cannot be written.
 func (e *RegisterEmitter) Emit(ctx context.Context, outputPath string, allPackagePaths []string) error {
@@ -92,8 +94,7 @@ func (e *RegisterEmitter) Emit(ctx context.Context, outputPath string, allPackag
 //
 // Takes allPackagePaths ([]string) which lists the import paths to include.
 //
-// Returns *goast.File which contains the syntax tree with a grouped import
-// block.
+// Returns *goast.File which contains the syntax tree with a grouped import block.
 func createRegisterFileAST(allPackagePaths []string) *goast.File {
 	importSpecs := createImportSpecs(allPackagePaths)
 	importDecl := &goast.GenDecl{

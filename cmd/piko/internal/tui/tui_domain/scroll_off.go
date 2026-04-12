@@ -18,25 +18,25 @@
 
 package tui_domain
 
-// DefaultScrollOff is the default vim-style scroll-off margin in lines. The
-// cursor is kept this many lines away from viewport edges where possible so
-// the user always has a few rows of context above and below the selection.
-const DefaultScrollOff = 3
+const (
+	// DefaultScrollOff is the default vim-style scroll-off margin in lines. The cursor is
+	// kept this many lines away from viewport edges where possible so the user always has a
+	// few rows of context above and below the selection.
+	DefaultScrollOff = 3
+)
 
-// ApplyScrollOff returns a scroll offset adjusted so the cursor sits at
-// least margin lines from the viewport edges, falling back to clamping
-// behaviour when the viewport is too small to accommodate the margin.
+// ApplyScrollOff returns a scroll offset adjusted so the cursor sits at least margin
+// lines from the viewport edges, falling back to clamping behaviour when the viewport is
+// too small to accommodate the margin.
 //
-// The function is total: it returns a sane scroll offset for any inputs,
-// including negative or out-of-range cursor positions.
+// The function is total: it returns a sane scroll offset for any inputs, including
+// negative or out-of-range cursor positions.
 //
 // Takes scrollOffset (int) which is the current scroll offset.
 // Takes cursor (int) which is the current cursor row index.
-// Takes visibleHeight (int) which is the number of rows visible in the
-// viewport.
+// Takes visibleHeight (int) which is the number of rows visible in the viewport.
 // Takes lineCount (int) which is the total number of rows in the content.
-// Takes margin (int) which is the desired number of context rows around the
-// cursor.
+// Takes margin (int) which is the desired number of context rows around the cursor.
 //
 // Returns int which is the adjusted scroll offset.
 func ApplyScrollOff(scrollOffset, cursor, visibleHeight, lineCount, margin int) int {
@@ -71,10 +71,9 @@ func ApplyScrollOff(scrollOffset, cursor, visibleHeight, lineCount, margin int) 
 	return scrollOffset
 }
 
-// AdjustScrollForCursorWithMargin is the margin-aware companion to
-// AdjustScrollForCursor. Calling this with margin=0 yields identical
-// behaviour to AdjustScrollForCursor; positive margins keep the cursor away
-// from the viewport edges.
+// AdjustScrollForCursorWithMargin is the margin-aware companion to AdjustScrollForCursor.
+// Calling this with margin=0 yields identical behaviour to AdjustScrollForCursor;
+// positive margins keep the cursor away from the viewport edges.
 //
 // Takes cursor (int) which is the current cursor line.
 // Takes scrollOffset (int) which is the current scroll position.

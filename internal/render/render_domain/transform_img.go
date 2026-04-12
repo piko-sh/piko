@@ -39,8 +39,8 @@ const (
 	// sortBubbleThreshold is the largest slice size to sort with direct swaps.
 	sortBubbleThreshold = 3
 
-	// profileKeysInitialCapacity is the initial capacity for the profile keys
-	// slice. 16 elements is a reasonable default for responsive image variants.
+	// profileKeysInitialCapacity is the initial capacity for the profile keys slice. 16
+	// elements is a reasonable default for responsive image variants.
 	profileKeysInitialCapacity = 16
 
 	// baseDecimal is the base value for converting integers to decimal strings.
@@ -62,8 +62,8 @@ const (
 	defaultWidthCapacity = 8
 )
 
-// srcsetCacheKey is a composite map key for the srcset cache.
-// Using a struct key avoids string joining when making cache keys.
+// srcsetCacheKey is a composite map key for the srcset cache. Using a struct key avoids
+// string joining when making cache keys.
 type srcsetCacheKey struct {
 	// artefactID is the unique identifier for the artefact.
 	artefactID string
@@ -73,22 +73,21 @@ type srcsetCacheKey struct {
 }
 
 var (
-	// sortedProfileKeysPool reuses string slices to reduce allocation pressure
-	// during image profile key sorting.
+	// sortedProfileKeysPool reuses string slices to reduce allocation pressure during image
+	// profile key sorting.
 	sortedProfileKeysPool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, 16))
 		},
 	}
 
-	// pikoImgAttrsPool pools pikoImgAttrs structs to avoid allocation per piko:img
-	// element.
+	// pikoImgAttrsPool pools pikoImgAttrs structs to avoid allocation per piko:img element.
 	pikoImgAttrsPool = sync.Pool{
 		New: func() any { return new(pikoImgAttrs) },
 	}
 
-	// assetProfilePool reuses assetProfile instances to reduce allocation pressure
-	// during responsive image transformation.
+	// assetProfilePool reuses assetProfile instances to reduce allocation pressure during
+	// responsive image transformation.
 	assetProfilePool = sync.Pool{
 		New: func() any {
 			return &assetProfile{
@@ -100,11 +99,11 @@ var (
 	}
 )
 
-// pikoImgAttrs holds all attributes from a piko:img element.
-// Single-pass extraction avoids looping over node attributes more than once.
+// pikoImgAttrs holds all attributes from a piko:img element. Single-pass extraction
+// avoids looping over node attributes more than once.
 type pikoImgAttrs struct {
-	// cmsMediaSource holds a CMS media object found through dynamic binding;
-	// nil means no dynamic media was found.
+	// cmsMediaSource holds a CMS media object found through dynamic binding; nil means no
+	// dynamic media was found.
 	cmsMediaSource *cmsMediaWrapper
 
 	// src is the image source URL or path; empty triggers a warning.
@@ -138,8 +137,8 @@ func (a *pikoImgAttrs) hasProfile() bool {
 
 // toAssetProfile converts the extracted attributes to an assetProfile.
 //
-// Returns *assetProfile which holds the parsed profile settings, or nil if no
-// profile attributes were found.
+// Returns *assetProfile which holds the parsed profile settings, or nil if no profile
+// attributes were found.
 func (a *pikoImgAttrs) toAssetProfile() *assetProfile {
 	if !a.hasProfile() {
 		return nil
@@ -163,8 +162,8 @@ func (a *pikoImgAttrs) toAssetProfile() *assetProfile {
 	return profile
 }
 
-// assetProfile represents the desired processing profile for a dynamic asset.
-// Extracted from piko:img/piko:svg/piko:video attributes during rendering.
+// assetProfile represents the desired processing profile for a dynamic asset. Extracted
+// from piko:img/piko:svg/piko:video attributes during rendering.
 type assetProfile struct {
 	// Sizes specifies the CSS sizes attribute for responsive images.
 	Sizes string
@@ -181,8 +180,8 @@ type assetProfile struct {
 
 // getPikoImgAttrs retrieves a pikoImgAttrs struct from the pool.
 //
-// Returns *pikoImgAttrs which is either a recycled instance from the pool or
-// a new zero-value instance if the pool is empty.
+// Returns *pikoImgAttrs which is either a recycled instance from the pool or a new
+// zero-value instance if the pool is empty.
 func getPikoImgAttrs() *pikoImgAttrs {
 	attrs, ok := pikoImgAttrsPool.Get().(*pikoImgAttrs)
 	if !ok {
@@ -193,8 +192,7 @@ func getPikoImgAttrs() *pikoImgAttrs {
 
 // putPikoImgAttrs returns a pikoImgAttrs struct to the pool after resetting it.
 //
-// Takes attrs (*pikoImgAttrs) which is the struct to reset and return to the
-// pool.
+// Takes attrs (*pikoImgAttrs) which is the struct to reset and return to the pool.
 func putPikoImgAttrs(attrs *pikoImgAttrs) {
 	*attrs = pikoImgAttrs{}
 	pikoImgAttrsPool.Put(attrs)
@@ -202,8 +200,8 @@ func putPikoImgAttrs(attrs *pikoImgAttrs) {
 
 // extractPikoImgAttrs extracts all piko:img attributes from a template node.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to extract
-// attributes from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to extract attributes
+// from.
 //
 // Returns pikoImgAttrs which contains the extracted image attributes.
 func extractPikoImgAttrs(node *ast_domain.TemplateNode) pikoImgAttrs {
@@ -212,11 +210,11 @@ func extractPikoImgAttrs(node *ast_domain.TemplateNode) pikoImgAttrs {
 	return result
 }
 
-// extractPikoImgAttrsInto extracts all piko:img attributes into a pre-allocated
-// struct. This avoids allocation when used with pooled structs.
+// extractPikoImgAttrsInto extracts all piko:img attributes into a pre-allocated struct.
+// This avoids allocation when used with pooled structs.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to extract
-// attributes from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to extract attributes
+// from.
 // Takes result (*pikoImgAttrs) which receives the extracted attributes.
 func extractPikoImgAttrsInto(node *ast_domain.TemplateNode, result *pikoImgAttrs) {
 	extractStaticPikoImgAttrs(node, result)
@@ -225,8 +223,8 @@ func extractPikoImgAttrsInto(node *ast_domain.TemplateNode, result *pikoImgAttrs
 	}
 }
 
-// extractStaticPikoImgAttrs fills result with values from static HTML
-// attributes on the node.
+// extractStaticPikoImgAttrs fills result with values from static HTML attributes on the
+// node.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the attributes to read.
 // Takes result (*pikoImgAttrs) which receives the extracted values.
@@ -237,11 +235,11 @@ func extractStaticPikoImgAttrs(node *ast_domain.TemplateNode, result *pikoImgAtt
 	}
 }
 
-// assignPikoImgAttr assigns a piko-img attribute value to the corresponding
-// field in result based on the attribute name.
+// assignPikoImgAttr assigns a piko-img attribute value to the corresponding field in
+// result based on the attribute name.
 //
-// The parser lowercases attribute names during parsing, so direct comparison
-// is used. Uses switch instead of map for faster dispatch on this small set.
+// The parser lowercases attribute names during parsing, so direct comparison is used.
+// Uses switch instead of map for faster dispatch on this small set.
 //
 // Takes name (string) which is the attribute name to match.
 // Takes value (string) which is the value to assign.
@@ -267,8 +265,7 @@ func assignPikoImgAttr(name, value string, result *pikoImgAttrs) {
 
 // extractDynamicSrc looks through attribute writers for a dynamic src binding.
 //
-// Takes node (*ast_domain.TemplateNode) which holds the attribute writers to
-// search.
+// Takes node (*ast_domain.TemplateNode) which holds the attribute writers to search.
 //
 // Returns string which is the dynamic src value, or empty if not found.
 func extractDynamicSrc(node *ast_domain.TemplateNode) string {
@@ -276,12 +273,10 @@ func extractDynamicSrc(node *ast_domain.TemplateNode) string {
 	return src
 }
 
-// extractDynamicSrcOrMedia searches attribute writers for a dynamic src
-// binding. If the bound value has CMS media methods (MediaURL, etc.), it wraps
-// it for variant extraction.
+// extractDynamicSrcOrMedia searches attribute writers for a dynamic src binding. If the
+// bound value has CMS media methods (MediaURL, etc.), it wraps it for variant extraction.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the attribute writers
-// to search.
+// Takes node (*ast_domain.TemplateNode) which contains the attribute writers to search.
 //
 // Returns string which is the dynamic src value, or empty if not found.
 // Returns *cmsMediaWrapper which wraps CMS media, or nil if not CMS media.
@@ -297,12 +292,11 @@ func extractDynamicSrcOrMedia(node *ast_domain.TemplateNode) (string, *cmsMediaW
 
 // extractSrcFromWriter extracts the src value from a DirectWriter.
 //
-// Takes dw (*ast_domain.DirectWriter) which contains the source value to
-// extract.
+// Takes dw (*ast_domain.DirectWriter) which contains the source value to extract.
 //
 // Returns string which is the extracted source URL or string value.
-// Returns *cmsMediaWrapper which wraps CMS media data, or nil if the source
-// is not CMS media.
+// Returns *cmsMediaWrapper which wraps CMS media data, or nil if the source is not CMS
+// media.
 func extractSrcFromWriter(dw *ast_domain.DirectWriter) (string, *cmsMediaWrapper) {
 	if dw.Len() == 1 {
 		if wrapper := tryExtractCMSMedia(dw.Part(0)); wrapper != nil {
@@ -316,13 +310,12 @@ func extractSrcFromWriter(dw *ast_domain.DirectWriter) (string, *cmsMediaWrapper
 	return dw.String(), nil
 }
 
-// tryExtractCMSMedia attempts to extract a CMS media wrapper from a writer
-// part.
+// tryExtractCMSMedia attempts to extract a CMS media wrapper from a writer part.
 //
 // Takes part (*ast_domain.WriterPart) which is the writer part to extract from.
 //
-// Returns *cmsMediaWrapper which is the extracted media wrapper, or nil if the
-// part is nil or not of type WriterPartAny.
+// Returns *cmsMediaWrapper which is the extracted media wrapper, or nil if the part is
+// nil or not of type WriterPartAny.
 func tryExtractCMSMedia(part *ast_domain.WriterPart) *cmsMediaWrapper {
 	if part == nil || part.Type != ast_domain.WriterPartAny {
 		return nil
@@ -330,13 +323,12 @@ func tryExtractCMSMedia(part *ast_domain.WriterPart) *cmsMediaWrapper {
 	return tryCMSMediaWrapper(part.AnyValue)
 }
 
-// renderPikoImg renders a <piko:img> component as an <img> tag using the
-// direct-to-writer pattern.
+// renderPikoImg renders a <piko:img> component as an <img> tag using the direct-to-writer
+// pattern.
 //
-// Takes ro (*RenderOrchestrator) which provides asset registration and
-// element directive rendering.
-// Takes node (*ast_domain.TemplateNode) which is the piko:img element to
-// render.
+// Takes ro (*RenderOrchestrator) which provides asset registration and element directive
+// rendering.
+// Takes node (*ast_domain.TemplateNode) which is the piko:img element to render.
 // Takes qw (*qt.Writer) which is the quicktemplate writer for output.
 // Takes rctx (*renderContext) which provides rendering state and diagnostics.
 //
@@ -400,12 +392,11 @@ func renderPikoImg(ro *RenderOrchestrator, node *ast_domain.TemplateNode, qw *qt
 	return nil
 }
 
-// renderCMSMediaImg renders a piko:img with a CMS media source. Uses
-// pre-generated variants from the CMS instead of registering new profiles.
+// renderCMSMediaImg renders a piko:img with a CMS media source. Uses pre-generated
+// variants from the CMS instead of registering new profiles.
 //
 // Takes ro (*RenderOrchestrator) which provides element directive rendering.
-// Takes node (*ast_domain.TemplateNode) which is the piko:img element to
-// render.
+// Takes node (*ast_domain.TemplateNode) which is the piko:img element to render.
 // Takes qw (*qt.Writer) which is the quicktemplate writer for output.
 // Takes rctx (*renderContext) which provides rendering state and diagnostics.
 // Takes attrs (*pikoImgAttrs) which contains the extracted attributes.
@@ -456,14 +447,11 @@ func renderCMSMediaImg(ro *RenderOrchestrator, node *ast_domain.TemplateNode, qw
 	return nil
 }
 
-// writeCMSMediaSrcset generates and writes a srcset attribute from CMS
-// variants.
+// writeCMSMediaSrcset generates and writes a srcset attribute from CMS variants.
 //
 // Takes qw (*qt.Writer) which receives the srcset attribute.
-// Takes variants (map[string]*variantWrapper) which contains the available
-// variants.
-// Takes widthsAttr (string) which specifies which widths to include
-// (comma-separated).
+// Takes variants (map[string]*variantWrapper) which contains the available variants.
+// Takes widthsAttr (string) which specifies which widths to include (comma-separated).
 // Takes rctx (*renderContext) which provides buffer pooling.
 func writeCMSMediaSrcset(qw *qt.Writer, variants map[string]*variantWrapper, widthsAttr string, rctx *renderContext) {
 	requestedWidths := parseIntList(widthsAttr)
@@ -533,8 +521,7 @@ func writeAltFromMedia(node *ast_domain.TemplateNode, qw *qt.Writer, media *cmsM
 	}
 }
 
-// writeMediaDimensions writes width and height attributes from CMS media if not
-// set.
+// writeMediaDimensions writes width and height attributes from CMS media if not set.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the element attributes.
 // Takes qw (*qt.Writer) which receives the attribute output.
@@ -550,11 +537,11 @@ func writeMediaDimensions(node *ast_domain.TemplateNode, qw *qt.Writer, media *c
 	}
 }
 
-// checkDimensionAttributes checks if width and height attributes are already
-// set on a template node.
+// checkDimensionAttributes checks if width and height attributes are already set on a
+// template node.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node to inspect for
-// dimension attributes.
+// Takes node (*ast_domain.TemplateNode) which is the node to inspect for dimension
+// attributes.
 //
 // Returns hasWidth (bool) which indicates whether a width attribute exists.
 // Returns hasHeight (bool) which indicates whether a height attribute exists.
@@ -640,12 +627,11 @@ func writeImgTagWithoutSrc(ro *RenderOrchestrator, node *ast_domain.TemplateNode
 	qw.N().Z(selfClose)
 }
 
-// writeSrcsetAttribute writes the srcset attribute to the output. It uses a
-// cache to avoid building the same string more than once for each image.
+// writeSrcsetAttribute writes the srcset attribute to the output. It uses a cache to
+// avoid building the same string more than once for each image.
 //
 // Takes qw (*qt.Writer) which receives the rendered attribute output.
-// Takes artefact (*registry_dto.ArtefactMeta) which provides the image
-// profiles.
+// Takes artefact (*registry_dto.ArtefactMeta) which provides the image profiles.
 // Takes baseURL (string) which is the base path for image URLs.
 // Takes rctx (*renderContext) which provides the srcset cache and buffer pool.
 func writeSrcsetAttribute(qw *qt.Writer, artefact *registry_dto.ArtefactMeta, baseURL string, rctx *renderContext) {
@@ -679,14 +665,12 @@ func writeSrcsetAttribute(qw *qt.Writer, artefact *registry_dto.ArtefactMeta, ba
 	}
 }
 
-// hashDesiredProfiles computes a hash of the desired profiles for cache key.
-// Uses FNV-1a for fast hashing.
+// hashDesiredProfiles computes a hash of the desired profiles for cache key. Uses FNV-1a
+// for fast hashing.
 //
-// Takes profiles ([]registry_dto.NamedProfile) which specifies the profiles
-// to hash.
+// Takes profiles ([]registry_dto.NamedProfile) which specifies the profiles to hash.
 //
-// Returns uint64 which is the computed hash value, or zero if profiles is
-// empty.
+// Returns uint64 which is the computed hash value, or zero if profiles is empty.
 func hashDesiredProfiles(profiles []registry_dto.NamedProfile) uint64 {
 	if len(profiles) == 0 {
 		return 0
@@ -721,11 +705,11 @@ func hashDesiredProfiles(profiles []registry_dto.NamedProfile) uint64 {
 
 // getSortedProfileKeys returns a pooled slice of sorted profile keys.
 //
-// Takes profiles ([]registry_dto.NamedProfile) which contains the profiles to
-// extract and sort keys from.
+// Takes profiles ([]registry_dto.NamedProfile) which contains the profiles to extract and
+// sort keys from.
 //
-// Returns *[]string which is a pooled slice containing the sorted profile
-// names. The caller must return this slice to the pool when finished.
+// Returns *[]string which is a pooled slice containing the sorted profile names. The
+// caller must return this slice to the pool when finished.
 func getSortedProfileKeys(profiles []registry_dto.NamedProfile) *[]string {
 	keys, ok := sortedProfileKeysPool.Get().(*[]string)
 	if !ok {
@@ -755,9 +739,9 @@ func putSortedProfileKeys(keys *[]string) {
 	sortedProfileKeysPool.Put(keys)
 }
 
-// sortProfileKeys sorts profile keys in place using a method suited to the
-// slice size. It uses a simple swap for two items, a three-way swap for three
-// items, and insertion sort for larger slices.
+// sortProfileKeys sorts profile keys in place using a method suited to the slice size. It
+// uses a simple swap for two items, a three-way swap for three items, and insertion sort
+// for larger slices.
 //
 // Takes keys (*[]string) which is the slice of profile keys to sort in place.
 // Takes count (int) which specifies how many items from the slice to sort.
@@ -800,8 +784,8 @@ func sortProfileKeys(keys *[]string, count int) {
 // Takes profiles ([]registry_dto.NamedProfile) which is the list to search.
 // Takes key (string) which is the name to find.
 //
-// Returns *registry_dto.DesiredProfile which is the matching profile, or nil
-// if not found.
+// Returns *registry_dto.DesiredProfile which is the matching profile, or nil if not
+// found.
 func findProfileByKey(profiles []registry_dto.NamedProfile, key string) *registry_dto.DesiredProfile {
 	for i := range profiles {
 		if profiles[i].Name == key {
@@ -811,11 +795,10 @@ func findProfileByKey(profiles []registry_dto.NamedProfile, key string) *registr
 	return nil
 }
 
-// getProfileDescriptor returns the descriptor value and suffix for a srcset
-// entry.
+// getProfileDescriptor returns the descriptor value and suffix for a srcset entry.
 //
-// Takes profile (*registry_dto.DesiredProfile) which contains the image
-// profile to get descriptor details from.
+// Takes profile (*registry_dto.DesiredProfile) which contains the image profile to get
+// descriptor details from.
 //
 // Returns value (string) which is the width or density descriptor value.
 // Returns suffix (byte) which is 'w' for width descriptors, or 0 for density.
@@ -832,8 +815,8 @@ func getProfileDescriptor(profile *registry_dto.DesiredProfile) (value string, s
 
 // appendSrcsetEntry appends a single srcset entry to the buffer.
 //
-// Each entry has the base URL with a version query parameter, then the
-// descriptor (such as "2x" or "100w").
+// Each entry has the base URL with a version query parameter, then the descriptor (such
+// as "2x" or "100w").
 //
 // Takes buffer ([]byte) which is the buffer to append to.
 // Takes baseURL (string) which is the image URL.
@@ -854,12 +837,12 @@ func appendSrcsetEntry(buffer []byte, baseURL, profileKey, descriptor string, su
 	return buffer
 }
 
-// appendSrcset builds a srcset string directly into a buffer.
-// Profiles are processed in sorted order to ensure consistent output.
+// appendSrcset builds a srcset string directly into a buffer. Profiles are processed in
+// sorted order to ensure consistent output.
 //
 // Takes buffer ([]byte) which is the buffer to append to.
-// Takes profiles ([]registry_dto.NamedProfile) which contains the image
-// profiles to include in the srcset.
+// Takes profiles ([]registry_dto.NamedProfile) which contains the image profiles to
+// include in the srcset.
 // Takes baseURL (string) which is the base URL for image paths.
 //
 // Returns []byte which is the buffer with the srcset string appended.
@@ -894,11 +877,11 @@ func appendSrcset(buffer []byte, profiles []registry_dto.NamedProfile, baseURL s
 	return buffer
 }
 
-// isPikoImgSpecialAttr checks whether a name is a piko:img special attribute
-// that should not appear in the output.
+// isPikoImgSpecialAttr checks whether a name is a piko:img special attribute that should
+// not appear in the output.
 //
-// Uses switch instead of map for faster lookup on this small key set. Parser
-// lowercases all attribute names, so direct comparison is safe.
+// Uses switch instead of map for faster lookup on this small key set. Parser lowercases
+// all attribute names, so direct comparison is safe.
 //
 // Takes name (string) which is the attribute name to check.
 //
@@ -912,8 +895,8 @@ func isPikoImgSpecialAttr(name string) bool {
 	}
 }
 
-// getAssetProfile retrieves an assetProfile from the pool with pre-allocated
-// slice backing arrays.
+// getAssetProfile retrieves an assetProfile from the pool with pre-allocated slice
+// backing arrays.
 //
 // Returns *assetProfile which is ready for use.
 func getAssetProfile() *assetProfile {
@@ -927,8 +910,7 @@ func getAssetProfile() *assetProfile {
 	}
 }
 
-// putAssetProfile returns an assetProfile to the pool after resetting its
-// slices.
+// putAssetProfile returns an assetProfile to the pool after resetting its slices.
 //
 // Takes p (*assetProfile) which is the profile to return to the pool.
 func putAssetProfile(p *assetProfile) {
@@ -939,8 +921,8 @@ func putAssetProfile(p *assetProfile) {
 	assetProfilePool.Put(p)
 }
 
-// parseCommaSeparated splits a string by commas or spaces. It handles both
-// "a,b,c" and "a b c" formats, which are common in HTML attributes.
+// parseCommaSeparated splits a string by commas or spaces. It handles both "a,b,c" and "a
+// b c" formats, which are common in HTML attributes.
 //
 // Takes value (string) which is the input to split.
 //
@@ -961,8 +943,8 @@ func parseCommaSeparated(value string) []string {
 	return result
 }
 
-// appendCommaSeparated splits a string by commas or spaces and appends
-// non-empty parts to dst, reusing its backing array.
+// appendCommaSeparated splits a string by commas or spaces and appends non-empty parts to
+// dst, reusing its backing array.
 //
 // Takes dst ([]string) which is the slice to append to.
 // Takes value (string) which contains the comma or space separated values.
@@ -989,8 +971,8 @@ func appendCommaSeparated(dst []string, value string) []string {
 //
 // Takes value (string) which contains the comma-separated integers.
 //
-// Returns []int which contains the parsed integers. Values that are not valid
-// integers are skipped.
+// Returns []int which contains the parsed integers. Values that are not valid integers
+// are skipped.
 func parseIntList(value string) []int {
 	parts := parseCommaSeparated(value)
 	result := make([]int, 0, len(parts))
@@ -1002,14 +984,14 @@ func parseIntList(value string) []int {
 	return result
 }
 
-// appendIntList parses a comma-separated list of integers and appends them
-// to dst, reusing its backing array.
+// appendIntList parses a comma-separated list of integers and appends them to dst,
+// reusing its backing array.
 //
 // Takes dst ([]int) which is the slice to append to.
 // Takes value (string) which contains the comma-separated integers.
 //
-// Returns []int which is dst with the parsed integers appended. Values that
-// are not valid integers are skipped.
+// Returns []int which is dst with the parsed integers appended. Values that are not valid
+// integers are skipped.
 func appendIntList(dst []int, value string) []int {
 	for value != "" {
 		i := 0
@@ -1029,8 +1011,8 @@ func appendIntList(dst []int, value string) []int {
 	return dst
 }
 
-// writePikoImgStaticAttrsFilteredWithExclusions writes static attributes to the
-// output, skipping profile-related attributes, src, and optionally srcset.
+// writePikoImgStaticAttrsFilteredWithExclusions writes static attributes to the output,
+// skipping profile-related attributes, src, and optionally srcset.
 //
 // Takes node (*ast_domain.TemplateNode) which holds the attributes to write.
 // Takes qw (*qt.Writer) which receives the output.

@@ -23,14 +23,16 @@ import (
 	"sync"
 )
 
-// globalActionRegistry is the global registry of action handlers.
-// Actions are registered via init() functions in generated code.
-var globalActionRegistry = &actionRegistry{
-	entries: make(map[string]ActionHandlerEntry),
-}
+var (
+	// globalActionRegistry is the global registry of action handlers. Actions are registered
+	// via init() functions in generated code.
+	globalActionRegistry = &actionRegistry{
+		entries: make(map[string]ActionHandlerEntry),
+	}
+)
 
-// actionRegistry holds registered action handlers with safe access from
-// multiple goroutines.
+// actionRegistry holds registered action handlers with safe access from multiple
+// goroutines.
 type actionRegistry struct {
 	// entries maps action names to their handler entries.
 	entries map[string]ActionHandlerEntry
@@ -39,8 +41,8 @@ type actionRegistry struct {
 	mu sync.RWMutex
 }
 
-// RegisterAction adds an action handler to the global registry.
-// This is called by generated code in dist/actions/registry.go via init().
+// RegisterAction adds an action handler to the global registry. This is called by
+// generated code in dist/actions/registry.go via init().
 //
 // Takes entry (ActionHandlerEntry) which describes the action handler.
 //
@@ -51,11 +53,11 @@ func RegisterAction(entry ActionHandlerEntry) {
 	globalActionRegistry.entries[entry.Name] = entry
 }
 
-// RegisterActions adds multiple action handlers to the global registry.
-// This is called by generated code in dist/actions/registry.go via init().
+// RegisterActions adds multiple action handlers to the global registry. This is called by
+// generated code in dist/actions/registry.go via init().
 //
-// Takes entries (map[string]ActionHandlerEntry) which maps action names
-// to their handlers.
+// Takes entries (map[string]ActionHandlerEntry) which maps action names to their
+// handlers.
 //
 // Safe for concurrent use. Uses a mutex to protect the global registry.
 func RegisterActions(entries map[string]ActionHandlerEntry) {
@@ -67,8 +69,8 @@ func RegisterActions(entries map[string]ActionHandlerEntry) {
 	}
 }
 
-// GetGlobalActionRegistry returns a copy of all registered action handlers.
-// This is called by bootstrap to get actions for the daemon.
+// GetGlobalActionRegistry returns a copy of all registered action handlers. This is
+// called by bootstrap to get actions for the daemon.
 //
 // Returns map[string]ActionHandlerEntry containing all registered actions.
 //
@@ -82,8 +84,8 @@ func GetGlobalActionRegistry() map[string]ActionHandlerEntry {
 	return result
 }
 
-// ClearGlobalActionRegistry clears all registered actions.
-// This is primarily used for testing.
+// ClearGlobalActionRegistry clears all registered actions. This is primarily used for
+// testing.
 //
 // Safe for concurrent use.
 func ClearGlobalActionRegistry() {

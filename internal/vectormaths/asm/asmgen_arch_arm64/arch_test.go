@@ -75,3 +75,60 @@ func TestEmitDotProduct_UnknownVariant(t *testing.T) {
 
 	assert.Empty(t, output, "expected empty output for unsupported variant")
 }
+
+func TestEmitDotF64NEON(t *testing.T) {
+	output := emitToString(func(arch *VectormathsARM64Arch, emitter *asmgen.Emitter) {
+		arch.EmitDotF64(emitter, "NEON")
+	})
+
+	assert.Contains(t, output, "VLD1")
+	assert.Contains(t, output, "WORD $0x4E62CC20", "expected FMLA V0.2D, V1.2D, V2.2D encoding")
+	assert.Contains(t, output, "WORD $0x4E62CC24", "expected FMLA V4.2D, V1.2D, V2.2D encoding")
+	assert.Contains(t, output, "WORD $0x6E60D400", "expected FADDP.2D word encoding")
+	assert.Contains(t, output, "FMOVD")
+	assert.Contains(t, output, "RET")
+}
+
+func TestEmitScaleF64NEON(t *testing.T) {
+	output := emitToString(func(arch *VectormathsARM64Arch, emitter *asmgen.Emitter) {
+		arch.EmitScaleF64(emitter, "NEON")
+	})
+
+	assert.Contains(t, output, "VLD1")
+	assert.Contains(t, output, "VST1")
+	assert.Contains(t, output, "WORD $0x4E0804E7", "expected DUP V7.2D, V7.D[0] encoding")
+	assert.Contains(t, output, "WORD $0x6E67DC00", "expected FMUL.2D word encoding for V0, V0, V7")
+	assert.Contains(t, output, "RET")
+}
+
+func TestEmitDotF64_UnknownVariant(t *testing.T) {
+	output := emitToString(func(arch *VectormathsARM64Arch, emitter *asmgen.Emitter) {
+		arch.EmitDotF64(emitter, "SSE")
+	})
+
+	assert.Empty(t, output, "expected empty output for unsupported variant")
+}
+
+func TestEmitScaleF64_UnknownVariant(t *testing.T) {
+	output := emitToString(func(arch *VectormathsARM64Arch, emitter *asmgen.Emitter) {
+		arch.EmitScaleF64(emitter, "SSE")
+	})
+
+	assert.Empty(t, output, "expected empty output for unsupported variant")
+}
+
+func TestNEONFMLA2DEncoding(t *testing.T) {
+	assert.Equal(t, uint32(0x4E60CC00), neonFMLA2D(0, 0, 0), "FMLA V0.2D,V0.2D,V0.2D")
+	assert.Equal(t, uint32(0x4E62CC20), neonFMLA2D(0, 1, 2), "FMLA V0.2D,V1.2D,V2.2D")
+	assert.Equal(t, uint32(0x4E62CC24), neonFMLA2D(4, 1, 2), "FMLA V4.2D,V1.2D,V2.2D")
+}
+
+func TestNEONFMUL2DEncoding(t *testing.T) {
+	assert.Equal(t, uint32(0x6E60DC00), neonFMUL2D(0, 0, 0), "FMUL V0.2D,V0.2D,V0.2D")
+	assert.Equal(t, uint32(0x6E67DC00), neonFMUL2D(0, 0, 7), "FMUL V0.2D,V0.2D,V7.2D")
+}
+
+func TestNEONDUP2DFromDoubleEncoding(t *testing.T) {
+	assert.Equal(t, uint32(0x4E080400), neonDUP2DFromDouble(0, 0), "DUP V0.2D, V0.D[0]")
+	assert.Equal(t, uint32(0x4E0804E7), neonDUP2DFromDouble(7, 7), "DUP V7.2D, V7.D[0]")
+}

@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_stopwords_mock provides a configurable mock
-// stop words provider for testing.
+// Package linguistics_stopwords_mock provides a configurable mock stop words provider for
+// testing.
 //
-// The mock implements the StopWordsProviderPort interface with
-// configurable stop word sets, pass-through mode, custom functions,
-// and call tracking for test assertions.
+// The mock implements the StopWordsProviderPort interface with configurable stop word
+// sets, pass-through mode, custom functions, and call tracking for test assertions.
 //
 // All methods on [MockStopWordsProvider] are safe for concurrent use.
 package linguistics_stopwords_mock

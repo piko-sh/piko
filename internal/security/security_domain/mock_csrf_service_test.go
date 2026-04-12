@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,14 +41,10 @@ func TestMockCSRFTokenService_GenerateCSRFPair(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc:      nil,
-			ValidateCSRFPairFunc:      nil,
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			GenerateCSRFPairFunc: nil,
+			ValidateCSRFPairFunc: nil,
+			NameFunc:             nil,
+			CheckFunc:            nil,
 		}
 
 		w := httptest.NewRecorder()
@@ -60,7 +55,7 @@ func TestMockCSRFTokenService_GenerateCSRFPair(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, security_dto.CSRFPair{}, pair)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateCSRFPairCallCount))
+		assert.Equal(t, int64(1), mock.GenerateCSRFPairCallCount.Load())
 	})
 
 	t.Run("delegates to GenerateCSRFPairFunc", func(t *testing.T) {
@@ -82,13 +77,9 @@ func TestMockCSRFTokenService_GenerateCSRFPair(t *testing.T) {
 				capturedBuf = buffer
 				return expected, nil
 			},
-			ValidateCSRFPairFunc:      nil,
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			ValidateCSRFPairFunc: nil,
+			NameFunc:             nil,
+			CheckFunc:            nil,
 		}
 
 		w := httptest.NewRecorder()
@@ -102,7 +93,7 @@ func TestMockCSRFTokenService_GenerateCSRFPair(t *testing.T) {
 		assert.Same(t, w, capturedW)
 		assert.Same(t, r, capturedR)
 		assert.Same(t, buffer, capturedBuf)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateCSRFPairCallCount))
+		assert.Equal(t, int64(1), mock.GenerateCSRFPairCallCount.Load())
 	})
 
 	t.Run("propagates error from GenerateCSRFPairFunc", func(t *testing.T) {
@@ -112,13 +103,9 @@ func TestMockCSRFTokenService_GenerateCSRFPair(t *testing.T) {
 			GenerateCSRFPairFunc: func(_ http.ResponseWriter, _ *http.Request, _ *bytes.Buffer) (security_dto.CSRFPair, error) {
 				return security_dto.CSRFPair{}, errors.New("token generation failed")
 			},
-			ValidateCSRFPairFunc:      nil,
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			ValidateCSRFPairFunc: nil,
+			NameFunc:             nil,
+			CheckFunc:            nil,
 		}
 
 		w := httptest.NewRecorder()
@@ -130,7 +117,7 @@ func TestMockCSRFTokenService_GenerateCSRFPair(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "token generation failed", err.Error())
 		assert.Equal(t, security_dto.CSRFPair{}, pair)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateCSRFPairCallCount))
+		assert.Equal(t, int64(1), mock.GenerateCSRFPairCallCount.Load())
 	})
 }
 
@@ -141,14 +128,10 @@ func TestMockCSRFTokenService_ValidateCSRFPair(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc:      nil,
-			ValidateCSRFPairFunc:      nil,
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			GenerateCSRFPairFunc: nil,
+			ValidateCSRFPairFunc: nil,
+			NameFunc:             nil,
+			CheckFunc:            nil,
 		}
 
 		r := httptest.NewRequest(http.MethodPost, "/submit", nil)
@@ -157,7 +140,7 @@ func TestMockCSRFTokenService_ValidateCSRFPair(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.False(t, valid)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ValidateCSRFPairCallCount))
+		assert.Equal(t, int64(1), mock.ValidateCSRFPairCallCount.Load())
 	})
 
 	t.Run("delegates to ValidateCSRFPairFunc", func(t *testing.T) {
@@ -175,12 +158,8 @@ func TestMockCSRFTokenService_ValidateCSRFPair(t *testing.T) {
 				capturedAction = actionToken
 				return true, nil
 			},
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			NameFunc:  nil,
+			CheckFunc: nil,
 		}
 
 		r := httptest.NewRequest(http.MethodPost, "/api/action", nil)
@@ -194,7 +173,7 @@ func TestMockCSRFTokenService_ValidateCSRFPair(t *testing.T) {
 		assert.Same(t, r, capturedR)
 		assert.Equal(t, ephemeral, capturedEphemeral)
 		assert.Equal(t, action, capturedAction)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ValidateCSRFPairCallCount))
+		assert.Equal(t, int64(1), mock.ValidateCSRFPairCallCount.Load())
 	})
 
 	t.Run("propagates error from ValidateCSRFPairFunc", func(t *testing.T) {
@@ -205,12 +184,8 @@ func TestMockCSRFTokenService_ValidateCSRFPair(t *testing.T) {
 			ValidateCSRFPairFunc: func(_ *http.Request, _ string, _ []byte) (bool, error) {
 				return false, errors.New("validation failed")
 			},
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			NameFunc:  nil,
+			CheckFunc: nil,
 		}
 
 		r := httptest.NewRequest(http.MethodPost, "/submit", nil)
@@ -220,7 +195,7 @@ func TestMockCSRFTokenService_ValidateCSRFPair(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "validation failed", err.Error())
 		assert.False(t, valid)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ValidateCSRFPairCallCount))
+		assert.Equal(t, int64(1), mock.ValidateCSRFPairCallCount.Load())
 	})
 }
 
@@ -231,20 +206,16 @@ func TestMockCSRFTokenService_Name(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc:      nil,
-			ValidateCSRFPairFunc:      nil,
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			GenerateCSRFPairFunc: nil,
+			ValidateCSRFPairFunc: nil,
+			NameFunc:             nil,
+			CheckFunc:            nil,
 		}
 
 		name := mock.Name()
 
 		assert.Equal(t, "", name)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NameCallCount))
+		assert.Equal(t, int64(1), mock.NameCallCount.Load())
 	})
 
 	t.Run("delegates to NameFunc", func(t *testing.T) {
@@ -256,17 +227,13 @@ func TestMockCSRFTokenService_Name(t *testing.T) {
 			NameFunc: func() string {
 				return "csrf-service"
 			},
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			CheckFunc: nil,
 		}
 
 		name := mock.Name()
 
 		assert.Equal(t, "csrf-service", name)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NameCallCount))
+		assert.Equal(t, int64(1), mock.NameCallCount.Load())
 	})
 }
 
@@ -277,21 +244,17 @@ func TestMockCSRFTokenService_Check(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockCSRFTokenService{
-			GenerateCSRFPairFunc:      nil,
-			ValidateCSRFPairFunc:      nil,
-			NameFunc:                  nil,
-			CheckFunc:                 nil,
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
+			GenerateCSRFPairFunc: nil,
+			ValidateCSRFPairFunc: nil,
+			NameFunc:             nil,
+			CheckFunc:            nil,
 		}
 
 		ctx := context.Background()
 		status := mock.Check(ctx, healthprobe_dto.CheckTypeReadiness)
 
 		assert.Equal(t, healthprobe_dto.Status{}, status)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CheckCallCount))
+		assert.Equal(t, int64(1), mock.CheckCallCount.Load())
 	})
 
 	t.Run("delegates to CheckFunc", func(t *testing.T) {
@@ -315,10 +278,6 @@ func TestMockCSRFTokenService_Check(t *testing.T) {
 				capturedCheckType = checkType
 				return expected
 			},
-			GenerateCSRFPairCallCount: 0,
-			ValidateCSRFPairCallCount: 0,
-			NameCallCount:             0,
-			CheckCallCount:            0,
 		}
 
 		ctx := context.WithValue(context.Background(), csrfTestContextKey{}, "test-val")
@@ -327,7 +286,7 @@ func TestMockCSRFTokenService_Check(t *testing.T) {
 		assert.Equal(t, expected, status)
 		assert.Equal(t, ctx, capturedCtx)
 		assert.Equal(t, healthprobe_dto.CheckTypeLiveness, capturedCheckType)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CheckCallCount))
+		assert.Equal(t, int64(1), mock.CheckCallCount.Load())
 	})
 }
 
@@ -357,24 +316,20 @@ func TestMockCSRFTokenService_ZeroValueIsUsable(t *testing.T) {
 	status := mock.Check(ctx, healthprobe_dto.CheckTypeReadiness)
 	assert.Equal(t, healthprobe_dto.Status{}, status)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateCSRFPairCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ValidateCSRFPairCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NameCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CheckCallCount))
+	assert.Equal(t, int64(1), mock.GenerateCSRFPairCallCount.Load())
+	assert.Equal(t, int64(1), mock.ValidateCSRFPairCallCount.Load())
+	assert.Equal(t, int64(1), mock.NameCallCount.Load())
+	assert.Equal(t, int64(1), mock.CheckCallCount.Load())
 }
 
 func TestMockCSRFTokenService_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockCSRFTokenService{
-		GenerateCSRFPairFunc:      nil,
-		ValidateCSRFPairFunc:      nil,
-		NameFunc:                  nil,
-		CheckFunc:                 nil,
-		GenerateCSRFPairCallCount: 0,
-		ValidateCSRFPairCallCount: 0,
-		NameCallCount:             0,
-		CheckCallCount:            0,
+		GenerateCSRFPairFunc: nil,
+		ValidateCSRFPairFunc: nil,
+		NameFunc:             nil,
+		CheckFunc:            nil,
 	}
 
 	const goroutines = 50
@@ -408,8 +363,8 @@ func TestMockCSRFTokenService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GenerateCSRFPairCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ValidateCSRFPairCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NameCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.CheckCallCount))
+	assert.Equal(t, int64(goroutines), mock.GenerateCSRFPairCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ValidateCSRFPairCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.NameCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.CheckCallCount.Load())
 }

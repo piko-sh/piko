@@ -40,12 +40,11 @@ var (
 	// operationErrorsTotal tracks the total number of failed domain operations.
 	operationErrorsTotal metric.Int64Counter
 
-	// batchOperationsTotal tracks the count of batch operations such as PutObjects
-	// and RemoveObjects.
+	// batchOperationsTotal tracks the count of batch operations such as PutObjects and
+	// RemoveObjects.
 	batchOperationsTotal metric.Int64Counter
 
-	// batchItemsTotal tracks the total number of items processed in batch
-	// operations.
+	// batchItemsTotal tracks the total number of items processed in batch operations.
 	batchItemsTotal metric.Int64Counter
 )
 

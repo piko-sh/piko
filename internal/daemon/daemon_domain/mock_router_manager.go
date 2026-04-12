@@ -26,37 +26,35 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 )
 
-// MockRouterManager is a test double for RouterManager where nil function
-// fields return zero values and call counts are tracked atomically.
+// MockRouterManager is a test double for RouterManager where nil function fields return
+// zero values and call counts are tracked atomically.
 type MockRouterManager struct {
-	// ReloadRoutesFunc is the function called by
-	// ReloadRoutes.
+	// ReloadRoutesFunc is the function called by ReloadRoutes.
 	ReloadRoutesFunc func(ctx context.Context, store templater_domain.ManifestStoreView) error
 
 	// ServeHTTPFunc is the function called by ServeHTTP.
 	ServeHTTPFunc func(w http.ResponseWriter, r *http.Request)
 
-	// ReloadRoutesCallCount tracks how many times
-	// ReloadRoutes was called.
-	ReloadRoutesCallCount int64
+	// ReloadRoutesCallCount tracks how many times ReloadRoutes was called.
+	ReloadRoutesCallCount atomic.Int64
 
-	// ServeHTTPCallCount tracks how many times ServeHTTP
-	// was called.
-	ServeHTTPCallCount int64
+	// ServeHTTPCallCount tracks how many times ServeHTTP was called.
+	ServeHTTPCallCount atomic.Int64
 }
 
-var _ RouterManager = (*MockRouterManager)(nil)
+var (
+	_ RouterManager = (*MockRouterManager)(nil)
+)
 
 // ReloadRoutes refreshes the routing configuration from the manifest store.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes store (templater_domain.ManifestStoreView) which
-// provides the route definitions.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes store (templater_domain.ManifestStoreView) which provides the route definitions.
 //
 // Returns error, or nil if ReloadRoutesFunc is nil.
 func (m *MockRouterManager) ReloadRoutes(ctx context.Context, store templater_domain.ManifestStoreView) error {
-	atomic.AddInt64(&m.ReloadRoutesCallCount, 1)
+	m.ReloadRoutesCallCount.Add(1)
 	if m.ReloadRoutesFunc != nil {
 		return m.ReloadRoutesFunc(ctx, store)
 	}
@@ -68,7 +66,7 @@ func (m *MockRouterManager) ReloadRoutes(ctx context.Context, store templater_do
 // Takes w (http.ResponseWriter) which is the response writer.
 // Takes r (*http.Request) which is the incoming HTTP request.
 func (m *MockRouterManager) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	atomic.AddInt64(&m.ServeHTTPCallCount, 1)
+	m.ServeHTTPCallCount.Add(1)
 	if m.ServeHTTPFunc != nil {
 		m.ServeHTTPFunc(w, r)
 	}

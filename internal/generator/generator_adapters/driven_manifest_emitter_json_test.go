@@ -23,11 +23,11 @@ import (
 	"errors"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/generator/generator_dto"
 	"piko.sh/piko/internal/i18n/i18n_domain"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/templater/templater_dto"
 	"piko.sh/piko/wdk/safedisk"
 )

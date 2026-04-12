@@ -18,8 +18,9 @@
 
 package annotator_domain
 
-// Manages the semantic analysis context by tracking state, diagnostics, and symbol tables during AST traversal.
-// Provides helper methods for adding diagnostics, managing scopes, and accessing analysis context throughout the semantic analysis phase.
+// Manages the semantic analysis context by tracking state, diagnostics, and symbol tables
+// during AST traversal. Provides helper methods for adding diagnostics, managing scopes,
+// and accessing analysis context throughout the semantic analysis phase.
 
 import (
 	"context"
@@ -30,9 +31,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// ContextManager creates and switches AnalysisContext instances during AST
-// traversal. It handles scope creation for loops and context switching for
-// partials and slotted content.
+// ContextManager creates and switches AnalysisContext instances during AST traversal. It
+// handles scope creation for loops and context switching for partials and slotted
+// content.
 type ContextManager struct {
 	// typeResolver finds Go types for loop items and indices.
 	typeResolver *TypeResolver
@@ -41,17 +42,15 @@ type ContextManager struct {
 	virtualModule *annotator_dto.VirtualModule
 }
 
-// CreateForLoopContext creates a new child context for a p-for loop, defining
-// the loop variables (item and index) in the new scope based on the
-// collection's type.
+// CreateForLoopContext creates a new child context for a p-for loop, defining the loop
+// variables (item and index) in the new scope based on the collection's type.
 //
-// Takes node (*ast_domain.TemplateNode) which contains the p-for directive to
-// process.
-// Takes parentCtx (*AnalysisContext) which provides the parent scope for
-// variable resolution.
+// Takes node (*ast_domain.TemplateNode) which contains the p-for directive to process.
+// Takes parentCtx (*AnalysisContext) which provides the parent scope for variable
+// resolution.
 //
-// Returns *AnalysisContext which is the new child context with loop variables
-// defined, or the parent context if no p-for directive is present.
+// Returns *AnalysisContext which is the new child context with loop variables defined, or
+// the parent context if no p-for directive is present.
 // Returns error when context creation fails.
 func (cm *ContextManager) CreateForLoopContext(
 	goCtx context.Context,
@@ -81,20 +80,19 @@ func (cm *ContextManager) CreateForLoopContext(
 	return loopCtx, nil
 }
 
-// DeterminePartialSelfContext creates the analysis context for a partial's own
-// template scope.
+// DeterminePartialSelfContext creates the analysis context for a partial's own template
+// scope.
 //
-// If the node is a partial root and the partial component can be found, this
-// creates a new context for the partial's scope. Otherwise, it returns the
-// parent context unchanged.
+// If the node is a partial root and the partial component can be found, this creates a
+// new context for the partial's scope. Otherwise, it returns the parent context
+// unchanged.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to check
-// for partial root status.
-// Takes parentCtx (*AnalysisContext) which is the parent context to use or
-// return.
+// Takes node (*ast_domain.TemplateNode) which is the template node to check for partial
+// root status.
+// Takes parentCtx (*AnalysisContext) which is the parent context to use or return.
 //
-// Returns *AnalysisContext which is either a new context for the partial's
-// scope or the parent context if not a partial root.
+// Returns *AnalysisContext which is either a new context for the partial's scope or the
+// parent context if not a partial root.
 func (cm *ContextManager) DeterminePartialSelfContext(
 	node *ast_domain.TemplateNode,
 	parentCtx *AnalysisContext,
@@ -116,19 +114,18 @@ func (cm *ContextManager) DeterminePartialSelfContext(
 	return parentCtx
 }
 
-// DetermineNodeContext finds the correct analysis context for a node and its
-// children. It handles context switches for partials and slotted content.
+// DetermineNodeContext finds the correct analysis context for a node and its children. It
+// handles context switches for partials and slotted content.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to analyse.
 // Takes parentCtx (*AnalysisContext) which is the context from the parent node.
-// Takes currentPartialInfo (*ast_domain.PartialInvocationInfo) which is the
-// partial info from the parent scope.
-// Takes depth (int) which is how deep this node is in the tree, used for
-// logging.
+// Takes currentPartialInfo (*ast_domain.PartialInvocationInfo) which is the partial info
+// from the parent scope.
+// Takes depth (int) which is how deep this node is in the tree, used for logging.
 //
 // Returns *AnalysisContext which is the context to use for this node.
-// Returns *ast_domain.PartialInvocationInfo which is the partial info for this
-// node and its children.
+// Returns *ast_domain.PartialInvocationInfo which is the partial info for this node and
+// its children.
 func (cm *ContextManager) DetermineNodeContext(
 	node *ast_domain.TemplateNode,
 	parentCtx *AnalysisContext,
@@ -240,17 +237,17 @@ type contextSwitchResult struct {
 	activePInfo *ast_domain.PartialInvocationInfo
 }
 
-// tryContextSwitch checks if a node's origin needs a context switch and
-// performs it if needed.
+// tryContextSwitch checks if a node's origin needs a context switch and performs it if
+// needed.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes parentCtx (*AnalysisContext) which is the current analysis context.
-// Takes activePInfo (*ast_domain.PartialInvocationInfo) which holds partial
-// invocation state.
+// Takes activePInfo (*ast_domain.PartialInvocationInfo) which holds partial invocation
+// state.
 // Takes depth (int) which is the current traversal depth for logging.
 //
-// Returns *contextSwitchResult which holds the new context and partial info,
-// or nil if no switch is needed.
+// Returns *contextSwitchResult which holds the new context and partial info, or nil if no
+// switch is needed.
 func (cm *ContextManager) tryContextSwitch(
 	node *ast_domain.TemplateNode,
 	parentCtx *AnalysisContext,
@@ -282,14 +279,12 @@ func (cm *ContextManager) tryContextSwitch(
 	return &contextSwitchResult{newCtx: newCtx, activePInfo: activePInfo}
 }
 
-// needsContextSwitch checks if a node requires a context switch based on its
-// origin.
+// needsContextSwitch checks if a node requires a context switch based on its origin.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes parentCtx (*AnalysisContext) which provides the current context.
 //
-// Returns bool which is true when the node's origin differs from the current
-// context.
+// Returns bool which is true when the node's origin differs from the current context.
 func (cm *ContextManager) needsContextSwitch(node *ast_domain.TemplateNode, parentCtx *AnalysisContext) bool {
 	if node.GoAnnotations == nil {
 		return false
@@ -307,12 +302,11 @@ func (cm *ContextManager) needsContextSwitch(node *ast_domain.TemplateNode, pare
 	return nodeOriginHashedName != currentVirtualComponent.HashedName
 }
 
-// logContextSwitchDetected logs debug information when a context switch is
-// detected during traversal.
+// logContextSwitchDetected logs debug information when a context switch is detected
+// during traversal.
 //
 // Takes parentCtx (*AnalysisContext) which holds the current analysis state.
-// Takes nodeOriginHashedName (string) which identifies where the node came
-// from.
+// Takes nodeOriginHashedName (string) which identifies where the node came from.
 // Takes depth (int) which shows how deep the current traversal is.
 func (cm *ContextManager) logContextSwitchDetected(parentCtx *AnalysisContext, nodeOriginHashedName string, depth int) {
 	currentVirtualComponent, ok := cm.virtualModule.ComponentsByGoPath[parentCtx.CurrentGoFullPackagePath]
@@ -331,10 +325,9 @@ func (cm *ContextManager) logContextSwitchDetected(parentCtx *AnalysisContext, n
 
 // createSwitchedContext creates a new context for the switched component.
 //
-// Takes parentCtx (*AnalysisContext) which provides the parent context to
-// build from.
-// Takes switchedVirtualComp (*annotator_dto.VirtualComponent) which specifies
-// the virtual component to switch to.
+// Takes parentCtx (*AnalysisContext) which provides the parent context to build from.
+// Takes switchedVirtualComp (*annotator_dto.VirtualComponent) which specifies the virtual
+// component to switch to.
 // Takes nodeOriginSFCPath (string) which identifies the source SFC file path.
 //
 // Returns *AnalysisContext which is the new context for the switched component.
@@ -356,22 +349,19 @@ func (*ContextManager) createSwitchedContext(
 	)
 }
 
-// populateSwitchedContext fills in the switched context based on whether the
-// switch is to the active partial or to a different component (slotted
-// content).
+// populateSwitchedContext fills in the switched context based on whether the switch is to
+// the active partial or to a different component (slotted content).
 //
 // Takes newCtx (*AnalysisContext) which is the new context to fill in.
-// Takes switchedVirtualComp (*annotator_dto.VirtualComponent) which is the
-// component being switched to.
-// Takes activePInfo (*ast_domain.PartialInvocationInfo) which is the current
-// partial invocation info, or nil if not in a partial.
-// Takes parentCtx (*AnalysisContext) which provides the parent context for
-// logging.
+// Takes switchedVirtualComp (*annotator_dto.VirtualComponent) which is the component
+// being switched to.
+// Takes activePInfo (*ast_domain.PartialInvocationInfo) which is the current partial
+// invocation info, or nil if not in a partial.
+// Takes parentCtx (*AnalysisContext) which provides the parent context for logging.
 // Takes depth (int) which is the current depth for logging.
 //
-// Returns *ast_domain.PartialInvocationInfo which is the active partial info
-// when switching to the same component, or nil when switching to a different
-// component.
+// Returns *ast_domain.PartialInvocationInfo which is the active partial info when
+// switching to the same component, or nil when switching to a different component.
 func (cm *ContextManager) populateSwitchedContext(
 	newCtx *AnalysisContext,
 	switchedVirtualComp *annotator_dto.VirtualComponent,
@@ -396,20 +386,18 @@ func (cm *ContextManager) populateSwitchedContext(
 	return nil
 }
 
-// defineItemVariable defines and enriches the item variable in a for loop.
-// It enables hover type previews and go-to-definition for loop variables.
+// defineItemVariable defines and enriches the item variable in a for loop. It enables
+// hover type previews and go-to-definition for loop variables.
 //
-// Takes forExpr (*ast_domain.ForInExpression) which contains the for
-// loop expression
-// with the item variable to define.
-// Takes parentCtx (*AnalysisContext) which provides the parent scope for type
-// resolution.
-// Takes loopCtx (*AnalysisContext) which is the loop scope where the variable
-// will be defined.
-// Takes collectionAnn (*ast_domain.GoGeneratorAnnotation) which holds the
-// resolved type of the collection being iterated.
-// Takes sfcSourcePath (string) which specifies the source file path for
-// go-to-definition support.
+// Takes forExpr (*ast_domain.ForInExpression) which contains the for loop expression with
+// the item variable to define.
+// Takes parentCtx (*AnalysisContext) which provides the parent scope for type resolution.
+// Takes loopCtx (*AnalysisContext) which is the loop scope where the variable will be
+// defined.
+// Takes collectionAnn (*ast_domain.GoGeneratorAnnotation) which holds the resolved type
+// of the collection being iterated.
+// Takes sfcSourcePath (string) which specifies the source file path for go-to-definition
+// support.
 func (cm *ContextManager) defineItemVariable(
 	goCtx context.Context,
 	forExpr *ast_domain.ForInExpression,
@@ -433,19 +421,17 @@ func (cm *ContextManager) defineItemVariable(
 	forExpr.ItemVariable.GoAnnotations = cm.createLoopVariableAnnotation(forExpr.ItemVariable, itemTypeInfo, sfcSourcePath)
 }
 
-// defineIndexVariable defines and enriches the index variable in a for loop.
-// It enables hover type previews and go-to-definition for loop variables.
+// defineIndexVariable defines and enriches the index variable in a for loop. It enables
+// hover type previews and go-to-definition for loop variables.
 //
-// Takes forExpr (*ast_domain.ForInExpression) which is the for-in expression
-// containing the index variable to define.
-// Takes parentCtx (*AnalysisContext) which provides the parent scope for type
-// resolution.
-// Takes loopCtx (*AnalysisContext) which is the loop scope where the index
-// variable will be defined.
-// Takes collectionAnn (*ast_domain.GoGeneratorAnnotation) which contains the
-// resolved type of the collection being iterated.
-// Takes sfcSourcePath (string) which is the source file path for location
-// tracking.
+// Takes forExpr (*ast_domain.ForInExpression) which is the for-in expression containing
+// the index variable to define.
+// Takes parentCtx (*AnalysisContext) which provides the parent scope for type resolution.
+// Takes loopCtx (*AnalysisContext) which is the loop scope where the index variable will
+// be defined.
+// Takes collectionAnn (*ast_domain.GoGeneratorAnnotation) which contains the resolved
+// type of the collection being iterated.
+// Takes sfcSourcePath (string) which is the source file path for location tracking.
 func (cm *ContextManager) defineIndexVariable(
 	forExpr *ast_domain.ForInExpression,
 	parentCtx *AnalysisContext,
@@ -470,15 +456,13 @@ func (cm *ContextManager) defineIndexVariable(
 
 // createLoopVariableAnnotation creates an annotation for a loop variable.
 //
-// Takes variable (*ast_domain.Identifier) which is the loop variable to
-// annotate.
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type of the variable.
-// Takes sfcSourcePath (string) which is the path to the original SFC source
-// file.
+// Takes variable (*ast_domain.Identifier) which is the loop variable to annotate.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type of the
+// variable.
+// Takes sfcSourcePath (string) which is the path to the original SFC source file.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the annotation
-// metadata for code generation.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the annotation metadata for
+// code generation.
 func (*ContextManager) createLoopVariableAnnotation(
 	variable *ast_domain.Identifier,
 	typeInfo *ast_domain.ResolvedTypeInfo,
@@ -518,13 +502,11 @@ func (*ContextManager) createLoopVariableAnnotation(
 	}
 }
 
-// newContextManager creates a new ContextManager with the given type
-// resolver and virtual module.
+// newContextManager creates a new ContextManager with the given type resolver and virtual
+// module.
 //
-// Takes tr (*TypeResolver) which resolves types during context
-// operations.
-// Takes vm (*annotator_dto.VirtualModule) which provides the module
-// for analysis.
+// Takes tr (*TypeResolver) which resolves types during context operations.
+// Takes vm (*annotator_dto.VirtualModule) which provides the module for analysis.
 //
 // Returns *ContextManager which is ready for use.
 func newContextManager(tr *TypeResolver, vm *annotator_dto.VirtualModule) *ContextManager {

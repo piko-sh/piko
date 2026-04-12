@@ -28,16 +28,14 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// RequestBuilder provides a fluent API for constructing RequestData for tests.
-// It simplifies the creation of test requests with proper context injection
-// for mocks.
+// RequestBuilder provides a fluent API for constructing RequestData for tests. It
+// simplifies the creation of test requests with proper context injection for mocks.
 type RequestBuilder struct {
-	// collectionData holds extra data passed to the request for use in
-	// templates.
+	// collectionData holds extra data passed to the request for use in templates.
 	collectionData any
 
-	// globalTranslations holds translation strings mapped by language code and
-	// then by translation key.
+	// globalTranslations holds translation strings mapped by language code and then by
+	// translation key.
 	globalTranslations map[string]map[string]string
 
 	// queryParams holds URL query parameters mapped by name.
@@ -49,8 +47,7 @@ type RequestBuilder struct {
 	// pathParams holds URL path parameters to replace in the request path.
 	pathParams map[string]string
 
-	// localTranslations holds translations for specific components, grouped by
-	// locale.
+	// localTranslations holds translations for specific components, grouped by locale.
 	localTranslations map[string]map[string]string
 
 	// headers stores HTTP headers to add to the request.
@@ -59,8 +56,7 @@ type RequestBuilder struct {
 	// locale is the locale code for the request (e.g. "es").
 	locale string
 
-	// defaultLocale is the fallback locale used when the primary locale is not
-	// set.
+	// defaultLocale is the fallback locale used when the primary locale is not set.
 	defaultLocale string
 
 	// host is the value for the HTTP Host header.
@@ -73,14 +69,14 @@ type RequestBuilder struct {
 	path string
 }
 
-// NewRequest creates a new RequestBuilder for the given HTTP method and path.
-// This is the main starting point for building test requests.
+// NewRequest creates a new RequestBuilder for the given HTTP method and path. This is the
+// main starting point for building test requests.
 //
 // Takes method (string) which specifies the HTTP method (e.g. GET, POST).
 // Takes path (string) which specifies the request path.
 //
-// Returns *RequestBuilder which provides a fluent interface for setting up
-// the test request.
+// Returns *RequestBuilder which provides a fluent interface for setting up the test
+// request.
 func NewRequest(method, path string) *RequestBuilder {
 	return &RequestBuilder{
 		collectionData:     nil,
@@ -98,8 +94,8 @@ func NewRequest(method, path string) *RequestBuilder {
 	}
 }
 
-// WithQueryParam adds a single query parameter to the request.
-// Call multiple times to add more than one value for the same key.
+// WithQueryParam adds a single query parameter to the request. Call multiple times to add
+// more than one value for the same key.
 //
 // Takes key (string) which is the query parameter name.
 // Takes value (string) which is the query parameter value.
@@ -112,8 +108,7 @@ func (b *RequestBuilder) WithQueryParam(key, value string) *RequestBuilder {
 
 // WithQueryParams adds multiple query parameters at once using a map.
 //
-// Takes params (map[string][]string) which maps parameter names to their
-// values.
+// Takes params (map[string][]string) which maps parameter names to their values.
 //
 // Returns *RequestBuilder which allows method chaining.
 func (b *RequestBuilder) WithQueryParams(params map[string][]string) *RequestBuilder {
@@ -123,8 +118,8 @@ func (b *RequestBuilder) WithQueryParams(params map[string][]string) *RequestBui
 	return b
 }
 
-// WithFormData adds a single form field to the request.
-// Call multiple times to add multiple values for the same key.
+// WithFormData adds a single form field to the request. Call multiple times to add
+// multiple values for the same key.
 //
 // Takes key (string) which specifies the form field name.
 // Takes value (string) which specifies the form field value.
@@ -137,8 +132,8 @@ func (b *RequestBuilder) WithFormData(key, value string) *RequestBuilder {
 
 // WithFormDataMap adds multiple form fields at once using a map.
 //
-// Takes data (map[string][]string) which contains the form field names and
-// their values to add.
+// Takes data (map[string][]string) which contains the form field names and their values
+// to add.
 //
 // Returns *RequestBuilder which allows method chaining.
 func (b *RequestBuilder) WithFormDataMap(data map[string][]string) *RequestBuilder {
@@ -169,8 +164,7 @@ func (b *RequestBuilder) WithPathParams(params map[string]string) *RequestBuilde
 	return b
 }
 
-// WithLocale sets the locale for the request. This affects translation
-// lookups.
+// WithLocale sets the locale for the request. This affects translation lookups.
 //
 // Takes locale (string) which specifies the locale code for translations.
 //
@@ -211,11 +205,11 @@ func (b *RequestBuilder) WithHeader(key, value string) *RequestBuilder {
 	return b
 }
 
-// WithGlobalTranslations sets the global translation map for the request.
-// The format is map[locale]map[key]translation.
+// WithGlobalTranslations sets the global translation map for the request. The format is
+// map[locale]map[key]translation.
 //
-// Takes translations (map[string]map[string]string) which maps locales to
-// their key-value translation pairs.
+// Takes translations (map[string]map[string]string) which maps locales to their key-value
+// translation pairs.
 //
 // Returns *RequestBuilder which allows method chaining.
 func (b *RequestBuilder) WithGlobalTranslations(translations map[string]map[string]string) *RequestBuilder {
@@ -223,9 +217,8 @@ func (b *RequestBuilder) WithGlobalTranslations(translations map[string]map[stri
 	return b
 }
 
-// WithLocalTranslations sets the local translation map for the request.
-// The format is map[locale]map[key]translation for component-specific
-// translations.
+// WithLocalTranslations sets the local translation map for the request. The format is
+// map[locale]map[key]translation for component-specific translations.
 //
 // Takes translations (map[string]map[string]string) which provides the
 // locale-to-key-to-translation mapping.
@@ -236,8 +229,8 @@ func (b *RequestBuilder) WithLocalTranslations(translations map[string]map[strin
 	return b
 }
 
-// WithCollectionData sets the collection data for p-collection virtual pages.
-// Only needed when testing p-collection components.
+// WithCollectionData sets the collection data for p-collection virtual pages. Only needed
+// when testing p-collection components.
 //
 // Takes data (any) which specifies the collection items for the virtual page.
 //
@@ -249,11 +242,11 @@ func (b *RequestBuilder) WithCollectionData(data any) *RequestBuilder {
 
 // Build constructs the final RequestData from the builder's configuration.
 //
-// Takes ctx (context.Context) which is the request context for cancellation,
-// deadlines, and injecting mock dependencies.
+// Takes ctx (context.Context) which is the request context for cancellation, deadlines,
+// and injecting mock dependencies.
 //
-// Returns *templater_dto.RequestData which contains the fully configured
-// request data ready for use.
+// Returns *templater_dto.RequestData which contains the fully configured request data
+// ready for use.
 func (b *RequestBuilder) Build(ctx context.Context) *templater_dto.RequestData {
 	parsedURL, _ := url.Parse(b.path)
 
@@ -288,11 +281,11 @@ func (b *RequestBuilder) Build(ctx context.Context) *templater_dto.RequestData {
 	return reqData
 }
 
-// BuildHTTPRequest creates an actual *http.Request in addition to RequestData.
-// Use it in tests that need to simulate the full HTTP layer.
+// BuildHTTPRequest creates an actual *http.Request in addition to RequestData. Use it in
+// tests that need to simulate the full HTTP layer.
 //
-// Takes ctx (context.Context) which is the request context for cancellation,
-// deadlines, and injecting mock dependencies.
+// Takes ctx (context.Context) which is the request context for cancellation, deadlines,
+// and injecting mock dependencies.
 //
 // Returns *http.Request which is the constructed HTTP request ready for use.
 // Returns *templater_dto.RequestData which contains the parsed request data.

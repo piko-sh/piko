@@ -21,8 +21,8 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
-// ClientIPFromContext retrieves the client IP from the PikoRequestCtx carrier
-// in the context.
+// ClientIPFromContext retrieves the client IP from the PikoRequestCtx carrier in the
+// context.
 //
 // Returns string which is the client IP, or empty if not set.
 func ClientIPFromContext(ctx context.Context) string {
@@ -32,8 +32,8 @@ func ClientIPFromContext(ctx context.Context) string {
 	return ""
 }
 
-// ClientIPFromRequest retrieves the client IP from the request context.
-// This is a convenience wrapper around ClientIPFromContext.
+// ClientIPFromRequest retrieves the client IP from the request context. This is a
+// convenience wrapper around ClientIPFromContext.
 //
 // Takes r (*http.Request) which provides the request context.
 //
@@ -42,8 +42,8 @@ func ClientIPFromRequest(r *http.Request) string {
 	return ClientIPFromContext(r.Context())
 }
 
-// FromTrustedProxyFromContext returns whether the request came from a trusted
-// proxy CIDR range.
+// FromTrustedProxyFromContext returns whether the request came from a trusted proxy CIDR
+// range.
 //
 // Returns bool which is true if the original RemoteAddr was a trusted proxy.
 func FromTrustedProxyFromContext(ctx context.Context) bool {
@@ -53,9 +53,8 @@ func FromTrustedProxyFromContext(ctx context.Context) bool {
 	return false
 }
 
-// RequestIDFromContext retrieves the request ID from the PikoRequestCtx
-// carrier in the context, formatting server-generated IDs lazily on first
-// access.
+// RequestIDFromContext retrieves the request ID from the PikoRequestCtx carrier in the
+// context, formatting server-generated IDs lazily on first access.
 //
 // Returns string which is the request ID, or empty if not set.
 func RequestIDFromContext(ctx context.Context) string {
@@ -65,8 +64,8 @@ func RequestIDFromContext(ctx context.Context) string {
 	return ""
 }
 
-// RequestIDFromRequest retrieves the request ID from the request context.
-// This is a convenience wrapper around RequestIDFromContext.
+// RequestIDFromRequest retrieves the request ID from the request context. This is a
+// convenience wrapper around RequestIDFromContext.
 //
 // Takes r (*http.Request) which provides the request context.
 //

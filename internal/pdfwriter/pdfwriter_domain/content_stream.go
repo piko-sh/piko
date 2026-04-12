@@ -18,18 +18,20 @@
 
 package pdfwriter_domain
 
-// Builds a PDF content stream from drawing operations. Each method appends
-// raw PDF operators to an internal buffer. The final string is used as the
-// stream body of a page's content object.
+// Builds a PDF content stream from drawing operations. Each method appends raw PDF
+// operators to an internal buffer. The final string is used as the stream body of a
+// page's content object.
 
 import (
 	"fmt"
 	"strings"
 )
 
-// thousandthsOfEm is the number of font design units per em,
-// used to convert point-based advance differences to TJ adjustment values.
-const thousandthsOfEm = 1000
+const (
+	// thousandthsOfEm is the number of font design units per em, used to convert point-based
+	// advance differences to TJ adjustment values.
+	thousandthsOfEm = 1000
+)
 
 // ContentStream accumulates PDF drawing operators for a single page.
 type ContentStream struct {
@@ -49,8 +51,8 @@ func (stream *ContentStream) RestoreState() {
 
 // SetFillColourRGB sets the fill colour using RGB values in [0, 1].
 //
-// Takes red, green, blue (float64) which are the colour channel
-// intensities, each in the range [0, 1].
+// Takes red, green, blue (float64) which are the colour channel intensities, each in the
+// range [0, 1].
 func (stream *ContentStream) SetFillColourRGB(red, green, blue float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s rg\n",
 		formatFloat(red), formatFloat(green), formatFloat(blue))
@@ -58,8 +60,8 @@ func (stream *ContentStream) SetFillColourRGB(red, green, blue float64) {
 
 // SetStrokeColourRGB sets the stroke colour using RGB values in [0, 1].
 //
-// Takes red, green, blue (float64) which are the colour channel
-// intensities, each in the range [0, 1].
+// Takes red, green, blue (float64) which are the colour channel intensities, each in the
+// range [0, 1].
 func (stream *ContentStream) SetStrokeColourRGB(red, green, blue float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s RG\n",
 		formatFloat(red), formatFloat(green), formatFloat(blue))
@@ -81,8 +83,8 @@ func (stream *ContentStream) SetStrokeColourGrey(grey float64) {
 
 // SetFillColourCMYK sets the fill colour using CMYK values in [0, 1].
 //
-// Takes cyan, magenta, yellow, key (float64) which are the CMYK
-// channel values, each in the range [0, 1].
+// Takes cyan, magenta, yellow, key (float64) which are the CMYK channel values, each in
+// the range [0, 1].
 func (stream *ContentStream) SetFillColourCMYK(cyan, magenta, yellow, key float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s k\n",
 		formatFloat(cyan), formatFloat(magenta), formatFloat(yellow), formatFloat(key))
@@ -90,8 +92,8 @@ func (stream *ContentStream) SetFillColourCMYK(cyan, magenta, yellow, key float6
 
 // SetStrokeColourCMYK sets the stroke colour using CMYK values in [0, 1].
 //
-// Takes cyan, magenta, yellow, key (float64) which are the CMYK
-// channel values, each in the range [0, 1].
+// Takes cyan, magenta, yellow, key (float64) which are the CMYK channel values, each in
+// the range [0, 1].
 func (stream *ContentStream) SetStrokeColourCMYK(cyan, magenta, yellow, key float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s K\n",
 		formatFloat(cyan), formatFloat(magenta), formatFloat(yellow), formatFloat(key))
@@ -104,8 +106,7 @@ func (stream *ContentStream) SetLineWidth(width float64) {
 	fmt.Fprintf(&stream.builder, "%s w\n", formatFloat(width))
 }
 
-// Rectangle appends a rectangle path. PDF coordinates: x, y is the
-// lower-left corner.
+// Rectangle appends a rectangle path. PDF coordinates: x, y is the lower-left corner.
 //
 // Takes x, y (float64) which specify the lower-left corner position.
 // Takes width, height (float64) which specify the rectangle dimensions.
@@ -148,8 +149,8 @@ func (stream *ContentStream) LineTo(x, y float64) {
 	fmt.Fprintf(&stream.builder, "%s %s l\n", formatFloat(x), formatFloat(y))
 }
 
-// CurveTo appends a cubic Bezier curve from the current point using two
-// control points (x1, y1) and (x2, y2) and the endpoint (x3, y3).
+// CurveTo appends a cubic Bezier curve from the current point using two control points
+// (x1, y1) and (x2, y2) and the endpoint (x3, y3).
 //
 // Takes x1, y1 (float64) which specify the first control point.
 // Takes x2, y2 (float64) which specify the second control point.
@@ -161,15 +162,14 @@ func (stream *ContentStream) CurveTo(x1, y1, x2, y2, x3, y3 float64) {
 		formatFloat(x3), formatFloat(y3))
 }
 
-// ClosePath closes the current subpath by appending a straight line
-// segment from the current point to the starting point of the subpath.
+// ClosePath closes the current subpath by appending a straight line segment from the
+// current point to the starting point of the subpath.
 func (stream *ContentStream) ClosePath() {
 	stream.builder.WriteString("h\n")
 }
 
-// Circle appends a closed circular path centred at (cx, cy) with
-// radius r, using four cubic Bezier curves (the standard kappa
-// approximation with k = 0.5522847498).
+// Circle appends a closed circular path centred at (cx, cy) with radius r, using four
+// cubic Bezier curves (the standard kappa approximation with k = 0.5522847498).
 //
 // Takes cx, cy (float64) which specify the centre coordinates.
 // Takes r (float64) which is the circle radius in points.
@@ -184,44 +184,42 @@ func (stream *ContentStream) Circle(cx, cy, r float64) {
 	stream.ClosePath()
 }
 
-// ClipNonZero intersects the current clipping path with the current
-// path using the non-zero winding rule, then ends the path without
-// painting (W n operators).
+// ClipNonZero intersects the current clipping path with the current path using the
+// non-zero winding rule, then ends the path without painting (W n operators).
 func (stream *ContentStream) ClipNonZero() {
 	stream.builder.WriteString("W n\n")
 }
 
-// ClipEvenOdd intersects the current clipping path with the current
-// path using the even-odd rule, then ends the path without painting
-// (W* n operators).
+// ClipEvenOdd intersects the current clipping path with the current path using the
+// even-odd rule, then ends the path without painting (W* n operators).
 func (stream *ContentStream) ClipEvenOdd() {
 	stream.builder.WriteString("W* n\n")
 }
 
-// FillEvenOddAndStroke fills the current path using the even-odd rule
-// and then strokes it (B* operator).
+// FillEvenOddAndStroke fills the current path using the even-odd rule and then strokes it
+// (B* operator).
 func (stream *ContentStream) FillEvenOddAndStroke() {
 	stream.builder.WriteString("B*\n")
 }
 
-// EndPath ends the current path without painting it (n operator).
-// Used after clipping operations to consume the path.
+// EndPath ends the current path without painting it (n operator). Used after clipping
+// operations to consume the path.
 func (stream *ContentStream) EndPath() {
 	stream.builder.WriteString("n\n")
 }
 
-// SetMiterLimit sets the mitre limit for stroke joins (M operator).
-// When the ratio of mitre length to line width exceeds this limit,
-// mitreed joins are converted to bevel joins.
+// SetMiterLimit sets the mitre limit for stroke joins (M operator). When the ratio of
+// mitre length to line width exceeds this limit, mitreed joins are converted to bevel
+// joins.
 //
 // Takes limit (float64) which is the mitre limit ratio.
 func (stream *ContentStream) SetMiterLimit(limit float64) {
 	fmt.Fprintf(&stream.builder, "%s M\n", formatFloat(limit))
 }
 
-// SetDashPattern sets the line dash pattern for subsequent stroke
-// operations. The array defines alternating dash and gap lengths in
-// points; phase is the starting offset into the pattern.
+// SetDashPattern sets the line dash pattern for subsequent stroke operations. The array
+// defines alternating dash and gap lengths in points; phase is the starting offset into
+// the pattern.
 //
 // Takes array ([]float64) which holds alternating dash/gap lengths.
 // Takes phase (float64) which is the offset into the pattern.
@@ -236,36 +234,32 @@ func (stream *ContentStream) SetDashPattern(array []float64, phase float64) {
 	fmt.Fprintf(&stream.builder, "] %s d\n", formatFloat(phase))
 }
 
-// SetLineCap sets the line cap style: 0 = butt, 1 = round,
-// 2 = projecting square.
+// SetLineCap sets the line cap style: 0 = butt, 1 = round, 2 = projecting square.
 //
 // Takes style (int) which is the cap style index.
 func (stream *ContentStream) SetLineCap(style int) {
 	fmt.Fprintf(&stream.builder, "%d J\n", style)
 }
 
-// SetLineJoin sets the line join style: 0 = mitre, 1 = round,
-// 2 = bevel.
+// SetLineJoin sets the line join style: 0 = mitre, 1 = round, 2 = bevel.
 //
 // Takes join (int) which is the join style index.
 func (stream *ContentStream) SetLineJoin(join int) {
 	fmt.Fprintf(&stream.builder, "%d j\n", join)
 }
 
-// SetExtGState applies a named graphics state parameter dictionary
-// from the page resources.
+// SetExtGState applies a named graphics state parameter dictionary from the page
+// resources.
 //
 // Takes name (string) which is the resource dictionary key.
 func (stream *ContentStream) SetExtGState(name string) {
 	fmt.Fprintf(&stream.builder, "/%s gs\n", name)
 }
 
-// ConcatMatrix concatenates a 2D affine transformation matrix with
-// the current transformation matrix. The six values [a b c d e f]
-// define the matrix.
+// ConcatMatrix concatenates a 2D affine transformation matrix with the current
+// transformation matrix. The six values [a b c d e f] define the matrix.
 //
-// Takes a, b, c, d, e, f (float64) which are the affine matrix
-// components.
+// Takes a, b, c, d, e, f (float64) which are the affine matrix components.
 func (stream *ContentStream) ConcatMatrix(a, b, c, d, e, f float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s %s %s cm\n",
 		formatFloat(a), formatFloat(b),
@@ -273,8 +267,7 @@ func (stream *ContentStream) ConcatMatrix(a, b, c, d, e, f float64) {
 		formatFloat(e), formatFloat(f))
 }
 
-// PaintXObject paints the named XObject (image or form) from the page
-// resources.
+// PaintXObject paints the named XObject (image or form) from the page resources.
 //
 // Takes name (string) which is the XObject resource key.
 func (stream *ContentStream) PaintXObject(name string) {
@@ -298,30 +291,29 @@ func (stream *ContentStream) EndText() {
 	stream.builder.WriteString("ET\n")
 }
 
-// SetCharSpacing sets extra spacing between characters in points (Tc operator).
-// A value of 0 resets to the default.
+// SetCharSpacing sets extra spacing between characters in points (Tc operator). A value
+// of 0 resets to the default.
 //
 // Takes spacing (float64) which is the extra character spacing in points.
 func (stream *ContentStream) SetCharSpacing(spacing float64) {
 	fmt.Fprintf(&stream.builder, "%s Tc\n", formatFloat(spacing))
 }
 
-// SetWordSpacing sets extra spacing added after each ASCII space
-// character (code 0x20) in points (Tw operator).
+// SetWordSpacing sets extra spacing added after each ASCII space character (code 0x20) in
+// points (Tw operator).
 //
-// A value of 0 resets to the default. For CIDFont Type2 with identity
-// encoding, Tw may not apply because the space glyph has a CID other
-// than 32; use glyph advance adjustments instead.
+// A value of 0 resets to the default. For CIDFont Type2 with identity encoding, Tw may
+// not apply because the space glyph has a CID other than 32; use glyph advance
+// adjustments instead.
 //
 // Takes spacing (float64) which is the extra word spacing in points.
 func (stream *ContentStream) SetWordSpacing(spacing float64) {
 	fmt.Fprintf(&stream.builder, "%s Tw\n", formatFloat(spacing))
 }
 
-// SetTextRenderingMode sets how text characters are painted (Tr operator).
-// Mode 0 = fill (default), 1 = stroke, 2 = fill then stroke,
-// 3 = invisible, 4 = fill then clip, 5 = stroke then clip,
-// 6 = fill stroke then clip, 7 = clip only.
+// SetTextRenderingMode sets how text characters are painted (Tr operator). Mode 0 = fill
+// (default), 1 = stroke, 2 = fill then stroke, 3 = invisible, 4 = fill then clip, 5 =
+// stroke then clip, 6 = fill stroke then clip, 7 = clip only.
 //
 // Takes mode (int) which is the rendering mode index.
 func (stream *ContentStream) SetTextRenderingMode(mode int) {
@@ -343,12 +335,11 @@ func (stream *ContentStream) MoveText(x, y float64) {
 	fmt.Fprintf(&stream.builder, "%s %s Td\n", formatFloat(x), formatFloat(y))
 }
 
-// SetTextMatrix sets the text matrix and text line matrix (Tm operator).
-// The six values [a b c d e f] define an affine transformation applied
-// to text drawn within the current text object.
+// SetTextMatrix sets the text matrix and text line matrix (Tm operator). The six values
+// [a b c d e f] define an affine transformation applied to text drawn within the current
+// text object.
 //
-// Takes a, b, c, d, e, f (float64) which are the affine matrix
-// components.
+// Takes a, b, c, d, e, f (float64) which are the affine matrix components.
 func (stream *ContentStream) SetTextMatrix(a, b, c, d, e, f float64) {
 	fmt.Fprintf(&stream.builder, "%s %s %s %s %s %s Tm\n",
 		formatFloat(a), formatFloat(b),
@@ -363,16 +354,15 @@ func (stream *ContentStream) ShowText(text string) {
 	fmt.Fprintf(&stream.builder, "%s Tj\n", escapeString(text))
 }
 
-// ShowGlyphs emits a TJ operator that renders the given glyphs with
-// per-glyph positioning adjustments. Each glyph is placed using its
-// shaped advance (from harfbuzz) rather than the font's default advance,
-// so kerning and GPOS adjustments are honoured in the PDF output.
+// ShowGlyphs emits a TJ operator that renders the given glyphs with per-glyph positioning
+// adjustments. Each glyph is placed using its shaped advance (from harfbuzz) rather than
+// the font's default advance, so kerning and GPOS adjustments are honoured in the PDF
+// output.
 //
 // Takes glyphIDs ([]uint16) which are the glyph identifiers.
-// Takes shapedAdvances ([]float64) which are the harfbuzz-shaped advances
-// in points.
-// Takes defaultAdvances ([]float64) which are the font's default advances
-// in points (from the hmtx table, scaled to fontSize).
+// Takes shapedAdvances ([]float64) which are the harfbuzz-shaped advances in points.
+// Takes defaultAdvances ([]float64) which are the font's default advances in points (from
+// the hmtx table, scaled to fontSize).
 // Takes fontSize (float64) which is the font size in points.
 func (stream *ContentStream) ShowGlyphs(glyphIDs []uint16, shapedAdvances []float64, defaultAdvances []float64, fontSize float64) {
 	if len(glyphIDs) == 0 {
@@ -393,8 +383,8 @@ func (stream *ContentStream) ShowGlyphs(glyphIDs []uint16, shapedAdvances []floa
 	stream.builder.WriteString("] TJ\n")
 }
 
-// BeginMarkedContent starts a marked content sequence with the given
-// structure tag and marked content ID (BDC operator). Used for tagged PDF.
+// BeginMarkedContent starts a marked content sequence with the given structure tag and
+// marked content ID (BDC operator). Used for tagged PDF.
 //
 // Takes tag (string) which is the structure element type.
 // Takes mcid (int) which is the marked content identifier.
@@ -414,9 +404,8 @@ func (stream *ContentStream) String() string {
 	return stream.builder.String()
 }
 
-// formatFloat formats a float64 as a compact string for PDF output.
-// Whole numbers are rendered without a decimal point; all others use
-// two decimal places.
+// formatFloat formats a float64 as a compact string for PDF output. Whole numbers are
+// rendered without a decimal point; all others use two decimal places.
 //
 // Takes value (float64) which is the number to format.
 //
@@ -428,8 +417,8 @@ func formatFloat(value float64) string {
 	return fmt.Sprintf("%.2f", value)
 }
 
-// escapeString wraps text in PDF literal string delimiters and
-// escapes parentheses and backslashes.
+// escapeString wraps text in PDF literal string delimiters and escapes parentheses and
+// backslashes.
 //
 // Takes text (string) which is the raw text to escape.
 //

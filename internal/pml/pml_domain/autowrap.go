@@ -62,9 +62,9 @@ const (
 	tagPMLLI = "pml-li"
 )
 
-// createPMLNode creates a new PML element node with all required fields
-// properly initialised. This helper reduces boilerplate when creating wrapper
-// nodes during autowrapping.
+// createPMLNode creates a new PML element node with all required fields properly
+// initialised. This helper reduces boilerplate when creating wrapper nodes during
+// autowrapping.
 //
 // Takes tagName (string) which specifies the element tag name.
 // Takes location (ast_domain.Location) which sets the source location.
@@ -117,13 +117,13 @@ func createPMLNode(tagName string, location ast_domain.Location, children []*ast
 	}
 }
 
-// autowrapChildren wraps child nodes based on the parent node type. It is the
-// main entry point for the autowrapping logic, inspecting the parent node and
-// applying the appropriate wrapping rules to its children.
+// autowrapChildren wraps child nodes based on the parent node type. It is the main entry
+// point for the autowrapping logic, inspecting the parent node and applying the
+// appropriate wrapping rules to its children.
 //
 // Takes children ([]*ast_domain.TemplateNode) which are the child nodes to wrap.
-// Takes parentNode (*ast_domain.TemplateNode) which is the parent node, or nil
-// for the document root.
+// Takes parentNode (*ast_domain.TemplateNode) which is the parent node, or nil for the
+// document root.
 //
 // Returns []*ast_domain.TemplateNode which are the wrapped child nodes.
 func autowrapChildren(children []*ast_domain.TemplateNode, parentNode *ast_domain.TemplateNode) []*ast_domain.TemplateNode {
@@ -150,13 +150,13 @@ func autowrapChildren(children []*ast_domain.TemplateNode, parentNode *ast_domai
 	}
 }
 
-// autowrapIntoDefaultLayout wraps loose PikoML content into a full
-// <pml-row><pml-col> structure.
+// autowrapIntoDefaultLayout wraps loose PikoML content into a full <pml-row><pml-col>
+// structure.
 //
 // Takes children ([]*ast_domain.TemplateNode) which are the nodes to process.
 //
-// Returns []*ast_domain.TemplateNode which contains the wrapped nodes with
-// implicit sections added for content that can be wrapped.
+// Returns []*ast_domain.TemplateNode which contains the wrapped nodes with implicit
+// sections added for content that can be wrapped.
 func autowrapIntoDefaultLayout(children []*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
 	var newChildren []*ast_domain.TemplateNode
 	var currentImplicitSection *ast_domain.TemplateNode
@@ -188,13 +188,12 @@ func autowrapIntoDefaultLayout(children []*ast_domain.TemplateNode) []*ast_domai
 	return newChildren
 }
 
-// prepareChildNode prepares a child node for processing by skipping
-// whitespace and wrapping text nodes.
+// prepareChildNode prepares a child node for processing by skipping whitespace and
+// wrapping text nodes.
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to prepare.
 //
-// Returns *ast_domain.TemplateNode which is the prepared node, or nil if
-// skipped.
+// Returns *ast_domain.TemplateNode which is the prepared node, or nil if skipped.
 // Returns bool which is true when the node should be skipped entirely.
 func prepareChildNode(child *ast_domain.TemplateNode) (*ast_domain.TemplateNode, bool) {
 	if child.NodeType == ast_domain.NodeText && !isMeaningfulTextNode(child) {
@@ -208,18 +207,14 @@ func prepareChildNode(child *ast_domain.TemplateNode) (*ast_domain.TemplateNode,
 	return child, false
 }
 
-// commitGroupAndAppend commits the current group and appends a node to the
-// result.
+// commitGroupAndAppend commits the current group and appends a node to the result.
 //
-// Takes newChildren (*[]*ast_domain.TemplateNode) which receives the appended
-// nodes.
-// Takes currentGroup (*ast_domain.TemplateNode) which is the group to commit,
-// or nil if there is no active group.
-// Takes node (*ast_domain.TemplateNode) which is the node to append after the
-// group.
+// Takes newChildren (*[]*ast_domain.TemplateNode) which receives the appended nodes.
+// Takes currentGroup (*ast_domain.TemplateNode) which is the group to commit, or nil if
+// there is no active group.
+// Takes node (*ast_domain.TemplateNode) which is the node to append after the group.
 //
-// Returns *ast_domain.TemplateNode which is always nil, resetting the current
-// group.
+// Returns *ast_domain.TemplateNode which is always nil, resetting the current group.
 func commitGroupAndAppend(newChildren *[]*ast_domain.TemplateNode, currentGroup *ast_domain.TemplateNode, node *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	if currentGroup != nil {
 		*newChildren = append(*newChildren, currentGroup)
@@ -228,16 +223,16 @@ func commitGroupAndAppend(newChildren *[]*ast_domain.TemplateNode, currentGroup 
 	return nil
 }
 
-// ensureDefaultSection returns the existing section node or creates a new
-// default section with a row and column for grouping child nodes.
+// ensureDefaultSection returns the existing section node or creates a new default section
+// with a row and column for grouping child nodes.
 //
-// Takes currentSection (*ast_domain.TemplateNode) which is the existing
-// section node, or nil if none exists.
-// Takes child (*ast_domain.TemplateNode) which provides the location for
-// creating new nodes.
+// Takes currentSection (*ast_domain.TemplateNode) which is the existing section node, or
+// nil if none exists.
+// Takes child (*ast_domain.TemplateNode) which provides the location for creating new
+// nodes.
 //
-// Returns *ast_domain.TemplateNode which is either the existing section or a
-// newly created default row containing a column.
+// Returns *ast_domain.TemplateNode which is either the existing section or a newly
+// created default row containing a column.
 func ensureDefaultSection(currentSection *ast_domain.TemplateNode, child *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	if currentSection == nil {
 		columnNode := createPMLNode(tagPMLCol, child.Location, nil)
@@ -246,14 +241,13 @@ func ensureDefaultSection(currentSection *ast_domain.TemplateNode, child *ast_do
 	return currentSection
 }
 
-// autowrapIntoColumns implements rules for <pml-row> and <pml-no-stack>.
-// It groups wrappable content into implicit columns.
+// autowrapIntoColumns implements rules for <pml-row> and <pml-no-stack>. It groups
+// wrappable content into implicit columns.
 //
-// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to
-// process.
+// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to process.
 //
-// Returns []*ast_domain.TemplateNode which contains the reorganised children
-// with wrappable content grouped into columns.
+// Returns []*ast_domain.TemplateNode which contains the reorganised children with
+// wrappable content grouped into columns.
 func autowrapIntoColumns(children []*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
 	newChildren := make([]*ast_domain.TemplateNode, 0)
 	var currentImplicitColumn *ast_domain.TemplateNode
@@ -287,13 +281,13 @@ func autowrapIntoColumns(children []*ast_domain.TemplateNode) []*ast_domain.Temp
 
 // ensureColumn returns an existing column node or creates a new one.
 //
-// Takes currentColumn (*ast_domain.TemplateNode) which is the existing column
-// node, or nil if none exists.
-// Takes child (*ast_domain.TemplateNode) which provides location data for
-// creating a new column.
+// Takes currentColumn (*ast_domain.TemplateNode) which is the existing column node, or
+// nil if none exists.
+// Takes child (*ast_domain.TemplateNode) which provides location data for creating a new
+// column.
 //
-// Returns *ast_domain.TemplateNode which is either the existing column or a
-// newly created one.
+// Returns *ast_domain.TemplateNode which is either the existing column or a newly created
+// one.
 func ensureColumn(currentColumn *ast_domain.TemplateNode, child *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	if currentColumn == nil {
 		return createPMLNode(tagPMLCol, child.Location, nil)
@@ -303,11 +297,11 @@ func ensureColumn(currentColumn *ast_domain.TemplateNode, child *ast_domain.Temp
 
 // autowrapIntoSections applies wrapping rules for pml-container elements.
 //
-// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes
-// to process for section wrapping.
+// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes to process
+// for section wrapping.
 //
-// Returns []*ast_domain.TemplateNode which contains the processed children
-// with implicit sections created and column wrapping applied.
+// Returns []*ast_domain.TemplateNode which contains the processed children with implicit
+// sections created and column wrapping applied.
 func autowrapIntoSections(children []*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
 	var newChildren []*ast_domain.TemplateNode
 	var currentImplicitSection *ast_domain.TemplateNode
@@ -326,14 +320,13 @@ func autowrapIntoSections(children []*ast_domain.TemplateNode) []*ast_domain.Tem
 
 // processSectionChild handles a single child node during section autowrapping.
 //
-// It returns the updated newChildren slice and the current implicit section,
-// which may be created, appended to, or committed.
+// It returns the updated newChildren slice and the current implicit section, which may be
+// created, appended to, or committed.
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to process.
-// Takes newChildren ([]*ast_domain.TemplateNode) which is the accumulated
-// children slice.
-// Takes currentImplicitSection (*ast_domain.TemplateNode) which is the section
-// being built, or nil if none exists.
+// Takes newChildren ([]*ast_domain.TemplateNode) which is the accumulated children slice.
+// Takes currentImplicitSection (*ast_domain.TemplateNode) which is the section being
+// built, or nil if none exists.
 //
 // Returns []*ast_domain.TemplateNode which is the updated children slice.
 // Returns *ast_domain.TemplateNode which is the current implicit section after
@@ -360,30 +353,27 @@ func processSectionChild(
 	return newChildren, currentImplicitSection
 }
 
-// needsImplicitSectionWrap checks whether the child should be wrapped in an
-// implicit section (row).
+// needsImplicitSectionWrap checks whether the child should be wrapped in an implicit
+// section (row).
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the child is a column, no-stack element, or
-// wrappable content.
+// Returns bool which is true if the child is a column, no-stack element, or wrappable
+// content.
 func needsImplicitSectionWrap(child *ast_domain.TemplateNode) bool {
 	return child.TagName == tagPMLCol || child.TagName == tagPMLNoStack || isWrappableContent(child)
 }
 
-// commitSectionAndAppend saves the current implicit section (if any) and adds
-// the child node to the list of children.
+// commitSectionAndAppend saves the current implicit section (if any) and adds the child
+// node to the list of children.
 //
-// Takes newChildren ([]*ast_domain.TemplateNode) which is the list to add
-// nodes to.
-// Takes currentImplicitSection (*ast_domain.TemplateNode) which is the section
-// to save, or nil if there is none.
-// Takes child (*ast_domain.TemplateNode) which is the node to add after the
-// section.
+// Takes newChildren ([]*ast_domain.TemplateNode) which is the list to add nodes to.
+// Takes currentImplicitSection (*ast_domain.TemplateNode) which is the section to save,
+// or nil if there is none.
+// Takes child (*ast_domain.TemplateNode) which is the node to add after the section.
 //
 // Returns []*ast_domain.TemplateNode which is the updated list of children.
-// Returns *ast_domain.TemplateNode which is always nil, clearing the implicit
-// section.
+// Returns *ast_domain.TemplateNode which is always nil, clearing the implicit section.
 func commitSectionAndAppend(
 	newChildren []*ast_domain.TemplateNode,
 	currentImplicitSection *ast_domain.TemplateNode,
@@ -398,11 +388,10 @@ func commitSectionAndAppend(
 
 // autowrapIntoListItems wraps child nodes in list item elements for <pml-ol>.
 //
-// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to
-// process.
+// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to process.
 //
-// Returns []*ast_domain.TemplateNode which contains the processed children
-// wrapped in list item nodes where needed.
+// Returns []*ast_domain.TemplateNode which contains the processed children wrapped in
+// list item nodes where needed.
 func autowrapIntoListItems(children []*ast_domain.TemplateNode) []*ast_domain.TemplateNode {
 	var newChildren []*ast_domain.TemplateNode
 
@@ -460,13 +449,11 @@ func isRootLayoutComponent(node *ast_domain.TemplateNode) bool {
 	}
 }
 
-// isMeaningfulTextNode checks if a NodeText contains any non-whitespace
-// characters.
+// isMeaningfulTextNode checks if a NodeText contains any non-whitespace characters.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node is a text node with non-whitespace
-// content.
+// Returns bool which is true if the node is a text node with non-whitespace content.
 func isMeaningfulTextNode(node *ast_domain.TemplateNode) bool {
 	if node == nil || node.NodeType != ast_domain.NodeText {
 		return false
@@ -474,8 +461,8 @@ func isMeaningfulTextNode(node *ast_domain.TemplateNode) bool {
 	return strings.TrimSpace(node.TextContent) != ""
 }
 
-// breaksImplicitGroup determines whether a node should break an ongoing
-// implicit grouping in the autowrapping system.
+// breaksImplicitGroup determines whether a node should break an ongoing implicit grouping
+// in the autowrapping system.
 //
 // Group-breaking rules:
 //   - Whitespace-only text: IGNORED (does not break, gets filtered out)

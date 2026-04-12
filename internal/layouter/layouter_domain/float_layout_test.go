@@ -24,7 +24,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const floatEpsilon = 0.001
+const (
+	floatEpsilon = 0.001
+)
 
 func TestPlaceLeftFloat(t *testing.T) {
 	tests := []struct {

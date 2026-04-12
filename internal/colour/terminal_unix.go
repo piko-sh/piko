@@ -25,8 +25,7 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// isTerminal reports whether the given file descriptor refers
-// to a terminal.
+// isTerminal reports whether the given file descriptor refers to a terminal.
 //
 // Takes fd (uintptr) which is the file descriptor to check.
 //

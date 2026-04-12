@@ -27,21 +27,19 @@ import (
 )
 
 const (
-	// cgroupFileReadLimit is the maximum number of bytes read from a cgroup
-	// pseudo-file to prevent unexpected memory allocation from malicious
-	// mounts.
+	// cgroupFileReadLimit is the maximum number of bytes read from a cgroup pseudo-file to
+	// prevent unexpected memory allocation from malicious mounts.
 	cgroupFileReadLimit = 64
 
-	// cgroupBasePath is the root of the cgroup filesystem used for sandboxed
-	// reads.
+	// cgroupBasePath is the root of the cgroup filesystem used for sandboxed reads.
 	cgroupBasePath = "/sys/fs/cgroup"
 )
 
-// readCgroupMemoryLimit reads the container memory limit from the cgroup
-// filesystem. It tries cgroup v2 first, then falls back to cgroup v1.
+// readCgroupMemoryLimit reads the container memory limit from the cgroup filesystem. It
+// tries cgroup v2 first, then falls back to cgroup v1.
 //
-// Returns uint64 which is the memory limit in bytes, or 0 when the limit
-// cannot be determined (non-Linux, no cgroup, or unlimited).
+// Returns uint64 which is the memory limit in bytes, or 0 when the limit cannot be
+// determined (non-Linux, no cgroup, or unlimited).
 func readCgroupMemoryLimit() uint64 {
 	sandbox, err := safedisk.NewSandbox(cgroupBasePath, safedisk.ModeReadOnly)
 	if err != nil {
@@ -56,11 +54,11 @@ func readCgroupMemoryLimit() uint64 {
 	return readCgroupUint64(sandbox, "memory/memory.limit_in_bytes")
 }
 
-// readCgroupMemoryCurrent reads the container's current memory usage from the
-// cgroup filesystem. It tries cgroup v2 first, then falls back to cgroup v1.
+// readCgroupMemoryCurrent reads the container's current memory usage from the cgroup
+// filesystem. It tries cgroup v2 first, then falls back to cgroup v1.
 //
-// Returns uint64 which is the current memory usage in bytes, or 0 when the
-// value cannot be determined.
+// Returns uint64 which is the current memory usage in bytes, or 0 when the value cannot
+// be determined.
 func readCgroupMemoryCurrent() uint64 {
 	sandbox, err := safedisk.NewSandbox(cgroupBasePath, safedisk.ModeReadOnly)
 	if err != nil {
@@ -75,12 +73,12 @@ func readCgroupMemoryCurrent() uint64 {
 	return readCgroupUint64(sandbox, "memory/memory.usage_in_bytes")
 }
 
-// readCgroupUint64 reads a uint64 value from a cgroup pseudo-file within the
-// provided sandbox. The read is capped at cgroupFileReadLimit bytes and
-// yields 0 on any error or when the value is "max" (unlimited).
+// readCgroupUint64 reads a uint64 value from a cgroup pseudo-file within the provided
+// sandbox. The read is capped at cgroupFileReadLimit bytes and yields 0 on any error or
+// when the value is "max" (unlimited).
 //
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access
-// rooted at the cgroup directory.
+// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access rooted at
+// the cgroup directory.
 // Takes name (string) which is the relative path within the cgroup directory.
 //
 // Returns uint64 which is the parsed value, or 0 on error.

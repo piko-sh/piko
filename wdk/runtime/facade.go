@@ -21,7 +21,6 @@ package runtime
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"piko.sh/piko/internal/ast/ast_adapters"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
@@ -37,28 +36,28 @@ import (
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 	"piko.sh/piko/wdk/safeconv"
+	"reflect"
 )
 
 // SearchMode defines how much text analysis is applied during search.
 type SearchMode string
 
 type (
-	// Annotation holds annotation data that is evaluated at runtime,
-	// such as reactive bindings and directives that depend on component state.
+	// Annotation holds annotation data that is evaluated at runtime, such as reactive
+	// bindings and directives that depend on component state.
 	Annotation = ast_domain.RuntimeAnnotation
 
 	// TemplateAST is the root of a compiled template tree.
 	TemplateAST = ast_domain.TemplateAST
 
-	// TemplateNode is the core building block of the runtime AST, representing an
-	// element, text, or comment.
+	// TemplateNode is the core building block of the runtime AST, representing an element,
+	// text, or comment.
 	TemplateNode = ast_domain.TemplateNode
 
 	// HTMLAttribute represents a standard, static HTML attribute on a node.
 	HTMLAttribute = ast_domain.HTMLAttribute
 
-	// Directive contains the runtime information for a Piko directive (e.g., p-on,
-	// p-model).
+	// Directive contains the runtime information for a Piko directive (e.g., p-on, p-model).
 	Directive = ast_domain.Directive
 
 	// NodeType defines the type of a node in the TemplateAST (e.g., NodeElement).
@@ -67,8 +66,7 @@ type (
 	// InternalMetadata holds page-level metadata calculated during rendering.
 	InternalMetadata = templater_dto.InternalMetadata
 
-	// AssetRef represents a static asset needed by a component, used for
-	// preloading.
+	// AssetRef represents a static asset needed by a component, used for preloading.
 	AssetRef = templater_dto.AssetRef
 
 	// ActionPayload is the serialisable structure for a client-side action call.
@@ -77,16 +75,15 @@ type (
 	// ActionArgument represents a single argument within an ActionPayload.
 	ActionArgument = templater_dto.ActionArgument
 
-	// RuntimeDiagnostic represents a warning or error that occurs during the
-	// execution of the generated code (e.g., a nil-pointer access).
+	// RuntimeDiagnostic represents a warning or error that occurs during the execution of
+	// the generated code (e.g., a nil-pointer access).
 	RuntimeDiagnostic = generator_dto.RuntimeDiagnostic
 
 	// Severity defines the level of a RuntimeDiagnostic (e.g., Warning, Error).
 	Severity = generator_dto.Severity
 
-	// DirectWriter holds structured writer parts for zero-allocation rendering.
-	// Used by generated code to build hierarchical p-key values without string
-	// concatenation.
+	// DirectWriter holds structured writer parts for zero-allocation rendering. Used by
+	// generated code to build hierarchical p-key values without string concatenation.
 	DirectWriter = ast_domain.DirectWriter
 
 	// WriterPart represents one segment of a DirectWriter.
@@ -106,16 +103,16 @@ const (
 	// FilterOpGreaterThan matches items where the field is greater than the value.
 	FilterOpGreaterThan = collection_dto.FilterOpGreaterThan
 
-	// FilterOpGreaterEqual matches items where the field is greater than or equal
-	// to the value.
+	// FilterOpGreaterEqual matches items where the field is greater than or equal to the
+	// value.
 	FilterOpGreaterEqual = collection_dto.FilterOpGreaterEqual
 
-	// FilterOpLessThan matches items where the field value is less than the
-	// specified comparison value.
+	// FilterOpLessThan matches items where the field value is less than the specified
+	// comparison value.
 	FilterOpLessThan = collection_dto.FilterOpLessThan
 
-	// FilterOpLessEqual matches items where a field value is less than or equal to
-	// the specified value.
+	// FilterOpLessEqual matches items where a field value is less than or equal to the
+	// specified value.
 	FilterOpLessEqual = collection_dto.FilterOpLessEqual
 
 	// FilterOpContains matches items where a field contains the given substring.
@@ -124,20 +121,18 @@ const (
 	// FilterOpStartsWith matches items where a field begins with the given prefix.
 	FilterOpStartsWith = collection_dto.FilterOpStartsWith
 
-	// FilterOpEndsWith matches items where the field value ends with a given
-	// suffix.
+	// FilterOpEndsWith matches items where the field value ends with a given suffix.
 	FilterOpEndsWith = collection_dto.FilterOpEndsWith
 
-	// FilterOpIn is a filter operation that matches items where the field value is
-	// in the provided array.
+	// FilterOpIn is a filter operation that matches items where the field value is in the
+	// provided array.
 	FilterOpIn = collection_dto.FilterOpIn
 
-	// FilterOpNotIn matches items where the field value is not in the provided
-	// array.
+	// FilterOpNotIn matches items where the field value is not in the provided array.
 	FilterOpNotIn = collection_dto.FilterOpNotIn
 
-	// FilterOpExists matches items where the specified field exists or does not
-	// exist, based on the boolean value provided.
+	// FilterOpExists matches items where the specified field exists or does not exist, based
+	// on the boolean value provided.
 	FilterOpExists = collection_dto.FilterOpExists
 
 	// FilterOpFuzzyMatch performs fuzzy text matching that tolerates typos.
@@ -167,12 +162,12 @@ const (
 	// defaultContentWeight is the default search weight for content fields.
 	defaultContentWeight = 1.0
 
-	// SearchModeFast uses basic tokenisation and exact matching. It is designed
-	// for speed with less than 10ms latency.
+	// SearchModeFast uses basic tokenisation and exact matching. It is designed for speed
+	// with less than 10ms latency.
 	SearchModeFast SearchMode = "fast"
 
-	// SearchModeSmart uses stemming and phonetic encoding to handle misspellings
-	// and language variations.
+	// SearchModeSmart uses stemming and phonetic encoding to handle misspellings and
+	// language variations.
 	SearchModeSmart SearchMode = "smart"
 
 	// NodeElement is an alias for the AST domain NodeElement constant.
@@ -226,95 +221,88 @@ const (
 	// Info is an alias for the generator DTO info constant.
 	Info = generator_dto.Info
 
-	// Warning is the log level for warning messages that indicate potential
-	// issues.
+	// Warning is the log level for warning messages that indicate potential issues.
 	Warning = generator_dto.Warning
 
 	// Error is the generator error constant from the DTO package.
 	Error = generator_dto.Error
 
-	// httpStatusNotFound is the HTTP 404 status code returned for missing
-	// collection items.
+	// httpStatusNotFound is the HTTP 404 status code returned for missing collection items.
 	httpStatusNotFound = 404
 )
 
-// RenderArena is a pooled container holding pre-allocated slabs for all AST
-// types used during a single render request. Instead of ~807 individual pool
-// Gets/Puts, the entire arena is obtained and released as a single unit.
+// RenderArena is a pooled container holding pre-allocated slabs for all AST types used
+// during a single render request. Instead of ~807 individual pool Gets/Puts, the entire
+// arena is obtained and released as a single unit.
 type RenderArena = ast_domain.RenderArena
 
 var (
-	// GetDirectWriter retrieves a pooled DirectWriter for zero-allocation key
-	// building. Use this in generated code instead of string concatenation for
-	// p-key values.
+	// GetDirectWriter retrieves a pooled DirectWriter for zero-allocation key building. Use
+	// this in generated code instead of string concatenation for p-key values.
 	GetDirectWriter = ast_domain.GetDirectWriter
 
-	// PutDirectWriter returns a DirectWriter to the pool after use. It is called
-	// by TemplateNode.Reset when the node is returned to the pool.
+	// PutDirectWriter returns a DirectWriter to the pool after use. It is called by
+	// TemplateNode.Reset when the node is returned to the pool.
 	PutDirectWriter = ast_domain.PutDirectWriter
 
-	// GetRuntimeAnnotation fetches a pooled RuntimeAnnotation.
-	// Used by generated code to remove annotation allocations after warmup.
+	// GetRuntimeAnnotation fetches a pooled RuntimeAnnotation. Used by generated code to
+	// remove annotation allocations after warmup.
 	GetRuntimeAnnotation = ast_domain.GetRuntimeAnnotation
 
-	// GetTemplateAST retrieves a pooled TemplateAST for the root AST container.
-	// Used by generated code to eliminate root AST allocations after warmup.
+	// GetTemplateAST retrieves a pooled TemplateAST for the root AST container. Used by
+	// generated code to eliminate root AST allocations after warmup.
 	GetTemplateAST = ast_domain.GetTemplateAST
 
-	// GetRootNodesSlice retrieves a pooled slice for TemplateAST.RootNodes.
-	// It rounds up to the nearest bucket size (1, 2, or 4) and falls back to
-	// make() for capacities greater than 4.
+	// GetRootNodesSlice retrieves a pooled slice for TemplateAST.RootNodes. It rounds up to
+	// the nearest bucket size (1, 2, or 4) and falls back to make() for capacities greater
+	// than 4.
 	GetRootNodesSlice = ast_domain.GetRootNodesSlice
 
 	// GetArena retrieves a pooled RenderArena for zero-allocation AST building.
 	//
-	// The arena provides all allocations for a single render request via
-	// pre-allocated slabs, reducing pool operations from ~1,614 to just 2
-	// (Get arena + Put arena). The arena must be attached to the TemplateAST
-	// via SetArena so PutTree can release it automatically.
+	// The arena provides all allocations for a single render request via pre-allocated
+	// slabs, reducing pool operations from ~1,614 to just 2 (Get arena + Put arena). The
+	// arena must be attached to the TemplateAST via SetArena so PutTree can release it
+	// automatically.
 	GetArena = ast_domain.GetArena
 
-	// PutArena returns a RenderArena to the pool after use. This is called
-	// automatically by PutTree when the AST has an attached arena.
+	// PutArena returns a RenderArena to the pool after use. This is called automatically by
+	// PutTree when the AST has an attached arena.
 	PutArena = ast_domain.PutArena
 
-	// EvaluateTruthiness provides JavaScript-like truthiness evaluation for any Go
-	// type.
+	// EvaluateTruthiness provides JavaScript-like truthiness evaluation for any Go type.
 	EvaluateTruthiness = generator_helpers.EvaluateTruthiness
 
-	// EvaluateStrictEquality provides Go-style strict equality comparison using
-	// the == operator. It returns false if types do not match and uses optimised
-	// type-specific comparisons.
+	// EvaluateStrictEquality provides Go-style strict equality comparison using the ==
+	// operator. It returns false if types do not match and uses optimised type-specific
+	// comparisons.
 	EvaluateStrictEquality = generator_helpers.EvaluateStrictEquality
 
-	// EvaluateLooseEquality provides JavaScript-like loose equality (~=)
-	// comparison. Compares by string representation, enabling type coercion like 0
-	// ~= "0".
+	// EvaluateLooseEquality provides JavaScript-like loose equality (~=) comparison.
+	// Compares by string representation, enabling type coercion like 0 ~= "0".
 	EvaluateLooseEquality = generator_helpers.EvaluateLooseEquality
 
-	// EvaluateOr implements JavaScript-like || operator semantics, returning the
-	// first truthy value or the last value if none are truthy.
+	// EvaluateOr implements JavaScript-like || operator semantics, returning the first
+	// truthy value or the last value if none are truthy.
 	EvaluateOr = generator_helpers.EvaluateOr
 
-	// EvaluateCoalesce implements the JavaScript-like ?? (nullish
-	// coalescing) operator, returning the first non-nil value or
-	// the last value if all are nil, and unlike || treating only
-	// nil as "nullish" (preserving "", 0, false).
+	// EvaluateCoalesce implements the JavaScript-like ?? (nullish coalescing) operator,
+	// returning the first non-nil value or the last value if all are nil, and unlike ||
+	// treating only nil as "nullish" (preserving "", 0, false).
 	EvaluateCoalesce = generator_helpers.EvaluateCoalesce
 
-	// EvaluateBinary performs a binary operation on two values at runtime.
-	// Handles arithmetic (+, -, *, /, %) and comparison (>, <, >=, <=) for
-	// maths.Decimal, maths.BigInt, and maths.Money, falling back to float64.
+	// EvaluateBinary performs a binary operation on two values at runtime. Handles
+	// arithmetic (+, -, *, /, %) and comparison (>, <, >=, <=) for maths.Decimal,
+	// maths.BigInt, and maths.Money, falling back to float64.
 	EvaluateBinary = generator_helpers.EvaluateBinary
 
-	// ValueToString provides a universal, reflection-based way to convert any
-	// value to a string. The generator uses more optimised methods when possible,
-	// but this is the final fallback.
+	// ValueToString provides a universal, reflection-based way to convert any value to a
+	// string. The generator uses more optimised methods when possible, but this is the final
+	// fallback.
 	ValueToString = generator_helpers.ValueToString
 
-	// F creates a locale-free FormatBuilder for formatting values
-	// in templates with optional method chaining
-	// (e.g. F(state.Price).Precision(2)).
+	// F creates a locale-free FormatBuilder for formatting values in templates with optional
+	// method chaining (e.g. F(state.Price).Precision(2)).
 	F = i18n_domain.F
 
 	// ClassesFromString is an alias for generator_helpers.ClassesFromString.
@@ -323,227 +311,191 @@ var (
 	// ClassesFromSlice creates a class string from a dynamic slice of strings.
 	ClassesFromSlice = generator_helpers.ClassesFromSlice
 
-	// ClassesFromMapStringBool creates a CSS class string from a map of class
-	// names to boolean values. Classes with true values are included in the
-	// output.
+	// ClassesFromMapStringBool creates a CSS class string from a map of class names to
+	// boolean values. Classes with true values are included in the output.
 	ClassesFromMapStringBool = generator_helpers.ClassesFromMapStringBool
 
-	// MergeClasses merges multiple sources (static strings, dynamic values) into a
-	// single class string.
+	// MergeClasses merges multiple sources (static strings, dynamic values) into a single
+	// class string.
 	MergeClasses = generator_helpers.MergeClasses
 
 	// ClassesFromStringBytes is a zero-allocation variant of ClassesFromString.
-	// Returns a pooled buffer that must be passed to
-	// DirectWriter.AppendPooledBytes().
+	// Returns a pooled buffer that must be passed to DirectWriter.AppendPooledBytes().
 	ClassesFromStringBytes = generator_helpers.ClassesFromStringBytes
 
 	// ClassesFromSliceBytes is a zero-allocation variant of ClassesFromSlice.
-	// Returns a pooled buffer that must be passed to
-	// DirectWriter.AppendPooledBytes().
+	// Returns a pooled buffer that must be passed to DirectWriter.AppendPooledBytes().
 	ClassesFromSliceBytes = generator_helpers.ClassesFromSliceBytes
 
 	// MergeClassesBytes is a zero-allocation variant of MergeClasses.
-	// Returns a pooled buffer that must be passed to
-	// DirectWriter.AppendPooledBytes().
+	// Returns a pooled buffer that must be passed to DirectWriter.AppendPooledBytes().
 	MergeClassesBytes = generator_helpers.MergeClassesBytes
 
-	// BuildClassBytesV builds a class string from variadic string parts without
-	// intermediate string concatenation allocations. Used by generated code for
-	// template literals like `badge ${props.Size} ${props.Colour}`.
+	// BuildClassBytesV builds a class string from variadic string parts without intermediate
+	// string concatenation allocations. Used by generated code for template literals like
+	// `badge ${props.Size} ${props.Colour}`.
 	//
 	// In large functions, use fixed-arity variants to avoid heap escape.
 	//
-	// Returns a pooled buffer that must be passed to
-	// DirectWriter.AppendPooledBytes().
+	// Returns a pooled buffer that must be passed to DirectWriter.AppendPooledBytes().
 	BuildClassBytesV = generator_helpers.BuildClassBytesV
 
-	// BuildClassBytes2 builds a class string from exactly 2 parts without
-	// allocation.
+	// BuildClassBytes2 builds a class string from exactly 2 parts without allocation.
 	BuildClassBytes2 = generator_helpers.BuildClassBytes2
 
-	// BuildClassBytes4 builds a class string from exactly 4 parts without
-	// allocation.
+	// BuildClassBytes4 builds a class string from exactly 4 parts without allocation.
 	BuildClassBytes4 = generator_helpers.BuildClassBytes4
 
-	// BuildClassBytes6 builds a class string from exactly 6 parts without
-	// allocation.
+	// BuildClassBytes6 builds a class string from exactly 6 parts without allocation.
 	BuildClassBytes6 = generator_helpers.BuildClassBytes6
 
-	// BuildClassBytes8 builds a class string from exactly 8 parts without
-	// allocation.
+	// BuildClassBytes8 builds a class string from exactly 8 parts without allocation.
 	BuildClassBytes8 = generator_helpers.BuildClassBytes8
 
-	// StylesFromString is a variable that holds a function to create styles from
-	// a string source.
+	// StylesFromString is a variable that holds a function to create styles from a string
+	// source.
 	StylesFromString = generator_helpers.StylesFromString
 
-	// StylesFromStringMap builds a style string from a map of string keys and
-	// values.
+	// StylesFromStringMap builds a style string from a map of string keys and values.
 	StylesFromStringMap = generator_helpers.StylesFromStringMap
 
-	// MergeStyles merges multiple sources into a single, semicolon-delimited style
-	// string.
+	// MergeStyles merges multiple sources into a single, semicolon-delimited style string.
 	MergeStyles = generator_helpers.MergeStyles
 
 	// StylesFromStringBytes is a zero-allocation variant of StylesFromString.
-	// Returns a pooled buffer that must be passed to
-	// DirectWriter.AppendEscapePooledBytes().
+	// Returns a pooled buffer that must be passed to DirectWriter.AppendEscapePooledBytes().
 	StylesFromStringBytes = generator_helpers.StylesFromStringBytes
 
-	// StylesFromStringMapBytes is a zero-allocation variant of
-	// StylesFromStringMap.
-	// Returns a pooled buffer that must be passed to
-	// DirectWriter.AppendEscapePooledBytes().
+	// StylesFromStringMapBytes is a zero-allocation variant of StylesFromStringMap.
+	// Returns a pooled buffer that must be passed to DirectWriter.AppendEscapePooledBytes().
 	StylesFromStringMapBytes = generator_helpers.StylesFromStringMapBytes
 
-	// MergeStylesBytes is a zero-allocation variant of MergeStyles. Returns a
-	// pooled buffer that must be passed to DirectWriter.AppendEscapePooledBytes.
+	// MergeStylesBytes is a zero-allocation variant of MergeStyles. Returns a pooled buffer
+	// that must be passed to DirectWriter.AppendEscapePooledBytes.
 	MergeStylesBytes = generator_helpers.MergeStylesBytes
 
-	// AppendHiddenToStyleBytes appends "display:none !important;" to existing
-	// style bytes. Used for the p-show directive when the condition is false.
+	// AppendHiddenToStyleBytes appends "display:none !important;" to existing style bytes.
+	// Used for the p-show directive when the condition is false.
 	AppendHiddenToStyleBytes = generator_helpers.AppendHiddenToStyleBytes
 
 	// BuildStyleStringBytes2 is a fixed-arity style string builder to avoid string
-	// concatenation allocation. These are used by generated code when building
-	// styles from template literals.
+	// concatenation allocation. These are used by generated code when building styles from
+	// template literals.
 	BuildStyleStringBytes2 = generator_helpers.BuildStyleStringBytes2
 
-	// BuildStyleStringBytes3 is an alias for
-	// generator_helpers.BuildStyleStringBytes3.
+	// BuildStyleStringBytes3 is an alias for generator_helpers.BuildStyleStringBytes3.
 	BuildStyleStringBytes3 = generator_helpers.BuildStyleStringBytes3
 
 	// BuildStyleStringBytes4 is a 4-byte variant of BuildStyleStringBytes.
 	BuildStyleStringBytes4 = generator_helpers.BuildStyleStringBytes4
 
-	// BuildStyleStringBytesV is an alias for
-	// generator_helpers.BuildStyleStringBytesV.
+	// BuildStyleStringBytesV is an alias for generator_helpers.BuildStyleStringBytesV.
 	BuildStyleStringBytesV = generator_helpers.BuildStyleStringBytesV
 
-	// ResolveModulePath resolves module alias (@/) paths at runtime.
-	// Used by generated code when dynamic src attributes contain @ alias paths.
+	// ResolveModulePath resolves module alias (@/) paths at runtime. Used by generated code
+	// when dynamic src attributes contain @ alias paths.
 	ResolveModulePath = generator_helpers.ResolveModulePath
 
-	// EncodeActionPayloadBytes encodes an ActionPayload to a base64 URL-safe
-	// byte slice.
+	// EncodeActionPayloadBytes encodes an ActionPayload to a base64 URL-safe byte slice.
 	//
-	// It returns a pooled buffer that must be passed to
-	// DirectWriter.AppendPooledBytes(). The buffer is automatically released
-	// when the DirectWriter is reset.
+	// It returns a pooled buffer that must be passed to DirectWriter.AppendPooledBytes().
+	// The buffer is automatically released when the DirectWriter is reset.
 	EncodeActionPayloadBytes = generator_helpers.EncodeActionPayloadBytes
 
-	// EncodeActionPayloadBytes0 is a fixed-arity encoder variant to avoid slice
-	// allocation for Args. These are used by generated code when the number of
-	// arguments is known at compile time.
+	// EncodeActionPayloadBytes0 is a fixed-arity encoder variant to avoid slice allocation
+	// for Args. These are used by generated code when the number of arguments is known at
+	// compile time.
 	EncodeActionPayloadBytes0 = generator_helpers.EncodeActionPayloadBytes0
 
-	// EncodeActionPayloadBytes1 is a helper function for encoding action payloads
-	// into bytes.
+	// EncodeActionPayloadBytes1 is a helper function for encoding action payloads into
+	// bytes.
 	EncodeActionPayloadBytes1 = generator_helpers.EncodeActionPayloadBytes1
 
-	// EncodeActionPayloadBytes2 is an alias for the generator_helpers encoding
-	// function.
+	// EncodeActionPayloadBytes2 is an alias for the generator_helpers encoding function.
 	EncodeActionPayloadBytes2 = generator_helpers.EncodeActionPayloadBytes2
 
-	// EncodeActionPayloadBytes3 is an alias for the generator helper function that
-	// encodes action payloads to bytes.
+	// EncodeActionPayloadBytes3 is an alias for the generator helper function that encodes
+	// action payloads to bytes.
 	EncodeActionPayloadBytes3 = generator_helpers.EncodeActionPayloadBytes3
 
 	// EncodeActionPayloadBytes4 encodes an action payload into a 4-byte slice.
 	EncodeActionPayloadBytes4 = generator_helpers.EncodeActionPayloadBytes4
 
-	// ClassesFromStringBytesArena is an arena-aware variant of
-	// ClassesFromStringBytes.
+	// ClassesFromStringBytesArena is an arena-aware variant of ClassesFromStringBytes.
 	ClassesFromStringBytesArena = generator_helpers.ClassesFromStringBytesArena
 
-	// ClassesFromSliceBytesArena is an arena-aware variant of
-	// ClassesFromSliceBytes.
+	// ClassesFromSliceBytesArena is an arena-aware variant of ClassesFromSliceBytes.
 	ClassesFromSliceBytesArena = generator_helpers.ClassesFromSliceBytesArena
 
 	// MergeClassesBytesArena is an arena-aware variant of MergeClassesBytes.
 	MergeClassesBytesArena = generator_helpers.MergeClassesBytesArena
 
-	// BuildClassBytes2Arena builds a class string from 2 parts using arena
-	// allocation.
+	// BuildClassBytes2Arena builds a class string from 2 parts using arena allocation.
 	BuildClassBytes2Arena = generator_helpers.BuildClassBytes2Arena
 
-	// BuildClassBytes4Arena builds a class string from 4 parts using arena
-	// allocation.
+	// BuildClassBytes4Arena builds a class string from 4 parts using arena allocation.
 	BuildClassBytes4Arena = generator_helpers.BuildClassBytes4Arena
 
-	// BuildClassBytes6Arena builds a class string from 6 parts using arena
-	// allocation.
+	// BuildClassBytes6Arena builds a class string from 6 parts using arena allocation.
 	BuildClassBytes6Arena = generator_helpers.BuildClassBytes6Arena
 
-	// BuildClassBytes8Arena builds a class string from 8 parts using arena
-	// allocation.
+	// BuildClassBytes8Arena builds a class string from 8 parts using arena allocation.
 	BuildClassBytes8Arena = generator_helpers.BuildClassBytes8Arena
 
 	// BuildClassBytesVArena builds a class string from variadic parts using arena
 	// allocation.
 	BuildClassBytesVArena = generator_helpers.BuildClassBytesVArena
 
-	// StylesFromStringBytesArena is an arena-aware variant of
-	// StylesFromStringBytes.
+	// StylesFromStringBytesArena is an arena-aware variant of StylesFromStringBytes.
 	StylesFromStringBytesArena = generator_helpers.StylesFromStringBytesArena
 
-	// StylesFromStringMapBytesArena is an arena-aware variant of
-	// StylesFromStringMapBytes.
+	// StylesFromStringMapBytesArena is an arena-aware variant of StylesFromStringMapBytes.
 	StylesFromStringMapBytesArena = generator_helpers.StylesFromStringMapBytesArena
 
 	// MergeStylesBytesArena is an arena-aware variant of MergeStylesBytes.
 	MergeStylesBytesArena = generator_helpers.MergeStylesBytesArena
 
-	// BuildStyleStringBytes2Arena builds a style string from 2 parts using arena
-	// allocation.
+	// BuildStyleStringBytes2Arena builds a style string from 2 parts using arena allocation.
 	BuildStyleStringBytes2Arena = generator_helpers.BuildStyleStringBytes2Arena
 
-	// BuildStyleStringBytes3Arena builds a style string from three parts using
-	// arena allocation.
+	// BuildStyleStringBytes3Arena builds a style string from three parts using arena
+	// allocation.
 	BuildStyleStringBytes3Arena = generator_helpers.BuildStyleStringBytes3Arena
 
-	// BuildStyleStringBytes4Arena builds a style string from 4 parts using arena
-	// allocation.
+	// BuildStyleStringBytes4Arena builds a style string from 4 parts using arena allocation.
 	BuildStyleStringBytes4Arena = generator_helpers.BuildStyleStringBytes4Arena
 
-	// BuildStyleStringBytesVArena builds a style string from variadic parts using
-	// arena allocation.
+	// BuildStyleStringBytesVArena builds a style string from variadic parts using arena
+	// allocation.
 	BuildStyleStringBytesVArena = generator_helpers.BuildStyleStringBytesVArena
 
-	// EncodeActionPayloadBytesArena encodes an ActionPayload using arena
-	// allocation.
+	// EncodeActionPayloadBytesArena encodes an ActionPayload using arena allocation.
 	EncodeActionPayloadBytesArena = generator_helpers.EncodeActionPayloadBytesArena
 
-	// EncodeActionPayloadBytes0Arena encodes a 0-argument action using arena
-	// allocation.
+	// EncodeActionPayloadBytes0Arena encodes a 0-argument action using arena allocation.
 	EncodeActionPayloadBytes0Arena = generator_helpers.EncodeActionPayloadBytes0Arena
 
-	// EncodeActionPayloadBytes1Arena encodes a 1-argument action using arena
-	// allocation.
+	// EncodeActionPayloadBytes1Arena encodes a 1-argument action using arena allocation.
 	EncodeActionPayloadBytes1Arena = generator_helpers.EncodeActionPayloadBytes1Arena
 
-	// EncodeActionPayloadBytes2Arena encodes a 2-argument action using arena
-	// allocation.
+	// EncodeActionPayloadBytes2Arena encodes a 2-argument action using arena allocation.
 	EncodeActionPayloadBytes2Arena = generator_helpers.EncodeActionPayloadBytes2Arena
 
-	// EncodeActionPayloadBytes3Arena encodes a 3-argument action using arena
-	// allocation.
+	// EncodeActionPayloadBytes3Arena encodes a 3-argument action using arena allocation.
 	EncodeActionPayloadBytes3Arena = generator_helpers.EncodeActionPayloadBytes3Arena
 
-	// EncodeActionPayloadBytes4Arena encodes a 4-argument action using arena
-	// allocation.
+	// EncodeActionPayloadBytes4Arena encodes a 4-argument action using arena allocation.
 	EncodeActionPayloadBytes4Arena = generator_helpers.EncodeActionPayloadBytes4Arena
 
-	// GetByteBuf retrieves a pooled byte buffer for encoding
-	// operations, where the caller must release it via PutByteBuf
-	// or track it via DirectWriter.AppendPooledBytes().
+	// GetByteBuf retrieves a pooled byte buffer for encoding operations, where the caller
+	// must release it via PutByteBuf or track it via DirectWriter.AppendPooledBytes().
 	GetByteBuf = ast_domain.GetByteBuf
 
 	// PutByteBuf returns a byte buffer to the pool so it can be used again.
 	PutByteBuf = ast_domain.PutByteBuf
 
-	// AppendDiagnostic is the helper function used to report warnings or errors
-	// during the running of the generated BuildAST function.
+	// AppendDiagnostic is the helper function used to report warnings or errors during the
+	// running of the generated BuildAST function.
 	AppendDiagnostic = func(
 		diagnostics []*generator_dto.RuntimeDiagnostic,
 		severity generator_dto.Severity,
@@ -561,65 +513,63 @@ var (
 		})
 	}
 
-	// ValidatePikoElementTagName checks that a dynamically resolved tag name
-	// for <piko:element :is="..."> is valid. Returns "div" as a safe fallback
-	// and appends a runtime diagnostic when the tag is empty or rejected.
+	// ValidatePikoElementTagName checks that a dynamically resolved tag name for
+	// <piko:element :is="..."> is valid. Returns "div" as a safe fallback and appends a
+	// runtime diagnostic when the tag is empty or rejected.
 	ValidatePikoElementTagName = generator_helpers.ValidatePikoElementTagName
 
-	// GetContentAST extracts the contentAST from CollectionData for <piko:content
-	// /> rendering.
-	// Returns the TemplateAST containing the parsed markdown body, or nil if not
-	// available.
+	// GetContentAST extracts the contentAST from CollectionData for <piko:content />
+	// rendering.
+	// Returns the TemplateAST containing the parsed markdown body, or nil if not available.
 	GetContentAST = generator_helpers.GetContentAST
 
-	// CoerceToString converts any value to its string form.
-	// It returns an empty string for nil values.
+	// CoerceToString converts any value to its string form. It returns an empty string for
+	// nil values.
 	CoerceToString = generator_helpers.CoerceToString
 
-	// CoerceToInt converts any value to an int.
-	// It returns 0 for values that cannot be converted.
+	// CoerceToInt converts any value to an int. It returns 0 for values that cannot be
+	// converted.
 	CoerceToInt = generator_helpers.CoerceToInt
 
-	// CoerceToInt64 converts any value to an int64.
-	// It returns 0 for values that cannot be converted.
+	// CoerceToInt64 converts any value to an int64. It returns 0 for values that cannot be
+	// converted.
 	CoerceToInt64 = generator_helpers.CoerceToInt64
 
 	// CoerceToInt32 converts any value to int32.
 	// Returns 0 for invalid conversions.
 	CoerceToInt32 = generator_helpers.CoerceToInt32
 
-	// CoerceToInt16 converts any value to int16. It returns 0 for values that
-	// cannot be converted.
+	// CoerceToInt16 converts any value to int16. It returns 0 for values that cannot be
+	// converted.
 	CoerceToInt16 = generator_helpers.CoerceToInt16
 
-	// CoerceToFloat64 converts any value to float64.
-	// It returns 0.0 when the value cannot be converted.
+	// CoerceToFloat64 converts any value to float64. It returns 0.0 when the value cannot be
+	// converted.
 	CoerceToFloat64 = generator_helpers.CoerceToFloat64
 
 	// CoerceToFloat32 converts any value to float32.
 	// Returns 0.0 for invalid conversions.
 	CoerceToFloat32 = generator_helpers.CoerceToFloat32
 
-	// CoerceToBool converts any value to a bool.
-	// It uses truthiness rules similar to JavaScript.
+	// CoerceToBool converts any value to a bool. It uses truthiness rules similar to
+	// JavaScript.
 	CoerceToBool = generator_helpers.CoerceToBool
 
 	// CoerceToDecimal converts any value to maths.Decimal.
 	// Returns zero Decimal for invalid conversions.
 	CoerceToDecimal = generator_helpers.CoerceToDecimal
 
-	// CoerceToBigInt converts any value to a maths.BigInt.
-	// It returns a zero BigInt for values that cannot be converted.
+	// CoerceToBigInt converts any value to a maths.BigInt. It returns a zero BigInt for
+	// values that cannot be converted.
 	CoerceToBigInt = generator_helpers.CoerceToBigInt
 )
 
 var (
-	// DecodeAST converts FlatBuffers bytes back to a TemplateAST.
-	// Used by collection pages to decode embedded content ASTs.
+	// DecodeAST converts FlatBuffers bytes back to a TemplateAST. Used by collection pages
+	// to decode embedded content ASTs.
 	DecodeAST = ast_adapters.DecodeAST
 
-	// RegisterASTFunc registers a component's compiled BuildAST function with the
-	// runtime.
+	// RegisterASTFunc registers a component's compiled BuildAST function with the runtime.
 	RegisterASTFunc = templater_domain.RegisterASTFunc
 
 	// RegisterCachePolicyFunc registers a CachePolicy function for a component.
@@ -628,54 +578,53 @@ var (
 	// RegisterMiddlewareFunc registers a component's Middlewares function.
 	RegisterMiddlewareFunc = templater_domain.RegisterMiddlewareFunc
 
-	// RegisterSupportedLocalesFunc registers a function that returns the locales
-	// a component supports.
+	// RegisterSupportedLocalesFunc registers a function that returns the locales a component
+	// supports.
 	RegisterSupportedLocalesFunc = templater_domain.RegisterSupportedLocalesFunc
 
-	// RegisterPreviewFunc registers a component's Preview function for
-	// dev-mode previewing with sample data.
+	// RegisterPreviewFunc registers a component's Preview function for dev-mode previewing
+	// with sample data.
 	RegisterPreviewFunc = templater_domain.RegisterPreviewFunc
 
-	// RegisterStaticCollectionBlob registers a binary blob for a static
-	// collection. Generated code invokes RegisterStaticCollectionBlob in init()
-	// using //go:embed directives.
+	// RegisterStaticCollectionBlob registers a binary blob for a static collection.
+	// Generated code invokes RegisterStaticCollectionBlob in init() using //go:embed
+	// directives.
 	//
-	// The blob is a FlatBuffer binary that holds all collection items. It is built
-	// for zero-copy access and O(log n) lookups.
+	// The blob is a FlatBuffer binary that holds all collection items. It is built for
+	// zero-copy access and O(log n) lookups.
 	//
 	// Example generated code:
 	//
-	//	//go:embed data.bin
-	//	var collectionBlob []byte
+	// 	//go:embed data.bin
+	// 	var collectionBlob []byte
 	//
-	//	func init() {
-	//	    pikoruntime.RegisterStaticCollectionBlob("docs", collectionBlob)
-	//	}
+	// 	func init() {
+	// 	    pikoruntime.RegisterStaticCollectionBlob("docs", collectionBlob)
+	// 	}
 	RegisterStaticCollectionBlob = collection_domain.RegisterStaticCollectionBlob
 )
 
-// I18nConfig contains the internationalisation configuration for generating
-// SEO metadata. This public-facing type mirrors the internal config structure
-// and is safe for use in generated code.
+// I18nConfig contains the internationalisation configuration for generating SEO metadata.
+// This public-facing type mirrors the internal config structure and is safe for use in
+// generated code.
 type I18nConfig struct {
-	// DefaultLocale is the fallback locale used when no locale is specified or
-	// matched. Example: "en".
+	// DefaultLocale is the fallback locale used when no locale is specified or matched.
+	// Example: "en".
 	DefaultLocale string
 
-	// Strategy defines how locale information is represented in URLs.
-	// Supported values are "query-only", "prefix", and "prefix_except_default".
+	// Strategy defines how locale information is represented in URLs. Supported values are
+	// "query-only", "prefix", and "prefix_except_default".
 	Strategy string
 
-	// Locales is the list of all supported locales.
-	// Example: []string{"en", "fr", "de"}.
+	// Locales is the list of all supported locales. Example: []string{"en", "fr", "de"}.
 	Locales []string
 }
 
 // HybridConfig holds the settings for hybrid mode (ISR) collections.
 type HybridConfig = collection_dto.HybridConfig
 
-// These type aliases make collection types available to generated code and
-// user initialisation code without exposing internal package structure.
+// These type aliases make collection types available to generated code and user
+// initialisation code without exposing internal package structure.
 
 type (
 	// FetchOptions contains options for runtime collection fetching.
@@ -684,21 +633,19 @@ type (
 	// Provider is the interface that dynamic providers must implement.
 	Provider = collection_domain.RuntimeProvider
 
-	// Section represents a heading in markdown content, used for building a
-	// Table of Contents. It contains the heading title, slug (HTML ID), and
-	// level (2-6).
+	// Section represents a heading in markdown content, used for building a Table of
+	// Contents. It contains the heading title, slug (HTML ID), and level (2-6).
 	Section = markdown_dto.SectionData
 
-	// Filter represents a single filtering condition for collection queries.
-	// Used with WithFilter() to filter collection items by field values.
+	// Filter represents a single filtering condition for collection queries. Used with
+	// WithFilter() to filter collection items by field values.
 	Filter = collection_dto.Filter
 
-	// FilterGroup represents a group of filters combined with AND/OR logic.
-	// Used to build complex query conditions.
+	// FilterGroup represents a group of filters combined with AND/OR logic. Used to build
+	// complex query conditions.
 	FilterGroup = collection_dto.FilterGroup
 
-	// FilterOperator defines the comparison operation for a filter (eq, contains,
-	// etc).
+	// FilterOperator defines the comparison operation for a filter (eq, contains, etc).
 	FilterOperator = collection_dto.FilterOperator
 
 	// SortOrder defines the sort direction (ascending or descending).
@@ -707,8 +654,7 @@ type (
 	// SortOption specifies a field and direction for sorting collection results.
 	SortOption = collection_dto.SortOption
 
-	// PaginationOptions specifies offset and limit for paginating collection
-	// results.
+	// PaginationOptions specifies offset and limit for paginating collection results.
 	PaginationOptions = collection_dto.PaginationOptions
 )
 
@@ -722,8 +668,8 @@ type SearchResult[T any] struct {
 	// Item is the content that matched the search query.
 	Item T
 
-	// Score is the relevance score ranging from 0.0 to 1.0, where 1.0 indicates a
-	// perfect match and 0.0 indicates no match.
+	// Score is the relevance score ranging from 0.0 to 1.0, where 1.0 indicates a perfect
+	// match and 0.0 indicates no match.
 	Score float64
 }
 
@@ -732,13 +678,12 @@ type SearchField struct {
 	// Name is the field name to search.
 	Name string
 
-	// Weight is the importance multiplier for the field; default is 1.0.
-	// Higher values make matches in the field count for more.
+	// Weight is the importance multiplier for the field; default is 1.0. Higher values make
+	// matches in the field count for more.
 	Weight float64
 }
 
-// SearchOption configures search behaviour using the functional options
-// pattern.
+// SearchOption configures search behaviour using the functional options pattern.
 type SearchOption func(*searchConfig)
 
 // searchConfig holds settings for searching a collection.
@@ -749,8 +694,8 @@ type searchConfig struct {
 	// fields specifies which fields to search and their weights.
 	fields []SearchField
 
-	// fuzzyThreshold is the minimum similarity score for fuzzy matching; 0 means
-	// exact matches only, 1.0 means match anything.
+	// fuzzyThreshold is the minimum similarity score for fuzzy matching; 0 means exact
+	// matches only, 1.0 means match anything.
 	fuzzyThreshold float64
 
 	// minScore is the minimum relevance score for search results.
@@ -766,19 +711,19 @@ type searchConfig struct {
 	caseSensitive bool
 }
 
-// SectionNode represents a hierarchical section entry for table of contents.
-// Unlike Section (which is flat), SectionNode contains nested children
-// for building tree-structured navigation.
+// SectionNode represents a hierarchical section entry for table of contents. Unlike
+// Section (which is flat), SectionNode contains nested children for building
+// tree-structured navigation.
 //
-// This is a provider-agnostic type from the collection layer, allowing
-// any content provider (markdown, headless CMS, etc.) to build ToC structures.
+// This is a provider-agnostic type from the collection layer, allowing any content
+// provider (markdown, headless CMS, etc.) to build ToC structures.
 type SectionNode = collection_dto.SectionNode
 
 // SectionTreeOption is a functional option for setting up GetSectionsTree.
 type SectionTreeOption = collection_domain.SectionTreeOption
 
-// These functions create FetchOptions for collection queries.
-// They follow the functional options pattern for flexible, composable queries.
+// These functions create FetchOptions for collection queries. They follow the functional
+// options pattern for flexible, composable queries.
 
 // CollectionOption is a function that changes how items are fetched.
 type CollectionOption func(*FetchOptions)
@@ -791,8 +736,8 @@ type AdvancedSearchResult[T any] struct {
 	// Item is the matched content item.
 	Item T
 
-	// Score is the BM25 relevance score ranging from 0.0 to infinity.
-	// Higher scores indicate better matches.
+	// Score is the BM25 relevance score ranging from 0.0 to infinity. Higher scores indicate
+	// better matches.
 	Score float64
 
 	// DocumentID is the internal document identifier.
@@ -813,8 +758,7 @@ type advancedSearchConfig struct {
 	// limit is the maximum number of results to return.
 	limit int
 
-	// offset specifies the number of results to skip; 0 starts from the first
-	// result.
+	// offset specifies the number of results to skip; 0 starts from the first result.
 	offset int
 
 	// minScore is the minimum similarity score for results; 0 means no threshold.
@@ -824,17 +768,15 @@ type advancedSearchConfig struct {
 	caseSensitive bool
 }
 
-// These types and functions enable hierarchical navigation generation from
-// collections.
+// These types and functions enable hierarchical navigation generation from collections.
 
 type (
-	// NavigationGroups contains multiple named navigation structures, where each
-	// group represents a distinct navigation UI component such as a sidebar or
-	// footer.
+	// NavigationGroups contains multiple named navigation structures, where each group
+	// represents a distinct navigation UI component such as a sidebar or footer.
 	NavigationGroups = collection_dto.NavigationGroups
 
-	// NavigationTree represents a hierarchical navigation structure for a specific
-	// group and locale.
+	// NavigationTree represents a hierarchical navigation structure for a specific group and
+	// locale.
 	NavigationTree = collection_dto.NavigationTree
 
 	// NavigationNode represents a single node in the navigation hierarchy.
@@ -844,10 +786,10 @@ type (
 	NavigationConfig = collection_dto.NavigationConfig
 )
 
-// collectionNotFoundError is returned when a collection item lookup fails.
-// It implements the ActionError interface (StatusCode() + ErrorCode()) so the
-// rendering pipeline's extractErrorStatusCode returns HTTP 404, routing the
-// error through the error page system.
+// collectionNotFoundError is returned when a collection item lookup fails. It implements
+// the ActionError interface (StatusCode() + ErrorCode()) so the rendering pipeline's
+// extractErrorStatusCode returns HTTP 404, routing the error through the error page
+// system.
 type collectionNotFoundError struct {
 	// cause is the underlying collection lookup error.
 	cause error
@@ -881,56 +823,51 @@ func (*collectionNotFoundError) ErrorCode() string { return "COLLECTION_NOT_FOUN
 // Returns error which is the original collection lookup error.
 func (e *collectionNotFoundError) Unwrap() error { return e.cause }
 
-// GetData retrieves the page data from CollectionData and converts it to type
-// T. This provides type-safe access to collection data in Render functions,
-// using a JSON round-trip for reliable map to struct conversion.
+// GetData retrieves the page data from CollectionData and converts it to type T. This
+// provides type-safe access to collection data in Render functions, using a JSON
+// round-trip for reliable map to struct conversion.
 //
-// Takes r (*templater_dto.RequestData) which contains the CollectionData to
-// extract.
+// Takes r (*templater_dto.RequestData) which contains the CollectionData to extract.
 //
-// Returns T which is the page data converted to the specified type, or the zero
-// value if conversion fails.
+// Returns T which is the page data converted to the specified type, or the zero value if
+// conversion fails.
 //
 //piko:link GetDataLink
 func GetData[T any](r *templater_dto.RequestData) T {
 	return generator_helpers.GetData[T](r)
 }
 
-// GetDataLink is the //piko:link sibling for GetData. The interpreter
-// dispatches to GetDataLink when a .pk file calls GetData[T] with a
-// user-defined T that has no compiled instantiation in the binary.
+// GetDataLink is the //piko:link sibling for GetData. The interpreter dispatches to
+// GetDataLink when a .pk file calls GetData[T] with a user-defined T that has no compiled
+// instantiation in the binary.
 //
-// Takes tType (reflect.Type) which is the instantiated type argument
-// the user wrote in the brackets.
-// Takes r (*templater_dto.RequestData) which contains the
-// CollectionData to extract.
+// Takes tType (reflect.Type) which is the instantiated type argument the user wrote in
+// the brackets.
+// Takes r (*templater_dto.RequestData) which contains the CollectionData to extract.
 //
-// Returns a reflect.Value of concrete type tType, either populated from
-// the collection's "page" map or a zero value when conversion fails.
+// Returns a reflect.Value of concrete type tType, either populated from the collection's
+// "page" map or a zero value when conversion fails.
 func GetDataLink(tType reflect.Type, r *templater_dto.RequestData) reflect.Value {
 	value, _ := generator_helpers.GetDataReflect(r, tType)
 	return value
 }
 
-// GenerateLocaleHead generates internationalisation SEO metadata for a page. It
-// returns the current locale, canonical URL, and alternate hreflang links for
-// all supported locales.
+// GenerateLocaleHead generates internationalisation SEO metadata for a page. It returns
+// the current locale, canonical URL, and alternate hreflang links for all supported
+// locales.
 //
-// Designed to be called from within a component's Render function to populate
-// the Metadata.Language, Metadata.CanonicalUrl, and Metadata.AlternateLinks
-// fields.
+// Designed to be called from within a component's Render function to populate the
+// Metadata.Language, Metadata.CanonicalUrl, and Metadata.AlternateLinks fields.
 //
 // Takes r (*templater_dto.RequestData) which provides the current request data.
 // Takes i18nConfig (I18nConfig) which defines locales and URL strategy.
 // Takes pagePath (string) which specifies the page's URL path.
-// Takes supportedLocalesOverride ([]string) which optionally limits the locales
-// used instead of the full config. Pass nil or empty slice to use all locales.
+// Takes supportedLocalesOverride ([]string) which optionally limits the locales used
+// instead of the full config. Pass nil or empty slice to use all locales.
 //
 // Returns locale (string) which is the current request's locale from r.Locale.
-// Returns canonicalURL (string) which is the canonical URL using default
-// locale.
-// Returns alternateLinks ([]map[string]string) which contains hreflang links
-// for SEO.
+// Returns canonicalURL (string) which is the canonical URL using default locale.
+// Returns alternateLinks ([]map[string]string) which contains hreflang links for SEO.
 func GenerateLocaleHead(
 	r *templater_dto.RequestData,
 	i18nConfig I18nConfig,
@@ -950,27 +887,22 @@ func GenerateLocaleHead(
 
 // These functions support Incremental Static Regeneration for collections.
 
-// GetHybridBlob retrieves the current FlatBuffer blob from the hybrid
-// registry.
+// GetHybridBlob retrieves the current FlatBuffer blob from the hybrid registry.
 //
 // Called by generated code to access hybrid collection data.
 // Returns the current blob and whether background revalidation should be triggered.
 //
 // Takes ctx (context.Context) which controls cancellation and tracing.
-// Takes providerName (string) which identifies the provider that owns this
-// collection.
+// Takes providerName (string) which identifies the provider that owns this collection.
 // Takes collectionName (string) which specifies the collection identifier.
 //
-// Returns []byte which contains the current FlatBuffer blob, or nil if not
-// registered.
-// Returns bool which indicates whether TTL has expired and revalidation
-// should run.
+// Returns []byte which contains the current FlatBuffer blob, or nil if not registered.
+// Returns bool which indicates whether TTL has expired and revalidation should run.
 func GetHybridBlob(ctx context.Context, providerName, collectionName string) ([]byte, bool) {
 	return collection_domain.GetHybridBlob(ctx, providerName, collectionName)
 }
 
-// TriggerHybridRevalidation triggers background revalidation for a hybrid
-// collection.
+// TriggerHybridRevalidation triggers background revalidation for a hybrid collection.
 //
 // Validates the ETag and updates the cache if the content has changed.
 // Returns immediately.
@@ -981,11 +913,11 @@ func TriggerHybridRevalidation(ctx context.Context, providerName, collectionName
 	collection_domain.TriggerHybridRevalidation(ctx, providerName, collectionName)
 }
 
-// DecodeCollectionBlob decodes a FlatBuffer collection blob into a typed
-// slice. Each item's metadata JSON is unmarshalled into T.
+// DecodeCollectionBlob decodes a FlatBuffer collection blob into a typed slice. Each
+// item's metadata JSON is unmarshalled into T.
 //
-// Called by generated hybrid collection getter functions to convert the cached
-// FlatBuffer blob back into the user's typed slice.
+// Called by generated hybrid collection getter functions to convert the cached FlatBuffer
+// blob back into the user's typed slice.
 //
 // Takes blob ([]byte) which is the FlatBuffer-encoded collection data.
 //
@@ -997,14 +929,12 @@ func DecodeCollectionBlob[T any](blob []byte) ([]T, error) {
 
 // RegisterHybridSnapshot registers a build-time snapshot for runtime use.
 //
-// Called from generated init() functions to register the embedded FlatBuffer
-// blob and its ETag for hybrid mode operation.
+// Called from generated init() functions to register the embedded FlatBuffer blob and its
+// ETag for hybrid mode operation.
 //
 // Takes ctx (context.Context) which controls cancellation and tracing.
-// Takes providerName (string) which identifies the provider that generated
-// this snapshot.
-// Takes collectionName (string) which identifies the collection this snapshot
-// belongs to.
+// Takes providerName (string) which identifies the provider that generated this snapshot.
+// Takes collectionName (string) which identifies the collection this snapshot belongs to.
 // Takes blob ([]byte) which contains the FlatBuffer-serialised content.
 // Takes etag (string) which is the content fingerprint at build time.
 // Takes hybridConfig (HybridConfig) which specifies the hybrid mode configuration.
@@ -1044,13 +974,12 @@ func GetHybridETag(providerName, collectionName string) string {
 
 // FetchCollection fetches dynamic collection data at runtime.
 //
-// Called by generated code when a component uses data.GetCollection() with a
-// dynamic provider (e.g., headless CMS, database).
+// Called by generated code when a component uses data.GetCollection() with a dynamic
+// provider (e.g., headless CMS, database).
 //
 // Takes providerName (string) which specifies the provider to use.
 // Takes collectionName (string) which specifies the collection to fetch.
-// Takes options (*FetchOptions) which provides locale, filters, and cache
-// config.
+// Takes options (*FetchOptions) which provides locale, filters, and cache config.
 // Takes target (any) which is a pointer to a slice to populate.
 //
 // Returns error when the fetch fails or the provider is not found.
@@ -1066,8 +995,8 @@ func FetchCollection(
 
 // RegisterRuntimeProvider registers a provider for runtime data fetching.
 //
-// This should be called during application initialisation (in main.go) to
-// make a dynamic provider available for runtime collection fetching.
+// This should be called during application initialisation (in main.go) to make a dynamic
+// provider available for runtime collection fetching.
 //
 // Takes provider (Provider) which is the runtime provider to register.
 //
@@ -1169,8 +1098,8 @@ func NewPaginationOptions(limit, offset int) PaginationOptions {
 	}
 }
 
-// WithMinLevel sets the minimum heading level to include (default: 2).
-// Headings below this level are filtered out.
+// WithMinLevel sets the minimum heading level to include (default: 2). Headings below
+// this level are filtered out.
 //
 // Takes level (int) which specifies the minimum heading level.
 //
@@ -1183,8 +1112,8 @@ func WithMinLevel(level int) SectionTreeOption {
 	return collection_domain.WithMinLevel(level)
 }
 
-// WithMaxLevel sets the maximum heading level to include (default: 4).
-// Headings above this level are filtered out.
+// WithMaxLevel sets the maximum heading level to include (default: 4). Headings above
+// this level are filtered out.
 //
 // Takes level (int) which specifies the maximum heading level to include.
 //
@@ -1197,14 +1126,13 @@ func WithMaxLevel(level int) SectionTreeOption {
 	return collection_domain.WithMaxLevel(level)
 }
 
-// GetSectionsTree extracts sections from collection data and builds a
-// hierarchical tree. Unlike GetSections which returns a flat list, this
-// returns nested SectionNode structures suitable for rendering a table of
-// contents with proper nesting.
+// GetSectionsTree extracts sections from collection data and builds a hierarchical tree.
+// Unlike GetSections which returns a flat list, this returns nested SectionNode
+// structures suitable for rendering a table of contents with proper nesting.
 //
 // Takes r (*templater_dto.RequestData) which contains the collection data.
-// Takes opts (...SectionTreeOption) which provides optional configuration
-// such as WithMinLevel and WithMaxLevel.
+// Takes opts (...SectionTreeOption) which provides optional configuration such as
+// WithMinLevel and WithMaxLevel.
 //
 // Returns []SectionNode which contains top-level nodes with nested children.
 func GetSectionsTree(r *templater_dto.RequestData, opts ...SectionTreeOption) []SectionNode {
@@ -1212,15 +1140,15 @@ func GetSectionsTree(r *templater_dto.RequestData, opts ...SectionTreeOption) []
 	return collection_domain.BuildSectionTree(flatSections, opts...)
 }
 
-// GetSections extracts the table of contents (sections/headings) from
-// collection data. Returns a list of headings found in markdown content,
-// useful for building a ToC sidebar.
+// GetSections extracts the table of contents (sections/headings) from collection data.
+// Returns a list of headings found in markdown content, useful for building a ToC
+// sidebar.
 //
-// Takes r (*templater_dto.RequestData) which contains the CollectionData to
-// extract sections from.
+// Takes r (*templater_dto.RequestData) which contains the CollectionData to extract
+// sections from.
 //
-// Returns []Section which contains heading titles, slugs, and levels. Returns
-// nil when the collection data is missing, malformed, or has no sections.
+// Returns []Section which contains heading titles, slugs, and levels.
+// Returns nil when the collection data is missing, malformed, or has no sections.
 func GetSections(r *templater_dto.RequestData) []Section {
 	if r.CollectionData() == nil {
 		return nil
@@ -1268,20 +1196,17 @@ func GetSections(r *templater_dto.RequestData) []Section {
 	return nil
 }
 
-// GetStaticCollectionItem retrieves a single item from a static collection by
-// route.
+// GetStaticCollectionItem retrieves a single item from a static collection by route.
 //
-// Performs an O(log n) binary search lookup in the embedded FlatBuffer blob
-// and returns the metadata and ASTs for the requested route.
+// Performs an O(log n) binary search lookup in the embedded FlatBuffer blob and returns
+// the metadata and ASTs for the requested route.
 //
-// Used by generated BuildAST code to populate r.CollectionData for collection
-// pages.
+// Used by generated BuildAST code to populate r.CollectionData for collection pages.
 //
 // Takes ctx (context.Context) which controls cancellation and tracing.
-// Takes collectionName (string) which is the name of the collection (e.g.,
-// "docs", "blog").
-// Takes route (string) which is the URL route to look up (e.g.,
-// "/docs/actions").
+// Takes collectionName (string) which is the name of the collection (e.g., "docs",
+// "blog").
+// Takes route (string) which is the URL route to look up (e.g., "/docs/actions").
 //
 // Returns metadata (map[string]any) which is the page metadata.
 // Returns contentAST (*TemplateAST) which is the parsed content.
@@ -1292,7 +1217,7 @@ func GetSections(r *templater_dto.RequestData) []Section {
 //
 //	metadata, contentAST, excerptAST, err := pikoruntime.GetStaticCollectionItem(r.Context(), "docs", r.URL.Path)
 //	if err == nil {
-//	    r.CollectionData = map[string]interface{}{
+//	    r.CollectionData = map[string]any{
 //	        "page":       metadata,
 //	        "contentAST": contentAST,
 //	        "excerptAST": excerptAST,
@@ -1304,31 +1229,29 @@ func GetStaticCollectionItem(ctx context.Context, collectionName, route string) 
 
 // GetAllCollectionItems retrieves all items from a static collection.
 //
-// Retrieves metadata only, without ASTs. Use to build navigation, sitemaps, or
-// RSS feeds where you need to iterate over all items in a collection but do
-// not need the full content ASTs.
+// Retrieves metadata only, without ASTs. Use to build navigation, sitemaps, or RSS feeds
+// where you need to iterate over all items in a collection but do not need the full
+// content ASTs.
 //
-// Takes collectionName (string) which specifies the collection to retrieve
-// (e.g., "docs", "blog").
+// Takes collectionName (string) which specifies the collection to retrieve (e.g., "docs",
+// "blog").
 //
-// Returns []map[string]any which contains metadata maps, one per collection
-// item.
+// Returns []map[string]any which contains metadata maps, one per collection item.
 // Returns error when the collection is not found.
 func GetAllCollectionItems(collectionName string) ([]map[string]any, error) {
 	return collection_domain.GetStaticCollectionItems(collectionName)
 }
 
-// GetCollectionNavigation returns a lazily initialised navigation tree for a
-// static collection. The first call for a given collection and config pair
-// builds the tree; all subsequent calls return the same instance.
+// GetCollectionNavigation returns a lazily initialised navigation tree for a static
+// collection. The first call for a given collection and config pair builds the tree; all
+// subsequent calls return the same instance.
 //
-// This combines GetAllCollectionItems and BuildNavigationFromMetadata into a
-// single call that avoids per-request tree construction.
+// This combines GetAllCollectionItems and BuildNavigationFromMetadata into a single call
+// that avoids per-request tree construction.
 //
 // Takes ctx (context.Context) which carries request-scoped values.
 // Takes collectionName (string) which identifies the static collection.
-// Takes navigationConfig (NavigationConfig) which controls how
-// navigation is built.
+// Takes navigationConfig (NavigationConfig) which controls how navigation is built.
 //
 // Returns *NavigationGroups which contains the navigation trees.
 // Returns error when the collection is not found.
@@ -1380,8 +1303,8 @@ func WithSort(sorts ...SortOption) CollectionOption {
 
 // WithPagination applies pagination to a collection query.
 //
-// Takes pagination (PaginationOptions) which specifies the limit and offset
-// for the query results.
+// Takes pagination (PaginationOptions) which specifies the limit and offset for the query
+// results.
 //
 // Returns CollectionOption which configures pagination on fetch options.
 //
@@ -1446,8 +1369,8 @@ func WithSearchFields(fields ...SearchField) SearchOption {
 
 // WithFuzzyThreshold sets the fuzzy matching threshold for search operations.
 //
-// A value of 0.0 means exact match only, whilst 1.0 means very fuzzy
-// matching. The default value is 0.3.
+// A value of 0.0 means exact match only, whilst 1.0 means very fuzzy matching. The
+// default value is 0.3.
 //
 // Takes threshold (float64) which specifies the matching tolerance level.
 //
@@ -1483,8 +1406,8 @@ func WithSearchLimit(limit int) SearchOption {
 //
 // Takes offset (int) which specifies the number of results to skip.
 //
-// Returns SearchOption which configures the search to skip the specified
-// number of results.
+// Returns SearchOption which configures the search to skip the specified number of
+// results.
 //
 // Example:
 //
@@ -1501,8 +1424,8 @@ func WithSearchOffset(offset int) SearchOption {
 //
 // Takes score (float64) which specifies the minimum score threshold.
 //
-// Returns SearchOption which configures the search to exclude results
-// with scores below the threshold.
+// Returns SearchOption which configures the search to exclude results with scores below
+// the threshold.
 //
 // Example:
 //
@@ -1514,8 +1437,8 @@ func WithMinScore(score float64) SearchOption {
 	}
 }
 
-// WithCaseSensitive enables or disables case-sensitive search matching.
-// By default, search matching is case-insensitive.
+// WithCaseSensitive enables or disables case-sensitive search matching. By default,
+// search matching is case-insensitive.
 //
 // Takes sensitive (bool) which specifies whether matching is case-sensitive.
 //
@@ -1526,9 +1449,8 @@ func WithCaseSensitive(sensitive bool) SearchOption {
 	}
 }
 
-// WithSearchMode sets the search mode to use.
-// Valid values: "fast" (default) or "smart" (with stemming and phonetic
-// matching).
+// WithSearchMode sets the search mode to use. Valid values: "fast" (default) or "smart"
+// (with stemming and phonetic matching).
 //
 // Takes mode (string) which specifies the search mode.
 //
@@ -1544,17 +1466,15 @@ func WithSearchMode(mode string) SearchOption {
 	}
 }
 
-// RegisterSearchIndex registers a binary search index blob for runtime
-// zero-copy access.
+// RegisterSearchIndex registers a binary search index blob for runtime zero-copy access.
 //
-// This is called by generated code in init() functions (from //go:embed
-// directives) to register the embedded search index binaries.
+// This is called by generated code in init() functions (from //go:embed directives) to
+// register the embedded search index binaries.
 //
-// Takes collectionName (string) which identifies the collection
-// (e.g., "docs", "blog").
+// Takes collectionName (string) which identifies the collection (e.g., "docs", "blog").
 // Takes mode (string) which specifies the search mode ("fast" or "smart").
-// Takes data ([]byte) which contains the FlatBuffer binary blob
-// (embedded via //go:embed).
+// Takes data ([]byte) which contains the FlatBuffer binary blob (embedded via
+// //go:embed).
 //
 // Returns error when registration fails.
 //
@@ -1593,11 +1513,10 @@ func WithMode(mode SearchMode) AdvancedSearchOption {
 
 // WithAdvancedSearchFields specifies which fields to search with weights.
 //
-// Takes fields (...search_dto.SearchField) which defines the searchable fields
-// and their relative importance.
+// Takes fields (...search_dto.SearchField) which defines the searchable fields and their
+// relative importance.
 //
-// Returns AdvancedSearchOption which configures the search to use the specified
-// fields.
+// Returns AdvancedSearchOption which configures the search to use the specified fields.
 //
 // Example:
 //
@@ -1645,8 +1564,7 @@ func WithAdvancedMinScore(score float64) AdvancedSearchOption {
 	}
 }
 
-// AdvancedSearch performs full-text search using the inverted index and BM25
-// scoring.
+// AdvancedSearch performs full-text search using the inverted index and BM25 scoring.
 //
 // Uses the zero-copy search index embedded in the binary for:
 //   - O(log n) term lookups
@@ -1654,14 +1572,13 @@ func WithAdvancedMinScore(score float64) AdvancedSearchOption {
 //   - Optional stemming and phonetic matching (Smart mode)
 //
 // Takes ctx (context.Context) which controls cancellation.
-// Takes collectionName (string) which identifies the collection to search
-// (e.g., "docs").
+// Takes collectionName (string) which identifies the collection to search (e.g., "docs").
 // Takes query (string) which is the search query text.
-// Takes opts (...AdvancedSearchOption) which provides optional configuration
-// (mode, fields, limit, etc.).
+// Takes opts (...AdvancedSearchOption) which provides optional configuration (mode,
+// fields, limit, etc.).
 //
-// Returns []AdvancedSearchResult[T] which contains ranked search results
-// with BM25 scores.
+// Returns []AdvancedSearchResult[T] which contains ranked search results with BM25
+// scores.
 // Returns error when the index is not found or the search fails.
 //
 // Example:
@@ -1704,14 +1621,14 @@ func AdvancedSearch[T any](
 	return hydrateSearchResults[T](ctx, queryResults, reader, collectionName), nil
 }
 
-// GetSearchIndexMetadata returns metadata about a search index.
-// Useful for debugging and understanding index characteristics.
+// GetSearchIndexMetadata returns metadata about a search index. Useful for debugging and
+// understanding index characteristics.
 //
 // Takes collectionName (string) which identifies the collection.
 // Takes mode (string) which specifies the search mode ("fast" or "smart").
 //
-// Returns map[string]any which contains index statistics such as total_docs
-// and vocab_size.
+// Returns map[string]any which contains index statistics such as total_docs and
+// vocab_size.
 // Returns error when the index is not found.
 func GetSearchIndexMetadata(collectionName, mode string) (map[string]any, error) {
 	return search_adapters.GetSearchIndexMetadata(collectionName, mode)
@@ -1719,8 +1636,7 @@ func GetSearchIndexMetadata(collectionName, mode string) (map[string]any, error)
 
 // ListSearchIndexes returns all available search indexes.
 //
-// Returns map[string][]string which maps collection names to their available
-// modes.
+// Returns map[string][]string which maps collection names to their available modes.
 //
 // Example:
 //
@@ -1732,8 +1648,7 @@ func ListSearchIndexes() map[string][]string {
 	return search_adapters.ListSearchIndexes()
 }
 
-// HasSearchIndex checks if a search index exists for a
-// collection and mode.
+// HasSearchIndex checks if a search index exists for a collection and mode.
 //
 // Example:
 //
@@ -1743,10 +1658,8 @@ func ListSearchIndexes() map[string][]string {
 //	    // Fall back to Fast mode or fuzzy search
 //	}
 //
-// Takes collectionName (string) which identifies the
-// collection.
-// Takes mode (string) which specifies the search mode ("fast"
-// or "smart").
+// Takes collectionName (string) which identifies the collection.
+// Takes mode (string) which specifies the search mode ("fast" or "smart").
 //
 // Returns bool which is true if the index exists.
 func HasSearchIndex(collectionName, mode string) bool {
@@ -1760,16 +1673,14 @@ func DefaultNavigationConfig() NavigationConfig {
 	return collection_dto.DefaultNavigationConfig()
 }
 
-// BuildNavigationFromMetadata constructs hierarchical navigation from
-// collection metadata maps.
+// BuildNavigationFromMetadata constructs hierarchical navigation from collection metadata
+// maps.
 //
-// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees
-// based on the "Navigation" field in each item's metadata.
+// Takes metadata maps (from GetAllCollectionItems) and builds navigation trees based on
+// the "Navigation" field in each item's metadata.
 //
-// Takes metadataItems ([]map[string]any) which provides metadata maps from a
-// collection.
-// Takes navigationConfig (NavigationConfig) which specifies
-// navigation building options.
+// Takes metadataItems ([]map[string]any) which provides metadata maps from a collection.
+// Takes navigationConfig (NavigationConfig) which specifies navigation building options.
 //
 // Returns *NavigationGroups which contains all named navigation trees.
 func BuildNavigationFromMetadata(ctx context.Context, metadataItems []map[string]any, navigationConfig NavigationConfig) *NavigationGroups {
@@ -1794,13 +1705,13 @@ func BuildNavigationFromMetadata(ctx context.Context, metadataItems []map[string
 	return builder.BuildNavigationGroups(ctx, contentItems, navigationConfig)
 }
 
-// BuildNavigationFromContentItems builds navigation groups from a slice of
-// content items. This is an internal helper used by generated code.
+// BuildNavigationFromContentItems builds navigation groups from a slice of content items.
+// This is an internal helper used by generated code.
 //
-// Takes items ([]collection_dto.ContentItem) which contains the content to
-// organise into navigation groups.
-// Takes navigationConfig (NavigationConfig) which specifies how
-// to group and order the navigation items.
+// Takes items ([]collection_dto.ContentItem) which contains the content to organise into
+// navigation groups.
+// Takes navigationConfig (NavigationConfig) which specifies how to group and order the
+// navigation items.
 //
 // Returns *NavigationGroups which contains the organised navigation structure.
 func BuildNavigationFromContentItems(ctx context.Context, items []collection_dto.ContentItem, navigationConfig NavigationConfig) *NavigationGroups {
@@ -1808,9 +1719,9 @@ func BuildNavigationFromContentItems(ctx context.Context, items []collection_dto
 	return builder.BuildNavigationGroups(ctx, items, navigationConfig)
 }
 
-// CollectionNotFound creates a 404 error for a missing collection item.
-// This is used by generated code when a p-collection page's item lookup fails,
-// routing the error through the error page system.
+// CollectionNotFound creates a 404 error for a missing collection item. This is used by
+// generated code when a p-collection page's item lookup fails, routing the error through
+// the error page system.
 //
 // Takes collection (string) which is the collection name (e.g., "blog").
 // Takes route (string) which is the URL path that was looked up.
@@ -1826,8 +1737,7 @@ func CollectionNotFound(collection, route string, cause error) error {
 // Takes m (map[string]any) which is the map to search.
 // Takes key (string) which is the key to look up.
 //
-// Returns string which is the value if found and is a string, or empty string
-// otherwise.
+// Returns string which is the value if found and is a string, or empty string otherwise.
 func getString(m map[string]any, key string) string {
 	if value, ok := m[key].(string); ok {
 		return value
@@ -1840,8 +1750,8 @@ func getString(m map[string]any, key string) string {
 // Takes m (map[string]any) which is the map to search.
 // Takes key (string) which is the key to look up.
 //
-// Returns int which is the value if found, or zero if the key is missing or
-// not a numeric type.
+// Returns int which is the value if found, or zero if the key is missing or not a numeric
+// type.
 func getInt(m map[string]any, key string) int {
 	switch value := m[key].(type) {
 	case int:
@@ -1875,11 +1785,11 @@ func getInt(m map[string]any, key string) int {
 
 // applySearchOptions applies search options to create a config.
 //
-// Takes opts (...SearchOption) which are functional options to customise the
-// search configuration.
+// Takes opts (...SearchOption) which are functional options to customise the search
+// configuration.
 //
-// Returns searchConfig which contains the merged settings with defaults for
-// any options not specified.
+// Returns searchConfig which contains the merged settings with defaults for any options
+// not specified.
 func applySearchOptions(opts ...SearchOption) searchConfig {
 	searchConfig := searchConfig{
 		fuzzyThreshold: defaultFuzzyThreshold,
@@ -1897,18 +1807,15 @@ func applySearchOptions(opts ...SearchOption) searchConfig {
 	return searchConfig
 }
 
-// hydrateSearchResults converts raw search results to typed results with
-// collection data.
+// hydrateSearchResults converts raw search results to typed results with collection data.
 //
-// Takes queryResults ([]search_domain.QueryResult) which contains the raw
-// search results to convert.
-// Takes reader (search_domain.IndexReaderPort) which provides document
-// metadata access.
-// Takes collectionName (string) which identifies the collection for item
-// lookup.
+// Takes queryResults ([]search_domain.QueryResult) which contains the raw search results
+// to convert.
+// Takes reader (search_domain.IndexReaderPort) which provides document metadata access.
+// Takes collectionName (string) which identifies the collection for item lookup.
 //
-// Returns []AdvancedSearchResult[T] which contains the typed results with
-// populated items.
+// Returns []AdvancedSearchResult[T] which contains the typed results with populated
+// items.
 func hydrateSearchResults[T any](
 	ctx context.Context,
 	queryResults []search_domain.QueryResult,
@@ -1941,11 +1848,11 @@ func hydrateSearchResults[T any](
 
 // applyAdvancedSearchOptions applies options to create config.
 //
-// Takes opts (...AdvancedSearchOption) which are functional options that
-// modify the search configuration.
+// Takes opts (...AdvancedSearchOption) which are functional options that modify the
+// search configuration.
 //
-// Returns advancedSearchConfig which contains the configured search settings
-// with sensible defaults applied.
+// Returns advancedSearchConfig which contains the configured search settings with
+// sensible defaults applied.
 func applyAdvancedSearchOptions(opts ...AdvancedSearchOption) advancedSearchConfig {
 	advancedSearchConfig := advancedSearchConfig{
 		mode: SearchModeFast,

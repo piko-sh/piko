@@ -27,8 +27,8 @@ import (
 
 // Completion handles completion requests and provides context-aware suggestions.
 //
-// Takes params (*protocol.CompletionParams) which specifies the cursor position
-// and document for which to provide completions.
+// Takes params (*protocol.CompletionParams) which specifies the cursor position and
+// document for which to provide completions.
 //
 // Returns *protocol.CompletionList which contains the available completion items.
 // Returns error when the completions cannot be retrieved.

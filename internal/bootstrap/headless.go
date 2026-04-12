@@ -25,24 +25,22 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// InitialiseHeadless bootstraps Piko's global services for headless use cases
-// such as CLI tools, background workers, and microservices that need framework
-// services (image processing, storage, cache, persistence) without running an
-// HTTP server.
+// InitialiseHeadless bootstraps Piko's global services for headless use cases such as CLI
+// tools, background workers, and microservices that need framework services (image
+// processing, storage, cache, persistence) without running an HTTP server.
 //
 // Unlike ConfigAndContainer, this entry point:
 //   - Does not require an AppRouter or Dependencies struct
 //   - Does not initialise the logger from configuration
 //   - Does not set up frontend assets or the .piko directory
 //
-// The options passed here configure the container identically to piko.New().
-// For example, WithImageProvider and WithStorageProvider will register real
-// providers that are accessible via the global service functions such as
-// media.GetImageDimensions and storage.GetDefaultService.
+// The options passed here configure the container identically to piko.New(). For example,
+// WithImageProvider and WithStorageProvider will register real providers that are
+// accessible via the global service functions such as media.GetImageDimensions and
+// storage.GetDefaultService.
 //
-// Must be called before any code that uses global service access. Can only
-// be called once per process (subsequent calls are no-ops due to sync.Once in
-// initialiseGlobalServices).
+// Must be called before any code that uses global service access. Can only be called once
+// per process (subsequent calls are no-ops due to sync.Once in initialiseGlobalServices).
 //
 // Takes opts which configure the container with providers.
 //

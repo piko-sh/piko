@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_stopwords_russian provides Russian stop words
-// for text analysis and search indexing.
+// Package linguistics_stopwords_russian provides Russian stop words for text analysis and
+// search indexing.
 //
-// It self-registers via an init function so that a blank import is
-// sufficient to make Russian stop words available through the
-// registry.
+// It self-registers via an init function so that a blank import is sufficient to make
+// Russian stop words available through the registry.
 package linguistics_stopwords_russian

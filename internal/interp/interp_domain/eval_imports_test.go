@@ -71,7 +71,9 @@ result`,
 		{
 			name: "import multiple packages",
 			code: `import "fmt"
-import "strings"
+import (
+	"strings"
+)
 name := strings.ToUpper("world")
 result := fmt.Sprintf("hello %s", name)
 result`,

@@ -30,7 +30,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-var updateGolden = flag.Bool("update", false, "update golden files")
+var (
+	updateGolden = flag.Bool("update", false, "update golden files")
+)
 
 func TestGoldenFiles(t *testing.T) {
 	inputDir := filepath.Join("testdata", "input")

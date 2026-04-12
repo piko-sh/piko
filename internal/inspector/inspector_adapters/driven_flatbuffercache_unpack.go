@@ -32,8 +32,8 @@ import (
 // Takes fb (*inspector_schema_gen.TypeData) which is the serialised type data.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns map[string]*inspector_dto.Package which maps package paths to their
-// unpacked package data, or nil if there are no packages.
+// Returns map[string]*inspector_dto.Package which maps package paths to their unpacked
+// package data, or nil if there are no packages.
 //
 //nolint:dupl // distinct generated types
 func unpackPackages(fb *inspector_schema_gen.TypeData, arena *unpackArena) map[string]*inspector_dto.Package {
@@ -59,8 +59,7 @@ func unpackPackages(fb *inspector_schema_gen.TypeData, arena *unpackArena) map[s
 
 // unpackPackageSafe unpacks a single package using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which is the FlatBuffer package to
-// unpack.
+// Takes fb (*inspector_schema_gen.Package) which is the FlatBuffer package to unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Package which contains the unpacked package data.
@@ -76,14 +75,14 @@ func unpackPackageSafe(fb *inspector_schema_gen.Package, arena *unpackArena) *in
 	return p
 }
 
-// unpackFileImportsSafe extracts file imports. Maps are not arena-allocated
-// because they require runtime hash table internals.
+// unpackFileImportsSafe extracts file imports. Maps are not arena-allocated because they
+// require runtime hash table internals.
 //
-// Takes fb (*inspector_schema_gen.Package) which contains the FlatBuffer
-// package data to unpack.
+// Takes fb (*inspector_schema_gen.Package) which contains the FlatBuffer package data to
+// unpack.
 //
-// Returns map[string]map[string]string which maps file paths to their import
-// alias mappings, or nil when the package has no file imports.
+// Returns map[string]map[string]string which maps file paths to their import alias
+// mappings, or nil when the package has no file imports.
 func unpackFileImportsSafe(fb *inspector_schema_gen.Package) map[string]map[string]string {
 	length := fb.FileImportsLength()
 	if length == 0 {
@@ -107,11 +106,11 @@ func unpackFileImportsSafe(fb *inspector_schema_gen.Package) map[string]map[stri
 
 // unpackAliasMapSafe extracts alias-to-path mappings.
 //
-// Takes fb (*inspector_schema_gen.FileImportMap) which contains the serialised
-// import alias entries.
+// Takes fb (*inspector_schema_gen.FileImportMap) which contains the serialised import
+// alias entries.
 //
-// Returns map[string]string which maps import aliases to their full paths,
-// or nil when there are no entries.
+// Returns map[string]string which maps import aliases to their full paths, or nil when
+// there are no entries.
 func unpackAliasMapSafe(fb *inspector_schema_gen.FileImportMap) map[string]string {
 	length := fb.EntriesLength()
 	if length == 0 {
@@ -130,12 +129,12 @@ func unpackAliasMapSafe(fb *inspector_schema_gen.FileImportMap) map[string]strin
 
 // unpackNamedTypesSafe extracts named types using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which provides the FlatBuffer
-// package to extract named types from.
+// Takes fb (*inspector_schema_gen.Package) which provides the FlatBuffer package to
+// extract named types from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns map[string]*inspector_dto.Type which maps type names to their
-// unpacked type definitions, or nil when the package has no named types.
+// Returns map[string]*inspector_dto.Type which maps type names to their unpacked type
+// definitions, or nil when the package has no named types.
 //
 //nolint:dupl // distinct generated types
 func unpackNamedTypesSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Type {
@@ -161,12 +160,12 @@ func unpackNamedTypesSafe(fb *inspector_schema_gen.Package, arena *unpackArena) 
 
 // unpackFuncsSafe extracts functions using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which contains the serialised
-// function data to unpack.
+// Takes fb (*inspector_schema_gen.Package) which contains the serialised function data to
+// unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns map[string]*inspector_dto.Function which maps function names to
-// their unpacked representations, or nil if the package has no functions.
+// Returns map[string]*inspector_dto.Function which maps function names to their unpacked
+// representations, or nil if the package has no functions.
 //
 //nolint:dupl // distinct generated types
 func unpackFuncsSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Function {
@@ -192,12 +191,12 @@ func unpackFuncsSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[s
 
 // unpackVariablesSafe extracts variables using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Package) which contains the serialised
-// variable data to unpack.
+// Takes fb (*inspector_schema_gen.Package) which contains the serialised variable data to
+// unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns map[string]*inspector_dto.Variable which maps variable names to
-// their unpacked representations, or nil if the package has no variables.
+// Returns map[string]*inspector_dto.Variable which maps variable names to their unpacked
+// representations, or nil if the package has no variables.
 //
 //nolint:dupl // distinct generated types
 func unpackVariablesSafe(fb *inspector_schema_gen.Package, arena *unpackArena) map[string]*inspector_dto.Variable {
@@ -223,8 +222,7 @@ func unpackVariablesSafe(fb *inspector_schema_gen.Package, arena *unpackArena) m
 
 // unpackVariableSafe converts a FlatBuffer variable using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Variable) which is the FlatBuffer variable
-// to convert.
+// Takes fb (*inspector_schema_gen.Variable) which is the FlatBuffer variable to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Variable which contains the converted variable data.
@@ -242,15 +240,15 @@ func unpackVariableSafe(fb *inspector_schema_gen.Variable, arena *unpackArena) *
 	return result
 }
 
-// unpackVariableCompositePartsSafe extracts composite parts from a variable
-// using arena allocation.
+// unpackVariableCompositePartsSafe extracts composite parts from a variable using arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Variable) which contains the composite parts
-// to extract.
+// Takes fb (*inspector_schema_gen.Variable) which contains the composite parts to
+// extract.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.CompositePart which contains the extracted parts,
-// or nil when the variable has no composite parts.
+// Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
+// the variable has no composite parts.
 func unpackVariableCompositePartsSafe(fb *inspector_schema_gen.Variable, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
 	if length == 0 {
@@ -269,8 +267,7 @@ func unpackVariableCompositePartsSafe(fb *inspector_schema_gen.Variable, arena *
 
 // unpackTypeSafe converts a FlatBuffer type using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type to
-// convert.
+// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Type which contains the converted type data.
@@ -293,12 +290,12 @@ func unpackTypeSafe(fb *inspector_schema_gen.Type, arena *unpackArena) *inspecto
 
 // unpackFieldsSafe extracts fields using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type to extract
-// fields from.
+// Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type to extract fields
+// from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.Field which contains the extracted fields, or nil
-// if there are no fields.
+// Returns []*inspector_dto.Field which contains the extracted fields, or nil if there are
+// no fields.
 func unpackFieldsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []*inspector_dto.Field {
 	length := fb.FieldsLength()
 	if length == 0 {
@@ -317,8 +314,7 @@ func unpackFieldsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []*insp
 
 // unpackFieldSafe converts a single field using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Field) which is the FlatBuffer field to
-// unpack.
+// Takes fb (*inspector_schema_gen.Field) which is the FlatBuffer field to unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Field which contains the unpacked field data.
@@ -345,15 +341,13 @@ func unpackFieldSafe(fb *inspector_schema_gen.Field, arena *unpackArena) *inspec
 	return result
 }
 
-// unpackCompositePartsSafe extracts composite parts from a field using arena
-// allocation.
+// unpackCompositePartsSafe extracts composite parts from a field using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Field) which contains the composite parts to
-// extract.
+// Takes fb (*inspector_schema_gen.Field) which contains the composite parts to extract.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.CompositePart which contains the extracted parts,
-// or nil when the field has no composite parts.
+// Returns []*inspector_dto.CompositePart which contains the extracted parts, or nil when
+// the field has no composite parts.
 func unpackCompositePartsSafe(fb *inspector_schema_gen.Field, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
 	if length == 0 {
@@ -370,15 +364,13 @@ func unpackCompositePartsSafe(fb *inspector_schema_gen.Field, arena *unpackArena
 	return s
 }
 
-// unpackCompositePartSafe converts a single composite part using arena
-// allocation.
+// unpackCompositePartSafe converts a single composite part using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.CompositePart) which is the FlatBuffer
-// composite part to convert.
+// Takes fb (*inspector_schema_gen.CompositePart) which is the FlatBuffer composite part
+// to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns *inspector_dto.CompositePart which is the converted DTO
-// representation.
+// Returns *inspector_dto.CompositePart which is the converted DTO representation.
 func unpackCompositePartSafe(fb *inspector_schema_gen.CompositePart, arena *unpackArena) *inspector_dto.CompositePart {
 	result := arena.AllocCompositePart()
 	result.Type = mem.String(fb.Type())
@@ -397,15 +389,15 @@ func unpackCompositePartSafe(fb *inspector_schema_gen.CompositePart, arena *unpa
 	return result
 }
 
-// unpackNestedCompositePartsSafe extracts nested composite parts recursively
-// using arena allocation.
+// unpackNestedCompositePartsSafe extracts nested composite parts recursively using arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.CompositePart) which is the parent composite
-// part to extract nested parts from.
+// Takes fb (*inspector_schema_gen.CompositePart) which is the parent composite part to
+// extract nested parts from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.CompositePart which contains the unpacked nested
-// parts, or nil if there are no nested parts.
+// Returns []*inspector_dto.CompositePart which contains the unpacked nested parts, or nil
+// if there are no nested parts.
 func unpackNestedCompositePartsSafe(fb *inspector_schema_gen.CompositePart, arena *unpackArena) []*inspector_dto.CompositePart {
 	length := fb.CompositePartsLength()
 	if length == 0 {
@@ -424,12 +416,11 @@ func unpackNestedCompositePartsSafe(fb *inspector_schema_gen.CompositePart, aren
 
 // unpackMethodsSafe extracts methods using arena allocation.
 //
-// Takes fb (*inspector_schema_gen.Type) which provides the type to extract
-// methods from.
+// Takes fb (*inspector_schema_gen.Type) which provides the type to extract methods from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []*inspector_dto.Method which contains the extracted methods, or nil
-// if the type has no methods.
+// Returns []*inspector_dto.Method which contains the extracted methods, or nil if the
+// type has no methods.
 func unpackMethodsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []*inspector_dto.Method {
 	length := fb.MethodsLength()
 	if length == 0 {
@@ -446,11 +437,10 @@ func unpackMethodsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []*ins
 	return s
 }
 
-// unpackMethodSafe converts a single method from FlatBuffer to DTO format
-// using arena allocation.
+// unpackMethodSafe converts a single method from FlatBuffer to DTO format using arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Method) which is the FlatBuffer method to
-// convert.
+// Takes fb (*inspector_schema_gen.Method) which is the FlatBuffer method to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Method which contains the converted method data.
@@ -472,11 +462,10 @@ func unpackMethodSafe(fb *inspector_schema_gen.Method, arena *unpackArena) *insp
 	return result
 }
 
-// unpackFunctionSafe converts a FlatBuffer function to a DTO function using
-// arena allocation.
+// unpackFunctionSafe converts a FlatBuffer function to a DTO function using arena
+// allocation.
 //
-// Takes fb (*inspector_schema_gen.Function) which is the FlatBuffer function to
-// convert.
+// Takes fb (*inspector_schema_gen.Function) which is the FlatBuffer function to convert.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
 // Returns *inspector_dto.Function which is the converted DTO representation.
@@ -495,16 +484,15 @@ func unpackFunctionSafe(fb *inspector_schema_gen.Function, arena *unpackArena) *
 	return result
 }
 
-// unpackFunctionSignatureSafe extracts a function signature from a FlatBuffer
-// using arena allocation for the backing string slice.
+// unpackFunctionSignatureSafe extracts a function signature from a FlatBuffer using arena
+// allocation for the backing string slice.
 //
-// Takes fb (*inspector_schema_gen.FunctionSignature) which is the FlatBuffer to
-// unpack.
+// Takes fb (*inspector_schema_gen.FunctionSignature) which is the FlatBuffer to unpack.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns inspector_dto.FunctionSignature which contains the extracted
-// parameter and result type names. Returns an empty signature when fb is nil
-// or has no parameters or results.
+// Returns inspector_dto.FunctionSignature which contains the extracted parameter and
+// result type names.
+// Returns an empty signature when fb is nil or has no parameters or results.
 func unpackFunctionSignatureSafe(fb *inspector_schema_gen.FunctionSignature, arena *unpackArena) inspector_dto.FunctionSignature {
 	if fb == nil {
 		return inspector_dto.FunctionSignature{}
@@ -541,15 +529,15 @@ func unpackFunctionSignatureSafe(fb *inspector_schema_gen.FunctionSignature, are
 	return sig
 }
 
-// unpackTypeParamsSafe extracts type parameters from a FlatBuffer type using
-// arena allocation.
+// unpackTypeParamsSafe extracts type parameters from a FlatBuffer type using arena
+// allocation.
 //
 // Takes fb (*inspector_schema_gen.Type) which is the FlatBuffer type to extract
 // parameters from.
 // Takes arena (*unpackArena) which provides pre-allocated memory slabs.
 //
-// Returns []string which contains the type parameter names, or nil if there
-// are no type parameters.
+// Returns []string which contains the type parameter names, or nil if there are no type
+// parameters.
 func unpackTypeParamsSafe(fb *inspector_schema_gen.Type, arena *unpackArena) []string {
 	length := fb.TypeParamsLength()
 	if length == 0 {

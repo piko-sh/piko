@@ -49,8 +49,8 @@ type ScreenshotOptions struct {
 	// Format specifies the image format (png, jpeg, or webp).
 	Format ScreenshotFormat
 
-	// Quality specifies the image quality from 0 to 100. Only applies to
-	// JPEG and WebP formats.
+	// Quality specifies the image quality from 0 to 100. Only applies to JPEG and WebP
+	// formats.
 	Quality int
 
 	// FromSurface captures the screenshot from the surface rather than the view.
@@ -59,15 +59,15 @@ type ScreenshotOptions struct {
 	// CaptureBeyondViewport captures content outside the visible browser window.
 	CaptureBeyondViewport bool
 
-	// OptimiseForSpeed trades encoding efficiency for faster capture during
-	// high-frequency screenshot sequences.
+	// OptimiseForSpeed trades encoding efficiency for faster capture during high-frequency
+	// screenshot sequences.
 	OptimiseForSpeed bool
 }
 
 // DefaultScreenshotOptions returns sensible defaults for screenshots.
 //
-// Returns ScreenshotOptions which is configured with PNG format, maximum
-// quality, surface capture enabled, and viewport-only capture.
+// Returns ScreenshotOptions which is configured with PNG format, maximum quality, surface
+// capture enabled, and viewport-only capture.
 func DefaultScreenshotOptions() ScreenshotOptions {
 	return ScreenshotOptions{
 		Format:                ScreenshotFormatPNG,
@@ -77,12 +77,11 @@ func DefaultScreenshotOptions() ScreenshotOptions {
 	}
 }
 
-// ScreenshotWithFormat captures a screenshot with a specified format and quality.
-// Use this for JPEG or WebP formats that support quality settings.
+// ScreenshotWithFormat captures a screenshot with a specified format and quality. Use
+// this for JPEG or WebP formats that support quality settings.
 //
 // Takes ctx (*ActionContext) which provides the browser context for the action.
-// Takes opts (ScreenshotOptions) which specifies format, quality, and capture
-// settings.
+// Takes opts (ScreenshotOptions) which specifies format, quality, and capture settings.
 //
 // Returns []byte which contains the screenshot image data.
 // Returns error when the screenshot capture fails.
@@ -91,7 +90,7 @@ func ScreenshotWithFormat(ctx *ActionContext, opts ScreenshotOptions) ([]byte, e
 
 	err := chromedp.Run(ctx.Ctx, chromedp.ActionFunc(func(ctx2 context.Context) error {
 		format := page.CaptureScreenshotFormatPng
-		switch opts.Format {
+		switch opts.Format { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case ScreenshotFormatJPEG:
 			format = page.CaptureScreenshotFormatJpeg
 		case ScreenshotFormatWebP:
@@ -118,8 +117,8 @@ func ScreenshotWithFormat(ctx *ActionContext, opts ScreenshotOptions) ([]byte, e
 // ScreenshotJPEG captures a JPEG screenshot with the specified quality.
 //
 // Takes ctx (*ActionContext) which provides the browser context for the action.
-// Takes quality (int) which specifies the image quality from 0-100, where 100
-// is best quality but largest file size.
+// Takes quality (int) which specifies the image quality from 0-100, where 100 is best
+// quality but largest file size.
 //
 // Returns []byte which contains the JPEG image data.
 // Returns error when the screenshot cannot be captured.
@@ -132,10 +131,8 @@ func ScreenshotJPEG(ctx *ActionContext, quality int) ([]byte, error) {
 
 // ScreenshotWebP captures a WebP screenshot with the specified quality.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// screenshot.
-// Takes quality (int) which sets the image quality from 0-100, where 100 is
-// best quality.
+// Takes ctx (*ActionContext) which provides the browser context for the screenshot.
+// Takes quality (int) which sets the image quality from 0-100, where 100 is best quality.
 //
 // Returns []byte which contains the WebP-encoded image data.
 // Returns error when the screenshot cannot be captured.
@@ -146,8 +143,8 @@ func ScreenshotWebP(ctx *ActionContext, quality int) ([]byte, error) {
 	return ScreenshotWithFormat(ctx, opts)
 }
 
-// ScreenshotRegion captures a screenshot of a specific viewport region.
-// The coordinates are relative to the viewport (not the document).
+// ScreenshotRegion captures a screenshot of a specific viewport region. The coordinates
+// are relative to the viewport (not the document).
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes x (float64) which specifies the left edge of the region.
@@ -181,8 +178,8 @@ func ScreenshotRegion(ctx *ActionContext, x, y, width, height float64) ([]byte, 
 	return buffer, nil
 }
 
-// ScreenshotElementWithPadding captures a screenshot of an element with extra
-// padding around it.
+// ScreenshotElementWithPadding captures a screenshot of an element with extra padding
+// around it.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes selector (string) which identifies the target element.
@@ -234,11 +231,11 @@ func ScreenshotElementWithPadding(ctx *ActionContext, selector string, padding f
 	return ScreenshotRegion(ctx, x, y, width, height)
 }
 
-// CompareScreenshots compares two screenshots and reports the percentage of
-// differing bytes.
+// CompareScreenshots compares two screenshots and reports the percentage of differing
+// bytes.
 //
-// Yields 0.0 if identical, 1.0 if completely different. Only works with
-// same-size images and compares raw bytes.
+// Yields 0.0 if identical, 1.0 if completely different. Only works with same-size images
+// and compares raw bytes.
 //
 // Takes a ([]byte) which is the first screenshot as raw bytes.
 // Takes b ([]byte) which is the second screenshot as raw bytes.

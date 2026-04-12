@@ -29,18 +29,17 @@ import (
 )
 
 const (
-	// defaultGzipLevel is the default compression level used if not specified in
-	// parameters.
+	// defaultGzipLevel is the default compression level used if not specified in parameters.
 	defaultGzipLevel = gzip.DefaultCompression
 
-	// paramGzipLevel is the key used in the capability parameters map to specify
-	// the compression level.
+	// paramGzipLevel is the key used in the capability parameters map to specify the
+	// compression level.
 	paramGzipLevel = "level"
 )
 
-// gzipPools manages a collection of sync.Pools, one for each compression level.
-// This is a performance optimisation to avoid frequent allocations of
-// gzip.Writer objects, reducing GC pressure under high load.
+// gzipPools manages a collection of sync.Pools, one for each compression level. This is a
+// performance optimisation to avoid frequent allocations of gzip.Writer objects, reducing
+// GC pressure under high load.
 type gzipPools struct {
 	// pools maps compression levels to their writer pools.
 	pools map[int]*sync.Pool
@@ -49,16 +48,15 @@ type gzipPools struct {
 	mu sync.RWMutex
 }
 
-// getPoolForLevel retrieves or creates a sync.Pool for a specific compression
-// level. It uses a double-checked lock pattern for safe, lazy initialisation
-// of pools.
+// getPoolForLevel retrieves or creates a sync.Pool for a specific compression level. It
+// uses a double-checked lock pattern for safe, lazy initialisation of pools.
 //
 // Takes level (int) which specifies the gzip compression level.
 //
 // Returns *sync.Pool which provides pooled gzip writers for the given level.
 //
-// Safe for concurrent use. Uses a read-write mutex with double-checked locking
-// to allow concurrent reads while serialising pool creation.
+// Safe for concurrent use. Uses a read-write mutex with double-checked locking to allow
+// concurrent reads while serialising pool creation.
 func (p *gzipPools) getPoolForLevel(level int) *sync.Pool {
 	p.mu.RLock()
 	pool, ok := p.pools[level]
@@ -85,14 +83,16 @@ func (p *gzipPools) getPoolForLevel(level int) *sync.Pool {
 	return pool
 }
 
-// globalGzipPools is the singleton instance of our pool manager.
-var globalGzipPools = &gzipPools{
-	pools: make(map[int]*sync.Pool),
-	mu:    sync.RWMutex{},
-}
+var (
+	// globalGzipPools is the singleton instance of our pool manager.
+	globalGzipPools = &gzipPools{
+		pools: make(map[int]*sync.Pool),
+		mu:    sync.RWMutex{},
+	}
+)
 
-// pooledGzipWriter wraps a gzip.Writer and returns it to the pool on Close.
-// It implements io.WriteCloser.
+// pooledGzipWriter wraps a gzip.Writer and returns it to the pool on Close. It implements
+// io.WriteCloser.
 type pooledGzipWriter struct {
 	*gzip.Writer
 
@@ -100,9 +100,8 @@ type pooledGzipWriter struct {
 	pool *sync.Pool
 }
 
-// Close closes the underlying gzip.Writer to flush its buffers, and then
-// returns the writer object to the pool it came from, making it available
-// for reuse.
+// Close closes the underlying gzip.Writer to flush its buffers, and then returns the
+// writer object to the pool it came from, making it available for reuse.
 //
 // Returns error when the underlying gzip.Writer fails to close.
 func (w *pooledGzipWriter) Close() error {
@@ -116,13 +115,11 @@ func (w *pooledGzipWriter) Close() error {
 	return nil
 }
 
-// Gzip returns a capability function that performs streaming Gzip
-// compression. It uses a generic stream processor and a correctly implemented
-// sync.Pool to reuse gzip.Writer objects for improved performance and reduced
-// memory allocations.
+// Gzip returns a capability function that performs streaming Gzip compression. It uses a
+// generic stream processor and a correctly implemented sync.Pool to reuse gzip.Writer
+// objects for improved performance and reduced memory allocations.
 //
-// Returns capabilities_domain.CapabilityFunc which handles the compression
-// operation.
+// Returns capabilities_domain.CapabilityFunc which handles the compression operation.
 func Gzip() capabilities_domain.CapabilityFunc {
 	return createCompressionCapability(compressionConfig{
 		spanName:     "GzipCompression",
@@ -134,12 +131,12 @@ func Gzip() capabilities_domain.CapabilityFunc {
 
 // parseGzipLevel gets the compression level from the given parameters.
 //
-// Takes params (CapabilityParams) which contains the settings to search for a
-// gzip level value.
+// Takes params (CapabilityParams) which contains the settings to search for a gzip level
+// value.
 // Takes defaultLevel (int) which is the fallback level to use.
 //
-// Returns int which is the parsed compression level, or defaultLevel if the
-// setting is missing, not a number, or outside the valid range (-2 to 9).
+// Returns int which is the parsed compression level, or defaultLevel if the setting is
+// missing, not a number, or outside the valid range (-2 to 9).
 func parseGzipLevel(params capabilities_domain.CapabilityParams, defaultLevel int) int {
 	levelString, ok := params[paramGzipLevel]
 	if !ok {

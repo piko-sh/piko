@@ -23,6 +23,7 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"slices"
 	"testing"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -385,8 +386,8 @@ func TestFlatBufferRoundTrip_ParamNames(t *testing.T) {
 	}
 
 	b3.StartVector(4, len(methodOffsets), 4)
-	for i := len(methodOffsets) - 1; i >= 0; i-- {
-		b3.PrependUOffsetT(methodOffsets[i])
+	for _, methodOffset := range slices.Backward(methodOffsets) {
+		b3.PrependUOffsetT(methodOffset)
 	}
 	methodsVecOffset := b3.EndVector(len(methodOffsets))
 

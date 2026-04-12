@@ -33,37 +33,36 @@ var (
 	// log is the package-level logger for the crypto_dto package.
 	log = logger_domain.GetLogger("piko/internal/crypto/crypto_dto")
 
-	// errSecureBytesClosed is returned when attempting to access a closed
-	// SecureBytes instance.
+	// errSecureBytesClosed is returned when attempting to access a closed SecureBytes
+	// instance.
 	errSecureBytesClosed = errors.New("secure bytes already closed")
 
 	// errSecureBytesLockFailed is returned when memory locking fails.
 	errSecureBytesLockFailed = errors.New("failed to lock memory")
 
-	// errSecureBytesInvalidSize is returned when attempting to create
-	// SecureBytes with an invalid size.
+	// errSecureBytesInvalidSize is returned when attempting to create SecureBytes with an
+	// invalid size.
 	errSecureBytesInvalidSize = errors.New("size must be positive")
 )
 
-// SecureBytes provides secure memory allocation for sensitive cryptographic
-// key material. It implements io.ReadCloser and allocates memory outside the
-// Go heap using platform-specific mechanisms to prevent garbage collector
-// copying, lock memory against swapping, and provide explicit zeroing on
-// destruction.
+// SecureBytes provides secure memory allocation for sensitive cryptographic key material.
+// It implements io.ReadCloser and allocates memory outside the Go heap using
+// platform-specific mechanisms to prevent garbage collector copying, lock memory against
+// swapping, and provide explicit zeroing on destruction.
 type SecureBytes struct {
 	// id is an optional identifier for logging and debugging.
 	id string
 
-	// data holds the actual secure memory region.
-	// On Unix, this is mmap'd memory; on Windows, this is VirtualAlloc'd memory.
+	// data holds the actual secure memory region. On Unix, this is mmap'd memory; on
+	// Windows, this is VirtualAlloc'd memory.
 	data []byte
 
-	// cleanup holds the runtime cleanup handle, used to stop the cleanup when
-	// Close is called.
+	// cleanup holds the runtime cleanup handle, used to stop the cleanup when Close is
+	// called.
 	cleanup runtime.Cleanup
 
-	// size is the originally requested length in bytes; data may be larger due to
-	// page alignment.
+	// size is the originally requested length in bytes; data may be larger due to page
+	// alignment.
 	size int
 
 	// allocSize is the actual memory size allocated, aligned to page boundaries.
@@ -85,13 +84,12 @@ var (
 // Option configures a SecureBytes instance.
 type Option func(*SecureBytes)
 
-// Close releases all resources held by the secure bytes, zeroing and releasing
-// memory. Implements io.Closer.
+// Close releases all resources held by the secure bytes, zeroing and releasing memory.
+// Implements io.Closer.
 //
 // Returns error when the platform-specific cleanup fails.
 //
-// Safe for concurrent use. Multiple calls are safe; only the first call
-// performs cleanup.
+// Safe for concurrent use. Multiple calls are safe; only the first call performs cleanup.
 func (secureBytes *SecureBytes) Close() error {
 	if !secureBytes.closed.CompareAndSwap(false, true) {
 		return nil
@@ -133,14 +131,14 @@ func (secureBytes *SecureBytes) IsClosed() bool {
 	return secureBytes.closed.Load()
 }
 
-// Read implements io.Reader for scoped access to the secure bytes.
-// This copies data OUT of secure memory - use WithAccess for zero-copy access.
+// Read implements io.Reader for scoped access to the secure bytes. This copies data OUT
+// of secure memory - use WithAccess for zero-copy access.
 //
 // Takes p ([]byte) which is the buffer to fill with the secure data.
 //
 // Returns n (int) which is the number of bytes copied into p.
-// Returns err (error) which is io.EOF after all bytes are read, or
-// io.ErrShortBuffer if p is too small for the full content.
+// Returns err (error) which is io.EOF after all bytes are read, or io.ErrShortBuffer if p
+// is too small for the full content.
 //
 // Safe for concurrent use; acquires a read lock during access.
 func (secureBytes *SecureBytes) Read(p []byte) (n int, err error) {
@@ -166,8 +164,7 @@ func (secureBytes *SecureBytes) Read(p []byte) (n int, err error) {
 //
 // This is the preferred method for using the key material as it avoids copying.
 //
-// Takes operation (func(data []byte) error) which processes the
-// byte data in place.
+// Takes operation (func(data []byte) error) which processes the byte data in place.
 //
 // Returns error when the secure bytes are closed or the operation fails.
 //
@@ -186,8 +183,8 @@ func (secureBytes *SecureBytes) WithAccess(operation func(data []byte) error) er
 	return nil
 }
 
-// Clone creates a new SecureBytes instance with a copy of the data.
-// The caller is responsible for closing the returned SecureBytes.
+// Clone creates a new SecureBytes instance with a copy of the data. The caller is
+// responsible for closing the returned SecureBytes.
 //
 // Returns *SecureBytes which contains a copy of the data.
 // Returns error when the SecureBytes is already closed.
@@ -209,8 +206,8 @@ func (secureBytes *SecureBytes) Clone() (*SecureBytes, error) {
 	return NewSecureBytesFromSlice(secureBytes.data[:secureBytes.size], WithID(cloneID))
 }
 
-// WithID sets an identifier for the SecureBytes instance, aiding debugging
-// and logging to track which secret is being accessed.
+// WithID sets an identifier for the SecureBytes instance, aiding debugging and logging to
+// track which secret is being accessed.
 //
 // Takes id (string) which specifies the identifier for the instance.
 //
@@ -221,8 +218,8 @@ func WithID(id string) Option {
 	}
 }
 
-// zeroMemory sets all bytes in a slice to zero in a way that the compiler
-// cannot remove. Uses runtime.KeepAlive to prevent dead store elimination.
+// zeroMemory sets all bytes in a slice to zero in a way that the compiler cannot remove.
+// Uses runtime.KeepAlive to prevent dead store elimination.
 //
 // Takes data ([]byte) which is the memory region to zero.
 //

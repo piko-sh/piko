@@ -30,10 +30,12 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 )
 
-var _ registry_domain.BlobStore = (*MockBlobStore)(nil)
+var (
+	_ registry_domain.BlobStore = (*MockBlobStore)(nil)
+)
 
-// MockBlobStore is a thread-safe, in-memory implementation of BlobStore.
-// It is used for testing and does not save data to disk.
+// MockBlobStore is a thread-safe, in-memory implementation of BlobStore. It is used for
+// testing and does not save data to disk.
 type MockBlobStore struct {
 	// blobs stores blob data as byte slices keyed by their string identifier.
 	blobs map[string][]byte
@@ -59,8 +61,8 @@ func (*MockBlobStore) Name() string {
 	return "BlobStore (Mock)"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// The mock blob store is always healthy as it operates in-memory.
+// Check implements the healthprobe_domain.Probe interface. The mock blob store is always
+// healthy as it operates in-memory.
 //
 // Returns healthprobe_dto.Status which always reports healthy.
 func (m *MockBlobStore) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {

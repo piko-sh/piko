@@ -32,6 +32,6 @@ func (t TeamMember) FullName() string {
 }
 
 type PageData struct {
-	WrappedMember fields.RefWrapper[TeamMember] `json:"wrapped_member"`
+	WrappedMember fields.RefWrapper[TeamMember]     `json:"wrapped_member"`
 	NamedMember   fields.NamedRefHolder[TeamMember] `json:"named_member"`
 }

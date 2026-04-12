@@ -26,9 +26,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// parseCreateTable parses a CREATE [TEMPORARY] TABLE statement and returns a
-// CatalogueMutation describing the new table's columns, primary key, and
-// constraints.
+// parseCreateTable parses a CREATE [TEMPORARY] TABLE statement.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for column definitions.
+//
+// Returns *querier_dto.CatalogueMutation which describes the new table's columns, primary
+// key, and constraints, or nil on recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseCreateTable(engine *MySQLEngine) (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -83,6 +87,14 @@ func (p *parser) parseCreateTable(engine *MySQLEngine) (mutation *querier_dto.Ca
 	}, nil
 }
 
+// parseCreateTableBody parses the column and constraint list inside CREATE TABLE.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for column definitions.
+//
+// Returns []querier_dto.Column which is the parsed column list.
+// Returns []string which is the primary key column list.
+// Returns []querier_dto.Constraint which is the parsed table constraint set.
+// Returns error when a column or constraint clause is malformed.
 func (p *parser) parseCreateTableBody(
 	engine *MySQLEngine,
 ) ([]querier_dto.Column, []string, []querier_dto.Constraint, error) {
@@ -121,6 +133,9 @@ func (p *parser) parseCreateTableBody(
 	return columns, primaryKeyColumns, constraints, nil
 }
 
+// isMySQLTableConstraint reports whether the current token starts a constraint.
+//
+// Returns bool reporting whether a table-level constraint clause begins here.
 func (p *parser) isMySQLTableConstraint() bool {
 	if p.isKeyword(keywordCONSTRAINT) {
 		return true
@@ -149,6 +164,13 @@ func (p *parser) isMySQLTableConstraint() bool {
 	return false
 }
 
+// parseMySQLTableConstraint parses one table-level constraint clause.
+//
+// Returns []string which is the primary key column list when the clause is a PRIMARY KEY
+// constraint.
+// Returns *querier_dto.Constraint which describes a non-primary-key constraint, or nil
+// when none applies.
+// Returns error when the constraint clause is malformed.
 func (p *parser) parseMySQLTableConstraint() ([]string, *querier_dto.Constraint, error) {
 	constraintName := p.parseOptionalConstraintName()
 
@@ -174,6 +196,9 @@ func (p *parser) parseMySQLTableConstraint() ([]string, *querier_dto.Constraint,
 	return nil, nil, nil
 }
 
+// parseOptionalConstraintName consumes an optional CONSTRAINT name prefix.
+//
+// Returns string which is the constraint name or the empty string when none was present.
 func (p *parser) parseOptionalConstraintName() string {
 	if !p.matchKeyword(keywordCONSTRAINT) {
 		return ""
@@ -188,6 +213,12 @@ func (p *parser) parseOptionalConstraintName() string {
 	return name
 }
 
+// parseTablePrimaryKey parses a PRIMARY KEY (...) table constraint.
+//
+// Returns []string which is the column list forming the primary key.
+// Returns *querier_dto.Constraint which is always nil since the primary key is reported
+// separately.
+// Returns error when the column list is malformed.
 func (p *parser) parseTablePrimaryKey() ([]string, *querier_dto.Constraint, error) {
 	p.matchKeyword(keywordKEY)
 	if p.current().kind != tokenLeftParen {
@@ -200,6 +231,15 @@ func (p *parser) parseTablePrimaryKey() ([]string, *querier_dto.Constraint, erro
 	return columns, nil, nil
 }
 
+// parseTableIndexOrUnique parses a UNIQUE/INDEX/KEY table constraint clause.
+//
+// Takes constraintName (string) which is the optional constraint name.
+// Takes isUnique (bool) which selects UNIQUE versus plain index parsing.
+//
+// Returns []string which is always nil since these clauses do not affect the primary key.
+// Returns *querier_dto.Constraint which describes the unique constraint, or nil for a
+// plain index clause.
+// Returns error when the column list is malformed.
 func (p *parser) parseTableIndexOrUnique(constraintName string, isUnique bool) ([]string, *querier_dto.Constraint, error) {
 	if p.current().kind == tokenIdentifier && p.peek().kind == tokenLeftParen {
 		p.advance()
@@ -221,6 +261,14 @@ func (p *parser) parseTableIndexOrUnique(constraintName string, isUnique bool) (
 	return nil, nil, nil
 }
 
+// parseTableCheck parses a CHECK (...) table constraint clause.
+//
+// Takes constraintName (string) which is the optional constraint name.
+//
+// Returns []string which is always nil since CHECK does not contribute to the primary
+// key.
+// Returns *querier_dto.Constraint which describes the CHECK constraint.
+// Returns error when the clause is malformed.
 func (p *parser) parseTableCheck(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
@@ -231,6 +279,13 @@ func (p *parser) parseTableCheck(constraintName string) ([]string, *querier_dto.
 	}, nil
 }
 
+// parseTableForeignKey parses a FOREIGN KEY (...) REFERENCES clause.
+//
+// Takes constraintName (string) which is the optional constraint name.
+//
+// Returns []string which is always nil since foreign keys do not affect the primary key.
+// Returns *querier_dto.Constraint which describes the foreign key.
+// Returns error when the clause is malformed.
 func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	p.matchKeyword(keywordKEY)
 
@@ -257,6 +312,10 @@ func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier
 	}, nil
 }
 
+// parseMySQLForeignKeyReference parses REFERENCES table(columns) ON ... actions.
+//
+// Returns string which is the referenced table name, or empty when REFERENCES is absent.
+// Returns []string which is the referenced column list, or nil when none was specified.
 func (p *parser) parseMySQLForeignKeyReference() (string, []string) {
 	if !p.matchKeyword("REFERENCES") {
 		return "", nil
@@ -277,6 +336,10 @@ func (p *parser) parseMySQLForeignKeyReference() (string, []string) {
 	return tableName, columns
 }
 
+// parseMySQLColumnList parses a parenthesised list of column names.
+//
+// Returns []string which is the parsed column name list.
+// Returns error when the list is malformed.
 func (p *parser) parseMySQLColumnList() ([]string, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, errors.New("expected '('")
@@ -310,6 +373,14 @@ func (p *parser) parseMySQLColumnList() ([]string, error) {
 	return columns, nil
 }
 
+// parseMySQLColumnDefinition parses one column definition inside CREATE TABLE.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for the column's SQL
+// type.
+//
+// Returns querier_dto.Column which describes the parsed column.
+// Returns bool which is true when the column carries an inline PRIMARY KEY.
+// Returns error when the column name or type fails to parse.
 func (p *parser) parseMySQLColumnDefinition(engine *MySQLEngine) (querier_dto.Column, bool, error) {
 	name, nameError := p.parseIdentifierOrKeyword()
 	if nameError != nil {
@@ -329,6 +400,11 @@ func (p *parser) parseMySQLColumnDefinition(engine *MySQLEngine) (querier_dto.Co
 	return column, isPrimaryKey, nil
 }
 
+// parseColumnType parses the SQL type expression for a column definition.
+//
+// Takes engine (*MySQLEngine) which normalises the parsed type name and modifiers.
+//
+// Returns querier_dto.SQLType which is the normalised column type.
 func (p *parser) parseColumnType(engine *MySQLEngine) querier_dto.SQLType {
 	if p.current().kind != tokenIdentifier {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}
@@ -364,6 +440,12 @@ func (p *parser) parseColumnType(engine *MySQLEngine) querier_dto.SQLType {
 	return engine.NormaliseTypeName(fullName, modifiers...)
 }
 
+// parseEnumOrSetType parses ENUM(...) and SET(...) value lists.
+//
+// Takes engine (*MySQLEngine) which normalises the base type name.
+// Takes typeName (string) which is the lowercased keyword (enum or set).
+//
+// Returns querier_dto.SQLType which is the normalised type with EnumValues populated.
 func (p *parser) parseEnumOrSetType(engine *MySQLEngine, typeName string) querier_dto.SQLType {
 	var values []string
 	if p.current().kind == tokenLeftParen {
@@ -389,6 +471,9 @@ func (p *parser) parseEnumOrSetType(engine *MySQLEngine, typeName string) querie
 	return sqlType
 }
 
+// parseTypeModifiers parses the parenthesised numeric type modifiers.
+//
+// Returns []int which holds the parsed modifier values in order.
 func (p *parser) parseTypeModifiers() []int {
 	if p.current().kind != tokenLeftParen {
 		return nil
@@ -415,6 +500,10 @@ func (p *parser) parseTypeModifiers() []int {
 	return modifiers
 }
 
+// isMySQLColumnConstraintKeyword reports whether the current token begins a column-level
+// constraint clause.
+//
+// Returns bool reporting whether the current token introduces a column constraint.
 func (p *parser) isMySQLColumnConstraintKeyword() bool {
 	return p.isAnyKeyword(
 		keywordPRIMARY, keywordNOT, keywordNULL, keywordUNIQUE, keywordCHECK,
@@ -423,6 +512,11 @@ func (p *parser) isMySQLColumnConstraintKeyword() bool {
 	)
 }
 
+// parseMySQLColumnConstraints applies every trailing column constraint.
+//
+// Takes column (*querier_dto.Column) which receives the parsed constraint flags.
+//
+// Returns bool which is true when the column carries an inline PRIMARY KEY.
 func (p *parser) parseMySQLColumnConstraints(column *querier_dto.Column) bool {
 	isPrimaryKey := false
 
@@ -439,6 +533,12 @@ func (p *parser) parseMySQLColumnConstraints(column *querier_dto.Column) bool {
 	return isPrimaryKey
 }
 
+// parseOneMySQLColumnConstraint parses a single column constraint clause.
+//
+// Takes column (*querier_dto.Column) which receives the parsed constraint flags.
+//
+// Returns isPrimary (bool) reporting whether the clause set PRIMARY KEY.
+// Returns handled (bool) reporting whether a constraint clause was consumed.
 func (p *parser) parseOneMySQLColumnConstraint(column *querier_dto.Column) (isPrimary bool, handled bool) {
 	if p.matchKeyword(keywordPRIMARY) {
 		p.matchKeyword(keywordKEY)
@@ -484,6 +584,13 @@ func (p *parser) parseOneMySQLColumnConstraint(column *querier_dto.Column) (isPr
 	return false, p.parseMySQLSecondaryConstraint(column)
 }
 
+// parseMySQLSecondaryConstraint handles trailing column clauses such as REFERENCES,
+// GENERATED, ON UPDATE, COMMENT, COLLATE, and CONSTRAINT.
+//
+// Takes column (*querier_dto.Column) which receives any generated-column flags discovered
+// in the clause.
+//
+// Returns bool reporting whether a secondary clause was consumed.
 func (p *parser) parseMySQLSecondaryConstraint(column *querier_dto.Column) bool {
 	if p.matchKeyword("REFERENCES") {
 		p.skipMySQLInlineForeignKey()
@@ -518,6 +625,9 @@ func (p *parser) parseMySQLSecondaryConstraint(column *querier_dto.Column) bool 
 	return false
 }
 
+// parseMySQLGeneratedClause parses a GENERATED ALWAYS AS (...) column clause.
+//
+// Takes column (*querier_dto.Column) which receives the parsed generated column metadata.
 func (p *parser) parseMySQLGeneratedClause(column *querier_dto.Column) {
 	p.matchKeyword("ALWAYS")
 	if !p.matchKeyword(keywordAS) {
@@ -535,6 +645,7 @@ func (p *parser) parseMySQLGeneratedClause(column *querier_dto.Column) {
 	}
 }
 
+// skipOnUpdateClause consumes an ON UPDATE clause on a column definition.
 func (p *parser) skipOnUpdateClause() {
 	if !p.matchKeyword("UPDATE") {
 		return
@@ -547,12 +658,14 @@ func (p *parser) skipOnUpdateClause() {
 	}
 }
 
+// skipStringLiteral consumes a single string literal when one is present.
 func (p *parser) skipStringLiteral() {
 	if p.current().kind == tokenString {
 		p.advance()
 	}
 }
 
+// skipMySQLInlineForeignKey consumes an inline column REFERENCES clause.
 func (p *parser) skipMySQLInlineForeignKey() {
 	if p.current().kind == tokenIdentifier {
 		p.mustSchemaQualifiedName()
@@ -563,6 +676,7 @@ func (p *parser) skipMySQLInlineForeignKey() {
 	p.skipForeignKeyActions()
 }
 
+// skipForeignKeyActions consumes ON DELETE/UPDATE referential action clauses.
 func (p *parser) skipForeignKeyActions() {
 	for p.matchKeyword(keywordON) {
 		p.matchKeyword("DELETE")
@@ -575,6 +689,7 @@ func (p *parser) skipForeignKeyActions() {
 	}
 }
 
+// skipIndexOptions consumes trailing index option clauses.
 func (p *parser) skipIndexOptions() {
 	for p.matchKeyword(keywordUSING) || p.matchKeyword(keywordCOMMENT) || p.matchKeyword("KEY_BLOCK_SIZE") ||
 		p.matchKeyword("WITH") || p.matchKeyword("VISIBLE") || p.matchKeyword("INVISIBLE") {
@@ -588,6 +703,10 @@ func (p *parser) skipIndexOptions() {
 }
 
 // parseDropTable parses a DROP [TEMPORARY] TABLE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the table to drop, or nil on
+// recovery.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseDropTable() (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -618,8 +737,16 @@ func (p *parser) parseDropTable() (mutation *querier_dto.CatalogueMutation, err 
 	}, nil
 }
 
-// parseAlterTable parses an ALTER TABLE statement and returns the first
-// column-affecting mutation encountered.
+// parseAlterTable parses an ALTER TABLE statement.
+//
+// Yields the first column-affecting mutation encountered in the action list.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for any column
+// definitions in the action list.
+//
+// Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when no
+// column-affecting action is found.
+// Returns error when the statement is malformed or a panic is recovered.
 func (p *parser) parseAlterTable(engine *MySQLEngine) (mutation *querier_dto.CatalogueMutation, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -655,6 +782,16 @@ func (p *parser) parseAlterTable(engine *MySQLEngine) (mutation *querier_dto.Cat
 	return nil, nil
 }
 
+// parseAlterTableAction dispatches one ALTER TABLE action keyword.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for nested column
+// definitions.
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the action, or nil when the
+// action does not affect the schema.
+// Returns error when the action clause is malformed.
 func (p *parser) parseAlterTableAction(
 	engine *MySQLEngine, schema, tableName string,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -678,6 +815,15 @@ func (p *parser) parseAlterTableAction(
 	return nil, nil
 }
 
+// parseAlterTableAdd parses an ADD COLUMN or ADD CONSTRAINT action.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for the new column
+// definition.
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the addition.
+// Returns error when the action clause is malformed.
 func (p *parser) parseAlterTableAdd(
 	engine *MySQLEngine, schema, tableName string,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -720,6 +866,14 @@ func (p *parser) parseAlterTableAdd(
 	}, nil
 }
 
+// parseAlterTableDrop parses a DROP COLUMN/CONSTRAINT/INDEX/etc. action.
+//
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop, or nil when the
+// dropped item does not affect the catalogue.
+// Returns error when the action clause is malformed.
 func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword(keywordPRIMARY) {
 		p.matchKeyword(keywordKEY)
@@ -764,6 +918,14 @@ func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.Cat
 	}, nil
 }
 
+// parseAlterTableModify parses a MODIFY COLUMN action.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for the modified column.
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the column change.
+// Returns error when the column definition is malformed.
 func (p *parser) parseAlterTableModify(
 	engine *MySQLEngine, schema, tableName string,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -788,6 +950,16 @@ func (p *parser) parseAlterTableModify(
 	}, nil
 }
 
+// parseAlterTableChange parses a CHANGE COLUMN action.
+//
+// Takes engine (*MySQLEngine) which supplies type normalisation for the new column
+// definition.
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes either a rename or an in-place
+// change depending on the old and new names.
+// Returns error when the column definition is malformed.
 func (p *parser) parseAlterTableChange(
 	engine *MySQLEngine, schema, tableName string,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -828,6 +1000,13 @@ func (p *parser) parseAlterTableChange(
 	}, nil
 }
 
+// parseAlterTableRename parses a RENAME TABLE or RENAME COLUMN action.
+//
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the current target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the rename.
+// Returns error when the rename clause is malformed.
 func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword(keywordCOLUMN) {
 		oldName, oldError := p.parseIdentifierOrKeyword()
@@ -873,6 +1052,7 @@ func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.C
 	}, nil
 }
 
+// skipAlterTableMiscAction advances past an unrecognised ALTER TABLE action.
 func (p *parser) skipAlterTableMiscAction() {
 	for !p.atEnd() && p.current().kind != tokenComma &&
 		p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
@@ -884,6 +1064,12 @@ func (p *parser) skipAlterTableMiscAction() {
 	}
 }
 
+// appendConstraintPrimaryKey returns candidate when non-empty, else existing.
+//
+// Takes existing ([]string) which is the running primary key accumulator.
+// Takes candidate ([]string) which is the latest candidate column list.
+//
+// Returns []string which is the chosen primary key column list.
 func appendConstraintPrimaryKey(existing, candidate []string) []string {
 	if len(candidate) > 0 {
 		return candidate
@@ -891,6 +1077,12 @@ func appendConstraintPrimaryKey(existing, candidate []string) []string {
 	return existing
 }
 
+// appendConstraint appends a non-nil constraint to the accumulator slice.
+//
+// Takes constraints ([]querier_dto.Constraint) which is the running list.
+// Takes constraint (*querier_dto.Constraint) which is the candidate to add.
+//
+// Returns []querier_dto.Constraint which is the updated accumulator.
 func appendConstraint(constraints []querier_dto.Constraint, constraint *querier_dto.Constraint) []querier_dto.Constraint {
 	if constraint != nil {
 		return append(constraints, *constraint)
@@ -898,6 +1090,7 @@ func appendConstraint(constraints []querier_dto.Constraint, constraint *querier_
 	return constraints
 }
 
+// skipIfNotExists consumes an optional IF NOT EXISTS clause.
 func (p *parser) skipIfNotExists() {
 	if p.matchKeyword("IF") {
 		p.matchKeyword(keywordNOT)
@@ -905,26 +1098,33 @@ func (p *parser) skipIfNotExists() {
 	}
 }
 
+// skipIfExists consumes an optional IF EXISTS clause.
 func (p *parser) skipIfExists() {
 	if p.matchKeyword("IF") {
 		p.matchKeyword(keywordEXISTS)
 	}
 }
 
+// skipComma consumes the current token when it is a comma.
 func (p *parser) skipComma() {
 	if p.current().kind == tokenComma {
 		p.advance()
 	}
 }
 
+// skipToStatementEnd advances to the next semicolon or end of input.
 func (p *parser) skipToStatementEnd() {
 	for !p.atEnd() && p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
 		p.advance()
 	}
 }
 
-// skipTableOptions consumes MySQL table options that appear after the closing
-// parenthesis in a CREATE TABLE statement (ENGINE=, CHARSET=, etc.).
+// skipTableOptions consumes MySQL table options after the closing paren.
+//
+// Examples include ENGINE=, CHARSET=, ROW_FORMAT=, and similar clauses that appear in
+// CREATE TABLE statements.
+//
+// Takes p (*parser) which is the parser whose token cursor is advanced.
 func skipTableOptions(p *parser) {
 	for !p.atEnd() && p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
 		if p.isAnyKeyword(keywordENGINE, keywordDEFAULT, keywordCHARSET, "CHARACTER",
@@ -945,8 +1145,12 @@ func skipTableOptions(p *parser) {
 	}
 }
 
-// skipDefaultExpression skips a DEFAULT expression, which can be a literal,
-// a function call with parentheses, or a more complex expression.
+// skipDefaultExpression skips a DEFAULT expression on a column.
+//
+// The expression can be a literal, a function call with parentheses, or a more complex
+// expression terminated by the next column clause.
+//
+// Takes p (*parser) which is the parser whose token cursor is advanced.
 func skipDefaultExpression(p *parser) {
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
@@ -956,6 +1160,7 @@ func skipDefaultExpression(p *parser) {
 	p.skipDefaultExpressionTokens()
 }
 
+// skipDefaultExpressionTokens advances past a DEFAULT expression body.
 func (p *parser) skipDefaultExpressionTokens() {
 	depth := 0
 	for !p.atEnd() {
@@ -979,6 +1184,10 @@ func (p *parser) skipDefaultExpressionTokens() {
 	}
 }
 
+// isDefaultExpressionTerminator reports whether the current token ends a DEFAULT
+// expression on a column.
+//
+// Returns bool reporting whether the cursor sits on a terminator token.
 func (p *parser) isDefaultExpressionTerminator() bool {
 	if p.current().kind == tokenComma {
 		return true

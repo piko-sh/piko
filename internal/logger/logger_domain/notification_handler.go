@@ -36,27 +36,28 @@ import (
 )
 
 const (
-	// defaultDebounceDuration is the default wait time before sending grouped
-	// error notifications.
+	// defaultDebounceDuration is the default wait time before sending grouped error
+	// notifications.
 	defaultDebounceDuration = 10 * time.Second
 
 	// defaultTimeoutDuration is the time limit for sending error notifications.
 	defaultTimeoutDuration = 15 * time.Second
 
-	// defaultMaxGroupedErrors is the maximum number of distinct grouped error
-	// keys held in the debounce window. New groups arriving once the cap is
-	// reached are dropped (with a counter increment) so a flood of unique
-	// errors cannot drive the process to OOM.
+	// defaultMaxGroupedErrors is the maximum number of distinct grouped error keys held in
+	// the debounce window. New groups arriving once the cap is reached are dropped (with a
+	// counter increment) so a flood of unique errors cannot drive the process to OOM.
 	defaultMaxGroupedErrors = 1000
 )
 
-// hasherPool provides reusable xxhash instances for speed and to make it
-// clear this is not for cryptographic purposes.
-var hasherPool = sync.Pool{
-	New: func() any {
-		return xxhash.New()
-	},
-}
+var (
+	// hasherPool provides reusable xxhash instances for speed and to make it clear this is
+	// not for cryptographic purposes.
+	hasherPool = sync.Pool{
+		New: func() any {
+			return xxhash.New()
+		},
+	}
+)
 
 // notificationState tracks pending notifications and handles debouncing.
 type notificationState struct {
@@ -72,29 +73,28 @@ type notificationState struct {
 	// groupedErrors maps error keys to their grouped error data for batching.
 	groupedErrors map[string]*GroupedError
 
-	// droppedErrors counts new error groups that could not be added because
-	// groupedErrors had reached maxGroupedErrors.
+	// droppedErrors counts new error groups that could not be added because groupedErrors
+	// had reached maxGroupedErrors.
 	droppedErrors uint64
 
 	// minLevel is the lowest log level that triggers a notification.
 	minLevel slog.Level
 
-	// debounceDur is the delay before sending grouped messages; default is 10
-	// seconds.
+	// debounceDur is the delay before sending grouped messages; default is 10 seconds.
 	debounceDur time.Duration
 
-	// maxGroupedErrors caps the size of groupedErrors to prevent unbounded
-	// memory growth under a flood of unique error sources.
+	// maxGroupedErrors caps the size of groupedErrors to prevent unbounded memory growth
+	// under a flood of unique error sources.
 	maxGroupedErrors int
 
 	// mu guards access to the notification state fields.
 	mu sync.Mutex
 }
 
-// NotificationHandler is a slog.Handler that batches and sends log
-// notifications to external services. It groups identical errors by their
-// message and source location, debounces notifications to prevent flooding, and
-// provides graceful shutdown to ensure all pending notifications are sent.
+// NotificationHandler is a slog.Handler that batches and sends log notifications to
+// external services. It groups identical errors by their message and source location,
+// debounces notifications to prevent flooding, and provides graceful shutdown to ensure
+// all pending notifications are sent.
 type NotificationHandler struct {
 	slog.Handler
 
@@ -102,12 +102,11 @@ type NotificationHandler struct {
 	state *notificationState
 }
 
-// NewNotificationHandler creates a notification handler that wraps an existing
-// handler.
+// NewNotificationHandler creates a notification handler that wraps an existing handler.
 //
-// It sends notifications via the provided notification port for all log entries
-// at or above minLevel. The handler is automatically registered for graceful
-// shutdown with the DefaultLifecycleManager. Uses the real system clock.
+// It sends notifications via the provided notification port for all log entries at or
+// above minLevel. The handler is automatically registered for graceful shutdown with the
+// DefaultLifecycleManager. Uses the real system clock.
 //
 // Takes next (slog.Handler) which is the underlying handler to wrap.
 // Takes notificationPort (NotificationPort) which sends the notifications.
@@ -118,9 +117,8 @@ func NewNotificationHandler(next slog.Handler, notificationPort NotificationPort
 	return newNotificationHandlerWithOptions(next, notificationPort, minLevel, clock.RealClock(), defaultLifecycleManager)
 }
 
-// Handle processes a log record and sends notifications for records at or
-// above the set level. The record is always passed to the next handler in
-// the chain.
+// Handle processes a log record and sends notifications for records at or above the set
+// level. The record is always passed to the next handler in the chain.
 //
 // Takes r (slog.Record) which contains the log entry to process.
 //
@@ -134,8 +132,8 @@ func (h *NotificationHandler) Handle(ctx context.Context, r slog.Record) error {
 	return h.Handler.Handle(ctx, r)
 }
 
-// WithAttrs creates a new handler with additional attributes, preserving the
-// notification state.
+// WithAttrs creates a new handler with additional attributes, preserving the notification
+// state.
 //
 // Takes attrs ([]slog.Attr) which specifies the attributes to add.
 //
@@ -147,8 +145,7 @@ func (h *NotificationHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 }
 
-// WithGroup creates a new handler with a group name, preserving the
-// notification state.
+// WithGroup creates a new handler with a group name, preserving the notification state.
 //
 // Takes name (string) which specifies the group name for the new handler.
 //
@@ -160,12 +157,11 @@ func (h *NotificationHandler) WithGroup(name string) slog.Handler {
 	}
 }
 
-// Shutdown stops the debounce timer and flushes any pending notifications
-// immediately. This is called automatically during application shutdown via
-// the registered shutdown hook.
+// Shutdown stops the debounce timer and flushes any pending notifications immediately.
+// This is called automatically during application shutdown via the registered shutdown
+// hook.
 //
-// Safe for concurrent use. Acquires the state mutex to stop the timer before
-// flushing.
+// Safe for concurrent use. Acquires the state mutex to stop the timer before flushing.
 func (h *NotificationHandler) Shutdown() {
 	h.state.mu.Lock()
 	if h.state.debounceTimer != nil {
@@ -177,8 +173,8 @@ func (h *NotificationHandler) Shutdown() {
 	h.flushGroupedMessages()
 }
 
-// SetDebounceDuration sets how long to wait before sending grouped
-// notifications. The default is 10 seconds.
+// SetDebounceDuration sets how long to wait before sending grouped notifications. The
+// default is 10 seconds.
 //
 // Takes d (time.Duration) which specifies the wait time.
 func (h *NotificationHandler) SetDebounceDuration(d time.Duration) {
@@ -187,9 +183,8 @@ func (h *NotificationHandler) SetDebounceDuration(d time.Duration) {
 
 // SetMaxGroupedErrors overrides the cap on distinct grouped error keys.
 //
-// A value <= 0 restores the default. New groups arriving once the cap is
-// reached are dropped, with a counter increment surfaced via
-// DroppedErrorCount.
+// A value <= 0 restores the default. New groups arriving once the cap is reached are
+// dropped, with a counter increment surfaced via DroppedErrorCount.
 //
 // Takes n (int) which is the new cap on distinct grouped error keys.
 //
@@ -204,8 +199,8 @@ func (h *NotificationHandler) SetMaxGroupedErrors(n int) {
 	h.state.maxGroupedErrors = n
 }
 
-// DroppedErrorCount returns the cumulative number of new error groups that
-// could not be added because the debounce window had reached its cap.
+// DroppedErrorCount returns the cumulative number of new error groups that could not be
+// added because the debounce window had reached its cap.
 //
 // Returns uint64 which is the running total of dropped error groups.
 //
@@ -216,8 +211,8 @@ func (h *NotificationHandler) DroppedErrorCount() uint64 {
 	return h.state.droppedErrors
 }
 
-// GetPendingErrorCount returns the number of unique grouped errors that are
-// waiting to be sent. Mainly for test checks.
+// GetPendingErrorCount returns the number of unique grouped errors that are waiting to be
+// sent. Mainly for test checks.
 //
 // Returns int which is the count of pending grouped errors.
 //
@@ -228,8 +223,8 @@ func (h *NotificationHandler) GetPendingErrorCount() int {
 	return len(h.state.groupedErrors)
 }
 
-// HasPendingBatch returns true if there are any grouped errors waiting to be
-// sent. Primarily for test verification.
+// HasPendingBatch returns true if there are any grouped errors waiting to be sent.
+// Primarily for test verification.
 //
 // Returns bool which indicates whether pending errors exist in the batch.
 //
@@ -240,12 +235,11 @@ func (h *NotificationHandler) HasPendingBatch() bool {
 	return len(h.state.groupedErrors) > 0
 }
 
-// GetPendingErrors returns a copy of the current grouped errors map.
-// Primarily for test verification and debugging.
+// GetPendingErrors returns a copy of the current grouped errors map. Primarily for test
+// verification and debugging.
 //
-// Returns map[string]*GroupedError which is a shallow copy of the pending
-// errors. Modifications to the returned map will not affect the handler's
-// state.
+// Returns map[string]*GroupedError which is a shallow copy of the pending errors.
+// Modifications to the returned map will not affect the handler's state.
 //
 // Safe for concurrent use.
 func (h *NotificationHandler) GetPendingErrors() map[string]*GroupedError {
@@ -257,8 +251,8 @@ func (h *NotificationHandler) GetPendingErrors() map[string]*GroupedError {
 	return result
 }
 
-// GetDebounceDuration returns the current debounce duration.
-// Primarily for test verification.
+// GetDebounceDuration returns the current debounce duration. Primarily for test
+// verification.
 //
 // Returns time.Duration which is the current debounce interval.
 //
@@ -269,8 +263,8 @@ func (h *NotificationHandler) GetDebounceDuration() time.Duration {
 	return h.state.debounceDur
 }
 
-// GetMinLevel returns the minimum log level for notifications.
-// Primarily for test verification.
+// GetMinLevel returns the minimum log level for notifications. Primarily for test
+// verification.
 //
 // Returns slog.Level which is the current minimum notification level.
 //
@@ -281,8 +275,8 @@ func (h *NotificationHandler) GetMinLevel() slog.Level {
 	return h.state.minLevel
 }
 
-// groupAndScheduleSend adds a log record to the grouped errors and sets up a
-// delayed send.
+// groupAndScheduleSend adds a log record to the grouped errors and sets up a delayed
+// send.
 //
 // Takes r (*slog.Record) which is the log record to group and schedule.
 //
@@ -360,11 +354,10 @@ func (h *NotificationHandler) sendBatch(batch map[string]*GroupedError) {
 	}
 }
 
-// newNotificationHandlerWithClock creates a notification handler with a custom
-// clock.
+// newNotificationHandlerWithClock creates a notification handler with a custom clock.
 //
-// Mainly for testing; accepts a mock clock to control time-based behaviour. The
-// handler is added to the defaultLifecycleManager for shutdown.
+// Mainly for testing; accepts a mock clock to control time-based behaviour. The handler
+// is added to the defaultLifecycleManager for shutdown.
 //
 // Takes next (slog.Handler) which is the handler to wrap.
 // Takes notificationPort (NotificationPort) which sends notifications.
@@ -376,11 +369,11 @@ func newNotificationHandlerWithClock(next slog.Handler, notificationPort Notific
 	return newNotificationHandlerWithOptions(next, notificationPort, minLevel, clk, defaultLifecycleManager)
 }
 
-// newNotificationHandlerWithOptions creates a notification handler with full
-// control over all settings.
+// newNotificationHandlerWithOptions creates a notification handler with full control over
+// all settings.
 //
-// This constructor allows a custom clock and lifecycle manager to be passed in
-// for testing. If lifecycle is nil, no shutdown hook will be registered.
+// This constructor allows a custom clock and lifecycle manager to be passed in for
+// testing. If lifecycle is nil, no shutdown hook will be registered.
 //
 // Takes next (slog.Handler) which is the handler to wrap.
 // Takes notificationPort (NotificationPort) which sends the notifications.
@@ -411,8 +404,7 @@ func newNotificationHandlerWithOptions(next slog.Handler, notificationPort Notif
 	return handler
 }
 
-// generateKey creates a unique hash key from a log record's message and source
-// location.
+// generateKey creates a unique hash key from a log record's message and source location.
 //
 // Takes r (*slog.Record) which provides the log message and program counter.
 //

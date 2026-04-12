@@ -18,34 +18,29 @@
 
 package layouter_domain
 
-// layoutCache stores previously computed layout results so
-// that repeated layouts with identical inputs skip
-// computation. The cache is scoped to a single
-// LayoutBoxTree call.
+// layoutCache stores previously computed layout results so that repeated layouts with
+// identical inputs skip computation. The cache is scoped to a single LayoutBoxTree call.
 type layoutCache struct {
 	// entries maps cache keys to their cached fragment results.
 	entries map[layoutCacheKey]*Fragment
 }
 
-// layoutCacheKey identifies a unique layout computation by
-// the box being laid out and the constraints passed to it.
+// layoutCacheKey identifies a unique layout computation by the box being laid out and the
+// constraints passed to it.
 type layoutCacheKey struct {
-	// box is the pointer to the LayoutBox, used as an
-	// identity check. Safe because box trees are not
-	// modified during a single layout pass.
+	// box is the pointer to the LayoutBox, used as an identity check. Safe because box trees
+	// are not modified during a single layout pass.
 	box *LayoutBox
 
 	// availableWidth is the inline-axis available space.
 	availableWidth float64
 
-	// availableBlockSize is the block-axis available space
-	// used for percentage height resolution. Included in
-	// the key because grid re-layout passes may change
-	// this value after row heights are computed.
+	// availableBlockSize is the block-axis available space used for percentage height
+	// resolution. Included in the key because grid re-layout passes may change this value
+	// after row heights are computed.
 	availableBlockSize float64
 
-	// sizingMode distinguishes normal, min-content, and
-	// max-content measurements.
+	// sizingMode distinguishes normal, min-content, and max-content measurements.
 	sizingMode SizingMode
 }
 
@@ -58,8 +53,8 @@ func newLayoutCache() *layoutCache {
 	}
 }
 
-// Lookup retrieves a cached Fragment for the given box and
-// constraints, or nil if no cache entry exists.
+// Lookup retrieves a cached Fragment for the given box and constraints, or nil if no
+// cache entry exists.
 //
 // Takes box (*LayoutBox) which identifies the box.
 // Takes input (layoutInput) which carries the constraints.
@@ -78,8 +73,7 @@ func (cache *layoutCache) Lookup(box *LayoutBox, input layoutInput) *Fragment {
 	return cache.entries[key]
 }
 
-// Store saves a Fragment result for the given box and
-// constraints.
+// Store saves a Fragment result for the given box and constraints.
 //
 // Takes box (*LayoutBox) which identifies the box.
 // Takes input (layoutInput) which carries the constraints.

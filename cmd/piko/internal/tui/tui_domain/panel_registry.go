@@ -29,8 +29,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-// registryItemType represents the kind of item shown in the registry display
-// list.
+// registryItemType represents the kind of item shown in the registry display list.
 type registryItemType int
 
 const (
@@ -45,8 +44,7 @@ const (
 )
 
 const (
-	// resourcesMetadataIndent is the number of spaces used to indent metadata
-	// rows.
+	// resourcesMetadataIndent is the number of spaces used to indent metadata rows.
 	resourcesMetadataIndent = 8
 
 	// resourcesMetadataWidthAdj is the width offset for metadata rows.
@@ -58,8 +56,8 @@ const (
 	// resourcesCursorPadding is the blank space shown when no cursor is present.
 	resourcesCursorPadding = "    "
 
-	// resourcesNameWidthAdj is the width to subtract from the content area when
-	// truncating resource names.
+	// resourcesNameWidthAdj is the width to subtract from the content area when truncating
+	// resource names.
 	resourcesNameWidthAdj = 12
 )
 
@@ -93,8 +91,8 @@ type registryDisplayItem struct {
 	itemType registryItemType
 }
 
-// RegistryPanel provides a view of all resource kinds and their status
-// summaries. It implements the Panel interface.
+// RegistryPanel provides a view of all resource kinds and their status summaries. It
+// implements the Panel interface.
 type RegistryPanel struct {
 	*AssetViewer[registryDisplayItem]
 
@@ -104,8 +102,8 @@ type RegistryPanel struct {
 	// selectedKind is the kind currently expanded in the registry tree.
 	selectedKind string
 
-	// expandedResource is the ID of the currently expanded resource, or empty
-	// if no resource is expanded.
+	// expandedResource is the ID of the currently expanded resource, or empty if no resource
+	// is expanded.
 	expandedResource string
 
 	// kinds holds the sorted list of resource kinds for display ordering.
@@ -156,8 +154,8 @@ func NewRegistryPanel() *RegistryPanel {
 
 // SetSummary updates the resource summary data.
 //
-// Takes summary (map[string]map[ResourceStatus]int) which provides the count
-// of resources grouped by kind and status.
+// Takes summary (map[string]map[ResourceStatus]int) which provides the count of resources
+// grouped by kind and status.
 func (p *RegistryPanel) SetSummary(summary map[string]map[ResourceStatus]int) {
 	p.summary = summary
 
@@ -227,8 +225,7 @@ func (p *RegistryPanel) View(width, height int) string {
 	})
 }
 
-// rebuildDisplayItems rebuilds the flat list of display items from the current
-// state.
+// rebuildDisplayItems rebuilds the flat list of display items from the current state.
 func (p *RegistryPanel) rebuildDisplayItems() {
 	items := make([]registryDisplayItem, 0)
 
@@ -263,9 +260,8 @@ func (*RegistryPanel) buildKindItem(kind string) registryDisplayItem {
 //
 // Takes kind (string) which specifies the resource type to build items for.
 //
-// Returns []registryDisplayItem which contains the display items for all
-// resources, including expanded metadata items for the currently selected
-// resource.
+// Returns []registryDisplayItem which contains the display items for all resources,
+// including expanded metadata items for the currently selected resource.
 func (p *RegistryPanel) buildResourceItems(kind string) []registryDisplayItem {
 	items := make([]registryDisplayItem, 0, len(p.resources))
 
@@ -351,8 +347,8 @@ func (p *RegistryPanel) handleKeyAction(keyMessage tea.KeyPressMsg) (Panel, tea.
 	return p, nil
 }
 
-// handleExpandKey expands the selected kind or resource when the user presses
-// the right arrow key or the l key.
+// handleExpandKey expands the selected kind or resource when the user presses the right
+// arrow key or the l key.
 func (p *RegistryPanel) handleExpandKey() {
 	item := p.GetItemAtCursor()
 	if item == nil {
@@ -375,8 +371,7 @@ func (p *RegistryPanel) handleExpandKey() {
 	}
 }
 
-// handleCollapseKey collapses the expanded kind or resource when left/h is
-// pressed.
+// handleCollapseKey collapses the expanded kind or resource when left/h is pressed.
 func (p *RegistryPanel) handleCollapseKey() {
 	if p.expandedResource != "" {
 		p.expandedResource = ""
@@ -421,8 +416,8 @@ func (p *RegistryPanel) handleToggleKey() {
 	}
 }
 
-// handleEscKey clears state in order: search query first, then expanded
-// resource, then selected kind.
+// handleEscKey clears state in order: search query first, then expanded resource, then
+// selected kind.
 func (p *RegistryPanel) handleEscKey() {
 	if p.Search() != nil && p.Search().HasQuery() {
 		p.Search().ClearQuery()
@@ -471,8 +466,8 @@ func (p *RegistryPanel) renderRegistryEmptyState(content *strings.Builder) {
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 // Takes displayItems ([]int) which specifies the indices of items to render.
-// Takes headerLines (int) which is the number of header lines to exclude from
-// the content height.
+// Takes headerLines (int) which is the number of header lines to exclude from the content
+// height.
 func (p *RegistryPanel) renderRegistryItems(content *strings.Builder, displayItems []int, headerLines int) {
 	ctx := NewScrollContext(content, p.ScrollOffset(), p.ContentHeight()-headerLines)
 	items := p.Items()
@@ -497,8 +492,7 @@ func (p *RegistryPanel) renderRegistryItems(content *strings.Builder, displayIte
 // Takes item (registryDisplayItem) which specifies the row data to render.
 // Takes selected (bool) which indicates if the row is currently selected.
 //
-// Returns string which contains the rendered row, or empty if the type is not
-// handled.
+// Returns string which contains the rendered row, or empty if the type is not handled.
 func (p *RegistryPanel) renderRegistryRow(item registryDisplayItem, selected bool) string {
 	switch item.itemType {
 	case registryItemKind:
@@ -539,14 +533,13 @@ func (p *RegistryPanel) renderKindRow(kind string, selected bool) string {
 	return fmt.Sprintf("%s%s %s %s %s", cursor, indicator, expandChar, kindName, countString)
 }
 
-// renderResourceRow renders a single resource row when the registry panel is
-// expanded.
+// renderResourceRow renders a single resource row when the registry panel is expanded.
 //
 // Takes resource (Resource) which is the resource to render.
 // Takes selected (bool) which shows whether this row is selected.
 //
-// Returns string which is the formatted row with cursor, status marker, expand
-// marker, and shortened name.
+// Returns string which is the formatted row with cursor, status marker, expand marker,
+// and shortened name.
 func (p *RegistryPanel) renderResourceRow(resource Resource, selected bool) string {
 	cursor := resourcesCursorPadding
 	if selected {
@@ -591,8 +584,7 @@ func (p *RegistryPanel) renderMetadataRow(key, value string, selected bool) stri
 
 // RenderRow renders a registry display item row.
 //
-// Takes item (registryDisplayItem) which holds the registry data
-// to render.
+// Takes item (registryDisplayItem) which holds the registry data to render.
 // Takes _ (int) which is the unused line index.
 // Takes selected (bool) which indicates if this row is selected.
 // Takes _ (bool) which is the unused focused state.
@@ -614,8 +606,8 @@ func (*registryRenderer) RenderExpanded(_ registryDisplayItem, _ int) []string {
 //
 // Takes item (registryDisplayItem) which is the item to get an ID for.
 //
-// Returns string which is a prefixed identifier based on item type, or empty
-// if the type is not known or the resource is nil.
+// Returns string which is a prefixed identifier based on item type, or empty if the type
+// is not known or the resource is nil.
 func (*registryRenderer) GetID(item registryDisplayItem) string {
 	switch item.itemType {
 	case registryItemKind:
@@ -657,8 +649,7 @@ func (*registryRenderer) MatchesFilter(item registryDisplayItem, query string) b
 //
 // Takes item (registryDisplayItem) which is the display item to check.
 //
-// Returns bool which is true if the item is a kind, or a resource with
-// metadata.
+// Returns bool which is true if the item is a kind, or a resource with metadata.
 func (*registryRenderer) IsExpandable(item registryDisplayItem) bool {
 	switch item.itemType {
 	case registryItemKind:
@@ -670,8 +661,8 @@ func (*registryRenderer) IsExpandable(item registryDisplayItem) bool {
 	}
 }
 
-// ExpandedLineCount returns the number of extra lines for expanded items.
-// This always returns zero because expansion rebuilds the item list instead.
+// ExpandedLineCount returns the number of extra lines for expanded items. This always
+// returns zero because expansion rebuilds the item list instead.
 //
 // Returns int which is always zero.
 func (*registryRenderer) ExpandedLineCount(_ registryDisplayItem) int {
@@ -682,9 +673,9 @@ func (*registryRenderer) ExpandedLineCount(_ registryDisplayItem) int {
 //
 // Takes counts (map[ResourceStatus]int) which maps each status to its count.
 //
-// Returns ResourceStatus which is the most severe status found. Statuses are
-// checked in order: unhealthy, degraded, pending, healthy. Returns unknown if
-// counts is empty.
+// Returns ResourceStatus which is the most severe status found. Statuses are checked in
+// order: unhealthy, degraded, pending, healthy.
+// Returns unknown if counts is empty.
 func determineKindOverallStatus(counts map[ResourceStatus]int) ResourceStatus {
 	switch {
 	case counts[ResourceStatusUnhealthy] > 0:

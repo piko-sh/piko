@@ -26,16 +26,15 @@ import (
 	search_fb "piko.sh/piko/internal/search/search_schema/search_schema_gen"
 )
 
-// IndexBuilderPort defines the contract for building search indexes from
-// collection items. Implementations generate FlatBuffer-encoded inverted
-// indexes for either Fast or Smart mode.
+// IndexBuilderPort defines the contract for building search indexes from collection
+// items. Implementations generate FlatBuffer-encoded inverted indexes for either Fast or
+// Smart mode.
 type IndexBuilderPort interface {
-	// BuildIndex analyses collection items and generates a search index.
-	// The mode determines the level of linguistic analysis applied.
+	// BuildIndex analyses collection items and generates a search index. The mode determines
+	// the level of linguistic analysis applied.
 	//
 	// Takes collectionName (string) which identifies the collection to index.
-	// Takes items ([]collection_dto.ContentItem) which contains the content to
-	// analyse.
+	// Takes items ([]collection_dto.ContentItem) which contains the content to analyse.
 	// Takes mode (search_fb.SearchMode) which sets the linguistic analysis level.
 	// Takes config (IndexBuildConfig) which provides build settings.
 	//
@@ -53,8 +52,8 @@ type IndexBuilderPort interface {
 // IndexReaderPort defines the contract for reading and querying search indexes.
 // Implementations provide zero-copy access to FlatBuffer-encoded index data.
 type IndexReaderPort interface {
-	// LoadIndex sets up the reader with a FlatBuffer binary blob.
-	// The blob should come from //go:embed or a similar zero-copy source.
+	// LoadIndex sets up the reader with a FlatBuffer binary blob. The blob should come from
+	// //go:embed or a similar zero-copy source.
 	//
 	// Takes data ([]byte) which is the FlatBuffer binary data to load.
 	//
@@ -67,8 +66,8 @@ type IndexReaderPort interface {
 	//
 	// Returns []PostingInfo which contains the documents where the term appears.
 	// Returns float64 which is the inverse document frequency of the term.
-	// Returns error when the lookup fails. Returns nil for the posting list if
-	// the term is not found in the index.
+	// Returns error when the lookup fails.
+	// Returns nil for the posting list if the term is not found in the index.
 	GetTermPostings(term string) ([]PostingInfo, float64, error)
 
 	// GetDocMetadata returns scoring metadata for a specific document.
@@ -88,8 +87,8 @@ type IndexReaderPort interface {
 	// GetLanguage returns the language this index was built with.
 	GetLanguage() string
 
-	// FindPhoneticTerms returns all terms that match a phonetic code.
-	// Only works with Smart mode indexes.
+	// FindPhoneticTerms returns all terms that match a phonetic code. Only works with Smart
+	// mode indexes.
 	//
 	// Takes phoneticCode (string) which is the phonetic code to search for.
 	//
@@ -97,8 +96,8 @@ type IndexReaderPort interface {
 	// Returns error when the search fails.
 	FindPhoneticTerms(phoneticCode string) ([]string, error)
 
-	// GetAllTerms returns all terms in the index vocabulary. Used for fuzzy
-	// matching fallback strategies.
+	// GetAllTerms returns all terms in the index vocabulary. Used for fuzzy matching
+	// fallback strategies.
 	//
 	// Returns []string which contains all terms in the vocabulary.
 	// Returns error when retrieval fails.
@@ -106,11 +105,10 @@ type IndexReaderPort interface {
 	// This is NOT zero-copy as it builds a slice of strings.
 	GetAllTerms() ([]string, error)
 
-	// FindTermsWithPrefix returns all terms in the index that start with the
-	// given prefix.
+	// FindTermsWithPrefix returns all terms in the index that start with the given prefix.
 	//
-	// Uses binary search for efficient O(log n) lookup. Used for prefix matching
-	// to expand partial queries (e.g., "doc" -> ["docs", "documentation"]).
+	// Uses binary search for efficient O(log n) lookup. Used for prefix matching to expand
+	// partial queries (e.g., "doc" -> ["docs", "documentation"]).
 	//
 	// Takes prefix (string) which is the term prefix to search for.
 	//
@@ -119,17 +117,16 @@ type IndexReaderPort interface {
 	FindTermsWithPrefix(prefix string) ([]string, error)
 }
 
-// ScoreResult contains the complete result of scoring a document against a
-// query. This enables both aggregate relevance ranking and per-field score
-// breakdown.
+// ScoreResult contains the complete result of scoring a document against a query. This
+// enables both aggregate relevance ranking and per-field score breakdown.
 type ScoreResult struct {
-	// FieldScores holds the score contribution from each field, keyed by field
-	// name (e.g., "title", "content", "excerpt"). Useful for understanding why a
-	// document ranked where it did.
+	// FieldScores holds the score contribution from each field, keyed by field name (e.g.,
+	// "title", "content", "excerpt"). Useful for understanding why a document ranked where
+	// it did.
 	FieldScores map[string]float64
 
-	// Score is the total BM25 relevance score for the document. It is the sum of
-	// all field scores and is used to rank search results.
+	// Score is the total BM25 relevance score for the document. It is the sum of all field
+	// scores and is used to rank search results.
 	Score float64
 }
 
@@ -155,9 +152,8 @@ type ScorerPort interface {
 
 // QueryProcessorPort defines the contract for executing search queries.
 type QueryProcessorPort interface {
-	// Search runs a query against an index and returns ranked results.
-	// The results contain document IDs that can be used to fetch full documents
-	// from the collection.
+	// Search runs a query against an index and returns ranked results. The results contain
+	// document IDs that can be used to fetch full documents from the collection.
 	//
 	// Takes query (string) which is the search text to match.
 	// Takes reader (IndexReaderPort) which provides access to the search index.
@@ -180,26 +176,23 @@ type IndexBuildConfig struct {
 	// FieldWeights maps field names to their weight multipliers for scoring.
 	FieldWeights map[string]float64
 
-	// Language specifies the language for stemming, defaulting
-	// to "english" with support for "spanish", "french",
-	// "russian", "swedish", "norwegian", and "hungarian".
+	// Language specifies the language for stemming, defaulting to "english" with support for
+	// "spanish", "french", "russian", "swedish", "norwegian", and "hungarian".
 	Language string
 
-	// Format specifies the output encoding. Supported values are "flatbuffers"
-	// (default, for production) and "json" (for debugging).
+	// Format specifies the output encoding. Supported values are "flatbuffers" (default, for
+	// production) and "json" (for debugging).
 	Format string
 
-	// SearchableMetadataFields specifies which metadata fields to index for
-	// search. The index builder checks both lowercase and capitalised variants of
-	// each field name.
+	// SearchableMetadataFields specifies which metadata fields to index for search. The
+	// index builder checks both lowercase and capitalised variants of each field name.
 	//
 	// Supported field types:
 	//   - String fields: "title", "description", "author"
 	//   - Array fields: "tags", "keywords", "categories" (joined with spaces)
 	//   - Field names are case-insensitive: "tags" matches both "tags" and "Tags"
 	//
-	// The RawContent field (the markdown body) is always indexed regardless of
-	// this setting.
+	// The RawContent field (the markdown body) is always indexed regardless of this setting.
 	SearchableMetadataFields []string
 
 	// BM25K1 controls how fast term frequency gains shrink; default is 1.2.
@@ -251,8 +244,7 @@ type DocMetadataInfo struct {
 	FieldLengthsPacked uint32
 }
 
-// CorpusStats holds statistics about the full document collection for search
-// scoring.
+// CorpusStats holds statistics about the full document collection for search scoring.
 type CorpusStats struct {
 	// TotalDocuments is the total number of documents in the corpus.
 	TotalDocuments uint32
@@ -298,13 +290,12 @@ func DefaultIndexBuildConfig() IndexBuildConfig {
 	return DefaultIndexBuildConfigForLanguage(LanguageEnglish)
 }
 
-// DefaultIndexBuildConfigForLanguage returns default index settings for a
-// specific language.
+// DefaultIndexBuildConfigForLanguage returns default index settings for a specific
+// language.
 //
 // Takes language (string) which specifies the language used for text analysis.
 //
-// Returns IndexBuildConfig which contains the default settings for the given
-// language.
+// Returns IndexBuildConfig which contains the default settings for the given language.
 func DefaultIndexBuildConfigForLanguage(language string) IndexBuildConfig {
 	return IndexBuildConfig{
 		BM25K1:           BM25DefaultK1,

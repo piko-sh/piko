@@ -30,32 +30,30 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// EncodingRegistry maps Go types to their corresponding encoders.
-// It provides runtime type-driven encoder selection, enabling providers to
-// automatically choose the correct encoding strategy based on a value's type.
+// EncodingRegistry maps Go types to their corresponding encoders. It provides runtime
+// type-driven encoder selection, enabling providers to automatically choose the correct
+// encoding strategy based on a value's type.
 //
 // Thread-safe for concurrent access.
 type EncodingRegistry struct {
 	// encoders maps Go types to their registered encoders.
 	encoders map[reflect.Type]AnyEncoder
 
-	// defaultEncoder is the fallback encoder used when no type-specific
-	// encoder matches; nil means no default is configured.
+	// defaultEncoder is the fallback encoder used when no type-specific encoder matches; nil
+	// means no default is configured.
 	defaultEncoder AnyEncoder
 
 	// mu guards the encoders map for safe concurrent access.
 	mu sync.RWMutex
 }
 
-// NewEncodingRegistry creates a new registry with an optional default
-// encoder. The default encoder is used as a fallback when no
-// type-specific encoder is registered.
+// NewEncodingRegistry creates a new registry with an optional default encoder. The
+// default encoder is used as a fallback when no type-specific encoder is registered.
 //
-// Takes defaultEncoder (AnyEncoder) which provides the fallback
-// encoder for unregistered types, or nil for no default.
+// Takes defaultEncoder (AnyEncoder) which provides the fallback encoder for unregistered
+// types, or nil for no default.
 //
-// Returns *EncodingRegistry which is the configured registry ready for
-// use.
+// Returns *EncodingRegistry which is the configured registry ready for use.
 func NewEncodingRegistry(defaultEncoder AnyEncoder) *EncodingRegistry {
 	return &EncodingRegistry{
 		encoders:       make(map[reflect.Type]AnyEncoder),
@@ -65,12 +63,12 @@ func NewEncodingRegistry(defaultEncoder AnyEncoder) *EncodingRegistry {
 
 // Register adds an encoder for a specific type to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace and
-// request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace and request ID
+// propagation.
 // Takes encoder (AnyEncoder) which provides the type-specific encoding logic.
 //
-// Returns error when encoder is nil, handles no concrete type, or an encoder
-// for the same type is already registered.
+// Returns error when encoder is nil, handles no concrete type, or an encoder for the same
+// type is already registered.
 //
 // Safe for concurrent use.
 func (r *EncodingRegistry) Register(ctx context.Context, encoder AnyEncoder) error {
@@ -99,16 +97,16 @@ func (r *EncodingRegistry) Register(ctx context.Context, encoder AnyEncoder) err
 	return nil
 }
 
-// Get finds the appropriate encoder for a given value. It first checks for
-// a type-specific registration, then falls back to the default encoder.
+// Get finds the appropriate encoder for a given value. It first checks for a
+// type-specific registration, then falls back to the default encoder.
 //
 // This is the primary method used by providers during Set operations.
 //
 // Takes value (any) which is the value whose type determines the encoder.
 //
 // Returns AnyEncoder which is the matched or default encoder.
-// Returns error when value is nil, or when no type-specific match exists and
-// no default encoder is configured.
+// Returns error when value is nil, or when no type-specific match exists and no default
+// encoder is configured.
 //
 // Safe for concurrent use; protected by a read lock.
 func (r *EncodingRegistry) Get(value any) (AnyEncoder, error) {
@@ -133,14 +131,14 @@ func (r *EncodingRegistry) Get(value any) (AnyEncoder, error) {
 
 // GetByType finds an encoder by its reflect.Type.
 //
-// This is used during Get operations when the type is known but the value
-// has not been unmarshalled yet.
+// This is used during Get operations when the type is known but the value has not been
+// unmarshalled yet.
 //
 // Takes t (reflect.Type) which specifies the type to find an encoder for.
 //
 // Returns AnyEncoder which handles encoding for the given type.
-// Returns error when t is nil, or no encoder is registered for the type
-// and no default encoder is configured.
+// Returns error when t is nil, or no encoder is registered for the type and no default
+// encoder is configured.
 //
 // Safe for concurrent use; protected by a read lock.
 func (r *EncodingRegistry) GetByType(t reflect.Type) (AnyEncoder, error) {
@@ -162,8 +160,8 @@ func (r *EncodingRegistry) GetByType(t reflect.Type) (AnyEncoder, error) {
 	return nil, fmt.Errorf("no encoder found for type %s and no default encoder configured", t.String())
 }
 
-// Has checks if an encoder for the given type is explicitly registered,
-// not counting the default encoder.
+// Has checks if an encoder for the given type is explicitly registered, not counting the
+// default encoder.
 //
 // Takes t (reflect.Type) which specifies the type to look up.
 //
@@ -177,8 +175,8 @@ func (r *EncodingRegistry) Has(t reflect.Type) bool {
 	return ok
 }
 
-// RegisteredTypes returns a sorted list of all explicitly registered types.
-// The default encoder's type is not included in this list.
+// RegisteredTypes returns a sorted list of all explicitly registered types. The default
+// encoder's type is not included in this list.
 //
 // Returns []reflect.Type which contains the registered types sorted by name.
 //
@@ -199,8 +197,7 @@ func (r *EncodingRegistry) RegisteredTypes() []reflect.Type {
 	return types
 }
 
-// Count returns the number of explicitly registered encoders, not counting
-// the default.
+// Count returns the number of explicitly registered encoders, not counting the default.
 //
 // Returns int which is the count of registered encoders.
 //

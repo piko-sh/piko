@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// convertWatchdogStatus converts the gRPC status response into the
-// TUI-friendly WatchdogStatus, computing derived values such as the
-// utilisation gauges and the warm-up remaining duration.
+// convertWatchdogStatus converts the gRPC status response into the TUI-friendly
+// WatchdogStatus, computing derived values such as the utilisation gauges and the warm-up
+// remaining duration.
 //
 // Takes response (*pb.GetWatchdogStatusResponse) which is the proto.
 //
@@ -92,8 +92,8 @@ func convertWatchdogStatus(response *pb.GetWatchdogStatusResponse) *tui_domain.W
 //
 // Takes entry (*pb.WatchdogProfileEntry) which is the wire entry.
 //
-// Returns tui_domain.WatchdogProfile which is the TUI-side type
-// (zero value when entry is nil).
+// Returns tui_domain.WatchdogProfile which is the TUI-side type (zero value when entry is
+// nil).
 func convertWatchdogProfile(entry *pb.WatchdogProfileEntry) tui_domain.WatchdogProfile {
 	if entry == nil {
 		return tui_domain.WatchdogProfile{}
@@ -111,8 +111,8 @@ func convertWatchdogProfile(entry *pb.WatchdogProfileEntry) tui_domain.WatchdogP
 //
 // Takes entry (*pb.StartupHistoryEntry) which is the wire entry.
 //
-// Returns tui_domain.WatchdogStartupEntry which is the TUI-side type
-// (zero value when entry is nil).
+// Returns tui_domain.WatchdogStartupEntry which is the TUI-side type (zero value when
+// entry is nil).
 func convertStartupEntry(entry *pb.StartupHistoryEntry) tui_domain.WatchdogStartupEntry {
 	if entry == nil {
 		return tui_domain.WatchdogStartupEntry{}
@@ -132,8 +132,8 @@ func convertStartupEntry(entry *pb.StartupHistoryEntry) tui_domain.WatchdogStart
 //
 // Takes msg (*pb.WatchdogEventMessage) which is the wire event.
 //
-// Returns tui_domain.WatchdogEvent which is the TUI-side event
-// (zero value when msg is nil).
+// Returns tui_domain.WatchdogEvent which is the TUI-side event (zero value when msg is
+// nil).
 func convertWatchdogEvent(msg *pb.WatchdogEventMessage) tui_domain.WatchdogEvent {
 	if msg == nil {
 		return tui_domain.WatchdogEvent{}
@@ -149,12 +149,12 @@ func convertWatchdogEvent(msg *pb.WatchdogEventMessage) tui_domain.WatchdogEvent
 	}
 }
 
-// makeGauge constructs a UtilisationGauge from used/limit values, with
-// the percentage derived such that limit==0 produces zero.
+// makeGauge constructs a UtilisationGauge from used/limit values, with the percentage
+// derived such that limit==0 produces zero.
 //
 // Takes used (float64) which is the consumed quantity.
-// Takes limit (float64) which is the maximum allowed; zero disables
-// the percentage calculation.
+// Takes limit (float64) which is the maximum allowed; zero disables the percentage
+// calculation.
 //
 // Returns tui_domain.UtilisationGauge which is the populated gauge.
 func makeGauge(used, limit float64) tui_domain.UtilisationGauge {
@@ -165,13 +165,12 @@ func makeGauge(used, limit float64) tui_domain.UtilisationGauge {
 	return gauge
 }
 
-// timeFromMillis converts a unix-millis timestamp to time.Time. Zero
-// values map to a zero time.Time so callers can detect "not set".
+// timeFromMillis converts a unix-millis timestamp to time.Time. Zero values map to a zero
+// time.Time so callers can detect "not set".
 //
 // Takes ms (int64) which is the unix-milliseconds timestamp.
 //
-// Returns time.Time which is the converted instant or the zero value
-// when ms is zero.
+// Returns time.Time which is the converted instant or the zero value when ms is zero.
 func timeFromMillis(ms int64) time.Time {
 	if ms == 0 {
 		return time.Time{}

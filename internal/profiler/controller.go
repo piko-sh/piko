@@ -40,76 +40,73 @@ const (
 	// maxProfilingDuration is the maximum allowed profiling session duration.
 	maxProfilingDuration = 24 * time.Hour
 
-	// maxCaptureDuration is the maximum allowed duration for a single
-	// CPU or trace capture.
+	// maxCaptureDuration is the maximum allowed duration for a single CPU or trace capture.
 	maxCaptureDuration = 5 * time.Minute
 
-	// maxCaptureDurationSeconds is maxCaptureDuration expressed in whole
-	// seconds, used for integer overflow validation before multiplying by
-	// time.Second.
+	// maxCaptureDurationSeconds is maxCaptureDuration expressed in whole seconds, used for
+	// integer overflow validation before multiplying by time.Second.
 	maxCaptureDurationSeconds = int(maxCaptureDuration / time.Second)
 
-	// controllerBindAddress is the address the on-demand pprof server
-	// binds to. Localhost-only prevents remote access without an explicit
-	// port-forward.
+	// controllerBindAddress is the address the on-demand pprof server binds to.
+	// Localhost-only prevents remote access without an explicit port-forward.
 	controllerBindAddress = "127.0.0.1"
 
-	// maxConcurrentSnapshots limits the number of snapshot profile captures
-	// that may run simultaneously.
+	// maxConcurrentSnapshots limits the number of snapshot profile captures that may run
+	// simultaneously.
 	maxConcurrentSnapshots = 4
 
 	// maxTCPPort is the upper bound of the valid TCP port range.
 	maxTCPPort = 65535
 
-	// defaultCPUCaptureDuration is the fallback duration in seconds for CPU
-	// profile captures when no duration is specified.
+	// defaultCPUCaptureDuration is the fallback duration in seconds for CPU profile captures
+	// when no duration is specified.
 	defaultCPUCaptureDuration = 30
 
-	// defaultTraceCaptureDuration is the fallback duration in seconds for
-	// execution trace captures when no duration is specified.
+	// defaultTraceCaptureDuration is the fallback duration in seconds for execution trace
+	// captures when no duration is specified.
 	defaultTraceCaptureDuration = 5
 
-	// goroutineLeakProfileName is the pprof lookup name for the Go 1.26
-	// goroutine leak profile.
+	// goroutineLeakProfileName is the pprof lookup name for the Go 1.26 goroutine leak
+	// profile.
 	goroutineLeakProfileName = "goroutineleak"
 )
 
 var (
-	// ErrDurationExceedsMaximum is returned when the requested profiling or
-	// capture duration exceeds the configured maximum.
+	// ErrDurationExceedsMaximum is returned when the requested profiling or capture duration
+	// exceeds the configured maximum.
 	ErrDurationExceedsMaximum = errors.New("duration exceeds maximum")
 
-	// ErrDurationNotPositive is returned when the requested duration is zero
-	// or negative.
+	// ErrDurationNotPositive is returned when the requested duration is zero or negative.
 	ErrDurationNotPositive = errors.New("duration must be positive")
 
-	// ErrCaptureExceedsMaximum is returned when a CPU or trace capture
-	// duration exceeds maxCaptureDuration.
+	// ErrCaptureExceedsMaximum is returned when a CPU or trace capture duration exceeds
+	// maxCaptureDuration.
 	ErrCaptureExceedsMaximum = errors.New("capture duration exceeds maximum")
 
-	// ErrUnknownProfileType is returned when the requested profile type is
-	// not recognised.
+	// ErrUnknownProfileType is returned when the requested profile type is not recognised.
 	ErrUnknownProfileType = errors.New("unknown profile type")
 
-	// ErrPortOutOfRange is returned when the port number is outside the
-	// valid TCP range 1-65535.
+	// ErrPortOutOfRange is returned when the port number is outside the valid TCP range
+	// 1-65535.
 	ErrPortOutOfRange = errors.New("port out of range (1-65535)")
 )
 
-// availableProfiles lists all profile types the controller can capture.
-var availableProfiles = []string{
-	"heap", "goroutine", "allocs", "cpu", "trace", "block", "mutex",
-}
+var (
+	// availableProfiles lists all profile types the controller can capture.
+	availableProfiles = []string{
+		"heap", "goroutine", "allocs", "cpu", "trace", "block", "mutex",
+	}
 
-// profileLookupNames maps capture profile type names to the runtime/pprof
-// lookup names used by pprof.Lookup.
-var profileLookupNames = map[string]string{
-	"heap":      "heap",
-	"goroutine": "goroutine",
-	"allocs":    "allocs",
-	"block":     "block",
-	"mutex":     "mutex",
-}
+	// profileLookupNames maps capture profile type names to the runtime/pprof lookup names
+	// used by pprof.Lookup.
+	profileLookupNames = map[string]string{
+		"heap":      "heap",
+		"goroutine": "goroutine",
+		"allocs":    "allocs",
+		"block":     "block",
+		"mutex":     "mutex",
+	}
+)
 
 func init() {
 	if pprof.Lookup(goroutineLeakProfileName) != nil {
@@ -118,10 +115,12 @@ func init() {
 	}
 }
 
-var _ monitoring_domain.ProfilingController = (*Controller)(nil)
+var (
+	_ monitoring_domain.ProfilingController = (*Controller)(nil)
+)
 
-// Controller implements monitoring_domain.ProfilingController by managing
-// an on-demand pprof HTTP server and Go runtime profiling rates.
+// Controller implements monitoring_domain.ProfilingController by managing an on-demand
+// pprof HTTP server and Go runtime profiling rates.
 type Controller struct {
 	// expiresAt records when the current profiling session will auto-disable.
 	expiresAt time.Time
@@ -132,8 +131,8 @@ type Controller struct {
 	// timer fires at session expiry to auto-disable profiling.
 	timer *time.Timer
 
-	// cancelTimer cancels the context passed to the timer goroutine so it
-	// does not call Disable after Close.
+	// cancelTimer cancels the context passed to the timer goroutine so it does not call
+	// Disable after Close.
 	cancelTimer context.CancelCauseFunc
 
 	// snapshotSemaphore limits concurrent snapshot captures.
@@ -148,15 +147,15 @@ type Controller struct {
 	// mutexProfileFraction is the configured Go runtime mutex profile fraction.
 	mutexProfileFraction int
 
-	// originalMutexFraction stores the mutex fraction before profiling was
-	// enabled, so it can be restored on disable.
+	// originalMutexFraction stores the mutex fraction before profiling was enabled, so it
+	// can be restored on disable.
 	originalMutexFraction int
 
 	// mu guards the controller's mutable state (server, timer, enabled, etc.).
 	mu sync.Mutex
 
-	// captureMu serialises CPU profile and trace captures because the Go
-	// runtime only permits one of each at a time.
+	// captureMu serialises CPU profile and trace captures because the Go runtime only
+	// permits one of each at a time.
 	captureMu sync.Mutex
 
 	// enabled is true when the pprof server is running.
@@ -172,17 +171,16 @@ func NewController() *Controller {
 	}
 }
 
-// Enable starts the pprof HTTP server and sets Go runtime profiling
-// rates. If already enabled, it extends the expiry deadline without
-// restarting the server.
+// Enable starts the pprof HTTP server and sets Go runtime profiling rates. If already
+// enabled, it extends the expiry deadline without restarting the server.
 //
-// Takes opts (ProfilingEnableOpts) which configures the profiling
-// session duration, port, and sampling rates.
+// Takes opts (ProfilingEnableOpts) which configures the profiling session duration, port,
+// and sampling rates.
 //
-// Returns *monitoring_domain.ProfilingStatus which describes the active
-// profiling session after enabling.
-// Returns error when the server fails to start or the duration exceeds the
-// maximum allowed.
+// Returns *monitoring_domain.ProfilingStatus which describes the active profiling session
+// after enabling.
+// Returns error when the server fails to start or the duration exceeds the maximum
+// allowed.
 //
 // Safe for concurrent use.
 func (c *Controller) Enable(ctx context.Context, opts monitoring_domain.ProfilingEnableOpts) (*monitoring_domain.ProfilingStatus, error) {
@@ -232,8 +230,8 @@ func (c *Controller) Enable(ctx context.Context, opts monitoring_domain.Profilin
 	return c.startProfilingServer(ctx, opts.Duration, port, blockRate, mutexFraction)
 }
 
-// Disable stops the pprof HTTP server and resets Go runtime profiling
-// rates to their pre-enable values.
+// Disable stops the pprof HTTP server and resets Go runtime profiling rates to their
+// pre-enable values.
 //
 // Returns bool which is true if profiling was previously enabled.
 // Returns error when the server fails to shut down cleanly.
@@ -301,9 +299,9 @@ func (c *Controller) Status(_ context.Context) *monitoring_domain.ProfilingStatu
 	return c.statusLocked()
 }
 
-// SnapshotFlightRecorder writes the current rolling execution trace buffer to
-// the provided writer. Returns an error when the flight recorder is not
-// enabled or the snapshot fails.
+// SnapshotFlightRecorder writes the current rolling execution trace buffer to the
+// provided writer. Returns an error when the flight recorder is not enabled or the
+// snapshot fails.
 //
 // Takes w (io.Writer) which receives the trace data.
 //
@@ -323,14 +321,14 @@ func (c *Controller) SnapshotFlightRecorder(_ context.Context, w io.Writer) erro
 	return err
 }
 
-// CaptureProfile captures a Go runtime profile and writes the raw data
-// to the provided writer. For duration-based profiles (cpu, trace), this
-// blocks for the requested duration.
+// CaptureProfile captures a Go runtime profile and writes the raw data to the provided
+// writer. For duration-based profiles (cpu, trace), this blocks for the requested
+// duration.
 //
-// Takes profileType (string) which identifies the profile to capture
-// (heap, goroutine, allocs, cpu, trace, block, mutex).
-// Takes durationSeconds (int) which sets the capture window for
-// duration-based profiles; ignored for snapshot profiles.
+// Takes profileType (string) which identifies the profile to capture (heap, goroutine,
+// allocs, cpu, trace, block, mutex).
+// Takes durationSeconds (int) which sets the capture window for duration-based profiles;
+// ignored for snapshot profiles.
 // Takes w (io.Writer) which receives the raw profile data.
 //
 // Returns string which contains any warning message.
@@ -348,8 +346,8 @@ func (c *Controller) CaptureProfile(ctx context.Context, profileType string, dur
 	}
 }
 
-// extendSession extends a running profiling session's deadline. The caller
-// must hold c.mu and must unlock it after extendSession returns.
+// extendSession extends a running profiling session's deadline. The caller must hold c.mu
+// and must unlock it after extendSession returns.
 //
 // Takes duration (time.Duration) which is the new session duration.
 //
@@ -371,8 +369,8 @@ func (c *Controller) extendSession(ctx context.Context, duration time.Duration) 
 	return status
 }
 
-// startProfilingServer starts the pprof HTTP server, sets runtime profiling
-// rates, and records the new session state. The caller must NOT hold c.mu.
+// startProfilingServer starts the pprof HTTP server, sets runtime profiling rates, and
+// records the new session state. The caller must NOT hold c.mu.
 //
 // Takes duration (time.Duration) which is the session duration.
 // Takes port (int) which is the TCP port to bind.
@@ -413,19 +411,18 @@ func (c *Controller) startProfilingServer(
 	return c.commitSession(ctx, server, config, duration, originalMutexFraction)
 }
 
-// commitSession records the new session state under the lock. If another
-// goroutine enabled profiling while the server was starting, the new
-// server is shut down and the existing session is returned.
+// commitSession records the new session state under the lock. If another goroutine
+// enabled profiling while the server was starting, the new server is shut down and the
+// existing session is returned.
 //
 // Takes server (*ServerHandle) which is the started pprof server.
 // Takes config (Config) which holds the server configuration.
 // Takes duration (time.Duration) which is the session duration.
 // Takes originalMutexFraction (int) which is the pre-enable mutex fraction.
 //
-// Returns *monitoring_domain.ProfilingStatus which describes the newly
-// committed profiling session state.
-// Returns error when an enable race requires shutting down the duplicate
-// server.
+// Returns *monitoring_domain.ProfilingStatus which describes the newly committed
+// profiling session state.
+// Returns error when an enable race requires shutting down the duplicate server.
 func (c *Controller) commitSession(
 	ctx context.Context,
 	server *ServerHandle,
@@ -460,14 +457,14 @@ func (c *Controller) commitSession(
 	return status, nil
 }
 
-// handleEnableRace handles the case where another goroutine enabled profiling
-// while the server was starting. The caller must hold c.mu.
+// handleEnableRace handles the case where another goroutine enabled profiling while the
+// server was starting. The caller must hold c.mu.
 //
 // Takes server (*ServerHandle) which is the duplicate server to shut down.
 // Takes originalMutexFraction (int) which is the pre-enable mutex fraction to restore.
 //
-// Returns *monitoring_domain.ProfilingStatus which describes the existing
-// session that won the enable race.
+// Returns *monitoring_domain.ProfilingStatus which describes the existing session that
+// won the enable race.
 // Returns error when the duplicate server fails to shut down.
 func (c *Controller) handleEnableRace(
 	ctx context.Context,
@@ -493,8 +490,8 @@ func (c *Controller) handleEnableRace(
 	return status, nil
 }
 
-// startAutoDisableTimer starts the timer that auto-disables profiling when the
-// session expires. The caller must hold c.mu.
+// startAutoDisableTimer starts the timer that auto-disables profiling when the session
+// expires. The caller must hold c.mu.
 //
 // Takes duration (time.Duration) which is the delay before auto-disable fires.
 func (c *Controller) startAutoDisableTimer(duration time.Duration) {
@@ -535,13 +532,13 @@ func (c *Controller) captureTrace(ctx context.Context, durationSeconds int, w io
 		"trace", trace.Start, trace.Stop, w)
 }
 
-// captureDurationBased captures a duration-based profile (CPU or trace) by
-// calling startFunc to begin recording and stopFunc to finalise. It validates
-// the requested duration, serialises access via captureMu, and respects
-// context cancellation.
+// captureDurationBased captures a duration-based profile (CPU or trace) by calling
+// startFunc to begin recording and stopFunc to finalise. It validates the requested
+// duration, serialises access via captureMu, and respects context cancellation.
 //
 // Takes durationSeconds (int) which is the requested capture duration.
-// Takes defaultSeconds (int) which is the fallback when durationSeconds is zero or negative.
+// Takes defaultSeconds (int) which is the fallback when durationSeconds is zero or
+// negative.
 // Takes label (string) which identifies the profile type for error messages.
 // Takes startFunc (func(io.Writer) error) which begins the capture.
 // Takes stopFunc (func()) which finalises the capture.
@@ -550,8 +547,8 @@ func (c *Controller) captureTrace(ctx context.Context, durationSeconds int, w io
 // Returns string which is always empty for duration-based captures.
 // Returns error when the duration exceeds the maximum or the capture fails.
 //
-// Concurrency: serialises access via captureMu because the Go runtime only
-// permits one CPU profile or trace at a time.
+// Concurrency: serialises access via captureMu because the Go runtime only permits one
+// CPU profile or trace at a time.
 func (c *Controller) captureDurationBased(
 	ctx context.Context,
 	durationSeconds int,

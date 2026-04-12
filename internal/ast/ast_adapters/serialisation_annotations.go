@@ -30,11 +30,10 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// buildResponsiveVariantMetadata serialises responsive variant metadata to a
-// FlatBuffer.
+// buildResponsiveVariantMetadata serialises responsive variant metadata to a FlatBuffer.
 //
-// Takes rvm (*ast_domain.ResponsiveVariantMetadata) which contains the image
-// variant details to serialise.
+// Takes rvm (*ast_domain.ResponsiveVariantMetadata) which contains the image variant
+// details to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised metadata.
 // Returns error when serialisation fails.
@@ -71,8 +70,7 @@ type goGenAnnotationNestedOffsets struct {
 	// partialInfo is the flatbuffer offset for partial invocation information.
 	partialInfo flatbuffers.UOffsetT
 
-	// dynAttrOrigins is the FlatBuffer offset for the dynamic attribute origins
-	// map.
+	// dynAttrOrigins is the FlatBuffer offset for the dynamic attribute origins map.
 	dynAttrOrigins flatbuffers.UOffsetT
 
 	// effectiveKeyExpr is the offset of the effective key expression node.
@@ -82,11 +80,10 @@ type goGenAnnotationNestedOffsets struct {
 	srcsetVec flatbuffers.UOffsetT
 }
 
-// goGenAnnotationStringOffsets holds the offsets for optional string fields
-// within GoGeneratorAnnotation.
+// goGenAnnotationStringOffsets holds the offsets for optional string fields within
+// GoGeneratorAnnotation.
 type goGenAnnotationStringOffsets struct {
-	// baseCodeGenVarName is the offset for the base code generation variable
-	// name string.
+	// baseCodeGenVarName is the offset for the base code generation variable name string.
 	baseCodeGenVarName flatbuffers.UOffsetT
 
 	// originalPackageAlias is the offset for the original package alias string.
@@ -111,8 +108,8 @@ type goGenAnnotationStringOffsets struct {
 // buildGoGenAnnotationNestedOffsets builds all nested structure offsets for
 // GoGeneratorAnnotation.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation
-// to serialise.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation to
+// serialise.
 //
 // Returns goGenAnnotationNestedOffsets which contains the built offset data.
 // Returns error when any nested structure fails to build.
@@ -155,11 +152,11 @@ func (s *encoder) buildGoGenAnnotationNestedOffsets(ann *ast_domain.GoGeneratorA
 // buildGoGenAnnotationStringOffsets builds all optional string offsets for
 // GoGeneratorAnnotation.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation
-// data to convert.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the annotation data to
+// convert.
 //
-// Returns goGenAnnotationStringOffsets which contains the offset positions for
-// each optional string field.
+// Returns goGenAnnotationStringOffsets which contains the offset positions for each
+// optional string field.
 func (s *encoder) buildGoGenAnnotationStringOffsets(ann *ast_domain.GoGeneratorAnnotation) goGenAnnotationStringOffsets {
 	return goGenAnnotationStringOffsets{
 		baseCodeGenVarName:   s.createOptionalString(ann.BaseCodeGenVarName),
@@ -172,13 +169,12 @@ func (s *encoder) buildGoGenAnnotationStringOffsets(ann *ast_domain.GoGeneratorA
 	}
 }
 
-// createOptionalString creates a FlatBuffer string offset for an optional
-// string pointer.
+// createOptionalString creates a FlatBuffer string offset for an optional string pointer.
 //
 // Takes str (*string) which is the optional string to serialise.
 //
-// Returns flatbuffers.UOffsetT which is zero if str is nil, or the offset of
-// the created string.
+// Returns flatbuffers.UOffsetT which is zero if str is nil, or the offset of the created
+// string.
 func (s *encoder) createOptionalString(str *string) flatbuffers.UOffsetT {
 	if str == nil {
 		return 0
@@ -186,15 +182,14 @@ func (s *encoder) createOptionalString(str *string) flatbuffers.UOffsetT {
 	return s.builder.CreateString(*str)
 }
 
-// addGoGenAnnotationFields adds all fields to the GoGeneratorAnnotation
-// FlatBuffer.
+// addGoGenAnnotationFields adds all fields to the GoGeneratorAnnotation FlatBuffer.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the source
-// annotation data.
-// Takes nested (goGenAnnotationNestedOffsets) which contains pre-built
-// FlatBuffer offsets for nested objects.
-// Takes strings (goGenAnnotationStringOffsets) which contains pre-built
-// FlatBuffer offsets for string values.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the source annotation
+// data.
+// Takes nested (goGenAnnotationNestedOffsets) which contains pre-built FlatBuffer offsets
+// for nested objects.
+// Takes strings (goGenAnnotationStringOffsets) which contains pre-built FlatBuffer
+// offsets for string values.
 func (s *encoder) addGoGenAnnotationFields(
 	ann *ast_domain.GoGeneratorAnnotation,
 	nested goGenAnnotationNestedOffsets,
@@ -228,8 +223,7 @@ func (s *encoder) addGoGenAnnotationFields(
 
 // buildGoGeneratorAnnotation converts a Go generator annotation to FlatBuffers.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to
-// serialise.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised data.
 // Returns error when nested elements fail to build.
@@ -267,8 +261,7 @@ func (s *encoder) buildRuntimeAnnotation(ann *ast_domain.RuntimeAnnotation) (fla
 
 // buildResolvedTypeInfo converts resolved type info to a FlatBuffer object.
 //
-// Takes info (*ast_domain.ResolvedTypeInfo) which contains the type data to
-// serialise.
+// Takes info (*ast_domain.ResolvedTypeInfo) which contains the type data to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised object.
 // Returns error when serialisation fails.
@@ -363,8 +356,8 @@ func (s *encoder) buildPropDataSource(pds *ast_domain.PropDataSource) (flatbuffe
 
 // buildPartialInvocationInfo serialises partial invocation info to FlatBuffers.
 //
-// Takes info (*ast_domain.PartialInvocationInfo) which contains the partial
-// invocation data to serialise.
+// Takes info (*ast_domain.PartialInvocationInfo) which contains the partial invocation
+// data to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised data.
 // Returns error when building nested structures fails.
@@ -441,14 +434,14 @@ func (s *encoder) buildPropValue(pv *ast_domain.PropValue) (flatbuffers.UOffsetT
 	return ast_schema_gen.PropValueFBEnd(s.builder), nil
 }
 
-// unpackResponsiveVariantMetadata converts a flatbuffer responsive variant
-// metadata to its domain representation.
+// unpackResponsiveVariantMetadata converts a flatbuffer responsive variant metadata to
+// its domain representation.
 //
-// Takes fb (*ast_schema_gen.ResponsiveVariantMetadataFB) which is the
-// flatbuffer to unpack.
+// Takes fb (*ast_schema_gen.ResponsiveVariantMetadataFB) which is the flatbuffer to
+// unpack.
 //
-// Returns ast_domain.ResponsiveVariantMetadata which contains the unpacked
-// metadata fields.
+// Returns ast_domain.ResponsiveVariantMetadata which contains the unpacked metadata
+// fields.
 // Returns error when unpacking fails.
 func (*decoder) unpackResponsiveVariantMetadata(fb *ast_schema_gen.ResponsiveVariantMetadataFB) (ast_domain.ResponsiveVariantMetadata, error) {
 	if fb == nil {
@@ -464,11 +457,11 @@ func (*decoder) unpackResponsiveVariantMetadata(fb *ast_schema_gen.ResponsiveVar
 	}, nil
 }
 
-// unpackGoGeneratorAnnotation converts a FlatBuffer Go generator annotation
-// to its domain representation.
+// unpackGoGeneratorAnnotation converts a FlatBuffer Go generator annotation to its domain
+// representation.
 //
-// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which is the FlatBuffer
-// annotation to convert.
+// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which is the FlatBuffer annotation
+// to convert.
 //
 // Returns *ast_domain.GoGeneratorAnnotation which is the domain model.
 // Returns error when field unpacking fails.
@@ -501,10 +494,9 @@ func (d *decoder) unpackGoGeneratorAnnotation(fb *ast_schema_gen.GoGeneratorAnno
 // unpackGoGeneratorAnnotationFields unpacks the nested struct fields of a
 // GoGeneratorAnnotation.
 //
-// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which provides the
-// serialised annotation data.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which receives the unpacked
-// field values.
+// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which provides the serialised
+// annotation data.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which receives the unpacked field values.
 //
 // Returns error when any nested field fails to unpack.
 func (d *decoder) unpackGoGeneratorAnnotationFields(fb *ast_schema_gen.GoGeneratorAnnotationFB, ann *ast_domain.GoGeneratorAnnotation) error {
@@ -540,13 +532,13 @@ func (d *decoder) unpackGoGeneratorAnnotationFields(fb *ast_schema_gen.GoGenerat
 	return nil
 }
 
-// unpackGoGeneratorAnnotationOptionalStrings unpacks the optional string
-// pointer fields from a flatbuffer into a domain annotation.
+// unpackGoGeneratorAnnotationOptionalStrings unpacks the optional string pointer fields
+// from a flatbuffer into a domain annotation.
 //
-// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which is the source
-// flatbuffer containing the stored annotation data.
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which receives the unpacked
-// string values.
+// Takes fb (*ast_schema_gen.GoGeneratorAnnotationFB) which is the source flatbuffer
+// containing the stored annotation data.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which receives the unpacked string
+// values.
 func (*decoder) unpackGoGeneratorAnnotationOptionalStrings(fb *ast_schema_gen.GoGeneratorAnnotationFB, ann *ast_domain.GoGeneratorAnnotation) {
 	if value := fb.BaseCodeGenVarName(); value != nil {
 		ann.BaseCodeGenVarName = new(mem.String(value))
@@ -586,14 +578,14 @@ func (*decoder) unpackRuntimeAnnotation(fb *ast_schema_gen.RuntimeAnnotationFB) 
 	}, nil
 }
 
-// unpackResolvedTypeInfo converts a FlatBuffer ResolvedTypeInfoFB into a
-// domain ResolvedTypeInfo struct.
+// unpackResolvedTypeInfo converts a FlatBuffer ResolvedTypeInfoFB into a domain
+// ResolvedTypeInfo struct.
 //
-// Takes fb (*ast_schema_gen.ResolvedTypeInfoFB) which is the serialised type
-// info to unpack.
+// Takes fb (*ast_schema_gen.ResolvedTypeInfoFB) which is the serialised type info to
+// unpack.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is the unpacked domain object, or
-// nil if fb is nil.
+// Returns *ast_domain.ResolvedTypeInfo which is the unpacked domain object, or nil if fb
+// is nil.
 // Returns error when the stored type expression string cannot be parsed.
 func (*decoder) unpackResolvedTypeInfo(fb *ast_schema_gen.ResolvedTypeInfoFB) (*ast_domain.ResolvedTypeInfo, error) {
 	if fb == nil {
@@ -622,11 +614,10 @@ func (*decoder) unpackResolvedTypeInfo(fb *ast_schema_gen.ResolvedTypeInfoFB) (*
 
 // unpackResolvedSymbol converts a FlatBuffer resolved symbol to a domain type.
 //
-// Takes fb (*ast_schema_gen.ResolvedSymbolFB) which is the FlatBuffer to
-// convert.
+// Takes fb (*ast_schema_gen.ResolvedSymbolFB) which is the FlatBuffer to convert.
 //
-// Returns *ast_domain.ResolvedSymbol which is the converted domain object, or
-// nil if fb is nil.
+// Returns *ast_domain.ResolvedSymbol which is the converted domain object, or nil if fb
+// is nil.
 // Returns error when location unpacking fails.
 func (d *decoder) unpackResolvedSymbol(fb *ast_schema_gen.ResolvedSymbolFB) (*ast_domain.ResolvedSymbol, error) {
 	if fb == nil {
@@ -647,14 +638,13 @@ func (d *decoder) unpackResolvedSymbol(fb *ast_schema_gen.ResolvedSymbolFB) (*as
 	}, nil
 }
 
-// unpackPropDataSource converts a FlatBuffer property data source into a
-// domain model.
+// unpackPropDataSource converts a FlatBuffer property data source into a domain model.
 //
-// Takes fb (*ast_schema_gen.PropDataSourceFB) which is the FlatBuffer
-// representation to convert.
+// Takes fb (*ast_schema_gen.PropDataSourceFB) which is the FlatBuffer representation to
+// convert.
 //
-// Returns *ast_domain.PropDataSource which is the converted domain model, or
-// nil if fb is nil.
+// Returns *ast_domain.PropDataSource which is the converted domain model, or nil if fb is
+// nil.
 // Returns error when unpacking the resolved type or symbol fails.
 func (d *decoder) unpackPropDataSource(fb *ast_schema_gen.PropDataSourceFB) (*ast_domain.PropDataSource, error) {
 	if fb == nil {
@@ -676,14 +666,14 @@ func (d *decoder) unpackPropDataSource(fb *ast_schema_gen.PropDataSourceFB) (*as
 	return pds, nil
 }
 
-// unpackPartialInvocationInfo converts a FlatBuffer partial invocation info
-// into its domain representation.
+// unpackPartialInvocationInfo converts a FlatBuffer partial invocation info into its
+// domain representation.
 //
-// Takes fb (*ast_schema_gen.PartialInvocationInfoFB) which is the FlatBuffer
-// message to unpack.
+// Takes fb (*ast_schema_gen.PartialInvocationInfoFB) which is the FlatBuffer message to
+// unpack.
 //
-// Returns *ast_domain.PartialInvocationInfo which contains the unpacked data,
-// or nil if fb is nil.
+// Returns *ast_domain.PartialInvocationInfo which contains the unpacked data, or nil if
+// fb is nil.
 // Returns error when unpacking the location or property maps fails.
 func (d *decoder) unpackPartialInvocationInfo(fb *ast_schema_gen.PartialInvocationInfoFB) (*ast_domain.PartialInvocationInfo, error) {
 	if fb == nil {
@@ -714,8 +704,8 @@ func (d *decoder) unpackPartialInvocationInfo(fb *ast_schema_gen.PartialInvocati
 
 // unpackPropValue converts a FlatBuffer property value into a domain model.
 //
-// Takes fb (*ast_schema_gen.PropValueFB) which is the serialised property
-// value to convert.
+// Takes fb (*ast_schema_gen.PropValueFB) which is the serialised property value to
+// convert.
 //
 // Returns ast_domain.PropValue which is the converted domain model.
 // Returns error when any nested unpacking operation fails.

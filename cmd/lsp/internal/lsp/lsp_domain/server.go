@@ -43,19 +43,17 @@ import (
 )
 
 const (
-	// shutdownGracePeriod is the longest time to wait for background goroutines
-	// to finish during server shutdown.
+	// shutdownGracePeriod is the longest time to wait for background goroutines to finish
+	// during server shutdown.
 	shutdownGracePeriod = 10 * time.Second
 
-	// maxConcurrentAnalysis limits how many analysis tasks can run at the same
-	// time. This applies to bulk operations like DidChangeWatchedFiles and
-	// ExecuteCommand.
+	// maxConcurrentAnalysis limits how many analysis tasks can run at the same time. This
+	// applies to bulk operations like DidChangeWatchedFiles and ExecuteCommand.
 	maxConcurrentAnalysis = 4
 )
 
-// Server holds the state for the language server. It implements the
-// protocol.Server interface and manages the workspace which tracks all open
-// documents.
+// Server holds the state for the language server. It implements the protocol.Server
+// interface and manages the workspace which tracks all open documents.
 type Server struct {
 	// formatter provides document formatting using the FormatterService interface.
 	formatter formatter_domain.FormatterService
@@ -63,8 +61,8 @@ type Server struct {
 	// conn is the JSON-RPC connection used to send messages to the client.
 	conn jsonrpc2.Conn
 
-	// serverCtx is the root context for all server operations. It is
-	// cancelled during Shutdown to signal background goroutines to stop.
+	// serverCtx is the root context for all server operations. It is cancelled during
+	// Shutdown to signal background goroutines to stop.
 	serverCtx context.Context
 
 	// fsReader reads files from the file system for LSP operations.
@@ -100,8 +98,8 @@ type Server struct {
 	// clock provides time operations for shutdown timeouts.
 	clock clock.Clock
 
-	// backgroundWg tracks background goroutines started by the server.
-	// Shutdown waits for all tracked goroutines to finish before it returns.
+	// backgroundWg tracks background goroutines started by the server. Shutdown waits for
+	// all tracked goroutines to finish before it returns.
 	backgroundWg sync.WaitGroup
 
 	// mu guards mutable server state during concurrent access.
@@ -143,8 +141,7 @@ type ServerDeps struct {
 
 // NewServer creates a new language server with the given dependencies.
 //
-// Takes deps (ServerDeps) which provides all required dependencies for the
-// server.
+// Takes deps (ServerDeps) which provides all required dependencies for the server.
 //
 // Returns *Server which is the configured language server ready for use.
 func NewServer(deps ServerDeps) *Server {
@@ -167,11 +164,10 @@ func NewServer(deps ServerDeps) *Server {
 
 // SetClient assigns the LSP client interface for server-to-client messages.
 //
-// Takes client (protocol.Client) which handles messages sent from server to
-// client.
+// Takes client (protocol.Client) which handles messages sent from server to client.
 //
-// Safe for concurrent use. Acquires both the server and workspace mutexes to
-// ensure client updates are atomic.
+// Safe for concurrent use. Acquires both the server and workspace mutexes to ensure
+// client updates are atomic.
 func (s *Server) SetClient(client protocol.Client) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -186,8 +182,8 @@ func (s *Server) SetClient(client protocol.Client) {
 //
 // Takes conn (jsonrpc2.Conn) which is the connection to use for messaging.
 //
-// Safe for concurrent use. Acquires both the server and workspace mutexes to
-// ensure connection updates are atomic.
+// Safe for concurrent use. Acquires both the server and workspace mutexes to ensure
+// connection updates are atomic.
 func (s *Server) SetConn(conn jsonrpc2.Conn) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -198,18 +194,18 @@ func (s *Server) SetConn(conn jsonrpc2.Conn) {
 	}
 }
 
-// Initialize initialises the server in response to the first request from the
-// client, configuring capabilities and the workspace root.
+// Initialize initialises the server in response to the first request from the client,
+// configuring capabilities and the workspace root.
 //
-// Takes params (*protocol.InitializeParams) which contains the client's
-// initialisation settings and workspace information.
+// Takes params (*protocol.InitializeParams) which contains the client's initialisation
+// settings and workspace information.
 //
-// Returns *protocol.InitializeResult which contains the server's capabilities
-// and version information.
+// Returns *protocol.InitializeResult which contains the server's capabilities and version
+// information.
 // Returns error when workspace path configuration fails.
 //
-// Safe for concurrent use; protected by mutex. Creates a server-scoped context
-// that is cancelled during Shutdown to stop background goroutines.
+// Safe for concurrent use; protected by mutex. Creates a server-scoped context that is
+// cancelled during Shutdown to stop background goroutines.
 func (s *Server) Initialize(ctx context.Context, params *protocol.InitializeParams) (*protocol.InitializeResult, error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -246,8 +242,7 @@ func (s *Server) Initialize(ctx context.Context, params *protocol.InitializePara
 	}, nil
 }
 
-// Initialized handles the notification that the client has finished its
-// initialisation.
+// Initialized handles the notification that the client has finished its initialisation.
 //
 // Returns error when the notification cannot be processed.
 func (*Server) Initialized(ctx context.Context, _ *protocol.InitializedParams) error {
@@ -271,8 +266,8 @@ func (*Server) SetTrace(ctx context.Context, params *protocol.SetTraceParams) er
 
 // LogTrace handles trace logging messages from the client.
 //
-// Takes params (*protocol.LogTraceParams) which contains the trace message and
-// verbosity level.
+// Takes params (*protocol.LogTraceParams) which contains the trace message and verbosity
+// level.
 //
 // Returns error which is always nil as logging does not fail.
 func (*Server) LogTrace(ctx context.Context, params *protocol.LogTraceParams) error {
@@ -282,11 +277,10 @@ func (*Server) LogTrace(ctx context.Context, params *protocol.LogTraceParams) er
 	return nil
 }
 
-// WorkDoneProgressCancel handles a request to cancel a work-in-progress
-// operation.
+// WorkDoneProgressCancel handles a request to cancel an in-flight progress operation.
 //
-// Takes params (*protocol.WorkDoneProgressCancelParams) which identifies the
-// operation to cancel.
+// Takes params (*protocol.WorkDoneProgressCancelParams) which identifies the operation to
+// cancel.
 //
 // Returns error when the cancellation fails.
 func (*Server) WorkDoneProgressCancel(ctx context.Context, params *protocol.WorkDoneProgressCancelParams) error {
@@ -296,9 +290,8 @@ func (*Server) WorkDoneProgressCancel(ctx context.Context, params *protocol.Work
 	return nil
 }
 
-// Request handles custom or non-standard LSP requests.
-// This includes LSP 3.17 features like Inlay Hints that are not in the protocol
-// library's Server interface.
+// Request handles custom or non-standard LSP requests. This includes LSP 3.17 features
+// like Inlay Hints that are not in the protocol library's Server interface.
 //
 // Takes method (string) which specifies the LSP method name to handle.
 // Takes params (any) which contains the request parameters.
@@ -328,10 +321,10 @@ func (s *Server) Request(ctx context.Context, method string, params any) (any, e
 //
 // Returns error when the shutdown fails.
 //
-// Cancels the server context to signal all background goroutines to stop,
-// then waits up to the shutdown grace period for them to finish. Workspace
-// goroutines are drained via workspace.Close so diagnostics-publishing
-// goroutines spawned via context.WithoutCancel cannot leak past shutdown.
+// Cancels the server context to signal all background goroutines to stop, then waits up
+// to the shutdown grace period for them to finish. Workspace goroutines are drained via
+// workspace.Close so diagnostics-publishing goroutines spawned via context.WithoutCancel
+// cannot leak past shutdown.
 //
 // Safe for concurrent use.
 func (s *Server) Shutdown(ctx context.Context) error {
@@ -389,16 +382,13 @@ func (*Server) Exit(ctx context.Context) error {
 	return nil
 }
 
-// goBackground spawns a tracked background task that respects
-// server shutdown, adding it to the WaitGroup so Shutdown waits
-// for it to finish.
+// goBackground spawns a tracked background task that respects server shutdown, adding it
+// to the WaitGroup so Shutdown waits for it to finish.
 //
-// Takes operation (func(context.Context)) which is the function to run.
-// The function receives the server context, which will be
-// cancelled during Shutdown.
+// Takes operation (func(context.Context)) which is the function to run. The function
+// receives the server context, which will be cancelled during Shutdown.
 //
-// Concurrent use is safe. Spawns a goroutine that runs operation
-// with the server context.
+// Concurrent use is safe. Spawns a goroutine that runs operation with the server context.
 // The goroutine is tracked by backgroundWg so Shutdown waits for it to finish.
 func (s *Server) goBackground(operation func(context.Context)) {
 	s.mu.Lock()
@@ -414,8 +404,8 @@ func (s *Server) goBackground(operation func(context.Context)) {
 	})
 }
 
-// runBoundedAnalysis runs analysis on multiple URIs with limited concurrency.
-// This stops resource exhaustion when many files change at once.
+// runBoundedAnalysis runs analysis on multiple URIs with limited concurrency. This stops
+// resource exhaustion when many files change at once.
 //
 // Takes uris ([]protocol.DocumentURI) which specifies the files to analyse.
 // Takes operationName (string) which describes the operation for logging.
@@ -460,11 +450,11 @@ func (s *Server) runBoundedAnalysis(ctx context.Context, uris []protocol.Documen
 	}
 }
 
-// extractRootURI gets the root URI from the given parameters.
-// It prefers WorkspaceFolders over the older RootURI field.
+// extractRootURI gets the root URI from the given parameters. It prefers WorkspaceFolders
+// over the older RootURI field.
 //
-// Takes params (*protocol.InitializeParams) which holds the workspace folders
-// and root URI from the client.
+// Takes params (*protocol.InitializeParams) which holds the workspace folders and root
+// URI from the client.
 //
 // Returns protocol.DocumentURI which is the root URI of the workspace.
 func (*Server) extractRootURI(params *protocol.InitializeParams) protocol.DocumentURI {
@@ -474,11 +464,10 @@ func (*Server) extractRootURI(params *protocol.InitializeParams) protocol.Docume
 	return params.RootURI //nolint:staticcheck // fallback for older clients
 }
 
-// configureWorkspacePaths sets up the configuration with the workspace root
-// path.
+// configureWorkspacePaths sets up the configuration with the workspace root path.
 //
-// Takes rootURI (protocol.DocumentURI) which specifies the workspace root as
-// a URI to be converted to a file system path.
+// Takes rootURI (protocol.DocumentURI) which specifies the workspace root as a URI to be
+// converted to a file system path.
 //
 // Returns error when the URI cannot be converted to a valid path.
 func (s *Server) configureWorkspacePaths(ctx context.Context, rootURI protocol.DocumentURI) error {
@@ -503,15 +492,14 @@ func (s *Server) configureWorkspacePaths(ctx context.Context, rootURI protocol.D
 	return nil
 }
 
-// ensureTypeDefinitionsIfNotExists writes TypeScript type definitions to
-// dist/ts/ only if they do not already exist. This provides a way to set up
-// IDE support before the dev server has been run.
+// ensureTypeDefinitionsIfNotExists writes TypeScript type definitions to dist/ts/ only if
+// they do not already exist. This provides a way to set up IDE support before the dev
+// server has been run.
 //
-// The dev server writes type definitions when it starts, so this only fills in
-// the gap when the LSP is opened before the dev server.
+// The dev server writes type definitions when it starts, so this only fills in the gap
+// when the LSP is opened before the dev server.
 //
-// Takes rootPath (string) which is the project root directory containing the
-// dist folder.
+// Takes rootPath (string) which is the project root directory containing the dist folder.
 //
 // Errors are logged but do not stop LSP startup.
 func (*Server) ensureTypeDefinitionsIfNotExists(ctx context.Context, rootPath string) {
@@ -537,11 +525,11 @@ func (*Server) ensureTypeDefinitionsIfNotExists(ctx context.Context, rootPath st
 
 // buildServerCapabilities creates the server capabilities for the LSP response.
 //
-// Takes formattingEnabled (bool) which controls whether formatting features
-// are shown to the client.
+// Takes formattingEnabled (bool) which controls whether formatting features are shown to
+// the client.
 //
-// Returns protocol.ServerCapabilities which lists the features this server
-// supports, including text sync, hover, completion, and optionally formatting.
+// Returns protocol.ServerCapabilities which lists the features this server supports,
+// including text sync, hover, completion, and optionally formatting.
 func buildServerCapabilities(formattingEnabled bool) protocol.ServerCapabilities {
 	return protocol.ServerCapabilities{
 		TextDocumentSync: protocol.TextDocumentSyncOptions{
@@ -572,8 +560,8 @@ func buildServerCapabilities(formattingEnabled bool) protocol.ServerCapabilities
 //
 // Takes enabled (bool) which controls whether on-type formatting is available.
 //
-// Returns *protocol.DocumentOnTypeFormattingOptions which lists the characters
-// that start formatting as the user types, or nil if disabled.
+// Returns *protocol.DocumentOnTypeFormattingOptions which lists the characters that start
+// formatting as the user types, or nil if disabled.
 func buildOnTypeFormattingOptions(enabled bool) *protocol.DocumentOnTypeFormattingOptions {
 	if !enabled {
 		return nil

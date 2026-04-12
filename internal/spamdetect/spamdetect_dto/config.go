@@ -18,28 +18,27 @@
 
 package spamdetect_dto
 
-import "time"
+import (
+	"time"
+)
 
 const (
-	// defaultScoreThreshold is the composite score above which a submission
-	// is rejected.
+	// defaultScoreThreshold is the composite score above which a submission is rejected.
 	defaultScoreThreshold = 0.7
 
-	// defaultTimeout is the maximum duration to wait for all detectors to
-	// respond.
+	// defaultTimeout is the maximum duration to wait for all detectors to respond.
 	defaultTimeout = 3 * time.Second
 
-	// maxDetectorCount is the upper bound on registered detectors to
-	// prevent unbounded goroutine fan-out during parallel analysis.
+	// maxDetectorCount is the upper bound on registered detectors to prevent unbounded
+	// goroutine fan-out during parallel analysis.
 	maxDetectorCount = 64
 
-	// DefaultFeedbackCacheSize is the number of recent analysis results
-	// cached for feedback correlation.
+	// DefaultFeedbackCacheSize is the number of recent analysis results cached for feedback
+	// correlation.
 	DefaultFeedbackCacheSize = 1000
 
-	// maxFeedbackCacheSize is the upper bound on feedback cache entries
-	// so a misconfiguration like math.MaxInt cannot allocate beyond this
-	// ceiling.
+	// maxFeedbackCacheSize is the upper bound on feedback cache entries so a
+	// misconfiguration like math.MaxInt cannot allocate beyond this ceiling.
 	maxFeedbackCacheSize = 1_000_000
 )
 
@@ -47,8 +46,8 @@ const (
 type ServiceConfig struct {
 	// DetectorWeights maps detector names to their scoring weight.
 	//
-	// Detectors not present in this map default to a weight of 1.0.
-	// Schema-level weights (via DetectorWeight) take precedence.
+	// Detectors not present in this map default to a weight of 1.0. Schema-level weights
+	// (via DetectorWeight) take precedence.
 	DetectorWeights map[string]float64
 
 	// Timeout is the maximum duration to wait for all detectors.
@@ -56,22 +55,20 @@ type ServiceConfig struct {
 	// Detectors that have not responded are excluded from scoring. Default 3s.
 	Timeout time.Duration
 
-	// ScoreThreshold is the default composite score above which a submission
-	// is rejected.
+	// ScoreThreshold is the default composite score above which a submission is rejected.
 	//
 	// Individual schemas can override this via Threshold(). Default 0.7.
 	ScoreThreshold float64
 
-	// FeedbackCacheSize is the number of recent analysis results to cache
-	// for feedback correlation, clamped to MaxFeedbackCacheSize when set
-	// (default 1000).
+	// FeedbackCacheSize is the number of recent analysis results to cache for feedback
+	// correlation, clamped to MaxFeedbackCacheSize when set (default 1000).
 	FeedbackCacheSize int
 }
 
 // DefaultServiceConfig returns a ServiceConfig with sensible defaults.
 //
-// Returns *ServiceConfig which is set up with a 0.7 score threshold,
-// 3-second timeout, and 1000-entry feedback cache.
+// Returns *ServiceConfig which is set up with a 0.7 score threshold, 3-second timeout,
+// and 1000-entry feedback cache.
 func DefaultServiceConfig() *ServiceConfig {
 	return &ServiceConfig{
 		ScoreThreshold:    defaultScoreThreshold,

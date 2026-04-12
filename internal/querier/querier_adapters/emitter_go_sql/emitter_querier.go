@@ -28,11 +28,10 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// EmitQuerier generates the top-level querier scaffold containing the DBTX
-// interface, Queries struct, New constructor, and WithTx helper.
+// EmitQuerier generates the top-level querier scaffold containing the DBTX interface,
+// Queries struct, New constructor, and WithTx helper.
 //
-// Takes packageName (string) which is the Go package name for the generated
-// code.
+// Takes packageName (string) which is the Go package name for the generated code.
 //
 // Returns querier_dto.GeneratedFile which contains the querier.go source.
 // Returns error when code generation fails.
@@ -88,8 +87,8 @@ func buildDBTXInterface() *ast.GenDecl {
 	})
 }
 
-// buildDBTXMethod constructs an interface method with the common signature
-// pattern: (ctx context.Context, query string, args ...any) (results).
+// buildDBTXMethod constructs an interface method with the common signature pattern: (ctx
+// context.Context, query string, args ...any) (results).
 //
 // Takes name (string) which is the method name.
 // Takes results (*ast.FieldList) which defines the return types.
@@ -114,8 +113,8 @@ func buildDBTXMethod(name string, results *ast.FieldList) *ast.Field {
 	}
 }
 
-// buildDBTXQueryRowMethod constructs the QueryRowContext interface method which
-// returns a single *sql.Row (no error in signature).
+// buildDBTXQueryRowMethod constructs the QueryRowContext interface method which returns a
+// single *sql.Row (no error in signature).
 //
 // Returns *ast.Field which is the QueryRowContext method declaration.
 func buildDBTXQueryRowMethod() *ast.Field {
@@ -175,8 +174,8 @@ func buildNewFunction() *ast.FuncDecl {
 	)
 }
 
-// buildNewWithReplicaFunction constructs the NewWithReplica(writer, reader DBTX)
-// *Queries constructor for read/write splitting.
+// buildNewWithReplicaFunction constructs the NewWithReplica(writer, reader DBTX) *Queries
+// constructor for read/write splitting.
 //
 // Returns *ast.FuncDecl which is the NewWithReplica function declaration.
 func buildNewWithReplicaFunction() *ast.FuncDecl {
@@ -203,8 +202,8 @@ func buildNewWithReplicaFunction() *ast.FuncDecl {
 	)
 }
 
-// buildWithTxMethod constructs the WithTx(transaction *sql.Tx) *Queries method
-// on the Queries struct.
+// buildWithTxMethod constructs the WithTx(transaction *sql.Tx) *Queries method on the
+// Queries struct.
 //
 // Returns *ast.FuncDecl which is the WithTx method declaration with receiver.
 func buildWithTxMethod() *ast.FuncDecl {
@@ -235,9 +234,8 @@ func buildWithTxMethod() *ast.FuncDecl {
 	}
 }
 
-// buildRunInTxMethod constructs the RunInTx method on the Queries struct,
-// providing a convenience wrapper for running a function inside a database
-// transaction.
+// buildRunInTxMethod constructs the RunInTx method on the Queries struct, providing a
+// convenience wrapper for running a function inside a database transaction.
 //
 // Returns *ast.FuncDecl which is the RunInTx method declaration.
 func buildRunInTxMethod() *ast.FuncDecl {
@@ -272,8 +270,8 @@ func buildRunInTxParams() *ast.FieldList {
 	)
 }
 
-// buildRunInTxBody constructs the body statements for the RunInTx method,
-// including BeginTx, defer Rollback, fn call, and Commit.
+// buildRunInTxBody constructs the body statements for the RunInTx method, including
+// BeginTx, defer Rollback, fn call, and Commit.
 //
 // Returns []ast.Stmt which are the method body statements.
 func buildRunInTxBody() []ast.Stmt {

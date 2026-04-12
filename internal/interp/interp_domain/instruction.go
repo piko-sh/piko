@@ -18,18 +18,20 @@
 
 package interp_domain
 
-import "fmt"
+import (
+	"fmt"
+
+	"piko.sh/piko/wdk/safeconv"
+)
 
 // instruction is a compact 4-byte bytecode instruction.
 //
-// The format is [Op][A][B][C] where each field is a uint8.
-// For most instructions:
-//   - A is the destination register
-//   - B and C are source registers or immediates
+// The format is Op[A][B][C] where each field is a uint8. For most instructions, A is the
+// destination register and B and C are source registers or immediates.
 //
-// For jump instructions, B|(C<<8) forms a signed 16-bit offset.
-// For instructions needing wider operands, an opExt instruction
-// follows with A|(B<<8)|(C<<16) forming a 24-bit payload.
+// For jump instructions, B|(C<<8) forms a signed 16-bit offset. For instructions needing
+// wider operands, an opExt instruction follows with A|(B<<8)|(C<<16) forming a 24-bit
+// payload.
 type instruction struct {
 	// op is the opcode identifying the operation to perform.
 	op opcode
@@ -37,17 +39,17 @@ type instruction struct {
 	// a is the first operand, typically the destination register index.
 	a uint8
 
-	// b is the second operand, typically a source register index or
-	// the low byte of a wide immediate.
+	// b is the second operand, typically a source register index or the low byte of a wide
+	// immediate.
 	b uint8
 
-	// c is the third operand, typically a source register index or
-	// the high byte of a wide immediate.
+	// c is the third operand, typically a source register index or the high byte of a wide
+	// immediate.
 	c uint8
 }
 
-// String returns a human-readable representation of the instruction
-// for debugging and disassembly.
+// String returns a human-readable representation of the instruction for debugging and
+// disassembly.
 //
 // Returns a formatted string showing the opcode and operand values.
 func (i instruction) String() string {
@@ -80,15 +82,14 @@ func makeInstruction(op opcode, a, b, c uint8) instruction {
 	return instruction{op: op, a: a, b: b, c: c}
 }
 
-// splitWide splits a uint16 into low and high bytes for bytecode
-// B|C encoding.
+// splitWide splits a uint16 into low and high bytes for bytecode B|C encoding.
 //
 // Takes value (uint16) which is the wide operand to split.
 //
 // Returns lo (uint8) which is the low byte (stored in B).
 // Returns hi (uint8) which is the high byte (stored in C).
 func splitWide(value uint16) (lo, hi uint8) {
-	return uint8(value), uint8(value >> 8) //nolint:gosec // intentional byte extraction
+	return uint8(value), uint8(value >> 8) //nolint:gosec // byte split: low/high halves of a uint16 are bit-exact
 }
 
 // joinWide reconstructs a uint16 from low and high bytes.
@@ -101,8 +102,8 @@ func joinWide(lo, hi uint8) uint16 {
 	return uint16(lo) | uint16(hi)<<wideBitShift
 }
 
-// decodeExtension24 reconstructs a 24-bit unsigned integer from the
-// three fields of an opExt instruction (a=low, b=mid, c=high byte).
+// decodeExtension24 reconstructs a 24-bit unsigned integer from the three fields of an
+// opExt instruction (a=low, b=mid, c=high byte).
 //
 // Takes ext (instruction) which is the extension instruction.
 //
@@ -111,24 +112,23 @@ func decodeExtension24(ext instruction) int {
 	return int(ext.a) | int(ext.b)<<wideBitShift | int(ext.c)<<(2*wideBitShift)
 }
 
-// splitOffset splits a signed 16-bit jump offset into low and high
-// bytes, preserving two's complement representation.
+// splitOffset splits a signed 16-bit jump offset into low and high bytes, preserving
+// two's complement representation.
 //
 // Takes offset (int16) which is the signed offset to split.
 //
 // Returns lo (uint8) which is the low byte.
 // Returns hi (uint8) which is the high byte.
 func splitOffset(offset int16) (lo, hi uint8) {
-	return splitWide(uint16(offset)) //nolint:gosec // two's complement preserved
+	return splitWide(safeconv.Int16ToUint16(offset))
 }
 
-// joinOffset reconstructs a signed 16-bit jump offset from low and
-// high bytes.
+// joinOffset reconstructs a signed 16-bit jump offset from low and high bytes.
 //
 // Takes lo (uint8) which is the low byte.
 // Takes hi (uint8) which is the high byte.
 //
 // Returns the reconstructed int16 offset.
 func joinOffset(lo, hi uint8) int16 {
-	return int16(joinWide(lo, hi)) //nolint:gosec // intentional reinterpretation
+	return safeconv.Uint16ToInt16(joinWide(lo, hi))
 }

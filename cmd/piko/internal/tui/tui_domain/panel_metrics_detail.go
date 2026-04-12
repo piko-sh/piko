@@ -25,19 +25,18 @@ import (
 	"piko.sh/piko/cmd/piko/internal/inspector"
 )
 
-// metricHistoryStep is the assumed spacing between metric history
-// samples. Matches the default refresh interval; the chart renders
-// trends rather than absolute timestamps so a small drift here is
-// harmless.
-const metricHistoryStep = 2 * time.Second
+const (
+	// metricHistoryStep is the assumed spacing between metric history samples. Matches the
+	// default refresh interval; the chart renders trends rather than absolute timestamps so
+	// a small drift here is harmless.
+	metricHistoryStep = 2 * time.Second
+)
 
-// DetailView renders the detail-pane body for the row currently under
-// the cursor. Metric rows show recent values + a high-fidelity history
-// chart in the lower portion of the pane; the panel-level summary
-// lists all metrics by name when no row is selected.
+// DetailView renders the detail-pane body for the row currently under the cursor. Metric
+// rows show recent values + a high-fidelity history chart in the lower portion of the
+// pane; the panel-level summary lists all metrics by name when no row is selected.
 //
-// Takes width (int) and height (int) which are the inner dimensions
-// of the detail pane.
+// Takes width (int) and height (int) which are the inner dimensions of the detail pane.
 //
 // Returns string with the rendered body.
 func (p *MetricsPanel) DetailView(width, height int) string {
@@ -49,10 +48,10 @@ func (p *MetricsPanel) DetailView(width, height int) string {
 	return RenderDetailBody(nil, p.metricsOverviewDetailBody(), width, height)
 }
 
-// metricChartSeries converts the metric's history values into a
-// ChartSeries with synthetic timestamps spaced one refresh apart. The
-// underlying history ring stores raw values without their original
-// timestamps; spacing them evenly is good enough for trend display.
+// metricChartSeries converts the metric's history values into a ChartSeries with
+// synthetic timestamps spaced one refresh apart. The underlying history ring stores raw
+// values without their original timestamps; spacing them evenly is good enough for trend
+// display.
 //
 // Takes m (*metricDisplay) which holds the history values.
 // Takes now (time.Time) which is the time the chart is being rendered.

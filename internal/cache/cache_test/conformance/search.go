@@ -128,8 +128,7 @@ func runSearchTests(t *testing.T, config ProductConfig) {
 	})
 }
 
-// testSupportsSearch verifies that a search-configured cache reports search
-// support.
+// testSupportsSearch verifies that a search-configured cache reports search support.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory to test.
@@ -143,8 +142,8 @@ func testSupportsSearch(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testGetSchema verifies that GetSchema returns a non-nil schema for a
-// search-configured cache.
+// testGetSchema verifies that GetSchema returns a non-nil schema for a search-configured
+// cache.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory and settings.
@@ -159,8 +158,8 @@ func testGetSchema(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testSearchEmptyCache verifies that searching an empty cache returns an empty
-// result without error.
+// testSearchEmptyCache verifies that searching an empty cache returns an empty result
+// without error.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory and settings.
@@ -218,8 +217,8 @@ func testSearchBasicQuery(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testSearchNoMatches verifies that searching for a non-existent term returns
-// an empty result set.
+// testSearchNoMatches verifies that searching for a non-existent term returns an empty
+// result set.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory for testing.
@@ -243,8 +242,7 @@ func testSearchNoMatches(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testQueryFilterEq tests that the Eq filter correctly matches items by field
-// value.
+// testQueryFilterEq tests that the Eq filter correctly matches items by field value.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory and settings.
@@ -362,8 +360,8 @@ func testQueryFilterGe(t *testing.T, config ProductConfig) {
 	}, "Filter Ge(50) should only return price >= 50: got %f")
 }
 
-// testQueryFilterLt verifies that the less-than filter returns only products
-// with prices below the threshold.
+// testQueryFilterLt verifies that the less-than filter returns only products with prices
+// below the threshold.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the test configuration.
@@ -383,8 +381,8 @@ func testQueryFilterLe(t *testing.T, config ProductConfig) {
 	}, "Filter Le(50) should only return price <= 50: got %f")
 }
 
-// testQueryFilterIn verifies that the cache query correctly filters products
-// using the In filter operator.
+// testQueryFilterIn verifies that the cache query correctly filters products using the In
+// filter operator.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory and settings.
@@ -418,8 +416,8 @@ func testQueryFilterIn(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testQueryFilterBetween tests that the Between filter returns only products
-// within the specified price range.
+// testQueryFilterBetween tests that the Between filter returns only products within the
+// specified price range.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory for testing.
@@ -456,8 +454,7 @@ func testQueryFilterBetween(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testQueryFilterPrefix verifies that prefix filtering returns only matching
-// items.
+// testQueryFilterPrefix verifies that prefix filtering returns only matching items.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory and settings.
@@ -491,8 +488,8 @@ func testQueryFilterPrefix(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testQueryMultipleFilters verifies that multiple query filters are combined
-// with AND logic.
+// testQueryMultipleFilters verifies that multiple query filters are combined with AND
+// logic.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory and settings.
@@ -570,8 +567,7 @@ func runProductSortTest(t *testing.T, config ProductConfig, sortOrder cache_dto.
 	}
 }
 
-// testQuerySortAscending verifies that products are sorted by price in
-// ascending order.
+// testQuerySortAscending verifies that products are sorted by price in ascending order.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the test configuration.
@@ -581,8 +577,8 @@ func testQuerySortAscending(t *testing.T, config ProductConfig) {
 	}, "Sort ascending should order by price: got %f before %f")
 }
 
-// testQuerySortDescending tests that query results are sorted in descending
-// order by price.
+// testQuerySortDescending tests that query results are sorted in descending order by
+// price.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the product cache configuration.
@@ -633,8 +629,8 @@ func testQueryPagination(t *testing.T, config ProductConfig) {
 	}
 }
 
-// testQueryHasMore verifies that query results correctly report when more
-// results are available.
+// testQueryHasMore verifies that query results correctly report when more results are
+// available.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (ProductConfig) which provides the cache factory and settings.

@@ -20,7 +20,9 @@
 
 package ast_test_bench
 
-import "testing"
+import (
+	"testing"
+)
 
 type TokenType uint8
 

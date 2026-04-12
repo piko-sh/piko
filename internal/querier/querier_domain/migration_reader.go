@@ -42,28 +42,27 @@ type migrationFile struct {
 	index int
 }
 
-// queryBlock holds a single query extracted from a multi-query file, together
-// with its starting line offset for source mapping.
+// queryBlock holds a single query extracted from a multi-query file, together with its
+// starting line offset for source mapping.
 type queryBlock struct {
 	// sql holds the SQL text of this query block.
 	sql string
 
-	// startLine holds the one-based line number where this block begins in
-	// the original file.
+	// startLine holds the one-based line number where this block begins in the original
+	// file.
 	startLine int
 }
 
 // readMigrationFiles reads and sorts SQL files from the given directory.
 //
-// Down migration files (.down.sql) are skipped. Files are sorted
-// lexicographically by filename.
+// Down migration files (.down.sql) are skipped. Files are sorted lexicographically by
+// filename.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes fileReader (FileReaderPort) which provides filesystem access.
 // Takes directory (string) which is the path to the migration files directory.
 //
-// Returns []migrationFile which holds the sorted migration files with their
-// content.
+// Returns []migrationFile which holds the sorted migration files with their content.
 // Returns error when the directory cannot be read or a file cannot be loaded.
 func readMigrationFiles(
 	ctx context.Context,
@@ -108,9 +107,8 @@ func readMigrationFiles(
 	return files, nil
 }
 
-// warnNonConformingMigrationFiles checks a directory for .sql files that do
-// not follow the .up.sql or .down.sql naming convention and returns warning
-// diagnostics for each.
+// warnNonConformingMigrationFiles checks a directory for .sql files that do not follow
+// the .up.sql or .down.sql naming convention and returns warning diagnostics for each.
 //
 // Takes fileReader (FileReaderPort) which provides filesystem access.
 // Takes directory (string) which is the path to the migration files directory.
@@ -151,21 +149,22 @@ func warnNonConformingMigrationFiles(
 	return diagnostics
 }
 
-// downMigrationMarkers are the recognised markers that indicate the start of
-// a down-migration section. Everything after a marker is stripped.
-var downMigrationMarkers = [][]byte{
-	[]byte("-- +migrate Down"),
-	[]byte("-- +goose Down"),
-	[]byte("-- migrate:down"),
-}
+var (
+	// downMigrationMarkers are the recognised markers that indicate the start of a
+	// down-migration section. Everything after a marker is stripped.
+	downMigrationMarkers = [][]byte{
+		[]byte("-- +migrate Down"),
+		[]byte("-- +goose Down"),
+		[]byte("-- migrate:down"),
+	}
+)
 
-// stripDownMigration removes everything after a recognised down-migration
-// marker. If no marker is found, the content is returned unchanged.
+// stripDownMigration removes everything after a recognised down-migration marker. If no
+// marker is found, the content is returned unchanged.
 //
 // Takes content ([]byte) which holds the raw migration file bytes.
 //
-// Returns []byte which holds the content with the down-migration section
-// stripped.
+// Returns []byte which holds the content with the down-migration section stripped.
 func stripDownMigration(content []byte) []byte {
 	for _, marker := range downMigrationMarkers {
 		if before, _, found := bytes.Cut(content, marker); found {
@@ -175,31 +174,28 @@ func stripDownMigration(content []byte) []byte {
 	return content
 }
 
-// queryNamePrefixForStyle returns the directive prefix that starts a new
-// query block, derived from the given comment style.
+// queryNamePrefixForStyle returns the directive prefix that starts a new query block,
+// derived from the given comment style.
 //
-// Takes style (querier_dto.CommentStyle) which specifies the SQL comment
-// syntax to use.
+// Takes style (querier_dto.CommentStyle) which specifies the SQL comment syntax to use.
 //
-// Returns string which holds the prefix string used to detect query name
-// directives.
+// Returns string which holds the prefix string used to detect query name directives.
 func queryNamePrefixForStyle(style querier_dto.CommentStyle) string {
 	return style.LinePrefix + " piko.name:"
 }
 
-// splitQueryFile splits a SQL file containing multiple queries into individual
-// query blocks.
+// splitQueryFile splits a SQL file containing multiple queries into individual query
+// blocks.
 //
-// Queries are separated by the piko.name: directive on each subsequent query.
-// Each block includes its starting line offset for source mapping. The comment
-// style determines the directive prefix.
+// Queries are separated by the piko.name: directive on each subsequent query. Each block
+// includes its starting line offset for source mapping. The comment style determines the
+// directive prefix.
 //
 // Takes content ([]byte) which holds the raw SQL file bytes.
-// Takes style (querier_dto.CommentStyle) which specifies the SQL comment
-// syntax to use for directive detection.
+// Takes style (querier_dto.CommentStyle) which specifies the SQL comment syntax to use
+// for directive detection.
 //
-// Returns []queryBlock which holds the individual query blocks with their
-// line offsets.
+// Returns []queryBlock which holds the individual query blocks with their line offsets.
 func splitQueryFile(content []byte, style querier_dto.CommentStyle) []queryBlock {
 	prefix := queryNamePrefixForStyle(style)
 	lines := strings.Split(string(content), "\n")

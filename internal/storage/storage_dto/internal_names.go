@@ -25,7 +25,6 @@ const (
 	// StorageProviderSystem is the name of the built-in system storage provider.
 	StorageProviderSystem = "system"
 
-	// StorageRepositoryDefault is the name of the default repository within a
-	// provider.
+	// StorageRepositoryDefault is the name of the default repository within a provider.
 	StorageRepositoryDefault = "default"
 )

@@ -30,23 +30,24 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// llmStreamEventBufferSize bounds the producer/consumer queue for
-// stream events so a slow consumer cannot lockstep the upstream.
-const llmStreamEventBufferSize = 16
+const (
+	// llmStreamEventBufferSize bounds the producer/consumer queue for stream events so a
+	// slow consumer cannot lockstep the upstream.
+	llmStreamEventBufferSize = 16
+)
 
 // Stream sends a streaming completion request to Ollama.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters including model and messages.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters
+// including model and messages.
 //
-// Returns <-chan llm_dto.StreamEvent which yields streaming events as they
-// arrive from the Ollama API.
+// Returns <-chan llm_dto.StreamEvent which yields streaming events as they arrive from
+// the Ollama API.
 // Returns error when the stream cannot be started.
 //
-// A processing task scheduled via streamWaitGroup.Go feeds events to the
-// returned channel until the stream completes or the context is
-// cancelled. The wait group is incremented so Close can drain active
-// streams before returning.
+// A processing task scheduled via streamWaitGroup.Go feeds events to the returned channel
+// until the stream completes or the context is cancelled. The wait group is incremented
+// so Close can drain active streams before returning.
 func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	ctx, l := logger.From(ctx, log)
 	streamCount.Add(ctx, 1)
@@ -75,8 +76,8 @@ func (p *ollamaProvider) Stream(ctx context.Context, request *llm_dto.Completion
 	return events, nil
 }
 
-// streamContext returns a context that is cancelled when either the caller's
-// context is cancelled or the provider is closed.
+// streamContext returns a context that is cancelled when either the caller's context is
+// cancelled or the provider is closed.
 //
 // Takes ctx (context.Context) which is the caller's context.
 //
@@ -95,9 +96,9 @@ func (p *ollamaProvider) streamContext(ctx context.Context) context.Context {
 	return merged
 }
 
-// processStream runs the Ollama chat with streaming and feeds events into
-// the channel. The caller is responsible for tracking the goroutine via
-// streamWaitGroup; processStream itself only owns the events channel.
+// processStream runs the Ollama chat with streaming and feeds events into the channel.
+// The caller is responsible for tracking the goroutine via streamWaitGroup; processStream
+// itself only owns the events channel.
 //
 // Takes chatRequest (*api.ChatRequest) which is the Ollama request.
 // Takes model (string) which is the model being used.
@@ -151,17 +152,16 @@ func (p *ollamaProvider) processStream(ctx context.Context, chatRequest *api.Cha
 	}
 }
 
-// buildStreamDoneEvent constructs the final StreamEvent from
-// Ollama stream completion data.
+// buildStreamDoneEvent constructs the final StreamEvent from Ollama stream completion
+// data.
 //
 // Takes model (string) which is the model name for the response.
-// Takes toolCalls ([]api.ToolCall) which holds any tool calls
-// made during the stream.
+// Takes toolCalls ([]api.ToolCall) which holds any tool calls made during the stream.
 // Takes promptTokens (int) which is the prompt token count.
 // Takes evalTokens (int) which is the completion token count.
 //
-// Returns llm_dto.StreamEvent which is the done event carrying
-// the final completion response.
+// Returns llm_dto.StreamEvent which is the done event carrying the final completion
+// response.
 func buildStreamDoneEvent(
 	model string, toolCalls []api.ToolCall, promptTokens, evalTokens int,
 ) llm_dto.StreamEvent {

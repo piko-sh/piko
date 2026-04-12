@@ -23,9 +23,9 @@ import (
 	"sync"
 )
 
-// WorkflowReceipt provides a handle to wait for workflow completion.
-// It is returned when dispatching or scheduling tasks and can be used
-// to block until all tasks in the workflow have completed.
+// WorkflowReceipt provides a handle to wait for workflow completion. It is returned when
+// dispatching or scheduling tasks and can be used to block until all tasks in the
+// workflow have completed.
 type WorkflowReceipt struct {
 	// doneCh signals workflow completion; receives an error or nil then closes.
 	doneCh chan error
@@ -37,8 +37,7 @@ type WorkflowReceipt struct {
 	once sync.Once
 }
 
-// Done returns a channel that receives an error (or nil) when the workflow
-// completes.
+// Done returns a channel that receives an error (or nil) when the workflow completes.
 //
 // Returns <-chan error which yields a single value when the workflow finishes.
 func (r *WorkflowReceipt) Done() <-chan error {
@@ -73,8 +72,8 @@ func (r *WorkflowReceipt) resolve(err error) {
 //
 // Takes workflowID (string) which identifies the workflow to track.
 //
-// Returns *WorkflowReceipt which provides a channel for waiting until the
-// workflow finishes.
+// Returns *WorkflowReceipt which provides a channel for waiting until the workflow
+// finishes.
 func newWorkflowReceipt(workflowID string) *WorkflowReceipt {
 	return &WorkflowReceipt{
 		doneCh:     make(chan error, 1),

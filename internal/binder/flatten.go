@@ -23,17 +23,16 @@ import (
 	"strconv"
 )
 
-// flattenMapToFormData converts a nested map[string]any into a flat
-// map[string][]string using bracket notation. This bridges JSON data to the
-// existing binder pipeline which expects form data.
+// flattenMapToFormData converts a nested map[string]any into a flat map[string][]string
+// using bracket notation. This bridges JSON data to the existing binder pipeline which
+// expects form data.
 //
 // Flattening rules:
-//   - Top-level keys become simple keys:
-//     {"name": "Alice"} -> {"name": ["Alice"]}
-//   - Nested maps use bracket notation:
-//     {"address": {"city": "London"}} -> {"address['city']": ["London"]}
-//   - Arrays use index notation:
-//     {"tags": ["a", "b"]} -> {"tags[0]": ["a"], "tags[1]": ["b"]}
+//   - Top-level keys become simple keys: {"name": "Alice"} -> {"name": ["Alice"]}
+//   - Nested maps use bracket notation: {"address": {"city": "London"}} ->
+//     {"address['city']": ["London"]}
+//   - Arrays use index notation: {"tags": ["a", "b"]} -> {"tags[0]": ["a"], "tags[1]":
+//     ["b"]}
 //   - Non-string leaf values are converted via fmt.Sprint
 //   - nil values are skipped
 //

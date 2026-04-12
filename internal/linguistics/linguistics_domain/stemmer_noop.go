@@ -18,9 +18,8 @@
 
 package linguistics_domain
 
-// NoOpStemmer is a stemmer that returns words unchanged.
-// It implements the StemmerPort interface and is used as the default when
-// no stemmer is configured.
+// NoOpStemmer is a stemmer that returns words unchanged. It implements the StemmerPort
+// interface and is used as the default when no stemmer is configured.
 //
 // Use this when:
 //   - No stemming is required for your use case
@@ -31,13 +30,15 @@ type NoOpStemmer struct {
 	language string
 }
 
-var _ StemmerPort = (*NoOpStemmer)(nil)
+var (
+	_ StemmerPort = (*NoOpStemmer)(nil)
+)
 
-// NewNoOpStemmer creates a no-op stemmer for the specified language.
-// The stemmer will return all words unchanged.
+// NewNoOpStemmer creates a no-op stemmer for the specified language. The stemmer will
+// return all words unchanged.
 //
-// Takes language (string) which is the language code to associate with this
-// stemmer. The language is normalised using ValidateLanguage.
+// Takes language (string) which is the language code to associate with this stemmer. The
+// language is normalised using ValidateLanguage.
 //
 // Returns *NoOpStemmer which implements StemmerPort but performs no stemming.
 func NewNoOpStemmer(language string) *NoOpStemmer {
@@ -46,8 +47,8 @@ func NewNoOpStemmer(language string) *NoOpStemmer {
 	}
 }
 
-// Stem returns the word unchanged. Satisfies the StemmerPort interface without
-// performing any actual stemming transformation.
+// Stem returns the word unchanged. Satisfies the StemmerPort interface without performing
+// any actual stemming transformation.
 //
 // Takes word (string) which is the word to "stem".
 //

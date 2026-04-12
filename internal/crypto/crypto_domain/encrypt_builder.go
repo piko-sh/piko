@@ -44,8 +44,8 @@ func (b *EncryptBuilder) Data(plaintext string) *EncryptBuilder {
 	return b
 }
 
-// KeyID sets the specific key ID to use for encryption.
-// If not set, the service's active key will be used.
+// KeyID sets the specific key ID to use for encryption. If not set, the service's active
+// key will be used.
 //
 // Takes keyID (string) which identifies the encryption key to use.
 //
@@ -57,8 +57,8 @@ func (b *EncryptBuilder) KeyID(keyID string) *EncryptBuilder {
 
 // Do executes the encryption operation.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Returns string which is the encrypted ciphertext.
 // Returns error when encryption fails.

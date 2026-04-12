@@ -20,9 +20,9 @@
 
 package vectormaths
 
-// euclidSqF32Kern computes the squared Euclidean distance between two float32
-// slices using ARM NEON SIMD (4 float32s per iteration). NEON is part of
-// the base arm64 ISA and always available.
+// euclidSqF32Kern computes the squared Euclidean distance between two float32 slices
+// using ARM NEON SIMD with an 8-way unrolled main loop (32 floats per iteration across 8
+// V-register accumulators). NEON is part of the base arm64 ISA and always available.
 //
 // Takes a ([]float32) which is the first vector.
 // Takes b ([]float32) which is the second vector.

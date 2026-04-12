@@ -125,8 +125,7 @@ func (p *Page) Clear(selector string) *Page {
 	return p
 }
 
-// Submit submits a form by clicking a submit button or triggering form
-// submission.
+// Submit submits a form by clicking a submit button or triggering form submission.
 //
 // Takes selector (string) which identifies the submit button or form element.
 //
@@ -244,8 +243,8 @@ func (p *Page) Scroll(selector string, position int) *Page {
 
 // Press presses one or more keys, supporting modifiers.
 //
-// Key format: "Enter", "Tab", "Shift+Enter", "Control+b", "Meta+k".
-// Multiple keys can be pressed in sequence by passing multiple arguments.
+// Key format: "Enter", "Tab", "Shift+Enter", "Control+b", "Meta+k". Multiple keys can be
+// pressed in sequence by passing multiple arguments.
 //
 // Takes keys (...string) which specifies the keys to press in sequence.
 //
@@ -262,8 +261,8 @@ func (p *Page) Press(keys ...string) *Page {
 	return p
 }
 
-// Type enters text character by character at the current cursor position.
-// Unlike Fill, this does not clear existing content.
+// Type enters text character by character at the current cursor position. Unlike Fill,
+// this does not clear existing content.
 //
 // Takes text (string) which is the text to type character by character.
 //
@@ -280,8 +279,8 @@ func (p *Page) Type(text string) *Page {
 	return p
 }
 
-// PressAndHold holds a key down for modifier combinations or hold actions.
-// Use Release to let go of the held key.
+// PressAndHold holds a key down for modifier combinations or hold actions. Use Release to
+// let go of the held key.
 //
 // Takes key (string) which specifies the key to hold down.
 //
@@ -313,8 +312,8 @@ func (p *Page) Release(key string) *Page {
 	return p
 }
 
-// SetCursor sets the cursor position within a contenteditable element.
-// The offset is counted as characters from the start of the text content.
+// SetCursor sets the cursor position within a contenteditable element. The offset is
+// counted as characters from the start of the text content.
 //
 // Takes selector (string) which identifies the contenteditable element.
 // Takes offset (int) which specifies the character position from the start.
@@ -332,8 +331,8 @@ func (p *Page) SetCursor(selector string, offset int) *Page {
 	return p
 }
 
-// Select selects text within an element by start and end offsets.
-// Offsets are counted as characters from the start of the text content.
+// Select selects text within an element by start and end offsets. Offsets are counted as
+// characters from the start of the text content.
 //
 // Takes selector (string) which identifies the element containing the text.
 // Takes start (int) which specifies the character offset to begin selection.
@@ -396,20 +395,19 @@ func (p *Page) CollapseToEnd() *Page {
 	return p
 }
 
-// PlaceCursorInElement places the cursor inside a child element of a parent
-// element, programmatically positioning the cursor inside inline elements
-// where Click() may not reliably position the cursor due to browser caret
-// behaviour.
+// PlaceCursorInElement places the cursor inside a child element of a parent element,
+// programmatically positioning the cursor inside inline elements where Click() may not
+// reliably position the cursor due to browser caret behaviour.
 //
-// Takes parentSelector (string) which is the selector for the parent/container
-// element (supports shadow DOM with >>>).
-// Takes childSelector (string) which is the CSS selector for the child element
-// within the parent.
+// Takes parentSelector (string) which is the selector for the parent/container element
+// (supports shadow DOM with >>>).
+// Takes childSelector (string) which is the CSS selector for the child element within the
+// parent.
 //
 // Returns *Page which enables method chaining.
 //
-// The cursor is placed at offset 1 within the first text node of the child
-// element, or at offset 0 if the text is empty.
+// The cursor is placed at offset 1 within the first text node of the child element, or at
+// offset 0 if the text is empty.
 func (p *Page) PlaceCursorInElement(parentSelector, childSelector string) *Page {
 	detail := fmt.Sprintf("%s -> %s", parentSelector, childSelector)
 	p.beforeAction("PlaceCursorInElement", detail)
@@ -436,8 +434,8 @@ func (p *Page) GetCursorOffset(selector string) int {
 	return offset
 }
 
-// GetSelectionRange returns the current selection start and end offsets within
-// an element. Returns (-1, -1) if there is no selection within the element.
+// GetSelectionRange returns the current selection start and end offsets within an
+// element. Returns (-1, -1) if there is no selection within the element.
 //
 // Takes selector (string) which identifies the element to query.
 //

@@ -18,10 +18,10 @@
 
 package inspector_domain
 
-// This file provides debug utilities for the TypeBuilder, allowing inspection
-// of the final, serialised TypeData artefact. It sanitises file paths and
-// filters output to keep debug information focused and portable, which is
-// critical for creating stable regression tests.
+// This file provides debug utilities for the TypeBuilder, allowing inspection of the
+// final, serialised TypeData artefact. It sanitises file paths and filters output to keep
+// debug information focused and portable, which is critical for creating stable
+// regression tests.
 
 import (
 	"errors"
@@ -30,20 +30,20 @@ import (
 	"slices"
 	"strings"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/inspector/inspector_dto"
+	"piko.sh/piko/internal/json"
 )
 
 // DumpFormat specifies the output format for type data dumps.
 type DumpFormat int
 
 const (
-	// DumpFormatReadable produces a human-friendly, sorted text output, ideal for
-	// golden file diffs.
+	// DumpFormatReadable produces a human-friendly, sorted text output, ideal for golden
+	// file diffs.
 	DumpFormatReadable DumpFormat = iota
 
-	// DumpFormatJSON produces a prettified JSON representation of the DTO, ideal
-	// for programmatic assertions.
+	// DumpFormatJSON produces a prettified JSON representation of the DTO, ideal for
+	// programmatic assertions.
 	DumpFormatJSON
 )
 
@@ -51,12 +51,12 @@ const (
 	// pathSeparator is the leading slash stripped when cleaning file paths.
 	pathSeparator = "/"
 
-	// modCachePlaceholder replaces the machine-specific GOMODCACHE path in
-	// sanitised output, making golden files portable across environments.
+	// modCachePlaceholder replaces the machine-specific GOMODCACHE path in sanitised output,
+	// making golden files portable across environments.
 	modCachePlaceholder = "$GOMODCACHE"
 
-	// gorootPlaceholder replaces the machine-specific GOROOT path in sanitised
-	// output, making golden files portable across Go installations.
+	// gorootPlaceholder replaces the machine-specific GOROOT path in sanitised output,
+	// making golden files portable across Go installations.
 	gorootPlaceholder = "$GOROOT"
 )
 
@@ -65,14 +65,14 @@ type DumpOptions struct {
 	// SanitisePathPrefix is the path prefix to remove from type paths in output.
 	SanitisePathPrefix string
 
-	// SanitiseModCachePrefix is the GOMODCACHE path prefix to replace with
-	// $GOMODCACHE in output. This makes golden files portable across machines
-	// with different module cache locations.
+	// SanitiseModCachePrefix is the GOMODCACHE path prefix to replace with $GOMODCACHE in
+	// output. This makes golden files portable across machines with different module cache
+	// locations.
 	SanitiseModCachePrefix string
 
-	// SanitiseGorootPrefix is the GOROOT path prefix to replace with $GOROOT
-	// in output. This makes golden files portable across Go installations
-	// where the standard library may be at different filesystem locations.
+	// SanitiseGorootPrefix is the GOROOT path prefix to replace with $GOROOT in output. This
+	// makes golden files portable across Go installations where the standard library may be
+	// at different filesystem locations.
 	SanitiseGorootPrefix string
 
 	// FilterPackagePrefixes lists package path prefixes to include in the output.
@@ -82,18 +82,15 @@ type DumpOptions struct {
 	Format DumpFormat
 }
 
-// DumpTypeData generates a string representation of the built TypeData
-// artefact.
+// DumpTypeData generates a string representation of the built TypeData artefact.
 //
-// Should only be called after a successful Build() operation.
-// It provides multiple formats and options for debugging and testing.
+// Should only be called after a successful Build() operation. It provides multiple
+// formats and options for debugging and testing.
 //
-// Takes opts (DumpOptions) which specifies the output format and filtering
-// options.
+// Takes opts (DumpOptions) which specifies the output format and filtering options.
 //
 // Returns string which contains the formatted TypeData representation.
-// Returns error when the builder has not been successfully run or
-// serialisation fails.
+// Returns error when the builder has not been successfully run or serialisation fails.
 //
 // Safe for concurrent use; holds a read lock during execution.
 func (m *TypeBuilder) DumpTypeData(opts DumpOptions) (string, error) {
@@ -137,8 +134,7 @@ func (m *TypeBuilder) DumpTypeData(opts DumpOptions) (string, error) {
 	}
 }
 
-// filterDTO returns a new TypeData with only the packages that match the given
-// prefixes.
+// filterDTO returns a new TypeData with only the packages that match the given prefixes.
 //
 // Takes td (*inspector_dto.TypeData) which provides the source type data.
 // Takes prefixes ([]string) which lists the package path prefixes to match.
@@ -172,9 +168,9 @@ func filterDTO(td *inspector_dto.TypeData, prefixes []string) *inspector_dto.Typ
 	return filtered
 }
 
-// sanitisePath removes a prefix from a file path and converts it to forward
-// slashes. It replaces GOROOT and module cache paths with $GOROOT and
-// $GOMODCACHE placeholders respectively.
+// sanitisePath removes a prefix from a file path and converts it to forward slashes. It
+// replaces GOROOT and module cache paths with $GOROOT and $GOMODCACHE placeholders
+// respectively.
 //
 // Takes path (string) which is the file path to sanitise.
 // Takes prefix (string) which is the primary prefix to strip from the path.
@@ -205,8 +201,8 @@ func sanitisePath(path, prefix, modCachePrefix, gorootPrefix string) string {
 	return filepath.ToSlash(path)
 }
 
-// sanitiseDTO replaces absolute file paths with relative paths in the given
-// TypeData structure. Changes are made in place.
+// sanitiseDTO replaces absolute file paths with relative paths in the given TypeData
+// structure. Changes are made in place.
 //
 // Takes td (*inspector_dto.TypeData) which is the type data to update.
 // Takes prefix (string) which is the path prefix to remove from file paths.
@@ -256,14 +252,13 @@ func sanitisePackageDTO(pkg *inspector_dto.Package, prefix, modCachePrefix, goro
 	}
 }
 
-// dumpReadable creates a sorted, readable text dump of the full TypeData
-// structure. It sorts all collections before output to ensure consistent
-// results.
+// dumpReadable creates a sorted, readable text dump of the full TypeData structure. It
+// sorts all collections before output to ensure consistent results.
 //
 // Takes td (*inspector_dto.TypeData) which is the type data to dump.
 //
-// Returns string which is the formatted text, or a placeholder message when td
-// is nil or empty.
+// Returns string which is the formatted text, or a placeholder message when td is nil or
+// empty.
 func dumpReadable(td *inspector_dto.TypeData) string {
 	var allLines []string
 
@@ -287,11 +282,11 @@ func dumpReadable(td *inspector_dto.TypeData) string {
 	return strings.Join(allLines, "\n")
 }
 
-// formatFileImportsLines formats file-scoped imports into readable lines.
-// This shared helper is used by both dumpPackageReadable and DebugPackageDTO.
+// formatFileImportsLines formats file-scoped imports into readable lines. This shared
+// helper is used by both dumpPackageReadable and DebugPackageDTO.
 //
-// Takes fileImports (map[string]map[string]string) which maps file paths to
-// their import alias-to-path pairs.
+// Takes fileImports (map[string]map[string]string) which maps file paths to their import
+// alias-to-path pairs.
 //
 // Returns []string which contains the formatted lines ready for display.
 func formatFileImportsLines(fileImports map[string]map[string]string) []string {
@@ -330,8 +325,8 @@ func formatFileImportsLines(fileImports map[string]map[string]string) []string {
 //
 // Takes pkg (*inspector_dto.Package) which is the package to format.
 //
-// Returns []string which contains formatted lines showing the package name,
-// version, file imports, named types, and package-level functions.
+// Returns []string which contains formatted lines showing the package name, version, file
+// imports, named types, and package-level functions.
 func dumpPackageReadable(pkg *inspector_dto.Package) []string {
 	var lines []string
 	lines = append(lines,
@@ -352,14 +347,13 @@ func dumpPackageReadable(pkg *inspector_dto.Package) []string {
 	return lines
 }
 
-// formatNamedTypesReadable formats all named types in a package for readable
-// output.
+// formatNamedTypesReadable formats all named types in a package for readable output.
 //
-// Takes pkg (*inspector_dto.Package) which provides the package containing
-// named types to format.
+// Takes pkg (*inspector_dto.Package) which provides the package containing named types to
+// format.
 //
-// Returns []string which contains the formatted type information, with each
-// type separated by blank lines.
+// Returns []string which contains the formatted type information, with each type
+// separated by blank lines.
 func formatNamedTypesReadable(pkg *inspector_dto.Package) []string {
 	if len(pkg.NamedTypes) == 0 {
 		return []string{"  (none)"}
@@ -381,12 +375,10 @@ func formatNamedTypesReadable(pkg *inspector_dto.Package) []string {
 	return lines
 }
 
-// formatSingleTypeReadable formats a single type definition for readable
-// output.
+// formatSingleTypeReadable formats a single type definition for readable output.
 //
 // Takes t (*inspector_dto.Type) which provides the type information to format.
-// Takes packagePath (string) which specifies the package path for method
-// formatting.
+// Takes packagePath (string) which specifies the package path for method formatting.
 //
 // Returns []string which contains the formatted lines describing the type.
 func formatSingleTypeReadable(t *inspector_dto.Type, packagePath string) []string {
@@ -414,8 +406,7 @@ func formatSingleTypeReadable(t *inspector_dto.Type, packagePath string) []strin
 
 // formatFieldsReadable formats type fields into lines for display.
 //
-// Takes fields ([]*inspector_dto.Field) which contains the field data to
-// format.
+// Takes fields ([]*inspector_dto.Field) which contains the field data to format.
 //
 // Returns []string which contains the formatted lines ready for display.
 func formatFieldsReadable(fields []*inspector_dto.Field) []string {
@@ -444,11 +435,10 @@ func formatFieldsReadable(fields []*inspector_dto.Field) []string {
 //
 // Takes methods ([]*inspector_dto.Method) which holds the methods to format.
 // Takes typeName (string) which is the name of the type that owns the methods.
-// Takes packagePath (string) which is the package path for finding promoted
-// methods.
+// Takes packagePath (string) which is the package path for finding promoted methods.
 //
-// Returns []string which holds formatted lines ready for display, or nil if
-// methods is empty.
+// Returns []string which holds formatted lines ready for display, or nil if methods is
+// empty.
 func formatMethodsReadable(methods []*inspector_dto.Method, typeName, packagePath string) []string {
 	if len(methods) == 0 {
 		return nil
@@ -480,11 +470,11 @@ func formatMethodsReadable(methods []*inspector_dto.Method, typeName, packagePat
 
 // formatFuncsReadable formats package-level functions for readable output.
 //
-// Takes funcs (map[string]*inspector_dto.Function) which contains the
-// functions to format, keyed by name.
+// Takes funcs (map[string]*inspector_dto.Function) which contains the functions to
+// format, keyed by name.
 //
-// Returns []string which contains the formatted function lines sorted by
-// name, or a single "(none)" entry if the map is empty.
+// Returns []string which contains the formatted function lines sorted by name, or a
+// single "(none)" entry if the map is empty.
 func formatFuncsReadable(funcs map[string]*inspector_dto.Function) []string {
 	if len(funcs) == 0 {
 		return []string{"  (none)"}

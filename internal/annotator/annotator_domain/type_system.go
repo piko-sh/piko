@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Defines the core type system structures for representing Go types within
-// template expressions during compilation. Provides type information models
-// including resolved types, stringability levels, and type metadata used
-// throughout semantic analysis.
+// Defines the core type system structures for representing Go types within template
+// expressions during compilation. Provides type information models including resolved
+// types, stringability levels, and type metadata used throughout semantic analysis.
 
 import (
 	"context"
@@ -111,8 +110,7 @@ const (
 	familyDecimal
 )
 
-// builtInHandler holds the validation and return type logic for a built-in
-// function.
+// builtInHandler holds the validation and return type logic for a built-in function.
 type builtInHandler struct {
 	// ValidateArgs checks the arguments passed to a built-in function call.
 	ValidateArgs func(tr *TypeResolver, ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location)
@@ -229,12 +227,12 @@ var (
 	}
 )
 
-// determineInspectorContext finds the correct package and file context for
-// inspector lookups.
+// determineInspectorContext finds the correct package and file context for inspector
+// lookups.
 //
 // Takes ctx (*AnalysisContext) which provides the current analysis state.
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which contains the resolved
-// type details to look up.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which contains the resolved type details
+// to look up.
 //
 // Returns packagePath (string) which is the package path to use for lookups.
 // Returns filePath (string) which is the file path where the type is defined.
@@ -274,19 +272,18 @@ func (tr *TypeResolver) determineInspectorContext(ctx *AnalysisContext, typeInfo
 	return importerPackagePath, importerFilePath
 }
 
-// checkPointerStringability checks if a pointer type can be converted to a
-// string by unwrapping the pointer and checking its base type.
+// checkPointerStringability checks if a pointer type can be converted to a string by
+// unwrapping the pointer and checking its base type.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and logger.
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which contains the resolved
-// type details for the pointer.
-// Takes starExpr (*goast.StarExpr) which is the pointer type expression to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which contains the resolved type details
+// for the pointer.
+// Takes starExpr (*goast.StarExpr) which is the pointer type expression to check.
 //
 // Returns stringability (int) which shows the stringability level found.
 // Returns isPointer (bool) which is true when the type is a pointer.
-// Returns isStringable (bool) which is true when the base type can be turned
-// into a string.
+// Returns isStringable (bool) which is true when the base type can be turned into a
+// string.
 func (tr *TypeResolver) checkPointerStringability(ctx *AnalysisContext, typeInfo *ast_domain.ResolvedTypeInfo, starExpr *goast.StarExpr) (stringability int, isPointer, isStringable bool) {
 	ctx.Logger.Trace("[stringability] Type is a pointer, unwrapping and recursing.",
 		logger_domain.String("pointer_type", goastutil.ASTToTypeString(typeInfo.TypeExpression, typeInfo.PackageAlias)),
@@ -314,13 +311,11 @@ func (tr *TypeResolver) checkPointerStringability(ctx *AnalysisContext, typeInfo
 	return 0, false, false
 }
 
-// determineStringability checks whether a type can be turned into a string.
-// It looks for types that implement the Stringer interface or are otherwise
-// convertible to a string.
+// determineStringability checks whether a type can be turned into a string. It looks for
+// types that implement the Stringer interface or are otherwise convertible to a string.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis context.
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
 //
 // Returns int which shows the stringability level of the type.
 // Returns bool which is true when stringability is via a pointer receiver.
@@ -389,8 +384,7 @@ func (tr *TypeResolver) determineStringability(ctx *AnalysisContext, typeInfo *a
 //
 // Takes ctx (*AnalysisContext) which collects diagnostics.
 // Takes callExpr (*ast_domain.CallExpression) which is the call to validate.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds argument
-// types.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which holds argument types.
 // Takes baseLocation (ast_domain.Location) which anchors diagnostic positions.
 func (tr *TypeResolver) validateLenCapArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	functionName := callExpr.Callee.String()
@@ -415,17 +409,16 @@ func (tr *TypeResolver) validateLenCapArgs(ctx *AnalysisContext, callExpr *ast_d
 	}
 }
 
-// validateMinMaxArgs checks that min/max built-in calls have valid arguments.
-// It verifies at least one argument is present, the first argument is an
-// ordered type, and all subsequent arguments match the first argument's type.
+// validateMinMaxArgs checks that min/max built-in calls have valid arguments. It verifies
+// at least one argument is present, the first argument is an ordered type, and all
+// subsequent arguments match the first argument's type.
 //
 // Takes ctx (*AnalysisContext) which collects diagnostics during validation.
-// Takes callExpr (*ast_domain.CallExpression) which is the min or max
-// call to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides type info
-// for each argument.
-// Takes baseLocation (ast_domain.Location) which is the base position for
-// error reporting.
+// Takes callExpr (*ast_domain.CallExpression) which is the min or max call to check.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides type info for each
+// argument.
+// Takes baseLocation (ast_domain.Location) which is the base position for error
+// reporting.
 func (*TypeResolver) validateMinMaxArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	functionName := callExpr.Callee.String()
 	if len(argAnns) < 1 {
@@ -463,15 +456,15 @@ func (*TypeResolver) validateMinMaxArgs(ctx *AnalysisContext, callExpr *ast_doma
 	}
 }
 
-// getAppendReturnType returns the return type for the built-in append
-// function, which is the type of the first argument (the slice).
-// Falls back to "any" when no argument type information is available.
+// getAppendReturnType returns the return type for the built-in append function, which is
+// the type of the first argument (the slice). Falls back to "any" when no argument type
+// information is available.
 //
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides
-// resolved type information for each argument.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides resolved type
+// information for each argument.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is the slice type from the
-// first argument, or "any" as a fallback.
+// Returns *ast_domain.ResolvedTypeInfo which is the slice type from the first argument,
+// or "any" as a fallback.
 func (*TypeResolver) getAppendReturnType(_ *AnalysisContext, _ *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	if len(argAnns) > 0 && argAnns[0] != nil && argAnns[0].ResolvedType != nil {
 		return argAnns[0].ResolvedType
@@ -479,14 +472,12 @@ func (*TypeResolver) getAppendReturnType(_ *AnalysisContext, _ *ast_domain.CallE
 	return newSimpleTypeInfo(goast.NewIdent(typeAny))
 }
 
-// validateAppendArgs checks that arguments to the built-in append function are
-// valid.
+// validateAppendArgs checks that arguments to the built-in append function are valid.
 //
 // Takes ctx (*AnalysisContext) which collects diagnostics.
-// Takes callExpr (*ast_domain.CallExpression) which is the append
-// call to validate.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides resolved
-// type information for each argument.
+// Takes callExpr (*ast_domain.CallExpression) which is the append call to validate.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides resolved type
+// information for each argument.
 // Takes baseLocation (ast_domain.Location) which is the base position for error
 // reporting.
 func (tr *TypeResolver) validateAppendArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
@@ -522,8 +513,7 @@ func (tr *TypeResolver) validateAppendArgs(ctx *AnalysisContext, callExpr *ast_d
 
 // isLenable reports whether the given type supports the len built-in.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
 //
 // Returns bool which is true for arrays, maps, and strings.
 func (tr *TypeResolver) isLenable(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -542,8 +532,7 @@ func (tr *TypeResolver) isLenable(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // getSliceElementType extracts the element type from a slice type.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to
-// inspect.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to inspect.
 //
 // Returns *ast_domain.ResolvedTypeInfo which describes the slice element type.
 // Returns bool which indicates whether typeInfo was a slice type.
@@ -567,21 +556,20 @@ func (tr *TypeResolver) getSliceElementType(typeInfo *ast_domain.ResolvedTypeInf
 	return nil, false
 }
 
-// validateTranslationFuncArgs checks that T() and LT() are called with at
-// least one string argument. These functions accept variadic arguments: the
-// first is the translation key, and later arguments are fallback values if
-// the key is not found.
+// validateTranslationFuncArgs checks that T() and LT() are called with at least one
+// string argument. These functions accept variadic arguments: the first is the
+// translation key, and later arguments are fallback values if the key is not found.
 //
-// If a TranslationKeySet is available in the context, it also checks that
-// the translation key exists and emits a warning if not.
+// If a TranslationKeySet is available in the context, it also checks that the translation
+// key exists and emits a warning if not.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and
-// diagnostics collector.
+// Takes ctx (*AnalysisContext) which provides the analysis state and diagnostics
+// collector.
 // Takes callExpr (*ast_domain.CallExpression) which is the function call to check.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains type
-// annotations for each argument.
-// Takes baseLocation (ast_domain.Location) which is the base location for
-// working out diagnostic positions.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains type annotations for
+// each argument.
+// Takes baseLocation (ast_domain.Location) which is the base location for working out
+// diagnostic positions.
 func (*TypeResolver) validateTranslationFuncArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	functionName := callExpr.Callee.String()
 	if len(argAnns) < 1 {
@@ -612,8 +600,8 @@ func (*TypeResolver) validateTranslationFuncArgs(ctx *AnalysisContext, callExpr 
 	validateTranslationKeyExists(ctx, callExpr, functionName, baseLocation)
 }
 
-// isJSONStringableType checks if a type expression is a map or slice that
-// can be safely turned into JSON for use in HTML attributes.
+// isJSONStringableType checks if a type expression is a map or slice that can be safely
+// turned into JSON for use in HTML attributes.
 //
 // The method checks for safety by making sure that:
 //   - Map keys must be strings (JSON requires this)
@@ -653,10 +641,10 @@ func (tr *TypeResolver) isJSONStringableType(ctx *AnalysisContext, typeExpr goas
 
 // isSafeJSONLeafOrCollection checks if a type can be safely turned into JSON.
 //
-// This checks for basic types, JSON-safe named types, or safe collections.
-// It calls itself to check nested structures at any depth. Named types are
-// checked through the inspector to see if they support JSON-compatible string
-// output (TextMarshaler, PikoFormatter, and similar).
+// This checks for basic types, JSON-safe named types, or safe collections. It calls
+// itself to check nested structures at any depth. Named types are checked through the
+// inspector to see if they support JSON-compatible string output (TextMarshaler,
+// PikoFormatter, and similar).
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
@@ -686,9 +674,9 @@ func (tr *TypeResolver) isSafeJSONLeafOrCollection(ctx *AnalysisContext, typeExp
 	return false
 }
 
-// isNamedTypeJSONSafe checks if a named type is safe for JSON serialisation.
-// A type is safe if it implements json.Marshaler, TextMarshaler, or is a
-// special Piko type with a known formatter.
+// isNamedTypeJSONSafe checks if a named type is safe for JSON serialisation. A type is
+// safe if it implements json.Marshaler, TextMarshaler, or is a special Piko type with a
+// known formatter.
 //
 // Takes ctx (*AnalysisContext) which provides the analysis state and scope.
 // Takes typeExpr (goast.Expr) which is the type expression to check.
@@ -726,8 +714,8 @@ func (tr *TypeResolver) isNamedTypeJSONSafe(ctx *AnalysisContext, typeExpr goast
 	}
 }
 
-// newSimpleTypeInfo creates a ResolvedTypeInfo with only the type expression
-// set and all other fields left at their zero values.
+// newSimpleTypeInfo creates a ResolvedTypeInfo with only the type expression set and all
+// other fields left at their zero values.
 //
 // Takes typeExpr (goast.Expr) which is the AST expression for the type.
 //
@@ -744,8 +732,8 @@ func newSimpleTypeInfo(typeExpr goast.Expr) *ast_domain.ResolvedTypeInfo {
 	}
 }
 
-// newSimpleTypeInfoWithAlias creates a ResolvedTypeInfo with a type expression
-// and package alias.
+// newSimpleTypeInfoWithAlias creates a ResolvedTypeInfo with a type expression and
+// package alias.
 //
 // Takes typeExpr (goast.Expr) which is the AST expression for the type.
 // Takes packageAlias (string) which is the package alias for the type.
@@ -763,22 +751,21 @@ func newSimpleTypeInfoWithAlias(typeExpr goast.Expr, packageAlias string) *ast_d
 	}
 }
 
-// getLenCapReturnType returns the type for the built-in len and cap
-// functions.
+// getLenCapReturnType returns the type for the built-in len and cap functions.
 //
 // Returns *ast_domain.ResolvedTypeInfo which represents the int type.
 func getLenCapReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	return newSimpleTypeInfo(goast.NewIdent(typeInt))
 }
 
-// getMinMaxReturnType defines the return type for the built-in min() and max()
-// functions. The return type is always the type of the first argument.
+// getMinMaxReturnType defines the return type for the built-in min() and max() functions.
+// The return type is always the type of the first argument.
 //
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides
-// type annotations for the function arguments.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which provides type annotations for
+// the function arguments.
 //
-// Returns *ast_domain.ResolvedTypeInfo which is the type of the first
-// argument, or "any" if no arguments are available.
+// Returns *ast_domain.ResolvedTypeInfo which is the type of the first argument, or "any"
+// if no arguments are available.
 func getMinMaxReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	if len(argAnns) > 0 && argAnns[0] != nil && argAnns[0].ResolvedType != nil {
 		return argAnns[0].ResolvedType
@@ -786,17 +773,17 @@ func getMinMaxReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.Call
 	return newSimpleTypeInfo(goast.NewIdent(typeAny))
 }
 
-// substituteType walks a type expression and replaces generic type parameters
-// with their concrete types from the substitution map.
+// substituteType walks a type expression and replaces generic type parameters with their
+// concrete types from the substitution map.
 //
 // When expression is nil or substMap is empty, returns the original expression.
 //
 // Takes expression (goast.Expr) which is the type expression to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete types.
 //
-// Returns goast.Expr which is the expression with type parameters replaced,
-// or the original expression if no substitution applies.
+// Returns goast.Expr which is the expression with type parameters replaced, or the
+// original expression if no substitution applies.
 func substituteType(expression goast.Expr, substMap map[string]goast.Expr) goast.Expr {
 	if expression == nil || len(substMap) == 0 {
 		return expression
@@ -826,11 +813,11 @@ func substituteType(expression goast.Expr, substMap map[string]goast.Expr) goast
 // substituteIdent replaces a type parameter name with its concrete type.
 //
 // Takes n (*goast.Ident) which is the identifier to check.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete type expressions.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete type expressions.
 //
-// Returns goast.Expr which is the concrete type if found in the map, or the
-// original identifier if not found.
+// Returns goast.Expr which is the concrete type if found in the map, or the original
+// identifier if not found.
 func substituteIdent(n *goast.Ident, substMap map[string]goast.Expr) goast.Expr {
 	if replacement, ok := substMap[n.Name]; ok {
 		return replacement
@@ -841,11 +828,11 @@ func substituteIdent(n *goast.Ident, substMap map[string]goast.Expr) goast.Expr 
 // substituteStarExpr replaces type parameters in a pointer type.
 //
 // Takes n (*goast.StarExpr) which is the pointer type to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete types.
 //
-// Returns goast.Expr which is a new pointer with the inner type replaced, or
-// the original if no change was needed.
+// Returns goast.Expr which is a new pointer with the inner type replaced, or the original
+// if no change was needed.
 func substituteStarExpr(n *goast.StarExpr, substMap map[string]goast.Expr) goast.Expr {
 	newX := substituteType(n.X, substMap)
 	if newX != n.X {
@@ -857,11 +844,11 @@ func substituteStarExpr(n *goast.StarExpr, substMap map[string]goast.Expr) goast
 // substituteArrayType replaces type parameters in array and slice types.
 //
 // Takes n (*goast.ArrayType) which is the array type node to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete types.
 //
-// Returns goast.Expr which is a new array type with the element type replaced,
-// or the original node if no change was needed.
+// Returns goast.Expr which is a new array type with the element type replaced, or the
+// original node if no change was needed.
 func substituteArrayType(n *goast.ArrayType, substMap map[string]goast.Expr) goast.Expr {
 	newElt := substituteType(n.Elt, substMap)
 	if newElt != n.Elt {
@@ -870,15 +857,14 @@ func substituteArrayType(n *goast.ArrayType, substMap map[string]goast.Expr) goa
 	return n
 }
 
-// substituteMapType replaces type parameters in a map type with their concrete
-// types.
+// substituteMapType replaces type parameters in a map type with their concrete types.
 //
 // Takes n (*goast.MapType) which is the map type node to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete types.
 //
-// Returns goast.Expr which is the map type with replaced key and value types,
-// or the original node if no changes were made.
+// Returns goast.Expr which is the map type with replaced key and value types, or the
+// original node if no changes were made.
 func substituteMapType(n *goast.MapType, substMap map[string]goast.Expr) goast.Expr {
 	newKey := substituteType(n.Key, substMap)
 	newValue := substituteType(n.Value, substMap)
@@ -888,15 +874,15 @@ func substituteMapType(n *goast.MapType, substMap map[string]goast.Expr) goast.E
 	return n
 }
 
-// substituteChanType replaces type parameters in a channel type with their
-// concrete types.
+// substituteChanType replaces type parameters in a channel type with their concrete
+// types.
 //
 // Takes n (*goast.ChanType) which is the channel type to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete types.
 //
-// Returns goast.Expr which is a new channel type with the element type
-// replaced, or the original if no change was needed.
+// Returns goast.Expr which is a new channel type with the element type replaced, or the
+// original if no change was needed.
 func substituteChanType(n *goast.ChanType, substMap map[string]goast.Expr) goast.Expr {
 	newValue := substituteType(n.Value, substMap)
 	if newValue != n.Value {
@@ -908,11 +894,11 @@ func substituteChanType(n *goast.ChanType, substMap map[string]goast.Expr) goast
 // substituteFuncType replaces type parameters in a function type.
 //
 // Takes n (*goast.FuncType) which is the function type to update.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete types.
 //
-// Returns goast.Expr which is a new function type with the replacements
-// applied, or the original if no changes were needed.
+// Returns goast.Expr which is a new function type with the replacements applied, or the
+// original if no changes were needed.
 func substituteFuncType(n *goast.FuncType, substMap map[string]goast.Expr) goast.Expr {
 	newParams, paramsChanged := substituteFieldList(n.Params, substMap)
 	newResults, resultsChanged := substituteFieldList(n.Results, substMap)
@@ -923,12 +909,12 @@ func substituteFuncType(n *goast.FuncType, substMap map[string]goast.Expr) goast
 	return n
 }
 
-// substituteFieldList replaces types in a field list used for function
-// parameters or results.
+// substituteFieldList replaces types in a field list used for function parameters or
+// results.
 //
 // Takes fieldList (*goast.FieldList) which is the list of fields to process.
-// Takes substMap (map[string]goast.Expr) which maps type names to their
-// replacement types.
+// Takes substMap (map[string]goast.Expr) which maps type names to their replacement
+// types.
 //
 // Returns *goast.FieldList which is the new field list with replacements.
 // Returns bool which indicates whether any replacements were made.
@@ -951,15 +937,15 @@ func substituteFieldList(fieldList *goast.FieldList, substMap map[string]goast.E
 	return newFieldList, changed
 }
 
-// substituteIndexExpr replaces type parameters in a generic index expression
-// with one type argument, such as Box[T].
+// substituteIndexExpr replaces type parameters in a generic index expression with one
+// type argument, such as Box[T].
 //
 // Takes n (*goast.IndexExpr) which is the index expression to process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their replacement expressions.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// replacement expressions.
 //
-// Returns goast.Expr which is a new expression with replacements applied, or
-// the original if nothing changed.
+// Returns goast.Expr which is a new expression with replacements applied, or the original
+// if nothing changed.
 func substituteIndexExpr(n *goast.IndexExpr, substMap map[string]goast.Expr) goast.Expr {
 	newX := substituteType(n.X, substMap)
 	newIndex := substituteType(n.Index, substMap)
@@ -969,17 +955,15 @@ func substituteIndexExpr(n *goast.IndexExpr, substMap map[string]goast.Expr) goa
 	return n
 }
 
-// substituteIndexListExpr replaces type parameters in an index list
-// expression for generic types with more than one parameter, such as
-// Map[K, V].
+// substituteIndexListExpr replaces type parameters in an index list expression for
+// generic types with more than one parameter, such as Map[K, V].
 //
-// Takes n (*goast.IndexListExpr) which is the index list expression to
-// process.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their concrete types.
+// Takes n (*goast.IndexListExpr) which is the index list expression to process.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their
+// concrete types.
 //
-// Returns goast.Expr which is a new expression with the replacements applied,
-// or the original if no changes were needed.
+// Returns goast.Expr which is a new expression with the replacements applied, or the
+// original if no changes were needed.
 func substituteIndexListExpr(n *goast.IndexListExpr, substMap map[string]goast.Expr) goast.Expr {
 	newX := substituteType(n.X, substMap)
 	changed := newX != n.X
@@ -998,11 +982,9 @@ func substituteIndexListExpr(n *goast.IndexListExpr, substMap map[string]goast.E
 	return n
 }
 
-// isAssignable checks whether a source type can be assigned to a destination
-// type.
+// isAssignable checks whether a source type can be assigned to a destination type.
 //
-// Takes source (*ast_domain.ResolvedTypeInfo) which is the type being
-// assigned.
+// Takes source (*ast_domain.ResolvedTypeInfo) which is the type being assigned.
 // Takes destination (*ast_domain.ResolvedTypeInfo) which is the target type.
 //
 // Returns bool which is true if the assignment is valid.
@@ -1025,13 +1007,12 @@ func isAssignable(source, destination *ast_domain.ResolvedTypeInfo) bool {
 	return goastutil.ASTToTypeString(source.TypeExpression, source.PackageAlias) == goastutil.ASTToTypeString(destination.TypeExpression, destination.PackageAlias)
 }
 
-// isTypeParameter checks whether the given type information represents a
-// generic type parameter. Type parameters are usually single uppercase letters
-// like T, E, S, K, V, or names starting with a tilde (~) for underlying type
-// constraints.
+// isTypeParameter checks whether the given type information represents a generic type
+// parameter. Type parameters are usually single uppercase letters like T, E, S, K, V, or
+// names starting with a tilde (~) for underlying type constraints.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type to
+// check.
 //
 // Returns bool which is true if the type appears to be a type parameter.
 func isTypeParameter(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1063,8 +1044,8 @@ func isTypeParameter(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // isStringType checks whether the given type is a string type.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type to
+// check.
 //
 // Returns bool which is true if the type is a string, false otherwise.
 func isStringType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1079,8 +1060,8 @@ func isStringType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // isBoolLike checks whether the given type is a boolean type.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type to
+// check.
 //
 // Returns bool which is true if the type is bool, false otherwise.
 func isBoolLike(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1095,8 +1076,8 @@ func isBoolLike(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // isMoneyType checks whether the given type is maths.Money.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to check.
 //
 // Returns bool which is true if the type is maths.Money, false otherwise.
 func isMoneyType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1108,11 +1089,10 @@ func isMoneyType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // isComparableWithNil checks whether the given type can be compared with nil.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
 //
-// Returns bool which is true for pointer, slice, map, interface, function, and
-// channel types.
+// Returns bool which is true for pointer, slice, map, interface, function, and channel
+// types.
 func isComparableWithNil(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return false
@@ -1126,8 +1106,7 @@ func isComparableWithNil(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // isNilType checks whether the given type represents the nil type.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the type to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the type to check.
 //
 // Returns bool which is true if the type is nil, false otherwise.
 func isNilType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1158,14 +1137,14 @@ func getPackageAliasFromType(typeExpr goast.Expr, fallback string) string {
 	return fallback
 }
 
-// getNumericFamily returns the numeric family for a type. It is used to check
-// if types are compatible with each other.
+// getNumericFamily returns the numeric family for a type. It is used to check if types
+// are compatible with each other.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to classify.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to classify.
 //
-// Returns int which is the numeric family: familyDecimal, familyBigInt,
-// familyStandard, or familyNone if the type is not numeric.
+// Returns int which is the numeric family: familyDecimal, familyBigInt, familyStandard,
+// or familyNone if the type is not numeric.
 func getNumericFamily(typeInfo *ast_domain.ResolvedTypeInfo) int {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return familyNone
@@ -1183,11 +1162,11 @@ func getNumericFamily(typeInfo *ast_domain.ResolvedTypeInfo) int {
 	return familyNone
 }
 
-// isNumericType checks whether a type is a standard Go numeric primitive,
-// such as int, float64, or similar built-in number types.
+// isNumericType checks whether a type is a standard Go numeric primitive, such as int,
+// float64, or similar built-in number types.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to check.
 //
 // Returns bool which is true if the type is a numeric primitive.
 func isNumericType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1201,11 +1180,11 @@ func isNumericType(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return goastutil.IsPrimitiveOrBuiltin(identifier.Name) && identifier.Name != typeString && identifier.Name != "bool"
 }
 
-// isStandardInteger reports whether a type is a standard Go integer type.
-// It returns false for floating-point types (float32 and float64).
+// isStandardInteger reports whether a type is a standard Go integer type. It returns
+// false for floating-point types (float32 and float64).
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to check.
 //
 // Returns bool which is true if the type is a standard integer type.
 func isStandardInteger(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1222,13 +1201,11 @@ func isStandardInteger(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 
 // isArithmeticType checks if two types can be used together in arithmetic.
 //
-// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left
-// operand.
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right
-// operand.
+// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left operand.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right operand.
 //
-// Returns bool which is true if the two types can be safely used in an
-// arithmetic operation.
+// Returns bool which is true if the two types can be safely used in an arithmetic
+// operation.
 func isArithmeticType(left, right *ast_domain.ResolvedTypeInfo) bool {
 	if isMoneyType(left) || isMoneyType(right) {
 		return areMoneyTypesCompatible(left, right)
@@ -1237,16 +1214,14 @@ func isArithmeticType(left, right *ast_domain.ResolvedTypeInfo) bool {
 	return areNumericTypesCompatible(left, right)
 }
 
-// areNumericTypesCompatible checks if two numeric types can be used together
-// in operations. It handles standard numeric types, BigInt, and Decimal
-// families, but not Money.
+// areNumericTypesCompatible checks if two numeric types can be used together in
+// operations. It handles standard numeric types, BigInt, and Decimal families, but not
+// Money.
 //
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the first type to check.
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to
-// check.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to check.
 //
-// Returns bool which is true when the types can work together in numeric
-// operations.
+// Returns bool which is true when the types can work together in numeric operations.
 func areNumericTypesCompatible(left, right *ast_domain.ResolvedTypeInfo) bool {
 	leftIsNumLike := isNumericLike(left)
 	rightIsNumLike := isNumericLike(right)
@@ -1273,15 +1248,14 @@ func areNumericTypesCompatible(left, right *ast_domain.ResolvedTypeInfo) bool {
 	return false
 }
 
-// areMoneyTypesCompatible checks if two types can be used together in
-// arithmetic when at least one is a Money type.
+// areMoneyTypesCompatible checks if two types can be used together in arithmetic when at
+// least one is a Money type.
 //
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the first type to check.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to check.
 //
-// Returns bool which is true if the types can be used together for Money
-// arithmetic. This is true when both types are Money, or when one is Money
-// and the other is a number type.
+// Returns bool which is true if the types can be used together for Money arithmetic. This
+// is true when both types are Money, or when one is Money and the other is a number type.
 func areMoneyTypesCompatible(left, right *ast_domain.ResolvedTypeInfo) bool {
 	isLeftMoney := isMoneyType(left)
 	isRightMoney := isMoneyType(right)
@@ -1299,8 +1273,8 @@ func areMoneyTypesCompatible(left, right *ast_domain.ResolvedTypeInfo) bool {
 	return false
 }
 
-// areComparableForOrdering checks if two types can be compared using ordering
-// operators such as >, <, >=, and <=.
+// areComparableForOrdering checks if two types can be compared using ordering operators
+// such as >, <, >=, and <=.
 //
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the first type to check.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to check.
@@ -1315,8 +1289,7 @@ func areComparableForOrdering(left, right *ast_domain.ResolvedTypeInfo) bool {
 
 // areComparableForEquality checks if two types can be compared using == or !=.
 //
-// Takes operator (ast_domain.BinaryOp) which specifies the equality operator
-// being used.
+// Takes operator (ast_domain.BinaryOp) which specifies the equality operator being used.
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the left-hand type.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the right-hand type.
 //
@@ -1337,16 +1310,13 @@ func areComparableForEquality(operator ast_domain.BinaryOp, left, right *ast_dom
 	return isAssignable(left, right) || isAssignable(right, left)
 }
 
-// isNilComparisonValid checks whether a nil comparison between two operands
-// is valid.
+// isNilComparisonValid checks whether a nil comparison between two operands is valid.
 //
-// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left
-// operand.
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right
-// operand.
+// Takes left (*ast_domain.ResolvedTypeInfo) which is the type of the left operand.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the type of the right operand.
 //
-// Returns bool which is true when one operand is nil and the other can be
-// compared with nil.
+// Returns bool which is true when one operand is nil and the other can be compared with
+// nil.
 func isNilComparisonValid(left, right *ast_domain.ResolvedTypeInfo) bool {
 	return (isNilType(left) && isComparableWithNil(right)) ||
 		(isNilType(right) && isComparableWithNil(left))
@@ -1357,8 +1327,8 @@ func isNilComparisonValid(left, right *ast_domain.ResolvedTypeInfo) bool {
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the first type to check.
 // Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to check.
 //
-// Returns bool which is true if both types are numeric, or if one is a string
-// and the other is numeric for loose equality checks.
+// Returns bool which is true if both types are numeric, or if one is a string and the
+// other is numeric for loose equality checks.
 func areNumericLikeComparable(left, right *ast_domain.ResolvedTypeInfo) bool {
 	if isNumericLike(left) && isNumericLike(right) {
 		return true
@@ -1369,8 +1339,7 @@ func areNumericLikeComparable(left, right *ast_domain.ResolvedTypeInfo) bool {
 
 // isNumericLike reports whether the type is numeric or boolean-like.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to
-// check.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which describes the type to check.
 //
 // Returns bool which is true if the type is numeric or boolean-like.
 func isNumericLike(typeInfo *ast_domain.ResolvedTypeInfo) bool {
@@ -1381,8 +1350,8 @@ func isNumericLike(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 //
 // Takes typeInfo (*ResolvedTypeInfo) which describes the type to check.
 //
-// Returns bool which is true if the type is a built-in numeric type such as
-// int, float64, or byte.
+// Returns bool which is true if the type is a built-in numeric type such as int, float64,
+// or byte.
 func isNumeric(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return false
@@ -1397,27 +1366,24 @@ func isNumeric(typeInfo *ast_domain.ResolvedTypeInfo) bool {
 	return false
 }
 
-// getTranslationFuncReturnType returns the type information for T() and LT()
-// translation functions. These functions always return a string.
+// getTranslationFuncReturnType returns the type information for T() and LT() translation
+// functions. These functions always return a string.
 //
 // Returns *ast_domain.ResolvedTypeInfo which holds the string type.
 func getTranslationFuncReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	return newSimpleTypeInfo(goast.NewIdent(typeString))
 }
 
-// validateTranslationKeyExists checks if a translation key exists in the
-// loaded translations.
+// validateTranslationKeyExists checks if a translation key exists in the loaded
+// translations.
 //
-// When translation keys are not loaded, returns without checking. When the
-// first argument is not a string literal, returns without checking.
+// When translation keys are not loaded, returns without checking. When the first argument
+// is not a string literal, returns without checking.
 //
-// Takes ctx (*AnalysisContext) which provides the analysis state and
-// translation keys.
+// Takes ctx (*AnalysisContext) which provides the analysis state and translation keys.
 // Takes callExpr (*ast_domain.CallExpression) which is the function call to check.
-// Takes functionName (string) which is the name of the translation function
-// (T or LT).
-// Takes baseLocation (ast_domain.Location) which is the source location for
-// diagnostics.
+// Takes functionName (string) which is the name of the translation function (T or LT).
+// Takes baseLocation (ast_domain.Location) which is the source location for diagnostics.
 func validateTranslationKeyExists(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, functionName string, baseLocation ast_domain.Location) {
 	if ctx.TranslationKeys == nil {
 		return
@@ -1460,10 +1426,9 @@ func validateTranslationKeyExists(ctx *AnalysisContext, callExpr *ast_domain.Cal
 	}
 }
 
-// isJSONPrimitive checks if a type name is a primitive that is safe for JSON.
-// The type `any` is not included because it can hold values that cannot be
-// turned into JSON at runtime, such as channels, functions, and complex
-// numbers.
+// isJSONPrimitive checks if a type name is a primitive that is safe for JSON. The type
+// `any` is not included because it can hold values that cannot be turned into JSON at
+// runtime, such as channels, functions, and complex numbers.
 //
 // Takes name (string) which is the type name to check.
 //
@@ -1479,10 +1444,10 @@ func isJSONPrimitive(name string) bool {
 	return false
 }
 
-// isJSONSafeKeyType checks whether a type can be used as a JSON map key.
-// JSON keys are always strings, but Go's json.Marshal converts some types
-// on its own: strings are used as they are, integers become decimal strings,
-// and types that use encoding.TextMarshaler call their MarshalText method.
+// isJSONSafeKeyType checks whether a type can be used as a JSON map key. JSON keys are
+// always strings, but Go's json.Marshal converts some types on its own: strings are used
+// as they are, integers become decimal strings, and types that use encoding.TextMarshaler
+// call their MarshalText method.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
@@ -1504,8 +1469,8 @@ func isJSONSafeKeyType(typeExpr goast.Expr) bool {
 // isPointerToType checks whether destination is a pointer to the source type.
 //
 // Takes source (*ast_domain.ResolvedTypeInfo) which is the base type to check.
-// Takes destination (*ast_domain.ResolvedTypeInfo) which is the type that may
-// be a pointer to source.
+// Takes destination (*ast_domain.ResolvedTypeInfo) which is the type that may be a
+// pointer to source.
 //
 // Returns bool which is true if destination is a pointer to the source type.
 func isPointerToType(source, destination *ast_domain.ResolvedTypeInfo) bool {
@@ -1525,14 +1490,14 @@ func isPointerToType(source, destination *ast_domain.ResolvedTypeInfo) bool {
 	return sourceTypeString == destBaseTypeString
 }
 
-// getNumericRank returns the rank for numeric type promotion.
-// This is called after isArithmeticType has confirmed the operation is valid.
+// getNumericRank returns the rank for numeric type promotion. This is called after
+// isArithmeticType has confirmed the operation is valid.
 //
-// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved
-// type information to rank.
+// Takes typeInfo (*ast_domain.ResolvedTypeInfo) which provides the resolved type
+// information to rank.
 //
-// Returns int which is the numeric rank, or rankNone if the type is nil or
-// not found in the rank map.
+// Returns int which is the numeric rank, or rankNone if the type is nil or not found in
+// the rank map.
 func getNumericRank(typeInfo *ast_domain.ResolvedTypeInfo) int {
 	if typeInfo == nil || typeInfo.TypeExpression == nil {
 		return rankNone
@@ -1547,12 +1512,10 @@ func getNumericRank(typeInfo *ast_domain.ResolvedTypeInfo) int {
 
 // promoteNumericTypes returns the type with the higher numeric rank.
 //
-// It assumes the types have already been checked for compatibility by
-// isArithmeticType.
+// It assumes the types have already been checked for compatibility by isArithmeticType.
 //
 // Takes left (*ast_domain.ResolvedTypeInfo) which is the first type to compare.
-// Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to
-// compare.
+// Takes right (*ast_domain.ResolvedTypeInfo) which is the second type to compare.
 //
 // Returns *ast_domain.ResolvedTypeInfo which is the type with the higher rank.
 func promoteNumericTypes(left, right *ast_domain.ResolvedTypeInfo) *ast_domain.ResolvedTypeInfo {

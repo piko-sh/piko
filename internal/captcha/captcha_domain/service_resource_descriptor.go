@@ -28,10 +28,14 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// hoursPerDay is the number of hours in a day, used for duration formatting.
-const hoursPerDay = 24
+const (
+	// hoursPerDay is the number of hours in a day, used for duration formatting.
+	hoursPerDay = 24
+)
 
-var _ provider_domain.ResourceDescriptor = (*captchaService)(nil)
+var (
+	_ provider_domain.ResourceDescriptor = (*captchaService)(nil)
+)
 
 // ResourceType returns the resource name for the captcha hexagon.
 //
@@ -40,8 +44,7 @@ func (*captchaService) ResourceType() string {
 	return "captcha"
 }
 
-// ResourceListColumns returns column definitions for the captcha provider list
-// table.
+// ResourceListColumns returns column definitions for the captcha provider list table.
 //
 // Returns []provider_domain.ColumnDefinition which defines the table columns.
 func (*captchaService) ResourceListColumns() []provider_domain.ColumnDefinition {
@@ -54,8 +57,7 @@ func (*captchaService) ResourceListColumns() []provider_domain.ColumnDefinition 
 
 // ResourceListProviders returns all registered captcha providers as list rows.
 //
-// Returns []provider_domain.ProviderListEntry which contains a row per
-// provider.
+// Returns []provider_domain.ProviderListEntry which contains a row per provider.
 func (s *captchaService) ResourceListProviders(ctx context.Context) []provider_domain.ProviderListEntry {
 	providers := s.registry.ListProviders(ctx)
 	entries := make([]provider_domain.ProviderListEntry, len(providers))
@@ -82,8 +84,8 @@ func (s *captchaService) ResourceListProviders(ctx context.Context) []provider_d
 	return entries
 }
 
-// ResourceDescribeProvider returns detailed information for a single named
-// captcha provider.
+// ResourceDescribeProvider returns detailed information for a single named captcha
+// provider.
 //
 // Takes name (string) which identifies the provider to describe.
 //
@@ -127,14 +129,14 @@ func (s *captchaService) ResourceDescribeProvider(ctx context.Context, name stri
 	}, nil
 }
 
-// findProviderInfo locates a provider by name in the given slice, returning a
-// zero-value entry with the name set if not found.
+// findProviderInfo locates a provider by name in the given slice, returning a zero-value
+// entry with the name set if not found.
 //
 // Takes infos ([]provider_domain.ProviderInfo) which is the list to search.
 // Takes name (string) which is the provider name to find.
 //
-// Returns provider_domain.ProviderInfo which is the matched entry, or a
-// zero-value entry with the name set if not found.
+// Returns provider_domain.ProviderInfo which is the matched entry, or a zero-value entry
+// with the name set if not found.
 func findProviderInfo(infos []provider_domain.ProviderInfo, name string) provider_domain.ProviderInfo {
 	for _, info := range infos {
 		if info.Name == name {
@@ -144,13 +146,12 @@ func findProviderInfo(infos []provider_domain.ProviderInfo, name string) provide
 	return provider_domain.ProviderInfo{Name: name}
 }
 
-// buildMetadataSection extracts provider metadata into an InfoSection if the
-// provider implements the ProviderMetadata interface.
+// buildMetadataSection extracts provider metadata into an InfoSection if the provider
+// implements the ProviderMetadata interface.
 //
 // Takes captchaProvider (any) which is the provider to extract metadata from.
 //
-// Returns provider_domain.InfoSection which contains the sorted metadata
-// entries.
+// Returns provider_domain.InfoSection which contains the sorted metadata entries.
 // Returns bool which is true when the provider had metadata to display.
 func buildMetadataSection(captchaProvider any) (provider_domain.InfoSection, bool) {
 	meta, ok := captchaProvider.(provider_domain.ProviderMetadata)
@@ -180,8 +181,8 @@ func buildMetadataSection(captchaProvider any) (provider_domain.InfoSection, boo
 	}, true
 }
 
-// formatRegisteredAge formats a registration timestamp as a human-readable
-// relative age string.
+// formatRegisteredAge formats a registration timestamp as a human-readable relative age
+// string.
 //
 // Takes registeredAt (time.Time) which is the timestamp to format.
 //

@@ -25,11 +25,12 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"slices"
 	"sync"
 )
 
-// lifecycleManager handles shutdown hooks and closable resources for the
-// logger subsystem. It implements handlerShutdown and contextShutdown.
+// lifecycleManager handles shutdown hooks and closable resources for the logger
+// subsystem. It implements handlerShutdown and contextShutdown.
 type lifecycleManager struct {
 	// shutdownHooks stores functions to run during shutdown in LIFO order.
 	shutdownHooks []func()
@@ -41,12 +42,14 @@ type lifecycleManager struct {
 	mu sync.Mutex
 }
 
-// defaultLifecycleManager is the global lifecycle manager used by package-level
-// functions. It maintains backward compatibility with existing code.
-var defaultLifecycleManager = newLifecycleManager()
+var (
+	// defaultLifecycleManager is the global lifecycle manager used by package-level
+	// functions. It maintains backward compatibility with existing code.
+	defaultLifecycleManager = newLifecycleManager()
+)
 
-// RegisterShutdownHook adds a function to be called when this manager shuts
-// down. Hooks are called in reverse order of registration (LIFO).
+// RegisterShutdownHook adds a function to be called when this manager shuts down. Hooks
+// are called in reverse order of registration (LIFO).
 //
 // Takes hook (func()) which is the function to call during shutdown.
 //
@@ -57,8 +60,8 @@ func (lm *lifecycleManager) RegisterShutdownHook(hook func()) {
 	lm.shutdownHooks = append(lm.shutdownHooks, hook)
 }
 
-// RegisterClosable adds an io.Closer to be closed when the manager shuts down.
-// This is typically used for log file handles or network connections.
+// RegisterClosable adds an io.Closer to be closed when the manager shuts down. This is
+// typically used for log file handles or network connections.
 //
 // Takes c (io.Closer) which is the resource to close during shutdown.
 //
@@ -69,15 +72,15 @@ func (lm *lifecycleManager) RegisterClosable(c io.Closer) {
 	lm.closableOutputs = append(lm.closableOutputs, c)
 }
 
-// Shutdown stops the lifecycle manager by running all shutdown hooks in
-// reverse order and closing all registered resources.
+// Shutdown stops the lifecycle manager by running all shutdown hooks in reverse order and
+// closing all registered resources.
 //
-// Hooks and closers are copied out and the lock is released before invocation
-// so a hook is free to call RegisterShutdownHook or RegisterClosable on the
-// same manager without deadlocking.
+// Hooks and closers are copied out and the lock is released before invocation so a hook
+// is free to call RegisterShutdownHook or RegisterClosable on the same manager without
+// deadlocking.
 //
-// Returns error when any resource fails to close. Multiple errors are joined
-// via errors.Join so callers can use errors.Is or errors.As.
+// Returns error when any resource fails to close. Multiple errors are joined via
+// errors.Join so callers can use errors.Is or errors.As.
 //
 // Safe for concurrent use.
 func (lm *lifecycleManager) Shutdown(_ context.Context) error {
@@ -96,8 +99,8 @@ func (lm *lifecycleManager) Shutdown(_ context.Context) error {
 	shutdownLogger.Info("Shutting down logger subsystems...")
 	defer shutdownLogger.Info("Logger subsystems shut down successfully.")
 
-	for i := len(hooks) - 1; i >= 0; i-- {
-		hooks[i]()
+	for _, hook := range slices.Backward(hooks) {
+		hook()
 	}
 
 	var allErrors []error
@@ -115,29 +118,29 @@ func (lm *lifecycleManager) Shutdown(_ context.Context) error {
 	return nil
 }
 
-// RegisterShutdownHook registers a function to be called during logger
-// shutdown. Hooks are called in reverse order of registration (LIFO).
+// RegisterShutdownHook registers a function to be called during logger shutdown. Hooks
+// are called in reverse order of registration (LIFO).
 //
 // Takes hook (func()) which is the function to call during shutdown.
 func RegisterShutdownHook(hook func()) {
 	defaultLifecycleManager.RegisterShutdownHook(hook)
 }
 
-// RegisterClosable registers an io.Closer to be closed during logger shutdown
-// using the defaultLifecycleManager. This is typically used for log file
-// handles or network connections.
+// RegisterClosable registers an io.Closer to be closed during logger shutdown using the
+// defaultLifecycleManager. This is typically used for log file handles or network
+// connections.
 //
 // Takes c (io.Closer) which is the resource to close during shutdown.
 func RegisterClosable(c io.Closer) {
 	defaultLifecycleManager.RegisterClosable(c)
 }
 
-// ClearLifecycle closes all registered closable resources and then removes all
-// shutdown hooks and closables from the default lifecycle manager.
+// ClearLifecycle closes all registered closable resources and then removes all shutdown
+// hooks and closables from the default lifecycle manager.
 //
-// This is for test cleanup to ensure tests do not affect each other. Closable
-// resources (e.g. log rotators) are closed before being removed so their
-// background goroutines are stopped.
+// This is for test cleanup to ensure tests do not affect each other. Closable resources
+// (e.g. log rotators) are closed before being removed so their background goroutines are
+// stopped.
 //
 // Safe for concurrent use.
 func ClearLifecycle() {
@@ -160,9 +163,8 @@ func Shutdown(ctx context.Context) error {
 	return defaultLifecycleManager.Shutdown(ctx)
 }
 
-// newLifecycleManager creates a new lifecycle manager for testing.
-// In production code, use defaultLifecycleManager or the package-level
-// functions instead.
+// newLifecycleManager creates a new lifecycle manager for testing. In production code,
+// use defaultLifecycleManager or the package-level functions instead.
 //
 // Returns *lifecycleManager which manages shutdown hooks and closable outputs.
 func newLifecycleManager() *lifecycleManager {

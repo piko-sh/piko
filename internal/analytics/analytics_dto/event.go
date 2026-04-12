@@ -43,12 +43,14 @@ const (
 	eventTypeCount
 )
 
-// eventTypeNames maps each EventType to its string representation.
-var eventTypeNames = [eventTypeCount]string{
-	EventPageView: "pageview",
-	EventAction:   "action",
-	EventCustom:   "custom",
-}
+var (
+	// eventTypeNames maps each EventType to its string representation.
+	eventTypeNames = [eventTypeCount]string{
+		EventPageView: "pageview",
+		EventAction:   "action",
+		EventCustom:   "custom",
+	}
+)
 
 // String returns the human-readable name of the event type.
 //
@@ -62,36 +64,34 @@ func (t EventType) String() string {
 
 // Event carries the data for a single backend analytics event.
 //
-// Instances are pooled via [AcquireEvent] and [ReleaseEvent] to avoid
-// allocation on the hot path. Collectors must not retain a pointer to
-// the Event after [Collector.Collect] returns; they should copy any
-// data they need.
+// Instances are pooled via AcquireEvent and ReleaseEvent to avoid allocation on the hot
+// path. Collectors must not retain a pointer to the Event after Collector.Collect
+// returns; they should copy any data they need.
 type Event struct {
 	// Timestamp is when the event occurred.
 	Timestamp time.Time
 
-	// Request is the raw HTTP request. Adapters may need the full
-	// request for Accept-Language and Client Hints headers.
+	// Request is the raw HTTP request. Adapters may need the full request for
+	// Accept-Language and Client Hints headers.
 	Request *http.Request
 
-	// Revenue holds optional monetary data for e-commerce analytics
-	// events such as purchases or refunds; nil when the event does
-	// not carry revenue information.
+	// Revenue holds optional monetary data for e-commerce analytics events such as purchases
+	// or refunds; nil when the event does not carry revenue information.
 	Revenue *maths.Money
 
-	// Properties holds arbitrary key-value metadata. Adapters that
-	// support custom properties read from here.
+	// Properties holds arbitrary key-value metadata. Adapters that support custom properties
+	// read from here.
 	Properties map[string]string
 
 	// MatchedPattern is the route pattern that matched (e.g. "/blog/{slug}").
 	MatchedPattern string
 
-	// Hostname is the request host (e.g. "example.com"), required by
-	// backends like Plausible that associate events with a site domain.
+	// Hostname is the request host (e.g. "example.com"), required by backends like Plausible
+	// that associate events with a site domain.
 	Hostname string
 
-	// URL is the full request URL including query parameters, useful
-	// for UTM attribution and campaign tracking.
+	// URL is the full request URL including query parameters, useful for UTM attribution and
+	// campaign tracking.
 	URL string
 
 	// ClientIP is the real client IP as resolved by the RealIP middleware.
@@ -118,9 +118,8 @@ type Event struct {
 	// ActionName is the name of the server action, empty for page views.
 	ActionName string
 
-	// EventName is an explicit name for custom analytics events,
-	// separate from ActionName which is specific to Piko server
-	// actions.
+	// EventName is an explicit name for custom analytics events, separate from ActionName
+	// which is specific to Piko server actions.
 	EventName string
 
 	// Duration is the time taken to handle the request.
@@ -133,10 +132,12 @@ type Event struct {
 	StatusCode int
 }
 
-// eventPool provides reusable Event instances.
-var eventPool = sync.Pool{
-	New: func() any { return &Event{} },
-}
+var (
+	// eventPool provides reusable Event instances.
+	eventPool = sync.Pool{
+		New: func() any { return &Event{} },
+	}
+)
 
 // AcquireEvent returns a zeroed Event from the pool.
 //
@@ -150,8 +151,8 @@ func AcquireEvent() *Event {
 	return ev
 }
 
-// ReleaseEvent returns an Event to the pool. The caller must not use
-// the Event after this call.
+// ReleaseEvent returns an Event to the pool. The caller must not use the Event after this
+// call.
 //
 // Takes ev (*Event) which is the instance to return.
 func ReleaseEvent(ev *Event) {

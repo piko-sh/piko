@@ -62,8 +62,7 @@ func findPropsStruct(file *ast.File) (*ast.TypeSpec, *ast.StructType, bool) {
 // Takes fieldName (string) which is the name of the field to find.
 //
 // Returns *ast.Field which is the matching field, or nil if not found.
-// Returns int which is the index of the field in the fields list, or -1 if
-// not found.
+// Returns int which is the index of the field in the fields list, or -1 if not found.
 // Returns bool which is true when the field was found.
 func findFieldInStruct(structType *ast.StructType, fieldName string) (*ast.Field, int, bool) {
 	for i, field := range structType.Fields.List {
@@ -76,11 +75,10 @@ func findFieldInStruct(structType *ast.StructType, fieldName string) (*ast.Field
 	return nil, -1, false
 }
 
-// addCoerceTagToField adds coerce:"true" to a struct field's tag,
-// creating a new tag if none exists or appending to an existing one.
+// addCoerceTagToField adds coerce:"true" to a struct field's tag, creating a new tag if
+// none exists or appending to an existing one.
 //
-// Takes field (*ast.Field) which is the struct field to modify in
-// place.
+// Takes field (*ast.Field) which is the struct field to modify in place.
 func addCoerceTagToField(field *ast.Field) {
 	if field.Tag == nil {
 		field.Tag = &ast.BasicLit{
@@ -123,8 +121,8 @@ func findImportDecl(file *ast.File) (*ast.GenDecl, bool) {
 
 // addImportToAST adds an import statement to a Go AST file.
 //
-// If an import declaration exists, it appends to it. Otherwise, it creates
-// a new one at the start of the declarations list.
+// If an import declaration exists, it appends to it. Otherwise, it creates a new one at
+// the start of the declarations list.
 //
 // Takes file (*ast.File) which is the AST to modify.
 // Takes alias (string) which is the optional import alias, or empty for none.

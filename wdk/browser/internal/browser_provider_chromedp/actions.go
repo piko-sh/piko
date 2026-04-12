@@ -32,16 +32,18 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// errElementNotFoundFormat is the format string for element-not-found errors.
-const errElementNotFoundFormat = "element not found: %s"
+const (
+	// errElementNotFoundFormat is the format string for element-not-found errors.
+	errElementNotFoundFormat = "element not found: %s"
+)
 
 // ActionContext holds the context needed for browser action execution.
 type ActionContext struct {
 	// Ctx is the chromedp browser context for executing actions.
 	Ctx context.Context
 
-	// SrcSandbox provides sandboxed access to the source directory for resolving
-	// relative file paths with path traversal protection.
+	// SrcSandbox provides sandboxed access to the source directory for resolving relative
+	// file paths with path traversal protection.
 	SrcSandbox safedisk.Sandbox
 
 	// SandboxFactory creates sandboxes for filesystem access. When nil,
@@ -55,9 +57,9 @@ type ActionContext struct {
 	ServerURL string
 }
 
-// clickablePosition holds the centre coordinates of an element and whether it
-// is currently receiving pointer events (not obscured by an overlay such as a
-// view transition).
+// clickablePosition holds the centre coordinates of an element and whether it is
+// currently receiving pointer events (not obscured by an overlay such as a view
+// transition).
 type clickablePosition struct {
 	// X is the horizontal centre of the element in viewport coordinates.
 	X float64
@@ -68,8 +70,8 @@ type clickablePosition struct {
 	// Found indicates whether the element exists in the DOM.
 	Found bool
 
-	// Clickable indicates whether the element is the topmost element at its
-	// centre coordinates, meaning a CDP mouse event will reach it.
+	// Clickable indicates whether the element is the topmost element at its centre
+	// coordinates, meaning a CDP mouse event will reach it.
 	Clickable bool
 }
 
@@ -129,8 +131,8 @@ func DoubleClick(ctx *ActionContext, selector string) error {
 	return nil
 }
 
-// pollForClickableElement polls until the element identified by selector
-// becomes clickable or the context expires.
+// pollForClickableElement polls until the element identified by selector becomes
+// clickable or the context expires.
 //
 // Takes ctx (context.Context) which controls the polling deadline.
 // Takes selector (string) which identifies the target element.
@@ -194,8 +196,8 @@ func Hover(ctx *ActionContext, selector string) error {
 // RightClick performs a right-click (context menu) on an element.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
-// Takes selector (string) which specifies the element to right-click, with
-// support for shadow DOM selectors.
+// Takes selector (string) which specifies the element to right-click, with support for
+// shadow DOM selectors.
 //
 // Returns error when the element cannot be found or the click fails.
 func RightClick(ctx *ActionContext, selector string) error {
@@ -218,8 +220,8 @@ func RightClick(ctx *ActionContext, selector string) error {
 	return nil
 }
 
-// Fill sets the value of an input element, simulating typing.
-// If value is empty, this clears the input using the Clear function.
+// Fill sets the value of an input element, simulating typing. If value is empty, this
+// clears the input using the Clear function.
 //
 // Takes ctx (*ActionContext) which provides the browser context for actions.
 // Takes selector (string) which identifies the target input element.
@@ -273,14 +275,14 @@ func Fill(ctx *ActionContext, selector, value string) error {
 	return nil
 }
 
-// Clear clears the value of an input element by selecting all and deleting.
-// This simulates user keyboard input rather than directly manipulating the DOM.
+// Clear clears the value of an input element by selecting all and deleting. This
+// simulates user keyboard input rather than directly manipulating the DOM.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes selector (string) which identifies the input element to clear.
 //
-// Returns error when the element cannot be focused, text cannot be selected,
-// or the deletion fails.
+// Returns error when the element cannot be focused, text cannot be selected, or the
+// deletion fails.
 func Clear(ctx *ActionContext, selector string) error {
 	if strings.Contains(selector, ShadowDOMSeparator) {
 		return clearInShadowDOM(ctx.Ctx, selector)
@@ -341,8 +343,7 @@ func Clear(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes selector (string) which identifies the form element to submit.
 //
-// Returns error when the form cannot be submitted or no form matches the
-// selector.
+// Returns error when the form cannot be submitted or no form matches the selector.
 func Submit(ctx *ActionContext, selector string) error {
 	if strings.Contains(selector, ShadowDOMSeparator) {
 		return submitInShadowDOM(ctx.Ctx, selector)
@@ -368,8 +369,8 @@ func Submit(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes selector (string) which identifies the element, supporting shadow DOM.
 //
-// Returns error when the element cannot be found, is not a checkbox or radio,
-// or the operation fails.
+// Returns error when the element cannot be found, is not a checkbox or radio, or the
+// operation fails.
 func Check(ctx *ActionContext, selector string) error {
 	if strings.Contains(selector, ShadowDOMSeparator) {
 		return checkInShadowDOM(ctx.Ctx, selector)
@@ -395,8 +396,7 @@ func Check(ctx *ActionContext, selector string) error {
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes selector (string) which identifies the checkbox element to uncheck.
 //
-// Returns error when the element cannot be unchecked, is not a checkbox, or
-// is not found.
+// Returns error when the element cannot be unchecked, is not a checkbox, or is not found.
 func Uncheck(ctx *ActionContext, selector string) error {
 	if strings.Contains(selector, ShadowDOMSeparator) {
 		return uncheckInShadowDOM(ctx.Ctx, selector)
@@ -419,12 +419,11 @@ func Uncheck(ctx *ActionContext, selector string) error {
 
 // SetFiles sets files on a file input element.
 //
-// Takes ctx (*ActionContext) which provides the browser context and source
-// directory for resolving file paths.
-// Takes selector (string) which identifies the file input element, supporting
-// shadow DOM selectors.
-// Takes filePaths ([]string) which lists relative file paths to set on the
-// input.
+// Takes ctx (*ActionContext) which provides the browser context and source directory for
+// resolving file paths.
+// Takes selector (string) which identifies the file input element, supporting shadow DOM
+// selectors.
+// Takes filePaths ([]string) which lists relative file paths to set on the input.
 //
 // Returns error when a file does not exist or the upload fails.
 func SetFiles(ctx *ActionContext, selector string, filePaths []string) error {
@@ -462,8 +461,8 @@ func SetFiles(ctx *ActionContext, selector string, filePaths []string) error {
 // Focus sets keyboard focus on the element matching the given selector.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
-// Takes selector (string) which specifies the element to focus, supporting
-// shadow DOM paths separated by ShadowDOMSeparator.
+// Takes selector (string) which specifies the element to focus, supporting shadow DOM
+// paths separated by ShadowDOMSeparator.
 //
 // Returns error when the element cannot be focused or does not exist.
 func Focus(ctx *ActionContext, selector string) error {
@@ -480,25 +479,17 @@ func Blur(ctx *ActionContext, selector string) error {
 	return runTimedJSAction(ctx, selector, blurInShadowDOM, "Blur", "blur.js.tmpl", "blurring")
 }
 
-// runTimedJSAction executes a JavaScript template action
-// with a timeout, falling back to a shadow DOM handler when
-// the selector contains a shadow DOM separator.
+// runTimedJSAction executes a JavaScript template action with a timeout, falling back to
+// a shadow DOM handler when the selector contains a shadow DOM separator.
 //
-// Takes ctx (*ActionContext) which provides the browser
-// context for execution.
-// Takes selector (string) which identifies the target
-// element.
-// Takes shadowFallback (func) which handles shadow DOM
-// selectors.
-// Takes actionName (string) which labels the action for
-// timeout error messages.
-// Takes templateName (string) which identifies the JS
-// template to execute.
-// Takes verb (string) which describes the action for error
-// messages.
+// Takes ctx (*ActionContext) which provides the browser context for execution.
+// Takes selector (string) which identifies the target element.
+// Takes shadowFallback (func) which handles shadow DOM selectors.
+// Takes actionName (string) which labels the action for timeout error messages.
+// Takes templateName (string) which identifies the JS template to execute.
+// Takes verb (string) which describes the action for error messages.
 //
-// Returns error when the element is not found or the action
-// fails.
+// Returns error when the element is not found or the action fails.
 func runTimedJSAction(
 	ctx *ActionContext,
 	selector string,
@@ -532,8 +523,8 @@ func runTimedJSAction(
 // Scroll scrolls the window or an element to a position.
 //
 // Takes ctx (*ActionContext) which provides the browser execution context.
-// Takes selector (string) which identifies the element to scroll, or "window"
-// for the viewport.
+// Takes selector (string) which identifies the element to scroll, or "window" for the
+// viewport.
 // Takes position (string) which specifies the target scroll position.
 //
 // Returns error when the scroll operation fails.
@@ -544,10 +535,10 @@ func Scroll(ctx *ActionContext, selector string, position string) error {
 			"Position": position,
 		})
 	} else if strings.Contains(selector, ShadowDOMSeparator) {
-		parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
+		host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 		js = scripts.MustExecute("shadow_scroll_element.js.tmpl", map[string]any{
-			"Host":     parts[0],
-			"Shadow":   parts[1],
+			"Host":     host,
+			"Shadow":   shadow,
 			"Position": position,
 		})
 	} else {
@@ -632,13 +623,12 @@ func WaitForText(ctx *ActionContext, selector, text string, timeout time.Duratio
 // DispatchEvent dispatches a custom event on an element or document.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
-// Takes selector (string) which identifies the target element, or "*" or
-// "document" for document-level events.
+// Takes selector (string) which identifies the target element, or "*" or "document" for
+// document-level events.
 // Takes eventName (string) which specifies the custom event name to dispatch.
 // Takes detail (map[string]any) which contains the event detail payload.
 //
-// Returns error when the detail cannot be marshalled or the event dispatch
-// fails.
+// Returns error when the detail cannot be marshalled or the event dispatch fails.
 func DispatchEvent(ctx *ActionContext, selector, eventName string, detail map[string]any) error {
 	detailJSON, err := json.Marshal(detail)
 	if err != nil {
@@ -652,10 +642,10 @@ func DispatchEvent(ctx *ActionContext, selector, eventName string, detail map[st
 			"DetailJSON": string(detailJSON),
 		})
 	} else if strings.Contains(selector, ShadowDOMSeparator) {
-		parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
+		host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 		js = scripts.MustExecute("shadow_dispatch_event.js.tmpl", map[string]any{
-			"Host":       parts[0],
-			"Shadow":     parts[1],
+			"Host":       host,
+			"Shadow":     shadow,
 			"EventName":  eventName,
 			"DetailJSON": string(detailJSON),
 		})
@@ -674,12 +664,11 @@ func DispatchEvent(ctx *ActionContext, selector, eventName string, detail map[st
 	return nil
 }
 
-// PartialReloadOptions mirrors the frontend's `ReloadOptions` for tests that
-// need to assert specific reconciliation behaviour. Leave it nil for the
-// default merge mode.
+// PartialReloadOptions mirrors the frontend's `ReloadOptions` for tests that need to
+// assert specific reconciliation behaviour. Leave it nil for the default merge mode.
 type PartialReloadOptions struct {
-	// Mode is the reconciliation strategy: "merge" (default), "replace",
-	// "children-only", or "attrs-only".
+	// Mode is the reconciliation strategy: "merge" (default), "replace", "children-only", or
+	// "attrs-only".
 	Mode string
 
 	// OwnedAttrs restricts which root attributes the server is allowed to set.
@@ -694,8 +683,8 @@ type PartialReloadOptions struct {
 // Takes ctx (*ActionContext) which provides the browser context for execution.
 // Takes partialName (string) which identifies the partial to reload.
 // Takes data (map[string]any) which contains data to pass to the partial.
-// Takes opts (*PartialReloadOptions) which selects a reconciliation mode and
-// attribute controls; pass nil for the default merge mode.
+// Takes opts (*PartialReloadOptions) which selects a reconciliation mode and attribute
+// controls; pass nil for the default merge mode.
 //
 // Returns error when marshalling data fails or browser execution fails.
 func TriggerPartialReload(ctx *ActionContext, partialName string, data map[string]any, opts *PartialReloadOptions) error {
@@ -749,8 +738,8 @@ func TriggerPartialReload(ctx *ActionContext, partialName string, data map[strin
 // Takes eventName (string) which specifies the name of the event to trigger.
 // Takes detail (map[string]any) which contains the event payload data.
 //
-// Returns error when the detail cannot be marshalled to JSON or when the
-// browser fails to execute the event trigger.
+// Returns error when the detail cannot be marshalled to JSON or when the browser fails to
+// execute the event trigger.
 func TriggerBusEvent(ctx *ActionContext, eventName string, detail map[string]any) error {
 	detailJSON, err := json.Marshal(detail)
 	if err != nil {
@@ -772,8 +761,8 @@ func TriggerBusEvent(ctx *ActionContext, eventName string, detail map[string]any
 // Eval evaluates JavaScript on an element or the page.
 //
 // Takes ctx (*ActionContext) which provides the browser context for execution.
-// Takes selector (string) which identifies the target element, or "window",
-// "document", or empty string for page-level evaluation.
+// Takes selector (string) which identifies the target element, or "window", "document",
+// or empty string for page-level evaluation.
 // Takes script (string) which contains the JavaScript code to execute.
 //
 // Returns error when the script fails to execute.
@@ -782,10 +771,10 @@ func Eval(ctx *ActionContext, selector, script string) error {
 	if selector == "window" || selector == "document" || selector == "" {
 		js = script
 	} else if strings.Contains(selector, ShadowDOMSeparator) {
-		parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
+		host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 		js = scripts.MustExecute("shadow_eval_statement.js.tmpl", map[string]any{
-			"Host":   parts[0],
-			"Shadow": parts[1],
+			"Host":   host,
+			"Shadow": shadow,
 			"JS":     script,
 		})
 	} else {
@@ -808,8 +797,7 @@ func Eval(ctx *ActionContext, selector, script string) error {
 // Takes partialName (string) which identifies the partial to wait for.
 // Takes timeout (time.Duration) which sets the maximum wait time.
 //
-// Returns error when the timeout is reached before the partial finishes
-// loading.
+// Returns error when the timeout is reached before the partial finishes loading.
 func WaitForPartialReload(ctx *ActionContext, partialName string, timeout time.Duration) error {
 	selector := fmt.Sprintf("[data-partial=%q]", partialName)
 
@@ -950,9 +938,7 @@ func WaitForNotPresent(ctx *ActionContext, selector string, timeout time.Duratio
 //
 // Returns error when the form cannot be submitted or no form is found.
 func submitInShadowDOM(ctx context.Context, selector string) error {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_submit_form.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -991,9 +977,8 @@ func getBodyPreview(ctx context.Context) string {
 	return html
 }
 
-// waitForBoolCondition waits for a boolean condition to become true.
-// It polls using the checker function until the condition is met or timeout
-// is reached.
+// waitForBoolCondition waits for a boolean condition to become true. It polls using the
+// checker function until the condition is met or timeout is reached.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes selector (string) which identifies the element to check.

@@ -40,20 +40,19 @@ const (
 	// defaultRefreshInterval is the default interval between data refreshes.
 	defaultRefreshInterval = 2 * time.Second
 
-	// defaultMaxRecvMsgSize is the maximum size of a single gRPC response
-	// message accepted by the client.
+	// defaultMaxRecvMsgSize is the maximum size of a single gRPC response message accepted
+	// by the client.
 	//
-	// Default gRPC is 4 MiB which is too small for profile capture chunks
-	// (capped at 32 MiB at the streaming layer). 64 MiB matches the
-	// watchdog download cap and gives generous headroom for trace and
-	// describe responses.
+	// Default gRPC is 4 MiB which is too small for profile capture chunks (capped at 32 MiB
+	// at the streaming layer). 64 MiB matches the watchdog download cap and gives generous
+	// headroom for trace and describe responses.
 	defaultMaxRecvMsgSize = 64 * 1024 * 1024
 )
 
 // Config holds the settings for the gRPC provider.
 type Config struct {
-	// TransportCredentials holds TLS credentials for the gRPC connection.
-	// When nil, insecure credentials are used.
+	// TransportCredentials holds TLS credentials for the gRPC connection. When nil, insecure
+	// credentials are used.
 	TransportCredentials credentials.TransportCredentials
 
 	// Address is the gRPC server address (e.g., "localhost:9091").
@@ -69,8 +68,8 @@ type Config struct {
 // Option configures the provider settings.
 type Option func(*Config)
 
-// Connection holds a shared gRPC connection and its service clients.
-// It implements io.Closer for resource cleanup.
+// Connection holds a shared gRPC connection and its service clients. It implements
+// io.Closer for resource cleanup.
 type Connection struct {
 	// conn is the underlying gRPC client connection; nil until connected.
 	conn *grpc.ClientConn
@@ -81,31 +80,31 @@ type Connection struct {
 	// metricsClient provides gRPC access to system stats and traces.
 	metricsClient pb.MetricsServiceClient
 
-	// orchestratorClient provides access to the orchestrator service for
-	// fetching task summaries, recent tasks, and workflow summaries.
+	// orchestratorClient provides access to the orchestrator service for fetching task
+	// summaries, recent tasks, and workflow summaries.
 	orchestratorClient pb.OrchestratorInspectorServiceClient
 
 	// registryClient queries the registry for artefact and variant summaries.
 	registryClient pb.RegistryInspectorServiceClient
 
-	// dispatcherClient provides access to the dispatcher inspector service
-	// for querying dead letter queues and dispatcher statistics.
+	// dispatcherClient provides access to the dispatcher inspector service for querying dead
+	// letter queues and dispatcher statistics.
 	dispatcherClient pb.DispatcherInspectorServiceClient
 
-	// rateLimiterClient provides access to the rate limiter inspector service
-	// for querying rate limiter status and counters.
+	// rateLimiterClient provides access to the rate limiter inspector service for querying
+	// rate limiter status and counters.
 	rateLimiterClient pb.RateLimiterInspectorServiceClient
 
-	// providerInfoClient provides access to the provider info service for
-	// querying registered providers across hexagons.
+	// providerInfoClient provides access to the provider info service for querying
+	// registered providers across hexagons.
 	providerInfoClient pb.ProviderInfoServiceClient
 
-	// profilingClient provides access to the profiling service for
-	// controlling on-demand runtime profiling.
+	// profilingClient provides access to the profiling service for controlling on-demand
+	// runtime profiling.
 	profilingClient pb.ProfilingServiceClient
 
-	// watchdogClient provides access to the watchdog inspector service for
-	// querying watchdog state and stored profiles.
+	// watchdogClient provides access to the watchdog inspector service for querying watchdog
+	// state and stored profiles.
 	watchdogClient pb.WatchdogInspectorServiceClient
 }
 
@@ -114,8 +113,8 @@ type Connection struct {
 // Takes address (string) which specifies the gRPC server address.
 // Takes opts (...Option) which provide optional settings.
 //
-// Returns *Connection which holds the gRPC clients for health, metrics,
-// orchestrator, and registry services.
+// Returns *Connection which holds the gRPC clients for health, metrics, orchestrator, and
+// registry services.
 // Returns error when the connection cannot be set up or the health check fails.
 func NewConnection(address string, opts ...Option) (*Connection, error) {
 	config := Config{
@@ -166,8 +165,7 @@ func NewConnection(address string, opts ...Option) (*Connection, error) {
 	return connection, nil
 }
 
-// newConnectionClients initialises all gRPC service clients for the given
-// connection.
+// newConnectionClients initialises all gRPC service clients for the given connection.
 //
 // Takes conn (*grpc.ClientConn) which provides the underlying transport.
 //
@@ -199,54 +197,53 @@ func (c *Connection) MetricsClient() pb.MetricsServiceClient { return c.metricsC
 
 // OrchestratorClient returns the gRPC orchestrator inspector service client.
 //
-// Returns pb.OrchestratorInspectorServiceClient which provides access to the
-// orchestrator inspection API.
+// Returns pb.OrchestratorInspectorServiceClient which provides access to the orchestrator
+// inspection API.
 func (c *Connection) OrchestratorClient() pb.OrchestratorInspectorServiceClient {
 	return c.orchestratorClient
 }
 
 // RegistryClient returns the gRPC registry inspector service client.
 //
-// Returns pb.RegistryInspectorServiceClient which provides access to the
-// registry inspection API.
+// Returns pb.RegistryInspectorServiceClient which provides access to the registry
+// inspection API.
 func (c *Connection) RegistryClient() pb.RegistryInspectorServiceClient { return c.registryClient }
 
 // DispatcherClient returns the gRPC dispatcher inspector service client.
 //
-// Returns pb.DispatcherInspectorServiceClient which provides access to the
-// dispatcher inspection API.
+// Returns pb.DispatcherInspectorServiceClient which provides access to the dispatcher
+// inspection API.
 func (c *Connection) DispatcherClient() pb.DispatcherInspectorServiceClient {
 	return c.dispatcherClient
 }
 
 // RateLimiterClient returns the gRPC rate limiter inspector service client.
 //
-// Returns pb.RateLimiterInspectorServiceClient which provides access to the
-// rate limiter inspection API.
+// Returns pb.RateLimiterInspectorServiceClient which provides access to the rate limiter
+// inspection API.
 func (c *Connection) RateLimiterClient() pb.RateLimiterInspectorServiceClient {
 	return c.rateLimiterClient
 }
 
 // ProviderInfoClient returns the gRPC provider info service client.
 //
-// Returns pb.ProviderInfoServiceClient which provides access to the
-// provider info inspection API.
+// Returns pb.ProviderInfoServiceClient which provides access to the provider info
+// inspection API.
 func (c *Connection) ProviderInfoClient() pb.ProviderInfoServiceClient {
 	return c.providerInfoClient
 }
 
 // ProfilingClient returns the gRPC profiling service client.
 //
-// Returns pb.ProfilingServiceClient which provides access to the
-// profiling control API.
+// Returns pb.ProfilingServiceClient which provides access to the profiling control API.
 func (c *Connection) ProfilingClient() pb.ProfilingServiceClient {
 	return c.profilingClient
 }
 
 // WatchdogClient returns the gRPC watchdog inspector service client.
 //
-// Returns pb.WatchdogInspectorServiceClient which provides access to the
-// watchdog inspection API.
+// Returns pb.WatchdogInspectorServiceClient which provides access to the watchdog
+// inspection API.
 func (c *Connection) WatchdogClient() pb.WatchdogInspectorServiceClient {
 	return c.watchdogClient
 }
@@ -263,8 +260,8 @@ func (c *Connection) Close() error {
 
 // WithDialTimeout sets the dial timeout for establishing connections.
 //
-// Takes d (time.Duration) which specifies the maximum time to wait for a
-// connection to be established.
+// Takes d (time.Duration) which specifies the maximum time to wait for a connection to be
+// established.
 //
 // Returns Option which configures the dial timeout on the Config.
 func WithDialTimeout(d time.Duration) Option {
@@ -284,8 +281,8 @@ func WithRefreshInterval(d time.Duration) Option {
 	}
 }
 
-// WithTransportCredentials sets TLS transport credentials for the gRPC
-// connection. When not set, insecure credentials are used.
+// WithTransportCredentials sets TLS transport credentials for the gRPC connection. When
+// not set, insecure credentials are used.
 //
 // Takes creds (credentials.TransportCredentials) which provides TLS settings.
 //

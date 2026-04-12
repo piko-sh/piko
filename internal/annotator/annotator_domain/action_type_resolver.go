@@ -48,13 +48,12 @@ const (
 	pointerPrefix = "*"
 )
 
-// ResolveActionTypes enriches the ActionManifest with full type
-// information for input/output types and capability interfaces,
-// called during Stage 3.5 after the TypeResolver is initialised.
+// ResolveActionTypes enriches the ActionManifest with full type information for
+// input/output types and capability interfaces, called during Stage 3.5 after the
+// TypeResolver is initialised.
 //
 // Takes ctx (context.Context) for cancellation and tracing.
-// Takes manifest (*annotator_dto.ActionManifest) containing discovered action
-// candidates.
+// Takes manifest (*annotator_dto.ActionManifest) containing discovered action candidates.
 // Takes typeResolver (*TypeResolver) providing type query capabilities.
 //
 // Returns []*ast_domain.Diagnostic with any warnings or errors.
@@ -94,13 +93,12 @@ func ResolveActionTypes(
 
 // resolveActionDefinition enriches a single action with type information.
 //
-// Takes action (*annotator_dto.ActionDefinition) which is the action to
-// enrich with type details.
-// Takes packages (map[string]*inspector_dto.Package) which maps package
-// paths to their definitions for type lookups.
+// Takes action (*annotator_dto.ActionDefinition) which is the action to enrich with type
+// details.
+// Takes packages (map[string]*inspector_dto.Package) which maps package paths to their
+// definitions for type lookups.
 //
-// Returns []*ast_domain.Diagnostic which contains any errors found
-// during resolution.
+// Returns []*ast_domain.Diagnostic which contains any errors found during resolution.
 func resolveActionDefinition(
 	ctx context.Context,
 	action *annotator_dto.ActionDefinition,
@@ -143,13 +141,12 @@ func resolveActionDefinition(
 // findActionPackage finds the package containing an action.
 //
 // Takes ctx (context.Context) which carries the logger and tracing data.
-// Takes action (*annotator_dto.ActionDefinition) which specifies the action to
-// find.
-// Takes packages (map[string]*inspector_dto.Package) which maps package paths
-// to their definitions.
+// Takes action (*annotator_dto.ActionDefinition) which specifies the action to find.
+// Takes packages (map[string]*inspector_dto.Package) which maps package paths to their
+// definitions.
 //
-// Returns *inspector_dto.Package which is the package containing the action,
-// or nil if not found.
+// Returns *inspector_dto.Package which is the package containing the action, or nil if
+// not found.
 // Returns *ast_domain.Diagnostic which is always nil.
 func findActionPackage(
 	ctx context.Context,
@@ -170,14 +167,12 @@ func findActionPackage(
 
 // findActionStructType finds the struct type for an action.
 //
-// Takes action (*annotator_dto.ActionDefinition) which defines the action to
-// look up.
+// Takes action (*annotator_dto.ActionDefinition) which defines the action to look up.
 // Takes pkg (*inspector_dto.Package) which contains the package's named types.
 //
-// Returns *inspector_dto.Type which is the found struct type, or nil if not
-// found.
-// Returns *ast_domain.Diagnostic which reports an error when the action struct
-// type does not exist in the package.
+// Returns *inspector_dto.Type which is the found struct type, or nil if not found.
+// Returns *ast_domain.Diagnostic which reports an error when the action struct type does
+// not exist in the package.
 func findActionStructType(
 	action *annotator_dto.ActionDefinition,
 	pkg *inspector_dto.Package,
@@ -198,14 +193,13 @@ func findActionStructType(
 
 // findActionCallMethod finds the Call method on an action struct.
 //
-// Takes action (*annotator_dto.ActionDefinition) which specifies the action to
-// find the method for.
+// Takes action (*annotator_dto.ActionDefinition) which specifies the action to find the
+// method for.
 // Takes actionType (*inspector_dto.Type) which provides the type to search.
 //
-// Returns *inspector_dto.Method which is the found Call method, or nil if not
-// found.
-// Returns *ast_domain.Diagnostic which contains an error when the action struct
-// has no Call method.
+// Returns *inspector_dto.Method which is the found Call method, or nil if not found.
+// Returns *ast_domain.Diagnostic which contains an error when the action struct has no
+// Call method.
 func findActionCallMethod(
 	action *annotator_dto.ActionDefinition,
 	actionType *inspector_dto.Type,
@@ -226,12 +220,12 @@ func findActionCallMethod(
 
 // extractInputOutputTypes extracts input and output types from a Call method.
 //
-// Takes action (*annotator_dto.ActionDefinition) which receives the extracted
-// type information.
-// Takes callMethod (*inspector_dto.Method) which provides the method signature
-// to analyse.
-// Takes packages (map[string]*inspector_dto.Package) which provides package
-// definitions for type resolution.
+// Takes action (*annotator_dto.ActionDefinition) which receives the extracted type
+// information.
+// Takes callMethod (*inspector_dto.Method) which provides the method signature to
+// analyse.
+// Takes packages (map[string]*inspector_dto.Package) which provides package definitions
+// for type resolution.
 func extractInputOutputTypes(
 	action *annotator_dto.ActionDefinition,
 	callMethod *inspector_dto.Method,
@@ -260,8 +254,8 @@ func extractInputOutputTypes(
 
 // detectHTTPMethodOverride checks if the action has a Method override.
 //
-// Takes action (*annotator_dto.ActionDefinition) which receives the HTTP method
-// override if detected.
+// Takes action (*annotator_dto.ActionDefinition) which receives the HTTP method override
+// if detected.
 // Takes actionType (*inspector_dto.Type) which is inspected for a Method field.
 func detectHTTPMethodOverride(action *annotator_dto.ActionDefinition, actionType *inspector_dto.Type) {
 	if hasMethod(actionType, "Method") {
@@ -273,8 +267,8 @@ func detectHTTPMethodOverride(action *annotator_dto.ActionDefinition, actionType
 //
 // Takes t (*inspector_dto.Type) which is the type to search for a Call method.
 //
-// Returns *inspector_dto.Method which is the Call method if found, or nil if
-// the type has no Call method.
+// Returns *inspector_dto.Method which is the Call method if found, or nil if the type has
+// no Call method.
 func findCallMethodInType(t *inspector_dto.Type) *inspector_dto.Method {
 	for _, method := range t.Methods {
 		if method.Name == "Call" {
@@ -311,11 +305,11 @@ func isErrorTypeString(typeString string) bool {
 // extractTypeInfoFromString extracts ActionTypeInfo from a type string.
 //
 // Takes typeString (string) which is the Go type representation to parse.
-// Takes packages (map[string]*inspector_dto.Package) which provides package
-// data for resolving qualified types.
+// Takes packages (map[string]*inspector_dto.Package) which provides package data for
+// resolving qualified types.
 //
-// Returns *annotator_dto.ActionTypeInfo which contains the parsed type details
-// including name, TypeScript equivalent, and any resolved fields.
+// Returns *annotator_dto.ActionTypeInfo which contains the parsed type details including
+// name, TypeScript equivalent, and any resolved fields.
 func extractTypeInfoFromString(
 	typeString string,
 	packages map[string]*inspector_dto.Package,
@@ -355,13 +349,12 @@ func extractTypeInfoFromString(
 
 // extractFieldsFromType extracts field information from a struct type.
 //
-// Takes t (*inspector_dto.Type) which is the struct type to extract fields
-// from.
-// Takes packages (map[string]*inspector_dto.Package) which provides type
-// definitions for resolving nested types.
+// Takes t (*inspector_dto.Type) which is the struct type to extract fields from.
+// Takes packages (map[string]*inspector_dto.Package) which provides type definitions for
+// resolving nested types.
 //
-// Returns []annotator_dto.ActionFieldInfo which contains the extracted field
-// metadata including JSON names, validation rules, and nested type information.
+// Returns []annotator_dto.ActionFieldInfo which contains the extracted field metadata
+// including JSON names, validation rules, and nested type information.
 func extractFieldsFromType(
 	t *inspector_dto.Type,
 	packages map[string]*inspector_dto.Package,
@@ -398,8 +391,8 @@ func extractFieldsFromType(
 	return fields
 }
 
-// extractTypeName extracts the type name from a type string, removing
-// pointer prefixes, package prefixes, and slice/map wrappers.
+// extractTypeName extracts the type name from a type string, removing pointer prefixes,
+// package prefixes, and slice/map wrappers.
 //
 // Takes typeString (string) which is the full type representation to parse.
 //
@@ -416,14 +409,13 @@ func extractTypeName(typeString string) string {
 	return typeString
 }
 
-// detectActionCapabilities detects which capability interfaces an action
-// implements by examining its method set.
+// detectActionCapabilities detects which capability interfaces an action implements by
+// examining its method set.
 //
-// Takes t (*inspector_dto.Type) which is the type to inspect for capability
-// methods.
+// Takes t (*inspector_dto.Type) which is the type to inspect for capability methods.
 //
-// Returns annotator_dto.ActionCapabilities which contains flags for each
-// detected capability.
+// Returns annotator_dto.ActionCapabilities which contains flags for each detected
+// capability.
 func detectActionCapabilities(t *inspector_dto.Type) annotator_dto.ActionCapabilities {
 	caps := annotator_dto.ActionCapabilities{}
 
@@ -482,8 +474,7 @@ func extractJSONTag(rawTag string) string {
 //
 // Takes rawTag (string) which is the raw struct field tag to parse.
 //
-// Returns string which is the extracted validate tag value, or empty if not
-// found.
+// Returns string which is the extracted validate tag value, or empty if not found.
 func extractValidateTag(rawTag string) string {
 	if rawTag == "" {
 		return ""
@@ -510,8 +501,7 @@ func extractValidateTag(rawTag string) string {
 //
 // Takes field (*inspector_dto.Field) which is the field to check.
 //
-// Returns bool which is true if the field is a pointer type or has an
-// omitempty tag.
+// Returns bool which is true if the field is a pointer type or has an omitempty tag.
 func isOptionalField(field *inspector_dto.Field) bool {
 	if strings.HasPrefix(field.TypeString, pointerPrefix) {
 		return true
@@ -524,9 +514,8 @@ func isOptionalField(field *inspector_dto.Field) bool {
 	return false
 }
 
-// goTypeToTSType converts a Go type string to a TypeScript type string.
-// This is a simplified conversion; the full ActionTypeMapper provides
-// more comprehensive mapping.
+// goTypeToTSType converts a Go type string to a TypeScript type string. This is a
+// simplified conversion; the full ActionTypeMapper provides more comprehensive mapping.
 //
 // Takes goType (string) which is the Go type to convert.
 //

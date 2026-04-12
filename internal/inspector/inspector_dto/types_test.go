@@ -18,7 +18,9 @@
 
 package inspector_dto
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestFunctionSignature_ToSignatureString(t *testing.T) {
 	tests := []struct {

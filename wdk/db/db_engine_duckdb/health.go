@@ -26,11 +26,23 @@ import (
 	"piko.sh/piko/wdk/db"
 )
 
-const initialDiagnosticsCapacity = 3
+const (
+	// initialDiagnosticsCapacity sizes the pre-allocated diagnostics slice to the number of
+	// probes CheckHealth runs.
+	initialDiagnosticsCapacity = 3
+)
 
-// CheckHealth returns DuckDB-specific diagnostics: database size, memory
-// limit, and thread count. Each query handles its own errors independently
-// so a single failing diagnostic does not prevent others.
+// CheckHealth runs DuckDB-specific diagnostic probes.
+//
+// Each probe handles its own errors so a single failure does not block the others.
+// Reported probes cover database size, memory limit, and thread count.
+//
+// Takes ctx (context.Context) which carries cancellation and deadlines for the underlying
+// queries.
+// Takes database (*sql.DB) which is the DuckDB connection to probe.
+//
+// Returns []db.DatabaseHealthDiagnostic which is one entry per probe, each marked
+// UNHEALTHY when its query failed.
 func (*DuckDBEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	diagnostics := make([]db.DatabaseHealthDiagnostic, 0, initialDiagnosticsCapacity)
 	diagnostics = append(diagnostics, checkDuckDBDatabaseSize(ctx, database)...)
@@ -39,6 +51,13 @@ func (*DuckDBEngine) CheckHealth(ctx context.Context, database *sql.DB) []db.Dat
 	return diagnostics
 }
 
+// checkDuckDBDatabaseSize probes the on-disk database size.
+//
+// Takes ctx (context.Context) which carries cancellation.
+// Takes database (*sql.DB) which is the DuckDB connection.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a one-entry slice carrying the size, or
+// an UNHEALTHY diagnostic on query failure.
 func checkDuckDBDatabaseSize(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var databaseSize string
 	err := database.QueryRowContext(ctx,
@@ -54,6 +73,13 @@ func checkDuckDBDatabaseSize(ctx context.Context, database *sql.DB) []db.Databas
 	}}
 }
 
+// checkDuckDBMemoryLimit probes the configured memory limit setting.
+//
+// Takes ctx (context.Context) which carries cancellation.
+// Takes database (*sql.DB) which is the DuckDB connection.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a one-entry slice carrying the limit, or
+// an UNHEALTHY diagnostic on query failure.
 func checkDuckDBMemoryLimit(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var memoryLimit string
 	if err := database.QueryRowContext(ctx, "SELECT current_setting('memory_limit')").Scan(&memoryLimit); err != nil {
@@ -66,6 +92,13 @@ func checkDuckDBMemoryLimit(ctx context.Context, database *sql.DB) []db.Database
 	}}
 }
 
+// checkDuckDBThreads probes the configured thread count setting.
+//
+// Takes ctx (context.Context) which carries cancellation.
+// Takes database (*sql.DB) which is the DuckDB connection.
+//
+// Returns []db.DatabaseHealthDiagnostic which is a one-entry slice carrying the thread
+// count, or an UNHEALTHY diagnostic on query failure.
 func checkDuckDBThreads(ctx context.Context, database *sql.DB) []db.DatabaseHealthDiagnostic {
 	var threads string
 	if err := database.QueryRowContext(ctx, "SELECT current_setting('threads')").Scan(&threads); err != nil {

@@ -1,0 +1,4 @@
+{
+  "description": "Generic function in fileA calls another generic function in fileB; outer instantiates both via single call site",
+  "expected": "result=63"
+}

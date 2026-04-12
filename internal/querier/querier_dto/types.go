@@ -18,12 +18,12 @@
 
 package querier_dto
 
-// Dialect is an opaque string that identifies a SQL engine dialect
-// (e.g. "postgres", "mysql", "sqlite", "duckdb").
+// Dialect is an opaque string that identifies a SQL engine dialect (e.g. "postgres",
+// "mysql", "sqlite", "duckdb").
 //
-// Each engine adapter defines its own dialect name. The domain layer never
-// switches on dialect values; all engine-specific behaviour is expressed
-// through the EnginePort interface.
+// Each engine adapter defines its own dialect name. The domain layer never switches on
+// dialect values; all engine-specific behaviour is expressed through the EnginePort
+// interface.
 type Dialect = string
 
 // ParameterStyle identifies how parameter placeholders are written.
@@ -46,30 +46,28 @@ const (
 	ParameterStyleAt
 )
 
-// DirectiveParameterPrefix describes a sigil that may introduce a parameter
-// reference in a directive comment line (e.g. `-- ?1 as piko.limit(page_size)`
-// or `-- :email as piko.param`).
+// DirectiveParameterPrefix describes a sigil that may introduce a parameter reference in
+// a directive comment line (e.g. `-- ?1 as piko.limit(page_size)` or `-- :email as
+// piko.param`).
 //
-// Each engine declares the set of valid prefixes via
-// SupportedDirectivePrefixes.
+// Each engine declares the set of valid prefixes via SupportedDirectivePrefixes.
 type DirectiveParameterPrefix struct {
 	// Prefix is the leading byte ('$', '?', ':', '@').
 	Prefix byte
 
-	// IsNamed indicates whether the prefix expects an
-	// identifier rather than digits.
+	// IsNamed indicates whether the prefix expects an identifier rather than digits.
 	IsNamed bool
 }
 
-// CommentStyle describes the comment syntax used by an engine's query files.
-// The default for SQL dialects is "--" line comments.
+// CommentStyle describes the comment syntax used by an engine's query files. The default
+// for SQL dialects is "--" line comments.
 type CommentStyle struct {
 	// LinePrefix is the single-line comment prefix (e.g. "--", "#", "//").
 	LinePrefix string
 }
 
-// SQLTypeCategory classifies SQL types into broad categories for structured
-// type resolution, replacing stringly-typed switch statements.
+// SQLTypeCategory classifies SQL types into broad categories for structured type
+// resolution, replacing stringly-typed switch statements.
 type SQLTypeCategory uint8
 
 const (
@@ -132,11 +130,10 @@ const (
 )
 
 // SQLType is a structured representation of a SQL type, carrying category,
-// engine-specific name, and optional parameters. This replaces the
-// stringly-typed approach where type resolution switches on raw name strings.
+// engine-specific name, and optional parameters. This replaces the stringly-typed
+// approach where type resolution switches on raw name strings.
 type SQLType struct {
-	// Precision is the numeric precision for decimal types, or nil if
-	// unspecified.
+	// Precision is the numeric precision for decimal types, or nil if unspecified.
 	Precision *int
 
 	// Scale is the numeric scale for decimal types, or nil if unspecified.
@@ -148,12 +145,12 @@ type SQLType struct {
 	// ElementType is the element type for array and range types.
 	ElementType *SQLType
 
-	// EngineName is the engine-native type name (e.g. "numeric", "varchar",
-	// "int8"), used for display and engine-specific code paths.
+	// EngineName is the engine-native type name (e.g. "numeric", "varchar", "int8"), used
+	// for display and engine-specific code paths.
 	EngineName string
 
-	// Schema is the schema for user-defined types (enums, composites).
-	// Empty for built-in types.
+	// Schema is the schema for user-defined types (enums, composites). Empty for built-in
+	// types.
 	Schema string
 
 	// EnumValues holds the valid values for enum types.
@@ -162,8 +159,8 @@ type SQLType struct {
 	// StructFields holds the named fields for STRUCT types (DuckDB).
 	StructFields []StructField
 
-	// KeyType is the key type for MAP types (DuckDB). The value type is stored
-	// in ElementType.
+	// KeyType is the key type for MAP types (DuckDB). The value type is stored in
+	// ElementType.
 	KeyType *SQLType
 
 	// UnionMembers holds the tagged members for UNION types (DuckDB).
@@ -220,8 +217,8 @@ const (
 	QueryCommandCopyFrom
 )
 
-// QueryCapabilities is a bitmask indicating which pgx-specific features are
-// used by the query set, controlling conditional generation of PgxDBTX.
+// QueryCapabilities is a bitmask indicating which pgx-specific features are used by the
+// query set, controlling conditional generation of PgxDBTX.
 type QueryCapabilities uint8
 
 const (
@@ -232,27 +229,27 @@ const (
 	CapabilityCopyFrom
 )
 
-// DatabaseConfig holds the configuration for a single named database
-// connection during code generation.
+// DatabaseConfig holds the configuration for a single named database connection during
+// code generation.
 type DatabaseConfig struct {
-	// MigrationDirectory is the path to the directory containing ordered
-	// migration SQL files.
+	// MigrationDirectory is the path to the directory containing ordered migration SQL
+	// files.
 	MigrationDirectory string
 
 	// QueryDirectory is the path to the directory containing query SQL files.
 	QueryDirectory string
 
-	// TypeOverrides provides custom SQL-to-Go type mappings that supplement
-	// the framework defaults.
+	// TypeOverrides provides custom SQL-to-Go type mappings that supplement the framework
+	// defaults.
 	TypeOverrides []TypeOverride
 
-	// CustomFunctions declares additional function signatures from SQLite
-	// extensions that the querier should recognise during query analysis.
+	// CustomFunctions declares additional function signatures from SQLite extensions that
+	// the querier should recognise during query analysis.
 	CustomFunctions []CustomFunctionConfig
 }
 
-// TypeOverride maps a specific SQL type to a custom Go type, overriding the
-// framework default.
+// TypeOverride maps a specific SQL type to a custom Go type, overriding the framework
+// default.
 type TypeOverride struct {
 	// SQLTypeName is the SQL type to override (e.g. "public.custom_type").
 	SQLTypeName string
@@ -264,8 +261,8 @@ type TypeOverride struct {
 	GoName string
 }
 
-// CustomFunctionConfig describes a user-declared function signature for a
-// SQLite extension that the querier does not have built-in knowledge of.
+// CustomFunctionConfig describes a user-declared function signature for a SQLite
+// extension that the querier does not have built-in knowledge of.
 type CustomFunctionConfig struct {
 	// Name is the SQL function name.
 	Name string
@@ -273,16 +270,16 @@ type CustomFunctionConfig struct {
 	// ReturnType is the SQL type name of the return value.
 	ReturnType string
 
-	// Nullable specifies the null-handling behaviour. Valid values are
-	// "null_on_null" (default), "never_null", and "called_on_null".
+	// Nullable specifies the null-handling behaviour. Valid values are "null_on_null"
+	// (default), "never_null", and "called_on_null".
 	Nullable string
 
-	// Arguments lists the SQL type names for each parameter (e.g. "integer",
-	// "real", "text", "blob", "any").
+	// Arguments lists the SQL type names for each parameter (e.g. "integer", "real", "text",
+	// "blob", "any").
 	Arguments []string
 
-	// MinArguments is the minimum argument count when IsVariadic is true
-	// or when arguments have defaults. Defaults to len(Arguments).
+	// MinArguments is the minimum argument count when IsVariadic is true or when arguments
+	// have defaults. Defaults to len(Arguments).
 	MinArguments int
 
 	// IsAggregate indicates whether the function is an aggregate.
@@ -292,24 +289,24 @@ type CustomFunctionConfig struct {
 	IsVariadic bool
 }
 
-// ParsedStatementRaw is a marker interface for engine-native AST nodes stored
-// in ParsedStatement.Raw.
+// ParsedStatementRaw is a marker interface for engine-native AST nodes stored in
+// ParsedStatement.Raw.
 //
-// Each engine adapter defines its own concrete type implementing this
-// interface. The domain never inspects the contents; it passes statements
-// back to the same engine for DDL application or query analysis.
+// Each engine adapter defines its own concrete type that satisfies ParsedStatementRaw.
+// The domain never inspects the contents; it passes statements back to the same engine
+// for DDL application or query analysis.
 type ParsedStatementRaw interface {
-	// IsParsedStatement is a marker method that distinguishes parsed statement
-	// types from other interfaces.
+	// IsParsedStatement is a marker method that distinguishes parsed statement types from
+	// other interfaces.
 	IsParsedStatement()
 }
 
-// ParsedStatement is an opaque wrapper around an engine-native AST node.
-// The domain never inspects the contents - it passes statements back to the
-// engine adapter for DDL application or query analysis.
+// ParsedStatement is an opaque wrapper around an engine-native AST node. The domain never
+// inspects the contents - it passes statements back to the engine adapter for DDL
+// application or query analysis.
 type ParsedStatement struct {
-	// Raw holds the engine-native AST node, whose concrete type depends on the
-	// engine adapter (e.g. *parsedStatement for SQLite).
+	// Raw holds the engine-native AST node, whose concrete type depends on the engine
+	// adapter (e.g. *parsedStatement for SQLite).
 	Raw ParsedStatementRaw
 
 	// Location is the byte offset in the source SQL.
@@ -321,8 +318,7 @@ type ParsedStatement struct {
 
 // DefaultSQLCommentStyle returns the standard SQL comment style using "--".
 //
-// Returns CommentStyle which uses "--" as the line
-// prefix.
+// Returns CommentStyle which uses "--" as the line prefix.
 func DefaultSQLCommentStyle() CommentStyle {
 	return CommentStyle{LinePrefix: "--"}
 }

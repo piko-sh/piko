@@ -36,8 +36,8 @@ const (
 	alphabetSize = 26
 )
 
-// MockTransformer is a test implementation of StreamTransformerPort.
-// It adds "MOCK:<name>:" to data on Transform and removes it on Reverse.
+// MockTransformer is a test implementation of StreamTransformerPort. It adds
+// "MOCK:<name>:" to data on Transform and removes it on Reverse.
 type MockTransformer struct {
 	// name identifies this transformer; used in MOCK:<name>: prefixes.
 	name string
@@ -78,8 +78,7 @@ func (m *MockTransformer) Name() string {
 
 // Type returns the transformer type.
 //
-// Returns storage_dto.TransformerType which identifies this as a custom
-// transformer.
+// Returns storage_dto.TransformerType which identifies this as a custom transformer.
 func (*MockTransformer) Type() storage_dto.TransformerType {
 	return storage_dto.TransformerCustom
 }
@@ -123,8 +122,8 @@ func (m *MockTransformer) Reverse(_ context.Context, input io.Reader, _ any) (io
 	}, nil
 }
 
-// prefixReader implements io.Reader and adds a prefix before reading from
-// the underlying reader.
+// prefixReader implements io.Reader and adds a prefix before reading from the underlying
+// reader.
 type prefixReader struct {
 	// reader is the source to read from after the prefix has been consumed.
 	reader io.Reader
@@ -156,8 +155,7 @@ func (r *prefixReader) Read(p []byte) (n int, err error) {
 	return r.reader.Read(p)
 }
 
-// stripPrefixReader removes a prefix from the start of a stream.
-// It implements io.Reader.
+// stripPrefixReader removes a prefix from the start of a stream. It implements io.Reader.
 type stripPrefixReader struct {
 	// prefix is the byte sequence to strip from the start of the stream.
 	prefix []byte
@@ -180,8 +178,7 @@ type stripPrefixReader struct {
 // Takes p ([]byte) which is the buffer to read data into.
 //
 // Returns n (int) which is the number of bytes read.
-// Returns err (error) when the prefix does not match or the underlying
-// reader fails.
+// Returns err (error) when the prefix does not match or the underlying reader fails.
 func (r *stripPrefixReader) Read(p []byte) (n int, err error) {
 	if r.afterPrefix {
 		return r.reader.Read(p)
@@ -206,14 +203,13 @@ func (r *stripPrefixReader) Read(p []byte) (n int, err error) {
 	return r.reader.Read(p)
 }
 
-// ConfigurableTransformer is a mock transformer that implements
-// StreamTransformerPort with configurable behaviour for testing.
+// ConfigurableTransformer is a mock transformer that implements StreamTransformerPort
+// with configurable behaviour for testing.
 type ConfigurableTransformer struct {
 	// transformFunc is a custom transform function; nil uses default behaviour.
 	transformFunc func(io.Reader) io.Reader
 
-	// reverseFunc is a custom function for reverse operations; nil uses
-	// default behaviour.
+	// reverseFunc is a custom function for reverse operations; nil uses default behaviour.
 	reverseFunc func(io.Reader) io.Reader
 
 	// name is the transformer's name returned by the Name method.
@@ -229,14 +225,13 @@ type ConfigurableTransformer struct {
 	shouldError bool
 }
 
-// NewConfigurableTransformer creates a transformer with custom behaviour for
-// testing.
+// NewConfigurableTransformer creates a transformer with custom behaviour for testing.
 //
 // Takes name (string) which identifies the transformer.
 // Takes priority (int) which sets the transformer's execution order.
 //
-// Returns *ConfigurableTransformer which is ready for configuration via its
-// setter methods.
+// Returns *ConfigurableTransformer which is ready for configuration via its setter
+// methods.
 func NewConfigurableTransformer(name string, priority int) *ConfigurableTransformer {
 	return &ConfigurableTransformer{
 		transformFunc: nil,
@@ -271,16 +266,15 @@ func (c *ConfigurableTransformer) Priority() int {
 
 // SetTransformFunc sets a custom transform function.
 //
-// Takes f (func(io.Reader) io.Reader) which transforms input during
-// storage operations.
+// Takes f (func(io.Reader) io.Reader) which transforms input during storage operations.
 func (c *ConfigurableTransformer) SetTransformFunc(f func(io.Reader) io.Reader) {
 	c.transformFunc = f
 }
 
 // SetReverseFunc sets a custom reverse function.
 //
-// Takes f (func(io.Reader) io.Reader) which transforms the reader during
-// reverse operations.
+// Takes f (func(io.Reader) io.Reader) which transforms the reader during reverse
+// operations.
 func (c *ConfigurableTransformer) SetReverseFunc(f func(io.Reader) io.Reader) {
 	c.reverseFunc = f
 }
@@ -326,9 +320,8 @@ func (c *ConfigurableTransformer) Reverse(_ context.Context, input io.Reader, _ 
 	return input, nil
 }
 
-// ROT13Transformer is a test transformer that applies ROT13 encoding.
-// It implements StreamTransformerPort and is reversible since ROT13 is its
-// own inverse.
+// ROT13Transformer is a test transformer that applies ROT13 encoding. It implements
+// StreamTransformerPort and is reversible since ROT13 is its own inverse.
 type ROT13Transformer struct {
 	// name is the display name returned by the Name method.
 	name string
@@ -359,8 +352,7 @@ func (r *ROT13Transformer) Name() string {
 
 // Type returns the transformer type.
 //
-// Returns storage_dto.TransformerType which identifies this as a custom
-// transformer.
+// Returns storage_dto.TransformerType which identifies this as a custom transformer.
 func (*ROT13Transformer) Type() storage_dto.TransformerType {
 	return storage_dto.TransformerCustom
 }
@@ -392,8 +384,7 @@ func (*ROT13Transformer) Reverse(_ context.Context, input io.Reader, _ any) (io.
 	return &rot13Reader{reader: input}, nil
 }
 
-// rot13Reader wraps an io.Reader and applies ROT13 transformation to data
-// read from it.
+// rot13Reader wraps an io.Reader and applies ROT13 transformation to data read from it.
 type rot13Reader struct {
 	// reader is the source that provides data for ROT13 transformation.
 	reader io.Reader
@@ -417,8 +408,8 @@ func (r *rot13Reader) Read(p []byte) (n int, err error) {
 	return n, err
 }
 
-// UppercaseTransformer implements StreamTransformerPort to convert text to
-// uppercase. It is used for testing stream transformation behaviour.
+// UppercaseTransformer implements StreamTransformerPort to convert text to uppercase. It
+// is used for testing stream transformation behaviour.
 type UppercaseTransformer struct {
 	// name is the display name of this transformer.
 	name string
@@ -449,8 +440,7 @@ func (u *UppercaseTransformer) Name() string {
 
 // Type returns the transformer type.
 //
-// Returns storage_dto.TransformerType which identifies this as a custom
-// transformer.
+// Returns storage_dto.TransformerType which identifies this as a custom transformer.
 func (*UppercaseTransformer) Type() storage_dto.TransformerType {
 	return storage_dto.TransformerCustom
 }

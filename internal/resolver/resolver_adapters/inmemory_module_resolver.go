@@ -28,15 +28,17 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-var _ resolver_domain.ResolverPort = (*InMemoryModuleResolver)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*InMemoryModuleResolver)(nil)
+)
 
-// InMemoryModuleResolver implements the ResolverPort interface with
-// pre-configured module metadata. Use it in tests and WASM contexts where
-// no go.mod file exists on the filesystem.
+// InMemoryModuleResolver implements the ResolverPort interface with pre-configured module
+// metadata. Use it in tests and WASM contexts where no go.mod file exists on the
+// filesystem.
 //
-// Unlike LocalModuleResolver, this resolver does not read from the filesystem
-// to detect module information. Instead, the module name and base directory are
-// provided at construction time.
+// Unlike LocalModuleResolver, this resolver does not read from the filesystem to detect
+// module information. Instead, the module name and base directory are provided at
+// construction time.
 type InMemoryModuleResolver struct {
 	// moduleName is the pre-configured Go module name.
 	moduleName string
@@ -45,13 +47,11 @@ type InMemoryModuleResolver struct {
 	baseDir string
 }
 
-// NewInMemoryModuleResolver creates a new in-memory module resolver with the
-// specified module name and base directory.
+// NewInMemoryModuleResolver creates a new in-memory module resolver with the specified
+// module name and base directory.
 //
-// Takes moduleName (string) which is the Go module name to use for path
-// resolution.
-// Takes baseDir (string) which is the absolute path to the project root
-// directory.
+// Takes moduleName (string) which is the Go module name to use for path resolution.
+// Takes baseDir (string) which is the absolute path to the project root directory.
 //
 // Returns *InMemoryModuleResolver which is ready to resolve paths.
 func NewInMemoryModuleResolver(moduleName, baseDir string) *InMemoryModuleResolver {
@@ -61,8 +61,8 @@ func NewInMemoryModuleResolver(moduleName, baseDir string) *InMemoryModuleResolv
 	}
 }
 
-// DetectLocalModule is a no-op for the in-memory resolver since the module
-// information is provided at construction time.
+// DetectLocalModule is a no-op for the in-memory resolver since the module information is
+// provided at construction time.
 //
 // Returns error which is always nil.
 func (*InMemoryModuleResolver) DetectLocalModule(_ context.Context) error {
@@ -83,13 +83,13 @@ func (r *InMemoryModuleResolver) GetBaseDir() string {
 	return r.baseDir
 }
 
-// ConvertEntryPointPathToManifestKey strips the module name prefix from an
-// entry point path to create a project-relative manifest key.
+// ConvertEntryPointPathToManifestKey strips the module name prefix from an entry point
+// path to create a project-relative manifest key.
 //
 // Takes entryPointPath (string) which is the module-absolute path to convert.
 //
-// Returns string which is the project-relative manifest key, or the original
-// path if the module prefix does not match.
+// Returns string which is the project-relative manifest key, or the original path if the
+// module prefix does not match.
 func (r *InMemoryModuleResolver) ConvertEntryPointPathToManifestKey(entryPointPath string) string {
 	prefix := r.moduleName + "/"
 
@@ -100,12 +100,12 @@ func (r *InMemoryModuleResolver) ConvertEntryPointPathToManifestKey(entryPointPa
 	return entryPointPath
 }
 
-// ResolvePKPath resolves a Piko component import path to an absolute filesystem
-// path using the pre-configured module name.
+// ResolvePKPath resolves a Piko component import path to an absolute filesystem path
+// using the pre-configured module name.
 //
 // Takes importPath (string) which is the import path to resolve.
-// Takes containingFilePath (string) which is the absolute path of the file
-// containing the import statement, used to resolve the @ alias.
+// Takes containingFilePath (string) which is the absolute path of the file containing the
+// import statement, used to resolve the @ alias.
 //
 // Returns string which is the absolute filesystem path to the component.
 // Returns error when the path format is invalid or cannot be resolved.
@@ -143,8 +143,8 @@ func (r *InMemoryModuleResolver) ResolvePKPath(_ context.Context, importPath str
 // ResolveCSSPath resolves a CSS import path to an absolute filesystem path.
 //
 // Takes importPath (string) which specifies the CSS import to resolve.
-// Takes containingDir (string) which is the directory of the file containing
-// the @import statement.
+// Takes containingDir (string) which is the directory of the file containing the @import
+// statement.
 //
 // Returns string which is the absolute filesystem path to the CSS file.
 // Returns error when the path format is invalid or does not end with .css.
@@ -185,8 +185,8 @@ func (r *InMemoryModuleResolver) ResolveCSSPath(_ context.Context, importPath st
 // ResolveAssetPath resolves an asset path to an absolute filesystem path.
 //
 // Takes importPath (string) which is the module-absolute or @ alias path.
-// Takes containingFilePath (string) which is the absolute path of the
-// component file containing the asset reference.
+// Takes containingFilePath (string) which is the absolute path of the component file
+// containing the asset reference.
 //
 // Returns string which is the resolved absolute filesystem path.
 // Returns error when the path cannot be resolved.
@@ -212,8 +212,8 @@ func (r *InMemoryModuleResolver) ResolveAssetPath(_ context.Context, importPath 
 	return resolvedPath, nil
 }
 
-// GetModuleDir returns an error as the in-memory resolver does not support
-// external module resolution.
+// GetModuleDir returns an error as the in-memory resolver does not support external
+// module resolution.
 //
 // Returns string which is always empty.
 // Returns error when called, as this resolver does not support this operation.
@@ -230,8 +230,7 @@ func (*InMemoryModuleResolver) FindModuleBoundary(_ context.Context, _ string) (
 	return "", "", errors.New("in-memory resolver does not support module boundary detection")
 }
 
-// resolveModulePathInternal is the shared core logic for resolving
-// module-absolute paths.
+// resolveModulePathInternal is the shared core logic for resolving module-absolute paths.
 //
 // Takes importPath (string) which is the module-absolute path to resolve.
 //

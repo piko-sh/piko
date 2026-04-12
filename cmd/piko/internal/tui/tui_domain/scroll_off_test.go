@@ -18,7 +18,9 @@
 
 package tui_domain
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestApplyScrollOffMaintainsMargin(t *testing.T) {
 	testCases := []struct {

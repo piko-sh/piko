@@ -26,9 +26,9 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// dynamicAssetCacheKey identifies a unique (asset path, profile) combination
-// in the cross-request cache. Different profile configurations for the same
-// asset path produce different keys.
+// dynamicAssetCacheKey identifies a unique (asset path, profile) combination in the
+// cross-request cache. Different profile configurations for the same asset path produce
+// different keys.
 type dynamicAssetCacheKey struct {
 	// path is the asset path that identifies the dynamic asset.
 	path string
@@ -37,20 +37,19 @@ type dynamicAssetCacheKey struct {
 	profileHash uint64
 }
 
-// registerDynamicAsset checks the request-level cache for an existing artefact
-// and calls UpsertArtefact on the registry only if not already registered.
+// registerDynamicAsset checks the request-level cache for an existing artefact and calls
+// UpsertArtefact on the registry only if not already registered.
 //
-// The registry call is for metadata tracking only to support future on-demand
-// variant generation. Actual variant generation happens on-demand when HTTP
-// requests arrive. Failures are logged as diagnostics but do not halt
-// rendering.
+// The registry call is for metadata tracking only to support future on-demand variant
+// generation. Actual variant generation happens on-demand when HTTP requests arrive.
+// Failures are logged as diagnostics but do not halt rendering.
 //
 // Takes assetPath (string) which specifies the path identifying the asset.
 // Takes profile (*assetProfile) which defines the desired asset profiles.
 // Takes rctx (*renderContext) which provides the rendering context and cache.
 //
-// Returns *registry_dto.ArtefactMeta which contains the registered artefact
-// metadata, or nil if registration is skipped or fails.
+// Returns *registry_dto.ArtefactMeta which contains the registered artefact metadata, or
+// nil if registration is skipped or fails.
 func (ro *RenderOrchestrator) registerDynamicAsset(
 	ctx context.Context,
 	assetPath string,
@@ -105,8 +104,8 @@ func (ro *RenderOrchestrator) registerDynamicAsset(
 	return artefact
 }
 
-// hashAssetProfile computes a FNV-1a hash of an assetProfile's fields using
-// a pooled hasher.
+// hashAssetProfile computes a FNV-1a hash of an assetProfile's fields using a pooled
+// hasher.
 //
 // Takes p (*assetProfile) which contains the profile to hash.
 //
@@ -139,8 +138,7 @@ func hashAssetProfile(p *assetProfile) uint64 {
 	return sum
 }
 
-// buildDesiredProfiles converts an asset profile into a slice of named
-// profiles.
+// buildDesiredProfiles converts an asset profile into a slice of named profiles.
 //
 // When the profile is nil, returns nil.
 //
@@ -166,8 +164,8 @@ func buildDesiredProfiles(profile *assetProfile) []registry_dto.NamedProfile {
 
 // calculateProfileMapSize returns the expected number of profiles.
 //
-// Takes profile (*assetProfile) which provides the widths, formats, and
-// densities used in the calculation.
+// Takes profile (*assetProfile) which provides the widths, formats, and densities used in
+// the calculation.
 //
 // Returns int which is the total count of format and size combinations.
 func calculateProfileMapSize(profile *assetProfile) int {
@@ -177,14 +175,14 @@ func calculateProfileMapSize(profile *assetProfile) int {
 	return len(profile.Formats) * len(profile.Densities)
 }
 
-// buildWidthBasedProfiles creates image versions at different widths for
-// responsive display.
+// buildWidthBasedProfiles creates image versions at different widths for responsive
+// display.
 //
 // Takes profiles ([]registry_dto.NamedProfile) which is the slice to add to.
 // Takes profile (*assetProfile) which defines the formats and widths to use.
 //
-// Returns []registry_dto.NamedProfile which contains the original profiles
-// plus new versions for each format and width pair.
+// Returns []registry_dto.NamedProfile which contains the original profiles plus new
+// versions for each format and width pair.
 func buildWidthBasedProfiles(profiles []registry_dto.NamedProfile, profile *assetProfile) []registry_dto.NamedProfile {
 	var keyBuf []byte
 	for _, format := range profile.Formats {
@@ -228,16 +226,13 @@ func buildWidthBasedProfiles(profiles []registry_dto.NamedProfile, profile *asse
 	return profiles
 }
 
-// buildDensityBasedProfiles creates image variants for each format and density
-// pair.
+// buildDensityBasedProfiles creates image variants for each format and density pair.
 //
-// Takes profiles ([]registry_dto.NamedProfile) which is the slice to add new
-// profiles to.
-// Takes profile (*assetProfile) which specifies the formats and densities to
-// create.
+// Takes profiles ([]registry_dto.NamedProfile) which is the slice to add new profiles to.
+// Takes profile (*assetProfile) which specifies the formats and densities to create.
 //
-// Returns []registry_dto.NamedProfile which contains the original profiles
-// plus the new variants based on density.
+// Returns []registry_dto.NamedProfile which contains the original profiles plus the new
+// variants based on density.
 func buildDensityBasedProfiles(profiles []registry_dto.NamedProfile, profile *assetProfile) []registry_dto.NamedProfile {
 	var keyBuf []byte
 	for _, format := range profile.Formats {
@@ -281,8 +276,7 @@ func buildDensityBasedProfiles(profiles []registry_dto.NamedProfile, profile *as
 
 // getImageMimeType returns the MIME type for an image format.
 //
-// Takes format (string) which is the image format name, such as "webp" or
-// "png".
+// Takes format (string) which is the image format name, such as "webp" or "png".
 //
 // Returns string which is the matching MIME type, such as "image/webp".
 func getImageMimeType(format string) string {

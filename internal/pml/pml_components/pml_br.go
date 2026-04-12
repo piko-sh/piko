@@ -26,16 +26,20 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// LineBreak represents the <pml-br> tag and implements Component.
-// It adds a block of empty vertical space with a set height.
+// LineBreak represents the <pml-br> tag and implements Component. It adds a block of
+// empty vertical space with a set height.
 type LineBreak struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*LineBreak)(nil)
+var (
+	_ pml_domain.Component = (*LineBreak)(nil)
+)
 
-// defaultBreakHeight is the default height for line breaks.
-const defaultBreakHeight = "20px"
+const (
+	// defaultBreakHeight is the default height for line breaks.
+	defaultBreakHeight = "20px"
+)
 
 // NewLineBreak creates a new LineBreak component.
 //
@@ -57,14 +61,14 @@ func (*LineBreak) TagName() string {
 
 // IsEndingTag returns whether this element is self-closing.
 //
-// Returns bool which is always true because LineBreak is a void element
-// that cannot have children.
+// Returns bool which is always true because LineBreak is a void element that cannot have
+// children.
 func (*LineBreak) IsEndingTag() bool {
 	return true
 }
 
-// AllowedParents returns an empty slice, allowing pml-br in any context. This
-// follows PML's philosophy of being flexible about parent contexts.
+// AllowedParents returns an empty slice, allowing pml-br in any context. This follows
+// PML's philosophy of being flexible about parent contexts.
 //
 // The component adapts its output based on context:
 //   - In pml-col/pml-hero: block-level spacer with height.
@@ -77,8 +81,8 @@ func (*LineBreak) AllowedParents() []string {
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which contains the
-// attribute names and their type definitions.
+// Returns map[string]pml_domain.AttributeDefinition which contains the attribute names
+// and their type definitions.
 func (*LineBreak) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		AttrHeight:                   NewAttributeDefinition(pml_domain.TypeUnit),
@@ -93,16 +97,16 @@ func (*LineBreak) AllowedAttributes() map[string]pml_domain.AttributeDefinition 
 
 // DefaultAttributes returns the default attribute values for this component.
 //
-// Returns map[string]string which is an empty map as line breaks have no
-// default attributes.
+// Returns map[string]string which is an empty map as line breaks have no default
+// attributes.
 func (*LineBreak) DefaultAttributes() map[string]string {
 	return map[string]string{}
 }
 
 // GetStyleTargets returns the list of style targets for this component.
 //
-// Returns []pml_domain.StyleTarget which contains the height and padding
-// properties that can be styled on this line break.
+// Returns []pml_domain.StyleTarget which contains the height and padding properties that
+// can be styled on this line break.
 func (*LineBreak) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: AttrHeight, Target: TargetContainer},
@@ -117,18 +121,17 @@ func (*LineBreak) GetStyleTargets() []pml_domain.StyleTarget {
 //   - In block context (pml-col, pml-hero): block-level spacer with default 20px
 //   - In inline context (pml-p, pml-li, pml-button): simple <br> tag
 //
-// This context-aware behaviour follows PML's philosophy of being flexible,
-// allowing pml-br to be used naturally in both layout and text contexts.
+// This context-aware behaviour follows PML's philosophy of being flexible, allowing
+// pml-br to be used naturally in both layout and text contexts.
 //
-// Takes node (*ast_domain.TemplateNode) which is the pml-br element to
-// transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides style
-// management, parent context, and diagnostics collection.
+// Takes node (*ast_domain.TemplateNode) which is the pml-br element to transform.
+// Takes ctx (*pml_domain.TransformationContext) which provides style management, parent
+// context, and diagnostics collection.
 //
-// Returns *ast_domain.TemplateNode which is either a simple <br> element
-// or a fragment containing Outlook table and modern div structure.
-// Returns []*pml_domain.Error which contains any diagnostics collected
-// during transformation.
+// Returns *ast_domain.TemplateNode which is either a simple <br> element or a fragment
+// containing Outlook table and modern div structure.
+// Returns []*pml_domain.Error which contains any diagnostics collected during
+// transformation.
 func (*LineBreak) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
 	styles := ctx.StyleManager
 	height, hasExplicitHeight := styles.Get(CSSHeight)
@@ -146,11 +149,11 @@ func (*LineBreak) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Trans
 
 // isInlineContext checks if the component is inside an inline text container.
 //
-// Takes ctx (*pml_domain.TransformationContext) which provides the current
-// transformation state including parent component information.
+// Takes ctx (*pml_domain.TransformationContext) which provides the current transformation
+// state including parent component information.
 //
-// Returns bool which is true when the parent component treats children as raw
-// inline content.
+// Returns bool which is true when the parent component treats children as raw inline
+// content.
 func isInlineContext(ctx *pml_domain.TransformationContext) bool {
 	if ctx.ParentComponent == nil {
 		return false
@@ -169,28 +172,26 @@ func isInlineContext(ctx *pml_domain.TransformationContext) bool {
 
 // renderBlockSpacer creates the Outlook-compatible vertical spacer.
 //
-// The transformation creates reliable vertical space that email clients will
-// not collapse. A simple empty div with height is unreliable, especially in
-// Outlook, so this uses proven techniques for cross-client compatibility.
+// The transformation creates reliable vertical space that email clients will not
+// collapse. A simple empty div with height is unreliable, especially in Outlook, so this
+// uses proven techniques for cross-client compatibility.
 //
-// The implementation uses the "Div with Zero Font Size" technique. The core
-// spacer is a div styled with height, line-height, and font-size: 0px. The
-// zero font size tells email clients the element contains no renderable text,
-// preventing unwanted vertical space from font metrics. A hair space entity
-// (&#8202;) inside the div prevents it from being treated as empty, which some
-// clients would collapse or ignore.
+// The implementation uses the "Div with Zero Font Size" technique. The core spacer is a
+// div styled with height, line-height, and font-size: 0px. The zero font size tells email
+// clients the element contains no renderable text, preventing unwanted vertical space
+// from font metrics. A hair space entity (&#8202;) inside the div prevents it from being
+// treated as empty, which some clients would collapse or ignore.
 //
-// For Outlook on Windows, a table-based approach provides reliable spacing.
-// The transformation generates a td with a height attribute wrapped in
-// Outlook conditional comments. A non-breaking space prevents cell collapse.
+// For Outlook on Windows, a table-based approach provides reliable spacing. The
+// transformation generates a td with a height attribute wrapped in Outlook conditional
+// comments. A non-breaking space prevents cell collapse.
 //
 // Takes node (*ast_domain.TemplateNode) which is the source node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides transformation
-// state and diagnostics collection.
+// Takes ctx (*pml_domain.TransformationContext) which provides transformation state and
+// diagnostics collection.
 // Takes height (string) which specifies the vertical space size as a CSS value.
 //
-// Returns *ast_domain.TemplateNode which is a fragment containing the spacer
-// elements.
+// Returns *ast_domain.TemplateNode which is a fragment containing the spacer elements.
 // Returns []*pml_domain.Error which contains any diagnostics collected during
 // transformation.
 func renderBlockSpacer(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext, height string) (*ast_domain.TemplateNode, []*pml_domain.Error) {
@@ -217,12 +218,11 @@ func renderBlockSpacer(node *ast_domain.TemplateNode, ctx *pml_domain.Transforma
 	return containerFragment, ctx.Diagnostics()
 }
 
-// renderInlineBr creates a simple <br> element for inline contexts.
-// This is used when pml-br appears inside text containers like pml-p or pml-li.
+// renderInlineBr creates a simple <br> element for inline contexts. This is used when
+// pml-br appears inside text containers like pml-p or pml-li.
 //
 // Takes node (*ast_domain.TemplateNode) which is the source node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides the transformation
-// state.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation state.
 //
 // Returns *ast_domain.TemplateNode which is the new br element with transferred
 // directives.
@@ -234,17 +234,17 @@ func renderInlineBr(node *ast_domain.TemplateNode, ctx *pml_domain.Transformatio
 	return brNode, ctx.Diagnostics()
 }
 
-// renderOutlookBreakTable generates the Outlook-specific table structure for
-// reliable vertical spacing in email clients.
+// renderOutlookBreakTable generates the Outlook-specific table structure for reliable
+// vertical spacing in email clients.
 //
-// This creates a table with a fixed-height td, wrapped in conditional comments
-// that only target Outlook and IE. The height attribute on the td is the most
-// reliable way to create vertical space in Outlook's rendering engine.
+// This creates a table with a fixed-height td, wrapped in conditional comments that only
+// target Outlook and IE. The height attribute on the td is the most reliable way to
+// create vertical space in Outlook's rendering engine.
 //
 // Takes height (string) which specifies the spacing height in pixel format.
 //
-// Returns *ast_domain.TemplateNode which contains the conditional HTML comment
-// with the table structure.
+// Returns *ast_domain.TemplateNode which contains the conditional HTML comment with the
+// table structure.
 func renderOutlookBreakTable(height string) *ast_domain.TemplateNode {
 	heightPx := mustParsePixels(height)
 

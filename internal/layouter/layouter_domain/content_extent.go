@@ -18,22 +18,20 @@
 
 package layouter_domain
 
-// MeasureContentExtent walks the box tree and returns the maximum Y
-// coordinate reached by any box's margin-box bottom edge. This is
-// the total content height needed for auto-height pages.
+// MeasureContentExtent walks the box tree and returns the maximum Y coordinate reached by
+// any box's margin-box bottom edge. This is the total content height needed for
+// auto-height pages.
 //
 // Takes root (*LayoutBox) which is the root of the laid-out box tree.
 //
-// Returns float64 which is the bottom edge of the lowest box in
-// points.
+// Returns float64 which is the bottom edge of the lowest box in points.
 func MeasureContentExtent(root *LayoutBox) float64 {
 	maxY := 0.0
 	measureExtent(root, &maxY)
 	return maxY
 }
 
-// measureExtent recursively updates maxY with the bottom edge of each box's
-// margin box.
+// measureExtent recursively updates maxY with the bottom edge of each box's margin box.
 //
 // Takes box (*LayoutBox) which is the current box to measure.
 // Takes maxY (*float64) which is the running maximum Y coordinate.

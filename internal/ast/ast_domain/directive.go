@@ -18,10 +18,9 @@
 
 package ast_domain
 
-// Defines directive types and structures for Piko template directives like
-// p-if, p-for, p-bind, and p-on. Provides type constants, parsing utilities,
-// and metadata for all supported directives including conditionals, loops,
-// bindings, and event handlers.
+// Defines directive types and structures for Piko template directives like p-if, p-for,
+// p-bind, and p-on. Provides type constants, parsing utilities, and metadata for all
+// supported directives including conditionals, loops, bindings, and event handlers.
 
 import (
 	"fmt"
@@ -32,8 +31,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-// DirectiveType represents a kind of Piko directive and implements
-// fmt.Stringer.
+// DirectiveType represents a kind of Piko directive and implements fmt.Stringer.
 type DirectiveType int
 
 const (
@@ -79,8 +77,7 @@ const (
 	// DirectiveRef represents a p-ref element reference directive.
 	DirectiveRef
 
-	// DirectiveSlot represents a p-slot directive for assigning an element to a
-	// named slot.
+	// DirectiveSlot represents a p-slot directive for assigning an element to a named slot.
 	DirectiveSlot
 
 	// DirectiveKey represents a p-key keying directive for reconciliation.
@@ -92,8 +89,8 @@ const (
 	// DirectiveScaffold represents a p-scaffold directive.
 	DirectiveScaffold
 
-	// DirectiveTimeline represents a p-timeline directive for animation timeline
-	// control (e.g. p-timeline:hidden).
+	// DirectiveTimeline represents a p-timeline directive for animation timeline control
+	// (e.g. p-timeline:hidden).
 	DirectiveTimeline
 )
 
@@ -102,31 +99,29 @@ type Directive struct {
 	// Expression holds the parsed form of this directive's value.
 	Expression Expression
 
-	// ChainKey links p-else-if and p-else directives back to the originating p-if
-	// node. Contains the p-if node's Key expression for chain formation; nil for
-	// other directive types.
+	// ChainKey links p-else-if and p-else directives back to the originating p-if node.
+	// Contains the p-if node's Key expression for chain formation; nil for other directive
+	// types.
 	ChainKey Expression
 
 	// GoAnnotations holds Go-specific metadata for this directive; nil if not set.
 	GoAnnotations *GoGeneratorAnnotation
 
-	// Arg stores the primary argument from the directive name. This is the event
-	// name for p-on/p-event (e.g., "click") or attribute name for p-bind (e.g.,
-	// "class").
+	// Arg stores the primary argument from the directive name. This is the event name for
+	// p-on/p-event (e.g., "click") or attribute name for p-bind (e.g., "class").
 	Arg string
 
 	// Modifier stores an internal modifier set during semantic analysis.
 	//
-	// For p-on and p-event directives, this is "action" or "helper" (set
-	// programmatically, not by the user).
+	// For p-on and p-event directives, this is "action" or "helper" (set programmatically,
+	// not by the user).
 	Modifier string
 
 	// RawExpression is the original directive value before parsing.
 	RawExpression string
 
-	// EventModifiers stores user-facing event modifiers parsed from
-	// the template attribute name (e.g., ["prevent", "stop"]), only
-	// meaningful for DirectiveOn/DirectiveEvent.
+	// EventModifiers stores user-facing event modifiers parsed from the template attribute
+	// name (e.g., ["prevent", "stop"]), only meaningful for DirectiveOn/DirectiveEvent.
 	//
 	// Supported modifiers: prevent, stop, once, self.
 	EventModifiers []string
@@ -143,22 +138,18 @@ type Directive struct {
 	// Type specifies the kind of directive.
 	Type DirectiveType
 
-	// IsStaticEvent indicates whether this event directive's
-	// expression uses only client-side values (like $event,
-	// function names, static literals) and no dynamic template
-	// scope variables, only meaningful for
-	// DirectiveOn/DirectiveEvent.
+	// IsStaticEvent indicates whether this event directive's expression uses only
+	// client-side values (like $event, function names, static literals) and no dynamic
+	// template scope variables, only meaningful for DirectiveOn/DirectiveEvent.
 	//
-	// When true, nodes with this event can still be considered
-	// for static hoisting. Set by the annotator during semantic
-	// analysis.
+	// When true, nodes with this event can still be considered for static hoisting. Set by
+	// the annotator during semantic analysis.
 	IsStaticEvent bool
 }
 
 var (
-	// StructuralDirectives is a set of all directive names that are not
-	// event-related. This is used by the parser to quickly identify directive
-	// attributes.
+	// StructuralDirectives is a set of all directive names that are not event-related. This
+	// is used by the parser to quickly identify directive attributes.
 	StructuralDirectives = map[string]bool{
 		"p-if":       true,
 		"p-else-if":  true,
@@ -185,8 +176,7 @@ var (
 		"p-timeline": true,
 	}
 
-	// DirectiveNameToType maps static directive names to their corresponding
-	// DirectiveType.
+	// DirectiveNameToType maps static directive names to their corresponding DirectiveType.
 	DirectiveNameToType = map[string]DirectiveType{
 		"p-if":       DirectiveIf,
 		"p-else-if":  DirectiveElseIf,
@@ -209,8 +199,7 @@ var (
 		"p-timeline": DirectiveTimeline,
 	}
 
-	// DirectiveTypeToName maps DirectiveType constants to their string directive
-	// names.
+	// DirectiveTypeToName maps DirectiveType constants to their string directive names.
 	DirectiveTypeToName = map[DirectiveType]string{
 		DirectiveIf:       "p-if",
 		DirectiveElseIf:   "p-else-if",
@@ -236,8 +225,8 @@ var (
 
 // String returns the readable name of the directive type.
 //
-// Returns string which is the name in title case, or "Unknown(n)" for values
-// that are not known.
+// Returns string which is the name in title case, or "Unknown(n)" for values that are not
+// known.
 func (d DirectiveType) String() string {
 	titleCaser := cases.Title(language.English)
 	for name, typ := range DirectiveNameToType {
@@ -253,9 +242,9 @@ func (d DirectiveType) String() string {
 	return fmt.Sprintf("Unknown(%d)", d)
 }
 
-// IsValidJSIdentifier reports whether name is a valid JavaScript identifier.
-// A valid identifier starts with a letter, underscore, or dollar sign, and
-// contains only letters, digits, underscores, or dollar signs.
+// IsValidJSIdentifier reports whether name is a valid JavaScript identifier. A valid
+// identifier starts with a letter, underscore, or dollar sign, and contains only letters,
+// digits, underscores, or dollar signs.
 //
 // Takes name (string) which is the identifier to check.
 //

@@ -29,19 +29,21 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// internalAttributeNames lists attributes used internally by Piko that should
-// never appear in final rendered output. These are used for tracking during
-// rendering but are not valid HTML attributes.
-var internalAttributeNames = []string{
-	"p-key",
-	"partial",
-	"p-ref",
-}
+var (
+	// internalAttributeNames lists attributes used internally by Piko that should never
+	// appear in final rendered output. These are used for tracking during rendering but are
+	// not valid HTML attributes.
+	internalAttributeNames = []string{
+		"p-key",
+		"partial",
+		"p-ref",
+	}
+)
 
 // writeTextNode writes text content to the output.
 //
-// If the node has a direct writer with content, it uses that. Otherwise, it
-// writes the static text content.
+// If the node has a direct writer with content, it uses that. Otherwise, it writes the
+// static text content.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the text to write.
 // Takes qw (*qt.Writer) which receives the output.
@@ -63,8 +65,7 @@ func writeCommentNode(content string, qw *qt.Writer) {
 	qw.N().Z(commentClose)
 }
 
-// logCollectedDiagnostics writes warnings and errors from the render context
-// to the log.
+// logCollectedDiagnostics writes warnings and errors from the render context to the log.
 //
 // Takes rctx (*renderContext) which holds the collected diagnostics to log.
 func logCollectedDiagnostics(ctx context.Context, rctx *renderContext) {
@@ -91,13 +92,12 @@ func logCollectedDiagnostics(ctx context.Context, rctx *renderContext) {
 	}
 }
 
-// writeEventDirectives writes event directive attributes to the output. Go
-// inlines this small helper for better performance.
+// writeEventDirectives writes event directive attributes to the output. Go inlines this
+// small helper for better performance.
 //
-// Takes events (map[string][]ast_domain.Directive) which holds the event
-// directives to write, grouped by event name.
-// Takes prefix ([]byte) which is the attribute prefix to write before each
-// event name.
+// Takes events (map[string][]ast_domain.Directive) which holds the event directives to
+// write, grouped by event name.
+// Takes prefix ([]byte) which is the attribute prefix to write before each event name.
 // Takes qw (*qt.Writer) which is the output writer.
 func writeEventDirectives(events map[string][]ast_domain.Directive, prefix []byte, qw *qt.Writer) {
 	for eventName, directives := range events {
@@ -115,13 +115,11 @@ func writeEventDirectives(events map[string][]ast_domain.Directive, prefix []byt
 	}
 }
 
-// writeDirectWriterParts writes all parts of a DirectWriter to the output
-// buffer.
+// writeDirectWriterParts writes all parts of a DirectWriter to the output buffer.
 //
-// Used by writeAttributeWriters and text content rendering for consistent
-// output without memory allocation. String, EscapeString, Int, Uint, Float,
-// and Bool parts do not allocate. WriterPartAny may allocate when it calls
-// Stringer methods.
+// Used by writeAttributeWriters and text content rendering for consistent output without
+// memory allocation. String, EscapeString, Int, Uint, Float, and Bool parts do not
+// allocate. WriterPartAny may allocate when it calls Stringer methods.
 //
 // Takes dw (*ast_domain.DirectWriter) which provides the parts to write.
 // Takes qw (*qt.Writer) which receives the output.
@@ -134,29 +132,29 @@ func writeDirectWriterParts(dw *ast_domain.DirectWriter, qw *qt.Writer) {
 	}
 }
 
-// writerPartHandlers maps each WriterPartType to a handler function that writes
-// the part's value to the quicktemplate writer. Indexed by the uint8 enum value
-// for O(1) dispatch without branching.
-var writerPartHandlers = [ast_domain.WriterPartEscapeBytes + 1]func(*ast_domain.WriterPart, *qt.Writer){
-	ast_domain.WriterPartString:       func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().S(p.StringValue) },
-	ast_domain.WriterPartEscapeString: func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.E().S(p.StringValue) },
-	ast_domain.WriterPartInt:          func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().DL(p.IntValue) },
-	ast_domain.WriterPartUint:         func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().DUL(p.UintValue) },
-	ast_domain.WriterPartFloat:        func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().F(p.FloatValue) },
-	ast_domain.WriterPartBool:         func(p *ast_domain.WriterPart, qw *qt.Writer) { writePartBool(p.BoolValue, qw) },
-	ast_domain.WriterPartAny:          func(p *ast_domain.WriterPart, qw *qt.Writer) { writePartAny(p.AnyValue, qw) },
-	ast_domain.WriterPartFNVString:    writePartFNVString,
-	ast_domain.WriterPartFNVFloat:     writePartFNVFloat,
-	ast_domain.WriterPartFNVAny:       func(p *ast_domain.WriterPart, qw *qt.Writer) { writePartFNVAny(p.AnyValue, qw) },
-	ast_domain.WriterPartBytes:        func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().SZ(p.BytesValue) },
-	ast_domain.WriterPartEscapeBytes:  func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.E().SZ(p.BytesValue) },
-}
+var (
+	// writerPartHandlers maps each WriterPartType to a handler function that writes the
+	// part's value to the quicktemplate writer. Indexed by the uint8 enum value for O(1)
+	// dispatch without branching.
+	writerPartHandlers = [ast_domain.WriterPartEscapeBytes + 1]func(*ast_domain.WriterPart, *qt.Writer){
+		ast_domain.WriterPartString:       func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().S(p.StringValue) },
+		ast_domain.WriterPartEscapeString: func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.E().S(p.StringValue) },
+		ast_domain.WriterPartInt:          func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().DL(p.IntValue) },
+		ast_domain.WriterPartUint:         func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().DUL(p.UintValue) },
+		ast_domain.WriterPartFloat:        func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().F(p.FloatValue) },
+		ast_domain.WriterPartBool:         func(p *ast_domain.WriterPart, qw *qt.Writer) { writePartBool(p.BoolValue, qw) },
+		ast_domain.WriterPartAny:          func(p *ast_domain.WriterPart, qw *qt.Writer) { writePartAny(p.AnyValue, qw) },
+		ast_domain.WriterPartFNVString:    writePartFNVString,
+		ast_domain.WriterPartFNVFloat:     writePartFNVFloat,
+		ast_domain.WriterPartFNVAny:       func(p *ast_domain.WriterPart, qw *qt.Writer) { writePartFNVAny(p.AnyValue, qw) },
+		ast_domain.WriterPartBytes:        func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.N().SZ(p.BytesValue) },
+		ast_domain.WriterPartEscapeBytes:  func(p *ast_domain.WriterPart, qw *qt.Writer) { qw.E().SZ(p.BytesValue) },
+	}
+)
 
-// writePartFNVString writes the FNV-32 hash of a string
-// value to the output.
+// writePartFNVString writes the FNV-32 hash of a string value to the output.
 //
-// Takes p (*ast_domain.WriterPart) which contains the string
-// value to hash.
+// Takes p (*ast_domain.WriterPart) which contains the string value to hash.
 // Takes qw (*qt.Writer) which receives the hashed output.
 func writePartFNVString(p *ast_domain.WriterPart, qw *qt.Writer) {
 	buffer := ast_domain.GetFNVStringBuf(p.StringValue)
@@ -164,11 +162,9 @@ func writePartFNVString(p *ast_domain.WriterPart, qw *qt.Writer) {
 	buffer.Release()
 }
 
-// writePartFNVFloat writes the FNV-32 hash of a float
-// value to the output.
+// writePartFNVFloat writes the FNV-32 hash of a float value to the output.
 //
-// Takes p (*ast_domain.WriterPart) which contains the float
-// value to hash.
+// Takes p (*ast_domain.WriterPart) which contains the float value to hash.
 // Takes qw (*qt.Writer) which receives the hashed output.
 func writePartFNVFloat(p *ast_domain.WriterPart, qw *qt.Writer) {
 	buffer := ast_domain.GetFNVFloatBuf(p.FloatValue)
@@ -178,8 +174,8 @@ func writePartFNVFloat(p *ast_domain.WriterPart, qw *qt.Writer) {
 
 // writeWriterPart writes a single DirectWriter part to the output.
 //
-// Dispatches through the writerPartHandlers array indexed by part type for
-// branch-free dispatch.
+// Dispatches through the writerPartHandlers array indexed by part type for branch-free
+// dispatch.
 //
 // Takes part (*ast_domain.WriterPart) which contains the value to write.
 // Takes qw (*qt.Writer) which receives the output.
@@ -191,8 +187,7 @@ func writeWriterPart(part *ast_domain.WriterPart, qw *qt.Writer) {
 	}
 }
 
-// writePartBool writes a boolean value as "true" or "false" to the template
-// writer.
+// writePartBool writes a boolean value as "true" or "false" to the template writer.
 //
 // Takes b (bool) which is the value to write.
 // Takes qw (*qt.Writer) which is the output destination.
@@ -221,8 +216,7 @@ func writePartAny(v any, qw *qt.Writer) {
 	}
 }
 
-// writePartFNVAny writes the FNV hash of the given value to the template
-// writer.
+// writePartFNVAny writes the FNV hash of the given value to the template writer.
 //
 // Takes v (any) which is the value to hash.
 // Takes qw (*qt.Writer) which receives the hashed output.
@@ -236,23 +230,23 @@ func writePartFNVAny(v any, qw *qt.Writer) {
 
 // writeAttributeWriters writes all attribute writers to the output.
 //
-// Each attribute writer is rendered as ` name="value"` where the value is
-// built from DirectWriter parts, so dynamic attributes are rendered without
-// extra memory use and with smart HTML escaping.
+// Each attribute writer is rendered as ` name="value"` where the value is built from
+// DirectWriter parts, so dynamic attributes are rendered without extra memory use and
+// with smart HTML escaping.
 //
-// Takes writers ([]*ast_domain.DirectWriter) which contains the DirectWriters
-// with Name fields to render as attributes.
+// Takes writers ([]*ast_domain.DirectWriter) which contains the DirectWriters with Name
+// fields to render as attributes.
 // Takes qw (*qt.Writer) which is the output target for rendered content.
 func writeAttributeWriters(writers []*ast_domain.DirectWriter, qw *qt.Writer) {
 	writeAttributeWritersExcluding(writers, qw, "")
 }
 
-// writeAttributeWritersExcluding writes attribute writers to the output,
-// skipping any with the given names. Used by renderers like piko:img and piko:svg
-// that handle certain attributes themselves.
+// writeAttributeWritersExcluding writes attribute writers to the output, skipping any
+// with the given names. Used by renderers like piko:img and piko:svg that handle certain
+// attributes themselves.
 //
-// Takes writers ([]*ast_domain.DirectWriter) which contains the attribute
-// writers to render.
+// Takes writers ([]*ast_domain.DirectWriter) which contains the attribute writers to
+// render.
 // Takes qw (*qt.Writer) which receives the rendered output.
 // Takes excludeNames (...string) which lists attribute names to skip.
 func writeAttributeWritersExcluding(writers []*ast_domain.DirectWriter, qw *qt.Writer, excludeNames ...string) {
@@ -271,8 +265,8 @@ func writeAttributeWritersExcluding(writers []*ast_domain.DirectWriter, qw *qt.W
 	}
 }
 
-// shouldExcludeAttribute checks if an attribute name is in the exclude list.
-// The parser lowercases attribute names, so direct comparison is used.
+// shouldExcludeAttribute checks if an attribute name is in the exclude list. The parser
+// lowercases attribute names, so direct comparison is used.
 //
 // Takes name (string) which is the attribute name to check.
 // Takes excludeNames ([]string) which contains names to exclude.
@@ -282,8 +276,8 @@ func shouldExcludeAttribute(name string, excludeNames []string) bool {
 	return slices.Contains(excludeNames, name)
 }
 
-// isInternalAttribute checks whether an attribute name is internal to Piko
-// and should be excluded from rendered output.
+// isInternalAttribute checks whether an attribute name is internal to Piko and should be
+// excluded from rendered output.
 //
 // Takes name (string) which is the attribute name to check.
 //
@@ -292,29 +286,28 @@ func isInternalAttribute(name string) bool {
 	return slices.Contains(internalAttributeNames, name)
 }
 
-// writeNodeAndFragmentAttributes writes node and fragment attributes to the
-// output, merging them with clear priority rules.
+// writeNodeAndFragmentAttributes writes node and fragment attributes to the output,
+// merging them with clear priority rules.
 //
-// Node attributes take priority over fragment attributes with the same name.
-// Attribute writers (dynamic bindings) take priority over both. Any static
-// attribute that has a matching attribute writer is skipped to avoid writing
-// the same attribute twice.
+// Node attributes take priority over fragment attributes with the same name. Attribute
+// writers (dynamic bindings) take priority over both. Any static attribute that has a
+// matching attribute writer is skipped to avoid writing the same attribute twice.
 //
-// In email mode (rctx.isEmailMode), internal attributes like p-key and partial
-// are filtered out as they are only used for web rendering.
+// In email mode (rctx.isEmailMode), internal attributes like p-key and partial are
+// filtered out as they are only used for web rendering.
 //
-// Takes nodeAttrs ([]ast_domain.HTMLAttribute) which provides the main
-// attributes from the node.
-// Takes fragmentAttrs ([]ast_domain.HTMLAttribute) which provides fallback
-// attributes from the fragment.
-// Takes attributeWriters ([]*ast_domain.DirectWriter) which provides dynamic
-// attribute bindings that replace static attributes.
+// Takes nodeAttrs ([]ast_domain.HTMLAttribute) which provides the main attributes from
+// the node.
+// Takes fragmentAttrs ([]ast_domain.HTMLAttribute) which provides fallback attributes
+// from the fragment.
+// Takes attributeWriters ([]*ast_domain.DirectWriter) which provides dynamic attribute
+// bindings that replace static attributes.
 // Takes qw (*qt.Writer) which is the output writer for the rendered HTML.
 // Takes rctx (*renderContext) which provides the rendering mode; may be nil.
 //
-// Note: uses linear search rather than a map for small attribute counts
-// (typically 3-8). Linear search is faster because it avoids hash work, has
-// better cache use, and needs no memory allocation.
+// Note: uses linear search rather than a map for small attribute counts (typically 3-8).
+// Linear search is faster because it avoids hash work, has better cache use, and needs no
+// memory allocation.
 func writeNodeAndFragmentAttributes(nodeAttrs, fragmentAttrs []ast_domain.HTMLAttribute, attributeWriters []*ast_domain.DirectWriter, qw *qt.Writer, rctx *renderContext) {
 	hasWriters := len(attributeWriters) > 0
 	filterInternal := rctx != nil && rctx.isEmailMode
@@ -323,14 +316,14 @@ func writeNodeAndFragmentAttributes(nodeAttrs, fragmentAttrs []ast_domain.HTMLAt
 	writeFragmentAttrs(fragmentAttrs, nodeAttrs, attributeWriters, hasWriters, filterInternal, qw)
 }
 
-// writeNodeAttrs writes node-level attributes, skipping internal attributes in
-// email mode and attributes that have a dynamic writer override.
+// writeNodeAttrs writes node-level attributes, skipping internal attributes in email mode
+// and attributes that have a dynamic writer override.
 //
 // Takes attrs ([]ast_domain.HTMLAttribute) which provides the node attributes.
 // Takes writers ([]*ast_domain.DirectWriter) which provides dynamic overrides.
 // Takes hasWriters (bool) which indicates whether any dynamic writers exist.
-// Takes filterInternal (bool) which indicates whether internal attributes
-// should be filtered.
+// Takes filterInternal (bool) which indicates whether internal attributes should be
+// filtered.
 // Takes qw (*qt.Writer) which receives the rendered output.
 func writeNodeAttrs(attrs []ast_domain.HTMLAttribute, writers []*ast_domain.DirectWriter, hasWriters, filterInternal bool, qw *qt.Writer) {
 	for i := range attrs {
@@ -349,18 +342,17 @@ func writeNodeAttrs(attrs []ast_domain.HTMLAttribute, writers []*ast_domain.Dire
 	}
 }
 
-// writeFragmentAttrs writes fragment-level attributes that are not already
-// present as node attributes, skipping internal attributes in email mode and
-// attributes that have a dynamic writer override.
+// writeFragmentAttrs writes fragment-level attributes that are not already present as
+// node attributes, skipping internal attributes in email mode and attributes that have a
+// dynamic writer override.
 //
-// Takes attrs ([]ast_domain.HTMLAttribute) which provides the fragment
-// attributes.
-// Takes nodeAttrs ([]ast_domain.HTMLAttribute) which provides node attributes
-// used to check for duplicates.
+// Takes attrs ([]ast_domain.HTMLAttribute) which provides the fragment attributes.
+// Takes nodeAttrs ([]ast_domain.HTMLAttribute) which provides node attributes used to
+// check for duplicates.
 // Takes writers ([]*ast_domain.DirectWriter) which provides dynamic overrides.
 // Takes hasWriters (bool) which indicates whether any dynamic writers exist.
-// Takes filterInternal (bool) which indicates whether internal attributes
-// should be filtered.
+// Takes filterInternal (bool) which indicates whether internal attributes should be
+// filtered.
 // Takes qw (*qt.Writer) which receives the rendered output.
 func writeFragmentAttrs(attrs, nodeAttrs []ast_domain.HTMLAttribute, writers []*ast_domain.DirectWriter, hasWriters, filterInternal bool, qw *qt.Writer) {
 	for i := range attrs {
@@ -382,10 +374,9 @@ func writeFragmentAttrs(attrs, nodeAttrs []ast_domain.HTMLAttribute, writers []*
 	}
 }
 
-// hasAttrByName checks if an attribute with the given name exists in the slice.
-// For small slices (typically 3-8 attributes), linear search is faster than a
-// map lookup because there is no hash calculation, better cache use, and no
-// memory allocation.
+// hasAttrByName checks if an attribute with the given name exists in the slice. For small
+// slices (typically 3-8 attributes), linear search is faster than a map lookup because
+// there is no hash calculation, better cache use, and no memory allocation.
 //
 // Takes attrs ([]ast_domain.HTMLAttribute) which is the slice to search.
 // Takes name (string) which is the attribute name to find.

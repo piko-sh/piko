@@ -16,9 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package transformer_mock provides mock implementations of
-// StreamTransformerPort for testing storage transformations. It
-// includes several mock transformers with different behaviours for
-// testing transformer pipelines, error handling, and stream processing
+// Package transformer_mock provides mock implementations of StreamTransformerPort for
+// testing storage transformations. It includes several mock transformers with different
+// behaviours for testing transformer pipelines, error handling, and stream processing
 // without requiring real compression or encryption.
 package transformer_mock

@@ -40,14 +40,12 @@ const (
 	dataPrefixLen = 5
 )
 
-// GetDocumentLinks finds and returns clickable links within the document.
-// This includes partial component imports (is="..." attributes) and asset
-// references.
+// GetDocumentLinks finds and returns clickable links within the document. This includes
+// partial component imports (is="..." attributes) and asset references.
 //
 // Takes ctx (context.Context) which carries tracing values for resolver calls.
 //
-// Returns []protocol.DocumentLink which contains all links found in the
-// document.
+// Returns []protocol.DocumentLink which contains all links found in the document.
 // Returns error when link extraction fails.
 func (d *document) GetDocumentLinks(ctx context.Context) ([]protocol.DocumentLink, error) {
 	if d.AnnotationResult == nil || d.AnnotationResult.AnnotatedAST == nil {
@@ -64,12 +62,10 @@ func (d *document) GetDocumentLinks(ctx context.Context) ([]protocol.DocumentLin
 	return links, nil
 }
 
-// extractLinksFromNode extracts document links from a single template node's
-// attributes.
+// extractLinksFromNode extracts document links from a single template node's attributes.
 //
 // Takes ctx (context.Context) which carries tracing values for the resolver.
-// Takes node (*ast_domain.TemplateNode) which is the node to extract links
-// from.
+// Takes node (*ast_domain.TemplateNode) which is the node to extract links from.
 //
 // Returns []protocol.DocumentLink which contains the extracted document links.
 func (d *document) extractLinksFromNode(ctx context.Context, node *ast_domain.TemplateNode) []protocol.DocumentLink {
@@ -85,16 +81,14 @@ func (d *document) extractLinksFromNode(ctx context.Context, node *ast_domain.Te
 	return links
 }
 
-// tryCreateLinkFromAttribute attempts to create a document link from an
-// attribute.
+// tryCreateLinkFromAttribute attempts to create a document link from an attribute.
 //
 // Takes ctx (context.Context) which carries tracing values for the resolver.
 // Takes node (*ast_domain.TemplateNode) which provides the template context.
-// Takes attribute (*ast_domain.HTMLAttribute) which contains the
-// attribute to check.
+// Takes attribute (*ast_domain.HTMLAttribute) which contains the attribute to check.
 //
-// Returns *protocol.DocumentLink which is the created link, or nil if the
-// attribute cannot be resolved to a link.
+// Returns *protocol.DocumentLink which is the created link, or nil if the attribute
+// cannot be resolved to a link.
 func (d *document) tryCreateLinkFromAttribute(ctx context.Context, node *ast_domain.TemplateNode, attribute *ast_domain.HTMLAttribute) *protocol.DocumentLink {
 	if attribute.Value == "" {
 		return nil
@@ -113,14 +107,14 @@ func (d *document) tryCreateLinkFromAttribute(ctx context.Context, node *ast_dom
 // resolvePartialLink resolves a partial component alias to a document link.
 //
 // Takes ctx (context.Context) which carries tracing values for the resolver.
-// Takes node (*ast_domain.TemplateNode) which provides the template node
-// containing the partial reference.
+// Takes node (*ast_domain.TemplateNode) which provides the template node containing the
+// partial reference.
 // Takes alias (string) which specifies the partial component alias to resolve.
-// Takes attributeLocation (ast_domain.Location) which defines
-// the location for the link range.
+// Takes attributeLocation (ast_domain.Location) which defines the location for the link
+// range.
 //
-// Returns *protocol.DocumentLink which links to the partial component file, or
-// nil if the alias cannot be resolved.
+// Returns *protocol.DocumentLink which links to the partial component file, or nil if the
+// alias cannot be resolved.
 func (d *document) resolvePartialLink(ctx context.Context, node *ast_domain.TemplateNode, alias string, attributeLocation ast_domain.Location) *protocol.DocumentLink {
 	if d.AnnotationResult == nil || d.AnnotationResult.VirtualModule == nil {
 		return nil
@@ -146,12 +140,10 @@ func (d *document) resolvePartialLink(ctx context.Context, node *ast_domain.Temp
 
 // getInvokerComponent retrieves the VirtualComponent for the node's invoker.
 //
-// Takes node (*ast_domain.TemplateNode) which specifies the template node to
-// look up.
+// Takes node (*ast_domain.TemplateNode) which specifies the template node to look up.
 //
-// Returns *annotator_dto.VirtualComponent which is the component for the
-// node's invoker, or nil if the node has no annotations or the invoker
-// cannot be found.
+// Returns *annotator_dto.VirtualComponent which is the component for the node's invoker,
+// or nil if the node has no annotations or the invoker cannot be found.
 func (d *document) getInvokerComponent(node *ast_domain.TemplateNode) *annotator_dto.VirtualComponent {
 	if node.GoAnnotations == nil || node.GoAnnotations.OriginalPackageAlias == nil {
 		return nil
@@ -175,8 +167,8 @@ func (d *document) getInvokerComponent(node *ast_domain.TemplateNode) *annotator
 // Takes partialPath (string) which is the partial import path to resolve.
 // Takes invokerSourcePath (string) which is the source path of the invoker.
 //
-// Returns protocol.DocumentURI which is the resolved URI, using the resolver
-// if available or falling back to the virtual module path.
+// Returns protocol.DocumentURI which is the resolved URI, using the resolver if available
+// or falling back to the virtual module path.
 func (d *document) resolvePartialToURI(ctx context.Context, partialPath, invokerSourcePath string) protocol.DocumentURI {
 	if d.Resolver != nil {
 		resolvedPath, err := d.Resolver.ResolvePKPath(ctx, partialPath, invokerSourcePath)
@@ -188,13 +180,12 @@ func (d *document) resolvePartialToURI(ctx context.Context, partialPath, invoker
 	return d.resolvePartialViaVirtualModule(partialPath)
 }
 
-// resolvePartialViaVirtualModule resolves a partial path using the
-// VirtualModule graph.
+// resolvePartialViaVirtualModule resolves a partial path using the VirtualModule graph.
 //
 // Takes partialPath (string) which is the path to look up in the graph.
 //
-// Returns protocol.DocumentURI which is the resolved file URI, or empty if
-// the path cannot be found.
+// Returns protocol.DocumentURI which is the resolved file URI, or empty if the path
+// cannot be found.
 func (d *document) resolvePartialViaVirtualModule(partialPath string) protocol.DocumentURI {
 	partialHashedName, ok := d.AnnotationResult.VirtualModule.Graph.PathToHashedName[partialPath]
 	if !ok {
@@ -208,16 +199,16 @@ func (d *document) resolvePartialViaVirtualModule(partialPath string) protocol.D
 	return protocol.DocumentURI("file://" + partialComp.Source.SourcePath)
 }
 
-// createAssetLink creates a document link for an asset reference such as a
-// src or href attribute.
+// createAssetLink creates a document link for an asset reference such as a src or href
+// attribute.
 //
 // Takes ctx (context.Context) which carries tracing values for the resolver.
 // Takes assetPath (string) which is the path from the attribute value.
-// Takes attributeLocation (ast_domain.Location) which is the
-// source location of the attribute value.
+// Takes attributeLocation (ast_domain.Location) which is the source location of the
+// attribute value.
 //
-// Returns *protocol.DocumentLink which is the resolved link, or nil if the
-// path is an absolute URL, data URI, or cannot be resolved.
+// Returns *protocol.DocumentLink which is the resolved link, or nil if the path is an
+// absolute URL, data URI, or cannot be resolved.
 func (d *document) createAssetLink(ctx context.Context, assetPath string, attributeLocation ast_domain.Location) *protocol.DocumentLink {
 	if startsWithHTTP(assetPath) || startsWithData(assetPath) {
 		return nil
@@ -251,11 +242,10 @@ func (d *document) createAssetLink(ctx context.Context, assetPath string, attrib
 	}
 }
 
-// findPartialImportPath finds the import path for a partial alias in a
-// component.
+// findPartialImportPath finds the import path for a partial alias in a component.
 //
-// Takes comp (*annotator_dto.VirtualComponent) which contains the source
-// imports to search.
+// Takes comp (*annotator_dto.VirtualComponent) which contains the source imports to
+// search.
 // Takes alias (string) which is the partial alias to match.
 //
 // Returns string which is the matching import path, or empty if not found.
@@ -271,8 +261,7 @@ func findPartialImportPath(comp *annotator_dto.VirtualComponent, alias string) s
 // buildDocumentLink creates a document link for an attribute value.
 //
 // Takes value (string) which is the text to create the link for.
-// Takes attributeLocation (ast_domain.Location) which specifies
-// the source location.
+// Takes attributeLocation (ast_domain.Location) which specifies the source location.
 // Takes targetURI (protocol.DocumentURI) which is the link destination.
 // Takes tooltip (string) which provides hover text for the link.
 //
@@ -305,8 +294,7 @@ func startsWithHTTP(s string) bool {
 //
 // Takes s (string) which is the string to check.
 //
-// Returns bool which is true if the string starts with "data:", false
-// otherwise.
+// Returns bool which is true if the string starts with "data:", false otherwise.
 func startsWithData(s string) bool {
 	return len(s) >= dataPrefixLen && s[:dataPrefixLen] == "data:"
 }

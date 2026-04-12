@@ -26,19 +26,18 @@ import (
 	"piko.sh/piko/internal/llm/llm_domain"
 )
 
-// wrapError converts known Ollama SDK error types into *llm_domain.ProviderError
-// so that callers can inspect the HTTP status code and trigger retry logic.
-//
-// TODO: ProviderError.RetryAfter is not populated for Ollama because the
-// Ollama SDK error types api.StatusError and api.AuthorizationError do not
-// expose the originating http.Response or its headers. Local Ollama servers
-// rarely emit Retry-After in any case, so this gap has minimal practical
-// impact compared with the hosted providers.
+// wrapError converts known Ollama SDK error types into *llm_domain.ProviderError so that
+// callers can inspect the HTTP status code and trigger retry logic.
 //
 // Takes err (error) which is the error returned by the Ollama client.
 //
-// Returns error which is a *llm_domain.ProviderError when the underlying error
-// is a recognised Ollama type, or the original error otherwise.
+// Returns error which is a *llm_domain.ProviderError when the underlying error is a
+// recognised Ollama type, or the original error otherwise.
+//
+// Note: ProviderError.RetryAfter is not populated for Ollama because the Ollama SDK error
+// types api.StatusError and api.AuthorizationError do not expose the originating
+// http.Response or its headers. Local Ollama servers rarely emit Retry-After in any case,
+// so this gap has minimal practical impact compared with the hosted providers.
 func wrapError(err error) error {
 	if statusErr, ok := errors.AsType[api.StatusError](err); ok {
 		return &llm_domain.ProviderError{

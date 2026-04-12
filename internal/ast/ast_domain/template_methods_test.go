@@ -564,14 +564,21 @@ func TestGetDirective(t *testing.T) {
 	})
 
 	t.Run("falls back to Directives slice for unknown types", func(t *testing.T) {
-		directive := Directive{Type: DirectiveScaffold}
+		directive := Directive{Type: DirectiveTimeline}
 		node := &TemplateNode{
 			NodeType:   NodeElement,
 			Directives: []Directive{directive},
 		}
-		result := node.GetDirective(DirectiveScaffold)
+		result := node.GetDirective(DirectiveTimeline)
 		assert.NotNil(t, result)
-		assert.Equal(t, DirectiveScaffold, result.Type)
+		assert.Equal(t, DirectiveTimeline, result.Type)
+	})
+
+	t.Run("DirScaffold via accessor map", func(t *testing.T) {
+		directive := &Directive{Type: DirectiveScaffold}
+		node := &TemplateNode{NodeType: NodeElement, DirScaffold: directive}
+		result := node.GetDirective(DirectiveScaffold)
+		require.Equal(t, directive, result)
 	})
 
 	t.Run("returns nil when directive not found", func(t *testing.T) {

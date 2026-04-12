@@ -28,56 +28,58 @@ import (
 // stepHandler is a function that runs a browser step action.
 type stepHandler func(*ActionContext, *BrowserStep) error
 
-// stepHandlers maps action names to their handler functions.
-var stepHandlers = map[string]stepHandler{
-	"navigate":             handleNavigate,
-	"goBack":               handleGoBack,
-	"goForward":            handleGoForward,
-	"stop":                 handleStop,
-	"click":                handleClick,
-	"doubleClick":          handleDoubleClick,
-	"hover":                handleHover,
-	"rightClick":           handleRightClick,
-	"fill":                 handleFill,
-	"setValue":             handleFill,
-	"clear":                handleClear,
-	"submit":               handleSubmit,
-	"check":                handleCheck,
-	"uncheck":              handleUncheck,
-	"setFiles":             handleSetFiles,
-	"focus":                handleFocus,
-	"blur":                 handleBlur,
-	"scroll":               handleScroll,
-	"scrollIntoView":       handleScrollIntoView,
-	"press":                handlePress,
-	"type":                 handleType,
-	"keyDown":              handleKeyDown,
-	"keyUp":                handleKeyUp,
-	"setCursor":            handleSetCursor,
-	"setSelection":         handleSetSelection,
-	"selectAll":            handleSelectAll,
-	"collapseSelection":    handleCollapseSelection,
-	"wait":                 handleWait,
-	"waitForSelector":      handleWaitForSelector,
-	"waitForText":          handleWaitForText,
-	"waitForVisible":       handleWaitForVisible,
-	"waitForNotVisible":    handleWaitForNotVisible,
-	"waitForEnabled":       handleWaitForEnabled,
-	"waitForDisabled":      handleWaitForDisabled,
-	"waitForNotPresent":    handleWaitForNotPresent,
-	"waitForPartialReload": handleWaitForPartialReload,
-	"dispatchEvent":        handleDispatchEvent,
-	"triggerPartialReload": handleTriggerPartialReload,
-	"triggerBusEvent":      handleTriggerBusEvent,
-	"pikoBusEmit":          handleTriggerBusEvent,
-	"pikoPartialReload":    handleTriggerPartialReload,
-	"eval":                 handleEval,
-	"comment":              handleComment,
-	"clearConsole":         handleClearConsole,
-	"setAttribute":         handleSetAttribute,
-	"removeAttribute":      handleRemoveAttribute,
-	"setViewport":          handleSetViewport,
-}
+var (
+	// stepHandlers maps action names to their handler functions.
+	stepHandlers = map[string]stepHandler{
+		"navigate":             handleNavigate,
+		"goBack":               handleGoBack,
+		"goForward":            handleGoForward,
+		"stop":                 handleStop,
+		"click":                handleClick,
+		"doubleClick":          handleDoubleClick,
+		"hover":                handleHover,
+		"rightClick":           handleRightClick,
+		"fill":                 handleFill,
+		"setValue":             handleFill,
+		"clear":                handleClear,
+		"submit":               handleSubmit,
+		"check":                handleCheck,
+		"uncheck":              handleUncheck,
+		"setFiles":             handleSetFiles,
+		"focus":                handleFocus,
+		"blur":                 handleBlur,
+		"scroll":               handleScroll,
+		"scrollIntoView":       handleScrollIntoView,
+		"press":                handlePress,
+		"type":                 handleType,
+		"keyDown":              handleKeyDown,
+		"keyUp":                handleKeyUp,
+		"setCursor":            handleSetCursor,
+		"setSelection":         handleSetSelection,
+		"selectAll":            handleSelectAll,
+		"collapseSelection":    handleCollapseSelection,
+		"wait":                 handleWait,
+		"waitForSelector":      handleWaitForSelector,
+		"waitForText":          handleWaitForText,
+		"waitForVisible":       handleWaitForVisible,
+		"waitForNotVisible":    handleWaitForNotVisible,
+		"waitForEnabled":       handleWaitForEnabled,
+		"waitForDisabled":      handleWaitForDisabled,
+		"waitForNotPresent":    handleWaitForNotPresent,
+		"waitForPartialReload": handleWaitForPartialReload,
+		"dispatchEvent":        handleDispatchEvent,
+		"triggerPartialReload": handleTriggerPartialReload,
+		"triggerBusEvent":      handleTriggerBusEvent,
+		"pikoBusEmit":          handleTriggerBusEvent,
+		"pikoPartialReload":    handleTriggerPartialReload,
+		"eval":                 handleEval,
+		"comment":              handleComment,
+		"clearConsole":         handleClearConsole,
+		"setAttribute":         handleSetAttribute,
+		"removeAttribute":      handleRemoveAttribute,
+		"setViewport":          handleSetViewport,
+	}
+)
 
 // ExecuteStep executes a single browser step.
 //
@@ -140,8 +142,8 @@ func handleClick(ctx *ActionContext, step *BrowserStep) error {
 	return Click(ctx, step.Selector)
 }
 
-// handleDoubleClick performs a double-click on the element matching the
-// selector in the browser step.
+// handleDoubleClick performs a double-click on the element matching the selector in the
+// browser step.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes step (*BrowserStep) which contains the selector to target.
@@ -268,11 +270,10 @@ func handleScroll(ctx *ActionContext, step *BrowserStep) error {
 	return Scroll(ctx, step.Selector, step.Value)
 }
 
-// handleWait pauses execution for the number of milliseconds specified
-// in the step value.
+// handleWait pauses execution for the number of milliseconds specified in the step value.
 //
-// Takes step (*BrowserStep) which provides the wait duration as a
-// string in its Value field.
+// Takes step (*BrowserStep) which provides the wait duration as a string in its Value
+// field.
 //
 // Returns error when the value is not a valid integer.
 func handleWait(_ *ActionContext, step *BrowserStep) error {
@@ -317,8 +318,8 @@ func handleWaitForPartialReload(ctx *ActionContext, step *BrowserStep) error {
 	return WaitForPartialReload(ctx, step.PartialName, timeout)
 }
 
-// handleWaitForVisible waits for the element matching the step selector to
-// become visible.
+// handleWaitForVisible waits for the element matching the step selector to become
+// visible.
 //
 // Takes ctx (*ActionContext) which provides the browser execution context.
 // Takes step (*BrowserStep) which specifies the selector and timeout settings.
@@ -340,8 +341,7 @@ func handleWaitForNotVisible(ctx *ActionContext, step *BrowserStep) error {
 	return WaitForNotVisible(ctx, step.Selector, timeout)
 }
 
-// handleWaitForEnabled waits for the element matching the selector to become
-// enabled.
+// handleWaitForEnabled waits for the element matching the selector to become enabled.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes step (*BrowserStep) which specifies the selector and timeout settings.
@@ -403,8 +403,8 @@ func handleTriggerPartialReload(ctx *ActionContext, step *BrowserStep) error {
 	return TriggerPartialReload(ctx, step.PartialName, step.Data, opts)
 }
 
-// handleTriggerBusEvent triggers a bus event with the name and detail from the
-// given step.
+// handleTriggerBusEvent triggers a bus event with the name and detail from the given
+// step.
 //
 // Takes ctx (*ActionContext) which provides the action execution context.
 // Takes step (*BrowserStep) which contains the event name and detail to trigger.
@@ -431,8 +431,8 @@ func handleComment(_ *ActionContext, _ *BrowserStep) error {
 	return nil
 }
 
-// handleClearConsole clears the browser console logs via the page
-// helper. No-ops if the page helper is nil.
+// handleClearConsole clears the browser console logs via the page helper. No-ops if the
+// page helper is nil.
 //
 // Takes ctx (*ActionContext) which provides the page helper.
 //
@@ -570,15 +570,13 @@ func handleScrollIntoView(ctx *ActionContext, step *BrowserStep) error {
 	return ScrollIntoView(ctx.Ctx, step.Selector)
 }
 
-// handleSetAttribute sets an HTML attribute on the element matching the
-// selector.
+// handleSetAttribute sets an HTML attribute on the element matching the selector.
 //
 // Takes ctx (*ActionContext) which provides the browser execution context.
-// Takes step (*BrowserStep) which contains the selector, attribute name, and
-// value.
+// Takes step (*BrowserStep) which contains the selector, attribute name, and value.
 //
-// Returns error when selector is empty, attribute name is missing, or the
-// element cannot be found.
+// Returns error when selector is empty, attribute name is missing, or the element cannot
+// be found.
 func handleSetAttribute(ctx *ActionContext, step *BrowserStep) error {
 	if step.Selector == "" {
 		return errors.New("setAttribute requires 'selector' field")
@@ -590,8 +588,7 @@ func handleSetAttribute(ctx *ActionContext, step *BrowserStep) error {
 	return SetElementAttribute(ctx.Ctx, step.Selector, attributeName, step.Value)
 }
 
-// handleRemoveAttribute removes an attribute from an element matching the
-// selector.
+// handleRemoveAttribute removes an attribute from an element matching the selector.
 //
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes step (*BrowserStep) which specifies the selector and attribute name.
@@ -624,8 +621,7 @@ func handleSetViewport(ctx *ActionContext, step *BrowserStep) error {
 	return SetViewport(ctx, int64(step.Width), int64(step.Height))
 }
 
-// getStepTimeout returns the timeout for a step, using the default if not
-// specified.
+// getStepTimeout returns the timeout for a step, using the default if not specified.
 //
 // Takes step (*BrowserStep) which contains the timeout configuration.
 //

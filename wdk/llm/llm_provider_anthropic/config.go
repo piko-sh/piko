@@ -18,11 +18,13 @@
 
 package llm_provider_anthropic
 
-import "errors"
+import (
+	"errors"
+)
 
 const (
-	// DefaultMaxTokens is the default maximum output tokens when not specified
-	// in requests. This balances response length with cost.
+	// DefaultMaxTokens is the default maximum output tokens when not specified in requests.
+	// This balances response length with cost.
 	DefaultMaxTokens = 8192
 
 	// DefaultModel is the Claude model used when no model is set in a request.
@@ -37,12 +39,12 @@ type Config struct {
 	// BaseURL is a custom API endpoint. Leave empty to use the default endpoint.
 	BaseURL string
 
-	// DefaultModel is the model to use when not set in requests.
-	// Defaults to "claude-sonnet-4-5-20250929" if empty.
+	// DefaultModel is the model to use when not set in requests. Defaults to
+	// "claude-sonnet-4-5-20250929" if empty.
 	DefaultModel string
 
-	// DefaultMaxTokens specifies the token limit when max_tokens is not provided.
-	// Required by the Anthropic API; defaults to 4096.
+	// DefaultMaxTokens specifies the token limit when max_tokens is not provided. Required
+	// by the Anthropic API; defaults to 4096.
 	DefaultMaxTokens int
 }
 

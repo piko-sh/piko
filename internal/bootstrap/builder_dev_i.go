@@ -36,38 +36,38 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
-	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/esbuild/compat"
 	esbuildconfig "piko.sh/piko/internal/esbuild/config"
+	"piko.sh/piko/internal/fonts"
 	"piko.sh/piko/internal/generator/generator_adapters"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/i18n/i18n_domain"
+	"piko.sh/piko/internal/layouter/layouter_adapters"
+	"piko.sh/piko/internal/layouter/layouter_domain"
+	"piko.sh/piko/internal/layouter/layouter_dto"
 	"piko.sh/piko/internal/lifecycle/lifecycle_adapters"
 	"piko.sh/piko/internal/lifecycle/lifecycle_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
+	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
-	"piko.sh/piko/internal/fonts"
-	"piko.sh/piko/internal/layouter/layouter_adapters"
-	"piko.sh/piko/internal/layouter/layouter_domain"
-	"piko.sh/piko/internal/layouter/layouter_dto"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_adapters"
-	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/templater/templater_adapters"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// interpretedDaemonBuilder holds the state and logic needed to build the daemon
-// in interpreted development mode.
+// interpretedDaemonBuilder holds the state and logic needed to build the daemon in
+// interpreted development mode.
 type interpretedDaemonBuilder struct {
 	// variantGenerator creates image variants on demand; nil disables this feature.
 	variantGenerator daemon_domain.OnDemandVariantGenerator
@@ -123,13 +123,12 @@ type interpretedDaemonBuilder struct {
 	// buildOrchestrator creates and installs interpreted runners from build results.
 	buildOrchestrator *lifecycle_adapters.InterpretedBuildOrchestrator
 
-	// devEventBroadcaster sends build-complete events to connected browsers via
-	// SSE. Created at build time and shared between the lifecycle service and the
-	// router.
+	// devEventBroadcaster sends build-complete events to connected browsers via SSE. Created
+	// at build time and shared between the lifecycle service and the router.
 	devEventBroadcaster *daemon_adapters.DevEventBroadcaster
 
-	// devAPIHandler serves the /_piko/dev/api/* REST endpoints for the
-	// dev tools overlay widget.
+	// devAPIHandler serves the /_piko/dev/api/* REST endpoints for the dev tools overlay
+	// widget.
 	devAPIHandler *daemon_adapters.DevAPIHandler
 
 	// c is the dependency injection container for retrieving services.
@@ -138,8 +137,8 @@ type interpretedDaemonBuilder struct {
 	// deps holds external dependencies from the application layer.
 	deps *Dependencies
 
-	// interpreterPool provides a pool of interpreters for JIT compilation.
-	// Set from Dependencies.InterpreterPool.
+	// interpreterPool provides a pool of interpreters for JIT compilation. Set from
+	// Dependencies.InterpreterPool.
 	interpreterPool templater_domain.InterpreterPoolPort
 
 	// entryPoints stores the entry points found for the daemon.
@@ -151,10 +150,8 @@ type interpretedDaemonBuilder struct {
 
 // build assembles the daemon by calling helper methods in sequence.
 //
-// Returns daemon_domain.DaemonService which is the fully assembled daemon
-// ready for use.
-// Returns error when service setup, template building, or the initial build
-// fails.
+// Returns daemon_domain.DaemonService which is the fully assembled daemon ready for use.
+// Returns error when service setup, template building, or the initial build fails.
 func (b *interpretedDaemonBuilder) build(ctx context.Context) (daemon_domain.DaemonService, error) {
 	_, l := logger_domain.From(ctx, log)
 	l.Internal("Assembling daemon for INTERPRETED DEVELOPMENT mode (Alpha)...")
@@ -200,11 +197,11 @@ func (b *interpretedDaemonBuilder) build(ctx context.Context) (daemon_domain.Dae
 	return b.buildFinalDaemon(ctx)
 }
 
-// assembleBuildService constructs the lifecycle build service from the
-// container's resolved dependencies.
+// assembleBuildService constructs the lifecycle build service from the container's
+// resolved dependencies.
 //
-// Returns lifecycle_domain.BuilderAdapter which is ready to run an initial
-// asset seeding pass.
+// Returns lifecycle_domain.BuilderAdapter which is ready to run an initial asset seeding
+// pass.
 // Returns error when the event bus or sandbox factory cannot be resolved.
 func (b *interpretedDaemonBuilder) assembleBuildService() (lifecycle_domain.BuilderAdapter, error) {
 	bridge := b.c.GetArtefactBridge()
@@ -232,8 +229,8 @@ func (b *interpretedDaemonBuilder) assembleBuildService() (lifecycle_domain.Buil
 	), nil
 }
 
-// resolveServices fills the builder with all needed service dependencies
-// by requesting them from the DI container.
+// resolveServices fills the builder with all needed service dependencies by requesting
+// them from the DI container.
 //
 // Returns error when any service resolution or setup step fails.
 func (b *interpretedDaemonBuilder) resolveServices(ctx context.Context) error {
@@ -254,16 +251,16 @@ func (b *interpretedDaemonBuilder) resolveServices(ctx context.Context) error {
 	return nil
 }
 
-// wireMonitoringInspectors connects the orchestrator and registry inspectors
-// to the monitoring service if monitoring is enabled, then starts the service.
+// wireMonitoringInspectors connects the orchestrator and registry inspectors to the
+// monitoring service if monitoring is enabled, then starts the service.
 func (b *interpretedDaemonBuilder) wireMonitoringInspectors() {
 	wireMonitoringInspectors(b.c, b.renderRegistry)
 }
 
 // resolveCoreServices resolves the core services needed for interpreted mode.
 //
-// Returns error when the registry, orchestrator, or i18n service cannot be
-// obtained from the container.
+// Returns error when the registry, orchestrator, or i18n service cannot be obtained from
+// the container.
 func (b *interpretedDaemonBuilder) resolveCoreServices() error {
 	var err error
 	b.registryService, err = b.c.GetRegistryService()
@@ -282,15 +279,12 @@ func (b *interpretedDaemonBuilder) resolveCoreServices() error {
 	return nil
 }
 
-// setupCoordinatorOverrides configures coordinator overrides before generator
-// creation.
+// setupCoordinatorOverrides configures coordinator overrides before generator creation.
 //
-// CRITICAL: These overrides must be set BEFORE calling GetGeneratorService()
-// because generator service creation triggers coordinator creation
-// (sync.Once).
+// CRITICAL: These overrides must be set BEFORE calling GetGeneratorService() because
+// generator service creation triggers coordinator creation (sync.Once).
 //
-// Returns error when the interpreted annotator service or code emitter cannot
-// be created.
+// Returns error when the interpreted annotator service or code emitter cannot be created.
 func (b *interpretedDaemonBuilder) setupCoordinatorOverrides(ctx context.Context) error {
 	if err := b.createInterpretedAnnotatorService(ctx); err != nil {
 		return fmt.Errorf("failed to create interpreted annotator service: %w", err)
@@ -305,8 +299,8 @@ func (b *interpretedDaemonBuilder) setupCoordinatorOverrides(ctx context.Context
 	return nil
 }
 
-// resolveGeneratorAndCoordinator fetches the generator and coordinator
-// services from the container.
+// resolveGeneratorAndCoordinator fetches the generator and coordinator services from the
+// container.
 //
 // Returns error when either service cannot be fetched from the container.
 func (b *interpretedDaemonBuilder) resolveGeneratorAndCoordinator() error {
@@ -322,8 +316,8 @@ func (b *interpretedDaemonBuilder) resolveGeneratorAndCoordinator() error {
 	return nil
 }
 
-// resolveRenderingServices sets up the renderer, render registry, and CSRF
-// services from the container.
+// resolveRenderingServices sets up the renderer, render registry, and CSRF services from
+// the container.
 func (b *interpretedDaemonBuilder) resolveRenderingServices() {
 	b.renderer = b.c.GetRenderer()
 	b.renderRegistry = b.c.GetRenderRegistry()
@@ -356,14 +350,13 @@ func (b *interpretedDaemonBuilder) resolveResolverService() error {
 	return nil
 }
 
-// createInterpretedAnnotatorService creates a custom annotator service
-// configured for interpreted mode with WARN-level compilation logging to
-// reduce noise from frequent JIT compilations. This override must be set
-// before the coordinator service is created since the coordinator depends on
-// the annotator.
+// createInterpretedAnnotatorService creates a custom annotator service configured for
+// interpreted mode with WARN-level compilation logging to reduce noise from frequent JIT
+// compilations. This override must be set before the coordinator service is created since
+// the coordinator depends on the annotator.
 //
-// Returns error when the resolver, reader, processor, or service instance
-// cannot be created.
+// Returns error when the resolver, reader, processor, or service instance cannot be
+// created.
 func (b *interpretedDaemonBuilder) createInterpretedAnnotatorService(ctx context.Context) error {
 	resolver, err := b.c.GetResolver()
 	if err != nil {
@@ -384,13 +377,13 @@ func (b *interpretedDaemonBuilder) createInterpretedAnnotatorService(ctx context
 	return nil
 }
 
-// createAnnotatorReaderAndProcessor creates the filesystem reader and CSS
-// processor for the annotator.
+// createAnnotatorReaderAndProcessor creates the filesystem reader and CSS processor for
+// the annotator.
 //
 // Takes resolver (resolver_domain.ResolverPort) which resolves CSS imports.
 //
-// Returns annotator_domain.FSReaderPort which reads source files from the
-// sandboxed filesystem.
+// Returns annotator_domain.FSReaderPort which reads source files from the sandboxed
+// filesystem.
 // Returns *annotator_domain.CSSProcessor which processes and minifies CSS.
 // Returns error when sandbox factory or source sandbox creation fails.
 func (b *interpretedDaemonBuilder) createAnnotatorReaderAndProcessor(
@@ -423,8 +416,7 @@ func (b *interpretedDaemonBuilder) createAnnotatorReaderAndProcessor(
 	return fsReader, cssProcessor, nil
 }
 
-// createAnnotatorServiceInstance creates the annotator service with all
-// dependencies.
+// createAnnotatorServiceInstance creates the annotator service with all dependencies.
 //
 // Takes ctx (context.Context) which carries the logging context.
 // Takes resolver (resolver_domain.ResolverPort) which resolves references.
@@ -466,8 +458,8 @@ func (b *interpretedDaemonBuilder) createAnnotatorServiceInstance(
 	})
 }
 
-// prepareProviders sets up the symbol provider and interpreter pool
-// for the just-in-time compilation pipeline.
+// prepareProviders sets up the symbol provider and interpreter pool for the just-in-time
+// compilation pipeline.
 func (b *interpretedDaemonBuilder) prepareProviders(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	b.symbolProvider = b.deps.SymbolProvider
@@ -480,8 +472,8 @@ func (b *interpretedDaemonBuilder) prepareProviders(ctx context.Context) {
 	}
 }
 
-// buildTemplaterAndRunner creates the core JIT templating engine. It sets up
-// the InterpretedBuildOrchestrator and an empty initial runner.
+// buildTemplaterAndRunner creates the core JIT templating engine. It sets up the
+// InterpretedBuildOrchestrator and an empty initial runner.
 //
 // Returns error when the absolute project root path cannot be found.
 func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
@@ -534,8 +526,8 @@ func (b *interpretedDaemonBuilder) buildTemplaterAndRunner() error {
 	return b.setupPdfWriter()
 }
 
-// setupPdfWriter configures the PDF writer service with font entries and
-// metrics for interpreted mode.
+// setupPdfWriter configures the PDF writer service with font entries and metrics for
+// interpreted mode.
 //
 // Returns error when font metrics cannot be created.
 func (b *interpretedDaemonBuilder) setupPdfWriter() error {
@@ -558,8 +550,8 @@ func (b *interpretedDaemonBuilder) setupPdfWriter() error {
 	return nil
 }
 
-// buildRouter creates the router manager which handles dynamic route loading
-// and prepares the final wrapped http.Handler.
+// buildRouter creates the router manager which handles dynamic route loading and prepares
+// the final wrapped http.Handler.
 func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 	b.setupDevEventBroadcaster()
 
@@ -608,8 +600,8 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 	}
 }
 
-// setupDevEventBroadcaster creates the dev event broadcaster if dev widget or
-// hot-reload mode is enabled, and registers it for shutdown cleanup.
+// setupDevEventBroadcaster creates the dev event broadcaster if dev widget or hot-reload
+// mode is enabled, and registers it for shutdown cleanup.
 func (b *interpretedDaemonBuilder) setupDevEventBroadcaster() {
 	if b.c.IsDevWidgetEnabled() || b.c.IsDevHotreloadEnabled() {
 		b.devEventBroadcaster = daemon_adapters.NewDevEventBroadcaster()
@@ -619,17 +611,16 @@ func (b *interpretedDaemonBuilder) setupDevEventBroadcaster() {
 	}
 }
 
-// wireDevAPIOptionalDeps attaches optional monitoring providers to the dev API
-// handler. Each provider is best-effort; failures are logged and the handler
-// gracefully degrades to returning {"available": false} for that endpoint.
+// wireDevAPIOptionalDeps attaches optional monitoring providers to the dev API handler.
+// Each provider is best-effort; failures are logged and the handler gracefully degrades
+// to returning {"available": false} for that endpoint.
 func (b *interpretedDaemonBuilder) wireDevAPIOptionalDeps(ctx context.Context) {
 	wireDevAPIOptionalDeps(ctx, b.c, b.devAPIHandler, b.devEventBroadcaster)
 }
 
 // buildRouterConfig constructs the typed RouterConfig for the HTTP router.
 //
-// Returns *daemon_domain.RouterConfig which contains the assembled router
-// settings.
+// Returns *daemon_domain.RouterConfig which contains the assembled router settings.
 func (b *interpretedDaemonBuilder) buildRouterConfig() *daemon_domain.RouterConfig {
 	serverConfig := b.c.serverConfig
 
@@ -663,9 +654,9 @@ func (b *interpretedDaemonBuilder) buildRouterConfig() *daemon_domain.RouterConf
 	return routerConfig
 }
 
-// createVariantGenerator sets up the variant generator for creating image
-// variants on demand. Variants include different formats such as WebP or
-// different sizes, and are made when first requested.
+// createVariantGenerator sets up the variant generator for creating image variants on
+// demand. Variants include different formats such as WebP or different sizes, and are
+// made when first requested.
 func (b *interpretedDaemonBuilder) createVariantGenerator(ctx context.Context) {
 	_, l := logger_domain.From(ctx, log)
 	capabilityService, err := b.c.GetCapabilityService()
@@ -684,12 +675,12 @@ func (b *interpretedDaemonBuilder) createVariantGenerator(ctx context.Context) {
 	l.Internal("On-demand variant generator initialised successfully")
 }
 
-// buildFinalDaemon builds the final daemon service with all its parts,
-// including the file watcher and live-reloading services.
+// buildFinalDaemon builds the final daemon service with all its parts, including the file
+// watcher and live-reloading services.
 //
 // Returns daemon_domain.DaemonService which is the fully configured daemon.
-// Returns error when the file system watcher cannot be started or when
-// building the daemon parts fails.
+// Returns error when the file system watcher cannot be started or when building the
+// daemon parts fails.
 func (b *interpretedDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain.DaemonService, error) {
 	factory, err := b.c.GetSandboxFactory()
 	if err != nil {
@@ -703,11 +694,11 @@ func (b *interpretedDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon
 
 // buildInterpretedDaemonDeps creates the daemon service dependencies' struct.
 //
-// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which monitors for file
-// system changes.
+// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which monitors for file system
+// changes.
 //
-// Returns *daemon_domain.DaemonServiceDeps which contains all configured
-// dependencies for the daemon service.
+// Returns *daemon_domain.DaemonServiceDeps which contains all configured dependencies for
+// the daemon service.
 // Returns error when health probe server setup fails.
 func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Context, fsWatcher lifecycle_domain.FileSystemWatcher) (*daemon_domain.DaemonServiceDeps, error) {
 	_, l := logger_domain.From(ctx, log)
@@ -759,12 +750,11 @@ func (b *interpretedDaemonBuilder) buildInterpretedDaemonDeps(ctx context.Contex
 	}, nil
 }
 
-// setupTLSServerAdapter creates the server adapter from TLS configuration and
-// registers the certificate loader for shutdown cleanup.
+// setupTLSServerAdapter creates the server adapter from TLS configuration and registers
+// the certificate loader for shutdown cleanup.
 //
 // Takes ctx (context.Context) which carries tracing and cancellation.
-// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS
-// settings.
+// Takes daemonConfig (daemon_domain.DaemonConfig) which provides the TLS settings.
 //
 // Returns daemon_domain.ServerAdapter which is the configured server adapter.
 // Returns error when TLS initialisation fails.
@@ -784,11 +774,11 @@ func (b *interpretedDaemonBuilder) setupTLSServerAdapter(ctx context.Context, da
 	return serverAdapter, nil
 }
 
-// triggerInitialBuild performs a blocking initial build to ensure the service
-// is ready before accepting HTTP requests.
+// triggerInitialBuild performs a blocking initial build to ensure the service is ready
+// before accepting HTTP requests.
 //
-// Returns error when the application context is cancelled, entry point
-// discovery fails, the build fails, or route installation fails.
+// Returns error when the application context is cancelled, entry point discovery fails,
+// the build fails, or route installation fails.
 func (b *interpretedDaemonBuilder) triggerInitialBuild(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)
 	appCtx := b.c.GetAppContext()
@@ -817,8 +807,7 @@ func (b *interpretedDaemonBuilder) triggerInitialBuild(ctx context.Context) erro
 	return b.installRunnerAndRoutes(appCtx, result)
 }
 
-// discoverAndStoreEntryPoints finds entry points and stores them in the
-// builder.
+// discoverAndStoreEntryPoints finds entry points and stores them in the builder.
 //
 // Returns []annotator_dto.EntryPoint which contains the found entry points.
 // Returns error when entry point discovery fails.
@@ -841,11 +830,10 @@ func (b *interpretedDaemonBuilder) discoverAndStoreEntryPoints(ctx context.Conte
 
 // executeBuild triggers a build via the coordinator.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry
-// points for the build.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the entry points for the
+// build.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the build
-// output.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the build output.
 // Returns error when the coordinator build fails.
 func (b *interpretedDaemonBuilder) executeBuild(ctx context.Context, entryPoints []annotator_dto.EntryPoint) (*annotator_dto.ProjectAnnotationResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -861,8 +849,8 @@ func (b *interpretedDaemonBuilder) executeBuild(ctx context.Context, entryPoints
 
 // installRunnerAndRoutes builds the runner, installs it, and loads routes.
 //
-// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the
-// build items used to create the runner.
+// Takes result (*annotator_dto.ProjectAnnotationResult) which provides the build items
+// used to create the runner.
 //
 // Returns error when building the runner fails or loading routes fails.
 func (b *interpretedDaemonBuilder) installRunnerAndRoutes(ctx context.Context, result *annotator_dto.ProjectAnnotationResult) error {
@@ -899,13 +887,12 @@ func (b *interpretedDaemonBuilder) installRunnerAndRoutes(ctx context.Context, r
 	return nil
 }
 
-// discoverInitialEntryPoints walks all configured source directories to find
-// .pk files that should be part of the build. It classifies them and
-// produces EntryPoint structs with the Piko Module Path that the coordinator
-// expects.
+// discoverInitialEntryPoints walks all configured source directories to find .pk files
+// that should be part of the build. It classifies them and produces EntryPoint structs
+// with the Piko Module Path that the coordinator expects.
 //
-// Returns []annotator_dto.EntryPoint which contains the discovered entry
-// points sorted for consistent ordering.
+// Returns []annotator_dto.EntryPoint which contains the discovered entry points sorted
+// for consistent ordering.
 // Returns error when no resolver is provided or directory walking fails.
 func (b *interpretedDaemonBuilder) discoverInitialEntryPoints(ctx context.Context) ([]annotator_dto.EntryPoint, error) {
 	if b.resolver == nil {
@@ -928,15 +915,14 @@ func (b *interpretedDaemonBuilder) discoverInitialEntryPoints(ctx context.Contex
 	return b.sortedEntryPoints(entryPointMap), nil
 }
 
-// discoverSourceDir walks a single source directory and populates the entry
-// point map.
+// discoverSourceDir walks a single source directory and populates the entry point map.
 //
 // Takes ctx (context.Context) which carries the logging context.
 // Takes directory (string) which specifies the directory path relative to base.
 // Takes isPage (bool) which indicates whether entries are page templates.
 // Takes isEmail (bool) which indicates whether entries are email templates.
-// Takes entryPointMap (map[string]annotator_dto.EntryPoint) which collects the
-// discovered entry points.
+// Takes entryPointMap (map[string]annotator_dto.EntryPoint) which collects the discovered
+// entry points.
 //
 // Returns error when walking the directory fails.
 func (b *interpretedDaemonBuilder) discoverSourceDir(
@@ -1019,8 +1005,7 @@ type sourceFileContext struct {
 // Takes err (error) which is any error from the walk step.
 // Takes sfCtx (*sourceFileContext) which holds the results.
 //
-// Returns error which is always nil; errors are logged but do not stop the
-// walk.
+// Returns error which is always nil; errors are logged but do not stop the walk.
 func (*interpretedDaemonBuilder) processSourceFile(
 	ctx context.Context,
 	absPath string,
@@ -1074,8 +1059,8 @@ func (*interpretedDaemonBuilder) processSourceFile(
 
 // sortedEntryPoints converts the entry point map to a sorted slice.
 //
-// Takes entryPointMap (map[string]annotator_dto.EntryPoint) which contains the
-// entry points keyed by their paths.
+// Takes entryPointMap (map[string]annotator_dto.EntryPoint) which contains the entry
+// points keyed by their paths.
 //
 // Returns []annotator_dto.EntryPoint which contains the entry points sorted
 // alphabetically by path.
@@ -1089,17 +1074,16 @@ func (*interpretedDaemonBuilder) sortedEntryPoints(entryPointMap map[string]anno
 	return entryPoints
 }
 
-// buildLifecycleService constructs the lifecycle service, attaching
-// the dev event broadcaster only when it has been created. Assigning
-// a nil *DevEventBroadcaster straight into the DevEventNotifier
-// interface would produce a typed-nil that passes `!= nil` checks and
-// panics on first access.
+// buildLifecycleService constructs the lifecycle service, attaching the dev event
+// broadcaster only when it has been created. Assigning a nil *DevEventBroadcaster
+// straight into the DevEventNotifier interface would produce a typed-nil that passes `!=
+// nil` checks and panics on first access.
 //
-// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which feeds
-// file-change events into the service.
+// Takes fsWatcher (lifecycle_domain.FileSystemWatcher) which feeds file-change events
+// into the service.
 //
-// Returns lifecycle_domain.LifecycleService ready for Start, or an
-// error if creation fails.
+// Returns lifecycle_domain.LifecycleService ready for Start, or an error if creation
+// fails.
 func (b *interpretedDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_domain.FileSystemWatcher) (lifecycle_domain.LifecycleService, error) {
 	config := &lifecycleServiceConfig{
 		PathsConfig:             b.buildLifecyclePathsConfig(),
@@ -1118,11 +1102,11 @@ func (b *interpretedDaemonBuilder) buildLifecycleService(fsWatcher lifecycle_dom
 	return service, nil
 }
 
-// buildLifecyclePathsConfig constructs a LifecyclePathsConfig by dereferencing
-// the pointer fields from the server configuration.
+// buildLifecyclePathsConfig constructs a LifecyclePathsConfig by dereferencing the
+// pointer fields from the server configuration.
 //
-// Returns lifecycle_domain.LifecyclePathsConfig which holds the resolved path
-// values for file system operations.
+// Returns lifecycle_domain.LifecyclePathsConfig which holds the resolved path values for
+// file system operations.
 func (b *interpretedDaemonBuilder) buildLifecyclePathsConfig() lifecycle_domain.LifecyclePathsConfig {
 	paths := b.c.serverConfig.Paths
 	return lifecycle_domain.LifecyclePathsConfig{
@@ -1136,11 +1120,11 @@ func (b *interpretedDaemonBuilder) buildLifecyclePathsConfig() lifecycle_domain.
 	}
 }
 
-// buildGeneratorPathsConfig constructs a GeneratorPathsConfig by dereferencing
-// the pointer fields from the server configuration.
+// buildGeneratorPathsConfig constructs a GeneratorPathsConfig by dereferencing the
+// pointer fields from the server configuration.
 //
-// Returns generator_domain.GeneratorPathsConfig which holds the resolved path
-// values for the generator.
+// Returns generator_domain.GeneratorPathsConfig which holds the resolved path values for
+// the generator.
 func (b *interpretedDaemonBuilder) buildGeneratorPathsConfig() generator_domain.GeneratorPathsConfig {
 	paths := b.c.serverConfig.Paths
 	return generator_domain.GeneratorPathsConfig{
@@ -1151,8 +1135,8 @@ func (b *interpretedDaemonBuilder) buildGeneratorPathsConfig() generator_domain.
 	}
 }
 
-// buildDevInterpretedDaemon is the entry point for the interpreted development
-// strategy. It creates a builder to assemble the daemon.
+// buildDevInterpretedDaemon is the entry point for the interpreted development strategy.
+// It creates a builder to assemble the daemon.
 //
 // Takes c (*Container) which provides the dependency injection container.
 // Takes deps (*Dependencies) which holds the resolved dependencies.

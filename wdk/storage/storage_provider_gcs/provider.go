@@ -64,8 +64,7 @@ const (
 	// attributeKeyName is the logging attribute key for object names.
 	attributeKeyName = "key"
 
-	// errRateLimiterWait is the error message format for rate limiter wait
-	// failures.
+	// errRateLimiterWait is the error message format for rate limiter wait failures.
 	errRateLimiterWait = "rate limiter wait failed: %w"
 
 	// operationPut is the operation name for object upload metrics.
@@ -80,23 +79,20 @@ const (
 	// operationCopy is the metric attribute value for object copy operations.
 	operationCopy = "copy"
 
-	// operationRemove is the metric attribute value for object deletion
-	// operations.
+	// operationRemove is the metric attribute value for object deletion operations.
 	operationRemove = "remove"
 
 	// operationGetHash is the operation name for fetching object hashes.
 	operationGetHash = "gethash"
 
-	// operationRemoveMany is the metrics attribute value for batch delete
-	// operations.
+	// operationRemoveMany is the metrics attribute value for batch delete operations.
 	operationRemoveMany = "remove_many"
 
 	// operationPutMany is the metric attribute value for batch put operations.
 	operationPutMany = "put_many"
 )
 
-// GCSProvider implements the StorageProviderPort interface using Google Cloud
-// Storage.
+// GCSProvider implements the StorageProviderPort interface using Google Cloud Storage.
 type GCSProvider struct {
 	// client provides access to Google Cloud Storage buckets and objects.
 	client *gcsstorage.Client
@@ -108,20 +104,21 @@ type GCSProvider struct {
 	rateLimiter *storage.ProviderRateLimiter
 }
 
-var _ storage.ProviderPort = (*GCSProvider)(nil)
+var (
+	_ storage.ProviderPort = (*GCSProvider)(nil)
+)
 
 // Config holds the settings needed to create a GCSProvider.
 type Config struct {
-	// RepositoryMappings maps repository names to their storage bucket
-	// identifiers.
+	// RepositoryMappings maps repository names to their storage bucket identifiers.
 	RepositoryMappings map[string]string
 
 	// CredentialsJSON holds the GCP service account credentials in JSON format.
 	CredentialsJSON []byte
 }
 
-// SupportsMultipart indicates whether multipart uploads are supported.
-// The GCS client library handles multipart uploads transparently.
+// SupportsMultipart indicates whether multipart uploads are supported. The GCS client
+// library handles multipart uploads transparently.
 //
 // Returns bool which is true as GCS supports multipart uploads.
 func (*GCSProvider) SupportsMultipart() bool {
@@ -130,11 +127,11 @@ func (*GCSProvider) SupportsMultipart() bool {
 
 // Put uploads an object to GCS with automatic chunked upload for large files.
 //
-// Takes params (*storage.PutParams) which specifies the object key,
-// content, metadata, and optional multipart configuration.
+// Takes params (*storage.PutParams) which specifies the object key, content, metadata,
+// and optional multipart configuration.
 //
-// Returns error when rate limiting fails, the repository bucket cannot be
-// determined, data copying fails, or the writer cannot be closed.
+// Returns error when rate limiting fails, the repository bucket cannot be determined,
+// data copying fails, or the writer cannot be closed.
 func (g *GCSProvider) Put(ctx context.Context, params *storage.PutParams) error {
 	ctx, l := logger.From(ctx, log)
 	startTime := time.Now()
@@ -194,12 +191,12 @@ func (g *GCSProvider) Put(ctx context.Context, params *storage.PutParams) error 
 
 // Get retrieves an object from GCS as a readable stream.
 //
-// Takes params (storage.GetParams) which specifies the bucket, key, and
-// optional byte range.
+// Takes params (storage.GetParams) which specifies the bucket, key, and optional byte
+// range.
 //
 // Returns io.ReadCloser which provides the object content as a stream.
-// Returns error when the rate limiter times out, the repository bucket is not
-// found, or the object does not exist.
+// Returns error when the rate limiter times out, the repository bucket is not found, or
+// the object does not exist.
 func (g *GCSProvider) Get(ctx context.Context, params storage.GetParams) (io.ReadCloser, error) {
 	startTime := time.Now()
 
@@ -240,11 +237,10 @@ func (g *GCSProvider) Get(ctx context.Context, params storage.GetParams) (io.Rea
 
 // Stat retrieves metadata for an object in GCS.
 //
-// Takes params (storage.GetParams) which specifies the object key and
-// repository.
+// Takes params (storage.GetParams) which specifies the object key and repository.
 //
-// Returns *storage.ObjectInfo which contains the object's size, content
-// type, last modified time, ETag, and metadata.
+// Returns *storage.ObjectInfo which contains the object's size, content type, last
+// modified time, ETag, and metadata.
 // Returns error when the object is not found or the API call fails.
 func (g *GCSProvider) Stat(ctx context.Context, params storage.GetParams) (*storage.ObjectInfo, error) {
 	startTime := time.Now()
@@ -279,8 +275,7 @@ func (g *GCSProvider) Stat(ctx context.Context, params storage.GetParams) (*stor
 
 // Copy performs an efficient, server-side copy within the same bucket.
 //
-// Takes repo (string) which identifies the repository containing both
-// objects.
+// Takes repo (string) which identifies the repository containing both objects.
 // Takes srcKey (string) which specifies the source object key.
 // Takes dstKey (string) which specifies the destination object key.
 //
@@ -309,8 +304,8 @@ func (g *GCSProvider) Copy(ctx context.Context, repo string, srcKey, dstKey stri
 	return nil
 }
 
-// CopyToAnotherRepository performs an efficient, server-side copy between
-// different buckets.
+// CopyToAnotherRepository performs an efficient, server-side copy between different
+// buckets.
 //
 // Takes srcRepo (string) which identifies the source repository.
 // Takes srcKey (string) which specifies the source object key.
@@ -349,8 +344,7 @@ func (g *GCSProvider) CopyToAnotherRepository(ctx context.Context, srcRepo strin
 
 // Remove deletes an object from GCS. This operation is idempotent.
 //
-// Takes params (storage.GetParams) which specifies the object key and
-// repository.
+// Takes params (storage.GetParams) which specifies the object key and repository.
 //
 // Returns error when rate limiting fails or the delete operation fails.
 func (g *GCSProvider) Remove(ctx context.Context, params storage.GetParams) error {
@@ -382,10 +376,9 @@ func (g *GCSProvider) Remove(ctx context.Context, params storage.GetParams) erro
 
 // Rename performs a copy-then-delete to simulate atomic rename.
 //
-// GCS does not have a native rename operation, so this uses CopierFrom
-// followed by Delete. If the delete phase fails after a successful copy,
-// the method logs a warning but does not return an error, which may leave
-// an orphan object at the old key.
+// GCS does not have a native rename operation, so this uses CopierFrom followed by
+// Delete. If the delete phase fails after a successful copy, the method logs a warning
+// but does not return an error, which may leave an orphan object at the old key.
 //
 // Takes repo (string) which identifies the target repository.
 // Takes oldKey (string) which specifies the current object key.
@@ -416,8 +409,7 @@ func (g *GCSProvider) Rename(ctx context.Context, repo string, oldKey, newKey st
 
 // Exists checks if an object exists in GCS.
 //
-// Takes params (storage.GetParams) which specifies the object key and
-// repository.
+// Takes params (storage.GetParams) which specifies the object key and repository.
 //
 // Returns bool which is true if the object exists.
 // Returns error when the rate limiter fails or the API call fails.
@@ -442,8 +434,7 @@ func (g *GCSProvider) Exists(ctx context.Context, params storage.GetParams) (boo
 	return true, nil
 }
 
-// GetHash retrieves the object's MD5 hash from metadata or by streaming
-// the content.
+// GetHash retrieves the object's MD5 hash from metadata or by streaming the content.
 //
 // Takes params (storage.GetParams) which specifies the object to hash.
 //
@@ -480,8 +471,8 @@ func (g *GCSProvider) GetHash(ctx context.Context, params storage.GetParams) (st
 
 // PresignURL generates a signed URL for direct client-side uploads (HTTP PUT).
 //
-// Takes params (storage.PresignParams) which specifies the object key,
-// repository, content type, and expiration duration.
+// Takes params (storage.PresignParams) which specifies the object key, repository,
+// content type, and expiration duration.
 //
 // Returns string which is the signed URL for uploading.
 // Returns error when URL generation fails.
@@ -508,11 +499,9 @@ func (g *GCSProvider) PresignURL(_ context.Context, params storage.PresignParams
 	return url, nil
 }
 
-// PresignDownloadURL generates a signed URL for direct client-side downloads
-// (HTTP GET).
+// PresignDownloadURL generates a signed URL for direct client-side downloads (HTTP GET).
 //
-// Takes params (storage.PresignDownloadParams) which specifies the download
-// details.
+// Takes params (storage.PresignDownloadParams) which specifies the download details.
 //
 // Returns string which is the signed URL for downloading.
 // Returns error when URL generation fails.
@@ -547,8 +536,7 @@ func (g *GCSProvider) PresignDownloadURL(_ context.Context, params storage.Presi
 	return url, nil
 }
 
-// SupportsPresignedURLs reports whether the GCS provider supports native
-// presigned URLs.
+// SupportsPresignedURLs reports whether the GCS provider supports native presigned URLs.
 //
 // Returns bool which is always true as GCS supports signed URLs natively.
 func (*GCSProvider) SupportsPresignedURLs() bool {
@@ -564,9 +552,9 @@ func (g *GCSProvider) Close(ctx context.Context) error {
 	return g.client.Close()
 }
 
-// SupportsBatchOperations returns true because this provider offers an
-// optimised concurrent implementation for batch operations, which is more
-// efficient than the service's sequential fallback.
+// SupportsBatchOperations returns true because this provider offers an optimised
+// concurrent implementation for batch operations, which is more efficient than the
+// service's sequential fallback.
 //
 // Returns bool which is true when batch operations are supported.
 func (*GCSProvider) SupportsBatchOperations() bool {
@@ -580,8 +568,7 @@ func (*GCSProvider) SupportsRetry() bool {
 	return false
 }
 
-// SupportsCircuitBreaking returns false; the service layer handles circuit
-// breaking.
+// SupportsCircuitBreaking returns false; the service layer handles circuit breaking.
 //
 // Returns bool which indicates whether this provider supports circuit breaking.
 func (*GCSProvider) SupportsCircuitBreaking() bool {
@@ -596,23 +583,22 @@ func (*GCSProvider) SupportsRateLimiting() bool {
 }
 
 // executeBatchOperation handles the shared scaffolding for batch GCS operations:
-// empty-input short-circuit, concurrency defaulting, timing, worker dispatch,
-// result collection, metrics recording, and logging.
+// empty-input short-circuit, concurrency defaulting, timing, worker dispatch, result
+// collection, metrics recording, and logging.
 //
 // Takes itemCount (int) which is the number of items to process.
-// Takes givenConcurrency (int) which is the caller-supplied concurrency value;
-// values <= 0 are replaced by defaultConcurrency.
+// Takes givenConcurrency (int) which is the caller-supplied concurrency value; values <=
+// 0 are replaced by defaultConcurrency.
 // Takes defaultConcurrency (int) which is the fallback concurrency level.
-// Takes operationName (string) which is the metric attribute value for this
-// operation.
-// Takes logOperationName (string) which is the human-readable operation name
-// used in log output.
-// Takes runWorkers (func) which starts the operation-specific worker pool and
-// returns the collected batch result.
+// Takes operationName (string) which is the metric attribute value for this operation.
+// Takes logOperationName (string) which is the human-readable operation name used in log
+// output.
+// Takes runWorkers (func) which starts the operation-specific worker pool and returns the
+// collected batch result.
 //
 // Returns *storage.BatchResult which contains the outcome of all operations.
-// Returns error which is always nil; the signature is kept to satisfy the
-// batch operation interface.
+// Returns error which is always nil; the signature is kept to satisfy the batch operation
+// interface.
 func executeBatchOperation(
 	ctx context.Context,
 	itemCount int,
@@ -655,11 +641,10 @@ func executeBatchOperation(
 
 // RemoveMany implements batch delete for GCS.
 //
-// Takes params (storage.RemoveManyParams) which specifies the keys to delete
-// and concurrency settings.
+// Takes params (storage.RemoveManyParams) which specifies the keys to delete and
+// concurrency settings.
 //
-// Returns *storage.BatchResult which contains the outcome of each delete
-// operation.
+// Returns *storage.BatchResult which contains the outcome of each delete operation.
 // Returns error when the batch operation fails.
 func (g *GCSProvider) RemoveMany(ctx context.Context, params storage.RemoveManyParams) (*storage.BatchResult, error) {
 	return executeBatchOperation(
@@ -680,8 +665,8 @@ func (g *GCSProvider) RemoveMany(ctx context.Context, params storage.RemoveManyP
 
 // PutMany implements batch upload for GCS.
 //
-// Takes params (*storage.PutManyParams) which specifies the objects to upload
-// and concurrency settings.
+// Takes params (*storage.PutManyParams) which specifies the objects to upload and
+// concurrency settings.
 //
 // Returns *storage.BatchResult which contains the outcome of all uploads.
 // Returns error when the batch operation fails.
@@ -765,15 +750,14 @@ func (g *GCSProvider) fallbackToStreamingHash(ctx context.Context, params storag
 }
 
 type (
-	// deleteJob represents a request to remove an object from
-	// storage, identified by key.
+	// deleteJob represents a request to remove an object from storage, identified by key.
 	deleteJob struct {
 		// key is the object identifier to delete.
 		key string
 	}
 
-	// uploadJob represents a request to upload an object to
-	// storage, carrying the file metadata and content spec.
+	// uploadJob represents a request to upload an object to storage, carrying the file
+	// metadata and content spec.
 	uploadJob struct {
 		// spec holds the upload metadata and content.
 		spec storage.PutObjectSpec
@@ -826,13 +810,10 @@ func (r uploadJobResult) Error() error { return r.err }
 
 // NewGCSProvider creates a new Google Cloud Storage adapter.
 //
-// Takes config (Config) which specifies the GCS credentials and bucket
-// mappings.
-// Takes opts (...storage.ProviderOption) which provides optional rate
-// limiting settings.
+// Takes config (Config) which specifies the GCS credentials and bucket mappings.
+// Takes opts (...storage.ProviderOption) which provides optional rate limiting settings.
 //
-// Returns storage.ProviderPort which is the configured GCS
-// provider ready for use.
+// Returns storage.ProviderPort which is the configured GCS provider ready for use.
 // Returns error when the GCS client cannot be created.
 func NewGCSProvider(ctx context.Context, config Config, opts ...storage.ProviderOption) (storage.ProviderPort, error) {
 	client, err := createGCSClient(ctx, config.CredentialsJSON)
@@ -855,9 +836,8 @@ func NewGCSProvider(ctx context.Context, config Config, opts ...storage.Provider
 
 // createGCSClient initialises the connection to Google Cloud Storage.
 //
-// Takes credentialsJSON ([]byte) which provides the service account
-// credentials.
-// When empty, the client uses default application credentials.
+// Takes credentialsJSON ([]byte) which provides the service account credentials. When
+// empty, the client uses default application credentials.
 //
 // Returns *gcsstorage.Client which is the configured GCS client ready for use.
 // Returns error when the storage client cannot be created.
@@ -874,13 +854,12 @@ func createGCSClient(ctx context.Context, credentialsJSON []byte) (*gcsstorage.C
 	return client, nil
 }
 
-// queueDeleteJobs creates a buffered channel of delete jobs from the given
-// keys.
+// queueDeleteJobs creates a buffered channel of delete jobs from the given keys.
 //
 // Takes keys ([]string) which specifies the keys to delete.
 //
-// Returns <-chan deleteJob which yields one job per key. The channel is
-// returned already closed.
+// Returns <-chan deleteJob which yields one job per key. The channel is returned already
+// closed.
 func queueDeleteJobs(keys []string) <-chan deleteJob {
 	jobs := make(chan deleteJob, len(keys))
 	for _, key := range keys {
@@ -890,31 +869,25 @@ func queueDeleteJobs(keys []string) <-chan deleteJob {
 	return jobs
 }
 
-// startDeleteWorkers spawns workers simultaneously to consume
-// delete jobs and send results to the results channel.
+// startDeleteWorkers spawns workers simultaneously to consume delete jobs and send
+// results to the results channel.
 //
-// Takes ctx (context.Context) which controls cancellation of
-// all workers.
+// Takes ctx (context.Context) which controls cancellation of all workers.
 // Takes concurrency (int) which sets the number of workers.
-// Takes jobs (<-chan deleteJob) which provides delete jobs for
-// workers.
-// Takes results (chan<- deleteJobResult) which receives
-// deletion outcomes.
-// Takes g (*GCSProvider) which performs the actual GCS
-// deletions.
-// Takes params (storage.RemoveManyParams) which provides
-// repository and error handling settings.
+// Takes jobs (<-chan deleteJob) which provides delete jobs for workers.
+// Takes results (chan<- deleteJobResult) which receives deletion outcomes.
+// Takes g (*GCSProvider) which performs the actual GCS deletions.
+// Takes params (storage.RemoveManyParams) which provides repository and error handling
+// settings.
 //
-// Safe for concurrent use. Spawns worker goroutines tracked by a
-// WaitGroup; closes the results channel when all workers finish.
+// Safe for concurrent use. Spawns worker goroutines tracked by a WaitGroup; closes the
+// results channel when all workers finish.
 func startDeleteWorkers(ctx context.Context, concurrency int, jobs <-chan deleteJob, results chan<- deleteJobResult, g *GCSProvider, params storage.RemoveManyParams) {
 	var wg sync.WaitGroup
-	wg.Add(concurrency)
 	for range concurrency {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			runDeleteWorker(ctx, jobs, results, g, params)
-		}()
+		})
 	}
 	go func() {
 		wg.Wait()
@@ -922,20 +895,19 @@ func startDeleteWorkers(ctx context.Context, concurrency int, jobs <-chan delete
 	}()
 }
 
-// runDeleteWorker consumes delete jobs and publishes results until either the
-// jobs channel closes or ctx is cancelled.
+// runDeleteWorker consumes delete jobs and publishes results until either the jobs
+// channel closes or ctx is cancelled.
 //
-// When a job returns an error and ContinueOnError is false, the worker drains
-// the remaining jobs so the producer is not left blocked, then exits.
+// When a job returns an error and ContinueOnError is false, the worker drains the
+// remaining jobs so the producer is not left blocked, then exits.
 //
 // Takes ctx (context.Context) which controls cancellation of the worker loop.
-// Takes jobs (<-chan deleteJob) which provides delete jobs for the worker to
-// consume.
-// Takes results (chan<- deleteJobResult) which receives the outcome of each
-// delete attempt.
+// Takes jobs (<-chan deleteJob) which provides delete jobs for the worker to consume.
+// Takes results (chan<- deleteJobResult) which receives the outcome of each delete
+// attempt.
 // Takes g (*GCSProvider) which performs the underlying GCS delete operation.
-// Takes params (storage.RemoveManyParams) which supplies repository and error
-// handling settings.
+// Takes params (storage.RemoveManyParams) which supplies repository and error handling
+// settings.
 func runDeleteWorker(ctx context.Context, jobs <-chan deleteJob, results chan<- deleteJobResult, g *GCSProvider, params storage.RemoveManyParams) {
 	for {
 		select {
@@ -956,16 +928,16 @@ func runDeleteWorker(ctx context.Context, jobs <-chan deleteJob, results chan<- 
 //
 // Takes ctx (context.Context) which controls cancellation of the operation.
 // Takes job (deleteJob) which is the delete job to execute.
-// Takes jobs (<-chan deleteJob) which is drained on a fatal error when
-// ContinueOnError is false.
-// Takes results (chan<- deleteJobResult) which receives the outcome of the
-// delete attempt.
+// Takes jobs (<-chan deleteJob) which is drained on a fatal error when ContinueOnError is
+// false.
+// Takes results (chan<- deleteJobResult) which receives the outcome of the delete
+// attempt.
 // Takes g (*GCSProvider) which performs the underlying GCS delete operation.
-// Takes params (storage.RemoveManyParams) which supplies repository and error
-// handling settings.
+// Takes params (storage.RemoveManyParams) which supplies repository and error handling
+// settings.
 //
-// Returns bool which is true to keep the worker running, or false to stop
-// (because of ctx cancellation or a fatal error when ContinueOnError is false).
+// Returns bool which is true to keep the worker running, or false to stop (because of ctx
+// cancellation or a fatal error when ContinueOnError is false).
 func processDeleteJob(ctx context.Context, job deleteJob, jobs <-chan deleteJob, results chan<- deleteJobResult, g *GCSProvider, params storage.RemoveManyParams) bool {
 	err := g.Remove(ctx, storage.GetParams{
 		Repository:      params.Repository,
@@ -987,8 +959,8 @@ func processDeleteJob(ctx context.Context, job deleteJob, jobs <-chan deleteJob,
 
 // discardRemaining drains the jobs channel without dispatching the entries.
 //
-// The worker calls this on a fatal error when ContinueOnError is false so
-// the producer can finish closing the channel without blocking.
+// The worker calls this on a fatal error when ContinueOnError is false so the producer
+// can finish closing the channel without blocking.
 //
 // Takes ch (<-chan T) which is the channel to drain.
 func discardRemaining[T any](ch <-chan T) {
@@ -997,14 +969,13 @@ func discardRemaining[T any](ch <-chan T) {
 	}
 }
 
-// queueUploadJobs creates a buffered channel of upload jobs from the given
-// object specifications.
+// queueUploadJobs creates a buffered channel of upload jobs from the given object
+// specifications.
 //
-// Takes objects ([]storage.PutObjectSpec) which specifies the objects to
-// upload.
+// Takes objects ([]storage.PutObjectSpec) which specifies the objects to upload.
 //
-// Returns <-chan uploadJob which yields one job per object specification. The
-// channel is closed before returning, so all jobs are immediately available.
+// Returns <-chan uploadJob which yields one job per object specification. The channel is
+// closed before returning, so all jobs are immediately available.
 func queueUploadJobs(objects []storage.PutObjectSpec) <-chan uploadJob {
 	jobs := make(chan uploadJob, len(objects))
 	for _, storageObject := range objects {
@@ -1014,30 +985,25 @@ func queueUploadJobs(objects []storage.PutObjectSpec) <-chan uploadJob {
 	return jobs
 }
 
-// startUploadWorkers spawns workers simultaneously to consume
-// upload jobs and send results to the results channel.
+// startUploadWorkers spawns workers simultaneously to consume upload jobs and send
+// results to the results channel.
 //
-// Takes ctx (context.Context) which controls cancellation of
-// all workers.
+// Takes ctx (context.Context) which controls cancellation of all workers.
 // Takes concurrency (int) which sets the number of workers.
-// Takes jobs (<-chan uploadJob) which provides upload jobs for
-// workers.
-// Takes results (chan<- uploadJobResult) which receives upload
-// outcomes.
+// Takes jobs (<-chan uploadJob) which provides upload jobs for workers.
+// Takes results (chan<- uploadJobResult) which receives upload outcomes.
 // Takes g (*GCSProvider) which performs the actual GCS uploads.
-// Takes params (*storage.PutManyParams) which provides
-// repository and error handling settings.
+// Takes params (*storage.PutManyParams) which provides repository and error handling
+// settings.
 //
-// Safe for concurrent use. Spawns worker goroutines tracked by a
-// WaitGroup; closes the results channel when all workers finish.
+// Safe for concurrent use. Spawns worker goroutines tracked by a WaitGroup; closes the
+// results channel when all workers finish.
 func startUploadWorkers(ctx context.Context, concurrency int, jobs <-chan uploadJob, results chan<- uploadJobResult, g *GCSProvider, params *storage.PutManyParams) {
 	var wg sync.WaitGroup
-	wg.Add(concurrency)
 	for range concurrency {
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			runUploadWorker(ctx, jobs, results, g, params)
-		}()
+		})
 	}
 	go func() {
 		wg.Wait()
@@ -1045,17 +1011,16 @@ func startUploadWorkers(ctx context.Context, concurrency int, jobs <-chan upload
 	}()
 }
 
-// runUploadWorker consumes upload jobs and publishes results until either the
-// jobs channel closes or ctx is cancelled.
+// runUploadWorker consumes upload jobs and publishes results until either the jobs
+// channel closes or ctx is cancelled.
 //
 // Takes ctx (context.Context) which controls cancellation of the worker loop.
-// Takes jobs (<-chan uploadJob) which provides upload jobs for the worker to
-// consume.
-// Takes results (chan<- uploadJobResult) which receives the outcome of each
-// upload attempt.
+// Takes jobs (<-chan uploadJob) which provides upload jobs for the worker to consume.
+// Takes results (chan<- uploadJobResult) which receives the outcome of each upload
+// attempt.
 // Takes g (*GCSProvider) which performs the underlying GCS upload operation.
-// Takes params (*storage.PutManyParams) which supplies repository and error
-// handling settings.
+// Takes params (*storage.PutManyParams) which supplies repository and error handling
+// settings.
 func runUploadWorker(ctx context.Context, jobs <-chan uploadJob, results chan<- uploadJobResult, g *GCSProvider, params *storage.PutManyParams) {
 	for {
 		select {
@@ -1076,16 +1041,16 @@ func runUploadWorker(ctx context.Context, jobs <-chan uploadJob, results chan<- 
 //
 // Takes ctx (context.Context) which controls cancellation of the operation.
 // Takes job (uploadJob) which is the upload job to execute.
-// Takes jobs (<-chan uploadJob) which is drained on a fatal error when
-// ContinueOnError is false.
-// Takes results (chan<- uploadJobResult) which receives the outcome of the
-// upload attempt.
+// Takes jobs (<-chan uploadJob) which is drained on a fatal error when ContinueOnError is
+// false.
+// Takes results (chan<- uploadJobResult) which receives the outcome of the upload
+// attempt.
 // Takes g (*GCSProvider) which performs the underlying GCS put operation.
-// Takes params (*storage.PutManyParams) which supplies repository and error
-// handling settings.
+// Takes params (*storage.PutManyParams) which supplies repository and error handling
+// settings.
 //
-// Returns bool which is true to keep the worker running, or false to stop
-// (because of ctx cancellation or a fatal error when ContinueOnError is false).
+// Returns bool which is true to keep the worker running, or false to stop (because of ctx
+// cancellation or a fatal error when ContinueOnError is false).
 func processUploadJob(ctx context.Context, job uploadJob, jobs <-chan uploadJob, results chan<- uploadJobResult, g *GCSProvider, params *storage.PutManyParams) bool {
 	putParam := &storage.PutParams{
 		Repository:           params.Repository,
@@ -1118,8 +1083,8 @@ func processUploadJob(ctx context.Context, job uploadJob, jobs <-chan uploadJob,
 // Takes resultsChan (<-chan T) which yields job results to gather.
 // Takes total (int) which specifies the total number of requested items.
 //
-// Returns *storage.BatchResult which contains the gathered success and failure
-// counts along with their keys.
+// Returns *storage.BatchResult which contains the gathered success and failure counts
+// along with their keys.
 func collectBatchResults[T jobResult](resultsChan <-chan T, total int) *storage.BatchResult {
 	result := &storage.BatchResult{
 		TotalRequested:  total,

@@ -24,29 +24,27 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// Severity categorises a measured utilisation or status into ordered bands.
-// It maps to colour ramps in the active theme.
+// Severity categorises a measured utilisation or status into ordered bands. It maps to
+// colour ramps in the active theme.
 type Severity int
 
 const (
 	// SeverityHealthy indicates a value within nominal limits.
 	SeverityHealthy Severity = iota
 
-	// SeverityWarning indicates a value approaching its limit and worth
-	// surfacing in the UI.
+	// SeverityWarning indicates a value approaching its limit and worth surfacing in the UI.
 	SeverityWarning
 
-	// SeverityCritical indicates a value at or above its limit and requiring
-	// attention.
+	// SeverityCritical indicates a value at or above its limit and requiring attention.
 	SeverityCritical
 
 	// SeveritySaturated indicates a value that has overflowed its limit.
 	SeveritySaturated
 )
 
-// Palette holds the raw colour roles a theme assigns. All TUI styles are
-// built from these values, so theming is a question of choosing a palette
-// rather than rewriting individual styles.
+// Palette holds the raw colour roles a theme assigns. All TUI styles are built from these
+// values, so theming is a question of choosing a palette rather than rewriting individual
+// styles.
 type Palette struct {
 	// Background is the deepest layer, used behind everything.
 	Background color.Color
@@ -54,12 +52,11 @@ type Palette struct {
 	// Surface is the panel-content layer, slightly raised from Background.
 	Surface color.Color
 
-	// SurfaceHigh is a higher-contrast variant of Surface for elements that
-	// need to stand out (status bar background, selected row background).
+	// SurfaceHigh is a higher-contrast variant of Surface for elements that need to stand
+	// out (status bar background, selected row background).
 	SurfaceHigh color.Color
 
-	// SurfaceLow is a lower-contrast variant of Surface used sparingly for
-	// subtle fills.
+	// SurfaceLow is a lower-contrast variant of Surface used sparingly for subtle fills.
 	SurfaceLow color.Color
 
 	// Foreground is the standard body text colour.
@@ -68,8 +65,8 @@ type Palette struct {
 	// ForegroundDim is the muted text colour for labels and secondary text.
 	ForegroundDim color.Color
 
-	// ForegroundMuted is even more muted than ForegroundDim, used for help
-	// hints and the most-secondary content.
+	// ForegroundMuted is even more muted than ForegroundDim, used for help hints and the
+	// most-secondary content.
 	ForegroundMuted color.Color
 
 	// Border is the colour of inactive panel borders and separators.
@@ -81,39 +78,35 @@ type Palette struct {
 	// Cursor is the colour of the active row indicator.
 	Cursor color.Color
 
-	// Primary is the dominant accent colour: focused borders, selections,
-	// active titles.
+	// Primary is the dominant accent colour: focused borders, selections, active titles.
 	Primary color.Color
 
 	// PrimarySoft is a softer variant of Primary used for subtle accents.
 	PrimarySoft color.Color
 
-	// Accent is a secondary accent colour, distinct from Primary, used for
-	// hotkey letters and highlights.
+	// Accent is a secondary accent colour, distinct from Primary, used for hotkey letters
+	// and highlights.
 	Accent color.Color
 
 	// AccentSoft is a softer variant of Accent.
 	AccentSoft color.Color
 
-	// Success is the colour for healthy status, completed states, low-risk
-	// gauges.
+	// Success is the colour for healthy status, completed states, low-risk gauges.
 	Success color.Color
 
 	// Warning is the colour for degraded states and medium-risk gauges.
 	Warning color.Color
 
-	// Danger is the colour for unhealthy states, errors, and high-risk
-	// gauges.
+	// Danger is the colour for unhealthy states, errors, and high-risk gauges.
 	Danger color.Color
 
 	// Info is the colour for informational messages and pending states.
 	Info color.Color
 }
 
-// Theme holds pre-computed lipgloss styles for every named role in the TUI.
-// Panels and widgets read styles from a *Theme rather than constructing them
-// inline, so palette swaps are a single allocation rather than a sweeping
-// edit.
+// Theme holds pre-computed lipgloss styles for every named role in the TUI. Panels and
+// widgets read styles from a *Theme rather than constructing them inline, so palette
+// swaps are a single allocation rather than a sweeping edit.
 type Theme struct {
 	// StatusDesc styles the descriptive text portion of the status bar.
 	StatusDesc lipgloss.Style
@@ -232,8 +225,7 @@ type Theme struct {
 	// Name is the registered identifier of the theme.
 	Name string
 
-	// ScrollOffLines is the minimum line buffer at the top and bottom of a
-	// scrollable view.
+	// ScrollOffLines is the minimum line buffer at the top and bottom of a scrollable view.
 	ScrollOffLines int
 
 	// IsDark indicates whether the theme is intended for dark terminals.
@@ -250,8 +242,7 @@ type Theme struct {
 //
 // Takes palette (*Palette) which provides the raw colour roles.
 // Takes name (string) which identifies the theme in the registry.
-// Takes isDark (bool) which records whether the theme targets dark
-// terminals.
+// Takes isDark (bool) which records whether the theme targets dark terminals.
 //
 // Returns Theme with every style field populated from the palette.
 func buildTheme(palette *Palette, name string, isDark bool) Theme {

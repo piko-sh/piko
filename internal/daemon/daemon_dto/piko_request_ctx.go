@@ -26,102 +26,96 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// PikoRequestCtx is the single per-request carrier stored in the
-// context via one context.WithValue call.
+// PikoRequestCtx is the single per-request carrier stored in the context via one
+// context.WithValue call.
 //
-// Downstream middleware mutates the same pointer, eliminating
-// additional context allocations. The struct is pooled to amortise
-// allocation cost to zero after warmup.
+// Downstream middleware mutates the same pointer, eliminating additional context
+// allocations. The struct is pooled to amortise allocation cost to zero after warmup.
 type PikoRequestCtx struct {
-	// CachedLogger stores a request-scoped logger (as logger_domain.Logger).
-	// Set lazily by logger_domain.From on first call per request; subsequent
-	// calls return the cached instance at zero cost.
+	// CachedLogger stores a request-scoped logger (as logger_domain.Logger). Set lazily by
+	// logger_domain.From on first call per request; subsequent calls return the cached
+	// instance at zero cost.
 	CachedLogger any
 
-	// CachedAuth stores the resolved authentication context (as AuthContext).
-	// Nil when no provider is registered or the request is unauthenticated.
+	// CachedAuth stores the resolved authentication context (as AuthContext). Nil when no
+	// provider is registered or the request is unauthenticated.
 	CachedAuth any
 
-	// ResponseWriter holds the original http.ResponseWriter for the
-	// current request. Nil when analytics is not enabled.
+	// ResponseWriter holds the original http.ResponseWriter for the current request. Nil
+	// when analytics is not enabled.
 	ResponseWriter http.ResponseWriter
 
-	// ErrorPage holds error page context on the error path. Nil for normal
-	// requests.
+	// ErrorPage holds error page context on the error path. Nil for normal requests.
 	ErrorPage *ErrorPageContext
 
-	// Locale is the current route locale (e.g., "en", "de"). Set by the route
-	// handler closure.
+	// Locale is the current route locale (e.g., "en", "de"). Set by the route handler
+	// closure.
 	Locale string
 
-	// CSPToken holds the per-request CSP nonce token. Set by the
-	// SecurityHeaders middleware when CSP request tokens are enabled.
+	// CSPToken holds the per-request CSP nonce token. Set by the SecurityHeaders middleware
+	// when CSP request tokens are enabled.
 	CSPToken string
 
-	// ForwardedRequestID holds a request ID forwarded from a trusted proxy via
-	// the X-Request-Id header. Only set when RequestIDCounter is zero.
+	// ForwardedRequestID holds a request ID forwarded from a trusted proxy via the
+	// X-Request-Id header. Only set when RequestIDCounter is zero.
 	ForwardedRequestID string
 
-	// ClientIP is the real client IP address, extracted using trusted proxy
-	// rules. Set by the RealIP middleware.
+	// ClientIP is the real client IP address, extracted using trusted proxy rules. Set by
+	// the RealIP middleware.
 	ClientIP string
 
-	// MatchedPattern is the route pattern that matched the request
-	// (e.g., "/blog/{slug}"). Set by the route handler closure.
+	// MatchedPattern is the route pattern that matched the request (e.g., "/blog/{slug}").
+	// Set by the route handler closure.
 	MatchedPattern string
 
-	// AnalyticsRevenue holds optional revenue data stashed by action
-	// handlers during request processing; nil when no revenue is
-	// associated with the request.
+	// AnalyticsRevenue holds optional revenue data stashed by action handlers during request
+	// processing; nil when no revenue is associated with the request.
 	AnalyticsRevenue *maths.Money
 
-	// AnalyticsProperties holds key-value metadata stashed by action
-	// handlers during request processing; nil when no properties have
-	// been set (the map is allocated lazily on first use).
+	// AnalyticsProperties holds key-value metadata stashed by action handlers during request
+	// processing; nil when no properties have been set (the map is allocated lazily on first
+	// use).
 	AnalyticsProperties map[string]string
 
-	// Hostname is the request host (e.g. "example.com"), set by the
-	// analytics middleware from r.Host for enriching custom events.
+	// Hostname is the request host (e.g. "example.com"), set by the analytics middleware
+	// from r.Host for enriching custom events.
 	Hostname string
 
-	// AnalyticsEventName is an explicit event name stashed by action
-	// handlers. When set, the analytics middleware changes the
-	// automatic event type from EventPageView to EventCustom and uses
-	// this as the EventName.
+	// AnalyticsEventName is an explicit event name stashed by action handlers. When set, the
+	// analytics middleware changes the automatic event type from EventPageView to
+	// EventCustom and uses this as the EventName.
 	AnalyticsEventName string
 
-	// RequestIDCounter holds the raw counter for server-generated
-	// request IDs. When non-zero, the formatted string is produced
-	// lazily by FormatRequestID.
+	// RequestIDCounter holds the raw counter for server-generated request IDs. When
+	// non-zero, the formatted string is produced lazily by FormatRequestID.
 	//
-	// Counter values start at 1 (via NextRequestIDCounter), so zero
-	// is never a valid generated ID.
+	// Counter values start at 1 (via NextRequestIDCounter), so zero is never a valid
+	// generated ID.
 	RequestIDCounter uint64
 
-	// ResponseStatusCode is the HTTP status code written by downstream
-	// handlers, set by WriteHeader when ResponseWriter is non-nil
-	// (zero means WriteHeader was not called explicitly).
+	// ResponseStatusCode is the HTTP status code written by downstream handlers, set by
+	// WriteHeader when ResponseWriter is non-nil (zero means WriteHeader was not called
+	// explicitly).
 	ResponseStatusCode int
 
-	// FromTrustedProxy indicates whether the connection originated from a
-	// trusted proxy CIDR range, allowing downstream code to trust forwarding
-	// headers such as X-Request-Id.
+	// FromTrustedProxy indicates whether the connection originated from a trusted proxy CIDR
+	// range, allowing downstream code to trust forwarding headers such as X-Request-Id.
 	FromTrustedProxy bool
 
-	// OtelExtracted marks that OpenTelemetry trace context has been extracted
-	// from request headers. Prevents repeated header parsing when multiple
-	// middleware call trace context extraction functions.
+	// OtelExtracted marks that OpenTelemetry trace context has been extracted from request
+	// headers. Prevents repeated header parsing when multiple middleware call trace context
+	// extraction functions.
 	OtelExtracted bool
 
-	// DevelopmentMode indicates whether the daemon is running in development
-	// mode (dev or dev-i). When true, internal error details are shown to
-	// users instead of safe messages.
+	// DevelopmentMode indicates whether the daemon is running with the developer profile
+	// (dev or dev-i). When true, internal error details are shown to users instead of safe
+	// messages.
 	DevelopmentMode bool
 }
 
-// RequestID returns the formatted request ID. For server-generated
-// IDs the string is produced lazily from RequestIDCounter; for
-// forwarded IDs the original string is returned.
+// RequestID returns the formatted request ID. For server-generated IDs the string is
+// produced lazily from RequestIDCounter; for forwarded IDs the original string is
+// returned.
 //
 // Returns string which is the formatted or forwarded request ID.
 func (p *PikoRequestCtx) RequestID() string {
@@ -138,8 +132,8 @@ func (p *PikoRequestCtx) Header() http.Header {
 	return p.ResponseWriter.Header()
 }
 
-// Write delegates to the underlying ResponseWriter, defaulting the
-// status to 200 if WriteHeader was not called.
+// Write delegates to the underlying ResponseWriter, defaulting the status to 200 if
+// WriteHeader was not called.
 //
 // Takes b ([]byte) which is the data to write.
 //
@@ -152,8 +146,7 @@ func (p *PikoRequestCtx) Write(b []byte) (int, error) {
 	return p.ResponseWriter.Write(b)
 }
 
-// WriteHeader captures the status code and delegates to the
-// underlying ResponseWriter.
+// WriteHeader captures the status code and delegates to the underlying ResponseWriter.
 //
 // Takes code (int) which is the HTTP status code.
 func (p *PikoRequestCtx) WriteHeader(code int) {
@@ -161,17 +154,15 @@ func (p *PikoRequestCtx) WriteHeader(code int) {
 	p.ResponseWriter.WriteHeader(code)
 }
 
-// Flush delegates to the underlying ResponseWriter if it implements
-// http.Flusher.
+// Flush delegates to the underlying ResponseWriter if it implements http.Flusher.
 func (p *PikoRequestCtx) Flush() {
 	if f, ok := p.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
 }
 
-// Unwrap returns the underlying ResponseWriter so that middleware
-// further down the chain can access optional interfaces (Hijacker,
-// Pusher, etc.) via http.ResponseController.
+// Unwrap returns the underlying ResponseWriter so that middleware further down the chain
+// can access optional interfaces (Hijacker, Pusher, etc.) via http.ResponseController.
 //
 // Returns http.ResponseWriter which is the wrapped response writer.
 func (p *PikoRequestCtx) Unwrap() http.ResponseWriter {
@@ -181,13 +172,14 @@ func (p *PikoRequestCtx) Unwrap() http.ResponseWriter {
 // ctxKeyPikoRequestCtx is the context key for the per-request carrier.
 type ctxKeyPikoRequestCtx struct{}
 
-// pikoRequestCtxPool provides reusable PikoRequestCtx instances.
-var pikoRequestCtxPool = sync.Pool{
-	New: func() any { return &PikoRequestCtx{} },
-}
+var (
+	// pikoRequestCtxPool provides reusable PikoRequestCtx instances.
+	pikoRequestCtxPool = sync.Pool{
+		New: func() any { return &PikoRequestCtx{} },
+	}
+)
 
-// AcquirePikoRequestCtx returns a zeroed PikoRequestCtx from the
-// pool.
+// AcquirePikoRequestCtx returns a zeroed PikoRequestCtx from the pool.
 //
 // Returns *PikoRequestCtx which is a reset instance ready for use.
 func AcquirePikoRequestCtx() *PikoRequestCtx {
@@ -199,8 +191,8 @@ func AcquirePikoRequestCtx() *PikoRequestCtx {
 	return pctx
 }
 
-// ReleasePikoRequestCtx returns a PikoRequestCtx to the pool. The
-// caller must not use the struct after this call.
+// ReleasePikoRequestCtx returns a PikoRequestCtx to the pool. The caller must not use the
+// struct after this call.
 //
 // Takes pctx (*PikoRequestCtx) which is the instance to return.
 func ReleasePikoRequestCtx(pctx *PikoRequestCtx) {
@@ -219,8 +211,7 @@ func ReleasePikoRequestCtx(pctx *PikoRequestCtx) {
 	pikoRequestCtxPool.Put(pctx)
 }
 
-// WithPikoRequestCtx returns a new context carrying the given
-// PikoRequestCtx.
+// WithPikoRequestCtx returns a new context carrying the given PikoRequestCtx.
 //
 // Takes pctx (*PikoRequestCtx) which is the carrier to store.
 //
@@ -229,8 +220,8 @@ func WithPikoRequestCtx(ctx context.Context, pctx *PikoRequestCtx) context.Conte
 	return context.WithValue(ctx, ctxKeyPikoRequestCtx{}, pctx)
 }
 
-// PikoRequestCtxFromContext retrieves the PikoRequestCtx from the
-// context, or nil if not present.
+// PikoRequestCtxFromContext retrieves the PikoRequestCtx from the context, or nil if not
+// present.
 //
 // Returns *PikoRequestCtx which is the carrier, or nil if absent.
 func PikoRequestCtxFromContext(ctx context.Context) *PikoRequestCtx {

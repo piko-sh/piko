@@ -28,16 +28,16 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// StartCapture begins capturing CPU and trace profiles to files in
-// config.OutputDir. It returns a cleanup function that stops the active profiles
-// and writes heap, block, mutex, goroutine, and allocs snapshots.
+// StartCapture begins capturing CPU and trace profiles to files in config.OutputDir. It
+// returns a cleanup function that stops the active profiles and writes heap, block,
+// mutex, goroutine, and allocs snapshots.
 //
 // Takes config (Config) which provides OutputDir for the profile files.
 //
-// Returns func() which must be called (typically via defer) to finalise the
-// profiles and flush all data to disk.
-// Returns error when the output sandbox cannot be created or the CPU profile
-// cannot be started.
+// Returns func() which must be called (typically via defer) to finalise the profiles and
+// flush all data to disk.
+// Returns error when the output sandbox cannot be created or the CPU profile cannot be
+// started.
 func StartCapture(config Config) (func(), error) {
 	sandbox, err := resolveProfilerSandbox(config)
 	if err != nil {
@@ -91,11 +91,10 @@ func StartCapture(config Config) (func(), error) {
 	return cleanup, nil
 }
 
-// resolveProfilerSandbox returns a sandbox for the profiler output directory.
-// It prefers the injected sandbox, then the factory, then a no-op fallback.
+// resolveProfilerSandbox returns a sandbox for the profiler output directory. It prefers
+// the injected sandbox, then the factory, then a no-op fallback.
 //
-// Takes config (Config) which provides the sandbox, factory, and output
-// directory.
+// Takes config (Config) which provides the sandbox, factory, and output directory.
 //
 // Returns safedisk.Sandbox which provides write access to the output directory.
 // Returns error when no sandbox can be created.
@@ -117,8 +116,8 @@ func resolveProfilerSandbox(config Config) (safedisk.Sandbox, error) {
 	return sandbox, nil
 }
 
-// writeNamedProfile writes a single named runtime profile to a file via the
-// given sandbox.
+// writeNamedProfile writes a single named runtime profile to a file via the given
+// sandbox.
 //
 // Takes sandbox (safedisk.Sandbox) which provides sandboxed file creation.
 // Takes filename (string) which is the profile file name.

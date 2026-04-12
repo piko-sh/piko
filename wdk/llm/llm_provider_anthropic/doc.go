@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_provider_anthropic implements the LLM provider port
-// for Anthropic's Claude API.
+// Package llm_provider_anthropic implements the LLM provider port for Anthropic's Claude
+// API.
 //
-// The provider supports completions, streaming, tool/function
-// calling, and structured output. Structured output is handled via
-// tool-use translation: the provider creates a synthetic tool with
-// the requested schema and extracts the result from the tool call
+// The provider supports completions, streaming, tool/function calling, and structured
+// output. Structured output is handled via tool-use translation: the provider creates a
+// synthetic tool with the requested schema and extracts the result from the tool call
 // arguments.
 //
 // # Thread safety

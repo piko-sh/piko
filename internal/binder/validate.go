@@ -22,28 +22,24 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// isPathExpression recursively validates that an AST expression tree only
-// contains nodes that are valid for a struct path. A valid path consists of a
-// chain of identifiers, member accesses, and index accesses with literal
-// integer or string indices.
+// isPathExpression recursively validates that an AST expression tree only contains nodes
+// that are valid for a struct path. A valid path consists of a chain of identifiers,
+// member accesses, and index accesses with literal integer or string indices.
 //
-// This validates that form keys cannot contain arbitrary computations,
-// operators, function calls, or other expressions that have no meaning as a
-// destination for a value.
+// This validates that form keys cannot contain arbitrary computations, operators,
+// function calls, or other expressions that have no meaning as a destination for a value.
 //
 // Allowed AST node types:
 //   - *ast_domain.Identifier: e.g., "Name"
 //   - *ast_domain.MemberExpression: e.g., "User.Name"
 //   - *ast_domain.IndexExpression: e.g., "Items[0]" or "Items[\"key\"]"
 //
-// All other node types (e.g., BinaryExpr, CallExpr, StringLiteral) are
-// forbidden.
+// All other node types (e.g., BinaryExpr, CallExpr, StringLiteral) are forbidden.
 //
-// Takes expression (ast_domain.Expression) which is the AST node to
-// validate.
+// Takes expression (ast_domain.Expression) which is the AST node to validate.
 //
-// Returns bool which is true if the expression represents a valid
-// path, and false otherwise.
+// Returns bool which is true if the expression represents a valid path, and false
+// otherwise.
 func isPathExpression(expression ast_domain.Expression) bool {
 	if expression == nil {
 		return false

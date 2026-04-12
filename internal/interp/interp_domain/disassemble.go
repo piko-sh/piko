@@ -24,20 +24,24 @@ import (
 )
 
 const (
-	// maxDisassembleStringLen is the maximum string constant length shown
-	// in disassembly comments before truncation.
+	// maxDisassembleStringLen is the maximum string constant length shown in disassembly
+	// comments before truncation.
 	maxDisassembleStringLen = 40
 
 	// truncatedDisassembleStringLen is the prefix length kept when truncating.
 	truncatedDisassembleStringLen = 37
+
+	// extensionHighByteShift is the left shift applied to the high byte of a 16-bit constant
+	// pool index packed into an extension word.
+	extensionHighByteShift = 8
 )
 
-// Disassemble returns a human-readable listing of the function's
-// bytecode. Each line shows the program counter, opcode mnemonic,
-// operands, and an inline comment for constant-loading instructions.
+// Disassemble returns a human-readable listing of the function's bytecode. Each line
+// shows the program counter, opcode mnemonic, operands, and an inline comment for
+// constant-loading instructions.
 //
-// Returns the complete disassembly as a string, or an empty string
-// when the function body is empty.
+// Returns the complete disassembly as a string, or an empty string when the function body
+// is empty.
 func (cf *CompiledFunction) Disassemble() string {
 	if len(cf.body) == 0 {
 		return ""
@@ -45,9 +49,17 @@ func (cf *CompiledFunction) Disassemble() string {
 	return cf.DisassembleRange(0, len(cf.body))
 }
 
-// DisassembleRange returns a human-readable listing for the
-// instruction range [start, end). Out-of-bounds indices are clamped
-// to the body length.
+// Name returns the function's compile-time name. User-named functions carry their
+// declared identifier; closures, var-init functions, and other synthetic compiler output
+// use angle-bracket names like "<closure>" or "<varinit>".
+//
+// Returns string which is the function's name.
+func (cf *CompiledFunction) Name() string {
+	return cf.name
+}
+
+// DisassembleRange returns a human-readable listing for the instruction range [start,
+// end). Out-of-bounds indices are clamped to the body length.
 //
 // Takes start (int) which is the inclusive start index.
 // Takes end (int) which is the exclusive end index.
@@ -67,20 +79,21 @@ func (cf *CompiledFunction) DisassembleRange(start, end int) string {
 	var builder strings.Builder
 	for pc := start; pc < end; pc++ {
 		instr := cf.body[pc]
-		comment := cf.disassembleComment(instr)
+		label := instructionDisplayName(instr)
+		comment := cf.disassembleCommentAt(instr, pc, end)
 		if comment != "" {
 			fmt.Fprintf(&builder, "%04d  %-26s %3d %3d %3d    ; %s\n",
-				pc, instr.op, instr.a, instr.b, instr.c, comment)
+				pc, label, instr.a, instr.b, instr.c, comment)
 		} else {
 			fmt.Fprintf(&builder, "%04d  %-26s %3d %3d %3d\n",
-				pc, instr.op, instr.a, instr.b, instr.c)
+				pc, label, instr.a, instr.b, instr.c)
 		}
 	}
 	return builder.String()
 }
 
-// disassembleComment returns an inline comment for instructions that
-// reference constant pools or have special semantics.
+// disassembleComment returns an inline comment for instructions that reference constant
+// pools or have special semantics.
 //
 // Takes instr (instruction) which is the instruction to annotate.
 //
@@ -92,21 +105,55 @@ func (cf *CompiledFunction) disassembleComment(instr instruction) string {
 	return disassembleControlComment(instr)
 }
 
+// disassembleCommentAt is the position-aware variant used by the range printer.
+//
+// Some tier-1 subops (e.g. fused uint-const arith) carry their constant-pool index in the
+// following opExt word; this variant peeks at body[pc+1] to render the constant value.
+//
+// Takes instr (instruction) which is the current instruction word.
+// Takes pc (int) which is the position of instr within the body.
+// Takes end (int) which is the exclusive upper bound on body access.
+//
+// Returns the disassembly comment string.
+func (cf *CompiledFunction) disassembleCommentAt(instr instruction, pc, end int) string {
+	if instrIsTier1SubOp(instr, subOpAddUintConst) ||
+		instrIsTier1SubOp(instr, subOpSubUintConst) ||
+		instrIsTier1SubOp(instr, subOpBitAndUintConst) {
+		if pc+1 < end {
+			ext := cf.body[pc+1]
+			constIdx := int(ext.a) | (int(ext.b) << extensionHighByteShift)
+			if constIdx < len(cf.uintConstants) {
+				return fmt.Sprintf("uconst = %d", cf.uintConstants[constIdx])
+			}
+		}
+	}
+	return cf.disassembleComment(instr)
+}
+
 // disassembleLoadComment handles constant-loading and data instructions.
 //
 // Takes instr (instruction) which is the instruction to annotate.
 //
-// Returns a comment string for constant-load opcodes, or empty string
-// for other opcodes.
+// Returns a comment string for constant-load opcodes, or empty string for other opcodes.
 func (cf *CompiledFunction) disassembleLoadComment(instr instruction) string {
+	if instrIsTier1SubOp(instr, subOpLoadIntConstSmall) {
+		return fmt.Sprintf("ints[%d] = %d", instr.b, instr.c)
+	}
+	if instrIsTier1SubOp(instr, subOpLoadBool) {
+		if instr.c != 0 {
+			return fmt.Sprintf("ints[%d] = true", instr.b)
+		}
+		return fmt.Sprintf("ints[%d] = false", instr.b)
+	}
+	if instrIsTier1SubOp(instr, subOpLoadUintConstSmall) {
+		return fmt.Sprintf("uints[%d] = %d", instr.b, instr.c)
+	}
 	switch instr.op {
 	case opLoadIntConst:
 		index := instr.wideIndex()
 		if int(index) < len(cf.intConstants) {
 			return fmt.Sprintf("ints[%d] = %d", instr.a, cf.intConstants[index])
 		}
-	case opLoadIntConstSmall:
-		return fmt.Sprintf("ints[%d] = %d", instr.a, instr.b)
 	case opLoadFloatConst:
 		index := instr.wideIndex()
 		if int(index) < len(cf.floatConstants) {
@@ -114,21 +161,15 @@ func (cf *CompiledFunction) disassembleLoadComment(instr instruction) string {
 		}
 	case opLoadStringConst:
 		return cf.disassembleStringConstComment(instr)
-	case opLoadBool:
-		if instr.b != 0 {
-			return fmt.Sprintf("ints[%d] = true", instr.a)
-		}
-		return fmt.Sprintf("ints[%d] = false", instr.a)
 	case opLoadBoolConst:
 		if int(instr.b) < len(cf.boolConstants) {
 			return fmt.Sprintf("bools[%d] = %v", instr.a, cf.boolConstants[instr.b])
 		}
-	case opLoadNil:
-		return fmt.Sprintf("general[%d] = nil", instr.a)
 	case opAddIntConst, opSubIntConst, opMulIntConst:
 		if int(instr.c) < len(cf.intConstants) {
 			return fmt.Sprintf("const = %d", cf.intConstants[instr.c])
 		}
+	default:
 	}
 	return ""
 }
@@ -154,20 +195,23 @@ func (cf *CompiledFunction) disassembleStringConstComment(instr instruction) str
 //
 // Takes instr (instruction) which is the instruction to annotate.
 //
-// Returns a comment string for jump and return opcodes, or empty
-// string for other opcodes.
+// Returns a comment string for jump and return opcodes, or empty string for other
+// opcodes.
 func disassembleControlComment(instr instruction) string {
-	switch instr.op {
-	case opJump:
+	if instrIsTier1SubOp(instr, subOpJump) {
 		return fmt.Sprintf("goto %d", int(instr.signedOffset()))
+	}
+	if instr.op == opDrillTier1 &&
+		subOpcode(instr.a) == subOpDrillTier2 &&
+		subOpcodeTier2(instr.b) == subOpTier2Return {
+		return fmt.Sprintf("%d values", instr.c)
+	}
+	switch instr.op {
 	case opJumpIfTrue:
 		return fmt.Sprintf("if ints[%d] != 0 goto %+d", instr.a, int(instr.signedOffset()))
 	case opJumpIfFalse:
 		return fmt.Sprintf("if ints[%d] == 0 goto %+d", instr.a, int(instr.signedOffset()))
-	case opReturn:
-		return fmt.Sprintf("%d values", instr.a)
-	case opReturnVoid:
-		return "void"
+	default:
 	}
 	return ""
 }

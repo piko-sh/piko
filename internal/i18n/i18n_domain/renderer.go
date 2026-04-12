@@ -30,25 +30,23 @@ const (
 	// defaultDateTimeStyle is the default style for formatting time.Time values.
 	defaultDateTimeStyle = DateTimeStyleMedium
 
-	// maxLinkedMessageDepth is the maximum recursion depth for linked message
-	// resolution. This prevents infinite recursion from circular references.
+	// maxLinkedMessageDepth is the maximum recursion depth for linked message resolution.
+	// This prevents infinite recursion from circular references.
 	maxLinkedMessageDepth = 10
 
-	// defaultBuildScopeStrBufCapacity is the default buffer capacity for scope
-	// building.
+	// defaultBuildScopeStrBufCapacity is the default buffer capacity for scope building.
 	defaultBuildScopeStrBufCapacity = 64
 )
 
-// messageResolver defines the interface for looking up linked message
-// references.
+// messageResolver defines the interface for looking up linked message references.
 type messageResolver interface {
 	// ResolveMessage looks up a message by its key and returns the rendered text.
 	//
 	// Takes key (string) which is the message identifier to look up.
 	// Takes locale (string) which is the language code to use.
 	// Takes scope (map[string]any) which provides values for message templates.
-	// Takes depth (int) which tracks how deep the lookup has gone to prevent
-	// endless loops when messages refer to each other.
+	// Takes depth (int) which tracks how deep the lookup has gone to prevent endless loops
+	// when messages refer to each other.
 	//
 	// Returns string which is the rendered message text.
 	// Returns bool which is true if the message was found.
@@ -66,9 +64,9 @@ type varLookup interface {
 	LookupVar(name string, buffer *StrBuf) bool
 }
 
-// scopeProvider defines a type that can give its scope map directly.
-// Types that have both varLookup and scopeProvider can skip the string
-// conversion by giving the scope straight away.
+// scopeProvider defines a type that can give its scope map directly. Types that have both
+// varLookup and scopeProvider can skip the string conversion by giving the scope straight
+// away.
 type scopeProvider interface {
 	// GetScope returns the current scope as a map of names to values.
 	//
@@ -101,24 +99,22 @@ var (
 	// expressionCache caches parsed expressions for templates.
 	expressionCache sync.Map
 
-	// emptyScope is a reusable empty scope map to avoid allocation when no
-	// variables are present. This is safe because the map is never written to when
-	// empty.
+	// emptyScope is a reusable empty scope map to avoid allocation when no variables are
+	// present. This is safe because the map is never written to when empty.
 	emptyScope = make(map[string]any)
 )
 
-// ClearExpressionCache resets the i18n expression cache to an empty state.
-// This is intended for test isolation between iterations.
+// ClearExpressionCache resets the i18n expression cache to an empty state. This is
+// intended for test isolation between iterations.
 func ClearExpressionCache() {
 	expressionCache = sync.Map{}
 }
 
-// Render renders a translation entry with the given variables and count.
-// This is a helper function for simple use cases with map-based variables.
+// Render renders a translation entry with the given variables and count. This is a helper
+// function for simple use cases with map-based variables.
 //
 // Takes entry (*Entry) which is the translation entry to render.
-// Takes vars (map[string]any) which provides variable values for template
-// substitution.
+// Takes vars (map[string]any) which provides variable values for template substitution.
 // Takes count (*int) which picks the plural form when not nil.
 // Takes locale (string) which sets the locale for plural rules.
 // Takes buffer (*StrBuf) which is a reusable buffer for faster rendering.
@@ -173,8 +169,7 @@ func Render(entry *Entry, vars map[string]any, count *int, locale string, buffer
 //
 // Takes source (string) which contains the expression text to parse.
 //
-// Returns ast_domain.Expression which is the parsed expression, or nil if
-// parsing failed.
+// Returns ast_domain.Expression which is the parsed expression, or nil if parsing failed.
 func getOrParseExpression(source string) ast_domain.Expression {
 	if cached, ok := expressionCache.Load(source); ok {
 		if expression, assertOk := cached.(ast_domain.Expression); assertOk {
@@ -198,10 +193,9 @@ func getOrParseExpression(source string) ast_domain.Expression {
 //
 // When parts is empty or ctx.buffer is nil, returns an empty string.
 //
-// Takes parts ([]TemplatePart) which contains the parsed template parts to
-// render.
-// Takes ctx (*renderContext) which provides the rendering context including
-// the output buffer and variable values.
+// Takes parts ([]TemplatePart) which contains the parsed template parts to render.
+// Takes ctx (*renderContext) which provides the rendering context including the output
+// buffer and variable values.
 //
 // Returns string which is the rendered template output.
 func renderTemplate(parts []TemplatePart, ctx *renderContext) string {
@@ -228,8 +222,8 @@ func renderTemplate(parts []TemplatePart, ctx *renderContext) string {
 	return ctx.buffer.String()
 }
 
-// renderExpressionPart renders a ${expression} part by evaluating it and
-// writing the result to the output buffer.
+// renderExpressionPart renders a ${expression} part by evaluating it and writing the
+// result to the output buffer.
 //
 // Takes part (*TemplatePart) which contains the expression to render.
 // Takes ctx (*renderContext) which provides the output buffer and locale.
@@ -264,12 +258,12 @@ func renderExpressionPart(part *TemplatePart, ctx *renderContext) {
 	}
 }
 
-// renderLinkedMessagePart renders a @linked.message part by resolving the
-// linked message key and writing the result to the buffer.
+// renderLinkedMessagePart renders a @linked.message part by resolving the linked message
+// key and writing the result to the buffer.
 //
-// When the depth limit is reached or no resolver is available, the original
-// key is written with an @ prefix. When the key cannot be resolved, the
-// original key is also written unchanged.
+// When the depth limit is reached or no resolver is available, the original key is
+// written with an @ prefix. When the key cannot be resolved, the original key is also
+// written unchanged.
 //
 // Takes part (*TemplatePart) which contains the linked message key to resolve.
 // Takes ctx (*renderContext) which provides the buffer, resolver, and depth.
@@ -296,14 +290,13 @@ func renderLinkedMessagePart(part *TemplatePart, ctx *renderContext) {
 	ctx.buffer.WriteString(resolved)
 }
 
-// renderWithVars renders a translation entry using a varLookup for variable
-// resolution. This is the primary render function used by Translation.String().
+// renderWithVars renders a translation entry using a varLookup for variable resolution.
+// This is the primary render function used by Translation.String().
 //
 // Takes entry (*Entry) which is the translation entry to render.
-// Takes vars (varLookup) which provides variable resolution for template
-// placeholders.
-// Takes count (*int) which specifies the count for plural form selection, or
-// nil if not applicable.
+// Takes vars (varLookup) which provides variable resolution for template placeholders.
+// Takes count (*int) which specifies the count for plural form selection, or nil if not
+// applicable.
 // Takes locale (string) which determines the plural form rules to apply.
 // Takes buffer (*StrBuf) which is a reusable buffer for building the output.
 //
@@ -361,13 +354,11 @@ func renderWithVars(entry *Entry, vars varLookup, count *int, locale string, buf
 	return renderTemplate(parts, ctx)
 }
 
-// buildScopeFromVars extracts variable values from a lookup function into a
-// scope map.
+// buildScopeFromVars extracts variable values from a lookup function into a scope map.
 //
-// Takes vars (varLookup) which provides the function to look up variable
-// values.
-// Takes parts ([]TemplatePart) which contains the template parts to scan for
-// variable names.
+// Takes vars (varLookup) which provides the function to look up variable values.
+// Takes parts ([]TemplatePart) which contains the template parts to scan for variable
+// names.
 //
 // Returns map[string]any which contains the variable names and their values.
 func buildScopeFromVars(vars varLookup, parts []TemplatePart) map[string]any {
@@ -389,15 +380,15 @@ func buildScopeFromVars(vars varLookup, parts []TemplatePart) map[string]any {
 	return scope
 }
 
-// renderSimple renders a template string with variables.
-// This is a helper function for templates that have not been parsed beforehand.
+// renderSimple renders a template string with variables. This is a helper function for
+// templates that have not been parsed beforehand.
 //
 // Takes template (string) which is the template string to render.
 // Takes vars (map[string]any) which holds the values for substitution.
 // Takes buffer (*StrBuf) which is a reusable buffer for building the output.
 //
-// Returns string which is the rendered template, or the original template
-// if parsing fails.
+// Returns string which is the rendered template, or the original template if parsing
+// fails.
 func renderSimple(template string, vars map[string]any, buffer *StrBuf) string {
 	parts, errs := ParseTemplate(template)
 	if len(errs) > 0 || len(parts) == 0 {

@@ -26,22 +26,20 @@ import (
 )
 
 const (
-	// rrfK is the Reciprocal Rank Fusion constant from Cormack, Clarke,
-	// Buettcher (2009), where higher values reduce the influence of
-	// high-ranked items.
+	// rrfK is the Reciprocal Rank Fusion constant from Cormack, Clarke, Buettcher (2009),
+	// where higher values reduce the influence of high-ranked items.
 	rrfK = 60
 )
 
-// rrfFusion combines vector similarity results with text relevance results
-// using Reciprocal Rank Fusion. Items appearing in both lists receive scores
-// from both, producing a union rather than an intersection.
+// rrfFusion combines vector similarity results with text relevance results using
+// Reciprocal Rank Fusion. Items appearing in both lists receive scores from both,
+// producing a union rather than an intersection.
 //
-// Takes vectorHits ([]VectorHit[K]) which are vector search results sorted by
-// similarity descending.
-// Takes textScored ([]ScoredResult[K]) which are text search results sorted by
-// BM25 score descending.
-// Takes filters ([]cache_dto.Filter) which are additional metadata filters to
-// apply.
+// Takes vectorHits ([]VectorHit[K]) which are vector search results sorted by similarity
+// descending.
+// Takes textScored ([]ScoredResult[K]) which are text search results sorted by BM25 score
+// descending.
+// Takes filters ([]cache_dto.Filter) which are additional metadata filters to apply.
 // Takes offset (int) which is the pagination offset.
 // Takes limit (int) which is the maximum number of results.
 //

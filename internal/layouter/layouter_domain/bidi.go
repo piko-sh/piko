@@ -22,8 +22,8 @@ import (
 	"golang.org/x/text/unicode/bidi"
 )
 
-// bidiRun represents a contiguous run of text with a single
-// resolved direction from the Unicode Bidirectional Algorithm.
+// bidiRun represents a contiguous run of text with a single resolved direction from the
+// Unicode Bidirectional Algorithm.
 type bidiRun struct {
 	// text is the substring for this run.
 	text string
@@ -38,13 +38,12 @@ type bidiRun struct {
 	direction DirectionType
 }
 
-// splitIntoBidiRuns analyses text using the Unicode Bidi Algorithm
-// (UAX #9) and returns runs in visual order. Each run has a single
-// resolved direction.
+// splitIntoBidiRuns analyses text using the Unicode Bidi Algorithm (UAX #9) and returns
+// runs in visual order. Each run has a single resolved direction.
 //
 // Takes text (string) to analyse.
-// Takes baseDirection (DirectionType) which is the paragraph
-// embedding direction from CSS direction property.
+// Takes baseDirection (DirectionType) which is the paragraph embedding direction from CSS
+// direction property.
 // Takes unicodeBidi (UnicodeBidiType) which modifies bidi behaviour.
 //
 // Returns a slice of bidiRun in visual order.
@@ -74,8 +73,8 @@ func splitIntoBidiRuns(text string, baseDirection DirectionType, unicodeBidi Uni
 
 // extractBidiRuns converts a bidi.Ordering into bidiRun slices.
 //
-// bidi.Run.Pos() returns (start, end) where end is the index
-// of the last byte (inclusive), so we add 1 for slicing.
+// bidi.Run.Pos() returns (start, end) where end is the index of the last byte
+// (inclusive), so we add 1 for slicing.
 //
 // Takes ordering (bidi.Ordering) which is the resolved bidi ordering.
 // Takes text (string) which is the original text string.

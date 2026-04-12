@@ -199,9 +199,8 @@ func (p *Page) GetAllSessionStorage() map[string]string {
 //
 // Takes name (string) which specifies the cookie name to retrieve.
 //
-// Returns *browser_provider_chromedp.Cookie which is the cookie if found, or
-// nil if the cookie
-// does not exist.
+// Returns *browser_provider_chromedp.Cookie which is the cookie if found, or nil if the
+// cookie does not exist.
 func (p *Page) GetCookie(name string) *browser_provider_chromedp.Cookie {
 	cookie, found, err := browser_provider_chromedp.GetCookie(p.actionCtx(), name)
 	if err != nil {
@@ -241,8 +240,8 @@ func (p *Page) HasCookie(name string) bool {
 
 // GetAllCookies returns all cookies for the current page.
 //
-// Returns []*browser_provider_chromedp.Cookie which contains all cookies set in
-// the browser.
+// Returns []*browser_provider_chromedp.Cookie which contains all cookies set in the
+// browser.
 func (p *Page) GetAllCookies() []*browser_provider_chromedp.Cookie {
 	cookies, err := browser_provider_chromedp.GetAllCookies(p.actionCtx())
 	if err != nil {
@@ -255,8 +254,8 @@ func (p *Page) GetAllCookies() []*browser_provider_chromedp.Cookie {
 //
 // Takes name (string) which specifies the cookie name.
 // Takes value (string) which specifies the cookie value.
-// Takes opts (*browser_provider_chromedp.CookieOptions) which provides optional
-// cookie settings.
+// Takes opts (*browser_provider_chromedp.CookieOptions) which provides optional cookie
+// settings.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) SetCookie(name, value string, opts *browser_provider_chromedp.CookieOptions) *Page {

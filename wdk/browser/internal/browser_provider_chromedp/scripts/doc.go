@@ -16,16 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package scripts manages embedded JavaScript files and templates for
-// browser automation via the Chrome DevTools Protocol.
+// Package scripts manages embedded JavaScript files and templates for browser automation
+// via the Chrome DevTools Protocol.
 //
-// It embeds static JavaScript snippets (.js) and parameterised Go
-// templates (.js.tmpl) that browsercore injects into pages to perform
-// DOM interactions, event dispatching, network tracking, storage
-// manipulation, shadow DOM traversal, and iframe operations.
+// It embeds static JavaScript snippets (.js) and parameterised Go templates (.js.tmpl)
+// that browsercore injects into pages to perform DOM interactions, event dispatching,
+// network tracking, storage manipulation, shadow DOM traversal, and iframe operations.
 //
 // # Thread safety
 //
-// All functions are safe for concurrent use. Parsed templates are
-// cached behind a read-write mutex with double-checked locking.
+// All functions are safe for concurrent use. Parsed templates are cached behind a
+// read-write mutex with double-checked locking.
 package scripts

@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Defines port interfaces for hexagonal architecture, establishing contracts
-// between the domain and external adapters. Includes interfaces for file system
-// access, component caching, and the main annotator service for dependency
-// inversion.
+// Defines port interfaces for hexagonal architecture, establishing contracts between the
+// domain and external adapters. Includes interfaces for file system access, component
+// caching, and the main annotator service for dependency inversion.
 
 import (
 	"context"
@@ -32,11 +31,10 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// AnnotatorPort defines the interface for annotating Piko templates and
-// projects.
+// AnnotatorPort defines the interface for annotating Piko templates and projects.
 type AnnotatorPort interface {
-	// Annotate processes a source file and applies documentation annotations.
-	// Actions are auto-discovered from the actions/ directory.
+	// Annotate processes a source file and applies documentation annotations. Actions are
+	// auto-discovered from the actions/ directory.
 	//
 	// Takes mainSourcePath (string) which is the path to the source file.
 	// Takes isPage (bool) which indicates whether the source is a page.
@@ -46,14 +44,12 @@ type AnnotatorPort interface {
 	// Returns error when annotation fails.
 	Annotate(ctx context.Context, mainSourcePath string, isPage bool) (*annotator_dto.AnnotationResult, *CompilationLogStore, error)
 
-	// AnnotateProject processes entry points and generates annotations for a
-	// project. Actions are auto-discovered from the actions/ directory.
+	// AnnotateProject processes entry points and generates annotations for a project.
+	// Actions are auto-discovered from the actions/ directory.
 	//
-	// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the starting
-	// points for annotation.
-	// Takes scriptHashes (map[string]string) which maps script identifiers to
-	// their
-	// hashes.
+	// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the starting points for
+	// annotation.
+	// Takes scriptHashes (map[string]string) which maps script identifiers to their hashes.
 	// Takes opts (...AnnotationOption) which configures annotation behaviour.
 	//
 	// Returns *annotator_dto.ProjectAnnotationResult which contains the generated
@@ -68,20 +64,19 @@ type AnnotatorPort interface {
 	) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error)
 
 	// AnnotateProjectWithCachedIntrospection annotates a project using cached type
-	// introspection data from a previous build, avoiding expensive recomputation.
-	// This fast path achieves 5-10x performance improvement for template-only
-	// changes.
+	// introspection data from a previous build, avoiding expensive recomputation. This fast
+	// path achieves 5-10x performance improvement for template-only changes.
 	//
-	// Takes cachedComponentGraph (*annotator_dto.ComponentGraph) which contains
-	// the component relationships from a previous build.
-	// Takes cachedVirtualModule (*annotator_dto.VirtualModule) which holds the
-	// cached module structure with ActionManifest for action auto-discovery.
-	// Takes cachedTypeResolver (*TypeResolver) which provides previously resolved
-	// type information.
+	// Takes cachedComponentGraph (*annotator_dto.ComponentGraph) which contains the
+	// component relationships from a previous build.
+	// Takes cachedVirtualModule (*annotator_dto.VirtualModule) which holds the cached module
+	// structure with ActionManifest for action auto-discovery.
+	// Takes cachedTypeResolver (*TypeResolver) which provides previously resolved type
+	// information.
 	// Takes opts (...AnnotationOption) which configures annotation behaviour.
 	//
-	// Returns *annotator_dto.ProjectAnnotationResult which contains the annotated
-	// project data.
+	// Returns *annotator_dto.ProjectAnnotationResult which contains the annotated project
+	// data.
 	// Returns *CompilationLogStore which holds compilation messages and warnings.
 	// Returns error when annotation fails.
 	AnnotateProjectWithCachedIntrospection(
@@ -92,16 +87,16 @@ type AnnotatorPort interface {
 		opts ...AnnotationOption,
 	) (*annotator_dto.ProjectAnnotationResult, *CompilationLogStore, error)
 
-	// RunPhase1IntrospectionAndAnnotate runs the full two-phase annotation
-	// pipeline and returns both introspection and annotation results.
+	// RunPhase1IntrospectionAndAnnotate runs the full two-phase annotation pipeline and
+	// returns both introspection and annotation results.
 	//
-	// The Phase 1 results can be cached by the coordinator to Tier 1. Actions are
+	// The introspection results can be cached by the coordinator to Tier 1. Actions are
 	// auto-discovered from the actions/ directory.
 	//
-	// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code
-	// locations to analyse.
-	// Takes scriptHashes (map[string]string) which maps script names to their
-	// content hashes.
+	// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the code locations to
+	// analyse.
+	// Takes scriptHashes (map[string]string) which maps script names to their content
+	// hashes.
 	// Takes opts (...AnnotationOption) which configures the annotation behaviour.
 	//
 	// Returns *Phase1Result which contains both introspection and annotation data.
@@ -114,8 +109,7 @@ type AnnotatorPort interface {
 	) (*Phase1Result, error)
 }
 
-// ActionInfoProvider provides information about an action, such as its HTTP
-// method.
+// ActionInfoProvider provides information about an action, such as its HTTP method.
 type ActionInfoProvider interface {
 	// Method returns the HTTP method for this request.
 	//
@@ -125,8 +119,7 @@ type ActionInfoProvider interface {
 
 // ActionParamProvider extends ActionInfoProvider with parameter type information,
 // enabling argument validation against the action's Call method signature.
-// Implementations that satisfy it will have their arguments validated at
-// annotation time.
+// Implementations that satisfy it will have their arguments validated at annotation time.
 type ActionParamProvider interface {
 	// GetCallParamTypes returns the parameter types of the action's Call method.
 	//
@@ -138,12 +131,12 @@ type ActionParamProvider interface {
 // FSReaderPort defines the contract for a file system reader, abstracting I/O.
 type FSReaderPort = cssinliner.FSReaderPort
 
-// ComponentRegistryPort defines the contract for looking up registered PKC
-// components. This port allows the annotator to check if a tag name is a known
-// component without depending directly on the component domain package.
+// ComponentRegistryPort defines the contract for looking up registered PKC components.
+// This port allows the annotator to check if a tag name is a known component without
+// depending directly on the component domain package.
 type ComponentRegistryPort interface {
-	// IsRegistered checks whether a tag name is a known registered component.
-	// The lookup is case-insensitive.
+	// IsRegistered checks whether a tag name is a known registered component. The lookup is
+	// case-insensitive.
 	//
 	// Takes tagName (string) which is the tag name to check.
 	//
@@ -151,12 +144,12 @@ type ComponentRegistryPort interface {
 	IsRegistered(tagName string) bool
 }
 
-// ComponentCachePort defines the contract for a cache that stores the results
-// of parsing individual .pk component files.
+// ComponentCachePort defines the contract for a cache that stores the results of parsing
+// individual .pk component files.
 type ComponentCachePort interface {
-	// GetOrSet retrieves a parsed component from the cache, or executes the loader
-	// function exactly once on a cache miss, stores the result, and returns it to
-	// all callers. This provides built-in protection against cache stampedes.
+	// GetOrSet retrieves a parsed component from the cache, or executes the loader function
+	// exactly once on a cache miss, stores the result, and returns it to all callers. This
+	// provides built-in protection against cache stampedes.
 	//
 	// Takes key (string) which identifies the cached component.
 	// Takes loader (func) which fetches the component on a cache miss.
@@ -173,13 +166,12 @@ type ComponentCachePort interface {
 	Clear(ctx context.Context)
 }
 
-// TypeInspectorPort provides type query capabilities for semantic analysis.
-// It abstracts inspector_domain.TypeQuerier to enable unit testing of type
-// resolution logic without requiring the full type inspection infrastructure.
+// TypeInspectorPort provides type query capabilities for semantic analysis. It abstracts
+// inspector_domain.TypeQuerier to enable unit testing of type resolution logic without
+// requiring the full type inspection infrastructure.
 type TypeInspectorPort interface {
-	// ResolveToUnderlyingAST resolves a type expression to its underlying AST
-	// form. For type aliases, this follows the chain to the actual underlying
-	// type.
+	// ResolveToUnderlyingAST resolves a type expression to its underlying AST form. For type
+	// aliases, this follows the chain to the actual underlying type.
 	//
 	// Takes typeExpr (goast.Expr) which is the type expression to resolve.
 	// Takes currentFilePath (string) which is the file path for context.
@@ -187,11 +179,11 @@ type TypeInspectorPort interface {
 	// Returns goast.Expr which is the underlying type expression.
 	ResolveToUnderlyingAST(typeExpr goast.Expr, currentFilePath string) goast.Expr
 
-	// ResolveToUnderlyingASTWithContext resolves a type expression and returns
-	// both the underlying AST and the file path where the type is defined.
+	// ResolveToUnderlyingASTWithContext resolves a type expression and returns both the
+	// underlying AST and the file path where the type is defined.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes typeExpr (goast.Expr) which is the type expression to resolve.
 	// Takes currentFilePath (string) which is the file path for context.
 	//
@@ -209,11 +201,11 @@ type TypeInspectorPort interface {
 	// Returns string which is the package name.
 	ResolveExprToNamedType(typeExpr goast.Expr, importerPackagePath, importerFilePath string) (*inspector_dto.Type, string)
 
-	// ResolveExprToNamedTypeWithMemoization resolves a type expression to its
-	// named type DTO with memoization for performance.
+	// ResolveExprToNamedTypeWithMemoization resolves a type expression to its named type DTO
+	// with memoization for performance.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes typeExpr (goast.Expr) which is the type expression to resolve.
 	// Takes importerPackagePath (string) which is the package path of the importer.
 	// Takes importerFilePath (string) which is the file path of the importer.
@@ -260,8 +252,8 @@ type TypeInspectorPort interface {
 	// Takes importerPackagePath (string) which is the package path of the importer.
 	// Takes importerFilePath (string) which is the file path of the importer.
 	//
-	// Returns *inspector_dto.FunctionSignature which is the function signature,
-	// or nil if not found.
+	// Returns *inspector_dto.FunctionSignature which is the function signature, or nil if
+	// not found.
 	FindFuncSignature(packageAlias, functionName, importerPackagePath, importerFilePath string) *inspector_dto.FunctionSignature
 
 	// FindPackageVariable finds a package-level variable by name.
@@ -271,21 +263,20 @@ type TypeInspectorPort interface {
 	// Takes importerPackagePath (string) which is the package path of the importer.
 	// Takes importerFilePath (string) which is the file path of the importer.
 	//
-	// Returns *inspector_dto.Variable which is the variable information,
-	// or nil if not found.
+	// Returns *inspector_dto.Variable which is the variable information, or nil if not
+	// found.
 	FindPackageVariable(packageAlias, varName, importerPackagePath, importerFilePath string) *inspector_dto.Variable
 
 	// FindFieldInfo finds information about a struct field.
 	//
-	// Takes ctx (context.Context) which carries logging context for
-	// trace/request ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes typeExpr (goast.Expr) which is the struct type expression.
 	// Takes fieldName (string) which is the field name.
 	// Takes packagePath (string) which is the package path.
 	// Takes filePath (string) which is the file path.
 	//
-	// Returns *inspector_dto.FieldInfo which is the field information,
-	// or nil if not found.
+	// Returns *inspector_dto.FieldInfo which is the field information, or nil if not found.
 	FindFieldInfo(ctx context.Context, typeExpr goast.Expr, fieldName, packagePath, filePath string) *inspector_dto.FieldInfo
 
 	// FindMethodSignature finds the signature of a method on a type.
@@ -295,8 +286,8 @@ type TypeInspectorPort interface {
 	// Takes packagePath (string) which is the package path.
 	// Takes filePath (string) which is the file path.
 	//
-	// Returns *inspector_dto.FunctionSignature which is the method signature,
-	// or nil if not found.
+	// Returns *inspector_dto.FunctionSignature which is the method signature, or nil if not
+	// found.
 	FindMethodSignature(typeExpr goast.Expr, methodName, packagePath, filePath string) *inspector_dto.FunctionSignature
 
 	// FindMethodInfo finds detailed information about a method on a type.
@@ -306,14 +297,13 @@ type TypeInspectorPort interface {
 	// Takes packagePath (string) which is the package path.
 	// Takes filePath (string) which is the file path.
 	//
-	// Returns *inspector_dto.Method which is the method information,
-	// or nil if not found.
+	// Returns *inspector_dto.Method which is the method information, or nil if not found.
 	FindMethodInfo(typeExpr goast.Expr, methodName, packagePath, filePath string) *inspector_dto.Method
 
 	// GetAllPackages returns all packages known to the inspector.
 	//
-	// Returns map[string]*inspector_dto.Package which maps package paths to
-	// their package information.
+	// Returns map[string]*inspector_dto.Package which maps package paths to their package
+	// information.
 	GetAllPackages() map[string]*inspector_dto.Package
 
 	// GetAllFieldsAndMethods returns all field and method names for a type.
@@ -332,8 +322,8 @@ type TypeInspectorPort interface {
 	// Returns string which is the canonical package path.
 	FindPackagePathForTypeDTO(typeDTO *inspector_dto.Type) string
 
-	// Debug returns a slice of debug information strings about the type inspector
-	// state for the given package and file context.
+	// Debug returns a slice of debug information strings about the type inspector state for
+	// the given package and file context.
 	//
 	// Takes importerPackagePath (string) which is the package path to inspect.
 	// Takes importerFilePath (string) which is the file path to inspect.
@@ -342,25 +332,22 @@ type TypeInspectorPort interface {
 	Debug(importerPackagePath, importerFilePath string) []string
 }
 
-// TypeInspectorBuilderPort defines the contract for building type inspection
-// data. This is used by AnnotatorService to configure and build the type
-// inspector, then retrieve a querier for type lookups.
+// TypeInspectorBuilderPort defines the contract for building type inspection data. This
+// is used by AnnotatorService to configure and build the type inspector, then retrieve a
+// querier for type lookups.
 //
-// The separation of Builder and Inspector ports allows the service to be tested
-// without requiring the full type inspection infrastructure.
+// The separation of Builder and Inspector ports allows the service to be tested without
+// requiring the full type inspection infrastructure.
 type TypeInspectorBuilderPort interface {
 	// SetConfig configures the type inspector with base directory and module info.
 	//
-	// Takes config (inspector_dto.Config) which contains the configuration
-	// settings.
+	// Takes config (inspector_dto.Config) which contains the configuration settings.
 	SetConfig(config inspector_dto.Config)
 
 	// Build processes Go source files to build type information.
 	//
-	// Takes sourceOverlay (map[string][]byte) which contains in-memory source
-	// contents.
-	// Takes scriptHashes (map[string]string) which maps script paths to their
-	// hashes.
+	// Takes sourceOverlay (map[string][]byte) which contains in-memory source contents.
+	// Takes scriptHashes (map[string]string) which maps script paths to their hashes.
 	//
 	// Returns error when the build fails.
 	Build(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) error

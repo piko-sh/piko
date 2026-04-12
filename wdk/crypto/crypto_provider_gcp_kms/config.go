@@ -23,32 +23,33 @@ import (
 	"fmt"
 )
 
-// defaultMaxRetries is the default maximum number of retry attempts for
-// transient failures.
-const defaultMaxRetries = 3
+const (
+	// defaultMaxRetries is the default maximum number of retry attempts for transient
+	// failures.
+	defaultMaxRetries = 3
+)
 
-// Config holds settings for the Google Cloud KMS encryption provider.
-// This provider sends all cryptographic work to Google Cloud KMS, so master
-// keys never leave Google's Hardware Security Modules (HSMs).
+// Config holds settings for the Google Cloud KMS encryption provider. This provider sends
+// all cryptographic work to Google Cloud KMS, so master keys never leave Google's
+// Hardware Security Modules (HSMs).
 type Config struct {
-	// ProjectID is the Google Cloud project identifier.
-	// Example: "my-project-123456"
+	// ProjectID is the Google Cloud project identifier. Example: "my-project-123456"
 	// Required.
 	ProjectID string
 
-	// Location is the regional or global location of the key ring
-	// (e.g., "global", "us-central1", "europe-west1"). REQUIRED.
+	// Location is the regional or global location of the key ring (e.g., "global",
+	// "us-central1", "europe-west1"). REQUIRED.
 	Location string
 
-	// KeyRing is the name of the key ring containing the key; key rings are
-	// logical groupings of keys. REQUIRED.
+	// KeyRing is the name of the key ring containing the key; key rings are logical
+	// groupings of keys. REQUIRED.
 	KeyRing string
 
 	// KeyName is the name of the cryptographic key to use. Required.
 	KeyName string
 
-	// MaxRetries is the maximum number of times to retry after a short-lived
-	// failure. Default is 3; must be zero or greater.
+	// MaxRetries is the maximum number of times to retry after a short-lived failure.
+	// Default is 3; must be zero or greater.
 	MaxRetries int
 }
 
@@ -84,8 +85,7 @@ func (c Config) WithDefaults() Config {
 	return c
 }
 
-// KeyResourceName constructs the full resource name for the key.
-// The format is:
+// KeyResourceName constructs the full resource name for the key. The format is:
 // projects/{project}/locations/{location}/keyRings/{keyRing}/cryptoKeys/{key}.
 //
 // Returns string which is the fully qualified Cloud KMS key resource name.

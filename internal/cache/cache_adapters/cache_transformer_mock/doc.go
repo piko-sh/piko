@@ -16,11 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_transformer_mock implements a test double for the
-// cache transformer port.
+// Package cache_transformer_mock implements a test double for the cache transformer port.
 //
-// The mock transformer applies a deterministic, reversible prefix
-// ("MOCK:<name>:") to cached values, letting tests verify that the
-// transformer pipeline is invoked correctly without introducing real
-// cryptographic or compression overhead.
+// The mock transformer applies a deterministic, reversible prefix ("MOCK:<name>:") to
+// cached values, letting tests verify that the transformer pipeline is invoked correctly
+// without introducing real cryptographic or compression overhead.
 package cache_transformer_mock

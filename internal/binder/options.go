@@ -18,8 +18,8 @@
 
 package binder
 
-// BindOptions holds settings for a single Bind call. Each field is a pointer
-// so that nil means "not set" and a zero value means "set to zero".
+// BindOptions holds settings for a single Bind call. Each field is a pointer so that nil
+// means "not set" and a zero value means "set to zero".
 type BindOptions struct {
 	// IgnoreUnknownKeys controls whether unknown form fields cause errors.
 	IgnoreUnknownKeys *bool
@@ -43,12 +43,11 @@ type BindOptions struct {
 // Option is a function that configures BindOptions.
 type Option func(*BindOptions)
 
-// IgnoreUnknownKeys returns an Option that controls behaviour for unknown form
-// fields in the source data.
+// IgnoreUnknownKeys returns an Option that controls behaviour for unknown form fields in
+// the source data.
 //
-// When ignore is true, the binder will silently ignore fields that do not map
-// to a field in the destination struct. When false, it will return an error
-// for each unknown key.
+// When ignore is true, the binder will silently ignore fields that do not map to a field
+// in the destination struct. When false, it will return an error for each unknown key.
 //
 // Takes ignore (bool) which specifies whether to ignore unknown keys.
 //
@@ -59,8 +58,8 @@ func IgnoreUnknownKeys(ignore bool) Option {
 	}
 }
 
-// WithMaxSliceSize returns an Option that sets a limit for slice growth on a
-// single call. This overrides the global limit for this specific Bind call.
+// WithMaxSliceSize returns an Option that sets a limit for slice growth on a single call.
+// This overrides the global limit for this specific Bind call.
 //
 // Takes size (int) which specifies the maximum number of elements allowed.
 //
@@ -71,8 +70,8 @@ func WithMaxSliceSize(size int) Option {
 	}
 }
 
-// WithMaxPathDepth returns an Option that sets a limit for path depth on a
-// single call. This overrides the global limit for the specific Bind call.
+// WithMaxPathDepth returns an Option that sets a limit for path depth on a single call.
+// This overrides the global limit for the specific Bind call.
 //
 // Takes depth (int) which specifies the maximum allowed path depth.
 //
@@ -83,8 +82,8 @@ func WithMaxPathDepth(depth int) Option {
 	}
 }
 
-// WithMaxPathLength returns an Option that sets the maximum path length for a
-// single call. This overrides the global limit for that Bind call.
+// WithMaxPathLength returns an Option that sets the maximum path length for a single
+// call. This overrides the global limit for that Bind call.
 //
 // Takes length (int) which specifies the maximum path length allowed.
 //
@@ -95,8 +94,8 @@ func WithMaxPathLength(length int) Option {
 	}
 }
 
-// WithMaxFieldCount returns an Option that sets a limit for how many fields
-// are allowed in a single Bind call. This overrides the global limit.
+// WithMaxFieldCount returns an Option that sets a limit for how many fields are allowed
+// in a single Bind call. This overrides the global limit.
 //
 // Takes count (int) which specifies the maximum number of fields allowed.
 //
@@ -107,8 +106,8 @@ func WithMaxFieldCount(count int) Option {
 	}
 }
 
-// WithMaxValueLength returns an Option that sets the maximum value length for
-// a single call. This overrides the global limit for this specific Bind call.
+// WithMaxValueLength returns an Option that sets the maximum value length for a single
+// call. This overrides the global limit for this specific Bind call.
 //
 // Takes length (int) which specifies the maximum allowed length for a value.
 //

@@ -23,9 +23,8 @@ type CompletionResponse struct {
 	// Usage holds token counts for the request; nil when not available.
 	Usage *Usage
 
-	// FallbackInfo contains details about fallback execution if fallback was
-	// used. This is nil if the request did not use fallback or succeeded with
-	// the primary provider.
+	// FallbackInfo contains details about fallback execution if fallback was used. This is
+	// nil if the request did not use fallback or succeeded with the primary provider.
 	FallbackInfo *FallbackResult
 
 	// ID is the unique identifier for this completion.
@@ -34,13 +33,13 @@ type CompletionResponse struct {
 	// Model is the name of the model that produced this completion.
 	Model string
 
-	// Choices holds the generated completions. Most requests return one choice,
-	// but the n parameter can request more.
+	// Choices holds the generated completions. Most requests return one choice, but the n
+	// parameter can request more.
 	Choices []Choice
 
-	// Sources holds vector search results used for RAG context injection.
-	// This is nil when the request did not use RAG, and empty when RAG was
-	// configured but no matching documents were found.
+	// Sources holds vector search results used for RAG context injection. This is nil when
+	// the request did not use RAG, and empty when RAG was configured but no matching
+	// documents were found.
 	Sources []VectorSearchResult
 
 	// Created is the Unix timestamp in seconds when the completion was made.
@@ -52,8 +51,8 @@ type Choice struct {
 	// FinishReason indicates why the model stopped generating tokens.
 	FinishReason FinishReason
 
-	// Message holds the generated response content. It contains the text output
-	// and any tool calls the model has requested.
+	// Message holds the generated response content. It contains the text output and any tool
+	// calls the model has requested.
 	Message Message
 
 	// Index is the position of this choice in the response, starting from 0.
@@ -64,12 +63,12 @@ type Choice struct {
 type FinishReason string
 
 const (
-	// FinishReasonStop indicates the model reached a natural stop point or
-	// a provided stop sequence.
+	// FinishReasonStop indicates the model reached a natural stop point or a provided stop
+	// sequence.
 	FinishReasonStop FinishReason = "stop"
 
-	// FinishReasonLength means the model stopped because it reached the maximum
-	// number of tokens allowed.
+	// FinishReasonLength means the model stopped because it reached the maximum number of
+	// tokens allowed.
 	FinishReasonLength FinishReason = "length"
 
 	// FinishReasonToolCalls means the model wants to call one or more tools.
@@ -81,8 +80,8 @@ const (
 
 // Usage holds token usage figures for a completion request.
 type Usage struct {
-	// EstimatedCost holds the cost worked out for this request.
-	// The service layer fills this in using the pricing table.
+	// EstimatedCost holds the cost worked out for this request. The service layer fills this
+	// in using the pricing table.
 	EstimatedCost *CostEstimate
 
 	// PromptTokens is the number of tokens in the prompt input.
@@ -94,14 +93,14 @@ type Usage struct {
 	// TotalTokens is the total number of tokens used (prompt plus completion).
 	TotalTokens int
 
-	// CachedTokens is the number of prompt tokens served from the provider's
-	// prompt cache. These are billed at a lower rate when the model supports it.
+	// CachedTokens is the number of prompt tokens served from the provider's prompt cache.
+	// These are billed at a lower rate when the model supports it.
 	CachedTokens int
 }
 
-// FirstChoice returns the first choice from the response, or an empty Choice
-// if no choices are present. This is a convenience method since most requests
-// return exactly one choice.
+// FirstChoice returns the first choice from the response, or an empty Choice if no
+// choices are present. This is a convenience method since most requests return exactly
+// one choice.
 //
 // Returns Choice which is the first choice, or an empty Choice if none exist.
 func (r *CompletionResponse) FirstChoice() Choice {
@@ -111,11 +110,11 @@ func (r *CompletionResponse) FirstChoice() Choice {
 	return r.Choices[0]
 }
 
-// Content returns the text content from the first choice. This is a convenience
-// method for the common case of extracting the assistant's response.
+// Content returns the text content from the first choice. This is a convenience method
+// for the common case of extracting the assistant's response.
 //
-// Returns string which is the content of the first choice's message, or empty
-// string if no choices exist.
+// Returns string which is the content of the first choice's message, or empty string if
+// no choices exist.
 func (r *CompletionResponse) Content() string {
 	if len(r.Choices) == 0 {
 		return ""
@@ -133,8 +132,8 @@ func (r *CompletionResponse) HasToolCalls() bool {
 	return len(r.Choices[0].Message.ToolCalls) > 0
 }
 
-// ToolCalls returns the tool calls from the first choice. This is a convenience
-// method for extracting tool calls from the response.
+// ToolCalls returns the tool calls from the first choice. This is a convenience method
+// for extracting tool calls from the response.
 //
 // Returns []ToolCall which contains the tool calls, or nil if none exist.
 func (r *CompletionResponse) ToolCalls() []ToolCall {

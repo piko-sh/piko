@@ -51,34 +51,31 @@ const (
 	fbFilePermission = 0o600
 )
 
-// FlatBufferEmitter writes translation data to a FlatBuffer binary file.
-// All file operations are sandboxed to prevent path traversal attacks.
+// FlatBufferEmitter writes translation data to a FlatBuffer binary file. All file
+// operations are sandboxed to prevent path traversal attacks.
 type FlatBufferEmitter struct {
 	// sandbox handles safe file operations for writing output files.
 	sandbox safedisk.Sandbox
 }
 
-// NewFlatBufferEmitter creates a new FlatBuffer emitter that works within the
-// given sandbox.
+// NewFlatBufferEmitter creates a new FlatBuffer emitter that works within the given
+// sandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides a safe place for file
-// operations.
+// Takes sandbox (safedisk.Sandbox) which provides a safe place for file operations.
 //
 // Returns *FlatBufferEmitter which is set up to emit within the sandbox.
 func NewFlatBufferEmitter(sandbox safedisk.Sandbox) *FlatBufferEmitter {
 	return &FlatBufferEmitter{sandbox: sandbox}
 }
 
-// Emit serialises the translation store to a FlatBuffer file.
-// The outputPath should be relative to the sandbox root.
+// Emit serialises the translation store to a FlatBuffer file. The outputPath should be
+// relative to the sandbox root.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes store (*i18n_domain.Store) which contains the translations to
-// serialise.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes store (*i18n_domain.Store) which contains the translations to serialise.
 // Takes defaultLocale (string) which specifies the fallback locale.
-// Takes outputPath (string) which is the destination path relative to the
-// sandbox root.
+// Takes outputPath (string) which is the destination path relative to the sandbox root.
 //
 // Returns error when directory creation, file writing, or atomic rename fails.
 func (e *FlatBufferEmitter) Emit(ctx context.Context, store *i18n_domain.Store, defaultLocale, outputPath string) error {
@@ -116,10 +113,10 @@ func (e *FlatBufferEmitter) Emit(ctx context.Context, store *i18n_domain.Store, 
 
 // EmitFromTranslations serialises raw translations to a FlatBuffer file.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes translations (i18n_domain.Translations) which contains the translation
-// entries keyed by locale.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes translations (i18n_domain.Translations) which contains the translation entries
+// keyed by locale.
 // Takes defaultLocale (string) which specifies the fallback locale.
 // Takes outputPath (string) which is the file path for the output.
 //
@@ -181,8 +178,8 @@ func packLocales(b *flatbuffers.Builder, store *i18n_domain.Store) flatbuffers.U
 // Takes store (*i18n_domain.Store) which contains all translation entries.
 // Takes locale (string) which identifies the locale to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the completed locale
-// data within the builder.
+// Returns flatbuffers.UOffsetT which is the offset of the completed locale data within
+// the builder.
 func packLocaleData(b *flatbuffers.Builder, store *i18n_domain.Store, locale string) flatbuffers.UOffsetT {
 	localeOff := b.CreateString(locale)
 	entriesOff := packEntriesForLocale(b, store, locale)
@@ -193,15 +190,15 @@ func packLocaleData(b *flatbuffers.Builder, store *i18n_domain.Store, locale str
 	return i18n_fb.LocaleDataFBEnd(b)
 }
 
-// packEntriesForLocale packs all translation entries for a locale into a
-// FlatBuffer vector.
+// packEntriesForLocale packs all translation entries for a locale into a FlatBuffer
+// vector.
 //
 // Takes b (*flatbuffers.Builder) which builds the FlatBuffer output.
 // Takes store (*i18n_domain.Store) which provides the translation entries.
 // Takes locale (string) which specifies which locale to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0
-// if the locale has no entries.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 if the
+// locale has no entries.
 func packEntriesForLocale(b *flatbuffers.Builder, store *i18n_domain.Store, locale string) flatbuffers.UOffsetT {
 	entries := store.GetEntriesForLocale(locale)
 	if len(entries) == 0 {
@@ -245,18 +242,18 @@ func packTranslationEntry(b *flatbuffers.Builder, key string, entry *i18n_domain
 // packTemplateParts serialises template parts into a FlatBuffers vector.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write parts into.
-// Takes parts ([]i18n_domain.TemplatePart) which contains the template parts
-// to serialise.
+// Takes parts ([]i18n_domain.TemplatePart) which contains the template parts to
+// serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector, or
-// zero if parts is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or zero if
+// parts is empty.
 func packTemplateParts(b *flatbuffers.Builder, parts []i18n_domain.TemplatePart) flatbuffers.UOffsetT {
 	if len(parts) == 0 {
 		return 0
 	}
 
 	offsets := make([]flatbuffers.UOffsetT, len(parts))
-	for i := len(parts) - 1; i >= 0; i-- {
+	for i := range slices.Backward(parts) {
 		part := &parts[i]
 
 		var literalOff, expressionSourceOffset, linkedKeyOff flatbuffers.UOffsetT
@@ -307,15 +304,15 @@ func partKindToSchema(kind i18n_domain.PartKind) i18n_fb.PartKind {
 // Takes b (*flatbuffers.Builder) which builds the FlatBuffer output.
 // Takes s ([]string) which contains the strings to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector,
-// or 0 if the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or 0 if the
+// slice is empty.
 func packStringSlice(b *flatbuffers.Builder, s []string) flatbuffers.UOffsetT {
 	if len(s) == 0 {
 		return 0
 	}
 	offsets := make([]flatbuffers.UOffsetT, len(s))
-	for i := len(s) - 1; i >= 0; i-- {
-		offsets[i] = b.CreateString(s[i])
+	for i, str := range slices.Backward(s) {
+		offsets[i] = b.CreateString(str)
 	}
 	return createVector(b, offsets)
 }
@@ -323,14 +320,14 @@ func packStringSlice(b *flatbuffers.Builder, s []string) flatbuffers.UOffsetT {
 // createVector builds a FlatBuffers vector from a slice of offsets.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
-// Takes offsets ([]flatbuffers.UOffsetT) which contains the element offsets to
-// include in the vector.
+// Takes offsets ([]flatbuffers.UOffsetT) which contains the element offsets to include in
+// the vector.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the finished vector.
 func createVector(b *flatbuffers.Builder, offsets []flatbuffers.UOffsetT) flatbuffers.UOffsetT {
 	b.StartVector(uOffsetTSize, len(offsets), uOffsetTSize)
-	for i := len(offsets) - 1; i >= 0; i-- {
-		b.PrependUOffsetT(offsets[i])
+	for _, offset := range slices.Backward(offsets) {
+		b.PrependUOffsetT(offset)
 	}
 	return b.EndVector(len(offsets))
 }

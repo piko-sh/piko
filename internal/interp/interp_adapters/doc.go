@@ -16,10 +16,9 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package interp_adapters provides adapter implementations for
-// the bytecode interpreter's driven ports.
+// Package interp_adapters provides adapter implementations for the bytecode interpreter's
+// driven ports.
 //
-// The primary adapter serialises and persists compiled bytecode
-// file sets to disk using FlatBuffers. All filesystem access is
-// sandboxed to the bytecode cache directory.
+// The primary adapter serialises and persists compiled bytecode file sets to disk using
+// FlatBuffers. All filesystem access is sandboxed to the bytecode cache directory.
 package interp_adapters

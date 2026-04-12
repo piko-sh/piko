@@ -24,12 +24,12 @@ import (
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 )
 
-// OtelServiceFactories returns the monitoring service factories that create
-// real OTEL SDK span processors and metrics collectors. Pass the result to
+// OtelServiceFactories returns the monitoring service factories that create real OTEL SDK
+// span processors and metrics collectors. Pass the result to
 // piko.WithMonitoringOtelFactories() to enable SDK-backed monitoring.
 //
-// Returns monitoring_domain.ServiceFactories which contains factories for
-// creating SpanProcessor and MetricsCollector instances.
+// Returns monitoring_domain.ServiceFactories which contains factories for creating
+// SpanProcessor and MetricsCollector instances.
 func OtelServiceFactories() monitoring_domain.ServiceFactories {
 	return monitoring_domain.ServiceFactories{
 		SpanProcessorFactory: func(store *monitoring_domain.TelemetryStore) monitoring_domain.SpanProcessor {

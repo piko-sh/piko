@@ -25,8 +25,8 @@ import (
 
 // GroupTabBar renders the top tab strip showing the four group tabs.
 //
-// Invisible groups are filtered out, so users running without a watchdog
-// provider see three tabs instead of four.
+// Invisible groups are filtered out, so users running without a watchdog provider see
+// three tabs instead of four.
 type GroupTabBar struct {
 	// theme drives bracket and hotkey colouring; never nil.
 	theme *Theme
@@ -48,13 +48,12 @@ func (b *GroupTabBar) SetTheme(theme *Theme) { b.theme = theme }
 
 // Render produces the tab bar row at the supplied width.
 //
-// Groups whose Visible() reports false are filtered before rendering. The
-// active group is wrapped in brackets; inactive groups are dimmed.
+// Groups whose Visible() reports false are filtered before rendering. The active group is
+// wrapped in brackets; inactive groups are dimmed.
 //
 // Takes groups ([]PanelGroup) which is the ordered group list.
 // Takes activeID (GroupID) which identifies the current group.
-// Takes width (int) which is the terminal width; the rendered row is
-// padded to width.
+// Takes width (int) which is the terminal width; the rendered row is padded to width.
 //
 // Returns string with one row of styled tab text.
 func (b *GroupTabBar) Render(groups []PanelGroup, activeID GroupID, width int) string {

@@ -44,11 +44,11 @@ import (
 //
 // Takes relPath (string) which specifies the path of the component to compile.
 //
-// Returns error when prerequisites are invalid, dependency collection fails,
-// no interpreter is available, or component re-evaluation fails.
+// Returns error when prerequisites are invalid, dependency collection fails, no
+// interpreter is available, or component re-evaluation fails.
 //
-// Not safe for concurrent use. Acquires stateLock internally and releases it
-// before returning.
+// Not safe for concurrent use. Acquires stateLock internally and releases it before
+// returning.
 func (o *InterpretedBuildOrchestrator) executeJITCompilation(
 	ctx context.Context,
 	relPath string,
@@ -117,8 +117,8 @@ func (o *InterpretedBuildOrchestrator) isComponentDirty(relPath string) bool {
 	return isDirty
 }
 
-// validateJITPrerequisites checks that the VFS adapter and manifest are
-// available. Must be called with stateLock held.
+// validateJITPrerequisites checks that the VFS adapter and manifest are available. Must
+// be called with stateLock held.
 //
 // Takes ctx (context.Context) which carries the logger.
 //
@@ -136,14 +136,14 @@ func (o *InterpretedBuildOrchestrator) validateJITPrerequisites(ctx context.Cont
 	return nil
 }
 
-// collectAndSortDependencies collects dependencies and sorts them
-// topologically. Must be called with stateLock held.
+// collectAndSortDependencies collects dependencies and sorts them topologically. Must be
+// called with stateLock held.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes relPath (string) which specifies the path to the target component.
 //
-// Returns []*generator_dto.GeneratedArtefact which contains the sorted
-// dependencies ready for compilation.
+// Returns []*generator_dto.GeneratedArtefact which contains the sorted dependencies ready
+// for compilation.
 // Returns error when dependency collection or topological sorting fails.
 func (o *InterpretedBuildOrchestrator) collectAndSortDependencies(
 	ctx context.Context,
@@ -167,13 +167,13 @@ func (o *InterpretedBuildOrchestrator) collectAndSortDependencies(
 	return sortedArtefacts, nil
 }
 
-// getJITInterpreter gets an interpreter from the pool and sets it up for JIT
-// compilation. Must be called with stateLock held.
+// getJITInterpreter gets an interpreter from the pool and sets it up for JIT compilation.
+// Must be called with stateLock held.
 //
 // Takes ctx (context.Context) which carries the logger.
 //
-// Returns templater_domain.InterpreterPort which is set up with the VFS and
-// build context.
+// Returns templater_domain.InterpreterPort which is set up with the VFS and build
+// context.
 // Returns error when the interpreter pool is empty or not available.
 func (o *InterpretedBuildOrchestrator) getJITInterpreter(ctx context.Context) (templater_domain.InterpreterPort, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -192,11 +192,10 @@ func (o *InterpretedBuildOrchestrator) getJITInterpreter(ctx context.Context) (t
 
 // reevaluateComponents re-evaluates all sorted artefacts in order.
 //
-// Must be called with stateLock held. Releases and reacquires lock during
-// interpretation.
+// Must be called with stateLock held. Releases and reacquires lock during interpretation.
 //
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which contains
-// the artefacts to re-evaluate in dependency order.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which contains the artefacts
+// to re-evaluate in dependency order.
 // Takes interpreter (templater_domain.InterpreterPort) which handles template
 // interpretation.
 //
@@ -219,18 +218,17 @@ func (o *InterpretedBuildOrchestrator) reevaluateComponents(
 	return nil
 }
 
-// reevaluateComponentsBatch re-evaluates all sorted artefacts using
-// batch compilation.
+// reevaluateComponentsBatch re-evaluates all sorted artefacts using batch compilation.
 //
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which
-// contains the artefacts to compile in dependency order.
-// Takes batchInterp (templater_domain.BatchInterpreterPort) which
-// handles batch compilation and execution.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which contains the artefacts
+// to compile in dependency order.
+// Takes batchInterp (templater_domain.BatchInterpreterPort) which handles batch
+// compilation and execution.
 //
 // Returns error when batch compilation or linking fails.
 //
-// Not safe for concurrent use. Must be called with stateLock held.
-// Releases and reacquires the lock during compilation.
+// Not safe for concurrent use. Must be called with stateLock held. Releases and
+// reacquires the lock during compilation.
 func (o *InterpretedBuildOrchestrator) reevaluateComponentsBatch(
 	ctx context.Context,
 	sortedArtefacts []*generator_dto.GeneratedArtefact,
@@ -283,12 +281,12 @@ func (o *InterpretedBuildOrchestrator) reevaluateComponentsBatch(
 	return nil
 }
 
-// linkBatchArtefacts links functions from the registry for each
-// artefact after batch compilation.
+// linkBatchArtefacts links functions from the registry for each artefact after batch
+// compilation.
 //
 // Takes l (logger_domain.Logger) which is the logger instance.
-// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which
-// contains the artefacts to link.
+// Takes sortedArtefacts ([]*generator_dto.GeneratedArtefact) which contains the artefacts
+// to link.
 //
 // Returns error when function linking fails for any artefact.
 func (o *InterpretedBuildOrchestrator) linkBatchArtefacts(
@@ -327,15 +325,15 @@ func (o *InterpretedBuildOrchestrator) linkBatchArtefacts(
 
 // reevaluateSingleComponent re-evaluates a single artefact.
 //
-// Takes artefact (*generator_dto.GeneratedArtefact) which specifies the
-// artefact to re-evaluate.
-// Takes interpreter (templater_domain.InterpreterPort) which provides the
-// interpretation capability.
+// Takes artefact (*generator_dto.GeneratedArtefact) which specifies the artefact to
+// re-evaluate.
+// Takes interpreter (templater_domain.InterpreterPort) which provides the interpretation
+// capability.
 //
 // Returns error when interpretation fails.
 //
-// Not safe for concurrent use. Must be called with stateLock held.
-// Releases and reacquires the lock during interpretation.
+// Not safe for concurrent use. Must be called with stateLock held. Releases and
+// reacquires the lock during interpretation.
 func (o *InterpretedBuildOrchestrator) reevaluateSingleComponent(
 	ctx context.Context,
 	artefact *generator_dto.GeneratedArtefact,
@@ -382,16 +380,14 @@ func (o *InterpretedBuildOrchestrator) reevaluateSingleComponent(
 	return nil
 }
 
-// getComponentCode returns the code to use for compilation and whether it is
-// dirty. Must be called with stateLock held.
+// getComponentCode returns the code to use for compilation and whether it is dirty. Must
+// be called with stateLock held.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes artefact (*generator_dto.GeneratedArtefact) which provides the clean
-// source content.
-// Takes componentRelativePath (string) which identifies the component's
-// relative path.
-// Takes component (*annotator_dto.VirtualComponent) which provides package
-// metadata.
+// Takes artefact (*generator_dto.GeneratedArtefact) which provides the clean source
+// content.
+// Takes componentRelativePath (string) which identifies the component's relative path.
+// Takes component (*annotator_dto.VirtualComponent) which provides package metadata.
 //
 // Returns string which is the source code to compile.
 // Returns bool which is true when the code is dirty, false when clean.
@@ -415,36 +411,29 @@ func (o *InterpretedBuildOrchestrator) getComponentCode(
 	return string(artefact.Content), false
 }
 
-// interpretAndLink evaluates Go code in the interpreter and retrieves the
-// registered function pointers from the global registry.
+// interpretAndLink evaluates Go code in the interpreter and retrieves the registered
+// function pointers from the global registry.
 //
-// The "Two Worlds Problem" is solved by the symbol provider, which exposes
-// the real templater_domain.RegisterASTFunc (and other registration functions)
-// to the interpreter. When the interpreted code's init function calls
-// RegisterASTFunc, it writes to the actual global registry in the main
-// program's memory space.
+// The "Two Worlds Problem" is solved by the symbol provider, which exposes the real
+// templater_domain.RegisterASTFunc (and other registration functions) to the interpreter.
+// When the interpreted code's init function calls RegisterASTFunc, it writes to the
+// actual global registry in the main program's memory space.
 //
 // The method:
-//  1. Compiles the code using interpreter.Eval, which runs init and registers
-//     functions.
-//  2. Retrieves function pointers from the global registry using
-//     Get*Func(packagePath).
+//  1. Compiles the code using interpreter.Eval, which runs init and registers functions.
+//  2. Retrieves function pointers from the global registry using Get*Func(packagePath).
 //  3. Injects them into the PageEntry via setters.
 //
-// Takes interpreter (templater_domain.InterpreterPort) which executes the Go
-// code.
+// Takes interpreter (templater_domain.InterpreterPort) which executes the Go code.
 // Takes code (string) which contains the generated Go source to evaluate.
 // Takes manifest (*generator_dto.Manifest) which provides page metadata.
-// Takes component (*annotator_dto.VirtualComponent) which describes the
-// component.
+// Takes component (*annotator_dto.VirtualComponent) which describes the component.
 //
-// Returns map[string]*templater_adapters.PageEntry which is keyed by
-// manifest route, each entry carrying the linked render / build
-// functions for one virtual page instance.
+// Returns map[string]*templater_adapters.PageEntry which is keyed by manifest route, each
+// entry carrying the linked render / build functions for one virtual page instance.
 // Returns error when code evaluation or function linking fails.
 //
-// Not safe for concurrent use. Uses a semaphore and mutex to control
-// interpreter access.
+// Not safe for concurrent use. Uses a semaphore and mutex to control interpreter access.
 func (o *InterpretedBuildOrchestrator) interpretAndLink(
 	ctx context.Context,
 	interpreter templater_domain.InterpreterPort,
@@ -493,13 +482,10 @@ func (o *InterpretedBuildOrchestrator) interpretAndLink(
 
 // evaluateCodeInInterpreter evaluates the Go code in the interpreter.
 //
-// Takes interpreter (templater_domain.InterpreterPort) which executes the Go
-// code.
+// Takes interpreter (templater_domain.InterpreterPort) which executes the Go code.
 // Takes code (string) which contains the Go source code to evaluate.
-// Takes component (*annotator_dto.VirtualComponent) which provides package
-// metadata.
-// Takes shortPackageName (string) which specifies the alias for package
-// registration.
+// Takes component (*annotator_dto.VirtualComponent) which provides package metadata.
+// Takes shortPackageName (string) which specifies the alias for package registration.
 //
 // Returns error when evaluation fails.
 func (o *InterpretedBuildOrchestrator) evaluateCodeInInterpreter(
@@ -537,8 +523,8 @@ func (o *InterpretedBuildOrchestrator) evaluateCodeInInterpreter(
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes code (string) which is the generated Go code to write.
-// Takes component (*annotator_dto.VirtualComponent) which identifies the
-// component for naming the debug file.
+// Takes component (*annotator_dto.VirtualComponent) which identifies the component for
+// naming the debug file.
 func (o *InterpretedBuildOrchestrator) writeDebugFile(
 	ctx context.Context,
 	code string,
@@ -581,16 +567,14 @@ func (*InterpretedBuildOrchestrator) logCodeCharacteristics(ctx context.Context,
 		logger_domain.Bool("has_register", hasRegister))
 }
 
-// createPageEntry creates a PageEntry from the manifest or as a private
-// partial.
+// createPageEntry creates a PageEntry from the manifest or as a private partial.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes manifest (*generator_dto.Manifest) which contains page metadata.
-// Takes component (*annotator_dto.VirtualComponent) which provides the source
-// info.
+// Takes component (*annotator_dto.VirtualComponent) which provides the source info.
 //
-// Returns *templater_adapters.PageEntry which is either from the manifest or a
-// fallback for private partials.
+// Returns *templater_adapters.PageEntry which is either from the manifest or a fallback
+// for private partials.
 func (o *InterpretedBuildOrchestrator) createPageEntry(
 	ctx context.Context,
 	manifest *generator_dto.Manifest,
@@ -624,14 +608,13 @@ func (o *InterpretedBuildOrchestrator) createPageEntry(
 	return entry
 }
 
-// buildJSArtefactToPartialNameMap iterates the manifest's partials and builds
-// the mapping from JS artefact IDs to friendly partial names.
+// buildJSArtefactToPartialNameMap iterates the manifest's partials and builds the mapping
+// from JS artefact IDs to friendly partial names.
 //
-// This mirrors the logic in processPartials (driven_manifest_store.go) for
-// the compiled path.
+// This mirrors the logic in processPartials (driven_manifest_store.go) for the compiled
+// path.
 //
-// Takes manifest (*generator_dto.Manifest) which provides the partials to
-// iterate.
+// Takes manifest (*generator_dto.Manifest) which provides the partials to iterate.
 //
 // Returns map[string]string which maps JS artefact IDs to partial names.
 func buildJSArtefactToPartialNameMap(manifest *generator_dto.Manifest) map[string]string {
@@ -644,14 +627,14 @@ func buildJSArtefactToPartialNameMap(manifest *generator_dto.Manifest) map[strin
 	return m
 }
 
-// linkFunctionsFromRegistry gets function pointers from the global registry
-// and attaches them to the page entry.
+// linkFunctionsFromRegistry gets function pointers from the global registry and attaches
+// them to the page entry.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes entry (*templater_adapters.PageEntry) which receives the linked
-// function pointers.
-// Takes component (*annotator_dto.VirtualComponent) which provides the package
-// path used to look up functions in the registry.
+// Takes entry (*templater_adapters.PageEntry) which receives the linked function
+// pointers.
+// Takes component (*annotator_dto.VirtualComponent) which provides the package path used
+// to look up functions in the registry.
 // Takes shortPackageName (string) which identifies the package in error messages.
 //
 // Returns error when the BuildAST function is not found in the global registry.
@@ -715,30 +698,25 @@ func extractPackageName(code string) (string, error) {
 	return "", errors.New("invalid generated code: missing package declaration")
 }
 
-// populateProgCacheForComponent writes one or more PageEntry records
-// into target for a component that has just been interpreted.
+// populateProgCacheForComponent writes one or more PageEntry records into target for a
+// component that has just been interpreted.
 //
-// For collection-backed components the .pk file itself has no route;
-// the manifest holds a separate entry per virtual instance (for
-// example one per markdown post), each with its own concrete route.
-// Without this expansion the dev-i runner only registers a single
-// entry keyed by the .pk file's relative path, loses the per-instance
-// routes, and leaves /blog/post-slug unreachable in interpreted
-// mode.
+// For collection-backed components the .pk file itself has no route; the manifest holds a
+// separate entry per virtual instance (for example one per markdown post), each with its
+// own concrete route. Without this expansion the dev-i runner only registers a single
+// entry keyed by the .pk file's relative path, loses the per-instance routes, and leaves
+// /blog/post-slug unreachable in interpreted mode.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes manifest (*generator_dto.Manifest) which holds the per-instance
-// manifest entries.
-// Takes component (*annotator_dto.VirtualComponent) whose instances
-// drive the expansion.
-// Takes componentRelativePath (string) which is the .pk file's path
-// relative to the project root, used when the component has no
-// instances.
-// Takes linkFn which performs the function-pointer wiring. Called
-// once per emitted entry so that instance-specific caches (like the
-// registered AST function) end up attached to each entry.
-// Takes target (map[string]*templater_adapters.PageEntry) which
-// receives the produced entries.
+// Takes manifest (*generator_dto.Manifest) which holds the per-instance manifest entries.
+// Takes component (*annotator_dto.VirtualComponent) whose instances drive the expansion.
+// Takes componentRelativePath (string) which is the .pk file's path relative to the
+// project root, used when the component has no instances.
+// Takes linkFn which performs the function-pointer wiring. Called once per emitted entry
+// so that instance-specific caches (like the registered AST function) end up attached to
+// each entry.
+// Takes target (map[string]*templater_adapters.PageEntry) which receives the produced
+// entries.
 //
 // Returns error when any instance's link step fails.
 func (o *InterpretedBuildOrchestrator) populateProgCacheForComponent(
@@ -774,30 +752,28 @@ func (o *InterpretedBuildOrchestrator) populateProgCacheForComponent(
 	return nil
 }
 
-// isCollectionBacked reports whether the component declares a
-// p-collection consumer. These pages register a single dynamic route
-// instead of per-item routes; the runtime resolves items by slug.
+// isCollectionBacked reports whether the component declares a p-collection consumer.
+// These pages register a single dynamic route instead of per-item routes; the runtime
+// resolves items by slug.
 //
-// Takes component (*annotator_dto.VirtualComponent) which is the
-// component descriptor to inspect.
+// Takes component (*annotator_dto.VirtualComponent) which is the component descriptor to
+// inspect.
 //
 // Returns bool which is true when the component consumes a p-collection.
 func isCollectionBacked(component *annotator_dto.VirtualComponent) bool {
 	return component != nil && component.Source != nil && component.Source.HasCollection
 }
 
-// createInstancePageEntry builds a per-instance PageEntry using the
-// manifest's pre-computed entry for the instance's ManifestKey, which
-// carries the concrete RoutePatterns. Falls back to a minimal entry
-// when the manifest lookup misses so a broken early-JIT state still
-// produces a usable progCache.
+// createInstancePageEntry builds a per-instance PageEntry using the manifest's
+// pre-computed entry for the instance's ManifestKey, which carries the concrete
+// RoutePatterns. Falls back to a minimal entry when the manifest lookup misses so a
+// broken early-JIT state still produces a usable progCache.
 //
-// Takes manifest (*generator_dto.Manifest) which supplies the per-
-// instance page data.
-// Takes component (*annotator_dto.VirtualComponent) the instance
-// belongs to; provides the fallback PackagePath.
-// Takes instance (annotator_dto.VirtualPageInstance) providing the
-// manifest key used for lookup.
+// Takes manifest (*generator_dto.Manifest) which supplies the per- instance page data.
+// Takes component (*annotator_dto.VirtualComponent) the instance belongs to; provides the
+// fallback PackagePath.
+// Takes instance (annotator_dto.VirtualPageInstance) providing the manifest key used for
+// lookup.
 //
 // Returns the prepared entry before function-pointer linking.
 func (o *InterpretedBuildOrchestrator) createInstancePageEntry(
@@ -821,17 +797,17 @@ func (o *InterpretedBuildOrchestrator) createInstancePageEntry(
 	return entry
 }
 
-// createPageEntryFromManifest builds a PageEntry from manifest data by looking
-// up the source path in the pages, partials, or emails maps.
+// createPageEntryFromManifest builds a PageEntry from manifest data by looking up the
+// source path in the pages, partials, or emails maps.
 //
 // data, others use zero values.
 //
-// Takes manifest (*generator_dto.Manifest) which holds the page, partial,
-// email, and error page data to search.
+// Takes manifest (*generator_dto.Manifest) which holds the page, partial, email, and
+// error page data to search.
 // Takes sourcePath (string) which identifies the entry to find.
 //
-// Returns *templater_adapters.PageEntry which wraps the found manifest data,
-// or nil when the source path is not found in any map.
+// Returns *templater_adapters.PageEntry which wraps the found manifest data, or nil when
+// the source path is not found in any map.
 //
 //nolint:exhaustruct // partial init
 func createPageEntryFromManifest(manifest *generator_dto.Manifest, sourcePath string) *templater_adapters.PageEntry {
@@ -883,9 +859,9 @@ func createPageEntryFromManifest(manifest *generator_dto.Manifest, sourcePath st
 
 // getGOROOT finds the Go root directory using a fallback approach.
 //
-// It first checks the GOROOT environment variable. If that is not set,
-// it runs `go env GOROOT` to get the value. If Go is not in PATH, it
-// falls back to the runtime.GOROOT function.
+// It first checks the GOROOT environment variable. If that is not set, it runs `go env
+// GOROOT` to get the value. If Go is not in PATH, it falls back to the runtime.GOROOT
+// function.
 //
 // Returns string which is the path to the Go root directory.
 func getGOROOT() string {

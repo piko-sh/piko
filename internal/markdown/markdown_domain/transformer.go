@@ -30,8 +30,8 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_ast"
 )
 
-// nodeTransformer defines the interface for converting piko markdown AST nodes
-// into Piko template AST nodes.
+// nodeTransformer defines the interface for converting piko markdown AST nodes into Piko
+// template AST nodes.
 type nodeTransformer interface {
 	// TransformNode converts an AST node into a template node.
 	//
@@ -42,15 +42,14 @@ type nodeTransformer interface {
 	TransformNode(ctx context.Context, node markdown_ast.Node) *ast_domain.TemplateNode
 }
 
-// transformer converts piko markdown AST nodes into Piko template AST nodes.
-// It implements nodeTransformer and provides the pure conversion
-// logic, designed to be called by the stateful markdownWalker.
+// transformer converts piko markdown AST nodes into Piko template AST nodes. It
+// implements nodeTransformer and provides the pure conversion logic, designed to be
+// called by the stateful markdownWalker.
 type transformer struct {
 	// locationMapper converts byte offsets to line and column positions.
 	locationMapper positionMapper
 
-	// highlighter provides syntax highlighting for code blocks; nil disables
-	// highlighting.
+	// highlighter provides syntax highlighting for code blocks; nil disables highlighting.
 	highlighter Highlighter
 
 	// diagnostics stores parsing errors and warnings found during transformation.
@@ -59,22 +58,23 @@ type transformer struct {
 	// sourcePath is the file path used for error reporting.
 	sourcePath string
 
-	// source holds the original Markdown input bytes used for location mapping
-	// and shortcode parsing.
+	// source holds the original Markdown input bytes used for location mapping and shortcode
+	// parsing.
 	source []byte
 }
 
-var _ nodeTransformer = (*transformer)(nil)
+var (
+	_ nodeTransformer = (*transformer)(nil)
+)
 
-// TransformNode converts a piko markdown AST node to a template node.
-// It uses helper functions based on the node type and transforms any
-// children.
+// TransformNode converts a piko markdown AST node to a template node. It uses helper
+// functions based on the node type and transforms any children.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes node (markdown_ast.Node) which is the piko markdown AST node to convert.
 //
-// Returns *ast_domain.TemplateNode which is the transformed node with all
-// its children, or nil if the node type is not supported.
+// Returns *ast_domain.TemplateNode which is the transformed node with all its children,
+// or nil if the node type is not supported.
 func (t *transformer) TransformNode(ctx context.Context, node markdown_ast.Node) *ast_domain.TemplateNode {
 	var pikoNode *ast_domain.TemplateNode
 	switch n := node.(type) {
@@ -106,16 +106,14 @@ func (t *transformer) TransformNode(ctx context.Context, node markdown_ast.Node)
 	return pikoNode
 }
 
-// transformChildren iterates over a piko markdown node's children and transforms
-// them into a slice of Piko template nodes.
+// transformChildren iterates over a piko markdown node's children and transforms them
+// into a slice of Piko template nodes.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
-// Takes parent (markdown_ast.Node) which is the node whose children to
-// transform.
+// Takes parent (markdown_ast.Node) which is the node whose children to transform.
 //
-// Returns []*ast_domain.TemplateNode which contains the transformed children,
-// with fragment nodes flattened so their children appear directly in the
-// result.
+// Returns []*ast_domain.TemplateNode which contains the transformed children, with
+// fragment nodes flattened so their children appear directly in the result.
 func (t *transformer) transformChildren(ctx context.Context, parent markdown_ast.Node) []*ast_domain.TemplateNode {
 	var children []*ast_domain.TemplateNode
 	for child := parent.FirstChild(); child != nil; child = child.NextSibling() {
@@ -130,13 +128,13 @@ func (t *transformer) transformChildren(ctx context.Context, parent markdown_ast
 	return children
 }
 
-// transformBlockNode converts a block-level AST node to a template node.
-// Handles paragraphs, lists, tables, headings, and blockquotes.
+// transformBlockNode converts a block-level AST node to a template node. Handles
+// paragraphs, lists, tables, headings, and blockquotes.
 //
 // Takes node (markdown_ast.Node) which is the AST node to convert.
 //
-// Returns *ast_domain.TemplateNode which is the converted template node,
-// or nil if the node type is not recognised.
+// Returns *ast_domain.TemplateNode which is the converted template node, or nil if the
+// node type is not recognised.
 func (t *transformer) transformBlockNode(node markdown_ast.Node) *ast_domain.TemplateNode {
 	switch n := node.(type) {
 	case *markdown_ast.Heading:
@@ -185,13 +183,12 @@ func (t *transformer) transformBlockNode(node markdown_ast.Node) *ast_domain.Tem
 	return nil
 }
 
-// transformInlineNode handles inline elements such as links, images, and
-// emphasis.
+// transformInlineNode handles inline elements such as links, images, and emphasis.
 //
 // Takes node (markdown_ast.Node) which is the inline AST node to transform.
 //
-// Returns *ast_domain.TemplateNode which is the transformed template node, or
-// nil if the node type is not known.
+// Returns *ast_domain.TemplateNode which is the transformed template node, or nil if the
+// node type is not known.
 func (t *transformer) transformInlineNode(node markdown_ast.Node) *ast_domain.TemplateNode {
 	switch n := node.(type) {
 	case *markdown_ast.Emphasis:
@@ -232,8 +229,8 @@ func (t *transformer) transformInlineNode(node markdown_ast.Node) *ast_domain.Te
 //
 // Takes n (*markdown_ast.Heading) which is the heading node to transform.
 //
-// Returns *ast_domain.TemplateNode which is the heading element with id and
-// title attributes set.
+// Returns *ast_domain.TemplateNode which is the heading element with id and title
+// attributes set.
 func (t *transformer) transformHeading(n *markdown_ast.Heading) *ast_domain.TemplateNode {
 	pikoNode := new(ast_domain.TemplateNode)
 	pikoNode.NodeType = ast_domain.NodeElement
@@ -270,8 +267,8 @@ func (t *transformer) transformHeading(n *markdown_ast.Heading) *ast_domain.Temp
 //
 // Takes n (*markdown_ast.List) which is the list node to convert.
 //
-// Returns *ast_domain.TemplateNode which is an HTML list element. The tag is
-// ul for unordered lists or ol for ordered lists.
+// Returns *ast_domain.TemplateNode which is an HTML list element. The tag is ul for
+// unordered lists or ol for ordered lists.
 func (t *transformer) transformList(n *markdown_ast.List) *ast_domain.TemplateNode {
 	pikoNode := new(ast_domain.TemplateNode)
 	pikoNode.NodeType = ast_domain.NodeElement
@@ -287,8 +284,8 @@ func (t *transformer) transformList(n *markdown_ast.List) *ast_domain.TemplateNo
 //
 // Takes n (*markdown_ast.TableCell) which is the table cell to transform.
 //
-// Returns *ast_domain.TemplateNode which is a "td" element, or "th" if the
-// cell is within a table header row.
+// Returns *ast_domain.TemplateNode which is a "td" element, or "th" if the cell is within
+// a table header row.
 func (t *transformer) transformTableCell(n *markdown_ast.TableCell) *ast_domain.TemplateNode {
 	pikoNode := new(ast_domain.TemplateNode)
 	pikoNode.NodeType = ast_domain.NodeElement
@@ -323,8 +320,8 @@ func (t *transformer) transformTextualNode(n markdown_ast.Node) *ast_domain.Temp
 //
 // Takes n (*markdown_ast.Emphasis) which is the emphasis node to transform.
 //
-// Returns *ast_domain.TemplateNode which is an "em" or "strong" element
-// based on the emphasis level.
+// Returns *ast_domain.TemplateNode which is an "em" or "strong" element based on the
+// emphasis level.
 func (t *transformer) transformEmphasis(n *markdown_ast.Emphasis) *ast_domain.TemplateNode {
 	pikoNode := new(ast_domain.TemplateNode)
 	pikoNode.NodeType = ast_domain.NodeElement
@@ -340,8 +337,8 @@ func (t *transformer) transformEmphasis(n *markdown_ast.Emphasis) *ast_domain.Te
 //
 // Takes n (*markdown_ast.Link) which is the Markdown link node to convert.
 //
-// Returns *ast_domain.TemplateNode which is the anchor element with href and
-// an optional title attribute.
+// Returns *ast_domain.TemplateNode which is the anchor element with href and an optional
+// title attribute.
 func (t *transformer) transformLink(n *markdown_ast.Link) *ast_domain.TemplateNode {
 	pikoNode := new(ast_domain.TemplateNode)
 	pikoNode.NodeType = ast_domain.NodeElement
@@ -370,8 +367,8 @@ func (t *transformer) transformLink(n *markdown_ast.Link) *ast_domain.TemplateNo
 //
 // Takes n (*markdown_ast.Image) which is the Markdown image node to convert.
 //
-// Returns *ast_domain.TemplateNode which is the img element with src, alt,
-// and title attributes set from the source node.
+// Returns *ast_domain.TemplateNode which is the img element with src, alt, and title
+// attributes set from the source node.
 func (t *transformer) transformImage(n *markdown_ast.Image) *ast_domain.TemplateNode {
 	pikoNode := new(ast_domain.TemplateNode)
 	pikoNode.NodeType = ast_domain.NodeElement
@@ -405,14 +402,13 @@ func (t *transformer) transformImage(n *markdown_ast.Image) *ast_domain.Template
 	return pikoNode
 }
 
-// transformTaskCheckBox converts a task checkbox node to a disabled HTML input
-// element.
+// transformTaskCheckBox converts a task checkbox node to a disabled HTML input element.
 //
 // Takes n (*markdown_ast.TaskCheckBox) which is the checkbox node to convert.
 //
-// Returns *ast_domain.TemplateNode which is an HTML input element with type
-// checkbox and disabled attribute. If the checkbox is marked as checked, the
-// checked attribute is also set.
+// Returns *ast_domain.TemplateNode which is an HTML input element with type checkbox and
+// disabled attribute. If the checkbox is marked as checked, the checked attribute is also
+// set.
 func (t *transformer) transformTaskCheckBox(n *markdown_ast.TaskCheckBox) *ast_domain.TemplateNode {
 	pikoNode := new(ast_domain.TemplateNode)
 	pikoNode.NodeType = ast_domain.NodeElement
@@ -471,8 +467,7 @@ func (t *transformer) transformHTMLBlock(n *markdown_ast.HTMLBlock) *ast_domain.
 // Takes ctx (context.Context) which carries the logger and trace spans.
 // Takes n (*markdown_ast.FencedCodeBlock) which is the AST node to convert.
 //
-// Returns *ast_domain.TemplateNode which is the resulting template node, or
-// nil on error.
+// Returns *ast_domain.TemplateNode which is the resulting template node, or nil on error.
 func (t *transformer) transformFencedCodeBlock(ctx context.Context, n *markdown_ast.FencedCodeBlock) *ast_domain.TemplateNode {
 	if n.Info != "" {
 		if pikoShortcodeRegex.MatchString(n.Info) {
@@ -496,13 +491,12 @@ func (t *transformer) transformFencedCodeBlock(ctx context.Context, n *markdown_
 	return t.renderPlainCodeBlock(code, language, location)
 }
 
-// extractCodeBlockContent extracts the language identifier and code content
-// from a fenced code block.
+// extractCodeBlockContent extracts the language identifier and code content from a fenced
+// code block.
 //
 // Takes n (*markdown_ast.FencedCodeBlock) which is the code block node to extract from.
 //
-// Returns language (string) which is the language identifier, or empty if not
-// set.
+// Returns language (string) which is the language identifier, or empty if not set.
 // Returns code (string) which is the raw code content of the block.
 func (*transformer) extractCodeBlockContent(n *markdown_ast.FencedCodeBlock) (language, code string) {
 	language = n.Language
@@ -518,14 +512,13 @@ func (*transformer) extractCodeBlockContent(n *markdown_ast.FencedCodeBlock) (la
 // renderHighlightedCodeBlock renders a code block with syntax highlighting.
 //
 // Takes code (string) which contains the source code to highlight.
-// Takes language (string) which specifies the programming language for
-// syntax highlighting.
-// Takes location (ast_domain.Location) which provides the source location for
-// the node.
+// Takes language (string) which specifies the programming language for syntax
+// highlighting.
+// Takes location (ast_domain.Location) which provides the source location for the node.
 //
 // Returns *ast_domain.TemplateNode which contains the highlighted HTML.
-// Returns nil if highlighting produces no output (caller should fall back
-// to plain rendering).
+// Returns nil if highlighting produces no output (caller should fall back to plain
+// rendering).
 func (t *transformer) renderHighlightedCodeBlock(code, language string, location ast_domain.Location) *ast_domain.TemplateNode {
 	html := t.highlighter.Highlight(code, language)
 	if html == "" {
@@ -538,8 +531,8 @@ func (t *transformer) renderHighlightedCodeBlock(code, language string, location
 	return pikoNode
 }
 
-// renderPlainCodeBlock renders a code block as plain <pre><code> without
-// syntax highlighting.
+// renderPlainCodeBlock renders a code block as plain <pre><code> without syntax
+// highlighting.
 //
 // Takes code (string) which is the source code content to render.
 // Takes language (string) which specifies the language for the CSS class.
@@ -578,22 +571,22 @@ func (*transformer) renderPlainCodeBlock(code, language string, location ast_dom
 	return pikoNode
 }
 
-// pikoShortcodeRegex matches piko shortcode names and arguments in fenced code blocks.
-var pikoShortcodeRegex = regexp.MustCompile(`piko\s+([a-zA-Z0-9_-]+)\s*(.*)`)
+var (
+	// pikoShortcodeRegex matches piko shortcode names and arguments in fenced code blocks.
+	pikoShortcodeRegex = regexp.MustCompile(`piko\s+([a-zA-Z0-9_-]+)\s*(.*)`)
+)
 
-// transformPikoShortcode handles ` ```piko ` blocks by parsing the shortcode
-// syntax and converting it to a template node.
+// transformPikoShortcode handles ` ```piko ` blocks by parsing the shortcode syntax and
+// converting it to a template node.
 //
 // Takes ctx (context.Context) which carries the logger and trace spans.
-// Takes infoString (string) which contains the fenced block info line with
-// the component name and optional props.
-// Takes fcb (*markdown_ast.FencedCodeBlock) which is the fenced code block to
-// transform.
+// Takes infoString (string) which contains the fenced block info line with the component
+// name and optional props.
+// Takes fcb (*markdown_ast.FencedCodeBlock) which is the fenced code block to transform.
 //
-// Returns *ast_domain.TemplateNode which is the parsed component node with
-// attributes and slot content.
-// Returns []*ast_domain.Diagnostic which contains any parsing errors
-// encountered.
+// Returns *ast_domain.TemplateNode which is the parsed component node with attributes and
+// slot content.
+// Returns []*ast_domain.Diagnostic which contains any parsing errors encountered.
 func (t *transformer) transformPikoShortcode(ctx context.Context, infoString string, fcb *markdown_ast.FencedCodeBlock) (*ast_domain.TemplateNode, []*ast_domain.Diagnostic) {
 	location := t.getNodeLocation(fcb)
 	matches := pikoShortcodeRegex.FindStringSubmatch(infoString)
@@ -640,14 +633,13 @@ func (t *transformer) transformPikoShortcode(ctx context.Context, infoString str
 	return node, nil
 }
 
-// getNodeLocation extracts the line and column number from a piko markdown AST
-// node.
+// getNodeLocation extracts the line and column number from a piko markdown AST node.
 //
 // Takes node (markdown_ast.Node) which is the AST node to locate.
 //
-// Returns ast_domain.Location which contains the line, column, and byte
-// offset of the node. Returns an empty location if the node is nil or has no
-// position data.
+// Returns ast_domain.Location which contains the line, column, and byte offset of the
+// node.
+// Returns an empty location if the node is nil or has no position data.
 func (t *transformer) getNodeLocation(node markdown_ast.Node) ast_domain.Location {
 	if node == nil {
 		return ast_domain.Location{}
@@ -689,8 +681,8 @@ func (t *transformer) getNodeLocation(node markdown_ast.Node) ast_domain.Locatio
 	}
 }
 
-// extractNodeText extracts the text content from a piko markdown AST node and
-// its children. This traverses text children by hand to collect the full text.
+// extractNodeText extracts the text content from a piko markdown AST node and its
+// children. This traverses text children by hand to collect the full text.
 //
 // Takes node (markdown_ast.Node) which is the node to extract text from.
 //
@@ -709,15 +701,14 @@ func (t *transformer) extractNodeText(node markdown_ast.Node) string {
 
 // newTransformer creates a new transformer for processing markdown AST nodes.
 //
-// Takes sourcePath (string) which identifies the source file for error
-// reporting.
+// Takes sourcePath (string) which identifies the source file for error reporting.
 // Takes source ([]byte) which contains the raw markdown source bytes.
-// Takes locationMapper (positionMapper) which converts between byte offsets
-// and line/column positions.
-// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects errors found
-// during transformation.
-// Takes highlighter (Highlighter) which applies syntax highlighting to code
-// blocks, or nil to disable highlighting.
+// Takes locationMapper (positionMapper) which converts between byte offsets and
+// line/column positions.
+// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects errors found during
+// transformation.
+// Takes highlighter (Highlighter) which applies syntax highlighting to code blocks, or
+// nil to disable highlighting.
 //
 // Returns *transformer which is ready to process markdown nodes.
 func newTransformer(sourcePath string, source []byte, locationMapper positionMapper, diagnostics *[]*ast_domain.Diagnostic, highlighter Highlighter) *transformer {
@@ -730,11 +721,10 @@ func newTransformer(sourcePath string, source []byte, locationMapper positionMap
 	}
 }
 
-// attributeAsString gets an attribute from an Attributable node and converts it
-// to a string.
+// attributeAsString gets an attribute from an Attributable node and converts it to a
+// string.
 //
-// Takes node (markdown_ast.Attributable) which is the AST node to get the
-// attribute from.
+// Takes node (markdown_ast.Attributable) which is the AST node to get the attribute from.
 // Takes name (string) which is the name of the attribute to get.
 //
 // Returns string which is the attribute value as a string.

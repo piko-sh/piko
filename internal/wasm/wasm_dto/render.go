@@ -18,19 +18,19 @@
 
 package wasm_dto
 
-// RenderFromSourcesRequest contains the input for rendering HTML from
-// in-memory sources via WASM.
+// RenderFromSourcesRequest contains the input for rendering HTML from in-memory sources
+// via WASM.
 type RenderFromSourcesRequest struct {
-	// Sources maps file paths to their contents. The paths should be relative
-	// to the project root (e.g., "pages/main.pk", "partials/header.pk").
+	// Sources maps file paths to their contents. The paths should be relative to the project
+	// root (e.g., "pages/main.pk", "partials/header.pk").
 	Sources map[string]string `json:"sources"`
 
-	// ModuleName is the Go module name for the generated code
-	// (e.g., "example.com/myproject"). Defaults to "playground" if not set.
+	// ModuleName is the Go module name for the generated code (e.g.,
+	// "example.com/myproject"). Defaults to "playground" if not set.
 	ModuleName string `json:"moduleName,omitempty"`
 
-	// EntryPoint is the page to render (e.g., "pages/main.pk").
-	// If not specified and there's only one page, that page is used.
+	// EntryPoint is the page to render (e.g., "pages/main.pk"). If not specified and there's
+	// only one page, that page is used.
 	EntryPoint string `json:"entryPoint,omitempty"`
 }
 
@@ -51,8 +51,7 @@ type RenderFromSourcesResponse struct {
 	// Success indicates whether rendering completed without errors.
 	Success bool `json:"success"`
 
-	// IsStaticOnly indicates whether the template was rendered in static-only
-	// mode (no Go code execution). When true, dynamic expressions and handlers
-	// are not evaluated.
+	// IsStaticOnly indicates whether the template was rendered in static-only mode (no Go
+	// code execution). When true, dynamic expressions and handlers are not evaluated.
 	IsStaticOnly bool `json:"isStaticOnly"`
 }

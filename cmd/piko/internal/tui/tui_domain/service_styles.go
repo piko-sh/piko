@@ -124,7 +124,8 @@ var (
 				Bold(true).
 				Padding(0, 1)
 
-	// navItemHotkeyStyle defines the Lip Gloss style for hotkey characters in navigation labels.
+	// navItemHotkeyStyle defines the Lip Gloss style for hotkey characters in navigation
+	// labels.
 	navItemHotkeyStyle = lipgloss.NewStyle().
 				Foreground(colourAccent).
 				Bold(true)
@@ -154,12 +155,12 @@ var (
 				Foreground(colourBorder)
 )
 
-// applyThemeToLegacyGlobals rebinds the package-level colour and style
-// variables from the supplied theme.
+// applyThemeToLegacyGlobals rebinds the package-level colour and style variables from the
+// supplied theme.
 //
-// Existing panels that read the legacy globals directly therefore inherit
-// theme switches without per-panel migration. Callers (typically
-// Model.SetTheme) invoke this every time the active theme changes.
+// Existing panels that read the legacy globals directly therefore inherit theme switches
+// without per-panel migration. Callers (typically Model.SetTheme) invoke this every time
+// the active theme changes.
 //
 // Takes theme (*Theme) which is the new theme. Nil theme is a no-op.
 func applyThemeToLegacyGlobals(theme *Theme) {
@@ -195,10 +196,9 @@ func applyThemeToLegacyGlobals(theme *Theme) {
 	helpSeparatorStyle = theme.StatusSep
 }
 
-// paletteColour returns the palette colour as a color.Color suitable for
-// assignment into the legacy globals. The legacy globals are inferred to
-// the return type of lipgloss.Color(), which is color.Color, so the
-// signatures align.
+// paletteColour returns the palette colour as a color.Color suitable for assignment into
+// the legacy globals. The legacy globals are inferred to the return type of
+// lipgloss.Color(), which is color.Color, so the signatures align.
 //
 // Takes c (color.Color) which is the palette colour.
 //

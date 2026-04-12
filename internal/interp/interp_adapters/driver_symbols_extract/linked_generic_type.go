@@ -23,11 +23,10 @@ import (
 	"reflect"
 )
 
-// classifyLinkedGenericType inspects an exported generic type and
-// returns the metadata required to emit an interp_link.LinkedGenericType
-// registration. Only generic struct types are supported in v1; other
-// shapes (interface constraints, generic type aliases) fall back to
-// the skip path by returning false.
+// classifyLinkedGenericType inspects an exported generic type and returns the metadata
+// required to emit an interp_link.LinkedGenericType registration. Only generic struct
+// types are supported; other shapes (interface constraints, generic type aliases) fall
+// back to the skip path by returning false.
 //
 // Takes typeName (*types.TypeName) which is the type name being classified.
 //
@@ -63,16 +62,16 @@ func classifyLinkedGenericType(typeName *types.TypeName) (LinkedGenericTypeInfo,
 	}, true
 }
 
-// resolveGenericStructShape returns the struct shape of a generic type
-// or generic alias, substituting the alias-side type parameters so
-// downstream consumers always instantiate against the alias.
+// resolveGenericStructShape returns the struct shape of a generic type or generic alias,
+// substituting the alias-side type parameters so downstream consumers always instantiate
+// against the alias.
 //
 // Takes typeName (*types.TypeName) which is the exported type name.
 //
-// Returns the alias-side type parameters, the fully-substituted
-// underlying struct, a lookup map for param->index, and a success
-// flag. Returns false when the shape cannot be represented (non-
-// struct underlying, unresolvable alias target, instantiation failure).
+// Returns the alias-side type parameters, the fully-substituted underlying struct, a
+// lookup map for param->index, and a success flag.
+// Returns false when the shape cannot be represented (non- struct underlying,
+// unresolvable alias target, instantiation failure).
 func resolveGenericStructShape(typeName *types.TypeName) (*types.TypeParamList, *types.Struct, map[*types.TypeParam]int, bool) {
 	aliasTypeParams, aliasTarget, ok := unaliasGeneric(typeName)
 	if !ok {
@@ -121,15 +120,14 @@ func resolveGenericStructShape(typeName *types.TypeName) (*types.TypeParamList, 
 	return typeParams, structType, paramIndex, true
 }
 
-// unaliasGeneric resolves a TypeName to the underlying (possibly
-// generic) target type, propagating the declared type parameters so
-// classifyLinkedGenericType can use the alias-side names even when
-// they differ from the target's.
+// unaliasGeneric resolves a TypeName to the underlying (possibly generic) target type,
+// propagating the declared type parameters so classifyLinkedGenericType can use the
+// alias-side names even when they differ from the target's.
 //
 // Takes typeName (*types.TypeName) which is the type name.
 //
-// Returns the resolved TypeParamList (from the alias or underlying),
-// the target type, and a success flag.
+// Returns the resolved TypeParamList (from the alias or underlying), the target type, and
+// a success flag.
 func unaliasGeneric(typeName *types.TypeName) (*types.TypeParamList, types.Type, bool) {
 	switch typeValue := typeName.Type().(type) {
 	case *types.Alias:
@@ -142,17 +140,15 @@ func unaliasGeneric(typeName *types.TypeName) (*types.TypeParamList, types.Type,
 	return nil, nil, false
 }
 
-// extractLinkedFuncTuple walks a go/types.Tuple (the params or
-// results of a generic function signature) and produces the
-// serialisable descriptor list used by LinkedGenericFuncInfo. It
-// reuses describeGenericFuncType so the top-level walk matches the
-// field walk used by LinkedGenericType, with an extra fallback that
-// maps error-returning and generic-typed positions to their
-// appropriate kinds.
+// extractLinkedFuncTuple walks a go/types.Tuple (the params or results of a generic
+// function signature) and produces the serialisable descriptor list used by
+// LinkedGenericFuncInfo. It reuses describeGenericFuncType so the top-level walk matches
+// the field walk used by LinkedGenericType, with an extra fallback that maps
+// error-returning and generic-typed positions to their appropriate kinds.
 //
 // Takes tuple (*types.Tuple) which is the parameter or result list.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves the
-// generic's type parameters.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves the generic's type
+// parameters.
 //
 // Returns the per-position descriptor list (nil when empty).
 func extractLinkedFuncTuple(tuple *types.Tuple, paramIndex map[*types.TypeParam]int) []GenericFieldTypeInfo {
@@ -171,19 +167,17 @@ func extractLinkedFuncTuple(tuple *types.Tuple, paramIndex map[*types.TypeParam]
 	return result
 }
 
-// describeGenericFuncType is the broader sibling of
-// describeGenericFieldType: it additionally understands generic named
-// types (SearchResult[T], Foo[K,V]) and the built-in error interface,
-// both of which appear routinely in function signatures but are
+// describeGenericFuncType is the broader sibling of describeGenericFieldType: it
+// additionally understands generic named types (SearchResult[T], Foo[K,V]) and the
+// built-in error interface, both of which appear routinely in function signatures but are
 // forbidden inside generic struct fields.
 //
 // Takes t (types.Type) which is the type being described.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves the
-// owning generic's type parameters.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves the owning generic's type
+// parameters.
 //
-// Returns the descriptor and a bool flag; a false flag signals the
-// shape cannot be captured and the caller should substitute
-// `interface{}` for the position.
+// Returns the descriptor and a bool flag; a false flag signals the shape cannot be
+// captured and the caller should substitute `interface{}` for the position.
 func describeGenericFuncType(t types.Type, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
 	if typeParam, ok := t.(*types.TypeParam); ok {
 		index, ok := paramIndex[typeParam]
@@ -215,18 +209,17 @@ func describeGenericFuncType(t types.Type, paramIndex map[*types.TypeParam]int) 
 
 // describeAlias produces a descriptor for a *types.Alias.
 //
-// The alias's own Obj() is preserved so the emitted reference matches
-// the source-level name the user writes (piko.RequestData rather than
-// templater_dto.RequestData). When the alias resolves to a generic
-// instantiation its TypeArgs are copied from the underlying Named.
+// The alias's own Obj() is preserved so the emitted reference matches the source-level
+// name the user writes (piko.RequestData rather than templater_dto.RequestData). When the
+// alias resolves to a generic instantiation its TypeArgs are copied from the underlying
+// Named.
 //
 // Takes alias (*types.Alias) which is the alias type.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves type
-// parameter references in TypeArgs.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves type parameter references in
+// TypeArgs.
 //
-// Returns the descriptor and a bool flag; false signals the alias
-// cannot be represented and the caller should fall back to other
-// strategies.
+// Returns the descriptor and a bool flag; false signals the alias cannot be represented
+// and the caller should fall back to other strategies.
 func describeAlias(alias *types.Alias, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
 	obj := alias.Obj()
 	if obj == nil || obj.Pkg() == nil {
@@ -260,17 +253,17 @@ func describeAlias(alias *types.Alias, paramIndex map[*types.TypeParam]int) (Gen
 	}, true
 }
 
-// describeGenericAlias emits a NamedGeneric descriptor for a generic
-// alias, taking the package + name from the alias itself so the
-// interpreter synthesiser finds the alias's own registration.
+// describeGenericAlias emits a NamedGeneric descriptor for a generic alias, taking the
+// package + name from the alias itself so the interpreter synthesiser finds the alias's
+// own registration.
 //
 // Takes alias (*types.Alias) which is the alias type.
 // Takes named (*types.Named) which is the alias target.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves type
-// parameters referenced in TypeArgs.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves type parameters referenced
+// in TypeArgs.
 //
-// Returns the NamedGeneric descriptor and a bool indicating whether
-// the shape could be captured.
+// Returns the NamedGeneric descriptor and a bool indicating whether the shape could be
+// captured.
 func describeGenericAlias(
 	alias *types.Alias,
 	named *types.Named,
@@ -317,18 +310,17 @@ func describeGenericAlias(
 	return info, true
 }
 
-// describeNamedOrAlias resolves a (possibly generic, possibly alias)
-// Named type to the correct descriptor kind, handling every shape
-// that can appear in a linked function's parameter or result
-// position: built-in error, instantiated generic, uninstantiated
+// describeNamedOrAlias resolves a (possibly generic, possibly alias) Named type to the
+// correct descriptor kind, handling every shape that can appear in a linked function's
+// parameter or result position: built-in error, instantiated generic, uninstantiated
 // generic (used as a type reference), and non-generic named.
 //
 // Takes named (*types.Named) which is the resolved named type.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves the
-// owning generic's type parameters.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves the owning generic's type
+// parameters.
 //
-// Returns the descriptor and a bool flag; false means the caller
-// should fall back to structural decomposition (slice/map/etc).
+// Returns the descriptor and a bool flag; false means the caller should fall back to
+// structural decomposition (slice/map/etc).
 func describeNamedOrAlias(named *types.Named, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
 	obj := named.Obj()
 	if obj != nil && obj.Pkg() == nil && obj.Name() == "error" {
@@ -350,16 +342,15 @@ func describeNamedOrAlias(named *types.Named, paramIndex map[*types.TypeParam]in
 	}, true
 }
 
-// describeNamedGeneric builds a GenericFieldKindNamedGeneric
-// descriptor for a generic named type, whether fully instantiated
-// (TypeArgs populated) or referenced by its own type parameters.
+// describeNamedGeneric builds a GenericFieldKindNamedGeneric descriptor for a generic
+// named type, whether fully instantiated (TypeArgs populated) or referenced by its own
+// type parameters.
 //
 // Takes named (*types.Named) which names the generic type.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves type
-// parameter references in the TypeArgs.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves type parameter references in
+// the TypeArgs.
 //
-// Returns the descriptor plus a flag indicating whether the shape is
-// fully representable.
+// Returns the descriptor plus a flag indicating whether the shape is fully representable.
 func describeNamedGeneric(named *types.Named, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
 	obj := named.Obj()
 	if obj == nil || obj.Pkg() == nil {
@@ -392,18 +383,17 @@ func describeNamedGeneric(named *types.Named, paramIndex map[*types.TypeParam]in
 	return info, true
 }
 
-// describeGenericFieldType walks a field's go/types.Type and produces
-// a serialisable GenericFieldTypeInfo tree.
+// describeGenericFieldType walks a field's go/types.Type and produces a serialisable
+// GenericFieldTypeInfo tree.
 //
-// Type parameters are recorded by their positional index; nested
-// composites (slice, map, pointer, array, chan) recurse. Returns false
-// for shapes that cannot be faithfully represented so the caller can
-// skip the whole generic type rather than emit a malformed
+// Type parameters are recorded by their positional index; nested composites (slice, map,
+// pointer, array, chan) recurse. Returns false for shapes that cannot be faithfully
+// represented so the caller can skip the whole generic type rather than emit a malformed
 // registration.
 //
 // Takes t (types.Type) which is the field type to describe.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves type
-// parameters to their declaration index.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves type parameters to their
+// declaration index.
 //
 // Returns the descriptor and a bool indicating success.
 func describeGenericFieldType(t types.Type, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
@@ -435,15 +425,15 @@ func describeGenericFieldType(t types.Type, paramIndex map[*types.TypeParam]int)
 	return GenericFieldTypeInfo{}, false
 }
 
-// describeTypeParamField resolves a generic's type parameter to its
-// positional descriptor.
+// describeTypeParamField resolves a generic's type parameter to its positional
+// descriptor.
 //
 // Takes typeParam (*types.TypeParam) which is the parameter reference.
-// Takes paramIndex (map[*types.TypeParam]int) which maps parameters to
-// declaration positions.
+// Takes paramIndex (map[*types.TypeParam]int) which maps parameters to declaration
+// positions.
 //
-// Returns the descriptor and true when typeParam belongs to the owning
-// generic's parameter list; otherwise zero and false.
+// Returns the descriptor and true when typeParam belongs to the owning generic's
+// parameter list; otherwise zero and false.
 func describeTypeParamField(typeParam *types.TypeParam, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
 	index, ok := paramIndex[typeParam]
 	if !ok {
@@ -455,13 +445,12 @@ func describeTypeParamField(typeParam *types.TypeParam, paramIndex map[*types.Ty
 	}, true
 }
 
-// describeBasicField emits a FieldKindBasic descriptor for primitive
-// types.
+// describeBasicField emits a FieldKindBasic descriptor for primitive types.
 //
 // Takes basicType (*types.Basic) which is the primitive type.
 //
-// Returns the descriptor and true for a representable kind; otherwise
-// zero and false for untyped or unrepresentable kinds.
+// Returns the descriptor and true for a representable kind; otherwise zero and false for
+// untyped or unrepresentable kinds.
 func describeBasicField(basicType *types.Basic) (GenericFieldTypeInfo, bool) {
 	kind, ok := basicReflectKind(basicType)
 	if !ok {
@@ -473,17 +462,15 @@ func describeBasicField(basicType *types.Basic) (GenericFieldTypeInfo, bool) {
 	}, true
 }
 
-// describeSingleElementField emits a descriptor with only an Element
-// (slice, pointer, chan) using the caller-supplied kind so the same
-// helper can serve each case.
+// describeSingleElementField emits a descriptor with only an Element (slice, pointer,
+// chan) using the caller-supplied kind so the same helper can serve each case.
 //
 // Takes element (types.Type) which is the inner type.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves type
-// parameter references.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves type parameter references.
 // Takes kind (GenericFieldKind) which selects the composite kind.
 //
-// Returns the descriptor and true on success, or zero and false when
-// the inner type cannot be described.
+// Returns the descriptor and true on success, or zero and false when the inner type
+// cannot be described.
 func describeSingleElementField(
 	element types.Type,
 	paramIndex map[*types.TypeParam]int,
@@ -499,15 +486,14 @@ func describeSingleElementField(
 	}, true
 }
 
-// describeArrayField emits a FieldKindArray descriptor, preserving the
-// fixed length alongside the element descriptor.
+// describeArrayField emits a FieldKindArray descriptor, preserving the fixed length
+// alongside the element descriptor.
 //
 // Takes arrayType (*types.Array) which is the array type.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves type
-// parameter references.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves type parameter references.
 //
-// Returns the descriptor and true on success, or zero and false when
-// the element type cannot be described.
+// Returns the descriptor and true on success, or zero and false when the element type
+// cannot be described.
 func describeArrayField(arrayType *types.Array, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
 	element, ok := describeGenericFuncType(arrayType.Elem(), paramIndex)
 	if !ok {
@@ -520,15 +506,13 @@ func describeArrayField(arrayType *types.Array, paramIndex map[*types.TypeParam]
 	}, true
 }
 
-// describeMapField emits a FieldKindMap descriptor carrying Key and
-// Element.
+// describeMapField emits a FieldKindMap descriptor carrying Key and Element.
 //
 // Takes mapType (*types.Map) which is the map type.
-// Takes paramIndex (map[*types.TypeParam]int) which resolves type
-// parameter references.
+// Takes paramIndex (map[*types.TypeParam]int) which resolves type parameter references.
 //
-// Returns the descriptor and true on success, or zero and false when
-// either side cannot be represented.
+// Returns the descriptor and true on success, or zero and false when either side cannot
+// be represented.
 func describeMapField(mapType *types.Map, paramIndex map[*types.TypeParam]int) (GenericFieldTypeInfo, bool) {
 	key, keyOK := describeGenericFuncType(mapType.Key(), paramIndex)
 	value, valOK := describeGenericFuncType(mapType.Elem(), paramIndex)
@@ -542,11 +526,10 @@ func describeMapField(mapType *types.Map, paramIndex map[*types.TypeParam]int) (
 	}, true
 }
 
-// basicReflectKind maps a go/types basic kind to its reflect.Kind
-// counterpart, returning false for kinds the interpreter cannot
-// currently represent (untyped basics are resolved before reaching
-// this code path, so an unsupported result here indicates an
-// unhandled edge case rather than a user-facing constraint).
+// basicReflectKind maps a go/types basic kind to its reflect.Kind counterpart, returning
+// false for kinds the interpreter cannot represent (untyped basics are resolved before
+// reaching this code path, so an unsupported result here indicates an unhandled edge case
+// rather than a user-facing constraint).
 //
 // Takes basic (*types.Basic) which is the go/types basic type.
 //
@@ -587,6 +570,8 @@ func basicReflectKind(basic *types.Basic) (reflect.Kind, bool) {
 		return reflect.Complex128, true
 	case types.String:
 		return reflect.String, true
+	default:
+
+		return 0, false
 	}
-	return 0, false
 }

@@ -23,30 +23,30 @@ import (
 	"reflect"
 )
 
-// maxReflectValueUnwrapDepth limits how many nested reflect.Value
-// layers unwrapReflectValueResult will peel. One layer covers the
-// expected sibling contract; additional layers guard against
-// accidentally double-wrapped returns without allowing unbounded
-// recursion on crafted inputs.
-const maxReflectValueUnwrapDepth = 4
+const (
+	// maxReflectValueUnwrapDepth limits how many nested reflect.Value layers
+	// unwrapReflectValueResult will peel. One layer covers the expected sibling contract;
+	// additional layers guard against accidentally double-wrapped returns without allowing
+	// unbounded recursion on crafted inputs.
+	maxReflectValueUnwrapDepth = 4
+)
 
-// linkedResultReflectValueType caches the reflect.Type descriptor for
-// reflect.Value itself, used to identify parametric return slots in
-// //piko:link sibling results.
-var linkedResultReflectValueType = reflect.TypeFor[reflect.Value]()
+var (
+	// linkedResultReflectValueType caches the reflect.Type descriptor for reflect.Value
+	// itself, used to identify parametric return slots in //piko:link sibling results.
+	linkedResultReflectValueType = reflect.TypeFor[reflect.Value]()
+)
 
-// handleCallLinkedReflect dispatches a //piko:link-routed generic
-// call. The site's linkedTypeArgs slice is prepended as reflect.Type
-// arguments before the regular call arguments; returned reflect.Value
-// values are unwrapped back to their concrete inner reflect.Values so
-// parametric return positions round-trip through user code as the
+// handleCallLinkedReflect dispatches a //piko:link-routed generic call. The site's
+// linkedTypeArgs slice is prepended as reflect.Type arguments before the regular call
+// arguments; returned reflect.Value values are unwrapped back to their concrete inner
+// reflect.Values so parametric return positions round-trip through user code as the
 // instantiated T.
 //
 // Takes vm (*VM) which is the virtual machine executing the instruction.
 // Takes registers (*Registers) which holds the current register banks.
 // Takes site (*callSite) which describes the linked call site.
-// Takes sibling (reflect.Value) which is the non-generic sibling the
-// directive linked to.
+// Takes sibling (reflect.Value) which is the non-generic sibling the directive linked to.
 //
 // Returns opResult indicating the next execution step.
 func handleCallLinkedReflect(vm *VM, registers *Registers, site *callSite, sibling reflect.Value) opResult {
@@ -55,10 +55,11 @@ func handleCallLinkedReflect(vm *VM, registers *Registers, site *callSite, sibli
 		return opPanicError
 	}
 
-	regularArgs := buildReflectArgs(vm, registers, site)
+	regularArgs := buildReflectArgs(vm, registers, site, sibling)
+	defer releaseReflectValueBuffer(regularArgs)
 	arguments := make([]reflect.Value, 0, len(site.linkedTypeArgs)+len(regularArgs))
-	for _, typeArg := range site.linkedTypeArgs {
-		arguments = append(arguments, reflect.ValueOf(typeArg))
+	for _, typeArgument := range site.linkedTypeArgs {
+		arguments = append(arguments, reflect.ValueOf(typeArgument))
 	}
 	arguments = append(arguments, regularArgs...)
 
@@ -68,7 +69,8 @@ func handleCallLinkedReflect(vm *VM, registers *Registers, site *callSite, sibli
 		return opPanicError
 	}
 
-	unwrapped := make([]reflect.Value, len(results))
+	nResults := len(results)
+	unwrapped := make([]reflect.Value, nResults)
 	for index, reflectValue := range results {
 		unwrapped[index] = unwrapReflectValueResult(reflectValue)
 	}
@@ -78,16 +80,15 @@ func handleCallLinkedReflect(vm *VM, registers *Registers, site *callSite, sibli
 
 // safeInvokeLinkedSibling invokes the sibling under a recover guard.
 //
-// reflect.Value.Call panics on shape mismatch (wrong arity,
-// assignable-to drift, variadic disagreement). Recovering here lets
-// the VM surface a structured runtime error instead of crashing the
-// host process.
+// reflect.Value.Call panics on shape mismatch (wrong arity, assignable-to drift, variadic
+// disagreement). Recovering here lets the VM surface a structured runtime error instead
+// of crashing the host process.
 //
 // Takes sibling (reflect.Value) which is the function to invoke.
 // Takes arguments ([]reflect.Value) which are the fully-built args.
 //
-// Returns the result slice plus any recovered panic wrapped as an
-// error with the errLinkedSiblingPanic sentinel.
+// Returns the result slice plus any recovered panic wrapped as an error with the
+// errLinkedSiblingPanic sentinel.
 func safeInvokeLinkedSibling(sibling reflect.Value, arguments []reflect.Value) (results []reflect.Value, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -99,17 +100,16 @@ func safeInvokeLinkedSibling(sibling reflect.Value, arguments []reflect.Value) (
 	return results, nil
 }
 
-// validateLinkedCallShape rejects argument-count mismatches between
-// the prepared call site and the sibling's reflect signature before
-// reflect.Call runs. The check is cheap and lets the VM report a
-// useful error (with the linked call site info) instead of a panic
-// caught deeper in safeInvokeLinkedSibling.
+// validateLinkedCallShape rejects argument-count mismatches between the prepared call
+// site and the sibling's reflect signature before reflect.Call runs. The check is cheap
+// and lets the VM report a useful error (with the linked call site info) instead of a
+// panic caught deeper in safeInvokeLinkedSibling.
 //
 // Takes sibling (reflect.Value) which is the target function.
 // Takes site (*callSite) which describes type args and regular args.
 //
-// Returns nil when the shape matches, or errLinkedSiblingShapeMismatch
-// wrapping a human-readable description.
+// Returns nil when the shape matches, or errLinkedSiblingShapeMismatch wrapping a
+// human-readable description.
 func validateLinkedCallShape(sibling reflect.Value, site *callSite) error {
 	if !sibling.IsValid() || sibling.Kind() != reflect.Func {
 		return fmt.Errorf("%w: sibling is not a valid function value", errLinkedSiblingShapeMismatch)
@@ -132,10 +132,9 @@ func validateLinkedCallShape(sibling reflect.Value, site *callSite) error {
 	return nil
 }
 
-// unwrapReflectValueResult peels up to maxReflectValueUnwrapDepth
-// reflect.Value wrappers when a //piko:link sibling returns a
-// reflect.Value at a position the generic declares as a type
-// parameter. Any non-reflect.Value return passes through unchanged.
+// unwrapReflectValueResult peels up to maxReflectValueUnwrapDepth reflect.Value wrappers
+// when a //piko:link sibling returns a reflect.Value at a position the generic declares
+// as a type parameter. Any non-reflect.Value return passes through unchanged.
 //
 // Takes value (reflect.Value) which is the possibly-wrapped result.
 //
@@ -148,7 +147,7 @@ func unwrapReflectValueResult(value reflect.Value) reflect.Value {
 		if value.Type() != linkedResultReflectValueType {
 			return value
 		}
-		inner, ok := value.Interface().(reflect.Value)
+		inner, ok := reflect.TypeAssert[reflect.Value](value)
 		if !ok {
 			return value
 		}

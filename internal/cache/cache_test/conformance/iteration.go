@@ -226,8 +226,8 @@ func testValuesWithItems(t *testing.T, config StringConfig) {
 	}
 }
 
-// testAllEarlyBreak verifies that breaking early from a cache All iteration
-// stops at the expected count.
+// testAllEarlyBreak verifies that breaking early from a cache All iteration stops at the
+// expected count.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.

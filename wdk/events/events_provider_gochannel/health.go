@@ -34,11 +34,11 @@ func (*GoChannelProvider) Name() string {
 	return "GoChannelProvider"
 }
 
-// Check verifies the GoChannel provider is running and operational.
-// It implements the healthprobe_domain.Probe interface.
+// Check verifies the GoChannel provider is running and operational. It implements the
+// healthprobe_domain.Probe interface.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
 // Returns healthprobe_dto.Status which indicates the current health state.
 func (p *GoChannelProvider) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -74,13 +74,13 @@ func (p *GoChannelProvider) checkLiveness(startTime time.Time) healthprobe_dto.S
 	}
 }
 
-// checkReadiness checks if the provider is running and ready to serve.
-// It confirms that the router has started and is running.
+// checkReadiness checks if the provider is running and ready to serve. It confirms that
+// the router has started and is running.
 //
 // Takes startTime (time.Time) which records when the check began.
 //
-// Returns healthprobe_dto.Status which holds the readiness state and health
-// details for any dependencies.
+// Returns healthprobe_dto.Status which holds the readiness state and health details for
+// any dependencies.
 //
 // Safe for concurrent use; acquires a read lock on runningMutex.
 func (p *GoChannelProvider) checkReadiness(_ context.Context, startTime time.Time) healthprobe_dto.Status {

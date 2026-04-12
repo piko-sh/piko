@@ -27,15 +27,14 @@ import (
 	"piko.sh/piko/internal/crypto/crypto_domain"
 )
 
-// CreateProviderFromBase64Key creates a local AES-GCM provider from a
-// base64-encoded key. This is a convenience function for loading keys from
-// environment variables.
+// CreateProviderFromBase64Key creates a local AES-GCM provider from a base64-encoded key.
+// This is a convenience function for loading keys from environment variables.
 //
-// Used only internally by the bootstrap container for config-based initialisation.
-// For modern applications, prefer using the option-based approach:
-// import "piko.sh/piko/wdk/crypto/crypto_provider_local_aes_gcm"
-// keyBytes, _ := base64.StdEncoding.DecodeString(base64Key)
-// provider, _ := crypto_provider_local_aes_gcm.NewProvider(
+// Used only internally by the bootstrap container for config-based initialisation. For
+// modern applications, prefer using the option-based approach: import
+// "piko.sh/piko/wdk/crypto/crypto_provider_local_aes_gcm" keyBytes, _ :=
+// base64.StdEncoding.DecodeString(base64Key) provider, _ :=
+// crypto_provider_local_aes_gcm.NewProvider(
 //
 //	crypto_provider_local_aes_gcm.Config{
 //		Key:   keyBytes,
@@ -44,15 +43,13 @@ import (
 //
 // )
 //
-// Takes base64Key (string) which is the base64-encoded 32-byte
-// AES key.
-// Takes keyID (string) which identifies the key; defaults to
-// "local-default" if empty.
+// Takes base64Key (string) which is the base64-encoded 32-byte AES key.
+// Takes keyID (string) which identifies the key; defaults to "local-default" if empty.
 //
-// Returns crypto_domain.EncryptionProvider which is the configured AES-GCM
-// encryption provider.
-// Returns error when the base64 decoding fails or the decoded key is not
-// exactly 32 bytes.
+// Returns crypto_domain.EncryptionProvider which is the configured AES-GCM encryption
+// provider.
+// Returns error when the base64 decoding fails or the decoded key is not exactly 32
+// bytes.
 func CreateProviderFromBase64Key(base64Key string, keyID string) (crypto_domain.EncryptionProvider, error) {
 	key, err := base64.StdEncoding.DecodeString(base64Key)
 	if err != nil {

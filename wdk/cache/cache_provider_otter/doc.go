@@ -16,14 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_provider_otter provides a high-performance in-memory
-// cache provider backed by the Otter library.
+// Package cache_provider_otter provides a high-performance in-memory cache provider
+// backed by the Otter library.
 //
-// Otter uses the S3-FIFO eviction algorithm and supports TTL-based
-// expiration, cost-based eviction, and automatic asynchronous refresh.
-// Use [NewOtterProvider] to create a provider that can be registered
-// with a cache service, then build namespaced cache instances through
-// the standard cache builder.
+// Otter uses the S3-FIFO eviction algorithm and supports TTL-based expiration, cost-based
+// eviction, and automatic asynchronous refresh. Use [NewOtterProvider] to create a
+// provider that can be registered with a cache service, then build namespaced cache
+// instances through the standard cache builder.
 //
 // All methods are safe for concurrent use.
 package cache_provider_otter

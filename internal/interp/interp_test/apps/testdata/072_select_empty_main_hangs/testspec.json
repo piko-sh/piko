@@ -1,0 +1,6 @@
+{
+  "description": "select {} in main blocks until the parent context is cancelled. With apps harness running context.Background(), this would hang forever - fix verified via interp_domain unit test that uses a timeout context.",
+  "shouldError": true,
+  "errorContains": "select",
+  "knownBug": "harness-only: handleSelect now injects ctx.Done() so the host goroutine unblocks on cancellation, but the apps harness has no timeout context; testing requires a unit test with context.WithTimeoutCause. See TestEmptySelectMainBlocksUntilContextCancel in interp_domain."
+}

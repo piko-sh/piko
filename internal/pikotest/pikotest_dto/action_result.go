@@ -22,8 +22,8 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
-// ActionResult holds the response and error from a server action invocation.
-// Assertion methods are provided by ActionResultView in the domain layer.
+// ActionResult holds the response and error from a server action invocation. Assertion
+// methods are provided by ActionResultView in the domain layer.
 type ActionResult struct {
 	// Response holds the full response from executing the action.
 	Response *daemon_dto.ActionFullResponse

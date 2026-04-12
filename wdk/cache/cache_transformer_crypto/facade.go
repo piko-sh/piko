@@ -24,25 +24,25 @@ import (
 	"piko.sh/piko/wdk/cache"
 )
 
-// Config holds settings for the crypto-service cache transformer.
-// This is re-exported from the internal adapter package.
+// Config holds settings for the crypto-service cache transformer. This is re-exported
+// from the internal adapter package.
 type Config = cache_transformer_crypto.Config
 
 // New creates a new crypto-service cache encryption transformer.
 //
-// This transformer delegates all cryptographic operations to the provided
-// crypto service, which centralises key management and supports key rotation.
+// This transformer delegates all cryptographic operations to the provided crypto service,
+// which centralises key management and supports key rotation.
 //
-// If name is empty, defaults to "crypto-service". If priority is 0, defaults
-// to 250 (runs after compression at priority 100).
+// If name is empty, defaults to "crypto-service". If priority is 0, defaults to 250 (runs
+// after compression at priority 100).
 //
-// Takes cryptoService (crypto_domain.CryptoServicePort) which provides encryption
-// and decryption operations for cached data.
+// Takes cryptoService (crypto_domain.CryptoServicePort) which provides encryption and
+// decryption operations for cached data.
 // Takes name (string) which identifies this transformer instance.
 // Takes priority (int) which determines the order of transformer execution.
 //
-// Returns cache.TransformerPort which is the configured encryption
-// transformer ready for use.
+// Returns cache.TransformerPort which is the configured encryption transformer ready for
+// use.
 //
 // Example:
 //

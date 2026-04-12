@@ -51,7 +51,7 @@ func TestNativeFastPath_StringToString(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(strings.ToUpper)
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "HELLO", regs.strings[1])
 }
@@ -71,7 +71,7 @@ func TestNativeFastPath_StringStringToBool(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(strings.Contains)
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.True(t, regs.bools[0])
 }
@@ -87,7 +87,7 @@ func TestNativeFastPath_IntToString(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(strconv.Itoa)
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "42", regs.strings[0])
 }
@@ -107,7 +107,7 @@ func TestNativeFastPath_FormatInt(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(strconv.FormatInt)
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "ff", regs.strings[0])
 }
@@ -126,7 +126,7 @@ func TestNativeFastPath_Variadic_Sprintf(t *testing.T) {
 		}
 		reflectedFunction := reflect.ValueOf(fmt.Sprintf)
 
-		ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.Equal(t, "hello", regs.strings[1])
 	})
@@ -146,7 +146,7 @@ func TestNativeFastPath_Variadic_Sprintf(t *testing.T) {
 		}
 		reflectedFunction := reflect.ValueOf(fmt.Sprintf)
 
-		ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.Equal(t, "hello world", regs.strings[2])
 	})
@@ -166,7 +166,7 @@ func TestNativeFastPath_Variadic_Sprintf(t *testing.T) {
 		}
 		reflectedFunction := reflect.ValueOf(fmt.Sprintf)
 
-		ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.Equal(t, "value: 42", regs.strings[1])
 	})
@@ -190,7 +190,7 @@ func TestNativeFastPath_Variadic_Sprintf(t *testing.T) {
 		}
 		reflectedFunction := reflect.ValueOf(fmt.Sprintf)
 
-		ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.Equal(t, "x=10 (3.1)", regs.strings[2])
 	})
@@ -209,13 +209,13 @@ func TestNativeFastPath_Variadic_Sprintf(t *testing.T) {
 
 		regs.strings[0] = "v=%d"
 		regs.ints[0] = 1
-		ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.Equal(t, "v=1", regs.strings[1])
 
 		regs.strings[0] = "v=%d"
 		regs.ints[0] = 2
-		ok, _ = tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ = tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.Equal(t, "v=2", regs.strings[1])
 		require.NotNil(t, site.variadicArgumentsBuffer)
@@ -238,7 +238,7 @@ func TestNativeFastPath_Variadic_Errorf(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(fmt.Errorf)
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.True(t, regs.general[0].IsValid())
 	err, ok := reflect.TypeAssert[error](regs.general[0])
@@ -264,7 +264,7 @@ func TestNativeFastPath_Variadic_Sprint(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(fmt.Sprint)
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "hello world", regs.strings[3])
 }
@@ -281,7 +281,7 @@ func TestNativeFastPath_ZeroArgString(t *testing.T) {
 		returns:   []varLocation{{register: 0, kind: registerString}},
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.True(t, called)
 	require.Equal(t, "result", regs.strings[0])
@@ -298,7 +298,7 @@ func TestNativeFastPath_ZeroArgBool(t *testing.T) {
 		returns:   []varLocation{{register: 0, kind: registerBool}},
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.True(t, regs.bools[0])
 }
@@ -314,7 +314,7 @@ func TestNativeFastPath_ZeroArgInt(t *testing.T) {
 		returns:   []varLocation{{register: 0, kind: registerInt}},
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, int64(99), regs.ints[0])
 }
@@ -332,7 +332,7 @@ func TestNativeFastPath_VoidString(t *testing.T) {
 		returns:   nil,
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "hello", received)
 }
@@ -354,7 +354,7 @@ func TestNativeFastPath_VoidTwoStrings(t *testing.T) {
 		returns: nil,
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "key", a)
 	require.Equal(t, "value", b)
@@ -374,7 +374,7 @@ func TestNativeFastPath_StringToError(t *testing.T) {
 		returns:   []varLocation{{register: 0, kind: registerGeneral}},
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.True(t, regs.general[0].IsValid())
 	err, ok := reflect.TypeAssert[error](regs.general[0])
@@ -394,7 +394,7 @@ func TestNativeFastPath_StringToError_Nil(t *testing.T) {
 		returns:   []varLocation{{register: 0, kind: registerGeneral}},
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.False(t, regs.general[0].IsValid())
 }
@@ -410,7 +410,7 @@ func TestNativeFastPath_AnyToBool(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(func(v any) bool { return v != nil && v != "" })
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.True(t, regs.bools[0])
 }
@@ -426,7 +426,7 @@ func TestNativeFastPath_AnyToString(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(func(v any) string { return fmt.Sprint(v) })
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "42", regs.strings[0])
 }
@@ -442,7 +442,7 @@ func TestNativeFastPath_AnyToInt(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(func(v any) int { return 99 })
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, int64(99), regs.ints[0])
 }
@@ -458,7 +458,7 @@ func TestNativeFastPath_AnyToInt64(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(func(v any) int64 { return 123 })
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, int64(123), regs.ints[0])
 }
@@ -474,7 +474,7 @@ func TestNativeFastPath_AnyToFloat64(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(func(v any) float64 { return 2.5 })
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, 2.5, regs.floats[0])
 }
@@ -502,7 +502,7 @@ func TestNativeFastPath_AnyAnyToAny(t *testing.T) {
 			return b
 		})
 
-		ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.True(t, regs.general[0].IsValid())
 		require.Equal(t, "fallback", regs.general[0].Interface())
@@ -521,7 +521,7 @@ func TestNativeFastPath_AnyAnyToAny(t *testing.T) {
 		}
 		reflectedFunction := reflect.ValueOf(func(a, b any) any { return nil })
 
-		ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+		ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 		require.True(t, ok)
 		require.False(t, regs.general[0].IsValid())
 	})
@@ -537,7 +537,7 @@ func TestNativeFastPath_ZeroArgVoid(t *testing.T) {
 		returns:   nil,
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), new(makeRegisters()))
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), new(makeRegisters()))
 	require.True(t, ok)
 	require.True(t, called)
 }
@@ -555,7 +555,7 @@ func TestNativeFastPath_Int64Void(t *testing.T) {
 		returns:   nil,
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, int64(42), received)
 }
@@ -570,9 +570,9 @@ func TestNativeFastPath_NoMatch(t *testing.T) {
 		returns:   []varLocation{{register: 1, kind: registerInt}},
 	}
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), new(makeRegisters()))
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), new(makeRegisters()))
 	require.False(t, ok)
-	require.Equal(t, nativeFastPathNone, site.nativeFastPath)
+	require.Equal(t, nativeFastPathNoneEntry, loadNativeFastPath(site))
 }
 
 func TestNativeFastPath_RepeatedCalls(t *testing.T) {
@@ -587,12 +587,12 @@ func TestNativeFastPath_RepeatedCalls(t *testing.T) {
 	}
 	reflectedFunction := reflect.ValueOf(strings.ToUpper)
 
-	ok, _ := tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "TEST", regs.strings[1])
 
 	regs.strings[0] = "again"
-	ok, _ = tryNativeFastPath(site, reflectedFunction.Interface(), &regs)
+	ok, _, _ = tryNativeFastPath(nil, site, reflectedFunction.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "AGAIN", regs.strings[1])
 }
@@ -617,12 +617,12 @@ func TestNativeFastPath_BoundMethodNotStale(t *testing.T) {
 	fn2 := reflect.ValueOf(b2).MethodByName("WriteString")
 
 	regs.strings[0] = "hello"
-	ok, _ := tryNativeFastPath(site, fn1.Interface(), &regs)
+	ok, _, _ := tryNativeFastPath(nil, site, fn1.Interface(), &regs)
 	require.True(t, ok)
 	require.Equal(t, "hello", b1.String())
 
 	regs.strings[0] = "world"
-	ok, _ = tryNativeFastPath(site, fn2.Interface(), &regs)
+	ok, _, _ = tryNativeFastPath(nil, site, fn2.Interface(), &regs)
 	require.True(t, ok)
 
 	require.Equal(t, "hello", b1.String(), "b1 should not have been modified by second call")

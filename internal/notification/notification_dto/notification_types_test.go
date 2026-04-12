@@ -18,7 +18,9 @@
 
 package notification_dto
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNotificationType_String(t *testing.T) {
 	t.Parallel()

@@ -26,49 +26,48 @@ import (
 )
 
 // TypeInspectorBuilderAdapter adapts inspector_domain.TypeBuilder to implement
-// TypeInspectorBuilderPort. The AnnotatorService can then depend on an
-// interface rather than a concrete type, improving testability.
+// TypeInspectorBuilderPort. The AnnotatorService can then depend on an interface rather
+// than a concrete type, improving testability.
 type TypeInspectorBuilderAdapter struct {
 	// builder provides the underlying type inspection implementation.
 	builder *inspector_domain.TypeBuilder
 }
 
-var _ TypeInspectorBuilderPort = (*TypeInspectorBuilderAdapter)(nil)
+var (
+	_ TypeInspectorBuilderPort = (*TypeInspectorBuilderAdapter)(nil)
+)
 
-// NewTypeInspectorBuilderAdapter creates a new adapter wrapping the given
-// TypeBuilder.
+// NewTypeInspectorBuilderAdapter creates a new adapter wrapping the given TypeBuilder.
 //
 // Takes builder (*inspector_domain.TypeBuilder) which is the builder to wrap.
 //
-// Returns *TypeInspectorBuilderAdapter which implements
-// TypeInspectorBuilderPort.
+// Returns *TypeInspectorBuilderAdapter which implements TypeInspectorBuilderPort.
 func NewTypeInspectorBuilderAdapter(builder *inspector_domain.TypeBuilder) *TypeInspectorBuilderAdapter {
 	return &TypeInspectorBuilderAdapter{builder: builder}
 }
 
 // SetConfig configures the type inspector with base directory and module info.
 //
-// Takes config (inspector_dto.Config) which specifies the base directory and
-// module information.
+// Takes config (inspector_dto.Config) which specifies the base directory and module
+// information.
 func (a *TypeInspectorBuilderAdapter) SetConfig(config inspector_dto.Config) {
 	a.builder.SetConfig(config)
 }
 
 // Build processes Go source files to build type information.
 //
-// Takes sourceOverlay (map[string][]byte) which provides in-memory file
-// contents that override files on disk.
-// Takes scriptHashes (map[string]string) which maps script paths to their
-// content hashes for cache invalidation.
+// Takes sourceOverlay (map[string][]byte) which provides in-memory file contents that
+// override files on disk.
+// Takes scriptHashes (map[string]string) which maps script paths to their content hashes
+// for cache invalidation.
 //
 // Returns error when the underlying builder fails to process the sources.
 func (a *TypeInspectorBuilderAdapter) Build(ctx context.Context, sourceOverlay map[string][]byte, scriptHashes map[string]string) error {
 	return a.builder.Build(ctx, sourceOverlay, scriptHashes)
 }
 
-// GetQuerier returns the type querier after Build completes successfully.
-// The returned TypeInspectorPort is the underlying *TypeQuerier which
-// implements the interface.
+// GetQuerier returns the type querier after Build completes successfully. The returned
+// TypeInspectorPort is the underlying *TypeQuerier which implements the interface.
 //
 // Returns TypeInspectorPort which provides type inspection capabilities.
 // Returns bool which indicates whether a valid querier is available.

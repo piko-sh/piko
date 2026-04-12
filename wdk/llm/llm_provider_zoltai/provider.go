@@ -26,8 +26,8 @@ import (
 	"hash/fnv"
 	"math"
 
-	"piko.sh/piko/wdk/json"
 	"math/rand/v2"
+	"piko.sh/piko/wdk/json"
 	"strings"
 	"sync"
 	"time"
@@ -38,19 +38,20 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// closeDrainTimeout bounds how long Close waits for active stream goroutines
-// to wind down before reporting the drain timed out.
-const closeDrainTimeout = 30 * time.Second
+const (
+	// closeDrainTimeout bounds how long Close waits for active stream goroutines to wind
+	// down before reporting the drain timed out.
+	closeDrainTimeout = 30 * time.Second
+)
 
 // zoltaiProvider implements llm_domain.LLMProviderPort and
 // llm_domain.EmbeddingProviderPort using predefined fortunes.
 type zoltaiProvider struct {
-	// closeContext is the provider-level context whose cancellation signals
-	// background stream goroutines to wind down.
+	// closeContext is the provider-level context whose cancellation signals background
+	// stream goroutines to wind down.
 	closeContext context.Context
 
-	// closeCancel cancels closeContext on Close to signal active stream
-	// goroutines to exit.
+	// closeCancel cancels closeContext on Close to signal active stream goroutines to exit.
 	closeCancel context.CancelCauseFunc
 
 	// randomSource is the random number generator for fortune selection.
@@ -59,8 +60,8 @@ type zoltaiProvider struct {
 	// config holds the provider configuration settings.
 	config Config
 
-	// streamWaitGroup tracks active streaming goroutines so Close can wait for
-	// them to drain.
+	// streamWaitGroup tracks active streaming goroutines so Close can wait for them to
+	// drain.
 	streamWaitGroup sync.WaitGroup
 
 	// closeOnce guards Close so it is idempotent.
@@ -81,15 +82,17 @@ const (
 	estimatedTokensPerMessage = 10
 )
 
-var _ llm_domain.LLMProviderPort = (*zoltaiProvider)(nil)
+var (
+	_ llm_domain.LLMProviderPort = (*zoltaiProvider)(nil)
 
-var _ llm_domain.EmbeddingProviderPort = (*zoltaiProvider)(nil)
+	_ llm_domain.EmbeddingProviderPort = (*zoltaiProvider)(nil)
+)
 
 // Complete returns a random fortune as a completion response.
 //
-// When tools are present in the request, Zoltai picks the first tool and
-// calls it with empty arguments. When a structured output format is
-// requested, Zoltai wraps the fortune in a JSON object.
+// When tools are present in the request, Zoltai picks the first tool and calls it with
+// empty arguments. When a structured output format is requested, Zoltai wraps the fortune
+// in a JSON object.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes request (*llm_dto.CompletionRequest) which controls the response shape.
@@ -141,9 +144,8 @@ func (p *zoltaiProvider) Complete(ctx context.Context, request *llm_dto.Completi
 	}, nil
 }
 
-// Embed generates deterministic fake embeddings by hashing input texts.
-// The same input always produces the same vector, but the vectors carry no
-// semantic meaning.
+// Embed generates deterministic fake embeddings by hashing input texts. The same input
+// always produces the same vector, but the vectors carry no semantic meaning.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes request (*llm_dto.EmbeddingRequest) which contains the texts to embed.
@@ -223,26 +225,25 @@ func (*zoltaiProvider) SupportsStreaming() bool {
 	return true
 }
 
-// SupportsStructuredOutput reports that Zoltai supports structured output.
-// The implementation is intentionally minimal: string properties are filled
-// with the fortune, and other types get zero-values.
+// SupportsStructuredOutput reports that Zoltai supports structured output. The
+// implementation is intentionally minimal: string properties are filled with the fortune,
+// and other types get zero-values.
 //
 // Returns bool which is true.
 func (*zoltaiProvider) SupportsStructuredOutput() bool {
 	return true
 }
 
-// SupportsTools reports that Zoltai supports tool calling.
-// The implementation is intentionally naive: Zoltai always calls the first
-// tool with empty arguments.
+// SupportsTools reports that Zoltai supports tool calling. The implementation is
+// intentionally naive: Zoltai always calls the first tool with empty arguments.
 //
 // Returns bool which is true.
 func (*zoltaiProvider) SupportsTools() bool {
 	return true
 }
 
-// SupportsPenalties reports whether the provider supports frequency and
-// presence penalties.
+// SupportsPenalties reports whether the provider supports frequency and presence
+// penalties.
 //
 // Returns bool which is false as Zoltai does not support penalties.
 func (*zoltaiProvider) SupportsPenalties() bool { return false }
@@ -252,31 +253,27 @@ func (*zoltaiProvider) SupportsPenalties() bool { return false }
 // Returns bool which is false as Zoltai does not support seed.
 func (*zoltaiProvider) SupportsSeed() bool { return false }
 
-// SupportsParallelToolCalls reports whether the provider supports parallel
-// tool calls.
+// SupportsParallelToolCalls reports whether the provider supports parallel tool calls.
 //
 // Returns bool which is false as Zoltai does not support parallel tool calls.
 func (*zoltaiProvider) SupportsParallelToolCalls() bool { return false }
 
-// SupportsMessageName reports whether the provider supports the name field
-// on messages.
+// SupportsMessageName reports whether the provider supports the name field on messages.
 //
 // Returns bool which is false as Zoltai does not support message names.
 func (*zoltaiProvider) SupportsMessageName() bool { return false }
 
-// Close releases resources held by the Zoltai provider, signalling any
-// in-flight stream goroutines to exit and waiting for them to drain within a
-// bounded timeout.
+// Close releases resources held by the Zoltai provider, signalling any in-flight stream
+// goroutines to exit and waiting for them to drain within a bounded timeout.
 //
-// Takes ctx (context.Context) which controls how long Close is willing to
-// wait for the drain.
+// Takes ctx (context.Context) which controls how long Close is willing to wait for the
+// drain.
 //
-// Returns error when the bounded drain elapses before all stream goroutines
-// have finished.
+// Returns error when the bounded drain elapses before all stream goroutines have
+// finished.
 //
-// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to
-// signal active stream goroutines, then waits on streamWaitGroup before
-// returning.
+// Concurrency: guarded by closeOnce; cancels closeContext via closeCancel to signal
+// active stream goroutines, then waits on streamWaitGroup before returning.
 func (p *zoltaiProvider) Close(ctx context.Context) error {
 	var closeErr error
 	p.closeOnce.Do(func() {
@@ -304,8 +301,7 @@ func (p *zoltaiProvider) Close(ctx context.Context) error {
 	return closeErr
 }
 
-// EmbeddingDimensions returns the configured vector dimension for fake
-// embeddings.
+// EmbeddingDimensions returns the configured vector dimension for fake embeddings.
 //
 // Returns int which is the embedding vector size (defaults to 384).
 func (p *zoltaiProvider) EmbeddingDimensions() int {
@@ -319,8 +315,8 @@ func (p *zoltaiProvider) DefaultModel() string {
 	return p.config.DefaultModel
 }
 
-// streamContext returns a context that is cancelled when either the caller's
-// context is cancelled or the provider is closed.
+// streamContext returns a context that is cancelled when either the caller's context is
+// cancelled or the provider is closed.
 //
 // Takes ctx (context.Context) which is the caller's context.
 //
@@ -339,8 +335,7 @@ func (p *zoltaiProvider) streamContext(ctx context.Context) context.Context {
 	return merged
 }
 
-// completeWithToolCall builds a response that calls the given tool with
-// empty arguments.
+// completeWithToolCall builds a response that calls the given tool with empty arguments.
 //
 // Takes model (string) which is the model name for the response.
 // Takes tool (llm_dto.ToolDefinition) which is the tool to invoke.
@@ -375,8 +370,8 @@ func (*zoltaiProvider) completeWithToolCall(model string, tool llm_dto.ToolDefin
 	}
 }
 
-// formatStructuredOutput wraps the fortune text in a JSON object based on
-// the requested response format.
+// formatStructuredOutput wraps the fortune text in a JSON object based on the requested
+// response format.
 //
 // Takes fortune (string) which is the raw fortune text.
 // Takes rf (*llm_dto.ResponseFormat) which describes the desired format.
@@ -430,8 +425,8 @@ func newProvider(config Config) (*zoltaiProvider, error) {
 	}, nil
 }
 
-// buildSchemaResponse populates each string property in the schema with the
-// fortune text, and sets sensible zero-values for other types.
+// buildSchemaResponse populates each string property in the schema with the fortune text,
+// and sets sensible zero-values for other types.
 //
 // Takes fortune (string) which is used as the value for string properties.
 // Takes schema (*llm_dto.JSONSchemaDefinition) which describes the shape.
@@ -448,8 +443,8 @@ func buildSchemaResponse(fortune string, schema *llm_dto.JSONSchemaDefinition) s
 	return string(b)
 }
 
-// buildValueForSchema recursively builds a Go value matching the given
-// JSON schema, using the fortune as the value for string fields.
+// buildValueForSchema recursively builds a Go value matching the given JSON schema, using
+// the fortune as the value for string fields.
 //
 // Takes schema (*llm_dto.JSONSchema) which describes the expected type.
 // Takes fortune (string) which is used for string values.
@@ -481,12 +476,11 @@ func buildValueForSchema(schema *llm_dto.JSONSchema, fortune string) any {
 	}
 }
 
-// hashToVector produces a deterministic unit-length float32 vector from
-// the given text by seeding a PRNG with an FNV-1a hash.
+// hashToVector produces a deterministic unit-length float32 vector from the given text by
+// seeding a PRNG with an FNV-1a hash.
 //
 // Takes text (string) which is the input to hash into a vector.
-// Takes dim (int) which specifies the number of dimensions in the output
-// vector.
+// Takes dim (int) which specifies the number of dimensions in the output vector.
 //
 // Returns []float32 which is the normalised unit-length vector.
 func hashToVector(text string, dim int) []float32 {

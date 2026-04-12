@@ -18,6 +18,10 @@
 
 package ast_domain
 
+import (
+	"slices"
+)
+
 // Clone creates a shallow copy of the TemplateNode.
 //
 // Returns *TemplateNode which is a shallow copy of the receiver.
@@ -73,18 +77,18 @@ func (n *TemplateNode) Clone() *TemplateNode {
 	}
 }
 
-// DeepClone creates a full, deep copy of the TemplateNode and its entire
-// subtree of children.
+// DeepClone creates a full, deep copy of the TemplateNode and its entire subtree of
+// children.
 //
 // Returns *TemplateNode which is a deep copy of the receiver.
 func (n *TemplateNode) DeepClone() *TemplateNode {
 	return n.deepCloneWithDepth(0)
 }
 
-// DeepCloneWithScopeAttributes creates a deep copy of the node and its entire
-// subtree, injecting `partial` and `p-key` attributes into every element node.
-// This is used for prerendering to ensure CSS scoping and hydration work
-// correctly for prerendered content.
+// DeepCloneWithScopeAttributes creates a deep copy of the node and its entire subtree,
+// injecting `partial` and `p-key` attributes into every element node. This is used for
+// prerendering to ensure CSS scoping and hydration work correctly for prerendered
+// content.
 //
 // Takes partialScopeID (string) which is the partial scope for CSS scoping.
 //
@@ -93,15 +97,13 @@ func (n *TemplateNode) DeepCloneWithScopeAttributes(partialScopeID string) *Temp
 	return n.deepCloneWithScopeAttributesRecursive(partialScopeID, 0)
 }
 
-// deepCloneWithScopeAttributesRecursive performs deep cloning with attribute
-// injection and depth tracking to prevent stack overflow.
+// deepCloneWithScopeAttributesRecursive performs deep cloning with attribute injection
+// and depth tracking to prevent stack overflow.
 //
-// Takes partialScopeID (string) which identifies the scope for attribute
-// injection.
+// Takes partialScopeID (string) which identifies the scope for attribute injection.
 // Takes depth (int) which tracks recursion depth to prevent stack overflow.
 //
-// Returns *TemplateNode which is the cloned node with scope attributes
-// injected.
+// Returns *TemplateNode which is the cloned node with scope attributes injected.
 func (n *TemplateNode) deepCloneWithScopeAttributesRecursive(partialScopeID string, depth int) *TemplateNode {
 	if n == nil {
 		return nil
@@ -127,8 +129,8 @@ func (n *TemplateNode) deepCloneWithScopeAttributesRecursive(partialScopeID stri
 	return clone
 }
 
-// Reset clears all fields, making the node ready for reuse.
-// When nodes are arena-allocated, the arena handles memory reuse.
+// Reset clears all fields, making the node ready for reuse. When nodes are
+// arena-allocated, the arena handles memory reuse.
 func (n *TemplateNode) Reset() {
 	n.resetPrimitiveFields()
 	n.resetSliceFields()
@@ -149,8 +151,8 @@ func (n *TemplateNode) resetPrimitiveFields() {
 	n.PreserveWhitespace = false
 }
 
-// resetSliceFields clears all slice fields on the node by setting them to nil
-// or to zero length.
+// resetSliceFields clears all slice fields on the node by setting them to nil or to zero
+// length.
 func (n *TemplateNode) resetSliceFields() {
 	n.Attributes = nil
 	n.Children = nil
@@ -250,11 +252,10 @@ func (d *Directive) Clone() Directive {
 
 // Clone creates a deep copy of the PropValue.
 //
-// Deep cloning the Expression is critical for correct code generation when the
-// same partial invocation is processed in different contexts (e.g., SSR
-// inlining). Each context may set different BaseCodeGenVarName annotations on
-// the expressions, and without deep cloning, these mutations would be shared
-// and cause incorrect code.
+// Deep cloning the Expression is critical for correct code generation when the same
+// partial invocation is processed in different contexts (e.g., SSR inlining). Each
+// context may set different BaseCodeGenVarName annotations on the expressions, and
+// without deep cloning, these mutations would be shared and cause incorrect code.
 //
 // Returns PropValue which is a deep copy of the receiver.
 func (pv *PropValue) Clone() PropValue {
@@ -313,11 +314,10 @@ func (ast *TemplateAST) Clone() *TemplateAST {
 	}
 }
 
-// DeepClone creates a full, deep copy of the TemplateAST and its entire node
-// tree.
+// DeepClone creates a full, deep copy of the TemplateAST and its entire node tree.
 //
-// Returns *TemplateAST which is an independent copy with cloned nodes and
-// diagnostics. The queryContext field is not cloned as it is runtime state.
+// Returns *TemplateAST which is an independent copy with cloned nodes and diagnostics.
+// The queryContext field is not cloned as it is runtime state.
 func (ast *TemplateAST) DeepClone() *TemplateAST {
 	if ast == nil {
 		return nil
@@ -341,8 +341,8 @@ func (ast *TemplateAST) DeepClone() *TemplateAST {
 
 // Clone creates a deep copy of the PartialInvocationInfo.
 //
-// Returns *PartialInvocationInfo which is the copied instance, or nil if the
-// receiver is nil.
+// Returns *PartialInvocationInfo which is the copied instance, or nil if the receiver is
+// nil.
 func (p *PartialInvocationInfo) Clone() *PartialInvocationInfo {
 	if p == nil {
 		return nil
@@ -376,8 +376,7 @@ func (p *PartialInvocationInfo) Clone() *PartialInvocationInfo {
 	return clone
 }
 
-// deepCloneWithDepth creates a deep copy with depth tracking to prevent stack
-// overflow.
+// deepCloneWithDepth creates a deep copy with depth tracking to prevent stack overflow.
 //
 // Takes depth (int) which tracks the current recursion level.
 //
@@ -415,9 +414,7 @@ func DeepCloneSlice(nodes []*TemplateNode) []*TemplateNode {
 //
 // Returns []HTMLAttribute which is a new slice with copied elements.
 func cloneHTMLAttributes(attrs []HTMLAttribute) []HTMLAttribute {
-	attrsCopy := make([]HTMLAttribute, len(attrs))
-	copy(attrsCopy, attrs)
-	return attrsCopy
+	return slices.Clone(attrs)
 }
 
 // cloneDynamicAttributes creates a deep copy of a DynamicAttribute slice.
@@ -450,8 +447,7 @@ func cloneDirectives(directives []Directive) []Directive {
 //
 // Takes parts ([]TextPart) which is the slice to copy.
 //
-// Returns []TextPart which is a new slice with cloned elements, or nil if
-// parts is nil.
+// Returns []TextPart which is a new slice with cloned elements, or nil if parts is nil.
 func cloneRichTextParts(parts []TextPart) []TextPart {
 	if parts == nil {
 		return nil
@@ -467,8 +463,8 @@ func cloneRichTextParts(parts []TextPart) []TextPart {
 //
 // Takes diagnostics ([]*Diagnostic) which is the slice to clone.
 //
-// Returns []*Diagnostic which is a new slice with cloned elements, or nil if
-// the input is nil.
+// Returns []*Diagnostic which is a new slice with cloned elements, or nil if the input is
+// nil.
 func cloneDiagnostics(diagnostics []*Diagnostic) []*Diagnostic {
 	if diagnostics == nil {
 		return nil
@@ -505,8 +501,8 @@ func cloneEventDirectiveMap(events map[string][]Directive) map[string][]Directiv
 //
 // Takes binds (map[string]*Directive) which is the map to copy.
 //
-// Returns map[string]*Directive which is a new map with copied directives,
-// or nil if the input is nil.
+// Returns map[string]*Directive which is a new map with copied directives, or nil if the
+// input is nil.
 func cloneBindsMap(binds map[string]*Directive) map[string]*Directive {
 	if binds == nil {
 		return nil
@@ -558,8 +554,8 @@ func cloneExpression(e Expression) Expression {
 	return e.Clone()
 }
 
-// injectScopeAttributes adds partial and p-key attributes to an attributes
-// slice if they are not already present.
+// injectScopeAttributes adds partial and p-key attributes to an attributes slice if they
+// are not already present.
 //
 // Takes attrs ([]HTMLAttribute) which is the existing attributes slice.
 // Takes key (Expression) which is the node's key expression (may be nil).
@@ -574,16 +570,7 @@ func injectScopeAttributes(attrs []HTMLAttribute, key Expression, partialScopeID
 		return attrs
 	}
 
-	capacity := len(attrs)
-	if needsPartial {
-		capacity++
-	}
-	if needsPKey {
-		capacity++
-	}
-
-	newAttrs := make([]HTMLAttribute, len(attrs), capacity)
-	copy(newAttrs, attrs)
+	newAttrs := slices.Clone(attrs)
 
 	if needsPartial {
 		newAttrs = append(newAttrs, HTMLAttribute{Name: "partial", Value: partialScopeID})
@@ -613,8 +600,7 @@ func hasAttributeByName(attrs []HTMLAttribute, name string) bool {
 	return false
 }
 
-// extractStaticKeyString extracts the string value from a static key
-// expression.
+// extractStaticKeyString extracts the string value from a static key expression.
 // Returns empty string for nil or non-string-literal keys.
 //
 // Takes key (Expression) which is the key expression to extract from.
@@ -630,14 +616,14 @@ func extractStaticKeyString(key Expression) string {
 	return ""
 }
 
-// deepCloneSliceWithDepth creates a copy of a slice of template nodes while
-// tracking the current cloning depth.
+// deepCloneSliceWithDepth creates a copy of a slice of template nodes while tracking the
+// current cloning depth.
 //
 // Takes nodes ([]*TemplateNode) which is the slice of nodes to copy.
 // Takes depth (int) which tracks how many levels deep the copy has gone.
 //
-// Returns []*TemplateNode which is a full copy of the input slice, or nil if
-// the input is nil.
+// Returns []*TemplateNode which is a full copy of the input slice, or nil if the input is
+// nil.
 func deepCloneSliceWithDepth(nodes []*TemplateNode, depth int) []*TemplateNode {
 	if nodes == nil {
 		return nil

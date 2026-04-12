@@ -35,13 +35,15 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// cryptoTransformerPriority is the priority level for the crypto transformer.
-const cryptoTransformerPriority = 100
+const (
+	// cryptoTransformerPriority is the priority level for the crypto transformer.
+	cryptoTransformerPriority = 100
+)
 
 // AddStorageProvider registers a named storage provider for file operations.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (StorageProviderPort) which handles storage operations.
@@ -53,61 +55,58 @@ func (c *Container) AddStorageProvider(name string, provider storage_domain.Stor
 	registerCloseableForShutdown(c.GetAppContext(), "StorageProvider-"+name, provider)
 }
 
-// SetStorageDefaultProvider sets the default storage provider to use when
-// none is specified.
+// SetStorageDefaultProvider sets the default storage provider to use when none is
+// specified.
 //
 // Takes name (string) which is the provider name to use as the default.
 func (c *Container) SetStorageDefaultProvider(name string) {
 	c.storageDefaultProvider = name
 }
 
-// SetStorageDispatcherConfig configures the storage dispatcher for async file
-// operations.
+// SetStorageDispatcherConfig configures the storage dispatcher for async file operations.
 //
-// Takes dispatcherConfig (*storage_domain.DispatcherConfig)
-// which specifies the dispatcher settings.
+// Takes dispatcherConfig (*storage_domain.DispatcherConfig) which specifies the
+// dispatcher settings.
 func (c *Container) SetStorageDispatcherConfig(dispatcherConfig *storage_domain.DispatcherConfig) {
 	c.storageDispatcherConfig = dispatcherConfig
 	c.hasStorageDispatcher = true
 }
 
-// SetStoragePresignBaseURL sets the base URL for presigned storage URLs, which
-// is essential for headless CMS scenarios where the frontend is on a different
-// host than the storage service.
+// SetStoragePresignBaseURL sets the base URL for presigned storage URLs, which is
+// essential for headless CMS scenarios where the frontend is on a different host than the
+// storage service.
 //
-// Takes baseURL (string) which is the full base URL including scheme and host,
-// e.g., "http://localhost:8080" or "https://cms.example.com".
+// Takes baseURL (string) which is the full base URL including scheme and host, e.g.,
+// "http://localhost:8080" or "https://cms.example.com".
 func (c *Container) SetStoragePresignBaseURL(baseURL string) {
 	c.storagePresignBaseURL = baseURL
 }
 
-// SetStoragePublicBaseURL sets the base URL for public storage URLs, causing
-// them to be generated as absolute URLs (e.g.,
-// "http://localhost:8080/_piko/storage/public/...") instead of relative paths
-// when the website and CMS/API run on different ports or hosts.
+// SetStoragePublicBaseURL sets the base URL for public storage URLs, causing them to be
+// generated as absolute URLs (e.g., "http://localhost:8080/_piko/storage/public/...")
+// instead of relative paths when the website and CMS/API run on different ports or hosts.
 //
-// Takes baseURL (string) which is the full base URL including scheme and host,
-// e.g., "http://localhost:8080" or "https://cms.example.com".
+// Takes baseURL (string) which is the full base URL including scheme and host, e.g.,
+// "http://localhost:8080" or "https://cms.example.com".
 func (c *Container) SetStoragePublicBaseURL(baseURL string) {
 	c.storagePublicBaseURL = baseURL
 }
 
-// SetStorageService allows users to provide a custom storage service
-// implementation.
+// SetStorageService allows users to provide a custom storage service implementation.
 //
-// If the service implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the service implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
-// Takes service (storage_domain.Service) which is the custom storage service to
-// use instead of the default.
+// Takes service (storage_domain.Service) which is the custom storage service to use
+// instead of the default.
 func (c *Container) SetStorageService(service storage_domain.Service) {
 	c.storageServiceOverride = service
 	c.storageService = service
 	registerCloseableForShutdown(c.GetAppContext(), "StorageService", service)
 }
 
-// GetStorageService returns the storage service, initialising a default one
-// if none was provided.
+// GetStorageService returns the storage service, initialising a default one if none was
+// provided.
 //
 // Returns storage_domain.Service which provides storage operations.
 // Returns error when the default storage service cannot be created.
@@ -124,9 +123,9 @@ func (c *Container) GetStorageService() (storage_domain.Service, error) {
 	return c.storageService, c.storageErr
 }
 
-// createDefaultStorageService sets up the default storage service for the
-// container. It selects a storage provider, creates a dispatcher, and
-// registers the service for shutdown.
+// createDefaultStorageService sets up the default storage service for the container. It
+// selects a storage provider, creates a dispatcher, and registers the service for
+// shutdown.
 func (c *Container) createDefaultStorageService() {
 	ctx := c.GetAppContext()
 	ctx, l := logger_domain.From(ctx, log)
@@ -166,8 +165,8 @@ func (c *Container) createDefaultStorageService() {
 	c.storageService = s
 }
 
-// buildStorageServiceOpts builds the storage service options from the
-// container's presign and public base URL settings.
+// buildStorageServiceOpts builds the storage service options from the container's presign
+// and public base URL settings.
 //
 // Returns []storage_domain.ServiceOption which contains the resolved options.
 func (c *Container) buildStorageServiceOpts() []storage_domain.ServiceOption {
@@ -210,8 +209,8 @@ func (c *Container) buildStorageServiceOpts() []storage_domain.ServiceOption {
 //
 // Takes ctx (context.Context) which carries the application context.
 // Takes s (storage_domain.Service) which is the storage service.
-// Takes dispatcher (storage_domain.StorageDispatcherPort) which is the
-// dispatcher to start, or nil if none configured.
+// Takes dispatcher (storage_domain.StorageDispatcherPort) which is the dispatcher to
+// start, or nil if none configured.
 //
 // Returns error when registration or startup fails.
 func (*Container) startStorageDispatcher(ctx context.Context, s storage_domain.Service, dispatcher storage_domain.StorageDispatcherPort) error {
@@ -227,14 +226,12 @@ func (*Container) startStorageDispatcher(ctx context.Context, s storage_domain.S
 	return nil
 }
 
-// selectStorageBaseProvider selects the base storage provider based on
-// configuration.
+// selectStorageBaseProvider selects the base storage provider based on configuration.
 //
 // Returns string which is the name of the selected provider.
-// Returns storage_domain.StorageProviderPort which is the selected
-// storage provider.
-// Returns error when the configured provider is not registered or the
-// default disk provider fails to initialise.
+// Returns storage_domain.StorageProviderPort which is the selected storage provider.
+// Returns error when the configured provider is not registered or the default disk
+// provider fails to initialise.
 func (c *Container) selectStorageBaseProvider() (baseName string, baseProvider storage_domain.StorageProviderPort, err error) {
 	if len(c.storageProviders) > 0 {
 		if c.storageDefaultProvider != "" {
@@ -275,12 +272,12 @@ func (c *Container) selectStorageBaseProvider() (baseName string, baseProvider s
 
 // createStorageDispatcher creates a storage dispatcher if one is set up.
 //
-// Takes baseProvider (storage_domain.StorageProviderPort) which provides the
-// underlying storage operations.
+// Takes baseProvider (storage_domain.StorageProviderPort) which provides the underlying
+// storage operations.
 // Takes baseName (string) which specifies the base name for the dispatcher.
 //
-// Returns storage_domain.StorageDispatcherPort which is the set up dispatcher,
-// or nil if no dispatcher is set up.
+// Returns storage_domain.StorageDispatcherPort which is the set up dispatcher, or nil if
+// no dispatcher is set up.
 // Returns error when dispatcher creation fails.
 func (c *Container) createStorageDispatcher(_ context.Context, baseProvider storage_domain.StorageProviderPort, baseName string) (storage_domain.StorageDispatcherPort, error) {
 	if !c.hasStorageDispatcher {
@@ -298,8 +295,8 @@ func (c *Container) createStorageDispatcher(_ context.Context, baseProvider stor
 //
 // Takes s (storage_domain.Service) which receives the provider registrations.
 // Takes baseName (string) which identifies the primary storage provider.
-// Takes baseProvider (storage_domain.StorageProviderPort) which is the primary
-// provider to register.
+// Takes baseProvider (storage_domain.StorageProviderPort) which is the primary provider
+// to register.
 //
 // Returns error when registration fails or the default provider cannot be set.
 func (c *Container) registerStorageProviders(s storage_domain.Service, baseName string, baseProvider storage_domain.StorageProviderPort) error {
@@ -329,11 +326,11 @@ func (c *Container) registerStorageProviders(s storage_domain.Service, baseName 
 	return nil
 }
 
-// registerStorageCryptoTransformer registers the crypto transformer with the
-// given storage service.
+// registerStorageCryptoTransformer registers the crypto transformer with the given
+// storage service.
 //
-// Takes s (storage_domain.Service) which is the storage service to register
-// the transformer with.
+// Takes s (storage_domain.Service) which is the storage service to register the
+// transformer with.
 func (c *Container) registerStorageCryptoTransformer(s storage_domain.Service) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	cryptoService, err := c.GetCryptoService()

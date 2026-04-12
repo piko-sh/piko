@@ -39,51 +39,40 @@ const (
 	// presetMedium selects a balanced encoding speed.
 	presetMedium = "medium"
 
-	// presetSlow selects a slow encoding speed for better
-	// compression.
+	// presetSlow selects a slow encoding speed for better compression.
 	presetSlow = "slow"
 
-	// presetVeryslow selects the slowest encoding speed for
-	// maximum compression.
+	// presetVeryslow selects the slowest encoding speed for maximum compression.
 	presetVeryslow = "veryslow"
 
 	// profileMain selects the main codec profile.
 	profileMain = "main"
 
-	// profileMain10 selects the main10 codec profile with
-	// 10-bit colour depth.
+	// profileMain10 selects the main10 codec profile with 10-bit colour depth.
 	profileMain10 = "main10"
 
-	// defaultH264Bitrate is the default bitrate in bits per
-	// second for H.264 encoding.
+	// defaultH264Bitrate is the default bitrate in bits per second for H.264 encoding.
 	defaultH264Bitrate = 2000000
 
-	// defaultH264CRF is the default Constant Rate Factor for
-	// H.264 encoding.
+	// defaultH264CRF is the default Constant Rate Factor for H.264 encoding.
 	defaultH264CRF = 23
 
-	// defaultH265Bitrate is the default bitrate in bits per
-	// second for H.265 encoding.
+	// defaultH265Bitrate is the default bitrate in bits per second for H.265 encoding.
 	defaultH265Bitrate = 1500000
 
-	// defaultH265CRF is the default Constant Rate Factor for
-	// H.265 encoding.
+	// defaultH265CRF is the default Constant Rate Factor for H.265 encoding.
 	defaultH265CRF = 28
 
-	// defaultVP9Bitrate is the default bitrate in bits per
-	// second for VP9 encoding.
+	// defaultVP9Bitrate is the default bitrate in bits per second for VP9 encoding.
 	defaultVP9Bitrate = 1500000
 
-	// defaultVP9CRF is the default Constant Rate Factor for
-	// VP9 encoding.
+	// defaultVP9CRF is the default Constant Rate Factor for VP9 encoding.
 	defaultVP9CRF = 31
 
-	// defaultAudioBitrate is the default audio bitrate in bits
-	// per second.
+	// defaultAudioBitrate is the default audio bitrate in bits per second.
 	defaultAudioBitrate = 128000
 
-	// maxCRFValue is the maximum allowed Constant Rate Factor
-	// value.
+	// maxCRFValue is the maximum allowed Constant Rate Factor value.
 	maxCRFValue = 51
 
 	// cpuUsedUltrafast is the VP9 cpu-used value for the ultrafast preset.
@@ -101,19 +90,17 @@ const (
 	// ioContextBufferSize is the buffer size for FFmpeg IO contexts.
 	ioContextBufferSize = 32768
 
-	// defaultMaxConcurrent is the default maximum number of concurrent
-	// transcode operations.
+	// defaultMaxConcurrent is the default maximum number of concurrent transcode operations.
 	defaultMaxConcurrent = 10
 )
 
-// CodecConfig holds settings for a video codec, including encoder details,
-// default quality options, and supported profiles and presets.
+// CodecConfig holds settings for a video codec, including encoder details, default
+// quality options, and supported profiles and presets.
 type CodecConfig struct {
 	// Name is the codec name (e.g. "h264", "h265", "vp9").
 	Name string
 
-	// EncoderName is the FFmpeg encoder name
-	// (e.g. "libx264", "libx265", "libvpx-vp9").
+	// EncoderName is the FFmpeg encoder name (e.g. "libx264", "libx265", "libvpx-vp9").
 	EncoderName string
 
 	// DefaultPreset is the encoding preset used when none is given.
@@ -149,8 +136,7 @@ type CodecRegistry struct {
 
 // NewCodecRegistry creates a new codec registry with default settings.
 //
-// Returns *CodecRegistry which contains pre-set values for h264, h265, and vp9
-// codecs.
+// Returns *CodecRegistry which contains pre-set values for h264, h265, and vp9 codecs.
 func NewCodecRegistry() *CodecRegistry {
 	allPresets := []string{presetUltrafast, presetFast, presetMedium, presetSlow, presetVeryslow}
 
@@ -231,11 +217,10 @@ func (r *CodecRegistry) SupportedCodecs() []string {
 	return codecs
 }
 
-// ApplyDefaults applies default values to a transcode spec based on codec
-// configuration.
+// ApplyDefaults applies default values to a transcode spec based on codec configuration.
 //
-// Takes spec (*TranscodeSpec) which is the transcode specification
-// to populate with defaults.
+// Takes spec (*TranscodeSpec) which is the transcode specification to populate with
+// defaults.
 //
 // Returns error when the codec specified in the spec is not registered.
 func (r *CodecRegistry) ApplyDefaults(spec *media.TranscodeSpec) error {
@@ -282,11 +267,11 @@ func (r *CodecRegistry) ApplyDefaults(spec *media.TranscodeSpec) error {
 
 // ValidateSpec validates a transcode spec against codec requirements.
 //
-// Takes spec (*TranscodeSpec) which contains the codec, profile,
-// preset, and CRF settings to validate.
+// Takes spec (*TranscodeSpec) which contains the codec, profile, preset, and CRF settings
+// to validate.
 //
-// Returns error when the codec is not registered, or when the profile, preset,
-// or CRF value is not supported by the codec.
+// Returns error when the codec is not registered, or when the profile, preset, or CRF
+// value is not supported by the codec.
 func (r *CodecRegistry) ValidateSpec(spec *media.TranscodeSpec) error {
 	config, err := r.GetCodec(spec.Codec)
 	if err != nil {
@@ -318,8 +303,8 @@ func (r *CodecRegistry) ValidateSpec(spec *media.TranscodeSpec) error {
 
 // GetEncoderOptions builds encoder-specific options for FFmpeg.
 //
-// Takes spec (*TranscodeSpec) which specifies the transcoding
-// settings including codec, preset, profile, and quality parameters.
+// Takes spec (*TranscodeSpec) which specifies the transcoding settings including codec,
+// preset, profile, and quality parameters.
 //
 // Returns map[string]string which contains the FFmpeg encoder options.
 // Returns error when the specified codec is not found in the registry.
@@ -341,8 +326,7 @@ func (r *CodecRegistry) GetEncoderOptions(spec *media.TranscodeSpec) (map[string
 	}
 }
 
-// formatCRF returns the CRF value as a string for use in
-// encoder options.
+// formatCRF returns the CRF value as a string for use in encoder options.
 //
 // Takes crf (int) which is the Constant Rate Factor value.
 //
@@ -351,14 +335,11 @@ func formatCRF(crf int) string {
 	return strconv.Itoa(crf)
 }
 
-// h264Options returns FFmpeg encoder options for the H.264
-// codec.
+// h264Options returns FFmpeg encoder options for the H.264 codec.
 //
-// Takes spec (*media.TranscodeSpec) which provides the
-// encoding parameters.
+// Takes spec (*media.TranscodeSpec) which provides the encoding parameters.
 //
-// Returns map[string]string which contains the H.264 encoder
-// options.
+// Returns map[string]string which contains the H.264 encoder options.
 func h264Options(spec *media.TranscodeSpec) map[string]string {
 	options := make(map[string]string)
 	if spec.Preset != "" {
@@ -378,14 +359,11 @@ func h264Options(spec *media.TranscodeSpec) map[string]string {
 	return options
 }
 
-// h265Options returns FFmpeg encoder options for the
-// H.265/HEVC codec.
+// h265Options returns FFmpeg encoder options for the H.265/HEVC codec.
 //
-// Takes spec (*media.TranscodeSpec) which provides the
-// encoding parameters.
+// Takes spec (*media.TranscodeSpec) which provides the encoding parameters.
 //
-// Returns map[string]string which contains the H.265 encoder
-// options.
+// Returns map[string]string which contains the H.265 encoder options.
 func h265Options(spec *media.TranscodeSpec) map[string]string {
 	options := make(map[string]string)
 	if spec.Preset != "" {
@@ -406,14 +384,11 @@ func h265Options(spec *media.TranscodeSpec) map[string]string {
 	return options
 }
 
-// vp9Options returns FFmpeg encoder options for the VP9
-// codec.
+// vp9Options returns FFmpeg encoder options for the VP9 codec.
 //
-// Takes spec (*media.TranscodeSpec) which provides the
-// encoding parameters.
+// Takes spec (*media.TranscodeSpec) which provides the encoding parameters.
 //
-// Returns map[string]string which contains the VP9 encoder
-// options.
+// Returns map[string]string which contains the VP9 encoder options.
 func vp9Options(spec *media.TranscodeSpec) map[string]string {
 	options := make(map[string]string)
 	if spec.Preset != "" {
@@ -429,8 +404,8 @@ func vp9Options(spec *media.TranscodeSpec) map[string]string {
 	return options
 }
 
-// presetToCPUUsed maps preset names to VP9 cpu-used values, where lower
-// cpu-used means slower encoding but better quality.
+// presetToCPUUsed maps preset names to VP9 cpu-used values, where lower cpu-used means
+// slower encoding but better quality.
 //
 // Takes preset (string) which is the encoding speed preset name.
 //

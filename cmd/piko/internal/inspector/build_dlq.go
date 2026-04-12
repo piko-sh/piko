@@ -25,17 +25,17 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// BuildDLQDetailSections turns a DispatcherSummary slice into the
-// shared section/row shape used by the CLI Printer and the TUI detail
-// pane. Filter narrows the output to dispatchers whose Type matches.
+// BuildDLQDetailSections turns a DispatcherSummary slice into the shared section/row
+// shape used by the CLI Printer and the TUI detail pane. Filter narrows the output to
+// dispatchers whose Type matches.
 //
-// Takes summaries ([]*pb.DispatcherSummary) which are the dispatcher
-// summaries returned by the monitoring API.
-// Takes filter (string) which restricts output to dispatchers whose
-// Type matches the filter; an empty filter passes everything through.
+// Takes summaries ([]*pb.DispatcherSummary) which are the dispatcher summaries returned
+// by the monitoring API.
+// Takes filter (string) which restricts output to dispatchers whose Type matches the
+// filter; an empty filter passes everything through.
 //
-// Returns []DetailSection which contains one DetailSection per
-// matching dispatcher, in the same order they appeared in summaries.
+// Returns []DetailSection which contains one DetailSection per matching dispatcher, in
+// the same order they appeared in summaries.
 func BuildDLQDetailSections(summaries []*pb.DispatcherSummary, filter string) []DetailSection {
 	sections := make([]DetailSection, 0)
 	for _, s := range summaries {

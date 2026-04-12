@@ -1,0 +1,7 @@
+package parsed
+
+var Greeting = build()
+
+func build() string {
+	return prefix + " " + suffix
+}

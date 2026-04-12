@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package binder bridges HTTP form data with Go struct population, using the
-// Piko Expression Language for field mapping.
+// Package binder bridges HTTP form data with Go struct population, using the Piko
+// Expression Language for field mapping.
 //
-// It is a native replacement for gorilla/schema, supporting nested structs,
-// slices, maps, and custom type converters with built-in DoS protection.
+// It is a native replacement for gorilla/schema, supporting nested structs, slices, maps,
+// and custom type converters with built-in DoS protection.
 //
 // # Usage
 //
@@ -35,8 +35,7 @@
 //	var form Form
 //	err := binder.GetBinder().Bind(&form, r.Form)
 //
-// For nested paths and slice indexing, the binder parses Piko
-// expressions:
+// For nested paths and slice indexing, the binder parses Piko expressions:
 //
 //	// Form data: {"user.address.city": ["London"],
 //	//             "items[0]": ["apple"]}
@@ -47,8 +46,7 @@
 //
 // # DoS protection
 //
-// The binder includes configurable limits to prevent resource
-// exhaustion:
+// The binder includes configurable limits to prevent resource exhaustion:
 //
 //   - MaxSliceSize: Limits slice index values (default: 1000)
 //   - MaxPathDepth: Limits nesting depth (default: 32)
@@ -75,24 +73,20 @@
 //	    },
 //	)
 //
-// The binder also supports [encoding.TextUnmarshaler] for automatic
-// conversion. Built-in converters exist for [time.Time],
-// [time.Duration], [net/url.URL], [net/mail.Address],
-// [image/colour.Colour], and Piko's [maths.Decimal] and [maths.Money]
-// types.
+// The binder also supports [encoding.TextUnmarshaler] for automatic conversion. Built-in
+// converters exist for [time.Time], [time.Duration], [net/url.URL], [net/mail.Address],
+// [image/colour.Colour], and Piko's [maths.Decimal] and [maths.Money] types.
 //
 // # Integration
 //
-// The binder uses [ast_domain.ExpressionParser] to parse complex
-// field paths (e.g. "user.addresses[0].city") into AST nodes, which
-// are then walked to navigate the destination struct. Parsed ASTs are
-// cached for repeated use. Simple identifier paths bypass the parser
-// entirely for a fast path.
+// The binder uses [ast_domain.ExpressionParser] to parse complex field paths (e.g.
+// "user.addresses[0].city") into AST nodes, which are then walked to navigate the
+// destination struct. Parsed ASTs are cached for repeated use. Simple identifier paths
+// bypass the parser entirely for a fast path.
 //
 // # Thread safety
 //
-// All methods on [ASTBinder] are safe for concurrent use. The shared
-// instance returned by [GetBinder] caches struct metadata for improved
-// performance. Converter registration and limit updates use atomic
-// operations and [sync.Map] for lock-free reads.
+// All methods on [ASTBinder] are safe for concurrent use. The shared instance returned by
+// [GetBinder] caches struct metadata for improved performance. Converter registration and
+// limit updates use atomic operations and [sync.Map] for lock-free reads.
 package binder

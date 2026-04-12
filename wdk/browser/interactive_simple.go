@@ -27,8 +27,8 @@ import (
 	"time"
 )
 
-// simpleRunner implements InteractiveRunner using basic ANSI terminal output.
-// It provides a fallback mode for terminals that do not support the full TUI.
+// simpleRunner implements InteractiveRunner using basic ANSI terminal output. It provides
+// a fallback mode for terminals that do not support the full TUI.
 type simpleRunner struct {
 	// reader reads user input from standard input.
 	reader *bufio.Reader
@@ -108,9 +108,9 @@ func (r *simpleRunner) AfterStep(action, detail string, failed bool, duration ti
 
 // WaitForContinue blocks until the user signals to continue.
 //
-// In autoplay mode, it waits for the set delay then returns. Otherwise, it
-// reads user input: an empty line continues, "q" exits the test, and a number
-// from 1 to 9 switches to autoplay mode with that many seconds of delay.
+// In autoplay mode, it waits for the set delay then returns. Otherwise, it reads user
+// input: an empty line continues, "q" exits the test, and a number from 1 to 9 switches
+// to autoplay mode with that many seconds of delay.
 func (r *simpleRunner) WaitForContinue() {
 	if r.mode == simpleModeAutoplay {
 		time.Sleep(r.autoplayGap)
@@ -146,10 +146,9 @@ func (r *simpleRunner) Close() {
 
 // render displays the current state of the interactive test runner.
 //
-// Takes currentAction (string) which is the label for the step in progress,
-// or empty if no step is active.
-// Takes currentDetail (string) which gives extra context for the current
-// action.
+// Takes currentAction (string) which is the label for the step in progress, or empty if
+// no step is active.
+// Takes currentDetail (string) which gives extra context for the current action.
 func (r *simpleRunner) render(currentAction, currentDetail string) {
 	_, _ = fmt.Print("\033[2J\033[H")
 

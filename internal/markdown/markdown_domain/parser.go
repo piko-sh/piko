@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_dto"
 )
 
-// markdownService orchestrates converting raw Markdown into structured build
-// artefacts. It implements MarkdownService.
+// markdownService orchestrates converting raw Markdown into structured build artefacts.
+// It implements MarkdownService.
 type markdownService struct {
 	// parser parses raw markdown content and extracts frontmatter.
 	parser MarkdownParserPort
@@ -37,20 +37,20 @@ type markdownService struct {
 	highlighter Highlighter
 }
 
-var _ MarkdownService = (*markdownService)(nil)
+var (
+	_ MarkdownService = (*markdownService)(nil)
+)
 
-// Process is the main entry point for the service that converts raw markdown
-// content into a fully processed DTO containing distinct build artefacts
-// (Page AST, Excerpt AST, Metadata). It follows a multi-step pipeline to
-// ensure correctness and maintainability.
+// Process is the main entry point for the service that converts raw markdown content into
+// a fully processed DTO containing distinct build artefacts (Page AST, Excerpt AST,
+// Metadata). It follows a multi-step pipeline to ensure correctness and maintainability.
 //
 // Takes content ([]byte) which contains the raw bytes of a markdown file.
 // Takes sourcePath (string) which is the file path used for error messages.
 //
-// Returns *markdown_dto.ProcessedMarkdown which contains the processed build
-// artefacts ready for rendering.
-// Returns error when parsing, frontmatter processing, or AST transformation
-// fails.
+// Returns *markdown_dto.ProcessedMarkdown which contains the processed build artefacts
+// ready for rendering.
+// Returns error when parsing, frontmatter processing, or AST transformation fails.
 func (s *markdownService) Process(ctx context.Context, content []byte, sourcePath string) (*markdown_dto.ProcessedMarkdown, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "MarkdownService.Process",
@@ -94,13 +94,13 @@ func (s *markdownService) Process(ctx context.Context, content []byte, sourcePat
 }
 
 // NewMarkdownService creates a new markdown service with the given parser and
-// highlighter. It decouples the service from any specific Markdown library
-// (like Goldmark) by depending on a MarkdownParserPort.
+// highlighter. It decouples the service from any specific Markdown library (like
+// Goldmark) by depending on a MarkdownParserPort.
 //
-// Takes parser (MarkdownParserPort) which handles the initial parsing of
-// markdown content.
-// Takes highlighter (Highlighter) which provides syntax highlighting for code
-// blocks. May be nil if highlighting is not needed.
+// Takes parser (MarkdownParserPort) which handles the initial parsing of markdown
+// content.
+// Takes highlighter (Highlighter) which provides syntax highlighting for code blocks. May
+// be nil if highlighting is not needed.
 //
 // Returns MarkdownService which is the configured service ready for use.
 func NewMarkdownService(parser MarkdownParserPort, highlighter Highlighter) MarkdownService {
@@ -110,8 +110,8 @@ func NewMarkdownService(parser MarkdownParserPort, highlighter Highlighter) Mark
 	}
 }
 
-// calculateReadingTime estimates the reading time in minutes based on word
-// count. Uses an average reading speed of 225 words per minute.
+// calculateReadingTime estimates the reading time in minutes based on word count. Uses an
+// average reading speed of 225 words per minute.
 //
 // Takes wordCount (int) which is the number of words in the content.
 //
@@ -126,13 +126,13 @@ func calculateReadingTime(wordCount int) int {
 
 // assembleFinalResult combines the processed parts into the final result.
 //
-// Takes processedData (*markdown_dto.ProcessedMarkdown) which provides the
-// base result from the markdown walker.
+// Takes processedData (*markdown_dto.ProcessedMarkdown) which provides the base result
+// from the markdown walker.
 // Takes frontmatter (*Frontmatter) which contains the parsed front matter.
 // Takes readingTime (int) which specifies the estimated reading time.
 //
-// Returns *markdown_dto.ProcessedMarkdown which is the combined result with
-// metadata fields set from the frontmatter.
+// Returns *markdown_dto.ProcessedMarkdown which is the combined result with metadata
+// fields set from the frontmatter.
 func assembleFinalResult(processedData *markdown_dto.ProcessedMarkdown, frontmatter *Frontmatter, readingTime int) *markdown_dto.ProcessedMarkdown {
 	result := processedData
 	result.Metadata.Title = frontmatter.Title

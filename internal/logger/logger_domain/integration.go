@@ -28,36 +28,35 @@ import (
 
 // Integration represents an external logging or tracing service integration.
 //
-// Integrations are optional and must be explicitly imported to be available.
-// When an integration package is imported, it auto-registers itself via init().
-// The logger framework then discovers registered integrations at runtime.
+// Integrations are optional and must be explicitly imported to be available. When an
+// integration package is imported, it auto-registers itself via init(). The logger
+// framework then discovers registered integrations at runtime.
 //
-// This design allows the core logger domain to remain agnostic of specific
-// integrations (Sentry, Datadog, Honeycomb, etc.) while supporting arbitrary
-// third-party integrations.
+// This design allows the core logger domain to remain agnostic of specific integrations
+// (Sentry, Datadog, Honeycomb, etc.) while supporting arbitrary third-party integrations.
 type Integration interface {
-	// Type returns the integration type name as used in config files. This must
-	// match the "type" field in IntegrationConfig, for example "sentry", "datadog",
-	// or "honeycomb".
+	// Type returns the integration type name as used in config files. This must match the
+	// "type" field in IntegrationConfig, for example "sentry", "datadog", or "honeycomb".
 	//
 	// Returns string which is the integration type identifier.
 	Type() string
 
 	// CreateHandler creates an slog.Handler from the integration-specific config.
 	//
-	// The config parameter is the typed config struct from logger_dto (e.g.,
-	// *SentryConfig, *DatadogConfig). Each integration implementation should
-	// type-assert to its expected config type.
+	// The config parameter is the typed config struct from logger_dto (e.g., *SentryConfig,
+	// *DatadogConfig). Each integration implementation should type-assert to its expected
+	// config type.
 	//
-	// Returns the configured slog.Handler, or nil if the integration doesn't
-	// provide a log handler. Returns an error if initialisation fails.
+	// Returns the configured slog.Handler, or nil if the integration doesn't provide a log
+	// handler.
+	// Returns an error if initialisation fails.
 	CreateHandler(config any) (slog.Handler, error)
 }
 
 // SpanProcessor receives span lifecycle events from the OTEL SDK.
 //
-// Concrete implementations (e.g. from otel/sdk/trace) satisfy the port via
-// structural typing, allowing the logger domain to remain SDK-free.
+// Concrete implementations (e.g. from otel/sdk/trace) satisfy the port via structural
+// typing, allowing the logger domain to remain SDK-free.
 type SpanProcessor interface {
 	// Shutdown flushes remaining spans and releases resources.
 	//
@@ -74,20 +73,20 @@ type SpanProcessor interface {
 	ForceFlush(ctx context.Context) error
 }
 
-// OtelIntegration extends Integration for services that provide OpenTelemetry
-// components for distributed tracing.
+// OtelIntegration extends Integration for services that provide OpenTelemetry components
+// for distributed tracing.
 //
-// Integrations implementing the port will have their OTel components added to the
-// global tracer during OTEL setup.
+// Integrations implementing the port will have their OTel components added to the global
+// tracer during OTEL setup.
 type OtelIntegration interface {
 	Integration
 
-	// OtelComponents returns the OpenTelemetry span processor and propagator
-	// for this integration.
+	// OtelComponents returns the OpenTelemetry span processor and propagator for this
+	// integration.
 	//
-	// Called during OTEL setup to enable distributed tracing through the
-	// external service. Either or both return values may be nil if the
-	// integration doesn't provide that component.
+	// Called during OTEL setup to enable distributed tracing through the external service.
+	// Either or both return values may be nil if the integration doesn't provide that
+	// component.
 	OtelComponents() (processor SpanProcessor, propagator propagation.TextMapPropagator)
 }
 
@@ -101,11 +100,11 @@ var (
 
 // RegisterIntegration adds an integration to the registry.
 //
-// This is usually called by an integration package's init() function
-// to register itself when the package is imported.
+// This is usually called by an integration package's init() function to register itself
+// when the package is imported.
 //
-// When an integration with the same type is already registered, it is
-// replaced with the new one.
+// When an integration with the same type is already registered, it is replaced with the
+// new one.
 //
 // Takes integration (Integration) which is the integration to register.
 //
@@ -116,8 +115,8 @@ func RegisterIntegration(integration Integration) {
 	integrations[integration.Type()] = integration
 }
 
-// GetIntegration returns the registered integration for the given type name,
-// or nil if no integration with that type is registered.
+// GetIntegration returns the registered integration for the given type name, or nil if no
+// integration with that type is registered.
 //
 // Use this to check if an integration is available before trying to use it.
 //
@@ -132,8 +131,8 @@ func GetIntegration(typeName string) Integration {
 	return integrations[typeName]
 }
 
-// IsIntegrationAvailable reports whether an integration with the given type
-// name is registered.
+// IsIntegrationAvailable reports whether an integration with the given type name is
+// registered.
 //
 // Takes typeName (string) which specifies the integration type to look up.
 //
@@ -145,14 +144,12 @@ func IsIntegrationAvailable(typeName string) bool {
 // GetEnabledOtelIntegrations returns all registered integrations that implement
 // OtelIntegration and are in the provided list of enabled types.
 //
-// This is used during OTEL setup to collect components from all enabled
-// integrations.
+// This is used during OTEL setup to collect components from all enabled integrations.
 //
-// Takes enabledTypes ([]string) which specifies the integration type names to
-// retrieve.
+// Takes enabledTypes ([]string) which specifies the integration type names to retrieve.
 //
-// Returns []OtelIntegration which contains the matching integrations that
-// implement OtelIntegration.
+// Returns []OtelIntegration which contains the matching integrations that implement
+// OtelIntegration.
 //
 // Safe for concurrent use by multiple goroutines.
 func GetEnabledOtelIntegrations(enabledTypes []string) []OtelIntegration {

@@ -25,7 +25,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +44,7 @@ func TestMockRegistryService_UpsertArtefact(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpsertArtefactCallCount))
+		assert.Equal(t, int64(1), m.UpsertArtefactCallCount.Load())
 	})
 
 	t.Run("delegates to UpsertArtefactFunc", func(t *testing.T) {
@@ -64,7 +63,7 @@ func TestMockRegistryService_UpsertArtefact(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpsertArtefactCallCount))
+		assert.Equal(t, int64(1), m.UpsertArtefactCallCount.Load())
 	})
 
 	t.Run("propagates error from UpsertArtefactFunc", func(t *testing.T) {
@@ -94,7 +93,7 @@ func TestMockRegistryService_AddVariant(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.AddVariantCallCount))
+		assert.Equal(t, int64(1), m.AddVariantCallCount.Load())
 	})
 
 	t.Run("delegates to AddVariantFunc", func(t *testing.T) {
@@ -113,7 +112,7 @@ func TestMockRegistryService_AddVariant(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.AddVariantCallCount))
+		assert.Equal(t, int64(1), m.AddVariantCallCount.Load())
 	})
 
 	t.Run("propagates error from AddVariantFunc", func(t *testing.T) {
@@ -142,7 +141,7 @@ func TestMockRegistryService_DeleteArtefact(t *testing.T) {
 		err := m.DeleteArtefact(context.Background(), "art-1")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DeleteArtefactCallCount))
+		assert.Equal(t, int64(1), m.DeleteArtefactCallCount.Load())
 	})
 
 	t.Run("delegates to DeleteArtefactFunc", func(t *testing.T) {
@@ -157,7 +156,7 @@ func TestMockRegistryService_DeleteArtefact(t *testing.T) {
 		err := m.DeleteArtefact(context.Background(), "art-1")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DeleteArtefactCallCount))
+		assert.Equal(t, int64(1), m.DeleteArtefactCallCount.Load())
 	})
 
 	t.Run("propagates error from DeleteArtefactFunc", func(t *testing.T) {
@@ -186,7 +185,7 @@ func TestMockRegistryService_GetArtefact(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetArtefactCallCount))
+		assert.Equal(t, int64(1), m.GetArtefactCallCount.Load())
 	})
 
 	t.Run("delegates to GetArtefactFunc", func(t *testing.T) {
@@ -203,7 +202,7 @@ func TestMockRegistryService_GetArtefact(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetArtefactCallCount))
+		assert.Equal(t, int64(1), m.GetArtefactCallCount.Load())
 	})
 
 	t.Run("propagates error from GetArtefactFunc", func(t *testing.T) {
@@ -233,7 +232,7 @@ func TestMockRegistryService_GetMultipleArtefacts(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMultipleArtefactsCallCount))
+		assert.Equal(t, int64(1), m.GetMultipleArtefactsCallCount.Load())
 	})
 
 	t.Run("delegates to GetMultipleArtefactsFunc", func(t *testing.T) {
@@ -250,7 +249,7 @@ func TestMockRegistryService_GetMultipleArtefacts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetMultipleArtefactsCallCount))
+		assert.Equal(t, int64(1), m.GetMultipleArtefactsCallCount.Load())
 	})
 
 	t.Run("propagates error from GetMultipleArtefactsFunc", func(t *testing.T) {
@@ -280,7 +279,7 @@ func TestMockRegistryService_ListAllArtefactIDs(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ListAllArtefactIDsCallCount))
+		assert.Equal(t, int64(1), m.ListAllArtefactIDsCallCount.Load())
 	})
 
 	t.Run("delegates to ListAllArtefactIDsFunc", func(t *testing.T) {
@@ -296,7 +295,7 @@ func TestMockRegistryService_ListAllArtefactIDs(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ListAllArtefactIDsCallCount))
+		assert.Equal(t, int64(1), m.ListAllArtefactIDsCallCount.Load())
 	})
 
 	t.Run("propagates error from ListAllArtefactIDsFunc", func(t *testing.T) {
@@ -326,7 +325,7 @@ func TestMockRegistryService_SearchArtefacts(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SearchArtefactsCallCount))
+		assert.Equal(t, int64(1), m.SearchArtefactsCallCount.Load())
 	})
 
 	t.Run("delegates to SearchArtefactsFunc", func(t *testing.T) {
@@ -344,7 +343,7 @@ func TestMockRegistryService_SearchArtefacts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SearchArtefactsCallCount))
+		assert.Equal(t, int64(1), m.SearchArtefactsCallCount.Load())
 	})
 
 	t.Run("propagates error from SearchArtefactsFunc", func(t *testing.T) {
@@ -374,7 +373,7 @@ func TestMockRegistryService_SearchArtefactsByTagValues(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SearchArtefactsByTagValuesCallCount))
+		assert.Equal(t, int64(1), m.SearchArtefactsByTagValuesCallCount.Load())
 	})
 
 	t.Run("delegates to SearchArtefactsByTagValuesFunc", func(t *testing.T) {
@@ -392,7 +391,7 @@ func TestMockRegistryService_SearchArtefactsByTagValues(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SearchArtefactsByTagValuesCallCount))
+		assert.Equal(t, int64(1), m.SearchArtefactsByTagValuesCallCount.Load())
 	})
 
 	t.Run("propagates error from SearchArtefactsByTagValuesFunc", func(t *testing.T) {
@@ -422,7 +421,7 @@ func TestMockRegistryService_FindArtefactByVariantStorageKey(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FindArtefactByVariantStorageKeyCallCount))
+		assert.Equal(t, int64(1), m.FindArtefactByVariantStorageKeyCallCount.Load())
 	})
 
 	t.Run("delegates to FindArtefactByVariantStorageKeyFunc", func(t *testing.T) {
@@ -439,7 +438,7 @@ func TestMockRegistryService_FindArtefactByVariantStorageKey(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.FindArtefactByVariantStorageKeyCallCount))
+		assert.Equal(t, int64(1), m.FindArtefactByVariantStorageKeyCallCount.Load())
 	})
 
 	t.Run("propagates error from FindArtefactByVariantStorageKeyFunc", func(t *testing.T) {
@@ -469,7 +468,7 @@ func TestMockRegistryService_GetVariantData(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetVariantDataCallCount))
+		assert.Equal(t, int64(1), m.GetVariantDataCallCount.Load())
 	})
 
 	t.Run("delegates to GetVariantDataFunc", func(t *testing.T) {
@@ -487,7 +486,7 @@ func TestMockRegistryService_GetVariantData(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetVariantDataCallCount))
+		assert.Equal(t, int64(1), m.GetVariantDataCallCount.Load())
 	})
 
 	t.Run("propagates error from GetVariantDataFunc", func(t *testing.T) {
@@ -517,7 +516,7 @@ func TestMockRegistryService_GetVariantChunk(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetVariantChunkCallCount))
+		assert.Equal(t, int64(1), m.GetVariantChunkCallCount.Load())
 	})
 
 	t.Run("delegates to GetVariantChunkFunc", func(t *testing.T) {
@@ -536,7 +535,7 @@ func TestMockRegistryService_GetVariantChunk(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetVariantChunkCallCount))
+		assert.Equal(t, int64(1), m.GetVariantChunkCallCount.Load())
 	})
 
 	t.Run("propagates error from GetVariantChunkFunc", func(t *testing.T) {
@@ -566,7 +565,7 @@ func TestMockRegistryService_GetVariantDataRange(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetVariantDataRangeCallCount))
+		assert.Equal(t, int64(1), m.GetVariantDataRangeCallCount.Load())
 	})
 
 	t.Run("delegates to GetVariantDataRangeFunc", func(t *testing.T) {
@@ -586,7 +585,7 @@ func TestMockRegistryService_GetVariantDataRange(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetVariantDataRangeCallCount))
+		assert.Equal(t, int64(1), m.GetVariantDataRangeCallCount.Load())
 	})
 
 	t.Run("propagates error from GetVariantDataRangeFunc", func(t *testing.T) {
@@ -616,7 +615,7 @@ func TestMockRegistryService_GetBlobStore(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetBlobStoreCallCount))
+		assert.Equal(t, int64(1), m.GetBlobStoreCallCount.Load())
 	})
 
 	t.Run("delegates to GetBlobStoreFunc", func(t *testing.T) {
@@ -633,7 +632,7 @@ func TestMockRegistryService_GetBlobStore(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Same(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetBlobStoreCallCount))
+		assert.Equal(t, int64(1), m.GetBlobStoreCallCount.Load())
 	})
 
 	t.Run("propagates error from GetBlobStoreFunc", func(t *testing.T) {
@@ -663,7 +662,7 @@ func TestMockRegistryService_PopGCHints(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PopGCHintsCallCount))
+		assert.Equal(t, int64(1), m.PopGCHintsCallCount.Load())
 	})
 
 	t.Run("delegates to PopGCHintsFunc", func(t *testing.T) {
@@ -680,7 +679,7 @@ func TestMockRegistryService_PopGCHints(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, want, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PopGCHintsCallCount))
+		assert.Equal(t, int64(1), m.PopGCHintsCallCount.Load())
 	})
 
 	t.Run("propagates error from PopGCHintsFunc", func(t *testing.T) {
@@ -709,7 +708,7 @@ func TestMockRegistryService_ArtefactEventsPublished(t *testing.T) {
 		got := m.ArtefactEventsPublished()
 
 		assert.Equal(t, int64(0), got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ArtefactEventsPublishedCallCount))
+		assert.Equal(t, int64(1), m.ArtefactEventsPublishedCallCount.Load())
 	})
 
 	t.Run("delegates to ArtefactEventsPublishedFunc", func(t *testing.T) {
@@ -723,7 +722,7 @@ func TestMockRegistryService_ArtefactEventsPublished(t *testing.T) {
 		got := m.ArtefactEventsPublished()
 
 		assert.Equal(t, int64(42), got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ArtefactEventsPublishedCallCount))
+		assert.Equal(t, int64(1), m.ArtefactEventsPublishedCallCount.Load())
 	})
 }
 
@@ -859,19 +858,19 @@ func TestMockRegistryService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.UpsertArtefactCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.AddVariantCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DeleteArtefactCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetArtefactCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetMultipleArtefactsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ListAllArtefactIDsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SearchArtefactsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SearchArtefactsByTagValuesCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.FindArtefactByVariantStorageKeyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetVariantDataCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetVariantChunkCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetVariantDataRangeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetBlobStoreCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PopGCHintsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ArtefactEventsPublishedCallCount))
+	assert.Equal(t, int64(goroutines), m.UpsertArtefactCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.AddVariantCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DeleteArtefactCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetArtefactCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetMultipleArtefactsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ListAllArtefactIDsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SearchArtefactsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SearchArtefactsByTagValuesCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.FindArtefactByVariantStorageKeyCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetVariantDataCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetVariantChunkCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetVariantDataRangeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetBlobStoreCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.PopGCHintsCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ArtefactEventsPublishedCallCount.Load())
 }

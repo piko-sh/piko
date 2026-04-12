@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package resolver_domain defines the port interfaces for import path
-// resolution.
+// Package resolver_domain defines the port interfaces for import path resolution.
 //
-// It defines the [ResolverPort] interface for mapping Piko import paths
-// (components, CSS, assets) to absolute filesystem paths, handling Go module
-// detection, the @ alias for local module references, and external module
-// resolution via GOMODCACHE.
+// It defines the [ResolverPort] interface for mapping Piko import paths (components, CSS,
+// assets) to absolute filesystem paths, handling Go module detection, the @ alias for
+// local module references, and external module resolution via GOMODCACHE.
 //
 // # Import path formats
 //
@@ -39,6 +37,6 @@
 //
 //	@/partials/card.pk -> example.com/myorg/myproject/partials/card.pk
 //
-// Resolution is relative to the file containing the import. This guarantees
-// correct behaviour when importing from external modules that also use @.
+// Resolution is relative to the file containing the import. This guarantees correct
+// behaviour when importing from external modules that also use @.
 package resolver_domain

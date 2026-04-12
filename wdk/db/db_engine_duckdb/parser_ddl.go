@@ -26,13 +26,27 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// typeNormaliser is a narrow interface used by column-type parsing to resolve
-// raw SQL type names into structured SQLType values. The DuckDBEngine satisfies
-// this interface once it is defined.
+// typeNormaliser narrows column-type parsing to a single dependency: resolving raw SQL
+// type names into structured SQLType values. The DuckDBEngine satisfies the interface
+// once defined.
 type typeNormaliser interface {
+	// NormaliseTypeName resolves a raw SQL type name to a structured SQLType.
+	//
+	// Takes name (string) which is the raw type name as written.
+	// Takes modifiers (...int) which holds the numeric type modifiers, such as precision and
+	// scale.
+	//
+	// Returns querier_dto.SQLType which is the normalised type.
 	NormaliseTypeName(name string, modifiers ...int) querier_dto.SQLType
 }
 
+// parseCreateTable parses a CREATE TABLE statement into a mutation.
+//
+// Takes engine (typeNormaliser) which resolves raw column type names.
+//
+// Returns *querier_dto.CatalogueMutation which describes the table to create, including
+// columns, primary key, and constraints.
+// Returns error when the table name or body cannot be parsed.
 func (p *parser) parseCreateTable(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 
@@ -81,6 +95,17 @@ func (p *parser) parseCreateTable(engine typeNormaliser) (*querier_dto.Catalogue
 	}, nil
 }
 
+// parseCreateTableBody walks the parenthesised column and constraint list of a CREATE
+// TABLE statement.
+//
+// Takes engine (typeNormaliser) which resolves raw column type names.
+//
+// Returns []querier_dto.Column which is the parsed column list.
+// Returns []string which is the primary key column list, derived from either column-level
+// PRIMARY KEY or a table-level constraint.
+// Returns []querier_dto.Constraint which is the list of table-level constraints other
+// than the primary key.
+// Returns error when a column or constraint cannot be parsed.
 func (p *parser) parseCreateTableBody(
 	engine typeNormaliser,
 ) ([]querier_dto.Column, []string, []querier_dto.Constraint, error) {
@@ -119,18 +144,27 @@ func (p *parser) parseCreateTableBody(
 	return columns, primaryKeyColumns, constraints, nil
 }
 
+// skipToStatementEnd advances tokens until a semicolon or EOF.
 func (p *parser) skipToStatementEnd() {
 	for !p.atEnd() && p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
 		p.advance()
 	}
 }
 
+// skipComma consumes a single comma when the current token is one.
 func (p *parser) skipComma() {
 	if p.current().kind == tokenComma {
 		p.advance()
 	}
 }
 
+// appendConstraintPrimaryKey replaces existing when candidate has columns, mirroring
+// "last declared wins" semantics.
+//
+// Takes existing ([]string) which is the current primary key column list.
+// Takes candidate ([]string) which is the columns from a newly parsed constraint.
+//
+// Returns []string which is candidate when non-empty, else existing.
 func appendConstraintPrimaryKey(existing, candidate []string) []string {
 	if len(candidate) > 0 {
 		return candidate
@@ -138,6 +172,12 @@ func appendConstraintPrimaryKey(existing, candidate []string) []string {
 	return existing
 }
 
+// appendConstraint appends constraint to constraints when non-nil.
+//
+// Takes constraints ([]querier_dto.Constraint) which is the existing constraint list.
+// Takes constraint (*querier_dto.Constraint) which is the newly parsed constraint or nil.
+//
+// Returns []querier_dto.Constraint which is the updated list.
 func appendConstraint(constraints []querier_dto.Constraint, constraint *querier_dto.Constraint) []querier_dto.Constraint {
 	if constraint != nil {
 		return append(constraints, *constraint)
@@ -145,6 +185,15 @@ func appendConstraint(constraints []querier_dto.Constraint, constraint *querier_
 	return constraints
 }
 
+// parseDuckDBColumnDefinition parses a single column definition, including its type,
+// array suffix, and constraint suffixes.
+//
+// Takes engine (typeNormaliser) which resolves the raw type name.
+//
+// Returns querier_dto.Column which is the parsed column descriptor.
+// Returns bool which is true when the column-level PRIMARY KEY constraint applied to this
+// column.
+// Returns error when the column name cannot be parsed.
 func (p *parser) parseDuckDBColumnDefinition(engine typeNormaliser) (querier_dto.Column, bool, error) {
 	name, err := p.parseIdentifierOrKeyword()
 	if err != nil {
@@ -166,6 +215,13 @@ func (p *parser) parseDuckDBColumnDefinition(engine typeNormaliser) (querier_dto
 	return column, isPrimaryKey, nil
 }
 
+// parseColumnConstraints reads zero or more column-level constraint suffixes, mutating
+// column in place.
+//
+// Takes column (*querier_dto.Column) which receives nullability, default, and generated
+// state.
+//
+// Returns bool which is true when a PRIMARY KEY suffix was seen.
 func (p *parser) parseColumnConstraints(column *querier_dto.Column) bool {
 	isPrimaryKey := false
 
@@ -182,6 +238,13 @@ func (p *parser) parseColumnConstraints(column *querier_dto.Column) bool {
 	return isPrimaryKey
 }
 
+// parseOneDuckDBColumnConstraint consumes one column-level constraint when the current
+// token introduces one.
+//
+// Takes column (*querier_dto.Column) which is mutated according to the constraint.
+//
+// Returns isPrimary (bool) which is true when PRIMARY KEY was seen.
+// Returns handled (bool) which is true when a constraint was consumed.
 func (p *parser) parseOneDuckDBColumnConstraint(column *querier_dto.Column) (isPrimary bool, handled bool) {
 	if p.matchKeyword(keywordPRIMARY) {
 		p.matchKeyword(keywordKEY)
@@ -221,6 +284,12 @@ func (p *parser) parseOneDuckDBColumnConstraint(column *querier_dto.Column) (isP
 	return false, p.parseDuckDBSecondaryConstraint(column)
 }
 
+// parseDuckDBSecondaryConstraint handles the less common column-level constraints
+// (REFERENCES, GENERATED, COLLATE, CONSTRAINT).
+//
+// Takes column (*querier_dto.Column) which is mutated as appropriate.
+//
+// Returns bool which is true when a constraint was consumed.
 func (p *parser) parseDuckDBSecondaryConstraint(column *querier_dto.Column) bool {
 	if p.matchKeyword("REFERENCES") {
 		p.skipDuckDBForeignKeyClause()
@@ -245,6 +314,11 @@ func (p *parser) parseDuckDBSecondaryConstraint(column *querier_dto.Column) bool
 	return false
 }
 
+// parseGeneratedClause parses the GENERATED ALWAYS or GENERATED BY DEFAULT clause on a
+// column.
+//
+// Takes column (*querier_dto.Column) which is mutated when a generated or identity clause
+// is recognised.
 func (p *parser) parseGeneratedClause(column *querier_dto.Column) {
 	if p.matchKeyword("ALWAYS") {
 		p.parseGeneratedAlways(column)
@@ -261,6 +335,10 @@ func (p *parser) parseGeneratedClause(column *querier_dto.Column) {
 	}
 }
 
+// parseGeneratedAlways parses the body of a GENERATED ALWAYS AS clause, recognising both
+// identity and stored expression variants.
+//
+// Takes column (*querier_dto.Column) which receives the identity or generated state.
 func (p *parser) parseGeneratedAlways(column *querier_dto.Column) {
 	if !p.matchKeyword(keywordAS) {
 		return
@@ -281,6 +359,13 @@ func (p *parser) parseGeneratedAlways(column *querier_dto.Column) {
 	}
 }
 
+// parseColumnType reads a column's type, transparently unwrapping a leading SETOF
+// keyword.
+//
+// Takes engine (typeNormaliser) which resolves the raw type name.
+//
+// Returns querier_dto.SQLType which is the parsed type.
+// Returns int which is the array dimension count appended via [] or [N] suffixes.
 func (p *parser) parseColumnType(engine typeNormaliser) (querier_dto.SQLType, int) {
 	if p.matchKeyword("SETOF") {
 		sqlType, dimensions := p.parseColumnTypeInner(engine)
@@ -290,6 +375,13 @@ func (p *parser) parseColumnType(engine typeNormaliser) (querier_dto.SQLType, in
 	return p.parseColumnTypeInner(engine)
 }
 
+// parseColumnTypeInner does the bulk of column-type parsing, handling compound types,
+// schema-qualified names, multi-word built-ins, and type modifiers.
+//
+// Takes engine (typeNormaliser) which resolves the raw type name.
+//
+// Returns querier_dto.SQLType which is the parsed type.
+// Returns int which is the array dimension count parsed from [] or [N] suffixes.
 func (p *parser) parseColumnTypeInner(engine typeNormaliser) (querier_dto.SQLType, int) {
 	if p.current().kind != tokenIdentifier {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, 0
@@ -341,6 +433,9 @@ func (p *parser) parseColumnTypeInner(engine typeNormaliser) (querier_dto.SQLTyp
 	return sqlType, arrayDimensions
 }
 
+// parseArrayDimensions counts consecutive [] or [N] suffixes after a type name.
+//
+// Returns int which is the number of array dimensions consumed.
 func (p *parser) parseArrayDimensions() int {
 	dimensions := 0
 	for p.current().kind == tokenLeftBracket {
@@ -356,6 +451,12 @@ func (p *parser) parseArrayDimensions() int {
 	return dimensions
 }
 
+// isMultiWordTypePrefix reports whether lower introduces a built-in type spelled across
+// several keywords.
+//
+// Takes lower (string) which is the candidate first keyword lower-cased.
+//
+// Returns bool which is true for double, character, timestamp, time.
 func isMultiWordTypePrefix(lower string) bool {
 	switch lower {
 	case "double", "character", "timestamp", "time":
@@ -364,6 +465,12 @@ func isMultiWordTypePrefix(lower string) bool {
 	return false
 }
 
+// consumeMultiWordType reads the trailing keywords of a multi-word built-in type.
+//
+// Takes lower (string) which is the first keyword lower-cased.
+//
+// Returns string which is the full canonical type spelling such as "double precision" or
+// "timestamp with time zone".
 func (p *parser) consumeMultiWordType(lower string) string {
 	switch lower {
 	case "double":
@@ -388,6 +495,12 @@ func (p *parser) consumeMultiWordType(lower string) string {
 	return lower
 }
 
+// consumeTemporalZoneSuffix reads an optional WITH/WITHOUT TIME ZONE suffix following a
+// temporal type keyword.
+//
+// Takes base (string) which is the base type name to extend.
+//
+// Returns string which is base, possibly extended with the zone suffix.
 func (p *parser) consumeTemporalZoneSuffix(base string) string {
 	if p.matchKeyword(keywordWITH) {
 		p.matchKeyword(keywordTIME)
@@ -402,6 +515,11 @@ func (p *parser) consumeTemporalZoneSuffix(base string) string {
 	return base
 }
 
+// parseTypeModifiers reads the parenthesised numeric modifier list of a type, such as the
+// (10, 2) on numeric(10, 2).
+//
+// Returns []int which is the parsed modifier list, or nil when no parenthesised group is
+// present.
 func (p *parser) parseTypeModifiers() []int {
 	if p.current().kind != tokenLeftParen {
 		return nil
@@ -428,11 +546,21 @@ func (p *parser) parseTypeModifiers() []int {
 	return modifiers
 }
 
+// isDuckDBColumnConstraintKeyword reports whether the current token introduces a
+// column-level constraint.
+//
+// Returns bool which is true when the token matches any column constraint keyword
+// recognised by the parser.
 func (p *parser) isDuckDBColumnConstraintKeyword() bool {
 	return p.isAnyKeyword(keywordPRIMARY, keywordNOT, keywordNULL, keywordUNIQUE, keywordCHECK, keywordDEFAULT,
 		"COLLATE", "REFERENCES", "GENERATED", keywordCONSTRAINT)
 }
 
+// isDuckDBTableConstraint reports whether the current token starts a table-level
+// constraint declaration.
+//
+// Returns bool which is true for CONSTRAINT, PRIMARY KEY, UNIQUE (with open paren),
+// CHECK, or FOREIGN.
 func (p *parser) isDuckDBTableConstraint() bool {
 	if p.isKeyword(keywordCONSTRAINT) {
 		return true
@@ -457,6 +585,14 @@ func (p *parser) isDuckDBTableConstraint() bool {
 	return false
 }
 
+// parseDuckDBTableConstraint parses one table-level constraint and returns either its
+// primary key columns or the constraint record.
+//
+// Returns []string which is the primary key column list when the constraint is a PRIMARY
+// KEY, else nil.
+// Returns *querier_dto.Constraint which is the parsed constraint for UNIQUE, CHECK, or
+// FOREIGN KEY, else nil.
+// Returns error when sub-parsing fails.
 func (p *parser) parseDuckDBTableConstraint() ([]string, *querier_dto.Constraint, error) {
 	constraintName := p.parseOptionalConstraintName()
 
@@ -477,6 +613,9 @@ func (p *parser) parseDuckDBTableConstraint() ([]string, *querier_dto.Constraint
 	return nil, nil, nil
 }
 
+// parseOptionalConstraintName consumes an optional CONSTRAINT name prefix.
+//
+// Returns string which is the constraint name when present, else empty.
 func (p *parser) parseOptionalConstraintName() string {
 	if !p.matchKeyword(keywordCONSTRAINT) {
 		return ""
@@ -488,6 +627,12 @@ func (p *parser) parseOptionalConstraintName() string {
 	return name
 }
 
+// parseTablePrimaryKey parses a table-level PRIMARY KEY constraint.
+//
+// Returns []string which is the primary key column list.
+// Returns *querier_dto.Constraint which is always nil for the primary key constraint
+// kind.
+// Returns error when the column list cannot be parsed.
 func (p *parser) parseTablePrimaryKey() ([]string, *querier_dto.Constraint, error) {
 	p.matchKeyword(keywordKEY)
 	if p.current().kind != tokenLeftParen {
@@ -500,6 +645,15 @@ func (p *parser) parseTablePrimaryKey() ([]string, *querier_dto.Constraint, erro
 	return columns, nil, nil
 }
 
+// parseTableUnique parses a table-level UNIQUE constraint.
+//
+// Takes constraintName (string) which is the optional CONSTRAINT prefix name.
+//
+// Returns []string which is always nil because UNIQUE columns live on the constraint
+// record.
+// Returns *querier_dto.Constraint which is the parsed UNIQUE constraint, or nil when no
+// column list follows.
+// Returns error when the column list cannot be parsed.
 func (p *parser) parseTableUnique(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, nil, nil
@@ -515,6 +669,13 @@ func (p *parser) parseTableUnique(constraintName string) ([]string, *querier_dto
 	}, nil
 }
 
+// parseTableCheck parses a table-level CHECK constraint and skips its expression.
+//
+// Takes constraintName (string) which is the optional CONSTRAINT prefix name.
+//
+// Returns []string which is always nil for CHECK constraints.
+// Returns *querier_dto.Constraint which is the CHECK constraint record.
+// Returns error which is always nil currently but kept for symmetry.
 func (p *parser) parseTableCheck(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
@@ -525,6 +686,14 @@ func (p *parser) parseTableCheck(constraintName string) ([]string, *querier_dto.
 	}, nil
 }
 
+// parseTableForeignKey parses a table-level FOREIGN KEY constraint.
+//
+// Takes constraintName (string) which is the optional CONSTRAINT prefix name.
+//
+// Returns []string which is always nil for foreign key constraints.
+// Returns *querier_dto.Constraint which is the foreign key constraint record including
+// the referenced table and columns.
+// Returns error when sub-parsing fails.
 func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	p.matchKeyword(keywordKEY)
 	var columns []string
@@ -545,6 +714,12 @@ func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier
 	}, nil
 }
 
+// parseDuckDBForeignKeyReference parses the REFERENCES clause that follows a FOREIGN KEY
+// column list.
+//
+// Returns string which is the referenced table name, or empty when the reference cannot
+// be parsed.
+// Returns []string which is the referenced column list, or nil when none was given.
 func (p *parser) parseDuckDBForeignKeyReference() (string, []string) {
 	if !p.matchKeyword("REFERENCES") {
 		p.skipDuckDBForeignKeyClause()
@@ -566,6 +741,11 @@ func (p *parser) parseDuckDBForeignKeyReference() (string, []string) {
 	return tableName, columns
 }
 
+// parseDuckDBColumnList parses a parenthesised, comma-separated list of column names with
+// optional ordering and COLLATE clauses.
+//
+// Returns []string which is the parsed column name list.
+// Returns error when no opening parenthesis is found or a name cannot be parsed.
 func (p *parser) parseDuckDBColumnList() ([]string, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, errors.New("expected '('")
@@ -598,6 +778,8 @@ func (p *parser) parseDuckDBColumnList() ([]string, error) {
 	return columns, nil
 }
 
+// skipDuckDBDefaultValue advances past the expression following DEFAULT, stopping at a
+// top-level comma or the next constraint keyword.
 func (p *parser) skipDuckDBDefaultValue() {
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
@@ -629,6 +811,8 @@ func (p *parser) skipDuckDBDefaultValue() {
 	}
 }
 
+// skipDuckDBForeignKeyClause skips the optional REFERENCES tail and trailing
+// ON/MATCH/DEFERRABLE/INITIALLY modifier clauses.
 func (p *parser) skipDuckDBForeignKeyClause() {
 	if p.current().kind == tokenIdentifier {
 		p.mustSchemaQualifiedName()
@@ -645,6 +829,10 @@ func (p *parser) skipDuckDBForeignKeyClause() {
 	}
 }
 
+// parseDropTable parses a DROP TABLE statement into a mutation.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop.
+// Returns error when the table name cannot be parsed.
 func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword(keywordTABLE)
@@ -666,6 +854,15 @@ func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseAlterTable parses an ALTER TABLE statement and dispatches to the matching variant
+// parser.
+//
+// Takes engine (typeNormaliser) which resolves column type names for ALTER TABLE ADD
+// COLUMN.
+//
+// Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when no
+// recognised ALTER subcommand follows.
+// Returns error when the target table name or subcommand cannot be parsed.
 func (p *parser) parseAlterTable(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword("ALTER")
 	p.mustKeyword(keywordTABLE)
@@ -696,6 +893,15 @@ func (p *parser) parseAlterTable(engine typeNormaliser) (*querier_dto.CatalogueM
 	return nil, nil
 }
 
+// parseAlterTableAdd parses the body of ALTER TABLE ... ADD ..., for either a constraint
+// or a new column.
+//
+// Takes engine (typeNormaliser) which resolves column type names.
+// Takes schema (string) which is the target table's schema.
+// Takes tableName (string) which is the target table's name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the addition.
+// Returns error when the constraint or column cannot be parsed.
 func (p *parser) parseAlterTableAdd(
 	engine typeNormaliser, schema, tableName string,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -729,6 +935,14 @@ func (p *parser) parseAlterTableAdd(
 	}, nil
 }
 
+// parseAlterTableDrop parses the body of ALTER TABLE ... DROP ..., for either a column or
+// a constraint.
+//
+// Takes schema (string) which is the target table's schema.
+// Takes tableName (string) which is the target table's name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop.
+// Returns error when the identifier cannot be parsed.
 func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword(keywordCONSTRAINT) {
 		p.skipIfExists()
@@ -759,6 +973,14 @@ func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.Cat
 	}, nil
 }
 
+// parseAlterTableAlterColumn parses ALTER TABLE ... ALTER COLUMN, only extracting the
+// target column name; trailing options are ignored.
+//
+// Takes schema (string) which is the target table's schema.
+// Takes tableName (string) which is the target table's name.
+//
+// Returns *querier_dto.CatalogueMutation which records the column being altered.
+// Returns error when the column name cannot be parsed.
 func (p *parser) parseAlterTableAlterColumn(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCOLUMN)
 	columnName, nameError := p.parseIdentifierOrKeyword()
@@ -773,6 +995,14 @@ func (p *parser) parseAlterTableAlterColumn(schema, tableName string) (*querier_
 	}, nil
 }
 
+// parseAlterTableRename parses ALTER TABLE ... RENAME for both the table itself and
+// individual columns.
+//
+// Takes schema (string) which is the target table's schema.
+// Takes tableName (string) which is the target table's name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the rename.
+// Returns error when any identifier cannot be parsed.
 func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword("TO") {
 		newName, nameError := p.parseIdentifierOrKeyword()
@@ -806,6 +1036,15 @@ func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.C
 	}, nil
 }
 
+// parseAlterTableSet parses ALTER TABLE ... SET ..., currently only the SET SCHEMA
+// variant.
+//
+// Takes schema (string) which is the target table's schema.
+// Takes tableName (string) which is the target table's name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the schema change, or nil when
+// SET is followed by an unsupported option.
+// Returns error when the new schema name cannot be parsed.
 func (p *parser) parseAlterTableSet(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword(keywordSCHEMA) {
 		newSchema, schemaError := p.parseIdentifierOrKeyword()
@@ -822,6 +1061,12 @@ func (p *parser) parseAlterTableSet(schema, tableName string) (*querier_dto.Cata
 	return nil, nil
 }
 
+// parseCreateView parses a CREATE VIEW statement and analyses the view body when AS is
+// present.
+//
+// Returns *querier_dto.CatalogueMutation which describes the view to create, including
+// its analysed query when one is available.
+// Returns error when the view name or column list cannot be parsed.
 func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 
@@ -865,12 +1110,19 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 	return mutation, nil
 }
 
+// skipOrReplace consumes an optional OR REPLACE prefix.
 func (p *parser) skipOrReplace() {
 	if p.matchKeyword("OR") {
 		p.matchKeyword("REPLACE")
 	}
 }
 
+// analyseViewBody runs the SELECT analyser over the tokens following a view's AS keyword.
+//
+// Takes columnNames ([]string) which is the optional column overlay declared on the view.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the analysed body, or nil when analysis
+// fails or no tokens remain.
 func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnalysis {
 	remainingTokens := p.tokens[p.position:]
 	if len(remainingTokens) == 0 {
@@ -890,6 +1142,11 @@ func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnal
 	return viewAnalysis
 }
 
+// overlayViewColumnNames replaces the analysed output column names with the explicit view
+// column list, preserving expression metadata.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which is mutated in place.
+// Takes columnNames ([]string) which is the view's declared columns.
 func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
 	for columnIndex, name := range columnNames {
 		column := querier_dto.RawOutputColumn{Name: name}
@@ -903,6 +1160,13 @@ func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames 
 	analysis.OutputColumns = analysis.OutputColumns[:len(columnNames)]
 }
 
+// columnsFromNames builds placeholder column descriptors for a view's declared column
+// list when no analysed query is available.
+//
+// Takes names ([]string) which is the declared column name list.
+//
+// Returns []querier_dto.Column which is the placeholder column slice, or nil when names
+// is empty.
 func columnsFromNames(names []string) []querier_dto.Column {
 	if len(names) == 0 {
 		return nil
@@ -919,6 +1183,10 @@ func columnsFromNames(names []string) []querier_dto.Column {
 	return columns
 }
 
+// parseDropView parses a DROP VIEW statement into a mutation.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop.
+// Returns error when the view name cannot be parsed.
 func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 
@@ -938,6 +1206,15 @@ func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// tryParseCompoundType dispatches struct, map, union, list, and array type parsers when
+// lower names one of those compound forms.
+//
+// Takes engine (typeNormaliser) which resolves nested type names.
+// Takes lower (string) which is the candidate compound type keyword lower-cased.
+//
+// Returns querier_dto.SQLType which is the parsed compound type when matched, else the
+// zero value.
+// Returns bool which is true when a compound type was parsed.
 func (p *parser) tryParseCompoundType(engine typeNormaliser, lower string) (querier_dto.SQLType, bool) {
 	switch lower {
 	case "struct":
@@ -953,8 +1230,15 @@ func (p *parser) tryParseCompoundType(engine typeNormaliser, lower string) (quer
 	}
 }
 
-// parseNamedTypeList parses a parenthesised, comma-separated list of "name type" pairs
-// and returns them as parallel slices. Used by struct and union type parsers.
+// parseNamedTypeList parses a parenthesised list of "name type" pairs.
+//
+// Used by struct and union type parsers, which both expect parallel slices of names and
+// SQL types.
+//
+// Takes engine (typeNormaliser) which resolves each field's type.
+//
+// Returns []string which is the parsed field name list.
+// Returns []querier_dto.SQLType which is the parallel field type list.
 func (p *parser) parseNamedTypeList(engine typeNormaliser) ([]string, []querier_dto.SQLType) {
 	p.advance()
 
@@ -980,6 +1264,11 @@ func (p *parser) parseNamedTypeList(engine typeNormaliser) ([]string, []querier_
 	return names, types
 }
 
+// parseStructType parses a STRUCT(...) compound type into its field list.
+//
+// Takes engine (typeNormaliser) which resolves each field's type.
+//
+// Returns querier_dto.SQLType which is the struct type with its fields populated.
 func (p *parser) parseStructType(engine typeNormaliser) querier_dto.SQLType {
 	names, types := p.parseNamedTypeList(engine)
 
@@ -998,6 +1287,11 @@ func (p *parser) parseStructType(engine typeNormaliser) querier_dto.SQLType {
 	}
 }
 
+// parseMapType parses a MAP(key, value) compound type.
+//
+// Takes engine (typeNormaliser) which resolves the key and value types.
+//
+// Returns querier_dto.SQLType which is the map type with both type pointers populated.
 func (p *parser) parseMapType(engine typeNormaliser) querier_dto.SQLType {
 	p.advance()
 
@@ -1021,6 +1315,11 @@ func (p *parser) parseMapType(engine typeNormaliser) querier_dto.SQLType {
 	}
 }
 
+// parseUnionType parses a UNION(...) compound type into its tagged members.
+//
+// Takes engine (typeNormaliser) which resolves each member's type.
+//
+// Returns querier_dto.SQLType which is the union type with members populated.
 func (p *parser) parseUnionType(engine typeNormaliser) querier_dto.SQLType {
 	names, types := p.parseNamedTypeList(engine)
 
@@ -1039,6 +1338,11 @@ func (p *parser) parseUnionType(engine typeNormaliser) querier_dto.SQLType {
 	}
 }
 
+// parseListType parses a LIST(element) or ARRAY(element) compound type.
+//
+// Takes engine (typeNormaliser) which resolves the element type.
+//
+// Returns querier_dto.SQLType which is the array type with its element type populated.
 func (p *parser) parseListType(engine typeNormaliser) querier_dto.SQLType {
 	p.advance()
 

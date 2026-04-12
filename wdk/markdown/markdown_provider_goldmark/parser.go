@@ -24,8 +24,8 @@ import (
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark-meta"
 	gmast "github.com/yuin/goldmark/ast"
-	exast "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/extension"
+	exast "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 
@@ -35,22 +35,23 @@ import (
 	"piko.sh/piko/internal/markdown/markdown_domain"
 )
 
-// Parser implements markdown_domain.MarkdownParserPort using the Goldmark
-// library. It parses markdown with Goldmark, then converts the goldmark AST
-// to piko-native AST types.
+// Parser implements markdown_domain.MarkdownParserPort using the Goldmark library. It
+// parses markdown with Goldmark, then converts the goldmark AST to piko-native AST types.
 type Parser struct {
 	// goldmark is the Goldmark Markdown parser used to parse document content.
 	goldmark goldmark.Markdown
 }
 
-var _ markdown_domain.MarkdownParserPort = (*Parser)(nil)
+var (
+	_ markdown_domain.MarkdownParserPort = (*Parser)(nil)
+)
 
-// NewParser creates a new Goldmark-based parser configured with GFM,
-// footnotes, fenced containers, and metadata support. Built-in extensions
-// are always included alongside any additional extensions provided.
+// NewParser creates a new Goldmark-based parser configured with GFM, footnotes, fenced
+// containers, and metadata support. Built-in extensions are always included alongside any
+// additional extensions provided.
 //
-// Takes additionalExtensions (...goldmark.Extender) which provides optional
-// extensions such as syntax highlighting.
+// Takes additionalExtensions (...goldmark.Extender) which provides optional extensions
+// such as syntax highlighting.
 //
 // Returns *Parser which is ready to parse Markdown content.
 func NewParser(additionalExtensions ...goldmark.Extender) *Parser {
@@ -69,14 +70,13 @@ func NewParser(additionalExtensions ...goldmark.Extender) *Parser {
 	return &Parser{goldmark: gm}
 }
 
-// Parse parses markdown content into a piko-native AST and extracts YAML
-// frontmatter metadata.
+// Parse parses markdown content into a piko-native AST and extracts YAML frontmatter
+// metadata.
 //
 // Takes content ([]byte) which is the raw markdown text to parse.
 //
 // Returns doc (*markdown_ast.Document) which is the root of the parsed AST.
-// Returns frontmatter (map[string]any) which contains the extracted YAML
-// metadata.
+// Returns frontmatter (map[string]any) which contains the extracted YAML metadata.
 // Returns err (error) which is always nil for this implementation.
 func (p *Parser) Parse(_ context.Context, content []byte) (doc *markdown_ast.Document, frontmatter map[string]any, err error) {
 	pctx := parser.NewContext()
@@ -174,8 +174,8 @@ func (p *Parser) convertBlockNode(gmNode gmast.Node, source []byte) (markdown_as
 	}
 }
 
-// convertHeading converts a goldmark heading to a piko heading, preserving
-// the heading ID attribute when present.
+// convertHeading converts a goldmark heading to a piko heading, preserving the heading ID
+// attribute when present.
 //
 // Takes n (*gmast.Heading) which is the goldmark heading node.
 // Takes source ([]byte) which is the original markdown source text.
@@ -196,8 +196,8 @@ func (p *Parser) convertHeading(n *gmast.Heading, source []byte) *markdown_ast.H
 	return heading
 }
 
-// convertFencedCodeBlock converts a goldmark fenced code block, collecting
-// the language, info string, and content lines.
+// convertFencedCodeBlock converts a goldmark fenced code block, collecting the language,
+// info string, and content lines.
 //
 // Takes n (*gmast.FencedCodeBlock) which is the goldmark code block node.
 // Takes source ([]byte) which is the original markdown source text.
@@ -286,8 +286,8 @@ func (p *Parser) convertInlineNode(gmNode gmast.Node, source []byte) (markdown_a
 	}
 }
 
-// convertRawHTML converts a goldmark raw HTML node, collecting its source
-// segments and content.
+// convertRawHTML converts a goldmark raw HTML node, collecting its source segments and
+// content.
 //
 // Takes n (*gmast.RawHTML) which is the goldmark raw HTML node.
 // Takes source ([]byte) which is the original markdown source text.
@@ -358,8 +358,8 @@ func (p *Parser) convertExtensionNode(gmNode gmast.Node, source []byte) (markdow
 	}
 }
 
-// convertFallbackNode handles unknown goldmark node types by wrapping them
-// in the most appropriate piko container so children are not lost.
+// convertFallbackNode handles unknown goldmark node types by wrapping them in the most
+// appropriate piko container so children are not lost.
 //
 // Takes gmNode (gmast.Node) which is the unrecognised goldmark node.
 // Takes source ([]byte) which is the original markdown source text.
@@ -383,8 +383,8 @@ func (p *Parser) convertFallbackNode(gmNode gmast.Node, source []byte) markdown_
 	}
 }
 
-// convertChildren recursively converts all children of a goldmark node and
-// appends them to the piko parent.
+// convertChildren recursively converts all children of a goldmark node and appends them
+// to the piko parent.
 //
 // Takes gmNode (gmast.Node) which is the goldmark parent node.
 // Takes source ([]byte) which is the original markdown source text.
@@ -395,8 +395,8 @@ func (p *Parser) convertChildren(gmNode gmast.Node, source []byte, parent markdo
 	}
 }
 
-// copyLines transfers source line segments from a goldmark node to a piko
-// node so that location mapping is preserved.
+// copyLines transfers source line segments from a goldmark node to a piko node so that
+// location mapping is preserved.
 //
 // Takes gmNode (gmast.Node) which is the source goldmark node.
 // Takes pikoNode (markdown_ast.Node) which receives the line segments.

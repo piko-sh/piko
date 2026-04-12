@@ -36,49 +36,48 @@ import (
 )
 
 const (
-	// filePermissions is the Unix file mode for dead letter files (owner read and
-	// write only).
+	// filePermissions is the Unix file mode for dead letter files (owner read and write
+	// only).
 	filePermissions = 0o600
 
 	// errReadingDeadLetter is the error format for failed dead letter file reads.
 	errReadingDeadLetter = "reading dead letter file: %w"
 
-	// defaultMaxDLQBytes caps the on-disk size of a dead-letter file at
-	// 256 MiB.
+	// defaultMaxDLQBytes caps the on-disk size of a dead-letter file at 256 MiB.
 	//
-	// Callers can override via WithMaxDLQBytes. The default protects
-	// against a runaway producer turning the DLQ into a liability.
+	// Callers can override via WithMaxDLQBytes. The default protects against a runaway
+	// producer turning the DLQ into a liability.
 	defaultMaxDLQBytes int64 = 256 * 1024 * 1024
 )
 
-// ErrDLQFull is returned by Add when the dead-letter file already exceeds the
-// configured maximum size. Callers should treat this as a backpressure signal
-// rather than a transient error: log the dropped entry and surface a monitoring
-// alert so an operator can drain the queue.
-var ErrDLQFull = errors.New("dead-letter queue exceeded maximum size")
+var (
+	// ErrDLQFull is returned by Add when the dead-letter file already exceeds the configured
+	// maximum size. Callers should treat this as a backpressure signal rather than a
+	// transient error: log the dropped entry and surface a monitoring alert so an operator
+	// can drain the queue.
+	ErrDLQFull = errors.New("dead-letter queue exceeded maximum size")
 
-// newlineSeparator is the byte slice used to delimit JSON lines entries in
-// dead letter files.
-var newlineSeparator = []byte("\n")
+	// newlineSeparator is the byte slice used to delimit JSON lines entries in dead letter
+	// files.
+	newlineSeparator = []byte("\n")
+)
 
-// DiskDeadLetterQueue is a generic disk-based dead letter queue using JSON
-// lines format. Entries are appended in O(1) writes and the file is bounded
-// by maxBytes to prevent unbounded growth from a misbehaving producer.
+// DiskDeadLetterQueue is a generic disk-based dead letter queue using JSON lines format.
+// Entries are appended in O(1) writes and the file is bounded by maxBytes to prevent
+// unbounded growth from a misbehaving producer.
 type DiskDeadLetterQueue[T any] struct {
-	// sandboxFactory creates sandboxes when no sandbox is directly injected.
-	// When non-nil and sandbox is nil, this factory is used instead of
-	// safedisk.NewNoOpSandbox.
+	// sandboxFactory creates sandboxes when no sandbox is directly injected. When non-nil
+	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
-	// sandbox provides file system access for reading and writing dead letter
-	// files.
+	// sandbox provides file system access for reading and writing dead letter files.
 	sandbox safedisk.Sandbox
 
 	// fileName is the base name for the dead letter file within the sandbox.
 	fileName string
 
-	// maxBytes is the size cap for the dead-letter file; further appends fail
-	// with ErrDLQFull once exceeded.
+	// maxBytes is the size cap for the dead-letter file; further appends fail with
+	// ErrDLQFull once exceeded.
 	maxBytes int64
 
 	// mu guards access to the dead letter queue state.
@@ -90,15 +89,14 @@ type DiskDeadLetterOption[T any] func(*DiskDeadLetterQueue[T])
 
 // Add appends an item to the dead letter file in O(1) time.
 //
-// The file is opened with O_APPEND and a single JSON-line is written, then
-// fsynced for durability. The mutex serialises concurrent appends so the
-// stat-then-append size check stays consistent for a single process.
+// The file is opened with O_APPEND and a single JSON-line is written, then fsynced for
+// durability. The mutex serialises concurrent appends so the stat-then-append size check
+// stays consistent for a single process.
 //
 // Takes entry (T) which is the item to store in the dead letter queue.
 //
-// Returns ErrDLQFull when the on-disk file has exceeded the configured size
-// cap. Returns other errors when the entry cannot be marshalled or the write
-// fails.
+// Returns ErrDLQFull when the on-disk file has exceeded the configured size cap.
+// Returns other errors when the entry cannot be marshalled or the write fails.
 //
 // Safe for concurrent use; protected by a mutex.
 func (d *DiskDeadLetterQueue[T]) Add(ctx context.Context, entry T) error {
@@ -140,8 +138,8 @@ func (d *DiskDeadLetterQueue[T]) Add(ctx context.Context, entry T) error {
 	return nil
 }
 
-// statSizeUnlocked reports the current on-disk size of the DLQ file or zero
-// if the file does not yet exist. Must be called with the mutex held.
+// statSizeUnlocked reports the current on-disk size of the DLQ file or zero if the file
+// does not yet exist. Must be called with the mutex held.
 //
 // Returns int64 which is the current file size in bytes.
 // Returns error when an unexpected stat error is encountered.
@@ -156,12 +154,10 @@ func (d *DiskDeadLetterQueue[T]) statSizeUnlocked() (int64, error) {
 	return info.Size(), nil
 }
 
-// appendLineUnlocked appends a JSON-encoded line plus newline to the
-// dead-letter file.
+// appendLineUnlocked appends a JSON-encoded line plus newline to the dead-letter file.
 //
-// Opens the file with O_APPEND so the kernel atomically positions writes
-// at end-of-file even if multiple processes share the file. Must be
-// called with the mutex held.
+// Opens the file with O_APPEND so the kernel atomically positions writes at end-of-file
+// even if multiple processes share the file. Must be called with the mutex held.
 //
 // Takes line ([]byte) which is the marshalled entry without trailing newline.
 //
@@ -196,8 +192,7 @@ func (d *DiskDeadLetterQueue[T]) appendLineUnlocked(line []byte) error {
 
 // Get retrieves items from the dead letter queue.
 //
-// Takes limit (int) which specifies the maximum items to return, or zero for
-// no limit.
+// Takes limit (int) which specifies the maximum items to return, or zero for no limit.
 //
 // Returns []T which contains the retrieved items, possibly empty.
 // Returns error when the file cannot be read.
@@ -244,9 +239,9 @@ func (d *DiskDeadLetterQueue[T]) Get(ctx context.Context, limit int) ([]T, error
 
 // Remove removes entries from the dead letter queue.
 //
-// Rewrites the file, which is slow but needed for the JSON lines format. Without
-// a way to identify entries, actual removal is not yet supported. Services should
-// create their own DLQ port with ID-based removal.
+// Rewrites the file, which is slow but needed for the JSON lines format. Without a way to
+// identify entries, actual removal is unsupported by this adapter. Services should create
+// their own DLQ port with ID-based removal.
 //
 // Takes entries ([]T) which specifies the entries to remove.
 //
@@ -276,8 +271,7 @@ func (d *DiskDeadLetterQueue[T]) Remove(ctx context.Context, entries []T) error 
 
 // Count returns the number of entries in the dead letter queue.
 //
-// Returns int which is the count of entries, or zero if the file does not
-// exist.
+// Returns int which is the count of entries, or zero if the file does not exist.
 // Returns error when the file cannot be read.
 //
 // Safe for concurrent use; holds a mutex lock during execution.
@@ -353,8 +347,7 @@ func (d *DiskDeadLetterQueue[T]) GetOlderThan(ctx context.Context, duration time
 	return oldEntries, nil
 }
 
-// getAllUnlocked reads all wrapped entries from the file. Must be called with
-// lock held.
+// getAllUnlocked reads all wrapped entries from the file. Must be called with lock held.
 //
 // Takes ctx (context.Context) which carries the logger and tracing data.
 //
@@ -388,13 +381,13 @@ func (d *DiskDeadLetterQueue[T]) getAllUnlocked(ctx context.Context) ([]wrappedE
 	return entries, nil
 }
 
-// rewriteFileUnlocked rewrites the file with the given entries.
-// Must be called with lock held.
+// rewriteFileUnlocked rewrites the file with the given entries. Must be called with lock
+// held.
 //
 // Takes entries ([]wrappedEntry[T]) which contains the entries to write.
 //
-// Returns error when the temp file cannot be written, entries cannot be
-// marshalled, or the file cannot be replaced.
+// Returns error when the temp file cannot be written, entries cannot be marshalled, or
+// the file cannot be replaced.
 func (d *DiskDeadLetterQueue[T]) rewriteFileUnlocked(entries []wrappedEntry[T]) error {
 	var buffer bytes.Buffer
 
@@ -421,33 +414,32 @@ func (d *DiskDeadLetterQueue[T]) rewriteFileUnlocked(entries []wrappedEntry[T]) 
 	return nil
 }
 
-var _ deadletter_domain.DeadLetterPort[any] = (*DiskDeadLetterQueue[any])(nil)
+var (
+	_ deadletter_domain.DeadLetterPort[any] = (*DiskDeadLetterQueue[any])(nil)
+)
 
-// WithDeadLetterSandbox sets a custom sandbox for the dead letter queue. This
-// allows injection of mock sandboxes for testing filesystem operations.
+// WithDeadLetterSandbox sets a custom sandbox for the dead letter queue. This allows
+// injection of mock sandboxes for testing filesystem operations.
 //
 // If not provided, a real sandbox is created using safedisk.NewNoOpSandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides filesystem access within
-// the dead letter directory.
+// Takes sandbox (safedisk.Sandbox) which provides filesystem access within the dead
+// letter directory.
 //
-// Returns DiskDeadLetterOption[T] which configures the queue with the given
-// sandbox.
+// Returns DiskDeadLetterOption[T] which configures the queue with the given sandbox.
 func WithDeadLetterSandbox[T any](sandbox safedisk.Sandbox) DiskDeadLetterOption[T] {
 	return func(d *DiskDeadLetterQueue[T]) {
 		d.sandbox = sandbox
 	}
 }
 
-// WithDeadLetterFactory sets a factory for creating sandboxes when no sandbox
-// is directly injected. When non-nil and no sandbox is set, this factory is
-// used instead of safedisk.NewNoOpSandbox.
+// WithDeadLetterFactory sets a factory for creating sandboxes when no sandbox is directly
+// injected. When non-nil and no sandbox is set, this factory is used instead of
+// safedisk.NewNoOpSandbox.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for the dead letter
-// directory.
+// Takes factory (safedisk.Factory) which creates sandboxes for the dead letter directory.
 //
-// Returns DiskDeadLetterOption[T] which configures the queue with the given
-// factory.
+// Returns DiskDeadLetterOption[T] which configures the queue with the given factory.
 func WithDeadLetterFactory[T any](factory safedisk.Factory) DiskDeadLetterOption[T] {
 	return func(d *DiskDeadLetterQueue[T]) {
 		d.sandboxFactory = factory
@@ -456,14 +448,12 @@ func WithDeadLetterFactory[T any](factory safedisk.Factory) DiskDeadLetterOption
 
 // WithMaxDLQBytes overrides the size cap on the dead-letter file.
 //
-// Once the file exceeds this many bytes, further Add calls fail with
-// ErrDLQFull. Pass a zero or negative value to disable the cap (not
-// recommended in production).
+// Once the file exceeds this many bytes, further Add calls fail with ErrDLQFull. Pass a
+// zero or negative value to disable the cap (not recommended in production).
 //
 // Takes maxBytes (int64) which is the maximum on-disk size in bytes.
 //
-// Returns DiskDeadLetterOption[T] which configures the queue with the given
-// cap.
+// Returns DiskDeadLetterOption[T] which configures the queue with the given cap.
 func WithMaxDLQBytes[T any](maxBytes int64) DiskDeadLetterOption[T] {
 	return func(d *DiskDeadLetterQueue[T]) {
 		d.maxBytes = maxBytes
@@ -472,10 +462,9 @@ func WithMaxDLQBytes[T any](maxBytes int64) DiskDeadLetterOption[T] {
 
 // NewDiskDeadLetterQueue creates a new disk-based dead letter queue.
 //
-// Takes filePath (string) which is the path to the file for storing dead
-// letters.
-// Takes opts (...DiskDeadLetterOption[T]) which provides optional configuration
-// such as WithDeadLetterSandbox for testing.
+// Takes filePath (string) which is the path to the file for storing dead letters.
+// Takes opts (...DiskDeadLetterOption[T]) which provides optional configuration such as
+// WithDeadLetterSandbox for testing.
 //
 // Returns deadletter_domain.DeadLetterPort[T] which is ready to use.
 func NewDiskDeadLetterQueue[T any](filePath string, opts ...DiskDeadLetterOption[T]) deadletter_domain.DeadLetterPort[T] {

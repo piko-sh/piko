@@ -23,12 +23,13 @@ import (
 	"piko.sh/piko/internal/captcha/captcha_domain"
 )
 
-// DefaultTTL is the default challenge validity duration (5 minutes).
-const DefaultTTL = hmac_challenge.DefaultTTL
+const (
+	// DefaultTTL is the default challenge validity duration (5 minutes).
+	DefaultTTL = hmac_challenge.DefaultTTL
+)
 
 var (
-	// ErrSecretTooShort is returned when the HMAC secret key is shorter than
-	// 16 bytes.
+	// ErrSecretTooShort is returned when the HMAC secret key is shorter than 16 bytes.
 	ErrSecretTooShort = hmac_challenge.ErrSecretTooShort
 
 	// ErrSecretEmpty is returned when the HMAC secret key is empty.
@@ -44,8 +45,7 @@ type Config = hmac_challenge.Config
 //
 // Takes config (Config) which specifies the HMAC secret and token TTL.
 //
-// Returns captcha_domain.CaptchaProvider which provides HMAC-based captcha
-// verification.
+// Returns captcha_domain.CaptchaProvider which provides HMAC-based captcha verification.
 // Returns error when the configuration is invalid.
 func NewProvider(config Config) (captcha_domain.CaptchaProvider, error) {
 	return hmac_challenge.NewProvider(config)

@@ -23,9 +23,8 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// DynamicRenderRequest contains the parameters for a full dynamic render
-// request. This combines code generation, interpretation, and HTML rendering
-// into a single operation.
+// DynamicRenderRequest contains the parameters for a full dynamic render request. This
+// combines code generation, interpretation, and HTML rendering into a single operation.
 type DynamicRenderRequest struct {
 	// Sources maps file paths to their PK template contents.
 	Sources map[string]string `json:"sources"`
@@ -36,44 +35,42 @@ type DynamicRenderRequest struct {
 	// ModuleName is the Go module name for the generated code.
 	ModuleName string `json:"moduleName"`
 
-	// RequestURL is the URL being rendered, used to determine which page
-	// template to render and for request context.
+	// RequestURL is the URL being rendered, used to determine which page template to render
+	// and for request context.
 	RequestURL string `json:"requestURL,omitempty"`
 }
 
 // DynamicRenderResponse contains the results of a dynamic render operation.
 //
-// Consumers compose a complete HTML document from these fields. HTML/CSS/JS
-// are returned strictly separately so consumers can re-route imports
-// (importmap rewrites, blob URLs, etc.) without parsing emitted markup.
+// Consumers compose a complete HTML document from these fields. HTML/CSS/JS are returned
+// strictly separately so consumers can re-route imports (importmap rewrites, blob URLs,
+// etc.) without parsing emitted markup.
 type DynamicRenderResponse struct {
 	// Error contains the error message if Success is false.
 	Error string `json:"error,omitempty"`
 
-	// HTML contains the rendered AST body markup. When the dynamic-render
-	// pipeline composes its own document wrapper, only the body content
-	// is returned here so consumers wrap as needed.
+	// HTML contains the rendered AST body markup. When the dynamic-render pipeline composes
+	// its own document wrapper, only the body content is returned here so consumers wrap as
+	// needed.
 	HTML string `json:"html,omitempty"`
 
-	// CSS contains the page's aggregated style block (page + all
-	// transitively-rendered partials and components).
+	// CSS contains the page's aggregated style block (page + all transitively-rendered
+	// partials and components).
 	CSS string `json:"css,omitempty"`
 
 	// Scripts contains compiled client-side JavaScript modules.
 	//
-	// Each entry is a ScriptArtefact whose Path is the artefact ID
-	// without URL prefix; the consumer wraps each Content in a Blob URL
-	// (or fetches it via its own asset route) and exposes the mapping
-	// via a <script type="importmap"> so the modules' absolute import
-	// statements resolve. Modules cover the rendered page and any
-	// partials or components it transitively references.
+	// Each entry is a ScriptArtefact whose Path is the artefact ID without URL prefix; the
+	// consumer wraps each Content in a Blob URL (or fetches it via its own asset route) and
+	// exposes the mapping via a <script type="importmap"> so the modules' absolute import
+	// statements resolve. Modules cover the rendered page and any partials or components it
+	// transitively references.
 	Scripts []ScriptArtefact `json:"scripts,omitempty"`
 
-	// RuntimeImports lists the framework-runtime URLs that compiled
-	// component JavaScript imports. Consumers must make these URLs
-	// resolvable inside the rendering context (typically by fetching
-	// the framework bundles from the parent server, blob-wrapping them,
-	// and adding entries to the same importmap used for Scripts).
+	// RuntimeImports lists the framework-runtime URLs that compiled component JavaScript
+	// imports. Consumers must make these URLs resolvable inside the rendering context
+	// (typically by fetching the framework bundles from the parent server, blob-wrapping
+	// them, and adding entries to the same importmap used for Scripts).
 	RuntimeImports []string `json:"runtimeImports,omitempty"`
 
 	// Diagnostics contains any warnings or errors encountered during render.
@@ -85,8 +82,8 @@ type DynamicRenderResponse struct {
 
 // InterpretRequest contains the parameters for interpreting generated Go code.
 type InterpretRequest struct {
-	// Dependencies maps package paths to their generated Go code.
-	// These are additional packages needed by the main code.
+	// Dependencies maps package paths to their generated Go code. These are additional
+	// packages needed by the main code.
 	Dependencies map[string]string `json:"dependencies,omitempty"`
 
 	// Props contains optional properties to pass to the template.

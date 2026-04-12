@@ -36,8 +36,7 @@ const (
 	// dlqRefreshTimeout caps the dispatcher summary RPC fetch.
 	dlqRefreshTimeout = 5 * time.Second
 
-	// dlqEntriesPerType is the per-dispatcher slice cap for the
-	// detail-pane entry preview.
+	// dlqEntriesPerType is the per-dispatcher slice cap for the detail-pane entry preview.
 	dlqEntriesPerType = 25
 )
 
@@ -62,16 +61,14 @@ type dlqEntriesMessage struct {
 	entries []DLQEntry
 }
 
-// DLQPanel surfaces dispatcher dead-letter queues. It is the TUI
-// counterpart of `piko get dlq` / `piko describe dlq`.
+// DLQPanel surfaces dispatcher dead-letter queues. It is the TUI counterpart of `piko get
+// dlq` / `piko describe dlq`.
 //
-// The panel runs in two cursor modes: dispatcherMode navigates the
-// summary list in the centre column, entryMode navigates the
-// dead-lettered entries shown in the detail column for the active
-// dispatcher. Tab toggles between modes.
+// The panel runs in two cursor modes: dispatcherMode navigates the summary list in the
+// centre column, entryMode navigates the dead-lettered entries shown in the detail column
+// for the active dispatcher. Tab toggles between modes.
 type DLQPanel struct {
-	// lastRefresh records when the panel last received a summary
-	// payload.
+	// lastRefresh records when the panel last received a summary payload.
 	lastRefresh time.Time
 
 	// clock supplies time for tests; defaults to the real clock.
@@ -91,21 +88,22 @@ type DLQPanel struct {
 	// entryErrors records per-dispatcher fetch errors, keyed by type.
 	entryErrors map[string]error
 
-	// entryCursorByType records the per-dispatcher cursor into the
-	// entry list shown in the detail pane.
+	// entryCursorByType records the per-dispatcher cursor into the entry list shown in the
+	// detail pane.
 	entryCursorByType map[string]int
 
-	// stateMutex guards err / entries / entryErrors / entry cursors
-	// for safe concurrent reads.
+	// stateMutex guards err / entries / entryErrors / entry cursors for safe concurrent
+	// reads.
 	stateMutex sync.RWMutex
 
-	// entryMode reports whether keyboard navigation drives the
-	// detail-pane entry cursor (true) or the centre dispatcher list
-	// (false). Tab toggles.
+	// entryMode reports whether keyboard navigation drives the detail-pane entry cursor
+	// (true) or the centre dispatcher list (false). Tab toggles.
 	entryMode bool
 }
 
-var _ Panel = (*DLQPanel)(nil)
+var (
+	_ Panel = (*DLQPanel)(nil)
+)
 
 // dlqRenderer renders DispatcherSummary rows for the DLQ panel.
 type dlqRenderer struct {
@@ -181,8 +179,8 @@ func (p *DLQPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// View renders the centre. Falls back to a "feature disabled" hint
-// when the server does not expose the dispatcher inspector service.
+// View renders the centre. Falls back to a "feature disabled" hint when the server does
+// not expose the dispatcher inspector service.
 //
 // Takes width (int) which is the rendering width in columns.
 // Takes height (int) which is the rendering height in rows.
@@ -252,8 +250,8 @@ func (*DLQPanel) renderEmptyState(content *strings.Builder) {
 //
 // Takes content (*strings.Builder) which receives the rendered rows.
 // Takes displayItems ([]int) which is the indices of items to render.
-// Takes headerLines (int) which is the number of header lines already
-// consumed by renderHeader, used to size the scroll context.
+// Takes headerLines (int) which is the number of header lines already consumed by
+// renderHeader, used to size the scroll context.
 func (p *DLQPanel) renderItems(content *strings.Builder, displayItems []int, headerLines int) {
 	ctx := NewScrollContext(content, p.ScrollOffset(), p.ContentHeight()-headerLines)
 	items := p.Items()
@@ -356,11 +354,10 @@ func (p *DLQPanel) refresh() tea.Cmd {
 	}
 }
 
-// fetchSelectedEntriesCmd issues a ListDLQEntries RPC for the selected
-// dispatcher when its dead-letter count is non-zero.
+// fetchSelectedEntriesCmd issues a ListDLQEntries RPC for the selected dispatcher when
+// its dead-letter count is non-zero.
 //
-// Returns tea.Cmd which delivers a dlqEntriesMessage, or nil when no
-// fetch is required.
+// Returns tea.Cmd which delivers a dlqEntriesMessage, or nil when no fetch is required.
 func (p *DLQPanel) fetchSelectedEntriesCmd() tea.Cmd {
 	current := p.GetItemAtCursor()
 	if current == nil || p.provider == nil || current.DeadLetterCount == 0 {
@@ -430,13 +427,13 @@ func (p *DLQPanel) detailBody() inspector.DetailBody {
 	}
 }
 
-// dlqEntriesListSection renders the dispatcher's recent
-// dead-lettered entries with a cursor when entryMode is active.
+// dlqEntriesListSection renders the dispatcher's recent dead-lettered entries with a
+// cursor when entryMode is active.
 //
 // Takes entries ([]DLQEntry) which is the cached list.
 // Takes cursor (int) which is the index of the focused entry.
-// Takes entryMode (bool) which is true when the entry cursor is the
-// active navigation target.
+// Takes entryMode (bool) which is true when the entry cursor is the active navigation
+// target.
 //
 // Returns inspector.DetailSection ready to append to the body.
 func dlqEntriesListSection(entries []DLQEntry, cursor int, entryMode bool) inspector.DetailSection {
@@ -459,8 +456,8 @@ func dlqEntriesListSection(entries []DLQEntry, cursor int, entryMode bool) inspe
 	return inspector.DetailSection{Heading: "Recent dead-lettered", Rows: rows}
 }
 
-// dlqEntryFocusSection renders the deep-dive section for one DLQ
-// entry: full error message, attempt count, and timestamps.
+// dlqEntryFocusSection renders the deep-dive section for one DLQ entry: full error
+// message, attempt count, and timestamps.
 //
 // Takes e (DLQEntry) which is the focused entry.
 //
@@ -477,9 +474,9 @@ func dlqEntryFocusSection(e DLQEntry) inspector.DetailSection {
 	return inspector.DetailSection{Heading: "Selected entry", Rows: rows}
 }
 
-// oneLineError collapses error messages to a single line so the row
-// summary stays readable; the full message is rendered in the
-// "Selected entry" focus section when entry mode is active.
+// oneLineError collapses error messages to a single line so the row summary stays
+// readable; the full message is rendered in the "Selected entry" focus section when entry
+// mode is active.
 //
 // Takes message (string) which is the original error message.
 //
@@ -492,10 +489,9 @@ func oneLineError(message string) string {
 	return strings.TrimSpace(collapsed)
 }
 
-// toggleEntryMode flips between dispatcher-list navigation and
-// entry-list navigation. When switching into entry mode with no
-// entries cached, the panel still flips so the next refresh can show
-// them.
+// toggleEntryMode flips between dispatcher-list navigation and entry-list navigation.
+// When switching into entry mode with no entries cached, the panel still flips so the
+// next refresh can show them.
 //
 // Concurrency: Safe for concurrent use; guarded by stateMutex.
 func (p *DLQPanel) toggleEntryMode() {
@@ -504,8 +500,8 @@ func (p *DLQPanel) toggleEntryMode() {
 	p.stateMutex.Unlock()
 }
 
-// handleEntryNavigation drives the per-dispatcher entry cursor when
-// entry mode is active. Returns true when the key was consumed.
+// handleEntryNavigation drives the per-dispatcher entry cursor when entry mode is active.
+// Returns true when the key was consumed.
 //
 // Takes msg (tea.KeyPressMsg) which is the key event.
 //

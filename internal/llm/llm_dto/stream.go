@@ -26,8 +26,8 @@ type StreamEvent struct {
 	// Chunk contains the new content for chunk events.
 	Chunk *StreamChunk
 
-	// FinalResponse holds the full response when the stream ends.
-	// Only set if the provider supports it and it was requested.
+	// FinalResponse holds the full response when the stream ends. Only set if the provider
+	// supports it and it was requested.
 	FinalResponse *CompletionResponse
 
 	// Type indicates the kind of event: chunk, done, or error.
@@ -59,8 +59,8 @@ type StreamChunk struct {
 	// FinishReason indicates why generation stopped; only set on the final chunk.
 	FinishReason *FinishReason
 
-	// Usage holds token usage statistics. Only present in the final chunk if
-	// requested via StreamOptions.IncludeUsage.
+	// Usage holds token usage statistics. Only present in the final chunk if requested via
+	// StreamOptions.IncludeUsage.
 	Usage *Usage
 
 	// ID is the unique identifier for this chunk's parent completion.
@@ -120,8 +120,8 @@ func NewChunkEvent(chunk *StreamChunk) StreamEvent {
 
 // NewDoneEvent creates a new done stream event.
 //
-// Takes finalResponse (*CompletionResponse) which holds the complete response,
-// or nil if no final response is needed.
+// Takes finalResponse (*CompletionResponse) which holds the complete response, or nil if
+// no final response is needed.
 //
 // Returns StreamEvent set up as a done event.
 func NewDoneEvent(finalResponse *CompletionResponse) StreamEvent {

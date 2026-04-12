@@ -26,28 +26,30 @@ import (
 	"reflect"
 	"strings"
 
-	"piko.sh/piko/internal/json"
 	"gopkg.in/yaml.v3"
+	"piko.sh/piko/internal/json"
 )
 
 // unmarshalerFunc is a function type that converts bytes into a value.
 type unmarshalerFunc func([]byte, any) error
 
-// unmarshalerMap holds the file-extension-to-unmarshaler mappings for supported
-// configuration file formats.
-var unmarshalerMap = map[string]unmarshalerFunc{
-	".json": json.Unmarshal,
-	".yaml": yaml.Unmarshal,
-	".yml":  yaml.Unmarshal,
-}
+var (
+	// unmarshalerMap holds the file-extension-to-unmarshaler mappings for supported
+	// configuration file formats.
+	unmarshalerMap = map[string]unmarshalerFunc{
+		".json": json.Unmarshal,
+		".yaml": yaml.Unmarshal,
+		".yml":  yaml.Unmarshal,
+	}
+)
 
 // loadFiles loads configuration from each file path in order.
 //
 // Takes ptr (any) which is the configuration struct to populate.
 // Takes ctx (*LoadContext) which tracks the source of each field change.
 //
-// Returns error when a file cannot be read, has an unsupported format,
-// fails strict mode validation, or cannot be unmarshalled.
+// Returns error when a file cannot be read, has an unsupported format, fails strict mode
+// validation, or cannot be unmarshalled.
 func (l *Loader) loadFiles(ptr any, ctx *LoadContext) error {
 	for _, path := range l.opts.FilePaths {
 		data, err := l.fileReader.ReadFile(path)
@@ -85,8 +87,8 @@ func (l *Loader) loadFiles(ptr any, ctx *LoadContext) error {
 //
 // Takes path (string) which is the file path to get the format from.
 //
-// Returns unmarshalerFunc which is the unmarshaler for the file extension, or
-// nil if no unmarshaler is set for that extension.
+// Returns unmarshalerFunc which is the unmarshaler for the file extension, or nil if no
+// unmarshaler is set for that extension.
 // Returns string which is the lowercase file extension.
 func getUnmarshaler(path string) (unmarshalerFunc, string) {
 	ext := strings.ToLower(filepath.Ext(path))
@@ -126,10 +128,9 @@ func checkStrict(data []byte, ptr any, unmarshaler unmarshalerFunc) error {
 
 // collectTags gathers JSON and YAML struct field tags into a key set.
 //
-// It looks at each field in the struct and gets the tag name from json or yaml
-// tags. If neither tag is present, it uses the lowercase field name. It skips
-// fields marked with "-". For nested structs, it calls itself to collect their
-// tags as well.
+// It looks at each field in the struct and gets the tag name from json or yaml tags. If
+// neither tag is present, it uses the lowercase field name. It skips fields marked with
+// "-". For nested structs, it calls itself to collect their tags as well.
 //
 // Takes valueType (reflect.Type) which is the struct type to inspect.
 // Takes keys (map[string]struct{}) which stores the found tag names.
@@ -159,9 +160,9 @@ func collectTags(valueType reflect.Type, keys map[string]struct{}) {
 // detectChanges compares two struct values and records which fields differ.
 //
 // The function walks through matching fields of before and after, building a
-// dot-separated key path. When field values differ, it records the source in
-// the context's FieldSources map. For nested structs, it calls itself to
-// compare inner fields.
+// dot-separated key path. When field values differ, it records the source in the
+// context's FieldSources map. For nested structs, it calls itself to compare inner
+// fields.
 //
 // Takes before (reflect.Value) which is the original struct value.
 // Takes after (reflect.Value) which is the struct value that may have changed.

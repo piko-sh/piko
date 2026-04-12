@@ -29,39 +29,40 @@ import (
 	"piko.sh/piko/internal/goastutil"
 )
 
-// formattableTypeNames lists type names that FormatBuilder can format
-// natively, where unlisted types trigger a warning.
-//
-// The empty string and "interface{}" are allowed because the annotator
-// may not always resolve the concrete type.
-var formattableTypeNames = map[string]bool{
-	"int": true, "int8": true, "int16": true, "int32": true, "int64": true,
-	"uint": true, "uint8": true, "uint16": true, "uint32": true, "uint64": true,
-	"float32": true, "float64": true,
-	"Decimal": true, "maths.Decimal": true,
-	"BigInt": true, "maths.BigInt": true,
-	"Money": true, "maths.Money": true,
-	"Time": true, "time.Time": true,
-	"DateTime": true, "i18n_domain.DateTime": true,
-	"Duration": true, "time.Duration": true,
-	"string":      true,
-	"bool":        true,
-	"":            true,
-	"interface{}": true,
-	"any":         true,
-}
+var (
+	// formattableTypeNames lists type names that FormatBuilder can format natively, where
+	// unlisted types trigger a warning.
+	//
+	// The empty string and "interface{}" are allowed because the annotator may not always
+	// resolve the concrete type.
+	formattableTypeNames = map[string]bool{
+		"int": true, "int8": true, "int16": true, "int32": true, "int64": true,
+		"uint": true, "uint8": true, "uint16": true, "uint32": true, "uint64": true,
+		"float32": true, "float64": true,
+		"Decimal": true, "maths.Decimal": true,
+		"BigInt": true, "maths.BigInt": true,
+		"Money": true, "maths.Money": true,
+		"Time": true, "time.Time": true,
+		"DateTime": true, "i18n_domain.DateTime": true,
+		"Duration": true, "time.Duration": true,
+		"string":      true,
+		"bool":        true,
+		"":            true,
+		"interface{}": true,
+		"any":         true,
+	}
+)
 
-// validateFormatFuncArgs checks that F() and LF() are called with exactly one
-// argument and that the argument type is one FormatBuilder can format. An
-// unsupported type emits a Warning (not Error) because the runtime falls back
-// to fmt.Sprintf.
+// validateFormatFuncArgs checks that F() and LF() are called with exactly one argument
+// and that the argument type is one FormatBuilder can format. An unsupported type emits a
+// Warning (not Error) because the runtime falls back to fmt.Sprintf.
 //
 // Takes ctx (*AnalysisContext) which provides the diagnostic context.
 // Takes callExpr (*ast_domain.CallExpression) which is the call to validate.
-// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the
-// resolved annotations for the arguments.
-// Takes baseLocation (ast_domain.Location) which provides the source location
-// for diagnostics.
+// Takes argAnns ([]*ast_domain.GoGeneratorAnnotation) which contains the resolved
+// annotations for the arguments.
+// Takes baseLocation (ast_domain.Location) which provides the source location for
+// diagnostics.
 func (*TypeResolver) validateFormatFuncArgs(ctx *AnalysisContext, callExpr *ast_domain.CallExpression, argAnns []*ast_domain.GoGeneratorAnnotation, baseLocation ast_domain.Location) {
 	if len(callExpr.Args) != 1 {
 		message := fmt.Sprintf("F/LF expects exactly one argument, got %d", len(callExpr.Args))
@@ -81,27 +82,26 @@ func (*TypeResolver) validateFormatFuncArgs(ctx *AnalysisContext, callExpr *ast_
 	}
 }
 
-// isFormattableType checks whether a resolved type string is one that
-// FormatBuilder handles natively. Pointer types are unwrapped first.
+// isFormattableType checks whether a resolved type string is one that FormatBuilder
+// handles natively. Pointer types are unwrapped first.
 //
 // Takes typeName (string) which is the resolved type name to check.
 //
-// Returns bool which is true if the type is natively formattable by
-// FormatBuilder.
+// Returns bool which is true if the type is natively formattable by FormatBuilder.
 func isFormattableType(typeName string) bool {
 	bare := strings.TrimLeft(typeName, "*")
 	return formattableTypeNames[bare]
 }
 
-// getFormatFuncReturnType returns the *i18n_domain.FormatBuilder type
-// information for F() and LF() formatting functions, enabling method
-// chain resolution (e.g. F(x).Precision(2)) via the inspector.
+// getFormatFuncReturnType returns the *i18n_domain.FormatBuilder type information for F()
+// and LF() formatting functions, enabling method chain resolution (e.g.
+// F(x).Precision(2)) via the inspector.
 //
-// The stringability pipeline automatically adds .String() in string
-// contexts since FormatBuilder implements fmt.Stringer.
+// The stringability pipeline automatically adds .String() in string contexts since
+// FormatBuilder implements fmt.Stringer.
 //
-// Returns *ast_domain.ResolvedTypeInfo which holds the *FormatBuilder type
-// with its canonical package path for inspector method resolution.
+// Returns *ast_domain.ResolvedTypeInfo which holds the *FormatBuilder type with its
+// canonical package path for inspector method resolution.
 func getFormatFuncReturnType(_ *TypeResolver, _ *AnalysisContext, _ *ast_domain.CallExpression, _ []*ast_domain.GoGeneratorAnnotation) *ast_domain.ResolvedTypeInfo {
 	return &ast_domain.ResolvedTypeInfo{
 		TypeExpression: &goast.StarExpr{

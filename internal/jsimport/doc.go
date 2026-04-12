@@ -16,21 +16,19 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package jsimport provides shared JavaScript and TypeScript import path
-// transformation utilities.
+// Package jsimport provides shared JavaScript and TypeScript import path transformation
+// utilities.
 //
-// It handles two concerns that apply to both PKC component compilation and
-// PK page generation:
+// It handles two concerns that apply to both PKC component compilation and PK page
+// generation:
 //
-//   - Extension normalisation: extensionless imports receive a .js suffix,
-//     and .ts extensions are rewritten to .js so the browser requests the
-//     transpiled output.
-//   - @/ alias resolution: imports starting with @/ are expanded to served
-//     asset paths using the project's Go module name, for example
-//     @/lib/utils becomes /_piko/assets/{moduleName}/lib/utils.js.
+//   - Extension normalisation: extensionless imports receive a .js suffix, and .ts
+//     extensions are rewritten to .js so the browser requests the transpiled output.
+//   - @/ alias resolution: imports starting with @/ are expanded to served asset paths
+//     using the project's Go module name, for example @/lib/utils becomes
+//     /_piko/assets/{moduleName}/lib/utils.js.
 //
-// The compiler domain uses [ResolveModuleAlias] to build [JSDependency]
-// records during component compilation. The generator domain uses
-// [RewriteImportRecords] to rewrite esbuild AST import records in place
-// before printing transpiled JavaScript.
+// The compiler domain uses [ResolveModuleAlias] to build [JSDependency] records during
+// component compilation. The generator domain uses [RewriteImportRecords] to rewrite
+// esbuild AST import records in place before printing transpiled JavaScript.
 package jsimport

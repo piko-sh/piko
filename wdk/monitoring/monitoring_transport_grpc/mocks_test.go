@@ -41,7 +41,9 @@ func (m *mockRenderCacheStatsProvider) GetSVGCacheSize() int {
 	return m.svgCacheSize
 }
 
-var _ RenderCacheStatsProvider = (*mockRenderCacheStatsProvider)(nil)
+var (
+	_ RenderCacheStatsProvider = (*mockRenderCacheStatsProvider)(nil)
+)
 
 type mockOrchestratorInspector struct {
 	taskSummaryError      error
@@ -64,7 +66,9 @@ func (m *mockOrchestratorInspector) ListWorkflowSummary(_ context.Context, _ int
 	return m.workflowSummaryReturn, m.workflowSummaryError
 }
 
-var _ orchestrator_domain.OrchestratorInspector = (*mockOrchestratorInspector)(nil)
+var (
+	_ orchestrator_domain.OrchestratorInspector = (*mockOrchestratorInspector)(nil)
+)
 
 type mockRegistryInspector struct {
 	artefactSummaryError  error
@@ -87,7 +91,9 @@ func (m *mockRegistryInspector) ListRecentArtefacts(_ context.Context, _ int32) 
 	return m.recentArtefactsReturn, m.recentArtefactsError
 }
 
-var _ registry_domain.RegistryInspector = (*mockRegistryInspector)(nil)
+var (
+	_ registry_domain.RegistryInspector = (*mockRegistryInspector)(nil)
+)
 
 type mockWatchdogInspector struct {
 	listProfilesFn            func(ctx context.Context) ([]monitoring_domain.WatchdogProfileInfo, error)
@@ -166,4 +172,6 @@ func (m *mockWatchdogInspector) SubscribeEvents(ctx context.Context, since time.
 	return ch, func() {}
 }
 
-var _ monitoring_domain.WatchdogInspector = (*mockWatchdogInspector)(nil)
+var (
+	_ monitoring_domain.WatchdogInspector = (*mockWatchdogInspector)(nil)
+)

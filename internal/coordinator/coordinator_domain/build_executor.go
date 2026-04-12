@@ -45,14 +45,14 @@ const (
 	logKeyHashedName = "hashed_name"
 )
 
-// outputDiagnosticsIfPresent outputs build diagnostics using the set output
-// port. Returns true if there were diagnostics, regardless of severity.
+// outputDiagnosticsIfPresent outputs build diagnostics using the set output port. Returns
+// true if there were diagnostics, regardless of severity.
 //
-// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which holds the
-// diagnostics to output.
+// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which holds the diagnostics
+// to output.
 // Takes buildErr (error) which shows whether the build failed.
-// Takes allSourceContents (map[string][]byte) which provides source code for
-// context in diagnostic output.
+// Takes allSourceContents (map[string][]byte) which provides source code for context in
+// diagnostic output.
 //
 // Returns bool which is true when diagnostics were present and output.
 func (s *coordinatorService) outputDiagnosticsIfPresent(
@@ -79,23 +79,23 @@ func (s *coordinatorService) outputDiagnosticsIfPresent(
 	return true
 }
 
-// handleSemanticError processes a semantic error and returns the partial build
-// result. Semantic errors indicate user errors (syntax/type errors) but may
-// still have a partial result that LSP features can use.
+// handleSemanticError processes a semantic error and returns the partial build result.
+// Semantic errors indicate user errors (syntax/type errors) but may still have a partial
+// result that LSP features can use.
 //
-// Takes semanticErr (*annotator_domain.SemanticError) which contains the
-// semantic error to process.
-// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which holds the
-// partial build result, if available.
-// Takes allSourceContents (map[string][]byte) which maps file paths to their
-// source content.
-// Takes compilationLogs (*annotator_domain.CompilationLogStore) which stores
-// internal compiler logs.
-// Takes request (*coordinator_dto.BuildRequest) which provides the original
-// build request for status updates.
+// Takes semanticErr (*annotator_domain.SemanticError) which contains the semantic error
+// to process.
+// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which holds the partial
+// build result, if available.
+// Takes allSourceContents (map[string][]byte) which maps file paths to their source
+// content.
+// Takes compilationLogs (*annotator_domain.CompilationLogStore) which stores internal
+// compiler logs.
+// Takes request (*coordinator_dto.BuildRequest) which provides the original build request
+// for status updates.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the partial
-// build result with source contents attached, or nil if no result exists.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the partial build result
+// with source contents attached, or nil if no result exists.
 // Returns error when semantic errors occurred during the build.
 func (s *coordinatorService) handleSemanticError(
 	ctx context.Context,
@@ -125,10 +125,10 @@ func (s *coordinatorService) handleSemanticError(
 // tryGenerateArtefacts generates code artefacts if a code emitter is set.
 //
 // Takes span (trace.Span) which records tracing data for the operation.
-// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which receives the
-// generated artefacts.
-// Takes request (*coordinator_dto.BuildRequest) which contains the build
-// request for status updates.
+// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which receives the generated
+// artefacts.
+// Takes request (*coordinator_dto.BuildRequest) which contains the build request for
+// status updates.
 // Takes pathDescription (string) which gives context for log messages.
 //
 // Returns error when artefact generation fails.
@@ -156,8 +156,8 @@ func (s *coordinatorService) tryGenerateArtefacts(
 	return nil
 }
 
-// tier1CacheResult holds the result of a tier 1 (introspection) cache lookup.
-// Fields are ordered for optimal memory alignment.
+// tier1CacheResult holds the result of a tier 1 (introspection) cache lookup. Fields are
+// ordered for optimal memory alignment.
 type tier1CacheResult struct {
 	// scriptHashes maps script paths to their content hashes.
 	scriptHashes map[string]string
@@ -168,20 +168,19 @@ type tier1CacheResult struct {
 	// introspectionHash is the cache key for introspection results.
 	introspectionHash string
 
-	// useFastPath indicates whether to skip Phase 1 and reuse cached data.
+	// useFastPath indicates whether to skip the introspection step and reuse cached data.
 	useFastPath bool
 }
 
-// checkTier1Cache attempts to retrieve cached introspection data for the
-// fast path.
+// checkTier1Cache attempts to retrieve cached introspection data for the fast path.
 //
 // Takes span (trace.Span) which records cache lookup metrics and status.
-// Takes request (*coordinator_dto.BuildRequest) which contains entry points
-// and actions to hash.
+// Takes request (*coordinator_dto.BuildRequest) which contains entry points and actions
+// to hash.
 //
-// Returns tier1CacheResult with useFastPath=true if a valid cache entry
-// exists, or useFastPath=false when the cache misses, hash calculation fails,
-// or script hashes have changed.
+// Returns tier1CacheResult with useFastPath=true if a valid cache entry exists, or
+// useFastPath=false when the cache misses, hash calculation fails, or script hashes have
+// changed.
 func (s *coordinatorService) checkTier1Cache(
 	ctx context.Context,
 	span trace.Span,
@@ -248,20 +247,16 @@ func (s *coordinatorService) checkTier1Cache(
 	}
 }
 
-// executeSlowPathBuild runs the full build (Phase 1 + Phase 2) when both
+// executeSlowPathBuild runs the full build (introspection plus annotation) when both
 // caches miss.
 //
 // Takes span (trace.Span) which receives tracing events for the build.
-// Takes request (*coordinator_dto.BuildRequest) which specifies the build
-// parameters.
-// Takes allSourceContents (map[string][]byte) which provides the source files
-// to build.
+// Takes request (*coordinator_dto.BuildRequest) which specifies the build parameters.
+// Takes allSourceContents (map[string][]byte) which provides the source files to build.
 // Takes inputHash (string) which identifies the build inputs for caching.
-// Takes tier1Result (tier1CacheResult) which contains the tier 1 cache lookup
-// result.
+// Takes tier1Result (tier1CacheResult) which contains the tier 1 cache lookup result.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the build
-// annotations.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the build annotations.
 // Returns error when the annotation pipeline fails catastrophically.
 func (s *coordinatorService) executeSlowPathBuild(
 	ctx context.Context,
@@ -325,15 +320,15 @@ func (s *coordinatorService) executeSlowPathBuild(
 	return phase1Result.Annotations, nil
 }
 
-// writeTier2Cache writes the build result to the Tier 2 cache if the build
-// epoch has not been invalidated.
+// writeTier2Cache writes the build result to the Tier 2 cache if the build epoch has not
+// been invalidated.
 //
 // Takes span (trace.Span) which records any cache write errors.
 // Takes inputHash (string) which is the cache key for storing the result.
-// Takes buildEpoch (uint64) which identifies the epoch to check for
-// invalidation before writing.
-// Takes annotations (*annotator_dto.ProjectAnnotationResult) which contains
-// the build result to cache.
+// Takes buildEpoch (uint64) which identifies the epoch to check for invalidation before
+// writing.
+// Takes annotations (*annotator_dto.ProjectAnnotationResult) which contains the build
+// result to cache.
 func (s *coordinatorService) writeTier2Cache(
 	ctx context.Context,
 	span trace.Span,
@@ -354,17 +349,17 @@ func (s *coordinatorService) writeTier2Cache(
 	l.Internal("Successfully cached new build result to Tier 2.")
 }
 
-// cacheIntrospectionResults stores introspection results in the Tier 1 cache
-// for faster builds in the future.
+// cacheIntrospectionResults stores introspection results in the Tier 1 cache to
+// accelerate subsequent builds.
 //
-// Takes tier1Result (tier1CacheResult) which provides the cache key and script
-// hashes from the first processing step.
-// Takes componentGraph (*annotator_dto.ComponentGraph) which contains the
-// parsed component structure.
-// Takes virtualModule (*annotator_dto.VirtualModule) which holds the module
-// data to cache.
-// Takes typeResolver (*annotator_domain.TypeResolver) which provides type
-// resolution state to cache.
+// Takes tier1Result (tier1CacheResult) which provides the cache key and script hashes
+// from the first processing step.
+// Takes componentGraph (*annotator_dto.ComponentGraph) which contains the parsed
+// component structure.
+// Takes virtualModule (*annotator_dto.VirtualModule) which holds the module data to
+// cache.
+// Takes typeResolver (*annotator_domain.TypeResolver) which provides type resolution
+// state to cache.
 func (s *coordinatorService) cacheIntrospectionResults(
 	ctx context.Context,
 	tier1Result tier1CacheResult,
@@ -408,19 +403,19 @@ type buildWaiter struct {
 	done chan struct{}
 }
 
-// executeBuild runs the core build logic on a cache miss, orchestrated by the
-// buildLoop. This implements the two-tier caching strategy: first check Tier 2
-// (annotation cache) for a complete result, then Tier 1 (introspection cache)
-// for the fast path, otherwise run the full build (slow path).
+// executeBuild runs the core build logic on a cache miss, orchestrated by the buildLoop.
+// This implements the two-tier caching strategy: first check Tier 2 (annotation cache)
+// for a complete result, then Tier 1 (introspection cache) for the fast path, otherwise
+// run the full build (slow path).
 //
 // Takes inputHash (string) which identifies the unique build input for caching.
-// Takes request (*coordinator_dto.BuildRequest) which contains the build
-// configuration and source files to process.
-// Takes allSourceContents (map[string][]byte) which provides the raw source
-// file contents keyed by file path.
+// Takes request (*coordinator_dto.BuildRequest) which contains the build configuration
+// and source files to process.
+// Takes allSourceContents (map[string][]byte) which provides the raw source file contents
+// keyed by file path.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation
-// data, possibly partial on semantic errors (fault-tolerant pattern).
+// Returns *annotator_dto.ProjectAnnotationResult which contains the annotation data,
+// possibly partial on semantic errors (fault-tolerant pattern).
 // Returns error when the build fails or an unexpected type is returned.
 func (s *coordinatorService) executeBuild(
 	ctx context.Context,
@@ -476,22 +471,21 @@ func (s *coordinatorService) executeBuild(
 	return result, nil
 }
 
-// executePartialBuild implements the fast path for template-only changes.
-// It skips Phase 1 (expensive type introspection) and jumps directly to
-// Phase 2 (annotation) using cached introspection data.
+// executePartialBuild implements the fast path for template-only changes. It skips the
+// expensive type introspection step and jumps directly to the annotation step using
+// cached introspection data.
 //
-// Takes introspectionEntry (*IntrospectionCacheEntry) which provides the
-// cached type introspection data from a previous full build.
-// Takes request (*coordinator_dto.BuildRequest) which specifies the build
-// configuration and actions to perform.
-// Takes allSourceContents (map[string][]byte) which contains the source file
-// contents keyed by path.
+// Takes introspectionEntry (*IntrospectionCacheEntry) which provides the cached type
+// introspection data from a previous full build.
+// Takes request (*coordinator_dto.BuildRequest) which specifies the build configuration
+// and actions to perform.
+// Takes allSourceContents (map[string][]byte) which contains the source file contents
+// keyed by path.
 // Takes fullHash (string) which identifies the cache key for storing results.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the annotated
-// project output.
-// Returns error when the annotation pipeline fails or artefact generation
-// fails.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the annotated project
+// output.
+// Returns error when the annotation pipeline fails or artefact generation fails.
 func (s *coordinatorService) executePartialBuild(
 	ctx context.Context,
 	introspectionEntry *IntrospectionCacheEntry,
@@ -557,16 +551,13 @@ func (s *coordinatorService) executePartialBuild(
 	return buildResult, nil
 }
 
-// buildPartialAnnotatorOptions assembles annotator options for a partial
-// (fast-path) build, including fault tolerance, resolver overrides, and
-// targeted component scoping.
+// buildPartialAnnotatorOptions assembles annotator options for a partial (fast-path)
+// build, including fault tolerance, resolver overrides, and targeted component scoping.
 //
 // Takes ctx (context.Context) which provides the logging context.
-// Takes request (*coordinator_dto.BuildRequest) which supplies the build
-// configuration.
+// Takes request (*coordinator_dto.BuildRequest) which supplies the build configuration.
 //
-// Returns []annotator_domain.AnnotationOption which contains the assembled
-// options.
+// Returns []annotator_domain.AnnotationOption which contains the assembled options.
 func (s *coordinatorService) buildPartialAnnotatorOptions(
 	ctx context.Context,
 	request *coordinator_dto.BuildRequest,
@@ -594,15 +585,14 @@ func (s *coordinatorService) buildPartialAnnotatorOptions(
 	return opts
 }
 
-// resolveEntryPointsToHashedNames converts entry point paths to the hashed
-// names used in the component graph.
+// resolveEntryPointsToHashedNames converts entry point paths to the hashed names used in
+// the component graph.
 //
-// Entry point paths may be relative (e.g. "pages/main.pk") or module-prefixed
-// (e.g. "mymodule/pages/main.pk"). Both forms are resolved to absolute paths
-// and matched against PathToHashedName.
+// Entry point paths may be relative (e.g. "pages/main.pk") or module-prefixed (e.g.
+// "mymodule/pages/main.pk"). Both forms are resolved to absolute paths and matched
+// against PathToHashedName.
 //
-// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the entry points
-// to resolve.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which lists the entry points to resolve.
 // Takes graph (*annotator_dto.ComponentGraph) which maps paths to hashed names.
 //
 // Returns []string which contains the resolved hashed names.
@@ -629,17 +619,17 @@ func (s *coordinatorService) resolveEntryPointsToHashedNames(
 	return result
 }
 
-// generateArtefacts generates fully-emitted Go code artefacts for every
-// component that was annotated in this build round. Only used in dev-i
-// mode to provide executable code to the interpreted runner.
+// generateArtefacts generates fully-emitted Go code artefacts for every component that
+// was annotated in this build round. Only used in dev-i mode to provide executable code
+// to the interpreted runner.
 //
-// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which contains
-// the annotated components to generate code for.
+// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which contains the annotated
+// components to generate code for.
 //
-// Returns []*generator_dto.GeneratedArtefact which contains the generated
-// code artefacts for each annotated component.
-// Returns error when the build result has no virtual module or when
-// generating any single artefact fails.
+// Returns []*generator_dto.GeneratedArtefact which contains the generated code artefacts
+// for each annotated component.
+// Returns error when the build result has no virtual module or when generating any single
+// artefact fails.
 func (s *coordinatorService) generateArtefacts(
 	ctx context.Context,
 	buildResult *annotator_dto.ProjectAnnotationResult,
@@ -674,19 +664,19 @@ func (s *coordinatorService) generateArtefacts(
 	return artefacts, nil
 }
 
-// generateSingleArtefact creates code for a single component and returns the
-// generated artefact.
+// generateSingleArtefact creates code for a single component and returns the generated
+// artefact.
 //
-// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which provides the
-// full project annotation including the virtual module.
+// Takes buildResult (*annotator_dto.ProjectAnnotationResult) which provides the full
+// project annotation including the virtual module.
 // Takes hashedName (string) which identifies the component.
-// Takes vc (*annotator_dto.VirtualComponent) which specifies the component to
-// generate code for.
-// Takes annotationResult (*annotator_dto.AnnotationResult) which contains the
-// parsed annotations for the component.
+// Takes vc (*annotator_dto.VirtualComponent) which specifies the component to generate
+// code for.
+// Takes annotationResult (*annotator_dto.AnnotationResult) which contains the parsed
+// annotations for the component.
 //
-// Returns *generator_dto.GeneratedArtefact which contains the generated code
-// and metadata for the component.
+// Returns *generator_dto.GeneratedArtefact which contains the generated code and metadata
+// for the component.
 // Returns error when code generation fails.
 func (s *coordinatorService) generateSingleArtefact(
 	ctx context.Context,
@@ -752,13 +742,12 @@ func (s *coordinatorService) generateSingleArtefact(
 
 // emitClientScript returns the artefact ID for the component's client script.
 //
-// Takes vc (*annotator_dto.VirtualComponent) which identifies the
-// source file and is used to derive the component's relative path.
-// Takes annotationResult (*annotator_dto.AnnotationResult) which holds
-// the parsed ClientScript source.
+// Takes vc (*annotator_dto.VirtualComponent) which identifies the source file and is used
+// to derive the component's relative path.
+// Takes annotationResult (*annotator_dto.AnnotationResult) which holds the parsed
+// ClientScript source.
 //
-// Returns string which is the registered artefact ID, or "" when no
-// JS was emitted.
+// Returns string which is the registered artefact ID, or "" when no JS was emitted.
 func (s *coordinatorService) emitClientScript(
 	ctx context.Context,
 	vc *annotator_dto.VirtualComponent,
@@ -785,16 +774,14 @@ func (s *coordinatorService) emitClientScript(
 
 // deriveComponentPagePath returns the project-relative path without the .pk suffix.
 //
-// The result is the human-readable segment the JS emitter uses when
-// building an artefact URL (e.g. "partials/integrations/grid"). It
-// mirrors derivePagePath in the generator service so the compiled and
-// dev-i paths produce identical artefact URLs.
+// The result is the human-readable segment the JS emitter uses when building an artefact
+// URL (e.g. "partials/integrations/grid"). It mirrors derivePagePath in the generator
+// service so the compiled and dev-i paths produce identical artefact URLs.
 //
 // Takes sourcePath (string) which is the component's source file path.
 // Takes baseDir (string) which is the project root.
 //
-// Returns string which is the relative component path without the
-// ".pk" suffix.
+// Returns string which is the relative component path without the ".pk" suffix.
 func deriveComponentPagePath(sourcePath, baseDir string) string {
 	absSource, absErr := filepath.Abs(sourcePath)
 	absBase, baseErr := filepath.Abs(baseDir)
@@ -811,14 +798,14 @@ func deriveComponentPagePath(sourcePath, baseDir string) string {
 	return strings.TrimSuffix(filepath.ToSlash(relativePath), ".pk")
 }
 
-// outputInternalCompilerLogs writes internal compiler logs to stderr for
-// debugging. This always writes to stderr, not to the set output, as it is
-// only meant for internal debugging.
+// outputInternalCompilerLogs writes internal compiler logs to stderr for debugging. This
+// always writes to stderr, not to the set output, as it is only meant for internal
+// debugging.
 //
-// Takes diagnostics ([]*ast_domain.Diagnostic) which provides the list of
-// diagnostics to check for compiler logs.
-// Takes compilationLogs (*annotator_domain.CompilationLogStore) which stores
-// the internal compiler logs to output.
+// Takes diagnostics ([]*ast_domain.Diagnostic) which provides the list of diagnostics to
+// check for compiler logs.
+// Takes compilationLogs (*annotator_domain.CompilationLogStore) which stores the internal
+// compiler logs to output.
 func outputInternalCompilerLogs(diagnostics []*ast_domain.Diagnostic, compilationLogs *annotator_domain.CompilationLogStore) {
 	if len(diagnostics) == 0 {
 		return

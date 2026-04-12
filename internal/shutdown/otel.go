@@ -31,23 +31,23 @@ var (
 	// Meter is the OpenTelemetry meter for shutdown tracking.
 	Meter = otel.Meter("piko/internal/shutdown")
 
-	// ShutdownSignalCount is a counter metric that tracks how many shutdown
-	// signals the application has received.
+	// ShutdownSignalCount is a counter metric that tracks how many shutdown signals the
+	// application has received.
 	ShutdownSignalCount metric.Int64Counter
 
 	// CleanupFunctionCount is the counter metric that tracks cleanup function calls.
 	CleanupFunctionCount metric.Int64Counter
 
-	// CleanupFunctionExecutedCount tracks the number of cleanup functions that have
-	// been executed.
+	// CleanupFunctionExecutedCount tracks the number of cleanup functions that have been
+	// executed.
 	CleanupFunctionExecutedCount metric.Int64Counter
 
-	// CleanupFunctionErrorCount is a counter that tracks the number of errors
-	// that happen when cleanup functions run.
+	// CleanupFunctionErrorCount is a counter that tracks the number of errors that happen
+	// when cleanup functions run.
 	CleanupFunctionErrorCount metric.Int64Counter
 
-	// CleanupFunctionTimeoutCount is a counter that tracks how many times a
-	// cleanup function has timed out.
+	// CleanupFunctionTimeoutCount is a counter that tracks how many times a cleanup function
+	// has timed out.
 	CleanupFunctionTimeoutCount metric.Int64Counter
 
 	// CleanupFunctionPanicCount counts cleanup functions that have panicked.

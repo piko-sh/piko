@@ -85,8 +85,8 @@ func parseSVGReader(r io.Reader) (*SVG, error) {
 	return s, nil
 }
 
-// extractDimensions reads width, height, viewBox, and preserveAspectRatio
-// from the root SVG element and populates the corresponding SVG fields.
+// extractDimensions reads width, height, viewBox, and preserveAspectRatio from the root
+// SVG element and populates the corresponding SVG fields.
 func (s *SVG) extractDimensions() {
 	if s.Root == nil {
 		return
@@ -107,9 +107,8 @@ func (s *SVG) extractDimensions() {
 	}
 }
 
-// indexDefs recursively indexes all elements with an id attribute into
-// the Defs map, including nested elements inside <defs> blocks and
-// top-level ids.
+// indexDefs recursively indexes all elements with an id attribute into the Defs map,
+// including nested elements inside <defs> blocks and top-level ids.
 func (s *SVG) indexDefs() {
 	s.Defs = make(map[string]*Node)
 	if s.Root == nil {
@@ -118,8 +117,8 @@ func (s *SVG) indexDefs() {
 	indexDefsRecursive(s.Root, s.Defs)
 }
 
-// indexDefsRecursive walks the node tree and registers every element
-// that has an id attribute into the defs map.
+// indexDefsRecursive walks the node tree and registers every element that has an id
+// attribute into the defs map.
 //
 // Takes node (*Node) which is the current node to index.
 // Takes defs (map[string]*Node) which accumulates id-to-node mappings.
@@ -132,8 +131,8 @@ func indexDefsRecursive(node *Node, defs map[string]*Node) {
 	}
 }
 
-// parseElement reads tokens from the decoder until a complete element
-// is parsed or EOF is reached.
+// parseElement reads tokens from the decoder until a complete element is parsed or EOF is
+// reached.
 //
 // Takes dec (*xml.Decoder) which provides the XML token stream.
 //
@@ -195,8 +194,8 @@ func handleElementToken(dec *xml.Decoder, tok xml.Token) (*Node, bool, error) {
 	}
 }
 
-// parseChildren reads child elements and text content from the decoder
-// until the parent element's closing tag is reached.
+// parseChildren reads child elements and text content from the decoder until the parent
+// element's closing tag is reached.
 //
 // Takes dec (*xml.Decoder) which provides the XML token stream.
 // Takes parent (*Node) which accumulates parsed children and text.
@@ -224,8 +223,8 @@ func parseChildren(dec *xml.Decoder, parent *Node) error {
 	}
 }
 
-// handleChildToken processes a single XML token during child parsing,
-// building child nodes or accumulating character data.
+// handleChildToken processes a single XML token during child parsing, building child
+// nodes or accumulating character data.
 //
 // Takes dec (*xml.Decoder) which provides the token stream for recursive parsing.
 // Takes parent (*Node) which accumulates child nodes.
@@ -260,8 +259,8 @@ func handleChildToken(dec *xml.Decoder, parent *Node, tok xml.Token, textBuf *st
 	return false, nil
 }
 
-// buildNodeFromStart constructs a Node from an XML start element, copying
-// attributes and parsing any transform attribute.
+// buildNodeFromStart constructs a Node from an XML start element, copying attributes and
+// parsing any transform attribute.
 //
 // Takes start (xml.StartElement) which is the XML start element to convert.
 //
@@ -281,8 +280,8 @@ func buildNodeFromStart(start xml.StartElement) *Node {
 	return node
 }
 
-// findSVGRoot searches the node tree for the first element with the
-// tag "svg", returning nil if none is found.
+// findSVGRoot searches the node tree for the first element with the tag "svg", returning
+// nil if none is found.
 //
 // Takes node (*Node) which is the root of the tree to search.
 //
@@ -302,8 +301,8 @@ func findSVGRoot(node *Node) *Node {
 	return nil
 }
 
-// parseDimension parses an SVG dimension string with an optional unit suffix.
-// Supports px, pt, mm, cm, in, em, and rem; percentage suffixes are stripped.
+// parseDimension parses an SVG dimension string with an optional unit suffix. Supports
+// px, pt, mm, cm, in, em, and rem; percentage suffixes are stripped.
 //
 // Takes s (string) which is the dimension string to parse.
 //
@@ -377,8 +376,8 @@ func parseViewBox(s string) ViewBox {
 	}
 }
 
-// parsePreserveAspectRatio parses an SVG preserveAspectRatio attribute
-// into an AspectRatio, defaulting to "xMidYMid meet".
+// parsePreserveAspectRatio parses an SVG preserveAspectRatio attribute into an
+// AspectRatio, defaulting to "xMidYMid meet".
 //
 // Takes s (string) which is the preserveAspectRatio value.
 //

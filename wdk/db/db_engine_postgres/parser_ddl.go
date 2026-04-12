@@ -26,6 +26,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseCreateTable parses a CREATE TABLE statement into a catalogue mutation.
+//
+// Takes engine (*PostgresEngine) which resolves column type names against the dialect's
+// type catalogue.
+//
+// Returns *querier_dto.CatalogueMutation which describes the new table.
+// Returns error when the statement is malformed.
 func (p *parser) parseCreateTable(engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 
@@ -81,6 +88,7 @@ func (p *parser) parseCreateTable(engine *PostgresEngine) (*querier_dto.Catalogu
 	}, nil
 }
 
+// skipIfNotExists consumes an optional "IF NOT EXISTS" clause.
 func (p *parser) skipIfNotExists() {
 	if p.matchKeyword("IF") {
 		p.matchKeyword(keywordNOT)
@@ -88,18 +96,30 @@ func (p *parser) skipIfNotExists() {
 	}
 }
 
+// skipIfExists consumes an optional "IF EXISTS" clause.
 func (p *parser) skipIfExists() {
 	if p.matchKeyword("IF") {
 		p.matchKeyword(keywordEXISTS)
 	}
 }
 
+// skipToStatementEnd advances the parser past the end of the current statement.
 func (p *parser) skipToStatementEnd() {
 	for !p.atEnd() && p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
 		p.advance()
 	}
 }
 
+// parseCreateTableBody parses the column and constraint list of a CREATE TABLE.
+//
+// Takes engine (*PostgresEngine) which resolves column type names against the dialect's
+// type catalogue.
+//
+// Returns []querier_dto.Column which describes the parsed columns.
+// Returns []string which lists primary-key column names, table-level constraints taking
+// precedence over column-level ones.
+// Returns []querier_dto.Constraint which lists secondary constraints.
+// Returns error when a column or constraint cannot be parsed.
 func (p *parser) parseCreateTableBody(
 	engine *PostgresEngine,
 ) ([]querier_dto.Column, []string, []querier_dto.Constraint, error) {
@@ -138,12 +158,19 @@ func (p *parser) parseCreateTableBody(
 	return columns, primaryKeyColumns, constraints, nil
 }
 
+// skipComma consumes a single comma when one is present.
 func (p *parser) skipComma() {
 	if p.current().kind == tokenComma {
 		p.advance()
 	}
 }
 
+// appendConstraintPrimaryKey selects the candidate list when it is non-empty.
+//
+// Takes existing ([]string) which is the current primary-key column list.
+// Takes candidate ([]string) which is the newly parsed constraint columns.
+//
+// Returns []string which is the candidate list when non-empty, else existing.
 func appendConstraintPrimaryKey(existing, candidate []string) []string {
 	if len(candidate) > 0 {
 		return candidate
@@ -151,6 +178,13 @@ func appendConstraintPrimaryKey(existing, candidate []string) []string {
 	return existing
 }
 
+// appendConstraint appends a non-nil constraint to the slice.
+//
+// Takes constraints ([]querier_dto.Constraint) which is the accumulator.
+// Takes constraint (*querier_dto.Constraint) which is the optional new entry.
+//
+// Returns []querier_dto.Constraint which is the input with the entry appended when
+// non-nil, else unchanged.
 func appendConstraint(constraints []querier_dto.Constraint, constraint *querier_dto.Constraint) []querier_dto.Constraint {
 	if constraint != nil {
 		return append(constraints, *constraint)
@@ -158,6 +192,11 @@ func appendConstraint(constraints []querier_dto.Constraint, constraint *querier_
 	return constraints
 }
 
+// parseInheritsClause parses an optional INHERITS (...) clause.
+//
+// Returns []querier_dto.TableReference which lists the parent tables, or nil when no
+// clause is present.
+// Returns error when a parent table name cannot be parsed.
 func (p *parser) parseInheritsClause() ([]querier_dto.TableReference, error) {
 	if !p.matchKeyword("INHERITS") {
 		return nil, nil
@@ -188,6 +227,13 @@ func (p *parser) parseInheritsClause() ([]querier_dto.TableReference, error) {
 	return tables, nil
 }
 
+// parsePostgresColumnDefinition parses a single column declaration.
+//
+// Takes engine (*PostgresEngine) which resolves the column type name.
+//
+// Returns querier_dto.Column which describes the parsed column.
+// Returns bool which is true when the column carries an inline PRIMARY KEY constraint.
+// Returns error when the column name cannot be parsed.
 func (p *parser) parsePostgresColumnDefinition(engine *PostgresEngine) (querier_dto.Column, bool, error) {
 	name, err := p.parseIdentifierOrKeyword()
 	if err != nil {
@@ -209,6 +255,11 @@ func (p *parser) parsePostgresColumnDefinition(engine *PostgresEngine) (querier_
 	return column, isPrimaryKey, nil
 }
 
+// parseColumnConstraints parses zero or more column-level constraints.
+//
+// Takes column (*querier_dto.Column) which is updated with each constraint.
+//
+// Returns bool which is true when any constraint declared PRIMARY KEY.
 func (p *parser) parseColumnConstraints(column *querier_dto.Column) bool {
 	isPrimaryKey := false
 
@@ -225,6 +276,13 @@ func (p *parser) parseColumnConstraints(column *querier_dto.Column) bool {
 	return isPrimaryKey
 }
 
+// parseOnePostgresColumnConstraint parses a single column-level constraint.
+//
+// Takes column (*querier_dto.Column) which is updated according to the recognised
+// constraint.
+//
+// Returns isPrimary (bool) which is true when the constraint is PRIMARY KEY.
+// Returns handled (bool) which is true when a constraint was consumed.
 func (p *parser) parseOnePostgresColumnConstraint(column *querier_dto.Column) (isPrimary bool, handled bool) {
 	if p.matchKeyword(keywordPRIMARY) {
 		p.matchKeyword(keywordKEY)
@@ -264,6 +322,12 @@ func (p *parser) parseOnePostgresColumnConstraint(column *querier_dto.Column) (i
 	return false, p.parsePostgresSecondaryConstraint(column)
 }
 
+// parsePostgresSecondaryConstraint parses references, generated, collate, or
+// CONSTRAINT-name keywords.
+//
+// Takes column (*querier_dto.Column) which is updated when GENERATED is recognised.
+//
+// Returns bool which is true when a clause was consumed.
 func (p *parser) parsePostgresSecondaryConstraint(column *querier_dto.Column) bool {
 	if p.matchKeyword("REFERENCES") {
 		p.skipPostgresForeignKeyClause()
@@ -288,6 +352,10 @@ func (p *parser) parsePostgresSecondaryConstraint(column *querier_dto.Column) bo
 	return false
 }
 
+// parseGeneratedClause parses a GENERATED column clause.
+//
+// Takes column (*querier_dto.Column) which is updated with default and generated-kind
+// metadata.
 func (p *parser) parseGeneratedClause(column *querier_dto.Column) {
 	if p.matchKeyword("ALWAYS") {
 		p.parseGeneratedAlways(column)
@@ -304,6 +372,10 @@ func (p *parser) parseGeneratedClause(column *querier_dto.Column) {
 	}
 }
 
+// parseGeneratedAlways parses the body of a GENERATED ALWAYS clause.
+//
+// Takes column (*querier_dto.Column) which is updated when IDENTITY or a stored
+// expression is recognised.
 func (p *parser) parseGeneratedAlways(column *querier_dto.Column) {
 	if !p.matchKeyword(keywordAS) {
 		return
@@ -323,6 +395,12 @@ func (p *parser) parseGeneratedAlways(column *querier_dto.Column) {
 	}
 }
 
+// parseColumnType parses a column type, accepting an optional SETOF prefix.
+//
+// Takes engine (*PostgresEngine) which normalises the parsed type name.
+//
+// Returns querier_dto.SQLType which is the resolved column type.
+// Returns int which is the number of trailing array dimensions.
 func (p *parser) parseColumnType(engine *PostgresEngine) (querier_dto.SQLType, int) {
 	if p.matchKeyword("SETOF") {
 		sqlType, dimensions := p.parseColumnTypeInner(engine)
@@ -332,6 +410,12 @@ func (p *parser) parseColumnType(engine *PostgresEngine) (querier_dto.SQLType, i
 	return p.parseColumnTypeInner(engine)
 }
 
+// parseColumnTypeInner parses the type body after any SETOF prefix.
+//
+// Takes engine (*PostgresEngine) which normalises the parsed type name.
+//
+// Returns querier_dto.SQLType which is the resolved column type.
+// Returns int which is the number of trailing array dimensions.
 func (p *parser) parseColumnTypeInner(engine *PostgresEngine) (querier_dto.SQLType, int) {
 	if p.current().kind != tokenIdentifier {
 		return querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"}, 0
@@ -376,6 +460,9 @@ func (p *parser) parseColumnTypeInner(engine *PostgresEngine) (querier_dto.SQLTy
 	return sqlType, arrayDimensions
 }
 
+// parseArrayDimensions consumes trailing array dimension brackets.
+//
+// Returns int which is the number of dimensions consumed.
 func (p *parser) parseArrayDimensions() int {
 	dimensions := 0
 	for p.current().kind == tokenLeftBracket {
@@ -391,6 +478,11 @@ func (p *parser) parseArrayDimensions() int {
 	return dimensions
 }
 
+// isMultiWordTypePrefix reports whether the keyword starts a multi-word type.
+//
+// Takes lower (string) which is the lower-cased candidate token.
+//
+// Returns bool which is true for double, character, timestamp, and time.
 func isMultiWordTypePrefix(lower string) bool {
 	switch lower {
 	case "double", "character", "timestamp", "time":
@@ -399,6 +491,11 @@ func isMultiWordTypePrefix(lower string) bool {
 	return false
 }
 
+// consumeMultiWordType assembles the full name of a multi-word type.
+//
+// Takes lower (string) which is the lower-cased first token of the type.
+//
+// Returns string which is the full multi-word type name.
 func (p *parser) consumeMultiWordType(lower string) string {
 	switch lower {
 	case "double":
@@ -423,6 +520,11 @@ func (p *parser) consumeMultiWordType(lower string) string {
 	return lower
 }
 
+// consumeTemporalZoneSuffix appends a WITH/WITHOUT TIME ZONE suffix.
+//
+// Takes base (string) which is the timestamp or time base name.
+//
+// Returns string which is the base, optionally extended with the suffix.
 func (p *parser) consumeTemporalZoneSuffix(base string) string {
 	if p.matchKeyword(keywordWITH) {
 		p.matchKeyword(keywordTIME)
@@ -437,6 +539,10 @@ func (p *parser) consumeTemporalZoneSuffix(base string) string {
 	return base
 }
 
+// parseTypeModifiers parses parenthesised numeric type modifiers.
+//
+// Returns []int which lists the parsed numeric modifiers, or nil when no parenthesised
+// list is present.
 func (p *parser) parseTypeModifiers() []int {
 	if p.current().kind != tokenLeftParen {
 		return nil
@@ -463,11 +569,19 @@ func (p *parser) parseTypeModifiers() []int {
 	return modifiers
 }
 
+// isPostgresColumnConstraintKeyword reports whether the current token starts a
+// column-level constraint clause.
+//
+// Returns bool which is true for any recognised constraint keyword.
 func (p *parser) isPostgresColumnConstraintKeyword() bool {
 	return p.isAnyKeyword(keywordPRIMARY, keywordNOT, keywordNULL, keywordUNIQUE, keywordCHECK, keywordDEFAULT,
 		"COLLATE", "REFERENCES", "GENERATED", keywordCONSTRAINT)
 }
 
+// isPostgresTableConstraint reports whether the current token starts a table-level
+// constraint clause.
+//
+// Returns bool which is true for any recognised table-level keyword.
 func (p *parser) isPostgresTableConstraint() bool {
 	if p.isKeyword(keywordCONSTRAINT) {
 		return true
@@ -496,6 +610,12 @@ func (p *parser) isPostgresTableConstraint() bool {
 	return false
 }
 
+// parsePostgresTableConstraint parses a single table-level constraint.
+//
+// Returns []string which lists primary-key columns when applicable, else nil.
+// Returns *querier_dto.Constraint which describes the constraint when not a primary key,
+// else nil.
+// Returns error when the constraint body cannot be parsed.
 func (p *parser) parsePostgresTableConstraint() ([]string, *querier_dto.Constraint, error) {
 	constraintName := p.parseOptionalConstraintName()
 
@@ -519,6 +639,9 @@ func (p *parser) parsePostgresTableConstraint() ([]string, *querier_dto.Constrai
 	return nil, nil, nil
 }
 
+// parseOptionalConstraintName consumes an optional CONSTRAINT name clause.
+//
+// Returns string which is the constraint name, or empty when absent.
 func (p *parser) parseOptionalConstraintName() string {
 	if !p.matchKeyword(keywordCONSTRAINT) {
 		return ""
@@ -530,6 +653,11 @@ func (p *parser) parseOptionalConstraintName() string {
 	return name
 }
 
+// parseTablePrimaryKey parses a PRIMARY KEY (...) table constraint.
+//
+// Returns []string which lists the primary-key columns.
+// Returns *querier_dto.Constraint which is always nil for primary keys.
+// Returns error when the opening parenthesis is missing or columns fail.
 func (p *parser) parseTablePrimaryKey() ([]string, *querier_dto.Constraint, error) {
 	p.matchKeyword(keywordKEY)
 	if p.current().kind != tokenLeftParen {
@@ -542,6 +670,14 @@ func (p *parser) parseTablePrimaryKey() ([]string, *querier_dto.Constraint, erro
 	return columns, nil, nil
 }
 
+// parseTableUnique parses a UNIQUE (...) table constraint.
+//
+// Takes constraintName (string) which optionally names the constraint.
+//
+// Returns []string which is always nil.
+// Returns *querier_dto.Constraint which describes the UNIQUE clause, or nil when no
+// column list follows.
+// Returns error when the column list cannot be parsed.
 func (p *parser) parseTableUnique(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, nil, nil
@@ -557,6 +693,13 @@ func (p *parser) parseTableUnique(constraintName string) ([]string, *querier_dto
 	}, nil
 }
 
+// parseTableCheck parses a CHECK (...) table constraint.
+//
+// Takes constraintName (string) which optionally names the constraint.
+//
+// Returns []string which is always nil.
+// Returns *querier_dto.Constraint which describes the CHECK clause.
+// Returns error which is always nil.
 func (p *parser) parseTableCheck(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
@@ -567,6 +710,13 @@ func (p *parser) parseTableCheck(constraintName string) ([]string, *querier_dto.
 	}, nil
 }
 
+// parseTableForeignKey parses a FOREIGN KEY table constraint.
+//
+// Takes constraintName (string) which optionally names the constraint.
+//
+// Returns []string which is always nil.
+// Returns *querier_dto.Constraint which describes the foreign key clause.
+// Returns error when the column list cannot be parsed.
 func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier_dto.Constraint, error) {
 	p.matchKeyword(keywordKEY)
 	var columns []string
@@ -587,6 +737,11 @@ func (p *parser) parseTableForeignKey(constraintName string) ([]string, *querier
 	}, nil
 }
 
+// parseTableExclude skips an EXCLUDE table constraint without modelling it.
+//
+// Returns []string which is always nil.
+// Returns *querier_dto.Constraint which is always nil.
+// Returns error which is always nil.
 func (p *parser) parseTableExclude() ([]string, *querier_dto.Constraint, error) {
 	if p.matchKeyword(keywordUSING) {
 		p.advance()
@@ -597,6 +752,10 @@ func (p *parser) parseTableExclude() ([]string, *querier_dto.Constraint, error) 
 	return nil, nil, nil
 }
 
+// parsePostgresForeignKeyReference parses a REFERENCES table (columns) clause.
+//
+// Returns string which is the referenced table name, or empty when missing.
+// Returns []string which lists the referenced columns, or nil when absent.
 func (p *parser) parsePostgresForeignKeyReference() (string, []string) {
 	if !p.matchKeyword("REFERENCES") {
 		p.skipPostgresForeignKeyClause()
@@ -618,6 +777,11 @@ func (p *parser) parsePostgresForeignKeyReference() (string, []string) {
 	return tableName, columns
 }
 
+// parsePostgresColumnList parses a comma-separated identifier list.
+//
+// Returns []string which lists the column names.
+// Returns error when the opening parenthesis is missing or an identifier cannot be
+// parsed.
 func (p *parser) parsePostgresColumnList() ([]string, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, errors.New("expected '('")
@@ -650,6 +814,7 @@ func (p *parser) parsePostgresColumnList() ([]string, error) {
 	return columns, nil
 }
 
+// skipPostgresDefaultValue consumes the tokens of a DEFAULT expression.
 func (p *parser) skipPostgresDefaultValue() {
 	if p.current().kind == tokenLeftParen {
 		p.mustSkipParenthesised()
@@ -681,6 +846,7 @@ func (p *parser) skipPostgresDefaultValue() {
 	}
 }
 
+// skipPostgresForeignKeyClause consumes the trailing options of a FOREIGN KEY.
 func (p *parser) skipPostgresForeignKeyClause() {
 	if p.current().kind == tokenIdentifier {
 		p.mustSchemaQualifiedName()

@@ -31,12 +31,11 @@ import (
 )
 
 const (
-	// dispatcherTypeEmail identifies the email dispatcher
-	// type for routing and metrics.
+	// dispatcherTypeEmail identifies the email dispatcher type for routing and metrics.
 	dispatcherTypeEmail = "email"
 
-	// dispatcherTypeNotification identifies the notification
-	// dispatcher type for routing and metrics.
+	// dispatcherTypeNotification identifies the notification dispatcher type for routing and
+	// metrics.
 	dispatcherTypeNotification = "notification"
 )
 
@@ -44,29 +43,28 @@ var (
 	// log is the package-level logger for the dispatcher_adapters package.
 	log = logger.GetLogger("piko/internal/dispatcher/dispatcher_adapters")
 
-	// errEmailDispatcherNotConfigured is returned when an email dispatcher
-	// operation is attempted but no email dispatcher has been configured.
+	// errEmailDispatcherNotConfigured is returned when an email dispatcher operation is
+	// attempted but no email dispatcher has been configured.
 	errEmailDispatcherNotConfigured = errors.New("email dispatcher not configured")
 
-	// errNotificationDispatcherNotConfigured is returned when a notification
-	// dispatcher operation is attempted but no notification dispatcher has been
-	// configured.
+	// errNotificationDispatcherNotConfigured is returned when a notification dispatcher
+	// operation is attempted but no notification dispatcher has been configured.
 	errNotificationDispatcherNotConfigured = errors.New("notification dispatcher not configured")
 )
 
-// Inspector implements dispatcher_domain.DispatcherInspector by delegating to
-// email and notification dispatcher ports.
+// Inspector implements dispatcher_domain.DispatcherInspector by delegating to email and
+// notification dispatcher ports.
 type Inspector struct {
 	// emailDispatcher provides access to the email dispatcher; may be nil.
 	emailDispatcher email_domain.EmailDispatcherPort
 
-	// notificationDispatcher provides access to the notification dispatcher;
-	// may be nil if not configured.
+	// notificationDispatcher provides access to the notification dispatcher; may be nil if
+	// not configured.
 	notificationDispatcher notification_domain.NotificationDispatcherPort
 }
 
-// NewInspector creates a new Inspector with the given dispatchers.
-// Either dispatcher may be nil if not configured.
+// NewInspector creates a new Inspector with the given dispatchers. Either dispatcher may
+// be nil if not configured.
 //
 // Takes emailDispatcher (EmailDispatcherPort) which may be nil.
 // Takes notificationDispatcher (NotificationDispatcherPort) which may be nil.
@@ -84,8 +82,8 @@ func NewInspector(
 
 // GetDispatcherSummaries returns statistics for all configured dispatchers.
 //
-// Returns []dispatcher_domain.DispatcherSummary which contains statistics for
-// each available dispatcher.
+// Returns []dispatcher_domain.DispatcherSummary which contains statistics for each
+// available dispatcher.
 // Returns error when retrieval fails.
 func (i *Inspector) GetDispatcherSummaries(ctx context.Context) ([]dispatcher_domain.DispatcherSummary, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -112,15 +110,14 @@ func (i *Inspector) GetDispatcherSummaries(ctx context.Context) ([]dispatcher_do
 	return summaries, nil
 }
 
-// GetDLQEntries returns dead letter queue entries for a specific dispatcher
-// type.
+// GetDLQEntries returns dead letter queue entries for a specific dispatcher type.
 //
-// Takes dispatcherType (string) which specifies the dispatcher to query, such
-// as "email" or "notification".
+// Takes dispatcherType (string) which specifies the dispatcher to query, such as "email"
+// or "notification".
 // Takes limit (int) which sets the maximum number of entries to return.
 //
-// Returns []dispatcher_domain.DLQEntry which contains the dead letter queue
-// entries for the specified dispatcher.
+// Returns []dispatcher_domain.DLQEntry which contains the dead letter queue entries for
+// the specified dispatcher.
 // Returns error when the dispatcher type is unknown.
 func (i *Inspector) GetDLQEntries(ctx context.Context, dispatcherType string, limit int) ([]dispatcher_domain.DLQEntry, error) {
 	switch dispatcherType {
@@ -158,8 +155,8 @@ func (i *Inspector) GetDLQCount(ctx context.Context, dispatcherType string) (int
 
 // ClearDLQ removes all entries from a dispatcher's dead letter queue.
 //
-// Takes dispatcherType (string) which specifies the dispatcher to clear
-// ("email" or "notification").
+// Takes dispatcherType (string) which specifies the dispatcher to clear ("email" or
+// "notification").
 //
 // Returns error when the dispatcher type is unknown or not configured.
 func (i *Inspector) ClearDLQ(ctx context.Context, dispatcherType string) error {
@@ -181,8 +178,8 @@ func (i *Inspector) ClearDLQ(ctx context.Context, dispatcherType string) error {
 
 // getEmailSummary fetches statistics from the email dispatcher.
 //
-// Returns dispatcher_domain.DispatcherSummary which contains the current
-// processing statistics for the email dispatcher.
+// Returns dispatcher_domain.DispatcherSummary which contains the current processing
+// statistics for the email dispatcher.
 // Returns error when the processing statistics cannot be retrieved.
 func (i *Inspector) getEmailSummary(ctx context.Context) (dispatcher_domain.DispatcherSummary, error) {
 	stats, err := i.emailDispatcher.GetProcessingStats(ctx)
@@ -205,8 +202,8 @@ func (i *Inspector) getEmailSummary(ctx context.Context) (dispatcher_domain.Disp
 
 // getNotificationSummary fetches statistics from the notification dispatcher.
 //
-// Returns dispatcher_domain.DispatcherSummary which contains the collected
-// notification processing statistics.
+// Returns dispatcher_domain.DispatcherSummary which contains the collected notification
+// processing statistics.
 // Returns error when fetching the processing stats fails.
 func (i *Inspector) getNotificationSummary(ctx context.Context) (dispatcher_domain.DispatcherSummary, error) {
 	stats, err := i.notificationDispatcher.GetProcessingStats(ctx)
@@ -263,14 +260,13 @@ func (i *Inspector) getEmailDLQEntries(ctx context.Context, limit int) ([]dispat
 	return result, nil
 }
 
-// getNotificationDLQEntries returns dead letter entries from the notification
-// dispatcher.
+// getNotificationDLQEntries returns dead letter entries from the notification dispatcher.
 //
 // Takes limit (int) which specifies the maximum number of entries to return.
 //
 // Returns []dispatcher_domain.DLQEntry which contains the dead letter entries.
-// Returns error when the notification dispatcher is not configured or when
-// fetching entries fails.
+// Returns error when the notification dispatcher is not configured or when fetching
+// entries fails.
 func (i *Inspector) getNotificationDLQEntries(ctx context.Context, limit int) ([]dispatcher_domain.DLQEntry, error) {
 	if i.notificationDispatcher == nil {
 		return nil, errNotificationDispatcherNotConfigured
@@ -299,4 +295,6 @@ func (i *Inspector) getNotificationDLQEntries(ctx context.Context, limit int) ([
 	return result, nil
 }
 
-var _ dispatcher_domain.DispatcherInspector = (*Inspector)(nil)
+var (
+	_ dispatcher_domain.DispatcherInspector = (*Inspector)(nil)
+)

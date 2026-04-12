@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_flatten converts interactive PDF elements into
-// static page content as a post-processing transformer.
+// Package driven_transform_flatten converts interactive PDF elements into static page
+// content as a post-processing transformer.
 //
-// Form field flattening takes each widget annotation's normal appearance
-// stream and renders it as a Form XObject at the annotation's Rect
-// position, then removes the AcroForm from the document catalog.
-// Annotation flattening does the same for non-widget annotations that
-// have appearance streams. Transparency flattening removes transparency
+// Form field flattening takes each widget annotation's normal appearance stream and
+// renders it as a Form XObject at the annotation's Rect position, then removes the
+// AcroForm from the document catalog. Annotation flattening does the same for non-widget
+// annotations that have appearance streams. Transparency flattening removes transparency
 // group dictionaries from page objects.
 package driven_transform_flatten

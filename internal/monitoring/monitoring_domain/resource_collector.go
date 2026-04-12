@@ -52,19 +52,18 @@ const (
 	// ResourceCategoryPipe is the category label for pipe resources.
 	ResourceCategoryPipe = "pipe"
 
-	// ResourceCategorySocket is the category for network socket file
-	// descriptors.
+	// ResourceCategorySocket is the category for network socket file descriptors.
 	ResourceCategorySocket = "socket"
 
-	// ResourceCategoryOther is the category for resources that do not
-	// match other categories, such as anonymous inodes.
+	// ResourceCategoryOther is the category for resources that do not match other
+	// categories, such as anonymous inodes.
 	ResourceCategoryOther = "other"
 
 	// resourceScanInterval is the time between background resource scans.
 	resourceScanInterval = 2 * time.Second
 
-	// procSelfFileDescriptor is the path to the directory listing open file
-	// descriptors for the current process.
+	// procSelfFileDescriptor is the path to the directory listing open file descriptors for
+	// the current process.
 	procSelfFileDescriptor = "/proc/self/fd"
 
 	// procSelfNet is the path to the network information for the current process.
@@ -86,11 +85,11 @@ type resourceInfo struct {
 	Number int
 }
 
-// ResourceCollector collects information about open resources.
-// It implements ResourceProvider.
+// ResourceCollector collects information about open resources. It implements
+// ResourceProvider.
 type ResourceCollector struct {
-	// sandboxFactory creates sandboxes when needed. When non-nil, this factory
-	// is used instead of safedisk.NewSandbox.
+	// sandboxFactory creates sandboxes when needed. When non-nil, this factory is used
+	// instead of safedisk.NewSandbox.
 	sandboxFactory safedisk.Factory
 
 	// clock provides time operations for testing; defaults to real time.
@@ -109,17 +108,14 @@ type ResourceCollector struct {
 	stopped bool
 }
 
-// ResourceCollectorOption is a function type that configures a
-// ResourceCollector.
+// ResourceCollectorOption is a function type that configures a ResourceCollector.
 type ResourceCollectorOption func(*ResourceCollector)
 
 // NewResourceCollector creates a new resource collector.
 //
-// Takes opts (...ResourceCollectorOption) which configures the collector
-// behaviour.
+// Takes opts (...ResourceCollectorOption) which configures the collector behaviour.
 //
-// Returns *ResourceCollector which is ready to collect resource
-// information.
+// Returns *ResourceCollector which is ready to collect resource information.
 func NewResourceCollector(opts ...ResourceCollectorOption) *ResourceCollector {
 	c := &ResourceCollector{
 		clock:     nil,
@@ -139,11 +135,10 @@ func NewResourceCollector(opts ...ResourceCollectorOption) *ResourceCollector {
 	return c
 }
 
-// Start begins periodic scanning of resources to keep firstSeen
-// timestamps accurate.
+// Start begins periodic scanning of resources to keep firstSeen timestamps accurate.
 //
-// Spawns a background goroutine that runs until the context is cancelled
-// or Stop is called.
+// Spawns a background goroutine that runs until the context is cancelled or Stop is
+// called.
 func (c *ResourceCollector) Start(ctx context.Context) {
 	c.scanFirstSeen()
 
@@ -152,8 +147,8 @@ func (c *ResourceCollector) Start(ctx context.Context) {
 
 // Stop stops the background scan goroutine.
 //
-// Safe for concurrent use. Calling Stop multiple times is safe; only the first
-// call closes the stop channel.
+// Safe for concurrent use. Calling Stop multiple times is safe; only the first call
+// closes the stop channel.
 func (c *ResourceCollector) Stop() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -171,8 +166,7 @@ var (
 	// pipePattern matches pipe:[inode] format.
 	pipePattern = regexp.MustCompile(`^pipe:\[(\d+)\]$`)
 
-	// resourceCategoryOrder defines the order in which resource categories are
-	// returned.
+	// resourceCategoryOrder defines the order in which resource categories are returned.
 	resourceCategoryOrder = []string{
 		ResourceCategoryFile,
 		ResourceCategoryTCP,
@@ -186,11 +180,11 @@ var (
 	_ ResourceProvider = (*ResourceCollector)(nil)
 )
 
-// GetResources returns current resource information in domain
-// format. Implements ResourceProvider.
+// GetResources returns current resource information in domain format. Implements
+// ResourceProvider.
 //
-// Returns ResourceData which contains categorised resource
-// information with totals and timestamp.
+// Returns ResourceData which contains categorised resource information with totals and
+// timestamp.
 //
 // Safe for concurrent use; protected by a mutex.
 func (c *ResourceCollector) GetResources() ResourceData {
@@ -238,9 +232,9 @@ func (c *ResourceCollector) loop(ctx context.Context) {
 	}
 }
 
-// scanFirstSeen performs a lightweight scan of /proc/self/fd to record when
-// resources are first observed. Unlike GetResources, this does
-// not resolve symlinks or categorise descriptors.
+// scanFirstSeen performs a lightweight scan of /proc/self/fd to record when resources are
+// first observed. Unlike GetResources, this does not resolve symlinks or categorise
+// descriptors.
 //
 // Safe for concurrent use; protected by the collector's mutex.
 func (c *ResourceCollector) scanFirstSeen() {
@@ -274,14 +268,11 @@ func (c *ResourceCollector) scanFirstSeen() {
 
 // collectResourceInfo reads resource entries and categorises them.
 //
-// Takes entries ([]os.DirEntry) which contains the directory entries to
-// process.
+// Takes entries ([]os.DirEntry) which contains the directory entries to process.
 // Takes now (time.Time) which is the current time for first-seen tracking.
 //
-// Returns map[string][]resourceInfo which maps category names to their
-// resource details.
-// Returns map[int]struct{} which contains the set of currently active
-// resource numbers.
+// Returns map[string][]resourceInfo which maps category names to their resource details.
+// Returns map[int]struct{} which contains the set of currently active resource numbers.
 func (c *ResourceCollector) collectResourceInfo(entries []os.DirEntry, now time.Time) (map[string][]resourceInfo, map[int]struct{}) {
 	resourcesByCategory := make(map[string][]resourceInfo)
 	currentResources := make(map[int]struct{})
@@ -304,9 +295,8 @@ func (c *ResourceCollector) collectResourceInfo(entries []os.DirEntry, now time.
 // Takes entry (os.DirEntry) which is the directory entry to process.
 // Takes now (time.Time) which is the current time for tracking first seen.
 //
-// Returns *resourceInfo which contains the descriptor details, or nil if the
-// entry
-// is invalid, is a standard stream (stdin/stdout/stderr), or cannot be read.
+// Returns *resourceInfo which contains the descriptor details, or nil if the entry is
+// invalid, is a standard stream (stdin/stdout/stderr), or cannot be read.
 func (c *ResourceCollector) processResourceEntry(entry os.DirEntry, now time.Time) *resourceInfo {
 	number, err := strconv.Atoi(entry.Name())
 	if err != nil {
@@ -336,11 +326,10 @@ func (c *ResourceCollector) processResourceEntry(entry os.DirEntry, now time.Tim
 	}
 }
 
-// cleanupStaleFirstSeen removes entries for resources that no longer
-// exist.
+// cleanupStaleFirstSeen removes entries for resources that no longer exist.
 //
-// Takes currentResources (map[int]struct{}) which contains the set of
-// currently active resource numbers to check against.
+// Takes currentResources (map[int]struct{}) which contains the set of currently active
+// resource numbers to check against.
 func (c *ResourceCollector) cleanupStaleFirstSeen(currentResources map[int]struct{}) {
 	for number := range c.firstSeen {
 		if _, exists := currentResources[number]; !exists {
@@ -351,14 +340,12 @@ func (c *ResourceCollector) cleanupStaleFirstSeen(currentResources map[int]struc
 
 // buildCategoriesResponse builds the categories response in consistent order.
 //
-// Takes resourcesByCategory (map[string][]resourceInfo) which maps category
-// names to their resource information.
+// Takes resourcesByCategory (map[string][]resourceInfo) which maps category names to
+// their resource information.
 // Takes now (time.Time) which is the current time for age calculations.
 //
-// Returns []ResourceCategory which contains the sorted categories with
-// their resources.
-// Returns int which is the total count of resources across all
-// categories.
+// Returns []ResourceCategory which contains the sorted categories with their resources.
+// Returns int which is the total count of resources across all categories.
 func (*ResourceCollector) buildCategoriesResponse(resourcesByCategory map[string][]resourceInfo, now time.Time) ([]ResourceCategory, int) {
 	categories := make([]ResourceCategory, 0, len(resourceCategoryOrder))
 	total := 0
@@ -393,8 +380,7 @@ func (*ResourceCollector) buildCategoriesResponse(resourcesByCategory map[string
 	return categories, total
 }
 
-// categoriseResource determines the category of a resource based
-// on its target.
+// categoriseResource determines the category of a resource based on its target.
 //
 // Takes target (string) which is the resource target path to categorise.
 //
@@ -449,8 +435,8 @@ func (c *ResourceCollector) lookupSocketType(target string) string {
 
 // inodeInNetFile checks if an inode appears in a /proc/self/net/* file.
 //
-// Takes filename (string) which is the path relative to /proc/self/net
-// (e.g., "tcp", "tcp6").
+// Takes filename (string) which is the path relative to /proc/self/net (e.g., "tcp",
+// "tcp6").
 // Takes inode (string) which is the inode number to search for.
 //
 // Returns bool which is true if the inode is found in the file.
@@ -500,11 +486,10 @@ func WithResourceCollectorClock(clk clock.Clock) ResourceCollectorOption {
 	}
 }
 
-// WithResourceCollectorSandboxFactory sets a factory for creating sandboxes
-// when reading /proc/self/net files.
+// WithResourceCollectorSandboxFactory sets a factory for creating sandboxes when reading
+// /proc/self/net files.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for network file
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for network file access.
 //
 // Returns ResourceCollectorOption which configures the collector's factory.
 func WithResourceCollectorSandboxFactory(factory safedisk.Factory) ResourceCollectorOption {
@@ -513,8 +498,8 @@ func WithResourceCollectorSandboxFactory(factory safedisk.Factory) ResourceColle
 	}
 }
 
-// sortResourcesByAge sorts resources by age (oldest first) using
-// insertion sort for small slices.
+// sortResourcesByAge sorts resources by age (oldest first) using insertion sort for small
+// slices.
 //
 // Takes resources ([]resourceInfo) which is the slice to sort in place.
 func sortResourcesByAge(resources []resourceInfo) {

@@ -27,12 +27,12 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// resolveFaviconSources resolves any Src fields on favicon definitions in the
-// website config using the resolver for @/ alias expansion, doing nothing if
-// no favicons have Src set.
+// resolveFaviconSources resolves any Src fields on favicon definitions in the website
+// config using the resolver for @/ alias expansion, doing nothing if no favicons have Src
+// set.
 //
-// Takes container (*Container) which provides access to the website
-// configuration and the resolver needed for alias expansion.
+// Takes container (*Container) which provides access to the website configuration and the
+// resolver needed for alias expansion.
 func resolveFaviconSources(container *Container) {
 	favicons := container.websiteConfig.Favicons
 	if len(favicons) == 0 {
@@ -63,16 +63,14 @@ func resolveFaviconSources(container *Container) {
 	resolveFaviconSrcPaths(container.GetAppContext(), favicons, moduleName)
 }
 
-// resolveFaviconSrcPaths resolves Src fields on favicon definitions into Href
-// values using the asset pipeline path format, including @/ module alias
-// expansion, and clears each Src field after resolution to prevent
-// double-resolution.
+// resolveFaviconSrcPaths resolves Src fields on favicon definitions into Href values
+// using the asset pipeline path format, including @/ module alias expansion, and clears
+// each Src field after resolution to prevent double-resolution.
 //
 // Takes ctx (context.Context) which carries the application context for logging.
-// Takes favicons ([]config.FaviconDefinition) which contains the favicon
-// definitions to process (modified in place via the slice).
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
+// Takes favicons ([]config.FaviconDefinition) which contains the favicon definitions to
+// process (modified in place via the slice).
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
 func resolveFaviconSrcPaths(ctx context.Context, favicons []config.FaviconDefinition, moduleName string) {
 	_, l := logger_domain.From(ctx, log)
 

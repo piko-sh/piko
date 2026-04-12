@@ -37,7 +37,9 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-var benchBPCounter atomic.Int64
+var (
+	benchBPCounter atomic.Int64
+)
 
 func makeRandomVector(randomSource *rand.Rand, dim int) []float32 {
 	v := make([]float32, dim)

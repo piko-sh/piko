@@ -32,117 +32,111 @@ import (
 )
 
 const (
-	// linkDirectivePrefix is the //piko:link comment prefix scanned on
-	// the doc comments of exported generic functions.
+	// linkDirectivePrefix is the //piko:link comment prefix scanned on the doc comments of
+	// exported generic functions.
 	linkDirectivePrefix = "//piko:link"
 
-	// maxLinkDirectiveCommentBytes caps the length of an individual doc
-	// comment line examined for a //piko:link directive. Go doc
-	// comments are typically well under 1KB; anything larger is either
-	// malformed or an intentional attack, and scanning it wastes time.
+	// maxLinkDirectiveCommentBytes caps the length of an individual doc comment line
+	// examined for a //piko:link directive. Go doc comments are typically well under 1KB;
+	// anything larger is either malformed or an intentional attack, and scanning it wastes
+	// time.
 	maxLinkDirectiveCommentBytes = 1024
 
-	// maxLinkDirectiveDocLines caps how many comment lines a single
-	// function's doc block may contain before the directive parser
-	// gives up. Protects extract from pathological source files with
-	// enormous comment headers.
+	// maxLinkDirectiveDocLines caps how many comment lines a single function's doc block may
+	// contain before the directive parser gives up. Protects extract from pathological
+	// source files with enormous comment headers.
 	maxLinkDirectiveDocLines = 512
 
-	// maxLinkDirectiveTargetLength caps the accepted length of the
-	// sibling identifier. Real Go identifiers are rarely more than 64
-	// characters.
+	// maxLinkDirectiveTargetLength caps the accepted length of the sibling identifier. Real
+	// Go identifiers are rarely more than 64 characters.
 	maxLinkDirectiveTargetLength = 256
 
-	// maxLinkReturnWalkDepth caps the recursion used while deciding
-	// whether a return type is parametric, guarding against the same
-	// descriptor depth-bomb class covered at the runtime boundary.
+	// maxLinkReturnWalkDepth caps the recursion used while deciding whether a return type is
+	// parametric, guarding against the same descriptor depth-bomb class covered at the
+	// runtime boundary.
 	maxLinkReturnWalkDepth = 64
 )
 
 var (
-	// errLinkDirectiveMalformed reports a //piko:link line that does
-	// not parse as "//piko:link <identifier>".
+	// errLinkDirectiveMalformed reports a //piko:link line that does not parse as
+	// "//piko:link <identifier>".
 	errLinkDirectiveMalformed = errors.New("malformed //piko:link directive")
 
-	// errLinkDirectiveDuplicate reports more than one //piko:link line
-	// on the same function.
+	// errLinkDirectiveDuplicate reports more than one //piko:link line on the same function.
 	errLinkDirectiveDuplicate = errors.New("duplicate //piko:link directive")
 
-	// errLinkTargetMissing reports a directive whose target identifier
-	// does not resolve to a function in the same package.
+	// errLinkTargetMissing reports a directive whose target identifier does not resolve to a
+	// function in the same package.
 	errLinkTargetMissing = errors.New("//piko:link target not found in package")
 
-	// errLinkTargetNotFunc reports a directive whose target identifier
-	// resolves to something other than a function.
+	// errLinkTargetNotFunc reports a directive whose target identifier resolves to something
+	// other than a function.
 	errLinkTargetNotFunc = errors.New("//piko:link target is not a function")
 
-	// errLinkTargetArity reports a directive whose target function has
-	// the wrong number of parameters for the generic it links to.
+	// errLinkTargetArity reports a directive whose target function has the wrong number of
+	// parameters for the generic it links to.
 	errLinkTargetArity = errors.New("//piko:link target has wrong arity")
 
-	// errLinkDirectiveOnNonGeneric reports a directive attached to a
-	// non-generic function.
+	// errLinkDirectiveOnNonGeneric reports a directive attached to a non-generic function.
 	errLinkDirectiveOnNonGeneric = errors.New("//piko:link may only be used on generic functions")
 
-	// errLinkDirectiveDocTooLong reports a function whose doc block
-	// exceeds maxLinkDirectiveDocLines. Truncating silently could hide
-	// a directive placed near the end of a pathological comment block.
+	// errLinkDirectiveDocTooLong reports a function whose doc block exceeds
+	// maxLinkDirectiveDocLines. Truncating silently could hide a directive placed near the
+	// end of a pathological comment block.
 	errLinkDirectiveDocTooLong = errors.New("//piko:link doc block exceeds line limit")
 
-	// errLinkDirectiveCommentTooLong reports a single doc line that
-	// exceeds maxLinkDirectiveCommentBytes. Silent skip would hide a
-	// directive embedded in a long line.
+	// errLinkDirectiveCommentTooLong reports a single doc line that exceeds
+	// maxLinkDirectiveCommentBytes. Silent skip would hide a directive embedded in a long
+	// line.
 	errLinkDirectiveCommentTooLong = errors.New("//piko:link doc line exceeds byte limit")
 
-	// errLinkTargetTypePrefix reports a sibling whose leading
-	// parameters are not reflect.Type.
+	// errLinkTargetTypePrefix reports a sibling whose leading parameters are not
+	// reflect.Type.
 	errLinkTargetTypePrefix = errors.New("//piko:link target has wrong leading parameter shape")
 
-	// errLinkTargetReturnShape reports a sibling whose returns do not
-	// match the generic's return shape.
+	// errLinkTargetReturnShape reports a sibling whose returns do not match the generic's
+	// return shape.
 	errLinkTargetReturnShape = errors.New("//piko:link target has wrong return shape")
 )
 
-// LinkDirective records a parsed //piko:link annotation attached to a
-// generic function declaration.
+// LinkDirective records a parsed //piko:link annotation attached to a generic function
+// declaration.
 type LinkDirective struct {
-	// GenericName is the exported name of the annotated generic
-	// function.
+	// GenericName is the exported name of the annotated generic function.
 	GenericName string
 
-	// LinkTarget is the identifier the directive points at. The target
-	// must be declared in the same package; it need not be exported.
+	// LinkTarget is the identifier the directive points at. The target must be declared in
+	// the same package; it need not be exported.
 	LinkTarget string
 }
 
-// linkCollectorState accumulates directives and per-package duplicate
-// detection across the two-level declaration walk without inflating
-// collectLinkDirectives' cognitive complexity.
+// linkCollectorState accumulates directives and per-package duplicate detection across
+// the two-level declaration walk without inflating collectLinkDirectives' cognitive
+// complexity.
 type linkCollectorState struct {
-	// seen maps generic names already linked to the position of their
-	// directive, used to detect duplicates across the file set.
+	// seen maps generic names already linked to the position of their directive, used to
+	// detect duplicates across the file set.
 	seen map[string]token.Pos
 
 	// directives collects every valid directive as it is parsed.
 	directives []LinkDirective
 
-	// errs accumulates parse errors from malformed directives so the
-	// caller can report them all in a single errors.Join.
+	// errs accumulates parse errors from malformed directives so the caller can report them
+	// all in a single errors.Join.
 	errs []error
 }
 
-// visitDecl handles a single top-level declaration, parsing any
-// //piko:link directive and recording duplicates or errors on the
-// receiver's state.
+// visitDecl handles a single top-level declaration, parsing any //piko:link directive and
+// recording duplicates or errors on the receiver's state.
 //
 // Takes fset (*token.FileSet) which resolves comment positions.
 // Takes decl (ast.Decl) which is the declaration to inspect.
 func (s *linkCollectorState) visitDecl(fset *token.FileSet, decl ast.Decl) {
-	funcDecl, ok := decl.(*ast.FuncDecl)
-	if !ok || funcDecl.Doc == nil || funcDecl.Recv != nil {
+	functionDeclaration, ok := decl.(*ast.FuncDecl)
+	if !ok || functionDeclaration.Doc == nil || functionDeclaration.Recv != nil {
 		return
 	}
-	link, ok, err := parseFuncLinkDirective(funcDecl, fset)
+	link, ok, err := parseFuncLinkDirective(functionDeclaration, fset)
 	if err != nil {
 		s.errs = append(s.errs, err)
 		return
@@ -155,21 +149,19 @@ func (s *linkCollectorState) visitDecl(fset *token.FileSet, decl ast.Decl) {
 			errLinkDirectiveDuplicate, link.GenericName, fset.Position(prev)))
 		return
 	}
-	s.seen[link.GenericName] = funcDecl.Pos()
+	s.seen[link.GenericName] = functionDeclaration.Pos()
 	s.directives = append(s.directives, link)
 }
 
-// collectLinkDirectives walks the AST files of a loaded package and
-// gathers //piko:link directives attached to function declarations.
-// Invalid directives surface as errors so misuse fails extract rather
-// than silently producing broken generated code.
+// collectLinkDirectives walks the AST files of a loaded package and gathers //piko:link
+// directives attached to function declarations. Invalid directives surface as errors so
+// misuse fails extract rather than silently producing broken generated code.
 //
-// Takes pkg (*packages.Package) which is the loaded package. The
-// caller must have passed packages.NeedSyntax so pkg.Syntax is
-// populated.
+// Takes pkg (*packages.Package) which is the loaded package. The caller must have passed
+// packages.NeedSyntax so pkg.Syntax is populated.
 //
-// Returns a slice of LinkDirective values sorted by GenericName and
-// any parse error encountered along the way.
+// Returns a slice of LinkDirective values sorted by GenericName and any parse error
+// encountered along the way.
 func collectLinkDirectives(pkg *packages.Package) ([]LinkDirective, error) {
 	if pkg == nil {
 		return nil, nil
@@ -186,29 +178,28 @@ func collectLinkDirectives(pkg *packages.Package) ([]LinkDirective, error) {
 	return state.directives, nil
 }
 
-// parseFuncLinkDirective extracts a //piko:link directive from the
-// given function declaration's doc comment.
+// parseFuncLinkDirective extracts a //piko:link directive from the given function
+// declaration's doc comment.
 //
-// Takes funcDecl (*ast.FuncDecl) which carries the doc comment.
-// Takes fset (*token.FileSet) which resolves comment positions for
-// error messages.
+// Takes functionDeclaration (*ast.FuncDecl) which carries the doc comment.
+// Takes fset (*token.FileSet) which resolves comment positions for error messages.
 //
-// Returns the parsed directive, a bool indicating whether any directive
-// was found, and any parse error. A missing directive is not an error.
-func parseFuncLinkDirective(funcDecl *ast.FuncDecl, fset *token.FileSet) (LinkDirective, bool, error) {
+// Returns the parsed directive, a bool indicating whether any directive was found, and
+// any parse error. A missing directive is not an error.
+func parseFuncLinkDirective(functionDeclaration *ast.FuncDecl, fset *token.FileSet) (LinkDirective, bool, error) {
 	var (
 		target string
 		found  bool
 	)
-	docLines := funcDecl.Doc.List
+	docLines := functionDeclaration.Doc.List
 	if len(docLines) > maxLinkDirectiveDocLines {
 		return LinkDirective{}, false, fmt.Errorf("%w: %s has %d doc lines, limit is %d",
-			errLinkDirectiveDocTooLong, funcDecl.Name.Name, len(docLines), maxLinkDirectiveDocLines)
+			errLinkDirectiveDocTooLong, functionDeclaration.Name.Name, len(docLines), maxLinkDirectiveDocLines)
 	}
 	for _, comment := range docLines {
 		if len(comment.Text) > maxLinkDirectiveCommentBytes {
 			return LinkDirective{}, false, fmt.Errorf("%w: %s at %s (%d bytes, limit %d)",
-				errLinkDirectiveCommentTooLong, funcDecl.Name.Name,
+				errLinkDirectiveCommentTooLong, functionDeclaration.Name.Name,
 				fset.Position(comment.Pos()), len(comment.Text), maxLinkDirectiveCommentBytes)
 		}
 		text := strings.TrimSpace(comment.Text)
@@ -219,12 +210,12 @@ func parseFuncLinkDirective(funcDecl *ast.FuncDecl, fset *token.FileSet) (LinkDi
 		fields := strings.Fields(remainder)
 		if len(fields) != 1 || utf8.RuneCountInString(fields[0]) > maxLinkDirectiveTargetLength || !isValidIdentifier(fields[0]) {
 			return LinkDirective{}, false, fmt.Errorf("%w on %s at %s: %q",
-				errLinkDirectiveMalformed, funcDecl.Name.Name,
+				errLinkDirectiveMalformed, functionDeclaration.Name.Name,
 				fset.Position(comment.Pos()), text)
 		}
 		if found {
 			return LinkDirective{}, false, fmt.Errorf("%w on %s at %s",
-				errLinkDirectiveDuplicate, funcDecl.Name.Name,
+				errLinkDirectiveDuplicate, functionDeclaration.Name.Name,
 				fset.Position(comment.Pos()))
 		}
 		target = fields[0]
@@ -234,20 +225,20 @@ func parseFuncLinkDirective(funcDecl *ast.FuncDecl, fset *token.FileSet) (LinkDi
 		return LinkDirective{}, false, nil
 	}
 	return LinkDirective{
-		GenericName: funcDecl.Name.Name,
+		GenericName: functionDeclaration.Name.Name,
 		LinkTarget:  target,
 	}, true, nil
 }
 
-// validateLinkDirectives ensures each directive's generic exists as
-// an exported generic function in the package, and each target exists
-// as a function whose arity matches TypeArgCount + len(generic params).
+// validateLinkDirectives ensures each directive's generic exists as an exported generic
+// function in the package, and each target exists as a function whose arity matches
+// TypeArgCount + len(generic params).
 //
 // Takes pkg (*packages.Package) which is the loaded package.
 // Takes directives ([]LinkDirective) which are the parsed directives.
 //
-// Returns the subset of directives that passed validation, plus any
-// validation errors joined together.
+// Returns the subset of directives that passed validation, plus any validation errors
+// joined together.
 func validateLinkDirectives(pkg *packages.Package, directives []LinkDirective) ([]LinkDirective, error) {
 	if len(directives) == 0 {
 		return nil, nil
@@ -267,14 +258,14 @@ func validateLinkDirectives(pkg *packages.Package, directives []LinkDirective) (
 	return valid, errors.Join(errs...)
 }
 
-// validateOneLinkDirective checks that a single directive resolves to
-// a generic function with a sibling of matching arity.
+// validateOneLinkDirective checks that a single directive resolves to a generic function
+// with a sibling of matching arity.
 //
 // Takes scope (*types.Scope) which is the package-level scope.
 // Takes link (LinkDirective) which is the directive to validate.
 //
-// Returns nil when the directive is valid, or an error describing the
-// first violation encountered.
+// Returns nil when the directive is valid, or an error describing the first violation
+// encountered.
 func validateOneLinkDirective(scope *types.Scope, link LinkDirective) error {
 	genericSig, err := resolveGenericSignature(scope, link)
 	if err != nil {
@@ -302,17 +293,15 @@ func validateOneLinkDirective(scope *types.Scope, link LinkDirective) error {
 	return verifyLinkTargetReturnShape(link, genericSig, targetSig)
 }
 
-// verifyLinkTargetTypePrefix confirms the sibling's first TypeArgCount
-// parameters are declared as reflect.Type.
+// verifyLinkTargetTypePrefix confirms the sibling's first TypeArgCount parameters are
+// declared as reflect.Type.
 //
 // Takes link (LinkDirective) which names the generic and sibling.
-// Takes targetSig (*types.Signature) which is the sibling's
-// signature.
-// Takes typeArgCount (int) which is the number of type parameters
-// the generic declares.
+// Takes targetSig (*types.Signature) which is the sibling's signature.
+// Takes typeArgCount (int) which is the number of type parameters the generic declares.
 //
-// Returns nil when the prefix matches, or errLinkTargetTypePrefix
-// wrapping the first offending position.
+// Returns nil when the prefix matches, or errLinkTargetTypePrefix wrapping the first
+// offending position.
 func verifyLinkTargetTypePrefix(link LinkDirective, targetSig *types.Signature, typeArgCount int) error {
 	if typeArgCount <= 0 {
 		return nil
@@ -329,18 +318,16 @@ func verifyLinkTargetTypePrefix(link LinkDirective, targetSig *types.Signature, 
 	return nil
 }
 
-// verifyLinkTargetReturnShape confirms each sibling return either
-// matches the generic's corresponding return exactly, or is
-// reflect.Value when the generic's return mentions a type parameter.
+// verifyLinkTargetReturnShape confirms each sibling return either matches the generic's
+// corresponding return exactly, or is reflect.Value when the generic's return mentions a
+// type parameter.
 //
 // Takes link (LinkDirective) which names the generic and sibling.
-// Takes genericSig (*types.Signature) which is the generic's
-// signature.
-// Takes targetSig (*types.Signature) which is the sibling's
-// signature.
+// Takes genericSig (*types.Signature) which is the generic's signature.
+// Takes targetSig (*types.Signature) which is the sibling's signature.
 //
-// Returns nil when the returns line up, or errLinkTargetReturnShape
-// wrapping the first offending position.
+// Returns nil when the returns line up, or errLinkTargetReturnShape wrapping the first
+// offending position.
 func verifyLinkTargetReturnShape(link LinkDirective, genericSig, targetSig *types.Signature) error {
 	paramSet := typeParamSet(genericSig)
 	genericResults := genericSig.Results()
@@ -365,11 +352,10 @@ func verifyLinkTargetReturnShape(link LinkDirective, genericSig, targetSig *type
 	return nil
 }
 
-// typeParamSet collects the generic's declared type parameters into a
-// lookup set used by typeMentionsParam.
+// typeParamSet collects the generic's declared type parameters into a lookup set used by
+// typeMentionsParam.
 //
-// Takes genericSig (*types.Signature) which is the generic's
-// signature.
+// Takes genericSig (*types.Signature) which is the generic's signature.
 //
 // Returns a set keyed by *types.TypeParam pointer.
 func typeParamSet(genericSig *types.Signature) map[*types.TypeParam]struct{} {
@@ -384,25 +370,24 @@ func typeParamSet(genericSig *types.Signature) map[*types.TypeParam]struct{} {
 	return set
 }
 
-// typeMentionsParam reports whether t references any *types.TypeParam
-// in params, walking composite types.
+// typeMentionsParam reports whether t references any *types.TypeParam in params, walking
+// composite types.
 //
 // Takes t (types.Type) which is the type to inspect.
-// Takes params (map[*types.TypeParam]struct{}) which is the owning
-// generic's parameter set.
+// Takes params (map[*types.TypeParam]struct{}) which is the owning generic's parameter
+// set.
 //
 // Returns true when any component of t is one of the parameters.
 func typeMentionsParam(t types.Type, params map[*types.TypeParam]struct{}) bool {
 	return typeMentionsParamAtDepth(t, params, 0)
 }
 
-// typeMentionsParamAtDepth is the bounded implementation of
-// typeMentionsParam. Recursion beyond maxLinkReturnWalkDepth returns
-// false rather than walking further.
+// typeMentionsParamAtDepth is the bounded implementation of typeMentionsParam. Recursion
+// beyond maxLinkReturnWalkDepth returns false rather than walking further.
 //
 // Takes t (types.Type) which is the type to inspect.
-// Takes params (map[*types.TypeParam]struct{}) which is the owning
-// generic's parameter set.
+// Takes params (map[*types.TypeParam]struct{}) which is the owning generic's parameter
+// set.
 // Takes depth (int) which tracks the current recursion depth.
 //
 // Returns true when any component of t is one of the parameters.
@@ -430,15 +415,14 @@ func typeMentionsParamAtDepth(t types.Type, params map[*types.TypeParam]struct{}
 	return false
 }
 
-// singleElementInner returns the element type of a Pointer, Slice,
-// Array, or Chan wrapper. These share the same "wraps a single inner
-// type" shape and collapsing them lets typeMentionsParamAtDepth stay
-// below the cognitive-complexity limit without losing any cases.
+// singleElementInner returns the element type of a Pointer, Slice, Array, or Chan
+// wrapper. These share the same "wraps a single inner type" shape and collapsing them
+// lets typeMentionsParamAtDepth stay below the cognitive-complexity limit without losing
+// any cases.
 //
 // Takes t (types.Type) which is the candidate wrapper type.
 //
-// Returns the inner type and true for a single-element wrapper; nil
-// and false otherwise.
+// Returns the inner type and true for a single-element wrapper; nil and false otherwise.
 func singleElementInner(t types.Type) (types.Type, bool) {
 	switch typeValue := t.(type) {
 	case *types.Pointer:
@@ -453,24 +437,23 @@ func singleElementInner(t types.Type) (types.Type, bool) {
 	return nil, false
 }
 
-// namedMentionsParam reports whether any of the named type's instantiated
-// type arguments mention a generic parameter from params.
+// namedMentionsParam reports whether any of the named type's instantiated type arguments
+// mention a generic parameter from params.
 //
 // Takes named (*types.Named) which is the named type being inspected.
-// Takes params (map[*types.TypeParam]struct{}) which is the owning
-// generic's parameter set.
-// Takes depth (int) which tracks the current recursion depth so the
-// overall walk stays bounded.
+// Takes params (map[*types.TypeParam]struct{}) which is the owning generic's parameter
+// set.
+// Takes depth (int) which tracks the current recursion depth so the overall walk stays
+// bounded.
 //
-// Returns true when any component of any type argument is one of
-// the parameters.
+// Returns true when any component of any type argument is one of the parameters.
 func namedMentionsParam(named *types.Named, params map[*types.TypeParam]struct{}, depth int) bool {
 	args := named.TypeArgs()
 	if args == nil {
 		return false
 	}
-	for typeArg := range args.Types() {
-		if typeMentionsParamAtDepth(typeArg, params, depth+1) {
+	for typeArgument := range args.Types() {
+		if typeMentionsParamAtDepth(typeArgument, params, depth+1) {
 			return true
 		}
 	}
@@ -494,10 +477,9 @@ func isReflectValue(t types.Type) bool {
 	return obj.Pkg().Path() == "reflect" && obj.Name() == "Value"
 }
 
-// isReflectType reports whether t is the reflect.Type interface. The
-// directive validator runs from extract's own process, so a single
-// identity check against the package path + type name is sufficient;
-// we do not need to instantiate reflect.TypeFor here.
+// isReflectType reports whether t is the reflect.Type interface. The directive validator
+// runs from extract's own process, so a single identity check against the package path +
+// type name is sufficient; we do not need to instantiate reflect.TypeFor here.
 //
 // Takes t (types.Type) which is the candidate parameter type.
 //
@@ -514,14 +496,14 @@ func isReflectType(t types.Type) bool {
 	return obj.Pkg().Path() == "reflect" && obj.Name() == "Type"
 }
 
-// resolveGenericSignature looks up the annotated generic function and
-// confirms it actually has type parameters.
+// resolveGenericSignature looks up the annotated generic function and confirms it
+// actually has type parameters.
 //
 // Takes scope (*types.Scope) which is the package-level scope.
 // Takes link (LinkDirective) which names the generic.
 //
-// Returns the generic function's signature and nil on success, or a
-// wrapped sentinel error when the symbol is missing or not generic.
+// Returns the generic function's signature and nil on success, or a wrapped sentinel
+// error when the symbol is missing or not generic.
 func resolveGenericSignature(scope *types.Scope, link LinkDirective) (*types.Signature, error) {
 	genericObj := scope.Lookup(link.GenericName)
 	if genericObj == nil {
@@ -540,14 +522,14 @@ func resolveGenericSignature(scope *types.Scope, link LinkDirective) (*types.Sig
 	return genericSig, nil
 }
 
-// resolveLinkTargetSignature looks up the sibling function and ensures
-// it has a usable signature.
+// resolveLinkTargetSignature looks up the sibling function and ensures it has a usable
+// signature.
 //
 // Takes scope (*types.Scope) which is the package-level scope.
 // Takes link (LinkDirective) which names the sibling.
 //
-// Returns the sibling's signature and nil on success, or a wrapped
-// sentinel error when the sibling is missing or not a function.
+// Returns the sibling's signature and nil on success, or a wrapped sentinel error when
+// the sibling is missing or not a function.
 func resolveLinkTargetSignature(scope *types.Scope, link LinkDirective) (*types.Signature, error) {
 	targetObj := scope.Lookup(link.LinkTarget)
 	if targetObj == nil {
@@ -567,12 +549,10 @@ func resolveLinkTargetSignature(scope *types.Scope, link LinkDirective) (*types.
 	return targetSig, nil
 }
 
-// isValidIdentifier reports whether name is a syntactically valid Go
-// identifier.
+// isValidIdentifier reports whether name is a syntactically valid Go identifier.
 //
-// The Go spec permits any Unicode letter as the leading rune and any
-// Unicode letter or digit thereafter, so the check uses unicode rather
-// than restricting to ASCII.
+// The Go spec permits any Unicode letter as the leading rune and any Unicode letter or
+// digit thereafter, so the check uses unicode rather than restricting to ASCII.
 //
 // Takes name (string) which is the candidate identifier.
 //
@@ -595,8 +575,8 @@ func isValidIdentifier(name string) bool {
 	return true
 }
 
-// isIdentifierStart returns true for characters permitted as the first
-// rune of a Go identifier: an underscore or any Unicode letter.
+// isIdentifierStart returns true for characters permitted as the first rune of a Go
+// identifier: an underscore or any Unicode letter.
 //
 // Takes runeValue (rune) which is the candidate rune.
 //
@@ -605,9 +585,8 @@ func isIdentifierStart(runeValue rune) bool {
 	return runeValue == '_' || unicode.IsLetter(runeValue)
 }
 
-// isIdentifierContinue returns true for characters permitted after the
-// first rune of a Go identifier: an identifier-start rune, or any
-// Unicode digit.
+// isIdentifierContinue returns true for characters permitted after the first rune of a Go
+// identifier: an identifier-start rune, or any Unicode digit.
 //
 // Takes runeValue (rune) which is the candidate rune.
 //

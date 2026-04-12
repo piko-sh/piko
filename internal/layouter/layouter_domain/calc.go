@@ -25,12 +25,10 @@ import (
 )
 
 const (
-	// percentageDivisor is the divisor for converting
-	// percentage values to a 0-1 scale.
+	// percentageDivisor is the divisor for converting percentage values to a 0-1 scale.
 	percentageDivisor = 100.0
 
-	// calcPrefixLength is the byte length of the "calc("
-	// prefix string.
+	// calcPrefixLength is the byte length of the "calc(" prefix string.
 	calcPrefixLength = len("calc(")
 )
 
@@ -80,10 +78,10 @@ type calcExpression struct {
 
 // resolveCalc evaluates the calc expression tree recursively.
 //
-// Takes context (ResolutionContext) which provides font
-// sizes and viewport dimensions for unit resolution.
-// Takes containingBlockSize (float64) which is the size
-// of the containing block for resolving percentages.
+// Takes context (ResolutionContext) which provides font sizes and viewport dimensions for
+// unit resolution.
+// Takes containingBlockSize (float64) which is the size of the containing block for
+// resolving percentages.
 //
 // Returns the computed result in points.
 func (expression *calcExpression) resolveCalc(context ResolutionContext, containingBlockSize float64) float64 {
@@ -118,30 +116,31 @@ func (expression *calcExpression) resolveCalc(context ResolutionContext, contain
 	}
 }
 
-// viewportUnitResolvers maps CSS viewport unit suffixes to their resolution functions.
-var viewportUnitResolvers = map[string]func(ResolutionContext) float64{
-	"vw": func(context ResolutionContext) float64 {
-		return context.ViewportWidth / percentageDivisor
-	},
-	"vh": func(context ResolutionContext) float64 {
-		return context.ViewportHeight / percentageDivisor
-	},
-	"vmin": func(context ResolutionContext) float64 {
-		return math.Min(context.ViewportWidth, context.ViewportHeight) / percentageDivisor
-	},
-	"vmax": func(context ResolutionContext) float64 {
-		return math.Max(context.ViewportWidth, context.ViewportHeight) / percentageDivisor
-	},
-}
+var (
+	// viewportUnitResolvers maps CSS viewport unit suffixes to their resolution functions.
+	viewportUnitResolvers = map[string]func(ResolutionContext) float64{
+		"vw": func(context ResolutionContext) float64 {
+			return context.ViewportWidth / percentageDivisor
+		},
+		"vh": func(context ResolutionContext) float64 {
+			return context.ViewportHeight / percentageDivisor
+		},
+		"vmin": func(context ResolutionContext) float64 {
+			return math.Min(context.ViewportWidth, context.ViewportHeight) / percentageDivisor
+		},
+		"vmax": func(context ResolutionContext) float64 {
+			return math.Max(context.ViewportWidth, context.ViewportHeight) / percentageDivisor
+		},
+	}
+)
 
-// resolveCalcLength converts a numeric value with a CSS unit
-// to points using the given resolution context.
+// resolveCalcLength converts a numeric value with a CSS unit to points using the given
+// resolution context.
 //
 // Takes value (float64) which is the numeric magnitude.
-// Takes unit (string) which is the CSS unit suffix
-// (e.g. "px", "em", "rem").
-// Takes context (ResolutionContext) which provides font
-// sizes and viewport dimensions for unit conversion.
+// Takes unit (string) which is the CSS unit suffix (e.g. "px", "em", "rem").
+// Takes context (ResolutionContext) which provides font sizes and viewport dimensions for
+// unit conversion.
 //
 // Returns float64 which is the resolved length in points.
 func resolveCalcLength(value float64, unit string, context ResolutionContext) float64 {
@@ -170,12 +169,10 @@ func resolveCalcLength(value float64, unit string, context ResolutionContext) fl
 
 // parseCalc parses a CSS calc() expression into an AST.
 //
-// Takes expression (string) which is the inner content
-// of a calc() expression without the surrounding
-// "calc(" and ")".
+// Takes expression (string) which is the inner content of a calc() expression without the
+// surrounding "calc(" and ")".
 //
-// Returns the parsed expression tree, or nil if parsing
-// fails.
+// Returns the parsed expression tree, or nil if parsing fails.
 func parseCalc(expression string) *calcExpression {
 	expression = strings.TrimSpace(expression)
 	if expression == "" {
@@ -193,8 +190,7 @@ func parseCalc(expression string) *calcExpression {
 	return result
 }
 
-// calcParser holds the state for recursive-descent parsing
-// of a calc() expression string.
+// calcParser holds the state for recursive-descent parsing of a calc() expression string.
 type calcParser struct {
 	// input is the expression string being parsed.
 	input string
@@ -203,19 +199,16 @@ type calcParser struct {
 	position int
 }
 
-// skipWhitespace advances past any space characters at the
-// current position.
+// skipWhitespace advances past any space characters at the current position.
 func (parser *calcParser) skipWhitespace() {
 	for parser.position < len(parser.input) && parser.input[parser.position] == ' ' {
 		parser.position++
 	}
 }
 
-// parseAdditiveOperator attempts to consume a '+' or '-'
-// operator surrounded by spaces.
+// parseAdditiveOperator attempts to consume a '+' or '-' operator surrounded by spaces.
 //
-// Returns CalcNodeType which is CalcNodeAdd or
-// CalcNodeSubtract.
+// Returns CalcNodeType which is CalcNodeAdd or CalcNodeSubtract.
 // Returns bool which is true if an operator was consumed.
 func (parser *calcParser) parseAdditiveOperator() (CalcNodeType, bool) {
 	parser.skipWhitespace()
@@ -245,11 +238,10 @@ func (parser *calcParser) parseAdditiveOperator() (CalcNodeType, bool) {
 	return nodeType, true
 }
 
-// parseAdditive parses an additive expression consisting of
-// multiplicative terms separated by '+' or '-'.
+// parseAdditive parses an additive expression consisting of multiplicative terms
+// separated by '+' or '-'.
 //
-// Returns *calcExpression which is the parsed AST node,
-// or nil on failure.
+// Returns *calcExpression which is the parsed AST node, or nil on failure.
 func (parser *calcParser) parseAdditive() *calcExpression {
 	left := parser.parseMultiplicative()
 	if left == nil {
@@ -273,11 +265,10 @@ func (parser *calcParser) parseAdditive() *calcExpression {
 	return left
 }
 
-// parseMultiplicative parses a multiplicative expression
-// consisting of primary terms separated by '*' or '/'.
+// parseMultiplicative parses a multiplicative expression consisting of primary terms
+// separated by '*' or '/'.
 //
-// Returns *calcExpression which is the parsed AST node,
-// or nil on failure.
+// Returns *calcExpression which is the parsed AST node, or nil on failure.
 func (parser *calcParser) parseMultiplicative() *calcExpression {
 	left := parser.parsePrimary()
 	if left == nil {
@@ -313,11 +304,10 @@ func (parser *calcParser) parseMultiplicative() *calcExpression {
 	return left
 }
 
-// parseGroupedExpression parses a parenthesised
-// sub-expression and consumes the closing ')'.
+// parseGroupedExpression parses a parenthesised sub-expression and consumes the closing
+// ')'.
 //
-// Returns *calcExpression which is the parsed
-// sub-expression, or nil on failure.
+// Returns *calcExpression which is the parsed sub-expression, or nil on failure.
 func (parser *calcParser) parseGroupedExpression() *calcExpression {
 	result := parser.parseAdditive()
 	parser.skipWhitespace()
@@ -327,11 +317,10 @@ func (parser *calcParser) parseGroupedExpression() *calcExpression {
 	return result
 }
 
-// parsePrimary parses a primary expression which is either
-// a grouped sub-expression or a numeric value with unit.
+// parsePrimary parses a primary expression which is either a grouped sub-expression or a
+// numeric value with unit.
 //
-// Returns *calcExpression which is the parsed primary
-// node, or nil on failure.
+// Returns *calcExpression which is the parsed primary node, or nil on failure.
 func (parser *calcParser) parsePrimary() *calcExpression {
 	parser.skipWhitespace()
 	if parser.position >= len(parser.input) {
@@ -351,35 +340,34 @@ func (parser *calcParser) parsePrimary() *calcExpression {
 	return parser.parseValue()
 }
 
-// consumeSign advances past a leading '+' or '-' sign if
-// present at the current position.
+// consumeSign advances past a leading '+' or '-' sign if present at the current position.
 func (parser *calcParser) consumeSign() {
 	if parser.position < len(parser.input) && (parser.input[parser.position] == '-' || parser.input[parser.position] == '+') {
 		parser.position++
 	}
 }
 
-// consumeDigits advances past a sequence of digit characters
-// and decimal points at the current position.
+// consumeDigits advances past a sequence of digit characters and decimal points at the
+// current position.
 func (parser *calcParser) consumeDigits() {
 	for parser.position < len(parser.input) && ((parser.input[parser.position] >= '0' && parser.input[parser.position] <= '9') || parser.input[parser.position] == '.') {
 		parser.position++
 	}
 }
 
-// consumeUnit advances past a sequence of lowercase ASCII
-// letters representing a CSS unit suffix.
+// consumeUnit advances past a sequence of lowercase ASCII letters representing a CSS unit
+// suffix.
 func (parser *calcParser) consumeUnit() {
 	for parser.position < len(parser.input) && parser.input[parser.position] >= 'a' && parser.input[parser.position] <= 'z' {
 		parser.position++
 	}
 }
 
-// parseValue parses a numeric literal optionally followed by
-// a CSS unit or percentage sign.
+// parseValue parses a numeric literal optionally followed by a CSS unit or percentage
+// sign.
 //
-// Returns *calcExpression which is the parsed leaf node,
-// or nil if no valid number is found.
+// Returns *calcExpression which is the parsed leaf node, or nil if no valid number is
+// found.
 func (parser *calcParser) parseValue() *calcExpression {
 	start := parser.position
 

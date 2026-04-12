@@ -25,8 +25,8 @@ import (
 	"strings"
 )
 
-// Attribute is an SGR (Select Graphic Rendition) parameter for ANSI escape
-// sequences. Combine multiple attributes with [New] to create a [Style].
+// Attribute is an SGR (Select Graphic Rendition) parameter for ANSI escape sequences.
+// Combine multiple attributes with New to create a Style.
 type Attribute uint8
 
 const (
@@ -96,25 +96,27 @@ const (
 	suffix = "m"
 )
 
-// resetSequence holds the pre-computed ANSI escape bytes that clear all active attributes.
-var resetSequence = []byte(escape + "0" + suffix)
+var (
+	// resetSequence holds the pre-computed ANSI escape bytes that clear all active
+	// attributes.
+	resetSequence = []byte(escape + "0" + suffix)
+)
 
-// Style holds pre-computed ANSI escape sequences for zero-allocation colour
-// output. Create once with [New], reuse for every write.
+// Style holds pre-computed ANSI escape sequences for zero-allocation colour output.
+// Create once with New, reuse for every write.
 //
-// Style is a value type. The backing byte slices are never mutated after
-// construction, so copies share the same data safely.
+// Style is a value type. The backing byte slices are never mutated after construction, so
+// copies share the same data safely.
 type Style struct {
 	// sequence holds the pre-computed ANSI escape byte sequence.
 	sequence []byte
 }
 
-// New creates a Style with pre-computed ANSI byte sequences for the given
-// attributes. The escape sequence is built once at construction time; all
-// subsequent writes are zero-allocation.
+// New creates a Style with pre-computed ANSI byte sequences for the given attributes. The
+// escape sequence is built once at construction time; all subsequent writes are
+// zero-allocation.
 //
-// Takes attributes (...[Attribute]) which specifies the SGR parameters to
-// combine.
+// Takes attributes (...Attribute) which specifies the SGR parameters to combine.
 //
 // Returns Style which holds the pre-computed sequences.
 func New(attributes ...Attribute) Style {
@@ -127,12 +129,12 @@ func New(attributes ...Attribute) Style {
 	}
 }
 
-// WriteStart writes the opening ANSI escape sequence to w. When colour is
-// disabled this is a no-op.
+// WriteStart writes the opening ANSI escape sequence to w. When colour is disabled this
+// is a no-op.
 //
 // Zero allocations - writes pre-computed bytes directly.
 //
-// Takes w ([io.Writer]) which is the destination for the escape sequence.
+// Takes w (io.Writer) which is the destination for the escape sequence.
 func (s Style) WriteStart(w io.Writer) {
 	if !Enabled() {
 		return
@@ -140,12 +142,12 @@ func (s Style) WriteStart(w io.Writer) {
 	_, _ = w.Write(s.sequence)
 }
 
-// WriteReset writes the reset escape sequence to w. When colour is disabled
-// this is a no-op.
+// WriteReset writes the reset escape sequence to w. When colour is disabled this is a
+// no-op.
 //
 // Zero allocations - writes pre-computed bytes directly.
 //
-// Takes w ([io.Writer]) which is the destination for the reset sequence.
+// Takes w (io.Writer) which is the destination for the reset sequence.
 func (Style) WriteReset(w io.Writer) {
 	if !Enabled() {
 		return
@@ -153,11 +155,11 @@ func (Style) WriteReset(w io.Writer) {
 	_, _ = w.Write(resetSequence)
 }
 
-// Sprint wraps the string representation of args with colour codes and
-// returns the result.
+// Sprint wraps the string representation of args with colour codes and returns the
+// result.
 //
-// Allocates one string for the builder output. When colour is disabled
-// returns fmt.Sprint(args...) directly.
+// Allocates one string for the builder output. When colour is disabled returns
+// fmt.Sprint(args...) directly.
 //
 // Takes args (...any) which are the values to format.
 //
@@ -175,11 +177,10 @@ func (s Style) Sprint(args ...any) string {
 	return builder.String()
 }
 
-// Sprintf wraps the formatted string with colour codes and returns the
-// result.
+// Sprintf wraps the formatted string with colour codes and returns the result.
 //
-// Allocates one string for the builder output. When colour is disabled
-// returns fmt.Sprintf(format, args...) directly.
+// Allocates one string for the builder output. When colour is disabled returns
+// fmt.Sprintf(format, args...) directly.
 //
 // Takes format (string) which is the format string.
 // Takes args (...any) which are the format arguments.
@@ -198,8 +199,8 @@ func (s Style) Sprintf(format string, args ...any) string {
 	return builder.String()
 }
 
-// SprintFunc returns a function that colours its arguments using this style.
-// The returned function allocates one string per call.
+// SprintFunc returns a function that colours its arguments using this style. The returned
+// function allocates one string per call.
 //
 // Returns func(...any) string which applies this style to its arguments.
 func (s Style) SprintFunc() func(args ...any) string {

@@ -29,8 +29,8 @@ type CacheConfig struct {
 	// Key is a custom cache key. If empty, a key is generated from the request.
 	Key string
 
-	// TTL is how long cached responses are kept before they expire.
-	// If zero, the cache manager's default TTL is used.
+	// TTL is how long cached responses are kept before they expire. If zero, the cache
+	// manager's default TTL is used.
 	TTL time.Duration
 
 	// Enabled controls whether caching is used for this request.
@@ -42,8 +42,7 @@ type CacheConfig struct {
 	// SkipRead prevents reading from the cache (but still writes to it).
 	SkipRead bool
 
-	// UseProviderCache enables provider-specific caching, such as Anthropic
-	// prompt caching.
+	// UseProviderCache enables provider-specific caching, such as Anthropic prompt caching.
 	UseProviderCache bool
 }
 
@@ -71,8 +70,8 @@ type CacheEntry struct {
 	HitCount int64
 }
 
-// IsExpiredAt checks if the cache entry has expired relative to the given time,
-// enabling deterministic testing with mock clocks.
+// IsExpiredAt checks if the cache entry has expired relative to the given time, enabling
+// deterministic testing with mock clocks.
 //
 // Takes now (time.Time) which is the current time to compare against.
 //
@@ -107,8 +106,8 @@ func (s *CacheStats) HitRate() float64 {
 	return float64(s.Hits) / float64(total)
 }
 
-// DefaultCacheConfig returns a CacheConfig with sensible default values.
-// Caching is enabled with a one-hour TTL.
+// DefaultCacheConfig returns a CacheConfig with sensible default values. Caching is
+// enabled with a one-hour TTL.
 //
 // Returns *CacheConfig with caching enabled.
 func DefaultCacheConfig() *CacheConfig {

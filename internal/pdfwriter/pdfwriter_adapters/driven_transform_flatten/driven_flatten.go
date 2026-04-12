@@ -33,12 +33,10 @@ const (
 	// defaultPriority is the execution order for the flatten transformer.
 	defaultPriority = 120
 
-	// xobjPrefix is the resource name prefix for flattened XObject
-	// appearances.
+	// xobjPrefix is the resource name prefix for flattened XObject appearances.
 	xobjPrefix = "FLT"
 
-	// rectElements is the expected number of elements in a PDF Rect or
-	// BBox array.
+	// rectElements is the expected number of elements in a PDF Rect or BBox array.
 	rectElements = 4
 
 	// contentsKey is the PDF dictionary key for page content streams.
@@ -59,12 +57,11 @@ const (
 
 // FlattenTransformer converts interactive PDF elements into static page content.
 //
-// For each annotation with a normal appearance stream, it adds the appearance
-// as a Form XObject resource on the page and appends a content stream that
-// draws it at the annotation's Rect position using a Do operator. The original
-// annotation is then removed. Form field flattening also removes the AcroForm
-// dictionary from the document catalog. Transparency flattening removes the
-// Group entry from page dictionaries.
+// For each annotation with a normal appearance stream, it adds the appearance as a Form
+// XObject resource on the page and appends a content stream that draws it at the
+// annotation's Rect position using a Do operator. The original annotation is then
+// removed. Form field flattening also removes the AcroForm dictionary from the document
+// catalog. Transparency flattening removes the Group entry from page dictionaries.
 type FlattenTransformer struct {
 	// name is the transformer identifier.
 	name string
@@ -73,7 +70,9 @@ type FlattenTransformer struct {
 	priority int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*FlattenTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*FlattenTransformer)(nil)
+)
 
 // New creates a new flatten transformer with default name and priority.
 //
@@ -92,8 +91,7 @@ func (t *FlattenTransformer) Name() string { return t.name }
 
 // Type returns TransformerContent.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a content
-// transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a content transformer.
 func (*FlattenTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerContent
 }
@@ -103,8 +101,7 @@ func (*FlattenTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *FlattenTransformer) Priority() int { return t.priority }
 
-// Transform flattens interactive elements in the PDF according to the
-// provided options.
+// Transform flattens interactive elements in the PDF according to the provided options.
 //
 // If no flattening flags are set, the PDF is returned unchanged.
 //
@@ -185,8 +182,7 @@ type flattenContext struct {
 	xobjID int
 }
 
-// nextXObjName returns a unique XObject resource name for each flattened
-// appearance.
+// nextXObjName returns a unique XObject resource name for each flattened appearance.
 //
 // Returns string which is the generated XObject resource name.
 func (c *flattenContext) nextXObjName() string {
@@ -194,11 +190,11 @@ func (c *flattenContext) nextXObjName() string {
 	return fmt.Sprintf("%s%d", xobjPrefix, c.xobjID)
 }
 
-// flattenPages processes all pages, flattening annotations and/or
-// transparency as specified by opts.
+// flattenPages processes all pages, flattening annotations and/or transparency as
+// specified by opts.
 //
-// If form fields are flattened, the AcroForm is removed from the document
-// catalog afterwards.
+// If form fields are flattened, the AcroForm is removed from the document catalog
+// afterwards.
 //
 // Takes fctx (*flattenContext) which holds the shared flatten state.
 // Takes pageRefs ([]int) which holds the page object numbers in document order.
@@ -224,12 +220,12 @@ func flattenPages(fctx *flattenContext, pageRefs []int, opts *pdfwriter_dto.Flat
 	return nil
 }
 
-// flattenPageAnnotations processes annotations on a single page,
-// flattening those that match the options into static content.
+// flattenPageAnnotations processes annotations on a single page, flattening those that
+// match the options into static content.
 //
-// Each annotation with a usable normal appearance stream is converted to a
-// Form XObject reference and drawn via a content stream appended to the page.
-// Annotations without appearance streams are kept unchanged.
+// Each annotation with a usable normal appearance stream is converted to a Form XObject
+// reference and drawn via a content stream appended to the page. Annotations without
+// appearance streams are kept unchanged.
 //
 // Takes fctx (*flattenContext) which holds the shared flatten state.
 // Takes pageObjNum (int) which is the page's object number.
@@ -302,11 +298,11 @@ func flattenPageAnnotations(
 	return nil
 }
 
-// shouldFlatten returns true if the given annotation subtype should be
-// flattened based on the current options.
+// shouldFlatten returns true if the given annotation subtype should be flattened based on
+// the current options.
 //
-// Widget annotations are flattened when FormFields is true; all other
-// annotations are flattened when Annotations is true.
+// Widget annotations are flattened when FormFields is true; all other annotations are
+// flattened when Annotations is true.
 //
 // Takes subtype (string) which is the annotation's /Subtype name.
 // Takes opts (*pdfwriter_dto.FlattenOptions) which controls what to flatten.
@@ -355,13 +351,12 @@ func resolveAnnotDict(doc *pdfparse.Document, obj pdfparse.Object) (pdfparse.Dic
 	return dict, nil
 }
 
-// resolveNormalAppearance finds the object number of the normal appearance
-// stream for an annotation. The normal appearance is AP -> N, which can
-// be either a direct reference to a Form XObject stream, or a dictionary
-// mapping state names to streams (selected by the annotation's AS entry).
+// resolveNormalAppearance finds the object number of the normal appearance stream for an
+// annotation. The normal appearance is AP -> N, which can be either a direct reference to
+// a Form XObject stream, or a dictionary mapping state names to streams (selected by the
+// annotation's AS entry).
 //
-// Takes doc (*pdfparse.Document) which is the parsed PDF for resolving
-// references.
+// Takes doc (*pdfparse.Document) which is the parsed PDF for resolving references.
 // Takes annotDict (pdfparse.Dict) which is the annotation dictionary.
 //
 // Returns int which is the object number of the appearance stream.
@@ -408,16 +403,15 @@ func extractRefNumber(obj pdfparse.Object) (int, error) {
 	return ref.Number, nil
 }
 
-// resolveStateAppearance picks the correct state-specific appearance from
-// an AP/N dictionary.
+// resolveStateAppearance picks the correct state-specific appearance from an AP/N
+// dictionary.
 //
-// The current state is read from the annotation's AS entry; if absent, the
-// first entry in the dictionary is used.
+// The current state is read from the annotation's AS entry; if absent, the first entry in
+// the dictionary is used.
 //
-// Takes annotDict (pdfparse.Dict) which is the annotation
-// dictionary containing the AS entry.
-// Takes nObj (pdfparse.Object) which is the /AP/N dictionary
-// object.
+// Takes annotDict (pdfparse.Dict) which is the annotation dictionary containing the AS
+// entry.
+// Takes nObj (pdfparse.Object) which is the /AP/N dictionary object.
 //
 // Returns int which is the object number of the selected appearance stream.
 // Returns error when no valid state appearance reference is found.
@@ -485,8 +479,7 @@ func extractRect(dict pdfparse.Dict) pdfRect {
 	}
 }
 
-// extractAppearanceBBox reads the /BBox from an appearance stream's
-// dictionary.
+// extractAppearanceBBox reads the /BBox from an appearance stream's dictionary.
 //
 // Takes fctx (*flattenContext) which holds the shared flatten state.
 // Takes objNum (int) which is the appearance stream's object number.
@@ -510,11 +503,11 @@ func extractAppearanceBBox(fctx *flattenContext, objNum int) pdfRect {
 	}
 }
 
-// buildFlattenStream creates a content stream that draws a Form XObject
-// at the position and size specified by the annotation Rect.
+// buildFlattenStream creates a content stream that draws a Form XObject at the position
+// and size specified by the annotation Rect.
 //
-// The transformation matrix scales the BBox to fit the Rect and translates
-// to the Rect origin.
+// The transformation matrix scales the BBox to fit the Rect and translates to the Rect
+// origin.
 //
 // Takes name (string) which is the XObject resource name.
 // Takes annotRect (pdfRect) which is the annotation's position rectangle.
@@ -546,8 +539,8 @@ func buildFlattenStream(name string, annotRect, bbox pdfRect) string {
 	return buf.String()
 }
 
-// addXObjectResource adds a Form XObject reference to the page's
-// Resources/XObject dictionary.
+// addXObjectResource adds a Form XObject reference to the page's Resources/XObject
+// dictionary.
 //
 // Takes pageDict (*pdfparse.Dict) which is the page dictionary to modify.
 // Takes name (string) which is the XObject resource name.
@@ -560,8 +553,8 @@ func addXObjectResource(pageDict *pdfparse.Dict, name string, objNum int) {
 	pageDict.Set(resourcesKey, pdfparse.DictObj(resources))
 }
 
-// appendContentStream adds a new stream object reference after any
-// existing Contents on the page.
+// appendContentStream adds a new stream object reference after any existing Contents on
+// the page.
 //
 // Takes pageDict (*pdfparse.Dict) which is the page dictionary to modify.
 // Takes streamObjNum (int) which is the object number of the new content stream.
@@ -607,8 +600,7 @@ func removeAcroForm(fctx *flattenContext) {
 	fctx.writer.SetObject(rootRef.Number, pdfparse.DictObj(catalogDict))
 }
 
-// removeTransparencyGroup removes the /Group entry from a page
-// dictionary.
+// removeTransparencyGroup removes the /Group entry from a page dictionary.
 //
 // Takes fctx (*flattenContext) which holds the shared flatten state.
 // Takes pageObjNum (int) which is the page's object number.
@@ -625,8 +617,8 @@ func removeTransparencyGroup(fctx *flattenContext, pageObjNum int) {
 	fctx.writer.SetObject(pageObjNum, pdfparse.DictObj(pageDict))
 }
 
-// collectPageRefs walks the page tree and returns object numbers for all
-// leaf Page objects in document order.
+// collectPageRefs walks the page tree and returns object numbers for all leaf Page
+// objects in document order.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 //
@@ -657,8 +649,7 @@ func collectPageRefs(doc *pdfparse.Document) ([]int, error) {
 	return walkPageTree(doc, pagesRef.Number)
 }
 
-// walkPageTree recursively collects leaf Page object numbers from a Pages
-// tree node.
+// walkPageTree recursively collects leaf Page object numbers from a Pages tree node.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the current tree node's object number.
@@ -703,7 +694,7 @@ func walkPageTree(doc *pdfparse.Document, objNum int) ([]int, error) {
 //
 // Returns float64 which is the numeric value, or zero if not numeric.
 func objectToFloat(obj pdfparse.Object) float64 {
-	switch obj.Type {
+	switch obj.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case pdfparse.ObjectInteger:
 		if v, ok := obj.Value.(int64); ok {
 			return float64(v)

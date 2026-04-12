@@ -18,14 +18,14 @@
 
 // Package templater_dto defines data transfer objects for the templater system.
 //
-// It contains the types used for communication between the HTTP layer
-// and the template rendering engine, including request data, page metadata,
-// caching policies, and action payloads for client-side interactions.
+// It contains the types used for communication between the HTTP layer and the template
+// rendering engine, including request data, page metadata, caching policies, and action
+// payloads for client-side interactions.
 //
 // # Request data
 //
-// RequestData uses object pooling to minimise allocations in high-throughput
-// scenarios. Always use the builder pattern and call Release when done:
+// RequestData uses object pooling to minimise allocations in high-throughput scenarios.
+// Always use the builder pattern and call Release when done:
 //
 //	rd := templater_dto.NewRequestDataBuilder().
 //	    WithContext(ctx).
@@ -36,7 +36,7 @@
 //
 // # Thread safety
 //
-// RequestData instances are designed to be immutable after construction.
-// The builder pattern provides thread-safe construction, and getter methods
-// return defensive copies where appropriate.
+// RequestData instances are designed to be immutable after construction. The builder
+// pattern provides thread-safe construction, and getter methods return defensive copies
+// where appropriate.
 package templater_dto

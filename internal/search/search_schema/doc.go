@@ -16,6 +16,5 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package search_schema provides schema versioning for Search
-// FlatBuffers.
+// Package search_schema provides schema versioning for Search FlatBuffers.
 package search_schema

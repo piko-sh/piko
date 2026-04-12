@@ -22,6 +22,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseCreateType parses a CREATE TYPE statement.
+//
+// Takes engine (typeNormaliser) which normalises field type names.
+//
+// Returns *querier_dto.CatalogueMutation which describes the catalogue change, or nil
+// when the statement form is unrecognised.
+// Returns error when parsing the type name fails.
 func (p *parser) parseCreateType(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.mustKeyword(keywordTYPE)
@@ -46,6 +53,13 @@ func (p *parser) parseCreateType(engine typeNormaliser) (*querier_dto.CatalogueM
 	return nil, nil
 }
 
+// parseCreateEnum parses the body of a CREATE TYPE ... AS ENUM statement.
+//
+// Takes schema (string) which is the schema for the new enum.
+// Takes typeName (string) which is the name of the new enum.
+//
+// Returns *querier_dto.CatalogueMutation which describes the create-enum mutation.
+// Returns error which is always nil.
 func (p *parser) parseCreateEnum(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	values := p.parseEnumValues()
 	return &querier_dto.CatalogueMutation{
@@ -56,6 +70,9 @@ func (p *parser) parseCreateEnum(schema, typeName string) (*querier_dto.Catalogu
 	}, nil
 }
 
+// parseEnumValues parses a parenthesised list of enum string literals.
+//
+// Returns []string which lists the parsed enum values in declared order.
 func (p *parser) parseEnumValues() []string {
 	if p.current().kind != tokenLeftParen {
 		return nil
@@ -75,6 +92,15 @@ func (p *parser) parseEnumValues() []string {
 	return values
 }
 
+// parseCreateCompositeType parses a CREATE TYPE ... AS (...) statement.
+//
+// Takes engine (typeNormaliser) which normalises field type names.
+// Takes schema (string) which is the schema for the new composite type.
+// Takes typeName (string) which is the name of the new composite type.
+//
+// Returns *querier_dto.CatalogueMutation which describes the create-composite-type
+// mutation.
+// Returns error when a field name cannot be parsed.
 func (p *parser) parseCreateCompositeType(
 	engine typeNormaliser,
 	schema, typeName string,
@@ -112,6 +138,11 @@ func (p *parser) parseCreateCompositeType(
 	}, nil
 }
 
+// parseAlterType parses an ALTER TYPE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the alter-type mutation, or nil
+// when no recognised sub-clause follows.
+// Returns error when parsing the type name fails.
 func (p *parser) parseAlterType() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword("ALTER")
 	p.mustKeyword(keywordTYPE)
@@ -131,6 +162,14 @@ func (p *parser) parseAlterType() (*querier_dto.CatalogueMutation, error) {
 	return nil, nil
 }
 
+// parseAlterTypeAddValue parses ALTER TYPE ... ADD VALUE.
+//
+// Takes schema (string) which is the schema of the target enum.
+// Takes typeName (string) which is the name of the target enum.
+//
+// Returns *querier_dto.CatalogueMutation which describes the add-value mutation, or nil
+// when the form is unrecognised.
+// Returns error which is always nil.
 func (p *parser) parseAlterTypeAddValue(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	if !p.matchKeyword("VALUE") {
 		return nil, nil
@@ -157,6 +196,14 @@ func (p *parser) parseAlterTypeAddValue(schema, typeName string) (*querier_dto.C
 	}, nil
 }
 
+// parseAlterTypeRenameValue parses ALTER TYPE ... RENAME VALUE.
+//
+// Takes schema (string) which is the schema of the target enum.
+// Takes typeName (string) which is the name of the target enum.
+//
+// Returns *querier_dto.CatalogueMutation which describes the rename-value mutation, or
+// nil when the form is unrecognised.
+// Returns error which is always nil.
 func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dto.CatalogueMutation, error) {
 	if !p.matchKeyword("VALUE") {
 		return nil, nil
@@ -182,6 +229,10 @@ func (p *parser) parseAlterTypeRenameValue(schema, typeName string) (*querier_dt
 	}, nil
 }
 
+// parseDropType parses a DROP TYPE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop-type mutation.
+// Returns error when parsing the type name fails.
 func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword(keywordTYPE)
@@ -203,6 +254,12 @@ func (p *parser) parseDropType() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateMacro parses a CREATE MACRO or CREATE FUNCTION statement.
+//
+// Takes engine (typeNormaliser) which normalises argument type names.
+//
+// Returns *querier_dto.CatalogueMutation which describes the create-function mutation.
+// Returns error when parsing the name or arguments fails.
 func (p *parser) parseCreateMacro(engine typeNormaliser) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.skipOrReplace()
@@ -242,6 +299,11 @@ func (p *parser) parseCreateMacro(engine typeNormaliser) (*querier_dto.Catalogue
 	}, nil
 }
 
+// captureMacroBody consumes the macro body tokens, parses them as an expression, and
+// infers the return type onto signature.
+//
+// Takes signature (*querier_dto.FunctionSignature) which is the signature to populate
+// with the inferred return type.
 func (p *parser) captureMacroBody(signature *querier_dto.FunctionSignature) {
 	var bodyTokens []token
 	for !p.atEnd() && p.current().kind != tokenSemicolon {
@@ -262,6 +324,14 @@ func (p *parser) captureMacroBody(signature *querier_dto.FunctionSignature) {
 	signature.ReturnType = inferMacroReturnType(expression)
 }
 
+// inferMacroReturnType infers the return type of a macro body from its top-level
+// expression.
+//
+// Takes expression (querier_dto.Expression) which is the parsed body expression to
+// inspect.
+//
+// Returns querier_dto.SQLType which is the inferred return type, defaulting to the
+// unknown category when inference is unavailable.
 func inferMacroReturnType(expression querier_dto.Expression) querier_dto.SQLType {
 	switch expr := expression.(type) {
 	case *querier_dto.LiteralExpression:
@@ -279,6 +349,12 @@ func inferMacroReturnType(expression querier_dto.Expression) querier_dto.SQLType
 	}
 }
 
+// inferLiteralType maps a literal type-name keyword to a structured SQL type.
+//
+// Takes typeName (string) which is the literal's syntactic type name.
+//
+// Returns querier_dto.SQLType which is the structured form of typeName, defaulting to the
+// unknown category for unrecognised names.
 func inferLiteralType(typeName string) querier_dto.SQLType {
 	switch typeName {
 	case "integer":
@@ -294,6 +370,14 @@ func inferLiteralType(typeName string) querier_dto.SQLType {
 	}
 }
 
+// parseFunctionArgumentList parses a parenthesised list of function or macro argument
+// declarations.
+//
+// Takes engine (typeNormaliser) which normalises argument type names.
+//
+// Returns []querier_dto.FunctionArgument which lists the parsed arguments in declared
+// order, or nil when no argument list is present.
+// Returns error when any individual argument fails to parse.
 func (p *parser) parseFunctionArgumentList(engine typeNormaliser) ([]querier_dto.FunctionArgument, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, nil
@@ -319,6 +403,13 @@ func (p *parser) parseFunctionArgumentList(engine typeNormaliser) ([]querier_dto
 	return arguments, nil
 }
 
+// parseFunctionArgument parses a single function or macro argument declaration, including
+// optional mode keywords and default value.
+//
+// Takes engine (typeNormaliser) which normalises the argument's type name.
+//
+// Returns querier_dto.FunctionArgument which describes the parsed argument.
+// Returns error which is always nil.
 func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.FunctionArgument, error) {
 	p.matchKeyword("IN")
 	p.matchKeyword("OUT")
@@ -361,6 +452,8 @@ func (p *parser) parseFunctionArgument(engine typeNormaliser) (querier_dto.Funct
 	return argument, nil
 }
 
+// skipFunctionDefault advances the cursor past a DEFAULT expression while honouring
+// nested parentheses.
 func (p *parser) skipFunctionDefault() {
 	depth := 0
 	for !p.atEnd() {
@@ -384,6 +477,10 @@ func (p *parser) skipFunctionDefault() {
 	}
 }
 
+// parseDropFunction parses a DROP FUNCTION, DROP PROCEDURE, or DROP MACRO statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop-function mutation.
+// Returns error when parsing the qualified name fails.
 func (p *parser) parseDropFunction() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("FUNCTION", "PROCEDURE", keywordMACRO)

@@ -19,8 +19,8 @@
 package layouter_domain
 
 const (
-	// PixelsToPoints converts CSS pixels to points. CSS defines 1px =
-	// 1/96 inch, and 1pt = 1/72 inch, so 1px = 72/96 = 0.75pt.
+	// PixelsToPoints converts CSS pixels to points. CSS defines 1px = 1/96 inch, and 1pt =
+	// 1/72 inch, so 1px = 72/96 = 0.75pt.
 	PixelsToPoints = 0.75
 
 	// InchesToPoints converts inches to points (1in = 72pt).
@@ -36,10 +36,11 @@ const (
 	PicasToPoints = 12.0
 )
 
-// UserAgentStylesheet is the default CSS applied to all documents before any
-// author styles. It defines the default display values for HTML elements per
-// the CSS specification.
-const UserAgentStylesheet = `
+const (
+	// UserAgentStylesheet is the default CSS applied to all documents before any author
+	// styles. It defines the default display values for HTML elements per the CSS
+	// specification.
+	UserAgentStylesheet = `
 html, address, blockquote, body, dd, div, dl, dt, fieldset, form,
 frame, frameset, h1, h2, h3, h4, h5, h6, hr, noframes, ol, p, ul,
 centre, dir, menu, pre, article, aside, details, dialog,
@@ -193,33 +194,36 @@ sup {
 	vertical-align: super;
 }
 `
+)
 
-// InheritableProperties lists the CSS properties that are inherited by child
-// elements when not explicitly set.
-var InheritableProperties = map[string]bool{
-	"color":                true,
-	"font-family":          true,
-	"font-size":            true,
-	"font-style":           true,
-	"font-weight":          true,
-	"letter-spacing":       true,
-	"line-height":          true,
-	"text-align":           true,
-	"text-decoration":      true,
-	"text-decoration-line": true,
-	"text-indent":          true,
-	"text-transform":       true,
-	"visibility":           true,
-	"white-space":          true,
-	"word-break":           true,
-	"word-spacing":         true,
-	"list-style-type":      true,
-	"list-style-position":  true,
-	"direction":            true,
-	"hyphens":              true,
-	"overflow-wrap":        true,
-	"tab-size":             true,
-	"text-shadow":          true,
-	"orphans":              true,
-	"widows":               true,
-}
+var (
+	// InheritableProperties lists the CSS properties that are inherited by child elements
+	// when not explicitly set.
+	InheritableProperties = map[string]bool{
+		"color":                true,
+		"font-family":          true,
+		"font-size":            true,
+		"font-style":           true,
+		"font-weight":          true,
+		"letter-spacing":       true,
+		"line-height":          true,
+		"text-align":           true,
+		"text-decoration":      true,
+		"text-decoration-line": true,
+		"text-indent":          true,
+		"text-transform":       true,
+		"visibility":           true,
+		"white-space":          true,
+		"word-break":           true,
+		"word-spacing":         true,
+		"list-style-type":      true,
+		"list-style-position":  true,
+		"direction":            true,
+		"hyphens":              true,
+		"overflow-wrap":        true,
+		"tab-size":             true,
+		"text-shadow":          true,
+		"orphans":              true,
+		"widows":               true,
+	}
+)

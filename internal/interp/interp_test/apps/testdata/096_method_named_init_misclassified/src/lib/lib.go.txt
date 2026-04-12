@@ -1,0 +1,30 @@
+package lib
+
+// Parser deliberately mirrors yaml.v3's parser type which has a
+// pointer-receiver method NAMED `init`. The piko compiler used to
+// gate package-level init() detection on the function name alone,
+// so this method was added to initFunctionIndices and invoked by
+// Service.ExecuteInits at startup with no receiver - derailing every
+// subsequent pointer-receiver call that depended on the receiver
+// being a valid *Parser.
+type Parser struct {
+	Value string
+	Ready bool
+}
+
+// init is a METHOD on *Parser, NOT the package init function.
+// (The package has no top-level `func init()`.)
+func (p *Parser) init() {
+	if p.Ready {
+		return
+	}
+	p.Ready = true
+}
+
+// Prepare is the caller-visible entry point. It calls the receiver's
+// init() method internally, exercising the exact dispatch shape
+// (pointer receiver method whose name is "init") that yaml.v3's
+// parser.init/parser.expect rely on.
+func (p *Parser) Prepare() {
+	p.init()
+}

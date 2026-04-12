@@ -39,19 +39,19 @@ const (
 	// timingArrow is the arrow used for timing lines in build summaries.
 	timingArrow = "\u2192"
 
-	// maxDiagnosticLineParts is the maximum number of line parts when splitting
-	// diagnostic output for the error snippet extractor.
+	// maxDiagnosticLineParts is the maximum number of line parts when splitting diagnostic
+	// output for the error snippet extractor.
 	maxDiagnosticLineParts = 4
 
-	// minDiagnosticLineParts is the minimum number of parts expected when parsing
-	// build error snippets with source location and caret information.
+	// minDiagnosticLineParts is the minimum number of parts expected when parsing build
+	// error snippets with source location and caret information.
 	minDiagnosticLineParts = 3
 
 	// summaryLineFormat is the format string for individual summary lines.
 	summaryLineFormat = "   %s %d %s\n"
 
-	// summaryDurationRounding is the rounding granularity for durations in
-	// build summaries. 10ms gives useful precision without false accuracy.
+	// summaryDurationRounding is the rounding granularity for durations in build summaries.
+	// 10ms gives useful precision without false accuracy.
 	summaryDurationRounding = 10 * time.Millisecond
 )
 
@@ -59,10 +59,12 @@ var (
 	// summaryHeaderColour is the ANSI colour used for build summary section headings.
 	summaryHeaderColour = colour.New(colour.Bold)
 
-	// summarySuccessColour is the ANSI colour used for success indicators in build summaries.
+	// summarySuccessColour is the ANSI colour used for success indicators in build
+	// summaries.
 	summarySuccessColour = colour.New(colour.FgGreen, colour.Bold)
 
-	// summaryFailureColour is the ANSI colour used for failure indicators in build summaries.
+	// summaryFailureColour is the ANSI colour used for failure indicators in build
+	// summaries.
 	summaryFailureColour = colour.New(colour.FgRed, colour.Bold)
 
 	// summaryPathColour is the ANSI colour used for file paths in build failure output.
@@ -71,16 +73,16 @@ var (
 	// summaryDimColour is the ANSI colour used for secondary text in build summaries.
 	summaryDimColour = colour.New(colour.FgHiBlack)
 
-	// summaryGutterColour is the ANSI colour used for line number
-	// gutters in build error snippets.
+	// summaryGutterColour is the ANSI colour used for line number gutters in build error
+	// snippets.
 	summaryGutterColour = colour.New(colour.FgBlue, colour.Bold)
 
 	// locationPattern matches esbuild-style location suffixes: (line N, col M).
 	locationPattern = regexp.MustCompile(`\(line (\d+), col (\d+)\)\s*$`)
 )
 
-// GeneratorResult holds the counts produced by the code generation phase.
-// It is used by FormatGeneratorSummary to render a coloured summary.
+// GeneratorResult holds the counts produced by the code generation phase. It is used by
+// FormatGeneratorSummary to render a coloured summary.
 type GeneratorResult struct {
 	// Pages is the number of page components generated.
 	Pages int
@@ -104,8 +106,8 @@ type GeneratorResult struct {
 	Duration time.Duration
 }
 
-// buildErrorSnippet holds extracted diagnostic parts from an error string that
-// contains esbuild-style location info.
+// buildErrorSnippet holds extracted diagnostic parts from an error string that contains
+// esbuild-style location info.
 type buildErrorSnippet struct {
 	// coreMessage is the innermost error message without wrapping.
 	coreMessage string
@@ -123,9 +125,8 @@ type buildErrorSnippet struct {
 	column int
 }
 
-// FormatBuildSummary renders a coloured build summary string following the
-// AST diagnostic formatting conventions. The result is intended for writing
-// to stderr.
+// FormatBuildSummary renders a coloured build summary string following the AST diagnostic
+// formatting conventions. The result is intended for writing to stderr.
 //
 // Takes result (*lifecycle_domain.BuildResult) which holds the build outcome.
 //
@@ -178,10 +179,9 @@ func FormatBuildSummary(result *lifecycle_domain.BuildResult) string {
 	return builder.String()
 }
 
-// FormatGeneratorSummary renders a coloured summary of the code generation
-// phase, showing how many pages, partials, and emails were produced. The
-// result is intended for writing to stderr, matching the style of
-// FormatBuildSummary.
+// FormatGeneratorSummary renders a coloured summary of the code generation phase, showing
+// how many pages, partials, and emails were produced. The result is intended for writing
+// to stderr, matching the style of FormatBuildSummary.
 //
 // Takes result (*GeneratorResult) which holds the generation outcome.
 //
@@ -229,18 +229,16 @@ func FormatGeneratorSummary(result *GeneratorResult) string {
 	return builder.String()
 }
 
-// FormatCombinedSummary renders a single summary block that merges the
-// generator and build results. This is used when code emission and asset
-// building run in parallel, so they can be reported together after both
-// complete.
+// FormatCombinedSummary renders a single summary block that merges the generator and
+// build results. This is used when code emission and asset building run in parallel, so
+// they can be reported together after both complete.
 //
 // Takes gen (*GeneratorResult) which holds the code generation outcome.
-// Takes build (*lifecycle_domain.BuildResult) which holds the asset build
-// outcome.
-// Takes annotationDuration (time.Duration) which is the wall-clock time for
-// inspection and annotation.
-// Takes totalDuration (time.Duration) which is the wall-clock time for the
-// entire build (annotation + parallel emission and assets).
+// Takes build (*lifecycle_domain.BuildResult) which holds the asset build outcome.
+// Takes annotationDuration (time.Duration) which is the wall-clock time for inspection
+// and annotation.
+// Takes totalDuration (time.Duration) which is the wall-clock time for the entire build
+// (annotation + parallel emission and assets).
 //
 // Returns string which contains the formatted summary with ANSI colour codes.
 func FormatCombinedSummary(gen *GeneratorResult, build *lifecycle_domain.BuildResult, annotationDuration, totalDuration time.Duration) string {
@@ -273,8 +271,8 @@ func FormatCombinedSummary(gen *GeneratorResult, build *lifecycle_domain.BuildRe
 	return builder.String()
 }
 
-// writeGeneratorSummaryLines writes the per-type generator counts (pages,
-// partials, emails, PDFs, SQL queries) to the builder.
+// writeGeneratorSummaryLines writes the per-type generator counts (pages, partials,
+// emails, PDFs, SQL queries) to the builder.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes gen (*GeneratorResult) which holds the generation counts to render.
@@ -305,12 +303,11 @@ func writeGeneratorSummaryLines(builder *strings.Builder, gen *GeneratorResult) 
 		pluralise("query", gen.SQLQueries))
 }
 
-// writeBuildResultLines writes the asset build outcome lines (completed,
-// failed, retried, timed out, and individual failure details) to the builder.
+// writeBuildResultLines writes the asset build outcome lines (completed, failed, retried,
+// timed out, and individual failure details) to the builder.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
-// Takes build (*lifecycle_domain.BuildResult) which holds the build outcome
-// to render.
+// Takes build (*lifecycle_domain.BuildResult) which holds the build outcome to render.
 func writeBuildResultLines(builder *strings.Builder, build *lifecycle_domain.BuildResult) {
 	_, _ = fmt.Fprintf(builder, "   %s %d asset %s completed\n",
 		summarySuccessColour.Sprint(checkMark),
@@ -357,9 +354,8 @@ func pluralise(word string, count int) string {
 	return word + "s"
 }
 
-// formatBuildFailure renders a single failure entry in diagnostic style,
-// matching the AST diagnostic format when the error contains source location
-// information.
+// formatBuildFailure renders a single failure entry in diagnostic style, matching the AST
+// diagnostic format when the error contains source location information.
 //
 // Takes builder (*strings.Builder) which receives the formatted output.
 // Takes f (*lifecycle_domain.BuildFailure) which holds the failure details.
@@ -415,15 +411,14 @@ func formatBuildFailure(builder *strings.Builder, f *lifecycle_domain.BuildFailu
 	}
 }
 
-// extractBuildErrorSnippet parses a cleaned error string looking for an
-// esbuild-style diagnostic with (line N, col M) and source snippet. Returns
-// nil when the error does not contain diagnostic information.
+// extractBuildErrorSnippet parses a cleaned error string looking for an esbuild-style
+// diagnostic with (line N, col M) and source snippet. Returns nil when the error does not
+// contain diagnostic information.
 //
-// Takes cleaned (string) which is the error string to parse for diagnostic
-// information.
+// Takes cleaned (string) which is the error string to parse for diagnostic information.
 //
-// Returns *buildErrorSnippet which holds the extracted diagnostic parts, or
-// nil when no location information is found.
+// Returns *buildErrorSnippet which holds the extracted diagnostic parts, or nil when no
+// location information is found.
 func extractBuildErrorSnippet(cleaned string) *buildErrorSnippet {
 	lines := strings.SplitN(cleaned, "\n", maxDiagnosticLineParts)
 	firstLine := lines[0]
@@ -454,9 +449,9 @@ func extractBuildErrorSnippet(cleaned string) *buildErrorSnippet {
 	return snippet
 }
 
-// extractCoreMessage finds the innermost error message from a wrapping chain.
-// Error chains use ": " as a separator; the core message is the last segment
-// that starts with an uppercase letter or a quote.
+// extractCoreMessage finds the innermost error message from a wrapping chain. Error
+// chains use ": " as a separator; the core message is the last segment that starts with
+// an uppercase letter or a quote.
 //
 // Takes chain (string) which is the full error message chain to unwrap.
 //
@@ -475,13 +470,13 @@ func extractCoreMessage(chain string) string {
 	return strings.TrimSpace(best)
 }
 
-// extractGutterContent strips the existing "    N | " or "      | " prefix
-// produced by formatParserError, returning just the content after the pipe.
+// extractGutterContent strips the existing " N | " or " | " prefix produced by
+// formatParserError, returning just the content after the pipe.
 //
 // Takes line (string) which is the diagnostic line to strip the gutter from.
 //
-// Returns string which is the content after the pipe separator, or the trimmed
-// line if no pipe is found.
+// Returns string which is the content after the pipe separator, or the trimmed line if no
+// pipe is found.
 func extractGutterContent(line string) string {
 	index := strings.Index(line, "| ")
 	if index >= 0 {
@@ -494,8 +489,7 @@ func extractGutterContent(line string) string {
 	return strings.TrimSpace(line)
 }
 
-// formatSourceSnippet writes a diagnostic-style source snippet with coloured
-// gutters.
+// formatSourceSnippet writes a diagnostic-style source snippet with coloured gutters.
 //
 // Takes builder (*strings.Builder) which receives the formatted snippet output.
 // Takes s (*buildErrorSnippet) which holds the source text and caret position.
@@ -522,8 +516,8 @@ func formatSourceSnippet(builder *strings.Builder, s *buildErrorSnippet) {
 	}
 }
 
-// cleanBuildError strips implementation-detail sentinel suffixes from the
-// error string so that the build summary shows only the meaningful message.
+// cleanBuildError strips implementation-detail sentinel suffixes from the error string so
+// that the build summary shows only the meaningful message.
 //
 // Takes raw (string) which is the original error string to clean.
 //

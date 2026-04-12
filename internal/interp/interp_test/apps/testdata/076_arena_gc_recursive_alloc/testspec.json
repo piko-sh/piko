@@ -1,0 +1,4 @@
+{
+  "description": "Recursive function builds a strings.Repeat result at each frame; recursion depth combined with string allocation exercises both frame-tied register slabs and the byte slab. Verifies frame-pop slab management remains correct across implicit GC firing.",
+  "expected": "depth=200 builtLen=1005000"
+}

@@ -35,9 +35,9 @@ const (
 )
 
 var (
-	// intBitSizes maps reflect.Kind to the bit size parameter for
-	// strconv.ParseInt and strconv.ParseUint.
-	intBitSizes = map[reflect.Kind]int{
+	// intBitSizes maps reflect.Kind to the bit size parameter for strconv.ParseInt and
+	// strconv.ParseUint.
+	intBitSizes = map[reflect.Kind]int{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		reflect.Int:    64,
 		reflect.Int8:   8,
 		reflect.Int16:  16,
@@ -50,11 +50,11 @@ var (
 		reflect.Uint64: 64,
 	}
 
-	// signedIntSetters maps reflect.Kind to type-specific setter operations.
-	// This eliminates duplicate switch statements in setDirectSignedInt.
+	// signedIntSetters maps reflect.Kind to type-specific setter operations. This eliminates
+	// duplicate switch statements in setDirectSignedInt.
 	//
 	//nolint:dupl // parallel setter maps
-	signedIntSetters = map[reflect.Kind]intSetter[int64]{
+	signedIntSetters = map[reflect.Kind]intSetter[int64]{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		reflect.Int:   {setZero: func(p unsafe.Pointer) { *(*int)(p) = 0 }, setValue: func(p unsafe.Pointer, v int64) { *(*int)(p) = int(v) }},
 		reflect.Int8:  {setZero: func(p unsafe.Pointer) { *(*int8)(p) = 0 }, setValue: func(p unsafe.Pointer, v int64) { *(*int8)(p) = int8(v) }},    // #nosec G115 -- bitSize=8 ensures no overflow
 		reflect.Int16: {setZero: func(p unsafe.Pointer) { *(*int16)(p) = 0 }, setValue: func(p unsafe.Pointer, v int64) { *(*int16)(p) = int16(v) }}, // #nosec G115 -- bitSize=16 ensures no overflow
@@ -62,11 +62,11 @@ var (
 		reflect.Int64: {setZero: func(p unsafe.Pointer) { *(*int64)(p) = 0 }, setValue: func(p unsafe.Pointer, v int64) { *(*int64)(p) = v }},
 	}
 
-	// unsignedIntSetters maps reflect.Kind to type-specific setter operations.
-	// This eliminates duplicate switch statements in setDirectUnsignedInt.
+	// unsignedIntSetters maps reflect.Kind to type-specific setter operations. This
+	// eliminates duplicate switch statements in setDirectUnsignedInt.
 	//
 	//nolint:dupl // parallel setter maps
-	unsignedIntSetters = map[reflect.Kind]intSetter[uint64]{
+	unsignedIntSetters = map[reflect.Kind]intSetter[uint64]{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		reflect.Uint: {
 			setZero:  func(p unsafe.Pointer) { *(*uint)(p) = 0 },
 			setValue: func(p unsafe.Pointer, v uint64) { *(*uint)(p) = uint(v) },
@@ -90,8 +90,8 @@ var (
 	}
 )
 
-// intSetter holds type-specific operations for integer types. It uses generics
-// to handle both signed and unsigned variants with a single definition.
+// intSetter holds type-specific operations for integer types. It uses generics to handle
+// both signed and unsigned variants with a single definition.
 type intSetter[T int64 | uint64] struct {
 	// setZero sets the field at the given pointer to its zero value.
 	setZero func(unsafe.Pointer)
@@ -100,9 +100,8 @@ type intSetter[T int64 | uint64] struct {
 	setValue func(unsafe.Pointer, T)
 }
 
-// convertAndSetDirect uses unsafe pointer arithmetic to set primitive fields
-// directly, bypassing reflect.Value.Field() and reflect.Value.Set() for
-// maximum performance.
+// convertAndSetDirect uses unsafe pointer arithmetic to set primitive fields directly,
+// bypassing reflect.Value.Field() and reflect.Value.Set() for maximum performance.
 //
 // Takes structVal (reflect.Value) which is the addressable struct to modify.
 // Takes value (string) which is the string value to parse and set.
@@ -113,37 +112,33 @@ type intSetter[T int64 | uint64] struct {
 //
 // # Safety Analysis
 //
-// Uses unsafe.Add and pointer casting to write directly to struct fields. This
-// is SAFE because:
+// Uses unsafe.Add and pointer casting to write directly to struct fields. This is SAFE
+// because:
 //
-//  1. COMPILER-VERIFIED OFFSETS: fi.Offset comes from reflect.StructField.Offset,
-//     which is computed by the Go compiler. The compiler guarantees this offset
-//     is correct for the field's position within the struct's memory layout.
+//  1. COMPILER-VERIFIED OFFSETS: fi.Offset comes from reflect.StructField.Offset, which
+//     is computed by the Go compiler. The compiler guarantees this offset is correct for
+//     the field's position within the struct's memory layout.
 //
-//  2. CONTROLLED ENTRY POINTS: Only called when fi.CanDirect
-//     is true. CanDirect requires ALL of these conditions (see cache.go
-//     processField):
-//     - len(Index) == 1: Single-level access, no nested struct traversal
-//     - Kind != Ptr: Not a pointer field (no nil checks or allocation needed)
-//     - isPrimitiveKind(): Only basic types with known sizes
-//     - !hasWellKnownConverter(): No special parsing needed (e.g., time.Duration)
-//     - unmarshaler == nil: No TextUnmarshaler to call
+//  2. CONTROLLED ENTRY POINTS: Only called when fi.CanDirect is true. CanDirect requires
+//     ALL of these conditions (see cache.go processField): - len(Index) == 1:
+//     Single-level access, no nested struct traversal - Kind != Ptr: Not a pointer field
+//     (no nil checks or allocation needed) - isPrimitiveKind(): Only basic types with
+//     known sizes - !hasWellKnownConverter(): No special parsing needed (e.g.,
+//     time.Duration) - unmarshaler == nil: No TextUnmarshaler to call
 //
-//  3. TYPE-SAFE CASTING: The switch on fi.Kind ensures we cast to the correct
-//     type. fi.Kind comes from reflect.Type.Kind(), which is set at compile
-//     time. Mismatched types would be caught at cache-build time.
+//  3. TYPE-SAFE CASTING: The switch on fi.Kind ensures we cast to the correct type.
+//     fi.Kind comes from reflect.Type.Kind(), which is set at compile time. Mismatched
+//     types would be caught at cache-build time.
 //
-//  4. VALID POINTER SOURCE: structVal comes from a valid `reflect.Value` obtained
-//     by traversing from the user-provided destination struct. The reflect
-//     package guarantees this points to valid, addressable memory.
+//  4. VALID POINTER SOURCE: structVal comes from a valid `reflect.Value` obtained by
+//     traversing from the user-provided destination struct. The reflect package
+//     guarantees this points to valid, addressable memory.
 //
-//  5. USER CONVERTER CHECK: We check for user-registered converters at runtime
-//     before using the unsafe path, maintaining the converter precedence
-//     contract.
+//  5. USER CONVERTER CHECK: We check for user-registered converters at runtime before
+//     using the unsafe path, maintaining the converter precedence contract.
 //
-//  6. VALIDATED BY TESTS: See TestConvertAndSetDirect_* in unsafe_safety_test.go
-//     which verifies correctness for all primitive types, edge cases, and
-//     concurrent access.
+//  6. VALIDATED BY TESTS: See TestConvertAndSetDirect_* in unsafe_safety_test.go which
+//     verifies correctness for all primitive types, edge cases, and concurrent access.
 //
 // # Why This Is Faster
 //
@@ -153,7 +148,6 @@ type intSetter[T int64 | uint64] struct {
 //   - Type checking in Set()
 //
 // Eliminates all of that: parse the string, write directly to memory.
-// Benchmarks show 57-73% reduction in allocations.
 func (b *ASTBinder) convertAndSetDirect(structVal reflect.Value, value string, fullPath string, fi *fieldInfo) error {
 	if b.hasConverters.Load() {
 		if converter := b.getUserConverter(fi.Type); converter != nil {
@@ -183,11 +177,10 @@ func (b *ASTBinder) convertAndSetDirect(structVal reflect.Value, value string, f
 	}
 }
 
-// setDirectBool parses a string and sets a boolean field using an unsafe
-// pointer.
+// setDirectBool parses a string and sets a boolean field using an unsafe pointer.
 //
-// When the value is empty, the field is set to false. When the value is "on",
-// the field is set to true. Other values are parsed using strconv.ParseBool.
+// When the value is empty, the field is set to false. When the value is "on", the field
+// is set to true. Other values are parsed using strconv.ParseBool.
 //
 // Takes fieldPtr (unsafe.Pointer) which points to the boolean field to set.
 // Takes value (string) which is the string to parse as a boolean.
@@ -212,9 +205,8 @@ func setDirectBool(fieldPtr unsafe.Pointer, value string, fullPath string, fi *f
 	return nil
 }
 
-// setDirectSignedInt parses and sets a signed integer field using unsafe
-// pointer access. Uses a dispatch table to select the correct setter for the
-// target type.
+// setDirectSignedInt parses and sets a signed integer field using unsafe pointer access.
+// Uses a dispatch table to select the correct setter for the target type.
 //
 // When the value is empty, sets the field to zero and returns nil.
 //
@@ -224,8 +216,8 @@ func setDirectBool(fieldPtr unsafe.Pointer, value string, fullPath string, fi *f
 // Takes fullPath (string) which is the full path for error messages.
 // Takes fi (*fieldInfo) which provides field details for error messages.
 //
-// Returns error when the value cannot be parsed as a signed integer or does
-// not fit in the target type.
+// Returns error when the value cannot be parsed as a signed integer or does not fit in
+// the target type.
 func setDirectSignedInt(fieldPtr unsafe.Pointer, value string, kind reflect.Kind, fullPath string, fi *fieldInfo) error {
 	setter := signedIntSetters[kind]
 	if value == "" {
@@ -240,8 +232,8 @@ func setDirectSignedInt(fieldPtr unsafe.Pointer, value string, kind reflect.Kind
 	return nil
 }
 
-// setDirectUnsignedInt parses and sets an unsigned integer field using an
-// unsafe pointer. Uses a dispatch table to set the correct integer size.
+// setDirectUnsignedInt parses and sets an unsigned integer field using an unsafe pointer.
+// Uses a dispatch table to set the correct integer size.
 //
 // When value is empty, sets the field to zero and returns nil.
 //
@@ -266,13 +258,11 @@ func setDirectUnsignedInt(fieldPtr unsafe.Pointer, value string, kind reflect.Ki
 	return nil
 }
 
-// setDirectFloat parses a string and sets a float field using an unsafe
-// pointer.
+// setDirectFloat parses a string and sets a float field using an unsafe pointer.
 //
 // Takes fieldPtr (unsafe.Pointer) which points to the float field to set.
 // Takes value (string) which holds the float value to parse.
-// Takes kind (reflect.Kind) which shows whether the field is float32 or
-// float64.
+// Takes kind (reflect.Kind) which shows whether the field is float32 or float64.
 // Takes fullPath (string) which gives the field path for error messages.
 // Takes fi (*fieldInfo) which provides field details for error reporting.
 //

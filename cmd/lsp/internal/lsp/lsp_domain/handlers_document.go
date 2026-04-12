@@ -28,9 +28,8 @@ import (
 )
 
 const (
-	// maxFormattingBytes is a large line number used to represent "end of
-	// document" in formatting ranges. It covers the entire document when
-	// replacing content.
+	// maxFormattingBytes is a large line number used to represent "end of document" in
+	// formatting ranges. It covers the entire document when replacing content.
 	maxFormattingBytes = 1_000_000
 
 	// logKeyOriginalSize is the log attribute key for document size before formatting.
@@ -40,44 +39,44 @@ const (
 	logKeyFormattedSize = "formattedSize"
 )
 
-// DidOpen handles notification that a text document was opened in the editor.
-// Satisfies the protocol.Server interface by delegating to DidOpenTextDocument.
+// DidOpen handles notification that a text document was opened in the editor. Satisfies
+// the protocol.Server interface by delegating to DidOpenTextDocument.
 //
-// Takes params (*protocol.DidOpenTextDocumentParams) which contains the
-// document URI and content.
+// Takes params (*protocol.DidOpenTextDocumentParams) which contains the document URI and
+// content.
 //
 // Returns error when the document cannot be processed.
 func (s *Server) DidOpen(ctx context.Context, params *protocol.DidOpenTextDocumentParams) error {
 	return s.DidOpenTextDocument(ctx, params)
 }
 
-// DidChange handles text document change notifications from the client.
-// Satisfies the protocol.Server interface by delegating to DidChangeTextDocument.
+// DidChange handles text document change notifications from the client. Satisfies the
+// protocol.Server interface by delegating to DidChangeTextDocument.
 //
-// Takes params (*protocol.DidChangeTextDocumentParams) which contains the
-// document URI and the content changes to apply.
+// Takes params (*protocol.DidChangeTextDocumentParams) which contains the document URI
+// and the content changes to apply.
 //
 // Returns error when the document change cannot be processed.
 func (s *Server) DidChange(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
 	return s.DidChangeTextDocument(ctx, params)
 }
 
-// DidSave handles notification that a document was saved.
-// Satisfies the protocol.Server interface by delegating to DidSaveTextDocument.
+// DidSave handles notification that a document was saved. Satisfies the protocol.Server
+// interface by delegating to DidSaveTextDocument.
 //
-// Takes params (*protocol.DidSaveTextDocumentParams) which contains the
-// document URI and optional text content.
+// Takes params (*protocol.DidSaveTextDocumentParams) which contains the document URI and
+// optional text content.
 //
 // Returns error when the save notification cannot be processed.
 func (s *Server) DidSave(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
 	return s.DidSaveTextDocument(ctx, params)
 }
 
-// DidClose handles notification that a text document was closed in the editor.
-// Satisfies the protocol.Server interface by delegating to DidCloseTextDocument.
+// DidClose handles notification that a text document was closed in the editor. Satisfies
+// the protocol.Server interface by delegating to DidCloseTextDocument.
 //
-// Takes params (*protocol.DidCloseTextDocumentParams) which identifies the
-// closed document.
+// Takes params (*protocol.DidCloseTextDocumentParams) which identifies the closed
+// document.
 //
 // Returns error when the underlying DidCloseTextDocument call fails.
 func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocumentParams) error {
@@ -86,8 +85,8 @@ func (s *Server) DidClose(ctx context.Context, params *protocol.DidCloseTextDocu
 
 // WillSave handles the pre-save notification for a document.
 //
-// Takes params (*protocol.WillSaveTextDocumentParams) which holds the document
-// identifier and the reason for the save.
+// Takes params (*protocol.WillSaveTextDocumentParams) which holds the document identifier
+// and the reason for the save.
 //
 // Returns error when the pre-save handling fails.
 func (*Server) WillSave(ctx context.Context, params *protocol.WillSaveTextDocumentParams) error {
@@ -98,14 +97,14 @@ func (*Server) WillSave(ctx context.Context, params *protocol.WillSaveTextDocume
 	return nil
 }
 
-// WillSaveWaitUntil handles the pre-save notification and returns edits to
-// apply before saving.
+// WillSaveWaitUntil handles the pre-save notification and returns edits to apply before
+// saving.
 //
-// Takes params (*protocol.WillSaveTextDocumentParams) which identifies the
-// document about to be saved.
+// Takes params (*protocol.WillSaveTextDocumentParams) which identifies the document about
+// to be saved.
 //
-// Returns []protocol.TextEdit which contains formatting edits to apply, or an
-// empty slice if no changes are needed.
+// Returns []protocol.TextEdit which contains formatting edits to apply, or an empty slice
+// if no changes are needed.
 // Returns error when the operation fails.
 func (s *Server) WillSaveWaitUntil(ctx context.Context, params *protocol.WillSaveTextDocumentParams) ([]protocol.TextEdit, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -153,11 +152,11 @@ func (s *Server) WillSaveWaitUntil(ctx context.Context, params *protocol.WillSav
 
 // Formatting handles requests to format an entire document.
 //
-// Takes params (*protocol.DocumentFormattingParams) which specifies the
-// document to format and formatting options.
+// Takes params (*protocol.DocumentFormattingParams) which specifies the document to
+// format and formatting options.
 //
-// Returns []protocol.TextEdit which contains the edits to apply, or nil if the
-// document is not found or formatting fails.
+// Returns []protocol.TextEdit which contains the edits to apply, or nil if the document
+// is not found or formatting fails.
 // Returns error when the request cannot be processed.
 func (s *Server) Formatting(ctx context.Context, params *protocol.DocumentFormattingParams) ([]protocol.TextEdit, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -200,8 +199,8 @@ func (s *Server) Formatting(ctx context.Context, params *protocol.DocumentFormat
 
 // RangeFormatting handles requests to format a specific range within a document.
 //
-// Takes params (*protocol.DocumentRangeFormattingParams) which specifies the
-// document and range to format.
+// Takes params (*protocol.DocumentRangeFormattingParams) which specifies the document and
+// range to format.
 //
 // Returns []protocol.TextEdit which contains the edits to apply the formatting.
 // Returns error when the formatting fails.
@@ -256,13 +255,13 @@ func (s *Server) RangeFormatting(ctx context.Context, params *protocol.DocumentR
 
 // OnTypeFormatting handles requests to format text as the user types.
 //
-// Takes params (*protocol.DocumentOnTypeFormattingParams) which contains the
-// document, position, and trigger character for formatting.
+// Takes params (*protocol.DocumentOnTypeFormattingParams) which contains the document,
+// position, and trigger character for formatting.
 //
-// Returns []protocol.TextEdit which contains the edits to apply. Returns nil
-// if the document is not in the cache or formatting fails.
-// Returns error when something goes wrong that cannot be fixed. Most errors
-// are handled inside by returning nil edits instead.
+// Returns []protocol.TextEdit which contains the edits to apply.
+// Returns nil if the document is not in the cache or formatting fails.
+// Returns error when something goes wrong that cannot be fixed. Most errors are handled
+// inside by returning nil edits instead.
 func (s *Server) OnTypeFormatting(ctx context.Context, params *protocol.DocumentOnTypeFormattingParams) ([]protocol.TextEdit, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -309,8 +308,8 @@ func (s *Server) OnTypeFormatting(ctx context.Context, params *protocol.Document
 
 // DidOpenTextDocument handles the notification when a document is opened.
 //
-// Takes params (*protocol.DidOpenTextDocumentParams) which contains the
-// document URI and text content.
+// Takes params (*protocol.DidOpenTextDocumentParams) which contains the document URI and
+// text content.
 //
 // Returns error when the operation fails.
 func (s *Server) DidOpenTextDocument(ctx context.Context, params *protocol.DidOpenTextDocumentParams) error {
@@ -331,11 +330,10 @@ func (s *Server) DidOpenTextDocument(ctx context.Context, params *protocol.DidOp
 	return nil
 }
 
-// DidChangeTextDocument handles the notification when a document's content
-// changes.
+// DidChangeTextDocument handles the notification when a document's content changes.
 //
-// Takes params (*protocol.DidChangeTextDocumentParams) which contains the
-// document URI and the content changes to apply.
+// Takes params (*protocol.DidChangeTextDocumentParams) which contains the document URI
+// and the content changes to apply.
 //
 // Returns error when the document change cannot be processed.
 func (s *Server) DidChangeTextDocument(ctx context.Context, params *protocol.DidChangeTextDocumentParams) error {
@@ -360,8 +358,8 @@ func (s *Server) DidChangeTextDocument(ctx context.Context, params *protocol.Did
 
 // DidSaveTextDocument handles the notification when a document is saved.
 //
-// Takes params (*protocol.DidSaveTextDocumentParams) which contains the saved
-// document URI and optionally the document text.
+// Takes params (*protocol.DidSaveTextDocumentParams) which contains the saved document
+// URI and optionally the document text.
 //
 // Returns error when the save notification cannot be processed.
 func (s *Server) DidSaveTextDocument(ctx context.Context, params *protocol.DidSaveTextDocumentParams) error {
@@ -386,8 +384,8 @@ func (s *Server) DidSaveTextDocument(ctx context.Context, params *protocol.DidSa
 
 // DidCloseTextDocument handles the notification when a text document is closed.
 //
-// Takes params (*protocol.DidCloseTextDocumentParams) which identifies the
-// document that was closed.
+// Takes params (*protocol.DidCloseTextDocumentParams) which identifies the document that
+// was closed.
 //
 // Returns error when the close notification cannot be processed.
 func (s *Server) DidCloseTextDocument(ctx context.Context, params *protocol.DidCloseTextDocumentParams) error {
@@ -400,9 +398,9 @@ func (s *Server) DidCloseTextDocument(ctx context.Context, params *protocol.DidC
 	return nil
 }
 
-// calculateFormatRange works out the range of lines to format based on the
-// trigger character. For newline and closing tag triggers, it includes the
-// previous line for context.
+// calculateFormatRange works out the range of lines to format based on the trigger
+// character. For newline and closing tag triggers, it includes the previous line for
+// context.
 //
 // Takes triggerChar (string) which is the character that triggered formatting.
 // Takes currentLine (uint32) which is the line number where formatting starts.

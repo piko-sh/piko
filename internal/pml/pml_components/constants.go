@@ -136,8 +136,7 @@ const (
 	// CSSMsoPaddingAlt is the CSS property name for Outlook-specific padding.
 	CSSMsoPaddingAlt = "mso-padding-alt"
 
-	// CSSMsoLineHeightRule is the CSS property name for Microsoft Office line
-	// height rule.
+	// CSSMsoLineHeightRule is the CSS property name for Microsoft Office line height rule.
 	CSSMsoLineHeightRule = "mso-line-height-rule"
 
 	// CSSOverflow is the CSS property name for controlling content overflow.
@@ -194,12 +193,10 @@ const (
 	// AttrColour is the attribute name for text colour.
 	AttrColour = "color"
 
-	// AttrDensities is the attribute name for pixel density options in responsive
-	// images.
+	// AttrDensities is the attribute name for pixel density options in responsive images.
 	AttrDensities = "densities"
 
-	// AttrBackgroundPositionX is the attribute name for the horizontal background
-	// position.
+	// AttrBackgroundPositionX is the attribute name for the horizontal background position.
 	AttrBackgroundPositionX = "background-position-x"
 
 	// AttrBackgroundPositionY is the attribute key for vertical background position.
@@ -238,8 +235,8 @@ const (
 	// AttrUsemap is the HTML usemap attribute for associating an image map.
 	AttrUsemap = "usemap"
 
-	// AttrContainerBackgroundColor is the attribute name for the background colour
-	// of the outer container element.
+	// AttrContainerBackgroundColor is the attribute name for the background colour of the
+	// outer container element.
 	AttrContainerBackgroundColor = "container-background-color"
 
 	// AttrDirection is the attribute name for text direction (ltr or rtl).
@@ -323,8 +320,7 @@ const (
 	// AttrCellSpacing is the HTML attribute name for table cell spacing.
 	AttrCellSpacing = "cellspacing"
 
-	// AttrDir is the HTML direction attribute for text
-	// directionality (ltr/rtl).
+	// AttrDir is the HTML direction attribute for text directionality (ltr/rtl).
 	AttrDir = "dir"
 
 	// AttrBgColor is the HTML attribute for setting the background colour.
@@ -417,8 +413,8 @@ const (
 	// ValueSeparate is the CSS border-collapse value for separated table borders.
 	ValueSeparate = "separate"
 
-	// ValueBreakWord is the CSS word-break property value that allows long words to
-	// be broken at any character to prevent overflow.
+	// ValueBreakWord is the CSS word-break property value that allows long words to be
+	// broken at any character to prevent overflow.
 	ValueBreakWord = "break-word"
 
 	// ValueOrdered is the list style value for numbered lists.
@@ -511,8 +507,8 @@ const (
 	// ElementUl is the HTML tag name for unordered lists.
 	ElementUl = "ul"
 
-	// WidthMobileBreakpoint is the default container width in pixels used when no
-	// parent width is specified.
+	// WidthMobileBreakpoint is the default container width in pixels used when no parent
+	// width is specified.
 	WidthMobileBreakpoint = 600
 
 	// WidthDesktopMax is the maximum width in pixels for desktop viewports.
@@ -530,8 +526,8 @@ const (
 	// NumericFifty is the highest allowed arcsize percentage for VML button corners.
 	NumericFifty = 50
 
-	// BorderPartsMinimum is the minimum number of parts expected when parsing a
-	// border string.
+	// BorderPartsMinimum is the minimum number of parts expected when parsing a border
+	// string.
 	BorderPartsMinimum = 3
 
 	// FormatPercent is the suffix used to identify percentage-based width values.
@@ -555,12 +551,12 @@ const (
 	// VMLPositionCentreCentre is the VML position value for centre alignment.
 	VMLPositionCentreCentre = "0.5,0.5"
 
-	// ConditionalCommentStart is the opening tag for Microsoft Outlook conditional
-	// comments in HTML emails.
+	// ConditionalCommentStart is the opening tag for Microsoft Outlook conditional comments
+	// in HTML emails.
 	ConditionalCommentStart = "<!--[if mso | IE]>"
 
-	// ConditionalCommentEnd is the closing tag for Internet Explorer conditional
-	// comments. It is used with VML rendering to end browser-specific blocks.
+	// ConditionalCommentEnd is the closing tag for Internet Explorer conditional comments.
+	// It is used with VML rendering to end browser-specific blocks.
 	ConditionalCommentEnd = "<![endif]-->"
 
 	// ConditionalNotMsoStart is the HTML comment that begins a non-Outlook section.
@@ -623,8 +619,7 @@ const (
 	// SelectorTdFluid is the CSS selector for fluid table cells on mobile devices.
 	SelectorTdFluid = "td.pml-fluid-mobile"
 
-	// defaultListMarginLeft is the left margin used for list elements when no
-	// margin is set.
+	// defaultListMarginLeft is the left margin used for list elements when no margin is set.
 	defaultListMarginLeft = "25px"
 
 	// defaultListAlign is the default horizontal alignment for list items.
@@ -648,8 +643,8 @@ const (
 	// msoFirstListItemMarginTop is the MSO style for top margin on first list items.
 	msoFirstListItemMarginTop = "margin-top: 20px !important;"
 
-	// msoLastListItemMarginBottom is the MSO style for the bottom margin of the
-	// last list item.
+	// msoLastListItemMarginBottom is the MSO style for the bottom margin of the last list
+	// item.
 	msoLastListItemMarginBottom = "margin-bottom: 20px !important;"
 
 	// defaultImageAlt is the fallback alt text for images when none is given.
@@ -673,12 +668,12 @@ const (
 	// defaultImageFontSize is the default text size for image elements.
 	defaultImageFontSize = "13px"
 
-	// defaultContainerWidth is the fallback container width in pixels when no
-	// width is given.
+	// defaultContainerWidth is the fallback container width in pixels when no width is
+	// given.
 	defaultContainerWidth = 600
 
-	// defaultRowBackgroundRepeat is the default CSS background-repeat value for
-	// Row components.
+	// defaultRowBackgroundRepeat is the default CSS background-repeat value for Row
+	// components.
 	defaultRowBackgroundRepeat = "repeat"
 
 	// defaultRowBackgroundSize is the default CSS background-size for rows.

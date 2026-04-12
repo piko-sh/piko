@@ -32,9 +32,8 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// service provides the core LLM functionality, implementing the Service
-// interface. It manages providers, caching, rate limiting, budgets, and cost
-// tracking.
+// service provides the core LLM functionality, implementing the Service interface. It
+// manages providers, caching, rate limiting, budgets, and cost tracking.
 type service struct {
 	// clock provides time operations for testing.
 	clock clock.Clock
@@ -42,16 +41,15 @@ type service struct {
 	// providers maps provider names to their LLM provider implementations.
 	providers map[string]LLMProviderPort
 
-	// costCalculator computes usage costs; nil uses a default with the service
-	// clock.
+	// costCalculator computes usage costs; nil uses a default with the service clock.
 	costCalculator *CostCalculator
 
-	// budgetManager tracks and enforces usage limits by scope; nil disables
-	// budget enforcement.
+	// budgetManager tracks and enforces usage limits by scope; nil disables budget
+	// enforcement.
 	budgetManager *BudgetManager
 
-	// rateLimiter controls request and token rate limits per scope; nil
-	// disables rate limiting.
+	// rateLimiter controls request and token rate limits per scope; nil disables rate
+	// limiting.
 	rateLimiter *RateLimiter
 
 	// cacheManager stores cached conversation history for message retrieval.
@@ -60,12 +58,11 @@ type service struct {
 	// embeddingService handles embedding requests and delegates to providers.
 	embeddingService *embeddingService
 
-	// vectorStore provides vector storage and similarity search; nil disables
-	// vector search.
+	// vectorStore provides vector storage and similarity search; nil disables vector search.
 	vectorStore VectorStorePort
 
-	// circuitBreakerConfig holds the default circuit breaker settings. When
-	// non-nil, all providers registered via RegisterProvider are wrapped.
+	// circuitBreakerConfig holds the default circuit breaker settings. When non-nil, all
+	// providers registered via RegisterProvider are wrapped.
 	circuitBreakerConfig *circuitBreakerConfig
 
 	// defaultProvider is the name of the provider used when none is specified.
@@ -77,16 +74,16 @@ type service struct {
 
 // circuitBreakerConfig holds circuit breaker settings for providers.
 type circuitBreakerConfig struct {
-	// maxFailures is the consecutive failure threshold before opening
-	// the circuit.
+	// maxFailures is the consecutive failure threshold before opening the circuit.
 	maxFailures int
 
-	// timeout is how long the circuit stays open before attempting
-	// recovery.
+	// timeout is how long the circuit stays open before attempting recovery.
 	timeout time.Duration
 }
 
-var _ Service = (*service)(nil)
+var (
+	_ Service = (*service)(nil)
+)
 
 // ServiceOption is a functional option for setting up the LLM service.
 type ServiceOption func(*service)
@@ -111,8 +108,8 @@ func (s *service) NewCompletion() *CompletionBuilder {
 
 // Complete sends a completion request to the default provider.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the prompt and
-// completion parameters.
+// Takes request (*llm_dto.CompletionRequest) which specifies the prompt and completion
+// parameters.
 //
 // Returns *llm_dto.CompletionResponse which contains the generated completion.
 // Returns error when the completion request fails.
@@ -123,11 +120,9 @@ func (s *service) Complete(ctx context.Context, request *llm_dto.CompletionReque
 // CompleteWithProvider sends a completion request to a specific provider.
 //
 // Takes providerName (string) which identifies the provider to use.
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion request.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion request.
 //
-// Returns *llm_dto.CompletionResponse which contains the
-// provider's response.
+// Returns *llm_dto.CompletionResponse which contains the provider's response.
 // Returns error when the request fails or the provider is unavailable.
 func (s *service) CompleteWithProvider(ctx context.Context, providerName string, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error) {
 	return s.completeWithScope(ctx, providerName, request, "", maths.ZeroMoney(llm_dto.CostCurrency))
@@ -135,27 +130,23 @@ func (s *service) CompleteWithProvider(ctx context.Context, providerName string,
 
 // Stream sends a streaming completion request to the default provider.
 //
-// Takes request (*llm_dto.CompletionRequest) which specifies the completion
-// parameters.
+// Takes request (*llm_dto.CompletionRequest) which specifies the completion parameters.
 //
-// Returns <-chan llm_dto.StreamEvent which yields streaming events as they
-// arrive from the provider.
+// Returns <-chan llm_dto.StreamEvent which yields streaming events as they arrive from
+// the provider.
 // Returns error when the request fails to start.
 func (s *service) Stream(ctx context.Context, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	return s.StreamWithProvider(ctx, s.defaultProvider, request)
 }
 
-// StreamWithProvider sends a streaming completion request to a specific
-// provider.
+// StreamWithProvider sends a streaming completion request to a specific provider.
 //
 // Takes providerName (string) which identifies the provider to use.
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion request.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion request.
 //
-// Returns <-chan llm_dto.StreamEvent which yields stream events
-// as they arrive.
-// Returns error when the provider is not found, does not support streaming, or
-// the request fails validation.
+// Returns <-chan llm_dto.StreamEvent which yields stream events as they arrive.
+// Returns error when the provider is not found, does not support streaming, or the
+// request fails validation.
 func (s *service) StreamWithProvider(ctx context.Context, providerName string, request *llm_dto.CompletionRequest) (<-chan llm_dto.StreamEvent, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	streamCount.Add(ctx, 1)
@@ -198,8 +189,8 @@ func (s *service) StreamWithProvider(ctx context.Context, providerName string, r
 
 // RegisterProvider adds a provider to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes name (string) which identifies the provider in the registry.
 // Takes provider (LLMProviderPort) which is the provider implementation to add.
 //
@@ -228,8 +219,8 @@ func (s *service) RegisterProvider(ctx context.Context, name string, provider LL
 
 // SetDefaultProvider sets the default provider by name.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes name (string) which specifies the provider to use as default.
 //
 // Returns error when the named provider does not exist.
@@ -253,8 +244,7 @@ func (s *service) SetDefaultProvider(ctx context.Context, name string) error {
 
 // GetDefaultProvider returns the name of the default provider.
 //
-// Returns string which is the name of the currently configured default
-// provider.
+// Returns string which is the name of the currently configured default provider.
 //
 // Safe for concurrent use.
 func (s *service) GetDefaultProvider() string {
@@ -381,10 +371,8 @@ func (s *service) SetPricingTable(table *llm_dto.PricingTable) {
 // SetRateLimits configures rate limits for a scope.
 //
 // Takes scope (string) which identifies the rate limit scope.
-// Takes requestsPerMinute (int) which is the max requests per minute (0 =
-// unlimited).
-// Takes tokensPerMinute (int) which is the max tokens per minute (0 =
-// unlimited).
+// Takes requestsPerMinute (int) which is the max requests per minute (0 = unlimited).
+// Takes tokensPerMinute (int) which is the max tokens per minute (0 = unlimited).
 func (s *service) SetRateLimits(scope string, requestsPerMinute, tokensPerMinute int) {
 	if s.rateLimiter != nil {
 		s.rateLimiter.SetLimits(scope, requestsPerMinute, tokensPerMinute)
@@ -449,16 +437,14 @@ func (s *service) SetVectorStore(store VectorStorePort) {
 
 // NewEmbedding creates a new builder for embedding requests.
 //
-// Returns *EmbeddingBuilder which is used to build and configure embedding
-// requests.
+// Returns *EmbeddingBuilder which is used to build and configure embedding requests.
 func (s *service) NewEmbedding() *EmbeddingBuilder {
 	return NewEmbeddingBuilder(s.embeddingService)
 }
 
 // Embed generates embeddings using the default provider.
 //
-// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding
-// parameters.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
@@ -469,8 +455,7 @@ func (s *service) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) 
 // EmbedWithProvider generates embeddings using a specific provider.
 //
 // Takes providerName (string) which identifies the provider to use.
-// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding
-// parameters.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
 // Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
@@ -480,8 +465,8 @@ func (s *service) EmbedWithProvider(ctx context.Context, providerName string, re
 
 // RegisterEmbeddingProvider adds an embedding provider to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes name (string) which identifies the provider.
 // Takes provider (EmbeddingProviderPort) which handles embedding requests.
 //
@@ -499,19 +484,16 @@ func (s *service) SetDefaultEmbeddingProvider(name string) error {
 	return s.embeddingService.SetDefaultEmbeddingProvider(name)
 }
 
-// NewIngest creates a new ingestion builder for loading and vectorising
-// documents.
+// NewIngest creates a new ingestion builder for loading and vectorising documents.
 //
 // Takes namespace (string) which specifies the target namespace for ingestion.
 //
-// Returns *IngestBuilder which is configured to ingest into the given
-// namespace.
+// Returns *IngestBuilder which is configured to ingest into the given namespace.
 func (s *service) NewIngest(namespace string) *IngestBuilder {
 	return NewIngestBuilder(s, namespace)
 }
 
-// AddText is a convenience method that embeds and stores a single piece of
-// text.
+// AddText is a convenience method that embeds and stores a single piece of text.
 //
 // Takes namespace (string) which identifies the storage namespace.
 // Takes id (string) which uniquely identifies the text within the namespace.
@@ -527,14 +509,14 @@ func (s *service) AddText(ctx context.Context, namespace, id, content string) er
 	})
 }
 
-// AddDocuments embeds and stores multiple documents in the vector store.
-// It handles batching of embedding requests for efficiency.
+// AddDocuments embeds and stores multiple documents in the vector store. It handles
+// batching of embedding requests for efficiency.
 //
 // Takes namespace (string) which identifies the storage namespace.
 // Takes docs ([]Document) which contains the documents to embed and store.
 //
-// Returns error when the vector store is not configured, embedding fails,
-// or storage fails.
+// Returns error when the vector store is not configured, embedding fails, or storage
+// fails.
 func (s *service) AddDocuments(ctx context.Context, namespace string, docs []Document) error {
 	if s.vectorStore == nil {
 		return ErrVectorStoreNotConfigured
@@ -563,9 +545,9 @@ func (s *service) AddDocuments(ctx context.Context, namespace string, docs []Doc
 	return nil
 }
 
-// EmbeddingDimensions returns the default embedding dimension from the
-// currently configured default embedding provider. Returns 0 when no provider
-// is configured or the dimension is not known statically.
+// EmbeddingDimensions returns the default embedding dimension from the currently
+// configured default embedding provider. Returns 0 when no provider is configured or the
+// dimension is not known statically.
 //
 // Returns int which is the vector dimension, or 0 if unknown.
 func (s *service) EmbeddingDimensions() int {
@@ -576,8 +558,7 @@ func (s *service) EmbeddingDimensions() int {
 	return provider.EmbeddingDimensions()
 }
 
-// ensureVectorNamespace creates the vector namespace if the embedding
-// dimension is known.
+// ensureVectorNamespace creates the vector namespace if the embedding dimension is known.
 //
 // Takes namespace (string) which identifies the namespace to create.
 //
@@ -596,8 +577,8 @@ func (s *service) ensureVectorNamespace(ctx context.Context, namespace string) e
 	return nil
 }
 
-// embedAndStoreBatch embeds a single batch of documents and stores them in the
-// vector store.
+// embedAndStoreBatch embeds a single batch of documents and stores them in the vector
+// store.
 //
 // Takes namespace (string) which identifies the storage namespace.
 // Takes batch ([]Document) which contains the documents to process.
@@ -638,8 +619,8 @@ func (s *service) embedAndStoreBatch(ctx context.Context, namespace string, batc
 	return nil
 }
 
-// initialiseDefaults sets up default components that were not provided.
-// This is called after options are applied to ensure the service clock is used.
+// initialiseDefaults sets up default components that were not provided. This is called
+// after options are applied to ensure the service clock is used.
 func (s *service) initialiseDefaults() {
 	if s.costCalculator == nil {
 		s.costCalculator = NewCostCalculator(WithCostCalculatorClock(s.clock))
@@ -649,14 +630,11 @@ func (s *service) initialiseDefaults() {
 	}
 }
 
-// completeWithScope sends a completion request with optional budget scope and
-// max cost.
+// completeWithScope sends a completion request with optional budget scope and max cost.
 //
 // Takes providerName (string) which identifies the LLM provider to use.
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion request.
-// Takes budgetScope (string) which specifies the budget scope for
-// cost tracking.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion request.
+// Takes budgetScope (string) which specifies the budget scope for cost tracking.
 // Takes maxCost (maths.Money) which sets the maximum allowed cost.
 //
 // Returns *llm_dto.CompletionResponse which contains the completion result.
@@ -699,11 +677,9 @@ func (s *service) completeWithScope(ctx context.Context, providerName string, re
 	return response, err
 }
 
-// checkPreRequestLimits validates rate limits and budget before executing a
-// request.
+// checkPreRequestLimits validates rate limits and budget before executing a request.
 //
-// Takes request (*llm_dto.CompletionRequest) which contains the request to
-// validate.
+// Takes request (*llm_dto.CompletionRequest) which contains the request to validate.
 // Takes budgetScope (string) which identifies the budget namespace to check.
 // Takes maxCost (maths.Money) which specifies the maximum allowed cost.
 //
@@ -766,14 +742,12 @@ func (s *service) checkBudget(ctx context.Context, request *llm_dto.CompletionRe
 // executeCompletion executes the completion request with the provider.
 //
 // Takes providerName (string) which identifies the LLM provider to use.
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion request.
-// Takes budgetScope (string) which specifies the scope for cost
-// tracking.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion request.
+// Takes budgetScope (string) which specifies the scope for cost tracking.
 //
 // Returns *llm_dto.CompletionResponse which contains the provider's response.
-// Returns error when the provider is not found, request validation fails, or
-// the provider completion fails.
+// Returns error when the provider is not found, request validation fails, or the provider
+// completion fails.
 func (s *service) executeCompletion(ctx context.Context, providerName string, request *llm_dto.CompletionRequest, budgetScope string) (*llm_dto.CompletionResponse, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -811,9 +785,9 @@ func (s *service) executeCompletion(ctx context.Context, providerName string, re
 	return response, nil
 }
 
-// recordRateLimiterTokens records actual token usage to the rate limiter
-// after a request completes. This consumes tokens from the token bucket
-// without consuming from the request bucket (requests=0).
+// recordRateLimiterTokens records actual token usage to the rate limiter after a request
+// completes. This consumes tokens from the token bucket without consuming from the
+// request bucket (requests=0).
 //
 // Takes budgetScope (string) which identifies the rate limit scope.
 // Takes response (*llm_dto.CompletionResponse) which contains usage data.
@@ -831,14 +805,13 @@ func (s *service) recordRateLimiterTokens(ctx context.Context, budgetScope strin
 
 // wrapStreamWithMetrics wraps a stream channel with metrics recording.
 //
-// Takes events (<-chan llm_dto.StreamEvent) which provides the stream events
-// to wrap.
+// Takes events (<-chan llm_dto.StreamEvent) which provides the stream events to wrap.
 //
-// Returns <-chan llm_dto.StreamEvent which yields the same events after
-// recording metrics for errors, duration, and token usage.
+// Returns <-chan llm_dto.StreamEvent which yields the same events after recording metrics
+// for errors, duration, and token usage.
 //
-// Spawns a goroutine that forwards events and records metrics. The goroutine
-// runs until the input channel is closed.
+// Spawns a goroutine that forwards events and records metrics. The goroutine runs until
+// the input channel is closed.
 func (s *service) wrapStreamWithMetrics(ctx context.Context, events <-chan llm_dto.StreamEvent) <-chan llm_dto.StreamEvent {
 	wrapped := make(chan llm_dto.StreamEvent, streamEventBufferSize)
 	start := s.clock.Now()
@@ -859,8 +832,8 @@ func (s *service) wrapStreamWithMetrics(ctx context.Context, events <-chan llm_d
 	return wrapped
 }
 
-// recordStreamEventMetrics records metrics for a single stream event,
-// including error counts, stream duration, and token usage on completion.
+// recordStreamEventMetrics records metrics for a single stream event, including error
+// counts, stream duration, and token usage on completion.
 //
 // Takes event (llm_dto.StreamEvent) which is the event to record metrics for.
 // Takes start (time.Time) which is when the stream started.
@@ -878,8 +851,7 @@ func (s *service) recordStreamEventMetrics(ctx context.Context, event llm_dto.St
 
 // recordTokenUsage records token usage metrics from a response.
 //
-// Takes response (*llm_dto.CompletionResponse) which contains the usage data to
-// record.
+// Takes response (*llm_dto.CompletionResponse) which contains the usage data to record.
 func (*service) recordTokenUsage(ctx context.Context, response *llm_dto.CompletionResponse) {
 	if response == nil || response.Usage == nil {
 		return
@@ -894,8 +866,7 @@ func (*service) recordTokenUsage(ctx context.Context, response *llm_dto.Completi
 // Takes providerName (string) which identifies the LLM provider.
 // Takes model (string) which specifies the model used for the request.
 // Takes response (*llm_dto.CompletionResponse) which contains the usage data.
-// Takes budgetScope (string) which defines the budget category to record
-// against.
+// Takes budgetScope (string) which defines the budget category to record against.
 func (s *service) recordCostAndBudget(ctx context.Context, providerName, model string, response *llm_dto.CompletionResponse, budgetScope string) {
 	if response == nil || response.Usage == nil || s.costCalculator == nil {
 		return
@@ -929,12 +900,12 @@ func (s *service) recordCostAndBudget(ctx context.Context, providerName, model s
 
 // getProvider retrieves a provider by name, using the default if name is empty.
 //
-// Takes name (string) which specifies the provider to retrieve; if empty, uses
-// the default provider.
+// Takes name (string) which specifies the provider to retrieve; if empty, uses the
+// default provider.
 //
 // Returns LLMProviderPort which is the requested provider instance.
-// Returns error when no default provider is configured or the named provider
-// does not exist.
+// Returns error when no default provider is configured or the named provider does not
+// exist.
 //
 // Safe for concurrent use; protects access with a read lock.
 func (s *service) getProvider(name string) (LLMProviderPort, error) {
@@ -955,8 +926,8 @@ func (s *service) getProvider(name string) (LLMProviderPort, error) {
 	return provider, nil
 }
 
-// WithClock sets the clock used for time operations. If not set,
-// clock.RealClock() is used.
+// WithClock sets the clock used for time operations. If not set, clock.RealClock() is
+// used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -967,8 +938,8 @@ func WithClock(c clock.Clock) ServiceOption {
 	}
 }
 
-// WithCostCalculator sets the cost calculator for the service. If not set, a
-// default cost calculator is used.
+// WithCostCalculator sets the cost calculator for the service. If not set, a default cost
+// calculator is used.
 //
 // Takes calculator (*CostCalculator) which performs cost calculations.
 //
@@ -979,8 +950,8 @@ func WithCostCalculator(calculator *CostCalculator) ServiceOption {
 	}
 }
 
-// WithBudgetManager sets the budget manager for the service.
-// If not set, budget management is disabled.
+// WithBudgetManager sets the budget manager for the service. If not set, budget
+// management is disabled.
 //
 // Takes manager (*BudgetManager) which handles budget enforcement.
 //
@@ -991,8 +962,8 @@ func WithBudgetManager(manager *BudgetManager) ServiceOption {
 	}
 }
 
-// WithRateLimiter sets the rate limiter for the service. If not set, rate
-// limiting is disabled.
+// WithRateLimiter sets the rate limiter for the service. If not set, rate limiting is
+// disabled.
 //
 // Takes limiter (*RateLimiter) which controls request rate limiting.
 //
@@ -1003,9 +974,9 @@ func WithRateLimiter(limiter *RateLimiter) ServiceOption {
 	}
 }
 
-// WithPricingTable sets a custom pricing table for cost calculations. This
-// creates a new CostCalculator using the provided table, replacing any
-// calculator set via WithCostCalculator.
+// WithPricingTable sets a custom pricing table for cost calculations. This creates a new
+// CostCalculator using the provided table, replacing any calculator set via
+// WithCostCalculator.
 //
 // Takes table (*llm_dto.PricingTable) which contains the model pricing data.
 //
@@ -1016,8 +987,8 @@ func WithPricingTable(table *llm_dto.PricingTable) ServiceOption {
 	}
 }
 
-// WithVectorStore sets the vector store for similarity search. If not set,
-// vector search is not available.
+// WithVectorStore sets the vector store for similarity search. If not set, vector search
+// is not available.
 //
 // Takes store (VectorStorePort) which provides vector storage and search.
 //
@@ -1028,13 +999,13 @@ func WithVectorStore(store VectorStorePort) ServiceOption {
 	}
 }
 
-// WithCircuitBreaker enables circuit breaking for all providers. When a
-// provider fails maxFailures times consecutively, the circuit opens and
-// requests fast-fail with ErrProviderOverloaded for the given timeout.
+// WithCircuitBreaker enables circuit breaking for all providers. When a provider fails
+// maxFailures times consecutively, the circuit opens and requests fast-fail with
+// ErrProviderOverloaded for the given timeout.
 //
 // Takes maxFailures (int) which sets the consecutive failure threshold.
-// Takes timeout (time.Duration) which specifies how long the circuit stays
-// open before attempting recovery.
+// Takes timeout (time.Duration) which specifies how long the circuit stays open before
+// attempting recovery.
 //
 // Returns ServiceOption which enables circuit breaking.
 func WithCircuitBreaker(maxFailures int, timeout time.Duration) ServiceOption {
@@ -1048,8 +1019,8 @@ func WithCircuitBreaker(maxFailures int, timeout time.Duration) ServiceOption {
 
 // NewService creates a new LLM service with an optional default provider.
 //
-// Takes defaultProviderName (string) which sets the initial default provider
-// name. An empty string means no default is set.
+// Takes defaultProviderName (string) which sets the initial default provider name. An
+// empty string means no default is set.
 // Takes opts (...ServiceOption) which are optional configuration functions.
 //
 // Returns Service ready for provider registration.

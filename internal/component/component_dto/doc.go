@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package component_dto defines data transfer objects for the PKC component
-// registry system.
+// Package component_dto defines data transfer objects for the PKC component registry
+// system.
 //
-// These types carry component metadata across architectural boundaries,
-// separating the registry's domain logic from the data it operates on.
+// These types carry component metadata across architectural boundaries, separating the
+// registry's domain logic from the data it operates on.
 package component_dto

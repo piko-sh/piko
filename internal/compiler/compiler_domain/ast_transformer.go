@@ -28,28 +28,30 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// binaryOpMap maps our custom binary operators to esbuild's OpCode.
-var binaryOpMap = map[ast_domain.BinaryOp]js_ast.OpCode{
-	ast_domain.OpAnd:      js_ast.BinOpLogicalAnd,
-	ast_domain.OpOr:       js_ast.BinOpLogicalOr,
-	ast_domain.OpEq:       js_ast.BinOpStrictEq,
-	ast_domain.OpNe:       js_ast.BinOpStrictNe,
-	ast_domain.OpLooseEq:  js_ast.BinOpLooseEq,
-	ast_domain.OpLooseNe:  js_ast.BinOpLooseNe,
-	ast_domain.OpGt:       js_ast.BinOpGt,
-	ast_domain.OpLt:       js_ast.BinOpLt,
-	ast_domain.OpGe:       js_ast.BinOpGe,
-	ast_domain.OpLe:       js_ast.BinOpLe,
-	ast_domain.OpMinus:    js_ast.BinOpSub,
-	ast_domain.OpMul:      js_ast.BinOpMul,
-	ast_domain.OpDiv:      js_ast.BinOpDiv,
-	ast_domain.OpMod:      js_ast.BinOpRem,
-	ast_domain.OpPlus:     js_ast.BinOpAdd,
-	ast_domain.OpCoalesce: js_ast.BinOpNullishCoalescing,
-}
+var (
+	// binaryOpMap maps our custom binary operators to esbuild's OpCode.
+	binaryOpMap = map[ast_domain.BinaryOp]js_ast.OpCode{
+		ast_domain.OpAnd:      js_ast.BinOpLogicalAnd,
+		ast_domain.OpOr:       js_ast.BinOpLogicalOr,
+		ast_domain.OpEq:       js_ast.BinOpStrictEq,
+		ast_domain.OpNe:       js_ast.BinOpStrictNe,
+		ast_domain.OpLooseEq:  js_ast.BinOpLooseEq,
+		ast_domain.OpLooseNe:  js_ast.BinOpLooseNe,
+		ast_domain.OpGt:       js_ast.BinOpGt,
+		ast_domain.OpLt:       js_ast.BinOpLt,
+		ast_domain.OpGe:       js_ast.BinOpGe,
+		ast_domain.OpLe:       js_ast.BinOpLe,
+		ast_domain.OpMinus:    js_ast.BinOpSub,
+		ast_domain.OpMul:      js_ast.BinOpMul,
+		ast_domain.OpDiv:      js_ast.BinOpDiv,
+		ast_domain.OpMod:      js_ast.BinOpRem,
+		ast_domain.OpPlus:     js_ast.BinOpAdd,
+		ast_domain.OpCoalesce: js_ast.BinOpNullishCoalescing,
+	}
+)
 
-// transformOurASTtoJSAST converts our AST expression to esbuild's JS AST.
-// It dispatches to specialised handlers for each category of expression.
+// transformOurASTtoJSAST converts our AST expression to esbuild's JS AST. It dispatches
+// to specialised handlers for each category of expression.
 //
 // Takes ourExpr (ast_domain.Expression) which is the expression to transform.
 // Takes registry (*RegistryContext) which provides symbol resolution context.
@@ -89,8 +91,7 @@ func transformOurASTtoJSAST(ourExpr ast_domain.Expression, registry *RegistryCon
 
 // tryTransformLiteral attempts to convert a literal expression to JavaScript.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// transform.
+// Takes expression (ast_domain.Expression) which is the expression to transform.
 //
 // Returns js_ast.Expr which is the transformed JavaScript AST expression.
 // Returns bool which is true if the expression was a supported literal type.
@@ -126,11 +127,9 @@ func tryTransformLiteral(expression ast_domain.Expression) (js_ast.Expr, bool, e
 	}
 }
 
-// tryTransformIdentifier converts an identifier expression to JavaScript AST
-// form.
+// tryTransformIdentifier converts an identifier expression to JavaScript AST form.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// transform.
+// Takes expression (ast_domain.Expression) which is the expression to transform.
 // Takes registry (*RegistryContext) which provides identifier creation.
 //
 // Returns js_ast.Expr which is the transformed JavaScript expression.
@@ -177,10 +176,8 @@ func buildContextAccessExpr(name string) js_ast.Expr {
 
 // tryTransformAccessor handles member and index access expressions.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// transform.
-// Takes registry (*RegistryContext) which provides the transformation
-// context.
+// Takes expression (ast_domain.Expression) which is the expression to transform.
+// Takes registry (*RegistryContext) which provides the transformation context.
 //
 // Returns js_ast.Expr which is the transformed JavaScript expression.
 // Returns bool which shows whether the expression was transformed.
@@ -196,16 +193,15 @@ func tryTransformAccessor(expression ast_domain.Expression, registry *RegistryCo
 	}
 }
 
-// transformMemberExpr changes a member expression AST node into its JavaScript
-// form.
+// transformMemberExpr changes a member expression AST node into its JavaScript form.
 //
 // Takes n (*ast_domain.MemberExpression) which is the member expression to change.
 // Takes registry (*RegistryContext) which provides the context for the change.
 //
 // Returns js_ast.Expr which is the JavaScript expression that was made.
 // Returns bool which shows whether the change was tried.
-// Returns error when the base expression fails to change or when the property
-// is not an identifier.
+// Returns error when the base expression fails to change or when the property is not an
+// identifier.
 func transformMemberExpr(n *ast_domain.MemberExpression, registry *RegistryContext) (js_ast.Expr, bool, error) {
 	base, err := transformOurASTtoJSAST(n.Base, registry)
 	if err != nil {
@@ -228,8 +224,8 @@ func transformMemberExpr(n *ast_domain.MemberExpression, registry *RegistryConte
 	}}, true, nil
 }
 
-// transformIndexExpr converts an index expression from the AST domain to a
-// JavaScript AST index expression.
+// transformIndexExpr converts an index expression from the AST domain to a JavaScript AST
+// index expression.
 //
 // Takes n (*ast_domain.IndexExpression) which is the index expression to convert.
 // Takes registry (*RegistryContext) which provides the conversion context.
@@ -255,10 +251,8 @@ func transformIndexExpr(n *ast_domain.IndexExpression, registry *RegistryContext
 
 // tryTransformOperation handles unary, binary, and ternary operations.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// transform.
-// Takes registry (*RegistryContext) which provides the transformation
-// context.
+// Takes expression (ast_domain.Expression) which is the expression to transform.
+// Takes registry (*RegistryContext) which provides the transformation context.
 //
 // Returns js_ast.Expr which is the transformed JavaScript expression.
 // Returns bool which shows whether the transformation was handled.
@@ -308,8 +302,7 @@ func transformUnaryExpr(n *ast_domain.UnaryExpression, registry *RegistryContext
 
 // transformBinaryExpr converts a binary expression to its JavaScript AST form.
 //
-// Takes n (*ast_domain.BinaryExpression) which is the binary
-// expression to convert.
+// Takes n (*ast_domain.BinaryExpression) which is the binary expression to convert.
 // Takes registry (*RegistryContext) which provides the transformation context.
 //
 // Returns js_ast.Expr which is the resulting JavaScript binary expression.
@@ -331,11 +324,10 @@ func transformBinaryExpr(n *ast_domain.BinaryExpression, registry *RegistryConte
 	}}, true, nil
 }
 
-// transformTernaryExpr converts a ternary expression from the internal AST to
-// a JavaScript conditional expression.
+// transformTernaryExpr converts a ternary expression from the internal AST to a
+// JavaScript conditional expression.
 //
-// Takes n (*ast_domain.TernaryExpression) which is the ternary
-// expression to convert.
+// Takes n (*ast_domain.TernaryExpression) which is the ternary expression to convert.
 // Takes registry (*RegistryContext) which provides context for the conversion.
 //
 // Returns js_ast.Expr which is the resulting JavaScript conditional expression.
@@ -359,10 +351,8 @@ func transformTernaryExpr(n *ast_domain.TernaryExpression, registry *RegistryCon
 
 // tryTransformCallExpr transforms a function call expression to JavaScript.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// transform.
-// Takes registry (*RegistryContext) which provides the transformation
-// context.
+// Takes expression (ast_domain.Expression) which is the expression to transform.
+// Takes registry (*RegistryContext) which provides the transformation context.
 //
 // Returns js_ast.Expr which is the transformed JavaScript call expression.
 // Returns bool which shows whether the expression was a call expression.
@@ -392,8 +382,7 @@ func tryTransformCallExpr(expression ast_domain.Expression, registry *RegistryCo
 
 // transformExprList converts a list of expressions to JavaScript AST form.
 //
-// Takes exprs ([]ast_domain.Expression) which contains the expressions to
-// convert.
+// Takes exprs ([]ast_domain.Expression) which contains the expressions to convert.
 // Takes registry (*RegistryContext) which provides the conversion context.
 //
 // Returns []js_ast.Expr which contains the converted JavaScript expressions.
@@ -412,10 +401,8 @@ func transformExprList(exprs []ast_domain.Expression, registry *RegistryContext)
 
 // tryTransformComplexLiteral handles array, object, and template literals.
 //
-// Takes expression (ast_domain.Expression) which is the expression to
-// transform.
-// Takes registry (*RegistryContext) which provides the transformation
-// context.
+// Takes expression (ast_domain.Expression) which is the expression to transform.
+// Takes registry (*RegistryContext) which provides the transformation context.
 //
 // Returns js_ast.Expr which is the transformed JavaScript AST expression.
 // Returns bool which is true if the expression was transformed.
@@ -434,8 +421,7 @@ func tryTransformComplexLiteral(expression ast_domain.Expression, registry *Regi
 	}
 }
 
-// transformArrayLiteral converts a domain array literal to a JavaScript array
-// expression.
+// transformArrayLiteral converts a domain array literal to a JavaScript array expression.
 //
 // Takes n (*ast_domain.ArrayLiteral) which is the array literal to convert.
 // Takes registry (*RegistryContext) which provides context for the conversion.
@@ -451,9 +437,8 @@ func transformArrayLiteral(n *ast_domain.ArrayLiteral, registry *RegistryContext
 	return js_ast.Expr{Data: &js_ast.EArray{Items: jsElements}}, true, nil
 }
 
-// transformObjectLiteral converts an ObjectLiteral AST node to a JavaScript
-// object expression. The keys are sorted in alphabetical order for consistent
-// output.
+// transformObjectLiteral converts an ObjectLiteral AST node to a JavaScript object
+// expression. The keys are sorted in alphabetical order for consistent output.
 //
 // Takes n (*ast_domain.ObjectLiteral) which is the object literal to convert.
 // Takes registry (*RegistryContext) which provides context for the transform.
@@ -500,8 +485,8 @@ func toJSUnaryOpCode(op ast_domain.UnaryOp) js_ast.OpCode {
 //
 // Takes op (ast_domain.BinaryOp) which is the binary operator to convert.
 //
-// Returns js_ast.OpCode which is the esbuild operator code. Returns BinOpAdd
-// for unknown operators.
+// Returns js_ast.OpCode which is the esbuild operator code.
+// Returns BinOpAdd for unknown operators.
 func toJSBinaryOpCode(op ast_domain.BinaryOp) js_ast.OpCode {
 	if jsOp, ok := binaryOpMap[op]; ok {
 		return jsOp
@@ -509,11 +494,10 @@ func toJSBinaryOpCode(op ast_domain.BinaryOp) js_ast.OpCode {
 	return js_ast.BinOpAdd
 }
 
-// transformTemplateLiteral converts a template literal into a chain of string
-// values joined with the add operator.
+// transformTemplateLiteral converts a template literal into a chain of string values
+// joined with the add operator.
 //
-// Takes n (*ast_domain.TemplateLiteral) which is the template literal to
-// convert.
+// Takes n (*ast_domain.TemplateLiteral) which is the template literal to convert.
 // Takes registry (*RegistryContext) which provides the context for conversion.
 //
 // Returns js_ast.Expr which is the resulting JavaScript expression.
@@ -539,15 +523,14 @@ func transformTemplateLiteral(n *ast_domain.TemplateLiteral, registry *RegistryC
 	return chainWithAddOperator(jsExprParts), nil
 }
 
-// transformTemplatePart converts a single template literal part into a
-// JavaScript expression.
+// transformTemplatePart converts a single template literal part into a JavaScript
+// expression.
 //
-// Takes part (ast_domain.TemplateLiteralPart) which is the template part to
-// convert.
+// Takes part (ast_domain.TemplateLiteralPart) which is the template part to convert.
 // Takes registry (*RegistryContext) which provides the conversion context.
 //
-// Returns js_ast.Expr which is the resulting JavaScript expression, or an
-// empty expression when the part has no content.
+// Returns js_ast.Expr which is the resulting JavaScript expression, or an empty
+// expression when the part has no content.
 func transformTemplatePart(part ast_domain.TemplateLiteralPart, registry *RegistryContext) js_ast.Expr {
 	if part.IsLiteral {
 		if part.Literal != "" {

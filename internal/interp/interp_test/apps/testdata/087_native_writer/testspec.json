@@ -1,0 +1,5 @@
+{
+  "description": "main passes a lib-defined io.Writer-shaped type to fmt.Fprint. Exercises cross-package io.Writer adapter dispatch - boundMethodVM.invoke now correctly transfers []byte args to the registerSliceByte parameter slot of the called method.",
+  "modulePath": "testpkg",
+  "expected": "buf=>>hello world<<"
+}

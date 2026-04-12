@@ -45,8 +45,8 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// service provides image processing and health check functions.
-// It implements the image Service interface and HealthProbe interface.
+// service provides image processing and health check functions. It implements the image
+// Service interface and HealthProbe interface.
 type service struct {
 	// transformers maps provider names to their transformer implementations.
 	transformers map[string]TransformerPort
@@ -64,67 +64,60 @@ type service struct {
 	config ServiceConfig
 }
 
-var _ Service = (*service)(nil)
+var (
+	_ Service = (*service)(nil)
+)
 
-// ServiceConfig holds settings for creating and setting up an image service.
-// It is used by image transformers and validation functions across the image
-// processing domain.
+// ServiceConfig holds settings for creating and setting up an image service. It is used
+// by image transformers and validation functions across the image processing domain.
 type ServiceConfig struct {
-	// FallbackIconSandbox is an optional injected sandbox for testing icon
-	// file loading, where nil causes sandboxes to be created per icon
-	// file's parent directory.
+	// FallbackIconSandbox is an optional injected sandbox for testing icon file loading,
+	// where nil causes sandboxes to be created per icon file's parent directory.
 	//
 	// The caller is responsible for closing an injected sandbox.
 	FallbackIconSandbox safedisk.Sandbox
 
-	// FallbackIconSandboxFactory creates sandboxes for icon file loading.
-	// When non-nil and FallbackIconSandbox is nil, this factory is used
-	// instead of safedisk.NewNoOpSandbox.
+	// FallbackIconSandboxFactory creates sandboxes for icon file loading. When non-nil and
+	// FallbackIconSandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
 	FallbackIconSandboxFactory safedisk.Factory
 
-	// FallbackIconPaths maps MIME type prefixes (e.g. "application/pdf") to file
-	// paths for icons shown when a non-image file is requested.
+	// FallbackIconPaths maps MIME type prefixes (e.g. "application/pdf") to file paths for
+	// icons shown when a non-image file is requested.
 	FallbackIconPaths map[string]string
 
-	// AllowedFormats specifies permitted output formats such as "jpeg", "png",
-	// "webp", or "avif". If empty, all supported formats are allowed.
+	// AllowedFormats specifies permitted output formats such as "jpeg", "png", "webp", or
+	// "avif". If empty, all supported formats are allowed.
 	AllowedFormats []string
 
-	// MaxImagePixels is the maximum allowed total pixel count
-	// (width * height), preventing memory exhaustion from extremely
-	// large images. Default: 100,000,000 (100 megapixels).
+	// MaxImagePixels is the maximum allowed total pixel count (width * height), preventing
+	// memory exhaustion from extremely large images. Default: 100,000,000 (100 megapixels).
 	MaxImagePixels int64
 
-	// MaxFileSizeBytes is the maximum allowed input file size in bytes.
-	// Default: 50 MB.
+	// MaxFileSizeBytes is the maximum allowed input file size in bytes. Default: 50 MB.
 	MaxFileSizeBytes int64
 
-	// TransformTimeout is the maximum time allowed for a single image
-	// transformation. Default is 30 seconds.
+	// TransformTimeout is the maximum time allowed for a single image transformation.
+	// Default is 30 seconds.
 	TransformTimeout time.Duration
 
-	// MaxImageWidth is the maximum allowed width for images in pixels.
-	// Default: 8192.
+	// MaxImageWidth is the maximum allowed width for images in pixels. Default: 8192.
 	MaxImageWidth int
 
-	// MaxImageHeight is the maximum height in pixels allowed for uploaded images.
-	// Default: 8192.
+	// MaxImageHeight is the maximum height in pixels allowed for uploaded images. Default:
+	// 8192.
 	MaxImageHeight int
 }
 
-// TransformStream performs a direct streaming transform using the selected
-// provider.
+// TransformStream performs a direct streaming transform using the selected provider.
 //
 // Takes input (io.Reader) which provides the source image data.
 // Takes spec (image_dto.TransformationSpec) which defines the transformation.
 //
-// Returns *image_dto.TransformedImageResult which contains the transformed
-// image stream.
-// Returns error when the transformation spec is invalid or no provider is
-// available.
+// Returns *image_dto.TransformedImageResult which contains the transformed image stream.
+// Returns error when the transformation spec is invalid or no provider is available.
 //
-// Spawns a goroutine to run the transformation pipeline. The pipeline writes
-// to the returned result's Body reader until complete or cancelled.
+// Spawns a goroutine to run the transformation pipeline. The pipeline writes to the
+// returned result's Body reader until complete or cancelled.
 func (s *service) TransformStream(ctx context.Context, input io.Reader, spec image_dto.TransformationSpec) (*image_dto.TransformedImageResult, error) {
 	validated, err := ValidateTransformationSpec(spec, s.providerCapabilities)
 	if err != nil {
@@ -157,16 +150,15 @@ func (s *service) TransformStream(ctx context.Context, input io.Reader, spec ima
 	}, nil
 }
 
-// GenerateResponsiveVariants creates multiple image variants for responsive
-// images.
+// GenerateResponsiveVariants creates multiple image variants for responsive images.
 //
 // Takes input (io.Reader) which supplies the original image data.
-// Takes baseSpec (image_dto.TransformationSpec) which defines the responsive
-// image settings including widths and densities.
+// Takes baseSpec (image_dto.TransformationSpec) which defines the responsive image
+// settings including widths and densities.
 //
 // Returns []image_dto.ResponsiveVariant which contains the generated variants.
-// Returns error when the responsive spec is nil, the input cannot be read, or
-// variant generation fails.
+// Returns error when the responsive spec is nil, the input cannot be read, or variant
+// generation fails.
 func (s *service) GenerateResponsiveVariants(ctx context.Context, input io.Reader, baseSpec image_dto.TransformationSpec) ([]image_dto.ResponsiveVariant, error) {
 	if baseSpec.Responsive == nil {
 		return nil, errors.New("responsive spec is nil")
@@ -187,15 +179,14 @@ func (s *service) GenerateResponsiveVariants(ctx context.Context, input io.Reade
 	return s.generateVariantsConcurrently(ctx, originalData, baseSpec, widths, densities)
 }
 
-// GeneratePlaceholder creates a tiny, low-quality, heavily blurred
-// placeholder image.
+// GeneratePlaceholder creates a tiny, low-quality, heavily blurred preview image suitable
+// for use as an LQIP.
 //
 // Takes input (io.Reader) which provides the source image data.
-// Takes baseSpec (image_dto.TransformationSpec) which defines the placeholder
-// settings.
+// Takes baseSpec (image_dto.TransformationSpec) which defines the preview settings.
 //
-// Returns string which contains the base64-encoded data URL of the placeholder.
-// Returns error when placeholder is not enabled or image processing fails.
+// Returns string which contains the base64-encoded data URL of the preview.
+// Returns error when the preview spec is not enabled or processing fails.
 func (s *service) GeneratePlaceholder(ctx context.Context, input io.Reader, baseSpec image_dto.TransformationSpec) (string, error) {
 	if baseSpec.Placeholder == nil || !baseSpec.Placeholder.Enabled {
 		return "", errors.New("placeholder spec is not enabled")
@@ -220,17 +211,15 @@ func (s *service) GeneratePlaceholder(ctx context.Context, input io.Reader, base
 	return encodePlaceholderAsDataURL(mimeType, imageData), nil
 }
 
-// GetDimensions extracts width and height from image data using the default
-// provider. Delegates to the provider's GetDimensions implementation for format
-// support.
+// GetDimensions extracts width and height from image data using the default provider.
+// Delegates to the provider's GetDimensions implementation for format support.
 //
 // Takes ctx (context.Context) which controls cancellation.
 // Takes input (io.Reader) which provides the source image data.
 //
 // Returns width (int) which is the image width in pixels.
 // Returns height (int) which is the image height in pixels.
-// Returns error when no provider is configured or the image cannot
-// be decoded.
+// Returns error when no provider is configured or the image cannot be decoded.
 func (s *service) GetDimensions(ctx context.Context, input io.Reader) (width int, height int, err error) {
 	provider, ok := s.transformers[s.defaultProvider]
 	if !ok || provider == nil {
@@ -240,23 +229,22 @@ func (s *service) GetDimensions(ctx context.Context, input io.Reader) (width int
 	return goroutine.SafeCall2(ctx, "image.GetDimensions", func() (int, int, error) { return provider.GetDimensions(ctx, input) })
 }
 
-// Name returns the service identifier string.
-// Implements the healthprobe_domain.Probe interface.
+// Name returns the service identifier string. Implements the healthprobe_domain.Probe
+// interface.
 //
 // Returns string which is the name "ImageService".
 func (*service) Name() string {
 	return "ImageService"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies the image transformation pipeline is functional.
+// Check implements the healthprobe_domain.Probe interface. It verifies the image
+// transformation pipeline is functional.
 //
 // Takes ctx (context.Context) which is the request context.
-// Takes checkType (healthprobe_dto.CheckType) which specifies the
-// type of health check to perform.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
 //
-// Returns healthprobe_dto.Status which indicates the health state of
-// the image service.
+// Returns healthprobe_dto.Status which indicates the health state of the image service.
 func (s *service) Check(context.Context, healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -282,8 +270,8 @@ func (s *service) Check(context.Context, healthprobe_dto.CheckType) healthprobe_
 
 // selectTransformer resolves the transformer to use for a given spec.
 //
-// Takes spec (TransformationSpec) which defines the transformation settings
-// including the provider name.
+// Takes spec (TransformationSpec) which defines the transformation settings including the
+// provider name.
 //
 // Returns TransformerPort which is the resolved transformer for the provider.
 // Returns string which is the provider name used (may be the default).
@@ -300,14 +288,12 @@ func (s *service) selectTransformer(spec image_dto.TransformationSpec) (Transfor
 	return tr, name, nil
 }
 
-// runTransformPipeline runs the image transformation with metrics and error
-// handling.
+// runTransformPipeline runs the image transformation with metrics and error handling.
 //
 // Takes input (io.Reader) which provides the source image data.
 // Takes pw (*io.PipeWriter) which receives the transformed output.
 // Takes tr (TransformerPort) which performs the actual transformation.
-// Takes spec (image_dto.TransformationSpec) which defines the transformation
-// to apply.
+// Takes spec (image_dto.TransformationSpec) which defines the transformation to apply.
 // Takes providerName (string) which identifies the provider for metrics.
 func (*service) runTransformPipeline(
 	ctx context.Context,
@@ -340,9 +326,8 @@ func (*service) runTransformPipeline(
 	_ = pw.CloseWithError(err)
 }
 
-// buildSidecarKey creates a consistent, unique key for a transformed image.
-// Uses xxhash for speed and to make it clear this is not for cryptographic
-// purposes.
+// buildSidecarKey creates a consistent, unique key for a transformed image. Uses xxhash
+// for speed and to make it clear this is not for cryptographic purposes.
 //
 // Takes originalKey (string) which is the path to the source image.
 // Takes spec (image_dto.TransformationSpec) which defines the transformation.
@@ -366,8 +351,8 @@ func (*service) buildSidecarKey(originalKey string, spec image_dto.Transformatio
 //
 // Takes contentType (string) which specifies the MIME type to match against.
 //
-// Returns []byte which contains the icon data for the matching type, or the
-// default icon if no specific match is found.
+// Returns []byte which contains the icon data for the matching type, or the default icon
+// if no specific match is found.
 func (s *service) getFallbackIcon(contentType string) []byte {
 	for prefix, data := range s.fallbackIcons {
 		if strings.HasPrefix(contentType, prefix) {
@@ -377,23 +362,20 @@ func (s *service) getFallbackIcon(contentType string) []byte {
 	return s.fallbackIcons[image_dto.ImageNameDefault]
 }
 
-// generateVariantsConcurrently generates all responsive variants
-// simultaneously, spawning one task per width/density combination
-// and collecting results under a lock.
+// generateVariantsConcurrently generates all responsive variants simultaneously, spawning
+// one task per width/density combination and collecting results under a lock.
 //
 // Takes data ([]byte) which contains the source image bytes.
-// Takes baseSpec (image_dto.TransformationSpec) which defines the
-// base transformation settings.
+// Takes baseSpec (image_dto.TransformationSpec) which defines the base transformation
+// settings.
 // Takes widths ([]int) which lists the target widths in pixels.
-// Takes densities ([]string) which lists the pixel density
-// multipliers.
+// Takes densities ([]string) which lists the pixel density multipliers.
 //
-// Returns []image_dto.ResponsiveVariant which contains all
-// generated variants.
+// Returns []image_dto.ResponsiveVariant which contains all generated variants.
 // Returns error when any variant generation fails.
 //
-// Concurrent goroutines are spawned per width/density combination
-// via sync.WaitGroup. Results are collected under a mutex.
+// Concurrent goroutines are spawned per width/density combination via sync.WaitGroup.
+// Results are collected under a mutex.
 func (s *service) generateVariantsConcurrently(
 	ctx context.Context,
 	data []byte,
@@ -437,12 +419,12 @@ func (s *service) generateVariantsConcurrently(
 	return variants, nil
 }
 
-// generateSingleVariant creates a single responsive variant by transforming
-// the image data to the specified width and density.
+// generateSingleVariant creates a single responsive variant by transforming the image
+// data to the specified width and density.
 //
 // Takes data ([]byte) which contains the source image bytes.
-// Takes baseSpec (image_dto.TransformationSpec) which defines the base
-// transformation settings.
+// Takes baseSpec (image_dto.TransformationSpec) which defines the base transformation
+// settings.
 // Takes width (int) which specifies the target width in pixels.
 // Takes density (string) which specifies the pixel density multiplier.
 //
@@ -481,12 +463,10 @@ func (s *service) generateSingleVariant(
 	}, nil
 }
 
-// transformPlaceholder performs the actual image transformation for a
-// placeholder.
+// transformPlaceholder performs the actual image transformation for a preview variant.
 //
 // Takes data ([]byte) which contains the raw image data to transform.
-// Takes spec (image_dto.TransformationSpec) which defines the transformation
-// parameters.
+// Takes spec (image_dto.TransformationSpec) which defines the transformation parameters.
 //
 // Returns string which is the MIME type of the transformed image.
 // Returns []byte which contains the transformed image data.
@@ -507,11 +487,10 @@ func (s *service) transformPlaceholder(ctx context.Context, data []byte, spec im
 	return mimeType, buffer.Bytes(), nil
 }
 
-// DefaultServiceConfig returns a ServiceConfig with sensible defaults for
-// production use.
+// DefaultServiceConfig returns a ServiceConfig with sensible defaults for production use.
 //
-// Returns ServiceConfig which contains default values for image processing
-// limits, timeouts, and allowed formats.
+// Returns ServiceConfig which contains default values for image processing limits,
+// timeouts, and allowed formats.
 func DefaultServiceConfig() ServiceConfig {
 	return ServiceConfig{
 		FallbackIconPaths: make(map[string]string),
@@ -524,12 +503,11 @@ func DefaultServiceConfig() ServiceConfig {
 	}
 }
 
-// NewServiceWithDefaultTransformer creates a new image service with a specified
-// default transformer name. Transformers must be registered separately via
-// RegisterTransformer.
+// NewServiceWithDefaultTransformer creates a new image service with a specified default
+// transformer name. Transformers must be registered separately via RegisterTransformer.
 //
-// Takes defaultTransformerName (string) which is the name of the transformer to
-// use by default.
+// Takes defaultTransformerName (string) which is the name of the transformer to use by
+// default.
 //
 // Returns Service which is the configured image service ready for use.
 func NewServiceWithDefaultTransformer(defaultTransformerName string) Service {
@@ -545,15 +523,15 @@ func NewServiceWithDefaultTransformer(defaultTransformerName string) Service {
 
 // NewService creates a new image service.
 //
-// It needs a set of transformers for image processing and checks the inputs
-// before it applies the default settings.
+// It needs a set of transformers for image processing and checks the inputs before it
+// applies the default settings.
 //
-// Takes transformers (map[string]TransformerPort) which provides the image
-// processing backends keyed by provider name.
-// Takes defaultProvider (string) which specifies which transformer to use
-// when none is requested.
-// Takes config (ServiceConfig) which provides service settings including
-// fallback icon paths.
+// Takes transformers (map[string]TransformerPort) which provides the image processing
+// backends keyed by provider name.
+// Takes defaultProvider (string) which specifies which transformer to use when none is
+// requested.
+// Takes config (ServiceConfig) which provides service settings including fallback icon
+// paths.
 //
 // Returns Service which is the configured image service ready for use.
 // Returns error when validation fails or fallback icons cannot be loaded.
@@ -580,16 +558,15 @@ func NewService(transformers map[string]TransformerPort, defaultProvider string,
 	}, nil
 }
 
-// validateServiceInputs checks that the required inputs are valid before
-// creating a new image service.
+// validateServiceInputs checks that the required inputs are valid before creating a new
+// image service.
 //
-// Takes transformers (map[string]TransformerPort) which provides the available
-// image transformers keyed by provider name.
-// Takes defaultProvider (string) which specifies which transformer to use by
-// default.
+// Takes transformers (map[string]TransformerPort) which provides the available image
+// transformers keyed by provider name.
+// Takes defaultProvider (string) which specifies which transformer to use by default.
 //
-// Returns error when no transformers are provided, when the default provider
-// is empty, or when the default provider is not found in the transformers map.
+// Returns error when no transformers are provided, when the default provider is empty, or
+// when the default provider is not found in the transformers map.
 func validateServiceInputs(transformers map[string]TransformerPort, defaultProvider string) error {
 	if len(transformers) == 0 {
 		return errNoTransformers
@@ -633,14 +610,14 @@ func applyConfigDefaults(config ServiceConfig) ServiceConfig {
 	return config
 }
 
-// extractProviderCapabilities builds a map of provider capabilities from the
-// given transformers.
+// extractProviderCapabilities builds a map of provider capabilities from the given
+// transformers.
 //
-// Takes transformers (map[string]TransformerPort) which provides the image
-// transformers to read capabilities from.
+// Takes transformers (map[string]TransformerPort) which provides the image transformers
+// to read capabilities from.
 //
-// Returns map[string]providerCapability which maps provider names to their
-// supported formats and modifiers.
+// Returns map[string]providerCapability which maps provider names to their supported
+// formats and modifiers.
 func extractProviderCapabilities(transformers map[string]TransformerPort) map[string]providerCapability {
 	capabilities := make(map[string]providerCapability)
 
@@ -694,13 +671,11 @@ func recordTransformDuration(ctx context.Context, provider string, spec image_dt
 	)
 }
 
-// recordTransformError increases the transform error counter with the given
-// provider and error type labels.
+// recordTransformError increases the transform error counter with the given provider and
+// error type labels.
 //
-// Takes provider (string) which identifies the data provider that caused the
-// error.
-// Takes errorType (string) which describes the kind of transform error that
-// happened.
+// Takes provider (string) which identifies the data provider that caused the error.
+// Takes errorType (string) which describes the kind of transform error that happened.
 func recordTransformError(ctx context.Context, provider, errorType string) {
 	transformErrorCount.Add(ctx, 1,
 		metric.WithAttributes(
@@ -713,11 +688,11 @@ func recordTransformError(ctx context.Context, provider, errorType string) {
 // loadFallbackIcons reads icon files from disk and stores them in memory.
 //
 // Takes paths (map[string]string) which maps icon names to their file paths.
-// Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for
-// testing. When nil, sandboxes are created per icon file's parent directory.
-// Takes factory (safedisk.Factory) which is an optional factory for creating
-// sandboxes. When non-nil and injectedSandbox is nil, this factory is used
-// instead of safedisk.NewNoOpSandbox.
+// Takes injectedSandbox (safedisk.Sandbox) which is an optional sandbox for testing. When
+// nil, sandboxes are created per icon file's parent directory.
+// Takes factory (safedisk.Factory) which is an optional factory for creating sandboxes.
+// When non-nil and injectedSandbox is nil, this factory is used instead of
+// safedisk.NewNoOpSandbox.
 //
 // Returns map[string][]byte which contains the icon data keyed by name.
 // Returns error when a sandbox cannot be created or a file cannot be read.
@@ -758,14 +733,13 @@ func loadFallbackIcons(paths map[string]string, injectedSandbox safedisk.Sandbox
 	return icons, nil
 }
 
-// specToMIMEType converts an image format from a transformation spec into the
-// matching MIME type.
+// specToMIMEType converts an image format from a transformation spec into the matching
+// MIME type.
 //
-// Takes spec (image_dto.TransformationSpec) which holds the image format to
-// look up.
+// Takes spec (image_dto.TransformationSpec) which holds the image format to look up.
 //
-// Returns string which is the MIME type for the format, or an empty string if
-// the format is not known.
+// Returns string which is the MIME type for the format, or an empty string if the format
+// is not known.
 func specToMIMEType(spec image_dto.TransformationSpec) string {
 	format := strings.ToLower(spec.Format)
 
@@ -785,14 +759,14 @@ func specToMIMEType(spec image_dto.TransformationSpec) string {
 	}
 }
 
-// determineResponsiveWidths parses the responsive configuration and returns the
-// list of widths to generate for responsive images.
+// determineResponsiveWidths parses the responsive configuration and returns the list of
+// widths to generate for responsive images.
 //
-// Takes spec (image_dto.TransformationSpec) which contains the responsive
-// sizing configuration including sizes and screen breakpoints.
+// Takes spec (image_dto.TransformationSpec) which contains the responsive sizing
+// configuration including sizes and screen breakpoints.
 //
-// Returns []int which contains the parsed widths, or falls back to the base
-// width if parsing yields no results.
+// Returns []int which contains the parsed widths, or falls back to the base width if
+// parsing yields no results.
 func determineResponsiveWidths(spec image_dto.TransformationSpec) []int {
 	widths := parseSizes(spec.Responsive.Sizes, spec.Responsive.Screens)
 	if len(widths) == 0 {
@@ -801,11 +775,11 @@ func determineResponsiveWidths(spec image_dto.TransformationSpec) []int {
 	return widths
 }
 
-// determineResponsiveDensities returns the list of densities to generate for
-// responsive images, defaulting to x1 if none are specified.
+// determineResponsiveDensities returns the list of densities to generate for responsive
+// images, defaulting to x1 if none are specified.
 //
-// Takes spec (image_dto.TransformationSpec) which contains the responsive
-// image configuration including density settings.
+// Takes spec (image_dto.TransformationSpec) which contains the responsive image
+// configuration including density settings.
 //
 // Returns []string which contains the density identifiers to generate.
 func determineResponsiveDensities(spec image_dto.TransformationSpec) []string {
@@ -817,13 +791,11 @@ func determineResponsiveDensities(spec image_dto.TransformationSpec) []string {
 
 // buildResponsiveVariantSpec creates a spec for a single responsive variant.
 //
-// Takes baseSpec (image_dto.TransformationSpec) which provides the base
-// settings to copy.
+// Takes baseSpec (image_dto.TransformationSpec) which provides the base settings to copy.
 // Takes width (int) which sets the target width for this variant.
 //
-// Returns image_dto.TransformationSpec which is a copy of the base spec with
-// the width set and responsive and placeholder options turned off to prevent
-// endless loops.
+// Returns image_dto.TransformationSpec which is a copy of the base spec with the width
+// set and responsive and placeholder options turned off to prevent endless loops.
 func buildResponsiveVariantSpec(baseSpec image_dto.TransformationSpec, width int) image_dto.TransformationSpec {
 	spec := baseSpec
 	spec.Width = width
@@ -832,13 +804,13 @@ func buildResponsiveVariantSpec(baseSpec image_dto.TransformationSpec, width int
 	return spec
 }
 
-// buildPlaceholderSpec creates a transformation spec for placeholder images.
+// buildPlaceholderSpec creates a transformation spec for preview images.
 //
-// Takes baseSpec (image_dto.TransformationSpec) which provides the source
-// settings including placeholder dimensions, quality, and blur values.
+// Takes baseSpec (image_dto.TransformationSpec) which provides the source settings
+// including preview dimensions, quality, and blur values.
 //
-// Returns image_dto.TransformationSpec which contains the configured
-// placeholder settings with defaults applied for any missing values.
+// Returns image_dto.TransformationSpec which contains the configured preview settings
+// with defaults applied for any missing values.
 func buildPlaceholderSpec(baseSpec image_dto.TransformationSpec) image_dto.TransformationSpec {
 	spec := baseSpec
 
@@ -881,8 +853,8 @@ func encodePlaceholderAsDataURL(mimeType string, data []byte) string {
 	return fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)
 }
 
-// parseSizes parses a sizes string like "100vw sm:50vw md:400px" into a list
-// of pixel widths.
+// parseSizes parses a sizes string like "100vw sm:50vw md:400px" into a list of pixel
+// widths.
 //
 // Takes sizes (string) which specifies the responsive size definitions.
 // Takes screens (map[string]int) which maps screen names to pixel widths.
@@ -914,13 +886,13 @@ func parseSizes(sizes string, screens map[string]int) []int {
 	return widths
 }
 
-// parseDensity parses a density string such as "x1", "x2", or "2x" into a
-// multiplier value.
+// parseDensity parses a density string such as "x1", "x2", or "2x" into a multiplier
+// value.
 //
 // Takes density (string) which is the density value to parse.
 //
-// Returns float64 which is the parsed multiplier, or defaultDensityMultiplier
-// when parsing fails or the value is not positive.
+// Returns float64 which is the parsed multiplier, or defaultDensityMultiplier when
+// parsing fails or the value is not positive.
 func parseDensity(density string) float64 {
 	density = strings.ToLower(strings.TrimSpace(density))
 	density = strings.TrimPrefix(density, "x")

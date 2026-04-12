@@ -1,0 +1,5 @@
+{
+  "description": "main calls a method on a named slice type defined in lib (Constraints = []*Constraint, Check method on the slice). Exercises GET_METHOD's receiver-type-name fallback for slice receivers, which can't carry the _pikoID_ struct sentinel - the compiler-recorded static type name in CompiledFunction.getMethodReceiverTypeNames is the only signal handleGetMethod has to identify the receiver.",
+  "modulePath": "testpkg",
+  "expected": "3 matched"
+}

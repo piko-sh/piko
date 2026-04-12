@@ -18,15 +18,15 @@
 
 package bootstrap
 
-// This file provides a lightweight, manual Dependency Injection (DI) container
-// for the Piko application. It centralises the creation and wiring of all major
-// services, ensuring they are initialised lazily and used as singletons.
+// This file provides a lightweight, manual Dependency Injection (DI) container for the
+// Piko application. It centralises the creation and wiring of all major services,
+// ensuring they are initialised lazily and used as singletons.
 //
-// This container is designed for flexibility using the Functional Options
-// pattern. The NewContainer constructor accepts a series of Option functions
-// that can override default service implementations or configure how they are
-// built. This approach avoids external DI frameworks while providing clean,
-// testable, and highly maintainable service management.
+// This container is designed for flexibility using the Functional Options pattern. The
+// NewContainer constructor accepts a series of Option functions that can override default
+// service implementations or configure how they are built. This approach avoids external
+// DI frameworks while providing clean, testable, and highly maintainable service
+// management.
 
 import (
 	"context"
@@ -45,7 +45,6 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
 	"piko.sh/piko/internal/captcha/captcha_domain"
-	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/component/component_adapters"
 	"piko.sh/piko/internal/component/component_domain"
@@ -88,6 +87,7 @@ import (
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/seo/seo_domain"
 	"piko.sh/piko/internal/shutdown"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/video/video_domain"
@@ -98,15 +98,15 @@ import (
 type Option func(*Container)
 
 const (
-	// errCreateSandboxFactory is the error message format used when sandbox
-	// factory creation fails.
+	// errCreateSandboxFactory is the error message format used when sandbox factory creation
+	// fails.
 	errCreateSandboxFactory = "failed to create sandbox factory: %w"
 
 	// errCreateSourceSandbox is the error format used when sandbox creation fails.
 	errCreateSourceSandbox = "failed to create source sandbox: %w"
 
-	// logMessageAutoRegisteredShutdown is the log message used when a service is
-	// registered for shutdown handling.
+	// logMessageAutoRegisteredShutdown is the log message used when a service is registered
+	// for shutdown handling.
 	logMessageAutoRegisteredShutdown = "Auto-registered shutdown for user-provided service"
 
 	// logKeyService is the log key for the service name in shutdown messages.
@@ -119,8 +119,8 @@ const (
 	logKeyPath = "path"
 )
 
-// SandboxFactory is a function type that creates sandboxes. Inject a custom
-// factory to use mock sandboxes for testing.
+// SandboxFactory is a function type that creates sandboxes. Inject a custom factory to
+// use mock sandboxes for testing.
 //
 // Takes name (string) which identifies the sandbox instance.
 // Takes baseDir (string) which specifies the root directory for the sandbox.
@@ -130,8 +130,7 @@ const (
 // Returns error when sandbox creation fails.
 type SandboxFactory func(name, baseDir string, mode safedisk.Mode) (safedisk.Sandbox, error)
 
-// RegistryMetadataCacheConfig configures the metadata cache for the Registry
-// service.
+// RegistryMetadataCacheConfig configures the metadata cache for the Registry service.
 type RegistryMetadataCacheConfig struct {
 	// MaxWeight is the maximum cache size in bytes.
 	MaxWeight uint64
@@ -143,9 +142,9 @@ type RegistryMetadataCacheConfig struct {
 	StatsEnabled bool
 }
 
-// Container holds all singleton services and dependencies for the application.
-// Fields are unexported to prevent direct modification; configure via Options
-// passed to NewContainer.
+// Container holds all singleton services and dependencies for the application. Fields are
+// unexported to prevent direct modification; configure via Options passed to
+// NewContainer.
 type Container struct {
 	// emailErr holds any error from email service setup.
 	emailErr error
@@ -177,8 +176,7 @@ type Container struct {
 	// collectionServiceErr holds any error from collection service creation.
 	collectionServiceErr error
 
-	// searchServiceErr holds any error that occurred while setting up the search
-	// service.
+	// searchServiceErr holds any error that occurred while setting up the search service.
 	searchServiceErr error
 
 	// cryptoErr holds any error from creating the crypto service.
@@ -229,8 +227,7 @@ type Container struct {
 	// i18nService is the cached translation service instance.
 	i18nService i18n_domain.Service
 
-	// annotatorService holds the annotator service instance, created when first
-	// needed.
+	// annotatorService holds the annotator service instance, created when first needed.
 	annotatorService annotator_domain.AnnotatorPort
 
 	// coordinatorCache stores build results for reuse.
@@ -308,19 +305,17 @@ type Container struct {
 	// llmService holds the cached LLM service instance.
 	llmService llm_domain.Service
 
-	// eventBusOverride is a custom EventBus set via WithEventBus; nil uses
-	// the default.
+	// eventBusOverride is a custom EventBus set via WithEventBus; nil uses the default.
 	eventBusOverride orchestrator_domain.EventBus
 
 	// registryServiceOverride is a custom registry service; nil uses the default.
 	registryServiceOverride registry_domain.RegistryService
 
-	// capabilityServiceOverride holds a custom capability service; nil uses the
-	// default.
+	// capabilityServiceOverride holds a custom capability service; nil uses the default.
 	capabilityServiceOverride capabilities.Service
 
-	// orchestratorServiceOverride holds an optional replacement for the default
-	// orchestrator service; nil uses the default.
+	// orchestratorServiceOverride holds an optional replacement for the default orchestrator
+	// service; nil uses the default.
 	orchestratorServiceOverride orchestrator_domain.OrchestratorService
 
 	// renderRegistryOverride is an optional registry used instead of the default.
@@ -347,33 +342,29 @@ type Container struct {
 	// annotatorServiceOverride is a custom annotator service; nil uses the default.
 	annotatorServiceOverride annotator_domain.AnnotatorPort
 
-	// coordinatorCacheOverride is a custom coordinator cache; nil uses the
-	// default.
+	// coordinatorCacheOverride is a custom coordinator cache; nil uses the default.
 	coordinatorCacheOverride coordinator_domain.BuildResultCachePort
 
-	// introspectionCacheOverride is a custom introspection cache (Tier 1);
-	// nil uses the default.
+	// introspectionCacheOverride is a custom introspection cache (Tier 1); nil uses the
+	// default.
 	introspectionCacheOverride coordinator_domain.IntrospectionCachePort
 
 	// coordinatorCodeEmitterOverride overrides the code emitter; used for testing.
 	coordinatorCodeEmitterOverride coordinator_domain.CodeEmitterPort
 
-	// coordinatorClientScriptEmitterOverride overrides the client-side
-	// script emitter used by the coordinator in dev-i mode; nil disables
-	// emission (which skips per-component <script> tags in the rendered
-	// page).
+	// coordinatorClientScriptEmitterOverride overrides the client-side script emitter used
+	// by the coordinator in dev-i mode; nil disables emission (which skips per-component
+	// <script> tags in the rendered page).
 	coordinatorClientScriptEmitterOverride coordinator_domain.ClientScriptEmitterPort
 
-	// coordinatorDiagnosticOutputOverride replaces the default diagnostic
-	// output; nil uses CLIDiagnosticOutput.
+	// coordinatorDiagnosticOutputOverride replaces the default diagnostic output; nil uses
+	// CLIDiagnosticOutput.
 	coordinatorDiagnosticOutputOverride coordinator_domain.DiagnosticOutputPort
 
-	// coordinatorFSReaderOverride is a custom file system reader; nil uses the
-	// default.
+	// coordinatorFSReaderOverride is a custom file system reader; nil uses the default.
 	coordinatorFSReaderOverride annotator_domain.FSReaderPort
 
-	// coordinatorFileHashCacheOverride is a custom file hash cache; nil uses the
-	// default.
+	// coordinatorFileHashCacheOverride is a custom file hash cache; nil uses the default.
 	coordinatorFileHashCacheOverride coordinator_domain.FileHashCachePort
 
 	// highlighter provides syntax highlighting for code blocks.
@@ -382,8 +373,7 @@ type Container struct {
 	// generatorServiceOverride is a custom generator service; nil uses the default.
 	generatorServiceOverride generator_domain.GeneratorService
 
-	// emailServiceOverride holds a custom email service for testing; nil uses the
-	// default.
+	// emailServiceOverride holds a custom email service for testing; nil uses the default.
 	emailServiceOverride email_domain.Service
 
 	// llmServiceOverride is a custom LLM service for testing; nil uses the default.
@@ -395,8 +385,7 @@ type Container struct {
 	// videoServiceOverride holds a custom video service; nil uses the default.
 	videoServiceOverride video_domain.Service
 
-	// storageServiceOverride holds a user-provided storage service; nil uses the
-	// default.
+	// storageServiceOverride holds a user-provided storage service; nil uses the default.
 	storageServiceOverride storage_domain.Service
 
 	// seoServiceOverride holds a custom SEO service; nil uses the default.
@@ -411,12 +400,10 @@ type Container struct {
 	// emailDispatcher holds the email dispatcher for monitoring inspection.
 	emailDispatcher email_domain.EmailDispatcherPort
 
-	// notificationDispatcher holds the notification dispatcher for monitoring
-	// inspection.
+	// notificationDispatcher holds the notification dispatcher for monitoring inspection.
 	notificationDispatcher notification_domain.NotificationDispatcherPort
 
-	// coordinatorServiceOverride is a custom coordinator service; nil uses the
-	// default.
+	// coordinatorServiceOverride is a custom coordinator service; nil uses the default.
 	coordinatorServiceOverride coordinator_domain.CoordinatorService
 
 	// eventsProviderOverride holds a custom events provider; nil uses the default.
@@ -431,8 +418,7 @@ type Container struct {
 	// generatorErr holds any error from creating the generator service.
 	generatorErr error
 
-	// coordinatorErr stores any error that occurred when creating the
-	// coordinator service.
+	// coordinatorErr stores any error that occurred when creating the coordinator service.
 	coordinatorErr error
 
 	// annotatorErr stores any error from creating the annotator service.
@@ -450,8 +436,7 @@ type Container struct {
 	// registryErr holds any error from creating the registry service.
 	registryErr error
 
-	// eventsProviderErr holds any error that occurred when creating the events
-	// provider.
+	// eventsProviderErr holds any error that occurred when creating the events provider.
 	eventsProviderErr error
 
 	// eventBusErr holds any error captured while initialising the event bus.
@@ -460,16 +445,14 @@ type Container struct {
 	// monitoringService holds the monitoring service; nil when disabled.
 	monitoringService monitoring_domain.MonitoringService
 
-	// metricsExporter holds the metrics exporter (e.g., Prometheus).
-	// Nil when disabled.
+	// metricsExporter holds the metrics exporter (e.g., Prometheus). Nil when disabled.
 	metricsExporter monitoring_domain.MetricsExporter
 
-	// orchestratorInspector holds the orchestrator inspector for monitoring; nil
-	// when not available.
+	// orchestratorInspector holds the orchestrator inspector for monitoring; nil when not
+	// available.
 	orchestratorInspector orchestrator_domain.OrchestratorInspector
 
-	// registryInspector holds the registry inspector for monitoring; nil when not
-	// available.
+	// registryInspector holds the registry inspector for monitoring; nil when not available.
 	registryInspector registry_domain.RegistryInspector
 
 	// componentRegistry holds the component registry for tag lookup.
@@ -481,14 +464,14 @@ type Container struct {
 	// validator stores the validation instance for struct and field checks.
 	validator StructValidator
 
-	// authProvider resolves authentication state from HTTP requests.
-	// Nil means no auth middleware is installed.
+	// authProvider resolves authentication state from HTTP requests. Nil means no auth
+	// middleware is installed.
 	authProvider daemon_dto.AuthProvider
 
-	// sandboxFactoryInstance is the lazily-created, cached safedisk.Factory
-	// built from the server config. All production sandbox creation goes
-	// through this single factory so that path validation, the Enabled flag,
-	// and the purpose string are applied consistently.
+	// sandboxFactoryInstance is the lazily-created, cached safedisk.Factory built from the
+	// server config. All production sandbox creation goes through this single factory so
+	// that path validation, the Enabled flag, and the purpose string are applied
+	// consistently.
 	sandboxFactoryInstance safedisk.Factory
 
 	// sandboxFactoryErr records any error from creating the cached factory.
@@ -497,32 +480,30 @@ type Container struct {
 	// markdownParser holds the user-provided markdown parser implementation.
 	markdownParser markdown_domain.MarkdownParserPort
 
-	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is
-	// set.
+	// cspBuilder holds the Content-Security-Policy builder; nil means no CSP is set.
 	cspBuilder *security_domain.CSPBuilder
 
-	// onServerBound is an optional callback invoked after the main HTTP server
-	// binds to a port. Used to print the startup banner with the actual port.
+	// onServerBound is an optional callback invoked after the main HTTP server binds to a
+	// port. Used to print the startup banner with the actual port.
 	onServerBound func(address string)
 
-	// querierDBService holds the querier database service for named SQL
-	// connections and migrations.
+	// querierDBService holds the querier database service for named SQL connections and
+	// migrations.
 	querierDBService *databaseService
 
-	// generatorProfilingConfig holds capture-to-disk profiling settings; nil
-	// when generator profiling is disabled.
+	// generatorProfilingConfig holds capture-to-disk profiling settings; nil when generator
+	// profiling is disabled.
 	generatorProfilingConfig *profiler.Config
 
 	// rateLimiter is the centralised rate limiter shared across all domains.
 	rateLimiter *ratelimiter_domain.Limiter
 
-	// dbProvider stores the otter persistence provider for the default
-	// in-memory backend. Only used when no SQL database is registered via
-	// AddDatabase.
+	// dbProvider stores the otter persistence provider for the default in-memory backend.
+	// Only used when no SQL database is registered via AddDatabase.
 	dbProvider *persistence.Provider
 
-	// dbRegistrations maps names to database registration configs. Populated
-	// by AddDatabase and consumed lazily by GetDatabaseService.
+	// dbRegistrations maps names to database registration configs. Populated by AddDatabase
+	// and consumed lazily by GetDatabaseService.
 	dbRegistrations map[string]*DatabaseRegistration
 
 	// storageProviders maps names to storage provider instances for data storage.
@@ -531,17 +512,16 @@ type Container struct {
 	// typeDataProvider creates a TypeDataProvider for the given cache sandbox.
 	typeDataProvider func(sandbox safedisk.Sandbox) inspector_domain.TypeDataProvider
 
-	// sandboxFactory creates sandboxes for filesystem operations; nil uses the
-	// default factory from config.
+	// sandboxFactory creates sandboxes for filesystem operations; nil uses the default
+	// factory from config.
 	sandboxFactory SandboxFactory
 
-	// typeInspectorBuilderOverride is a custom type inspector builder; nil uses
-	// the default.
+	// typeInspectorBuilderOverride is a custom type inspector builder; nil uses the default.
 	typeInspectorBuilderOverride *inspector_domain.TypeBuilder
 
-	// configServerOverrides holds programmatic config values supplied via
-	// individual With* options. These are the highest-precedence values
-	// merged into serverConfig during bootstrap.
+	// configServerOverrides holds programmatic config values supplied via individual With*
+	// options. These are the highest-precedence values merged into serverConfig during
+	// bootstrap.
 	configServerOverrides *ServerConfig
 
 	// artefactBridge links artefact processing to the orchestrator workflow.
@@ -559,8 +539,8 @@ type Container struct {
 	// llmProviders maps provider names to their LLM provider handlers.
 	llmProviders map[string]llm_domain.LLMProviderPort
 
-	// llmEmbeddingProviders maps names to standalone embedding-only providers
-	// registered via AddEmbeddingProvider.
+	// llmEmbeddingProviders maps names to standalone embedding-only providers registered via
+	// AddEmbeddingProvider.
 	llmEmbeddingProviders map[string]llm_domain.EmbeddingProviderPort
 
 	// cryptoProviders maps provider names to their encryption handlers.
@@ -569,8 +549,8 @@ type Container struct {
 	// captchaProviders maps provider names to their captcha handlers.
 	captchaProviders map[string]captcha_domain.CaptchaProvider
 
-	// spamdetectFeedbackStore holds a deferred feedback store applied when
-	// the spam detection service is lazily created.
+	// spamdetectFeedbackStore holds a deferred feedback store applied when the spam
+	// detection service is lazily created.
 	spamdetectFeedbackStore spamdetect_domain.FeedbackStore
 
 	// spamdetectDetectors maps detector names to their spam detection handlers.
@@ -588,30 +568,27 @@ type Container struct {
 	// imagePredefinedVariants maps variant names to their transformation settings.
 	imagePredefinedVariants map[string]image_dto.TransformationSpec
 
-	// imageServiceConfigOverride holds a custom image service config; nil uses
-	// defaults.
+	// imageServiceConfigOverride holds a custom image service config; nil uses defaults.
 	imageServiceConfigOverride *image_domain.ServiceConfig
 
 	// seoConfigOverride holds a custom SEO config; nil skips SEO service creation.
 	seoConfigOverride *config.SEOConfig
 
-	// assetsConfigOverride holds asset profiles and responsive image settings;
-	// nil uses an empty config (no profiles).
+	// assetsConfigOverride holds asset profiles and responsive image settings; nil uses an
+	// empty config (no profiles).
 	assetsConfigOverride *config.AssetsConfig
 
-	// websiteConfigOverride holds a programmatic website configuration
-	// provided via WithWebsiteConfig; nil uses the file-based config.json.
+	// websiteConfigOverride holds a programmatic website configuration provided via
+	// WithWebsiteConfig; nil uses the file-based config.json.
 	websiteConfigOverride *config.WebsiteConfig
 
 	// videoTranscoders maps provider names to video transcoder instances.
 	videoTranscoders map[string]video_domain.TranscoderPort
 
-	// profilingConfig holds pprof server settings; nil when profiling is
-	// disabled.
+	// profilingConfig holds pprof server settings; nil when profiling is disabled.
 	profilingConfig *profiler.Config
 
-	// onHealthBound is an optional callback invoked after the health server
-	// binds to a port.
+	// onHealthBound is an optional callback invoked after the health server binds to a port.
 	onHealthBound func(address string)
 
 	// csrfSecretKeyProvider returns the secret key used for CSRF token creation.
@@ -623,57 +600,54 @@ type Container struct {
 	// appCancel cancels the application context during shutdown.
 	appCancel context.CancelCauseFunc
 
-	// registryMetadataCacheConfig holds the settings for the registry metadata
-	// cache; nil means no cache is used.
+	// registryMetadataCacheConfig holds the settings for the registry metadata cache; nil
+	// means no cache is used.
 	registryMetadataCacheConfig *RegistryMetadataCacheConfig
 
 	// storageDispatcherConfig holds settings for async storage operations.
 	storageDispatcherConfig *storage_domain.DispatcherConfig
 
-	// emailDispatcherConfig holds settings for async email sending; nil uses
-	// defaults.
+	// emailDispatcherConfig holds settings for async email sending; nil uses defaults.
 	emailDispatcherConfig *email_dto.DispatcherConfig
 
-	// startupBannerEnabled controls whether the startup banner is displayed.
-	// nil means not set (defaults to true).
+	// startupBannerEnabled controls whether the startup banner is displayed. nil means not
+	// set (defaults to true).
 	startupBannerEnabled *bool
 
-	// iAmACatPerson swaps the large pixel-art mascot for the small ASCII art
-	// version. nil means not set (defaults to false).
+	// iAmACatPerson swaps the large pixel-art mascot for the small ASCII art version. nil
+	// means not set (defaults to false).
 	iAmACatPerson *bool
 
-	// compilerDebugLogsEnabled overrides the default for compiler debug log
-	// files. nil means use the constant default (true).
+	// compilerDebugLogsEnabled overrides the default for compiler debug log files. nil means
+	// use the constant default (true).
 	compilerDebugLogsEnabled *bool
 
-	// autoMemoryLimitFunc is called during bootstrap to configure GOMEMLIMIT
-	// based on the container's cgroup memory limit. Nil means disabled.
+	// autoMemoryLimitFunc is called during bootstrap to configure GOMEMLIMIT based on the
+	// container's cgroup memory limit. Nil means disabled.
 	autoMemoryLimitFunc func() (int64, error)
 
-	// authGuardConfig controls route-level authentication enforcement.
-	// Nil means no route protection middleware is installed.
+	// authGuardConfig controls route-level authentication enforcement. Nil means no route
+	// protection middleware is installed.
 	authGuardConfig *daemon_dto.AuthGuardConfig
 
-	// sriEnabled controls whether Subresource Integrity (SRI) hashes are
-	// added to script and link tags. Nil means use the default (enabled).
+	// sriEnabled controls whether Subresource Integrity (SRI) hashes are added to script and
+	// link tags. Nil means use the default (enabled).
 	sriEnabled *bool
 
-	// crossOriginResourcePolicy overrides the default CORP header value.
-	// Empty means use the config default ("same-origin").
+	// crossOriginResourcePolicy overrides the default CORP header value. Empty means use the
+	// config default ("same-origin").
 	crossOriginResourcePolicy string
 
-	// crashTracebackLevel is the GOTRACEBACK level applied via
-	// runtime/debug.SetTraceback at startup; empty keeps the runtime
-	// default in place.
+	// crashTracebackLevel is the GOTRACEBACK level applied via runtime/debug.SetTraceback at
+	// startup; empty keeps the runtime default in place.
 	crashTracebackLevel string
 
-	// diagnosticDirectory is the unified root for runtime-diagnostic
-	// artefacts (crash mirror, watchdog profiles, sidecars, startup
-	// history).
+	// diagnosticDirectory is the unified root for runtime-diagnostic artefacts (crash
+	// mirror, watchdog profiles, sidecars, startup history).
 	diagnosticDirectory string
 
-	// cspPolicyString holds a raw CSP policy string for complex cases that the
-	// structured API cannot handle.
+	// cspPolicyString holds a raw CSP policy string for complex cases that the structured
+	// API cannot handle.
 	cspPolicyString string
 
 	// emailDefaultProvider is the name of the default email provider.
@@ -682,9 +656,8 @@ type Container struct {
 	// llmDefaultProvider is the name of the default LLM provider.
 	llmDefaultProvider string
 
-	// llmDefaultEmbeddingProvider is the name of the default embedding
-	// provider. When empty, falls back to auto-detected embedding support
-	// from the default LLM provider.
+	// llmDefaultEmbeddingProvider is the name of the default embedding provider. When empty,
+	// falls back to auto-detected embedding support from the default LLM provider.
 	llmDefaultEmbeddingProvider string
 
 	// cryptoDefaultProvider is the name of the default encryption provider.
@@ -696,46 +669,45 @@ type Container struct {
 	// notificationDefaultProvider is the name of the provider to use by default.
 	notificationDefaultProvider string
 
-	// cacheDefaultProvider is the name of the default cache provider; empty
-	// means the first registered provider becomes the default.
+	// cacheDefaultProvider is the name of the default cache provider; empty means the first
+	// registered provider becomes the default.
 	cacheDefaultProvider string
 
 	// storageDefaultProvider is the name of the default storage provider.
 	storageDefaultProvider string
 
-	// storagePresignBaseURL is the base URL for presigned storage URLs.
-	// This is needed for headless CMS setups where the frontend runs on a
-	// different host from the storage service.
+	// storagePresignBaseURL is the base URL for presigned storage URLs. This is needed for
+	// headless CMS setups where the frontend runs on a different host from the storage
+	// service.
 	storagePresignBaseURL string
 
-	// storagePublicBaseURL is the base URL for public storage URLs, making
-	// them absolute when set or relative when empty, needed for headless CMS
-	// setups where the frontend runs on a different host from the storage
-	// service.
+	// storagePublicBaseURL is the base URL for public storage URLs, making them absolute
+	// when set or relative when empty, needed for headless CMS setups where the frontend
+	// runs on a different host from the storage service.
 	storagePublicBaseURL string
 
-	// defaultImageTransformer is the name of the default image transformer.
-	// If empty, the first registered transformer becomes the default.
+	// defaultImageTransformer is the name of the default image transformer. If empty, the
+	// first registered transformer becomes the default.
 	defaultImageTransformer string
 
 	// defaultVideoTranscoder is the name of the transcoder to use as the default.
 	defaultVideoTranscoder string
 
-	// crashOutputPath is the file path the Go runtime should mirror crash
-	// output to via runtime/debug.SetCrashOutput; empty disables the
-	// feature and the default behaviour stays in place.
+	// crashOutputPath is the file path the Go runtime should mirror crash output to via
+	// runtime/debug.SetCrashOutput; empty disables the feature and the default behaviour
+	// stays in place.
 	crashOutputPath string
 
-	// cssResetCSS holds the resolved CSS reset content for PK files. When
-	// empty, no CSS reset is included in the generated theme CSS.
+	// cssResetCSS holds the resolved CSS reset content for PK files. When empty, no CSS
+	// reset is included in the generated theme CSS.
 	cssResetCSS string
 
-	// websiteConfig holds the user-facing website metadata supplied via
-	// WithWebsiteConfig. Empty when no override is set.
+	// websiteConfig holds the user-facing website metadata supplied via WithWebsiteConfig.
+	// Empty when no override is set.
 	websiteConfig config.WebsiteConfig
 
-	// analyticsCollectors holds user-registered backend analytics
-	// collectors. Empty means no analytics middleware is installed.
+	// analyticsCollectors holds user-registered backend analytics collectors. Empty means no
+	// analytics middleware is installed.
 	analyticsCollectors []analytics_domain.Collector
 
 	// reportingEndpoints holds the configured reporting endpoints for the
@@ -745,12 +717,10 @@ type Container struct {
 	// frontendModules stores the registered frontend modules and their settings.
 	frontendModules []daemon_frontend.ModuleEntry
 
-	// configResolvers holds the resolvers that process configuration during
-	// bootstrap.
+	// configResolvers holds the resolvers that process configuration during bootstrap.
 	configResolvers []config_domain.Resolver
 
-	// customHealthProbes stores health probes provided by the application for
-	// custom checks.
+	// customHealthProbes stores health probes provided by the application for custom checks.
 	customHealthProbes []healthprobe_domain.Probe
 
 	// externalComponents holds component definitions added via WithComponents.
@@ -759,24 +729,24 @@ type Container struct {
 	// cssTreeShakingSafelist lists CSS class names preserved during tree-shaking.
 	cssTreeShakingSafelist []string
 
-	// serverConfig holds the resolved server configuration. It is populated
-	// during bootstrap by merging configServerOverrides (set by With*
-	// options) with struct-tag defaults via config_domain.Load.
+	// serverConfig holds the resolved server configuration. It is populated during bootstrap
+	// by merging configServerOverrides (set by With* options) with struct-tag defaults via
+	// config_domain.Load.
 	serverConfig ServerConfig
 
 	// csrfTokenMaxAge overrides the default CSRF token maximum age when positive.
 	csrfTokenMaxAge time.Duration
 
-	// hybridCacheWriteExpirationOverride is the operator-supplied write
-	// expiration on the hybrid-collections cache.
+	// hybridCacheWriteExpirationOverride is the operator-supplied write expiration on the
+	// hybrid-collections cache.
 	hybridCacheWriteExpirationOverride time.Duration
 
-	// hybridCacheMaxBytesOverride is the operator-supplied byte cap on
-	// the hybrid-collections cache.
+	// hybridCacheMaxBytesOverride is the operator-supplied byte cap on the
+	// hybrid-collections cache.
 	hybridCacheMaxBytesOverride uint64
 
-	// actionResponseCacheMaxBytesOverride is the operator-supplied byte
-	// cap on the action-response cache.
+	// actionResponseCacheMaxBytesOverride is the operator-supplied byte cap on the
+	// action-response cache.
 	actionResponseCacheMaxBytesOverride uint64
 
 	// renderRegOnce guards single initialisation of the render registry.
@@ -785,8 +755,7 @@ type Container struct {
 	// videoOnce guards single initialisation of the video service.
 	videoOnce sync.Once
 
-	// querierDBOnce guards single initialisation of the querier database
-	// service.
+	// querierDBOnce guards single initialisation of the querier database service.
 	querierDBOnce sync.Once
 
 	// dbProviderOnce guards single initialisation of the database provider.
@@ -807,8 +776,7 @@ type Container struct {
 	// orchestratorOnce guards single initialisation of the orchestrator service.
 	orchestratorOnce sync.Once
 
-	// sandboxFactoryOnce guards single initialisation of the cached sandbox
-	// factory.
+	// sandboxFactoryOnce guards single initialisation of the cached sandbox factory.
 	sandboxFactoryOnce sync.Once
 
 	// csrfOnce guards single initialisation of the CSRF service.
@@ -874,8 +842,7 @@ type Container struct {
 	// validatorOnce guards single initialisation of the validator.
 	validatorOnce sync.Once
 
-	// collectionServiceOnce guards single initialisation of the collection
-	// service.
+	// collectionServiceOnce guards single initialisation of the collection service.
 	collectionServiceOnce sync.Once
 
 	// searchServiceOnce guards single initialisation of the search service.
@@ -887,16 +854,14 @@ type Container struct {
 	// rateLimitServiceOnce guards single initialisation of the rate limit service.
 	rateLimitServiceOnce sync.Once
 
-	// rateLimiterOnce guards single initialisation of the centralised rate
-	// limiter.
+	// rateLimiterOnce guards single initialisation of the centralised rate limiter.
 	rateLimiterOnce sync.Once
 
-	// componentRegistryOnce guards single initialisation of the component
-	// registry.
+	// componentRegistryOnce guards single initialisation of the component registry.
 	componentRegistryOnce sync.Once
 
-	// cspPolicyStringSet tracks whether SetCSPPolicyString was called.
-	// This tells apart "not set" from "set to empty string".
+	// cspPolicyStringSet tracks whether SetCSPPolicyString was called. This tells apart "not
+	// set" from "set to empty string".
 	cspPolicyStringSet bool
 
 	// hasEmailDispatcher indicates whether an email dispatcher has been set up.
@@ -905,44 +870,42 @@ type Container struct {
 	// hasStorageDispatcher indicates whether a storage dispatcher has been set up.
 	hasStorageDispatcher bool
 
-	// hasNotificationDispatcher indicates whether a notification dispatcher has
-	// been set up.
+	// hasNotificationDispatcher indicates whether a notification dispatcher has been set up.
 	hasNotificationDispatcher bool
 
 	// cssTreeShaking enables CSS tree-shaking during scaffold generation.
 	cssTreeShaking bool
 
-	// experimentalPrerendering enables static HTML prerendering at generation
-	// time.
+	// experimentalPrerendering enables static HTML prerendering at generation time.
 	experimentalPrerendering bool
 
 	// experimentalCommentStripping removes HTML comments from generated output.
 	experimentalCommentStripping bool
 
-	// experimentalDwarfLineDirectives enables valid DWARF //line directives
-	// in generated code. When false (default), directives use "// line" (with
-	// a space) which the Go compiler treats as a plain comment.
+	// experimentalDwarfLineDirectives enables valid DWARF //line directives in generated
+	// code. When false (default), directives use "// line" (with a space) which the Go
+	// compiler treats as a plain comment.
 	experimentalDwarfLineDirectives bool
 
 	// useStandardLoader causes the type inspector to use the standard
-	// golang.org/x/tools/go/packages.Load instead of the faster
-	// quickpackages.Load. This is slower but always stable as a fallback.
+	// golang.org/x/tools/go/packages.Load instead of the faster quickpackages.Load. This is
+	// slower but always stable as a fallback.
 	useStandardLoader bool
 
-	// devWidgetEnabled controls whether the dev tools overlay widget is
-	// rendered on pages in dev mode.
+	// devWidgetEnabled controls whether the dev tools overlay widget is rendered on pages in
+	// dev mode.
 	devWidgetEnabled bool
 
-	// devHotreloadEnabled controls whether the SSE hot-reload JS module is
-	// loaded in dev mode to trigger automatic page refreshes on rebuild.
+	// devHotreloadEnabled controls whether the SSE hot-reload JS module is loaded in dev
+	// mode to trigger automatic page refreshes on rebuild.
 	devHotreloadEnabled bool
 }
 
 // NewContainer creates a new dependency injection container.
 //
-// It sets sensible defaults and then applies any options provided. The
-// returned container's serverConfig is empty until ConfigAndContainer
-// resolves the With* option overrides into it.
+// It sets sensible defaults and then applies any options provided. The returned
+// container's serverConfig is empty until ConfigAndContainer resolves the With* option
+// overrides into it.
 //
 // Takes opts (...Option) which are options to change behaviour.
 //
@@ -976,31 +939,31 @@ func (c *Container) GetAppContext() context.Context {
 	return c.appCtx
 }
 
-// GetServerConfig returns a pointer to the resolved server configuration
-// held by the container.
+// GetServerConfig returns a pointer to the resolved server configuration held by the
+// container.
 //
-// Returns *ServerConfig which provides access to network, security,
-// paths, and other framework settings.
+// Returns *ServerConfig which provides access to network, security, paths, and other
+// framework settings.
 func (c *Container) GetServerConfig() *ServerConfig {
 	return &c.serverConfig
 }
 
-// GetWebsiteConfig returns a pointer to the website configuration supplied
-// via WithWebsiteConfig.
+// GetWebsiteConfig returns a pointer to the website configuration supplied via
+// WithWebsiteConfig.
 //
-// Returns *config.WebsiteConfig which provides theme, fonts, favicons, and
-// i18n metadata. Empty when WithWebsiteConfig was not called.
+// Returns *config.WebsiteConfig which provides theme, fonts, favicons, and i18n metadata.
+// Empty when WithWebsiteConfig was not called.
 func (c *Container) GetWebsiteConfig() *config.WebsiteConfig {
 	return &c.websiteConfig
 }
 
 // GetSandboxFactory returns the cached safedisk.Factory built from the server
 // configuration. The factory is created lazily on first call and reused for all
-// subsequent calls, ensuring consistent path validation and sandbox mode across
-// the application.
+// subsequent calls, ensuring consistent path validation and sandbox mode across the
+// application.
 //
-// Returns safedisk.Factory which creates sandboxes with the configured allowed
-// paths and enabled/disabled mode.
+// Returns safedisk.Factory which creates sandboxes with the configured allowed paths and
+// enabled/disabled mode.
 // Returns error when the factory cannot be created from the server config.
 func (c *Container) GetSandboxFactory() (safedisk.Factory, error) {
 	c.sandboxFactoryOnce.Do(func() {
@@ -1019,18 +982,15 @@ func (c *Container) GetSandboxFactory() (safedisk.Factory, error) {
 // Returns bool which is true when the widget should be rendered in dev mode.
 func (c *Container) IsDevWidgetEnabled() bool { return c.devWidgetEnabled }
 
-// IsDevHotreloadEnabled reports whether the SSE hot-reload JS module is
-// enabled.
+// IsDevHotreloadEnabled reports whether the SSE hot-reload JS module is enabled.
 //
-// Returns bool which is true when automatic page refresh should be active in
-// dev mode.
+// Returns bool which is true when automatic page refresh should be active in dev mode.
 func (c *Container) IsDevHotreloadEnabled() bool { return c.devHotreloadEnabled }
 
-// SetOnServerBound stores a callback to invoke when the main HTTP server
-// binds to a port.
+// SetOnServerBound stores a callback to invoke when the main HTTP server binds to a port.
 //
-// Takes fn (func(address string)) which is the callback receiving the resolved
-// listen address.
+// Takes fn (func(address string)) which is the callback receiving the resolved listen
+// address.
 func (c *Container) SetOnServerBound(fn func(address string)) { c.onServerBound = fn }
 
 // OnServerBound returns the stored server-bound callback, or nil.
@@ -1038,11 +998,10 @@ func (c *Container) SetOnServerBound(fn func(address string)) { c.onServerBound 
 // Returns func(address string) which is the callback, or nil if not set.
 func (c *Container) OnServerBound() func(address string) { return c.onServerBound }
 
-// SetOnHealthBound stores a callback to invoke when the health server
-// binds to a port.
+// SetOnHealthBound stores a callback to invoke when the health server binds to a port.
 //
-// Takes fn (func(address string)) which is the callback receiving the resolved
-// listen address.
+// Takes fn (func(address string)) which is the callback receiving the resolved listen
+// address.
 func (c *Container) SetOnHealthBound(fn func(address string)) { c.onHealthBound = fn }
 
 // OnHealthBound returns the stored health-bound callback, or nil.
@@ -1050,9 +1009,8 @@ func (c *Container) SetOnHealthBound(fn func(address string)) { c.onHealthBound 
 // Returns func(address string) which is the callback, or nil if not set.
 func (c *Container) OnHealthBound() func(address string) { return c.onHealthBound }
 
-// IsSRIEnabled reports whether Subresource Integrity hashes should be added
-// to script and link tags. Returns true by default unless explicitly disabled
-// via WithSRI(false).
+// IsSRIEnabled reports whether Subresource Integrity hashes should be added to script and
+// link tags. Returns true by default unless explicitly disabled via WithSRI(false).
 //
 // Returns bool which is true when SRI integrity attributes should be emitted.
 func (c *Container) IsSRIEnabled() bool {
@@ -1062,17 +1020,16 @@ func (c *Container) IsSRIEnabled() bool {
 	return true
 }
 
-// SetCompilerDebugLogsEnabled overrides the default for compiler debug log
-// files. Use this to disable debug log files in contexts like the LSP where
-// they are not needed.
+// SetCompilerDebugLogsEnabled overrides the default for compiler debug log files. Use
+// this to disable debug log files in contexts like the LSP where they are not needed.
 //
 // Takes enabled (bool) which controls whether debug log files are written.
 func (c *Container) SetCompilerDebugLogsEnabled(enabled bool) {
 	c.compilerDebugLogsEnabled = &enabled
 }
 
-// IsStartupBannerEnabled returns whether the startup banner should be
-// displayed. Defaults to true when not explicitly set.
+// IsStartupBannerEnabled returns whether the startup banner should be displayed. Defaults
+// to true when not explicitly set.
 //
 // Returns bool which is true when the banner should be shown.
 func (c *Container) IsStartupBannerEnabled() bool {
@@ -1082,8 +1039,8 @@ func (c *Container) IsStartupBannerEnabled() bool {
 	return true
 }
 
-// IsIAmACatPerson returns whether the large pixel-art mascot should be
-// replaced with the small ASCII art version. Defaults to false.
+// IsIAmACatPerson returns whether the large pixel-art mascot should be replaced with the
+// small ASCII art version. Defaults to false.
 //
 // Returns bool which is true when the small mascot should be used.
 func (c *Container) IsIAmACatPerson() bool {
@@ -1100,40 +1057,39 @@ func (c *Container) IsCSSTreeShakingEnabled() bool {
 	return c.cssTreeShaking
 }
 
-// GetCSSTreeShakingSafelist returns the CSS classes preserved during
-// tree-shaking.
+// GetCSSTreeShakingSafelist returns the CSS classes preserved during tree-shaking.
 //
 // Returns []string which lists CSS class names that are never removed.
 func (c *Container) GetCSSTreeShakingSafelist() []string {
 	return c.cssTreeShakingSafelist
 }
 
-// GetCSSResetCSS returns the resolved CSS reset content for PK files. When
-// empty, no CSS reset should be included in theme CSS output.
+// GetCSSResetCSS returns the resolved CSS reset content for PK files. When empty, no CSS
+// reset should be included in theme CSS output.
 //
 // Returns string which is the CSS reset content, or empty when disabled.
 func (c *Container) GetCSSResetCSS() string {
 	return c.cssResetCSS
 }
 
-// IsExperimentalPrerenderingEnabled returns whether static HTML prerendering
-// is enabled at generation time.
+// IsExperimentalPrerenderingEnabled returns whether static HTML prerendering is enabled
+// at generation time.
 //
 // Returns bool which is true when prerendering is active.
 func (c *Container) IsExperimentalPrerenderingEnabled() bool {
 	return c.experimentalPrerendering
 }
 
-// IsExperimentalCommentStrippingEnabled returns whether HTML comment stripping
-// is enabled for generated output.
+// IsExperimentalCommentStrippingEnabled returns whether HTML comment stripping is enabled
+// for generated output.
 //
 // Returns bool which is true when comment stripping is active.
 func (c *Container) IsExperimentalCommentStrippingEnabled() bool {
 	return c.experimentalCommentStripping
 }
 
-// IsExperimentalDwarfLineDirectivesEnabled returns whether valid DWARF //line
-// directives are emitted in generated Go code.
+// IsExperimentalDwarfLineDirectivesEnabled returns whether valid DWARF //line directives
+// are emitted in generated Go code.
 //
 // Returns bool which is true when DWARF line directives are active.
 func (c *Container) IsExperimentalDwarfLineDirectivesEnabled() bool {
@@ -1142,18 +1098,18 @@ func (c *Container) IsExperimentalDwarfLineDirectivesEnabled() bool {
 
 // GetActionRegistry returns the action registry.
 //
-// Returns the global registry populated by auto-generated init() functions.
-// Actions are discovered automatically during annotation and generate
-// registry.go files that register actions via init().
+// Returns the global registry populated by auto-generated init() functions. Actions are
+// discovered automatically during annotation and generate registry.go files that register
+// actions via init().
 //
-// Returns map[string]daemon_adapters.ActionHandlerEntry which maps action
-// names to their handler entries.
+// Returns map[string]daemon_adapters.ActionHandlerEntry which maps action names to their
+// handler entries.
 func (*Container) GetActionRegistry() map[string]daemon_adapters.ActionHandlerEntry {
 	return daemon_adapters.GetGlobalActionRegistry()
 }
 
-// GetComponentRegistry returns the PKC component registry for deterministic
-// tag lookup during template processing.
+// GetComponentRegistry returns the PKC component registry for deterministic tag lookup
+// during template processing.
 //
 // The registry is lazily initialised on first access. It contains:
 //   - External components registered via WithComponents()
@@ -1196,8 +1152,7 @@ func (c *Container) GetMetricsExporter() monitoring_domain.MetricsExporter {
 // SetMetricsExporter sets the metrics exporter. This is called during container
 // initialisation when metrics are enabled.
 //
-// Takes exporter (monitoring_domain.MetricsExporter) which is the exporter to
-// use.
+// Takes exporter (monitoring_domain.MetricsExporter) which is the exporter to use.
 func (c *Container) SetMetricsExporter(exporter monitoring_domain.MetricsExporter) {
 	c.metricsExporter = exporter
 }
@@ -1205,17 +1160,16 @@ func (c *Container) SetMetricsExporter(exporter monitoring_domain.MetricsExporte
 // GetMonitoringService returns the full monitoring service, if configured.
 // Returns nil if monitoring was not enabled via WithMonitoring().
 //
-// Returns monitoring_domain.MonitoringService which provides gRPC access and
-// OTEL integration.
+// Returns monitoring_domain.MonitoringService which provides gRPC access and OTEL
+// integration.
 func (c *Container) GetMonitoringService() monitoring_domain.MonitoringService {
 	return c.monitoringService
 }
 
-// SetMonitoringService sets the full monitoring service. This is called by
-// WithMonitoring during container initialisation.
+// SetMonitoringService sets the full monitoring service. This is called by WithMonitoring
+// during container initialisation.
 //
-// Takes service (monitoring_domain.MonitoringService) which is the service to
-// use.
+// Takes service (monitoring_domain.MonitoringService) which is the service to use.
 func (c *Container) SetMonitoringService(service monitoring_domain.MonitoringService) {
 	c.monitoringService = service
 }
@@ -1228,28 +1182,27 @@ func (c *Container) GetProfilingConfig() *profiler.Config {
 	return c.profilingConfig
 }
 
-// SetProfilingConfig stores the pprof server configuration. This is called
-// by WithProfiling during container initialisation.
+// SetProfilingConfig stores the pprof server configuration. This is called by
+// WithProfiling during container initialisation.
 //
 // Takes profilingConfig (*profiler.Config) which provides the profiling settings.
 func (c *Container) SetProfilingConfig(profilingConfig *profiler.Config) {
 	c.profilingConfig = profilingConfig
 }
 
-// GetGeneratorProfilingConfig returns the generator profiling configuration,
-// if set. Returns nil when generator profiling was not enabled via
-// WithGeneratorProfiling().
+// GetGeneratorProfilingConfig returns the generator profiling configuration, if set.
+// Returns nil when generator profiling was not enabled via WithGeneratorProfiling().
 //
 // Returns *profiler.Config which holds the capture-to-disk settings.
 func (c *Container) GetGeneratorProfilingConfig() *profiler.Config {
 	return c.generatorProfilingConfig
 }
 
-// SetGeneratorProfilingConfig stores the generator profiling configuration.
-// This is called by WithGeneratorProfiling during container initialisation.
+// SetGeneratorProfilingConfig stores the generator profiling configuration. This is
+// called by WithGeneratorProfiling during container initialisation.
 //
-// Takes profilingConfig (*profiler.Config) which provides the
-// generator profiling settings.
+// Takes profilingConfig (*profiler.Config) which provides the generator profiling
+// settings.
 func (c *Container) SetGeneratorProfilingConfig(profilingConfig *profiler.Config) {
 	c.generatorProfilingConfig = profilingConfig
 }
@@ -1257,8 +1210,7 @@ func (c *Container) SetGeneratorProfilingConfig(profilingConfig *profiler.Config
 // GetOrchestratorInspector returns the orchestrator inspector for monitoring.
 // Returns nil if the orchestrator has not been initialised.
 //
-// Returns orchestrator_domain.OrchestratorInspector which provides read-only
-// task data.
+// Returns orchestrator_domain.OrchestratorInspector which provides read-only task data.
 func (c *Container) GetOrchestratorInspector() orchestrator_domain.OrchestratorInspector {
 	return c.orchestratorInspector
 }
@@ -1266,14 +1218,13 @@ func (c *Container) GetOrchestratorInspector() orchestrator_domain.OrchestratorI
 // GetRegistryInspector returns the registry inspector for monitoring.
 // Returns nil if the registry has not been initialised.
 //
-// Returns registry_domain.RegistryInspector which provides read-only artefact
-// data.
+// Returns registry_domain.RegistryInspector which provides read-only artefact data.
 func (c *Container) GetRegistryInspector() registry_domain.RegistryInspector {
 	return c.registryInspector
 }
 
-// GetMonitoringHealthProbeService returns the health probe service adapted
-// for monitoring.
+// GetMonitoringHealthProbeService returns the health probe service adapted for
+// monitoring.
 //
 // Returns monitoring_domain.HealthProbeService for gRPC health reporting.
 // Returns nil when the health probe service is not available.
@@ -1288,8 +1239,7 @@ func (c *Container) GetMonitoringHealthProbeService() monitoring_domain.HealthPr
 // GetEmailDispatcher returns the email dispatcher, if configured.
 // Returns nil if no email dispatcher has been set up.
 //
-// Returns email_domain.EmailDispatcherPort which provides email dispatch and
-// DLQ access.
+// Returns email_domain.EmailDispatcherPort which provides email dispatch and DLQ access.
 func (c *Container) GetEmailDispatcher() email_domain.EmailDispatcherPort {
 	return c.emailDispatcher
 }
@@ -1297,17 +1247,17 @@ func (c *Container) GetEmailDispatcher() email_domain.EmailDispatcherPort {
 // GetNotificationDispatcher returns the notification dispatcher, if configured.
 // Returns nil if no notification dispatcher has been set up.
 //
-// Returns notification_domain.NotificationDispatcherPort which provides
-// notification dispatch and DLQ access.
+// Returns notification_domain.NotificationDispatcherPort which provides notification
+// dispatch and DLQ access.
 func (c *Container) GetNotificationDispatcher() notification_domain.NotificationDispatcherPort {
 	return c.notificationDispatcher
 }
 
-// GetDispatcherInspector returns a dispatcher inspector that provides
-// read-only access to email and notification dispatcher state and DLQs.
+// GetDispatcherInspector returns a dispatcher inspector that provides read-only access to
+// email and notification dispatcher state and DLQs.
 //
-// Returns dispatcher_domain.DispatcherInspector which provides unified DLQ
-// monitoring, or nil if neither dispatcher is configured.
+// Returns dispatcher_domain.DispatcherInspector which provides unified DLQ monitoring, or
+// nil if neither dispatcher is configured.
 func (c *Container) GetDispatcherInspector() dispatcher_domain.DispatcherInspector {
 	if c.emailDispatcher == nil && c.notificationDispatcher == nil {
 		return nil
@@ -1315,11 +1265,11 @@ func (c *Container) GetDispatcherInspector() dispatcher_domain.DispatcherInspect
 	return dispatcher_adapters.NewInspector(c.emailDispatcher, c.notificationDispatcher)
 }
 
-// GetRateLimiterInspector returns the rate limiter as a RateLimiterInspector,
-// or nil if the rate limiter is not available.
+// GetRateLimiterInspector returns the rate limiter as a RateLimiterInspector, or nil if
+// the rate limiter is not available.
 //
-// Returns ratelimiter_domain.RateLimiterInspector which provides rate limiter
-// state inspection, or nil.
+// Returns ratelimiter_domain.RateLimiterInspector which provides rate limiter state
+// inspection, or nil.
 func (c *Container) GetRateLimiterInspector() ratelimiter_domain.RateLimiterInspector {
 	limiter, err := c.GetRateLimiter()
 	if err != nil || limiter == nil {
@@ -1328,16 +1278,15 @@ func (c *Container) GetRateLimiterInspector() ratelimiter_domain.RateLimiterInsp
 	return limiter
 }
 
-// StartMonitoringService starts the monitoring gRPC server if configured.
-// This should be called after SetInspectors() has been called to wire
-// the orchestrator and registry inspectors.
+// StartMonitoringService starts the monitoring gRPC server if configured. This should be
+// called after SetInspectors() has been called to wire the orchestrator and registry
+// inspectors.
 //
-// If the server fails to start, an error is logged but the application
-// continues (monitoring is optional observability).
+// If the server fails to start, an error is logged but the application continues
+// (monitoring is optional observability).
 //
-// Spawns a goroutine that runs the monitoring gRPC server
-// until the application context is cancelled. The server is registered
-// for graceful shutdown.
+// Spawns a goroutine that runs the monitoring gRPC server until the application context
+// is cancelled. The server is registered for graceful shutdown.
 func (c *Container) StartMonitoringService() {
 	monitoringService := c.GetMonitoringService()
 	if monitoringService == nil {
@@ -1367,10 +1316,10 @@ func (c *Container) StartMonitoringService() {
 	)
 }
 
-// StartProfilingServer starts the pprof HTTP server if profiling was enabled
-// via WithProfiling. It configures runtime block and mutex profiling rates,
-// checks for problematic build flags, and starts the server in a background
-// goroutine with graceful shutdown.
+// StartProfilingServer starts the pprof HTTP server if profiling was enabled via
+// WithProfiling. It configures runtime block and mutex profiling rates, checks for
+// problematic build flags, and starts the server in a background goroutine with graceful
+// shutdown.
 //
 // This is a no-op when profiling is not configured.
 func (c *Container) StartProfilingServer() {
@@ -1426,8 +1375,8 @@ func (c *Container) StartProfilingServer() {
 // Takes l (logger_domain.Logger) which is the logger for output.
 // Takes base (string) which is the base URL prefix for pprof endpoints.
 // Takes addr (string) which is the listen address for status endpoints.
-// Takes rollingTraceEnabled (bool) which controls whether the rolling trace
-// endpoint is included.
+// Takes rollingTraceEnabled (bool) which controls whether the rolling trace endpoint is
+// included.
 func logProfilingEndpoints(l logger_domain.Logger, base, addr string, rollingTraceEnabled bool) {
 	internalAttrs := []logger_domain.Attr{
 		logger_domain.String("cpu", base+"/debug/pprof/profile?seconds=30"),
@@ -1448,13 +1397,13 @@ func logProfilingEndpoints(l logger_domain.Logger, base, addr string, rollingTra
 	l.Internal("Available pprof endpoints", internalAttrs...)
 }
 
-// StartGeneratorProfiling begins capture-to-disk profiling if generator
-// profiling was enabled via WithGeneratorProfiling. It configures runtime
-// rates, checks build flags, and starts capturing CPU and trace profiles.
+// StartGeneratorProfiling begins capture-to-disk profiling if generator profiling was
+// enabled via WithGeneratorProfiling. It configures runtime rates, checks build flags,
+// and starts capturing CPU and trace profiles.
 //
-// Returns func() which must be called (typically via defer) to stop profiling
-// and write all profile files. Returns nil when generator profiling is not
-// configured.
+// Returns func() which must be called (typically via defer) to stop profiling and write
+// all profile files.
+// Returns nil when generator profiling is not configured.
 func (c *Container) StartGeneratorProfiling() func() {
 	generatorProfilingConfig := c.GetGeneratorProfilingConfig()
 	if generatorProfilingConfig == nil {
@@ -1499,8 +1448,8 @@ func (c *Container) StartGeneratorProfiling() func() {
 	}
 }
 
-// applyAutoMemoryLimit calls the configured auto memory limit function to
-// set GOMEMLIMIT based on the container's cgroup memory limit.
+// applyAutoMemoryLimit calls the configured auto memory limit function to set GOMEMLIMIT
+// based on the container's cgroup memory limit.
 //
 // This is a no-op when no auto memory limit provider is configured.
 func (c *Container) applyAutoMemoryLimit(ctx context.Context) {
@@ -1520,8 +1469,8 @@ func (c *Container) applyAutoMemoryLimit(ctx context.Context) {
 		logger_domain.String("GOMEMLIMIT", fmt.Sprintf("%d MiB", limit/(1024*1024))))
 }
 
-// ensureOverrides lazily initialises the configServerOverrides struct so that
-// option functions can write individual fields without nil-checking.
+// ensureOverrides lazily initialises the configServerOverrides struct so that option
+// functions can write individual fields without nil-checking.
 //
 // Returns *ServerConfig which provides the override settings to modify.
 func (c *Container) ensureOverrides() *ServerConfig {
@@ -1531,11 +1480,11 @@ func (c *Container) ensureOverrides() *ServerConfig {
 	return c.configServerOverrides
 }
 
-// discoverLocalComponents walks the components folder and registers all .pkc
-// files in the component registry for deterministic tag lookup.
+// discoverLocalComponents walks the components folder and registers all .pkc files in the
+// component registry for deterministic tag lookup.
 //
-// Component tag names come from the filename without the .pkc extension. For
-// example, "my-button.pkc" registers as tag name "my-button".
+// Component tag names come from the filename without the .pkc extension. For example,
+// "my-button.pkc" registers as tag name "my-button".
 func (c *Container) discoverLocalComponents() {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	serverConfig := c.serverConfig
@@ -1602,9 +1551,9 @@ func (c *Container) walkAndRegisterComponents(absDir, baseDir string) (int, []st
 	return registered, regErrors
 }
 
-// contextCloser defines a service that can be closed with a context for
-// timeout control. Services set via Set* or Add* methods are registered
-// for shutdown if they implement the contract.
+// contextCloser defines a service that can be closed with a context for timeout control.
+// Services set via Set* or Add* methods are registered for shutdown if they implement the
+// contract.
 type contextCloser interface {
 	// Close releases resources held by the service.
 	//
@@ -1628,13 +1577,11 @@ type contextStopper interface {
 	Stop(ctx context.Context) error
 }
 
-// validateComponentsDirectory checks that the components directory exists and
-// is valid.
+// validateComponentsDirectory checks that the components directory exists and is valid.
 //
 // Takes absDir (string) which is the absolute path to the components directory.
 //
-// Returns bool which is true if the directory is valid and discovery should
-// proceed.
+// Returns bool which is true if the directory is valid and discovery should proceed.
 func validateComponentsDirectory(ctx context.Context, absDir string) bool {
 	_, l := logger_domain.From(ctx, log)
 	info, err := os.Stat(absDir)
@@ -1677,17 +1624,17 @@ func logComponentDiscoveryResults(ctx context.Context, registered int, regErrors
 	}
 }
 
-// defaultMetadataCacheProvider returns a no-op cache by default.
-// Use WithMemoryRegistryCache to enable caching.
+// defaultMetadataCacheProvider returns a no-op cache by default. Use
+// WithMemoryRegistryCache to enable caching.
 //
 // Returns registry_domain.MetadataCache which is nil to disable caching.
 func defaultMetadataCacheProvider() registry_domain.MetadataCache {
 	return nil
 }
 
-// registerCloseableForShutdown registers a service for graceful shutdown if
-// it uses a known shutdown interface, so user-provided services are cleaned up
-// without the need for manual shutdown setup.
+// registerCloseableForShutdown registers a service for graceful shutdown if it uses a
+// known shutdown interface, so user-provided services are cleaned up without the need for
+// manual shutdown setup.
 //
 // The following shutdown patterns are checked (in order of priority):
 //   - Close(context.Context) error
@@ -1751,8 +1698,8 @@ func registerCloseableForShutdown(ctx context.Context, name string, service any)
 		logger_domain.String("service", name))
 }
 
-// resolveActionResponseCacheMaxBytes returns the operator-supplied
-// byte cap on the action-response cache when set.
+// resolveActionResponseCacheMaxBytes returns the operator-supplied byte cap on the
+// action-response cache when set.
 //
 // Returns uint64 which is the resolved byte cap.
 func (c *Container) resolveActionResponseCacheMaxBytes() uint64 {

@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// Applies AST transformations to template nodes including attribute processing,
-// directive handling, and node restructuring. Transforms special attributes,
-// processes asset references, and prepares the AST for final code generation.
+// Applies AST transformations to template nodes including attribute processing, directive
+// handling, and node restructuring. Transforms special attributes, processes asset
+// references, and prepares the AST for final code generation.
 
 import (
 	"cmp"
@@ -38,17 +38,17 @@ import (
 )
 
 const (
-	// actionCallModifier is the modifier value set on directives for
-	// server-side action calls using the v2 action.namespace.Name() syntax.
-	// The compiler reads this to generate the appropriate handler code.
+	// actionCallModifier is the modifier value set on directives for server-side action
+	// calls using the v2 action.namespace.Name() syntax. The compiler reads this to generate
+	// the appropriate handler code.
 	actionCallModifier = "action"
 
-	// helperModifierName is the modifier value set on directives for
-	// client-side helper functions.
+	// helperModifierName is the modifier value set on directives for client-side helper
+	// functions.
 	helperModifierName = "helper"
 
-	// actionMethodAttributeName is the HTML attribute name for the HTTP
-	// method used by server-side actions.
+	// actionMethodAttributeName is the HTML attribute name for the HTTP method used by
+	// server-side actions.
 	actionMethodAttributeName = "data-pk-action-method"
 
 	// defaultViewportWidth is the fallback width in pixels for responsive layout
@@ -57,9 +57,8 @@ const (
 )
 
 var (
-	// allowedEventModifiers defines the set of valid user-facing event modifiers
-	// for p-on and p-event directives. Unknown modifiers produce a compile-time
-	// error.
+	// allowedEventModifiers defines the set of valid user-facing event modifiers for p-on
+	// and p-event directives. Unknown modifiers produce a compile-time error.
 	allowedEventModifiers = map[string]bool{
 		"prevent": true,
 		"stop":    true,
@@ -72,8 +71,8 @@ var (
 	// defaultResponsiveBreakpoints defines standard responsive image widths.
 	defaultResponsiveBreakpoints = []int{320, 640, 768, 1024, 1280}
 
-	// staticAssetTags maps tag names that reference static
-	// asset files for dependency collection.
+	// staticAssetTags maps tag names that reference static asset files for dependency
+	// collection.
 	staticAssetTags = map[string]bool{
 		"piko:svg":     true,
 		"piko:img":     true,
@@ -166,12 +165,12 @@ func (ac *assetCollectionContext) processAssetNode(ctx context.Context, node *as
 	return true
 }
 
-// expandProfileIfPresent expands a profile attribute into explicit
-// transformation parameters.
+// expandProfileIfPresent expands a profile attribute into explicit transformation
+// parameters.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes node (*ast_domain.TemplateNode) which is the template node to check
-// for a profile attribute.
+// Takes node (*ast_domain.TemplateNode) which is the template node to check for a profile
+// attribute.
 func (ac *assetCollectionContext) expandProfileIfPresent(ctx context.Context, node *ast_domain.TemplateNode) {
 	profileName, hasProfile := node.GetAttribute("profile")
 	if !hasProfile {
@@ -220,8 +219,8 @@ func (ac *assetCollectionContext) expandProfileIfPresent(ctx context.Context, no
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the template node to update.
-// Takes profileDef ([]config.AssetTransformationStep) which provides the
-// profile settings to merge.
+// Takes profileDef ([]config.AssetTransformationStep) which provides the profile settings
+// to merge.
 // Takes profileName (string) which identifies the profile for logging.
 func (*assetCollectionContext) mergeProfileAttributes(
 	ctx context.Context,
@@ -279,17 +278,16 @@ func (*assetCollectionContext) hasDynamicSrc(node *ast_domain.TemplateNode) bool
 	return false
 }
 
-// validateAssetExists checks if the asset file exists on the filesystem.
-// It uses the resolver to convert the module-absolute path (or @ alias) to a
-// filesystem path.
+// validateAssetExists checks if the asset file exists on the filesystem. It uses the
+// resolver to convert the module-absolute path (or @ alias) to a filesystem path.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes node (*ast_domain.TemplateNode) which identifies the template location
-// for diagnostic reporting.
+// Takes node (*ast_domain.TemplateNode) which identifies the template location for
+// diagnostic reporting.
 // Takes staticSrc (string) which is the asset path, possibly with @ alias.
 //
-// Returns string which is the expanded module-absolute path with @ alias
-// resolved, for use as the dependency's SourcePath in registry lookups.
+// Returns string which is the expanded module-absolute path with @ alias resolved, for
+// use as the dependency's SourcePath in registry lookups.
 // Returns bool which indicates whether validation succeeded.
 func (ac *assetCollectionContext) validateAssetExists(ctx context.Context, node *ast_domain.TemplateNode, staticSrc string) (string, bool) {
 	expandedPath, err := resolver_adapters.ExpandModuleAlias(staticSrc, ac.originComponentPath)
@@ -320,9 +318,9 @@ func (ac *assetCollectionContext) validateAssetExists(ctx context.Context, node 
 	return expandedPath, true
 }
 
-// updateNodeSrcAttribute sets the src attribute value in an AST node.
-// This replaces @ aliases with full module paths during the build phase, so
-// the built AST contains correct paths for use at runtime.
+// updateNodeSrcAttribute sets the src attribute value in an AST node. This replaces @
+// aliases with full module paths during the build phase, so the built AST contains
+// correct paths for use at runtime.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to update.
 // Takes newSrc (string) which is the new source path value.
@@ -335,12 +333,12 @@ func (*assetCollectionContext) updateNodeSrcAttribute(node *ast_domain.TemplateN
 	}
 }
 
-// processPosterAttribute handles the poster attribute for piko:video elements,
-// collecting it as an image dependency for analysis and processing.
+// processPosterAttribute handles the poster attribute for piko:video elements, collecting
+// it as an image dependency for analysis and processing.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes node (*ast_domain.TemplateNode) which is the piko:video element to
-// check for a poster attribute.
+// Takes node (*ast_domain.TemplateNode) which is the piko:video element to check for a
+// poster attribute.
 func (ac *assetCollectionContext) processPosterAttribute(ctx context.Context, node *ast_domain.TemplateNode) {
 	posterSrc, hasPoster := node.GetAttribute("poster")
 	if !hasPoster || posterSrc == "" {
@@ -382,14 +380,13 @@ func (*assetCollectionContext) updatePosterAttribute(node *ast_domain.TemplateNo
 	}
 }
 
-// buildPosterDependency creates a static asset dependency for a video poster.
-// The poster is treated as an image asset with poster-specific settings.
+// buildPosterDependency creates a static asset dependency for a video poster. The poster
+// is treated as an image asset with poster-specific settings.
 //
 // Takes node (*ast_domain.TemplateNode) which is the piko:video element.
 // Takes posterSrc (string) which is the path to the poster image.
 //
-// Returns *annotator_dto.StaticAssetDependency which is the configured poster
-// dependency.
+// Returns *annotator_dto.StaticAssetDependency which is the configured poster dependency.
 func (ac *assetCollectionContext) buildPosterDependency(
 	node *ast_domain.TemplateNode,
 	posterSrc string,
@@ -424,12 +421,11 @@ func (ac *assetCollectionContext) buildPosterDependency(
 
 // buildDependency creates a static asset dependency from a template node.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the template node to
-// convert.
+// Takes node (*ast_domain.TemplateNode) which provides the template node to convert.
 // Takes staticSrc (string) which specifies the source path for the asset.
 //
-// Returns *annotator_dto.StaticAssetDependency which contains the dependency
-// with settings copied from the node attributes.
+// Returns *annotator_dto.StaticAssetDependency which contains the dependency with
+// settings copied from the node attributes.
 func (ac *assetCollectionContext) buildDependency(
 	node *ast_domain.TemplateNode,
 	staticSrc string,
@@ -452,13 +448,12 @@ func (ac *assetCollectionContext) buildDependency(
 	return dependency
 }
 
-// validateAndEnrichResponsiveImage checks responsive image attributes and sets
-// default values.
+// validateAndEnrichResponsiveImage checks responsive image attributes and sets default
+// values.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
-// Takes dependency (*annotator_dto.StaticAssetDependency) which holds the image
-// settings.
+// Takes dependency (*annotator_dto.StaticAssetDependency) which holds the image settings.
 // Takes staticSrc (string) which is the source path used for logging.
 func (ac *assetCollectionContext) validateAndEnrichResponsiveImage(
 	ctx context.Context,
@@ -513,14 +508,13 @@ func (ac *assetCollectionContext) validateDensitiesFormat(node *ast_domain.Templ
 	}
 }
 
-// applyDefaultDensitiesIfNeeded adds default density values to responsive
-// images that have sizes but no densities set.
+// applyDefaultDensitiesIfNeeded adds default density values to responsive images that
+// have sizes but no densities set.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes node (*ast_domain.TemplateNode) which is the template node being
-// processed.
-// Takes dependency (*annotator_dto.StaticAssetDependency) which receives the
-// density settings.
+// Takes node (*ast_domain.TemplateNode) which is the template node being processed.
+// Takes dependency (*annotator_dto.StaticAssetDependency) which receives the density
+// settings.
 // Takes staticSrc (string) which is the source path used for logging.
 // Takes hasSizes (bool) which indicates whether the image has sizes set.
 // Takes hasDensities (bool) which indicates whether densities are already set.
@@ -553,8 +547,8 @@ func (ac *assetCollectionContext) applyDefaultDensitiesIfNeeded(
 
 // addDiagnostic adds a warning diagnostic for the given node.
 //
-// Takes node (*ast_domain.TemplateNode) which specifies the location and tag
-// for the diagnostic.
+// Takes node (*ast_domain.TemplateNode) which specifies the location and tag for the
+// diagnostic.
 // Takes message (string) which provides the warning text to display.
 // Takes code (string) which identifies the diagnostic type for tooling.
 func (ac *assetCollectionContext) addDiagnostic(node *ast_domain.TemplateNode, message, code string) {
@@ -572,23 +566,23 @@ func (ac *assetCollectionContext) addDiagnostic(node *ast_domain.TemplateNode, m
 	))
 }
 
-// performFinalTransformations runs all transformation passes after semantic
-// analysis. It adds optimisation flags and runtime metadata to the AST.
+// performFinalTransformations runs all transformation passes after semantic analysis. It
+// adds optimisation flags and runtime metadata to the AST.
 //
 // Takes templateAst (*ast_domain.TemplateAST) which is the AST to transform.
 // Takes resolver (resolver_domain.ResolverPort) which resolves asset paths.
 // Takes pathsConfig (AnnotatorPathsConfig) which provides path settings.
 // Takes assetsConfig (*config.AssetsConfig) which provides asset settings.
 // Takes fsReader (FSReaderPort) which reads files from the filesystem.
-// Takes componentRegistry (ComponentRegistryPort) which provides component
-// metadata for custom tag collection.
+// Takes componentRegistry (ComponentRegistryPort) which provides component metadata for
+// custom tag collection.
 //
-// Returns []*annotator_dto.StaticAssetDependency which contains the expanded
-// static asset dependencies.
+// Returns []*annotator_dto.StaticAssetDependency which contains the expanded static asset
+// dependencies.
 // Returns []string which contains the custom tags found in the template.
 // Returns bool which indicates whether the template uses a captcha element.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics collected
-// during transformation.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics collected during
+// transformation.
 func performFinalTransformations(
 	ctx context.Context,
 	templateAst *ast_domain.TemplateAST,
@@ -630,11 +624,10 @@ func performFinalTransformations(
 	return expandedDeps, customTags, usesCaptcha, diagnostics
 }
 
-// detectCaptchaUsage walks the AST to check if any element has the
-// piko:captcha tag name.
+// detectCaptchaUsage walks the AST to check if any element has the piko:captcha tag name.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which is the AST to search for
-// captcha elements.
+// Takes templateAST (*ast_domain.TemplateAST) which is the AST to search for captcha
+// elements.
 //
 // Returns bool which is true if any node in the tree uses piko:captcha.
 func detectCaptchaUsage(templateAST *ast_domain.TemplateAST) bool {
@@ -644,12 +637,11 @@ func detectCaptchaUsage(templateAST *ast_domain.TemplateAST) bool {
 	return slices.ContainsFunc(templateAST.RootNodes, nodeHasCaptcha)
 }
 
-// nodeHasCaptcha recursively checks a node and its children for piko:captcha.
-// Recursion is capped at maxAnnotatorDepth so a pathological tree cannot
-// overflow the Go stack.
+// nodeHasCaptcha recursively checks a node and its children for piko:captcha. Recursion
+// is capped at maxAnnotatorDepth so a pathological tree cannot overflow the Go stack.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node to check, including
-// its children.
+// Takes node (*ast_domain.TemplateNode) which is the node to check, including its
+// children.
 //
 // Returns bool which is true if the node or any descendant is piko:captcha.
 func nodeHasCaptcha(node *ast_domain.TemplateNode) bool {
@@ -659,8 +651,7 @@ func nodeHasCaptcha(node *ast_domain.TemplateNode) bool {
 // nodeHasCaptchaAt is the depth-tracked recursion behind nodeHasCaptcha.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
-// Takes depth (int) which is the current recursion depth, capped at
-// maxAnnotatorDepth.
+// Takes depth (int) which is the current recursion depth, capped at maxAnnotatorDepth.
 //
 // Returns bool which is true if the node or any descendant is piko:captcha.
 func nodeHasCaptchaAt(node *ast_domain.TemplateNode, depth int) bool {
@@ -678,8 +669,8 @@ func nodeHasCaptchaAt(node *ast_domain.TemplateNode, depth int) bool {
 	return false
 }
 
-// performStaticAnalysis walks the AST in post-order to mark which nodes are
-// static and which can be fully prerendered.
+// performStaticAnalysis walks the AST in post-order to mark which nodes are static and
+// which can be fully prerendered.
 //
 // Takes templateAst (*ast_domain.TemplateAST) which is the AST to analyse.
 func performStaticAnalysis(_ context.Context, templateAst *ast_domain.TemplateAST) {
@@ -694,12 +685,12 @@ func performStaticAnalysis(_ context.Context, templateAst *ast_domain.TemplateAS
 	}
 }
 
-// analyseNodeForStaticity checks if a node is static and stores the result in
-// its annotation.
+// analyseNodeForStaticity checks if a node is static and stores the result in its
+// annotation.
 //
-// A node is structurally static when it has no dynamic features. A node is
-// fully static when it is structurally static, has no structural or presence
-// directives, and all its children are also static.
+// A node is structurally static when it has no dynamic features. A node is fully static
+// when it is structurally static, has no structural or presence directives, and all its
+// children are also static.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 func analyseNodeForStaticity(node *ast_domain.TemplateNode) {
@@ -722,8 +713,8 @@ func analyseNodeForStaticity(node *ast_domain.TemplateNode) {
 	node.GoAnnotations.IsStatic = isSemanticallyStatic
 }
 
-// analyseNodeForPrerenderability checks whether a static node and all its
-// children can be converted to HTML bytes at generation time.
+// analyseNodeForPrerenderability checks whether a static node and all its children can be
+// converted to HTML bytes at generation time.
 //
 // A node is fully prerenderable only if:
 //   - It is marked IsStatic (no dynamic features or structural directives).
@@ -755,13 +746,12 @@ func analyseNodeForPrerenderability(node *ast_domain.TemplateNode) {
 	node.GoAnnotations.IsFullyPrerenderable = true
 }
 
-// hasStructuralOrPresenceDirectives reports whether the node has any
-// structural or presence directives attached.
+// hasStructuralOrPresenceDirectives reports whether the node has any structural or
+// presence directives attached.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node has a for, if, else-if, or else
-// directive.
+// Returns bool which is true if the node has a for, if, else-if, or else directive.
 func hasStructuralOrPresenceDirectives(node *ast_domain.TemplateNode) bool {
 	return node.DirFor != nil ||
 		node.DirIf != nil ||
@@ -769,13 +759,13 @@ func hasStructuralOrPresenceDirectives(node *ast_domain.TemplateNode) bool {
 		node.DirElse != nil
 }
 
-// hasDynamicFeatures checks whether a node has any feature that prevents it
-// from being static.
+// hasDynamicFeatures checks whether a node has any feature that prevents it from being
+// static.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node has dynamic keys, runtime-processed
-// elements, dynamic text content, rendering directives, or dynamic bindings.
+// Returns bool which is true if the node has dynamic keys, runtime-processed elements,
+// dynamic text content, rendering directives, or dynamic bindings.
 func hasDynamicFeatures(node *ast_domain.TemplateNode) bool {
 	return hasDynamicKey(node) ||
 		isRuntimeProcessedElement(node) ||
@@ -793,13 +783,12 @@ func hasDynamicKey(node *ast_domain.TemplateNode) bool {
 	return node.Key != nil && !isStaticKey(node.Key)
 }
 
-// isRuntimeProcessedElement checks whether a template node needs processing at
-// runtime.
+// isRuntimeProcessedElement checks whether a template node needs processing at runtime.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node is an element or fragment that has a
-// runtime processing tag or contains a partial invocation.
+// Returns bool which is true if the node is an element or fragment that has a runtime
+// processing tag or contains a partial invocation.
 func isRuntimeProcessedElement(node *ast_domain.TemplateNode) bool {
 	if node.NodeType != ast_domain.NodeElement && node.NodeType != ast_domain.NodeFragment {
 		return false
@@ -829,8 +818,8 @@ func hasDynamicTextContent(node *ast_domain.TemplateNode) bool {
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node has a text, HTML, class, style, or
-// show directive.
+// Returns bool which is true if the node has a text, HTML, class, style, or show
+// directive.
 func hasRenderingDirectives(node *ast_domain.TemplateNode) bool {
 	return node.DirText != nil ||
 		node.DirHTML != nil ||
@@ -841,15 +830,15 @@ func hasRenderingDirectives(node *ast_domain.TemplateNode) bool {
 
 // hasDynamicBindings checks whether a template node has any dynamic bindings.
 //
-// Event handlers are only considered dynamic if their expressions reference
-// template scope variables (IsStaticEvent == false). Static event handlers
-// like p-on:click="handleClick" or p-on:click="doSomething($event)" can be
-// hoisted because they do not depend on runtime template values.
+// Event handlers are only considered dynamic if their expressions reference template
+// scope variables (IsStaticEvent == false). Static event handlers like
+// p-on:click="handleClick" or p-on:click="doSomething($event)" can be hoisted because
+// they do not depend on runtime template values.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node has dynamic attributes or non-static
-// event handlers.
+// Returns bool which is true if the node has dynamic attributes or non-static event
+// handlers.
 func hasDynamicBindings(node *ast_domain.TemplateNode) bool {
 	if len(node.DynamicAttributes) > 0 {
 		return true
@@ -865,8 +854,7 @@ func hasDynamicBindings(node *ast_domain.TemplateNode) bool {
 
 // hasNonStaticEvents checks if any event directive in the map is dynamic.
 //
-// Takes events (map[string][]ast_domain.Directive) which is the event map to
-// check.
+// Takes events (map[string][]ast_domain.Directive) which is the event map to check.
 //
 // Returns bool which is true if any event is not a static event.
 func hasNonStaticEvents(events map[string][]ast_domain.Directive) bool {
@@ -890,22 +878,22 @@ func isStaticKey(key ast_domain.Expression) bool {
 	return isStringLit
 }
 
-// collectStaticAssetDependencies walks the template AST to find all piko:*
-// tags with a static src attribute, checks that each asset file exists, and
-// returns all valid dependencies found.
+// collectStaticAssetDependencies walks the template AST to find all piko:* tags with a
+// static src attribute, checks that each asset file exists, and returns all valid
+// dependencies found.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to
-// scan for static asset references.
+// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to scan for
+// static asset references.
 // Takes resolver (resolver_domain.ResolverPort) which resolves asset paths.
 // Takes pathsConfig (AnnotatorPathsConfig) which provides path settings.
-// Takes assetsConfig (*config.AssetsConfig) which provides asset profiles and
-// responsive image settings.
+// Takes assetsConfig (*config.AssetsConfig) which provides asset profiles and responsive
+// image settings.
 // Takes fsReader (FSReaderPort) which checks whether asset files exist.
 //
-// Returns []*annotator_dto.StaticAssetDependency which contains all valid
-// static asset dependencies found in the template.
-// Returns []*ast_domain.Diagnostic which contains errors for missing or
-// invalid asset references.
+// Returns []*annotator_dto.StaticAssetDependency which contains all valid static asset
+// dependencies found in the template.
+// Returns []*ast_domain.Diagnostic which contains errors for missing or invalid asset
+// references.
 func collectStaticAssetDependencies(
 	ctx context.Context,
 	templateAST *ast_domain.TemplateAST,
@@ -941,8 +929,8 @@ func collectStaticAssetDependencies(
 	return ac.dependencies, ac.diagnostics
 }
 
-// isExternalURL checks whether a URL points to an external resource.
-// External URLs start with http://, https://, //, or data:.
+// isExternalURL checks whether a URL points to an external resource. External URLs start
+// with http://, https://, //, or data:.
 //
 // Takes url (string) which is the URL to check.
 //
@@ -956,21 +944,20 @@ func isExternalURL(url string) bool {
 
 // collectCustomTags walks the given AST to find custom element tags.
 //
-// When a component registry is provided, only tags that are registered in the
-// registry are collected. This gives reliable custom tag detection based on
-// which PKC components are available.
+// When a component registry is provided, only tags that are registered in the registry
+// are collected. This gives reliable custom tag detection based on which PKC components
+// are available.
 //
-// When no registry is provided (nil), the function uses a simple rule instead:
-// tags with a hyphen are treated as custom elements. This keeps things working
-// during the change to registry-based detection.
+// When no registry is provided (nil), the function uses a simple rule instead: tags with
+// a hyphen are treated as custom elements. This keeps things working during the change to
+// registry-based detection.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to
-// search.
-// Takes registry (ComponentRegistryPort) which provides component lookup, or
-// nil to use hyphen-based detection.
+// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to search.
+// Takes registry (ComponentRegistryPort) which provides component lookup, or nil to use
+// hyphen-based detection.
 //
-// Returns []string which contains the sorted list of unique custom tag names,
-// or nil if templateAST is nil.
+// Returns []string which contains the sorted list of unique custom tag names, or nil if
+// templateAST is nil.
 func collectCustomTags(templateAST *ast_domain.TemplateAST, registry ComponentRegistryPort) []string {
 	if templateAST == nil {
 		return nil

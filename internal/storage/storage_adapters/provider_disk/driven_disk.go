@@ -32,11 +32,11 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/contextaware"
-	"piko.sh/piko/internal/json"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"piko.sh/piko/internal/contextaware"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/storage/storage_domain"
@@ -45,8 +45,8 @@ import (
 )
 
 const (
-	// defaultCallsPerSecond is the default rate limit for the disk provider,
-	// set to zero to disable rate limiting for local disk operations.
+	// defaultCallsPerSecond is the default rate limit for the disk provider, set to zero to
+	// disable rate limiting for local disk operations.
 	defaultCallsPerSecond = 0
 
 	// defaultBurst is the default burst size for rate limiting.
@@ -58,12 +58,12 @@ const (
 	// md5SidecarSuffix is the file extension for MD5 hash sidecar files.
 	md5SidecarSuffix = ".md5"
 
-	// dirPermissions is the file mode used when creating directories.
-	// Uses 0750: owner rwx, group rx, others none.
+	// dirPermissions is the file mode used when creating directories. Uses 0750: owner rwx,
+	// group rx, others none.
 	dirPermissions = 0750
 
-	// filePermissions is the Unix permission mode for sidecar cache files.
-	// Uses 0640: owner rw, group r, others none.
+	// filePermissions is the Unix permission mode for sidecar cache files. Uses 0640: owner
+	// rw, group r, others none.
 	filePermissions = 0640
 
 	// logOpPut is the operation name for put operations in logging and metrics.
@@ -93,25 +93,23 @@ const (
 	// bytesPerMegabyte is the number of bytes in a megabyte (1024 x 1024).
 	bytesPerMegabyte = 1024 * 1024
 
-	// md5HashHexLength is the length of an MD5 hash in hexadecimal form (32
-	// chars).
+	// md5HashHexLength is the length of an MD5 hash in hexadecimal form (32 chars).
 	md5HashHexLength = 32
 
 	// defaultMaxSidecarBytes caps reads from sidecar files.
 	//
 	// Sidecars hold tiny payloads (an md5 digest or a JSON metadata map of opaque
-	// keys/values), so the cap is generous (1 MiB) and just defends against a
-	// corrupted or attacker-influenced sidecar that would otherwise be slurped
-	// whole into memory.
+	// keys/values), so the cap is generous (1 MiB) and just defends against a corrupted or
+	// attacker-influenced sidecar that would otherwise be slurped whole into memory.
 	//
-	// TODO(piko): expose as DiskProvider Config option once a broader storage
-	// adapter config refactor lands.
+	// A broader storage-adapter config refactor will expose this as a DiskProvider Config
+	// option.
 	defaultMaxSidecarBytes int64 = 1 * 1024 * 1024
 )
 
-// DiskProvider implements StorageProviderPort using the local filesystem.
-// It features atomic writes to prevent data corruption and sandboxes all
-// file operations using safedisk for security.
+// DiskProvider implements StorageProviderPort using the local filesystem. It features
+// atomic writes to prevent data corruption and sandboxes all file operations using
+// safedisk for security.
 type DiskProvider struct {
 	// rateLimiter controls how often emails can be sent.
 	rateLimiter *storage_domain.ProviderRateLimiter
@@ -120,32 +118,33 @@ type DiskProvider struct {
 	sandbox safedisk.Sandbox
 }
 
-var _ storage_domain.StorageProviderPort = (*DiskProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*DiskProvider)(nil)
+var (
+	_ storage_domain.StorageProviderPort = (*DiskProvider)(nil)
+
+	_ provider_domain.ProviderMetadata = (*DiskProvider)(nil)
+)
 
 // Config holds the necessary configuration for the DiskProvider.
 type Config struct {
-	// Sandbox is the filesystem sandbox used for all file operations.
-	// If nil, a new sandbox is created using BaseDirectory.
+	// Sandbox is the filesystem sandbox used for all file operations. If nil, a new sandbox
+	// is created using BaseDirectory.
 	Sandbox safedisk.Sandbox
 
-	// SandboxFactory creates sandboxes when Sandbox is nil. When non-nil and
-	// Sandbox is nil, this factory is used instead of safedisk.NewSandbox.
+	// SandboxFactory creates sandboxes when Sandbox is nil. When non-nil and Sandbox is nil,
+	// this factory is used instead of safedisk.NewSandbox.
 	SandboxFactory safedisk.Factory
 
-	// BaseDirectory is the root directory where all repositories and objects will
-	// be stored.
+	// BaseDirectory is the root directory where all repositories and objects will be stored.
 	BaseDirectory string
 }
 
-// Put saves an object from a reader to the disk using an atomic write
-// operation.
+// Put saves an object from a reader to the disk using an atomic write operation.
 //
-// Takes params (*storage_dto.PutParams) which specifies the repository, key,
-// reader, and optional metadata for the object.
+// Takes params (*storage_dto.PutParams) which specifies the repository, key, reader, and
+// optional metadata for the object.
 //
-// Returns error when the path is invalid, directory creation fails, temporary
-// file operations fail, or the atomic rename fails.
+// Returns error when the path is invalid, directory creation fails, temporary file
+// operations fail, or the atomic rename fails.
 func (d *DiskProvider) Put(ctx context.Context, params *storage_dto.PutParams) error {
 	startTime := time.Now()
 
@@ -205,11 +204,10 @@ func (d *DiskProvider) Put(ctx context.Context, params *storage_dto.PutParams) e
 	return nil
 }
 
-// Get retrieves a file from disk as a readable stream, supporting partial
-// reads.
+// Get retrieves a file from disk as a readable stream, supporting partial reads.
 //
-// Takes params (storage_dto.GetParams) which specifies the file to retrieve
-// and any byte range for partial reads.
+// Takes params (storage_dto.GetParams) which specifies the file to retrieve and any byte
+// range for partial reads.
 //
 // Returns io.ReadCloser which provides the file content as a stream.
 // Returns error when the path is invalid or the file cannot be opened.
@@ -283,8 +281,7 @@ func (d *DiskProvider) Stat(ctx context.Context, params storage_dto.GetParams) (
 // Takes srcKey (string) which specifies the source object key.
 // Takes dstKey (string) which specifies the destination object key.
 //
-// Returns error when the source or destination key is invalid, or the copy
-// fails.
+// Returns error when the source or destination key is invalid, or the copy fails.
 func (d *DiskProvider) Copy(_ context.Context, repo string, srcKey, dstKey string) error {
 	srcPath, err := repoPath(repo, srcKey)
 	if err != nil {
@@ -325,8 +322,8 @@ func (d *DiskProvider) CopyToAnotherRepository(_ context.Context, srcRepo string
 
 // Remove deletes a file and its associated sidecar files from the disk.
 //
-// Takes params (storage_dto.GetParams) which specifies the repository and
-// key of the file to delete.
+// Takes params (storage_dto.GetParams) which specifies the repository and key of the file
+// to delete.
 //
 // Returns error when the path is invalid or the file cannot be removed.
 func (d *DiskProvider) Remove(ctx context.Context, params storage_dto.GetParams) error {
@@ -353,15 +350,15 @@ func (d *DiskProvider) Remove(ctx context.Context, params storage_dto.GetParams)
 	return nil
 }
 
-// Rename atomically moves a file from oldKey to newKey within the same
-// repository. Uses os.Rename which is atomic on POSIX systems.
+// Rename atomically moves a file from oldKey to newKey within the same repository. Uses
+// os.Rename which is atomic on POSIX systems.
 //
 // Takes repo (string) which identifies the repository containing the file.
 // Takes oldKey (string) which specifies the current file key.
 // Takes newKey (string) which specifies the desired new file key.
 //
-// Returns error when a key is invalid, directory creation fails, or the
-// rename operation fails.
+// Returns error when a key is invalid, directory creation fails, or the rename operation
+// fails.
 func (d *DiskProvider) Rename(ctx context.Context, repo string, oldKey, newKey string) error {
 	startTime := time.Now()
 
@@ -397,15 +394,12 @@ func (d *DiskProvider) Rename(ctx context.Context, repo string, oldKey, newKey s
 }
 
 // Exists checks if a file exists at the given key.
-// Returns (true, nil) if exists, (false, nil) if not exists, (false, error) on
-// failure.
+// Returns (true, nil) if exists, (false, nil) if not exists, (false, error) on failure.
 //
-// Takes params (storage_dto.GetParams) which specifies the repository and
-// key to check.
+// Takes params (storage_dto.GetParams) which specifies the repository and key to check.
 //
 // Returns bool which is true if the file exists, false otherwise.
-// Returns error when the path is invalid or the stat operation fails
-// unexpectedly.
+// Returns error when the path is invalid or the stat operation fails unexpectedly.
 func (d *DiskProvider) Exists(ctx context.Context, params storage_dto.GetParams) (bool, error) {
 	startTime := time.Now()
 
@@ -432,8 +426,8 @@ func (d *DiskProvider) Exists(ctx context.Context, params storage_dto.GetParams)
 	return true, nil
 }
 
-// ListKeys returns all non-sidecar, non-temporary storage keys within the
-// given repository directory.
+// ListKeys returns all non-sidecar, non-temporary storage keys within the given
+// repository directory.
 //
 // Takes repository (string) which identifies the repository to scan.
 //
@@ -468,15 +462,14 @@ func (d *DiskProvider) ListKeys(_ context.Context, repository string) ([]string,
 	return keys, nil
 }
 
-// GetHash returns the MD5 hash of a file, using a .md5 sidecar file for
-// caching. It checks if the cached hash is still valid and recomputes it if
-// the source file has changed.
+// GetHash returns the MD5 hash of a file, using a .md5 sidecar file for caching. It
+// checks if the cached hash is still valid and recomputes it if the source file has
+// changed.
 //
 // Takes params (storage_dto.GetParams) which specifies the repository and key.
 //
 // Returns string which is the MD5 hash of the file.
-// Returns error when the path cannot be resolved or the hash cannot be
-// computed.
+// Returns error when the path cannot be resolved or the hash cannot be computed.
 func (d *DiskProvider) GetHash(ctx context.Context, params storage_dto.GetParams) (string, error) {
 	path, err := repoPath(params.Repository, params.Key)
 	if err != nil {
@@ -495,14 +488,13 @@ func (d *DiskProvider) GetHash(ctx context.Context, params storage_dto.GetParams
 // PresignURL is not supported by the disk provider.
 //
 // Returns string which is always empty for this provider.
-// Returns error which is always non-nil because this operation is not
-// supported.
+// Returns error which is always non-nil because this operation is not supported.
 func (*DiskProvider) PresignURL(_ context.Context, _ storage_dto.PresignParams) (string, error) {
 	return "", errors.New("presigned URLs are not supported by the disk provider")
 }
 
-// PresignDownloadURL is not supported by the disk provider.
-// The service layer provides a fallback for disk providers.
+// PresignDownloadURL is not supported by the disk provider. The service layer provides a
+// fallback for disk providers.
 //
 // Returns string which is always empty for this provider.
 // Returns error which is always non-nil as this operation is not supported.
@@ -520,50 +512,45 @@ func (d *DiskProvider) Close(_ context.Context) error {
 	return nil
 }
 
-// SupportsMultipart reports whether multipart uploads are supported.
-// The disk provider uses simple atomic writes instead.
+// SupportsMultipart reports whether multipart uploads are supported. The disk provider
+// uses simple atomic writes instead.
 //
 // Returns bool which is always false for this provider.
 func (*DiskProvider) SupportsMultipart() bool {
 	return false
 }
 
-// SupportsBatchOperations returns false as the local disk has no native
-// batch API.
+// SupportsBatchOperations returns false as the local disk has no native batch API.
 //
 // Returns bool which is always false for this provider.
 func (*DiskProvider) SupportsBatchOperations() bool {
 	return false
 }
 
-// SupportsRetry returns false; disk operations should be retried by the
-// service layer.
+// SupportsRetry returns false; disk operations should be retried by the service layer.
 //
 // Returns bool which is always false for disk providers.
 func (*DiskProvider) SupportsRetry() bool {
 	return false
 }
 
-// SupportsCircuitBreaking returns false; the service layer handles circuit
-// breaking.
+// SupportsCircuitBreaking returns false; the service layer handles circuit breaking.
 //
 // Returns bool which is always false for this provider.
 func (*DiskProvider) SupportsCircuitBreaking() bool {
 	return false
 }
 
-// SupportsRateLimiting returns whether rate limiting is needed for this
-// provider.
+// SupportsRateLimiting returns whether rate limiting is needed for this provider.
 //
-// Returns bool which is always false as local disk operations do not need
-// rate limiting.
+// Returns bool which is always false as local disk operations do not need rate limiting.
 func (*DiskProvider) SupportsRateLimiting() bool {
 	return false
 }
 
-// SupportsPresignedURLs returns false as the disk provider cannot generate
-// native presigned URLs. The storage service will use its fallback mechanism
-// (HMAC-signed tokens + HTTP upload endpoint) instead.
+// SupportsPresignedURLs returns false as the disk provider cannot generate native
+// presigned URLs. The storage service will use its fallback mechanism (HMAC-signed tokens
+// + HTTP upload endpoint) instead.
 //
 // Returns bool which is always false for this provider.
 func (*DiskProvider) SupportsPresignedURLs() bool {
@@ -572,11 +559,11 @@ func (*DiskProvider) SupportsPresignedURLs() bool {
 
 // RemoveMany implements batch delete using sequential removal.
 //
-// Takes params (storage_dto.RemoveManyParams) which specifies the keys to
-// delete and error handling behaviour.
+// Takes params (storage_dto.RemoveManyParams) which specifies the keys to delete and
+// error handling behaviour.
 //
-// Returns *storage_dto.BatchResult which contains counts and details of
-// successful and failed deletions.
+// Returns *storage_dto.BatchResult which contains counts and details of successful and
+// failed deletions.
 // Returns error when the operation fails.
 func (d *DiskProvider) RemoveMany(ctx context.Context, params storage_dto.RemoveManyParams) (*storage_dto.BatchResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -630,11 +617,11 @@ func (d *DiskProvider) RemoveMany(ctx context.Context, params storage_dto.Remove
 
 // PutMany implements batch upload using sequential uploads.
 //
-// Takes params (*storage_dto.PutManyParams) which specifies the objects to
-// upload and batch settings.
+// Takes params (*storage_dto.PutManyParams) which specifies the objects to upload and
+// batch settings.
 //
-// Returns *storage_dto.BatchResult which contains counts and details of
-// successful and failed uploads.
+// Returns *storage_dto.BatchResult which contains counts and details of successful and
+// failed uploads.
 // Returns error when the batch operation fails.
 func (d *DiskProvider) PutMany(ctx context.Context, params *storage_dto.PutManyParams) (*storage_dto.BatchResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -693,19 +680,18 @@ func (d *DiskProvider) PutMany(ctx context.Context, params *storage_dto.PutManyP
 	return result, nil
 }
 
-// Name returns the display name of this provider.
-// Implements the healthprobe_domain.Probe interface.
+// Name returns the display name of this provider. Implements the healthprobe_domain.Probe
+// interface.
 //
 // Returns string which is the human-readable name for this provider.
 func (*DiskProvider) Name() string {
 	return "StorageProvider (Disk)"
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It checks that the storage folder is reachable and has enough disk space.
+// Check implements the healthprobe_domain.Probe interface. It checks that the storage
+// folder is reachable and has enough disk space.
 //
-// Takes checkType (healthprobe_dto.CheckType) which sets the type of health
-// check to run.
+// Takes checkType (healthprobe_dto.CheckType) which sets the type of health check to run.
 //
 // Returns healthprobe_dto.Status which holds the health state and details.
 func (d *DiskProvider) Check(_ context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -761,8 +747,8 @@ func (*DiskProvider) GetProviderType() string {
 
 // GetProviderMetadata returns metadata about the disk storage provider.
 //
-// Returns map[string]any which contains provider details including version,
-// base directory, supported features, and disk space information.
+// Returns map[string]any which contains provider details including version, base
+// directory, supported features, and disk space information.
 func (d *DiskProvider) GetProviderMetadata() map[string]any {
 	rootPath := d.sandbox.Root()
 
@@ -782,8 +768,8 @@ func (d *DiskProvider) GetProviderMetadata() map[string]any {
 
 // handleRangeRequest prepares a file reader for a specific byte range.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes file (safedisk.FileHandle) which is the open file to read from.
 // Takes key (string) which identifies the file for logging purposes.
 // Takes byteRange (*storage_dto.ByteRange) which specifies the range to read.
@@ -822,8 +808,8 @@ func (*DiskProvider) handleRangeRequest(ctx context.Context, file safedisk.FileH
 // Takes srcPath (string) which is the path to the source file.
 // Takes dstPath (string) which is the path to the destination file.
 //
-// Returns error when the source file cannot be opened, destination
-// directories cannot be created, or the atomic rename fails.
+// Returns error when the source file cannot be opened, destination directories cannot be
+// created, or the atomic rename fails.
 func (d *DiskProvider) copyFile(srcPath, dstPath string) error {
 	srcFile, err := d.sandbox.Open(srcPath)
 	if err != nil {
@@ -856,8 +842,8 @@ func (d *DiskProvider) copyFile(srcPath, dstPath string) error {
 	return nil
 }
 
-// readAndValidateCache attempts to read a hash from a sidecar file and
-// validates its freshness.
+// readAndValidateCache attempts to read a hash from a sidecar file and validates its
+// freshness.
 //
 // Takes objectPath (string) which is the path to the main object file.
 // Takes sidecarPath (string) which is the path to the cache sidecar file.
@@ -903,8 +889,8 @@ func (d *DiskProvider) readAndValidateCache(ctx context.Context, objectPath, sid
 	return hash, nil
 }
 
-// rangeReadCloser wraps an io.Reader with a Close method.
-// It implements io.ReadCloser for range-limited reads.
+// rangeReadCloser wraps an io.Reader with a Close method. It implements io.ReadCloser for
+// range-limited reads.
 type rangeReadCloser struct {
 	// reader is the underlying data source for read operations.
 	reader io.Reader
@@ -926,8 +912,8 @@ func (r *rangeReadCloser) Read(p []byte) (n int, err error) { return r.reader.Re
 // Returns error when the underlying closer fails.
 func (r *rangeReadCloser) Close() error { return r.closer.Close() }
 
-// computeAndCacheHash reads the object file to compute its SHA256 hash and
-// writes it to a sidecar file.
+// computeAndCacheHash reads the object file to compute its SHA256 hash and writes it to a
+// sidecar file.
 //
 // Takes objectPath (string) which specifies the path to the object file.
 // Takes sidecarPath (string) which specifies the path for the hash cache file.
@@ -959,8 +945,7 @@ func (d *DiskProvider) computeAndCacheHash(ctx context.Context, objectPath, side
 	return hash, nil
 }
 
-// writeMetadataSidecar serialises and writes object metadata to a JSON
-// sidecar file.
+// writeMetadataSidecar serialises and writes object metadata to a JSON sidecar file.
 //
 // Takes objectPath (string) which is the path to the associated object.
 // Takes metadata (map[string]string) which contains the metadata to write.
@@ -980,10 +965,10 @@ func (d *DiskProvider) writeMetadataSidecar(ctx context.Context, objectPath stri
 	}
 }
 
-// readMetadataSidecar reads and deserialises object metadata from a JSON
-// sidecar file. The read is bounded by defaultMaxSidecarBytes; a sidecar
-// larger than the cap is rejected with storage_domain.ErrDiskObjectTooLarge
-// so a corrupted or attacker-influenced sidecar cannot dominate memory.
+// readMetadataSidecar reads and deserialises object metadata from a JSON sidecar file.
+// The read is bounded by defaultMaxSidecarBytes; a sidecar larger than the cap is
+// rejected with storage_domain.ErrDiskObjectTooLarge so a corrupted or
+// attacker-influenced sidecar cannot dominate memory.
 //
 // Takes objectPath (string) which is the path to the object file.
 //
@@ -1009,24 +994,23 @@ func (d *DiskProvider) readMetadataSidecar(ctx context.Context, objectPath strin
 	return metadata, nil
 }
 
-// removeSidecarFiles tries to remove known sidecar files for an object.
-// Errors are ignored as this is a best-effort operation.
+// removeSidecarFiles tries to remove known sidecar files for an object. Errors are
+// ignored as this is a best-effort operation.
 //
-// Takes objectPath (string) which is the base path of the object whose
-// sidecars should be removed.
+// Takes objectPath (string) which is the base path of the object whose sidecars should be
+// removed.
 func (d *DiskProvider) removeSidecarFiles(objectPath string) {
 	_ = d.sandbox.Remove(objectPath + md5SidecarSuffix)
 	_ = d.sandbox.Remove(objectPath + metadataSidecarSuffix)
 }
 
-// checkDiskSpace verifies available disk space and returns appropriate health
-// status.
+// checkDiskSpace verifies available disk space and returns appropriate health status.
 //
 // Takes startTime (time.Time) which records when the check began for duration
 // calculation.
 //
-// Returns healthprobe_dto.Status which indicates healthy, degraded, or the
-// current disk space state.
+// Returns healthprobe_dto.Status which indicates healthy, degraded, or the current disk
+// space state.
 func (d *DiskProvider) checkDiskSpace(startTime time.Time) healthprobe_dto.Status {
 	rootPath := d.sandbox.Root()
 	availableMB, _, err := getDiskSpace(rootPath)
@@ -1064,17 +1048,16 @@ func (d *DiskProvider) checkDiskSpace(startTime time.Time) healthprobe_dto.Statu
 
 // NewDiskProvider creates a new disk-based storage adapter.
 //
-// It validates the configuration and creates the necessary directory
-// structure exists.
+// It validates the configuration and creates the necessary directory structure exists.
 //
 // Takes config (Config) which specifies the storage configuration.
-// Takes opts (...storage_domain.ProviderOption) which provides optional
-// rate limiting settings.
+// Takes opts (...storage_domain.ProviderOption) which provides optional rate limiting
+// settings.
 //
-// Returns storage_domain.StorageProviderPort which is the configured storage
-// provider ready for use.
-// Returns error when BaseDirectory and Sandbox are both empty, or when the
-// sandbox cannot be created.
+// Returns storage_domain.StorageProviderPort which is the configured storage provider
+// ready for use.
+// Returns error when BaseDirectory and Sandbox are both empty, or when the sandbox cannot
+// be created.
 func NewDiskProvider(config Config, opts ...storage_domain.ProviderOption) (storage_domain.StorageProviderPort, error) {
 	if config.BaseDirectory == "" && config.Sandbox == nil {
 		return nil, errors.New("baseDirectory or sandbox must be provided for disk provider")
@@ -1113,17 +1096,16 @@ func NewDiskProvider(config Config, opts ...storage_domain.ProviderOption) (stor
 
 // syncDirectoryAfterRename fsyncs the parent directory after a rename.
 //
-// Required on filesystems where the metadata journal is flushed
-// independently of file data. Without this step, a crash between the
-// rename and the next metadata flush can leave the file invisible after
-// recovery despite a successful rename return.
+// Required on filesystems where the metadata journal is flushed independently of file
+// data. Without this step, a crash between the rename and the next metadata flush can
+// leave the file invisible after recovery despite a successful rename return.
 //
-// The fsync is best-effort: any error is logged but not surfaced because the
-// data itself was already fsynced and callers cannot recover meaningfully.
+// The fsync is best-effort: any error is logged but not surfaced because the data itself
+// was already fsynced and callers cannot recover meaningfully.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes directory (string) which is the relative path to the directory inside
-// the sandbox.
+// Takes directory (string) which is the relative path to the directory inside the
+// sandbox.
 func (d *DiskProvider) syncDirectoryAfterRename(ctx context.Context, directory string) {
 	if directory == "" {
 		directory = "."
@@ -1150,8 +1132,7 @@ func (d *DiskProvider) syncDirectoryAfterRename(ctx context.Context, directory s
 	}
 }
 
-// repoPath returns the relative path for a repository and key within the
-// sandbox.
+// repoPath returns the relative path for a repository and key within the sandbox.
 //
 // Takes repo (string) which specifies the repository name.
 // Takes key (string) which specifies the object key within the repository.
@@ -1169,8 +1150,8 @@ func repoPath(repo string, key string) (string, error) {
 //
 // Takes path (string) which is the file path to extract the extension from.
 //
-// Returns string which is the MIME type, or "application/octet-stream" if
-// the type cannot be determined.
+// Returns string which is the MIME type, or "application/octet-stream" if the type cannot
+// be determined.
 func mimeTypeFromExtension(path string) string {
 	ext := filepath.Ext(path)
 	mimeType := mime.TypeByExtension(ext)

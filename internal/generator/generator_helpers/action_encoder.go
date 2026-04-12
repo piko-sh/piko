@@ -37,8 +37,8 @@ const (
 	// float64BitSize is the number of bits used when formatting float64 values.
 	float64BitSize = 64
 
-	// controlCharMax is the upper bound for JSON control characters that need
-	// \uXXXX escaping (bytes 0x00 to 0x1F).
+	// controlCharMax is the upper bound for JSON control characters that need \uXXXX
+	// escaping (bytes 0x00 to 0x1F).
 	controlCharMax = 0x20
 
 	// jsonNull is the JSON null literal.
@@ -49,12 +49,10 @@ const (
 
 	// jsonPayloadPrefix is the JSON object opener with function field.
 	jsonPayloadPrefix = `{"f":"`
-	// jsonArgsPrefix is the JSON separator before the arguments array with opening
-	// bracket.
+	// jsonArgsPrefix is the JSON separator before the arguments array with opening bracket.
 	jsonArgsPrefix = `","a":[`
 
-	// jsonArgsPrefixNoOpen is the JSON separator before arguments without the array
-	// bracket.
+	// jsonArgsPrefixNoOpen is the JSON separator before arguments without the array bracket.
 	jsonArgsPrefixNoOpen = `","a":`
 	// jsonPayloadSuffix is the JSON closer for the payload object.
 	jsonPayloadSuffix = `]}`
@@ -65,21 +63,20 @@ const (
 	hexDigits = "0123456789abcdef"
 )
 
-// EncodeActionPayloadBytes encodes an ActionPayload to a base64 URL-safe byte
-// slice using zero-allocation encoding after pool warmup.
+// EncodeActionPayloadBytes encodes an ActionPayload to a base64 URL-safe byte slice using
+// zero-allocation encoding after pool warmup.
 //
-// This implementation works directly through the buffer pointer to prevent the
-// slice header from escaping to the heap, achieving zero allocations when the
-// buffer pool is warm.
+// This implementation works directly through the buffer pointer to prevent the slice
+// header from escaping to the heap, achieving zero allocations when the buffer pool is
+// warm.
 //
-// The returned buffer must be tracked by the caller for later release. Pass the
-// result to DirectWriter.AppendPooledBytes() which will track and release it.
+// The returned buffer must be tracked by the caller for later release. Pass the result to
+// DirectWriter.AppendPooledBytes() which will track and release it.
 //
-// Takes payload (templater_dto.ActionPayload) which is the action payload to
-// encode.
+// Takes payload (templater_dto.ActionPayload) which is the action payload to encode.
 //
-// Returns *[]byte which is a pooled buffer containing the base64-encoded
-// payload, or nil on error.
+// Returns *[]byte which is a pooled buffer containing the base64-encoded payload, or nil
+// on error.
 func EncodeActionPayloadBytes(payload templater_dto.ActionPayload) *[]byte {
 	bufferPointer := ast_domain.GetByteBuf()
 	*bufferPointer = (*bufferPointer)[:0]
@@ -90,13 +87,13 @@ func EncodeActionPayloadBytes(payload templater_dto.ActionPayload) *[]byte {
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes0 encodes an ActionPayload with zero arguments.
-// This avoids the slice allocation that occurs with the variadic form.
+// EncodeActionPayloadBytes0 encodes an ActionPayload with zero arguments. This avoids the
+// slice allocation that occurs with the variadic form.
 //
 // Takes function (string) which is the function name to encode.
 //
-// Returns *[]byte which is a pooled buffer containing the base64-encoded
-// payload, or nil on error.
+// Returns *[]byte which is a pooled buffer containing the base64-encoded payload, or nil
+// on error.
 func EncodeActionPayloadBytes0(function string) *[]byte {
 	bufferPointer := ast_domain.GetByteBuf()
 	*bufferPointer = (*bufferPointer)[:0]
@@ -107,14 +104,14 @@ func EncodeActionPayloadBytes0(function string) *[]byte {
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes1 encodes an ActionPayload with one argument.
-// This avoids the slice allocation that occurs with the variadic form.
+// EncodeActionPayloadBytes1 encodes an ActionPayload with one argument. This avoids the
+// slice allocation that occurs with the variadic form.
 //
 // Takes function (string) which is the function name to encode.
 // Takes argument0 (templater_dto.ActionArgument) which is the first argument.
 //
-// Returns *[]byte which is a pooled buffer containing the base64-encoded
-// payload, or nil on error.
+// Returns *[]byte which is a pooled buffer containing the base64-encoded payload, or nil
+// on error.
 func EncodeActionPayloadBytes1(function string, argument0 templater_dto.ActionArgument) *[]byte {
 	bufferPointer := ast_domain.GetByteBuf()
 	*bufferPointer = (*bufferPointer)[:0]
@@ -125,15 +122,15 @@ func EncodeActionPayloadBytes1(function string, argument0 templater_dto.ActionAr
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes2 encodes an ActionPayload with two arguments.
-// This avoids the slice allocation that occurs with the variadic form.
+// EncodeActionPayloadBytes2 encodes an ActionPayload with two arguments. This avoids the
+// slice allocation that occurs with the variadic form.
 //
 // Takes function (string) which is the function name to encode.
 // Takes argument0 (templater_dto.ActionArgument) which is the first argument.
 // Takes argument1 (templater_dto.ActionArgument) which is the second argument.
 //
-// Returns *[]byte which is a pooled buffer containing the base64-encoded
-// payload, or nil on error.
+// Returns *[]byte which is a pooled buffer containing the base64-encoded payload, or nil
+// on error.
 func EncodeActionPayloadBytes2(function string, argument0, argument1 templater_dto.ActionArgument) *[]byte {
 	bufferPointer := ast_domain.GetByteBuf()
 	*bufferPointer = (*bufferPointer)[:0]
@@ -144,16 +141,16 @@ func EncodeActionPayloadBytes2(function string, argument0, argument1 templater_d
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes3 encodes an ActionPayload with three arguments.
-// This avoids the slice allocation that occurs with the variadic form.
+// EncodeActionPayloadBytes3 encodes an ActionPayload with three arguments. This avoids
+// the slice allocation that occurs with the variadic form.
 //
 // Takes function (string) which is the function name to encode.
 // Takes argument0 (templater_dto.ActionArgument) which is the first argument.
 // Takes argument1 (templater_dto.ActionArgument) which is the second argument.
 // Takes argument2 (templater_dto.ActionArgument) which is the third argument.
 //
-// Returns *[]byte which is a pooled buffer containing the base64-encoded
-// payload, or nil on error.
+// Returns *[]byte which is a pooled buffer containing the base64-encoded payload, or nil
+// on error.
 func EncodeActionPayloadBytes3(function string, argument0, argument1, argument2 templater_dto.ActionArgument) *[]byte {
 	bufferPointer := ast_domain.GetByteBuf()
 	*bufferPointer = (*bufferPointer)[:0]
@@ -164,8 +161,8 @@ func EncodeActionPayloadBytes3(function string, argument0, argument1, argument2 
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes4 encodes an ActionPayload with four arguments.
-// This avoids the slice allocation that occurs with the variadic form.
+// EncodeActionPayloadBytes4 encodes an ActionPayload with four arguments. This avoids the
+// slice allocation that occurs with the variadic form.
 //
 // Takes function (string) which is the function name to encode.
 // Takes argument0 (templater_dto.ActionArgument) which is the first argument.
@@ -173,8 +170,8 @@ func EncodeActionPayloadBytes3(function string, argument0, argument1, argument2 
 // Takes argument2 (templater_dto.ActionArgument) which is the third argument.
 // Takes argument3 (templater_dto.ActionArgument) which is the fourth argument.
 //
-// Returns *[]byte which is a pooled buffer containing the base64-encoded
-// payload, or nil on error.
+// Returns *[]byte which is a pooled buffer containing the base64-encoded payload, or nil
+// on error.
 func EncodeActionPayloadBytes4(function string, argument0, argument1, argument2, argument3 templater_dto.ActionArgument) *[]byte {
 	bufferPointer := ast_domain.GetByteBuf()
 	*bufferPointer = (*bufferPointer)[:0]
@@ -185,17 +182,15 @@ func EncodeActionPayloadBytes4(function string, argument0, argument1, argument2,
 	return bufferPointer
 }
 
-// EncodeStaticActionPayload encodes an ActionPayload to a base64 URL-safe
-// string at code generation time. Unlike EncodeActionPayloadBytes*, this
-// returns a plain string suitable for embedding directly in generated code as a
-// static attribute value.
+// EncodeStaticActionPayload encodes an ActionPayload to a base64 URL-safe string at code
+// generation time. Unlike EncodeActionPayloadBytes*, this returns a plain string suitable
+// for embedding directly in generated code as a static attribute value.
 //
-// This is used by the static emitter to pre-encode action payloads for events
-// that are fully static (no dynamic arguments). The payload is computed once at
-// code generation time rather than at each request.
+// This is used by the static emitter to pre-encode action payloads for events that are
+// fully static (no dynamic arguments). The payload is computed once at code generation
+// time rather than at each request.
 //
-// Takes payload (templater_dto.ActionPayload) which is the action payload to
-// encode.
+// Takes payload (templater_dto.ActionPayload) which is the action payload to encode.
 //
 // Returns string which is the base64-encoded payload.
 func EncodeStaticActionPayload(payload templater_dto.ActionPayload) string {
@@ -206,8 +201,7 @@ func EncodeStaticActionPayload(payload templater_dto.ActionPayload) string {
 	return string(encoded)
 }
 
-// EncodeActionPayloadBytesArena is the arena-aware version of
-// EncodeActionPayloadBytes.
+// EncodeActionPayloadBytesArena is the arena-aware version of EncodeActionPayloadBytes.
 //
 // Takes arena (*ast_domain.RenderArena) which provides the byte buffer.
 // Takes payload (templater_dto.ActionPayload) which contains the action data.
@@ -223,11 +217,10 @@ func EncodeActionPayloadBytesArena(arena *ast_domain.RenderArena, payload templa
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes0Arena is the arena-aware version of
-// EncodeActionPayloadBytes0.
+// EncodeActionPayloadBytes0Arena is the arena-aware version of EncodeActionPayloadBytes0.
 //
-// Takes arena (*ast_domain.RenderArena) which provides the memory arena for
-// buffer allocation.
+// Takes arena (*ast_domain.RenderArena) which provides the memory arena for buffer
+// allocation.
 // Takes function (string) which specifies the function name to encode.
 //
 // Returns *[]byte which contains the base64-encoded JSON payload.
@@ -241,13 +234,11 @@ func EncodeActionPayloadBytes0Arena(arena *ast_domain.RenderArena, function stri
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes1Arena is the arena-aware version of
-// EncodeActionPayloadBytes1.
+// EncodeActionPayloadBytes1Arena is the arena-aware version of EncodeActionPayloadBytes1.
 //
 // Takes arena (*ast_domain.RenderArena) which provides the byte buffer pool.
 // Takes function (string) which specifies the action function name.
-// Takes argument0 (templater_dto.ActionArgument) which contains the
-// action argument.
+// Takes argument0 (templater_dto.ActionArgument) which contains the action argument.
 //
 // Returns *[]byte which contains the base64-encoded JSON payload.
 func EncodeActionPayloadBytes1Arena(arena *ast_domain.RenderArena, function string, argument0 templater_dto.ActionArgument) *[]byte {
@@ -260,15 +251,12 @@ func EncodeActionPayloadBytes1Arena(arena *ast_domain.RenderArena, function stri
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes2Arena is the arena-aware version of
-// EncodeActionPayloadBytes2.
+// EncodeActionPayloadBytes2Arena is the arena-aware version of EncodeActionPayloadBytes2.
 //
 // Takes arena (*ast_domain.RenderArena) which provides the byte buffer pool.
 // Takes function (string) which specifies the action function name.
-// Takes argument0 (templater_dto.ActionArgument) which is the first
-// action argument.
-// Takes argument1 (templater_dto.ActionArgument) which is the second
-// action argument.
+// Takes argument0 (templater_dto.ActionArgument) which is the first action argument.
+// Takes argument1 (templater_dto.ActionArgument) which is the second action argument.
 //
 // Returns *[]byte which contains the base64-encoded JSON payload.
 func EncodeActionPayloadBytes2Arena(arena *ast_domain.RenderArena, function string, argument0, argument1 templater_dto.ActionArgument) *[]byte {
@@ -281,17 +269,13 @@ func EncodeActionPayloadBytes2Arena(arena *ast_domain.RenderArena, function stri
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes3Arena is the arena-aware version of
-// EncodeActionPayloadBytes3.
+// EncodeActionPayloadBytes3Arena is the arena-aware version of EncodeActionPayloadBytes3.
 //
 // Takes arena (*ast_domain.RenderArena) which provides buffer allocation.
 // Takes function (string) which specifies the action function name.
-// Takes argument0 (templater_dto.ActionArgument) which is the first
-// action argument.
-// Takes argument1 (templater_dto.ActionArgument) which is the second
-// action argument.
-// Takes argument2 (templater_dto.ActionArgument) which is the third
-// action argument.
+// Takes argument0 (templater_dto.ActionArgument) which is the first action argument.
+// Takes argument1 (templater_dto.ActionArgument) which is the second action argument.
+// Takes argument2 (templater_dto.ActionArgument) which is the third action argument.
 //
 // Returns *[]byte which contains the base64-encoded JSON payload.
 func EncodeActionPayloadBytes3Arena(arena *ast_domain.RenderArena, function string, argument0, argument1, argument2 templater_dto.ActionArgument) *[]byte {
@@ -304,19 +288,14 @@ func EncodeActionPayloadBytes3Arena(arena *ast_domain.RenderArena, function stri
 	return bufferPointer
 }
 
-// EncodeActionPayloadBytes4Arena is the arena-aware version of
-// EncodeActionPayloadBytes4.
+// EncodeActionPayloadBytes4Arena is the arena-aware version of EncodeActionPayloadBytes4.
 //
 // Takes arena (*ast_domain.RenderArena) which provides the byte buffer pool.
 // Takes function (string) which specifies the action function name.
-// Takes argument0 (templater_dto.ActionArgument) which is the first
-// action argument.
-// Takes argument1 (templater_dto.ActionArgument) which is the second
-// action argument.
-// Takes argument2 (templater_dto.ActionArgument) which is the third
-// action argument.
-// Takes argument3 (templater_dto.ActionArgument) which is the fourth
-// action argument.
+// Takes argument0 (templater_dto.ActionArgument) which is the first action argument.
+// Takes argument1 (templater_dto.ActionArgument) which is the second action argument.
+// Takes argument2 (templater_dto.ActionArgument) which is the third action argument.
+// Takes argument3 (templater_dto.ActionArgument) which is the fourth action argument.
 //
 // Returns *[]byte which contains the base64-encoded JSON payload.
 func EncodeActionPayloadBytes4Arena(arena *ast_domain.RenderArena, function string, argument0, argument1, argument2, argument3 templater_dto.ActionArgument) *[]byte {
@@ -332,8 +311,8 @@ func EncodeActionPayloadBytes4Arena(arena *ast_domain.RenderArena, function stri
 // encodePayloadJSON builds the JSON representation directly into the buffer.
 //
 // Takes bufferPointer (*[]byte) which points to the buffer to append JSON data to.
-// Takes payload (*templater_dto.ActionPayload) which contains the function
-// name and arguments to encode.
+// Takes payload (*templater_dto.ActionPayload) which contains the function name and
+// arguments to encode.
 func encodePayloadJSON(bufferPointer *[]byte, payload *templater_dto.ActionPayload) {
 	*bufferPointer = append(*bufferPointer, jsonPayloadPrefix...)
 	escapeJSONString(bufferPointer, payload.Function)
@@ -345,8 +324,8 @@ func encodePayloadJSON(bufferPointer *[]byte, payload *templater_dto.ActionPaylo
 
 // encodeArgs encodes the Args slice as JSON.
 //
-// Takes bufferPointer (*[]byte) which points to the buffer to append the encoded
-// output to.
+// Takes bufferPointer (*[]byte) which points to the buffer to append the encoded output
+// to.
 // Takes arguments ([]templater_dto.ActionArgument) which contains the arguments to
 // encode.
 func encodeArgs(bufferPointer *[]byte, arguments []templater_dto.ActionArgument) {
@@ -389,8 +368,8 @@ func encodeArg(bufferPointer *[]byte, argument *templater_dto.ActionArgument) {
 
 // encodeValue encodes a value as JSON using type-specific fast paths.
 //
-// Takes bufferPointer (*[]byte) which points to the buffer to append the encoded
-// value to.
+// Takes bufferPointer (*[]byte) which points to the buffer to append the encoded value
+// to.
 // Takes v (any) which is the value to encode.
 func encodeValue(bufferPointer *[]byte, v any) {
 	switch value := v.(type) {
@@ -457,9 +436,8 @@ func encodeUnsignedInt(bufferPointer *[]byte, v any) {
 	}
 }
 
-// encodeReflectValue handles encoding of non-primitive types using reflection
-// for maps, slices, and arrays, falling back to string conversion for other
-// types.
+// encodeReflectValue handles encoding of non-primitive types using reflection for maps,
+// slices, and arrays, falling back to string conversion for other types.
 //
 // Takes bufferPointer (*[]byte) which points to the buffer to append to.
 // Takes value (any) which is the value to encode.
@@ -477,8 +455,7 @@ func encodeReflectValue(bufferPointer *[]byte, value any) {
 
 // encodeString encodes a string value with quotes.
 //
-// Takes bufferPointer (*[]byte) which is the buffer to append the
-// encoded string to.
+// Takes bufferPointer (*[]byte) which is the buffer to append the encoded string to.
 // Takes s (string) which is the value to encode.
 func encodeString(bufferPointer *[]byte, s string) {
 	*bufferPointer = append(*bufferPointer, '"')
@@ -486,8 +463,7 @@ func encodeString(bufferPointer *[]byte, s string) {
 	*bufferPointer = append(*bufferPointer, '"')
 }
 
-// encodeMap encodes a map[string]any as a JSON object, recursively encoding
-// each value.
+// encodeMap encodes a map[string]any as a JSON object, recursively encoding each value.
 //
 // Takes bufferPointer (*[]byte) which is the buffer to append to.
 // Takes m (map[string]any) which is the map to encode.
@@ -506,8 +482,7 @@ func encodeMap(bufferPointer *[]byte, m map[string]any) {
 	*bufferPointer = append(*bufferPointer, '}')
 }
 
-// encodeSlice encodes a []any as a JSON array, recursively encoding each
-// element.
+// encodeSlice encodes a []any as a JSON array, recursively encoding each element.
 //
 // Takes bufferPointer (*[]byte) which is the buffer to append to.
 // Takes s ([]any) which is the slice to encode.
@@ -522,8 +497,8 @@ func encodeSlice(bufferPointer *[]byte, s []any) {
 	*bufferPointer = append(*bufferPointer, ']')
 }
 
-// encodeReflectMap encodes any map with string keys as a JSON object using
-// reflection. This is the slow path for map types other than map[string]any.
+// encodeReflectMap encodes any map with string keys as a JSON object using reflection.
+// This is the slow path for map types other than map[string]any.
 //
 // Takes bufferPointer (*[]byte) which is the buffer to append to.
 // Takes rv (reflect.Value) which is the map value to encode.
@@ -543,8 +518,8 @@ func encodeReflectMap(bufferPointer *[]byte, rv reflect.Value) {
 	*bufferPointer = append(*bufferPointer, '}')
 }
 
-// encodeReflectSlice encodes any slice or array as a JSON array using
-// reflection. This is the slow path for slice types other than []any.
+// encodeReflectSlice encodes any slice or array as a JSON array using reflection. This is
+// the slow path for slice types other than []any.
 //
 // Takes bufferPointer (*[]byte) which is the buffer to append to.
 // Takes rv (reflect.Value) which is the slice/array value to encode.
@@ -575,11 +550,10 @@ func convertValueToString(v any) string {
 	}
 }
 
-// escapeJSONString appends a JSON-escaped string to the buffer.
-// Handles all characters requiring escaping per RFC 8259.
+// escapeJSONString appends a JSON-escaped string to the buffer. Handles all characters
+// requiring escaping per RFC 8259.
 //
-// Takes bufferPointer (*[]byte) which points to the buffer to append
-// escaped bytes to.
+// Takes bufferPointer (*[]byte) which points to the buffer to append escaped bytes to.
 // Takes s (string) which is the string to escape.
 func escapeJSONString(bufferPointer *[]byte, s string) {
 	for i := range len(s) {
@@ -639,12 +613,10 @@ func encodeBase64InPlace(bufferPointer *[]byte) {
 
 // expandBuffer grows the buffer when more space is needed.
 //
-// This handles the rare case where the buffer must expand. The old
-// buffer is not returned to the pool because bufferPointer was
-// obtained from the pool and will be reassigned. Returning it
-// would allow another goroutine to Get it, and the subsequent
-// reassignment would corrupt their data. The old slice's
-// underlying array will be garbage collected.
+// This handles the rare case where the buffer must expand. The old buffer is not returned
+// to the pool because bufferPointer was obtained from the pool and will be reassigned.
+// Returning it would allow another goroutine to Get it, and the subsequent reassignment
+// would corrupt their data. The old slice's underlying array will be garbage collected.
 //
 // Takes bufferPointer (*[]byte) which points to the buffer to expand.
 // Takes jsonLen (int) which specifies how many bytes to copy from the original.
@@ -682,10 +654,8 @@ func encodePayloadJSON1(bufferPointer *[]byte, function string, argument0 *templ
 //
 // Takes bufferPointer (*[]byte) which receives the encoded JSON output.
 // Takes function (string) which specifies the function name in the payload.
-// Takes argument0 (*templater_dto.ActionArgument) which provides the
-// first argument.
-// Takes argument1 (*templater_dto.ActionArgument) which provides the
-// second argument.
+// Takes argument0 (*templater_dto.ActionArgument) which provides the first argument.
+// Takes argument1 (*templater_dto.ActionArgument) which provides the second argument.
 func encodePayloadJSON2(bufferPointer *[]byte, function string, argument0, argument1 *templater_dto.ActionArgument) {
 	*bufferPointer = append(*bufferPointer, jsonPayloadPrefix...)
 	escapeJSONString(bufferPointer, function)
@@ -700,12 +670,9 @@ func encodePayloadJSON2(bufferPointer *[]byte, function string, argument0, argum
 //
 // Takes bufferPointer (*[]byte) which receives the encoded JSON output.
 // Takes function (string) which specifies the function name in the payload.
-// Takes argument0 (*templater_dto.ActionArgument) which provides the
-// first argument.
-// Takes argument1 (*templater_dto.ActionArgument) which provides the
-// second argument.
-// Takes argument2 (*templater_dto.ActionArgument) which provides the
-// third argument.
+// Takes argument0 (*templater_dto.ActionArgument) which provides the first argument.
+// Takes argument1 (*templater_dto.ActionArgument) which provides the second argument.
+// Takes argument2 (*templater_dto.ActionArgument) which provides the third argument.
 func encodePayloadJSON3(bufferPointer *[]byte, function string, argument0, argument1, argument2 *templater_dto.ActionArgument) {
 	*bufferPointer = append(*bufferPointer, jsonPayloadPrefix...)
 	escapeJSONString(bufferPointer, function)

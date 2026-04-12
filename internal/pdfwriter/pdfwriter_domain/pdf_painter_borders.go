@@ -28,8 +28,8 @@ import (
 // paintBorders draws all CSS border sides for the given layout box.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes box (*layouter_domain.LayoutBox) which holds
-// the layout box whose borders are drawn.
+// Takes box (*layouter_domain.LayoutBox) which holds the layout box whose borders are
+// drawn.
 func (painter *PdfPainter) paintBorders(stream *ContentStream, box *layouter_domain.LayoutBox) {
 	if painter.hasAnyBorderRadius(box) {
 		painter.paintBordersRounded(stream, box)
@@ -80,8 +80,8 @@ type straightBorderSide struct {
 // paintBordersStraight draws straight-line borders (no border-radius).
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes box (*layouter_domain.LayoutBox) which holds
-// the layout box whose borders are drawn.
+// Takes box (*layouter_domain.LayoutBox) which holds the layout box whose borders are
+// drawn.
 func (painter *PdfPainter) paintBordersStraight(stream *ContentStream, box *layouter_domain.LayoutBox) {
 	borderBoxX := box.BorderBoxX()
 	borderBoxY := box.BorderBoxY()
@@ -128,7 +128,8 @@ func (painter *PdfPainter) paintBordersStraight(stream *ContentStream, box *layo
 // paintStraightBorderSide renders a single straight border side.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes side (*straightBorderSide) which holds the geometry and style for the border side.
+// Takes side (*straightBorderSide) which holds the geometry and style for the border
+// side.
 func (painter *PdfPainter) paintStraightBorderSide(stream *ContentStream, side *straightBorderSide) {
 	if side.width <= 0 || side.style == layouter_domain.BorderStyleNone {
 		return
@@ -163,7 +164,8 @@ func (painter *PdfPainter) paintStraightBorderSide(stream *ContentStream, side *
 // paintInsetOutsetBorderSide renders an inset or outset border side.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes side (*straightBorderSide) which holds the geometry and style for the border side.
+// Takes side (*straightBorderSide) which holds the geometry and style for the border
+// side.
 func (painter *PdfPainter) paintInsetOutsetBorderSide(stream *ContentStream, side *straightBorderSide) {
 	useDark := (side.style == layouter_domain.BorderStyleInset) == side.isTopOrLeft
 	colour := side.colour
@@ -182,11 +184,12 @@ func (painter *PdfPainter) paintInsetOutsetBorderSide(stream *ContentStream, sid
 	stream.RestoreState()
 }
 
-// paintDoubleBorderSide draws a CSS double border for a single side:
-// two lines of 1/3 total width separated by a 1/3 gap.
+// paintDoubleBorderSide draws a CSS double border for a single side: two lines of 1/3
+// total width separated by a 1/3 gap.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes side (*straightBorderSide) which holds the geometry and style for the border side.
+// Takes side (*straightBorderSide) which holds the geometry and style for the border
+// side.
 func (painter *PdfPainter) paintDoubleBorderSide(stream *ContentStream, side *straightBorderSide) {
 	lineW := side.width / borderDoubleDivisor
 
@@ -225,7 +228,8 @@ func (painter *PdfPainter) paintDoubleBorderSide(stream *ContentStream, side *st
 // paint3DBorderSide draws a groove or ridge border for a single side.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes side (*straightBorderSide) which holds the geometry and style for the border side.
+// Takes side (*straightBorderSide) which holds the geometry and style for the border
+// side.
 func (painter *PdfPainter) paint3DBorderSide(stream *ContentStream, side *straightBorderSide) {
 	dark := darkenColour(side.colour, darkenFactor)
 	light := lightenColour(side.colour, lightenFactor)
@@ -264,15 +268,12 @@ func (painter *PdfPainter) paint3DBorderSide(stream *ContentStream, side *straig
 	stream.RestoreState()
 }
 
-// applyBorderDashPattern sets the dash pattern for a
-// border style.
+// applyBorderDashPattern sets the dash pattern for a border style.
 //
-// Takes stream (*ContentStream) which holds the PDF
-// content stream to write to.
-// Takes style (layouter_domain.BorderStyleType) which
-// specifies the border style (dashed, dotted, etc.).
-// Takes width (float64) which specifies the border width
-// used to compute dash lengths.
+// Takes stream (*ContentStream) which holds the PDF content stream to write to.
+// Takes style (layouter_domain.BorderStyleType) which specifies the border style (dashed,
+// dotted, etc.).
+// Takes width (float64) which specifies the border width used to compute dash lengths.
 func (*PdfPainter) applyBorderDashPattern(stream *ContentStream, style layouter_domain.BorderStyleType, width float64) {
 	switch style {
 	case layouter_domain.BorderStyleDashed:
@@ -317,8 +318,8 @@ type roundedBorderSide struct {
 	clipY [borderSideCount]float64
 }
 
-// isUniformBorder reports whether all four border sides have the same
-// width, colour, and style.
+// isUniformBorder reports whether all four border sides have the same width, colour, and
+// style.
 //
 // Takes box (*layouter_domain.LayoutBox) which holds the layout box to inspect.
 //
@@ -335,12 +336,12 @@ func isUniformBorder(box *layouter_domain.LayoutBox) bool {
 		box.Style.BorderBottomStyle == box.Style.BorderLeftStyle
 }
 
-// paintBordersRounded draws borders with rounded corners. Uses a
-// quadrant-clipping approach for non-uniform border widths or colours.
+// paintBordersRounded draws borders with rounded corners. Uses a quadrant-clipping
+// approach for non-uniform border widths or colours.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes box (*layouter_domain.LayoutBox) which holds
-// the layout box whose borders are drawn.
+// Takes box (*layouter_domain.LayoutBox) which holds the layout box whose borders are
+// drawn.
 func (painter *PdfPainter) paintBordersRounded(stream *ContentStream, box *layouter_domain.LayoutBox) {
 	borderBoxX := box.BorderBoxX()
 	borderBoxY := box.BorderBoxY()
@@ -400,8 +401,8 @@ func (painter *PdfPainter) paintBordersRounded(stream *ContentStream, box *layou
 // paintUniformRoundedBorder draws a uniform rounded border (all sides same).
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes box (*layouter_domain.LayoutBox) which holds
-// the layout box whose borders are drawn.
+// Takes box (*layouter_domain.LayoutBox) which holds the layout box whose borders are
+// drawn.
 // Takes pdfX (float64) which specifies the left edge in PDF coordinates.
 // Takes pdfY (float64) which specifies the bottom edge in PDF coordinates.
 // Takes borderBoxWidth (float64) which specifies the width of the border box.
@@ -534,8 +535,8 @@ func (painter *PdfPainter) paintRoundedBorderSide(
 	stream.RestoreState()
 }
 
-// resolveBorderImageEdges returns the four border-image edge widths,
-// using border-image-width when set or falling back to border widths.
+// resolveBorderImageEdges returns the four border-image edge widths, using
+// border-image-width when set or falling back to border widths.
 //
 // Takes box (*layouter_domain.LayoutBox) which holds the layout box to inspect.
 //
@@ -549,13 +550,11 @@ func resolveBorderImageEdges(box *layouter_domain.LayoutBox) (top, right, bottom
 		box.Style.BorderBottomWidth, box.Style.BorderLeftWidth
 }
 
-// paintBorderImage draws a CSS border-image using 9-slice
-// rendering.
+// paintBorderImage draws a CSS border-image using 9-slice rendering.
 //
-// Takes stream (*ContentStream) which holds the PDF
-// content stream to write to.
-// Takes box (*layouter_domain.LayoutBox) which holds the
-// layout box whose border image is drawn.
+// Takes stream (*ContentStream) which holds the PDF content stream to write to.
+// Takes box (*layouter_domain.LayoutBox) which holds the layout box whose border image is
+// drawn.
 func (painter *PdfPainter) paintBorderImage(ctx context.Context, stream *ContentStream, box *layouter_domain.LayoutBox) {
 	if box.Style.BorderImageSource == "" || painter.imageData == nil {
 		return
@@ -607,7 +606,8 @@ func (painter *PdfPainter) paintBorderImage(ctx context.Context, stream *Content
 	})
 }
 
-// borderImageSliceRegion defines a source and destination rectangle for 9-slice rendering.
+// borderImageSliceRegion defines a source and destination rectangle for 9-slice
+// rendering.
 type borderImageSliceRegion struct {
 	// dstX holds the destination X coordinate in PDF space.
 	dstX float64
@@ -685,8 +685,8 @@ type borderImageSliceInput struct {
 // paintBorderImageSlices renders all 9 slices of a border image.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes p (borderImageSliceInput) which holds the slice
-// geometry and image resource details.
+// Takes p (borderImageSliceInput) which holds the slice geometry and image resource
+// details.
 func (*PdfPainter) paintBorderImageSlices(
 	stream *ContentStream,
 	p borderImageSliceInput,
@@ -734,8 +734,8 @@ func (*PdfPainter) paintBorderImageSlices(
 // paintOutline draws the CSS outline around the border box.
 //
 // Takes stream (*ContentStream) which holds the PDF content stream to write to.
-// Takes box (*layouter_domain.LayoutBox) which holds
-// the layout box whose outline is drawn.
+// Takes box (*layouter_domain.LayoutBox) which holds the layout box whose outline is
+// drawn.
 func (painter *PdfPainter) paintOutline(stream *ContentStream, box *layouter_domain.LayoutBox) {
 	if box.Style.OutlineWidth <= 0 || box.Style.OutlineStyle == layouter_domain.BorderStyleNone {
 		return

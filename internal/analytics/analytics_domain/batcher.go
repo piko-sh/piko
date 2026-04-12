@@ -35,118 +35,110 @@ import (
 )
 
 const (
-	// circuitBreakerBucketPeriod is the measurement bucket duration,
-	// matching the standard used across the project.
+	// circuitBreakerBucketPeriod is the measurement bucket duration, matching the standard
+	// used across the project.
 	circuitBreakerBucketPeriod = 10 * time.Second
 
 	// logFieldBatcher is the logging field name for batcher identification.
 	logFieldBatcher = "batcher"
 
-	// defaultMaxBufferSize caps the in-memory batcher buffer when the
-	// caller does not supply a value. Items in excess of the cap evict the
-	// oldest entries so a slow downstream cannot drive the process to OOM
-	// under sustained load.
+	// defaultMaxBufferSize caps the in-memory batcher buffer when the caller does not supply
+	// a value. Items in excess of the cap evict the oldest entries so a slow downstream
+	// cannot drive the process to OOM under sustained load.
 	defaultMaxBufferSize = 10000
 )
 
-// analyticsErrorClassifier determines whether a batch send error is
-// retryable. The default classifier handles network failures and
-// server errors; the added pattern retries circuit breaker rejections.
-var analyticsErrorClassifier = retry.NewErrorClassifier(
-	retry.WithRetryablePatterns(
-		"circuit breaker open",
-	),
+var (
+	// analyticsErrorClassifier determines whether a batch send error is retryable. The
+	// default classifier handles network failures and server errors; the added pattern
+	// retries circuit breaker rejections.
+	analyticsErrorClassifier = retry.NewErrorClassifier(
+		retry.WithRetryablePatterns(
+			"circuit breaker open",
+		),
+	)
 )
 
-// BatchSendFunc is called by the Batcher when a batch is ready to be
-// sent.
+// BatchSendFunc is called by the Batcher when a batch is ready to be sent.
 //
-// The implementation owns encoding and I/O. The batch slice is only
-// valid for the duration of the call; the caller must not retain it.
+// The implementation owns encoding and I/O. The batch slice is only valid for the
+// duration of the call; the caller must not retain it.
 type BatchSendFunc[T any] func(ctx context.Context, batch []T) error
 
 // BatcherConfig provides the settings for a Batcher.
 type BatcherConfig struct {
-	// Retry configures exponential backoff for failed batch sends.
-	// A nil value or zero MaxRetries disables retry.
+	// Retry configures exponential backoff for failed batch sends. A nil value or zero
+	// MaxRetries disables retry.
 	Retry *retry.Config
 
-	// CircuitBreaker configures the circuit breaker that protects
-	// the send path. A nil value disables the circuit breaker.
+	// CircuitBreaker configures the circuit breaker that protects the send path. A nil value
+	// disables the circuit breaker.
 	CircuitBreaker *CircuitBreakerConfig
 
-	// Clock provides time operations for tickers and timers.
-	// Defaults to clock.RealClock() when nil, enabling
-	// deterministic testing with clock.MockClock.
+	// Clock provides time operations for tickers and timers. Defaults to clock.RealClock()
+	// when nil, enabling deterministic testing with clock.MockClock.
 	Clock clock.Clock
 
-	// Name identifies this batcher in logs and circuit breaker
-	// metrics (e.g. "analytics-webhook", "analytics-ga4").
+	// Name identifies this batcher in logs and circuit breaker metrics (e.g.
+	// "analytics-webhook", "analytics-ga4").
 	Name string
 
-	// FlushInterval is the time between automatic timer-based
-	// flushes. Must be > 0.
+	// FlushInterval is the time between automatic timer-based flushes. Must be > 0.
 	FlushInterval time.Duration
 
-	// BatchSize is the number of items that triggers an immediate
-	// flush signal. Must be > 0.
+	// BatchSize is the number of items that triggers an immediate flush signal. Must be > 0.
 	BatchSize int
 
 	// MaxBufferSize caps the in-memory buffer.
 	//
-	// When Add would exceed this cap, the oldest items are evicted so the
-	// process cannot OOM under sustained load when the downstream is slow
-	// or unavailable. A value <= 0 selects defaultMaxBufferSize.
+	// When Add would exceed this cap, the oldest items are evicted so the process cannot OOM
+	// under sustained load when the downstream is slow or unavailable. A value <= 0 selects
+	// defaultMaxBufferSize.
 	MaxBufferSize int
 }
 
-// CircuitBreakerConfig holds settings for a batcher's circuit
-// breaker.
+// CircuitBreakerConfig holds settings for a batcher's circuit breaker.
 type CircuitBreakerConfig struct {
-	// Timeout is how long the circuit stays open before
-	// transitioning to half-open and allowing a probe request.
+	// Timeout is how long the circuit stays open before it transitions to half-open and
+	// allows a probe request.
 	Timeout time.Duration
 
-	// Interval is the cyclic period of the closed state for the
-	// circuit breaker to clear the internal counts. If 0, the
-	// circuit breaker doesn't clear internal counts during the
+	// Interval is the cyclic period of the closed state for the circuit breaker to clear the
+	// internal counts. If 0, the circuit breaker doesn't clear internal counts during the
 	// closed state.
 	Interval time.Duration
 
-	// MaxConsecutiveFailures is the number of consecutive send
-	// failures that trips the circuit breaker to open.
+	// MaxConsecutiveFailures is the number of consecutive send failures that trips the
+	// circuit breaker to open.
 	MaxConsecutiveFailures int
 }
 
-// Batcher accumulates items of type T and periodically flushes them
-// via a caller-supplied send function. It manages the buffer, flush
-// loop, concurrency, graceful shutdown, retry with exponential
-// backoff, and circuit breaking so that collectors only need to
-// provide conversion and send logic.
+// Batcher accumulates items of type T and periodically flushes them via a caller-supplied
+// send function. It manages the buffer, flush loop, concurrency, graceful shutdown, retry
+// with exponential backoff, and circuit breaking so that collectors only need to provide
+// conversion and send logic.
 //
 // Safe for concurrent use from multiple goroutines.
 type Batcher[T any] struct {
 	// sendFunc is called with the accumulated batch on each flush.
 	sendFunc BatchSendFunc[T]
 
-	// circuitBreaker protects the send path. Nil when circuit
-	// breaking is disabled.
+	// circuitBreaker protects the send path. Nil when circuit breaking is disabled.
 	circuitBreaker *gobreaker.CircuitBreaker[any]
 
-	// retryConfig holds exponential backoff settings. Nil when retry
-	// is disabled.
+	// retryConfig holds exponential backoff settings. Nil when retry is disabled.
 	retryConfig *retry.Config
 
-	// circuitBreakerConfig is stored during construction and used
-	// in Start to create the circuit breaker with the detached ctx.
+	// circuitBreakerConfig is stored during construction and used in Start to create the
+	// circuit breaker with the detached ctx.
 	circuitBreakerConfig *CircuitBreakerConfig
 
-	// clock provides time operations (tickers, timers). Injected
-	// via BatcherConfig for testability; defaults to RealClock.
+	// clock provides time operations (tickers, timers). Injected via BatcherConfig for
+	// testability; defaults to RealClock.
 	clock clock.Clock
 
-	// batchPool recycles batch slices to avoid allocating on every
-	// flush cycle under high throughput.
+	// batchPool recycles batch slices to avoid allocating on every flush cycle under high
+	// throughput.
 	batchPool sync.Pool
 
 	// stopCh signals the flush goroutine to exit.
@@ -155,15 +147,13 @@ type Batcher[T any] struct {
 	// doneCh is closed when the flush goroutine exits.
 	doneCh chan struct{}
 
-	// flushCh is a non-blocking signal that tells the flush
-	// goroutine to flush immediately because the buffer reached
-	// batchSize.
+	// flushCh is a non-blocking signal that tells the flush goroutine to flush immediately
+	// because the buffer reached batchSize.
 	flushCh chan struct{}
 
-	// lastFlushErr is the result of the most recent completed flush,
-	// returned to Flush callers whose target was covered by a
-	// concurrent drain so errors are never silently swallowed
-	// (protected by flushMu).
+	// lastFlushErr is the result of the most recent completed flush, returned to Flush
+	// callers whose target was covered by a concurrent drain so errors are never silently
+	// swallowed (protected by flushMu).
 	lastFlushErr error
 
 	// name identifies this batcher in logs and metrics.
@@ -172,57 +162,52 @@ type Batcher[T any] struct {
 	// buffer accumulates items until the batch is flushed.
 	buffer []T
 
-	// flushInterval is the time between automatic timer-based
-	// flushes.
+	// flushInterval is the time between automatic timer-based flushes.
 	flushInterval time.Duration
 
-	// batchSize is the number of items that triggers an immediate
-	// flush signal.
+	// batchSize is the number of items that triggers an immediate flush signal.
 	batchSize int
 
-	// maxBufferSize caps len(buffer); over-cap Adds evict the oldest
-	// entries.
+	// maxBufferSize caps len(buffer); over-cap Adds evict the oldest entries.
 	maxBufferSize int
 
-	// droppedCount counts items evicted because the buffer was full.
-	// Useful for tests and diagnostic logging.
+	// droppedCount counts items evicted because the buffer was full. Useful for tests and
+	// diagnostic logging.
 	droppedCount uint64
 
-	// addCount is the total number of items appended via Add,
-	// snapshotted by Flush as the target sequence the caller
-	// expects to be drained before returning (incremented under mu).
+	// addCount is the total number of items appended via Add, snapshotted by Flush as the
+	// target sequence the caller expects to be drained before returning (incremented under
+	// mu).
 	addCount uint64
 
-	// drainedCount is the addCount snapshot from the most recent
-	// drain, used by Flush to detect that a caller's target was
-	// already processed by a concurrent flush.
+	// drainedCount is the addCount snapshot from the most recent drain, used by Flush to
+	// detect that a caller's target was already processed by a concurrent flush.
 	drainedCount uint64
 
 	// closeOnce ensures Close is idempotent.
 	closeOnce sync.Once
 
-	// mu guards buffer and addCount access from concurrent Add and
-	// drainBuffer calls.
+	// mu guards buffer and addCount access from concurrent Add and drainBuffer calls.
 	mu sync.Mutex
 
-	// flushMu serialises drain + send + result-record across the
-	// background flushLoop and explicit Flush callers.
+	// flushMu serialises drain + send + result-record across the background flushLoop and
+	// explicit Flush callers.
 	flushMu sync.Mutex
 
-	// stopped is set during Close before closing stopCh. Checked by
-	// Add to prevent silent buffer leaks after shutdown.
+	// stopped is set during Close before closing stopCh. Checked by Add to prevent silent
+	// buffer leaks after shutdown.
 	stopped atomic.Bool
 
-	// started tracks whether Start has been called. Close is a
-	// no-op if the flush loop was never started.
+	// started tracks whether Start has been called. Close is a no-op if the flush loop was
+	// never started.
 	started atomic.Bool
 }
 
-// NewBatcher creates a Batcher with the given configuration and send
-// function. The Batcher is not running until Start is called.
+// NewBatcher creates a Batcher with the given configuration and send function. The
+// Batcher is not running until Start is called.
 //
-// Takes config (BatcherConfig) which provides batch size, flush
-// interval, and optional retry and circuit breaker settings.
+// Takes config (BatcherConfig) which provides batch size, flush interval, and optional
+// retry and circuit breaker settings.
 // Takes sendFunc (BatchSendFunc[T]) which is called with each batch.
 //
 // Returns *Batcher[T] which must be started via Start.
@@ -283,12 +268,12 @@ func (b *Batcher[T]) Start(ctx context.Context) {
 
 // Add appends an item to the buffer.
 //
-// When the buffer reaches batchSize the flush goroutine is signalled
-// to send the batch asynchronously; Add itself never performs I/O.
+// When the buffer reaches batchSize the flush goroutine is signalled to send the batch
+// asynchronously; Add itself never performs I/O.
 //
-// When the buffer is at the configured cap, the oldest entries are
-// evicted before appending so the buffer cannot grow without bound under
-// sustained load. The number of evictions is tracked via DroppedCount.
+// When the buffer is at the configured cap, the oldest entries are evicted before
+// appending so the buffer cannot grow without bound under sustained load. The number of
+// evictions is tracked via DroppedCount.
 //
 // Takes item (T) which is the item to buffer.
 //
@@ -322,11 +307,11 @@ func (b *Batcher[T]) Add(item T) {
 	}
 }
 
-// DroppedCount returns the cumulative number of items evicted because the
-// buffer was at its configured cap when Add was called.
+// DroppedCount returns the cumulative number of items evicted because the buffer was at
+// its configured cap when Add was called.
 //
-// Returns uint64 which is the running total of dropped items since the
-// Batcher was created.
+// Returns uint64 which is the running total of dropped items since the Batcher was
+// created.
 //
 // Safe for concurrent use.
 func (b *Batcher[T]) DroppedCount() uint64 {
@@ -337,16 +322,15 @@ func (b *Batcher[T]) DroppedCount() uint64 {
 
 // Flush sends any buffered items via the send function.
 //
-// Waits for any concurrent flush to complete; by the time Flush
-// returns, every item Added before this call has been processed
-// (sent or failed). When a concurrent flushLoop has already drained
-// the caller's items, Flush returns the result of that flush rather
-// than nil so errors are never silently swallowed by a race.
+// Waits for any concurrent flush to complete; by the time Flush returns, every item Added
+// before this call has been processed (sent or failed). When a concurrent flushLoop has
+// already drained the caller's items, Flush returns the result of that flush rather than
+// nil so errors are never silently swallowed by a race.
 //
 // Returns error when the send function fails.
 //
-// Concurrency: holds flushMu for the entire flush including I/O
-// and retries. Add is never blocked because it acquires only b.mu.
+// Concurrency: holds flushMu for the entire flush including I/O and retries. Add is never
+// blocked because it acquires only b.mu.
 func (b *Batcher[T]) Flush(ctx context.Context) error {
 	target := b.addCountSnapshot()
 
@@ -359,11 +343,11 @@ func (b *Batcher[T]) Flush(ctx context.Context) error {
 	return b.flushLocked(ctx)
 }
 
-// flushLocked performs one drain-and-send cycle and records the
-// result. Caller must hold flushMu.
+// flushLocked performs one drain-and-send cycle and records the result. Caller must hold
+// flushMu.
 //
-// Returns error from sendWithResilience, or nil when the buffer was
-// already drained by a concurrent flush.
+// Returns error from sendWithResilience, or nil when the buffer was already drained by a
+// concurrent flush.
 func (b *Batcher[T]) flushLocked(ctx context.Context) error {
 	batch, snapshot := b.drainBuffer()
 	if batch == nil {
@@ -379,8 +363,8 @@ func (b *Batcher[T]) flushLocked(ctx context.Context) error {
 	return err
 }
 
-// addCountSnapshot reads addCount under b.mu so the value is
-// consistent with concurrent Add calls.
+// addCountSnapshot reads addCount under b.mu so the value is consistent with concurrent
+// Add calls.
 //
 // Returns uint64 which is the current addCount.
 func (b *Batcher[T]) addCountSnapshot() uint64 {
@@ -389,11 +373,10 @@ func (b *Batcher[T]) addCountSnapshot() uint64 {
 	return b.addCount
 }
 
-// Close stops the flush timer and waits for the flush goroutine to
-// exit.
+// Close stops the flush timer and waits for the flush goroutine to exit.
 //
-// Any remaining buffered items should be flushed via Flush before
-// calling Close. Safe to call multiple times.
+// Any remaining buffered items should be flushed via Flush before calling Close. Safe to
+// call multiple times.
 //
 // Returns error which is always nil.
 func (b *Batcher[T]) Close() error {
@@ -410,13 +393,11 @@ func (b *Batcher[T]) Close() error {
 
 // flushLoop runs a periodic timer that flushes buffered items.
 //
-// It also listens for immediate flush signals when the buffer reaches
-// batchSize. The backgroundCtx carries context values (logger, trace
-// spans) without cancellation.
+// It also listens for immediate flush signals when the buffer reaches batchSize. The
+// backgroundCtx carries context values (logger, trace spans) without cancellation.
 //
-// Concurrency: holds flushMu for each flush so it cooperates with
-// explicit Flush callers via the same lock; this prevents two
-// flushes from racing to drain the buffer.
+// Concurrency: holds flushMu for each flush so it cooperates with explicit Flush callers
+// via the same lock; this prevents two flushes from racing to drain the buffer.
 func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 	defer close(b.doneCh)
 	defer goroutine.RecoverPanic(backgroundCtx, "analytics.batcher."+b.name+".flushLoop")
@@ -450,15 +431,13 @@ func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 	}
 }
 
-// drainBuffer copies the buffered items into a pooled slice and
-// clears the buffer.
+// drainBuffer copies the buffered items into a pooled slice and clears the buffer.
 //
-// Returns *[]T which is the pooled batch, or nil when the buffer
-// is empty.
+// Returns *[]T which is the pooled batch, or nil when the buffer is empty.
 // Returns uint64 which is the addCount snapshot at drain time.
 //
-// Concurrency: acquires b.mu for the duration of the copy. The lock
-// is released before any subsequent I/O.
+// Concurrency: acquires b.mu for the duration of the copy. The lock is released before
+// any subsequent I/O.
 func (b *Batcher[T]) drainBuffer() (*[]T, uint64) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -477,8 +456,7 @@ func (b *Batcher[T]) drainBuffer() (*[]T, uint64) {
 	return batch, snapshot
 }
 
-// releaseBatch returns a batch slice to the pool after the send
-// completes.
+// releaseBatch returns a batch slice to the pool after the send completes.
 //
 // Takes batch (*[]T) which is the pooled slice to return.
 func (b *Batcher[T]) releaseBatch(batch *[]T) {
@@ -486,9 +464,8 @@ func (b *Batcher[T]) releaseBatch(batch *[]T) {
 	b.batchPool.Put(batch)
 }
 
-// sendWithResilience wraps the send function with circuit breaker
-// and retry logic. When neither is configured, it calls sendFunc
-// directly.
+// sendWithResilience wraps the send function with circuit breaker and retry logic. When
+// neither is configured, it calls sendFunc directly.
 //
 // Takes batch ([]T) which is the batch to send.
 //
@@ -515,9 +492,9 @@ func (b *Batcher[T]) sendWithResilience(ctx context.Context, batch []T) error {
 	return operation()
 }
 
-// executeWithRetry runs the operation with exponential backoff. Only
-// retryable errors (network failures, 5xx) trigger a retry;
-// permanent errors (auth, context cancellation) fail immediately.
+// executeWithRetry runs the operation with exponential backoff. Only retryable errors
+// (network failures, 5xx) trigger a retry; permanent errors (auth, context cancellation)
+// fail immediately.
 //
 // Takes operation (func() error) which is the send operation to retry.
 //
@@ -564,16 +541,14 @@ func (b *Batcher[T]) executeWithRetry(ctx context.Context, operation func() erro
 	return lastError
 }
 
-// newBatcherCircuitBreaker creates a gobreaker circuit breaker with
-// the standard project conventions: 1 request in half-open,
-// consecutive failure threshold, state change logging, and context
-// error exclusion.
+// newBatcherCircuitBreaker creates a gobreaker circuit breaker with the standard project
+// conventions: 1 request in half-open, consecutive failure threshold, state change
+// logging, and context error exclusion.
 //
 // Takes name (string) which identifies the batcher in logs.
 // Takes config (*CircuitBreakerConfig) which provides the settings.
 //
-// Returns *gobreaker.CircuitBreaker[any] which is the configured
-// breaker.
+// Returns *gobreaker.CircuitBreaker[any] which is the configured breaker.
 func newBatcherCircuitBreaker(ctx context.Context, name string, config *CircuitBreakerConfig) *gobreaker.CircuitBreaker[any] {
 	ctx, l := logger_domain.From(ctx, log)
 	settings := gobreaker.Settings{

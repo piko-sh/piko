@@ -42,8 +42,11 @@ import (
 	"piko.sh/piko/internal/interp/interp_schema"
 )
 
-// filePermission is the default permission mode for files written by the CLI.
-const filePermission = 0o644
+const (
+
+	// filePermission is the default permission mode for files written by the CLI.
+	filePermission = 0o644
+)
 
 // bytecodeFlags holds parsed flags for the bytecode subcommand.
 type bytecodeFlags struct {
@@ -60,8 +63,7 @@ type bytecodeFlags struct {
 	asm bool
 }
 
-// RunBytecode runs the bytecode subcommand, writing to os.Stdout and
-// os.Stderr.
+// RunBytecode runs the bytecode subcommand, writing to os.Stdout and os.Stderr.
 //
 // Takes arguments ([]string) which contains the command-line arguments.
 //
@@ -70,13 +72,12 @@ func RunBytecode(arguments []string) int {
 	return RunBytecodeWithIO(arguments, os.Stdout, os.Stderr)
 }
 
-// RunBytecodeWithIO runs the bytecode subcommand with explicit output
-// writers.
+// RunBytecodeWithIO runs the bytecode subcommand with explicit output writers.
 //
 // Usage: piko bytecode <file.go> [flags]
 //
-// Compiles a Go source file using the interpreter's compiler and
-// outputs the bytecode as JSON or saves it as a .bin file.
+// Compiles a Go source file using the interpreter's compiler and outputs the bytecode as
+// JSON or saves it as a .bin file.
 //
 // Takes arguments ([]string) which contains the command-line arguments.
 // Takes stdout (io.Writer) which receives the JSON output.
@@ -136,8 +137,7 @@ func RunBytecodeWithIO(arguments []string, stdout, stderr io.Writer) int {
 	return printBytecodeInspection(compiledFileSet, flags, stdout, stderr)
 }
 
-// printCompilationError writes compilation error details and hints
-// to stderr.
+// printCompilationError writes compilation error details and hints to stderr.
 //
 // Takes err (error) which is the compilation error to report.
 // Takes flags (bytecodeFlags) which holds the current flag state.
@@ -222,8 +222,8 @@ func parseBytecodeArgs(arguments []string, stderr io.Writer) (bytecodeFlags, str
 	return flags, filePath, true
 }
 
-// saveBytecodeFile packs the compiled file set into FlatBuffer format
-// and writes it to the given path.
+// saveBytecodeFile packs the compiled file set into FlatBuffer format and writes it to
+// the given path.
 //
 // Takes compiledFileSet which is the compiled bytecode to serialise.
 // Takes outputPath (string) which is the destination file path.
@@ -242,8 +242,8 @@ func saveBytecodeFile(compiledFileSet *interp_domain.CompiledFileSet, outputPath
 	return 0
 }
 
-// printBytecodeInspection converts the compiled file set to an
-// inspection JSON and prints it.
+// printBytecodeInspection converts the compiled file set to an inspection JSON and prints
+// it.
 //
 // Takes compiledFileSet which is the compiled bytecode to inspect.
 // Takes flags (bytecodeFlags) which controls JSON formatting.
@@ -270,15 +270,14 @@ func printBytecodeInspection(compiledFileSet *interp_domain.CompiledFileSet, fla
 	return 0
 }
 
-// inspectCompiledFileSet converts a compiled file set into a
-// JSON-serialisable inspection summary, walking the function tree
-// directly rather than going through FlatBuffer serialisation.
+// inspectCompiledFileSet converts a compiled file set into a JSON-serialisable inspection
+// summary, walking the function tree directly rather than going through FlatBuffer
+// serialisation.
 //
-// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is the
-// compiled bytecode to inspect.
+// Takes compiledFileSet (*interp_domain.CompiledFileSet) which is the compiled bytecode
+// to inspect.
 //
-// Returns *interp_schema.BytecodeInspection which is the inspection
-// summary.
+// Returns *interp_schema.BytecodeInspection which is the inspection summary.
 func inspectCompiledFileSet(compiledFileSet *interp_domain.CompiledFileSet) *interp_schema.BytecodeInspection {
 	inspection := &interp_schema.BytecodeInspection{
 		Entrypoints: make(map[string]uint16),
@@ -297,20 +296,21 @@ func inspectCompiledFileSet(compiledFileSet *interp_domain.CompiledFileSet) *int
 	return inspection
 }
 
-// registerBankNames maps register bank indices to their
-// human-readable names for bytecode inspection.
-var registerBankNames = [...]string{
-	"int", "float", "string", "general", "bool", "uint", "complex",
-}
+var (
+	// registerBankNames maps register bank indices to their human-readable names for
+	// bytecode inspection.
+	registerBankNames = [...]string{
+		"int", "float", "string", "general", "bool", "uint", "complex",
+	}
+)
 
-// inspectFunction converts a compiled function into a
-// JSON-serialisable inspection summary.
-//
-// Takes function (*interp_domain.CompiledFunction) which is the
-// compiled function to inspect.
-//
-// Returns *interp_schema.FunctionInspection which is the inspection
+// inspectFunction converts a compiled function into a JSON-serialisable inspection
 // summary.
+//
+// Takes function (*interp_domain.CompiledFunction) which is the compiled function to
+// inspect.
+//
+// Returns *interp_schema.FunctionInspection which is the inspection summary.
 func inspectFunction(function *interp_domain.CompiledFunction) *interp_schema.FunctionInspection {
 	inspection := &interp_schema.FunctionInspection{
 		Name:         function.ExportName(),
@@ -344,8 +344,8 @@ func inspectFunction(function *interp_domain.CompiledFunction) *interp_schema.Fu
 	return inspection
 }
 
-// addNonZero inserts a key-value pair into the map only if the value
-// is greater than zero.
+// addNonZero inserts a key-value pair into the map only if the value is greater than
+// zero.
 //
 // Takes m (map[string]int) which is the target map.
 // Takes key (string) which is the map key.
@@ -356,29 +356,28 @@ func addNonZero(m map[string]int, key string, value int) {
 	}
 }
 
-// compileOnlyPlaceholder is a sentinel reflect.Value for compile-only
-// mode.
-//
-// The actual reflect.Value is only needed at runtime; for compilation,
-// the symbol registry just needs to confirm the symbol exists. This
-// value is never inspected, only the generalConstantDescriptor
-// (package path + symbol name) matters for serialisation.
-var compileOnlyPlaceholder = reflect.ValueOf(0)
+var (
 
-// descriptorTypesProvider supplies pre-built types.Package objects and
-// placeholder symbol entries loaded from a types descriptor file. The
-// placeholder reflect.Value entries allow the compiler's symbol Lookup
-// to succeed; actual runtime values are resolved when the bytecode is
-// later loaded by the application.
+	// compileOnlyPlaceholder is a sentinel reflect.Value for compile-only mode.
+	//
+	// The actual reflect.Value is only needed at runtime; for compilation, the symbol
+	// registry just needs to confirm the symbol exists. This value is never inspected, only
+	// the generalConstantDescriptor (package path + symbol name) matters for serialisation.
+	compileOnlyPlaceholder = reflect.ValueOf(0)
+)
+
+// descriptorTypesProvider supplies pre-built types.Package objects and placeholder symbol
+// entries loaded from a types descriptor file. The placeholder reflect.Value entries
+// allow the compiler's symbol Lookup to succeed; actual runtime values are resolved when
+// the bytecode is later loaded by the application.
 type descriptorTypesProvider struct {
 	// packages maps import paths to their loaded type packages.
 	packages map[string]*types.Package
 }
 
-// Exports returns a symbol export table with placeholder entries for
-// every exported symbol in the loaded packages. The compiler only
-// needs Lookup to succeed (returning a valid reflect.Value); the
-// actual value is only used at runtime.
+// Exports returns a symbol export table with placeholder entries for every exported
+// symbol in the loaded packages. The compiler only needs Lookup to succeed (returning a
+// valid reflect.Value); the actual value is only used at runtime.
 //
 // Returns interp_domain.SymbolExports with placeholder entries.
 func (p *descriptorTypesProvider) Exports() interp_domain.SymbolExports {
@@ -400,28 +399,23 @@ func (p *descriptorTypesProvider) Exports() interp_domain.SymbolExports {
 	return exports
 }
 
-// TypesPackages returns the pre-built types.Package objects loaded
-// from the descriptor.
+// TypesPackages returns the pre-built types.Package objects loaded from the descriptor.
 //
-// Returns map[string]*types.Package mapping import paths to their
-// type packages.
+// Returns map[string]*types.Package mapping import paths to their type packages.
 func (p *descriptorTypesProvider) TypesPackages() map[string]*types.Package {
 	return p.packages
 }
 
-// loadTypesDescriptor reads a types descriptor JSON file, combines
-// its import paths with the source file's imports, and loads
-// types.Package objects via golang.org/x/tools/go/packages.
+// loadTypesDescriptor reads a types descriptor JSON file, combines its import paths with
+// the source file's imports, and loads types.Package objects via
+// golang.org/x/tools/go/packages.
 //
-// Takes descriptorPath (string) which is the path to the
-// gen_types_descriptor.json file.
-// Takes source ([]byte) which is the Go source being compiled, used
-// to extract additional import paths not in the descriptor.
+// Takes descriptorPath (string) which is the path to the gen_types_descriptor.json file.
+// Takes source ([]byte) which is the Go source being compiled, used to extract additional
+// import paths not in the descriptor.
 //
-// Returns map[string]*types.Package which contains the loaded type
-// packages.
-// Returns error when the file cannot be read or packages cannot be
-// loaded.
+// Returns map[string]*types.Package which contains the loaded type packages.
+// Returns error when the file cannot be read or packages cannot be loaded.
 func loadTypesDescriptor(descriptorPath string, source []byte) (map[string]*types.Package, error) {
 	cleanedDescriptorPath := filepath.Clean(descriptorPath)
 	data, err := os.ReadFile(cleanedDescriptorPath) //nolint:gosec // user-specified path, sanitised
@@ -484,8 +478,7 @@ func extractSourceImports(source []byte) []string {
 	return importPaths
 }
 
-// mergeImportPaths combines two slices of import paths, removing
-// duplicates.
+// mergeImportPaths combines two slices of import paths, removing duplicates.
 //
 // Takes a ([]string) which is the first set of import paths.
 // Takes b ([]string) which is the second set of import paths.
@@ -511,8 +504,7 @@ func mergeImportPaths(a, b []string) []string {
 	return merged
 }
 
-// bytecodeUsage prints the command-line help text for the bytecode
-// command.
+// bytecodeUsage prints the command-line help text for the bytecode command.
 //
 // Takes w (io.Writer) which receives the usage text.
 func bytecodeUsage(w io.Writer) {

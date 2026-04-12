@@ -27,12 +27,11 @@ import (
 	"piko.sh/piko/internal/image/image_dto"
 )
 
-// TransformBuilder provides a fluent API for performing image transformations.
-// It wraps the image service and provides a clean interface for runtime
-// operations, similar to storage's UploadBuilder.
+// TransformBuilder provides a fluent API for performing image transformations. It wraps
+// the image service and provides a clean interface for runtime operations, similar to
+// storage's UploadBuilder.
 //
-// Usage:
-// result, err := service.Transform(reader).
+// Usage: result, err := service.Transform(reader).
 //
 //	Size(200, 200).
 //	Format("webp").
@@ -52,13 +51,13 @@ type TransformBuilder struct {
 	spec image_dto.TransformationSpec
 }
 
-// Transform creates a new transform builder for the given input.
-// This is the entry point for performing image transformations.
+// Transform creates a new transform builder for the given input. This is the entry point
+// for performing image transformations.
 //
 // Takes input (io.Reader) which provides the source image data.
 //
-// Returns *TransformBuilder which provides a fluent interface for
-// configuring and executing the transformation.
+// Returns *TransformBuilder which provides a fluent interface for configuring and
+// executing the transformation.
 func (s *service) Transform(input io.Reader) *TransformBuilder {
 	return &TransformBuilder{
 		service:            s,
@@ -68,11 +67,10 @@ func (s *service) Transform(input io.Reader) *TransformBuilder {
 	}
 }
 
-// WithPredefinedVariants sets the available predefined variants for UseVariant
-// lookups.
+// WithPredefinedVariants sets the available predefined variants for UseVariant lookups.
 //
-// Takes variants (map[string]image_dto.TransformationSpec) which provides the
-// available variants.
+// Takes variants (map[string]image_dto.TransformationSpec) which provides the available
+// variants.
 //
 // Returns *TransformBuilder which allows method chaining.
 func (b *TransformBuilder) WithPredefinedVariants(variants map[string]image_dto.TransformationSpec) *TransformBuilder {
@@ -80,8 +78,8 @@ func (b *TransformBuilder) WithPredefinedVariants(variants map[string]image_dto.
 	return b
 }
 
-// Width sets the target width in pixels.
-// Set to 0 to preserve aspect ratio based on height.
+// Width sets the target width in pixels. Set to 0 to preserve aspect ratio based on
+// height.
 //
 // Takes px (int) which specifies the target width.
 //
@@ -91,8 +89,8 @@ func (b *TransformBuilder) Width(px int) *TransformBuilder {
 	return b
 }
 
-// Height sets the target height in pixels.
-// Set to 0 to preserve aspect ratio based on width.
+// Height sets the target height in pixels. Set to 0 to preserve aspect ratio based on
+// width.
 //
 // Takes px (int) which specifies the target height.
 //
@@ -102,9 +100,8 @@ func (b *TransformBuilder) Height(px int) *TransformBuilder {
 	return b
 }
 
-// Size sets both width and height in pixels.
-// If both are specified with a fit mode, the image will be resized
-// according to the fit mode's behaviour.
+// Size sets both width and height in pixels. If both are specified with a fit mode, the
+// image will be resized according to the fit mode's behaviour.
 //
 // Takes width (int) which specifies the target width.
 // Takes height (int) which specifies the target height.
@@ -116,8 +113,8 @@ func (b *TransformBuilder) Size(width, height int) *TransformBuilder {
 	return b
 }
 
-// MaxWidth sets the width while leaving height at 0 to preserve aspect ratio.
-// The image will be scaled to fit within the specified width.
+// MaxWidth sets the width while leaving height at 0 to preserve aspect ratio. The image
+// will be scaled to fit within the specified width.
 //
 // Takes px (int) which specifies the maximum width.
 //
@@ -128,8 +125,8 @@ func (b *TransformBuilder) MaxWidth(px int) *TransformBuilder {
 	return b
 }
 
-// MaxHeight sets the height while leaving width at 0 to preserve aspect ratio.
-// The image will be scaled to fit within the specified height.
+// MaxHeight sets the height while leaving width at 0 to preserve aspect ratio. The image
+// will be scaled to fit within the specified height.
 //
 // Takes px (int) which specifies the maximum height.
 //
@@ -140,8 +137,8 @@ func (b *TransformBuilder) MaxHeight(px int) *TransformBuilder {
 	return b
 }
 
-// Format sets the output format for the image.
-// Supported formats: "jpeg", "jpg", "png", "webp", "avif", "gif".
+// Format sets the output format for the image. Supported formats: "jpeg", "jpg", "png",
+// "webp", "avif", "gif".
 //
 // Takes format (string) which specifies the output format.
 //
@@ -153,8 +150,8 @@ func (b *TransformBuilder) Format(format string) *TransformBuilder {
 
 // Quality sets the compression quality for the output image.
 //
-// Values range from 1 to 100, where higher values produce larger files with
-// better quality. For JPEG, WebP, and AVIF formats, 80 is a good default.
+// Values range from 1 to 100, where higher values produce larger files with better
+// quality. For JPEG, WebP, and AVIF formats, 80 is a good default.
 //
 // Takes q (int) which specifies the quality value between 1 and 100.
 //
@@ -174,8 +171,8 @@ func (b *TransformBuilder) Fit(fit image_dto.FitMode) *TransformBuilder {
 	return b
 }
 
-// Cover is a shorthand for Fit(image_dto.FitCover).
-// The image will be resized to fill the dimensions, cropping any excess.
+// Cover is a shorthand for Fit(image_dto.FitCover). The image will be resized to fill the
+// dimensions, cropping any excess.
 //
 // Returns *TransformBuilder which allows method chaining.
 func (b *TransformBuilder) Cover() *TransformBuilder {
@@ -183,8 +180,8 @@ func (b *TransformBuilder) Cover() *TransformBuilder {
 	return b
 }
 
-// Contain is a shorthand for Fit(image_dto.FitContain).
-// The image will be resized to fit within the dimensions.
+// Contain is a shorthand for Fit(image_dto.FitContain). The image will be resized to fit
+// within the dimensions.
 //
 // Returns *TransformBuilder which allows method chaining.
 func (b *TransformBuilder) Contain() *TransformBuilder {
@@ -192,8 +189,8 @@ func (b *TransformBuilder) Contain() *TransformBuilder {
 	return b
 }
 
-// Fill is a shorthand for Fit(image_dto.FitFill).
-// The image will be stretched to exact dimensions.
+// Fill is a shorthand for Fit(image_dto.FitFill). The image will be stretched to exact
+// dimensions.
 //
 // Returns *TransformBuilder which allows method chaining.
 func (b *TransformBuilder) Fill() *TransformBuilder {
@@ -201,8 +198,8 @@ func (b *TransformBuilder) Fill() *TransformBuilder {
 	return b
 }
 
-// Inside is a shorthand for Fit(image_dto.FitInside).
-// The image will be resized to be at most the specified dimensions.
+// Inside is a shorthand for Fit(image_dto.FitInside). The image will be resized to be at
+// most the specified dimensions.
 //
 // Returns *TransformBuilder which allows method chaining.
 func (b *TransformBuilder) Inside() *TransformBuilder {
@@ -210,8 +207,8 @@ func (b *TransformBuilder) Inside() *TransformBuilder {
 	return b
 }
 
-// Outside is a shorthand for Fit(image_dto.FitOutside).
-// The image will be resized to be at least the specified dimensions.
+// Outside is a shorthand for Fit(image_dto.FitOutside). The image will be resized to be
+// at least the specified dimensions.
 //
 // Returns *TransformBuilder which allows method chaining.
 func (b *TransformBuilder) Outside() *TransformBuilder {
@@ -219,8 +216,7 @@ func (b *TransformBuilder) Outside() *TransformBuilder {
 	return b
 }
 
-// WithoutEnlargement prevents images from being scaled up beyond their
-// original size.
+// WithoutEnlargement prevents images from being scaled up beyond their original size.
 //
 // Returns *TransformBuilder which allows method chaining.
 func (b *TransformBuilder) WithoutEnlargement() *TransformBuilder {
@@ -228,8 +224,8 @@ func (b *TransformBuilder) WithoutEnlargement() *TransformBuilder {
 	return b
 }
 
-// Background sets the hex colour for letterboxing or transparency fill.
-// Format: "#RRGGBB" (e.g., "#FFFFFF" for white).
+// Background sets the hex colour for letterboxing or transparency fill. Format: "#RRGGBB"
+// (e.g., "#FFFFFF" for white).
 //
 // Takes hex (string) which specifies the background colour.
 //
@@ -239,8 +235,8 @@ func (b *TransformBuilder) Background(hex string) *TransformBuilder {
 	return b
 }
 
-// AspectRatio forces a specific aspect ratio.
-// Format: "width:height" (e.g., "16:9", "4:3", "1:1").
+// AspectRatio forces a specific aspect ratio. Format: "width:height" (e.g., "16:9",
+// "4:3", "1:1").
 //
 // Takes ratio (string) which specifies the aspect ratio.
 //
@@ -250,8 +246,8 @@ func (b *TransformBuilder) AspectRatio(ratio string) *TransformBuilder {
 	return b
 }
 
-// Provider sets the image processing provider to use.
-// If not set, the service's default provider will be used.
+// Provider sets the image processing provider to use. If not set, the service's default
+// provider will be used.
 //
 // Takes name (string) which identifies the provider.
 //
@@ -299,9 +295,8 @@ func (b *TransformBuilder) Greyscale() *TransformBuilder {
 	return b
 }
 
-// UseVariant applies a predefined variant's settings to this transformation.
-// The variant must have been registered with WithPredefinedVariants or set up
-// in the image service.
+// UseVariant applies a predefined variant's settings to this transformation. The variant
+// must have been registered with WithPredefinedVariants or set up in the image service.
 //
 // Takes name (string) which identifies the predefined variant to apply.
 //
@@ -316,8 +311,8 @@ func (b *TransformBuilder) UseVariant(name string) *TransformBuilder {
 	return b
 }
 
-// FromSpec copies all settings from an existing TransformationSpec. Use it to
-// build on an existing specification.
+// FromSpec copies all settings from an existing TransformationSpec. Use it to build on an
+// existing specification.
 //
 // Takes spec (image_dto.TransformationSpec) which provides the base settings.
 //
@@ -330,19 +325,19 @@ func (b *TransformBuilder) FromSpec(spec image_dto.TransformationSpec) *Transfor
 	return b
 }
 
-// Spec returns the current TransformationSpec without executing.
-// Use this to inspect or pass the spec to other functions.
+// Spec returns the current TransformationSpec without executing. Use this to inspect or
+// pass the spec to other functions.
 //
 // Returns image_dto.TransformationSpec which contains the current settings.
 func (b *TransformBuilder) Spec() image_dto.TransformationSpec {
 	return b.spec
 }
 
-// Do performs the transformation and returns the result.
-// This is the terminal method that executes the configured transformation.
+// Do performs the transformation and returns the result. This is the terminal method that
+// executes the configured transformation.
 //
-// Returns *image_dto.TransformedImageResult which contains the transformed
-// image stream and metadata.
+// Returns *image_dto.TransformedImageResult which contains the transformed image stream
+// and metadata.
 // Returns error when the transformation fails.
 func (b *TransformBuilder) Do(ctx context.Context) (*image_dto.TransformedImageResult, error) {
 	if b.input == nil {
@@ -351,8 +346,8 @@ func (b *TransformBuilder) Do(ctx context.Context) (*image_dto.TransformedImageR
 	return b.service.TransformStream(ctx, b.input, b.spec)
 }
 
-// DoToWriter performs the transformation and writes the result to the
-// provided writer. Use it to write directly to a file or buffer.
+// DoToWriter performs the transformation and writes the result to the provided writer.
+// Use it to write directly to a file or buffer.
 //
 // Takes w (io.Writer) which receives the transformed image data.
 //

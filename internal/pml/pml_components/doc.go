@@ -18,15 +18,14 @@
 
 // Package pml_components implements all built-in PikoML components.
 //
-// PikoML (Piko Markup Language) is Piko's email templating system. Each
-// component implements the [pml_domain.Component] interface, transforming
-// PikoML tags (e.g., pml-row, pml-col, pml-button) into email-compatible
-// HTML with proper table-based layouts and Outlook VML fallbacks.
+// PikoML (Piko Markup Language) is Piko's email templating system. Each component
+// implements the [pml_domain.Component] interface, transforming PikoML tags (e.g.,
+// pml-row, pml-col, pml-button) into email-compatible HTML with proper table-based
+// layouts and Outlook VML fallbacks.
 //
 // # Component registration
 //
-// Use [RegisterBuiltIns] to create a registry populated with all standard
-// components:
+// Use [RegisterBuiltIns] to create a registry populated with all standard components:
 //
 //	registry, err := pml_components.RegisterBuiltIns()
 //	if err != nil {
@@ -36,6 +35,6 @@
 //
 // # Thread safety
 //
-// The [componentRegistry] implementation is safe for concurrent use. Component
-// instances themselves are stateless and can be shared across goroutines.
+// The [componentRegistry] implementation is safe for concurrent use. Component instances
+// themselves are stateless and can be shared across goroutines.
 package pml_components

@@ -68,12 +68,12 @@ const (
 	// logKeySource is the key used to mark source artefacts in variant metadata.
 	logKeySource = "source"
 
-	// errMessageStorageBackendNotFound is the error message used when a storage
-	// backend ID is not found in the configured blob stores.
+	// errMessageStorageBackendNotFound is the error message used when a storage backend ID
+	// is not found in the configured blob stores.
 	errMessageStorageBackendNotFound = "storage backend not found"
 
-	// errStorageBackendNotFound is the error code used when a storage backend ID
-	// is not found in the configured blob stores.
+	// errStorageBackendNotFound is the error code used when a storage backend ID is not
+	// found in the configured blob stores.
 	errStorageBackendNotFound = "Storage backend not found"
 )
 
@@ -86,12 +86,11 @@ var (
 )
 
 var (
-	// errArtefactIDEmpty is returned when an artefact operation is attempted
-	// with an empty artefact ID.
+	// errArtefactIDEmpty is returned when an artefact operation is attempted with an empty
+	// artefact ID.
 	errArtefactIDEmpty = errors.New("artefactID cannot be empty")
 
-	// errSourcePathEmpty is returned when an artefact is ingested with an
-	// empty source path.
+	// errSourcePathEmpty is returned when an artefact is ingested with an empty source path.
 	errSourcePathEmpty = errors.New("sourcePath cannot be empty")
 )
 
@@ -115,8 +114,8 @@ func (wc *writeCounter) Write(p []byte) (int, error) {
 
 // publishEvent sends artefact lifecycle events to the event bus.
 //
-// Takes eventType (orchestrator_domain.EventType) which specifies the type of
-// lifecycle event to send.
+// Takes eventType (orchestrator_domain.EventType) which specifies the type of lifecycle
+// event to send.
 // Takes artefactID (string) which identifies the artefact the event relates to.
 func (s *registryService) publishEvent(ctx context.Context, eventType orchestrator_domain.EventType, artefactID string) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -185,13 +184,13 @@ type upsertInput struct {
 	desiredProfiles []registry_dto.NamedProfile
 }
 
-// resolveVariantsForUpsert finds the final variants based on whether source
-// data is available.
+// resolveVariantsForUpsert finds the final variants based on whether source data is
+// available.
 //
 // Takes input (upsertInput) which contains the source data and metadata.
 // Takes isNewArtefact (bool) which indicates if this is a new artefact.
-// Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the
-// current artefact state for updates.
+// Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the current artefact
+// state for updates.
 //
 // Returns []registry_dto.Variant which contains the resolved variants.
 // Returns error when blob processing fails.
@@ -222,21 +221,21 @@ func (s *registryService) resolveVariantsForUpsert(
 
 // UpsertArtefact creates or updates an artefact in the registry.
 //
-// When sourceData is provided, it uploads the blob and creates or updates the
-// source variant. When sourceData is nil, it performs a metadata-only update,
-// such as updating desired profiles.
+// When sourceData is provided, it uploads the blob and creates or updates the source
+// variant. When sourceData is nil, it performs a metadata-only update, such as updating
+// desired profiles.
 //
-// For metadata-only updates where the artefact already exists with identical
-// desired profiles, the update and event publication are skipped entirely.
-// This prevents unnecessary event storms during rapid page reloads.
+// For metadata-only updates where the artefact already exists with identical desired
+// profiles, the update and event publication are skipped entirely. This prevents
+// unnecessary event storms during rapid page reloads.
 //
 // Takes artefactID (string) which identifies the artefact to create or update.
 // Takes sourcePath (string) which specifies the path to the source file.
-// Takes sourceData (io.Reader) which provides the blob data to upload, or nil
-// for metadata-only updates.
+// Takes sourceData (io.Reader) which provides the blob data to upload, or nil for
+// metadata-only updates.
 // Takes storageBackendID (string) which identifies the storage backend to use.
-// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the
-// profiles to associate with the artefact.
+// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles to
+// associate with the artefact.
 //
 // Returns *registry_dto.ArtefactMeta which contains the artefact metadata.
 // Returns error when the input is invalid or the operation fails.
@@ -307,9 +306,9 @@ func (s *registryService) UpsertArtefact(
 	return finalArtefact, nil
 }
 
-// getArtefactForUpsert retrieves an artefact using the service-level cache
-// before falling back to the metadata store. This avoids a full SQLite read
-// and FlatBuffer deserialisation when the artefact is already cached.
+// getArtefactForUpsert retrieves an artefact using the service-level cache before falling
+// back to the metadata store. This avoids a full SQLite read and FlatBuffer
+// deserialisation when the artefact is already cached.
 //
 // Takes artefactID (string) which identifies the artefact to retrieve.
 //
@@ -322,12 +321,12 @@ func (s *registryService) getArtefactForUpsert(ctx context.Context, artefactID s
 	return s.metaStore.GetArtefact(ctx, artefactID)
 }
 
-// persistAndFinaliseUpsert saves the artefact to the store, updates cache,
-// and publishes events.
+// persistAndFinaliseUpsert saves the artefact to the store, updates cache, and publishes
+// events.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to save.
-// Takes isNewArtefact (bool) which indicates if this is a new artefact or an
-// update to an existing one.
+// Takes isNewArtefact (bool) which indicates if this is a new artefact or an update to an
+// existing one.
 //
 // Returns error when the atomic update of metadata fails.
 func (s *registryService) persistAndFinaliseUpsert(
@@ -367,8 +366,8 @@ type blobUploadResult struct {
 	// hash is the content hash used for deduplication and integrity checks.
 	hash string
 
-	// sriHash is the SHA-384 Subresource Integrity hash in "sha384-<base64>"
-	// format, computed alongside the content hash at zero additional cost.
+	// sriHash is the SHA-384 Subresource Integrity hash in "sha384-<base64>" format,
+	// computed alongside the content hash at zero additional cost.
 	sriHash string
 
 	// finalKey is the storage key that identifies where the blob is stored.
@@ -450,17 +449,16 @@ func (*registryService) decrementOldBlobRefCount(
 	return nil
 }
 
-// processBlobUpdate handles blob storage when source data is provided. It
-// creates a new source variant and removes any variants that depend on the old
-// source.
+// processBlobUpdate handles blob storage when source data is provided. It creates a new
+// source variant and removes any variants that depend on the old source.
 //
 // Takes sourceData (io.Reader) which provides the blob content to store.
-// Takes sourcePath (string) which specifies the original file path for MIME
-// type detection.
+// Takes sourcePath (string) which specifies the original file path for MIME type
+// detection.
 // Takes storageBackendID (string) which identifies which blob storage to use.
 // Takes isNewArtefact (bool) which indicates whether this is a new artefact.
-// Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the
-// current artefact metadata for updates.
+// Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the current artefact
+// metadata for updates.
 //
 // Returns []registry_dto.Variant which contains the updated variant list.
 // Returns error when blob storage fails or reference count update fails.
@@ -534,13 +532,13 @@ type variantReplacementInfo struct {
 	found bool
 }
 
-// incrementVariantRefCounts increases the reference counts for a variant's
-// blob and all its chunks.
+// incrementVariantRefCounts increases the reference counts for a variant's blob and all
+// its chunks.
 //
 // Takes variant (*registry_dto.Variant) which provides the blob and chunk data.
 //
-// Returns error when variant fields are missing or invalid, or when any
-// reference count update fails.
+// Returns error when variant fields are missing or invalid, or when any reference count
+// update fails.
 func (s *registryService) incrementVariantRefCounts(
 	ctx context.Context,
 	store MetadataStore,
@@ -585,15 +583,13 @@ func (s *registryService) incrementVariantRefCounts(
 	return s.incrementChunkRefCounts(ctx, store, variant.Chunks)
 }
 
-// incrementChunkRefCounts increases the reference count for all chunk blobs.
-// It stops on the first failure to avoid leaving reference counts in a partial
-// state.
+// incrementChunkRefCounts increases the reference count for all chunk blobs. It stops on
+// the first failure to avoid leaving reference counts in a partial state.
 //
-// Takes chunks ([]registry_dto.VariantChunk) which contains the chunks to
-// update.
+// Takes chunks ([]registry_dto.VariantChunk) which contains the chunks to update.
 //
-// Returns error when a chunk has missing or invalid fields, or when the
-// reference count update fails.
+// Returns error when a chunk has missing or invalid fields, or when the reference count
+// update fails.
 func (*registryService) incrementChunkRefCounts(
 	ctx context.Context,
 	store MetadataStore,
@@ -643,15 +639,14 @@ func (*registryService) incrementChunkRefCounts(
 	return nil
 }
 
-// decrementOldVariantRefCounts lowers reference counts for a replaced variant
-// and returns garbage collection hints.
+// decrementOldVariantRefCounts lowers reference counts for a replaced variant and returns
+// garbage collection hints.
 //
-// Takes info (variantReplacementInfo) which holds details about the replaced
-// variant.
+// Takes info (variantReplacementInfo) which holds details about the replaced variant.
 // Takes newStorageKey (string) which identifies the new storage location.
 //
-// Returns []registry_dto.GCHint which contains hints for garbage
-// collection of blobs that are no longer needed.
+// Returns []registry_dto.GCHint which contains hints for garbage collection of blobs that
+// are no longer needed.
 // Returns error when a reference count update fails.
 func (s *registryService) decrementOldVariantRefCounts(
 	ctx context.Context,
@@ -676,16 +671,15 @@ func (s *registryService) decrementOldVariantRefCounts(
 	return append(mainHints, chunkHints...), nil
 }
 
-// decrementMainBlobRefCount lowers the reference count for the old blob and
-// returns a garbage collection hint if the blob is no longer in use.
+// decrementMainBlobRefCount lowers the reference count for the old blob and returns a
+// garbage collection hint if the blob is no longer in use.
 //
-// Takes info (variantReplacementInfo) which contains the old storage key and
-// backend ID.
-// Takes newStorageKey (string) which is compared to skip updates where the
-// key has not changed.
+// Takes info (variantReplacementInfo) which contains the old storage key and backend ID.
+// Takes newStorageKey (string) which is compared to skip updates where the key has not
+// changed.
 //
-// Returns []registry_dto.GCHint which contains a hint for garbage
-// collection when the old blob should be deleted, or nil otherwise.
+// Returns []registry_dto.GCHint which contains a hint for garbage collection when the old
+// blob should be deleted, or nil otherwise.
 // Returns error when the blob reference count cannot be decremented.
 func (*registryService) decrementMainBlobRefCount(
 	ctx context.Context,
@@ -722,14 +716,13 @@ func (*registryService) decrementMainBlobRefCount(
 	return nil, nil
 }
 
-// decrementOldChunkRefCounts lowers reference counts for old chunk blobs and
-// returns hints for garbage collection.
+// decrementOldChunkRefCounts lowers reference counts for old chunk blobs and returns
+// hints for garbage collection.
 //
-// Takes oldChunks ([]registry_dto.VariantChunk) which contains the chunks to
-// update.
+// Takes oldChunks ([]registry_dto.VariantChunk) which contains the chunks to update.
 //
-// Returns []registry_dto.GCHint which contains hints for blobs that
-// are no longer used and may be deleted.
+// Returns []registry_dto.GCHint which contains hints for blobs that are no longer used
+// and may be deleted.
 // Returns error when a chunk reference count cannot be decremented.
 func (*registryService) decrementOldChunkRefCounts(
 	ctx context.Context,
@@ -774,13 +767,13 @@ func (*registryService) decrementOldChunkRefCounts(
 	return hints, nil
 }
 
-// persistVariantUpdate saves the updated artefact to the metadata store with
-// optional GC hints.
+// persistVariantUpdate saves the updated artefact to the metadata store with optional GC
+// hints.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact
-// metadata to persist.
-// Takes hintsToAdd ([]registry_dto.GCHint) which specifies garbage collection
-// hints to add atomically.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact metadata to
+// persist.
+// Takes hintsToAdd ([]registry_dto.GCHint) which specifies garbage collection hints to
+// add atomically.
 //
 // Returns error when the atomic update fails.
 func (s *registryService) persistVariantUpdate(
@@ -815,9 +808,8 @@ func (s *registryService) persistVariantUpdate(
 	return nil
 }
 
-// AddVariant adds or replaces a variant for an artefact. If a variant with
-// the same ID already exists, it replaces it and creates a GC hint for the
-// old blob.
+// AddVariant adds or replaces a variant for an artefact. If a variant with the same ID
+// already exists, it replaces it and creates a GC hint for the old blob.
 //
 // Takes artefactID (string) which identifies the artefact to modify.
 // Takes newVariant (*registry_dto.Variant) which specifies the variant to add.
@@ -880,14 +872,12 @@ func (s *registryService) AddVariant(
 	return artefact, nil
 }
 
-// collectVariantGCHints lowers the reference counts for all variants and
-// gathers garbage collection hints for blobs that are no longer in use.
+// collectVariantGCHints lowers the reference counts for all variants and gathers garbage
+// collection hints for blobs that are no longer in use.
 //
-// Takes variants ([]registry_dto.Variant) which contains the variants to
-// process.
+// Takes variants ([]registry_dto.Variant) which contains the variants to process.
 //
-// Returns []registry_dto.GCHint which contains hints for blobs that
-// should be removed.
+// Returns []registry_dto.GCHint which contains hints for blobs that should be removed.
 // Returns error when a variant reference count cannot be decremented.
 func (s *registryService) collectVariantGCHints(
 	ctx context.Context,
@@ -934,8 +924,8 @@ func (s *registryService) collectVariantGCHints(
 // persistArtefactDeletion executes the atomic deletion with optional GC hints.
 //
 // Takes artefactID (string) which identifies the artefact to delete.
-// Takes gcHints ([]registry_dto.GCHint) which provides optional garbage
-// collection hints to include in the atomic update.
+// Takes gcHints ([]registry_dto.GCHint) which provides optional garbage collection hints
+// to include in the atomic update.
 //
 // Returns error when the atomic update fails.
 func (s *registryService) persistArtefactDeletion(
@@ -970,9 +960,9 @@ func (s *registryService) persistArtefactDeletion(
 	return nil
 }
 
-// DeleteArtefact removes an artefact and all its variants from the registry.
-// It uses reference counting to ensure blobs are only marked for garbage
-// collection when no longer referenced.
+// DeleteArtefact removes an artefact and all its variants from the registry. It uses
+// reference counting to ensure blobs are only marked for garbage collection when no
+// longer referenced.
 //
 // Takes artefactID (string) which identifies the artefact to remove.
 //
@@ -1017,14 +1007,14 @@ func (s *registryService) DeleteArtefact(ctx context.Context, artefactID string)
 	return nil
 }
 
-// BuildDependencyMap creates a map from profile names to their first
-// dependency. Exported for testing.
+// BuildDependencyMap creates a map from profile names to their first dependency. Exported
+// for testing.
 //
-// Takes profiles ([]registry_dto.NamedProfile) which contains the named
-// profiles to get dependencies from.
+// Takes profiles ([]registry_dto.NamedProfile) which contains the named profiles to get
+// dependencies from.
 //
-// Returns map[string]string which maps each profile name to its first
-// dependency. Profiles with no dependencies are not in the map.
+// Returns map[string]string which maps each profile name to its first dependency.
+// Profiles with no dependencies are not in the map.
 func BuildDependencyMap(profiles []registry_dto.NamedProfile) map[string]string {
 	depMap := make(map[string]string)
 	for i := range profiles {
@@ -1056,14 +1046,12 @@ func validateUpsertInput(artefactID, sourcePath string) error {
 // Takes artefactID (string) which is the unique identifier for the artefact.
 // Takes sourcePath (string) which is the location of the source file.
 // Takes variants ([]registry_dto.Variant) which lists the actual variants.
-// Takes desiredProfiles ([]registry_dto.NamedProfile) which lists the target
-// profiles.
+// Takes desiredProfiles ([]registry_dto.NamedProfile) which lists the target profiles.
 // Takes isNewArtefact (bool) which is true when creating a new artefact.
-// Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the
-// previous metadata when updating an existing artefact.
+// Takes existingArtefact (*registry_dto.ArtefactMeta) which provides the previous
+// metadata when updating an existing artefact.
 //
-// Returns *registry_dto.ArtefactMeta which is the built metadata with a
-// computed status.
+// Returns *registry_dto.ArtefactMeta which is the built metadata with a computed status.
 func buildArtefactMeta(
 	artefactID, sourcePath string,
 	variants []registry_dto.Variant,
@@ -1091,12 +1079,10 @@ func buildArtefactMeta(
 
 // profilesMatch checks if two slices of NamedProfile contain the same profiles.
 //
-// Profiles are considered matching if they have the same names. This is
-// sufficient because profile parameters are deterministically generated from
-// source attributes.
+// Profiles are considered matching if they have the same names. This is sufficient
+// because profile parameters are deterministically generated from source attributes.
 //
-// Takes existing ([]registry_dto.NamedProfile) which contains the current
-// profiles.
+// Takes existing ([]registry_dto.NamedProfile) which contains the current profiles.
 // Takes incoming ([]registry_dto.NamedProfile) which contains the new profiles.
 //
 // Returns bool which is true when both slices contain the same profile names.
@@ -1133,17 +1119,16 @@ func detectMimeType(sourcePath string) string {
 	return mimeType
 }
 
-// uploadTempBlob uploads source data to a temporary location and computes
-// its hash.
+// uploadTempBlob uploads source data to a temporary location and computes its hash.
 //
 // Takes blobStore (BlobStore) which provides storage for the blob data.
 // Takes sourceData (io.Reader) which supplies the data to upload.
-// Takes sourcePath (string) which provides the original file path for
-// extension extraction.
+// Takes sourcePath (string) which provides the original file path for extension
+// extraction.
 // Takes mimeType (string) which specifies the content type of the blob.
 //
-// Returns *blobUploadResult which contains the temporary key, hash, size,
-// final key, and MIME type.
+// Returns *blobUploadResult which contains the temporary key, hash, size, final key, and
+// MIME type.
 // Returns error when the blob cannot be saved to the store.
 func uploadTempBlob(
 	ctx context.Context,
@@ -1191,8 +1176,8 @@ func uploadTempBlob(
 	}, nil
 }
 
-// finaliseBlobStorage moves a temporary blob to its final storage location.
-// If a copy already exists, it removes the temporary blob instead.
+// finaliseBlobStorage moves a temporary blob to its final storage location. If a copy
+// already exists, it removes the temporary blob instead.
 //
 // Takes blobStore (BlobStore) which provides blob storage operations.
 // Takes tempKey (string) which is the temporary storage key for the blob.
@@ -1257,13 +1242,12 @@ func buildSourceVariant(upload *blobUploadResult, storageBackendID string) regis
 
 // applyVariantInvalidation checks existing variants and marks stale ones.
 //
-// Takes existingArtefact (*registry_dto.ArtefactMeta) which holds the variants
-// to check.
-// Takes newSourceVariant (*registry_dto.Variant) which is the new source
-// variant that starts the check.
+// Takes existingArtefact (*registry_dto.ArtefactMeta) which holds the variants to check.
+// Takes newSourceVariant (*registry_dto.Variant) which is the new source variant that
+// starts the check.
 //
-// Returns []registry_dto.Variant which contains the new source variant
-// followed by all existing variants, with stale ones marked.
+// Returns []registry_dto.Variant which contains the new source variant followed by all
+// existing variants, with stale ones marked.
 func applyVariantInvalidation(
 	ctx context.Context,
 	existingArtefact *registry_dto.ArtefactMeta,
@@ -1295,15 +1279,15 @@ func applyVariantInvalidation(
 	return finalVariants
 }
 
-// getOldSourceStorageKey returns the storage key of the existing source
-// variant if one exists.
+// getOldSourceStorageKey returns the storage key of the existing source variant if one
+// exists.
 //
-// Takes existingArtefact (*registry_dto.ArtefactMeta) which holds the artefact
-// metadata to search for a source variant.
+// Takes existingArtefact (*registry_dto.ArtefactMeta) which holds the artefact metadata
+// to search for a source variant.
 // Takes isNewArtefact (bool) which indicates whether this is a new artefact.
 //
-// Returns string which is the storage key of the source variant, or an empty
-// string if not found or if this is a new artefact.
+// Returns string which is the storage key of the source variant, or an empty string if
+// not found or if this is a new artefact.
 func getOldSourceStorageKey(existingArtefact *registry_dto.ArtefactMeta, isNewArtefact bool) string {
 	if isNewArtefact || existingArtefact == nil {
 		return ""
@@ -1315,16 +1299,14 @@ func getOldSourceStorageKey(existingArtefact *registry_dto.ArtefactMeta, isNewAr
 	return oldSourceVariant.StorageKey
 }
 
-// prepareVariantList builds a new variant list and finds any existing variant
-// that will be replaced.
+// prepareVariantList builds a new variant list and finds any existing variant that will
+// be replaced.
 //
-// Takes existingVariants ([]registry_dto.Variant) which contains the current
-// list of variants.
-// Takes newVariant (*registry_dto.Variant) which is the variant to add or
-// replace.
+// Takes existingVariants ([]registry_dto.Variant) which contains the current list of
+// variants.
+// Takes newVariant (*registry_dto.Variant) which is the variant to add or replace.
 //
-// Returns []registry_dto.Variant which is the updated list with the new variant
-// added.
+// Returns []registry_dto.Variant which is the updated list with the new variant added.
 // Returns variantReplacementInfo which holds details of any replaced variant.
 func prepareVariantList(
 	ctx context.Context,
@@ -1355,16 +1337,16 @@ func prepareVariantList(
 	return finalVariants, info
 }
 
-// getInvalidatedVariants finds all variants that depend on invalid variants
-// using a breadth-first search.
+// getInvalidatedVariants finds all variants that depend on invalid variants using a
+// breadth-first search.
 //
-// Takes dependencyMap (map[string]string) which maps variant names to the
-// identifiers they depend on.
-// Takes initiallyInvalidated (map[string]struct{}) which contains variants
-// that are already known to be invalid.
+// Takes dependencyMap (map[string]string) which maps variant names to the identifiers
+// they depend on.
+// Takes initiallyInvalidated (map[string]struct{}) which contains variants that are
+// already known to be invalid.
 //
-// Returns map[string]struct{} which contains all invalid variants, including
-// both the initial set and any that depend on them.
+// Returns map[string]struct{} which contains all invalid variants, including both the
+// initial set and any that depend on them.
 func getInvalidatedVariants(dependencyMap map[string]string, initiallyInvalidated map[string]struct{}) map[string]struct{} {
 	invalidatedSet := make(map[string]struct{})
 	queue := make([]string, 0, len(initiallyInvalidated))
@@ -1397,8 +1379,7 @@ func getInvalidatedVariants(dependencyMap map[string]string, initiallyInvalidate
 // Takes variants ([]registry_dto.Variant) which is the slice to search.
 // Takes id (string) which is the ID to match.
 //
-// Returns *registry_dto.Variant which is the matching variant, or nil if not
-// found.
+// Returns *registry_dto.Variant which is the matching variant, or nil if not found.
 func findVariantByID(variants []registry_dto.Variant, id string) *registry_dto.Variant {
 	for i := range variants {
 		if variants[i].VariantID == id {

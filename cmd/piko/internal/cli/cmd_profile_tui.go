@@ -119,7 +119,7 @@ type profileTUIModel struct {
 	// doneCh receives the pipeline completion signal.
 	doneCh <-chan profileDoneMessage
 
-	// phaseStart records when the current phase began.
+	// phaseStart records when the active phase began.
 	phaseStart time.Time
 
 	// targetURL is the URL being profiled.
@@ -174,30 +174,32 @@ type profileTUIModel struct {
 	done bool
 }
 
-// profileTUIStyles holds lipgloss styles for the profile TUI.
-var profileTUIStyles = struct {
-	title     lipgloss.Style
-	phase     lipgloss.Style
-	active    lipgloss.Style
-	done      lipgloss.Style
-	pending   lipgloss.Style
-	label     lipgloss.Style
-	value     lipgloss.Style
-	border    lipgloss.Style
-	footer    lipgloss.Style
-	sparkline lipgloss.Style
-}{
-	title:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39")),
-	phase:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("255")),
-	active:    lipgloss.NewStyle().Foreground(lipgloss.Color("214")),
-	done:      lipgloss.NewStyle().Foreground(lipgloss.Color("42")),
-	pending:   lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
-	label:     lipgloss.NewStyle().Foreground(lipgloss.Color("245")),
-	value:     lipgloss.NewStyle().Foreground(lipgloss.Color("255")),
-	border:    lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
-	footer:    lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true),
-	sparkline: lipgloss.NewStyle().Foreground(lipgloss.Color("39")),
-}
+var (
+	// profileTUIStyles holds lipgloss styles for the profile TUI.
+	profileTUIStyles = struct {
+		title     lipgloss.Style
+		phase     lipgloss.Style
+		active    lipgloss.Style
+		done      lipgloss.Style
+		pending   lipgloss.Style
+		label     lipgloss.Style
+		value     lipgloss.Style
+		border    lipgloss.Style
+		footer    lipgloss.Style
+		sparkline lipgloss.Style
+	}{
+		title:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39")),
+		phase:     lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("255")),
+		active:    lipgloss.NewStyle().Foreground(lipgloss.Color("214")),
+		done:      lipgloss.NewStyle().Foreground(lipgloss.Color("42")),
+		pending:   lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
+		label:     lipgloss.NewStyle().Foreground(lipgloss.Color("245")),
+		value:     lipgloss.NewStyle().Foreground(lipgloss.Color("255")),
+		border:    lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
+		footer:    lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Italic(true),
+		sparkline: lipgloss.NewStyle().Foreground(lipgloss.Color("39")),
+	}
+)
 
 // Init starts the periodic tick command.
 //
@@ -212,8 +214,7 @@ func (m *profileTUIModel) Init() tea.Cmd {
 
 // Update handles incoming messages.
 //
-// Takes incomingMessage (tea.Msg) which is the message to
-// process.
+// Takes incomingMessage (tea.Msg) which is the message to process.
 //
 // Returns tea.Model which is the updated model.
 // Returns tea.Cmd which is the next command to run.
@@ -298,8 +299,7 @@ func (m *profileTUIModel) View() tea.View {
 	return v
 }
 
-// renderHeader writes the title bar with border lines and
-// target URL.
+// renderHeader writes the title bar with border lines and target URL.
 //
 // Takes b (*strings.Builder) which accumulates the output.
 func (m *profileTUIModel) renderHeader(b *strings.Builder) {
@@ -313,8 +313,7 @@ func (m *profileTUIModel) renderHeader(b *strings.Builder) {
 	b.WriteByte('\n')
 }
 
-// renderSparklines writes the RPS, latency, and goroutine
-// sparkline charts.
+// renderSparklines writes the RPS, latency, and goroutine sparkline charts.
 //
 // Takes b (*strings.Builder) which accumulates the output.
 func (m *profileTUIModel) renderSparklines(b *strings.Builder) {
@@ -343,8 +342,7 @@ func (m *profileTUIModel) renderSparklines(b *strings.Builder) {
 	)
 }
 
-// renderCounters writes the total requests, failed, and bytes
-// received lines.
+// renderCounters writes the total requests, failed, and bytes received lines.
 //
 // Takes b (*strings.Builder) which accumulates the output.
 func (m *profileTUIModel) renderCounters(b *strings.Builder) {
@@ -362,8 +360,7 @@ func (m *profileTUIModel) renderCounters(b *strings.Builder) {
 	)
 }
 
-// renderLatencyPercentiles writes the p50/p80/p99/p100
-// latency line.
+// renderLatencyPercentiles writes the p50/p80/p99/p100 latency line.
 //
 // Takes b (*strings.Builder) which accumulates the output.
 func (m *profileTUIModel) renderLatencyPercentiles(b *strings.Builder) {
@@ -387,8 +384,7 @@ func (m *profileTUIModel) renderFooter(b *strings.Builder) {
 	b.WriteByte('\n')
 }
 
-// renderPhaseProgress writes the current phase progress bar
-// to b.
+// renderPhaseProgress writes the active phase progress bar to b.
 //
 // Takes b (*strings.Builder) which accumulates the output.
 func (m *profileTUIModel) renderPhaseProgress(b *strings.Builder) {
@@ -500,8 +496,7 @@ type profilePipelineParams struct {
 	profilerRoot string
 }
 
-// newProfileTUIModel creates a fresh profile TUI model wired to the
-// given channels.
+// newProfileTUIModel creates a fresh profile TUI model wired to the given channels.
 //
 // Takes targetURL (string) which is the URL being profiled.
 // Takes phaseDurSecs (int) which is the duration of each phase.
@@ -549,7 +544,7 @@ func tickProfileTUI() tea.Cmd {
 	})
 }
 
-// listenPhase returns a command that waits for the next phase message.
+// listenPhase returns a command that waits for the following phase message.
 //
 // Takes phaseChannel (<-chan phaseMessage) which delivers phase transitions.
 //
@@ -579,16 +574,14 @@ func listenDone(doneChannel <-chan profileDoneMessage) tea.Cmd {
 	}
 }
 
-// runProfileTUI runs the profiling pipeline with a live BubbleTea
-// dashboard.
+// runProfileTUI runs the profiling pipeline with a live BubbleTea dashboard.
 //
 // Takes params (profileTUIParams) which groups all TUI settings.
 //
 // Returns int which is the exit code: 0 on success, 1 on error.
 //
-// Spawns a goroutine that runs the profiling pipeline and
-// another that polls goroutine counts from the pprof endpoint. Both
-// goroutines are cancelled when the TUI exits.
+// Spawns a goroutine that runs the profiling pipeline and another that polls goroutine
+// counts from the pprof endpoint. Both goroutines are cancelled when the TUI exits.
 func runProfileTUI(ctx context.Context, params profileTUIParams) int {
 	metricsCh := make(chan metricsMessage, tuiChannelBuffer)
 	goroutineCh := make(chan goroutineMessage, tuiChannelBuffer)
@@ -627,11 +620,10 @@ func runProfileTUI(ctx context.Context, params profileTUIParams) int {
 	return 0
 }
 
-// runProfilePipeline executes the profiling flow via the shared
-// pipeline, sending phase and metrics events to the TUI.
+// runProfilePipeline executes the profiling flow via the shared pipeline, sending phase
+// and metrics events to the TUI.
 //
-// Takes params (profilePipelineParams) which groups all pipeline
-// settings.
+// Takes params (profilePipelineParams) which groups all pipeline settings.
 func runProfilePipeline(ctx context.Context, params profilePipelineParams) {
 	defer func() {
 		close(params.phaseCh)
@@ -655,13 +647,13 @@ func runProfilePipeline(ctx context.Context, params profilePipelineParams) {
 	params.doneCh <- profileDoneMessage{err: err}
 }
 
-// pollGoroutineCount periodically fetches the goroutine count from the pprof
-// endpoint and sends it to the channel until the context is cancelled.
+// pollGoroutineCount periodically fetches the goroutine count from the pprof endpoint and
+// sends it to the channel until the context is cancelled.
 //
 // Takes ctx (context.Context) which controls the polling lifetime.
 // Takes pprofBase (string) which is the pprof endpoint base URL.
-// Takes goroutineChannel (chan<- goroutineMessage) which receives
-// goroutine count samples.
+// Takes goroutineChannel (chan<- goroutineMessage) which receives goroutine count
+// samples.
 func pollGoroutineCount(ctx context.Context, pprofBase string, goroutineChannel chan<- goroutineMessage) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()

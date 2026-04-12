@@ -33,8 +33,7 @@ import (
 )
 
 const (
-	// bannerStar is the asterisk symbol used to mark exposed endpoints in the
-	// banner.
+	// bannerStar is the asterisk symbol used to mark exposed endpoints in the banner.
 	bannerStar = "*"
 
 	// bannerSpace is a single space character used for padding in the banner.
@@ -54,8 +53,8 @@ var (
 	// colourGreen is the ANSI colour used for server URLs in the startup banner.
 	colourGreen = colour.New(colour.FgGreen).SprintFunc()
 
-	// colourYellow is the ANSI colour used for warnings and
-	// exposed-port markers in the startup banner.
+	// colourYellow is the ANSI colour used for warnings and exposed-port markers in the
+	// startup banner.
 	colourYellow = colour.New(colour.FgYellow).SprintFunc()
 
 	// colourDim is the ANSI colour used for secondary text in the startup banner.
@@ -121,8 +120,8 @@ var (
 
 // StartupBannerInfo holds the data needed to display the startup banner.
 type StartupBannerInfo struct {
-	// MonitoringURL is the URL of the gRPC monitoring service, e.g.,
-	// "127.0.0.1:9091". Empty string indicates monitoring is disabled.
+	// MonitoringURL is the URL of the gRPC monitoring service, e.g., "127.0.0.1:9091". Empty
+	// string indicates monitoring is disabled.
 	MonitoringURL string
 
 	// Mode is the run mode: "dev", "dev-i", or "prod".
@@ -131,8 +130,8 @@ type StartupBannerInfo struct {
 	// ServerURL is the main server address, for example "http://localhost:8080".
 	ServerURL string
 
-	// HealthProbeURL is the URL of the health probe, e.g.,
-	// "http://127.0.0.1:9090". Empty string indicates health probes are disabled.
+	// HealthProbeURL is the URL of the health probe, e.g., "http://127.0.0.1:9090". Empty
+	// string indicates health probes are disabled.
 	HealthProbeURL string
 
 	// LivePath is the URL path for the liveness probe, such as "/live".
@@ -142,43 +141,40 @@ type StartupBannerInfo struct {
 	ReadyPath string
 
 	// ProfilingURL is the URL of the pprof server, e.g.,
-	// "http://localhost:6060/debug/pprof/". Empty string indicates profiling
-	// is disabled.
+	// "http://localhost:6060/debug/pprof/". Empty string indicates profiling is disabled.
 	ProfilingURL string
 
 	// Version is the Piko version string, for example "0.1.0-alpha".
 	Version string
 
-	// ProfilingExposed indicates whether the profiling server is bound to
-	// all interfaces (0.0.0.0).
+	// ProfilingExposed indicates whether the profiling server is bound to all interfaces
+	// (0.0.0.0).
 	ProfilingExposed bool
 
-	// AutoPort indicates whether the server may use a different port if
-	// the configured one is busy.
+	// AutoPort indicates whether the server may use a different port if the configured one
+	// is busy.
 	AutoPort bool
 
-	// MonitoringExposed indicates whether the monitoring service is bound to
-	// all interfaces (0.0.0.0).
+	// MonitoringExposed indicates whether the monitoring service is bound to all interfaces
+	// (0.0.0.0).
 	MonitoringExposed bool
 
-	// HealthExposed indicates whether the health probe is bound to all
-	// interfaces (0.0.0.0).
+	// HealthExposed indicates whether the health probe is bound to all interfaces (0.0.0.0).
 	HealthExposed bool
 
-	// ServerExposed indicates whether the server is bound to all interfaces
-	// (always true currently).
+	// ServerExposed indicates whether the server is bound to all interfaces (always true
+	// currently).
 	ServerExposed bool
 
-	// LargeMascot indicates whether the large pixel-art mascot should be
-	// displayed in the banner instead of the small ASCII art.
+	// LargeMascot indicates whether the large pixel-art mascot should be displayed in the
+	// banner instead of the small ASCII art.
 	LargeMascot bool
 }
 
-// BuildStartupBannerInfo builds the startup banner details from the resolved
-// daemon configuration and run mode.
+// BuildStartupBannerInfo builds the startup banner details from the resolved daemon
+// configuration and run mode.
 //
-// Takes config (DaemonConfig) which provides resolved network and health probe
-// settings.
+// Takes config (DaemonConfig) which provides resolved network and health probe settings.
 // Takes mode (string) which specifies the run mode (e.g. development).
 // Takes version (string) which specifies the application version.
 //
@@ -207,15 +203,14 @@ func BuildStartupBannerInfo(config DaemonConfig, mode string, version string) St
 	return info
 }
 
-// PrintStartupBanner prints a formatted startup banner with server details.
-// This bypasses the logging system to provide a clean, formatted output.
+// PrintStartupBanner prints a formatted startup banner with server details. This bypasses
+// the logging system to provide a clean, formatted output.
 //
 // When the banner is disabled, fallback NOTICE logs are printed instead.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes bannerEnabled (bool) which controls whether to print the banner or
-// fallback logs.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes bannerEnabled (bool) which controls whether to print the banner or fallback logs.
 // Takes info (StartupBannerInfo) which contains the server details to show.
 func PrintStartupBanner(ctx context.Context, bannerEnabled bool, info StartupBannerInfo) {
 	if !bannerEnabled {
@@ -230,14 +225,14 @@ func PrintStartupBanner(ctx context.Context, bannerEnabled bool, info StartupBan
 	release()
 }
 
-// buildBannerLines builds all content lines for the startup banner by placing
-// the mascot art on the left and the info lines on the right.
+// buildBannerLines builds all content lines for the startup banner by placing the mascot
+// art on the left and the info lines on the right.
 //
-// Takes info (StartupBannerInfo) which provides the server settings and
-// version details to display.
+// Takes info (StartupBannerInfo) which provides the server settings and version details
+// to display.
 //
-// Returns []string which contains the formatted banner lines including the
-// mascot, server URL, mode, and health details.
+// Returns []string which contains the formatted banner lines including the mascot, server
+// URL, mode, and health details.
 func buildBannerLines(info StartupBannerInfo) []string {
 	var mascot []string
 	if info.LargeMascot {
@@ -248,11 +243,11 @@ func buildBannerLines(info StartupBannerInfo) []string {
 	return combineSideBySide(mascot, buildInfoLines(info), bannerColumnGap)
 }
 
-// buildInfoLines builds the right-side content lines (version, phrase, mode,
-// server, health, footnote) independently of any mascot.
+// buildInfoLines builds the right-side content lines (version, phrase, mode, server,
+// health, footnote) independently of any mascot.
 //
-// Takes info (StartupBannerInfo) which provides server settings, version, and
-// health probe details.
+// Takes info (StartupBannerInfo) which provides server settings, version, and health
+// probe details.
 //
 // Returns []string which contains the formatted info lines.
 func buildInfoLines(info StartupBannerInfo) []string {
@@ -277,11 +272,10 @@ func buildInfoLines(info StartupBannerInfo) []string {
 
 // buildServerURL formats the server URL with an optional auto-port marker.
 //
-// Takes info (StartupBannerInfo) which provides the server URL and port
-// settings.
+// Takes info (StartupBannerInfo) which provides the server URL and port settings.
 //
-// Returns string which is the formatted URL, with a dimmed suffix if the port
-// is selected automatically.
+// Returns string which is the formatted URL, with a dimmed suffix if the port is selected
+// automatically.
 func buildServerURL(info StartupBannerInfo) string {
 	serverURL := colourGreen(info.ServerURL)
 	if info.AutoPort {
@@ -309,8 +303,8 @@ func buildServerLine(serverURL string, exposed bool) string {
 // Takes lines ([]string) which contains the existing banner lines.
 // Takes info (StartupBannerInfo) which provides health probe settings.
 //
-// Returns []string which contains the original lines with health probe details
-// added. Returns the original lines unchanged if health probes are not set.
+// Returns []string which contains the original lines with health probe details added.
+// Returns the original lines unchanged if health probes are not set.
 func appendHealthLines(lines []string, info StartupBannerInfo) []string {
 	if info.HealthProbeURL == "" {
 		return lines
@@ -329,14 +323,14 @@ func appendHealthLines(lines []string, info StartupBannerInfo) []string {
 	)
 }
 
-// appendMonitoringLines adds monitoring gRPC service details to the banner
-// lines if monitoring is enabled.
+// appendMonitoringLines adds monitoring gRPC service details to the banner lines if
+// monitoring is enabled.
 //
 // Takes lines ([]string) which contains the existing banner lines.
 // Takes info (StartupBannerInfo) which provides monitoring settings.
 //
-// Returns []string which contains the original lines with monitoring details
-// added. Returns the original lines unchanged if monitoring is not enabled.
+// Returns []string which contains the original lines with monitoring details added.
+// Returns the original lines unchanged if monitoring is not enabled.
 func appendMonitoringLines(lines []string, info StartupBannerInfo) []string {
 	if info.MonitoringURL == "" {
 		return lines
@@ -353,14 +347,14 @@ func appendMonitoringLines(lines []string, info StartupBannerInfo) []string {
 	)
 }
 
-// appendProfilingLines adds pprof server details to the banner lines if
-// profiling is enabled.
+// appendProfilingLines adds pprof server details to the banner lines if profiling is
+// enabled.
 //
 // Takes lines ([]string) which contains the existing banner lines.
 // Takes info (StartupBannerInfo) which provides profiling settings.
 //
-// Returns []string which contains the original lines with profiling details
-// added. Returns the original lines unchanged if profiling is not enabled.
+// Returns []string which contains the original lines with profiling details added.
+// Returns the original lines unchanged if profiling is not enabled.
 func appendProfilingLines(lines []string, info StartupBannerInfo) []string {
 	if info.ProfilingURL == "" {
 		return lines
@@ -382,8 +376,8 @@ func appendProfilingLines(lines []string, info StartupBannerInfo) []string {
 // Takes lines ([]string) which is the current banner lines to add to.
 // Takes info (StartupBannerInfo) which holds the exposure state flags.
 //
-// Returns []string which is the lines with the footnote added, or unchanged
-// if neither the server nor health endpoints are exposed.
+// Returns []string which is the lines with the footnote added, or unchanged if neither
+// the server nor health endpoints are exposed.
 func appendExposedFootnote(lines []string, info StartupBannerInfo) []string {
 	if !info.ServerExposed && !info.HealthExposed && !info.MonitoringExposed && !info.ProfilingExposed {
 		return lines
@@ -413,8 +407,8 @@ func printBannerBox(w io.Writer, lines []string) {
 //
 // Takes lines ([]string) which contains the banner lines to measure.
 //
-// Returns int which is the width of the longest line in runes, excluding
-// ANSI escape codes.
+// Returns int which is the width of the longest line in runes, excluding ANSI escape
+// codes.
 func calculateMaxWidth(lines []string) int {
 	maxWidth := 0
 	for _, line := range lines {
@@ -443,8 +437,7 @@ func formatMode(mode string) string {
 	}
 }
 
-// stripANSI removes ANSI escape codes from a string for accurate width
-// calculation.
+// stripANSI removes ANSI escape codes from a string for accurate width calculation.
 //
 // Takes s (string) which is the input that may contain ANSI escape codes.
 //
@@ -453,11 +446,11 @@ func stripANSI(s string) string {
 	return ansiRegex.ReplaceAllString(s, "")
 }
 
-// printFallbackLogs writes NOTICE-level logs when the startup banner is off.
-// This means key server details are still shown in the logs.
+// printFallbackLogs writes NOTICE-level logs when the startup banner is off. This means
+// key server details are still shown in the logs.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes info (StartupBannerInfo) which holds the server details to log.
 func printFallbackLogs(ctx context.Context, info StartupBannerInfo) {
 	_, l := logger_domain.From(ctx, log)

@@ -48,15 +48,13 @@ type PaginationMeta struct {
 
 // SortItems sorts a slice of content items based on the given sort options.
 //
-// Sorts the slice in place. To keep the original order, make a copy of the
-// slice first.
+// Sorts the slice in place. To keep the original order, make a copy of the slice first.
 //
-// When the first sort option uses SortRandom, the slice is shuffled randomly
-// and any later sort options are ignored.
+// When the first sort option uses SortRandom, the slice is shuffled randomly and any
+// later sort options are ignored.
 //
 // Takes items ([]*ContentItem) which is the slice to sort in place.
-// Takes sortOptions ([]SortOption) which specifies the fields and direction
-// for sorting.
+// Takes sortOptions ([]SortOption) which specifies the fields and direction for sorting.
 func SortItems(items []*ContentItem, sortOptions []SortOption) {
 	if len(sortOptions) == 0 {
 		return
@@ -79,8 +77,7 @@ func SortItems(items []*ContentItem, sortOptions []SortOption) {
 // When pagination is nil, returns the original slice unchanged.
 //
 // Takes items ([]*ContentItem) which is the slice to paginate.
-// Takes pagination (*PaginationOptions) which sets page-based or offset-based
-// options.
+// Takes pagination (*PaginationOptions) which sets page-based or offset-based options.
 //
 // Returns []*ContentItem which is a new slice with the requested page of items.
 func PaginateItems(items []*ContentItem, pagination *PaginationOptions) []*ContentItem {
@@ -116,8 +113,8 @@ func PaginateItems(items []*ContentItem, pagination *PaginationOptions) []*Conte
 
 // CalculatePaginationMeta calculates pagination metadata.
 //
-// When pagination is nil or has a zero page size, returns metadata treating all
-// items as a single page.
+// When pagination is nil or has a zero page size, returns metadata treating all items as
+// a single page.
 //
 // Takes total (int) which is the total number of items to paginate.
 // Takes pagination (*PaginationOptions) which specifies the page and page size.
@@ -150,8 +147,8 @@ func CalculatePaginationMeta(total int, pagination *PaginationOptions) *Paginati
 	}
 }
 
-// compareitemsInt returns a three-way comparison of two content items using
-// the given sort options.
+// compareitemsInt returns a three-way comparison of two content items using the given
+// sort options.
 //
 // Takes a (*ContentItem) which is the first item to compare.
 // Takes b (*ContentItem) which is the second item to compare.
@@ -177,8 +174,8 @@ func compareitemsInt(a, b *ContentItem, sortOptions []SortOption) int {
 
 // compareField compares a single field between two items.
 //
-// When a field is missing from an item, that item sorts before items that
-// have the field. When both items are missing the field, they are equal.
+// When a field is missing from an item, that item sorts before items that have the field.
+// When both items are missing the field, they are equal.
 //
 // Takes a (*ContentItem) which is the first item to compare.
 // Takes b (*ContentItem) which is the second item to compare.
@@ -204,8 +201,8 @@ func compareField(a, b *ContentItem, field string) int {
 
 // compareValues compares two values that may have different types.
 //
-// It tries to compare values in this order: nil, string, number, time, bool.
-// If none of these work, it converts both values to strings and compares them.
+// It tries to compare values in this order: nil, string, number, time, bool. If none of
+// these work, it converts both values to strings and compares them.
 //
 // Takes a (any) which is the first value to compare.
 // Takes b (any) which is the second value to compare.
@@ -259,9 +256,9 @@ func compareStrings(a, b string) int {
 	return compareFoldedStrings(a, b)
 }
 
-// compareFoldedStrings performs case-insensitive string comparison without
-// allocating lowercased copies. It folds ASCII characters inline and falls
-// back to per-rune folding for non-ASCII.
+// compareFoldedStrings performs case-insensitive string comparison without allocating
+// lowercased copies. It folds ASCII characters inline and falls back to per-rune folding
+// for non-ASCII.
 //
 // Takes a (string) which is the first string to compare.
 // Takes b (string) which is the second string to compare.
@@ -277,15 +274,15 @@ func compareFoldedStrings(a, b string) int {
 	return compareLength(len(a), len(b))
 }
 
-// compareFoldedBytes compares two bytes at position i after ASCII case folding.
-// Falls back to strings.ToLower for non-ASCII bytes.
+// compareFoldedBytes compares two bytes at position i after ASCII case folding. Falls
+// back to strings.ToLower for non-ASCII bytes.
 //
 // Takes a (string) which is the first string.
 // Takes b (string) which is the second string.
 // Takes i (int) which is the byte position to compare.
 //
-// Returns int which is 0 if the folded bytes are equal, -1 if a[i] < b[i],
-// or 1 if a[i] > b[i].
+// Returns int which is 0 if the folded bytes are equal, -1 if a[i] < b[i], or 1 if a[i] >
+// b[i].
 func compareFoldedBytes(a, b string, i int) int {
 	ca, cb := foldASCIIByte(a[i]), foldASCIIByte(b[i])
 	if ca == cb {
@@ -304,8 +301,8 @@ func compareFoldedBytes(a, b string, i int) int {
 //
 // Takes c (byte) which is the byte to fold.
 //
-// Returns byte which is the lowercase equivalent for ASCII letters, or c
-// unchanged for all other bytes.
+// Returns byte which is the lowercase equivalent for ASCII letters, or c unchanged for
+// all other bytes.
 func foldASCIIByte(c byte) byte {
 	if c >= 'A' && c <= 'Z' {
 		return c + 'a' - 'A'
@@ -334,8 +331,8 @@ func compareLength(a, b int) int {
 // Takes a (float64) which is the first number to compare.
 // Takes b (float64) which is the second number to compare.
 //
-// Returns int which is -1 if a is less than b, 1 if a is greater than b, or 0
-// if they are equal.
+// Returns int which is -1 if a is less than b, 1 if a is greater than b, or 0 if they are
+// equal.
 func compareNumbers(a, b float64) int {
 	if a < b {
 		return -1
@@ -351,8 +348,7 @@ func compareNumbers(a, b float64) int {
 // Takes a (time.Time) which is the first time value to compare.
 // Takes b (time.Time) which is the second time value to compare.
 //
-// Returns int which is -1 if a is before b, 1 if a is after b, or 0 if they
-// are equal.
+// Returns int which is -1 if a is before b, 1 if a is after b, or 0 if they are equal.
 func compareTimes(a, b time.Time) int {
 	if a.Before(b) {
 		return -1
@@ -363,14 +359,12 @@ func compareTimes(a, b time.Time) int {
 	return 0
 }
 
-// compareBools compares two boolean values for sorting.
-// False is sorted before true.
+// compareBools compares two boolean values for sorting. False is sorted before true.
 //
 // Takes a (bool) which is the first boolean to compare.
 // Takes b (bool) which is the second boolean to compare.
 //
-// Returns int which is -1 if a is less than b, 0 if equal, or 1 if a is
-// greater than b.
+// Returns int which is -1 if a is less than b, 0 if equal, or 1 if a is greater than b.
 func compareBools(a, b bool) int {
 	if a == b {
 		return 0
@@ -385,8 +379,8 @@ func compareBools(a, b bool) int {
 //
 // Takes v (any) which is the value to convert.
 //
-// Returns string which is the string form of the value. Returns an empty
-// string if v is nil or of an unsupported type.
+// Returns string which is the string form of the value.
+// Returns an empty string if v is nil or of an unsupported type.
 func toString(v any) string {
 	if v == nil {
 		return ""

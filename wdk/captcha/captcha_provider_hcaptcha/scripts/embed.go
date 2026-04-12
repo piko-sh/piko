@@ -16,18 +16,20 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package scripts provides the embedded JavaScript init script for the
-// hCaptcha captcha provider widget initialisation.
+// Package scripts provides the embedded JavaScript init script for the hCaptcha captcha
+// provider widget initialisation.
 package scripts
 
 import (
 	_ "embed"
 )
 
-// initScript is the embedded hCaptcha widget initialisation JavaScript.
-//
-//go:embed init.js
-var initScript string
+var (
+	// initScript is the embedded hCaptcha widget initialisation JavaScript.
+	//
+	//go:embed init.js
+	initScript string
+)
 
 // InitScript returns the static hCaptcha init script content.
 //

@@ -18,10 +18,9 @@
 
 // Package security_adapters implements the security domain port interfaces.
 //
-// It implements CSRF token binding, secure cookie handling, HTTP security
-// headers, client IP extraction, and request ID generation. Rate limiting
-// storage has been consolidated into the centralised internal/ratelimiter
-// package.
+// It implements CSRF token binding, secure cookie handling, HTTP security headers, client
+// IP extraction, and request ID generation. Rate limiting storage has been consolidated
+// into the centralised internal/ratelimiter package.
 //
 // # Thread safety
 //

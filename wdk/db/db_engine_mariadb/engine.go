@@ -23,8 +23,12 @@ import (
 	"piko.sh/piko/wdk/db/db_engine_mysql"
 )
 
-// NewMariaDBEngine creates a MariaDB engine adapter by configuring the MySQL
-// engine with MariaDB-specific dialect options.
+// NewMariaDBEngine creates a MariaDB engine adapter.
+//
+// Configures the MySQL engine with MariaDB-specific dialect options.
+//
+// Returns *db_engine_mysql.MySQLEngine which is ready for catalogue introspection and
+// code generation against MariaDB.
 func NewMariaDBEngine() *db_engine_mysql.MySQLEngine {
 	return db_engine_mysql.NewMySQLEngine(
 		db_engine_mysql.WithDialectName("mariadb"),
@@ -34,6 +38,11 @@ func NewMariaDBEngine() *db_engine_mysql.MySQLEngine {
 	)
 }
 
+// registerMariaDBFunctions registers MariaDB-specific built-in functions onto the shared
+// MySQL function catalogue.
+//
+// Takes builder (*db_engine_mysql.FunctionCatalogueBuilder) which receives the extra
+// function signatures.
 func registerMariaDBFunctions(builder *db_engine_mysql.FunctionCatalogueBuilder) {
 	uuidType := querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"}
 	builder.NeverNull("uuid", nil, uuidType)

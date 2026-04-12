@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config_resolver_kubernetes resolves configuration values
-// from Kubernetes secrets.
+// Package config_resolver_kubernetes resolves configuration values from Kubernetes
+// secrets.
 //
 // The [Resolver] is safe for concurrent use.
 package config_resolver_kubernetes

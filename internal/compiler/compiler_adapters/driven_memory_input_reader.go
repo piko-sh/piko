@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// memoryInputReader is an in-memory implementation of the InputReaderPort.
-// It stores SFC content in a thread-safe map, primarily used for testing
-// or scenarios where sources are dynamically generated.
+// memoryInputReader is an in-memory implementation of the InputReaderPort. It stores SFC
+// content in a thread-safe map, primarily used for testing or scenarios where sources are
+// dynamically generated.
 type memoryInputReader struct {
 	// dataStore maps source identifiers to their file content as byte slices.
 	dataStore map[string][]byte
@@ -40,8 +40,7 @@ type memoryInputReader struct {
 
 // ReadSFC retrieves an SFC's content from the in-memory store by its identifier.
 //
-// Takes sourceIdentifier (string) which specifies the key to look up in the
-// store.
+// Takes sourceIdentifier (string) which specifies the key to look up in the store.
 //
 // Returns []byte which contains the SFC content for the given identifier.
 // Returns error when no content exists for the given sourceIdentifier.
@@ -84,11 +83,9 @@ func (reader *memoryInputReader) ReadSFC(ctx context.Context, sourceIdentifier s
 	return content, nil
 }
 
-// NewMemoryInputReader creates a new in-memory input reader with an empty
-// data store.
+// NewMemoryInputReader creates a new in-memory input reader with an empty data store.
 //
-// Returns compiler_domain.InputReaderPort which is ready for use with no
-// initial data.
+// Returns compiler_domain.InputReaderPort which is ready for use with no initial data.
 func NewMemoryInputReader() compiler_domain.InputReaderPort {
 	return &memoryInputReader{
 		dataStore: make(map[string][]byte),

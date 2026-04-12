@@ -52,8 +52,8 @@ const (
 	// defaultOpacity is the default opacity.
 	defaultOpacity = 0.3
 
-	// charWidthFactor is the approximate character width as a fraction of
-	// font size for Helvetica.
+	// charWidthFactor is the approximate character width as a fraction of font size for
+	// Helvetica.
 	charWidthFactor = 0.52
 
 	// mediaBoxElements is the number of elements in a PDF MediaBox array.
@@ -72,13 +72,11 @@ const (
 	contentsKey = "Contents"
 )
 
-// WatermarkTransformer overlays a text watermark on each page of a PDF
-// document. It parses the PDF, locates each page object, prepends a
-// watermark content stream (rendered behind existing content), and adds
-// the required font and graphics state resources.
+// WatermarkTransformer overlays a text watermark on each page of a PDF document. It
+// parses the PDF, locates each page object, prepends a watermark content stream (rendered
+// behind existing content), and adds the required font and graphics state resources.
 //
-// The watermark uses Helvetica (a built-in Type1 font) so no font
-// embedding is needed.
+// The watermark uses Helvetica (a built-in Type1 font) so no font embedding is needed.
 type WatermarkTransformer struct {
 	// name is the transformer identifier.
 	name string
@@ -87,7 +85,9 @@ type WatermarkTransformer struct {
 	priority int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*WatermarkTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*WatermarkTransformer)(nil)
+)
 
 // New creates a new watermark transformer with default name and priority.
 //
@@ -106,8 +106,7 @@ func (t *WatermarkTransformer) Name() string { return t.name }
 
 // Type returns TransformerContent.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a content
-// transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a content transformer.
 func (*WatermarkTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerContent
 }
@@ -117,15 +116,14 @@ func (*WatermarkTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *WatermarkTransformer) Priority() int { return t.priority }
 
-// Transform applies a text watermark to each page of the PDF. Options
-// must be WatermarkOptions or *WatermarkOptions.
+// Transform applies a text watermark to each page of the PDF. Options must be
+// WatermarkOptions or *WatermarkOptions.
 //
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be WatermarkOptions or *WatermarkOptions.
 //
 // Returns []byte which is the watermarked PDF.
-// Returns error when the PDF cannot be parsed or the watermark cannot be
-// applied.
+// Returns error when the PDF cannot be parsed or the watermark cannot be applied.
 func (*WatermarkTransformer) Transform(_ context.Context, pdf []byte, options any) ([]byte, error) {
 	opts, err := castOptions(options)
 	if err != nil {
@@ -192,8 +190,7 @@ func castOptions(options any) (pdfwriter_dto.WatermarkOptions, error) {
 
 // applyDefaults fills zero-value fields with sensible defaults.
 //
-// Takes opts (*pdfwriter_dto.WatermarkOptions) which is the options struct
-// to populate.
+// Takes opts (*pdfwriter_dto.WatermarkOptions) which is the options struct to populate.
 func applyDefaults(opts *pdfwriter_dto.WatermarkOptions) {
 	if opts.FontSize == 0 {
 		opts.FontSize = defaultFontSize
@@ -217,8 +214,8 @@ func applyDefaults(opts *pdfwriter_dto.WatermarkOptions) {
 //
 // Takes pages ([]int) which specifies the zero-based page indices to include.
 //
-// Returns map[int]bool which holds the page index set, or nil when all pages
-// are selected.
+// Returns map[int]bool which holds the page index set, or nil when all pages are
+// selected.
 func buildPageSet(pages []int) map[int]bool {
 	if len(pages) == 0 {
 		return nil
@@ -230,8 +227,8 @@ func buildPageSet(pages []int) map[int]bool {
 	return set
 }
 
-// collectPageRefs walks the page tree and returns object numbers for all
-// leaf Page objects in document order.
+// collectPageRefs walks the page tree and returns object numbers for all leaf Page
+// objects in document order.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 //
@@ -262,8 +259,7 @@ func collectPageRefs(doc *pdfparse.Document) ([]int, error) {
 	return walkPageTree(doc, pagesRef.Number)
 }
 
-// walkPageTree recursively collects leaf Page object numbers from a Pages
-// tree node.
+// walkPageTree recursively collects leaf Page object numbers from a Pages tree node.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the object number of the current tree node.
@@ -302,14 +298,13 @@ func walkPageTree(doc *pdfparse.Document, objNum int) ([]int, error) {
 	return pages, nil
 }
 
-// applyToPage adds a watermark content stream to a single page object and
-// updates its resources.
+// applyToPage adds a watermark content stream to a single page object and updates its
+// resources.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer for mutations.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageObjNum (int) which is the object number of the page to modify.
-// Takes opts (*pdfwriter_dto.WatermarkOptions) which specifies the watermark
-// parameters.
+// Takes opts (*pdfwriter_dto.WatermarkOptions) which specifies the watermark parameters.
 //
 // Returns error when the page object is not a dictionary.
 func applyToPage(
@@ -338,12 +333,12 @@ func applyToPage(
 
 // extractMediaBox reads the /MediaBox from a page dictionary.
 //
-// If not found directly, it tries to resolve inherited /MediaBox from the
-// parent. Falls back to US Letter (612 x 792) if nothing is found.
+// If not found directly, it tries to resolve inherited /MediaBox from the parent. Falls
+// back to US Letter (612 x 792) if nothing is found.
 //
 // Takes pageDict (pdfparse.Dict) which is the page dictionary to inspect.
-// Takes doc (*pdfparse.Document) which is the parsed PDF document for
-// resolving inherited values.
+// Takes doc (*pdfparse.Document) which is the parsed PDF document for resolving inherited
+// values.
 //
 // Returns width (float64) which is the page width in points.
 // Returns height (float64) which is the page height in points.
@@ -359,15 +354,13 @@ func extractMediaBox(pageDict pdfparse.Dict, doc *pdfparse.Document) (width floa
 	return defaultPageWidth, defaultPageHeight
 }
 
-// resolveInheritedMediaBox walks up the /Parent chain to find an inherited
-// /MediaBox.
+// resolveInheritedMediaBox walks up the /Parent chain to find an inherited /MediaBox.
 //
-// Takes pageDict (pdfparse.Dict) which is the current page or pages node
-// dictionary.
+// Takes pageDict (pdfparse.Dict) which is the current page or pages node dictionary.
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 //
-// Returns []pdfparse.Object which holds the MediaBox array entries, or nil
-// when no inherited MediaBox is found.
+// Returns []pdfparse.Object which holds the MediaBox array entries, or nil when no
+// inherited MediaBox is found.
 func resolveInheritedMediaBox(pageDict pdfparse.Dict, doc *pdfparse.Document) []pdfparse.Object {
 	parentRef := pageDict.GetRef("Parent")
 	if parentRef.Number == 0 {
@@ -392,10 +385,9 @@ func resolveInheritedMediaBox(pageDict pdfparse.Dict, doc *pdfparse.Document) []
 //
 // Takes obj (pdfparse.Object) which is the PDF object to convert.
 //
-// Returns float64 which is the numeric value, or 0 when the object is not
-// numeric.
+// Returns float64 which is the numeric value, or 0 when the object is not numeric.
 func objectToFloat(obj pdfparse.Object) float64 {
-	switch obj.Type {
+	switch obj.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case pdfparse.ObjectInteger:
 		if v, ok := obj.Value.(int64); ok {
 			return float64(v)
@@ -408,11 +400,11 @@ func objectToFloat(obj pdfparse.Object) float64 {
 	return 0
 }
 
-// buildContentStream generates PDF content stream operators for a diagonal
-// text watermark.
+// buildContentStream generates PDF content stream operators for a diagonal text
+// watermark.
 //
-// Takes opts (*pdfwriter_dto.WatermarkOptions) which specifies the watermark
-// text, font size, colour, angle, and opacity.
+// Takes opts (*pdfwriter_dto.WatermarkOptions) which specifies the watermark text, font
+// size, colour, angle, and opacity.
 // Takes pageWidth (float64) which is the page width in points.
 // Takes pageHeight (float64) which is the page height in points.
 //
@@ -459,12 +451,11 @@ func escapeText(text string) string {
 	return buf.String()
 }
 
-// prependContentStream adds a new stream object reference before any
-// existing /Contents on the page, so the watermark renders behind content.
+// prependContentStream adds a new stream object reference before any existing /Contents
+// on the page, so the watermark renders behind content.
 //
 // Takes pageDict (*pdfparse.Dict) which is the page dictionary to modify.
-// Takes streamObjNum (int) which is the object number of the watermark
-// content stream.
+// Takes streamObjNum (int) which is the object number of the watermark content stream.
 func prependContentStream(pageDict *pdfparse.Dict, streamObjNum int) {
 	newRef := pdfparse.RefObj(streamObjNum, 0)
 	existingContents := pageDict.Get(contentsKey)
@@ -487,8 +478,8 @@ func prependContentStream(pageDict *pdfparse.Dict, streamObjNum int) {
 	}
 }
 
-// addResources ensures the page dictionary has the Helvetica font resource
-// and the opacity ExtGState resource needed by the watermark stream.
+// addResources ensures the page dictionary has the Helvetica font resource and the
+// opacity ExtGState resource needed by the watermark stream.
 //
 // Takes pageDict (*pdfparse.Dict) which is the page dictionary to modify.
 // Takes opacity (float64) which specifies the watermark opacity value.

@@ -29,12 +29,14 @@ import (
 	"time"
 )
 
-// prefixSeparator is the character placed between a flag prefix and its name.
-const prefixSeparator = "."
+const (
+	// prefixSeparator is the character placed between a flag prefix and its name.
+	prefixSeparator = "."
+)
 
-// FlagCoordinator manages a shared FlagSet that allows multiple config structs
-// to register flags without conflicts. It solves the problem where Go's flag
-// package can only parse os.Args once.
+// FlagCoordinator manages a shared FlagSet that allows multiple config structs to
+// register flags without conflicts. It solves the problem where Go's flag package can
+// only parse os.Args once.
 type FlagCoordinator struct {
 	// registrations maps prefixes to their flag registration data.
 	registrations map[string]*flagRegistration
@@ -71,9 +73,9 @@ var (
 
 // RegisterStruct registers a struct's flags with an optional prefix.
 //
-// The prefix is prepended to all flag names. For example, prefix "app" makes
-// flag "dbUrl" into "app.dbUrl". If prefix is empty, flags are registered
-// without a prefix. This must be called before Parse is called.
+// The prefix is prepended to all flag names. For example, prefix "app" makes flag "dbUrl"
+// into "app.dbUrl". If prefix is empty, flags are registered without a prefix. This must
+// be called before Parse is called.
 //
 // Takes ptr (any) which is a pointer to the struct containing flag fields.
 // Takes prefix (string) which is prepended to all flag names.
@@ -81,8 +83,8 @@ var (
 //
 // Returns error when flags have already been parsed or flag definition fails.
 //
-// Safe for concurrent use. If the prefix is already registered, the call is
-// a no-op and returns nil.
+// Safe for concurrent use. If the prefix is already registered, the call is a no-op and
+// returns nil.
 func (fc *FlagCoordinator) RegisterStruct(ptr any, prefix string, loader *Loader) error {
 	fc.mu.Lock()
 	defer fc.mu.Unlock()
@@ -114,12 +116,12 @@ func (fc *FlagCoordinator) RegisterStruct(ptr any, prefix string, loader *Loader
 	return nil
 }
 
-// Parse parses os.Args using the shared FlagSet.
-// Can only be called once; subsequent calls return immediately.
+// Parse parses os.Args using the shared FlagSet. Can only be called once; subsequent
+// calls return immediately.
 //
-// Unknown flags (those not registered with the coordinator) are silently
-// ignored, so commands can define their own flags using the standard flag
-// package without conflicting with the config system.
+// Unknown flags (those not registered with the coordinator) are silently ignored, so
+// commands can define their own flags using the standard flag package without conflicting
+// with the config system.
 //
 // Returns error when flag parsing fails for a known flag.
 //
@@ -142,14 +144,14 @@ func (fc *FlagCoordinator) Parse() error {
 	return nil
 }
 
-// GetVisitedFlags returns a map of flag names that were visited (set by user)
-// for the given prefix. Flag names are returned without the prefix.
+// GetVisitedFlags returns a map of flag names that were visited (set by user) for the
+// given prefix. Flag names are returned without the prefix.
 //
-// Takes prefix (string) which filters flags by their prefix. Use an empty
-// string to get flags without any prefix (those without dots in their names).
+// Takes prefix (string) which filters flags by their prefix. Use an empty string to get
+// flags without any prefix (those without dots in their names).
 //
-// Returns map[string]*flag.Flag which contains the visited flags keyed by
-// their names with the prefix stripped.
+// Returns map[string]*flag.Flag which contains the visited flags keyed by their names
+// with the prefix stripped.
 //
 // Safe for concurrent use.
 func (fc *FlagCoordinator) GetVisitedFlags(prefix string) map[string]*flag.Flag {
@@ -187,8 +189,8 @@ func (fc *FlagCoordinator) IsParsed() bool {
 	return fc.parsed
 }
 
-// Reset resets the coordinator to allow re-registration. This is primarily
-// for testing purposes.
+// Reset resets the coordinator to allow re-registration. This is primarily for testing
+// purposes.
 //
 // Safe for concurrent use.
 func (fc *FlagCoordinator) Reset() {
@@ -200,8 +202,8 @@ func (fc *FlagCoordinator) Reset() {
 	fc.registrations = make(map[string]*flagRegistration)
 }
 
-// filterKnownFlags returns only the arguments that correspond to flags
-// registered with this coordinator's FlagSet.
+// filterKnownFlags returns only the arguments that correspond to flags registered with
+// this coordinator's FlagSet.
 //
 // Takes arguments ([]string) which contains the command line arguments to filter.
 //
@@ -246,8 +248,8 @@ func (fc *FlagCoordinator) filterKnownFlags(arguments []string) []string {
 	return filtered
 }
 
-// defineAllFlagsWithPrefix registers command-line flags for all tagged fields
-// in a struct, applying the given prefix to each flag name.
+// defineAllFlagsWithPrefix registers command-line flags for all tagged fields in a
+// struct, applying the given prefix to each flag name.
 //
 // Takes ptr (any) which is a pointer to the struct to define flags for.
 // Takes prefix (string) which is prepended to each flag name.
@@ -300,8 +302,8 @@ func (fc *FlagCoordinator) defineFlagWithPrefix(field *reflect.StructField, valu
 
 // GetGlobalFlagCoordinator returns the singleton flag coordinator.
 //
-// Returns *FlagCoordinator which is the shared coordinator instance,
-// created on the first call.
+// Returns *FlagCoordinator which is the shared coordinator instance, created on the first
+// call.
 func GetGlobalFlagCoordinator() *FlagCoordinator {
 	globalCoordinatorOnce.Do(func() {
 		globalCoordinator = &FlagCoordinator{
@@ -314,16 +316,15 @@ func GetGlobalFlagCoordinator() *FlagCoordinator {
 	return globalCoordinator
 }
 
-// ResetGlobalFlagCoordinator resets the global flag coordinator singleton.
-// This is used for testing to ensure each test runs in isolation.
+// ResetGlobalFlagCoordinator resets the global flag coordinator singleton. This is used
+// for testing to ensure each test runs in isolation.
 func ResetGlobalFlagCoordinator() {
 	globalCoordinatorOnce = sync.Once{}
 	globalCoordinator = nil
 }
 
-// newFlagCoordinator creates a new, isolated flag coordinator.
-// Use it in tests that need a coordinator that does not share state with
-// other tests.
+// newFlagCoordinator creates a new, isolated flag coordinator. Use it in tests that need
+// a coordinator that does not share state with other tests.
 //
 // Returns *FlagCoordinator which is the newly created coordinator.
 func newFlagCoordinator() *FlagCoordinator {
@@ -351,19 +352,17 @@ func extractFlagName(argument string) (name string, hasValue bool) {
 	return name, false
 }
 
-// defineFlagOnFlagSet defines a flag on a given FlagSet based on the field
-// type.
+// defineFlagOnFlagSet defines a flag on a given FlagSet based on the field type.
 //
 // Takes fs (*flag.FlagSet) which is the flag set to define the flag on.
 // Takes flagName (string) which is the name of the flag to define.
-// Takes ptr (any) which is a pointer to the variable that stores the flag
-// value.
+// Takes ptr (any) which is a pointer to the variable that stores the flag value.
 // Takes value (reflect.Value) which provides the default value for the flag.
 // Takes tags (reflect.StructTag) which contains struct tags for configuration.
 // Takes usage (string) which describes the flag in help text.
 //
-// Returns error when the flag type is not supported, though currently returns
-// nil for unsupported types.
+// Returns error when the flag type is not supported, though currently returns nil for
+// unsupported types.
 func defineFlagOnFlagSet(fs *flag.FlagSet, flagName string, ptr any, value reflect.Value, tags reflect.StructTag, usage string) error {
 	switch typedPtr := ptr.(type) {
 	case *string:

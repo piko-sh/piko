@@ -28,13 +28,15 @@ import (
 	"piko.sh/piko/cmd/piko/internal/tui/tui_dto"
 )
 
-// mouseWheelStepCount is the number of cursor steps applied per wheel
-// notch. Three matches the conventional terminal-emulator feel.
-const mouseWheelStepCount = 3
+const (
+	// mouseWheelStepCount is the number of cursor steps applied per wheel notch. Three
+	// matches the conventional terminal-emulator feel.
+	mouseWheelStepCount = 3
+)
 
-// ThemeAware is implemented by panels and widgets that want to receive the
-// active theme. Panels that do not implement this continue to read styles
-// from the package-level legacy globals.
+// ThemeAware is implemented by panels and widgets that want to receive the active theme.
+// Panels that do not implement this continue to read styles from the package-level legacy
+// globals.
 type ThemeAware interface {
 	// SetTheme replaces the panel's active colour theme.
 	SetTheme(theme *Theme)
@@ -126,9 +128,9 @@ type Model struct {
 	// layoutOriginY is the row where the body area begins.
 	layoutOriginY int
 
-	// activePanelIndex tracks the active panel within the registered
-	// list. Used by panel-cycling shortcuts; the grouped UI overrides
-	// this when an item is selected via menu navigation.
+	// activePanelIndex tracks the active panel within the registered list. Used by
+	// panel-cycling shortcuts; the grouped UI overrides this when an item is selected via
+	// menu navigation.
 	activePanelIndex int
 
 	// height is the current terminal height in rows.
@@ -204,9 +206,8 @@ func NewModel(config *tui_dto.Config) *Model {
 
 // SetGroups replaces the model's group registry.
 //
-// Each group's DefaultItemID becomes that group's initial active item.
-// The first visible group becomes the active group; if no group is
-// visible the active group is left unset.
+// Each group's DefaultItemID becomes that group's initial active item. The first visible
+// group becomes the active group; if no group is visible the active group is left unset.
 //
 // Takes groups ([]PanelGroup) which is the new ordered group list.
 func (m *Model) SetGroups(groups []PanelGroup) {
@@ -242,8 +243,8 @@ func (m *Model) Groups() []PanelGroup { return m.groups }
 // Returns GroupID; empty when no groups are registered or visible.
 func (m *Model) ActiveGroupID() GroupID { return m.activeGroupID }
 
-// ActiveGroup returns the currently-active PanelGroup, or nil when no
-// groups are registered or none are visible.
+// ActiveGroup returns the currently-active PanelGroup, or nil when no groups are
+// registered or none are visible.
 //
 // Returns PanelGroup or nil.
 func (m *Model) ActiveGroup() PanelGroup {
@@ -255,10 +256,9 @@ func (m *Model) ActiveGroup() PanelGroup {
 	return nil
 }
 
-// ActiveItem returns the currently-active MenuItem within the active
-// group, or the zero value when no group is active or the group has
-// no items. Callers should check the returned MenuItem.Panel for nil
-// before using it.
+// ActiveItem returns the currently-active MenuItem within the active group, or the zero
+// value when no group is active or the group has no items. Callers should check the
+// returned MenuItem.Panel for nil before using it.
 //
 // Returns MenuItem (zero value when none).
 func (m *Model) ActiveItem() MenuItem {
@@ -278,17 +278,16 @@ func (m *Model) ActiveItem() MenuItem {
 	return MenuItem{}
 }
 
-// LayoutPicker returns the model's responsive layout picker. Tests and
-// future phases (command bar, status bar) read the active breakpoint from
-// here.
+// LayoutPicker returns the model's responsive layout picker. Tests and future phases
+// (command bar, status bar) read the active breakpoint from here.
 //
 // Returns *LayoutPicker which is owned by the model.
 func (m *Model) LayoutPicker() *LayoutPicker {
 	return m.layoutPicker
 }
 
-// SetPaneAssigner replaces the pane assigner. Useful for services that
-// want to express domain-specific panel pairings without subclassing.
+// SetPaneAssigner replaces the pane assigner. Useful for services that want to express
+// domain-specific panel pairings without subclassing.
 //
 // Takes assigner (PaneAssigner) which becomes the new assigner.
 func (m *Model) SetPaneAssigner(assigner PaneAssigner) {
@@ -298,8 +297,8 @@ func (m *Model) SetPaneAssigner(assigner PaneAssigner) {
 	m.paneAssigner = assigner
 }
 
-// PanelStateStore returns the in-memory store used to persist per-panel
-// cursor, scroll, and filter state across panel switches.
+// PanelStateStore returns the in-memory store used to persist per-panel cursor, scroll,
+// and filter state across panel switches.
 //
 // Returns PanelStateStore which is owned by the model.
 func (m *Model) PanelStateStore() PanelStateStore {
@@ -313,9 +312,8 @@ func (m *Model) Theme() *Theme {
 	return m.theme
 }
 
-// SetTheme replaces the active theme and propagates it to any panel that
-// implements ThemeAware. Useful for live theme switching via the command
-// bar.
+// SetTheme replaces the active theme and propagates it to any panel that implements
+// ThemeAware. Useful for live theme switching via the command bar.
 //
 // Takes theme (*Theme) which is the new theme to apply.
 func (m *Model) SetTheme(theme *Theme) {
@@ -340,53 +338,52 @@ func (m *Model) SetTheme(theme *Theme) {
 	}
 }
 
-// Overlays returns the model's overlay manager so callers can push help
-// dialogues, confirmations, or detail popups.
+// Overlays returns the model's overlay manager so callers can push help dialogues,
+// confirmations, or detail popups.
 //
 // Returns *OverlayManager which is owned by the model.
 func (m *Model) Overlays() *OverlayManager {
 	return m.overlays
 }
 
-// Toasts returns the model's toast queue. The refresh orchestrator pushes
-// provider errors here; the status bar reads them.
+// Toasts returns the model's toast queue. The refresh orchestrator pushes provider errors
+// here; the status bar reads them.
 //
 // Returns *ToastQueue which is owned by the model.
 func (m *Model) Toasts() *ToastQueue {
 	return m.toasts
 }
 
-// Breadcrumb returns the model's breadcrumb so panels and the service can
-// update the visible context (panel chain, scope, watch indicator).
+// Breadcrumb returns the model's breadcrumb so panels and the service can update the
+// visible context (panel chain, scope, watch indicator).
 //
 // Returns *Breadcrumb which is owned by the model.
 func (m *Model) Breadcrumb() *Breadcrumb {
 	return m.breadcrumb
 }
 
-// CommandRegistry returns the registry of command-bar commands. Panels and
-// services may register their own commands at start-up.
+// CommandRegistry returns the registry of command-bar commands. Panels and services may
+// register their own commands at start-up.
 //
 // Returns *CommandRegistry which is owned by the model.
 func (m *Model) CommandRegistry() *CommandRegistry {
 	return m.commandRegistry
 }
 
-// CommandBar returns the command bar so callers can programmatically open
-// or close it.
+// CommandBar returns the command bar so callers can programmatically open or close it.
 //
 // Returns *CommandBar which is owned by the model.
 func (m *Model) CommandBar() *CommandBar {
 	return m.commandBar
 }
 
-// UpdateResourceData updates the cached resource data from a provider.
-// This is called by the refresh orchestrator after a successful refresh.
+// UpdateResourceData updates the cached resource data from a provider. This is called by
+// the refresh orchestrator after a successful refresh.
 //
-// Takes summary (map[string]map[ResourceStatus]int) which contains counts of
-// resources grouped by kind and status.
-// Takes resources (map[string][]Resource) which contains the actual resource
-// objects grouped by kind.
+// Takes summary (map[string]map[ResourceStatus]int) which contains counts of resources
+// grouped by kind and status.
+// Takes resources (map[string][]Resource) which contains the actual resource objects
+// grouped by kind.
 //
 // Safe for concurrent use. Uses a mutex to protect the cached data.
 func (m *Model) UpdateResourceData(
@@ -402,9 +399,9 @@ func (m *Model) UpdateResourceData(
 
 // AddPanel adds a panel to the model.
 //
-// Takes p (Panel) which is the panel to add. The first panel added receives
-// focus automatically. Panels implementing ThemeAware receive the active
-// theme during this call.
+// Takes p (Panel) which is the panel to add. The first panel added receives focus
+// automatically. Panels implementing ThemeAware receive the active theme during this
+// call.
 func (m *Model) AddPanel(p Panel) {
 	m.panels = append(m.panels, p)
 	if aware, ok := p.(ThemeAware); ok && m.theme != nil {
@@ -433,8 +430,8 @@ func (m *Model) ActivePanel() Panel {
 
 // Init implements tea.Model.
 //
-// Returns tea.Cmd which batches setup commands from all panels and starts the
-// refresh ticker.
+// Returns tea.Cmd which batches setup commands from all panels and starts the refresh
+// ticker.
 func (m *Model) Init() tea.Cmd {
 	cmds := make([]tea.Cmd, 0, len(m.panels)+1)
 
@@ -498,9 +495,9 @@ func (m *Model) View() tea.View {
 	return v
 }
 
-// routeToCommandBar dispatches the message to the active command bar
-// when one is open. Resize messages additionally propagate to the
-// underlying layout so panels keep their sizes in sync.
+// routeToCommandBar dispatches the message to the active command bar when one is open.
+// Resize messages additionally propagate to the underlying layout so panels keep their
+// sizes in sync.
 //
 // Takes message (tea.Msg) which is the incoming message.
 //
@@ -521,10 +518,9 @@ func (m *Model) routeToCommandBar(message tea.Msg) ([]tea.Cmd, bool) {
 	return cmds, true
 }
 
-// routeToOverlay dispatches the message to the top overlay on the
-// stack. Resize messages additionally propagate to the underlying
-// layout so panels keep their sizes in sync; other messages are
-// consumed by the overlay.
+// routeToOverlay dispatches the message to the top overlay on the stack. Resize messages
+// additionally propagate to the underlying layout so panels keep their sizes in sync;
+// other messages are consumed by the overlay.
 //
 // Takes message (tea.Msg) which is the incoming message.
 //
@@ -552,8 +548,7 @@ func (m *Model) routeToOverlay(message tea.Msg) ([]tea.Cmd, bool) {
 //
 // Takes message (tea.KeyPressMsg) which contains the key event to process.
 //
-// Returns tea.Cmd which is the command to run, or nil if the key is not
-// handled.
+// Returns tea.Cmd which is the command to run, or nil if the key is not handled.
 func (m *Model) handleKeyMessage(message tea.KeyPressMsg) tea.Cmd {
 	if cmd, handled := m.handleGroupedKey(message); handled {
 		return cmd
@@ -579,21 +574,20 @@ func (m *Model) handleKeyMessage(message tea.KeyPressMsg) tea.Cmd {
 	return nil
 }
 
-// handleGroupedKey handles keys that have group-aware semantics. The
-// keys consumed here are: F1-F4 (switch top group), 1-9 / 0 (jump to
-// menu item by hotkey), [ / ] (toggle left / right column visibility),
-// and tab / shift+tab (cycle focus between menu / centre / detail).
+// handleGroupedKey handles keys that have group-aware semantics. The keys consumed here
+// are: F1-F4 (switch top group), 1-9 / 0 (jump to menu item by hotkey), [ / ] (toggle
+// left / right column visibility), and tab / shift+tab (cycle focus between menu / centre
+// / detail).
 //
-// Up/Down/j/k are consumed only when focus is on the menu (where they
-// move the menu cursor with auto-commit). When focus is on the centre
-// or detail, Up/Down pass through to the focused pane so the user can
-// scroll the list inside it.
+// Up/Down/j/k are consumed only when focus is on the menu (where they move the menu
+// cursor with auto-commit). When focus is on the centre or detail, Up/Down pass through
+// to the focused pane so the user can scroll the list inside it.
 //
 // Takes message (tea.KeyPressMsg) which is the key event.
 //
 // Returns tea.Cmd which is the resulting command, may be nil.
-// Returns bool which is true when the key was consumed by the grouped
-// layer so the caller does not propagate it to the flat keymap.
+// Returns bool which is true when the key was consumed by the grouped layer so the caller
+// does not propagate it to the flat keymap.
 func (m *Model) handleGroupedKey(message tea.KeyPressMsg) (tea.Cmd, bool) {
 	key := message.String()
 
@@ -648,9 +642,9 @@ func (m *Model) handleGroupedKey(message tea.KeyPressMsg) (tea.Cmd, bool) {
 	return nil, false
 }
 
-// cycleGroup advances the active group by direction positions among
-// visible groups, wrapping at the ends. Used by Alt+Left/Right so
-// users can step through groups regardless of which pane has focus.
+// cycleGroup advances the active group by direction positions among visible groups,
+// wrapping at the ends. Used by Alt+Left/Right so users can step through groups
+// regardless of which pane has focus.
 //
 // Takes direction (int) which is -1 (previous) or +1 (next).
 func (m *Model) cycleGroup(direction int) {
@@ -674,9 +668,8 @@ func (m *Model) cycleGroup(direction int) {
 	m.activeGroupID = visible[index].ID()
 }
 
-// activateGroupByFKey switches to the group keyed by the supplied
-// function-key string ("f1" -> group with Hotkey '1', etc.). No-op when
-// no matching group exists.
+// activateGroupByFKey switches to the group keyed by the supplied function-key string
+// ("f1" -> group with Hotkey '1', etc.). No-op when no matching group exists.
 //
 // Takes key (string) which is "f1"/"f2"/"f3"/"f4".
 func (m *Model) activateGroupByFKey(key string) {
@@ -692,9 +685,8 @@ func (m *Model) activateGroupByFKey(key string) {
 	}
 }
 
-// activateItemByHotkey activates the menu item whose Hotkey matches
-// key within the active group. No-op when no matching item exists or
-// no group is active.
+// activateItemByHotkey activates the menu item whose Hotkey matches key within the active
+// group. No-op when no matching item exists or no group is active.
 //
 // Takes key (string) which is the pressed-rune string.
 func (m *Model) activateItemByHotkey(key string) {
@@ -714,8 +706,8 @@ func (m *Model) activateItemByHotkey(key string) {
 	}
 }
 
-// moveMenuCursor moves the highlighted-but-not-active cursor in the
-// active group's menu by delta positions, clamping to the item range.
+// moveMenuCursor moves the highlighted-but-not-active cursor in the active group's menu
+// by delta positions, clamping to the item range.
 //
 // Takes delta (int) which is the cursor movement (-1 or +1).
 func (m *Model) moveMenuCursor(delta int) {
@@ -749,9 +741,8 @@ func (m *Model) commitMenuCursor() {
 	}
 }
 
-// toggleMenuColumn flips the per-group left-column visibility override.
-// The first toggle inverts the breakpoint default; subsequent toggles
-// flip the explicit override.
+// toggleMenuColumn flips the per-group left-column visibility override. The first toggle
+// inverts the breakpoint default; subsequent toggles flip the explicit override.
 func (m *Model) toggleMenuColumn() {
 	g := m.ActiveGroup()
 	if g == nil {
@@ -764,8 +755,7 @@ func (m *Model) toggleMenuColumn() {
 	m.groupVisibility[g.ID()] = v
 }
 
-// toggleDetailColumn flips the per-group right-column visibility
-// override.
+// toggleDetailColumn flips the per-group right-column visibility override.
 func (m *Model) toggleDetailColumn() {
 	g := m.ActiveGroup()
 	if g == nil {
@@ -778,8 +768,8 @@ func (m *Model) toggleDetailColumn() {
 	m.groupVisibility[g.ID()] = v
 }
 
-// cycleFocus rotates focus between centre and detail (and menu, when
-// the menu is visible). Direction +1 cycles forward, -1 backward.
+// cycleFocus rotates focus between centre and detail (and menu, when the menu is
+// visible). Direction +1 cycles forward, -1 backward.
 //
 // Takes direction (int) which is +1 or -1.
 func (m *Model) cycleFocus(direction int) {
@@ -865,8 +855,8 @@ func (m *Model) setActivePanel(index int) {
 	}
 }
 
-// handleMouseClick routes a click event through the MouseRouter; clicks
-// on a pane focus that pane.
+// handleMouseClick routes a click event through the MouseRouter; clicks on a pane focus
+// that pane.
 //
 // Takes mouse (tea.Mouse) which carries the click coordinates and button.
 func (m *Model) handleMouseClick(mouse tea.Mouse) {
@@ -877,7 +867,7 @@ func (m *Model) handleMouseClick(mouse tea.Mouse) {
 	if !ok {
 		return
 	}
-	switch target.Kind {
+	switch target.Kind { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case MouseTargetPane, MouseTargetTab:
 		if target.PanelID != "" {
 			m.focusPanelByID(target.PanelID)
@@ -885,13 +875,12 @@ func (m *Model) handleMouseClick(mouse tea.Mouse) {
 	}
 }
 
-// handleMouseWheel translates a wheel event into a synthetic up/down key
-// press dispatched to the panel under the pointer.
+// handleMouseWheel translates a wheel event into a synthetic up/down key press dispatched
+// to the panel under the pointer.
 //
 // Takes mouse (tea.Mouse) which carries the wheel direction and position.
 //
-// Returns []tea.Cmd which is the command(s) produced by the panel's
-// Update method.
+// Returns []tea.Cmd which is the command(s) produced by the panel's Update method.
 func (m *Model) handleMouseWheel(mouse tea.Mouse) []tea.Cmd {
 	if m.mouseRouter == nil {
 		return nil
@@ -929,9 +918,9 @@ func (m *Model) handleMouseWheel(mouse tea.Mouse) []tea.Cmd {
 	return nil
 }
 
-// openCommandBarCmd returns a tea.Cmd that opens the command bar in the
-// supplied mode. The Cmd is wrapped in a closure so that the underlying
-// textinput's blink command is initiated on the bubbletea dispatch loop.
+// openCommandBarCmd returns a tea.Cmd that opens the command bar in the supplied mode.
+// The Cmd is wrapped in a closure so that the underlying textinput's blink command is
+// initiated on the bubbletea dispatch loop.
 //
 // Takes mode (CommandBarMode) which selects the bar's prompt and routing.
 //
@@ -943,8 +932,8 @@ func (m *Model) openCommandBarCmd(mode CommandBarMode) tea.Cmd {
 	return m.commandBar.Open(mode)
 }
 
-// toggleHelp opens the help overlay if it is not currently on top of the
-// stack, or pops it if it is. Called by the toggleHelpMessage handler.
+// toggleHelp opens the help overlay if it is not currently on top of the stack, or pops
+// it if it is. Called by the toggleHelpMessage handler.
 func (m *Model) toggleHelp() {
 	if m.overlays == nil {
 		m.showHelp = !m.showHelp
@@ -971,11 +960,11 @@ func (m *Model) toggleHelp() {
 	m.overlays.Push(overlay)
 }
 
-// focusVisiblePanel moves focus to the next or previous visible panel as
-// determined by the layout's pane assignments.
+// focusVisiblePanel moves focus to the next or previous visible panel as determined by
+// the layout's pane assignments.
 //
-// Takes direction (int) which is +1 for next or -1 for previous. Other
-// values are treated as no-ops.
+// Takes direction (int) which is +1 for next or -1 for previous. Other values are treated
+// as no-ops.
 func (m *Model) focusVisiblePanel(direction int) {
 	if m.focusManager == nil || len(m.panels) == 0 {
 		return
@@ -996,11 +985,9 @@ func (m *Model) focusVisiblePanel(direction int) {
 	m.focusPanelByID(nextID)
 }
 
-// tickCmd returns a command that sends a tick message after the refresh
-// interval.
+// tickCmd returns a command that sends a tick message after the refresh interval.
 //
-// Returns tea.Cmd which triggers a tickMessage after the set refresh interval
-// passes.
+// Returns tea.Cmd which triggers a tickMessage after the set refresh interval passes.
 func (m *Model) tickCmd() tea.Cmd {
 	return tea.Tick(m.config.RefreshInterval, func(t time.Time) tea.Msg {
 		return tickMessage{time: t}
@@ -1031,8 +1018,8 @@ func (m *Model) pushDataToPanel(panel Panel) {
 	m.pushDataToPanelLocked(panel)
 }
 
-// pushDataToPanelLocked sends the stored data to a single panel. The caller
-// must hold resourceDataMutex.
+// pushDataToPanelLocked sends the stored data to a single panel. The caller must hold
+// resourceDataMutex.
 //
 // Takes panel (Panel) which is the target panel to receive the cached data.
 func (m *Model) pushDataToPanelLocked(panel Panel) {
@@ -1056,8 +1043,7 @@ func (m *Model) pushSummaryToPanel(panel Panel) {
 
 // pushArtefactsToPanel sends artefacts to a panel if it supports them.
 //
-// Takes panel (Panel) which receives the artefacts if it has a SetArtefacts
-// method.
+// Takes panel (Panel) which receives the artefacts if it has a SetArtefacts method.
 func (m *Model) pushArtefactsToPanel(panel Panel) {
 	p, ok := panel.(interface{ SetArtefacts([]Resource) })
 	if !ok {
@@ -1083,8 +1069,7 @@ func (m *Model) pushTasksToPanel(panel Panel) {
 
 // pushWorkflowsToPanel sends workflows to a panel if it supports them.
 //
-// Takes panel (Panel) which receives the workflows if it has a SetWorkflows
-// method.
+// Takes panel (Panel) which receives the workflows if it has a SetWorkflows method.
 func (m *Model) pushWorkflowsToPanel(panel Panel) {
 	p, ok := panel.(interface{ SetWorkflows([]Resource) })
 	if !ok {
@@ -1124,9 +1109,9 @@ func (m *Model) notifyPanelsOfDataUpdate() tea.Cmd {
 	}
 }
 
-// renderLayout renders the full terminal interface layout. The body is
-// produced by the active responsive layout (single, two-column, or
-// three-column) using assignments from the pane assigner.
+// renderLayout renders the full terminal interface layout. The body is produced by the
+// active responsive layout (single, two-column, or three-column) using assignments from
+// the pane assigner.
 //
 // Returns string which contains the formatted terminal output.
 func (m *Model) renderLayout() string {
@@ -1147,12 +1132,12 @@ func (m *Model) renderLayout() string {
 	return header + "\n" + body + "\n" + statusBar
 }
 
-// renderGroupedBody composes the menu / centre / detail layout for the
-// active group via the GroupedView renderer. Falls back to a placeholder
-// when no groups are registered or visible.
+// renderGroupedBody composes the menu / centre / detail layout for the active group via
+// the GroupedView renderer. Falls back to a placeholder when no groups are registered or
+// visible.
 //
-// Takes width (int) and height (int) which are the layout area
-// dimensions (chrome already subtracted).
+// Takes width (int) and height (int) which are the layout area dimensions (chrome already
+// subtracted).
 //
 // Returns string with the composed body.
 func (m *Model) renderGroupedBody(width, height int) string {
@@ -1190,14 +1175,13 @@ func (m *Model) renderGroupedBody(width, height int) string {
 	})
 }
 
-// syncItemFocus pushes the current focus state down to every panel in
-// the active group. Inactive panels receive Focused(false) so their
-// internal styling drops the focus indicator; the active panel
-// receives Focused(true) when the centre owns focus.
+// syncItemFocus pushes the current focus state down to every panel in the active group.
+// Inactive panels receive Focused(false) so their internal styling drops the focus
+// indicator; the active panel receives Focused(true) when the centre owns focus.
 //
-// Detail focus is currently a no-op because every panel renders both
-// centre and detail itself; if a future split introduces independent
-// detail panels they should be threaded here.
+// Detail focus is currently a no-op because every panel renders both centre and detail
+// itself; if a future split introduces independent detail panels they should be threaded
+// here.
 //
 // Takes group (PanelGroup) which is the active group.
 // Takes active (MenuItem) which is the active item.
@@ -1240,13 +1224,11 @@ func (m *Model) renderTabBar() string {
 	return m.groupTabBar.Render(m.groups, m.activeGroupID, width)
 }
 
-// renderStatusBar builds the status bar text. When the command bar is
-// active it takes over the status row so the user can see what they are
-// typing.
+// renderStatusBar builds the status bar text. When the command bar is active it takes
+// over the status row so the user can see what they are typing.
 //
-// Returns string which contains the styled status bar showing either the
-// active command bar, an error message, or help text for keyboard
-// shortcuts.
+// Returns string which contains the styled status bar showing either the active command
+// bar, an error message, or help text for keyboard shortcuts.
 func (m *Model) renderStatusBar() string {
 	if m.commandBar != nil && m.commandBar.Active() {
 		width := m.width
@@ -1309,8 +1291,8 @@ func (m *Model) dispatchMessage(message tea.Msg) []tea.Cmd {
 	return m.dispatchOverlayMessage(message)
 }
 
-// dispatchSystemMessage routes data / lifecycle / input messages to
-// their handlers. Returns (commands, true) when handled.
+// dispatchSystemMessage routes data / lifecycle / input messages to their handlers.
+// Returns (commands, true) when handled.
 //
 // Takes message (tea.Msg) which is the incoming message.
 //
@@ -1380,9 +1362,8 @@ func (m *Model) dispatchFocusMessage(message tea.Msg) ([]tea.Cmd, bool) {
 	return nil, true
 }
 
-// dispatchOverlayMessage routes overlay-stack messages and the help
-// toggle. Returns commands (always nil here, but the signature
-// matches the others for symmetry).
+// dispatchOverlayMessage routes overlay-stack messages and the help toggle. Returns
+// commands (always nil here, but the signature matches the others for symmetry).
 //
 // Takes message (tea.Msg) which is the incoming message.
 //
@@ -1405,14 +1386,13 @@ func (m *Model) dispatchOverlayMessage(message tea.Msg) []tea.Cmd {
 	return nil
 }
 
-// handleTickMessage handles tick messages for regular updates.
-// Iterates all panels on the main goroutine to avoid data races and collects
-// any commands they return.
+// handleTickMessage handles tick messages for regular updates. Iterates all panels on the
+// main goroutine to avoid data races and collects any commands they return.
 //
 // Takes message (tickMessage) which contains the tick time.
 //
-// Returns []tea.Cmd which contains the next tick command plus any commands
-// returned by panels.
+// Returns []tea.Cmd which contains the next tick command plus any commands returned by
+// panels.
 func (m *Model) handleTickMessage(message tickMessage) []tea.Cmd {
 	m.lastRefresh = message.time
 
@@ -1453,8 +1433,8 @@ func (m *Model) handleDataUpdatedMessage(message dataUpdatedMessage) []tea.Cmd {
 
 // handleProviderStatusMessage updates provider state when a status change occurs.
 //
-// Takes message (providerStatusMessage) which contains the
-// provider name, new status, and any error.
+// Takes message (providerStatusMessage) which contains the provider name, new status, and
+// any error.
 func (m *Model) handleProviderStatusMessage(message providerStatusMessage) {
 	info, ok := m.providerInfo[message.name]
 	if !ok {
@@ -1467,9 +1447,9 @@ func (m *Model) handleProviderStatusMessage(message providerStatusMessage) {
 	}
 }
 
-// updateActivePanel sends a message to the active group's centre and
-// detail panels. Only the active item's children receive messages so
-// off-screen panels do not pay the per-tick cost.
+// updateActivePanel sends a message to the active group's centre and detail panels. Only
+// the active item's children receive messages so off-screen panels do not pay the
+// per-tick cost.
 //
 // Takes message (tea.Msg) which is the message to send.
 //

@@ -16,29 +16,25 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package wasm_adapters implements the driven port interfaces defined in
-// wasm_domain for running the Piko compiler pipeline inside a WASM
-// environment.
+// Package wasm_adapters implements the driven port interfaces defined in wasm_domain for
+// running the Piko compiler pipeline inside a WASM environment.
 //
-// It supplies in-memory replacements for file system, coordinator,
-// annotator, generator, renderer, and interpreter services, plus
-// build-tag-aware JavaScript interop and console output. Together
-// these adapters allow the full annotation, generation, and rendering
+// It supplies in-memory replacements for file system, coordinator, annotator, generator,
+// renderer, and interpreter services, plus build-tag-aware JavaScript interop and console
+// output. Together these adapters allow the full annotation, generation, and rendering
 // pipeline to operate without disk access.
 //
 // # Build tags
 //
-// The jsInterop, jsConsole, and InterpreterAdapter types have two
-// implementations. Under the WASM build (js && wasm), they provide
-// full functionality using syscall/js and the interpreter. Under
-// non-WASM builds, they are stubs that return errors or use stdout.
+// The jsInterop, jsConsole, and InterpreterAdapter types have two implementations. Under
+// the WASM build (js && wasm), they provide full functionality using syscall/js and the
+// interpreter. Under non-WASM builds, they are stubs that return errors or use stdout.
 // The package compiles and runs in both environments.
 //
 // # Thread safety
 //
-// InMemoryFSReader, InMemoryFSWriter, and the in-memory emitters use
-// sync.RWMutex and are safe for concurrent use. Console implementations
-// are also safe for concurrent use. StdlibLoader caches data after the
-// first Load call but is not synchronised; callers should ensure Load
-// is called before concurrent GetPackageList calls.
+// InMemoryFSReader, InMemoryFSWriter, and the in-memory emitters use sync.RWMutex and are
+// safe for concurrent use. Console implementations are also safe for concurrent use.
+// StdlibLoader caches data after the first Load call but is not synchronised; callers
+// should ensure Load is called before concurrent GetPackageList calls.
 package wasm_adapters

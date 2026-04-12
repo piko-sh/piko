@@ -18,7 +18,11 @@
 
 package interp_domain
 
-import "piko.sh/piko/internal/logger/logger_domain"
+import (
+	"piko.sh/piko/internal/logger/logger_domain"
+)
 
-// log is the package-level logger for the interp_domain package.
-var log = logger_domain.GetLogger("piko/internal/interp/interp_domain")
+var (
+	// log is the package-level logger for the interp_domain package.
+	log = logger_domain.GetLogger("piko/internal/interp/interp_domain")
+)

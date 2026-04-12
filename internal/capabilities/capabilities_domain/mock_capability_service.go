@@ -24,8 +24,8 @@ import (
 	"sync/atomic"
 )
 
-// MockCapabilityService is a test double for CapabilityService that returns
-// zero values from nil function fields and tracks call counts atomically.
+// MockCapabilityService is a test double for CapabilityService that returns zero values
+// from nil function fields and tracks call counts atomically.
 type MockCapabilityService struct {
 	// RegisterFunc is the function called by Register.
 	RegisterFunc func(name string, capability CapabilityFunc) error
@@ -33,16 +33,16 @@ type MockCapabilityService struct {
 	// ExecuteFunc is the function called by Execute.
 	ExecuteFunc func(ctx context.Context, capabilityName string, inputData io.Reader, params CapabilityParams) (io.Reader, error)
 
-	// RegisterCallCount tracks how many times Register
-	// was called.
-	RegisterCallCount int64
+	// RegisterCallCount tracks how many times Register was called.
+	RegisterCallCount atomic.Int64
 
-	// ExecuteCallCount tracks how many times Execute was
-	// called.
-	ExecuteCallCount int64
+	// ExecuteCallCount tracks how many times Execute was called.
+	ExecuteCallCount atomic.Int64
 }
 
-var _ CapabilityService = (*MockCapabilityService)(nil)
+var (
+	_ CapabilityService = (*MockCapabilityService)(nil)
+)
 
 // Register adds a capability function with the given name.
 //
@@ -51,7 +51,7 @@ var _ CapabilityService = (*MockCapabilityService)(nil)
 //
 // Returns error, or nil if RegisterFunc is nil.
 func (m *MockCapabilityService) Register(name string, capability CapabilityFunc) error {
-	atomic.AddInt64(&m.RegisterCallCount, 1)
+	m.RegisterCallCount.Add(1)
 	if m.RegisterFunc != nil {
 		return m.RegisterFunc(name, capability)
 	}
@@ -67,7 +67,7 @@ func (m *MockCapabilityService) Register(name string, capability CapabilityFunc)
 //
 // Returns (io.Reader, error), or (nil, nil) if ExecuteFunc is nil.
 func (m *MockCapabilityService) Execute(ctx context.Context, capabilityName string, inputData io.Reader, params CapabilityParams) (io.Reader, error) {
-	atomic.AddInt64(&m.ExecuteCallCount, 1)
+	m.ExecuteCallCount.Add(1)
 	if m.ExecuteFunc != nil {
 		return m.ExecuteFunc(ctx, capabilityName, inputData, params)
 	}

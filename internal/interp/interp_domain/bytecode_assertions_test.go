@@ -19,16 +19,43 @@
 package interp_domain
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
+func instructionMatchesOpcode(instr instruction, op opcode) bool {
+	return instr.op == op
+}
+
+func requireContainsTier1SubOp(t *testing.T, compiledFunction *CompiledFunction, subOp subOpcode) {
+	t.Helper()
+	for _, instr := range compiledFunction.body {
+		if instrIsTier1SubOp(instr, subOp) {
+			return
+		}
+	}
+	require.Failf(t, "tier-1 sub-op not found",
+		"expected {opDrillTier1, %s, *, *} in bytecode:\n%s",
+		subOp, compiledFunction.Disassemble())
+}
+
+func requireContainsTier2SubOp(t *testing.T, compiledFunction *CompiledFunction, subOp subOpcodeTier2) {
+	t.Helper()
+	for _, instr := range compiledFunction.body {
+		if instrIsTier2SubOp(instr, subOp) {
+			return
+		}
+	}
+	require.Failf(t, "tier-2 sub-op not found",
+		"expected {opDrillTier1, subOpDrillTier2, %s, *} in bytecode:\n%s",
+		subOp, compiledFunction.Disassemble())
+}
+
 func requireContainsOpcode(t *testing.T, compiledFunction *CompiledFunction, op opcode) {
 	t.Helper()
 	for _, instr := range compiledFunction.body {
-		if instr.op == op {
+		if instructionMatchesOpcode(instr, op) {
 			return
 		}
 	}
@@ -39,27 +66,14 @@ func requireContainsOpcode(t *testing.T, compiledFunction *CompiledFunction, op 
 func requireContainsAnyOpcode(t *testing.T, compiledFunction *CompiledFunction, ops ...opcode) {
 	t.Helper()
 	for _, instr := range compiledFunction.body {
-		if slices.Contains(ops, instr.op) {
-			return
+		for _, op := range ops {
+			if instructionMatchesOpcode(instr, op) {
+				return
+			}
 		}
 	}
 	require.Failf(t, "opcode not found",
 		"expected one of %v in bytecode:\n%s", ops, compiledFunction.Disassemble())
-}
-
-func requireOpcodeSequence(t *testing.T, compiledFunction *CompiledFunction, ops ...opcode) {
-	t.Helper()
-	index := 0
-	for _, instr := range compiledFunction.body {
-		if index < len(ops) && instr.op == ops[index] {
-			index++
-		}
-	}
-	if index < len(ops) {
-		require.Failf(t, "opcode sequence not found",
-			"expected sequence starting at index %d (%s) in bytecode:\n%s",
-			index, ops[index], compiledFunction.Disassemble())
-	}
 }
 
 func requireNoOpcode(t *testing.T, compiledFunction *CompiledFunction, op opcode) {
@@ -72,27 +86,6 @@ func requireNoOpcode(t *testing.T, compiledFunction *CompiledFunction, op opcode
 	}
 }
 
-func requireOpcodeCount(t *testing.T, compiledFunction *CompiledFunction, op opcode, n int) {
-	t.Helper()
-	count := 0
-	for _, instr := range compiledFunction.body {
-		if instr.op == op {
-			count++
-		}
-	}
-	require.Equalf(t, n, count,
-		"expected %d %s instructions, got %d in bytecode:\n%s",
-		n, op, count, compiledFunction.Disassemble())
-}
-
-func opcodeList(compiledFunction *CompiledFunction) []opcode {
-	ops := make([]opcode, len(compiledFunction.body))
-	for i, instr := range compiledFunction.body {
-		ops[i] = instr.op
-	}
-	return ops
-}
-
 func findOpcode(compiledFunction *CompiledFunction, op opcode) int {
 	for i, instr := range compiledFunction.body {
 		if instr.op == op {
@@ -102,12 +95,11 @@ func findOpcode(compiledFunction *CompiledFunction, op opcode) int {
 	return -1
 }
 
-func instructionsWithOpcode(compiledFunction *CompiledFunction, op opcode) []instruction {
-	var result []instruction
-	for _, instr := range compiledFunction.body {
-		if instr.op == op {
-			result = append(result, instr)
+func findTier1SubOp(compiledFunction *CompiledFunction, subOp subOpcode) int {
+	for i, instr := range compiledFunction.body {
+		if instrIsTier1SubOp(instr, subOp) {
+			return i
 		}
 	}
-	return result
+	return -1
 }

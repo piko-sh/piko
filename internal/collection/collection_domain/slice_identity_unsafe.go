@@ -20,11 +20,13 @@
 
 package collection_domain
 
-import "unsafe"
+import (
+	"unsafe"
+)
 
-// sliceDataPointer returns the address of the backing array for the given
-// slice. Identifies whether a []map[string]any slice is the same instance
-// returned by GetStaticCollectionItems.
+// sliceDataPointer returns the address of the backing array for the given slice.
+// Identifies whether a []map[string]any slice is the same instance returned by
+// GetStaticCollectionItems.
 //
 // Takes items ([]map[string]any) which is the slice to fingerprint.
 //

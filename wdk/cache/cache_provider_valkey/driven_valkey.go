@@ -45,8 +45,8 @@ const (
 	// logKeyMaxRetries is the attribute key for logging max retry counts.
 	logKeyMaxRetries = "max_retries"
 
-	// maxTransactionCommands is the capacity for MULTI/EXEC transaction
-	// command slices (MULTI + action + EXEC).
+	// maxTransactionCommands is the capacity for MULTI/EXEC transaction command slices
+	// (MULTI + action + EXEC).
 	maxTransactionCommands = 3
 
 	// errMessageEncodeKey is the warning message logged when key encoding fails.
@@ -56,14 +56,14 @@ const (
 	errFmtEncodeKey = "failed to encode key: %w"
 )
 
-// ValkeyAdapter implements the ProviderPort using a Valkey client. It encodes
-// keys to strings and uses a type-driven EncodingRegistry for values.
+// ValkeyAdapter implements the ProviderPort using a Valkey client. It encodes keys to
+// strings and uses a type-driven EncodingRegistry for values.
 type ValkeyAdapter[K comparable, V any] struct {
 	// expiryCalculator sets the expiry time for each key; optional.
 	expiryCalculator cache.ExpiryCalculator[K, V]
 
-	// refreshCalculator calculates when entries become ready for background
-	// refresh; optional.
+	// refreshCalculator calculates when entries become ready for background refresh;
+	// optional.
 	refreshCalculator cache.RefreshCalculator[K, V]
 
 	// registry encodes values before they are stored.
@@ -96,8 +96,8 @@ type ValkeyAdapter[K comparable, V any] struct {
 	// atomicOperationTimeout is the time limit for WATCH/MULTI/EXEC operations.
 	atomicOperationTimeout time.Duration
 
-	// bulkOperationTimeout is the maximum time for bulk operations like MGET,
-	// MSET, and pipelines.
+	// bulkOperationTimeout is the maximum time for bulk operations like MGET, MSET, and
+	// pipelines.
 	bulkOperationTimeout time.Duration
 
 	// flushTimeout is the time limit for InvalidateAll operations.
@@ -106,50 +106,50 @@ type ValkeyAdapter[K comparable, V any] struct {
 	// searchTimeout is the time limit for FT.SEARCH operations.
 	searchTimeout time.Duration
 
-	// maxComputeRetries is the maximum number of retry attempts for optimistic
-	// locking in Compute methods.
+	// maxComputeRetries is the maximum number of retry attempts for optimistic locking in
+	// Compute methods.
 	maxComputeRetries int
 
-	// allowUnsafeFLUSHDB controls whether InvalidateAll may use FLUSHDB when no
-	// namespace is set. If false, InvalidateAll is blocked without a namespace
-	// for safety.
+	// allowUnsafeFLUSHDB controls whether InvalidateAll may use FLUSHDB when no namespace is
+	// set. If false, InvalidateAll is blocked without a namespace for safety.
 	allowUnsafeFLUSHDB bool
 
 	// indexCreated indicates whether the search index has been created.
 	indexCreated bool
 }
 
-var _ cache.ProviderPort[any, any] = (*ValkeyAdapter[any, any])(nil)
+var (
+	_ cache.ProviderPort[any, any] = (*ValkeyAdapter[any, any])(nil)
+)
 
-// encodeKey converts a key of type K to a namespace-prefixed Valkey key string
-// using the shared cache_domain encoding logic.
+// encodeKey converts a key of type K to a namespace-prefixed Valkey key string using the
+// shared cache_domain encoding logic.
 //
 // Takes key (K) which is the cache key to encode.
 //
 // Returns string which is the encoded Valkey key, with namespace prefix if set.
-// Returns error when no encoder is registered for the key type or when
-// marshalling fails.
+// Returns error when no encoder is registered for the key type or when marshalling fails.
 func (a *ValkeyAdapter[K, V]) encodeKey(key K) (string, error) {
 	return cache_domain.EncodeKey(key, a.namespace, a.keyRegistry)
 }
 
-// decodeKey converts a Valkey key string back to a key of type K using the
-// shared cache_domain decoding logic.
+// decodeKey converts a Valkey key string back to a key of type K using the shared
+// cache_domain decoding logic.
 //
 // Takes keyString (string) which is the Valkey key to decode.
 //
 // Returns K which is the decoded key value.
-// Returns error when the namespace prefix is missing, decoding fails, or no
-// encoder is registered for the key type.
+// Returns error when the namespace prefix is missing, decoding fails, or no encoder is
+// registered for the key type.
 func (a *ValkeyAdapter[K, V]) decodeKey(keyString string) (K, error) {
 	return cache_domain.DecodeKey[K](keyString, a.namespace, a.keyRegistry)
 }
 
-// GetIfPresent retrieves a value from the cache if it exists, without blocking
-// or loading. When SearchSchema is configured, reads from JSON storage.
+// GetIfPresent retrieves a value from the cache if it exists, without blocking or
+// loading. When SearchSchema is configured, reads from JSON storage.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
@@ -202,16 +202,15 @@ func (a *ValkeyAdapter[K, V]) GetIfPresent(ctx context.Context, key K) (V, bool,
 	return result, true, nil
 }
 
-// Get retrieves a value from the cache, loading it via the provided loader
-// if not present.
+// Get retrieves a value from the cache, loading it via the provided loader if not
+// present.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cached value to retrieve.
 // Takes loader (Loader[K, V]) which loads the value if not already cached.
 //
 // Returns V which is the cached or newly loaded value.
-// Returns error when key encoding fails, the loader fails, or type assertion
-// fails.
+// Returns error when key encoding fails, the loader fails, or type assertion fails.
 func (a *ValkeyAdapter[K, V]) Get(ctx context.Context, key K, loader cache.Loader[K, V]) (V, error) {
 	keyString, err := a.encodeKey(key)
 	if err != nil {
@@ -246,12 +245,11 @@ func (a *ValkeyAdapter[K, V]) Get(ctx context.Context, key K, loader cache.Loade
 	return value, nil
 }
 
-// Set stores a key-value pair in the cache with optional tags for grouped
-// invalidation. When a SearchSchema is configured, values are stored as JSON
-// for search indexing.
+// Set stores a key-value pair in the cache with optional tags for grouped invalidation.
+// When a SearchSchema is configured, values are stored as JSON for search indexing.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry.
@@ -360,8 +358,8 @@ func (a *ValkeyAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, tt
 
 // Invalidate removes a key from the cache and cleans up its tag links.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to remove.
@@ -393,20 +391,20 @@ func (a *ValkeyAdapter[K, V]) Invalidate(ctx context.Context, key K) error {
 	return nil
 }
 
-// decodeValue decodes bytes into a value of type V using the shared
-// cache_domain decoding logic.
+// decodeValue decodes bytes into a value of type V using the shared cache_domain decoding
+// logic.
 //
 // Takes valBytes ([]byte) which contains the encoded data to decode.
 //
 // Returns V which is the decoded value.
-// Returns error when the encoder cannot be found, unmarshalling fails, or type
-// assertion fails.
+// Returns error when the encoder cannot be found, unmarshalling fails, or type assertion
+// fails.
 func (a *ValkeyAdapter[K, V]) decodeValue(valBytes []byte) (V, error) {
 	return cache_domain.DecodeValue[V](valBytes, a.registry)
 }
 
-// encodeValue encodes a value of type V to bytes using the shared
-// cache_domain encoding logic.
+// encodeValue encodes a value of type V to bytes using the shared cache_domain encoding
+// logic.
 //
 // Takes value (V) which is the value to encode.
 //
@@ -416,16 +414,16 @@ func (a *ValkeyAdapter[K, V]) encodeValue(value V) ([]byte, error) {
 	return cache_domain.EncodeValue(value, a.registry)
 }
 
-// Compute atomically updates a cache entry using a compute function with
-// optimistic locking. Computes and writes the new value in one round trip.
+// Compute atomically updates a cache entry using a compute function with optimistic
+// locking. Computes and writes the new value in one round trip.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
-// Takes computeFunction (func(...)) which calculates the new value based on the
-// current value and whether it exists.
+// Takes computeFunction (func(...)) which calculates the new value based on the current
+// value and whether it exists.
 //
 // Returns V which is the computed value, or zero value if the operation fails.
 // Returns bool which indicates whether the operation succeeded.
@@ -473,8 +471,7 @@ func (a *ValkeyAdapter[K, V]) Compute(ctx context.Context, key K, computeFunctio
 	return *new(V), false, fmt.Errorf("compute max retries exceeded for key %s", keyString)
 }
 
-// fetchValueInDedicated fetches and decodes a value within a dedicated Valkey
-// connection.
+// fetchValueInDedicated fetches and decodes a value within a dedicated Valkey connection.
 //
 // Takes c (valkey.DedicatedClient) which is the dedicated connection.
 // Takes keyString (string) which is the key to fetch.
@@ -499,11 +496,10 @@ func (a *ValkeyAdapter[K, V]) fetchValueInDedicated(ctx context.Context, c valke
 	return value, true, nil
 }
 
-// executeComputeInDedicated executes a compute action within a dedicated
-// connection using MULTI/EXEC.
+// executeComputeInDedicated executes a compute action within a dedicated connection using
+// MULTI/EXEC.
 //
-// Takes c (valkey.DedicatedClient) which is the dedicated connection for the
-// transaction.
+// Takes c (valkey.DedicatedClient) which is the dedicated connection for the transaction.
 // Takes keyString (string) which is the cache key to operate on.
 // Takes newValue (V) which is the value to set when action is ComputeActionSet.
 // Takes action (cache.ComputeAction) which specifies the operation to perform.
@@ -534,22 +530,19 @@ func (a *ValkeyAdapter[K, V]) executeComputeInDedicated(ctx context.Context, c v
 	return results[len(results)-1].Error()
 }
 
-// handleComputeResult is the shared implementation for processing the result
-// of a compute transaction attempt.
+// handleComputeResult is the shared implementation for processing the result of a compute
+// transaction attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
-// Takes keyString (string) which is the string representation of the key for
-// logging.
+// Takes keyString (string) which is the string representation of the key for logging.
 // Takes opName (string) which is the operation name for log messages.
-// Takes err (error) which is the error from the transaction attempt, or nil on
-// success.
+// Takes err (error) which is the error from the transaction attempt, or nil on success.
 // Takes attempt (int) which is the current retry attempt number.
 //
 // Returns value (V) which is the computed value if found.
 // Returns found (bool) which indicates whether a valid value was found.
-// Returns shouldRetry (bool) which indicates whether the operation should be
-// retried.
+// Returns shouldRetry (bool) which indicates whether the operation should be retried.
 // Returns retErr (error) when the operation fails.
 func (a *ValkeyAdapter[K, V]) handleComputeResult(ctx context.Context, key K, keyString, opName string, err error, attempt int) (value V, found bool, shouldRetry bool, retErr error) {
 	ctx, l := logger.From(ctx, log)
@@ -578,15 +571,13 @@ func (a *ValkeyAdapter[K, V]) handleComputeResult(ctx context.Context, key K, ke
 	return zero, false, false, fmt.Errorf("%s transaction error: %w", opName, err)
 }
 
-// handleComputeRetryResult processes the result of a Compute transaction
-// attempt. Delegates to handleComputeResult with reordered return values.
+// handleComputeRetryResult processes the result of a Compute transaction attempt.
+// Delegates to handleComputeResult with reordered return values.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
-// Takes keyString (string) which is the string representation of the key for
-// logging.
-// Takes err (error) which is the error from the transaction attempt, or nil on
-// success.
+// Takes keyString (string) which is the string representation of the key for logging.
+// Takes err (error) which is the error from the transaction attempt, or nil on success.
 // Takes attempt (int) which is the current retry attempt number.
 //
 // Returns bool which indicates whether the operation should be retried.
@@ -598,19 +589,17 @@ func (a *ValkeyAdapter[K, V]) handleComputeRetryResult(ctx context.Context, key 
 	return shouldRetry, value, found, retErr
 }
 
-// ComputeIfAbsent atomically computes and stores a value only if the key is
-// not present.
+// ComputeIfAbsent atomically computes and stores a value only if the key is not present.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to check or create.
 // Takes computeFunction (func() V) which generates the value if the key is absent.
 //
 // Returns V which is the existing or newly computed value.
-// Returns bool which indicates whether a value was successfully retrieved or
-// computed.
+// Returns bool which indicates whether a value was successfully retrieved or computed.
 // Returns error when the operation fails.
 func (a *ValkeyAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, computeFunction func() V) (V, bool, error) {
 	ctx, l := logger.From(ctx, log)
@@ -647,8 +636,8 @@ func (a *ValkeyAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, comput
 	return *new(V), false, fmt.Errorf("compute if absent max retries exceeded for key %s", keyString)
 }
 
-// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent
-// transaction attempt.
+// handleComputeIfAbsentResult processes the result of a ComputeIfAbsent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -658,8 +647,7 @@ func (a *ValkeyAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, comput
 //
 // Returns value (V) which is the cached value if found after the transaction.
 // Returns computed (bool) which indicates whether the value was computed.
-// Returns shouldRetry (bool) which is true when a transaction conflict
-// occurred.
+// Returns shouldRetry (bool) which is true when a transaction conflict occurred.
 // Returns error when the operation fails.
 func (a *ValkeyAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Context, key K, keyString string, err error, didCompute bool) (value V, computed bool, shouldRetry bool, retryErr error) {
 	ctx, l := logger.From(ctx, log)
@@ -687,11 +675,11 @@ func (a *ValkeyAdapter[K, V]) handleComputeIfAbsentResult(ctx context.Context, k
 	return zero, false, false, fmt.Errorf("compute if absent transaction error: %w", err)
 }
 
-// computeIfAbsentTransaction executes the WATCH/EXISTS/MULTI/SET/EXEC
-// sequence for ComputeIfAbsent within a dedicated connection.
+// computeIfAbsentTransaction executes the WATCH/EXISTS/MULTI/SET/EXEC sequence for
+// ComputeIfAbsent within a dedicated connection.
 //
-// Takes c (valkey.DedicatedClient) which provides the dedicated connection
-// for the transaction.
+// Takes c (valkey.DedicatedClient) which provides the dedicated connection for the
+// transaction.
 // Takes keyString (string) which is the cache key to check and possibly set.
 // Takes computeFunction (func() V) which computes the value if the key is absent.
 //
@@ -725,20 +713,18 @@ func (a *ValkeyAdapter[K, V]) computeIfAbsentTransaction(ctx context.Context, c 
 	return true, results[len(results)-1].Error()
 }
 
-// ComputeIfPresent atomically updates a value only if the key exists in the
-// cache.
+// ComputeIfPresent atomically updates a value only if the key exists in the cache.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
-// Takes computeFunction (func(...)) which receives the current value
-// and returns the new value along with an action indicating whether
-// to update or remove.
+// Takes computeFunction (func(...)) which receives the current value and returns the new
+// value along with an action indicating whether to update or remove.
 //
-// Returns V which is the resulting value after computation, or the zero value
-// if the key was not found or the operation failed.
+// Returns V which is the resulting value after computation, or the zero value if the key
+// was not found or the operation failed.
 // Returns bool which is true if the key existed and the computation succeeded.
 // Returns error when the operation fails.
 //
@@ -777,13 +763,13 @@ func (a *ValkeyAdapter[K, V]) ComputeIfPresent(
 	return *new(V), false, fmt.Errorf("compute if present max retries exceeded for key %s", keyString)
 }
 
-// computeIfPresentTransaction executes the WATCH/GET/MULTI/action/EXEC
-// sequence for ComputeIfPresent within a dedicated connection.
+// computeIfPresentTransaction executes the WATCH/GET/MULTI/action/EXEC sequence for
+// ComputeIfPresent within a dedicated connection.
 //
 // Takes c (valkey.DedicatedClient) which provides the dedicated connection.
 // Takes keyString (string) which is the cache key to operate on.
-// Takes computeFunction (func(V) (V, cache.ComputeAction)) which computes the new
-// value from the existing one.
+// Takes computeFunction (func(V) (V, cache.ComputeAction)) which computes the new value
+// from the existing one.
 //
 // Returns error when the watch, fetch, or execute operation fails.
 func (a *ValkeyAdapter[K, V]) computeIfPresentTransaction(ctx context.Context, c valkey.DedicatedClient, keyString string, computeFunction func(V) (V, cache.ComputeAction)) error {
@@ -804,8 +790,8 @@ func (a *ValkeyAdapter[K, V]) computeIfPresentTransaction(ctx context.Context, c
 	return a.executeComputeInDedicated(ctx, c, keyString, newValue, action, true)
 }
 
-// handleComputeIfPresentResult processes the result of a ComputeIfPresent
-// transaction attempt.
+// handleComputeIfPresentResult processes the result of a ComputeIfPresent transaction
+// attempt.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which is the cache key being computed.
@@ -815,8 +801,8 @@ func (a *ValkeyAdapter[K, V]) computeIfPresentTransaction(ctx context.Context, c
 //
 // Returns value (V) which is the computed value if found.
 // Returns found (bool) which indicates whether a value was found.
-// Returns shouldRetry (bool) which indicates whether the operation should be
-// retried due to a transaction conflict.
+// Returns shouldRetry (bool) which indicates whether the operation should be retried due
+// to a transaction conflict.
 // Returns error when the operation fails.
 func (a *ValkeyAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, key K, keyString string, err error, attempt int) (value V, found bool, shouldRetry bool, retryErr error) {
 	return a.handleComputeResult(ctx, key, keyString, "ComputeIfPresent", err, attempt)
@@ -824,8 +810,8 @@ func (a *ValkeyAdapter[K, V]) handleComputeIfPresentResult(ctx context.Context, 
 
 // ComputeWithTTL atomically computes a new value with per-call TTL control.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -871,13 +857,13 @@ func (a *ValkeyAdapter[K, V]) ComputeWithTTL(
 	return *new(V), false, fmt.Errorf("compute with TTL max retries exceeded for key %s", keyString)
 }
 
-// computeWithTTLTransaction executes the WATCH/GET/MULTI/action/EXEC
-// sequence for ComputeWithTTL within a dedicated connection.
+// computeWithTTLTransaction executes the WATCH/GET/MULTI/action/EXEC sequence for
+// ComputeWithTTL within a dedicated connection.
 //
 // Takes c (valkey.DedicatedClient) which provides the dedicated connection.
 // Takes keyString (string) which is the cache key to operate on.
-// Takes computeFunction (func(V, bool) cache.ComputeResult[V]) which computes the
-// new value based on the old value and whether it was found.
+// Takes computeFunction (func(V, bool) cache.ComputeResult[V]) which computes the new
+// value based on the old value and whether it was found.
 //
 // Returns error when the watch, fetch, or execute operations fail.
 func (a *ValkeyAdapter[K, V]) computeWithTTLTransaction(ctx context.Context, c valkey.DedicatedClient, keyString string, computeFunction func(V, bool) cache.ComputeResult[V]) error {
@@ -895,14 +881,14 @@ func (a *ValkeyAdapter[K, V]) computeWithTTLTransaction(ctx context.Context, c v
 	return a.executeComputeWithTTLInDedicated(ctx, c, keyString, result, found)
 }
 
-// executeComputeWithTTLInDedicated builds and executes the MULTI/EXEC
-// transaction for a ComputeResult that may carry its own TTL.
+// executeComputeWithTTLInDedicated builds and executes the MULTI/EXEC transaction for a
+// ComputeResult that may carry its own TTL.
 //
-// Takes c (valkey.DedicatedClient) which provides the dedicated connection for
-// the transaction.
+// Takes c (valkey.DedicatedClient) which provides the dedicated connection for the
+// transaction.
 // Takes keyString (string) which is the cache key to operate on.
-// Takes result (cache.ComputeResult[V]) which contains the action to perform
-// and the value to set.
+// Takes result (cache.ComputeResult[V]) which contains the action to perform and the
+// value to set.
 // Takes found (bool) which indicates whether the key existed before compute.
 //
 // Returns error when the transaction fails or value encoding fails.
@@ -933,8 +919,8 @@ func (a *ValkeyAdapter[K, V]) executeComputeWithTTLInDedicated(ctx context.Conte
 	return results[len(results)-1].Error()
 }
 
-// bulkEncodeKeys encodes a slice of keys and returns the encoded string keys
-// and a reverse map for decoding. Keys that fail to encode are skipped.
+// bulkEncodeKeys encodes a slice of keys and returns the encoded string keys and a
+// reverse map for decoding. Keys that fail to encode are skipped.
 //
 // Takes keys ([]K) which contains the keys to encode.
 //
@@ -957,8 +943,8 @@ func (a *ValkeyAdapter[K, V]) bulkEncodeKeys(ctx context.Context, keys []K) ([]s
 	return keyStrs, keyMap
 }
 
-// processBulkGetResult processes a single MGET result and returns the value
-// if successful.
+// processBulkGetResult processes a single MGET result and returns the value if
+// successful.
 //
 // Takes value (string) which is the raw value from the MGET response.
 // Takes keyString (string) which identifies the key for logging purposes.
@@ -991,8 +977,8 @@ func (a *ValkeyAdapter[K, V]) processBulkGetResult(ctx context.Context, value st
 	return result, true
 }
 
-// storeLoadedValues stores loaded values to Valkey using DoMulti and updates
-// the results map.
+// storeLoadedValues stores loaded values to Valkey using DoMulti and updates the results
+// map.
 //
 // Takes loaded (map[K]V) which contains the key-value pairs to store.
 // Takes results (map[K]V) which receives successfully stored entries.
@@ -1031,8 +1017,8 @@ func (a *ValkeyAdapter[K, V]) storeLoadedValues(ctx context.Context, loaded map[
 	}
 }
 
-// BulkGet retrieves multiple values from the cache, loading missing ones
-// via the bulk loader.
+// BulkGet retrieves multiple values from the cache, loading missing ones via the bulk
+// loader.
 //
 // Takes keys ([]K) which specifies the cache keys to retrieve.
 // Takes bulkLoader (BulkLoader[K, V]) which loads values for any cache misses.
@@ -1100,8 +1086,8 @@ func (a *ValkeyAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoader 
 //
 // Takes key (K) which is the cache key to encode.
 // Takes value (V) which is the value to marshal.
-// Takes defaultTTL (time.Duration) which is the fallback TTL if no calculator
-// is configured.
+// Takes defaultTTL (time.Duration) which is the fallback TTL if no calculator is
+// configured.
 //
 // Returns string which is the encoded key.
 // Returns []byte which is the marshalled value.
@@ -1141,12 +1127,10 @@ func (a *ValkeyAdapter[K, V]) prepareBulkSetItem(ctx context.Context, key K, val
 	return keyString, valBytes, entryTTL, true
 }
 
-// BulkSet stores multiple key-value pairs in the cache using DoMulti for
-// efficiency.
+// BulkSet stores multiple key-value pairs in the cache using DoMulti for efficiency.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
-// Takes tags (...string) which specifies optional tags to associate with the
-// keys.
+// Takes tags (...string) which specifies optional tags to associate with the keys.
 //
 // Returns error when the pipeline execution fails.
 func (a *ValkeyAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags ...string) error {
@@ -1194,12 +1178,10 @@ func (a *ValkeyAdapter[K, V]) BulkSet(ctx context.Context, items map[K]V, tags .
 	return nil
 }
 
-// bulkSetJSON stores multiple items using JSON.SET for search-indexed
-// namespaces.
+// bulkSetJSON stores multiple items using JSON.SET for search-indexed namespaces.
 //
 // Takes items (map[K]V) which contains the key-value pairs to store.
-// Takes tags (...string) which specifies optional tags to associate with each
-// key.
+// Takes tags (...string) which specifies optional tags to associate with each key.
 //
 // Returns error when an item cannot be stored.
 func (a *ValkeyAdapter[K, V]) bulkSetJSON(ctx context.Context, items map[K]V, tags ...string) error {
@@ -1224,8 +1206,8 @@ func (a *ValkeyAdapter[K, V]) bulkSetJSON(ctx context.Context, items map[K]V, ta
 
 // InvalidateByTags removes all cache entries linked to the given tags.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes tags (...string) which specifies the tags whose entries to remove.
@@ -1247,8 +1229,8 @@ func (a *ValkeyAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...stri
 	return count, nil
 }
 
-// flushUnsafe runs FLUSHDB on the Valkey instance, deleting all keys in the
-// current database.
+// flushUnsafe runs FLUSHDB on the Valkey instance, deleting all keys in the current
+// database.
 //
 // Returns error when the FLUSHDB command fails.
 func (a *ValkeyAdapter[K, V]) flushUnsafe(ctx context.Context) error {
@@ -1266,8 +1248,7 @@ func (a *ValkeyAdapter[K, V]) flushUnsafe(ctx context.Context) error {
 //
 // Takes batch ([]string) which contains the keys to delete.
 //
-// Returns int which is the number of keys successfully deleted, or zero on
-// error.
+// Returns int which is the number of keys successfully deleted, or zero on error.
 func (a *ValkeyAdapter[K, V]) deleteBatch(ctx context.Context, batch []string) int {
 	ctx, l := logger.From(ctx, log)
 
@@ -1280,8 +1261,7 @@ func (a *ValkeyAdapter[K, V]) deleteBatch(ctx context.Context, batch []string) i
 	return int(deleted)
 }
 
-// invalidateByNamespace scans for and deletes all keys that match the
-// namespace pattern.
+// invalidateByNamespace scans for and deletes all keys that match the namespace pattern.
 func (a *ValkeyAdapter[K, V]) invalidateByNamespace(ctx context.Context) {
 	ctx, l := logger.From(ctx, log)
 
@@ -1315,14 +1295,14 @@ func (a *ValkeyAdapter[K, V]) invalidateByNamespace(ctx context.Context) {
 		logger.Int("keys_deleted", deletedCount))
 }
 
-// InvalidateAll removes all cache entries within the set namespace.
-// If search is enabled, it also drops the search index.
+// InvalidateAll removes all cache entries within the set namespace. If search is enabled,
+// it also drops the search index.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
-// When no namespace is set and AllowUnsafeFLUSHDB is false, the operation
-// is blocked and an error is returned.
+// When no namespace is set and AllowUnsafeFLUSHDB is false, the operation is blocked and
+// an error is returned.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 //
@@ -1349,15 +1329,14 @@ func (a *ValkeyAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	return nil
 }
 
-// BulkRefresh updates several cache entries in the background using the
-// bulk loader.
+// BulkRefresh updates several cache entries in the background using the bulk loader.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes keys ([]K) which specifies the cache keys to refresh.
 // Takes bulkLoader (BulkLoader) which loads the new values for the keys.
 //
-// Safe for concurrent use. Spawns a goroutine that loads values and updates
-// the cache. Returns immediately; errors are logged but not returned.
+// Safe for concurrent use. Spawns a goroutine that loads values and updates the cache.
+// Returns immediately; errors are logged but not returned.
 func (a *ValkeyAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoader cache.BulkLoader[K, V]) {
 	ctx, l := logger.From(ctx, log)
 
@@ -1376,19 +1355,17 @@ func (a *ValkeyAdapter[K, V]) BulkRefresh(ctx context.Context, keys []K, bulkLoa
 	}()
 }
 
-// Refresh asynchronously refreshes a single cache entry using the provided
-// loader.
+// Refresh asynchronously refreshes a single cache entry using the provided loader.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to refresh.
-// Takes loader (Loader[K, V]) which loads the fresh value for the
-// given key.
+// Takes loader (Loader[K, V]) which loads the fresh value for the given key.
 //
-// Returns <-chan cache.LoadResult[V] which receives the load outcome
-// once the background goroutine completes.
+// Returns <-chan cache.LoadResult[V] which receives the load outcome once the background
+// goroutine completes.
 //
-// Safe for concurrent use. Spawns a goroutine that loads the value and updates
-// the cache. The channel is closed after the result is sent.
+// Safe for concurrent use. Spawns a goroutine that loads the value and updates the cache.
+// The channel is closed after the result is sent.
 func (a *ValkeyAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache.Loader[K, V]) <-chan cache.LoadResult[V] {
 	ctx, l := logger.From(ctx, log)
 
@@ -1409,8 +1386,8 @@ func (a *ValkeyAdapter[K, V]) Refresh(ctx context.Context, key K, loader cache.L
 
 // All returns an iterator over all key-value pairs in the cache namespace.
 //
-// Returns iter.Seq2[K, V] which yields each key-value pair found in
-// the namespace via a full SCAN.
+// Returns iter.Seq2[K, V] which yields each key-value pair found in the namespace via a
+// full SCAN.
 func (a *ValkeyAdapter[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		scanPattern := "*"
@@ -1422,17 +1399,16 @@ func (a *ValkeyAdapter[K, V]) All() iter.Seq2[K, V] {
 	}
 }
 
-// scanAndYield performs a full SCAN over the given pattern and
-// yields each decoded key-value pair. It returns when the scan
-// completes or the yield function signals to stop.
+// scanAndYield performs a full SCAN over the given pattern and yields each decoded
+// key-value pair. It returns when the scan completes or the yield function signals to
+// stop.
 //
 // Takes pattern (string) which specifies the key pattern to match.
-// Takes yield (func(K, V) bool) which receives each key-value pair
-// and returns false to stop iteration.
+// Takes yield (func(K, V) bool) which receives each key-value pair and returns false to
+// stop iteration.
 //
-// Note: iterator methods (All, Keys, Values) do not accept a
-// context from the interface, so a background context is used
-// here.
+// Note: iterator methods (All, Keys, Values) do not accept a context from the interface,
+// so a background context is used here.
 func (a *ValkeyAdapter[K, V]) scanAndYield(pattern string, yield func(K, V) bool) {
 	ctx := context.Background()
 	_, l := logger.From(ctx, log)
@@ -1457,15 +1433,13 @@ func (a *ValkeyAdapter[K, V]) scanAndYield(pattern string, yield func(K, V) bool
 	}
 }
 
-// yieldScannedElements decodes and yields each key-value pair from a SCAN
-// batch.
+// yieldScannedElements decodes and yields each key-value pair from a SCAN batch.
 //
 // Takes ctx (context.Context) for cancellation and timeout on value retrieval.
 // Takes elements ([]string) which contains the raw keys from a SCAN result.
 // Takes yield (func(K, V) bool) which receives each decoded key-value pair.
 //
-// Returns bool which is false if yield signals to stop iteration, true
-// otherwise.
+// Returns bool which is false if yield signals to stop iteration, true otherwise.
 func (a *ValkeyAdapter[K, V]) yieldScannedElements(ctx context.Context, elements []string, yield func(K, V) bool) bool {
 	ctx, l := logger.From(ctx, log)
 
@@ -1518,34 +1492,30 @@ func (a *ValkeyAdapter[K, V]) Values() iter.Seq[V] {
 	}
 }
 
-// GetEntry retrieves the full entry metadata for a key including TTL
-// information.
+// GetEntry retrieves the full entry metadata for a key including TTL information.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
-// Returns cache.Entry[K, V] which contains the entry metadata and
-// value.
+// Returns cache.Entry[K, V] which contains the entry metadata and value.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 func (a *ValkeyAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache.Entry[K, V], bool, error) {
 	return a.ProbeEntry(ctx, key)
 }
 
-// ProbeEntry retrieves entry metadata without affecting access patterns
-// or TTL.
+// ProbeEntry retrieves entry metadata without affecting access patterns or TTL.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
-// Returns cache.Entry[K, V] which contains the entry metadata and
-// value.
+// Returns cache.Entry[K, V] which contains the entry metadata and value.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 func (a *ValkeyAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cache.Entry[K, V], bool, error) {

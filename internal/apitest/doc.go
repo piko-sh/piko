@@ -18,9 +18,8 @@
 
 // Package apitest guards against unintentional API breakage using YAML golden files.
 //
-// It serialises exported types, functions, and interfaces into a
-// human-readable YAML format that can be compared against a golden file
-// baseline.
+// It serialises exported types, functions, and interfaces into a human-readable YAML
+// format that can be compared against a golden file baseline.
 //
 // # Usage
 //
@@ -41,6 +40,6 @@
 //
 // # Thread safety
 //
-// Check is safe for concurrent use across different test functions, as each
-// invocation operates on independent golden files.
+// Check is safe for concurrent use across different test functions, as each invocation
+// operates on independent golden files.
 package apitest

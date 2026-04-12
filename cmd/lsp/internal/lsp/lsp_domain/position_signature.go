@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// callExprFinder is a visitor that finds the smallest CallExpr containing a
-// target position within its parentheses.
+// callExprFinder is a visitor that finds the smallest CallExpr containing a target
+// position within its parentheses.
 type callExprFinder struct {
 	// bestMatch holds the most specific call expression that contains the cursor.
 	bestMatch *ast_domain.CallExpression
@@ -37,12 +37,10 @@ type callExprFinder struct {
 	targetPosition protocol.Position
 }
 
-// visit checks if the given call expression contains the target
-// position and updates bestMatch if this is the most specific
-// match found so far.
+// visit checks if the given call expression contains the target position and updates
+// bestMatch if this is the most specific match found so far.
 //
-// Takes expression (ast_domain.Expression) which is the
-// expression to check.
+// Takes expression (ast_domain.Expression) which is the expression to check.
 func (f *callExprFinder) visit(expression ast_domain.Expression) {
 	if expression == nil {
 		return
@@ -113,8 +111,7 @@ func (c *commaCounter) processChar(character byte) {
 
 // handleEscape processes the next character if it was marked for escaping.
 //
-// Returns bool which is true if the character was consumed by an escape
-// sequence.
+// Returns bool which is true if the character was consumed by an escape sequence.
 func (c *commaCounter) handleEscape() bool {
 	if c.escapeNext {
 		c.escapeNext = false
@@ -173,16 +170,15 @@ func (c *commaCounter) handleNesting(character byte) {
 	}
 }
 
-// findEnclosingCallExpr finds the innermost call expression that contains
-// the given position. This is used for signature help to find which function
-// call the user is typing arguments for.
+// findEnclosingCallExpr finds the innermost call expression that contains the given
+// position. This is used for signature help to find which function call the user is
+// typing arguments for.
 //
 // Takes tree (*ast_domain.TemplateAST) which is the parsed template to search.
 // Takes position (protocol.Position) which is the cursor position to find.
 // Takes sourceContent ([]byte) which is the source text for counting parameters.
 //
-// Returns *ast_domain.CallExpression which is the enclosing
-// call expression, or nil.
+// Returns *ast_domain.CallExpression which is the enclosing call expression, or nil.
 // Returns int which is the zero-based index of the active parameter.
 func findEnclosingCallExpr(tree *ast_domain.TemplateAST, position protocol.Position, sourceContent []byte) (*ast_domain.CallExpression, int) {
 	finder := &callExprFinder{
@@ -202,12 +198,11 @@ func findEnclosingCallExpr(tree *ast_domain.TemplateAST, position protocol.Posit
 	return nil, 0
 }
 
-// countActiveParameter finds which parameter the cursor is on within a call
-// expression. It counts top-level commas in the source text between the
-// opening parenthesis and the cursor position.
+// countActiveParameter finds which parameter the cursor is on within a call expression.
+// It counts top-level commas in the source text between the opening parenthesis and the
+// cursor position.
 //
-// Takes callExpr (*ast_domain.CallExpression) which is the call
-// expression to check.
+// Takes callExpr (*ast_domain.CallExpression) which is the call expression to check.
 // Takes position (protocol.Position) which is the cursor position.
 // Takes sourceContent ([]byte) which is the source file content.
 //
@@ -236,15 +231,14 @@ func countActiveParameter(callExpr *ast_domain.CallExpression, position protocol
 	return commaCount
 }
 
-// extractTextBetweenPositions extracts text between two positions in the
-// source content.
+// extractTextBetweenPositions extracts text between two positions in the source content.
 //
 // Takes content ([]byte) which is the source content to extract from.
 // Takes start (protocol.Position) which is the starting position.
 // Takes end (protocol.Position) which is the ending position.
 //
-// Returns string which contains the extracted text, or empty if positions are
-// out of bounds.
+// Returns string which contains the extracted text, or empty if positions are out of
+// bounds.
 func extractTextBetweenPositions(content []byte, start protocol.Position, end protocol.Position) string {
 	startOffset := positionToByteOffset(content, start)
 	endOffset := positionToByteOffset(content, end)
@@ -254,8 +248,8 @@ func extractTextBetweenPositions(content []byte, start protocol.Position, end pr
 	return string(content[startOffset:endOffset])
 }
 
-// positionToByteOffset converts an LSP line/character position to a byte
-// offset within the content. Returns -1 if the position is out of bounds.
+// positionToByteOffset converts an LSP line/character position to a byte offset within
+// the content. Returns -1 if the position is out of bounds.
 //
 // Takes content ([]byte) which is the raw document bytes.
 // Takes position (protocol.Position) which is the LSP position to convert.
@@ -281,9 +275,9 @@ func positionToByteOffset(content []byte, position protocol.Position) int {
 	return -1
 }
 
-// byteOffsetWithinLine returns the byte offset of the given character position
-// within the line delimited by [lineStart, lineEnd), stripping a trailing '\r'
-// before checking bounds.
+// byteOffsetWithinLine returns the byte offset of the given character position within the
+// line delimited by [lineStart, lineEnd), stripping a trailing '\r' before checking
+// bounds.
 //
 // Takes content ([]byte) which is the full document bytes.
 // Takes lineStart (int) which is the byte index of the first byte on the line.
@@ -302,8 +296,8 @@ func byteOffsetWithinLine(content []byte, lineStart, lineEnd int, character uint
 	return lineStart + charOffset
 }
 
-// countTopLevelCommas counts commas that are not inside nested brackets,
-// braces, parentheses, or strings.
+// countTopLevelCommas counts commas that are not inside nested brackets, braces,
+// parentheses, or strings.
 //
 // Takes text (string) which is the input to scan for top-level commas.
 //

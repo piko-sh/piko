@@ -34,41 +34,42 @@ import (
 )
 
 const (
-	// WatchdogOverviewPanelID is the identifier used by the model to
-	// look up the watchdog Overview panel.
+	// WatchdogOverviewPanelID is the identifier used by the model to look up the watchdog
+	// Overview panel.
 	WatchdogOverviewPanelID = "watchdog-overview"
 
-	// WatchdogOverviewPanelTitle is the display title rendered in the
-	// tab bar and the panel frame.
+	// WatchdogOverviewPanelTitle is the display title rendered in the tab bar and the panel
+	// frame.
 	WatchdogOverviewPanelTitle = "Watchdog"
 
-	// overviewMinPaneWidthForSections is the minimum width before the
-	// section nav is rendered alongside the dashboard.
+	// overviewMinPaneWidthForSections is the minimum width before the section nav is
+	// rendered alongside the dashboard.
 	overviewMinPaneWidthForSections = 90
 
-	// overviewAlertTapeMaxRows caps the alert-tape body even when there
-	// is plenty of room.
+	// overviewAlertTapeMaxRows caps the alert-tape body even when there is plenty of room.
 	overviewAlertTapeMaxRows = 5
 
-	// overviewLocalEventCap is the size of the panel-local event ring
-	// retained for the alert tape.
+	// overviewLocalEventCap is the size of the panel-local event ring retained for the alert
+	// tape.
 	overviewLocalEventCap = 32
 )
 
-// overviewSections lists the categories shown in the panel's left-hand
-// section navigation. Selecting one filters which gauges are emphasised
-// and which events appear in the drill-down area.
-var overviewSections = []overviewSection{
-	{ID: "all", Label: "All"},
-	{ID: "lifecycle", Label: "Lifecycle"},
-	{ID: "capture", Label: "Capture"},
-	{ID: "heap", Label: "Heap"},
-	{ID: "goroutines", Label: "Goroutines"},
-	{ID: "gc", Label: "GC"},
-	{ID: "fd", Label: "FD"},
-	{ID: "scheduler", Label: "Scheduler"},
-	{ID: "continuous", Label: "Continuous"},
-}
+var (
+	// overviewSections lists the categories shown in the panel's left-hand section
+	// navigation. Selecting one filters which gauges are emphasised and which events appear
+	// in the drill-down area.
+	overviewSections = []overviewSection{
+		{ID: "all", Label: "All"},
+		{ID: "lifecycle", Label: "Lifecycle"},
+		{ID: "capture", Label: "Capture"},
+		{ID: "heap", Label: "Heap"},
+		{ID: "goroutines", Label: "Goroutines"},
+		{ID: "gc", Label: "GC"},
+		{ID: "fd", Label: "FD"},
+		{ID: "scheduler", Label: "Scheduler"},
+		{ID: "continuous", Label: "Continuous"},
+	}
+)
 
 // overviewSection describes a single entry in the section nav.
 type overviewSection struct {
@@ -79,10 +80,9 @@ type overviewSection struct {
 	Label string
 }
 
-// overviewSnapshotMsg carries a refreshed status snapshot from the
-// background fetcher into the panel. Err is non-nil when the fetch
-// failed; the panel exposes it to the user as a banner instead of
-// rendering stale data without explanation.
+// overviewSnapshotMsg carries a refreshed status snapshot from the background fetcher
+// into the panel. Err is non-nil when the fetch failed; the panel exposes it to the user
+// as a banner instead of rendering stale data without explanation.
 type overviewSnapshotMsg struct {
 	// Status is the freshly fetched watchdog status, or nil on error.
 	Status *WatchdogStatus
@@ -91,8 +91,8 @@ type overviewSnapshotMsg struct {
 	Err error
 }
 
-// overviewEventMsg carries a single live event delivered through the
-// dispatcher subscription into the panel.
+// overviewEventMsg carries a single live event delivered through the dispatcher
+// subscription into the panel.
 type overviewEventMsg struct {
 	// Event is the watchdog event delivered by the subscription.
 	Event WatchdogEvent
@@ -101,9 +101,8 @@ type overviewEventMsg struct {
 	Done bool
 }
 
-// WatchdogOverviewPanel renders the at-a-glance watchdog dashboard:
-// status header, budget gauges, recent-event tape, and a section nav
-// for drilling into a specific category.
+// WatchdogOverviewPanel renders the at-a-glance watchdog dashboard: status header, budget
+// gauges, recent-event tape, and a section nav for drilling into a specific category.
 type WatchdogOverviewPanel struct {
 	// statusFetched is when the most recent snapshot landed.
 	statusFetched time.Time
@@ -141,22 +140,21 @@ type WatchdogOverviewPanel struct {
 	subscriptionMu sync.Mutex
 }
 
-// Compile-time interface assertions so changes to the Panel interface
-// surface here rather than at every call site.
+// Compile-time interface assertions so changes to the Panel interface surface here rather
+// than at every call site.
 var (
 	_ Panel = (*WatchdogOverviewPanel)(nil)
 
 	_ ThemeAware = (*WatchdogOverviewPanel)(nil)
 )
 
-// NewWatchdogOverviewPanel constructs the panel. The dispatcher may be
-// nil; events will then be polled from provider.ListEvents on each
-// snapshot tick.
+// NewWatchdogOverviewPanel constructs the panel. The dispatcher may be nil; events will
+// then be polled from provider.ListEvents on each snapshot tick.
 //
 // Takes provider (WatchdogProvider) which supplies snapshot data.
 // Takes dispatcher (*EventDispatcher) which streams live events.
-// Takes clk (clock.Clock) which yields the current time. Pass nil to
-// use the real system clock.
+// Takes clk (clock.Clock) which yields the current time. Pass nil to use the real system
+// clock.
 //
 // Returns *WatchdogOverviewPanel ready for AddPanel.
 func NewWatchdogOverviewPanel(provider WatchdogProvider, dispatcher *EventDispatcher, clk clock.Clock) *WatchdogOverviewPanel {
@@ -179,19 +177,18 @@ func NewWatchdogOverviewPanel(provider WatchdogProvider, dispatcher *EventDispat
 	return panel
 }
 
-// SetTheme implements ThemeAware so the model propagates theme changes
-// to the panel.
+// SetTheme implements ThemeAware so the model propagates theme changes to the panel.
 //
 // Takes theme (*Theme) which becomes the new theme.
 func (p *WatchdogOverviewPanel) SetTheme(theme *Theme) {
 	p.theme = theme
 }
 
-// Init kicks off the first snapshot fetch and subscribes to the
-// dispatcher when one is configured.
+// Init kicks off the first snapshot fetch and subscribes to the dispatcher when one is
+// configured.
 //
-// Returns tea.Cmd which delivers the first overviewSnapshotMsg and, when
-// applicable, the first overviewEventMsg from the subscription.
+// Returns tea.Cmd which delivers the first overviewSnapshotMsg and, when applicable, the
+// first overviewEventMsg from the subscription.
 func (p *WatchdogOverviewPanel) Init() tea.Cmd {
 	cmds := []tea.Cmd{p.fetchSnapshotCmd()}
 	if cmd := p.subscribeCmd(); cmd != nil {
@@ -239,8 +236,8 @@ func (p *WatchdogOverviewPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 
 // View renders the panel sized to the supplied dimensions.
 //
-// Takes width (int) and height (int) which are the allocated panel
-// dimensions including frame and padding.
+// Takes width (int) and height (int) which are the allocated panel dimensions including
+// frame and padding.
 //
 // Returns string which is the framed body.
 func (p *WatchdogOverviewPanel) View(width, height int) string {
@@ -256,11 +253,10 @@ func (p *WatchdogOverviewPanel) View(width, height int) string {
 	return p.RenderFrame(body)
 }
 
-// composeBody arranges the section nav, dashboard, and alert tape
-// according to the available width.
+// composeBody arranges the section nav, dashboard, and alert tape according to the
+// available width.
 //
-// Takes width (int) and height (int) which are the inner content
-// dimensions.
+// Takes width (int) and height (int) which are the inner content dimensions.
 //
 // Returns string which is the composed body.
 func (p *WatchdogOverviewPanel) composeBody(width, height int) string {
@@ -278,8 +274,8 @@ func (p *WatchdogOverviewPanel) composeBody(width, height int) string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, sections, " ", dashboard)
 }
 
-// overviewSectionsWidth chooses an appropriate width for the section
-// nav given the panel's available width.
+// overviewSectionsWidth chooses an appropriate width for the section nav given the
+// panel's available width.
 //
 // Takes width (int) which is the inner panel width.
 //
@@ -355,12 +351,11 @@ func (p *WatchdogOverviewPanel) renderDashboard(width, height int) string {
 	return strings.Join(rows, "\n")
 }
 
-// alertTapeBudget computes the rows available for the alert tape after
-// the rest of the dashboard has been laid out.
+// alertTapeBudget computes the rows available for the alert tape after the rest of the
+// dashboard has been laid out.
 //
 // Takes contentHeight (int) which is the dashboard's total height.
-// Takes consumed (int) which is how many rows the dashboard has already
-// produced.
+// Takes consumed (int) which is how many rows the dashboard has already produced.
 //
 // Returns int which is the alert tape budget capped at the panel cap.
 func (*WatchdogOverviewPanel) alertTapeBudget(contentHeight, consumed int) int {
@@ -374,8 +369,8 @@ func (*WatchdogOverviewPanel) alertTapeBudget(contentHeight, consumed int) int {
 	return available
 }
 
-// renderHeaderStrip composes the "[ENABLED] | uptime: X | last refresh:
-// Y" line at the top of the dashboard.
+// renderHeaderStrip composes the "[ENABLED] | uptime: X | last refresh: Y" line at the
+// top of the dashboard.
 //
 // Takes width (int) which is the dashboard width.
 //
@@ -455,8 +450,7 @@ func (p *WatchdogOverviewPanel) renderGauges(width int) []string {
 	return rows
 }
 
-// renderAlertTape returns up to budget rows of recent high-priority
-// events.
+// renderAlertTape returns up to budget rows of recent high-priority events.
 //
 // Takes width (int) and budget (int).
 //
@@ -502,8 +496,8 @@ func (p *WatchdogOverviewPanel) formatAlertRow(now time.Time, ev WatchdogEvent, 
 	return PadRightANSI(left+DoubleSpace+p.dimStyle().Render(message), width)
 }
 
-// recentHighPriorityEvents returns the most-recent events at high
-// priority or above, capped at limit.
+// recentHighPriorityEvents returns the most-recent events at high priority or above,
+// capped at limit.
 //
 // Takes limit (int) which is the maximum number of events.
 //
@@ -524,8 +518,8 @@ func (p *WatchdogOverviewPanel) recentHighPriorityEvents(limit int) []WatchdogEv
 	return out
 }
 
-// recordEvent appends ev to the local event ring, evicting the oldest
-// entry when at capacity.
+// recordEvent appends ev to the local event ring, evicting the oldest entry when at
+// capacity.
 //
 // Takes ev (WatchdogEvent) which is the event to record.
 //
@@ -552,11 +546,10 @@ func (p *WatchdogOverviewPanel) snapshot() *WatchdogStatus {
 	return p.status
 }
 
-// fetchError returns the most recent fetch error, if any, under a read
-// lock.
+// fetchError returns the most recent fetch error, if any, under a read lock.
 //
-// Returns error which is the most recent fetch error, or nil when the
-// last fetch succeeded.
+// Returns error which is the most recent fetch error, or nil when the last fetch
+// succeeded.
 //
 // Concurrency: Safe for concurrent use; guarded by mu.
 func (p *WatchdogOverviewPanel) fetchError() error {
@@ -565,8 +558,8 @@ func (p *WatchdogOverviewPanel) fetchError() error {
 	return p.lastFetchErr
 }
 
-// fetchSnapshotCmd returns a Cmd that asks the provider for a fresh
-// status snapshot and posts overviewSnapshotMsg back to Update.
+// fetchSnapshotCmd returns a Cmd that asks the provider for a fresh status snapshot and
+// posts overviewSnapshotMsg back to Update.
 //
 // Returns tea.Cmd which performs the fetch.
 func (p *WatchdogOverviewPanel) fetchSnapshotCmd() tea.Cmd {
@@ -581,12 +574,10 @@ func (p *WatchdogOverviewPanel) fetchSnapshotCmd() tea.Cmd {
 	}
 }
 
-// subscribeCmd opens a dispatcher subscription and returns a Cmd that
-// awaits the first event. Subsequent events are awaited via
-// waitForNextEventCmd.
+// subscribeCmd opens a dispatcher subscription and returns a Cmd that awaits the first
+// event. Subsequent events are awaited via waitForNextEventCmd.
 //
-// Returns tea.Cmd which awaits the first event, or nil when no
-// dispatcher is configured.
+// Returns tea.Cmd which awaits the first event, or nil when no dispatcher is configured.
 //
 // Concurrency: Safe for concurrent use; guarded by subscriptionMu.
 func (p *WatchdogOverviewPanel) subscribeCmd() tea.Cmd {
@@ -597,18 +588,16 @@ func (p *WatchdogOverviewPanel) subscribeCmd() tea.Cmd {
 	if p.subscription != nil {
 		p.subscription.Cancel()
 	}
-	sub := p.dispatcher.Subscribe(EventFilter{}, p.clock.Now().Add(-time.Hour))
-	p.subscription = &sub
+	p.subscription = new(p.dispatcher.Subscribe(EventFilter{}, p.clock.Now().Add(-time.Hour)))
 	p.subscriptionMu.Unlock()
 
 	return p.waitForNextEventCmd()
 }
 
-// waitForNextEventCmd reads a single event from the active subscription
-// and packages it as overviewEventMsg.
+// waitForNextEventCmd reads a single event from the active subscription and packages it
+// as overviewEventMsg.
 //
-// Returns tea.Cmd which awaits the next event, or nil when the panel is
-// not subscribed.
+// Returns tea.Cmd which awaits the next event, or nil when the panel is not subscribed.
 //
 // Concurrency: Safe for concurrent use; guarded by subscriptionMu.
 func (p *WatchdogOverviewPanel) waitForNextEventCmd() tea.Cmd {
@@ -632,8 +621,8 @@ func (p *WatchdogOverviewPanel) waitForNextEventCmd() tea.Cmd {
 //
 // Takes message (tea.KeyPressMsg) which is the key event.
 //
-// Returns tea.Cmd which is the command resulting from the keystroke,
-// or nil when no action was taken.
+// Returns tea.Cmd which is the command resulting from the keystroke, or nil when no
+// action was taken.
 func (p *WatchdogOverviewPanel) handleKey(message tea.KeyPressMsg) tea.Cmd {
 	if message.String() == "R" {
 		return p.fetchSnapshotCmd()
@@ -708,8 +697,7 @@ func (p *WatchdogOverviewPanel) errorStyle() lipgloss.Style {
 	return statusUnhealthyStyle
 }
 
-// cursorStyle returns the style applied to the focused section nav
-// entry.
+// cursorStyle returns the style applied to the focused section nav entry.
 //
 // Returns lipgloss.Style which is the cursor style.
 func (p *WatchdogOverviewPanel) cursorStyle() lipgloss.Style {

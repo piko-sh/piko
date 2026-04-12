@@ -23,21 +23,19 @@ package layouter_dto
 // LayoutResult is the output of a full layout operation including pagination.
 type LayoutResult struct {
 	// RootBox is the root of the laid-out box tree. The concrete type is
-	// *layouter_domain.LayoutBox but stored as any to avoid a circular
-	// import between dto and domain packages.
+	// *layouter_domain.LayoutBox but stored as any to avoid a circular import between dto
+	// and domain packages.
 	RootBox any
 
-	// RootFragment is the root of the fragment tree with
-	// parent-relative offsets, stored as any to avoid a
-	// circular import.
+	// RootFragment is the root of the fragment tree with parent-relative offsets, stored as
+	// any to avoid a circular import.
 	RootFragment any
 
-	// Pages holds the paginated output. Each PageOutput describes a single
-	// page with its assigned boxes.
+	// Pages holds the paginated output. Each PageOutput describes a single page with its
+	// assigned boxes.
 	Pages []PageOutput
 
-	// DiagnosticCount is the number of non-fatal issues encountered during
-	// layout.
+	// DiagnosticCount is the number of non-fatal issues encountered during layout.
 	DiagnosticCount int
 }
 

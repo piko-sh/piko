@@ -24,22 +24,21 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-// Service provides the main interface for LLM completions, embeddings, and
-// provider management. It implements io.Closer and is the hexagon's
-// public API in the ports and adapters pattern.
+// Service provides the main interface for LLM completions, embeddings, and provider
+// management. It implements io.Closer and is the hexagon's public API in the ports and
+// adapters pattern.
 type Service interface {
-	// NewCompletion creates a new completion builder for composing and executing
-	// LLM requests.
+	// NewCompletion creates a new completion builder for composing and executing LLM
+	// requests.
 	//
-	// Returns *CompletionBuilder which provides a fluent interface for building
-	// completion requests.
+	// Returns *CompletionBuilder which provides a fluent interface for building completion
+	// requests.
 	NewCompletion() *CompletionBuilder
 
 	// Complete sends a completion request to the default or specified provider.
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	// Takes request (*llm_dto.CompletionRequest) which contains
-	// the completion parameters.
+	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns *llm_dto.CompletionResponse containing the model's response.
 	// Returns error when the request fails or the provider is not found.
@@ -49,18 +48,15 @@ type Service interface {
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes providerName (string) which identifies the provider to use.
-	// Takes request (*llm_dto.CompletionRequest) which contains
-	// the completion parameters.
+	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns *llm_dto.CompletionResponse containing the model's response.
 	// Returns error when the request fails or the provider is not found.
 	CompleteWithProvider(ctx context.Context, providerName string, request *llm_dto.CompletionRequest) (*llm_dto.CompletionResponse, error)
 
-	// Stream sends a streaming completion request to the default or specified
-	// provider.
+	// Stream sends a streaming completion request to the default or specified provider.
 	//
-	// Takes request (*llm_dto.CompletionRequest) which contains the completion
-	// parameters.
+	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns <-chan llm_dto.StreamEvent which emits streaming events.
 	// Returns error when the stream cannot be started or the provider is not found.
@@ -70,8 +66,7 @@ type Service interface {
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes providerName (string) which identifies the provider to use.
-	// Takes request (*llm_dto.CompletionRequest) which contains
-	// the completion parameters.
+	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns <-chan llm_dto.StreamEvent which emits streaming events.
 	// Returns error when the stream cannot be started or the provider is not found.
@@ -79,8 +74,8 @@ type Service interface {
 
 	// RegisterProvider adds an LLM provider to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request
-	// ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (LLMProviderPort) which handles LLM requests.
 	//
@@ -89,8 +84,8 @@ type Service interface {
 
 	// SetDefaultProvider sets the default provider to use by name.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request
-	// ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes name (string) which identifies the provider to set as default.
 	//
 	// Returns error when the named provider does not exist.
@@ -177,8 +172,7 @@ type Service interface {
 
 	// GetVectorStore returns the vector store for similarity search.
 	//
-	// Returns VectorStorePort which may be nil if vector search is not
-	// configured.
+	// Returns VectorStorePort which may be nil if vector search is not configured.
 	GetVectorStore() VectorStorePort
 
 	// SetVectorStore sets the vector store for the service.
@@ -186,18 +180,17 @@ type Service interface {
 	// Takes store (VectorStorePort) which provides vector storage and search.
 	SetVectorStore(store VectorStorePort)
 
-	// NewEmbedding creates a new embedding builder for composing and executing
-	// embedding requests.
+	// NewEmbedding creates a new embedding builder for composing and executing embedding
+	// requests.
 	//
-	// Returns *EmbeddingBuilder which provides a fluent interface for building
-	// embedding requests.
+	// Returns *EmbeddingBuilder which provides a fluent interface for building embedding
+	// requests.
 	NewEmbedding() *EmbeddingBuilder
 
 	// Embed generates embeddings using the default provider.
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	// Takes request (*llm_dto.EmbeddingRequest) which contains
-	// the embedding parameters.
+	// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 	//
 	// Returns *llm_dto.EmbeddingResponse containing the generated embeddings.
 	// Returns error when the request fails.
@@ -207,8 +200,7 @@ type Service interface {
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
 	// Takes providerName (string) which identifies the provider to use.
-	// Takes request (*llm_dto.EmbeddingRequest) which contains
-	// the embedding parameters.
+	// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 	//
 	// Returns *llm_dto.EmbeddingResponse containing the generated embeddings.
 	// Returns error when the request fails.
@@ -216,8 +208,8 @@ type Service interface {
 
 	// RegisterEmbeddingProvider adds an embedding provider to the registry.
 	//
-	// Takes ctx (context.Context) which carries logging context for trace/request
-	// ID propagation.
+	// Takes ctx (context.Context) which carries logging context for trace/request ID
+	// propagation.
 	// Takes name (string) which identifies the provider.
 	// Takes provider (EmbeddingProviderPort) which handles embedding requests.
 	//
@@ -231,23 +223,23 @@ type Service interface {
 	// Returns error when the named provider does not exist.
 	SetDefaultEmbeddingProvider(name string) error
 
-	// EmbeddingDimensions returns the default vector dimension from the currently
-	// configured default embedding provider.
+	// EmbeddingDimensions returns the default vector dimension from the currently configured
+	// default embedding provider.
 	//
-	// Returns int which is the vector dimension, or 0 if no provider is configured
-	// or the dimension is not known statically (e.g. server-determined models).
+	// Returns int which is the vector dimension, or 0 if no provider is configured or the
+	// dimension is not known statically (e.g. server-determined models).
 	EmbeddingDimensions() int
 
-	// NewIngest creates a new ingestion builder for loading, splitting, and
-	// vectorising documents into a namespace.
+	// NewIngest creates a new ingestion builder for loading, splitting, and vectorising
+	// documents into a namespace.
 	//
 	// Takes namespace (string) which is the target vector store namespace.
 	//
 	// Returns *IngestBuilder which provides a fluent interface for ingestion.
 	NewIngest(namespace string) *IngestBuilder
 
-	// AddText is a convenience method that embeds and stores a single piece of
-	// text in the vector store.
+	// AddText is a convenience method that embeds and stores a single piece of text in the
+	// vector store.
 	//
 	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the target collection.
@@ -257,8 +249,8 @@ type Service interface {
 	// Returns error when embedding or storage fails.
 	AddText(ctx context.Context, namespace, id, content string) error
 
-	// AddDocuments embeds and stores multiple documents in the vector store.
-	// It handles batching of embedding requests for efficiency.
+	// AddDocuments embeds and stores multiple documents in the vector store. It handles
+	// batching of embedding requests for efficiency.
 	//
 	// Takes ctx (context.Context) which controls cancellation.
 	// Takes namespace (string) which identifies the target collection.
@@ -280,8 +272,8 @@ type Document struct {
 	Content string
 }
 
-// LoaderPort is the driven port for loading documents from various sources
-// (e.g., local files, S3, databases).
+// LoaderPort is the driven port for loading documents from various sources (e.g., local
+// files, S3, databases).
 type LoaderPort interface {
 	// Load retrieves documents from the source.
 	//
@@ -292,8 +284,8 @@ type LoaderPort interface {
 	Load(ctx context.Context) ([]Document, error)
 }
 
-// SplitterPort is the driven port for breaking large documents into smaller
-// chunks for vector search indexing.
+// SplitterPort is the driven port for breaking large documents into smaller chunks for
+// vector search indexing.
 type SplitterPort interface {
 	// Split divides a document into one or more smaller documents.
 	//
@@ -303,15 +295,14 @@ type SplitterPort interface {
 	Split(document Document) []Document
 }
 
-// LLMProviderPort defines the interface that LLM provider adapters must implement.
-// It is a driven port in the hexagonal architecture pattern, allowing the domain
-// to send requests to different LLM providers.
+// LLMProviderPort defines the interface that LLM provider adapters must implement. It is
+// a driven port in the hexagonal architecture pattern, allowing the domain to send
+// requests to different LLM providers.
 type LLMProviderPort interface {
 	// Complete sends a completion request to the provider.
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	// Takes request (*llm_dto.CompletionRequest) which contains
-	// the completion parameters.
+	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns *llm_dto.CompletionResponse containing the model's response.
 	// Returns error when the request fails.
@@ -320,8 +311,7 @@ type LLMProviderPort interface {
 	// Stream sends a streaming completion request to the provider.
 	//
 	// Takes ctx (context.Context) which controls cancellation and timeouts.
-	// Takes request (*llm_dto.CompletionRequest) which contains
-	// the completion parameters.
+	// Takes request (*llm_dto.CompletionRequest) which contains the completion parameters.
 	//
 	// Returns <-chan llm_dto.StreamEvent which emits streaming events.
 	// Returns error when the stream cannot be started.
@@ -332,8 +322,8 @@ type LLMProviderPort interface {
 	// Returns bool which is true if streaming is supported.
 	SupportsStreaming() bool
 
-	// SupportsStructuredOutput reports whether the provider supports JSON schema
-	// structured output natively or via translation.
+	// SupportsStructuredOutput reports whether the provider supports JSON schema structured
+	// output natively or via translation.
 	//
 	// Returns bool which is true if structured output is supported.
 	SupportsStructuredOutput() bool
@@ -343,26 +333,26 @@ type LLMProviderPort interface {
 	// Returns bool which is true if tools are supported.
 	SupportsTools() bool
 
-	// SupportsPenalties reports whether the provider supports frequency and
-	// presence penalty parameters.
+	// SupportsPenalties reports whether the provider supports frequency and presence penalty
+	// parameters.
 	//
 	// Returns bool which is true if penalties are supported.
 	SupportsPenalties() bool
 
-	// SupportsSeed reports whether the provider supports the seed parameter
-	// for deterministic sampling.
+	// SupportsSeed reports whether the provider supports the seed parameter for
+	// deterministic sampling.
 	//
 	// Returns bool which is true if seed is supported.
 	SupportsSeed() bool
 
-	// SupportsParallelToolCalls reports whether the provider supports making
-	// multiple tool calls in a single response.
+	// SupportsParallelToolCalls reports whether the provider supports making multiple tool
+	// calls in a single response.
 	//
 	// Returns bool which is true if parallel tool calls are supported.
 	SupportsParallelToolCalls() bool
 
-	// SupportsMessageName reports whether the provider supports the optional
-	// Name field on messages for multi-participant conversations.
+	// SupportsMessageName reports whether the provider supports the optional Name field on
+	// messages for multi-participant conversations.
 	//
 	// Returns bool which is true if message names are supported.
 	SupportsMessageName() bool
@@ -382,11 +372,10 @@ type LLMProviderPort interface {
 	// Returns error when the provider cannot be closed cleanly.
 	Close(ctx context.Context) error
 
-	// DefaultModel returns the provider's default completion model name. The
-	// service calls the function when a request omits the model, before
-	// validation.
+	// DefaultModel returns the provider's default completion model name. The service calls
+	// the function when a request omits the model, before validation.
 	//
-	// Returns string which is the default model identifier, or empty if the
-	// caller must specify a model explicitly.
+	// Returns string which is the default model identifier, or empty if the caller must
+	// specify a model explicitly.
 	DefaultModel() string
 }

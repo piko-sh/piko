@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
@@ -160,8 +161,8 @@ func mapToStruct(m map[string]any, target any) error {
 func extractJSONLine(output string) string {
 	lines := strings.Split(output, "\n")
 
-	for i := len(lines) - 1; i >= 0; i-- {
-		line := strings.TrimSpace(lines[i])
+	for _, rawLine := range slices.Backward(lines) {
+		line := strings.TrimSpace(rawLine)
 		if strings.HasPrefix(line, "{") && strings.HasSuffix(line, "}") {
 			return line
 		}

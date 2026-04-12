@@ -27,11 +27,11 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// InMemoryProvider is a TypeData cache that stores data in memory.
-// It is primarily used for testing and development purposes.
+// InMemoryProvider is a TypeData cache that stores data in memory. It is primarily used
+// for testing and development purposes.
 type InMemoryProvider struct {
-	// err is an optional error returned by all operations; used in tests to
-	// simulate error conditions.
+	// err is an optional error returned by all operations; used in tests to simulate error
+	// conditions.
 	err error
 
 	// data holds cached TypeData entries, keyed by cache key string.
@@ -41,13 +41,15 @@ type InMemoryProvider struct {
 	mu sync.RWMutex
 }
 
-var _ inspector_domain.TypeDataProvider = (*InMemoryProvider)(nil)
+var (
+	_ inspector_domain.TypeDataProvider = (*InMemoryProvider)(nil)
+)
 
-// NewInMemoryProvider creates a new InMemoryProvider with optional initial data.
-// If initialData is nil, an empty map is created.
+// NewInMemoryProvider creates a new InMemoryProvider with optional initial data. If
+// initialData is nil, an empty map is created.
 //
-// Takes initialData (map[string]*inspector_dto.TypeData) which provides the
-// initial type data to populate the provider.
+// Takes initialData (map[string]*inspector_dto.TypeData) which provides the initial type
+// data to populate the provider.
 //
 // Returns *InMemoryProvider which is ready for use.
 func NewInMemoryProvider(initialData map[string]*inspector_dto.TypeData) *InMemoryProvider {

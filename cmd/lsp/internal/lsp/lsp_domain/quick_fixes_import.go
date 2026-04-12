@@ -28,16 +28,16 @@ import (
 	"piko.sh/piko/internal/sfcparser"
 )
 
-// generateAddImportFix creates a fix to add a missing import.
-// This modifies the <script> block to add the import statement.
+// generateAddImportFix creates a fix to add a missing import. This modifies the <script>
+// block to add the import statement.
 //
-// Takes diagnostic (protocol.Diagnostic) which contains the missing
-// import error and associated fix data.
+// Takes diagnostic (protocol.Diagnostic) which contains the missing import error and
+// associated fix data.
 // Takes document (*document) which provides the document content and URI.
 //
-// Returns *protocol.CodeAction which is the add-import fix action, or
-// nil if the diagnostic lacks the required alias and import path or
-// the modification cannot be prepared.
+// Returns *protocol.CodeAction which is the add-import fix action, or nil if the
+// diagnostic lacks the required alias and import path or the modification cannot be
+// prepared.
 func generateAddImportFix(ctx context.Context, diagnostic protocol.Diagnostic, document *document, _ *workspace) *protocol.CodeAction {
 	_, l := logger_domain.From(ctx, log)
 
@@ -61,8 +61,8 @@ func generateAddImportFix(ctx context.Context, diagnostic protocol.Diagnostic, d
 	}
 }
 
-// prepareAddImportModification parses an SFC file and adds an import to its Go
-// script block.
+// prepareAddImportModification parses an SFC file and adds an import to its Go script
+// block.
 //
 // Takes content ([]byte) which is the raw SFC file content to parse.
 // Takes fixData (missingImportData) which specifies the import to add.

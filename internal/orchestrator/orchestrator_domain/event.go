@@ -18,16 +18,17 @@
 
 package orchestrator_domain
 
-import "piko.sh/piko/internal/json"
+import (
+	"piko.sh/piko/internal/json"
+)
 
 // EventType identifies the kind of event for routing and handling.
 type EventType string
 
-// Event represents a message sent through the EventBus.
-// It holds a type for routing and a payload with data.
+// Event represents a message sent through the EventBus. It holds a type for routing and a
+// payload with data.
 type Event struct {
-	// Payload holds the event data as key-value pairs such as workflowId, status,
-	// and error.
+	// Payload holds the event data as key-value pairs such as workflowId, status, and error.
 	Payload map[string]any `json:"payload"`
 
 	// Type identifies the event kind for routing and handling.
@@ -46,8 +47,7 @@ func (e *Event) Marshal() ([]byte, error) {
 //
 // Takes data ([]byte) which contains the JSON to deserialise.
 //
-// Returns error when the JSON is malformed or does not match the event
-// structure.
+// Returns error when the JSON is malformed or does not match the event structure.
 func (e *Event) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, e)
 }

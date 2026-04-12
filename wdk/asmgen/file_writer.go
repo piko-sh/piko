@@ -25,14 +25,17 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// filePermission is the file mode used when writing output files.
-const filePermission = 0o600
+const (
+	// filePermission is the file mode used when writing output files.
+	filePermission = 0o600
+)
 
-// DiskWriter implements FileSystemWriterPort by writing files to the local
-// filesystem.
+// DiskWriter implements FileSystemWriterPort by writing files to the local filesystem.
 type DiskWriter struct{}
 
-var _ FileSystemWriterPort = (*DiskWriter)(nil)
+var (
+	_ FileSystemWriterPort = (*DiskWriter)(nil)
+)
 
 // NewDiskWriter creates a new filesystem writer.
 //
@@ -43,11 +46,10 @@ func NewDiskWriter() *DiskWriter {
 
 // WriteFile writes data to the given path atomically.
 //
-// It constructs a one-shot read-write sandbox at the file's parent directory
-// so all writes go through safedisk path-traversal protection. The sandbox
-// creates the parent directory if it does not yet exist. The data is written
-// via WriteFileAtomic so an interrupted build cannot leave a half-written
-// file on disk.
+// It constructs a one-shot read-write sandbox at the file's parent directory so all
+// writes go through safedisk path-traversal protection. The sandbox creates the parent
+// directory if it does not yet exist. The data is written via WriteFileAtomic so an
+// interrupted build cannot leave a half-written file on disk.
 //
 // Takes path (string) which is the output file path.
 // Takes data ([]byte) which is the file content.

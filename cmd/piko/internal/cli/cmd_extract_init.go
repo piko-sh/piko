@@ -39,20 +39,19 @@ type extractInitFlags struct {
 	// output is the manifest file path to write.
 	output string
 
-	// packageName is the generated-symbols package name to embed in
-	// the manifest.
+	// packageName is the generated-symbols package name to embed in the manifest.
 	packageName string
 
-	// generatedDir is the output directory for "piko extract
-	// generate" recorded in the manifest.
+	// generatedDir is the output directory for "piko extract generate" recorded in the
+	// manifest.
 	generatedDir string
 
 	// force overwrites an existing manifest when true.
 	force bool
 }
 
-// runExtractInit discovers the project's required third-party
-// packages and writes them to a piko-symbols.yaml manifest.
+// runExtractInit discovers the project's required third-party packages and writes them to
+// a piko-symbols.yaml manifest.
 //
 // Takes arguments ([]string) which contains the subcommand arguments.
 // Takes stdout (io.Writer) which receives progress messages.
@@ -87,20 +86,18 @@ func runExtractInit(arguments []string, stdout, stderr io.Writer) int {
 	return writeInitManifest(stdout, stderr, sandbox, filename, flags, result)
 }
 
-// writeInitManifest performs the I/O and reporting half of
-// `piko extract init`, separated from the orchestration in
-// runExtractInit so it can be unit-tested against a safedisk
+// writeInitManifest performs the I/O and reporting half of `piko extract init`, separated
+// from the orchestration in runExtractInit so it can be unit-tested against a safedisk
 // MockSandbox with a synthesised DiscoverResult.
 //
 // Takes stdout (io.Writer) which receives the summary line.
 // Takes stderr (io.Writer) which receives warnings and errors.
 // Takes sandbox (safedisk.Sandbox) which scopes the write.
-// Takes filename (string) which is the manifest file name inside the
-// sandbox.
-// Takes flags (extractInitFlags) which supply the rendered manifest
-// header fields and the --force policy.
-// Takes result (driver_symbols_extract.DiscoverResult) which supplies
-// the packages to write and any warnings to surface.
+// Takes filename (string) which is the manifest file name inside the sandbox.
+// Takes flags (extractInitFlags) which supply the rendered manifest header fields and the
+// --force policy.
+// Takes result (driver_symbols_extract.DiscoverResult) which supplies the packages to
+// write and any warnings to surface.
 //
 // Returns int which is the exit code: 0 on success, 1 on error.
 func writeInitManifest(
@@ -189,9 +186,9 @@ func parseExtractInitArgs(arguments []string, stderr io.Writer) (extractInitFlag
 	return flags, parseOK
 }
 
-// renderInitManifest produces a YAML string for a new piko-symbols
-// manifest with the discovered package list. The format matches what
-// LoadManifest accepts (package, output, packages sequence).
+// renderInitManifest produces a YAML string for a new piko-symbols manifest with the
+// discovered package list. The format matches what LoadManifest accepts (package, output,
+// packages sequence).
 //
 // Takes flags (extractInitFlags) which supplies the header fields.
 // Takes packages ([]string) which is the sorted discovered list.
@@ -209,15 +206,14 @@ func renderInitManifest(flags extractInitFlags, packages []string) string {
 	return builder.String()
 }
 
-// openManifestSandbox opens a safedisk sandbox scoped to the parent
-// directory of the manifest output path. Using a sandbox keeps both
-// the existence check and the write path-traversal-safe when the
-// caller supplies an absolute or relative path.
+// openManifestSandbox opens a safedisk sandbox scoped to the parent directory of the
+// manifest output path. Using a sandbox keeps both the existence check and the write
+// path-traversal-safe when the caller supplies an absolute or relative path.
 //
 // Takes outputPath (string) which is the destination manifest path.
 //
-// Returns the sandbox, the cleaned filename inside the sandbox, and
-// any error encountered while opening the sandbox.
+// Returns the sandbox, the cleaned filename inside the sandbox, and any error encountered
+// while opening the sandbox.
 func openManifestSandbox(outputPath string) (safedisk.Sandbox, string, error) {
 	directory, filename := filepath.Split(outputPath)
 	if directory == "" {

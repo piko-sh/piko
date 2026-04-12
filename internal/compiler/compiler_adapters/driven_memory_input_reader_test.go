@@ -28,7 +28,9 @@ import (
 	"piko.sh/piko/internal/compiler/compiler_domain"
 )
 
-var _ compiler_domain.InputReaderPort = NewMemoryInputReader()
+var (
+	_ compiler_domain.InputReaderPort = NewMemoryInputReader()
+)
 
 func TestMemoryInputReader_ReadSFC(t *testing.T) {
 	t.Parallel()

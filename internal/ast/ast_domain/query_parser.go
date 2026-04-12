@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Parses CSS selector strings into structured selector sets for querying AST nodes with support for complex selectors.
-// Implements pooled QueryParser instances that handle element selectors, classes, IDs, attributes, pseudo-classes, and combinators.
+// Parses CSS selector strings into structured selector sets for querying AST nodes with
+// support for complex selectors. Implements pooled QueryParser instances that handle
+// element selectors, classes, IDs, attributes, pseudo-classes, and combinators.
 
 import (
 	"slices"
@@ -27,27 +28,28 @@ import (
 	"sync"
 )
 
-// queryParserPool pools QueryParser instances to reduce allocations.
-var queryParserPool = sync.Pool{
-	New: func() any {
-		return &QueryParser{}
-	},
-}
+var (
+	// queryParserPool pools QueryParser instances to reduce allocations.
+	queryParserPool = sync.Pool{
+		New: func() any {
+			return &QueryParser{}
+		},
+	}
+)
 
-// SelectorSet represents a list of selector groups split by commas, such as
-// "div, p > span".
+// SelectorSet represents a list of selector groups split by commas, such as "div, p >
+// span".
 type SelectorSet []SelectorGroup
 
-// SelectorGroup represents a chain of selectors joined by combinators,
-// such as "div > p".
+// SelectorGroup represents a chain of selectors joined by combinators, such as "div > p".
 type SelectorGroup []ComplexSelector
 
-// ComplexSelector represents a simple selector with a combinator before it.
-// The combinator defines the relationship between this selector and the one
-// that comes before it in the chain.
+// ComplexSelector represents a simple selector with a combinator before it. The
+// combinator defines the relationship between this selector and the one that comes before
+// it in the chain.
 type ComplexSelector struct {
-	// Combinator specifies how two selectors relate: " " (descendant), ">" (child),
-	// "+" (adjacent sibling), or "~" (general sibling).
+	// Combinator specifies how two selectors relate: " " (descendant), ">" (child), "+"
+	// (adjacent sibling), or "~" (general sibling).
 	Combinator string
 
 	// Simple is the selector that matches a single element.
@@ -58,8 +60,8 @@ type ComplexSelector struct {
 }
 
 // SimpleSelector represents a CSS selector without combinators, such as
-// "div.card[disabled]". It forms the basic building block for matching single
-// elements before combinators like descendant or child are applied.
+// "div.card[disabled]". It matches a single element directly, before any combinators like
+// descendant or child are applied.
 type SimpleSelector struct {
 	// Tag is the element name to match (e.g. "div", "span", or "*" for any).
 	Tag string
@@ -86,8 +88,8 @@ type AttributeSelector struct {
 	// Name is the attribute name to match against.
 	Name string
 
-	// Operator specifies how to match the attribute value: "=" for exact match,
-	// "~=" for word match, "^=" for prefix, "$=" for suffix, or "*=" for contains.
+	// Operator specifies how to match the attribute value: "=" for exact match, "~=" for
+	// word match, "^=" for prefix, "$=" for suffix, or "*=" for contains.
 	Operator string
 
 	// Value is the attribute value to compare against.
@@ -134,12 +136,11 @@ type QueryParser struct {
 	peek QueryToken
 }
 
-// NewQueryParser creates a parser for the given lexer.
-// The returned parser should be released with Release when done.
+// NewQueryParser creates a parser for the given lexer. The returned parser should be
+// released with Release when done.
 //
 // Takes l (*QueryLexer) which provides the token stream to parse.
-// Takes sourcePath (string) which identifies the source file for error
-// messages.
+// Takes sourcePath (string) which identifies the source file for error messages.
 //
 // Returns *QueryParser which is ready to parse the token stream.
 func NewQueryParser(l *QueryLexer, sourcePath string) *QueryParser {
@@ -211,8 +212,7 @@ func (p *QueryParser) nextToken() {
 
 // parseSelectorGroup parses a single selector chain (e.g. "div > p").
 //
-// Returns SelectorGroup which holds the parsed selectors, or nil if parsing
-// fails.
+// Returns SelectorGroup which holds the parsed selectors, or nil if parsing fails.
 func (p *QueryParser) parseSelectorGroup() SelectorGroup {
 	var group SelectorGroup
 	p.skipWhitespace()
@@ -264,8 +264,7 @@ func (p *QueryParser) isExplicitCombinator() bool {
 	return p.current.Type == TokenCombinator || p.current.Type == TokenPlus || p.current.Type == TokenTilde
 }
 
-// parseNextSelectorWithCombinator parses a selector with its preceding
-// combinator.
+// parseNextSelectorWithCombinator parses a selector with its preceding combinator.
 //
 // Takes group (*SelectorGroup) which receives the parsed selector.
 // Takes wasWhitespace (bool) which shows if whitespace came before this token.
@@ -313,8 +312,7 @@ func (p *QueryParser) parseCombinator(wasWhitespace bool) string {
 	return ""
 }
 
-// isStartOfSimpleSelector checks if the current token can start a simple
-// selector.
+// isStartOfSimpleSelector checks if the current token can start a simple selector.
 //
 // Returns bool which is true when the token type is a valid selector start.
 func (p *QueryParser) isStartOfSimpleSelector() bool {
@@ -340,8 +338,8 @@ func (p *QueryParser) skipWhitespace() bool {
 
 // parseSimpleSelector parses a selector that has no combinators.
 //
-// Returns SimpleSelector which holds the parsed tag, ID, classes, attributes,
-// and pseudo-classes.
+// Returns SimpleSelector which holds the parsed tag, ID, classes, attributes, and
+// pseudo-classes.
 func (p *QueryParser) parseSimpleSelector() SimpleSelector {
 	ss := SimpleSelector{Tag: "", ID: "", Classes: nil, Attributes: nil, PseudoClasses: nil, Location: p.current.Location}
 
@@ -374,11 +372,10 @@ func (p *QueryParser) parseSimpleSelector() SimpleSelector {
 	}
 }
 
-// parsePseudoClassSelector parses pseudo-classes such as :first-child or
-// :not(.foo).
+// parsePseudoClassSelector parses pseudo-classes such as :first-child or :not(.foo).
 //
-// Returns PseudoClassSelector which holds the parsed pseudo-class, including
-// its type, value, and any nested selector.
+// Returns PseudoClassSelector which holds the parsed pseudo-class, including its type,
+// value, and any nested selector.
 func (p *QueryParser) parsePseudoClassSelector() PseudoClassSelector {
 	ps := PseudoClassSelector{SubSelector: nil, Type: "", Value: "", Location: p.current.Location}
 	p.nextToken()
@@ -419,8 +416,7 @@ func (p *QueryParser) parsePseudoClassSelector() PseudoClassSelector {
 	return ps
 }
 
-// parseNthValue parses the value part of nth-child and similar
-// pseudo-classes.
+// parseNthValue parses the value part of nth-child and similar pseudo-classes.
 //
 // Returns string which is the parsed value with whitespace removed.
 func (p *QueryParser) parseNthValue() string {
@@ -438,8 +434,8 @@ func (p *QueryParser) parseNthValue() string {
 
 // parseAttributeSelector parses an attribute selector such as [href^="https"].
 //
-// Returns AttributeSelector which holds the parsed attribute name, operator,
-// value, and case sensitivity flag.
+// Returns AttributeSelector which holds the parsed attribute name, operator, value, and
+// case sensitivity flag.
 func (p *QueryParser) parseAttributeSelector() AttributeSelector {
 	as := AttributeSelector{Name: "", Operator: "", Value: "", CaseInsensitive: false, Location: p.current.Location}
 	p.nextToken()
@@ -487,15 +483,14 @@ func (p *QueryParser) parseAttributeSelector() AttributeSelector {
 // addDiagnostic records a parsing error with its location.
 //
 // Takes message (string) which describes what went wrong.
-// Takes queryToken (QueryToken) which provides the position and text for
-// the error.
+// Takes queryToken (QueryToken) which provides the position and text for the error.
 func (p *QueryParser) addDiagnostic(message string, queryToken QueryToken) {
 	d := NewDiagnosticWithCode(Error, message, queryToken.Literal, CodeCSSParseError, queryToken.Location, p.sourcePath)
 	p.diagnostics = append(p.diagnostics, d)
 }
 
-// expectCurrent checks if the current token is of a specific type and adds a
-// diagnostic if not.
+// expectCurrent checks if the current token is of a specific type and adds a diagnostic
+// if not.
 //
 // Takes t (QueryTokenType) which specifies the expected token type.
 // Takes message (string) which provides the diagnostic message if the check fails.

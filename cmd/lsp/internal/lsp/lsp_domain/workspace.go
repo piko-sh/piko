@@ -41,21 +41,22 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-// workspaceShutdownTimeout caps how long Close waits for tracked workspace
-// goroutines to finish so a wedged goroutine cannot block server shutdown.
-const workspaceShutdownTimeout = 30 * time.Second
+const (
+	// workspaceShutdownTimeout caps how long Close waits for tracked workspace goroutines to
+	// finish so a wedged goroutine cannot block server shutdown.
+	workspaceShutdownTimeout = 30 * time.Second
+)
 
-// analysisCompleteParams defines the payload for the custom
-// piko/analysisComplete notification. This notification signals to LSP clients
-// that analysis for a document has finished, regardless of outcome.
+// analysisCompleteParams defines the payload for the custom piko/analysisComplete
+// notification. This notification signals to LSP clients that analysis for a document has
+// finished, regardless of outcome.
 type analysisCompleteParams struct {
 	// URI is the document URI that was analysed.
 	URI protocol.DocumentURI `json:"uri"`
 }
 
-// workspace manages open documents and analysis results for the LSP server.
-// It implements WorkspacePort and keeps an in-memory cache of semantic
-// analysis results for .pk files.
+// workspace manages open documents and analysis results for the LSP server. It implements
+// WorkspacePort and keeps an in-memory cache of semantic analysis results for .pk files.
 type workspace struct {
 	// coordinator manages analysis across the whole project.
 	coordinator coordinator_domain.CoordinatorService
@@ -72,8 +73,7 @@ type workspace struct {
 	// documents maps document URIs to their state for tracking open files.
 	documents map[protocol.DocumentURI]*document
 
-	// typeInspectorManager manages type inspection and provides access to the
-	// TypeQuerier.
+	// typeInspectorManager manages type inspection and provides access to the TypeQuerier.
 	typeInspectorManager *inspector_domain.TypeBuilder
 
 	// docCache stores the content of open documents for quick access.
@@ -82,51 +82,49 @@ type workspace struct {
 	// actionProviders maps provider names to their action info providers.
 	actionProviders map[string]annotator_domain.ActionInfoProvider
 
-	// cancelFuncs maps document URIs to their cancel functions. When a document
-	// is closed or re-analysed, the cancel function is called to stop any running
-	// analysis for that document.
+	// cancelFuncs maps document URIs to their cancel functions. When a document is closed or
+	// re-analysed, the cancel function is called to stop any running analysis for that
+	// document.
 	cancelFuncs map[protocol.DocumentURI]context.CancelCauseFunc
 
-	// analysisDone maps document URIs to channels that close when analysis
-	// finishes.
+	// analysisDone maps document URIs to channels that close when analysis finishes.
 	analysisDone map[protocol.DocumentURI]chan struct{}
 
-	// cachedProjectResult holds the last full project annotation result.
-	// Used as the base for merging targeted rebuild results so that scoped
-	// rebuilds only re-annotate affected components.
+	// cachedProjectResult holds the last full project annotation result. Used as the base
+	// for merging targeted rebuild results so that scoped rebuilds only re-annotate affected
+	// components.
 	cachedProjectResult *annotator_dto.ProjectAnnotationResult
 
-	// reverseDependencyMap maps the project-relative path of an imported
-	// component to the project-relative paths of components that depend on it.
-	// Rebuilt after every successful analysis via
-	// annotator_dto.BuildReverseDependencyMapFromGraph.
+	// reverseDependencyMap maps the project-relative path of an imported component to the
+	// project-relative paths of components that depend on it. Rebuilt after every successful
+	// analysis via annotator_dto.BuildReverseDependencyMapFromGraph.
 	reverseDependencyMap map[string][]string
 
-	// cachedModuleCtx is the module context from the last successful analysis.
-	// Stored so scoped rebuilds can reuse it without rediscovery.
+	// cachedModuleCtx is the module context from the last successful analysis. Stored so
+	// scoped rebuilds can reuse it without rediscovery.
 	cachedModuleCtx *ModuleContext
 
 	// rootURI is the base path for all files in the workspace folder.
 	rootURI protocol.DocumentURI
 
-	// goroutineWG tracks every goroutine spawned by the workspace so Close
-	// can wait for them to drain. Without this, server shutdown can race
-	// with diagnostic publishes, leaking goroutines under goleak.
+	// goroutineWG tracks every goroutine spawned by the workspace so Close can wait for them
+	// to drain. Without this, server shutdown can race with diagnostic publishes, leaking
+	// goroutines under goleak.
 	goroutineWG sync.WaitGroup
 
 	// mu guards access to the workspace fields during concurrent operations.
 	mu sync.RWMutex
 
-	// hasInitialBuild tracks whether the first full build has completed.
-	// Before this is true, all analysis uses the full entry point set.
+	// hasInitialBuild tracks whether the first full build has completed. Before this is
+	// true, all analysis uses the full entry point set.
 	hasInitialBuild bool
 }
 
 // Close waits for every tracked workspace goroutine to finish.
 //
-// Has an upper bound so a wedged goroutine cannot block shutdown. Safe to
-// call multiple times. Caller is expected to have stopped issuing fresh
-// work (e.g. by cancelling the server context) before calling Close.
+// Has an upper bound so a wedged goroutine cannot block shutdown. Safe to call multiple
+// times. Caller is expected to have stopped issuing fresh work (e.g. by cancelling the
+// server context) before calling Close.
 //
 // Takes ctx (context.Context) used for diagnostic logging.
 //
@@ -161,15 +159,13 @@ type workspaceDeps struct {
 	// Coordinator manages document coordination across the workspace.
 	Coordinator coordinator_domain.CoordinatorService
 
-	// TypeInspectorManager builds and stores type inspectors for semantic
-	// analysis.
+	// TypeInspectorManager builds and stores type inspectors for semantic analysis.
 	TypeInspectorManager *inspector_domain.TypeBuilder
 
 	// ModuleManager provides resolvers and caches entry points for each module.
 	ModuleManager *ModuleContextManager
 
-	// Client provides the LSP client interface for sending notifications and
-	// requests.
+	// Client provides the LSP client interface for sending notifications and requests.
 	Client protocol.Client
 
 	// Conn is the JSON-RPC connection used to send messages to the client.
@@ -217,13 +213,13 @@ func (w *workspace) UpdateDocument(uri protocol.DocumentURI, content []byte) {
 	}
 }
 
-// RemoveDocument removes a document from the workspace and clears its
-// diagnostics. Called when a file is closed in the editor.
+// RemoveDocument removes a document from the workspace and clears its diagnostics. Called
+// when a file is closed in the editor.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to remove.
 //
-// Safe for concurrent use. Stops any running analysis for the
-// document before removing it. Clears diagnostics in a separate goroutine.
+// Safe for concurrent use. Stops any running analysis for the document before removing
+// it. Clears diagnostics in a separate goroutine.
 func (w *workspace) RemoveDocument(ctx context.Context, uri protocol.DocumentURI) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -264,18 +260,17 @@ func (w *workspace) RemoveDocument(ctx context.Context, uri protocol.DocumentURI
 	l.Debug("Document removed from workspace", logger_domain.String(keyURI, uri.Filename()))
 }
 
-// RunAnalysisForURI orchestrates document analysis for the given URI. It
-// checks if the document is dirty, runs coordinator analysis if needed,
-// creates a new document with the result, updates internal state, and
-// triggers diagnostic publishing.
+// RunAnalysisForURI orchestrates document analysis for the given URI. It checks if the
+// document is dirty, runs coordinator analysis if needed, creates a new document with the
+// result, updates internal state, and triggers diagnostic publishing.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to analyse.
 //
 // Returns *document which contains the analysis result for the URI.
 // Returns error when analysis fails or is cancelled.
 //
-// Safe for concurrent use. Uses mutex protection when updating the document
-// cache. Analysis may be cancelled during rapid edits.
+// Safe for concurrent use. Uses mutex protection when updating the document cache.
+// Analysis may be cancelled during rapid edits.
 func (w *workspace) RunAnalysisForURI(ctx context.Context, uri protocol.DocumentURI) (*document, error) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -319,12 +314,12 @@ func (w *workspace) RunAnalysisForURI(ctx context.Context, uri protocol.Document
 	return w.runFullAnalysis(ctx, analysisCtx, uri, moduleCtx, entryPoints)
 }
 
-// GetDocumentForCompletion returns a document suitable for completion
-// requests by waiting for any in-flight analysis to complete rather
-// than cancelling it, ensuring fresh results even during rapid edits.
+// GetDocumentForCompletion returns a document suitable for completion requests by waiting
+// for any in-flight analysis to complete rather than cancelling it, ensuring fresh
+// results even during rapid edits.
 //
-// Takes uri (protocol.DocumentURI) which identifies the document to
-// retrieve for completion.
+// Takes uri (protocol.DocumentURI) which identifies the document to retrieve for
+// completion.
 //
 // Returns *document which contains the analysis result for the URI.
 // Returns error when analysis fails or is cancelled.
@@ -371,12 +366,10 @@ type symbolTarget struct {
 	defLocation ast_domain.Location
 }
 
-// FindAllReferences searches for all references to a symbol across all open
-// documents in the workspace. This implements workspace-wide reference search
-// as described in Phase 3 of the LSP enhancement plan.
+// FindAllReferences searches for all references to a symbol across all open documents in
+// the workspace.
 //
-// Takes uri (protocol.DocumentURI) which identifies the document containing
-// the symbol.
+// Takes uri (protocol.DocumentURI) which identifies the document containing the symbol.
 // Takes position (protocol.Position) which specifies the position of the symbol.
 //
 // Returns []protocol.Location which contains all reference locations found.
@@ -405,15 +398,15 @@ func (w *workspace) FindAllReferences(ctx context.Context, uri protocol.Document
 	return allLocations, nil
 }
 
-// spawnTracked starts a goroutine that increments the workspace WaitGroup,
-// wraps operation in goroutine.RecoverPanic so a single panic cannot crash
-// the LSP server, and decrements the WaitGroup on exit.
+// spawnTracked starts a goroutine that increments the workspace WaitGroup, wraps
+// operation in goroutine.RecoverPanic so a single panic cannot crash the LSP server, and
+// decrements the WaitGroup on exit.
 //
-// Takes ctx (context.Context) used by RecoverPanic for OTel attribution; the
-// caller is expected to detach from cancellable contexts using
-// context.WithoutCancel when the goroutine should outlive the request.
-// Takes component (string) which identifies the goroutine in panic logs (use
-// the form "lsp.workspace.<name>").
+// Takes ctx (context.Context) used by RecoverPanic for OTel attribution; the caller is
+// expected to detach from cancellable contexts using context.WithoutCancel when the
+// goroutine should outlive the request.
+// Takes component (string) which identifies the goroutine in panic logs (use the form
+// "lsp.workspace.<name>").
 // Takes operation (func()) which is the function body to run.
 func (w *workspace) spawnTracked(ctx context.Context, component string, operation func()) {
 	w.goroutineWG.Go(func() {
@@ -422,22 +415,20 @@ func (w *workspace) spawnTracked(ctx context.Context, component string, operatio
 	})
 }
 
-// runFullAnalysis executes a full project build with all entry points. It
-// stores the result as the workspace-level cache for future scoped rebuilds.
+// runFullAnalysis executes a full project build with all entry points. It stores the
+// result as the workspace-level cache for future scoped rebuilds.
 //
 // Takes ctx (context.Context) which is the outer context for diagnostics.
-// Takes analysisCtx (context.Context) which is the cancellable analysis
-// context.
+// Takes analysisCtx (context.Context) which is the cancellable analysis context.
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of
-// entry points.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of entry points.
 //
 // Returns *document which contains the analysis result for the URI.
 // Returns error when the build fails or is cancelled.
 //
-// Safe for concurrent use. Acquires the workspace mutex to update the cached
-// project result and documents.
+// Safe for concurrent use. Acquires the workspace mutex to update the cached project
+// result and documents.
 func (w *workspace) runFullAnalysis(
 	ctx context.Context,
 	analysisCtx context.Context,
@@ -496,25 +487,22 @@ func (w *workspace) runFullAnalysis(
 	return newDoc, nil
 }
 
-// runScopedAnalysis executes a targeted build that only re-annotates the
-// changed component and its transitive dependents. It merges the partial
-// result into the cached full project result and publishes diagnostics for
-// all affected files.
+// runScopedAnalysis executes a targeted build that only re-annotates the changed
+// component and its transitive dependents. It merges the partial result into the cached
+// full project result and publishes diagnostics for all affected files.
 //
 // Takes ctx (context.Context) which is the outer context for diagnostics.
-// Takes analysisCtx (context.Context) which is the cancellable analysis
-// context.
+// Takes analysisCtx (context.Context) which is the cancellable analysis context.
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root and resolver.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of
-// entry points.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which is the full set of entry points.
 //
-// Returns *document which contains the analysis result for the URI, or nil if
-// the scoped build could not proceed (caller should fall back to full build).
+// Returns *document which contains the analysis result for the URI, or nil if the scoped
+// build could not proceed (caller should fall back to full build).
 // Returns error when the build fails or is cancelled.
 //
-// Safe for concurrent use. Delegates to mergeAndCommitScopedResult for atomic
-// cache updates.
+// Safe for concurrent use. Delegates to mergeAndCommitScopedResult for atomic cache
+// updates.
 func (w *workspace) runScopedAnalysis(
 	ctx context.Context,
 	analysisCtx context.Context,
@@ -573,14 +561,14 @@ func (w *workspace) runScopedAnalysis(
 	return newDoc, nil
 }
 
-// resolveAffectedEntryPoints determines which entry points are affected by a
-// change to the given URI, returning the targeted entry points and the list of
-// affected relative paths (excluding the changed file itself).
+// resolveAffectedEntryPoints determines which entry points are affected by a change to
+// the given URI, returning the targeted entry points and the list of affected relative
+// paths (excluding the changed file itself).
 //
 // Takes uri (protocol.DocumentURI) which identifies the changed document.
 // Takes moduleCtx (*ModuleContext) which provides the module root.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which is the full entry point
-// set to filter.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which is the full entry point set to
+// filter.
 //
 // Returns []annotator_dto.EntryPoint which contains the affected entry points.
 // Returns []string which holds the relative paths of transitive dependents.
@@ -617,19 +605,18 @@ func (w *workspace) resolveAffectedEntryPoints(
 	return targetedEntryPoints, affected, nil
 }
 
-// mergeAndCommitScopedResult atomically merges a targeted (partial) annotation
-// result into the cached full project result and commits all workspace state
-// changes (cached result, reverse dependency map, affected document
-// invalidation) under a single write lock.
+// mergeAndCommitScopedResult atomically merges a targeted (partial) annotation result
+// into the cached full project result and commits all workspace state changes (cached
+// result, reverse dependency map, affected document invalidation) under a single write
+// lock.
 //
-// This prevents concurrent scoped merges from losing each other's updates:
-// without atomicity, goroutine A could read the cache, goroutine B could read
-// the same cache, then B's write would overwrite A's merged result.
+// This prevents concurrent scoped merges from losing each other's updates: without
+// atomicity, goroutine A could read the cache, goroutine B could read the same cache,
+// then B's write would overwrite A's merged result.
 //
-// Takes targetedResult (*annotator_dto.ProjectAnnotationResult) which contains
-// results for the subset of components that were re-annotated.
-// Takes affectedRelPaths ([]string) which are the transitive dependents to
-// invalidate.
+// Takes targetedResult (*annotator_dto.ProjectAnnotationResult) which contains results
+// for the subset of components that were re-annotated.
+// Takes affectedRelPaths ([]string) which are the transitive dependents to invalidate.
 // Takes moduleCtx (*ModuleContext) which provides module root and name.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which is the merged result.
@@ -675,15 +662,14 @@ func (w *workspace) mergeAndCommitScopedResult(
 	return mergedResult
 }
 
-// mergeScopedAnnotationResults combines a cached full project result with a
-// targeted (partial) rebuild result, producing a merged result that contains
-// both the unchanged components from the cache and the updated components
-// from the targeted build.
+// mergeScopedAnnotationResults combines a cached full project result with a targeted
+// (partial) rebuild result, producing a merged result that contains both the unchanged
+// components from the cache and the updated components from the targeted build.
 //
-// Takes cached (*annotator_dto.ProjectAnnotationResult) which is the full
-// project result to merge into.
-// Takes targetedResult (*annotator_dto.ProjectAnnotationResult) which contains
-// the partial rebuild results.
+// Takes cached (*annotator_dto.ProjectAnnotationResult) which is the full project result
+// to merge into.
+// Takes targetedResult (*annotator_dto.ProjectAnnotationResult) which contains the
+// partial rebuild results.
 //
 // Returns *annotator_dto.ProjectAnnotationResult which is the merged result.
 func mergeScopedAnnotationResults(
@@ -731,17 +717,15 @@ func mergeScopedAnnotationResults(
 	}
 }
 
-// publishDiagnosticsForAffectedPaths publishes diagnostics for a set of
-// affected component paths beyond the one that was directly edited. This
-// ensures that open tabs for dependent files show up-to-date errors after
-// a scoped rebuild.
+// publishDiagnosticsForAffectedPaths publishes diagnostics for a set of affected
+// component paths beyond the one that was directly edited. This ensures that open tabs
+// for dependent files show up-to-date errors after a scoped rebuild.
 //
-// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which contains
-// the merged diagnostics.
-// Takes affectedRelPaths ([]string) which are the project-relative paths of
-// affected components (excluding the directly edited file).
-// Takes moduleCtx (*ModuleContext) which provides the module root for path
-// conversion.
+// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which contains the merged
+// diagnostics.
+// Takes affectedRelPaths ([]string) which are the project-relative paths of affected
+// components (excluding the directly edited file).
+// Takes moduleCtx (*ModuleContext) which provides the module root for path conversion.
 func (w *workspace) publishDiagnosticsForAffectedPaths(
 	ctx context.Context,
 	projectResult *annotator_dto.ProjectAnnotationResult,
@@ -772,9 +756,9 @@ func (w *workspace) publishDiagnosticsForAffectedPaths(
 	}
 }
 
-// resetScopedAnalysisCache resets the scoped analysis state, forcing the next
-// analysis to perform a full build. Called when structural changes occur (file
-// creation, deletion, or rename) that may add or remove entry points.
+// resetScopedAnalysisCache resets the scoped analysis state, forcing the next analysis to
+// perform a full build. Called when structural changes occur (file creation, deletion, or
+// rename) that may add or remove entry points.
 //
 // Safe for concurrent use.
 func (w *workspace) resetScopedAnalysisCache() {
@@ -839,15 +823,14 @@ func (w *workspace) getConn() jsonrpc2.Conn {
 	return w.conn
 }
 
-// identifyTargetSymbol finds the symbol at the given position and returns its
-// target info.
+// identifyTargetSymbol finds the symbol at the given position and returns its target
+// info.
 //
 // Takes uri (protocol.DocumentURI) which specifies the document location.
-// Takes position (protocol.Position) which specifies the position within the
-// document.
+// Takes position (protocol.Position) which specifies the position within the document.
 //
-// Returns *symbolTarget which contains the symbol's definition location, source
-// path, and name.
+// Returns *symbolTarget which contains the symbol's definition location, source path, and
+// name.
 // Returns error when the document analysis fails.
 func (w *workspace) identifyTargetSymbol(ctx context.Context, uri protocol.DocumentURI, position protocol.Position) (*symbolTarget, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -892,16 +875,15 @@ func (w *workspace) identifyTargetSymbol(ctx context.Context, uri protocol.Docum
 	}, nil
 }
 
-// searchAllDocuments searches all open documents for references to the target
-// symbol.
+// searchAllDocuments searches all open documents for references to the target symbol.
 //
 // Takes target (*symbolTarget) which specifies the symbol to search for.
 //
-// Returns []protocol.Location which contains all locations where the target
-// symbol is found across documents.
+// Returns []protocol.Location which contains all locations where the target symbol is
+// found across documents.
 //
-// Safe for concurrent use. Takes a read lock while copying the document list,
-// then searches each document without holding the lock.
+// Safe for concurrent use. Takes a read lock while copying the document list, then
+// searches each document without holding the lock.
 func (w *workspace) searchAllDocuments(target *symbolTarget) []protocol.Location {
 	w.mu.RLock()
 	documentsToSearch := make([]*document, 0, len(w.documents))
@@ -919,13 +901,12 @@ func (w *workspace) searchAllDocuments(target *symbolTarget) []protocol.Location
 	return allLocations
 }
 
-// getCachedCleanDocument returns the cached document if it exists and is
-// clean, or nil if not found or dirty.
+// getCachedCleanDocument returns the cached document if it exists and is clean, or nil if
+// not found or dirty.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to retrieve.
 //
-// Returns *document which is the cached document, or nil if not found or
-// dirty.
+// Returns *document which is the cached document, or nil if not found or dirty.
 //
 // Safe for concurrent use. Uses a read lock to access the document cache.
 func (w *workspace) getCachedCleanDocument(ctx context.Context, uri protocol.DocumentURI) *document {
@@ -943,13 +924,11 @@ func (w *workspace) getCachedCleanDocument(ctx context.Context, uri protocol.Doc
 	return nil
 }
 
-// setupAnalysisContext cancels any previous analysis and creates a new
-// cancellable context.
+// setupAnalysisContext cancels any previous analysis and creates a new cancellable
+// context.
 //
-// Takes ctx (context.Context) which is the parent context for the new
-// analysis.
-// Takes uri (protocol.DocumentURI) which identifies the document being
-// analysed.
+// Takes ctx (context.Context) which is the parent context for the new analysis.
+// Takes uri (protocol.DocumentURI) which identifies the document being analysed.
 //
 // Returns context.Context which is the new cancellable analysis context.
 // Returns chan struct{} which signals completion when closed.
@@ -989,8 +968,8 @@ func (w *workspace) setupAnalysisContext(ctx context.Context, uri protocol.Docum
 // Takes uri (protocol.DocumentURI) which identifies the document to clean up.
 // Takes doneChan (chan struct{}) which is the channel to close when done.
 //
-// Safe for concurrent use. Acquires the workspace mutex to modify internal
-// maps before signalling completion.
+// Safe for concurrent use. Acquires the workspace mutex to modify internal maps before
+// signalling completion.
 func (w *workspace) cleanupAnalysisContext(ctx context.Context, uri protocol.DocumentURI, doneChan chan struct{}) {
 	w.mu.Lock()
 	delete(w.cancelFuncs, uri)
@@ -1005,8 +984,7 @@ func (w *workspace) cleanupAnalysisContext(ctx context.Context, uri protocol.Doc
 
 // signalAnalysisComplete sends the piko/analysisComplete notification.
 //
-// Takes uri (protocol.DocumentURI) which identifies the document that was
-// analysed.
+// Takes uri (protocol.DocumentURI) which identifies the document that was analysed.
 func (w *workspace) signalAnalysisComplete(ctx context.Context, uri protocol.DocumentURI) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -1025,14 +1003,13 @@ func (w *workspace) signalAnalysisComplete(ctx context.Context, uri protocol.Doc
 	}
 }
 
-// prepareAnalysisInputs gets the module context for the file and discovers its
-// entry points.
+// prepareAnalysisInputs gets the module context for the file and discovers its entry
+// points.
 //
 // Takes uri (protocol.DocumentURI) which identifies the file being analysed.
 //
 // Returns *ModuleContext which contains the resolver for the file's module.
-// Returns []annotator_dto.EntryPoint which contains the entry points for this
-// module.
+// Returns []annotator_dto.EntryPoint which contains the entry points for this module.
 // Returns error when module detection or entry point discovery fails.
 func (w *workspace) prepareAnalysisInputs(
 	ctx context.Context,
@@ -1072,12 +1049,12 @@ func (w *workspace) prepareAnalysisInputs(
 // runCoordinatorAnalysis runs the coordinator to build the project.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to analyse.
-// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the starting
-// points for analysis.
+// Takes entryPoints ([]annotator_dto.EntryPoint) which specifies the starting points for
+// analysis.
 // Takes resolver (ResolverPort) which provides path resolution for this build.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which contains the analysis
-// results for the project.
+// Returns *annotator_dto.ProjectAnnotationResult which contains the analysis results for
+// the project.
 // Returns error when the coordinator fails to build the project.
 func (w *workspace) runCoordinatorAnalysis(
 	ctx context.Context,
@@ -1098,8 +1075,8 @@ func (w *workspace) runCoordinatorAnalysis(
 
 // copyActionProviders returns a copy of the action providers map.
 //
-// Returns map[string]annotator_domain.ActionInfoProvider which is a shallow
-// copy of the current action providers.
+// Returns map[string]annotator_domain.ActionInfoProvider which is a shallow copy of the
+// current action providers.
 //
 // Safe for concurrent use. Acquires a read lock.
 func (w *workspace) copyActionProviders() map[string]annotator_domain.ActionInfoProvider {
@@ -1110,20 +1087,17 @@ func (w *workspace) copyActionProviders() map[string]annotator_domain.ActionInfo
 	return providers
 }
 
-// handleNilProjectResult creates a fallback document when the project result
-// is nil.
+// handleNilProjectResult creates a fallback document when the project result is nil.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document that failed.
-// Takes moduleCtx (*ModuleContext) which provides the resolver for the
-// document's module.
+// Takes moduleCtx (*ModuleContext) which provides the resolver for the document's module.
 // Takes analysisErr (error) which is the analysis error, if any.
 //
 // Returns *document which is a fallback document with cached content.
 // Returns error which is always nil.
 //
-// Safe for concurrent use. Uses a mutex when updating the document cache.
-// Publishes error diagnostics in a separate goroutine for non-cancellation
-// errors.
+// Safe for concurrent use. Uses a mutex when updating the document cache. Publishes error
+// diagnostics in a separate goroutine for non-cancellation errors.
 func (w *workspace) handleNilProjectResult(
 	ctx context.Context,
 	uri protocol.DocumentURI,
@@ -1167,13 +1141,12 @@ func (w *workspace) handleNilProjectResult(
 // createDocumentFromResult builds a document from the project result.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document to create.
-// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which provides
-// the annotation data for the project.
-// Takes moduleCtx (*ModuleContext) which provides the resolver for the
-// document's module.
+// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which provides the
+// annotation data for the project.
+// Takes moduleCtx (*ModuleContext) which provides the resolver for the document's module.
 //
-// Returns *document which contains the built document with its content,
-// annotations, and analysis data.
+// Returns *document which contains the built document with its content, annotations, and
+// analysis data.
 func (w *workspace) createDocumentFromResult(
 	ctx context.Context,
 	uri protocol.DocumentURI,
@@ -1201,16 +1174,14 @@ func (w *workspace) createDocumentFromResult(
 	}
 }
 
-// logAnnotationResultStatus logs debug details about the annotation
-// extraction process.
+// logAnnotationResultStatus logs debug details about the annotation extraction process.
 //
-// Takes uri (protocol.DocumentURI) which identifies the document being
-// processed.
+// Takes uri (protocol.DocumentURI) which identifies the document being processed.
 // Takes filePath (string) which provides the file path for logging.
-// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which holds
-// the project-level annotation data.
-// Takes annotationResult (*annotator_dto.AnnotationResult) which holds the
-// extracted annotation, or nil if extraction failed.
+// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which holds the
+// project-level annotation data.
+// Takes annotationResult (*annotator_dto.AnnotationResult) which holds the extracted
+// annotation, or nil if extraction failed.
 func (*workspace) logAnnotationResultStatus(
 	ctx context.Context,
 	uri protocol.DocumentURI,
@@ -1241,16 +1212,16 @@ func (*workspace) logAnnotationResultStatus(
 	}
 }
 
-// extractTypedAnalysisMap extracts and type-asserts the analysis map from the
-// annotation result.
+// extractTypedAnalysisMap extracts and type-asserts the analysis map from the annotation
+// result.
 //
 // Takes uri (protocol.DocumentURI) which identifies the document for logging.
-// Takes annotationResult (*annotator_dto.AnnotationResult) which contains the
-// analysis map to extract.
+// Takes annotationResult (*annotator_dto.AnnotationResult) which contains the analysis
+// map to extract.
 //
-// Returns map[*ast_domain.TemplateNode]*annotator_domain.AnalysisContext which
-// maps template nodes to their analysis contexts, or nil if the result is nil
-// or type assertion fails.
+// Returns map[*ast_domain.TemplateNode]*annotator_domain.AnalysisContext which maps
+// template nodes to their analysis contexts, or nil if the result is nil or type
+// assertion fails.
 func (*workspace) extractTypedAnalysisMap(
 	ctx context.Context,
 	uri protocol.DocumentURI,
@@ -1277,8 +1248,8 @@ func (*workspace) extractTypedAnalysisMap(
 
 // getTypeQuerier retrieves the TypeQuerier from the TypeInspectorManager.
 //
-// Returns TypeInspectorPort which provides type lookup services, or nil when
-// the manager is unavailable or the querier cannot be obtained.
+// Returns TypeInspectorPort which provides type lookup services, or nil when the manager
+// is unavailable or the querier cannot be obtained.
 func (w *workspace) getTypeQuerier(ctx context.Context) TypeInspectorPort {
 	_, l := logger_domain.From(ctx, log)
 
@@ -1295,16 +1266,16 @@ func (w *workspace) getTypeQuerier(ctx context.Context) TypeInspectorPort {
 	return typeQuerier
 }
 
-// extractAnnotationResultForURI extracts the annotation result for a file from
-// the project result using the VirtualModule mapping.
+// extractAnnotationResultForURI extracts the annotation result for a file from the
+// project result using the VirtualModule mapping.
 //
-// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which contains
-// the full project annotation data including the VirtualModule graph.
+// Takes projectResult (*annotator_dto.ProjectAnnotationResult) which contains the full
+// project annotation data including the VirtualModule graph.
 // Takes absPath (string) which is the absolute file path used as a key in
 // PathToHashedName.
 //
-// Returns *annotator_dto.AnnotationResult which is the annotation result for
-// the file, or nil if the file is not found in the project.
+// Returns *annotator_dto.AnnotationResult which is the annotation result for the file, or
+// nil if the file is not found in the project.
 func (*workspace) extractAnnotationResultForURI(
 	projectResult *annotator_dto.ProjectAnnotationResult,
 	absPath string,
@@ -1372,18 +1343,18 @@ func (w *workspace) publishDiagnostics(ctx context.Context, uri protocol.Documen
 	}
 }
 
-// publishErrorDiagnosticAsync schedules publishErrorDiagnostic on a tracked
-// goroutine using a context that survives the caller's cancellation. Replaces
-// bare `go w.publishErrorDiagnostic(...)` so that workspace shutdown can drain
-// in-flight publishes via Close.
+// publishErrorDiagnosticAsync schedules publishErrorDiagnostic on a tracked goroutine
+// using a context that survives the caller's cancellation. Replaces bare `go
+// w.publishErrorDiagnostic(...)` so that workspace shutdown can drain in-flight publishes
+// via Close.
 //
-// Takes ctx (context.Context) which is detached via context.WithoutCancel so
-// the publish completes even after the caller's request finishes.
-// Takes uri (protocol.DocumentURI) which identifies the document to report
-// the error against.
+// Takes ctx (context.Context) which is detached via context.WithoutCancel so the publish
+// completes even after the caller's request finishes.
+// Takes uri (protocol.DocumentURI) which identifies the document to report the error
+// against.
 // Takes message (string) which describes the error to show to the user.
-// Takes component (string) which identifies the call site for panic
-// attribution (use the form "lsp.workspace.<context>").
+// Takes component (string) which identifies the call site for panic attribution (use the
+// form "lsp.workspace.<context>").
 func (w *workspace) publishErrorDiagnosticAsync(ctx context.Context, uri protocol.DocumentURI, message, component string) {
 	detached := context.WithoutCancel(ctx)
 	w.spawnTracked(detached, component, func() {
@@ -1391,12 +1362,12 @@ func (w *workspace) publishErrorDiagnosticAsync(ctx context.Context, uri protoco
 	})
 }
 
-// publishErrorDiagnostic sends an error message to the user through the LSP.
-// This is used when the coordinator or other key parts fail, so the user sees
-// helpful feedback instead of no response.
+// publishErrorDiagnostic sends an error message to the user through the LSP. This is used
+// when the coordinator or other key parts fail, so the user sees helpful feedback instead
+// of no response.
 //
-// Takes uri (protocol.DocumentURI) which identifies the document to report
-// the error against.
+// Takes uri (protocol.DocumentURI) which identifies the document to report the error
+// against.
 // Takes message (string) which describes the error to show to the user.
 func (w *workspace) publishErrorDiagnostic(ctx context.Context, uri protocol.DocumentURI, message string) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -1470,8 +1441,8 @@ func newWorkspace(deps workspaceDeps, rootURI protocol.DocumentURI) *workspace {
 	}
 }
 
-// isValidEntryPointFile checks if a directory entry is a valid .pk or .pkc
-// entry point file.
+// isValidEntryPointFile checks if a directory entry is a valid .pk or .pkc entry point
+// file.
 //
 // Takes d (fs.DirEntry) which is the directory entry to check.
 //

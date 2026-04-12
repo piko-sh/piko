@@ -16,13 +16,12 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package collection provides public access to the collection
-// FlatBuffer schema for inspecting compiled data.bin files.
+// Package collection provides public access to the collection FlatBuffer schema for
+// inspecting compiled data.bin files.
 //
-// It exposes the schema hash, an [Unpack] function to strip the
-// version header, and [ConvertCollection] to decode the raw
-// FlatBuffer payload into a JSON-serialisable [StaticCollection]
-// struct. Each content item's metadata is decoded from JSON while
-// AST payloads are represented as size information only, since
-// nested FlatBuffers cannot be meaningfully displayed as text.
+// It exposes the schema hash, an [Unpack] function to strip the version header, and
+// [ConvertCollection] to decode the raw FlatBuffer payload into a JSON-serialisable
+// [StaticCollection] struct. Each content item's metadata is decoded from JSON while AST
+// payloads are represented as size information only, since nested FlatBuffers cannot be
+// meaningfully displayed as text.
 package collection

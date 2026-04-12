@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// ASTQueryResult wraps a set of AST nodes returned by a CSS selector query
-// and provides assertion methods for testing.
+// ASTQueryResult wraps a set of AST nodes returned by a CSS selector query and provides
+// assertion methods for testing.
 type ASTQueryResult struct {
 	// tb is the test context for reporting failures and marking helpers.
 	tb testing.TB
@@ -61,8 +61,8 @@ func (r *ASTQueryResult) First() *ast_domain.TemplateNode {
 	return r.nodes[0]
 }
 
-// FirstResult returns a new ASTQueryResult containing only the first node,
-// enabling chained assertion methods on the first node.
+// FirstResult returns a new ASTQueryResult containing only the first node, enabling
+// chained assertion methods on the first node.
 //
 // Returns *ASTQueryResult which contains only the first node from the results.
 func (r *ASTQueryResult) FirstResult() *ASTQueryResult {
@@ -83,8 +83,8 @@ func (r *ASTQueryResult) Last() *ast_domain.TemplateNode {
 //
 // Takes index (int) which specifies the position of the node to retrieve.
 //
-// Returns *ast_domain.TemplateNode which is the node at the given position,
-// or nil if the index is out of bounds.
+// Returns *ast_domain.TemplateNode which is the node at the given position, or nil if the
+// index is out of bounds.
 func (r *ASTQueryResult) At(index int) *ast_domain.TemplateNode {
 	if index < 0 || index >= len(r.nodes) {
 		return nil
@@ -92,13 +92,13 @@ func (r *ASTQueryResult) At(index int) *ast_domain.TemplateNode {
 	return r.nodes[index]
 }
 
-// Index returns a new ASTQueryResult containing only the node at the given
-// index, enabling chained assertion methods on a specific node.
+// Index returns a new ASTQueryResult containing only the node at the given index,
+// enabling chained assertion methods on a specific node.
 //
 // Takes index (int) which specifies the position of the node to select.
 //
-// Returns *ASTQueryResult which contains only the selected node, or an empty
-// result if the index is out of bounds.
+// Returns *ASTQueryResult which contains only the selected node, or an empty result if
+// the index is out of bounds.
 func (r *ASTQueryResult) Index(index int) *ASTQueryResult {
 	r.tb.Helper()
 
@@ -159,8 +159,7 @@ func (r *ASTQueryResult) MinCount(minCount int) *ASTQueryResult {
 	return r
 }
 
-// MaxCount asserts that no more than the expected number of nodes were
-// matched.
+// MaxCount asserts that no more than the expected number of nodes were matched.
 //
 // Takes maxCount (int) which specifies the maximum allowed node count.
 //
@@ -193,8 +192,8 @@ func (r *ASTQueryResult) HasText(expected string) *ASTQueryResult {
 	return r
 }
 
-// ContainsText asserts that the first matched node's text contains the
-// expected substring.
+// ContainsText asserts that the first matched node's text contains the expected
+// substring.
 //
 // Takes substring (string) which is the text to search for within the node.
 //
@@ -216,8 +215,8 @@ func (r *ASTQueryResult) ContainsText(substring string) *ASTQueryResult {
 	return r
 }
 
-// HasAttribute asserts that the first matched node has an attribute with the
-// given name and value.
+// HasAttribute asserts that the first matched node has an attribute with the given name
+// and value.
 //
 // Takes name (string) which specifies the attribute name to check.
 // Takes expectedValue (string) which specifies the expected attribute value.
@@ -243,8 +242,8 @@ func (r *ASTQueryResult) HasAttribute(name, expectedValue string) *ASTQueryResul
 	return r
 }
 
-// HasAttributeContaining asserts that the first matched node has an attribute
-// with a value containing the substring.
+// HasAttributeContaining asserts that the first matched node has an attribute with a
+// value containing the substring.
 //
 // Takes name (string) which specifies the attribute to check.
 // Takes substring (string) which specifies the value to search for.
@@ -272,8 +271,8 @@ func (r *ASTQueryResult) HasAttributeContaining(name, substring string) *ASTQuer
 	return r
 }
 
-// HasAttributePresent asserts that the first matched node has the specified
-// attribute, regardless of its value.
+// HasAttributePresent asserts that the first matched node has the specified attribute,
+// regardless of its value.
 //
 // Takes name (string) which specifies the attribute name to check for.
 //
@@ -315,8 +314,7 @@ func (r *ASTQueryResult) HasClass(className string) *ASTQueryResult {
 	return r
 }
 
-// HasTag asserts that the first matched node is an element with the specified
-// tag name.
+// HasTag asserts that the first matched node is an element with the specified tag name.
 //
 // Takes tagName (string) which specifies the expected HTML tag name.
 //
@@ -336,8 +334,8 @@ func (r *ASTQueryResult) HasTag(tagName string) *ASTQueryResult {
 
 // Each iterates over all matched nodes and calls the callback for each.
 //
-// Takes callback (func(int, *TemplateNode)) which is called for each matched node
-// with its index and the node itself.
+// Takes callback (func(int, *TemplateNode)) which is called for each matched node with
+// its index and the node itself.
 //
 // Returns *ASTQueryResult which allows method chaining.
 func (r *ASTQueryResult) Each(callback func(index int, node *ast_domain.TemplateNode)) *ASTQueryResult {
@@ -349,8 +347,7 @@ func (r *ASTQueryResult) Each(callback func(index int, node *ast_domain.Template
 	return r
 }
 
-// Filter returns a new ASTQueryResult containing only nodes that match the
-// predicate.
+// Filter returns a new ASTQueryResult containing only nodes that match the predicate.
 //
 // Takes predicate (func) which tests each node and returns true to include it.
 //
@@ -370,14 +367,13 @@ func (r *ASTQueryResult) Filter(predicate func(node *ast_domain.TemplateNode) bo
 	}
 }
 
-// Map transforms each node using the provided function and returns a slice of
-// results.
+// Map transforms each node using the provided function and returns a slice of results.
 //
-// Takes callback (func(node *ast_domain.TemplateNode) any) which transforms each
-// matched node into a result value.
+// Takes callback (func(node *ast_domain.TemplateNode) any) which transforms each matched
+// node into a result value.
 //
-// Returns []any which contains the transformed results in the same order as
-// the matched nodes.
+// Returns []any which contains the transformed results in the same order as the matched
+// nodes.
 func (r *ASTQueryResult) Map(callback func(node *ast_domain.TemplateNode) any) []any {
 	results := make([]any, len(r.nodes))
 
@@ -388,8 +384,8 @@ func (r *ASTQueryResult) Map(callback func(node *ast_domain.TemplateNode) any) [
 	return results
 }
 
-// Dump prints debug information about the matched nodes. Use it to debug
-// tests when assertions fail.
+// Dump prints debug information about the matched nodes. Use it to debug tests when
+// assertions fail.
 //
 // Returns *ASTQueryResult which allows method chaining.
 func (r *ASTQueryResult) Dump() *ASTQueryResult {
@@ -408,14 +404,13 @@ func (r *ASTQueryResult) Dump() *ASTQueryResult {
 	return r
 }
 
-// getNodeText extracts text content from a node, returning the text directly
-// for text nodes or collecting all descendant text for element nodes.
+// getNodeText extracts text content from a node, returning the text directly for text
+// nodes or collecting all descendant text for element nodes.
 //
-// Takes node (*ast_domain.TemplateNode) which specifies the node to extract
-// text from.
+// Takes node (*ast_domain.TemplateNode) which specifies the node to extract text from.
 //
-// Returns string which contains the extracted text, or empty if the node is
-// nil or has an unsupported type.
+// Returns string which contains the extracted text, or empty if the node is nil or has an
+// unsupported type.
 func (r *ASTQueryResult) getNodeText(node *ast_domain.TemplateNode) string {
 	if node == nil {
 		return ""
@@ -432,12 +427,10 @@ func (r *ASTQueryResult) getNodeText(node *ast_domain.TemplateNode) string {
 	return ""
 }
 
-// resolveTextContent returns the text content from a node, preferring the
-// dynamic TextContentWriter (used for template expressions) over the static
-// TextContent field.
+// resolveTextContent returns the text content from a node, preferring the dynamic
+// TextContentWriter (used for template expressions) over the static TextContent field.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node to extract text
-// from.
+// Takes node (*ast_domain.TemplateNode) which is the node to extract text from.
 //
 // Returns string which is the resolved text content.
 func (*ASTQueryResult) resolveTextContent(node *ast_domain.TemplateNode) string {

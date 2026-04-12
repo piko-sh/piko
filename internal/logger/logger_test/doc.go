@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package logger_test verifies the full logger initialisation pipeline
-// end-to-end, including configuration parsing, handler composition,
-// output formatting (pretty, JSON, text), notification debouncing,
-// and OpenTelemetry trace context injection.
+// Package logger_test verifies the full logger initialisation pipeline end-to-end,
+// including configuration parsing, handler composition, output formatting (pretty, JSON,
+// text), notification debouncing, and OpenTelemetry trace context injection.
 //
 // # Thread safety
 //
-// All exported functions are safe for concurrent use. Global logger
-// state and the shutdown function are protected by dedicated mutexes.
+// All exported functions are safe for concurrent use. Global logger state and the
+// shutdown function are protected by dedicated mutexes.
 package logger_test

@@ -29,9 +29,9 @@ import (
 	"piko.sh/piko/internal/pikotest/pikotest_dto"
 )
 
-// ActionTester provides a test harness for server actions.
-// It creates action instances, injects test metadata, invokes the action,
-// and returns structured results for assertion.
+// ActionTester provides a test harness for server actions. It creates action instances,
+// injects test metadata, invokes the action, and returns structured results for
+// assertion.
 type ActionTester struct {
 	// tb is the test context for reporting failures.
 	tb testing.TB
@@ -54,13 +54,13 @@ func NewActionTester(tb testing.TB, entry daemon_adapters.ActionHandlerEntry) *A
 	}
 }
 
-// Invoke creates a new action instance, injects test metadata, and calls
-// the action with the given arguments.
+// Invoke creates a new action instance, injects test metadata, and calls the action with
+// the given arguments.
 //
-// Takes ctx (context.Context) which is the context for the action invocation,
-// used to inject mock dependencies via context values.
-// Takes arguments (map[string]any) which maps parameter names to values.
-// Pass nil or an empty map for actions with no parameters.
+// Takes ctx (context.Context) which is the context for the action invocation, used to
+// inject mock dependencies via context values.
+// Takes arguments (map[string]any) which maps parameter names to values. Pass nil or an
+// empty map for actions with no parameters.
 //
 // Returns *ActionResultView which wraps the response and error for assertions.
 func (at *ActionTester) Invoke(ctx context.Context, arguments map[string]any) *ActionResultView {
@@ -91,8 +91,8 @@ func (at *ActionTester) Invoke(ctx context.Context, arguments map[string]any) *A
 	})
 }
 
-// injectTestMetadata injects empty request/response metadata into an action,
-// mirroring what the framework does at runtime.
+// injectTestMetadata injects empty request/response metadata into an action, mirroring
+// what the framework does at runtime.
 //
 // Takes action (any) which is the action to inject metadata into.
 func injectTestMetadata(action any) {
@@ -112,15 +112,14 @@ func injectTestMetadata(action any) {
 	}
 }
 
-// buildTestFullResponse builds the full response from the action, including
-// any helpers that were set via Response().AddHelper().
+// buildTestFullResponse builds the full response from the action, including any helpers
+// that were set via Response().AddHelper().
 //
-// Takes action (any) which is checked for a Response() method to extract
-// helpers.
+// Takes action (any) which is checked for a Response() method to extract helpers.
 // Takes result (any) which provides the data to include in the response.
 //
-// Returns *daemon_dto.ActionFullResponse which contains the result data and
-// any helpers from the action's response writer.
+// Returns *daemon_dto.ActionFullResponse which contains the result data and any helpers
+// from the action's response writer.
 func buildTestFullResponse(action any, result any) *daemon_dto.ActionFullResponse {
 	type responseGetter interface {
 		Response() *daemon_dto.ResponseWriter

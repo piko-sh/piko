@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Discovers and builds the component dependency graph by recursively parsing
-// templates and resolving partial references. Detects circular dependencies,
-// handles .pikoignore patterns, and produces a complete graph of all components
-// in the project.
+// Discovers and builds the component dependency graph by recursively parsing templates
+// and resolving partial references. Detects circular dependencies, handles .pikoignore
+// patterns, and produces a complete graph of all components in the project.
 
 import (
 	"context"
@@ -49,17 +48,17 @@ const (
 	// shortHashLength is the number of hex characters kept in short hashes.
 	shortHashLength = 8
 
-	// defaultPackagePrefix is the prefix added to package names that start with a
-	// non-letter character.
+	// defaultPackagePrefix is the prefix added to package names that start with a non-letter
+	// character.
 	defaultPackagePrefix = "p"
 
 	// defaultPackageName is the fallback package name used when no name is given.
 	defaultPackageName = "p_default_pkg_name"
 )
 
-// GraphBuilder finds and parses all .pk components to build a complete
-// dependency graph. It is the first stage in the compilation pipeline and
-// creates the initial, Piko-native view of the project.
+// GraphBuilder finds and parses all .pk components to build a complete dependency graph.
+// It is the first stage in the compilation pipeline and creates the initial, Piko-native
+// view of the project.
 type GraphBuilder struct {
 	// resolver resolves file paths and looks up module names.
 	resolver resolver_domain.ResolverPort
@@ -73,9 +72,9 @@ type GraphBuilder struct {
 	// pathsConfig holds path settings used to build dependency graphs.
 	pathsConfig AnnotatorPathsConfig
 
-	// faultTolerant allows the builder to continue when parse errors occur.
-	// When true, broken components are registered in PathToHashedName so that
-	// dependent files can still resolve imports (used by LSP).
+	// faultTolerant allows the builder to continue when parse errors occur. When true,
+	// broken components are registered in PathToHashedName so that dependent files can still
+	// resolve imports (used by LSP).
 	faultTolerant bool
 }
 
@@ -98,17 +97,17 @@ func NewGraphBuilder(resolver resolver_domain.ResolverPort, fsReader FSReaderPor
 	}
 }
 
-// Build walks the component dependency graph from one or more entry points,
-// checks for cycles, and returns a single ComponentGraph with all found
-// components and dependencies. Parsing is done in parallel for speed.
+// Build walks the component dependency graph from one or more entry points, checks for
+// cycles, and returns a single ComponentGraph with all found components and dependencies.
+// Parsing is done in parallel for speed.
 //
-// Takes entryPointPaths ([]string) which specifies the starting points for
-// graph traversal.
+// Takes entryPointPaths ([]string) which specifies the starting points for graph
+// traversal.
 //
-// Returns *annotator_dto.ComponentGraph which contains all found components
-// and their dependencies.
-// Returns []*ast_domain.Diagnostic which contains any warnings or errors found
-// during traversal.
+// Returns *annotator_dto.ComponentGraph which contains all found components and their
+// dependencies.
+// Returns []*ast_domain.Diagnostic which contains any warnings or errors found during
+// traversal.
 // Returns error when no entry points are provided or discovery fails.
 func (gb *GraphBuilder) Build(ctx context.Context, entryPointPaths []string) (*annotator_dto.ComponentGraph, []*ast_domain.Diagnostic, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -148,19 +147,16 @@ func (gb *GraphBuilder) Build(ctx context.Context, entryPointPaths []string) (*a
 	return componentGraph, allDiagnostics, nil
 }
 
-// DiscoverAllPaths performs a fast, sequential BFS to find all unique file
-// paths reachable from the given entry points.
+// DiscoverAllPaths performs a fast, sequential BFS to find all unique file paths
+// reachable from the given entry points.
 //
-// Orchestrates the discovery process in three steps: resolve initial entry
-// points, traverse the dependency graph via BFS, and return the complete set
-// of discovered paths.
+// Orchestrates the discovery process in three steps: resolve initial entry points,
+// traverse the dependency graph via BFS, and return the complete set of discovered paths.
 //
-// Takes entryPointPaths ([]string) which specifies the starting file paths
-// for discovery.
+// Takes entryPointPaths ([]string) which specifies the starting file paths for discovery.
 //
 // Returns []string which contains all unique file paths discovered.
-// Returns []*ast_domain.Diagnostic which contains any issues found during
-// discovery.
+// Returns []*ast_domain.Diagnostic which contains any issues found during discovery.
 // Returns error when the dependency graph traversal fails.
 func (gb *GraphBuilder) DiscoverAllPaths(ctx context.Context, entryPointPaths []string) ([]string, []*ast_domain.Diagnostic, error) {
 	queue, visited, diagnostics := gb.resolveAndQueueEntryPoints(ctx, entryPointPaths)
@@ -168,11 +164,11 @@ func (gb *GraphBuilder) DiscoverAllPaths(ctx context.Context, entryPointPaths []
 	return queue, diagnostics, err
 }
 
-// resolveAndQueueEntryPoints resolves entry point paths and creates the
-// initial queue for breadth-first search.
+// resolveAndQueueEntryPoints resolves entry point paths and creates the initial queue for
+// breadth-first search.
 //
-// Takes entryPointPaths ([]string) which contains paths to resolve. These may
-// be absolute or relative paths.
+// Takes entryPointPaths ([]string) which contains paths to resolve. These may be absolute
+// or relative paths.
 //
 // Returns []string which is the initial queue of resolved absolute paths.
 // Returns map[string]bool which tracks visited paths to prevent duplicates.
@@ -208,18 +204,15 @@ func (gb *GraphBuilder) resolveAndQueueEntryPoints(ctx context.Context, entryPoi
 	return queue, visited, diagnostics
 }
 
-// traverseDependencyGraph performs a BFS traversal of the component dependency
-// graph.
+// traverseDependencyGraph performs a BFS traversal of the component dependency graph.
 //
-// For each file in the queue, it reads the file, extracts imports, resolves
-// them, and adds newly discovered files to the queue. The queue grows as new
-// dependencies are discovered. Any resolution errors are captured as
-// diagnostics.
+// For each file in the queue, it reads the file, extracts imports, resolves them, and
+// adds newly discovered files to the queue. The queue grows as new dependencies are
+// discovered. Any resolution errors are captured as diagnostics.
 //
 // Takes queue ([]string) which contains the initial file paths to process.
 // Takes visited (map[string]bool) which tracks already discovered paths.
-// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects resolution
-// errors.
+// Takes diagnostics (*[]*ast_domain.Diagnostic) which collects resolution errors.
 //
 // Returns []string which is the complete queue of all discovered paths.
 // Returns error when a file cannot be read.
@@ -254,14 +247,12 @@ func (gb *GraphBuilder) traverseDependencyGraph(ctx context.Context, queue []str
 	return queue, nil
 }
 
-// parseResult holds the output from parsing a single file during concurrent
-// processing.
+// parseResult holds the output from parsing a single file during concurrent processing.
 type parseResult struct {
 	// err holds any error from parsing; nil means success.
 	err error
 
-	// parsedComponent holds the parsed documentation component; nil if parsing
-	// failed.
+	// parsedComponent holds the parsed documentation component; nil if parsing failed.
 	parsedComponent *annotator_dto.ParsedComponent
 
 	// path is the file path of the parsed source file.
@@ -331,8 +322,8 @@ func (gb *GraphBuilder) runParsingWorkers(ctx context.Context, allPaths []string
 	return resultsChan, nil
 }
 
-// aggregateParseResults collects parse results from the channel and builds a
-// component graph.
+// aggregateParseResults collects parse results from the channel and builds a component
+// graph.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes resultsChan (<-chan *parseResult) which provides parsed components.
@@ -373,8 +364,8 @@ func (gb *GraphBuilder) aggregateParseResults(ctx context.Context, resultsChan <
 //
 // Takes result (*parseResult) which contains the parse outcome to check.
 //
-// Returns []*ast_domain.Diagnostic which holds any diagnostics extracted from
-// known error types.
+// Returns []*ast_domain.Diagnostic which holds any diagnostics extracted from known error
+// types.
 // Returns error when the error is not a known diagnostic type.
 func (*GraphBuilder) processParseResultError(result *parseResult) ([]*ast_domain.Diagnostic, error) {
 	if result.err == nil {
@@ -393,8 +384,8 @@ func (*GraphBuilder) processParseResultError(result *parseResult) ([]*ast_domain
 	return nil, result.err
 }
 
-// registerParsedComponent adds a parsed component to the graph with computed
-// metadata such as source path, external status, and module import path.
+// registerParsedComponent adds a parsed component to the graph with computed metadata
+// such as source path, external status, and module import path.
 //
 // Takes graph (*annotator_dto.ComponentGraph) which stores all components.
 // Takes result (*parseResult) which contains the parsed component data.
@@ -413,10 +404,9 @@ func (gb *GraphBuilder) registerParsedComponent(graph *annotator_dto.ComponentGr
 	graph.Components[hash] = result.parsedComponent
 }
 
-// registerBrokenComponent registers a stub entry for a component that failed
-// to parse. Dependent files can still resolve the import path in
-// fault-tolerant mode (LSP), preventing cascading "could not find hash"
-// errors.
+// registerBrokenComponent registers a stub entry for a component that failed to parse.
+// Dependent files can still resolve the import path in fault-tolerant mode (LSP),
+// preventing cascading "could not find hash" errors.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes graph (*annotator_dto.ComponentGraph) which stores all components.
@@ -440,8 +430,7 @@ func (gb *GraphBuilder) registerBrokenComponent(ctx context.Context, graph *anno
 // buildModuleImportPath builds the full import path for a module.
 //
 // Takes path (string) which is the file system path to the module.
-// Takes baseDir (string) which is the base directory for working out relative
-// paths.
+// Takes baseDir (string) which is the base directory for working out relative paths.
 // Takes isExternal (bool) which indicates whether the module is external.
 //
 // Returns string which is the full import path.
@@ -460,9 +449,9 @@ func (gb *GraphBuilder) buildModuleImportPath(path, baseDir string, isExternal b
 //
 // Takes path (string) which is the file path to read and parse.
 //
-// Returns *annotator_dto.ParsedComponent which is the parsed component.
-// In fault-tolerant mode, a partial component may be returned along with an
-// error to allow dependent files to still resolve imports.
+// Returns *annotator_dto.ParsedComponent which is the parsed component. In fault-tolerant
+// mode, a partial component may be returned along with an error to allow dependent files
+// to still resolve imports.
 // Returns []byte which is the raw file content.
 // Returns error when reading or parsing fails.
 func (gb *GraphBuilder) readAndParse(ctx context.Context, path string) (*annotator_dto.ParsedComponent, []byte, error) {
@@ -510,8 +499,8 @@ func (gb *GraphBuilder) readAndParse(ctx context.Context, path string) (*annotat
 // Takes ctx (context.Context) which carries the logger.
 // Takes absolutePath (string) which is the full path to the component file.
 //
-// Returns string which is the component type: "page", "email", "partial",
-// or "component" as the default.
+// Returns string which is the component type: "page", "email", "partial", or "component"
+// as the default.
 func (gb *GraphBuilder) determineComponentType(ctx context.Context, absolutePath string) string {
 	_, l := logger_domain.From(ctx, log)
 	baseDir := gb.resolver.GetBaseDir()
@@ -552,8 +541,7 @@ func (gb *GraphBuilder) determineComponentType(ctx context.Context, absolutePath
 
 // detectCycles checks the graph for circular dependencies.
 //
-// Takes graph (*annotator_dto.ComponentGraph) which is the component graph to
-// check.
+// Takes graph (*annotator_dto.ComponentGraph) which is the component graph to check.
 //
 // Returns []*ast_domain.Diagnostic which contains any cycle errors found.
 func (gb *GraphBuilder) detectCycles(ctx context.Context, graph *annotator_dto.ComponentGraph) []*ast_domain.Diagnostic {
@@ -572,8 +560,7 @@ func (gb *GraphBuilder) detectCycles(ctx context.Context, graph *annotator_dto.C
 	return detector.diagnostics
 }
 
-// cycleDetector uses a depth-first search to find circular dependencies in the
-// graph.
+// cycleDetector uses a depth-first search to find circular dependencies in the graph.
 type cycleDetector struct {
 	// graph is the dependency graph used to detect cycles between components.
 	graph *annotator_dto.ComponentGraph
@@ -645,13 +632,12 @@ func (cd *cycleDetector) dfs(ctx context.Context, hashedName string, path []stri
 	cd.visiting[hashedName] = false
 }
 
-// SanitiseForPackageName cleans a string to make it a valid Go package name
-// part.
+// SanitiseForPackageName cleans a string to make it a valid Go package name part.
 //
 // Takes name (string) which is the raw string to clean.
 //
-// Returns string which is a valid package name part with only lowercase
-// letters, digits, and underscores.
+// Returns string which is a valid package name part with only lowercase letters, digits,
+// and underscores.
 func SanitiseForPackageName(name string) string {
 	lowerName := strings.ToLower(name)
 	var builder strings.Builder
@@ -678,9 +664,9 @@ func SanitiseForPackageName(name string) string {
 	return result
 }
 
-// generateCacheKey creates a hash from a file path and its content. Including
-// the path means that if a file is renamed, even with the same content, it will
-// be treated as new and parsed again.
+// generateCacheKey creates a hash from a file path and its content. Including the path
+// means that if a file is renamed, even with the same content, it will be treated as new
+// and parsed again.
 //
 // Takes path (string) which is the file location.
 // Takes content ([]byte) which is the raw file data.
@@ -722,9 +708,8 @@ func getPikoImports(data []byte) (Sources, []annotator_dto.PikoImport, error) {
 
 // buildAliasFromPath creates a stable, unique alias from a file path.
 //
-// The alias is safe to use as a Go identifier. It removes special characters,
-// replaces path separators with underscores, and adds a short hash to ensure
-// the result is unique.
+// The alias is safe to use as a Go identifier. It removes special characters, replaces
+// path separators with underscores, and adds a short hash to ensure the result is unique.
 //
 // Takes relativePath (string) which is the file path to convert.
 //
@@ -739,8 +724,8 @@ func buildAliasFromPath(relativePath string) string {
 	return fmt.Sprintf("%s_%s", SanitiseForPackageName(cleanedPath), shortHash(relativePath))
 }
 
-// shortHash creates a fixed-length hex string from the xxhash of an input.
-// It uses xxhash for speed and to show this is not for cryptographic use.
+// shortHash creates a fixed-length hex string from the xxhash of an input. It uses xxhash
+// for speed and to show this is not for cryptographic use.
 //
 // Takes txt (string) which is the input to hash.
 //
@@ -750,13 +735,13 @@ func shortHash(txt string) string {
 	return fmt.Sprintf("%016x", hash)[:shortHashLength]
 }
 
-// extractModuleImportPath gets the module import path from a GOMODCACHE path
-// by removing the pkg/mod/ prefix and version suffix.
+// extractModuleImportPath gets the module import path from a GOMODCACHE path by removing
+// the pkg/mod/ prefix and version suffix.
 //
 // Takes gomodcachePath (string) which is the full path within GOMODCACHE.
 //
-// Returns string which is the cleaned module import path, or the original
-// path if it cannot be parsed.
+// Returns string which is the cleaned module import path, or the original path if it
+// cannot be parsed.
 func extractModuleImportPath(gomodcachePath string) string {
 	_, pathAfterMod, found := strings.Cut(gomodcachePath, "pkg/mod/")
 	if !found {

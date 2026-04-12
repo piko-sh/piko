@@ -3,7 +3,6 @@
 package driven_system_symbols
 
 import (
-	"fmt"
 	"maps"
 	"reflect"
 )
@@ -14,6 +13,10 @@ func wrappedMapsAll(m any) any {
 		return maps.All(typedArg)
 	case map[string]int:
 		return maps.All(typedArg)
+	case map[string]int32:
+		return maps.All(typedArg)
+	case map[string]int64:
+		return maps.All(typedArg)
 	case map[string]float64:
 		return maps.All(typedArg)
 	case map[string]bool:
@@ -24,14 +27,46 @@ func wrappedMapsAll(m any) any {
 		return maps.All(typedArg)
 	case map[int]int:
 		return maps.All(typedArg)
+	case map[int]int32:
+		return maps.All(typedArg)
+	case map[int]int64:
+		return maps.All(typedArg)
 	case map[int]float64:
 		return maps.All(typedArg)
 	case map[int]bool:
 		return maps.All(typedArg)
 	case map[int]any:
 		return maps.All(typedArg)
+	case map[int32]string:
+		return maps.All(typedArg)
+	case map[int32]int:
+		return maps.All(typedArg)
+	case map[int32]int32:
+		return maps.All(typedArg)
+	case map[int32]int64:
+		return maps.All(typedArg)
+	case map[int32]float64:
+		return maps.All(typedArg)
+	case map[int32]bool:
+		return maps.All(typedArg)
+	case map[int32]any:
+		return maps.All(typedArg)
+	case map[int64]string:
+		return maps.All(typedArg)
+	case map[int64]int:
+		return maps.All(typedArg)
+	case map[int64]int32:
+		return maps.All(typedArg)
+	case map[int64]int64:
+		return maps.All(typedArg)
+	case map[int64]float64:
+		return maps.All(typedArg)
+	case map[int64]bool:
+		return maps.All(typedArg)
+	case map[int64]any:
+		return maps.All(typedArg)
 	default:
-		panic(fmt.Sprintf("maps.All: unsupported type %T", m))
+		return reflectMapsAll(m)
 	}
 }
 func wrappedMapsClone(m any) any {
@@ -40,6 +75,10 @@ func wrappedMapsClone(m any) any {
 		return maps.Clone(typedArg)
 	case map[string]int:
 		return maps.Clone(typedArg)
+	case map[string]int32:
+		return maps.Clone(typedArg)
+	case map[string]int64:
+		return maps.Clone(typedArg)
 	case map[string]float64:
 		return maps.Clone(typedArg)
 	case map[string]bool:
@@ -50,14 +89,46 @@ func wrappedMapsClone(m any) any {
 		return maps.Clone(typedArg)
 	case map[int]int:
 		return maps.Clone(typedArg)
+	case map[int]int32:
+		return maps.Clone(typedArg)
+	case map[int]int64:
+		return maps.Clone(typedArg)
 	case map[int]float64:
 		return maps.Clone(typedArg)
 	case map[int]bool:
 		return maps.Clone(typedArg)
 	case map[int]any:
 		return maps.Clone(typedArg)
+	case map[int32]string:
+		return maps.Clone(typedArg)
+	case map[int32]int:
+		return maps.Clone(typedArg)
+	case map[int32]int32:
+		return maps.Clone(typedArg)
+	case map[int32]int64:
+		return maps.Clone(typedArg)
+	case map[int32]float64:
+		return maps.Clone(typedArg)
+	case map[int32]bool:
+		return maps.Clone(typedArg)
+	case map[int32]any:
+		return maps.Clone(typedArg)
+	case map[int64]string:
+		return maps.Clone(typedArg)
+	case map[int64]int:
+		return maps.Clone(typedArg)
+	case map[int64]int32:
+		return maps.Clone(typedArg)
+	case map[int64]int64:
+		return maps.Clone(typedArg)
+	case map[int64]float64:
+		return maps.Clone(typedArg)
+	case map[int64]bool:
+		return maps.Clone(typedArg)
+	case map[int64]any:
+		return maps.Clone(typedArg)
 	default:
-		panic(fmt.Sprintf("maps.Clone: unsupported type %T", m))
+		return reflectMapsClone(m)
 	}
 }
 func wrappedMapsCopy(dst any, src any) {
@@ -66,6 +137,10 @@ func wrappedMapsCopy(dst any, src any) {
 		maps.Copy(typedArg, src.(map[string]string))
 	case map[string]int:
 		maps.Copy(typedArg, src.(map[string]int))
+	case map[string]int32:
+		maps.Copy(typedArg, src.(map[string]int32))
+	case map[string]int64:
+		maps.Copy(typedArg, src.(map[string]int64))
 	case map[string]float64:
 		maps.Copy(typedArg, src.(map[string]float64))
 	case map[string]bool:
@@ -76,14 +151,47 @@ func wrappedMapsCopy(dst any, src any) {
 		maps.Copy(typedArg, src.(map[int]string))
 	case map[int]int:
 		maps.Copy(typedArg, src.(map[int]int))
+	case map[int]int32:
+		maps.Copy(typedArg, src.(map[int]int32))
+	case map[int]int64:
+		maps.Copy(typedArg, src.(map[int]int64))
 	case map[int]float64:
 		maps.Copy(typedArg, src.(map[int]float64))
 	case map[int]bool:
 		maps.Copy(typedArg, src.(map[int]bool))
 	case map[int]any:
 		maps.Copy(typedArg, src.(map[int]any))
+	case map[int32]string:
+		maps.Copy(typedArg, src.(map[int32]string))
+	case map[int32]int:
+		maps.Copy(typedArg, src.(map[int32]int))
+	case map[int32]int32:
+		maps.Copy(typedArg, src.(map[int32]int32))
+	case map[int32]int64:
+		maps.Copy(typedArg, src.(map[int32]int64))
+	case map[int32]float64:
+		maps.Copy(typedArg, src.(map[int32]float64))
+	case map[int32]bool:
+		maps.Copy(typedArg, src.(map[int32]bool))
+	case map[int32]any:
+		maps.Copy(typedArg, src.(map[int32]any))
+	case map[int64]string:
+		maps.Copy(typedArg, src.(map[int64]string))
+	case map[int64]int:
+		maps.Copy(typedArg, src.(map[int64]int))
+	case map[int64]int32:
+		maps.Copy(typedArg, src.(map[int64]int32))
+	case map[int64]int64:
+		maps.Copy(typedArg, src.(map[int64]int64))
+	case map[int64]float64:
+		maps.Copy(typedArg, src.(map[int64]float64))
+	case map[int64]bool:
+		maps.Copy(typedArg, src.(map[int64]bool))
+	case map[int64]any:
+		maps.Copy(typedArg, src.(map[int64]any))
 	default:
-		panic(fmt.Sprintf("maps.Copy: unsupported type %T", dst))
+		reflectMapsCopy(dst, src)
+		return
 	}
 }
 func wrappedMapsDeleteFunc(m any, del func(p0 any, p1 any) bool) {
@@ -94,6 +202,14 @@ func wrappedMapsDeleteFunc(m any, del func(p0 any, p1 any) bool) {
 		})
 	case map[string]int:
 		maps.DeleteFunc(typedArg, func(p0 string, p1 int) bool {
+			return del(p0, p1)
+		})
+	case map[string]int32:
+		maps.DeleteFunc(typedArg, func(p0 string, p1 int32) bool {
+			return del(p0, p1)
+		})
+	case map[string]int64:
+		maps.DeleteFunc(typedArg, func(p0 string, p1 int64) bool {
 			return del(p0, p1)
 		})
 	case map[string]float64:
@@ -116,6 +232,14 @@ func wrappedMapsDeleteFunc(m any, del func(p0 any, p1 any) bool) {
 		maps.DeleteFunc(typedArg, func(p0 int, p1 int) bool {
 			return del(p0, p1)
 		})
+	case map[int]int32:
+		maps.DeleteFunc(typedArg, func(p0 int, p1 int32) bool {
+			return del(p0, p1)
+		})
+	case map[int]int64:
+		maps.DeleteFunc(typedArg, func(p0 int, p1 int64) bool {
+			return del(p0, p1)
+		})
 	case map[int]float64:
 		maps.DeleteFunc(typedArg, func(p0 int, p1 float64) bool {
 			return del(p0, p1)
@@ -128,8 +252,65 @@ func wrappedMapsDeleteFunc(m any, del func(p0 any, p1 any) bool) {
 		maps.DeleteFunc(typedArg, func(p0 int, p1 any) bool {
 			return del(p0, p1)
 		})
+	case map[int32]string:
+		maps.DeleteFunc(typedArg, func(p0 int32, p1 string) bool {
+			return del(p0, p1)
+		})
+	case map[int32]int:
+		maps.DeleteFunc(typedArg, func(p0 int32, p1 int) bool {
+			return del(p0, p1)
+		})
+	case map[int32]int32:
+		maps.DeleteFunc(typedArg, func(p0 int32, p1 int32) bool {
+			return del(p0, p1)
+		})
+	case map[int32]int64:
+		maps.DeleteFunc(typedArg, func(p0 int32, p1 int64) bool {
+			return del(p0, p1)
+		})
+	case map[int32]float64:
+		maps.DeleteFunc(typedArg, func(p0 int32, p1 float64) bool {
+			return del(p0, p1)
+		})
+	case map[int32]bool:
+		maps.DeleteFunc(typedArg, func(p0 int32, p1 bool) bool {
+			return del(p0, p1)
+		})
+	case map[int32]any:
+		maps.DeleteFunc(typedArg, func(p0 int32, p1 any) bool {
+			return del(p0, p1)
+		})
+	case map[int64]string:
+		maps.DeleteFunc(typedArg, func(p0 int64, p1 string) bool {
+			return del(p0, p1)
+		})
+	case map[int64]int:
+		maps.DeleteFunc(typedArg, func(p0 int64, p1 int) bool {
+			return del(p0, p1)
+		})
+	case map[int64]int32:
+		maps.DeleteFunc(typedArg, func(p0 int64, p1 int32) bool {
+			return del(p0, p1)
+		})
+	case map[int64]int64:
+		maps.DeleteFunc(typedArg, func(p0 int64, p1 int64) bool {
+			return del(p0, p1)
+		})
+	case map[int64]float64:
+		maps.DeleteFunc(typedArg, func(p0 int64, p1 float64) bool {
+			return del(p0, p1)
+		})
+	case map[int64]bool:
+		maps.DeleteFunc(typedArg, func(p0 int64, p1 bool) bool {
+			return del(p0, p1)
+		})
+	case map[int64]any:
+		maps.DeleteFunc(typedArg, func(p0 int64, p1 any) bool {
+			return del(p0, p1)
+		})
 	default:
-		panic(fmt.Sprintf("maps.DeleteFunc: unsupported type %T", m))
+		reflectMapsDeleteFunc(m, del)
+		return
 	}
 }
 func wrappedMapsEqual(m1 any, m2 any) bool {
@@ -138,6 +319,10 @@ func wrappedMapsEqual(m1 any, m2 any) bool {
 		return maps.Equal(typedArg, m2.(map[string]string))
 	case map[string]int:
 		return maps.Equal(typedArg, m2.(map[string]int))
+	case map[string]int32:
+		return maps.Equal(typedArg, m2.(map[string]int32))
+	case map[string]int64:
+		return maps.Equal(typedArg, m2.(map[string]int64))
 	case map[string]float64:
 		return maps.Equal(typedArg, m2.(map[string]float64))
 	case map[string]bool:
@@ -148,14 +333,46 @@ func wrappedMapsEqual(m1 any, m2 any) bool {
 		return maps.Equal(typedArg, m2.(map[int]string))
 	case map[int]int:
 		return maps.Equal(typedArg, m2.(map[int]int))
+	case map[int]int32:
+		return maps.Equal(typedArg, m2.(map[int]int32))
+	case map[int]int64:
+		return maps.Equal(typedArg, m2.(map[int]int64))
 	case map[int]float64:
 		return maps.Equal(typedArg, m2.(map[int]float64))
 	case map[int]bool:
 		return maps.Equal(typedArg, m2.(map[int]bool))
 	case map[int]any:
 		return maps.Equal(typedArg, m2.(map[int]any))
+	case map[int32]string:
+		return maps.Equal(typedArg, m2.(map[int32]string))
+	case map[int32]int:
+		return maps.Equal(typedArg, m2.(map[int32]int))
+	case map[int32]int32:
+		return maps.Equal(typedArg, m2.(map[int32]int32))
+	case map[int32]int64:
+		return maps.Equal(typedArg, m2.(map[int32]int64))
+	case map[int32]float64:
+		return maps.Equal(typedArg, m2.(map[int32]float64))
+	case map[int32]bool:
+		return maps.Equal(typedArg, m2.(map[int32]bool))
+	case map[int32]any:
+		return maps.Equal(typedArg, m2.(map[int32]any))
+	case map[int64]string:
+		return maps.Equal(typedArg, m2.(map[int64]string))
+	case map[int64]int:
+		return maps.Equal(typedArg, m2.(map[int64]int))
+	case map[int64]int32:
+		return maps.Equal(typedArg, m2.(map[int64]int32))
+	case map[int64]int64:
+		return maps.Equal(typedArg, m2.(map[int64]int64))
+	case map[int64]float64:
+		return maps.Equal(typedArg, m2.(map[int64]float64))
+	case map[int64]bool:
+		return maps.Equal(typedArg, m2.(map[int64]bool))
+	case map[int64]any:
+		return maps.Equal(typedArg, m2.(map[int64]any))
 	default:
-		panic(fmt.Sprintf("maps.Equal: unsupported type %T", m1))
+		return reflectMapsEqual(m1, m2)
 	}
 }
 func wrappedMapsEqualFunc(m1 any, m2 any, eq func(p0 any, p1 any) bool) bool {
@@ -166,6 +383,14 @@ func wrappedMapsEqualFunc(m1 any, m2 any, eq func(p0 any, p1 any) bool) bool {
 		})
 	case map[string]int:
 		return maps.EqualFunc(typedArg, m2.(map[string]int), func(p0 int, p1 int) bool {
+			return eq(p0, p1)
+		})
+	case map[string]int32:
+		return maps.EqualFunc(typedArg, m2.(map[string]int32), func(p0 int32, p1 int32) bool {
+			return eq(p0, p1)
+		})
+	case map[string]int64:
+		return maps.EqualFunc(typedArg, m2.(map[string]int64), func(p0 int64, p1 int64) bool {
 			return eq(p0, p1)
 		})
 	case map[string]float64:
@@ -188,6 +413,14 @@ func wrappedMapsEqualFunc(m1 any, m2 any, eq func(p0 any, p1 any) bool) bool {
 		return maps.EqualFunc(typedArg, m2.(map[int]int), func(p0 int, p1 int) bool {
 			return eq(p0, p1)
 		})
+	case map[int]int32:
+		return maps.EqualFunc(typedArg, m2.(map[int]int32), func(p0 int32, p1 int32) bool {
+			return eq(p0, p1)
+		})
+	case map[int]int64:
+		return maps.EqualFunc(typedArg, m2.(map[int]int64), func(p0 int64, p1 int64) bool {
+			return eq(p0, p1)
+		})
 	case map[int]float64:
 		return maps.EqualFunc(typedArg, m2.(map[int]float64), func(p0 float64, p1 float64) bool {
 			return eq(p0, p1)
@@ -200,8 +433,64 @@ func wrappedMapsEqualFunc(m1 any, m2 any, eq func(p0 any, p1 any) bool) bool {
 		return maps.EqualFunc(typedArg, m2.(map[int]any), func(p0 any, p1 any) bool {
 			return eq(p0, p1)
 		})
+	case map[int32]string:
+		return maps.EqualFunc(typedArg, m2.(map[int32]string), func(p0 string, p1 string) bool {
+			return eq(p0, p1)
+		})
+	case map[int32]int:
+		return maps.EqualFunc(typedArg, m2.(map[int32]int), func(p0 int, p1 int) bool {
+			return eq(p0, p1)
+		})
+	case map[int32]int32:
+		return maps.EqualFunc(typedArg, m2.(map[int32]int32), func(p0 int32, p1 int32) bool {
+			return eq(p0, p1)
+		})
+	case map[int32]int64:
+		return maps.EqualFunc(typedArg, m2.(map[int32]int64), func(p0 int64, p1 int64) bool {
+			return eq(p0, p1)
+		})
+	case map[int32]float64:
+		return maps.EqualFunc(typedArg, m2.(map[int32]float64), func(p0 float64, p1 float64) bool {
+			return eq(p0, p1)
+		})
+	case map[int32]bool:
+		return maps.EqualFunc(typedArg, m2.(map[int32]bool), func(p0 bool, p1 bool) bool {
+			return eq(p0, p1)
+		})
+	case map[int32]any:
+		return maps.EqualFunc(typedArg, m2.(map[int32]any), func(p0 any, p1 any) bool {
+			return eq(p0, p1)
+		})
+	case map[int64]string:
+		return maps.EqualFunc(typedArg, m2.(map[int64]string), func(p0 string, p1 string) bool {
+			return eq(p0, p1)
+		})
+	case map[int64]int:
+		return maps.EqualFunc(typedArg, m2.(map[int64]int), func(p0 int, p1 int) bool {
+			return eq(p0, p1)
+		})
+	case map[int64]int32:
+		return maps.EqualFunc(typedArg, m2.(map[int64]int32), func(p0 int32, p1 int32) bool {
+			return eq(p0, p1)
+		})
+	case map[int64]int64:
+		return maps.EqualFunc(typedArg, m2.(map[int64]int64), func(p0 int64, p1 int64) bool {
+			return eq(p0, p1)
+		})
+	case map[int64]float64:
+		return maps.EqualFunc(typedArg, m2.(map[int64]float64), func(p0 float64, p1 float64) bool {
+			return eq(p0, p1)
+		})
+	case map[int64]bool:
+		return maps.EqualFunc(typedArg, m2.(map[int64]bool), func(p0 bool, p1 bool) bool {
+			return eq(p0, p1)
+		})
+	case map[int64]any:
+		return maps.EqualFunc(typedArg, m2.(map[int64]any), func(p0 any, p1 any) bool {
+			return eq(p0, p1)
+		})
 	default:
-		panic(fmt.Sprintf("maps.EqualFunc: unsupported type %T", m1))
+		return reflectMapsEqualFunc(m1, m2, eq)
 	}
 }
 func wrappedMapsInsert(m any, seq func(yield func(k any, v any) bool)) {
@@ -216,6 +505,18 @@ func wrappedMapsInsert(m any, seq func(yield func(k any, v any) bool)) {
 		maps.Insert(typedArg, func(yield func(k string, v int) bool) {
 			seq(func(k any, v any) bool {
 				return yield(coerce[string](k), coerce[int](v))
+			})
+		})
+	case map[string]int32:
+		maps.Insert(typedArg, func(yield func(k string, v int32) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[string](k), coerce[int32](v))
+			})
+		})
+	case map[string]int64:
+		maps.Insert(typedArg, func(yield func(k string, v int64) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[string](k), coerce[int64](v))
 			})
 		})
 	case map[string]float64:
@@ -248,6 +549,18 @@ func wrappedMapsInsert(m any, seq func(yield func(k any, v any) bool)) {
 				return yield(coerce[int](k), coerce[int](v))
 			})
 		})
+	case map[int]int32:
+		maps.Insert(typedArg, func(yield func(k int, v int32) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int](k), coerce[int32](v))
+			})
+		})
+	case map[int]int64:
+		maps.Insert(typedArg, func(yield func(k int, v int64) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int](k), coerce[int64](v))
+			})
+		})
 	case map[int]float64:
 		maps.Insert(typedArg, func(yield func(k int, v float64) bool) {
 			seq(func(k any, v any) bool {
@@ -266,8 +579,93 @@ func wrappedMapsInsert(m any, seq func(yield func(k any, v any) bool)) {
 				return yield(coerce[int](k), coerce[any](v))
 			})
 		})
+	case map[int32]string:
+		maps.Insert(typedArg, func(yield func(k int32, v string) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int32](k), coerce[string](v))
+			})
+		})
+	case map[int32]int:
+		maps.Insert(typedArg, func(yield func(k int32, v int) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int32](k), coerce[int](v))
+			})
+		})
+	case map[int32]int32:
+		maps.Insert(typedArg, func(yield func(k int32, v int32) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int32](k), coerce[int32](v))
+			})
+		})
+	case map[int32]int64:
+		maps.Insert(typedArg, func(yield func(k int32, v int64) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int32](k), coerce[int64](v))
+			})
+		})
+	case map[int32]float64:
+		maps.Insert(typedArg, func(yield func(k int32, v float64) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int32](k), coerce[float64](v))
+			})
+		})
+	case map[int32]bool:
+		maps.Insert(typedArg, func(yield func(k int32, v bool) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int32](k), coerce[bool](v))
+			})
+		})
+	case map[int32]any:
+		maps.Insert(typedArg, func(yield func(k int32, v any) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int32](k), coerce[any](v))
+			})
+		})
+	case map[int64]string:
+		maps.Insert(typedArg, func(yield func(k int64, v string) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int64](k), coerce[string](v))
+			})
+		})
+	case map[int64]int:
+		maps.Insert(typedArg, func(yield func(k int64, v int) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int64](k), coerce[int](v))
+			})
+		})
+	case map[int64]int32:
+		maps.Insert(typedArg, func(yield func(k int64, v int32) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int64](k), coerce[int32](v))
+			})
+		})
+	case map[int64]int64:
+		maps.Insert(typedArg, func(yield func(k int64, v int64) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int64](k), coerce[int64](v))
+			})
+		})
+	case map[int64]float64:
+		maps.Insert(typedArg, func(yield func(k int64, v float64) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int64](k), coerce[float64](v))
+			})
+		})
+	case map[int64]bool:
+		maps.Insert(typedArg, func(yield func(k int64, v bool) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int64](k), coerce[bool](v))
+			})
+		})
+	case map[int64]any:
+		maps.Insert(typedArg, func(yield func(k int64, v any) bool) {
+			seq(func(k any, v any) bool {
+				return yield(coerce[int64](k), coerce[any](v))
+			})
+		})
 	default:
-		panic(fmt.Sprintf("maps.Insert: unsupported type %T", m))
+		reflectMapsInsert(m, seq)
+		return
 	}
 }
 func wrappedMapsKeys(m any) any {
@@ -276,6 +674,10 @@ func wrappedMapsKeys(m any) any {
 		return maps.Keys(typedArg)
 	case map[string]int:
 		return maps.Keys(typedArg)
+	case map[string]int32:
+		return maps.Keys(typedArg)
+	case map[string]int64:
+		return maps.Keys(typedArg)
 	case map[string]float64:
 		return maps.Keys(typedArg)
 	case map[string]bool:
@@ -286,14 +688,46 @@ func wrappedMapsKeys(m any) any {
 		return maps.Keys(typedArg)
 	case map[int]int:
 		return maps.Keys(typedArg)
+	case map[int]int32:
+		return maps.Keys(typedArg)
+	case map[int]int64:
+		return maps.Keys(typedArg)
 	case map[int]float64:
 		return maps.Keys(typedArg)
 	case map[int]bool:
 		return maps.Keys(typedArg)
 	case map[int]any:
 		return maps.Keys(typedArg)
+	case map[int32]string:
+		return maps.Keys(typedArg)
+	case map[int32]int:
+		return maps.Keys(typedArg)
+	case map[int32]int32:
+		return maps.Keys(typedArg)
+	case map[int32]int64:
+		return maps.Keys(typedArg)
+	case map[int32]float64:
+		return maps.Keys(typedArg)
+	case map[int32]bool:
+		return maps.Keys(typedArg)
+	case map[int32]any:
+		return maps.Keys(typedArg)
+	case map[int64]string:
+		return maps.Keys(typedArg)
+	case map[int64]int:
+		return maps.Keys(typedArg)
+	case map[int64]int32:
+		return maps.Keys(typedArg)
+	case map[int64]int64:
+		return maps.Keys(typedArg)
+	case map[int64]float64:
+		return maps.Keys(typedArg)
+	case map[int64]bool:
+		return maps.Keys(typedArg)
+	case map[int64]any:
+		return maps.Keys(typedArg)
 	default:
-		panic(fmt.Sprintf("maps.Keys: unsupported type %T", m))
+		return reflectMapsKeys(m)
 	}
 }
 func wrappedMapsValues(m any) any {
@@ -302,6 +736,10 @@ func wrappedMapsValues(m any) any {
 		return maps.Values(typedArg)
 	case map[string]int:
 		return maps.Values(typedArg)
+	case map[string]int32:
+		return maps.Values(typedArg)
+	case map[string]int64:
+		return maps.Values(typedArg)
 	case map[string]float64:
 		return maps.Values(typedArg)
 	case map[string]bool:
@@ -312,14 +750,46 @@ func wrappedMapsValues(m any) any {
 		return maps.Values(typedArg)
 	case map[int]int:
 		return maps.Values(typedArg)
+	case map[int]int32:
+		return maps.Values(typedArg)
+	case map[int]int64:
+		return maps.Values(typedArg)
 	case map[int]float64:
 		return maps.Values(typedArg)
 	case map[int]bool:
 		return maps.Values(typedArg)
 	case map[int]any:
 		return maps.Values(typedArg)
+	case map[int32]string:
+		return maps.Values(typedArg)
+	case map[int32]int:
+		return maps.Values(typedArg)
+	case map[int32]int32:
+		return maps.Values(typedArg)
+	case map[int32]int64:
+		return maps.Values(typedArg)
+	case map[int32]float64:
+		return maps.Values(typedArg)
+	case map[int32]bool:
+		return maps.Values(typedArg)
+	case map[int32]any:
+		return maps.Values(typedArg)
+	case map[int64]string:
+		return maps.Values(typedArg)
+	case map[int64]int:
+		return maps.Values(typedArg)
+	case map[int64]int32:
+		return maps.Values(typedArg)
+	case map[int64]int64:
+		return maps.Values(typedArg)
+	case map[int64]float64:
+		return maps.Values(typedArg)
+	case map[int64]bool:
+		return maps.Values(typedArg)
+	case map[int64]any:
+		return maps.Values(typedArg)
 	default:
-		panic(fmt.Sprintf("maps.Values: unsupported type %T", m))
+		return reflectMapsValues(m)
 	}
 }
 func init() {

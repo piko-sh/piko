@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driven_transform_objstm re-encodes PDF stream objects with
-// FlateDecode as a post-processing transformer.
+// Package driven_transform_objstm re-encodes PDF stream objects with FlateDecode as a
+// post-processing transformer.
 //
-// Streams that already use FlateDecode are left unchanged. LZW-compressed
-// streams are decoded and re-compressed with FlateDecode, since it is more
-// widely supported and generally produces better compression ratios.
-// Uncompressed streams are compressed automatically.
+// Streams that already use FlateDecode are left unchanged. LZW-compressed streams are
+// decoded and re-compressed with FlateDecode, since it is more widely supported and
+// generally produces better compression ratios. Uncompressed streams are compressed
+// automatically.
 package driven_transform_objstm

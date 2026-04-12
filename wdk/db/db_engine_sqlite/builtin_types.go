@@ -25,43 +25,51 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-var builtinTypeMap = map[string]querier_dto.SQLType{
-	"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-	"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-	"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-	"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-	"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-	"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-	"int2":      {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
-	"int8":      {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+var (
+	// builtinTypeMap maps every recognised SQLite type spelling to its normalised SQL type,
+	// including all SQLite type-affinity aliases.
+	builtinTypeMap = map[string]querier_dto.SQLType{
+		"integer":   {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"int":       {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"tinyint":   {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"smallint":  {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"mediumint": {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"bigint":    {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"int2":      {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
+		"int8":      {Category: querier_dto.TypeCategoryInteger, EngineName: "integer"},
 
-	"text":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"clob":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"varchar":   {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"nchar":     {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"nvarchar":  {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"char":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
-	"character": {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"text":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"clob":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"varchar":   {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"nchar":     {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"nvarchar":  {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"char":      {Category: querier_dto.TypeCategoryText, EngineName: "text"},
+		"character": {Category: querier_dto.TypeCategoryText, EngineName: "text"},
 
-	"real":   {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
-	"double": {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
-	"float":  {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
+		"real":   {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
+		"double": {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
+		"float":  {Category: querier_dto.TypeCategoryFloat, EngineName: "real"},
 
-	"blob": {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
+		"blob": {Category: querier_dto.TypeCategoryBytea, EngineName: "blob"},
 
-	"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
-	"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
+		"numeric": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
+		"decimal": {Category: querier_dto.TypeCategoryDecimal, EngineName: "numeric"},
 
-	"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "boolean"},
-	"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "boolean"},
+		"boolean": {Category: querier_dto.TypeCategoryBoolean, EngineName: "boolean"},
+		"bool":    {Category: querier_dto.TypeCategoryBoolean, EngineName: "boolean"},
 
-	"date":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
-	"datetime":  {Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
-	"timestamp": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
+		"date":      {Category: querier_dto.TypeCategoryTemporal, EngineName: "date"},
+		"datetime":  {Category: querier_dto.TypeCategoryTemporal, EngineName: "datetime"},
+		"timestamp": {Category: querier_dto.TypeCategoryTemporal, EngineName: "timestamp"},
 
-	"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
-}
+		"json": {Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
+	}
+)
 
+// buildTypeCatalogue constructs the SQLite type catalogue.
+//
+// Returns *querier_dto.TypeCatalogue which holds every built-in SQLite type spelling
+// keyed by lowercase name.
 func buildTypeCatalogue() *querier_dto.TypeCatalogue {
 	catalogue := &querier_dto.TypeCatalogue{
 		Types: make(map[string]querier_dto.SQLType, len(builtinTypeMap)),
@@ -70,6 +78,13 @@ func buildTypeCatalogue() *querier_dto.TypeCatalogue {
 	return catalogue
 }
 
+// normaliseTypeName resolves a raw SQLite type spelling to a SQL type.
+//
+// Takes name (string) which is the raw type spelling from the source.
+// Takes modifiers (...int) which holds optional precision and scale digits parsed from
+// the type parentheses.
+//
+// Returns querier_dto.SQLType which is the normalised SQL type.
 func normaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
 	lowered := strings.ToLower(strings.TrimSpace(name))
 
@@ -86,6 +101,12 @@ func normaliseTypeName(name string, modifiers ...int) querier_dto.SQLType {
 	return normaliseByAffinity(lowered, modifiers)
 }
 
+// normaliseByAffinity falls back to the SQLite affinity rules.
+//
+// Takes lowered (string) which is the lowercase trimmed type name.
+// Takes modifiers ([]int) which holds optional precision and scale digits.
+//
+// Returns querier_dto.SQLType which is the SQL type chosen by affinity match.
 func normaliseByAffinity(lowered string, modifiers []int) querier_dto.SQLType {
 	upper := strings.ToUpper(lowered)
 
@@ -110,6 +131,10 @@ func normaliseByAffinity(lowered string, modifiers []int) querier_dto.SQLType {
 	return result
 }
 
+// applyModifiers attaches precision, length, and scale to a SQL type.
+//
+// Takes sqlType (*querier_dto.SQLType) which receives the modifier values.
+// Takes modifiers ([]int) which holds precision and scale digits in order.
 func applyModifiers(sqlType *querier_dto.SQLType, modifiers []int) {
 	if sqlType.Category != querier_dto.TypeCategoryDecimal && sqlType.Category != querier_dto.TypeCategoryText {
 		return

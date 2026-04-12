@@ -1,0 +1,4 @@
+{
+  "description": "Panics with an arena-backed string after heavy allocation, recovers in a parent frame, and verifies the panic value survived across the GC pressure between panic-time and recover-time. Validates the P1 materialise fix on vm.panicValue.",
+  "expected": "recovered=panic-payload-XXXXX iterations=3000"
+}

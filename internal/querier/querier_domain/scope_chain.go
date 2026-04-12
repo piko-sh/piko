@@ -25,12 +25,12 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// scopeChain provides nested scope resolution for column references. Each
-// scope can contain tables, CTEs, and LATERAL-visible tables, and can
-// delegate to a parent scope for correlated subqueries and LATERAL joins.
+// scopeChain provides nested scope resolution for column references. Each scope can
+// contain tables, CTEs, and LATERAL-visible tables, and can delegate to a parent scope
+// for correlated subqueries and LATERAL joins.
 //
-// This enables correct column resolution across CTEs, subqueries, and
-// LATERAL joins using nested scopes rather than a flat lookup.
+// This enables correct column resolution across CTEs, subqueries, and LATERAL joins using
+// nested scopes rather than a flat lookup.
 type scopeChain struct {
 	// parent holds the enclosing scope for correlated subqueries and LATERAL joins.
 	parent *scopeChain
@@ -57,16 +57,14 @@ type resolvedCTE struct {
 	columns []querier_dto.ScopedColumn
 }
 
-// newScopeChain creates a new scope with the given kind
-// and optional parent.
+// newScopeChain creates a new scope with the given kind and optional parent.
 //
-// Takes kind (querier_dto.ScopeKind) which specifies
-// the scope kind (query, subquery, or lateral).
-// Takes parent (*scopeChain) which specifies the
-// enclosing scope, or nil for a root scope.
+// Takes kind (querier_dto.ScopeKind) which specifies the scope kind (query, subquery, or
+// lateral).
+// Takes parent (*scopeChain) which specifies the enclosing scope, or nil for a root
+// scope.
 //
-// Returns *scopeChain which holds the initialised scope
-// with empty tables and CTEs.
+// Returns *scopeChain which holds the initialised scope with empty tables and CTEs.
 func newScopeChain(kind querier_dto.ScopeKind, parent *scopeChain) *scopeChain {
 	return &scopeChain{
 		parent: parent,
@@ -76,21 +74,18 @@ func newScopeChain(kind querier_dto.ScopeKind, parent *scopeChain) *scopeChain {
 	}
 }
 
-// AddTable registers a table in the current scope with
-// JOIN-adjusted nullability. The catalogue table
-// provides the base column types and nullability, which
-// are then adjusted based on the join kind.
+// AddTable registers a table in the current scope with JOIN-adjusted nullability. The
+// catalogue table provides the base column types and nullability, which are then adjusted
+// based on the join kind.
 //
-// Takes table (querier_dto.TableReference) which
-// specifies the table name, schema, and alias.
-// Takes joinKind (querier_dto.JoinKind) which specifies
-// the join type for nullability adjustment.
-// Takes catalogueTable (*querier_dto.Table) which
-// specifies the catalogue entry with base column
-// definitions.
+// Takes table (querier_dto.TableReference) which specifies the table name, schema, and
+// alias.
+// Takes joinKind (querier_dto.JoinKind) which specifies the join type for nullability
+// adjustment.
+// Takes catalogueTable (*querier_dto.Table) which specifies the catalogue entry with base
+// column definitions.
 //
-// Returns error which indicates a registration failure,
-// currently always nil.
+// Returns error which indicates a registration failure, currently always nil.
 func (s *scopeChain) AddTable(
 	table querier_dto.TableReference,
 	joinKind querier_dto.JoinKind,
@@ -134,13 +129,11 @@ func (s *scopeChain) AddTable(
 	return nil
 }
 
-// AddCTE registers a resolved CTE in the current
-// scope.
+// AddCTE registers a resolved CTE in the current scope.
 //
-// Takes name (string) which specifies the CTE name as
-// declared in the WITH clause.
-// Takes columns ([]querier_dto.ScopedColumn) which
-// specifies the resolved output columns of the CTE.
+// Takes name (string) which specifies the CTE name as declared in the WITH clause.
+// Takes columns ([]querier_dto.ScopedColumn) which specifies the resolved output columns
+// of the CTE.
 func (s *scopeChain) AddCTE(name string, columns []querier_dto.ScopedColumn) {
 	s.ctes[strings.ToLower(name)] = &resolvedCTE{
 		name:    name,
@@ -148,14 +141,12 @@ func (s *scopeChain) AddCTE(name string, columns []querier_dto.ScopedColumn) {
 	}
 }
 
-// AddDerivedTable registers a virtual table (from
-// UNNEST, FLATTEN, table-valued functions, or
-// subqueries in FROM) in the current scope. Derived
-// tables are resolved identically to catalogue tables.
+// AddDerivedTable registers a virtual table (from UNNEST, FLATTEN, table-valued
+// functions, or subqueries in FROM) in the current scope. Derived tables are resolved
+// identically to catalogue tables.
 //
-// Takes reference (querier_dto.DerivedTableReference)
-// which specifies the derived table alias, columns, and
-// join kind.
+// Takes reference (querier_dto.DerivedTableReference) which specifies the derived table
+// alias, columns, and join kind.
 func (s *scopeChain) AddDerivedTable(reference querier_dto.DerivedTableReference) {
 	columns := reference.Columns
 	if reference.JoinKind == querier_dto.JoinLeft || reference.JoinKind == querier_dto.JoinFull || reference.JoinKind == querier_dto.JoinPositional {
@@ -172,33 +163,25 @@ func (s *scopeChain) AddDerivedTable(reference querier_dto.DerivedTableReference
 	}
 }
 
-// ResolveColumn walks the scope chain to find a column
-// by optional table alias and column name.
+// ResolveColumn walks the scope chain to find a column by optional table alias and column
+// name.
 //
 // Resolution algorithm:
-//  1. If tableAlias is set, find that table in current
-//     scope; if not found and scope is LATERAL/subquery,
-//     search parent.
-//  2. If tableAlias is empty, search all tables for the
-//     column name. Exactly one match is required;
-//     multiple matches produce Q002 (ambiguity).
+//  1. If tableAlias is set, find that table in current scope; if not found and scope is
+//     LATERAL/subquery, search parent.
+//  2. If tableAlias is empty, search all tables for the column name. Exactly one match is
+//     required; multiple matches produce Q002 (ambiguity).
 //  3. Check CTEs in current scope.
-//  4. For LATERAL/subquery scopes, traverse to parent
-//     and repeat.
+//  4. For LATERAL/subquery scopes, traverse to parent and repeat.
 //  5. Not found anywhere produces Q001 (unknown column).
 //
-// Takes tableAlias (string) which specifies the
-// qualifying table alias, or empty for unqualified
-// lookup.
-// Takes columnName (string) which specifies the column
-// name to resolve.
+// Takes tableAlias (string) which specifies the qualifying table alias, or empty for
+// unqualified lookup.
+// Takes columnName (string) which specifies the column name to resolve.
 //
-// Returns *querier_dto.ScopedColumn which holds the
-// resolved column, or nil on error.
-// Returns *querier_dto.ScopedTable which holds the
-// containing table, or nil on error.
-// Returns error which indicates a resolution failure
-// (Q001 unknown, Q002 ambiguous).
+// Returns *querier_dto.ScopedColumn which holds the resolved column, or nil on error.
+// Returns *querier_dto.ScopedTable which holds the containing table, or nil on error.
+// Returns error which indicates a resolution failure (Q001 unknown, Q002 ambiguous).
 func (s *scopeChain) ResolveColumn(
 	tableAlias string,
 	columnName string,
@@ -209,8 +192,8 @@ func (s *scopeChain) ResolveColumn(
 	return s.resolveUnqualifiedColumn(columnName)
 }
 
-// ExpandStar expands a SELECT * or table.* into all visible columns from the
-// scope. If tableAlias is non-empty, only columns from that table are returned.
+// ExpandStar expands a SELECT * or table.* into all visible columns from the scope. If
+// tableAlias is non-empty, only columns from that table are returned.
 //
 // Takes tableAlias (string) which specifies the table to expand, or empty for all tables.
 //
@@ -247,33 +230,25 @@ func (s *scopeChain) CreateChildScope(kind querier_dto.ScopeKind) *scopeChain {
 	return newScopeChain(kind, s)
 }
 
-// MarkLateralVisible makes specified tables from the
-// parent scope visible to LATERAL subqueries in this
-// scope.
+// MarkLateralVisible makes specified tables from the parent scope visible to LATERAL
+// subqueries in this scope.
 //
-// Takes tables ([]*querier_dto.ScopedTable) which
-// specifies the parent-scope tables to make laterally
-// visible.
+// Takes tables ([]*querier_dto.ScopedTable) which specifies the parent-scope tables to
+// make laterally visible.
 func (s *scopeChain) MarkLateralVisible(tables []*querier_dto.ScopedTable) {
 	s.lateralVisible = append(s.lateralVisible, tables...)
 }
 
-// resolveQualifiedColumn resolves a column reference
-// that includes a table alias qualifier. Searches the
-// current scope tables, CTEs, lateral-visible tables,
-// and parent scopes in order.
+// resolveQualifiedColumn resolves a column reference that includes a table alias
+// qualifier. Searches the current scope tables, CTEs, lateral-visible tables, and parent
+// scopes in order.
 //
-// Takes tableAlias (string) which specifies the
-// qualifying table alias.
-// Takes columnName (string) which specifies the column
-// name to find.
+// Takes tableAlias (string) which specifies the qualifying table alias.
+// Takes columnName (string) which specifies the column name to find.
 //
-// Returns *querier_dto.ScopedColumn which holds the
-// resolved column, or nil on error.
-// Returns *querier_dto.ScopedTable which holds the
-// containing table, or nil on error.
-// Returns error which indicates Q001 if the table alias
-// or column is unknown.
+// Returns *querier_dto.ScopedColumn which holds the resolved column, or nil on error.
+// Returns *querier_dto.ScopedTable which holds the containing table, or nil on error.
+// Returns error which indicates Q001 if the table alias or column is unknown.
 func (s *scopeChain) resolveQualifiedColumn(
 	tableAlias string,
 	columnName string,
@@ -298,8 +273,8 @@ func (s *scopeChain) resolveQualifiedColumn(
 	return nil, nil, fmt.Errorf("%s: unknown table or alias %q", querier_dto.CodeUnknownColumn, tableAlias)
 }
 
-// resolveColumnInTable searches for a column by name within a single scoped table.
-// Falls back to synthesising an implicit rowid column for eligible tables.
+// resolveColumnInTable searches for a column by name within a single scoped table. Falls
+// back to synthesising an implicit rowid column for eligible tables.
 //
 // Takes table (*querier_dto.ScopedTable) which specifies the table to search.
 // Takes columnName (string) which specifies the column name to find.
@@ -329,22 +304,16 @@ func resolveColumnInTable(
 	return nil, nil, fmt.Errorf("%s: unknown column %q in table %q", querier_dto.CodeUnknownColumn, columnName, tableAlias)
 }
 
-// resolveColumnInCTE searches for a column by name
-// within a resolved CTE.
+// resolveColumnInCTE searches for a column by name within a resolved CTE.
 //
-// Takes cte (*resolvedCTE) which specifies the CTE to
-// search.
-// Takes columnName (string) which specifies the column
-// name to find.
-// Takes tableAlias (string) which specifies the alias
-// used in error messages.
+// Takes cte (*resolvedCTE) which specifies the CTE to search.
+// Takes columnName (string) which specifies the column name to find.
+// Takes tableAlias (string) which specifies the alias used in error messages.
 //
-// Returns *querier_dto.ScopedColumn which holds the
-// matched column, or nil on error.
-// Returns *querier_dto.ScopedTable which holds a
-// synthetic scoped table for the CTE, or nil on error.
-// Returns error which indicates Q001 if the column is
-// not found.
+// Returns *querier_dto.ScopedColumn which holds the matched column, or nil on error.
+// Returns *querier_dto.ScopedTable which holds a synthetic scoped table for the CTE, or
+// nil on error.
+// Returns error which indicates Q001 if the column is not found.
 func resolveColumnInCTE(
 	cte *resolvedCTE,
 	columnName string,
@@ -363,20 +332,15 @@ func resolveColumnInCTE(
 	return nil, nil, fmt.Errorf("%s: unknown column %q in CTE %q", querier_dto.CodeUnknownColumn, columnName, tableAlias)
 }
 
-// resolveColumnInLateral searches for a qualified
-// column in the lateral-visible tables.
+// resolveColumnInLateral searches for a qualified column in the lateral-visible tables.
 //
-// Takes lateralVisible ([]*querier_dto.ScopedTable)
-// which specifies the tables visible via LATERAL.
-// Takes tableAlias (string) which specifies the
-// qualifying table alias.
-// Takes columnName (string) which specifies the column
-// name to find.
+// Takes lateralVisible ([]*querier_dto.ScopedTable) which specifies the tables visible
+// via LATERAL.
+// Takes tableAlias (string) which specifies the qualifying table alias.
+// Takes columnName (string) which specifies the column name to find.
 //
-// Returns *querier_dto.ScopedColumn which holds the
-// matched column, or nil if not found.
-// Returns *querier_dto.ScopedTable which holds the
-// containing table, or nil if not found.
+// Returns *querier_dto.ScopedColumn which holds the matched column, or nil if not found.
+// Returns *querier_dto.ScopedTable which holds the containing table, or nil if not found.
 func resolveColumnInLateral(
 	lateralVisible []*querier_dto.ScopedTable,
 	tableAlias string,
@@ -433,19 +397,16 @@ func (s *scopeChain) resolveUnqualifiedColumn(
 	return nil, nil, fmt.Errorf("%s: unknown column %q", querier_dto.CodeUnknownColumn, columnName)
 }
 
-// findColumnInTables searches all tables in the current
-// scope for a column by name. Returns the match count
-// to detect ambiguous references.
+// findColumnInTables searches all tables in the current scope for a column by name.
+// Returns the match count to detect ambiguous references.
 //
-// Takes columnName (string) which specifies the column
-// name to search for.
+// Takes columnName (string) which specifies the column name to search for.
 //
-// Returns *querier_dto.ScopedColumn which holds the
-// last matched column, or nil if none found.
-// Returns *querier_dto.ScopedTable which holds the last
-// matched table, or nil if none found.
-// Returns int which holds the number of tables
-// containing a matching column.
+// Returns *querier_dto.ScopedColumn which holds the last matched column, or nil if none
+// found.
+// Returns *querier_dto.ScopedTable which holds the last matched table, or nil if none
+// found.
+// Returns int which holds the number of tables containing a matching column.
 func (s *scopeChain) findColumnInTables(
 	columnName string,
 ) (*querier_dto.ScopedColumn, *querier_dto.ScopedTable, int) {
@@ -466,20 +427,17 @@ func (s *scopeChain) findColumnInTables(
 	return foundColumn, foundTable, matchCount
 }
 
-// resolveImplicitRowID resolves an implicit rowid
-// column across all tables in the current scope.
-// Exactly one eligible table must exist; multiple
-// eligible tables produce Q002 (ambiguity).
+// resolveImplicitRowID resolves an implicit rowid column across all tables in the current
+// scope. Exactly one eligible table must exist; multiple eligible tables produce Q002
+// (ambiguity).
 //
-// Takes columnName (string) which specifies the rowid
-// alias (ROWID, _ROWID_, or OID).
+// Takes columnName (string) which specifies the rowid alias (ROWID, _ROWID_, or OID).
 //
-// Returns *querier_dto.ScopedColumn which holds the
-// synthesised rowid column, or nil if none found.
-// Returns *querier_dto.ScopedTable which holds the
-// containing table, or nil if none found.
-// Returns error which indicates Q002 if multiple tables
-// support implicit rowid.
+// Returns *querier_dto.ScopedColumn which holds the synthesised rowid column, or nil if
+// none found.
+// Returns *querier_dto.ScopedTable which holds the containing table, or nil if none
+// found.
+// Returns error which indicates Q002 if multiple tables support implicit rowid.
 func (s *scopeChain) resolveImplicitRowID(
 	columnName string,
 ) (*querier_dto.ScopedColumn, *querier_dto.ScopedTable, error) {
@@ -505,16 +463,14 @@ func (s *scopeChain) resolveImplicitRowID(
 	return nil, nil, nil
 }
 
-// resolveFromCTEsAndLateral searches CTEs and
-// lateral-visible tables for an unqualified column.
+// resolveFromCTEsAndLateral searches CTEs and lateral-visible tables for an unqualified
+// column.
 //
-// Takes columnName (string) which specifies the column
-// name to find.
+// Takes columnName (string) which specifies the column name to find.
 //
-// Returns *querier_dto.ScopedColumn which holds the
-// matched column, or nil if not found.
-// Returns *querier_dto.ScopedTable which holds the
-// containing table or CTE, or nil if not found.
+// Returns *querier_dto.ScopedColumn which holds the matched column, or nil if not found.
+// Returns *querier_dto.ScopedTable which holds the containing table or CTE, or nil if not
+// found.
 func (s *scopeChain) resolveFromCTEsAndLateral(
 	columnName string,
 ) (*querier_dto.ScopedColumn, *querier_dto.ScopedTable) {
@@ -542,14 +498,12 @@ func (s *scopeChain) resolveFromCTEsAndLateral(
 	return nil, nil
 }
 
-// isImplicitRowID reports whether the given column name
-// is a SQLite implicit rowid alias.
+// isImplicitRowID reports whether the given column name is a SQLite implicit rowid alias.
 //
-// Takes name (string) which specifies the column name
-// to check.
+// Takes name (string) which specifies the column name to check.
 //
-// Returns bool which indicates true if the name is
-// ROWID, _ROWID_, or OID (case-insensitive).
+// Returns bool which indicates true if the name is ROWID, _ROWID_, or OID
+// (case-insensitive).
 func isImplicitRowID(name string) bool {
 	upper := strings.ToUpper(name)
 	return upper == "ROWID" || upper == "_ROWID_" || upper == "OID"

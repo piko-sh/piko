@@ -16,25 +16,21 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package lifecycle_domain orchestrates the bridge between build-time
-// operations and runtime execution, defining port interfaces
-// (FileSystemWatcher, RouterReloadNotifier, InterpretedBuildOrchestrator)
-// and coordinating file watching, build notifications, asset pipeline
-// processing, and router hot-reload.
+// Package lifecycle_domain orchestrates the bridge between build-time operations and
+// runtime execution, defining port interfaces (FileSystemWatcher, RouterReloadNotifier,
+// InterpretedBuildOrchestrator) and coordinating file watching, build notifications,
+// asset pipeline processing, and router hot-reload.
 //
 // # Asset processing
 //
-// The package generates transformation profiles for various asset
-// types:
+// The package generates transformation profiles for various asset types:
 //
-//   - Images (piko:img): Responsive variants, format conversion,
-//     placeholders
+//   - Images (piko:img): Responsive variants, format conversion, placeholders
 //   - Videos (piko:video): HLS transcoding at multiple quality levels
 //   - Static assets: Minification and compression (gzip, Brotli)
 //
 // # Thread safety
 //
-// The lifecycleService is safe for concurrent use. Entry point access
-// is protected by a read-write mutex, and background goroutines
-// coordinate via channels and stop signals.
+// The lifecycleService is safe for concurrent use. Entry point access is protected by a
+// read-write mutex, and background goroutines coordinate via channels and stop signals.
 package lifecycle_domain

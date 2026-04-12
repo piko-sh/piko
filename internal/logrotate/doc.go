@@ -16,12 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package logrotate manages size-based log file rotation,
-// implementing [io.WriteCloser].
+// Package logrotate manages size-based log file rotation, implementing [io.WriteCloser].
 //
-// It automatically rotates the log file when it exceeds a configured
-// size. Rotated files can optionally be compressed with gzip and
-// pruned by count or age.
+// It automatically rotates the log file when it exceeds a configured size. Rotated files
+// can optionally be compressed with gzip and pruned by count or age.
 //
 // # Usage
 //
@@ -42,7 +40,7 @@
 //
 // # Thread safety
 //
-// A single [Writer] is safe for concurrent use by multiple goroutines.
-// All write and rotation operations are serialised by an internal mutex.
-// Background compression and cleanup run in a dedicated goroutine.
+// A single [Writer] is safe for concurrent use by multiple goroutines. All write and
+// rotation operations are serialised by an internal mutex. Background compression and
+// cleanup run in a dedicated goroutine.
 package logrotate

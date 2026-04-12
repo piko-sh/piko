@@ -31,9 +31,9 @@ import (
 	"piko.sh/piko/internal/collection/collection_adapters/driver_markdown"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/collection/collection_dto"
-	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
 	"piko.sh/piko/internal/markdown/markdown_domain"
 	"piko.sh/piko/tests/integration/testutil"
+	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
 	"piko.sh/piko/wdk/safedisk"
 )
 

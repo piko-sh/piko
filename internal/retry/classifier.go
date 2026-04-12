@@ -28,8 +28,8 @@ import (
 )
 
 var (
-	// retryableSyscallErrors contains syscall error codes that indicate transient
-	// network failures worth retrying.
+	// retryableSyscallErrors contains syscall error codes that indicate transient network
+	// failures worth retrying.
 	retryableSyscallErrors = []syscall.Errno{
 		syscall.ECONNREFUSED,
 		syscall.ECONNRESET,
@@ -39,8 +39,8 @@ var (
 		syscall.ECONNABORTED,
 	}
 
-	// defaultRetryablePatterns contains error message substrings that indicate
-	// transient failures worth retrying.
+	// defaultRetryablePatterns contains error message substrings that indicate transient
+	// failures worth retrying.
 	defaultRetryablePatterns = []string{
 		"connection refused", "connection reset", "connection timeout", "timeout",
 		"temporary failure", "too many requests", "rate limit", "throttle",
@@ -54,29 +54,28 @@ var (
 	}
 )
 
-// ErrorClassifier determines whether errors are retryable or permanent.
-// It checks permanent errors, network timeouts, retryable syscall errors,
-// and error message patterns.
+// ErrorClassifier determines whether errors are retryable or permanent. It checks
+// permanent errors, network timeouts, retryable syscall errors, and error message
+// patterns.
 //
-// The zero value is not usable; create instances with [NewErrorClassifier].
+// The zero value is not usable; create instances with NewErrorClassifier.
 type ErrorClassifier struct {
 	// permanentErrors lists errors that should never be retried.
 	permanentErrors []error
 
-	// retryablePatterns lists case-insensitive substrings in error messages
-	// that indicate transient failures.
+	// retryablePatterns lists case-insensitive substrings in error messages that indicate
+	// transient failures.
 	retryablePatterns []string
 }
 
-// ClassifierOption configures an [ErrorClassifier].
+// ClassifierOption configures an ErrorClassifier.
 type ClassifierOption func(*ErrorClassifier)
 
-// NewErrorClassifier creates an ErrorClassifier with the default permanent
-// errors and retryable patterns, plus any domain-specific additions from
-// the provided options.
+// NewErrorClassifier creates an ErrorClassifier with the default permanent errors and
+// retryable patterns, plus any domain-specific additions from the provided options.
 //
-// Takes opts (...ClassifierOption) which configure additional permanent
-// errors or retryable patterns.
+// Takes opts (...ClassifierOption) which configure additional permanent errors or
+// retryable patterns.
 //
 // Returns *ErrorClassifier which is ready for use.
 func NewErrorClassifier(opts ...ClassifierOption) *ErrorClassifier {
@@ -90,10 +89,9 @@ func NewErrorClassifier(opts ...ClassifierOption) *ErrorClassifier {
 	return c
 }
 
-// IsRetryable reports whether an error is temporary and worth retrying.
-// It returns false for nil errors and permanent errors, and true for network
-// timeouts, retryable syscall errors, and errors whose message matches a
-// retryable pattern.
+// IsRetryable reports whether an error is temporary and worth retrying. It returns false
+// for nil errors and permanent errors, and true for network timeouts, retryable syscall
+// errors, and errors whose message matches a retryable pattern.
 //
 // Takes err (error) which is the error to classify.
 //
@@ -125,8 +123,7 @@ func (c *ErrorClassifier) isPermanentError(err error) bool {
 	return false
 }
 
-// isRetryableByMessage checks if an error message contains any retryable
-// pattern.
+// isRetryableByMessage checks if an error message contains any retryable pattern.
 //
 // Takes errMessage (string) which is the error message to check.
 //
@@ -141,25 +138,23 @@ func (c *ErrorClassifier) isRetryableByMessage(errMessage string) bool {
 	return false
 }
 
-// WithPermanentErrors adds domain-specific errors that should never be
-// retried. These are appended to the default permanent errors
-// (context.Canceled, context.DeadlineExceeded).
+// WithPermanentErrors adds domain-specific errors that should never be retried. These are
+// appended to the default permanent errors (context.Canceled, context.DeadlineExceeded).
 //
 // Takes errs (...error) which are errors to treat as permanent.
 //
-// Returns ClassifierOption which configures the classifier with the
-// permanent errors.
+// Returns ClassifierOption which configures the classifier with the permanent errors.
 func WithPermanentErrors(errs ...error) ClassifierOption {
 	return func(c *ErrorClassifier) {
 		c.permanentErrors = append(c.permanentErrors, errs...)
 	}
 }
 
-// WithRetryablePatterns adds domain-specific error message patterns that
-// indicate retryable failures. These are appended to the default patterns.
+// WithRetryablePatterns adds domain-specific error message patterns that indicate
+// retryable failures. These are appended to the default patterns.
 //
-// Takes patterns (...string) which are case-insensitive substrings to match
-// against error messages.
+// Takes patterns (...string) which are case-insensitive substrings to match against error
+// messages.
 //
 // Returns ClassifierOption which adds the patterns to the classifier.
 func WithRetryablePatterns(patterns ...string) ClassifierOption {
@@ -180,9 +175,8 @@ func IsNetworkTimeout(err error) bool {
 	return false
 }
 
-// IsSyscallRetryable reports whether an error wraps a retryable syscall
-// error code (ECONNREFUSED, ECONNRESET, ETIMEDOUT, EHOSTUNREACH,
-// ENETUNREACH, ECONNABORTED).
+// IsSyscallRetryable reports whether an error wraps a retryable syscall error code
+// (ECONNREFUSED, ECONNRESET, ETIMEDOUT, EHOSTUNREACH, ENETUNREACH, ECONNABORTED).
 //
 // Takes err (error) which is the error to check.
 //

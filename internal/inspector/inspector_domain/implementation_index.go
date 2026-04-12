@@ -25,11 +25,11 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
-// ImplementationIndex maps interfaces to their implementing types.
-// This enables "Go to Implementation" and "Find All Implementations" features.
+// ImplementationIndex maps interfaces to their implementing types. This enables "Go to
+// Implementation" and "Find All Implementations" features.
 type ImplementationIndex struct {
-	// interfaceToImplementors maps interface key
-	// (packagePath#typeName) to implementing types.
+	// interfaceToImplementors maps interface key (packagePath#typeName) to implementing
+	// types.
 	interfaceToImplementors map[string][]ImplementorInfo
 
 	// mu guards concurrent access to the index maps.
@@ -121,11 +121,11 @@ func (idx *ImplementationIndex) buildFromTypeData(typeData *inspector_dto.TypeDa
 
 // collectInterfaces gathers all interface types from TypeData.
 //
-// Takes typeData (*inspector_dto.TypeData) which provides the parsed type
-// information to scan for interfaces.
+// Takes typeData (*inspector_dto.TypeData) which provides the parsed type information to
+// scan for interfaces.
 //
-// Returns map[string]*interfaceSpec which maps qualified names (package path
-// plus type name) to their interface specifications.
+// Returns map[string]*interfaceSpec which maps qualified names (package path plus type
+// name) to their interface specifications.
 func (*ImplementationIndex) collectInterfaces(typeData *inspector_dto.TypeData) map[string]*interfaceSpec {
 	interfaces := make(map[string]*interfaceSpec)
 	for packagePath, pkg := range typeData.Packages {
@@ -151,8 +151,8 @@ func (*ImplementationIndex) collectInterfaces(typeData *inspector_dto.TypeData) 
 // Takes packagePath (string) which is the package path of the type being checked.
 // Takes typeName (string) which is the name of the type being checked.
 // Takes typeInfo (*inspector_dto.Type) which provides the type's method set.
-// Takes interfaces (map[string]*interfaceSpec) which contains the interfaces
-// to check against.
+// Takes interfaces (map[string]*interfaceSpec) which contains the interfaces to check
+// against.
 func (idx *ImplementationIndex) checkImplementations(
 	packagePath, typeName string,
 	typeInfo *inspector_dto.Type,
@@ -176,25 +176,21 @@ func (idx *ImplementationIndex) checkImplementations(
 	}
 }
 
-// isInterfaceType checks if a type is an interface based on its
-// UnderlyingTypeString.
+// isInterfaceType checks if a type is an interface based on its UnderlyingTypeString.
 //
-// Takes typeInfo (*inspector_dto.Type) which provides the type information to
-// check.
+// Takes typeInfo (*inspector_dto.Type) which provides the type information to check.
 //
 // Returns bool which is true if the type is an interface.
 func isInterfaceType(typeInfo *inspector_dto.Type) bool {
 	return strings.HasPrefix(typeInfo.UnderlyingTypeString, "interface")
 }
 
-// extractMethodSigs creates a map of method names to their normalised
-// signatures.
+// extractMethodSigs creates a map of method names to their normalised signatures.
 //
-// Takes methods ([]*inspector_dto.Method) which provides the methods
-// to extract signatures from.
+// Takes methods ([]*inspector_dto.Method) which provides the methods to extract
+// signatures from.
 //
-// Returns map[string]string which maps each method name to its
-// signature string.
+// Returns map[string]string which maps each method name to its signature string.
 func extractMethodSigs(methods []*inspector_dto.Method) map[string]string {
 	result := make(map[string]string, len(methods))
 	for _, m := range methods {
@@ -207,14 +203,13 @@ func extractMethodSigs(methods []*inspector_dto.Method) map[string]string {
 
 // implementsInterface checks if typeMethods satisfy all interface methods.
 //
-// Takes typeMethods (map[string]string) which maps method names to signatures
-// for the type being checked.
-// Takes ifaceMethods (map[string]string) which maps method names to signatures
-// for the interface to match against.
+// Takes typeMethods (map[string]string) which maps method names to signatures for the
+// type being checked.
+// Takes ifaceMethods (map[string]string) which maps method names to signatures for the
+// interface to match against.
 //
 // Returns bool which is true if all interface methods are present with matching
-// signatures, or false if the interface is empty or any method is missing or
-// mismatched.
+// signatures, or false if the interface is empty or any method is missing or mismatched.
 func implementsInterface(typeMethods, ifaceMethods map[string]string) bool {
 	if len(ifaceMethods) == 0 {
 		return false

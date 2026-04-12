@@ -1036,7 +1036,7 @@ func TestCleanOrphanedInDir(t *testing.T) {
 				s.fsWriter = fsw
 			})
 			s.cleanOrphanedInDir(ctx, "/test/dist/pages", validHashes)
-			assert.Equal(t, tc.wantRemoveCount, fsw.RemoveAllCallCount)
+			assert.Equal(t, tc.wantRemoveCount, fsw.RemoveAllCallCount.Load())
 		})
 	}
 }
@@ -1063,7 +1063,7 @@ func TestCleanOrphanedDirs(t *testing.T) {
 	}
 	s.cleanOrphanedDirs(ctx, vm)
 
-	assert.Equal(t, int64(3), fsw.RemoveAllCallCount)
+	assert.Equal(t, int64(3), fsw.RemoveAllCallCount.Load())
 }
 
 func TestAggregateArtefactsAndDiagnostics(t *testing.T) {

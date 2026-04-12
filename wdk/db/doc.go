@@ -16,14 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package db handles database migration management and SQL code generation
-// for Piko applications, with pluggable engine backends for different SQL
-// dialects.
+// Package db handles database migration management and SQL code generation for Piko
+// applications, with pluggable engine backends for different SQL dialects.
 //
-// Register an engine backend and use the migration service to apply, roll
-// back, and inspect migration state. Engine adapters live in the
-// db_engine_* sub-packages; live database introspection providers live in
-// the db_catalogue_* sub-packages.
+// Register an engine backend and use the migration service to apply, roll back, and
+// inspect migration state. Engine adapters live in the db_engine_* sub-packages; live
+// database introspection providers live in the db_catalogue_* sub-packages.
 //
 // # Usage
 //
@@ -46,6 +44,6 @@
 //
 // # Thread safety
 //
-// [MigrationService] uses advisory locking to prevent concurrent
-// migration runs. The service itself is safe for concurrent use.
+// [MigrationService] uses advisory locking to prevent concurrent migration runs. The
+// service itself is safe for concurrent use.
 package db

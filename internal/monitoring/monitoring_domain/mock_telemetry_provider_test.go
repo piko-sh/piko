@@ -20,7 +20,6 @@ package monitoring_domain
 
 import (
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,7 +37,7 @@ func TestMockTelemetryProvider_GetMetrics(t *testing.T) {
 		result := mock.GetMetrics()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetMetricsCallCount))
+		assert.Equal(t, int64(1), mock.GetMetricsCallCount.Load())
 	})
 
 	t.Run("delegates to GetMetricsFunc", func(t *testing.T) {
@@ -73,7 +72,7 @@ func TestMockTelemetryProvider_GetMetrics(t *testing.T) {
 
 		require.Len(t, result, 2)
 		assert.Equal(t, expected, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetMetricsCallCount))
+		assert.Equal(t, int64(1), mock.GetMetricsCallCount.Load())
 	})
 }
 
@@ -88,7 +87,7 @@ func TestMockTelemetryProvider_GetSpans(t *testing.T) {
 		result := mock.GetSpans(10, true)
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetSpansCallCount))
+		assert.Equal(t, int64(1), mock.GetSpansCallCount.Load())
 	})
 
 	t.Run("delegates to GetSpansFunc", func(t *testing.T) {
@@ -124,7 +123,7 @@ func TestMockTelemetryProvider_GetSpans(t *testing.T) {
 		assert.Equal(t, expected, result)
 		assert.Equal(t, 25, capturedLimit)
 		assert.True(t, capturedErrorsOnly)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetSpansCallCount))
+		assert.Equal(t, int64(1), mock.GetSpansCallCount.Load())
 	})
 }
 
@@ -139,7 +138,7 @@ func TestMockTelemetryProvider_GetSpanByTraceID(t *testing.T) {
 		result := mock.GetSpanByTraceID("trace-xyz")
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetSpanByTraceIDCallCount))
+		assert.Equal(t, int64(1), mock.GetSpanByTraceIDCallCount.Load())
 	})
 
 	t.Run("delegates to GetSpanByTraceIDFunc", func(t *testing.T) {
@@ -164,7 +163,7 @@ func TestMockTelemetryProvider_GetSpanByTraceID(t *testing.T) {
 		require.Len(t, result, 2)
 		assert.Equal(t, expected, result)
 		assert.Equal(t, "trace-abc", capturedTraceID)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetSpanByTraceIDCallCount))
+		assert.Equal(t, int64(1), mock.GetSpanByTraceIDCallCount.Load())
 	})
 }
 
@@ -182,9 +181,9 @@ func TestMockTelemetryProvider_ZeroValueIsUsable(t *testing.T) {
 	traceSpans := mock.GetSpanByTraceID("any-trace")
 	assert.Nil(t, traceSpans)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetMetricsCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetSpansCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetSpanByTraceIDCallCount))
+	assert.Equal(t, int64(1), mock.GetMetricsCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetSpansCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetSpanByTraceIDCallCount.Load())
 }
 
 func TestMockTelemetryProvider_ConcurrentAccess(t *testing.T) {
@@ -219,9 +218,9 @@ func TestMockTelemetryProvider_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetMetricsCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetSpansCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetSpanByTraceIDCallCount))
+	assert.Equal(t, int64(goroutines), mock.GetMetricsCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetSpansCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetSpanByTraceIDCallCount.Load())
 }
 
 func TestMockTelemetryProvider_ImplementsInterface(t *testing.T) {

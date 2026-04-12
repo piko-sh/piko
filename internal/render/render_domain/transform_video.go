@@ -42,8 +42,7 @@ const (
 	// defaultSegmentDuration is the default HLS segment length in seconds.
 	defaultSegmentDuration = 10
 
-	// videoIDByteLength is the number of random bytes used to generate a video
-	// element ID.
+	// videoIDByteLength is the number of random bytes used to generate a video element ID.
 	videoIDByteLength = 8
 
 	// attributeQuote is the closing quote character for HTML attribute values.
@@ -54,8 +53,8 @@ var (
 	// defaultQualities is the default set of quality levels for HLS encoding.
 	defaultQualities = []string{"1080p", "720p", "480p"}
 
-	// standardVideoAttrs is a set of standard HTML video attributes handled
-	// directly. Parser lowercases all attribute names.
+	// standardVideoAttrs is a set of standard HTML video attributes handled directly. Parser
+	// lowercases all attribute names.
 	standardVideoAttrs = map[string]struct{}{
 		"width":       {},
 		"height":      {},
@@ -79,22 +78,19 @@ var (
 	}
 )
 
-// pikoVideoAttrs holds all attributes extracted from a piko:video element.
-// Uses single-pass extraction to read node attributes only once.
+// pikoVideoAttrs holds all attributes extracted from a piko:video element. Uses
+// single-pass extraction to read node attributes only once.
 type pikoVideoAttrs struct {
-	// qualities is a comma-separated list of quality levels (e.g.
-	// "1080p,720p,480p").
+	// qualities is a comma-separated list of quality levels (e.g. "1080p,720p,480p").
 	qualities string
 
 	// width is the video element width in pixels or CSS units.
 	width string
 
-	// posterWidths specifies the target widths for poster images (e.g.
-	// "640,1280").
+	// posterWidths specifies the target widths for poster images (e.g. "640,1280").
 	posterWidths string
 
-	// posterFormats specifies output formats as a comma-separated list
-	// (e.g. "webp,jpeg").
+	// posterFormats specifies output formats as a comma-separated list (e.g. "webp,jpeg").
 	posterFormats string
 
 	// posterDensities specifies screen density options (e.g. "1x,2x").
@@ -159,8 +155,8 @@ func (a *pikoVideoAttrs) getQualities() []string {
 
 // getSegmentDuration returns the segment duration in seconds.
 //
-// Returns int which is the parsed segment duration, or the default value if
-// the duration is empty, not a valid number, or not greater than zero.
+// Returns int which is the parsed segment duration, or the default value if the duration
+// is empty, not a valid number, or not greater than zero.
 func (a *pikoVideoAttrs) getSegmentDuration() int {
 	if a.segmentDuration == "" {
 		return defaultSegmentDuration
@@ -171,21 +167,20 @@ func (a *pikoVideoAttrs) getSegmentDuration() int {
 	return defaultSegmentDuration
 }
 
-// hasPosterProfile returns true if any poster profile-related attributes were
-// set, indicating the poster should be processed as an image asset.
+// hasPosterProfile returns true if any poster profile-related attributes were set,
+// indicating the poster should be processed as an image asset.
 //
-// Returns bool which is true when posterWidths, posterFormats, posterDensities,
-// or posterSizes is set.
+// Returns bool which is true when posterWidths, posterFormats, posterDensities, or
+// posterSizes is set.
 func (a *pikoVideoAttrs) hasPosterProfile() bool {
 	return a.posterWidths != "" || a.posterFormats != "" ||
 		a.posterDensities != "" || a.posterSizes != ""
 }
 
-// needsPosterTransform reports whether the poster path needs to be changed.
-// External URLs (http://, https://, //, data:) do not need changes.
+// needsPosterTransform reports whether the poster path needs to be changed. External URLs
+// (http://, https://, //, data:) do not need changes.
 //
-// Returns bool which is true when the poster is a local path that needs
-// processing.
+// Returns bool which is true when the poster is a local path that needs processing.
 func (a *pikoVideoAttrs) needsPosterTransform() bool {
 	if a.poster == "" {
 		return false
@@ -193,11 +188,11 @@ func (a *pikoVideoAttrs) needsPosterTransform() bool {
 	return assetpath.NeedsTransform(a.poster, assetpath.DefaultServePath)
 }
 
-// toPosterProfile converts poster attributes to an assetProfile for image
-// processing, letting the poster be handled like a piko:img element.
+// toPosterProfile converts poster attributes to an assetProfile for image processing,
+// letting the poster be handled like a piko:img element.
 //
-// Returns *assetProfile which contains the parsed poster profile settings, or
-// nil if no poster or poster profile attributes were found.
+// Returns *assetProfile which contains the parsed poster profile settings, or nil if no
+// poster or poster profile attributes were found.
 func (a *pikoVideoAttrs) toPosterProfile() *assetProfile {
 	if a.poster == "" || !a.needsPosterTransform() {
 		return nil
@@ -227,8 +222,7 @@ func (a *pikoVideoAttrs) toPosterProfile() *assetProfile {
 	return profile
 }
 
-// registerDynamicVideoAsset registers a video asset with the registry for HLS
-// encoding.
+// registerDynamicVideoAsset registers a video asset with the registry for HLS encoding.
 //
 // Takes src (string) which is the original video source path.
 // Takes qualities ([]string) which contains the desired quality levels.
@@ -267,8 +261,8 @@ func (*RenderOrchestrator) registerDynamicVideoAsset(
 
 // videoQualityConfig holds the encoding settings for a video quality level.
 type videoQualityConfig struct {
-	// resolution specifies the video resolution in WxH format
-	// (e.g. "1920x1080", "1280x720").
+	// resolution specifies the video resolution in WxH format (e.g. "1920x1080",
+	// "1280x720").
 	resolution string
 
 	// bitrate is the target video bitrate for encoding, such as "1500k".
@@ -278,9 +272,9 @@ type videoQualityConfig struct {
 	bandwidth int
 }
 
-// processPoster handles poster image changes for piko:video elements.
-// It updates the poster path, optionally registers it as a dynamic asset
-// for image optimisation, or generates an auto-thumbnail URL.
+// processPoster handles poster image changes for piko:video elements. It updates the
+// poster path, optionally registers it as a dynamic asset for image optimisation, or
+// generates an auto-thumbnail URL.
 //
 // Takes rctx (*renderContext) which provides the rendering context.
 // Takes attrs (*pikoVideoAttrs) which contains the poster attributes.
@@ -304,8 +298,8 @@ func (ro *RenderOrchestrator) processPoster(rctx *renderContext, attrs *pikoVide
 // Takes rctx (*renderContext) which provides the rendering context.
 // Takes attrs (*pikoVideoAttrs) which contains the poster settings.
 //
-// Returns string which is the transformed poster URL, or the original if no
-// transform is needed.
+// Returns string which is the transformed poster URL, or the original if no transform is
+// needed.
 func (ro *RenderOrchestrator) processExplicitPoster(rctx *renderContext, attrs *pikoVideoAttrs) string {
 	if !attrs.needsPosterTransform() {
 		return attrs.poster
@@ -325,8 +319,8 @@ func (ro *RenderOrchestrator) processExplicitPoster(rctx *renderContext, attrs *
 
 // extractPikoVideoAttrs extracts all piko:video attributes in a single pass.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to extract
-// attributes from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to extract attributes
+// from.
 //
 // Returns pikoVideoAttrs which holds the extracted video attributes.
 func extractPikoVideoAttrs(node *ast_domain.TemplateNode) pikoVideoAttrs {
@@ -338,8 +332,8 @@ func extractPikoVideoAttrs(node *ast_domain.TemplateNode) pikoVideoAttrs {
 	return result
 }
 
-// extractStaticPikoVideoAttrs fills result with values from static HTML
-// attributes on the node.
+// extractStaticPikoVideoAttrs fills result with values from static HTML attributes on the
+// node.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the attributes to read.
 // Takes result (*pikoVideoAttrs) which receives the extracted values.
@@ -350,36 +344,38 @@ func extractStaticPikoVideoAttrs(node *ast_domain.TemplateNode, result *pikoVide
 	}
 }
 
-// videoAttrSetters maps attribute names to setter functions
-// that assign values on pikoVideoAttrs.
-var videoAttrSetters = map[string]func(string, *pikoVideoAttrs){
-	attributeSrc:       func(v string, a *pikoVideoAttrs) { a.src = v },
-	"poster":           func(v string, a *pikoVideoAttrs) { a.poster = v },
-	"poster-widths":    func(v string, a *pikoVideoAttrs) { a.posterWidths = v },
-	"poster-width":     func(v string, a *pikoVideoAttrs) { a.posterWidths = v },
-	"poster-formats":   func(v string, a *pikoVideoAttrs) { a.posterFormats = v },
-	"poster-format":    func(v string, a *pikoVideoAttrs) { a.posterFormats = v },
-	"poster-densities": func(v string, a *pikoVideoAttrs) { a.posterDensities = v },
-	"poster-density":   func(v string, a *pikoVideoAttrs) { a.posterDensities = v },
-	"poster-sizes":     func(v string, a *pikoVideoAttrs) { a.posterSizes = v },
-	"thumbnail":        func(_ string, a *pikoVideoAttrs) { a.thumbnail = true },
-	"thumbnail-time":   func(v string, a *pikoVideoAttrs) { a.thumbnailTime = v },
-	"qualities":        func(v string, a *pikoVideoAttrs) { a.qualities = v },
-	"segment-duration": func(v string, a *pikoVideoAttrs) { a.segmentDuration = v },
-	"width":            func(v string, a *pikoVideoAttrs) { a.width = v },
-	"height":           func(v string, a *pikoVideoAttrs) { a.height = v },
-	"preload":          func(v string, a *pikoVideoAttrs) { a.preload = v },
-	"controls":         func(_ string, a *pikoVideoAttrs) { a.controls = true },
-	"autoplay":         func(_ string, a *pikoVideoAttrs) { a.autoplay = true },
-	"muted":            func(_ string, a *pikoVideoAttrs) { a.muted = true },
-	"loop":             func(_ string, a *pikoVideoAttrs) { a.loop = true },
-	"playsinline":      func(_ string, a *pikoVideoAttrs) { a.playsInline = true },
-}
+var (
+	// videoAttrSetters maps attribute names to setter functions that assign values on
+	// pikoVideoAttrs.
+	videoAttrSetters = map[string]func(string, *pikoVideoAttrs){
+		attributeSrc:       func(v string, a *pikoVideoAttrs) { a.src = v },
+		"poster":           func(v string, a *pikoVideoAttrs) { a.poster = v },
+		"poster-widths":    func(v string, a *pikoVideoAttrs) { a.posterWidths = v },
+		"poster-width":     func(v string, a *pikoVideoAttrs) { a.posterWidths = v },
+		"poster-formats":   func(v string, a *pikoVideoAttrs) { a.posterFormats = v },
+		"poster-format":    func(v string, a *pikoVideoAttrs) { a.posterFormats = v },
+		"poster-densities": func(v string, a *pikoVideoAttrs) { a.posterDensities = v },
+		"poster-density":   func(v string, a *pikoVideoAttrs) { a.posterDensities = v },
+		"poster-sizes":     func(v string, a *pikoVideoAttrs) { a.posterSizes = v },
+		"thumbnail":        func(_ string, a *pikoVideoAttrs) { a.thumbnail = true },
+		"thumbnail-time":   func(v string, a *pikoVideoAttrs) { a.thumbnailTime = v },
+		"qualities":        func(v string, a *pikoVideoAttrs) { a.qualities = v },
+		"segment-duration": func(v string, a *pikoVideoAttrs) { a.segmentDuration = v },
+		"width":            func(v string, a *pikoVideoAttrs) { a.width = v },
+		"height":           func(v string, a *pikoVideoAttrs) { a.height = v },
+		"preload":          func(v string, a *pikoVideoAttrs) { a.preload = v },
+		"controls":         func(_ string, a *pikoVideoAttrs) { a.controls = true },
+		"autoplay":         func(_ string, a *pikoVideoAttrs) { a.autoplay = true },
+		"muted":            func(_ string, a *pikoVideoAttrs) { a.muted = true },
+		"loop":             func(_ string, a *pikoVideoAttrs) { a.loop = true },
+		"playsinline":      func(_ string, a *pikoVideoAttrs) { a.playsInline = true },
+	}
+)
 
 // assignPikoVideoAttr sets a field in result based on the attribute name.
 //
-// The parser lowercases attribute names during parsing, so direct comparison
-// is used. Dispatches through the videoAttrSetters lookup table.
+// The parser lowercases attribute names during parsing, so direct comparison is used.
+// Dispatches through the videoAttrSetters lookup table.
 //
 // Takes name (string) which is the attribute name to match.
 // Takes value (string) which is the value to assign.
@@ -390,11 +386,11 @@ func assignPikoVideoAttr(name, value string, result *pikoVideoAttrs) {
 	}
 }
 
-// isPikoVideoSpecialAttr checks whether an attribute name is a special
-// piko:video attribute that should be removed from the output.
+// isPikoVideoSpecialAttr checks whether an attribute name is a special piko:video
+// attribute that should be removed from the output.
 //
-// Uses switch instead of map for faster lookup. Parser lowercases all
-// attribute names, so direct comparison is safe.
+// Uses switch instead of map for faster lookup. Parser lowercases all attribute names, so
+// direct comparison is safe.
 //
 // Takes name (string) which is the attribute name to check.
 //
@@ -415,10 +411,9 @@ func isPikoVideoSpecialAttr(name string) bool {
 // renderPikoVideo renders a <piko:video> component as a <video> tag with HLS.js
 // integration using the direct-to-writer pattern.
 //
-// Takes ro (*RenderOrchestrator) which provides asset registration and
-// element directive rendering.
-// Takes node (*ast_domain.TemplateNode) which is the piko:video element to
-// render.
+// Takes ro (*RenderOrchestrator) which provides asset registration and element directive
+// rendering.
+// Takes node (*ast_domain.TemplateNode) which is the piko:video element to render.
 // Takes qw (*qt.Writer) which is the quicktemplate writer for output.
 // Takes rctx (*renderContext) which provides rendering state and diagnostics.
 //
@@ -462,8 +457,8 @@ func renderPikoVideo(ro *RenderOrchestrator, node *ast_domain.TemplateNode, qw *
 	return nil
 }
 
-// handleMissingVideoSrc handles a piko:video tag that has no src attribute by
-// logging a warning and writing an error div to the output.
+// handleMissingVideoSrc handles a piko:video tag that has no src attribute by logging a
+// warning and writing an error div to the output.
 //
 // Takes attrs ([]ast_domain.HTMLAttribute) which contains the tag attributes.
 // Takes qw (*qt.Writer) which writes the error output.
@@ -477,14 +472,13 @@ func handleMissingVideoSrc(attrs []ast_domain.HTMLAttribute, qw *qt.Writer, rctx
 	writeErrorDiv(qw, userAttrs, "<!-- piko:video error: 'src' attribute is missing -->")
 }
 
-// extractVideoUserAttrs filters HTML attributes to keep only user-defined ones.
-// It excludes the src attribute and piko:video specific attributes.
+// extractVideoUserAttrs filters HTML attributes to keep only user-defined ones. It
+// excludes the src attribute and piko:video specific attributes.
 //
-// Takes attrs ([]ast_domain.HTMLAttribute) which contains the original
-// attributes to filter.
+// Takes attrs ([]ast_domain.HTMLAttribute) which contains the original attributes to
+// filter.
 //
-// Returns []ast_domain.HTMLAttribute which contains only the user-defined
-// attributes.
+// Returns []ast_domain.HTMLAttribute which contains only the user-defined attributes.
 func extractVideoUserAttrs(attrs []ast_domain.HTMLAttribute) []ast_domain.HTMLAttribute {
 	userAttrCount := 0
 	for i := range attrs {
@@ -644,8 +638,8 @@ func writeHLSScript(qw *qt.Writer, videoID, manifestURL string) {
 	qw.N().S(`</script>`)
 }
 
-// writePikoVideoStaticAttrsFiltered writes static attributes to the output,
-// skipping video-specific attributes and the src attribute.
+// writePikoVideoStaticAttrsFiltered writes static attributes to the output, skipping
+// video-specific attributes and the src attribute.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the attributes to write.
 // Takes qw (*qt.Writer) which is the output writer for the attributes.
@@ -669,8 +663,8 @@ func writePikoVideoStaticAttrsFiltered(node *ast_domain.TemplateNode, qw *qt.Wri
 	}
 }
 
-// isStandardVideoAttr reports whether the given attribute name is a standard
-// HTML video attribute that writeVideoElement handles directly.
+// isStandardVideoAttr reports whether the given attribute name is a standard HTML video
+// attribute that writeVideoElement handles directly.
 //
 // Takes name (string) which is the attribute name to check.
 //
@@ -696,8 +690,8 @@ func buildVideoCacheKey(src string, qualities []string, segmentDuration int) str
 // Takes qualities ([]string) which contains the quality level names.
 // Takes segmentDuration (int) which specifies the segment length in seconds.
 //
-// Returns []registry_dto.NamedProfile which contains the encoding profiles
-// for HLS video output.
+// Returns []registry_dto.NamedProfile which contains the encoding profiles for HLS video
+// output.
 func buildVideoDesiredProfiles(qualities []string, segmentDuration int) []registry_dto.NamedProfile {
 	profiles := make([]registry_dto.NamedProfile, 0, len(qualities))
 
@@ -736,12 +730,11 @@ func buildVideoDesiredProfiles(qualities []string, segmentDuration int) []regist
 	return profiles
 }
 
-// buildThumbnailURL builds a URL for a video thumbnail that is created
-// automatically.
+// buildThumbnailURL builds a URL for a video thumbnail that is created automatically.
 //
 // Takes videoPath (string) which is the path to the video source file.
-// Takes thumbnailTime (string) which is the time to extract the frame, or
-// empty to use the default.
+// Takes thumbnailTime (string) which is the time to extract the frame, or empty to use
+// the default.
 //
 // Returns string which is the thumbnail URL.
 func buildThumbnailURL(videoPath, thumbnailTime string) string {

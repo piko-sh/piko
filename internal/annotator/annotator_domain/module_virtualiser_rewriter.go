@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Rewrites Go AST nodes for virtual components by transforming package names,
-// import paths, and type references. Ensures virtual Go files have correct
-// package structures and import statements for successful type checking and
-// code generation.
+// Rewrites Go AST nodes for virtual components by transforming package names, import
+// paths, and type references. Ensures virtual Go files have correct package structures
+// and import statements for successful type checking and code generation.
 
 import (
 	"context"
@@ -42,24 +41,23 @@ type astRewriter struct {
 	// vCtx holds the context for virtualisation operations.
 	vCtx *virtualisationContext
 
-	// vc is the virtual component being rewritten.
+	// vc is the virtual component that the rewriter operates on.
 	vc *annotator_dto.VirtualComponent
 
 	// ast holds the parsed Go source file that will be rewritten.
 	ast *goast.File
 
-	// pikoAliasToHash maps user import aliases (e.g., "card") to hashed package
-	// names (e.g., "partials_card_abc123") for Piko imports. Used to rewrite
-	// references like card.FormatPrice() to partials_card_abc123.FormatPrice().
+	// pikoAliasToHash maps user import aliases (e.g., "card") to hashed package names (e.g.,
+	// "partials_card_abc123") for Piko imports. Used to rewrite references like
+	// card.FormatPrice() to partials_card_abc123.FormatPrice().
 	pikoAliasToHash map[string]string
 }
 
 // rewrite applies all changes to produce the final syntax tree.
 //
 // Returns *goast.File which is the rewritten syntax tree.
-// Returns []string which contains any Piko import aliases that are shadowed by
-// local variable declarations. The caller should emit diagnostic warnings for
-// these.
+// Returns []string which contains any Piko import aliases that are shadowed by local
+// variable declarations. The caller should emit diagnostic warnings for these.
 // Returns error when import rewriting fails.
 func (ar *astRewriter) rewrite(ctx context.Context) (*goast.File, []string, error) {
 	ar.rewritePackageName()
@@ -72,8 +70,7 @@ func (ar *astRewriter) rewrite(ctx context.Context) (*goast.File, []string, erro
 	return ar.ast, shadowedAliases, nil
 }
 
-// rewritePackageName updates the package name in the AST to use the hashed
-// name.
+// rewritePackageName updates the package name in the AST to use the hashed name.
 func (ar *astRewriter) rewritePackageName() {
 	if ar.ast.Name == nil {
 		ar.ast.Name = goast.NewIdent(ar.vc.HashedName)
@@ -81,14 +78,13 @@ func (ar *astRewriter) rewritePackageName() {
 	ar.ast.Name.Name = ar.vc.HashedName
 }
 
-// rewritePikoImportReferences walks the AST and rewrites all references to
-// Piko import aliases (e.g., card.FormatPrice) to use the hashed package name
-// instead (e.g., partials_card_abc123.FormatPrice). This prevents naming
-// clashes when different components in a partial chain use the same alias for
-// different imports.
+// rewritePikoImportReferences walks the AST and rewrites all references to Piko import
+// aliases (e.g., card.FormatPrice) to use the hashed package name instead (e.g.,
+// partials_card_abc123.FormatPrice). This prevents naming clashes when different
+// components in a partial chain use the same alias for different imports.
 //
-// Returns []string which contains alias names that are shadowed by local
-// variable declarations. The caller should emit diagnostic warnings for these.
+// Returns []string which contains alias names that are shadowed by local variable
+// declarations. The caller should emit diagnostic warnings for these.
 func (ar *astRewriter) rewritePikoImportReferences() []string {
 	if len(ar.pikoAliasToHash) == 0 {
 		return nil
@@ -114,8 +110,8 @@ func (ar *astRewriter) rewritePikoImportReferences() []string {
 	return shadowedAliases
 }
 
-// detectShadowedAliases walks the AST to find any local variable declarations
-// that shadow a Piko import alias.
+// detectShadowedAliases walks the AST to find any local variable declarations that shadow
+// a Piko import alias.
 //
 // Returns []string which contains the names of shadowed aliases.
 func (ar *astRewriter) detectShadowedAliases() []string {
@@ -136,8 +132,8 @@ func (ar *astRewriter) detectShadowedAliases() []string {
 // collectShadowedFromNode checks a single AST node for Piko alias shadowing.
 //
 // Takes n (goast.Node) which is the AST node to inspect.
-// Takes shadowedSet (map[string]bool) which collects identifiers that shadow
-// the Piko alias.
+// Takes shadowedSet (map[string]bool) which collects identifiers that shadow the Piko
+// alias.
 func (ar *astRewriter) collectShadowedFromNode(n goast.Node, shadowedSet map[string]bool) {
 	switch node := n.(type) {
 	case *goast.AssignStmt:
@@ -153,8 +149,7 @@ func (ar *astRewriter) collectShadowedFromNode(n goast.Node, shadowedSet map[str
 	}
 }
 
-// collectShadowedFromAssign checks short variable declarations
-// (card := something).
+// collectShadowedFromAssign checks short variable declarations (card := something).
 //
 // Takes node (*goast.AssignStmt) which is the assignment to check.
 // Takes shadowedSet (map[string]bool) which tracks shadowed identifiers.
@@ -169,8 +164,7 @@ func (ar *astRewriter) collectShadowedFromAssign(node *goast.AssignStmt, shadowe
 
 // collectShadowedFromValueSpec checks var declarations (var card = something).
 //
-// Takes node (*goast.ValueSpec) which contains the variable declaration to
-// check.
+// Takes node (*goast.ValueSpec) which contains the variable declaration to check.
 // Takes shadowedSet (map[string]bool) which tracks shadowed identifiers.
 func (ar *astRewriter) collectShadowedFromValueSpec(node *goast.ValueSpec, shadowedSet map[string]bool) {
 	for _, name := range node.Names {
@@ -178,8 +172,8 @@ func (ar *astRewriter) collectShadowedFromValueSpec(node *goast.ValueSpec, shado
 	}
 }
 
-// collectShadowedFromFuncDecl checks function parameters and named return
-// values for shadowed identifiers.
+// collectShadowedFromFuncDecl checks function parameters and named return values for
+// shadowed identifiers.
 //
 // Takes node (*goast.FuncDecl) which is the function declaration to inspect.
 // Takes shadowedSet (map[string]bool) which accumulates shadowed identifiers.
@@ -191,13 +185,10 @@ func (ar *astRewriter) collectShadowedFromFuncDecl(node *goast.FuncDecl, shadowe
 	ar.collectShadowedFromFieldList(node.Type.Results, shadowedSet)
 }
 
-// collectShadowedFromFieldList checks a field list (params or results) for
-// shadowing.
+// collectShadowedFromFieldList checks a field list (params or results) for shadowing.
 //
-// Takes fields (*goast.FieldList) which contains the parameters or results to
-// check.
-// Takes shadowedSet (map[string]bool) which tracks identifiers that shadow
-// piko aliases.
+// Takes fields (*goast.FieldList) which contains the parameters or results to check.
+// Takes shadowedSet (map[string]bool) which tracks identifiers that shadow piko aliases.
 func (ar *astRewriter) collectShadowedFromFieldList(fields *goast.FieldList, shadowedSet map[string]bool) {
 	if fields == nil {
 		return
@@ -209,8 +200,7 @@ func (ar *astRewriter) collectShadowedFromFieldList(fields *goast.FieldList, sha
 	}
 }
 
-// collectShadowedFromRangeStmt checks range loop variables
-// (for card := range items).
+// collectShadowedFromRangeStmt checks range loop variables (for card := range items).
 //
 // Takes node (*goast.RangeStmt) which is the range statement to check.
 // Takes shadowedSet (map[string]bool) which tracks shadowed identifiers.
@@ -219,8 +209,7 @@ func (ar *astRewriter) collectShadowedFromRangeStmt(node *goast.RangeStmt, shado
 	ar.markIfPikoAlias(node.Value, shadowedSet)
 }
 
-// collectShadowedFromForStmt checks for loop init statements (for card := 0;
-// ...).
+// collectShadowedFromForStmt checks for loop init statements (for card := 0; ...).
 //
 // Takes node (*goast.ForStmt) which is the for statement to inspect.
 // Takes shadowedSet (map[string]bool) which collects shadowed variable names.
@@ -234,8 +223,8 @@ func (ar *astRewriter) collectShadowedFromForStmt(node *goast.ForStmt, shadowedS
 	}
 }
 
-// markIfPikoAlias marks the expression as shadowed if it is an identifier
-// that is a Piko alias.
+// markIfPikoAlias marks the expression as shadowed if it is an identifier that is a Piko
+// alias.
 //
 // Takes expression (goast.Expr) which is the expression to check.
 // Takes shadowedSet (map[string]bool) which tracks shadowed identifiers.
@@ -257,10 +246,10 @@ func (ar *astRewriter) markIdentIfPikoAlias(identifier *goast.Ident, shadowedSet
 
 // rebuildDecls rebuilds the AST declarations with the given imports.
 //
-// Takes finalImports (map[string]*goast.ImportSpec) which holds the imports
-// to include in the rebuilt AST.
-// Takes useDecls ([]goast.Decl) which provides extra declarations to add
-// before the existing ones.
+// Takes finalImports (map[string]*goast.ImportSpec) which holds the imports to include in
+// the rebuilt AST.
+// Takes useDecls ([]goast.Decl) which provides extra declarations to add before the
+// existing ones.
 func (ar *astRewriter) rebuildDecls(finalImports map[string]*goast.ImportSpec, useDecls []goast.Decl) {
 	ar.ast.Imports = nil
 	finalDecls := make([]goast.Decl, 0, len(ar.ast.Decls))
@@ -279,15 +268,15 @@ func (ar *astRewriter) rebuildDecls(finalImports map[string]*goast.ImportSpec, u
 	}
 }
 
-// resolvePikoImport resolves a .pk import path to its canonical Go package
-// path and hashed package name by looking up the component graph.
+// resolvePikoImport resolves a .pk import path to its canonical Go package path and
+// hashed package name by looking up the component graph.
 //
 // Takes importPath (string) which is the .pk import path to resolve.
 //
 // Returns canonicalPath (string) which is the resolved Go package path.
 // Returns hashedName (string) which is the hashed component package name.
-// Returns err (error) when the import path cannot be resolved or the
-// component is not found in the graph.
+// Returns err (error) when the import path cannot be resolved or the component is not
+// found in the graph.
 func (ar *astRewriter) resolvePikoImport(ctx context.Context, importPath string) (canonicalPath, hashedName string, err error) {
 	resolvedPath, err := ar.vCtx.resolver.ResolvePKPath(ctx, importPath, ar.vc.Source.SourcePath)
 	if err != nil {
@@ -306,11 +295,11 @@ func (ar *astRewriter) resolvePikoImport(ctx context.Context, importPath string)
 
 // rewriteImports is the core of the virtualisation logic.
 //
-// It rewrites all Piko component imports (.pk) to their canonical Go package
-// paths. For standard Go packages that are only used in the template (not in
-// the script), it keeps the named import for the TypeInspector while also
-// injecting a "use" declaration (e.g., `var _ = alias.Member`) to prevent
-// "imported and not used" errors from the Go toolchain.
+// It rewrites all Piko component imports (.pk) to their canonical Go package paths. For
+// standard Go packages that are only used in the template (not in the script), it keeps
+// the named import for the TypeInspector while also injecting a "use" declaration (e.g.,
+// `var _ = alias.Member`) to prevent "imported and not used" errors from the Go
+// toolchain.
 //
 // Returns map[string]*goast.ImportSpec which contains the final import map.
 // Returns []goast.Decl which contains the generated use declarations.
@@ -335,18 +324,17 @@ func (ar *astRewriter) rewriteImports(ctx context.Context) (map[string]*goast.Im
 
 // templateMemberInfo tracks how a member is used in a template.
 type templateMemberInfo struct {
-	// isCall indicates whether the member is used as a function call. When true,
-	// no use declaration is created because referencing a generic function without
-	// instantiation is not valid Go.
+	// isCall indicates whether the member is used as a function call. When true, no use
+	// declaration is created because referencing a generic function without instantiation is
+	// not valid Go.
 	isCall bool
 }
 
-// discoverTemplateUses finds all package aliases and the members accessed
-// through each alias in the template.
+// discoverTemplateUses finds all package aliases and the members accessed through each
+// alias in the template.
 //
-// Returns map[string]map[string]templateMemberInfo which maps each alias name
-// to the set of member names used with that alias, along with how they are
-// used.
+// Returns map[string]map[string]templateMemberInfo which maps each alias name to the set
+// of member names used with that alias, along with how they are used.
 func (ar *astRewriter) discoverTemplateUses() map[string]map[string]templateMemberInfo {
 	templatePackageUses := make(map[string]map[string]templateMemberInfo)
 	if ar.vc.Source.Template == nil {
@@ -366,8 +354,8 @@ func (ar *astRewriter) discoverTemplateUses() map[string]map[string]templateMemb
 // recordExpressionUsage records package usage for a single expression.
 //
 // Takes expression (ast_domain.Expression) which is the expression to analyse.
-// Takes uses (map[string]map[string]templateMemberInfo) which collects
-// package member usage.
+// Takes uses (map[string]map[string]templateMemberInfo) which collects package member
+// usage.
 func (*astRewriter) recordExpressionUsage(expression ast_domain.Expression, uses map[string]map[string]templateMemberInfo) {
 	rootIdent, memberName, isCall := getModuleRootAndMemberWithCallInfo(expression)
 	if rootIdent == nil {
@@ -405,17 +393,14 @@ func (ar *astRewriter) discoverScriptUses() map[string]bool {
 	return scriptUses
 }
 
-// processOriginalImports checks each original import and decides whether to
-// keep it.
+// processOriginalImports checks each original import and decides whether to keep it.
 //
-// Takes templatePackageUses (map[string]map[string]templateMemberInfo) which
-// tracks package usage in templates.
-// Takes scriptUses (map[string]bool) which shows which packages are used in
-// scripts.
-// Takes finalImports (map[string]*goast.ImportSpec) which collects the imports
-// to keep.
-// Takes useDecls (*[]goast.Decl) which gathers use declarations for imports
-// that are only used in templates.
+// Takes templatePackageUses (map[string]map[string]templateMemberInfo) which tracks
+// package usage in templates.
+// Takes scriptUses (map[string]bool) which shows which packages are used in scripts.
+// Takes finalImports (map[string]*goast.ImportSpec) which collects the imports to keep.
+// Takes useDecls (*[]goast.Decl) which gathers use declarations for imports that are only
+// used in templates.
 //
 // Returns error when an import path cannot be resolved.
 func (ar *astRewriter) processOriginalImports(
@@ -459,16 +444,15 @@ func (ar *astRewriter) processOriginalImports(
 	return nil
 }
 
-// handleSideEffectImport processes side-effect imports like `import _ "..."`
-// in templates.
+// handleSideEffectImport processes side-effect imports like `import _ "..."` in
+// templates.
 //
 // Takes alias (string) which is the import alias, usually "_".
 // Takes path (string) which is the import path.
 // Takes isPikoImport (bool) which indicates if this is a Piko import.
-// Takes templatePackageUses (map[string]map[string]templateMemberInfo) which
-// tracks package usage in templates.
-// Takes isUsedInTemplate (bool) which indicates if the import is used in a
-// template.
+// Takes templatePackageUses (map[string]map[string]templateMemberInfo) which tracks
+// package usage in templates.
+// Takes isUsedInTemplate (bool) which indicates if the import is used in a template.
 //
 // Returns string which is the resolved import alias.
 // Returns bool which indicates if the import is used in a template.
@@ -497,13 +481,12 @@ func (*astRewriter) handleSideEffectImport(
 //
 // Takes path (string) which is the import path to resolve.
 // Takes alias (string) which is the import alias used in the source.
-// Takes isPikoImport (bool) which indicates whether this is a Piko
-// component import (.pk suffix).
+// Takes isPikoImport (bool) which indicates whether this is a Piko component import (.pk
+// suffix).
 //
-// Returns canonicalPath (string) which is the resolved canonical Go
-// package path.
-// Returns targetName (string) which is the hashed package name for Piko
-// imports, or the alias for standard Go imports.
+// Returns canonicalPath (string) which is the resolved canonical Go package path.
+// Returns targetName (string) which is the hashed package name for Piko imports, or the
+// alias for standard Go imports.
 // Returns err (error) when a Piko import cannot be resolved.
 func (ar *astRewriter) resolveImportPath(ctx context.Context, path, alias string, isPikoImport bool) (canonicalPath, targetName string, err error) {
 	if isPikoImport {
@@ -512,17 +495,17 @@ func (ar *astRewriter) resolveImportPath(ctx context.Context, path, alias string
 	return path, alias, nil
 }
 
-// maybeAddTemplateOnlyUseDecl adds a use declaration when a package is only
-// used in the template and not in the script.
+// maybeAddTemplateOnlyUseDecl adds a use declaration when a package is only used in the
+// template and not in the script.
 //
 // Takes alias (string) which specifies the package alias to check.
 // Takes isPikoImport (bool) which indicates if this is a Piko framework import.
-// Takes isUsedInScript (bool) which indicates if the package is used in the
-// script section.
-// Takes isUsedInTemplate (bool) which indicates if the package is used in the
-// template section.
-// Takes templatePackageUses (map[string]map[string]templateMemberInfo) which
-// maps package aliases to the members they use.
+// Takes isUsedInScript (bool) which indicates if the package is used in the script
+// section.
+// Takes isUsedInTemplate (bool) which indicates if the package is used in the template
+// section.
+// Takes templatePackageUses (map[string]map[string]templateMemberInfo) which maps package
+// aliases to the members they use.
 // Takes useDecls (*[]goast.Decl) which collects the generated use declarations.
 func (*astRewriter) maybeAddTemplateOnlyUseDecl(
 	alias string,
@@ -556,13 +539,11 @@ func (*astRewriter) maybeAddTemplateOnlyUseDecl(
 	}
 }
 
-// processCommentOnlyPikoImports handles Piko imports that appear only in
-// comments.
+// processCommentOnlyPikoImports handles Piko imports that appear only in comments.
 //
-// Takes finalImports (map[string]*goast.ImportSpec) which collects the import
-// specs to include in the output.
-// Takes useDecls (*[]goast.Decl) which collects use declarations for the
-// imports.
+// Takes finalImports (map[string]*goast.ImportSpec) which collects the import specs to
+// include in the output.
+// Takes useDecls (*[]goast.Decl) which collects use declarations for the imports.
 //
 // Returns error when a Piko import path cannot be resolved.
 func (ar *astRewriter) processCommentOnlyPikoImports(
@@ -595,8 +576,7 @@ func (ar *astRewriter) processCommentOnlyPikoImports(
 // newASTRewriter creates a new AST rewriter for the given virtual component.
 //
 // Takes vCtx (*virtualisationContext) which provides the virtualisation state.
-// Takes vc (*annotator_dto.VirtualComponent) which specifies the component to
-// rewrite.
+// Takes vc (*annotator_dto.VirtualComponent) which specifies the component to rewrite.
 //
 // Returns *astRewriter which holds a deep copy of the component's AST.
 func newASTRewriter(vCtx *virtualisationContext, vc *annotator_dto.VirtualComponent) *astRewriter {
@@ -608,16 +588,15 @@ func newASTRewriter(vCtx *virtualisationContext, vc *annotator_dto.VirtualCompon
 	}
 }
 
-// deepCopyASTFile creates a full copy of an AST file by printing it to text
-// and parsing it again.
+// deepCopyASTFile creates a full copy of an AST file by printing it to text and parsing
+// it again.
 //
 // Takes original (*goast.File) which is the AST file to copy.
 //
-// Returns *goast.File which is a separate copy that does not share data with
-// the original.
+// Returns *goast.File which is a separate copy that does not share data with the
+// original.
 //
-// Panics if the AST cannot be printed or parsed. This indicates an internal
-// error.
+// Panics if the AST cannot be printed or parsed. This indicates an internal error.
 func deepCopyASTFile(original *goast.File) *goast.File {
 	if original == nil {
 		return nil
@@ -635,14 +614,13 @@ func deepCopyASTFile(original *goast.File) *goast.File {
 	return newFile
 }
 
-// createUseDecl creates a variable declaration AST node that references a
-// package member.
+// createUseDecl creates a variable declaration AST node that references a package member.
 //
 // Takes alias (string) which is the package alias or import name.
 // Takes member (string) which is the exported symbol to reference.
 //
-// Returns goast.Decl which is the declaration node, or nil if the alias is
-// empty, blank, dot, or if the member is empty.
+// Returns goast.Decl which is the declaration node, or nil if the alias is empty, blank,
+// dot, or if the member is empty.
 func createUseDecl(alias, member string) goast.Decl {
 	if alias == "" || alias == "_" || alias == "." || member == "" {
 		return nil
@@ -660,8 +638,7 @@ func createUseDecl(alias, member string) goast.Decl {
 
 // buildImportDecl creates an import declaration from the given import specs.
 //
-// Takes imports (map[string]*goast.ImportSpec) which maps import paths to
-// their specs.
+// Takes imports (map[string]*goast.ImportSpec) which maps import paths to their specs.
 //
 // Returns *goast.GenDecl which contains the import specs sorted by path.
 func buildImportDecl(imports map[string]*goast.ImportSpec) *goast.GenDecl {
@@ -684,8 +661,8 @@ func buildImportDecl(imports map[string]*goast.ImportSpec) *goast.GenDecl {
 //
 // Takes spec (*goast.ImportSpec) which is the import to extract the alias from.
 //
-// Returns string which is the explicit alias if set, or the last part of
-// the import path if no alias is given.
+// Returns string which is the explicit alias if set, or the last part of the import path
+// if no alias is given.
 func getAliasFromSpec(spec *goast.ImportSpec) string {
 	if spec.Name != nil {
 		return spec.Name.Name
@@ -697,8 +674,8 @@ func getAliasFromSpec(spec *goast.ImportSpec) string {
 	return path
 }
 
-// walkModuleNodeExpressions walks a template node and calls the visit function
-// for each expression found in directives and attributes.
+// walkModuleNodeExpressions walks a template node and calls the visit function for each
+// expression found in directives and attributes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to walk.
 // Takes visit (func(...)) which is called for each expression found.
@@ -725,8 +702,8 @@ func walkModuleNodeExpressions(node *ast_domain.TemplateNode, visit func(ast_dom
 	visitBindExprs(node.Binds, visit)
 }
 
-// visitDirectiveExpr calls the visit function with the expression from a
-// directive if both the directive and its expression are not nil.
+// visitDirectiveExpr calls the visit function with the expression from a directive if
+// both the directive and its expression are not nil.
 //
 // Takes directive (*ast_domain.Directive) which is the directive to check.
 // Takes visit (func(...)) which is called with the expression if present.
@@ -736,11 +713,11 @@ func visitDirectiveExpr(directive *ast_domain.Directive, visit func(ast_domain.E
 	}
 }
 
-// visitDynamicAttrExprs calls a visitor function on each expression in the
-// given dynamic attributes.
+// visitDynamicAttrExprs calls a visitor function on each expression in the given dynamic
+// attributes.
 //
-// Takes attrs ([]ast_domain.DynamicAttribute) which contains the dynamic
-// attributes to process.
+// Takes attrs ([]ast_domain.DynamicAttribute) which contains the dynamic attributes to
+// process.
 // Takes visit (func(...)) which is called for each expression that is not nil.
 func visitDynamicAttrExprs(attrs []ast_domain.DynamicAttribute, visit func(ast_domain.Expression)) {
 	for i := range attrs {
@@ -750,12 +727,11 @@ func visitDynamicAttrExprs(attrs []ast_domain.DynamicAttribute, visit func(ast_d
 	}
 }
 
-// visitRichTextExprs calls the visitor function for each expression found in
-// the given rich text parts.
+// visitRichTextExprs calls the visitor function for each expression found in the given
+// rich text parts.
 //
 // Takes parts ([]ast_domain.TextPart) which contains the text parts to scan.
-// Takes visit (func(...)) which is called for each expression that is not a
-// literal.
+// Takes visit (func(...)) which is called for each expression that is not a literal.
 func visitRichTextExprs(parts []ast_domain.TextPart, visit func(ast_domain.Expression)) {
 	for i := range parts {
 		if !parts[i].IsLiteral && parts[i].Expression != nil {
@@ -764,11 +740,11 @@ func visitRichTextExprs(parts []ast_domain.TextPart, visit func(ast_domain.Expre
 	}
 }
 
-// visitEventExprs calls the visit function for each expression found in the
-// event directives.
+// visitEventExprs calls the visit function for each expression found in the event
+// directives.
 //
-// Takes eventMaps (map[string][]ast_domain.Directive) which contains event
-// directives grouped by event type.
+// Takes eventMaps (map[string][]ast_domain.Directive) which contains event directives
+// grouped by event type.
 // Takes visit (func(...)) which is called for each expression that is not nil.
 func visitEventExprs(eventMaps map[string][]ast_domain.Directive, visit func(ast_domain.Expression)) {
 	for _, events := range eventMaps {
@@ -780,11 +756,11 @@ func visitEventExprs(eventMaps map[string][]ast_domain.Directive, visit func(ast
 	}
 }
 
-// visitBindExprs calls the visit function on each expression found in the
-// given bind directives, skipping any nil directives or expressions.
+// visitBindExprs calls the visit function on each expression found in the given bind
+// directives, skipping any nil directives or expressions.
 //
-// Takes binds (map[string]*ast_domain.Directive) which contains the bind
-// directives to process.
+// Takes binds (map[string]*ast_domain.Directive) which contains the bind directives to
+// process.
 // Takes visit (func(...)) which is called for each non-nil expression.
 func visitBindExprs(binds map[string]*ast_domain.Directive, visit func(ast_domain.Expression)) {
 	for _, bind := range binds {

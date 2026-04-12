@@ -35,12 +35,12 @@ const (
 
 // TranscodeSpec defines the settings for a video transcoding operation.
 type TranscodeSpec struct {
-	// CRF is the Constant Rate Factor for video encoding quality.
-	// Valid range is 0-51; lower values give better quality.
+	// CRF is the Constant Rate Factor for video encoding quality. Valid range is 0-51; lower
+	// values give better quality.
 	CRF *int `json:"crf,omitempty"`
 
-	// SegmentDuration is the number of seconds per segment for HLS or DASH output.
-	// A nil value uses the default; must be positive if set.
+	// SegmentDuration is the number of seconds per segment for HLS or DASH output. A nil
+	// value uses the default; must be positive if set.
 	SegmentDuration *int `json:"segmentDuration,omitempty"`
 
 	// Format specifies the container format (mp4, webm, mkv); empty uses InferFormat.
@@ -80,8 +80,8 @@ type TranscodeSpec struct {
 	Width int `json:"width,omitempty"`
 }
 
-// InferFormat infers the output format from the codec if not explicitly set.
-// Defaults to mp4 for h264/h265 and unknown codecs; uses webm for vp9/av1.
+// InferFormat infers the output format from the codec if not explicitly set. Defaults to
+// mp4 for h264/h265 and unknown codecs; uses webm for vp9/av1.
 //
 // Returns string which is the format to use for transcoding output.
 func (s *TranscodeSpec) InferFormat() string {
@@ -97,9 +97,8 @@ func (s *TranscodeSpec) InferFormat() string {
 	}
 }
 
-// InferAudioCodec infers the audio codec from the output format if not
-// explicitly set. Uses opus for webm/mkv formats; defaults to aac for mp4 and
-// other formats.
+// InferAudioCodec infers the audio codec from the output format if not explicitly set.
+// Uses opus for webm/mkv formats; defaults to aac for mp4 and other formats.
 //
 // Returns string which is the audio codec to use.
 func (s *TranscodeSpec) InferAudioCodec() string {
@@ -137,8 +136,7 @@ var (
 
 // Validate checks the transcode specification.
 //
-// Returns error when the codec, dimensions, rates, or encoding options are
-// invalid.
+// Returns error when the codec, dimensions, rates, or encoding options are invalid.
 func (s *TranscodeSpec) Validate() error {
 	if err := s.validateCodec(); err != nil {
 		return fmt.Errorf("validating transcode spec codec: %w", err)
@@ -191,8 +189,8 @@ func (s *TranscodeSpec) validateRates() error {
 	return nil
 }
 
-// validateEncodingOptions checks that CRF, preset, and segment duration values
-// are within valid ranges.
+// validateEncodingOptions checks that CRF, preset, and segment duration values are within
+// valid ranges.
 //
 // Returns error when any encoding option is out of range or unsupported.
 func (s *TranscodeSpec) validateEncodingOptions() error {
@@ -208,9 +206,8 @@ func (s *TranscodeSpec) validateEncodingOptions() error {
 	return nil
 }
 
-// ParseTranscodeSpec parses capability parameters into a TranscodeSpec.
-// The parameters are expected in the format used by the orchestrator
-// capability system.
+// ParseTranscodeSpec parses capability parameters into a TranscodeSpec. The parameters
+// are expected in the format used by the orchestrator capability system.
 //
 // Takes params (map[string]string) which contains the transcode parameters.
 //
@@ -324,14 +321,13 @@ func parseFloatParam(params map[string]string, key string) (float64, error) {
 	return result, nil
 }
 
-// parseLowerStringParam retrieves a string value from a map and converts it
-// to lowercase.
+// parseLowerStringParam retrieves a string value from a map and converts it to lowercase.
 //
 // Takes params (map[string]string) which holds the parameter values to search.
 // Takes key (string) which is the name of the parameter to find.
 //
-// Returns string which is the lowercase value, or empty if the key is missing
-// or has an empty value.
+// Returns string which is the lowercase value, or empty if the key is missing or has an
+// empty value.
 func parseLowerStringParam(params map[string]string, key string) string {
 	if value, ok := params[key]; ok && value != "" {
 		return strings.ToLower(value)

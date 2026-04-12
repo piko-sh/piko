@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestMockInterpretedOrchestrator_BuildRunner(t *testing.T) {
 		runner, err := m.BuildRunner(context.Background(), &annotator_dto.ProjectAnnotationResult{})
 		assert.NoError(t, err)
 		assert.Nil(t, runner)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.BuildRunnerCallCount))
+		assert.Equal(t, int64(1), m.BuildRunnerCallCount.Load())
 	})
 
 	t.Run("delegates to BuildRunnerFunc", func(t *testing.T) {
@@ -62,7 +61,7 @@ func TestMockInterpretedOrchestrator_BuildRunner(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, runner)
 		assert.Same(t, expectedResult, receivedResult)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.BuildRunnerCallCount))
+		assert.Equal(t, int64(1), m.BuildRunnerCallCount.Load())
 	})
 
 	t.Run("propagates error from BuildRunnerFunc", func(t *testing.T) {
@@ -78,7 +77,7 @@ func TestMockInterpretedOrchestrator_BuildRunner(t *testing.T) {
 		runner, err := m.BuildRunner(context.Background(), &annotator_dto.ProjectAnnotationResult{})
 		assert.Nil(t, runner)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.BuildRunnerCallCount))
+		assert.Equal(t, int64(1), m.BuildRunnerCallCount.Load())
 	})
 }
 
@@ -92,7 +91,7 @@ func TestMockInterpretedOrchestrator_MarkDirty(t *testing.T) {
 
 		err := m.MarkDirty(context.Background(), &annotator_dto.ProjectAnnotationResult{})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.MarkDirtyCallCount))
+		assert.Equal(t, int64(1), m.MarkDirtyCallCount.Load())
 	})
 
 	t.Run("delegates to MarkDirtyFunc", func(t *testing.T) {
@@ -111,7 +110,7 @@ func TestMockInterpretedOrchestrator_MarkDirty(t *testing.T) {
 		err := m.MarkDirty(context.Background(), expectedResult)
 		assert.NoError(t, err)
 		assert.Same(t, expectedResult, receivedResult)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.MarkDirtyCallCount))
+		assert.Equal(t, int64(1), m.MarkDirtyCallCount.Load())
 	})
 
 	t.Run("propagates error from MarkDirtyFunc", func(t *testing.T) {
@@ -126,7 +125,7 @@ func TestMockInterpretedOrchestrator_MarkDirty(t *testing.T) {
 
 		err := m.MarkDirty(context.Background(), &annotator_dto.ProjectAnnotationResult{})
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.MarkDirtyCallCount))
+		assert.Equal(t, int64(1), m.MarkDirtyCallCount.Load())
 	})
 }
 
@@ -140,7 +139,7 @@ func TestMockInterpretedOrchestrator_IsInitialised(t *testing.T) {
 
 		result := m.IsInitialised()
 		assert.False(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.IsInitialisedCallCount))
+		assert.Equal(t, int64(1), m.IsInitialisedCallCount.Load())
 	})
 
 	t.Run("delegates to IsInitialisedFunc returning true", func(t *testing.T) {
@@ -154,7 +153,7 @@ func TestMockInterpretedOrchestrator_IsInitialised(t *testing.T) {
 
 		result := m.IsInitialised()
 		assert.True(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.IsInitialisedCallCount))
+		assert.Equal(t, int64(1), m.IsInitialisedCallCount.Load())
 	})
 
 	t.Run("delegates to IsInitialisedFunc returning false", func(t *testing.T) {
@@ -168,7 +167,7 @@ func TestMockInterpretedOrchestrator_IsInitialised(t *testing.T) {
 
 		result := m.IsInitialised()
 		assert.False(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.IsInitialisedCallCount))
+		assert.Equal(t, int64(1), m.IsInitialisedCallCount.Load())
 	})
 }
 
@@ -187,9 +186,9 @@ func TestMockInterpretedOrchestrator_ZeroValueIsUsable(t *testing.T) {
 	initialised := m.IsInitialised()
 	assert.False(t, initialised)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.BuildRunnerCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.MarkDirtyCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.IsInitialisedCallCount))
+	assert.Equal(t, int64(1), m.BuildRunnerCallCount.Load())
+	assert.Equal(t, int64(1), m.MarkDirtyCallCount.Load())
+	assert.Equal(t, int64(1), m.IsInitialisedCallCount.Load())
 }
 
 func TestMockInterpretedOrchestrator_ConcurrentAccess(t *testing.T) {
@@ -229,7 +228,7 @@ func TestMockInterpretedOrchestrator_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.BuildRunnerCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.MarkDirtyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.IsInitialisedCallCount))
+	assert.Equal(t, int64(goroutines), m.BuildRunnerCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.MarkDirtyCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.IsInitialisedCallCount.Load())
 }

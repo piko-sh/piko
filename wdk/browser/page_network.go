@@ -25,11 +25,11 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
 )
 
-// WaitForNetworkIdle waits until no network requests have been made for the
-// specified duration.
+// WaitForNetworkIdle waits until no network requests have been made for the specified
+// duration.
 //
-// Takes idleDuration (time.Duration) which specifies how long the network must
-// be idle before returning.
+// Takes idleDuration (time.Duration) which specifies how long the network must be idle
+// before returning.
 // Takes opts (...WaitOption) which provides optional behaviour controls.
 //
 // Returns *Page which allows method chaining.
@@ -52,9 +52,8 @@ func (p *Page) WaitForNetworkIdle(idleDuration time.Duration, opts ...WaitOption
 
 // CheckRequestMade checks if a request matching the criteria was made.
 //
-// Takes matcher (browser_provider_chromedp.RequestMatcher) which specifies the
-// criteria to match
-// against recorded requests.
+// Takes matcher (browser_provider_chromedp.RequestMatcher) which specifies the criteria
+// to match against recorded requests.
 //
 // Returns bool which is true if a matching request was found.
 func (p *Page) CheckRequestMade(matcher browser_provider_chromedp.RequestMatcher) bool {
@@ -67,14 +66,11 @@ func (p *Page) CheckRequestMade(matcher browser_provider_chromedp.RequestMatcher
 
 // WaitForRequest waits for a request matching the criteria to be made.
 //
-// Takes matcher (browser_provider_chromedp.RequestMatcher) which specifies the
-// criteria for
-// matching requests.
-// Takes opts (...WaitOption) which provides optional configuration such as
-// timeout.
+// Takes matcher (browser_provider_chromedp.RequestMatcher) which specifies the criteria
+// for matching requests.
+// Takes opts (...WaitOption) which provides optional configuration such as timeout.
 //
-// Returns *browser_provider_chromedp.NetworkRequest which is the matched
-// network request.
+// Returns *browser_provider_chromedp.NetworkRequest which is the matched network request.
 func (p *Page) WaitForRequest(matcher browser_provider_chromedp.RequestMatcher, opts ...WaitOption) *browser_provider_chromedp.NetworkRequest {
 	config := defaultWaitConfig()
 	for _, opt := range opts {
@@ -94,8 +90,8 @@ func (p *Page) WaitForRequest(matcher browser_provider_chromedp.RequestMatcher, 
 // InterceptRequest sets up a request interceptor to mock responses.
 //
 // Takes urlPattern (string) which specifies the URL pattern to intercept.
-// Takes response (browser_provider_chromedp.MockResponse) which provides the
-// mocked response.
+// Takes response (browser_provider_chromedp.MockResponse) which provides the mocked
+// response.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) InterceptRequest(urlPattern string, response browser_provider_chromedp.MockResponse) *Page {
@@ -111,8 +107,7 @@ func (p *Page) InterceptRequest(urlPattern string, response browser_provider_chr
 
 // RemoveRequestIntercept stops intercepting requests that match a URL pattern.
 //
-// Takes urlPattern (string) which specifies the URL pattern to stop
-// intercepting.
+// Takes urlPattern (string) which specifies the URL pattern to stop intercepting.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) RemoveRequestIntercept(urlPattern string) *Page {
@@ -140,12 +135,11 @@ func (p *Page) ClearRequestIntercepts() *Page {
 	return p
 }
 
-// SetExtraHTTPHeaders sets additional HTTP headers that will be sent with all
-// requests. These headers are added to all subsequent requests until cleared
-// or changed.
+// SetExtraHTTPHeaders sets additional HTTP headers that will be sent with all requests.
+// These headers are added to all subsequent requests until cleared or changed.
 //
-// Takes headers (map[string]string) which contains the header names and values
-// to include in requests.
+// Takes headers (map[string]string) which contains the header names and values to include
+// in requests.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) SetExtraHTTPHeaders(headers map[string]string) *Page {
@@ -159,8 +153,8 @@ func (p *Page) SetExtraHTTPHeaders(headers map[string]string) *Page {
 	return p
 }
 
-// SetAuthorisationHeader sets a Bearer token in the Authorisation header for
-// all requests.
+// SetAuthorisationHeader sets a Bearer token in the Authorisation header for all
+// requests.
 //
 // Takes token (string) which is the Bearer token value.
 //
@@ -222,8 +216,8 @@ func (p *Page) ClearExtraHTTPHeaders() *Page {
 	return p
 }
 
-// SetAcceptLanguageHeader sets the Accept-Language header for all requests.
-// Useful for testing localisation.
+// SetAcceptLanguageHeader sets the Accept-Language header for all requests. Useful for
+// testing localisation.
 //
 // Takes language (string) which specifies the language preference to send.
 //
@@ -257,9 +251,8 @@ func (p *Page) SetCustomHeader(name, value string) *Page {
 	return p
 }
 
-// GetResponseHeaders returns limited response headers from the current
-// document. Full headers require network monitoring; this returns basic
-// document info.
+// GetResponseHeaders returns limited response headers from the current document. Full
+// headers require network monitoring; this returns basic document info.
 //
 // Returns map[string]string which contains the available response headers.
 func (p *Page) GetResponseHeaders() map[string]string {
@@ -272,8 +265,8 @@ func (p *Page) GetResponseHeaders() map[string]string {
 
 // SetupDialogAutoAccept sets up automatic acceptance of all dialogues.
 //
-// Takes promptText (string) which specifies the text to use when accepting
-// prompt dialogues.
+// Takes promptText (string) which specifies the text to use when accepting prompt
+// dialogues.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) SetupDialogAutoAccept(promptText string) *Page {

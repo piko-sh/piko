@@ -24,13 +24,13 @@ import (
 	"strings"
 )
 
-// IsPortInUseError checks whether an error indicates that a network port is
-// already in use.
+// IsPortInUseError checks whether an error indicates that a network port is already in
+// use.
 //
 // Takes err (error) which is the error to check.
 //
-// Returns bool which is true if the error wraps a *net.OpError whose inner
-// error message contains "address already in use".
+// Returns bool which is true if the error wraps a *net.OpError whose inner error message
+// contains "address already in use".
 func IsPortInUseError(err error) bool {
 	opErr, ok := errors.AsType[*net.OpError](err)
 	if !ok {

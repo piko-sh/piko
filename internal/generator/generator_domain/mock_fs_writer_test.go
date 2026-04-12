@@ -24,7 +24,6 @@ import (
 	"io/fs"
 	"os"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,19 +37,16 @@ func TestMockFSWriter_WriteFile(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockFSWriter{
-			WriteFileFunc:      nil,
-			ReadDirFunc:        nil,
-			RemoveAllFunc:      nil,
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
+			WriteFileFunc: nil,
+			ReadDirFunc:   nil,
+			RemoveAllFunc: nil,
 		}
 
 		ctx := context.Background()
 		err := mock.WriteFile(ctx, "/tmp/out.go", []byte("package main"))
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WriteFileCallCount))
+		assert.Equal(t, int64(1), mock.WriteFileCallCount.Load())
 	})
 
 	t.Run("delegates to WriteFileFunc", func(t *testing.T) {
@@ -63,11 +59,8 @@ func TestMockFSWriter_WriteFile(t *testing.T) {
 				called = true
 				return nil
 			},
-			ReadDirFunc:        nil,
-			RemoveAllFunc:      nil,
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
+			ReadDirFunc:   nil,
+			RemoveAllFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -75,7 +68,7 @@ func TestMockFSWriter_WriteFile(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WriteFileCallCount))
+		assert.Equal(t, int64(1), mock.WriteFileCallCount.Load())
 	})
 
 	t.Run("propagates error from WriteFileFunc", func(t *testing.T) {
@@ -85,11 +78,8 @@ func TestMockFSWriter_WriteFile(t *testing.T) {
 			WriteFileFunc: func(_ context.Context, _ string, _ []byte) error {
 				return errors.New("disk full")
 			},
-			ReadDirFunc:        nil,
-			RemoveAllFunc:      nil,
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
+			ReadDirFunc:   nil,
+			RemoveAllFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -97,7 +87,7 @@ func TestMockFSWriter_WriteFile(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Equal(t, "disk full", err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WriteFileCallCount))
+		assert.Equal(t, int64(1), mock.WriteFileCallCount.Load())
 	})
 }
 
@@ -117,11 +107,8 @@ func TestMockFSWriter_WriteFile_PassesArguments(t *testing.T) {
 			capturedData = data
 			return nil
 		},
-		ReadDirFunc:        nil,
-		RemoveAllFunc:      nil,
-		WriteFileCallCount: 0,
-		ReadDirCallCount:   0,
-		RemoveAllCallCount: 0,
+		ReadDirFunc:   nil,
+		RemoveAllFunc: nil,
 	}
 
 	type ctxKey struct{}
@@ -146,7 +133,9 @@ func (e *fsDirEntry) IsDir() bool                { return e.isDir }
 func (e *fsDirEntry) Type() fs.FileMode          { return 0 }
 func (e *fsDirEntry) Info() (fs.FileInfo, error) { return nil, nil }
 
-var _ os.DirEntry = (*fsDirEntry)(nil)
+var (
+	_ os.DirEntry = (*fsDirEntry)(nil)
+)
 
 func TestMockFSWriter_ReadDir(t *testing.T) {
 	t.Parallel()
@@ -155,19 +144,16 @@ func TestMockFSWriter_ReadDir(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockFSWriter{
-			WriteFileFunc:      nil,
-			ReadDirFunc:        nil,
-			RemoveAllFunc:      nil,
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
+			WriteFileFunc: nil,
+			ReadDirFunc:   nil,
+			RemoveAllFunc: nil,
 		}
 
 		entries, err := mock.ReadDir("/some/directory")
 
 		require.NoError(t, err)
 		assert.Nil(t, entries)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReadDirCallCount))
+		assert.Equal(t, int64(1), mock.ReadDirCallCount.Load())
 	})
 
 	t.Run("delegates to ReadDirFunc", func(t *testing.T) {
@@ -183,10 +169,7 @@ func TestMockFSWriter_ReadDir(t *testing.T) {
 			ReadDirFunc: func(_ string) ([]os.DirEntry, error) {
 				return expected, nil
 			},
-			RemoveAllFunc:      nil,
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
+			RemoveAllFunc: nil,
 		}
 
 		entries, err := mock.ReadDir("/project/src")
@@ -196,7 +179,7 @@ func TestMockFSWriter_ReadDir(t *testing.T) {
 		assert.Equal(t, "main.go", entries[0].Name())
 		assert.Equal(t, "sub", entries[1].Name())
 		assert.True(t, entries[1].IsDir())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReadDirCallCount))
+		assert.Equal(t, int64(1), mock.ReadDirCallCount.Load())
 	})
 
 	t.Run("propagates error from ReadDirFunc", func(t *testing.T) {
@@ -207,10 +190,7 @@ func TestMockFSWriter_ReadDir(t *testing.T) {
 			ReadDirFunc: func(_ string) ([]os.DirEntry, error) {
 				return nil, errors.New("permission denied")
 			},
-			RemoveAllFunc:      nil,
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
+			RemoveAllFunc: nil,
 		}
 
 		entries, err := mock.ReadDir("/restricted")
@@ -218,7 +198,7 @@ func TestMockFSWriter_ReadDir(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "permission denied", err.Error())
 		assert.Nil(t, entries)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReadDirCallCount))
+		assert.Equal(t, int64(1), mock.ReadDirCallCount.Load())
 	})
 }
 
@@ -233,10 +213,7 @@ func TestMockFSWriter_ReadDir_PassesArguments(t *testing.T) {
 			capturedDirname = dirname
 			return nil, nil
 		},
-		RemoveAllFunc:      nil,
-		WriteFileCallCount: 0,
-		ReadDirCallCount:   0,
-		RemoveAllCallCount: 0,
+		RemoveAllFunc: nil,
 	}
 
 	_, err := mock.ReadDir("/project/dist/generated")
@@ -252,18 +229,15 @@ func TestMockFSWriter_RemoveAll(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockFSWriter{
-			WriteFileFunc:      nil,
-			ReadDirFunc:        nil,
-			RemoveAllFunc:      nil,
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
+			WriteFileFunc: nil,
+			ReadDirFunc:   nil,
+			RemoveAllFunc: nil,
 		}
 
 		err := mock.RemoveAll("/tmp/old-output")
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RemoveAllCallCount))
+		assert.Equal(t, int64(1), mock.RemoveAllCallCount.Load())
 	})
 
 	t.Run("delegates to RemoveAllFunc", func(t *testing.T) {
@@ -278,16 +252,13 @@ func TestMockFSWriter_RemoveAll(t *testing.T) {
 				called = true
 				return nil
 			},
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
 		}
 
 		err := mock.RemoveAll("/project/dist")
 
 		require.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RemoveAllCallCount))
+		assert.Equal(t, int64(1), mock.RemoveAllCallCount.Load())
 	})
 
 	t.Run("propagates error from RemoveAllFunc", func(t *testing.T) {
@@ -299,16 +270,13 @@ func TestMockFSWriter_RemoveAll(t *testing.T) {
 			RemoveAllFunc: func(_ string) error {
 				return errors.New("directory in use")
 			},
-			WriteFileCallCount: 0,
-			ReadDirCallCount:   0,
-			RemoveAllCallCount: 0,
 		}
 
 		err := mock.RemoveAll("/locked/path")
 
 		require.Error(t, err)
 		assert.Equal(t, "directory in use", err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RemoveAllCallCount))
+		assert.Equal(t, int64(1), mock.RemoveAllCallCount.Load())
 	})
 }
 
@@ -324,9 +292,6 @@ func TestMockFSWriter_RemoveAll_PassesArguments(t *testing.T) {
 			capturedPath = path
 			return nil
 		},
-		WriteFileCallCount: 0,
-		ReadDirCallCount:   0,
-		RemoveAllCallCount: 0,
 	}
 
 	err := mock.RemoveAll("/project/dist/stale-artefacts")
@@ -339,12 +304,9 @@ func TestMockFSWriter_CallCountsAreIndependent(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockFSWriter{
-		WriteFileFunc:      nil,
-		ReadDirFunc:        nil,
-		RemoveAllFunc:      nil,
-		WriteFileCallCount: 0,
-		ReadDirCallCount:   0,
-		RemoveAllCallCount: 0,
+		WriteFileFunc: nil,
+		ReadDirFunc:   nil,
+		RemoveAllFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -356,9 +318,9 @@ func TestMockFSWriter_CallCountsAreIndependent(t *testing.T) {
 	_, _ = mock.ReadDir("/e")
 	_ = mock.RemoveAll("/f")
 
-	assert.Equal(t, int64(3), atomic.LoadInt64(&mock.WriteFileCallCount))
-	assert.Equal(t, int64(2), atomic.LoadInt64(&mock.ReadDirCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RemoveAllCallCount))
+	assert.Equal(t, int64(3), mock.WriteFileCallCount.Load())
+	assert.Equal(t, int64(2), mock.ReadDirCallCount.Load())
+	assert.Equal(t, int64(1), mock.RemoveAllCallCount.Load())
 }
 
 func TestMockFSWriter_ZeroValueIsUsable(t *testing.T) {
@@ -378,21 +340,18 @@ func TestMockFSWriter_ZeroValueIsUsable(t *testing.T) {
 	err = mock.RemoveAll("/tmp/old")
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.WriteFileCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ReadDirCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RemoveAllCallCount))
+	assert.Equal(t, int64(1), mock.WriteFileCallCount.Load())
+	assert.Equal(t, int64(1), mock.ReadDirCallCount.Load())
+	assert.Equal(t, int64(1), mock.RemoveAllCallCount.Load())
 }
 
 func TestMockFSWriter_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockFSWriter{
-		WriteFileFunc:      nil,
-		ReadDirFunc:        nil,
-		RemoveAllFunc:      nil,
-		WriteFileCallCount: 0,
-		ReadDirCallCount:   0,
-		RemoveAllCallCount: 0,
+		WriteFileFunc: nil,
+		ReadDirFunc:   nil,
+		RemoveAllFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -418,21 +377,18 @@ func TestMockFSWriter_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.WriteFileCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ReadDirCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.RemoveAllCallCount))
+	assert.Equal(t, int64(goroutines), mock.WriteFileCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ReadDirCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.RemoveAllCallCount.Load())
 }
 
 func TestMockFSWriter_ImplementsFSWriterPort(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockFSWriter{
-		WriteFileFunc:      nil,
-		ReadDirFunc:        nil,
-		RemoveAllFunc:      nil,
-		WriteFileCallCount: 0,
-		ReadDirCallCount:   0,
-		RemoveAllCallCount: 0,
+		WriteFileFunc: nil,
+		ReadDirFunc:   nil,
+		RemoveAllFunc: nil,
 	}
 
 	var _ FSWriterPort = mock

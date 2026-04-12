@@ -30,8 +30,8 @@ import (
 
 // AddSpamDetector registers a named spam detection detector.
 //
-// If the detector implements a shutdown interface (Close, Shutdown, or
-// Stop), it will be automatically registered for graceful shutdown.
+// If the detector implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the detector.
 // Takes detector (spamdetect_domain.Detector) which handles spam analysis.
@@ -43,11 +43,10 @@ func (c *Container) AddSpamDetector(name string, detector spamdetect_domain.Dete
 	registerCloseableForShutdown(c.GetAppContext(), "SpamDetector-"+name, detector)
 }
 
-// GetSpamDetectService returns the spam detection service, initialising a
-// default one if none was provided.
+// GetSpamDetectService returns the spam detection service, initialising a default one if
+// none was provided.
 //
-// Returns spamdetect_domain.SpamDetectServicePort which is the configured
-// service.
+// Returns spamdetect_domain.SpamDetectServicePort which is the configured service.
 // Returns error when creation fails.
 func (c *Container) GetSpamDetectService() (spamdetect_domain.SpamDetectServicePort, error) {
 	c.spamdetectOnce.Do(func() {
@@ -56,11 +55,10 @@ func (c *Container) GetSpamDetectService() (spamdetect_domain.SpamDetectServiceP
 	return c.spamdetectService, c.spamdetectErr
 }
 
-// SetSpamDetectService sets a pre-configured spam detection service on the
-// container.
+// SetSpamDetectService sets a pre-configured spam detection service on the container.
 //
-// Takes service (spamdetect_domain.SpamDetectServicePort) which is the
-// pre-configured service.
+// Takes service (spamdetect_domain.SpamDetectServicePort) which is the pre-configured
+// service.
 func (c *Container) SetSpamDetectService(service spamdetect_domain.SpamDetectServicePort) {
 	c.spamdetectOnce.Do(func() {
 		c.spamdetectService = service
@@ -68,17 +66,16 @@ func (c *Container) SetSpamDetectService(service spamdetect_domain.SpamDetectSer
 	})
 }
 
-// SetSpamDetectFeedbackStore stores a feedback store for deferred
-// application when the spam detection service is lazily created.
+// SetSpamDetectFeedbackStore stores a feedback store for deferred application when the
+// spam detection service is lazily created.
 //
-// Takes store (spamdetect_domain.FeedbackStore) which persists spam/ham
-// feedback.
+// Takes store (spamdetect_domain.FeedbackStore) which persists spam/ham feedback.
 func (c *Container) SetSpamDetectFeedbackStore(store spamdetect_domain.FeedbackStore) {
 	c.spamdetectFeedbackStore = store
 }
 
-// createDefaultSpamDetectService builds the spam detection service from
-// detectors or config.
+// createDefaultSpamDetectService builds the spam detection service from detectors or
+// config.
 func (c *Container) createDefaultSpamDetectService() {
 	if c.spamdetectService != nil {
 		return
@@ -139,7 +136,8 @@ func (c *Container) buildSpamDetectServiceFromDetectors(ctx context.Context) {
 		logger_domain.Int("detectors", len(c.spamdetectDetectors)))
 }
 
-// buildSpamDetectServiceFromConfig creates the service with built-in detectors from config.
+// buildSpamDetectServiceFromConfig creates the service with built-in detectors from
+// config.
 func (c *Container) buildSpamDetectServiceFromConfig(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -172,11 +170,9 @@ func (c *Container) buildSpamDetectServiceFromConfig(ctx context.Context) {
 	l.Internal("Spam detection service created with built-in detectors")
 }
 
-// spamDetectServiceConfig builds the service config from server config
-// values.
+// spamDetectServiceConfig builds the service config from server config values.
 //
-// Returns *spamdetect_dto.ServiceConfig which contains the resolved
-// service settings.
+// Returns *spamdetect_dto.ServiceConfig which contains the resolved service settings.
 func (c *Container) spamDetectServiceConfig() *spamdetect_dto.ServiceConfig {
 	defaultConfig := spamdetect_dto.DefaultServiceConfig()
 	scoreThreshold := deref(c.serverConfig.Security.SpamDetectScoreThreshold, defaultConfig.ScoreThreshold)

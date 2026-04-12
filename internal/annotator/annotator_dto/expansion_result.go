@@ -24,16 +24,14 @@ import (
 
 // ExpansionResult holds the output of expanding a component tree.
 type ExpansionResult struct {
-	// FlattenedAST is the fully processed AST for the entry-point component.
-	// All partials are inlined and all nodes are marked with their source
-	// locations.
+	// FlattenedAST is the fully processed AST for the entry-point component. All partials
+	// are inlined and all nodes are marked with their source locations.
 	FlattenedAST *ast_domain.TemplateAST
 
 	// CombinedCSS holds all merged and processed CSS from the component tree.
 	CombinedCSS string
 
-	// PotentialInvocations holds all unique partial invocations found during
-	// expansion. The keys and props in these invocations are not yet in their
-	// final form.
+	// PotentialInvocations holds all unique partial invocations found during expansion. The
+	// keys and props in these invocations are not yet in their final form.
 	PotentialInvocations []*PartialInvocation
 }

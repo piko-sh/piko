@@ -38,7 +38,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko"
 	"piko.sh/piko/internal/ast/ast_domain"
-	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
 	"piko.sh/piko/internal/caller"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/compiler/compiler_domain"
@@ -51,6 +50,7 @@ import (
 	"piko.sh/piko/internal/shutdown"
 	browserpkg "piko.sh/piko/wdk/browser"
 	"piko.sh/piko/wdk/logger"
+	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
 	"piko.sh/piko/wdk/safedisk"
 )
 
@@ -69,47 +69,49 @@ type E2EBrowserHarness struct {
 	ActionCtx     *browserpkg.ActionContext
 }
 
-var mainGoTemplate = template.Must(template.New("main.go").Parse(`package main
+var (
+	mainGoTemplate = template.Must(template.New("main.go").Parse(`package main
 
-import (
-	"fmt"
-	"os"
-	"strconv"
+	import (
+		"fmt"
+		"os"
+		"strconv"
 
-	"piko.sh/piko"
-	_ "{{.ModuleName}}/dist"
-{{- if .RequiresMarkdown}}
-	"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
-{{- end}}
-)
-
-func main() {
-	portString := os.Getenv("PIKO_TEST_PORT")
-	if portString == "" {
-		portString = "8080"
-	}
-	port, _ := strconv.Atoi(portString)
-
-	server := piko.New(
-		piko.WithCSSReset(piko.WithCSSResetComplete()),
-{{- if .RequiresMarkdown}}
-		piko.WithMarkdownParser(markdown_provider_goldmark.NewParser()),
-{{- end}}
+		"piko.sh/piko"
+		_ "{{.ModuleName}}/dist"
+	{{- if .RequiresMarkdown}}
+		"piko.sh/piko/wdk/markdown/markdown_provider_goldmark"
+	{{- end}}
 	)
-	server.Configure(piko.PublicConfig{
-		BaseDir:        ".",
-		PagesSourceDir: "pages",
-		Port:           port,
-	})
 
-	fmt.Printf("Test server starting on port %s\n", portString)
-	// Use Run() with prod mode which sets up all routes properly
-	if err := server.Run(piko.RunModeProd); err != nil {
-		fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
-		os.Exit(1)
+	func main() {
+		portString := os.Getenv("PIKO_TEST_PORT")
+		if portString == "" {
+			portString = "8080"
+		}
+		port, _ := strconv.Atoi(portString)
+
+		server := piko.New(
+			piko.WithCSSReset(piko.WithCSSResetComplete()),
+	{{- if .RequiresMarkdown}}
+			piko.WithMarkdownParser(markdown_provider_goldmark.NewParser()),
+	{{- end}}
+		)
+		server.Configure(piko.PublicConfig{
+			BaseDir:        ".",
+			PagesSourceDir: "pages",
+			Port:           port,
+		})
+
+		fmt.Printf("Test server starting on port %s\n", portString)
+		// Use Run() with prod mode which sets up all routes properly
+		if err := server.Run(piko.RunModeProd); err != nil {
+			fmt.Fprintf(os.Stderr, "Server error: %v\n", err)
+			os.Exit(1)
+		}
 	}
-}
-`))
+	`))
+)
 
 func NewE2EBrowserHarness(t *testing.T, tc testCase) *E2EBrowserHarness {
 	t.Helper()

@@ -32,7 +32,9 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-const embeddingDimension = 384
+const (
+	embeddingDimension = 384
+)
 
 func runRAGVectorStorePipeline(t *testing.T, vectorStore *vector_cache.Store) {
 	t.Helper()

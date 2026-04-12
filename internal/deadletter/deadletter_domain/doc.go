@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package deadletter_domain defines the port interfaces and entry
-// constraints for a generic dead letter queue.
+// Package deadletter_domain defines the port interfaces and entry constraints for a
+// generic dead letter queue.
 //
-// A dead letter queue captures items that failed processing so they can
-// be inspected, retried, or purged later. The package uses Go generics
-// to remain agnostic of the concrete entry type, so any service
-// (email, notification, storage, etc.) can reuse the same queue
-// contract.
+// A dead letter queue captures items that failed processing so they can be inspected,
+// retried, or purged later. The package uses Go generics to remain agnostic of the
+// concrete entry type, so any service (email, notification, storage, etc.) can reuse the
+// same queue contract.
 package deadletter_domain

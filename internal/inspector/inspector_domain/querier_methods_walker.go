@@ -18,8 +18,8 @@
 
 package inspector_domain
 
-// This file specifically holds the logic for the stateful, recursive traversal
-// of type hierarchies to find methods.
+// This file specifically holds the logic for the stateful, recursive traversal of type
+// hierarchies to find methods.
 
 import (
 	"context"
@@ -31,38 +31,39 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// msPool reuses methodSearcher instances to reduce allocation pressure during
-// method resolution.
-var msPool = &methodSearcherPool{
-	p: sync.Pool{
-		New: func() any {
-			return &methodSearcher{
-				typeWalker:         typeWalker{querier: nil},
-				result:             nil,
-				resultMethod:       nil,
-				resultDefiningType: nil,
-				visited:            make(map[visitedMethodKey]struct{}),
-				methodName:         "",
-				exportedMethodName: "",
-				initialPackagePath: "",
-				initialFilePath:    "",
-				isPointerQuery:     false,
-			}
+var (
+	// msPool reuses methodSearcher instances to reduce allocation pressure during method
+	// resolution.
+	msPool = &methodSearcherPool{
+		p: sync.Pool{
+			New: func() any {
+				return &methodSearcher{
+					typeWalker:         typeWalker{querier: nil},
+					result:             nil,
+					resultMethod:       nil,
+					resultDefiningType: nil,
+					visited:            make(map[visitedMethodKey]struct{}),
+					methodName:         "",
+					exportedMethodName: "",
+					initialPackagePath: "",
+					initialFilePath:    "",
+					isPointerQuery:     false,
+				}
+			},
 		},
-	},
-}
+	}
+)
 
 // methodSearcherPool provides a pool for reusing methodSearcher instances.
 type methodSearcherPool struct {
-	// p is the underlying sync.Pool that stores reusable methodSearcher
-	// instances.
+	// p is the underlying sync.Pool that stores reusable methodSearcher instances.
 	p sync.Pool
 }
 
 // Get retrieves a methodSearcher from the pool.
 //
-// Returns *methodSearcher which is ready for use. If the pool returns an
-// unexpected type, a new zero-value instance is created as a fallback.
+// Returns *methodSearcher which is ready for use. If the pool returns an unexpected type,
+// a new zero-value instance is created as a fallback.
 func (p *methodSearcherPool) Get() *methodSearcher {
 	s, ok := p.p.Get().(*methodSearcher)
 	if !ok {
@@ -90,8 +91,8 @@ func (p *methodSearcherPool) Put(s *methodSearcher) {
 	p.p.Put(s)
 }
 
-// visitedMethodKey identifies a method that has already been checked during
-// interface satisfaction checking.
+// visitedMethodKey identifies a method that has already been checked during interface
+// satisfaction checking.
 type visitedMethodKey struct {
 	// typeString is the string form of the receiver type.
 	typeString string
@@ -113,8 +114,8 @@ type methodSearcher struct {
 	// resultDefiningType is the type that defines the found method.
 	resultDefiningType *inspector_dto.Type
 
-	// visited tracks type and pointer pairs that have already been checked to
-	// stop endless loops when looking through embedded fields.
+	// visited tracks type and pointer pairs that have already been checked to stop endless
+	// loops when looking through embedded fields.
 	visited map[visitedMethodKey]struct{}
 
 	// methodName is the name of the method to find.
@@ -147,14 +148,12 @@ func (s *methodSearcher) reset() {
 	clear(s.visited)
 }
 
-// search is the main entry point for the recursive traversal to find a method.
-// It dispatches to type-specific handlers.
+// search is the main entry point for the recursive traversal to find a method. It
+// dispatches to type-specific handlers.
 //
-// Takes currentType (ast.Expr) which is the type expression to search for
-// methods on.
+// Takes currentType (ast.Expr) which is the type expression to search for methods on.
 // Takes currentPackagePath (string) which is the package path of the current type.
-// Takes currentFilePath (string) which is the file path where the type is
-// defined.
+// Takes currentFilePath (string) which is the file path where the type is defined.
 func (s *methodSearcher) search(currentType ast.Expr, currentPackagePath, currentFilePath string) {
 	if s.result != nil {
 		return
@@ -181,14 +180,12 @@ func (s *methodSearcher) search(currentType ast.Expr, currentPackagePath, curren
 	s.findDirectOrEmbeddedMethods(namedType, currentType, isPointer)
 }
 
-// findDirectOrEmbeddedMethods searches for a method on the given type. It
-// first checks for a direct match, and if not found, it looks through the
-// type's embedded types.
+// findDirectOrEmbeddedMethods searches for a method on the given type. It first checks
+// for a direct match, and if not found, it looks through the type's embedded types.
 //
-// Takes namedType (*inspector_dto.Type) which is the type to search for
-// methods on.
-// Takes originalAST (ast.Expr) which is the original AST expression for
-// generic substitution.
+// Takes namedType (*inspector_dto.Type) which is the type to search for methods on.
+// Takes originalAST (ast.Expr) which is the original AST expression for generic
+// substitution.
 // Takes isPointer (bool) which shows whether the receiver is a pointer type.
 func (s *methodSearcher) findDirectOrEmbeddedMethods(namedType *inspector_dto.Type, originalAST ast.Expr, isPointer bool) {
 	typePackagePath := s.querier.FindPackagePathForTypeDTO(namedType)
@@ -218,10 +215,9 @@ func (s *methodSearcher) findDirectOrEmbeddedMethods(namedType *inspector_dto.Ty
 //
 // Takes namedType (*inspector_dto.Type) which is the type to search.
 //
-// Returns *inspector_dto.FunctionSignature which is the method signature, or
-// nil if not found.
-// Returns *inspector_dto.Method which is the method details, or nil if not
+// Returns *inspector_dto.FunctionSignature which is the method signature, or nil if not
 // found.
+// Returns *inspector_dto.Method which is the method details, or nil if not found.
 func (s *methodSearcher) findDirectMethod(namedType *inspector_dto.Type) (*inspector_dto.FunctionSignature, *inspector_dto.Method) {
 	if s.isPointerQuery {
 		return findDirectMethodForPointer(namedType, s)
@@ -229,17 +225,16 @@ func (s *methodSearcher) findDirectMethod(namedType *inspector_dto.Type) (*inspe
 	return findDirectMethodForValue(namedType, s)
 }
 
-// getOriginalDefiningType finds the type where a method was first defined.
-// This matters for promoted methods, which appear on a type but are defined
-// elsewhere.
+// getOriginalDefiningType finds the type where a method was first defined. This matters
+// for promoted methods, which appear on a type but are defined elsewhere.
 //
-// Takes currentType (*inspector_dto.Type) which is used as a fallback if the
-// original type cannot be found.
-// Takes matchedMethod (*inspector_dto.Method) which holds the package path and
-// type name of the method's origin.
+// Takes currentType (*inspector_dto.Type) which is used as a fallback if the original
+// type cannot be found.
+// Takes matchedMethod (*inspector_dto.Method) which holds the package path and type name
+// of the method's origin.
 //
-// Returns *inspector_dto.Type which is the original defining type, or
-// currentType if the origin cannot be found.
+// Returns *inspector_dto.Type which is the original defining type, or currentType if the
+// origin cannot be found.
 func (s *methodSearcher) getOriginalDefiningType(currentType *inspector_dto.Type, matchedMethod *inspector_dto.Method) *inspector_dto.Type {
 	if matchedMethod != nil && matchedMethod.DeclaringPackagePath != "" && matchedMethod.DeclaringTypeName != "" {
 		if origin := s.querier.getNamedTypeByPackageAndName(matchedMethod.DeclaringPackagePath, matchedMethod.DeclaringTypeName); origin != nil {
@@ -249,8 +244,8 @@ func (s *methodSearcher) getOriginalDefiningType(currentType *inspector_dto.Type
 	return currentType
 }
 
-// searchStructLiteral searches for methods on anonymous struct literals by
-// looking through their embedded fields.
+// searchStructLiteral searches for methods on anonymous struct literals by looking
+// through their embedded fields.
 //
 // Takes structType (*ast.StructType) which is the struct type to search.
 // Takes currentPackagePath (string) which is the package path being checked.
@@ -270,11 +265,10 @@ func (s *methodSearcher) searchStructLiteral(structType *ast.StructType, current
 	}
 }
 
-// searchEmbedded searches all embedded fields of a type for method
-// implementations.
+// searchEmbedded searches all embedded fields of a type for method implementations.
 //
-// Takes namedType (*inspector_dto.Type) which is the type whose embedded
-// fields will be searched.
+// Takes namedType (*inspector_dto.Type) which is the type whose embedded fields will be
+// searched.
 func (s *methodSearcher) searchEmbedded(namedType *inspector_dto.Type) {
 	fieldDefiningPackagePath := s.querier.FindPackagePathForTypeDTO(namedType)
 	if fieldDefiningPackagePath == "" {
@@ -345,18 +339,18 @@ func (s *methodSearcher) searchInEmbeddedField(field *inspector_dto.Field, packa
 	return branchSearcher.result, branchSearcher.resultDefiningType
 }
 
-// searchInGenericArguments iterates through type arguments of a generic type
-// and delegates the search for each.
+// searchInGenericArguments iterates through type arguments of a generic type and
+// delegates the search for each.
 //
-// Takes fieldTypeExpr (ast.Expr) which is the expression containing generic
-// type arguments.
+// Takes fieldTypeExpr (ast.Expr) which is the expression containing generic type
+// arguments.
 // Takes packagePath (string) which specifies the package path for resolution.
 // Takes filePath (string) which identifies the source file being analysed.
 //
-// Returns []*inspector_dto.FunctionSignature which contains any function
-// signatures found in the generic arguments.
-// Returns []*inspector_dto.Type which contains the defining types for each
-// found signature.
+// Returns []*inspector_dto.FunctionSignature which contains any function signatures found
+// in the generic arguments.
+// Returns []*inspector_dto.Type which contains the defining types for each found
+// signature.
 func (s *methodSearcher) searchInGenericArguments(fieldTypeExpr ast.Expr, packagePath, filePath string) ([]*inspector_dto.FunctionSignature, []*inspector_dto.Type) {
 	typeArgs := extractGenericTypeArguments(fieldTypeExpr)
 	if len(typeArgs) == 0 {
@@ -376,17 +370,17 @@ func (s *methodSearcher) searchInGenericArguments(fieldTypeExpr ast.Expr, packag
 	return foundResults, foundDefiningTypes
 }
 
-// searchSingleGenericArgument searches for a method within a single type
-// argument from a generic type.
+// searchSingleGenericArgument searches for a method within a single type argument from a
+// generic type.
 //
 // Takes argExpr (ast.Expr) which is the type argument expression to search.
 // Takes packagePath (string) which is the package path for name resolution.
 // Takes filePath (string) which is the file path for name resolution.
 //
-// Returns *inspector_dto.FunctionSignature which is the found method signature,
-// or nil if not found.
-// Returns *inspector_dto.Type which is the type that defines the method, or nil
-// if not found.
+// Returns *inspector_dto.FunctionSignature which is the found method signature, or nil if
+// not found.
+// Returns *inspector_dto.Type which is the type that defines the method, or nil if not
+// found.
 func (s *methodSearcher) searchSingleGenericArgument(argExpr ast.Expr, packagePath, filePath string) (*inspector_dto.FunctionSignature, *inspector_dto.Type) {
 	searcher := msPool.Get()
 	defer msPool.Put(searcher)
@@ -405,19 +399,19 @@ func (s *methodSearcher) searchSingleGenericArgument(argExpr ast.Expr, packagePa
 	return searcher.result, searcher.resultDefiningType
 }
 
-// disambiguateResults checks multiple search results to find a single match.
-// It handles cases where the same method appears through different paths, such
-// as diamond embeddings where a type embeds two types that both embed a third.
+// disambiguateResults checks multiple search results to find a single match. It handles
+// cases where the same method appears through different paths, such as diamond embeddings
+// where a type embeds two types that both embed a third.
 //
-// Takes foundResults ([]*inspector_dto.FunctionSignature) which contains the
-// method signatures found during the search.
-// Takes foundDefiningTypes ([]*inspector_dto.Type) which contains the types
-// that define each method.
+// Takes foundResults ([]*inspector_dto.FunctionSignature) which contains the method
+// signatures found during the search.
+// Takes foundDefiningTypes ([]*inspector_dto.Type) which contains the types that define
+// each method.
 //
-// Returns *inspector_dto.FunctionSignature which is the resolved method, or
-// nil when results are unclear or empty.
-// Returns *inspector_dto.Type which is the defining type of the resolved
-// method, or nil when results are unclear or empty.
+// Returns *inspector_dto.FunctionSignature which is the resolved method, or nil when
+// results are unclear or empty.
+// Returns *inspector_dto.Type which is the defining type of the resolved method, or nil
+// when results are unclear or empty.
 func (s *methodSearcher) disambiguateResults(foundResults []*inspector_dto.FunctionSignature, foundDefiningTypes []*inspector_dto.Type) (*inspector_dto.FunctionSignature, *inspector_dto.Type) {
 	if len(foundResults) == 0 {
 		return nil, nil
@@ -454,18 +448,16 @@ func (s *methodSearcher) disambiguateResults(foundResults []*inspector_dto.Funct
 	return foundResults[0], foundDefiningTypes[0]
 }
 
-// applyGenericSubstitutionToSignature applies generic type substitutions to a
-// method signature.
+// applyGenericSubstitutionToSignature applies generic type substitutions to a method
+// signature.
 //
-// Takes sig (*inspector_dto.FunctionSignature) which is the signature to
-// transform.
+// Takes sig (*inspector_dto.FunctionSignature) which is the signature to transform.
 // Takes currentType (ast.Expr) which is the concrete type with type arguments.
-// Takes namedType (*inspector_dto.Type) which provides the type parameter
-// names.
+// Takes namedType (*inspector_dto.Type) which provides the type parameter names.
 //
-// Returns *inspector_dto.FunctionSignature which is the signature with generic
-// type parameters replaced by concrete types, or the original signature if no
-// substitution is needed.
+// Returns *inspector_dto.FunctionSignature which is the signature with generic type
+// parameters replaced by concrete types, or the original signature if no substitution is
+// needed.
 func applyGenericSubstitutionToSignature(sig *inspector_dto.FunctionSignature, currentType ast.Expr, namedType *inspector_dto.Type) *inspector_dto.FunctionSignature {
 	if sig == nil || len(namedType.TypeParams) == 0 {
 		return sig
@@ -500,17 +492,17 @@ func applyGenericSubstitutionToSignature(sig *inspector_dto.FunctionSignature, c
 	return newSig
 }
 
-// createMethodWithSubstitutedSignature creates a copy of a method with a
-// different signature. This is used when a method belongs to a generic type
-// that has been given concrete types, so the method signature needs to show
-// those concrete types instead of type parameters.
+// createMethodWithSubstitutedSignature creates a copy of a method with a different
+// signature. This is used when a method belongs to a generic type that has been given
+// concrete types, so the method signature needs to show those concrete types instead of
+// type parameters.
 //
 // Takes original (*inspector_dto.Method) which is the method to copy.
-// Takes substitutedSig (*inspector_dto.FunctionSignature) which is the
-// signature with type parameters replaced by concrete types.
+// Takes substitutedSig (*inspector_dto.FunctionSignature) which is the signature with
+// type parameters replaced by concrete types.
 //
-// Returns *inspector_dto.Method which is a copy of the original method with
-// the new signature, or the original method if substitutedSig is nil.
+// Returns *inspector_dto.Method which is a copy of the original method with the new
+// signature, or the original method if substitutedSig is nil.
 func createMethodWithSubstitutedSignature(
 	original *inspector_dto.Method,
 	substitutedSig *inspector_dto.FunctionSignature,
@@ -540,8 +532,7 @@ func createMethodWithSubstitutedSignature(
 // Takes a (*inspector_dto.FunctionSignature) which is the first signature.
 // Takes b (*inspector_dto.FunctionSignature) which is the second signature.
 //
-// Returns bool which is true if both signatures have the same parameters and
-// results.
+// Returns bool which is true if both signatures have the same parameters and results.
 func signaturesEqual(a, b *inspector_dto.FunctionSignature) bool {
 	if a == nil || b == nil {
 		return a == b

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestMockAssetPipeline_ProcessBuildResult(t *testing.T) {
 		err := mock.ProcessBuildResult(context.Background(), &annotator_dto.ProjectAnnotationResult{})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessBuildResultCallCount))
+		assert.Equal(t, int64(1), mock.ProcessBuildResultCallCount.Load())
 	})
 
 	t.Run("delegates to ProcessBuildResultFunc", func(t *testing.T) {
@@ -67,7 +66,7 @@ func TestMockAssetPipeline_ProcessBuildResult(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, ctx, capturedCtx)
 		assert.Equal(t, result, capturedResult)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessBuildResultCallCount))
+		assert.Equal(t, int64(1), mock.ProcessBuildResultCallCount.Load())
 	})
 
 	t.Run("propagates error from ProcessBuildResultFunc", func(t *testing.T) {
@@ -84,7 +83,7 @@ func TestMockAssetPipeline_ProcessBuildResult(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Equal(t, expectedErr.Error(), err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessBuildResultCallCount))
+		assert.Equal(t, int64(1), mock.ProcessBuildResultCallCount.Load())
 	})
 }
 
@@ -96,7 +95,7 @@ func TestMockAssetPipeline_ZeroValueIsUsable(t *testing.T) {
 	err := mock.ProcessBuildResult(context.Background(), &annotator_dto.ProjectAnnotationResult{})
 
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ProcessBuildResultCallCount))
+	assert.Equal(t, int64(1), mock.ProcessBuildResultCallCount.Load())
 }
 
 func TestMockAssetPipeline_ConcurrentAccess(t *testing.T) {
@@ -117,7 +116,7 @@ func TestMockAssetPipeline_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ProcessBuildResultCallCount))
+	assert.Equal(t, int64(goroutines), mock.ProcessBuildResultCallCount.Load())
 }
 
 func TestMockAssetPipeline_ImplementsAssetPipelinePort(t *testing.T) {

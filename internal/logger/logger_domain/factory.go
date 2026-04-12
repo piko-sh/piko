@@ -32,34 +32,32 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-// envLogLevel is the environment variable name for overriding the log level.
-// When set, this takes precedence over any programmatically configured level.
-//
-// The level can be specified as a string ("trace", "internal", "debug",
-// "info", "notice", "warn", "error") or a number (-8 for trace, -6 for
-// internal, -4 for debug, 0 for info, and so on).
-const envLogLevel = "PIKO_LOG_LEVEL"
+const (
+	// envLogLevel is the env-var name for overriding the log level; when set it takes
+	// precedence over any programmatically configured level and may be a name ("trace",
+	// "debug", "info", ...) or a numeric slog level.
+	envLogLevel = "PIKO_LOG_LEVEL"
+)
 
-// defaultFactory is the global logger factory used by GetLogger. It uses
-// atomic.Pointer for safe concurrent access from InitDefaultFactory and
-// GetLogger.
-var defaultFactory atomic.Pointer[logFactory]
+var (
+	// defaultFactory is the global logger factory used by GetLogger; an atomic.Pointer
+	// guards safe concurrent access from InitDefaultFactory and GetLogger.
+	defaultFactory atomic.Pointer[logFactory]
+)
 
-// logFactory creates logger instances with a shared base configuration.
-// It provides a single place to control how loggers are made across the
-// application.
+// logFactory creates logger instances with a shared base configuration. It provides a
+// single place to control how loggers are made across the application.
 type logFactory struct {
 	// baseLogger is the shared logger used to create package-specific loggers.
 	baseLogger *slog.Logger
 }
 
-// getLoggerForPackage creates a Logger instance for a specific package using
-// this factory's configuration.
+// getLoggerForPackage creates a Logger instance for a specific package using this
+// factory's configuration.
 //
-// The name parameter is used for OTEL tracer identification. Loggers created
-// via the factory use dynamic default lookup, meaning they will automatically
-// pick up handler changes made via AddPrettyOutput, AddJSONOutput, and similar
-// methods.
+// The name parameter is used for OTEL tracer identification. Loggers created via the
+// factory use dynamic default lookup, meaning they will automatically pick up handler
+// changes made via AddPrettyOutput, AddJSONOutput, and similar methods.
 //
 // Takes name (string) which identifies the package for OTEL tracing.
 //
@@ -78,11 +76,11 @@ func (f *logFactory) getLoggerForPackage(name string) Logger {
 	}
 }
 
-// InitDefaultFactory sets up or updates the global defaultFactory with the
-// given base logger.
+// InitDefaultFactory sets up or updates the global defaultFactory with the given base
+// logger.
 //
-// Takes baseLogger (*slog.Logger) which sets the base logger for the factory.
-// If nil, slog.Default() is used.
+// Takes baseLogger (*slog.Logger) which sets the base logger for the factory. If nil,
+// slog.Default() is used.
 func InitDefaultFactory(baseLogger *slog.Logger) {
 	if baseLogger == nil {
 		baseLogger = slog.Default()
@@ -92,12 +90,11 @@ func InitDefaultFactory(baseLogger *slog.Logger) {
 
 // GetLogger returns a Logger for the given package name.
 //
-// When the default factory is not set, it creates a standalone logger. When
-// the default factory is set, it uses the factory to get the logger for the
-// package.
+// When the default factory is not set, it creates a standalone logger. When the default
+// factory is set, it uses the factory to get the logger for the package.
 //
-// Takes name (string) which identifies the package, typically the full package
-// path, used for tracing.
+// Takes name (string) which identifies the package, typically the full package path, used
+// for tracing.
 //
 // Returns Logger which provides logging and tracing functions.
 func GetLogger(name string) Logger {
@@ -112,13 +109,13 @@ func GetLogger(name string) Logger {
 	return factory.getLoggerForPackage(name)
 }
 
-// parseLogLevelFromEnv parses a log level from a string. It accepts both
-// named levels (such as "debug", "warn", "error") and numeric values.
+// parseLogLevelFromEnv parses a log level from a string. It accepts both named levels
+// (such as "debug", "warn", "error") and numeric values.
 //
 // Takes s (string) which is the log level name or numeric value to parse.
 //
-// Returns slog.Level which is the parsed level. Defaults to LevelInfo when
-// the input is not recognised.
+// Returns slog.Level which is the parsed level. Defaults to LevelInfo when the input is
+// not recognised.
 func parseLogLevelFromEnv(s string) slog.Level {
 	if number, err := strconv.Atoi(s); err == nil {
 		return slog.Level(number)

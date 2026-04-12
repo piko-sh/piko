@@ -16,19 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package collection_domain defines the core domain logic for the
-// collection hexagon.
+// Package collection_domain defines the core domain logic for the collection hexagon.
 //
-// It contains port interfaces, domain services, and registries for
-// managing content from various sources. The collection system supports
-// static (build-time), dynamic (runtime), and hybrid (incremental static
-// regeneration) fetching strategies.
+// It contains port interfaces, domain services, and registries for managing content from
+// various sources. The collection system supports static (build-time), dynamic (runtime),
+// and hybrid (incremental static regeneration) fetching strategies.
 //
 // # Context handling
 //
-// All provider operations accept a context.Context for cancellation and
-// timeout control. Dynamic and hybrid providers propagate context to
-// upstream API calls, honouring deadlines set by the caller.
+// All provider operations accept a context.Context for cancellation and timeout control.
+// Dynamic and hybrid providers propagate context to upstream API calls, honouring
+// deadlines set by the caller.
 //
 // # Thread safety
 //

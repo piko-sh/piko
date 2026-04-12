@@ -30,9 +30,9 @@ import (
 	"piko.sh/piko/internal/registry/registry_domain"
 )
 
-// PKJSEmitter implements PKJSEmitterPort to transpile and emit JavaScript
-// from PK client scripts. It uses JSTranspiler to convert TypeScript to
-// JavaScript and stores output in the registry for minification and compression.
+// PKJSEmitter implements PKJSEmitterPort to transpile and emit JavaScript from PK client
+// scripts. It uses JSTranspiler to convert TypeScript to JavaScript and stores output in
+// the registry for minification and compression.
 type PKJSEmitter struct {
 	// transpiler converts TypeScript source code to JavaScript.
 	transpiler *generator_domain.JSTranspiler
@@ -44,15 +44,17 @@ type PKJSEmitter struct {
 	blobStoreID string
 }
 
-var _ generator_domain.PKJSEmitterPort = (*PKJSEmitter)(nil)
+var (
+	_ generator_domain.PKJSEmitterPort = (*PKJSEmitter)(nil)
+)
 
 // NewPKJSEmitter creates a new PK JavaScript emitter.
 //
-// When registryService is nil, the emitter will be disabled and returns empty
-// artefact IDs.
+// When registryService is nil, the emitter will be disabled and returns empty artefact
+// IDs.
 //
-// Takes registryService (registry_domain.RegistryService) which provides access
-// to the registry for artefact storage.
+// Takes registryService (registry_domain.RegistryService) which provides access to the
+// registry for artefact storage.
 //
 // Returns *PKJSEmitter which is the configured emitter ready for use.
 func NewPKJSEmitter(registryService registry_domain.RegistryService) *PKJSEmitter {
@@ -63,20 +65,16 @@ func NewPKJSEmitter(registryService registry_domain.RegistryService) *PKJSEmitte
 	}
 }
 
-// EmitJS transpiles TypeScript/JavaScript source and stores it in the registry.
-// The artefact ID uses the pk-js/ prefix to trigger PK-specific profile handling.
+// EmitJS transpiles TypeScript/JavaScript source and stores it in the registry. The
+// artefact ID uses the pk-js/ prefix to trigger PK-specific profile handling.
 //
-// For example:
-// pagePath: "pages/checkout"
-// -> artefact ID: "pk-js/pages/checkout.js"
-// -> profiles: minified (PriorityNeed), gzip, br
-// The outputDir and minify parameters are ignored - registry handles storage and
-// the capabilities pipeline handles minification/compression.
+// For example: pagePath: "pages/checkout" -> artefact ID: "pk-js/pages/checkout.js" ->
+// profiles: minified (PriorityNeed), gzip, br The outputDir and minify parameters are
+// ignored - registry handles storage and the capabilities pipeline handles
+// minification/compression.
 //
-// Takes source (string) which is the TypeScript/JavaScript source code
-// to transpile.
-// Takes pagePath (string) which identifies the page this script
-// belongs to.
+// Takes source (string) which is the TypeScript/JavaScript source code to transpile.
+// Takes pagePath (string) which identifies the page this script belongs to.
 //
 // Returns string which is the artefact ID for the stored script.
 // Returns error when transpilation or registry storage fails.

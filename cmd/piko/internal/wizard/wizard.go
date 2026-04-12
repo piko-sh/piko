@@ -35,15 +35,15 @@ const (
 	// requiredGoVersion is the minimum Go version needed by scaffolded projects.
 	requiredGoVersion = "go1.26"
 
-	// projectNameCharLimit is the maximum number of characters allowed for the
-	// project name input.
+	// projectNameCharLimit is the maximum number of characters allowed for the project name
+	// input.
 	projectNameCharLimit = 50
 
 	// projectNameInputWidth is the width of the project name input field.
 	projectNameInputWidth = 30
 
-	// modulePathCharLimit is the maximum number of characters allowed for the Go
-	// module path input.
+	// modulePathCharLimit is the maximum number of characters allowed for the Go module path
+	// input.
 	modulePathCharLimit = 100
 
 	// modulePathInputWidth is the display width of the Go module path input field.
@@ -58,15 +58,15 @@ type Model struct {
 	// TidyWarning holds a non-fatal warning from the go mod tidy step.
 	TidyWarning string
 
-	// VersionWarning holds a non-fatal warning when the latest Piko version
-	// could not be resolved from GitHub.
+	// VersionWarning holds a non-fatal warning when the latest Piko version could not be
+	// resolved from GitHub.
 	VersionWarning string
 
 	// Config holds the scaffold settings gathered from the wizard inputs.
 	Config templates.ScaffoldData
 
-	// Inputs holds the text input components for collecting user data
-	// during the wizard steps.
+	// Inputs holds the text input components for collecting user data during the wizard
+	// steps.
 	Inputs []textinput.Model
 
 	// Choices holds the options shown to the user for the current wizard step.
@@ -87,8 +87,7 @@ type (
 
 	// scaffoldDoneMessage signals that the scaffold operation has completed.
 	scaffoldDoneMessage struct {
-		// versionWarning is non-empty when the Piko version could not be
-		// resolved from GitHub.
+		// versionWarning is non-empty when the Piko version could not be resolved from GitHub.
 		versionWarning string
 	}
 
@@ -100,12 +99,10 @@ type (
 )
 
 const (
-	// StepProjectName is the first wizard step where the user enters the project
-	// name.
+	// StepProjectName is the first wizard step where the user enters the project name.
 	StepProjectName = iota
 
-	// StepDestination is the wizard step where the user chooses the project
-	// location.
+	// StepDestination is the wizard step where the user chooses the project location.
 	StepDestination
 
 	// StepModulePath is the wizard step for entering the Go module path.
@@ -230,8 +227,8 @@ func (m *Model) handleKeyMessage(message tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m.updateInputOrSpinner(message)
 }
 
-// handleChoiceNavigation moves the cursor up or down in choice and feature
-// steps, and toggles selection with the space key in the features step.
+// handleChoiceNavigation moves the cursor up or down in choice and feature steps, and
+// toggles selection with the space key in the features step.
 //
 // Takes message (tea.KeyPressMsg) which contains the key press to process.
 func (m *Model) handleChoiceNavigation(message tea.KeyPressMsg) {
@@ -247,8 +244,8 @@ func (m *Model) handleChoiceNavigation(message tea.KeyPressMsg) {
 	}
 }
 
-// updateInputOrSpinner updates either the text input or spinner based on the
-// current step.
+// updateInputOrSpinner updates either the text input or spinner based on the current
+// step.
 //
 // Takes message (tea.Msg) which contains the message to process.
 //
@@ -265,9 +262,9 @@ func (m *Model) updateInputOrSpinner(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, command
 }
 
-// runGoModTidy returns a command that runs go mod tidy in the destination
-// folder. Failures are non-blocking - the project is still created, and
-// the user is advised to run the command manually.
+// runGoModTidy returns a command that runs go mod tidy in the destination folder.
+// Failures are non-blocking - the project is still created, and the user is advised to
+// run the command manually.
 //
 // Returns tea.Cmd which runs the tidy operation and sends a completion message.
 func (m *Model) runGoModTidy() tea.Cmd {
@@ -302,8 +299,7 @@ func (m *Model) handleEnter() (tea.Model, tea.Cmd) {
 	}
 }
 
-// enterProjectName captures the project name and advances to the destination
-// step.
+// enterProjectName captures the project name and advances to the destination step.
 //
 // Returns tea.Model which is the updated model state.
 // Returns tea.Cmd which is nil since no async work is needed.
@@ -320,8 +316,8 @@ func (m *Model) enterProjectName() (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// enterDestination captures the destination path choice and advances to the
-// module path step.
+// enterDestination captures the destination path choice and advances to the module path
+// step.
 //
 // Returns tea.Model which is the updated model state.
 // Returns tea.Cmd which starts the text input blink cursor.
@@ -342,8 +338,7 @@ func (m *Model) enterDestination() (tea.Model, tea.Cmd) {
 	return m, textinput.Blink
 }
 
-// enterModulePath captures the Go module path and advances to the features
-// step.
+// enterModulePath captures the Go module path and advances to the features step.
 //
 // Returns tea.Model which is the updated model state.
 // Returns tea.Cmd which is nil since no async work is needed.
@@ -370,8 +365,8 @@ func (m *Model) enterModulePath() (tea.Model, tea.Cmd) {
 // enterFeatures captures feature selections and starts the scaffolding step.
 //
 // Returns tea.Model which is the updated model state.
-// Returns tea.Cmd which triggers the scaffold operation, or nil if the
-// confirm button was toggled.
+// Returns tea.Cmd which triggers the scaffold operation, or nil if the confirm button was
+// toggled.
 func (m *Model) enterFeatures() (tea.Model, tea.Cmd) {
 	if m.HandleToggle() {
 		return m, nil
@@ -477,8 +472,7 @@ func InitialModel() Model {
 	return *newInitialModel()
 }
 
-// newInitialModel creates a new Model pointer with default settings for the
-// wizard.
+// newInitialModel creates a new Model pointer with default settings for the wizard.
 //
 // Returns *Model which is ready to begin at the project name step.
 func newInitialModel() *Model {
@@ -497,12 +491,11 @@ func newInitialModel() *Model {
 	}
 }
 
-// goVersionWarning returns a warning message if the current Go runtime is
-// older than the version required by scaffolded projects. Returns an empty
-// string when the version is sufficient.
+// goVersionWarning returns a warning message if the current Go runtime is older than the
+// version required by scaffolded projects. Returns an empty string when the version is
+// sufficient.
 //
-// Returns string which is the warning message, or empty if the Go
-// version is sufficient.
+// Returns string which is the warning message, or empty if the Go version is sufficient.
 func goVersionWarning() string {
 	version := runtime.Version()
 	if version >= requiredGoVersion {

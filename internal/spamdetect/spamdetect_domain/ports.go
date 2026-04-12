@@ -25,43 +25,37 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
-// Detector is the driven port that all spam detection detectors implement.
-// Each detector declares which signals it handles, its execution priority,
-// and whether it runs synchronously or asynchronously.
+// Detector is the driven port that all spam detection detectors implement. Each detector
+// declares which signals it handles, its execution priority, and whether it runs
+// synchronously or asynchronously.
 //
-// Built-in detectors, user-registered custom detectors, and future
-// third-party provider adapters all implement the port.
+// Built-in detectors, user-registered custom detectors, and future third-party provider
+// adapters all implement the port.
 //
-// Detectors that need to release resources on shutdown should implement
-// io.Closer.
+// Detectors that need to release resources on shutdown should implement io.Closer.
 type Detector interface {
 	// Name returns a human-readable identifier for this detector.
 	Name() string
 
-	// Signals returns the signal types this detector handles. The service
-	// only invokes a detector when the schema declares at least one of
-	// its signals.
+	// Signals returns the signal types this detector handles. The service only invokes a
+	// detector when the schema declares at least one of its signals.
 	Signals() []spamdetect_dto.Signal
 
-	// Priority returns the execution tier for this detector. Higher
-	// priority (lower numeric value) detectors run first and can
-	// short-circuit lower tiers.
+	// Priority returns the execution tier for this detector. Higher priority (lower numeric
+	// value) detectors run first and can short-circuit lower tiers.
 	Priority() spamdetect_dto.DetectorPriority
 
-	// Mode returns whether this detector runs synchronously (blocking the
-	// response) or asynchronously (via the event bus).
+	// Mode returns whether this detector runs synchronously (blocking the response) or
+	// asynchronously (via the event bus).
 	Mode() spamdetect_dto.DetectorMode
 
-	// Analyse runs detection on the submission using the schema to
-	// identify relevant fields.
+	// Analyse runs detection on the submission using the schema to identify relevant fields.
 	//
-	// A non-nil error excludes this detector from the composite
-	// score: other matching detectors continue, and the service only
-	// returns spamdetect_dto.ErrAllDetectorsFailed when every matching
-	// detector errored. Implementations should return a wrapped
-	// context error (errors.Is(err, context.Canceled) etc.) when the
-	// caller's context cancels mid-analysis rather than returning a
-	// clean partial score.
+	// A non-nil error excludes this detector from the composite score: other matching
+	// detectors continue, and the service only returns spamdetect_dto.ErrAllDetectorsFailed
+	// when every matching detector errored. Implementations should return a wrapped context
+	// error (errors.Is(err, context.Canceled) etc.) when the caller's context cancels
+	// mid-analysis rather than returning a clean partial score.
 	Analyse(ctx context.Context, submission *spamdetect_dto.Submission, schema *spamdetect_dto.Schema) (*spamdetect_dto.DetectorResult, error)
 
 	// HealthCheck verifies the detector is operational.
@@ -70,9 +64,8 @@ type Detector interface {
 
 // FeedbackStore is a driven port for persisting spam/ham feedback.
 //
-// Users provide their own implementation backed by their database.
-// Each report receives a SubmissionRecord with the original submission,
-// analysis result, and feedback verdict.
+// Users provide their own implementation backed by their database. Each report receives a
+// SubmissionRecord with the original submission, analysis result, and feedback verdict.
 type FeedbackStore interface {
 	// ReportSpam records that a submission was confirmed as spam.
 	ReportSpam(ctx context.Context, record *spamdetect_dto.SubmissionRecord) error
@@ -81,21 +74,21 @@ type FeedbackStore interface {
 	ReportHam(ctx context.Context, record *spamdetect_dto.SubmissionRecord) error
 }
 
-// FeedbackAwareDetector is optionally implemented by detectors that
-// support receiving spam/ham feedback for learning. The service
-// automatically routes feedback to detectors that implement this.
+// FeedbackAwareDetector is optionally implemented by detectors that support receiving
+// spam/ham feedback for learning. The service automatically routes feedback to detectors
+// that implement this.
 type FeedbackAwareDetector interface {
 	Detector
 
-	// ReportFeedback informs the detector that a previous submission was
-	// confirmed as spam (isSpam=true) or ham (isSpam=false).
+	// ReportFeedback informs the detector that a previous submission was confirmed as spam
+	// (isSpam=true) or ham (isSpam=false).
 	ReportFeedback(ctx context.Context, submissionID string, isSpam bool) error
 }
 
 // SpamDetectServicePort is the public service interface for spam detection.
 type SpamDetectServicePort interface {
-	// Analyse runs all matching detectors and returns a composite verdict
-	// with per-field breakdowns.
+	// Analyse runs all matching detectors and returns a composite verdict with per-field
+	// breakdowns.
 	Analyse(ctx context.Context, submission *spamdetect_dto.Submission, schema *spamdetect_dto.Schema) (*spamdetect_dto.AnalysisResult, error)
 
 	// RegisterDetector adds a named detector to the service.
@@ -115,16 +108,16 @@ type SpamDetectServicePort interface {
 
 	// SetFeedbackStore configures the feedback persistence backend.
 	//
-	// Prefer constructing the service with WithFeedbackStore; this
-	// setter exists for deferred wiring during application bootstrap.
+	// Prefer constructing the service with WithFeedbackStore; this setter exists for
+	// deferred wiring during application bootstrap.
 	SetFeedbackStore(store FeedbackStore)
 
-	// ReportSpam records that a submission was confirmed as spam and
-	// notifies feedback-aware detectors.
+	// ReportSpam records that a submission was confirmed as spam and notifies feedback-aware
+	// detectors.
 	ReportSpam(ctx context.Context, submissionID string) error
 
-	// ReportHam records that a submission was confirmed as legitimate
-	// and notifies feedback-aware detectors.
+	// ReportHam records that a submission was confirmed as legitimate and notifies
+	// feedback-aware detectors.
 	ReportHam(ctx context.Context, submissionID string) error
 
 	// HealthCheck verifies all detectors are reachable.

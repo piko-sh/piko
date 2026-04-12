@@ -25,19 +25,17 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
-// requestContextHandler is an slog.Handler wrapper that enriches every log
-// record with per-request fields from PikoRequestCtx. When no PikoRequestCtx
-// is present in the context (non-request code paths), the handler is a
-// zero-cost passthrough.
+// requestContextHandler is an slog.Handler wrapper that enriches every log record with
+// per-request fields from PikoRequestCtx. When no PikoRequestCtx is present in the
+// context (non-request code paths), the handler is a zero-cost passthrough.
 //
 // Fields added (when non-empty):
 //   - request_id: the formatted request ID (server-generated or forwarded)
 //   - client_ip: the real client IP after trusted-proxy extraction
 //   - locale: the route locale (e.g., "en", "de")
 //
-// The handler uses slog.Record.AddAttrs which leverages the record's inline
-// [5]Attr array for zero-allocation enrichment in the common case (<=5 total
-// attrs).
+// The handler uses slog.Record.AddAttrs which leverages the record's inline [5]Attr array
+// for zero-allocation enrichment in the common case (<=5 total attrs).
 type requestContextHandler struct {
 	// inner is the wrapped handler that receives enriched records.
 	inner slog.Handler
@@ -52,8 +50,8 @@ func (h *requestContextHandler) Enabled(ctx context.Context, level slog.Level) b
 	return h.inner.Enabled(ctx, level)
 }
 
-// Handle enriches the log record with PikoRequestCtx fields then
-// delegates to the inner handler.
+// Handle enriches the log record with PikoRequestCtx fields then delegates to the inner
+// handler.
 //
 // Takes record (slog.Record) which is the log record to enrich.
 //
@@ -75,8 +73,7 @@ func (h *requestContextHandler) Handle(ctx context.Context, record slog.Record) 
 	return h.inner.Handle(ctx, record)
 }
 
-// WithAttrs returns a new handler wrapping the inner handler's
-// WithAttrs result.
+// WithAttrs returns a new handler wrapping the inner handler's WithAttrs result.
 //
 // Takes attrs ([]slog.Attr) which are the attributes to add.
 //
@@ -85,8 +82,7 @@ func (h *requestContextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &requestContextHandler{inner: h.inner.WithAttrs(attrs)}
 }
 
-// WithGroup returns a new handler wrapping the inner handler's
-// WithGroup result.
+// WithGroup returns a new handler wrapping the inner handler's WithGroup result.
 //
 // Takes name (string) which is the group name to apply.
 //
@@ -95,12 +91,11 @@ func (h *requestContextHandler) WithGroup(name string) slog.Handler {
 	return &requestContextHandler{inner: h.inner.WithGroup(name)}
 }
 
-// NewRequestContextHandler wraps the given handler so that every log record
-// produced within an HTTP request is automatically enriched with
-// request-scoped fields from PikoRequestCtx.
+// NewRequestContextHandler wraps the given handler so that every log record produced
+// within an HTTP request is automatically enriched with request-scoped fields from
+// PikoRequestCtx.
 //
-// Takes inner (slog.Handler) which is the handler to delegate to after
-// enrichment.
+// Takes inner (slog.Handler) which is the handler to delegate to after enrichment.
 //
 // Returns slog.Handler which enriches records then delegates to inner.
 func NewRequestContextHandler(inner slog.Handler) slog.Handler {

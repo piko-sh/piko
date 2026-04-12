@@ -1,0 +1,133 @@
+fmt := import("fmt")
+os := import("os")
+times := import("times")
+
+DENSE_INPUTS := 256
+DENSE_OUTPUTS := 256
+
+build_weights := func() {
+	weights := []
+	for i := 0; i < DENSE_OUTPUTS; i++ {
+		row := []
+		for j := 0; j < DENSE_INPUTS; j++ {
+			row = append(row, float(((i + j * 7) % 31) - 15) * 0.01)
+		}
+		weights = append(weights, row)
+	}
+	return weights
+}
+
+build_input := func() {
+	input := []
+	for j := 0; j < DENSE_INPUTS; j++ {
+		input = append(input, float(((j * 13) % 17) - 8) * 0.1)
+	}
+	return input
+}
+
+build_bias := func() {
+	bias := []
+	for i := 0; i < DENSE_OUTPUTS; i++ {
+		bias = append(bias, float(((i * 5) % 11) - 5) * 0.1)
+	}
+	return bias
+}
+
+make_output := func() {
+	out := []
+	for i := 0; i < DENSE_OUTPUTS; i++ {
+		out = append(out, 0.0)
+	}
+	return out
+}
+
+dense_forward := func(weights, input_vector, bias, output) {
+	for i := 0; i < DENSE_OUTPUTS; i++ {
+		row := weights[i]
+		accumulator := 0.0
+		for j := 0; j < DENSE_INPUTS; j++ {
+			accumulator += row[j] * input_vector[j]
+		}
+		accumulator += bias[i]
+		if accumulator < 0 {
+			accumulator = 0.0
+		}
+		output[i] = accumulator
+	}
+}
+
+int_to_decimal := func(value) {
+	if value == 0 {
+		return "0"
+	}
+	negative := value < 0
+	if negative {
+		value = -value
+	}
+	digits := []
+	for value > 0 {
+		digits = append(digits, char(int('0') + value % 10))
+		value = value / 10
+	}
+	out := ""
+	for i := len(digits) - 1; i >= 0; i-- {
+		out += digits[i]
+	}
+	if negative {
+		return "-" + out
+	}
+	return out
+}
+
+summarise_output := func(output) {
+	total := 0.0
+	for i := 0; i < DENSE_OUTPUTS; i++ {
+		total += output[i]
+	}
+	scaled := int(total * 1000.0)
+	return int_to_decimal(scaled)
+}
+
+run := func() {
+	weights := build_weights()
+	input_vector := build_input()
+	bias := build_bias()
+	output := make_output()
+	dense_forward(weights, input_vector, bias, output)
+	return summarise_output(output)
+}
+
+run_inner := func(k) {
+	weights := build_weights()
+	input_vector := build_input()
+	bias := build_bias()
+	output := make_output()
+	start_nanos := times.time_unix_nano(times.now())
+	for index := 0; index < k; index++ {
+		dense_forward(weights, input_vector, bias, output)
+	}
+	elapsed_nanos := times.time_unix_nano(times.now()) - start_nanos
+	return [summarise_output(output), elapsed_nanos]
+}
+
+args := os.args()
+mode := "endtoend"
+k := 0
+for i := 0; i < len(args); i++ {
+	if args[i] == "--mode" && i+1 < len(args) {
+		mode = args[i+1]
+	}
+	if args[i] == "--k" && i+1 < len(args) {
+		k = int(args[i+1])
+	}
+}
+
+if mode == "inner" {
+	result := run_inner(k)
+	fmt.println(result[0])
+	stderr := os.create("/dev/stderr")
+	stderr.write_string(fmt.sprintf("INNER_ELAPSED_NS=%d\n", result[1]))
+	stderr.close()
+} else {
+	fmt.println(run())
+}

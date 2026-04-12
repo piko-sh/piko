@@ -25,55 +25,54 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// IntrospectionCacheEntry represents cached Phase 1 annotation results that
+// IntrospectionCacheEntry represents cached introspection-phase annotation results that
 // can be reused when only template, style, or i18n blocks change.
 //
 // The introspection phase (buildUnifiedGraph, virtualiseModule, and
-// initialiseTypeResolver) is 100-1000x more expensive than template annotation
-// because it invokes packages.Load() for full Go type analysis. However, it
-// only depends on script blocks from .pk files and all .go files in the
-// project. When only template, style, or i18n blocks change, this cached data
-// allows skipping expensive type introspection and jumping directly to Phase 2
-// (per-component annotation), achieving 5-10x speedup.
+// initialiseTypeResolver) is substantially more expensive than template annotation
+// because it invokes packages.Load() for full Go type analysis. However, it only depends
+// on script blocks from .pk files and all .go files in the project. When only template,
+// style, or i18n blocks change, this cached data allows skipping expensive type
+// introspection and jumping directly to per-component annotation.
 type IntrospectionCacheEntry struct {
-	// VirtualModule contains the complete virtual Go module with all synthetic .go
-	// files generated from component script blocks. This is the foundation for
-	// type introspection.
+	// VirtualModule contains the complete virtual Go module with all synthetic .go files
+	// generated from component script blocks. This is the foundation for type introspection.
 	VirtualModule *annotator_dto.VirtualModule
 
-	// TypeResolver holds the type inspector with all Go type data from
-	// packages.Load(). This is the most costly object to recreate.
+	// TypeResolver holds the type inspector with all Go type data from packages.Load(). This
+	// is the most costly object to recreate.
 	TypeResolver *annotator_domain.TypeResolver
 
 	// ComponentGraph contains the parsed component structure including imports,
-	// dependencies, and the component dependency graph. This is relatively cheap
-	// to rebuild but included for completeness.
+	// dependencies, and the component dependency graph. This is relatively cheap to rebuild
+	// but included for completeness.
 	ComponentGraph *annotator_dto.ComponentGraph
 
-	// ScriptHashes maps file paths to xxhash digests of script
-	// block content. This allows the cache to check that all
-	// script blocks still match before using this entry.
+	// ScriptHashes maps file paths to xxhash digests of script block content. This allows
+	// the cache to check that all script blocks still match before using this entry.
 	ScriptHashes map[string]string
 
-	// Timestamp records when this cache entry was created. Useful for debugging
-	// and time-based eviction.
+	// Timestamp records when this cache entry was created. Useful for debugging and
+	// time-based eviction.
 	Timestamp time.Time
 
-	// Version is the cache format version number. When the cache structure
-	// changes, this number increases to make old entries invalid and prevent
-	// errors from data that does not match the new format.
+	// Version is the cache format version number. When the cache structure changes, this
+	// number increases to make old entries invalid and prevent errors from data that does
+	// not match the new format.
 	Version int
 }
 
-// CurrentIntrospectionCacheVersion is the version identifier for the cache
-// entry format. Increment when making breaking changes to IntrospectionCacheEntry.
-const CurrentIntrospectionCacheVersion = 1
+const (
+	// CurrentIntrospectionCacheVersion is the version identifier for the cache entry format.
+	// Increment when making breaking changes to IntrospectionCacheEntry.
+	CurrentIntrospectionCacheVersion = 1
+)
 
-// IsValid checks if this cache entry is still valid to use.
-// It verifies the version number to ensure compatibility.
+// IsValid checks if this cache entry is still valid to use. It verifies the version
+// number to ensure compatibility.
 //
-// Returns bool which is true when the entry has the current version and all
-// required fields are present.
+// Returns bool which is true when the entry has the current version and all required
+// fields are present.
 func (e *IntrospectionCacheEntry) IsValid() bool {
 	if e == nil {
 		return false
@@ -87,12 +86,11 @@ func (e *IntrospectionCacheEntry) IsValid() bool {
 	return true
 }
 
-// MatchesScriptHashes compares the cached script hashes against current file
-// hashes to detect if any script blocks have changed since this entry was
-// cached.
+// MatchesScriptHashes compares the cached script hashes against current file hashes to
+// detect if any script blocks have changed since this entry was cached.
 //
-// Takes currentScriptHashes (map[string]string) which provides the current
-// file paths mapped to their script block hashes.
+// Takes currentScriptHashes (map[string]string) which provides the current file paths
+// mapped to their script block hashes.
 //
 // Returns bool which is true if all hashes match and the cache is still valid.
 func (e *IntrospectionCacheEntry) MatchesScriptHashes(currentScriptHashes map[string]string) bool {
@@ -113,20 +111,19 @@ func (e *IntrospectionCacheEntry) MatchesScriptHashes(currentScriptHashes map[st
 	return len(currentScriptHashes) == len(e.ScriptHashes)
 }
 
-// newIntrospectionCacheEntry creates a new cache entry with the current
-// version and timestamp.
+// newIntrospectionCacheEntry creates a new cache entry with the current version and
+// timestamp.
 //
-// Takes virtualModule (*annotator_dto.VirtualModule) which provides the parsed
-// module representation.
-// Takes typeResolver (*annotator_domain.TypeResolver) which resolves type
-// references within the module.
-// Takes componentGraph (*annotator_dto.ComponentGraph) which represents the
-// component dependency graph.
-// Takes scriptHashes (map[string]string) which maps script paths to their
-// content hashes.
+// Takes virtualModule (*annotator_dto.VirtualModule) which provides the parsed module
+// representation.
+// Takes typeResolver (*annotator_domain.TypeResolver) which resolves type references
+// within the module.
+// Takes componentGraph (*annotator_dto.ComponentGraph) which represents the component
+// dependency graph.
+// Takes scriptHashes (map[string]string) which maps script paths to their content hashes.
 //
-// Returns *IntrospectionCacheEntry which contains all introspection data ready
-// for caching.
+// Returns *IntrospectionCacheEntry which contains all introspection data ready for
+// caching.
 func newIntrospectionCacheEntry(
 	virtualModule *annotator_dto.VirtualModule,
 	typeResolver *annotator_domain.TypeResolver,

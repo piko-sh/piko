@@ -28,14 +28,15 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// memoryHistorySize bounds the heap-alloc history kept for the detail
-// chart. At a typical 2s refresh rate this is ~30 minutes.
-const memoryHistorySize = 900
+const (
+	// memoryHistorySize bounds the heap-alloc history kept for the detail chart. At a
+	// typical 2s refresh rate this is ~30 minutes.
+	memoryHistorySize = 900
+)
 
 // MemoryPanel surfaces heap and garbage-collection statistics.
 //
-// It is the TUI counterpart of `piko info memory` / `piko info gc`.
-// Implements Panel.
+// It is the TUI counterpart of `piko info memory` / `piko info gc`. Implements Panel.
 type MemoryPanel struct {
 	// clock supplies time for tests; defaults to the real clock.
 	clock clock.Clock
@@ -52,8 +53,7 @@ type MemoryPanel struct {
 	// heapHistory holds heap-alloc samples for the detail-pane chart.
 	heapHistory *HistoryRing
 
-	// gcHistory holds GC pause-duration samples (microseconds) for
-	// the detail-pane chart.
+	// gcHistory holds GC pause-duration samples (microseconds) for the detail-pane chart.
 	gcHistory *HistoryRing
 
 	BasePanel
@@ -62,10 +62,11 @@ type MemoryPanel struct {
 	stateMutex sync.RWMutex
 }
 
-var _ Panel = (*MemoryPanel)(nil)
+var (
+	_ Panel = (*MemoryPanel)(nil)
+)
 
-// NewMemoryPanel constructs a MemoryPanel sharing the supplied
-// SystemProvider.
+// NewMemoryPanel constructs a MemoryPanel sharing the supplied SystemProvider.
 //
 // Takes provider (SystemProvider) which supplies system statistics.
 // Takes c (clock.Clock) for testing; nil falls back to the real clock.
@@ -152,11 +153,10 @@ func (p *MemoryPanel) DetailView(width, height int) string {
 	return RenderDetailBodyWithChart(nil, body, series, "Heap & GC", width, height)
 }
 
-// memorySnapshot bundles the values rendered together so they can all
-// be read under one lock acquisition.
+// memorySnapshot bundles the values rendered together so they can all be read under one
+// lock acquisition.
 type memorySnapshot struct {
-	// stats is the most recent SystemStats payload, or nil before any
-	// refresh has succeeded.
+	// stats is the most recent SystemStats payload, or nil before any refresh has succeeded.
 	stats *SystemStats
 
 	// err is the most recent refresh error, or nil after success.
@@ -165,14 +165,12 @@ type memorySnapshot struct {
 	// heap is a copy of the heap-alloc history ring values.
 	heap []float64
 
-	// gc is a copy of the GC-pause-duration history ring values
-	// (in microseconds).
+	// gc is a copy of the GC-pause-duration history ring values (in microseconds).
 	gc []float64
 }
 
-// snapshot returns the current stats, error, and copies of the heap
-// and GC history rings, all read under stateMutex so they cannot race
-// against concurrent handleStats writes.
+// snapshot returns the current stats, error, and copies of the heap and GC history rings,
+// all read under stateMutex so they cannot race against concurrent handleStats writes.
 //
 // Returns memorySnapshot containing a coherent view of the state.
 func (p *MemoryPanel) snapshot() memorySnapshot {
@@ -186,8 +184,8 @@ func (p *MemoryPanel) snapshot() memorySnapshot {
 	}
 }
 
-// handleStats applies an incoming systemStatsMessage to the panel
-// state, updating the rolling history rings and the last-error.
+// handleStats applies an incoming systemStatsMessage to the panel state, updating the
+// rolling history rings and the last-error.
 //
 // Takes msg (systemStatsMessage) which carries the fresh stats and any error.
 //
@@ -209,8 +207,7 @@ func (p *MemoryPanel) handleStats(msg systemStatsMessage) {
 	}
 }
 
-// renderBody renders the centre-pane tile body for the supplied stats
-// and error.
+// renderBody renders the centre-pane tile body for the supplied stats and error.
 //
 // Takes stats (*SystemStats) which is the latest stats snapshot.
 // Takes err (error) which is the latest refresh error.
@@ -229,8 +226,8 @@ func (p *MemoryPanel) renderBody(stats *SystemStats, err error) string {
 	return RenderDetailBody(nil, body.WithoutHeader(), p.ContentWidth(), p.ContentHeight())
 }
 
-// detailBody composes the detail-pane inspector.DetailBody from stats and any
-// refresh error.
+// detailBody composes the detail-pane inspector.DetailBody from stats and any refresh
+// error.
 //
 // Takes stats (*SystemStats) which is the latest stats snapshot.
 // Takes err (error) which is the latest refresh error.
@@ -276,8 +273,7 @@ func (*MemoryPanel) detailBody(stats *SystemStats, err error) inspector.DetailBo
 	}
 }
 
-// refresh returns a command that fetches fresh SystemStats from the
-// configured provider.
+// refresh returns a command that fetches fresh SystemStats from the configured provider.
 //
 // Returns tea.Cmd which delivers a systemStatsMessage.
 func (p *MemoryPanel) refresh() tea.Cmd { return refreshSystemStatsCmd(p.provider) }

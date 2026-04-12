@@ -18,9 +18,9 @@
 
 package llm_domain
 
-// BucketType identifies the type of rate limit bucket used for key encoding.
-// The LLM rate limiter uses two independent buckets per scope: one for request
-// count and one for token count.
+// BucketType identifies the type of rate limit bucket used for key encoding. The LLM rate
+// limiter uses two independent buckets per scope: one for request count and one for token
+// count.
 type BucketType string
 
 const (

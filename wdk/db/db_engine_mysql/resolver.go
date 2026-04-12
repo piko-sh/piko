@@ -25,39 +25,57 @@ import (
 )
 
 const (
+	// minArgumentsIf is the minimum argument count for the IF function.
 	minArgumentsIf = 3
 
+	// minArgumentsIfNull is the minimum argument count for IFNULL.
 	minArgumentsIfNull = 2
 
+	// minArgumentsSingleArgFunction caps single-argument resolver entry.
 	minArgumentsSingleArgFunction = 1
 
+	// promotionRankText ranks text categories highest during promotion.
 	promotionRankText = 4
 
+	// promotionRankDecimal ranks decimal below text but above float.
 	promotionRankDecimal = 3
 
+	// promotionRankFloat ranks float above integer in promotion order.
 	promotionRankFloat = 2
 
+	// promotionRankInteger is the lowest numeric promotion rank.
 	promotionRankInteger = 1
 
+	// promotionRankDefault applies to unrecognised type categories.
 	promotionRankDefault = 0
 )
 
-// MySQLFunctionResolver implements FunctionResolverPort for polymorphic MySQL
-// functions whose return types depend on their argument types.
+// MySQLFunctionResolver implements FunctionResolverPort for polymorphic MySQL functions
+// whose return types depend on their argument types.
 type MySQLFunctionResolver struct{}
 
 // NewMySQLFunctionResolver creates a new MySQL function resolver.
+//
+// Returns *MySQLFunctionResolver which resolves polymorphic call sites.
 func NewMySQLFunctionResolver() *MySQLFunctionResolver {
 	return &MySQLFunctionResolver{}
 }
 
-// ResolveFunctionCall resolves a polymorphic MySQL function call that the
-// standard overload resolution could not match. It inspects the argument types
-// to compute the correct return type for conditional, aggregate, JSON, and
-// string functions.
+// ResolveFunctionCall resolves a polymorphic MySQL function call.
 //
-// Returns nil, nil for non-polymorphic functions so the caller falls back to
+// Inspects argument types to compute return types for conditional, aggregate, JSON, and
+// string functions. Returns nil for non-polymorphic functions so the caller falls back to
 // the standard catalogue lookup.
+//
+// Takes _ (*querier_dto.Catalogue) which is the catalogue context (unused).
+// Takes name (string) which is the function name to resolve.
+// Takes _ (string) which is the schema scope (unused).
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types
+// provided at the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the chosen signature, or nil
+// when no polymorphic rule applies.
+// Returns error when resolution fails.
 func (*MySQLFunctionResolver) ResolveFunctionCall(
 	_ *querier_dto.Catalogue,
 	name string,
@@ -90,6 +108,14 @@ func (*MySQLFunctionResolver) ResolveFunctionCall(
 	}
 }
 
+// resolveIf computes the return type for the IF conditional function.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the promoted branch type, or
+// nil when too few arguments are present.
+// Returns error when resolution fails.
 func resolveIf(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < minArgumentsIf {
 		return nil, nil
@@ -103,6 +129,14 @@ func resolveIf(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolu
 	}, nil
 }
 
+// resolveIfNull computes the return type for IFNULL.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the promoted type, or nil when
+// too few arguments are present.
+// Returns error when resolution fails.
 func resolveIfNull(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < minArgumentsIfNull {
 		return nil, nil
@@ -116,6 +150,14 @@ func resolveIfNull(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 	}, nil
 }
 
+// resolveCoalesce computes the return type for COALESCE/GREATEST/LEAST.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the promoted type across all
+// non-unknown arguments.
+// Returns error when resolution fails.
 func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	var result querier_dto.SQLType
 	initialised := false
@@ -145,6 +187,11 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	}, nil
 }
 
+// resolveGroupConcat computes the return type for GROUP_CONCAT.
+//
+// Returns *querier_dto.FunctionResolution which describes the text-typed aggregate
+// result.
+// Returns error when resolution fails.
 func resolveGroupConcat() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
@@ -153,6 +200,10 @@ func resolveGroupConcat() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveJSONExtract computes the return type for JSON_EXTRACT.
+//
+// Returns *querier_dto.FunctionResolution which describes the JSON-typed result.
+// Returns error when resolution fails.
 func resolveJSONExtract() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryJSON, EngineName: "json"},
@@ -160,6 +211,10 @@ func resolveJSONExtract() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveTextReturn yields a text-typed resolution used by string builders.
+//
+// Returns *querier_dto.FunctionResolution which describes the text-typed result.
+// Returns error when resolution fails.
 func resolveTextReturn() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "text"},
@@ -167,6 +222,14 @@ func resolveTextReturn() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveSum computes the return type for the SUM aggregate.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which describes the aggregate result type, or
+// nil when no argument is present.
+// Returns error when resolution fails.
 func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < minArgumentsSingleArgFunction {
 		return nil, nil
@@ -189,6 +252,11 @@ func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	}, nil
 }
 
+// resolveAvg computes the return type for the AVG aggregate.
+//
+// Returns *querier_dto.FunctionResolution which describes the double-typed aggregate
+// result.
+// Returns error when resolution fails.
 func resolveAvg() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryFloat, EngineName: "double"},
@@ -197,6 +265,14 @@ func resolveAvg() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveIdentityAggregate returns the argument type for MIN/MAX.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which carries the actual argument types at
+// the call site.
+//
+// Returns *querier_dto.FunctionResolution which echoes the first argument type as the
+// aggregate result, or nil when no argument is present.
+// Returns error when resolution fails.
 func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < minArgumentsSingleArgFunction {
 		return nil, nil
@@ -209,6 +285,10 @@ func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto
 	}, nil
 }
 
+// resolveCount returns the BIGINT non-null resolution used by COUNT.
+//
+// Returns *querier_dto.FunctionResolution which describes the bigint aggregate result.
+// Returns error when resolution fails.
 func resolveCount() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryInteger, EngineName: "bigint"},
@@ -217,10 +297,15 @@ func resolveCount() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
-// promoteTypes returns the wider of two SQL types following MySQL's implicit
-// type promotion rules. When both types share the same category, the first is
-// returned. Otherwise, the category hierarchy (text > decimal > float >
-// integer) determines the result.
+// promoteTypes returns the wider of two SQL types under MySQL rules.
+//
+// When both types share the same category the first is returned. Otherwise the category
+// hierarchy (text > decimal > float > integer) determines the result.
+//
+// Takes left (querier_dto.SQLType) which is the left operand type.
+// Takes right (querier_dto.SQLType) which is the right operand type.
+//
+// Returns querier_dto.SQLType which is the promoted SQL type.
 func promoteTypes(left querier_dto.SQLType, right querier_dto.SQLType) querier_dto.SQLType {
 	if left.Category == querier_dto.TypeCategoryUnknown {
 		return right
@@ -244,6 +329,11 @@ func promoteTypes(left querier_dto.SQLType, right querier_dto.SQLType) querier_d
 	return right
 }
 
+// typePromotionRank returns the comparison rank for a type category.
+//
+// Takes category (querier_dto.SQLTypeCategory) which is the category to rank.
+//
+// Returns int which is the rank used for promotion comparisons.
 func typePromotionRank(category querier_dto.SQLTypeCategory) int {
 	switch category {
 	case querier_dto.TypeCategoryText:

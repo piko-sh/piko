@@ -23,8 +23,12 @@ import (
 	"piko.sh/piko/wdk/db/db_engine_postgres"
 )
 
-// NewCockroachDBEngine creates a CockroachDB engine adapter by configuring the
-// PostgreSQL engine with CockroachDB-specific dialect options.
+// NewCockroachDBEngine creates a CockroachDB engine adapter.
+//
+// Configures the PostgreSQL engine with CockroachDB-specific dialect options.
+//
+// Returns *db_engine_postgres.PostgresEngine which is ready for catalogue introspection
+// and code generation against CockroachDB.
 func NewCockroachDBEngine() *db_engine_postgres.PostgresEngine {
 	return db_engine_postgres.NewPostgresEngine(
 		db_engine_postgres.WithDialectName("cockroachdb"),
@@ -33,6 +37,10 @@ func NewCockroachDBEngine() *db_engine_postgres.PostgresEngine {
 	)
 }
 
+// cockroachDBTypes returns the extra CockroachDB type aliases that map onto the
+// PostgreSQL engine's structured SQLType values.
+//
+// Returns map[string]querier_dto.SQLType keyed by raw CockroachDB type name.
 func cockroachDBTypes() map[string]querier_dto.SQLType {
 	return map[string]querier_dto.SQLType{
 		"string": {Category: querier_dto.TypeCategoryText, EngineName: "text"},
@@ -40,6 +48,11 @@ func cockroachDBTypes() map[string]querier_dto.SQLType {
 	}
 }
 
+// registerCockroachDBFunctions registers CockroachDB-specific built-in functions onto the
+// shared PostgreSQL function catalogue.
+//
+// Takes builder (*db_engine_postgres.FunctionCatalogueBuilder) which receives the extra
+// function signatures.
 func registerCockroachDBFunctions(builder *db_engine_postgres.FunctionCatalogueBuilder) {
 	integerType := builder.Bigint
 	textType := builder.Text

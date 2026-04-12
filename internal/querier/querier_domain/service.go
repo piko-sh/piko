@@ -38,17 +38,16 @@ type QuerierPorts struct {
 	// FileReader reads migration and query SQL files.
 	FileReader FileReaderPort
 
-	// CatalogueProvider optionally overrides how the schema catalogue is built.
-	// When nil, the service falls back to migration-file-based catalogue
-	// building using the Engine and FileReader ports.
+	// CatalogueProvider optionally overrides how the schema catalogue is built. When nil,
+	// the service falls back to migration-file-based catalogue building using the Engine and
+	// FileReader ports.
 	CatalogueProvider CatalogueProviderPort
 }
 
-// querierService orchestrates the three-phase pipeline: catalogue building
-// from migrations, query analysis with type resolution, and code generation
-// via the emitter adapter. Each call to GenerateDatabase creates fresh
-// instances of all internal components - the service itself is stateless and
-// safe for concurrent use.
+// querierService orchestrates the three-phase pipeline: catalogue building from
+// migrations, query analysis with type resolution, and code generation via the emitter
+// adapter. Each call to GenerateDatabase creates fresh instances of all internal
+// components - the service itself is stateless and safe for concurrent use.
 type querierService struct {
 	// engine holds the SQL dialect parser and analyser.
 	engine EnginePort
@@ -59,19 +58,15 @@ type querierService struct {
 	// fileReader holds the filesystem access adapter.
 	fileReader FileReaderPort
 
-	// catalogueProvider holds an optional override for
-	// catalogue building.
+	// catalogueProvider holds an optional override for catalogue building.
 	catalogueProvider CatalogueProviderPort
 }
 
-// NewQuerierService creates a new querier service from the
-// given ports.
+// NewQuerierService creates a new querier service from the given ports.
 //
-// Takes ports (QuerierPorts) which holds the required
-// adapter interfaces.
+// Takes ports (QuerierPorts) which holds the required adapter interfaces.
 //
-// Returns QuerierServicePort which is the initialised
-// service.
+// Returns QuerierServicePort which is the initialised service.
 // Returns error when any required port is nil.
 func NewQuerierService(ports QuerierPorts) (QuerierServicePort, error) {
 	if ports.Engine == nil {
@@ -92,16 +87,14 @@ func NewQuerierService(ports QuerierPorts) (QuerierServicePort, error) {
 	}, nil
 }
 
-// GenerateDatabase runs the full three-phase pipeline for a
-// named database connection.
+// GenerateDatabase runs the full three-phase pipeline for a named database connection.
 //
-// Takes name (string) which identifies the database
-// connection.
-// Takes config (*querier_dto.DatabaseConfig) which specifies
-// the engine, migration paths, and query paths.
+// Takes name (string) which identifies the database connection.
+// Takes config (*querier_dto.DatabaseConfig) which specifies the engine, migration paths,
+// and query paths.
 //
-// Returns *querier_dto.GenerationResult which contains the
-// generated files and any diagnostics.
+// Returns *querier_dto.GenerationResult which contains the generated files and any
+// diagnostics.
 // Returns error when generation fails fatally.
 func (s *querierService) GenerateDatabase(
 	ctx context.Context,
@@ -167,19 +160,15 @@ func (s *querierService) GenerateDatabase(
 	}, nil
 }
 
-// emitAllFiles generates all output files (models, queries,
-// querier struct, and prepared statements) via the emitter.
+// emitAllFiles generates all output files (models, queries, querier struct, and prepared
+// statements) via the emitter.
 //
 // Takes name (string) which is used as the package name.
-// Takes catalogue (*querier_dto.Catalogue) which holds the
-// schema state.
-// Takes queries ([]*querier_dto.AnalysedQuery) which are the
-// type-checked queries.
-// Takes mappings (*querier_dto.TypeMappingTable) which
-// defines SQL-to-Go type mappings.
+// Takes catalogue (*querier_dto.Catalogue) which holds the schema state.
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked queries.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 //
-// Returns []querier_dto.GeneratedFile which contains all
-// generated source files.
+// Returns []querier_dto.GeneratedFile which contains all generated source files.
 // Returns error when any emission step fails.
 func (s *querierService) emitAllFiles(
 	ctx context.Context,
@@ -206,7 +195,7 @@ func (s *querierService) emitAllFiles(
 
 	var capabilities querier_dto.QueryCapabilities
 	for _, query := range queries {
-		switch query.Command {
+		switch query.Command { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case querier_dto.QueryCommandBatch:
 			capabilities |= querier_dto.CapabilityBatch
 		case querier_dto.QueryCommandCopyFrom:
@@ -238,14 +227,11 @@ func (s *querierService) emitAllFiles(
 	return generatedFiles, nil
 }
 
-// diagnosticsContainErrors reports whether any diagnostic
-// has error severity.
+// diagnosticsContainErrors reports whether any diagnostic has error severity.
 //
-// Takes diagnostics ([]querier_dto.SourceError) which holds
-// the diagnostics to check.
+// Takes diagnostics ([]querier_dto.SourceError) which holds the diagnostics to check.
 //
-// Returns bool which is true if any diagnostic has error
-// severity.
+// Returns bool which is true if any diagnostic has error severity.
 func diagnosticsContainErrors(diagnostics []querier_dto.SourceError) bool {
 	for _, diagnostic := range diagnostics {
 		if diagnostic.Severity == querier_dto.SeverityError {
@@ -255,16 +241,13 @@ func diagnosticsContainErrors(diagnostics []querier_dto.SourceError) bool {
 	return false
 }
 
-// buildCatalogue executes Phase 1: reads migration files
-// and replays DDL statements to build the schema catalogue.
+// buildCatalogue reads migration files and replays DDL statements to build the schema
+// catalogue.
 //
-// Takes config (*querier_dto.DatabaseConfig) which specifies
-// the migration directory.
+// Takes config (*querier_dto.DatabaseConfig) which specifies the migration directory.
 //
-// Returns *querier_dto.Catalogue which holds the built
-// schema state.
-// Returns []querier_dto.SourceError which contains any
-// diagnostics.
+// Returns *querier_dto.Catalogue which holds the built schema state.
+// Returns []querier_dto.SourceError which contains any diagnostics.
 // Returns error when catalogue building fails.
 func (s *querierService) buildCatalogue(
 	ctx context.Context,
@@ -289,18 +272,14 @@ func (s *querierService) buildCatalogue(
 	return catalogue, diagnostics, buildError
 }
 
-// analyseQueries executes Phase 2: reads query files and
-// runs the full analysis pipeline on each query.
+// analyseQueries reads query files and runs the full analysis pipeline on each query.
 //
-// Takes catalogue (*querier_dto.Catalogue) which holds the
-// schema state.
-// Takes config (*querier_dto.DatabaseConfig) which specifies
-// the query directory and custom functions.
+// Takes catalogue (*querier_dto.Catalogue) which holds the schema state.
+// Takes config (*querier_dto.DatabaseConfig) which specifies the query directory and
+// custom functions.
 //
-// Returns []*querier_dto.AnalysedQuery which holds the
-// type-checked queries.
-// Returns []querier_dto.SourceError which contains any
-// diagnostics.
+// Returns []*querier_dto.AnalysedQuery which holds the type-checked queries.
+// Returns []querier_dto.SourceError which contains any diagnostics.
 // Returns error when query reading fails.
 func (s *querierService) analyseQueries(
 	ctx context.Context,

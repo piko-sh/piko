@@ -31,12 +31,13 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// seedFilePattern matches seed files named like 001_demo_data.sql.
-var seedFilePattern = regexp.MustCompile(`^(\d+)_(.+)\.sql$`)
+var (
+	// seedFilePattern matches seed files named like 001_demo_data.sql.
+	seedFilePattern = regexp.MustCompile(`^(\d+)_(.+)\.sql$`)
+)
 
-// readSeedFiles reads and parses seed SQL files matching
-// {version}_{name}.sql from the given directory, returning
-// them sorted by version ascending.
+// readSeedFiles reads and parses seed SQL files matching {version}_{name}.sql from the
+// given directory, returning them sorted by version ascending.
 //
 // Takes ctx (context.Context) for cancellation.
 // Takes fileReader (FileReaderPort) which provides filesystem access.

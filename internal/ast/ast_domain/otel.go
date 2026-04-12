@@ -18,8 +18,9 @@
 
 package ast_domain
 
-// Provides OpenTelemetry integration for the ast_domain package with logging and metrics instrumentation.
-// Initialises package-level logger and meter instances for observability and performance monitoring throughout AST operations.
+// Provides OpenTelemetry integration for the ast_domain package with logging and metrics
+// instrumentation. Initialises package-level logger and meter instances for observability
+// and performance monitoring throughout AST operations.
 
 import (
 	"go.opentelemetry.io/otel"

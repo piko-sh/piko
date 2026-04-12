@@ -18,8 +18,8 @@
 
 package tui_domain
 
-// PaneSlot identifies which conceptual position a panel occupies within a
-// multi-pane layout.
+// PaneSlot identifies which conceptual position a panel occupies within a multi-pane
+// layout.
 type PaneSlot int
 
 const (
@@ -29,13 +29,12 @@ const (
 	// SlotContext sits to the left of Primary in the three-column layout.
 	SlotContext
 
-	// SlotDetail sits to the right of Primary in the two- and three-column
-	// layouts.
+	// SlotDetail sits to the right of Primary in the two- and three-column layouts.
 	SlotDetail
 )
 
-// PaneAssignment links a Panel to the slot it should occupy. Layouts read
-// the slot to decide where in the rectangle each panel renders.
+// PaneAssignment links a Panel to the slot it should occupy. Layouts read the slot to
+// decide where in the rectangle each panel renders.
 type PaneAssignment struct {
 	// Panel is the panel to render in the slot.
 	Panel Panel
@@ -44,28 +43,27 @@ type PaneAssignment struct {
 	Slot PaneSlot
 }
 
-// PaneAssigner decides which panels appear alongside the focused panel
-// when a multi-pane layout is active. The default implementation pairs the
-// focused panel with neighbours from the panel list, but services may
-// substitute custom assigners that respect domain-specific pairings (for
-// example, a registry panel paired with a storage panel).
+// PaneAssigner decides which panels appear alongside the focused panel when a multi-pane
+// layout is active. The default implementation pairs the focused panel with neighbours
+// from the panel list, but services may substitute custom assigners that respect
+// domain-specific pairings (for example, a registry panel paired with a storage panel).
 type PaneAssigner interface {
-	// Assign returns up to maxPanes assignments, ordered for the layout's
-	// rendering convention (left-to-right). The focused panel always
-	// appears, occupying the layout's primary slot.
+	// Assign returns up to maxPanes assignments, ordered for the layout's rendering
+	// convention (left-to-right). The focused panel always appears, occupying the layout's
+	// primary slot.
 	Assign(panels []Panel, focusedID string, layoutName string, maxPanes int) []PaneAssignment
 }
 
-// DefaultPaneAssigner pairs the focused panel with the previous and next
-// panels in tab order. The focused panel takes the primary slot; the
-// previous panel takes the context slot in three-column mode; the next
-// panel takes the detail slot in two- and three-column modes.
+// DefaultPaneAssigner pairs the focused panel with the previous and next panels in tab
+// order. The focused panel takes the primary slot; the previous panel takes the context
+// slot in three-column mode; the next panel takes the detail slot in two- and
+// three-column modes.
 type DefaultPaneAssigner struct {
 	// Pairings maps a panel ID to a preferred detail-slot panel ID.
 	//
-	// When the focused panel has a pairing, that panel takes the detail slot
-	// in preference to the next-in-order panel. Used to express domain
-	// affinities (e.g. a list panel paired with its detail counterpart).
+	// When the focused panel has a pairing, that panel takes the detail slot in preference
+	// to the next-in-order panel. Used to express domain affinities (e.g. a list panel
+	// paired with its detail counterpart).
 	Pairings map[string]string
 }
 
@@ -78,16 +76,16 @@ func NewDefaultPaneAssigner() *DefaultPaneAssigner {
 
 // Assign implements the PaneAssigner contract.
 //
-// The returned slice is at most maxPanes long and contains the focused panel
-// first (primary). Additional panels are filled in based on layout name.
+// The returned slice is at most maxPanes long and contains the focused panel first
+// (primary). Additional panels are filled in based on layout name.
 //
 // Takes panels ([]Panel) which is the full ordered panel list.
 // Takes focusedID (string) which identifies the currently-focused panel.
 // Takes layoutName (string) which is the active layout's name.
 // Takes maxPanes (int) which is the cap from the breakpoint or layout.
 //
-// Returns []PaneAssignment ordered for the layout's rendering convention.
-// An empty slice is returned when no panels match.
+// Returns []PaneAssignment ordered for the layout's rendering convention. An empty slice
+// is returned when no panels match.
 func (a *DefaultPaneAssigner) Assign(panels []Panel, focusedID string, layoutName string, maxPanes int) []PaneAssignment {
 	if maxPanes <= 0 || len(panels) == 0 {
 		return nil
@@ -120,8 +118,8 @@ func (a *DefaultPaneAssigner) Assign(panels []Panel, focusedID string, layoutNam
 	return result
 }
 
-// detailPanel selects the panel that should occupy the detail slot. A
-// configured pairing wins; otherwise the next panel in tab order is used.
+// detailPanel selects the panel that should occupy the detail slot. A configured pairing
+// wins; otherwise the next panel in tab order is used.
 //
 // Takes panels ([]Panel) which is the full ordered panel list.
 // Takes focusIdx (int) which is the focused panel's index.
@@ -143,9 +141,9 @@ func (a *DefaultPaneAssigner) detailPanel(panels []Panel, focusIdx int, focusedI
 	return nil
 }
 
-// contextPanel selects the panel that should occupy the context slot in a
-// three-column layout. Returns the panel to the left of focus (wrapping if
-// needed), and never the same panel as detail or primary.
+// contextPanel selects the panel that should occupy the context slot in a three-column
+// layout. Returns the panel to the left of focus (wrapping if needed), and never the same
+// panel as detail or primary.
 //
 // Takes panels ([]Panel) which is the full ordered panel list.
 // Takes focusIdx (int) which is the focused panel's index.
@@ -161,8 +159,7 @@ func (*DefaultPaneAssigner) contextPanel(panels []Panel, focusIdx int) Panel {
 	return nil
 }
 
-// indexOfPanel returns the index of the panel with the given ID, or -1 when
-// not found.
+// indexOfPanel returns the index of the panel with the given ID, or -1 when not found.
 //
 // Takes panels ([]Panel) which is the panel list to search.
 // Takes id (string) which is the panel ID to find.

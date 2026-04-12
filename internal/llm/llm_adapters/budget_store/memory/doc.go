@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package memory implements [llm_domain.BudgetStorePort] using
-// in-memory storage. It tracks LLM cost and usage data per scope in
-// a mutex-guarded map, automatically resetting hourly and daily
-// spending counters when their time windows elapse.
+// Package memory implements [llm_domain.BudgetStorePort] using in-memory storage. It
+// tracks LLM cost and usage data per scope in a mutex-guarded map, automatically
+// resetting hourly and daily spending counters when their time windows elapse.
 //
 // # Usage
 //
@@ -28,7 +27,6 @@
 //
 // # Thread safety
 //
-// All exported methods on Store are safe for concurrent use. Write
-// operations acquire an exclusive lock; read operations use a shared
-// read lock.
+// All exported methods on Store are safe for concurrent use. Write operations acquire an
+// exclusive lock; read operations use a shared read lock.
 package memory

@@ -20,6 +20,7 @@ package lsp_domain
 
 import (
 	"context"
+	"slices"
 
 	"go.lsp.dev/protocol"
 	"piko.sh/piko/internal/annotator/annotator_domain"
@@ -32,8 +33,8 @@ type signatureCallContext struct {
 	// FunctionName is the name of the function being called.
 	FunctionName string
 
-	// BaseExpression is the receiver for method calls (e.g., "state.user").
-	// Empty for standalone function calls.
+	// BaseExpression is the receiver for method calls (e.g., "state.user"). Empty for
+	// standalone function calls.
 	BaseExpression string
 
 	// ActiveParameter is the zero-based index of the current parameter.
@@ -43,14 +44,14 @@ type signatureCallContext struct {
 	IsMethodCall bool
 }
 
-// tryFastPathSignatureHelp attempts to provide signature help using cached
-// analysis data without waiting for a full rebuild.
+// tryFastPathSignatureHelp attempts to provide signature help using cached analysis data
+// without waiting for a full rebuild.
 //
-// Takes params (*protocol.SignatureHelpParams) which specifies the signature
-// help request parameters.
+// Takes params (*protocol.SignatureHelpParams) which specifies the signature help request
+// parameters.
 //
-// Returns *protocol.SignatureHelp which contains the signature help if the
-// fast-path succeeded, or nil if it should fall back to the normal path.
+// Returns *protocol.SignatureHelp which contains the signature help if the fast-path
+// succeeded, or nil if it should fall back to the normal path.
 func (s *Server) tryFastPathSignatureHelp(ctx context.Context, params *protocol.SignatureHelpParams) *protocol.SignatureHelp {
 	_, l := logger_domain.From(ctx, log)
 
@@ -102,8 +103,8 @@ func (s *Server) tryFastPathSignatureHelp(ctx context.Context, params *protocol.
 	return result
 }
 
-// hasSignatureHelpPrerequisites checks if the document has the data needed
-// for fast-path signature help.
+// hasSignatureHelpPrerequisites checks if the document has the data needed for fast-path
+// signature help.
 //
 // Returns bool which is true when all required fields are present.
 func (d *document) hasSignatureHelpPrerequisites() bool {
@@ -115,12 +116,12 @@ func (d *document) hasSignatureHelpPrerequisites() bool {
 
 // getSignatureHelpFast provides signature help using cached analysis data.
 //
-// Takes callCtx (*signatureCallContext) which describes the function call
-// detected from text.
+// Takes callCtx (*signatureCallContext) which describes the function call detected from
+// text.
 // Takes position (protocol.Position) which specifies the cursor position.
 //
-// Returns *protocol.SignatureHelp which contains the signature help, or nil
-// if resolution fails.
+// Returns *protocol.SignatureHelp which contains the signature help, or nil if resolution
+// fails.
 func (d *document) getSignatureHelpFast(ctx context.Context, callCtx *signatureCallContext, position protocol.Position) *protocol.SignatureHelp {
 	targetNode := findNodeAtPosition(d.AnnotationResult.AnnotatedAST, position, d.URI.Filename())
 	if targetNode == nil {
@@ -150,11 +151,11 @@ func (d *document) getSignatureHelpFast(ctx context.Context, callCtx *signatureC
 // resolveFunctionSignatureFast looks up a standalone function signature.
 //
 // Takes callCtx (*signatureCallContext) which contains the function name.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the
-// current package and source context.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the current
+// package and source context.
 //
-// Returns *inspector_dto.FunctionSignature which is the resolved signature,
-// or nil if not found.
+// Returns *inspector_dto.FunctionSignature which is the resolved signature, or nil if not
+// found.
 func (d *document) resolveFunctionSignatureFast(
 	callCtx *signatureCallContext,
 	analysisCtx *annotator_domain.AnalysisContext,
@@ -185,14 +186,13 @@ func (d *document) resolveFunctionSignatureFast(
 
 // resolveMethodSignatureFast finds the signature for a method call.
 //
-// Takes callCtx (*signatureCallContext) which holds the base expression and
-// method name.
-// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the
-// current package context.
+// Takes callCtx (*signatureCallContext) which holds the base expression and method name.
+// Takes analysisCtx (*annotator_domain.AnalysisContext) which provides the current
+// package context.
 // Takes position (protocol.Position) which specifies the cursor position.
 //
-// Returns *inspector_dto.FunctionSignature which is the method signature, or
-// nil if not found.
+// Returns *inspector_dto.FunctionSignature which is the method signature, or nil if not
+// found.
 func (d *document) resolveMethodSignatureFast(
 	ctx context.Context,
 	callCtx *signatureCallContext,
@@ -226,8 +226,8 @@ type parenScanState struct {
 	// inRawString indicates whether the scanner is inside a raw string literal.
 	inRawString bool
 
-	// escapeNext indicates that the next character should be skipped due to a
-	// backslash escape sequence in a string.
+	// escapeNext indicates that the next character should be skipped due to a backslash
+	// escape sequence in a string.
 	escapeNext bool
 }
 
@@ -312,14 +312,14 @@ func (s *parenScanState) handleParensAndCommas(character byte, i int) (found boo
 	return false, 0, 0
 }
 
-// analyseSignatureContextFromContent checks the text around the cursor to
-// find function call context.
+// analyseSignatureContextFromContent checks the text around the cursor to find function
+// call context.
 //
 // Takes content ([]byte) which is the raw document content.
 // Takes position (protocol.Position) which specifies the cursor position.
 //
-// Returns *signatureCallContext which describes the found function call,
-// or nil if not inside a function call.
+// Returns *signatureCallContext which describes the found function call, or nil if not
+// inside a function call.
 func analyseSignatureContextFromContent(content []byte, position protocol.Position) *signatureCallContext {
 	_, lineFound := getLineAtPosition(content, position.Line)
 	if !lineFound {
@@ -334,14 +334,14 @@ func analyseSignatureContextFromContent(content []byte, position protocol.Positi
 	return findEnclosingCallFromBytes(content[:cursorOffset])
 }
 
-// findEnclosingCallFromBytes finds the function call that surrounds the cursor
-// by scanning backwards through the text before the cursor.
+// findEnclosingCallFromBytes finds the function call that surrounds the cursor by
+// scanning backwards through the text before the cursor.
 //
-// Takes textBeforeCursor ([]byte) which contains all text from the document
-// start up to the cursor position.
+// Takes textBeforeCursor ([]byte) which contains all text from the document start up to
+// the cursor position.
 //
-// Returns *signatureCallContext which describes the surrounding call, or nil
-// if no call is found.
+// Returns *signatureCallContext which describes the surrounding call, or nil if no call
+// is found.
 func findEnclosingCallFromBytes(textBeforeCursor []byte) *signatureCallContext {
 	if len(textBeforeCursor) == 0 {
 		return nil
@@ -365,14 +365,14 @@ func findEnclosingCallFromBytes(textBeforeCursor []byte) *signatureCallContext {
 	}
 }
 
-// findEnclosingCallFromText finds the function call that surrounds the cursor
-// by scanning backwards through the text.
+// findEnclosingCallFromText finds the function call that surrounds the cursor by scanning
+// backwards through the text.
 //
 // Takes lines ([][]byte) which contains the document lines.
 // Takes position (protocol.Position) which specifies the cursor position.
 //
-// Returns *signatureCallContext which describes the surrounding call, or nil
-// if no call is found.
+// Returns *signatureCallContext which describes the surrounding call, or nil if no call
+// is found.
 func findEnclosingCallFromText(lines [][]byte, position protocol.Position) *signatureCallContext {
 	textBeforeCursor := buildTextBeforeCursor(lines, position)
 	if len(textBeforeCursor) == 0 {
@@ -397,8 +397,8 @@ func findEnclosingCallFromText(lines [][]byte, position protocol.Position) *sign
 	}
 }
 
-// buildTextBeforeCursor joins all lines from the start of the document up to
-// the cursor position.
+// buildTextBeforeCursor joins all lines from the start of the document up to the cursor
+// position.
 //
 // Takes lines ([][]byte) which contains the document lines.
 // Takes position (protocol.Position) which specifies where the cursor is.
@@ -421,19 +421,18 @@ func buildTextBeforeCursor(lines [][]byte, position protocol.Position) []byte {
 	return result
 }
 
-// findOpeningParen scans text backwards to find the opening parenthesis of a
-// function call. It tracks nesting to handle calls within calls.
+// findOpeningParen scans text backwards to find the opening parenthesis of a function
+// call. It tracks nesting to handle calls within calls.
 //
 // Takes text ([]byte) which is the text to scan.
 //
-// Returns parenIndex (int) which is the position of the opening parenthesis,
-// or -1 if not found.
-// Returns paramIndex (int) which is the active parameter index based on comma
-// count.
+// Returns parenIndex (int) which is the position of the opening parenthesis, or -1 if not
+// found.
+// Returns paramIndex (int) which is the active parameter index based on comma count.
 func findOpeningParen(text []byte) (parenIndex int, paramIndex int) {
 	state := &parenScanState{}
 
-	for i := len(text) - 1; i >= 0; i-- {
+	for i := range slices.Backward(text) {
 		if found, index, count := state.processChar(text, i); found {
 			return index, count
 		}
@@ -442,14 +441,14 @@ func findOpeningParen(text []byte) (parenIndex int, paramIndex int) {
 	return -1, 0
 }
 
-// extractCalleeFromText extracts the function name and base expression from
-// text that appears before an opening parenthesis.
+// extractCalleeFromText extracts the function name and base expression from text that
+// appears before an opening parenthesis.
 //
 // Takes text ([]byte) which is the bytes before the opening parenthesis.
 //
 // Returns functionName (string) which is the function or method name.
-// Returns baseExpr (string) which is the base expression, or empty for
-// standalone functions.
+// Returns baseExpr (string) which is the base expression, or empty for standalone
+// functions.
 func extractCalleeFromText(text []byte) (functionName string, baseExpr string) {
 	if len(text) == 0 {
 		return "", ""

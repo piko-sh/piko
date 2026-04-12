@@ -22,73 +22,78 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this provider.
-const Language = "french"
+const (
 
-// stopWords contains common French stop words (mots vides) organised by
-// grammatical category. Words are in normalised form (without accents) as input
-// is expected to be pre-normalised.
-var stopWords = map[string]bool{
-	"le": true, "la": true, "les": true, "l": true,
+	// Language is the language code for this provider.
+	Language = "french"
+)
 
-	"un": true, "une": true, "des": true, "du": true,
+var (
+	// stopWords contains common French stop words (mots vides) organised by grammatical
+	// category. Words are in normalised form (without accents) as input is expected to be
+	// pre-normalised.
+	stopWords = map[string]bool{
+		"le": true, "la": true, "les": true, "l": true,
 
-	"au": true, "aux": true,
+		"un": true, "une": true, "des": true, "du": true,
 
-	"je": true, "tu": true, "il": true, "elle": true, "on": true,
-	"nous": true, "vous": true, "ils": true, "elles": true,
+		"au": true, "aux": true,
 
-	"me": true, "te": true, "se": true, "lui": true, "leur": true,
+		"je": true, "tu": true, "il": true, "elle": true, "on": true,
+		"nous": true, "vous": true, "ils": true, "elles": true,
 
-	"mon": true, "ma": true, "mes": true,
-	"ton": true, "ta": true, "tes": true,
-	"son": true, "sa": true, "ses": true,
+		"me": true, "te": true, "se": true, "lui": true, "leur": true,
 
-	"notre": true, "nos": true, "votre": true, "vos": true, "leurs": true,
+		"mon": true, "ma": true, "mes": true,
+		"ton": true, "ta": true, "tes": true,
+		"son": true, "sa": true, "ses": true,
 
-	"ce": true, "cet": true, "cette": true, "ces": true, "ceci": true, "cela": true,
+		"notre": true, "nos": true, "votre": true, "vos": true, "leurs": true,
 
-	"qui": true, "que": true, "quoi": true, "dont": true, "ou": true,
-	"lequel": true, "laquelle": true, "lesquels": true, "lesquelles": true,
-	"comment": true, "pourquoi": true, "quand": true,
+		"ce": true, "cet": true, "cette": true, "ces": true, "ceci": true, "cela": true,
 
-	"de": true, "a": true, "en": true, "pour": true, "par": true,
-	"avec": true, "dans": true, "sur": true, "sous": true, "sans": true,
-	"vers": true, "chez": true, "entre": true, "depuis": true, "pendant": true,
+		"qui": true, "que": true, "quoi": true, "dont": true, "ou": true,
+		"lequel": true, "laquelle": true, "lesquels": true, "lesquelles": true,
+		"comment": true, "pourquoi": true, "quand": true,
 
-	"et": true, "mais": true, "donc": true, "car": true,
-	"si": true, "comme": true, "lorsque": true, "puisque": true, "quoique": true, "parce": true,
+		"de": true, "a": true, "en": true, "pour": true, "par": true,
+		"avec": true, "dans": true, "sur": true, "sous": true, "sans": true,
+		"vers": true, "chez": true, "entre": true, "depuis": true, "pendant": true,
 
-	"suis": true, "es": true, "est": true, "sommes": true, "etes": true, "sont": true,
-	"etre": true, "ete": true, "etais": true, "etait": true,
+		"et": true, "mais": true, "donc": true, "car": true,
+		"si": true, "comme": true, "lorsque": true, "puisque": true, "quoique": true, "parce": true,
 
-	"ai": true, "as": true, "avons": true, "avez": true, "ont": true,
-	"avoir": true, "eu": true, "avais": true, "avait": true, "avaient": true,
+		"suis": true, "es": true, "est": true, "sommes": true, "etes": true, "sont": true,
+		"etre": true, "ete": true, "etais": true, "etait": true,
 
-	"vais": true, "vas": true, "va": true, "allons": true, "allez": true, "vont": true,
+		"ai": true, "as": true, "avons": true, "avez": true, "ont": true,
+		"avoir": true, "eu": true, "avais": true, "avait": true, "avaient": true,
 
-	"fais": true, "fait": true, "faisons": true, "faites": true, "font": true, "faire": true,
+		"vais": true, "vas": true, "va": true, "allons": true, "allez": true, "vont": true,
 
-	"peux": true, "peut": true, "peuvent": true, "pouvoir": true,
-	"veux": true, "veut": true, "veulent": true, "vouloir": true,
+		"fais": true, "fait": true, "faisons": true, "faites": true, "font": true, "faire": true,
 
-	"ne": true, "n": true, "pas": true, "plus": true, "jamais": true,
-	"rien": true, "personne": true, "aucun": true, "aucune": true,
+		"peux": true, "peut": true, "peuvent": true, "pouvoir": true,
+		"veux": true, "veut": true, "veulent": true, "vouloir": true,
 
-	"tres": true, "moins": true, "peu": true, "beaucoup": true,
-	"trop": true, "assez": true, "tant": true, "tout": true, "tous": true, "toute": true,
+		"ne": true, "n": true, "pas": true, "plus": true, "jamais": true,
+		"rien": true, "personne": true, "aucun": true, "aucune": true,
 
-	"ici": true, "maintenant": true, "alors": true,
-	"encore": true, "toujours": true, "deja": true, "souvent": true,
-	"bien": true, "seulement": true,
+		"tres": true, "moins": true, "peu": true, "beaucoup": true,
+		"trop": true, "assez": true, "tant": true, "tout": true, "tous": true, "toute": true,
 
-	"autre": true, "autres": true, "meme": true, "quelque": true, "quelques": true, "certain": true,
+		"ici": true, "maintenant": true, "alors": true,
+		"encore": true, "toujours": true, "deja": true, "souvent": true,
+		"bien": true, "seulement": true,
 
-	"aussi": true, "ainsi": true, "puis": true, "ensuite": true, "enfin": true, "non": true,
-}
+		"autre": true, "autres": true, "meme": true, "quelque": true, "quelques": true, "certain": true,
 
-// Provider supplies French stop words for text analysis.
-// It implements the linguistics_domain.StopWordsProviderPort interface.
+		"aussi": true, "ainsi": true, "puis": true, "ensuite": true, "enfin": true, "non": true,
+	}
+)
+
+// Provider supplies French stop words for text analysis. It implements the
+// linguistics_domain.StopWordsProviderPort interface.
 type Provider struct{}
 
 // GetStopWords returns the French stop words.
@@ -107,15 +112,16 @@ func (*Provider) SupportedLanguages() []string {
 	return []string{Language}
 }
 
-var _ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+var (
+	_ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+)
 
 // Factory creates a new French stop words provider instance.
 //
-// Use this with linguistics_domain.RegisterStopWordsProviderFactory for
-// explicit registration.
+// Use this with linguistics_domain.RegisterStopWordsProviderFactory for explicit
+// registration.
 //
-// Returns linguistics_domain.StopWordsProviderPort which provides French
-// stop words.
+// Returns linguistics_domain.StopWordsProviderPort which provides French stop words.
 // Returns error when the provider cannot be created.
 func Factory() (linguistics_domain.StopWordsProviderPort, error) {
 	return New()

@@ -16,15 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_transformer_gzip implements gzip compression for
-// storage streams.
+// Package storage_transformer_gzip implements gzip compression for storage streams.
 //
-// It wraps io.Reader streams to apply transparent compression on
-// uploads and decompression on downloads. Gzip offers good compression
-// ratios with wide compatibility; prefer it when interoperability
-// matters more than raw compression speed. The compression level is
-// configurable from 0 (none) to 9 (best).
+// It wraps io.Reader streams to apply transparent compression on uploads and
+// decompression on downloads. Gzip offers good compression ratios with wide
+// compatibility; prefer it when interoperability matters more than raw compression speed.
+// The compression level is configurable from 0 (none) to 9 (best).
 //
-// All methods are safe for concurrent use. Each Transform and Reverse
-// call operates on independent streams.
+// All methods are safe for concurrent use. Each Transform and Reverse call operates on
+// independent streams.
 package storage_transformer_gzip

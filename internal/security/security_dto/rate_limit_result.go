@@ -18,11 +18,11 @@
 
 package security_dto
 
-// RateLimitOverride holds custom rate limit settings for an action.
-// Actions can implement the RateLimitable interface to return custom limits.
+// RateLimitOverride holds custom rate limit settings for an action. Actions can implement
+// the RateLimitable interface to return custom limits.
 type RateLimitOverride struct {
-	// KeySuffix is appended to the rate limit key to create a separate bucket.
-	// For example, "login" creates a separate limit for login attempts.
+	// KeySuffix is appended to the rate limit key to create a separate bucket. For example,
+	// "login" creates a separate limit for login attempts.
 	KeySuffix string
 
 	// RequestsPerMinute overrides the default rate limit for this action.

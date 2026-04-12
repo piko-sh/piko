@@ -22,40 +22,120 @@
 
 #include "textflag.h"
 
-// func euclidSqF32Kern(a, b []float32) float32
+// euclidSqF32Kern computes sum((a[i]-b[i])^2) for f32 vectors using 8-way NEON unrolling.
 TEXT ·euclidSqF32Kern(SB), NOSPLIT, $0-52
 	MOVD a_base+0(FP), R0
 	MOVD a_len+8(FP), R2
 	MOVD b_base+24(FP), R1
 
 	VEOR V0.B16, V0.B16, V0.B16
+	VEOR V4.B16, V4.B16, V4.B16
+	VEOR V5.B16, V5.B16, V5.B16
+	VEOR V6.B16, V6.B16, V6.B16
+	VEOR V7.B16, V7.B16, V7.B16
+	VEOR V8.B16, V8.B16, V8.B16
+	VEOR V9.B16, V9.B16, V9.B16
+	VEOR V10.B16, V10.B16, V10.B16
 	VEOR V3.B16, V3.B16, V3.B16
 
-	CMP  $4, R2
-	BLT  euclid_tail
+	CMP  $32, R2
+	BLT  euclid_tail4
+
+euclid_loop32:
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V0.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V4.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V5.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V6.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V7.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V8.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V9.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	WORD $0x4EA2D421
+	VFMLA V1.S4, V1.S4, V10.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	SUB  $32, R2
+	CMP  $32, R2
+	BGE  euclid_loop32
+
+	WORD $0x4E24D400
+	WORD $0x4E25D400
+	WORD $0x4E26D400
+	WORD $0x4E27D400
+	WORD $0x4E28D400
+	WORD $0x4E29D400
+	WORD $0x4E2AD400
+
+euclid_tail4:
+	CMP $4, R2
+	BLT euclid_tail
 
 euclid_loop4:
 	VLD1 (R0), [V1.S4]
 	VLD1 (R1), [V2.S4]
 	WORD $0x4EA2D421
 	VFMLA V1.S4, V1.S4, V0.S4
-	ADD  $16, R0
-	ADD  $16, R1
-	SUB  $4, R2
-	CMP  $4, R2
-	BGE  euclid_loop4
+	ADD $16, R0
+	ADD $16, R1
+	SUB $4, R2
+	CMP $4, R2
+	BGE euclid_loop4
 
 euclid_tail:
-	CBZ  R2, euclid_reduce
+	CBZ R2, euclid_reduce
 
 euclid_tail_loop:
 	FMOVS (R0), F1
 	FMOVS (R1), F2
 	FSUBS F2, F1, F1
 	FMADDS F1, F3, F1, F3
-	ADD  $4, R0
-	ADD  $4, R1
-	SUB  $1, R2
+	ADD $4, R0
+	ADD $4, R1
+	SUB $1, R2
 	CBNZ R2, euclid_tail_loop
 
 euclid_reduce:

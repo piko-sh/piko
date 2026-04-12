@@ -29,8 +29,10 @@ import (
 	"piko.sh/piko/internal/retry"
 )
 
-// maxJitterMilliseconds is the upper limit for random jitter when retrying emails.
-const maxJitterMilliseconds = 1000
+const (
+	// maxJitterMilliseconds is the upper limit for random jitter when retrying emails.
+	maxJitterMilliseconds = 1000
+)
 
 var (
 	// ErrRecipientRequired is returned when an email has no recipients.
@@ -39,29 +41,28 @@ var (
 	// ErrBodyRequired is returned when an email has neither HTML nor plain text body.
 	ErrBodyRequired = errors.New("either BodyHTML or BodyPlain must be provided")
 
-	// errDispatcherNil is returned when a nil dispatcher is provided during
-	// registration.
+	// errDispatcherNil is returned when a nil dispatcher is provided during registration.
 	errDispatcherNil = errors.New("dispatcher cannot be nil")
 
-	// errNoDispatcher is returned when a dispatcher operation is attempted but
-	// no dispatcher has been registered.
+	// errNoDispatcher is returned when a dispatcher operation is attempted but no dispatcher
+	// has been registered.
 	errNoDispatcher = errors.New("no dispatcher registered")
 
-	// errDispatcherRunning is returned when attempting to start a dispatcher
-	// that is already running.
+	// errDispatcherRunning is returned when attempting to start a dispatcher that is already
+	// running.
 	errDispatcherRunning = errors.New("dispatcher already running")
 
-	// errNoDLQ is returned when a dead letter queue operation is attempted but
-	// no dead letter queue has been configured.
+	// errNoDLQ is returned when a dead letter queue operation is attempted but no dead
+	// letter queue has been configured.
 	errNoDLQ = errors.New("no dead letter queue configured")
 
-	// errTemplaterNotConfigured is returned when a templated email is
-	// requested but the templating service has not been set up.
+	// errTemplaterNotConfigured is returned when a templated email is requested but the
+	// templating service has not been set up.
 	errTemplaterNotConfigured = errors.New("the templating service has not been configured for the email service")
 )
 
-// EmailError represents a single email send failure with retry information.
-// It implements fmt.Stringer and tracks attempt history for retry scheduling.
+// EmailError represents a single email send failure with retry information. It implements
+// fmt.Stringer and tracks attempt history for retry scheduling.
 type EmailError struct {
 	// FirstAttempt is when the first delivery attempt was made.
 	FirstAttempt time.Time
@@ -84,14 +85,12 @@ type EmailError struct {
 
 // String returns a formatted string representation of the email error.
 //
-// Returns string which contains the recipient, attempt number, and error
-// message.
+// Returns string which contains the recipient, attempt number, and error message.
 func (e *EmailError) String() string {
 	return fmt.Sprintf("Email to %v (attempt %d): %s", e.Email.To, e.Attempt, e.Error.Error())
 }
 
-// MultiError holds a list of email send failures and implements the error
-// interface.
+// MultiError holds a list of email send failures and implements the error interface.
 type MultiError struct {
 	// Errors holds the list of email validation errors.
 	Errors []EmailError
@@ -99,9 +98,8 @@ type MultiError struct {
 
 // Error implements the error interface for MultiError.
 //
-// Returns string which describes all errors. When one error exists, it returns
-// a single message. When there are many errors, it returns a numbered list
-// joined by semicolons.
+// Returns string which describes all errors. When one error exists, it returns a single
+// message. When there are many errors, it returns a numbered list joined by semicolons.
 func (me *MultiError) Error() string {
 	if len(me.Errors) == 0 {
 		return "no errors"
@@ -143,8 +141,8 @@ func (me *MultiError) Count() int {
 
 // GetEmails returns all failed emails from the collected errors.
 //
-// Returns []email_dto.SendParams which contains the email parameters for each
-// failed send operation.
+// Returns []email_dto.SendParams which contains the email parameters for each failed send
+// operation.
 func (me *MultiError) GetEmails() []email_dto.SendParams {
 	emails := make([]email_dto.SendParams, len(me.Errors))
 	for i := range me.Errors {
@@ -169,15 +167,15 @@ func (me *MultiError) GetReadyForRetry(now time.Time) []EmailError {
 	return ready
 }
 
-// Split separates email errors into those ready for retry and those still
-// waiting based on their next retry time.
+// Split separates email errors into those ready for retry and those still waiting based
+// on their next retry time.
 //
 // Takes now (time.Time) which specifies the current time for comparison.
 //
-// Returns readyForRetry ([]EmailError) which contains errors whose retry time
-// has passed or is not set.
-// Returns stillWaiting ([]EmailError) which contains errors whose retry time
-// is in the future.
+// Returns readyForRetry ([]EmailError) which contains errors whose retry time has passed
+// or is not set.
+// Returns stillWaiting ([]EmailError) which contains errors whose retry time is still
+// pending.
 func (me *MultiError) Split(now time.Time) (readyForRetry, stillWaiting []EmailError) {
 	readyForRetry = make([]EmailError, 0, len(me.Errors))
 	stillWaiting = make([]EmailError, 0, len(me.Errors))
@@ -192,8 +190,8 @@ func (me *MultiError) Split(now time.Time) (readyForRetry, stillWaiting []EmailE
 	return readyForRetry, stillWaiting
 }
 
-// RetryConfig holds settings for the email retry mechanism. It embeds the
-// shared retry configuration which provides CalculateNextRetry and ShouldRetry.
+// RetryConfig holds settings for the email retry mechanism. It embeds the shared retry
+// configuration which provides CalculateNextRetry and ShouldRetry.
 type RetryConfig struct {
 	retry.Config
 
@@ -201,9 +199,8 @@ type RetryConfig struct {
 	DeadLetterQueue bool
 }
 
-// flatJitter returns a random duration between 0 and 999 milliseconds,
-// ignoring the delay parameter. This provides a flat jitter distribution
-// suitable for email retry timing.
+// flatJitter returns a random duration between 0 and 999 milliseconds, ignoring the delay
+// parameter. This provides a flat jitter distribution suitable for email retry timing.
 //
 // Takes _ (time.Duration) which is the calculated delay (unused).
 //
@@ -226,8 +223,8 @@ func newMultiError(errs []EmailError) *MultiError {
 
 // defaultRetryConfig returns a RetryConfig with sensible default values.
 //
-// Returns RetryConfig which contains standard retry settings with exponential
-// backoff and a dead letter queue enabled.
+// Returns RetryConfig which contains standard retry settings with exponential backoff and
+// a dead letter queue enabled.
 func defaultRetryConfig() RetryConfig {
 	return RetryConfig{
 		Config: retry.Config{

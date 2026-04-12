@@ -24,20 +24,18 @@ import (
 )
 
 const (
-	// pkasmSeparatorWidth is the width of the separator line in
-	// function headers.
+	// pkasmSeparatorWidth is the width of the separator line in function headers.
 	pkasmSeparatorWidth = 61
 
 	// pkasmIndentUnit is the indentation string per nesting level.
 	pkasmIndentUnit = "  "
 
-	// pkasmConstantSeparator separates entries in constant pool
-	// dumps.
+	// pkasmConstantSeparator separates entries in constant pool dumps.
 	pkasmConstantSeparator = "  "
 )
 
-// pkasmWriter writes human-readable bytecode assembly to a string
-// builder. It tracks indentation depth for nested function output.
+// pkasmWriter writes human-readable bytecode assembly to a string builder. It tracks
+// indentation depth for nested function output.
 type pkasmWriter struct {
 	// builder accumulates the assembly output.
 	builder *strings.Builder
@@ -46,10 +44,9 @@ type pkasmWriter struct {
 	indentLevel int
 }
 
-// DisassembleAssembly returns the complete human-readable bytecode
-// assembly listing for the compiled file set. The output includes a
-// file header, the root function body (if any), the variable init
-// function (if any), and all child functions recursively.
+// DisassembleAssembly returns the complete human-readable bytecode assembly listing for
+// the compiled file set. The output includes a file header, the root function body (if
+// any), the variable init function (if any), and all child functions recursively.
 //
 // Returns the assembly listing as a string.
 func (cfs *CompiledFileSet) DisassembleAssembly() string {
@@ -78,8 +75,8 @@ func (cfs *CompiledFileSet) DisassembleAssembly() string {
 	return w.builder.String()
 }
 
-// DisassembleFunctionAssembly returns the human-readable bytecode assembly listing
-// for the function and all its nested children.
+// DisassembleFunctionAssembly returns the human-readable bytecode assembly listing for
+// the function and all its nested children.
 //
 // Returns the assembly listing as a string.
 func (cf *CompiledFunction) DisassembleFunctionAssembly() string {
@@ -88,8 +85,8 @@ func (cf *CompiledFunction) DisassembleFunctionAssembly() string {
 	return w.builder.String()
 }
 
-// writeFunctionRecursive writes a function block and then recurses
-// into its child functions with increased indentation.
+// writeFunctionRecursive writes a function block and then recurses into its child
+// functions with increased indentation.
 //
 // Takes cf (*CompiledFunction) which is the function to write.
 func (w *pkasmWriter) writeFunctionRecursive(cf *CompiledFunction) {
@@ -106,8 +103,8 @@ func (w *pkasmWriter) writeFunctionRecursive(cf *CompiledFunction) {
 	w.indentLevel--
 }
 
-// writeFunction writes a single function block: header, constant
-// pools, and instruction listing.
+// writeFunction writes a single function block: header, constant pools, and instruction
+// listing.
 //
 // Takes cf (*CompiledFunction) which is the function to write.
 // Takes name (string) which is the display name for the header.
@@ -118,9 +115,8 @@ func (w *pkasmWriter) writeFunction(cf *CompiledFunction, name string) {
 	w.writeInstructions(cf)
 }
 
-// writeFunctionHeader writes the decorated function header showing
-// name, register counts, parameter kinds, return kinds, and variadic
-// flag.
+// writeFunctionHeader writes the decorated function header showing name, register counts,
+// parameter kinds, return kinds, and variadic flag.
 //
 // Takes cf (*CompiledFunction) which provides the metadata.
 // Takes name (string) which is the display name for the header.
@@ -138,7 +134,7 @@ func (w *pkasmWriter) writeFunctionHeader(cf *CompiledFunction, name string) {
 		w.writeLine(fmt.Sprintf(";   registers: %s", strings.Join(regParts, " ")))
 	}
 
-	paramStr := formatKindList(cf.paramKinds)
+	paramStr := formatKindList(cf.parameterKinds)
 	w.writeLine(fmt.Sprintf(";   params:    %s", paramStr))
 
 	returnStr := formatKindList(cf.resultKinds)
@@ -149,41 +145,6 @@ func (w *pkasmWriter) writeFunctionHeader(cf *CompiledFunction, name string) {
 	}
 
 	w.writeLine(separator)
-}
-
-// formatRegisterCounts returns a slice of "kind=N" strings for
-// non-zero register banks.
-//
-// Takes cf (*CompiledFunction) which provides register counts.
-//
-// Returns []string containing one "kind=N" entry per non-zero
-// register bank.
-func formatRegisterCounts(cf *CompiledFunction) []string {
-	var parts []string
-	for i := range NumRegisterKinds {
-		count := cf.numRegisters[i]
-		if count > 0 {
-			parts = append(parts, fmt.Sprintf("%s=%d", registerKind(i).String(), count))
-		}
-	}
-	return parts
-}
-
-// formatKindList formats a slice of register kinds as a parenthesised
-// comma-separated list, e.g. "(int, string)" or "(none)".
-//
-// Takes kinds ([]registerKind) which lists the kinds to format.
-//
-// Returns string containing the formatted parenthesised list.
-func formatKindList(kinds []registerKind) string {
-	if len(kinds) == 0 {
-		return "(none)"
-	}
-	names := make([]string, len(kinds))
-	for i, k := range kinds {
-		names[i] = k.String()
-	}
-	return "(" + strings.Join(names, ", ") + ")"
 }
 
 // writeConstantPools dumps non-empty constant pools compactly.
@@ -221,8 +182,8 @@ func (w *pkasmWriter) writeConstantPools(cf *CompiledFunction) {
 	}
 }
 
-// writeInstructions writes the instruction listing with source line
-// annotations and enhanced call comments.
+// writeInstructions writes the instruction listing with source line annotations and
+// enhanced call comments.
 //
 // Takes cf (*CompiledFunction) which provides the instruction body.
 func (w *pkasmWriter) writeInstructions(cf *CompiledFunction) {
@@ -241,8 +202,7 @@ func (w *pkasmWriter) writeInstructions(cf *CompiledFunction) {
 	}
 }
 
-// writeSourceAnnotation emits a source line comment when the source
-// position changes.
+// writeSourceAnnotation emits a source line comment when the source position changes.
 //
 // Takes cf (*CompiledFunction) which provides the source map.
 // Takes pc (int) which is the program counter to annotate.
@@ -266,30 +226,39 @@ func (w *pkasmWriter) writeSourceAnnotation(cf *CompiledFunction, pc int, lastFi
 	return file, line
 }
 
-// writeInstruction writes a single instruction line with optional
-// inline comment.
+// writeInstruction writes a single instruction line with optional inline comment.
 //
 // Takes cf (*CompiledFunction) which provides the instruction body.
 // Takes pc (int) which is the program counter of the instruction.
 func (w *pkasmWriter) writeInstruction(cf *CompiledFunction, pc int) {
 	instr := cf.body[pc]
-	comment := cf.pkasmComment(instr)
+	label := instructionDisplayName(instr)
+	comment := cf.pkasmComment(pc, instr)
 	if comment != "" {
 		w.writeLine(fmt.Sprintf("%04d  %-26s %3d %3d %3d    ; %s",
-			pc, instr.op, instr.a, instr.b, instr.c, comment))
+			pc, label, instr.a, instr.b, instr.c, comment))
 	} else {
 		w.writeLine(fmt.Sprintf("%04d  %-26s %3d %3d %3d",
-			pc, instr.op, instr.a, instr.b, instr.c))
+			pc, label, instr.a, instr.b, instr.c))
 	}
 }
 
-// pkasmComment returns an enhanced inline comment for an instruction,
-// including call target resolution.
+// pkasmComment returns an enhanced inline comment for an instruction at pc, including
+// peephole provenance, call target resolution, and the generic instruction-shape comment
+// as a final fallback.
 //
+// Provenance annotations come first so that CSE'd moves and LICM-hoisted reads are
+// immediately recognisable in dumped bytecode (the call-target resolver would otherwise
+// produce empty output for non-call instructions, deferring to the shape comment).
+//
+// Takes pc (int) which is the instruction's program counter.
 // Takes instr (instruction) which is the instruction to comment.
 //
 // Returns string containing the comment, or empty if none applies.
-func (cf *CompiledFunction) pkasmComment(instr instruction) string {
+func (cf *CompiledFunction) pkasmComment(pc int, instr instruction) string {
+	if comment := formatPeepholeAnnotation(cf.peepholeAnnotationAt(pc)); comment != "" {
+		return comment
+	}
 	if comment := cf.pkasmCallComment(instr); comment != "" {
 		return comment
 	}
@@ -300,8 +269,8 @@ func (cf *CompiledFunction) pkasmComment(instr instruction) string {
 //
 // Takes instr (instruction) which is the instruction to inspect.
 //
-// Returns string containing the resolved call comment, or empty if
-// the instruction is not a call.
+// Returns string containing the resolved call comment, or empty if the instruction is not
+// a call.
 func (cf *CompiledFunction) pkasmCallComment(instr instruction) string {
 	switch instr.op {
 	case opCall:
@@ -326,6 +295,9 @@ func (cf *CompiledFunction) pkasmCallComment(instr instruction) string {
 	case opCallMethod:
 		siteIndex := int(instr.wideIndex())
 		return fmt.Sprintf("call method (site %d)", siteIndex)
+	case opCallMethodInlineable:
+		siteIndex := int(instr.wideIndex())
+		return fmt.Sprintf("call method inlineable (site %d)", siteIndex)
 	case opCallBuiltin:
 		return "call builtin"
 	case opMakeClosure:
@@ -338,12 +310,13 @@ func (cf *CompiledFunction) pkasmCallComment(instr instruction) string {
 			return fmt.Sprintf("closure %s (func %d)", name, funcIndex)
 		}
 		return fmt.Sprintf("closure (func %d)", funcIndex)
+	default:
 	}
 	return ""
 }
 
-// resolveCallTarget resolves a CALL/TAIL_CALL/CALL_IIFE instruction
-// to the target function name via callSites.
+// resolveCallTarget resolves a CALL/TAIL_CALL/CALL_IIFE instruction to the target
+// function name via callSites.
 //
 // Takes instr (instruction) which is the call instruction.
 // Takes label (string) which is the call type label for output.
@@ -378,8 +351,8 @@ func (w *pkasmWriter) writeLine(line string) {
 	w.builder.WriteByte('\n')
 }
 
-// writeLineRaw writes a line to the builder without adding
-// indentation (caller is responsible for any prefix).
+// writeLineRaw writes a line to the builder without adding indentation (caller is
+// responsible for any prefix).
 //
 // Takes line (string) which is the content to write.
 func (w *pkasmWriter) writeLineRaw(line string) {
@@ -387,8 +360,7 @@ func (w *pkasmWriter) writeLineRaw(line string) {
 	w.builder.WriteByte('\n')
 }
 
-// indent returns the indentation prefix for the current level
-// (2 spaces per level).
+// indent returns the indentation prefix for the current level (2 spaces per level).
 //
 // Returns string containing the indentation whitespace.
 func (w *pkasmWriter) indent() string {
@@ -396,6 +368,39 @@ func (w *pkasmWriter) indent() string {
 		return ""
 	}
 	return strings.Repeat(pkasmIndentUnit, w.indentLevel)
+}
+
+// formatRegisterCounts returns a slice of "kind=N" strings for non-zero register banks.
+//
+// Takes cf (*CompiledFunction) which provides register counts.
+//
+// Returns []string containing one "kind=N" entry per non-zero register bank.
+func formatRegisterCounts(cf *CompiledFunction) []string {
+	var parts []string
+	for i := range NumRegisterKinds {
+		count := cf.numRegisters[i]
+		if count > 0 {
+			parts = append(parts, fmt.Sprintf("%s=%d", registerKind(i).String(), count))
+		}
+	}
+	return parts
+}
+
+// formatKindList formats a slice of register kinds as a parenthesised comma-separated
+// list, e.g. "(int, string)" or "(none)".
+//
+// Takes kinds ([]registerKind) which lists the kinds to format.
+//
+// Returns string containing the formatted parenthesised list.
+func formatKindList(kinds []registerKind) string {
+	if len(kinds) == 0 {
+		return "(none)"
+	}
+	names := make([]string, len(kinds))
+	for i, k := range kinds {
+		names[i] = k.String()
+	}
+	return "(" + strings.Join(names, ", ") + ")"
 }
 
 // formatIntConstants formats an int constant pool compactly.

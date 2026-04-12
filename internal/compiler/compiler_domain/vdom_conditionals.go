@@ -27,16 +27,16 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// processChainAwareChildren processes sibling nodes and groups if/else-if/else
-// chains into single ternary expressions.
+// processChainAwareChildren processes sibling nodes and groups if/else-if/else chains
+// into single ternary expressions.
 //
-// Takes children ([]*ast_domain.TemplateNode) which contains the sibling nodes
-// to process.
+// Takes children ([]*ast_domain.TemplateNode) which contains the sibling nodes to
+// process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 //
-// Returns []js_ast.Expr which contains the JavaScript AST expressions for each
-// processed child.
+// Returns []js_ast.Expr which contains the JavaScript AST expressions for each processed
+// child.
 // Returns error when a child node cannot be processed.
 func processChainAwareChildren(
 	ctx context.Context,
@@ -67,12 +67,12 @@ func processChainAwareChildren(
 	return childExprs, nil
 }
 
-// processChildNode handles a single child node, dealing with conditionals and
-// normal nodes.
+// processChildNode handles a single child node, dealing with conditionals and normal
+// nodes.
 //
 // Takes child (*ast_domain.TemplateNode) which is the node to handle.
-// Takes children ([]*ast_domain.TemplateNode) which is the full list of sibling
-// nodes, needed to handle conditional chains.
+// Takes children ([]*ast_domain.TemplateNode) which is the full list of sibling nodes,
+// needed to handle conditional chains.
 // Takes index (*int) which tracks the current position in the children list.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
@@ -105,12 +105,11 @@ func processChildNode(
 	return nodeExpr, false, nil
 }
 
-// processConditionalChain handles a p-if node and its following else-if/else
-// chain.
+// processConditionalChain handles a p-if node and its following else-if/else chain.
 //
 // Takes ifNode (*ast_domain.TemplateNode) which is the initial p-if node.
-// Takes children ([]*ast_domain.TemplateNode) which contains sibling nodes to
-// scan for else-if/else.
+// Takes children ([]*ast_domain.TemplateNode) which contains sibling nodes to scan for
+// else-if/else.
 // Takes index (*int) which points to the current index, updated after processing.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
@@ -182,8 +181,7 @@ func isInsignificantNode(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// isChainContinuation checks if a node is part of a conditional chain
-// (else-if or else).
+// isChainContinuation checks if a node is part of a conditional chain (else-if or else).
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
@@ -192,11 +190,11 @@ func isChainContinuation(node *ast_domain.TemplateNode) bool {
 	return node.DirElseIf != nil || node.DirElse != nil
 }
 
-// buildConditionalChainAST builds a nested JavaScript ternary expression from
-// a slice of nodes that represent an if/else-if/else chain.
+// buildConditionalChainAST builds a nested JavaScript ternary expression from a slice of
+// nodes that represent an if/else-if/else chain.
 //
-// Takes chain ([]*ast_domain.TemplateNode) which contains the conditional
-// nodes to process.
+// Takes chain ([]*ast_domain.TemplateNode) which contains the conditional nodes to
+// process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 //
@@ -256,8 +254,8 @@ func buildSingleConditional(
 
 // buildChainedConditional builds a chained ternary for if/else-if/else.
 //
-// Takes chain ([]*ast_domain.TemplateNode) which contains the conditional nodes
-// to chain together.
+// Takes chain ([]*ast_domain.TemplateNode) which contains the conditional nodes to chain
+// together.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 //
@@ -298,8 +296,7 @@ func buildChainedConditional(
 // wrapNodeInTernary wraps a node in a ternary expression.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to wrap.
-// Takes alternate (js_ast.Expr) which is the fallback expression for the else
-// branch.
+// Takes alternate (js_ast.Expr) which is the fallback expression for the else branch.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 //

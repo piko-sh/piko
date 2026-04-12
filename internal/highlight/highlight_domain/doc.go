@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package highlight_domain defines the Highlighter port interface
-// that syntax highlighting backends must implement.
+// Package highlight_domain defines the Highlighter port interface that syntax
+// highlighting backends must implement.
 //
-// Code blocks are rendered with language-specific highlighting in the
-// output HTML using backends such as Chroma.
+// Code blocks are rendered with language-specific highlighting in the output HTML using
+// backends such as Chroma.
 package highlight_domain

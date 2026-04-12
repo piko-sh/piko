@@ -33,8 +33,7 @@ import (
 )
 
 var (
-	// EmbeddedFrontendTemplates contains the embedded frontend JavaScript and CSS
-	// assets.
+	// EmbeddedFrontendTemplates contains the embedded frontend JavaScript and CSS assets.
 	//
 	//go:embed built/*
 	EmbeddedFrontendTemplates embed.FS
@@ -58,8 +57,8 @@ type EmbeddedAsset struct {
 	Content []byte
 }
 
-// InitAssetStore sets up the in-memory asset cache by walking the embedded
-// filesystem and loading all assets with their ETags and MIME types.
+// InitAssetStore sets up the in-memory asset cache by walking the embedded filesystem and
+// loading all assets with their ETags and MIME types.
 //
 // Returns error when the embedded filesystem cannot be walked.
 func InitAssetStore(ctx context.Context) error {
@@ -109,11 +108,11 @@ func InitAssetStore(ctx context.Context) error {
 	return nil
 }
 
-// populateSRIHashes computes and stores SRI hashes for uncompressed,
-// non-source-map assets.
+// populateSRIHashes computes and stores SRI hashes for uncompressed, non-source-map
+// assets.
 //
-// Takes store (map[string]*EmbeddedAsset) which provides the assets to compute
-// hashes for.
+// Takes store (map[string]*EmbeddedAsset) which provides the assets to compute hashes
+// for.
 func populateSRIHashes(ctx context.Context, store map[string]*EmbeddedAsset) {
 	for assetPath, asset := range store {
 		if asset.Encoding == "" && !strings.HasSuffix(assetPath, ".map") {
@@ -145,9 +144,9 @@ func GetAsset(ctx context.Context, assetPath string) (*EmbeddedAsset, bool) {
 	return asset, found
 }
 
-// DetermineBestAssetPath selects the optimal compressed variant of an asset
-// based on the client's Accept-Encoding header. Prefers Brotli, then Gzip,
-// then falls back to the uncompressed version.
+// DetermineBestAssetPath selects the optimal compressed variant of an asset based on the
+// client's Accept-Encoding header. Prefers Brotli, then Gzip, then falls back to the
+// uncompressed version.
 //
 // Takes basePath (string) which is the path to the uncompressed asset.
 // Takes acceptEncoding (string) which is the client's Accept-Encoding header.
@@ -228,14 +227,12 @@ func RegisterCustomModule(ctx context.Context, name string, content []byte, etag
 	return nil
 }
 
-// loadEmbeddedAsset reads and parses a single asset from the embedded file
-// system.
+// loadEmbeddedAsset reads and parses a single asset from the embedded file system.
 //
 // Takes ctx (context.Context) which carries the logger and trace context.
 // Takes assetPath (string) which specifies the path to the embedded asset.
 //
-// Returns *EmbeddedAsset which contains the asset content, ETag, MIME type,
-// and encoding.
+// Returns *EmbeddedAsset which contains the asset content, ETag, MIME type, and encoding.
 // Returns error when the asset cannot be read from the embedded file system.
 func loadEmbeddedAsset(ctx context.Context, assetPath string) (*EmbeddedAsset, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -263,8 +260,8 @@ func loadEmbeddedAsset(ctx context.Context, assetPath string) (*EmbeddedAsset, e
 	}, nil
 }
 
-// loadAssetETag reads the ETag for an asset from its matching .etag file.
-// Falls back to a generated ETag if the .etag file is missing.
+// loadAssetETag reads the ETag for an asset from its matching .etag file. Falls back to a
+// generated ETag if the .etag file is missing.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes assetPath (string) which is the path to the embedded asset.
@@ -285,14 +282,13 @@ func loadAssetETag(ctx context.Context, assetPath string) string {
 	return fmt.Sprintf("%q", "fallback-for-"+filepath.Base(assetPath))
 }
 
-// loadAssetSRI reads the SRI hash for an asset from its matching .sri sidecar
-// file. Falls back to computing the hash at runtime if the .sri file is
-// missing.
+// loadAssetSRI reads the SRI hash for an asset from its matching .sri sidecar file. Falls
+// back to computing the hash at runtime if the .sri file is missing.
 //
 // Takes ctx (context.Context) which carries the logger context.
 // Takes assetPath (string) which is the path to the embedded asset.
-// Takes content ([]byte) which is the uncompressed asset content used as
-// fallback when no .sri file exists.
+// Takes content ([]byte) which is the uncompressed asset content used as fallback when no
+// .sri file exists.
 //
 // Returns string which is the SRI hash from the file or a computed one.
 func loadAssetSRI(ctx context.Context, assetPath string, content []byte) string {
@@ -312,8 +308,8 @@ func loadAssetSRI(ctx context.Context, assetPath string, content []byte) string 
 
 // getMimeType returns the MIME type for a file extension.
 //
-// Takes fileExt (string) which is the file extension including the leading
-// dot (e.g. ".js", ".css").
+// Takes fileExt (string) which is the file extension including the leading dot (e.g.
+// ".js", ".css").
 //
 // Returns string which is the MIME type with charset where needed, or
 // "application/octet-stream" for unknown extensions.
@@ -342,8 +338,8 @@ func getMimeType(fileExt string) string {
 //
 // Takes p (string) which is the file path to check.
 //
-// Returns string which is "br" for Brotli files, "gzip" for gzip files, or
-// empty for files without compression.
+// Returns string which is "br" for Brotli files, "gzip" for gzip files, or empty for
+// files without compression.
 func getEncodingFromPath(p string) string {
 	if strings.HasSuffix(p, ".br") {
 		return "br"

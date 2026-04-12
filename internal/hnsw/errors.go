@@ -18,9 +18,13 @@
 
 package hnsw
 
-import "errors"
+import (
+	"errors"
+)
 
-// ErrVectorDimensionMismatch is returned when an inserted vector does not
-// match the graph's configured dimension. It guards against panics caused by
-// out-of-range slice access in the distance computations.
-var ErrVectorDimensionMismatch = errors.New("hnsw: vector dimension does not match graph dimension")
+var (
+	// ErrVectorDimensionMismatch is returned when an inserted vector does not match the
+	// graph's configured dimension. It guards against panics caused by out-of-range slice
+	// access in the distance computations.
+	ErrVectorDimensionMismatch = errors.New("hnsw: vector dimension does not match graph dimension")
+)

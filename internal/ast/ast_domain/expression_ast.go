@@ -19,9 +19,9 @@
 package ast_domain
 
 // Defines the Expression interface and concrete expression types for template
-// interpolations and directive values. Includes identifiers, member access,
-// binary operations, function calls, literals, and ternary expressions with
-// cloning and transformation support.
+// interpolations and directive values. Includes identifiers, member access, binary
+// operations, function calls, literals, and ternary expressions with cloning and
+// transformation support.
 
 import (
 	"fmt"
@@ -43,19 +43,18 @@ const (
 	// truthiness.
 	OpTruthy UnaryOp = "~"
 
-	// OpEq represents the strict equality operator (==). It uses Go-style,
-	// type-safe comparison.
+	// OpEq represents the strict equality operator (==). It uses Go-style, type-safe
+	// comparison.
 	OpEq BinaryOp = "=="
 
-	// OpNe represents the strict inequality operator (!=). It is Go-style and
-	// type-safe.
+	// OpNe represents the strict inequality operator (!=). It is Go-style and type-safe.
 	OpNe BinaryOp = "!="
 
 	// OpLooseEq is the loose equality operator (~=). JS-style, with type coercion.
 	OpLooseEq BinaryOp = "~="
 
-	// OpLooseNe represents the loose inequality operator (!~=). It uses
-	// JS-style comparison with type coercion.
+	// OpLooseNe represents the loose inequality operator (!~=). It uses JS-style comparison
+	// with type coercion.
 	OpLooseNe BinaryOp = "!~="
 
 	// OpGt is the greater-than comparison operator (>).
@@ -119,55 +118,55 @@ const (
 	// precLessGreater is the precedence level for comparison operators.
 	precLessGreater
 
-	// precSum is the precedence level for addition and
-	// subtraction operators.
+	// precSum is the precedence level for addition and subtraction operators.
 	precSum
 
-	// precProduct is the precedence level for multiplication,
-	// division, and modulo operators.
+	// precProduct is the precedence level for multiplication, division, and modulo
+	// operators.
 	precProduct
 
-	// precPrefix is the precedence level for unary prefix
-	// expressions.
+	// precPrefix is the precedence level for unary prefix expressions.
 	precPrefix
 
-	// precPostfix is the precedence level for postfix operators
-	// such as function calls, indexing, and member access.
+	// precPostfix is the precedence level for postfix operators such as function calls,
+	// indexing, and member access.
 	precPostfix
 )
 
-// precedences maps operator symbols to their binding power for expression parsing.
-var precedences = map[string]int{
-	"?":   precTernary,
-	"??":  precCoalesce,
-	"||":  precOr,
-	"&&":  precAnd,
-	"==":  precEquals,
-	"!=":  precEquals,
-	"~=":  precEquals,
-	"!~=": precEquals,
-	"<":   precLessGreater,
-	">":   precLessGreater,
-	"<=":  precLessGreater,
-	">=":  precLessGreater,
-	"+":   precSum,
-	"-":   precSum,
-	"*":   precProduct,
-	"/":   precProduct,
-	"%":   precProduct,
-	"(":   precPostfix,
-	"[":   precPostfix,
-	".":   precPostfix,
-	"?.":  precPostfix,
-}
+var (
+	// precedences maps operator symbols to their binding power for expression parsing.
+	precedences = map[string]int{
+		"?":   precTernary,
+		"??":  precCoalesce,
+		"||":  precOr,
+		"&&":  precAnd,
+		"==":  precEquals,
+		"!=":  precEquals,
+		"~=":  precEquals,
+		"!~=": precEquals,
+		"<":   precLessGreater,
+		">":   precLessGreater,
+		"<=":  precLessGreater,
+		">=":  precLessGreater,
+		"+":   precSum,
+		"-":   precSum,
+		"*":   precProduct,
+		"/":   precProduct,
+		"%":   precProduct,
+		"(":   precPostfix,
+		"[":   precPostfix,
+		".":   precPostfix,
+		"?.":  precPostfix,
+	}
+)
 
 // Expression defines the interface that all expression nodes implement.
 type Expression interface {
 	// String returns the string form of this expression.
 	String() string
 
-	// TransformIdentifiers walks the expression tree and applies a transformation
-	// function to the name of every Identifier node.
+	// TransformIdentifiers walks the expression tree and applies a transformation function
+	// to the name of every Identifier node.
 	//
 	// Takes func(string) string which transforms each identifier name.
 	//
@@ -192,14 +191,13 @@ type Expression interface {
 
 	// GetGoAnnotation returns the Go generator annotation for the node.
 	//
-	// Returns *GoGeneratorAnnotation which contains Go-specific code generation
-	// settings, or nil if no annotation is set.
+	// Returns *GoGeneratorAnnotation which contains Go-specific code generation settings, or
+	// nil if no annotation is set.
 	GetGoAnnotation() *GoGeneratorAnnotation
 
 	// SetGoAnnotation assigns the Go generator annotation for this element.
 	//
-	// Takes *GoGeneratorAnnotation which specifies the Go-specific code generation
-	// settings.
+	// Takes *GoGeneratorAnnotation which specifies the Go-specific code generation settings.
 	SetGoAnnotation(*GoGeneratorAnnotation)
 
 	// GetSourceLength returns the length of the source content in bytes.
@@ -214,8 +212,8 @@ type Identifier struct {
 	// Name is the identifier string.
 	Name string
 
-	// RelativeLocation is the source position of this identifier in the original
-	// source file.
+	// RelativeLocation is the source position of this identifier in the original source
+	// file.
 	RelativeLocation Location
 
 	// SourceLength is the byte length of the identifier in the source code.
@@ -227,14 +225,12 @@ type Identifier struct {
 // Returns string which is the identifier name.
 func (id *Identifier) String() string { return id.Name }
 
-// GetSourceLength returns the byte length of this identifier in the original
-// source.
+// GetSourceLength returns the byte length of this identifier in the original source.
 //
 // Returns int which is the length in bytes.
 func (id *Identifier) GetSourceLength() int { return id.SourceLength }
 
-// TransformIdentifiers applies the transformation function to the
-// identifier's name.
+// TransformIdentifiers applies the transformation function to the identifier's name.
 //
 // Takes f (func(string) string) which transforms the identifier name.
 //
@@ -245,8 +241,8 @@ func (id *Identifier) TransformIdentifiers(f func(string) string) Expression {
 
 // Clone creates a deep copy of the Identifier.
 //
-// Returns Expression which is a new Identifier with copied values, or nil if
-// the receiver is nil.
+// Returns Expression which is a new Identifier with copied values, or nil if the receiver
+// is nil.
 func (id *Identifier) Clone() Expression {
 	if id == nil {
 		return nil
@@ -274,8 +270,7 @@ func (id *Identifier) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation, or nil if none is
-// set.
+// Returns *GoGeneratorAnnotation which is the annotation, or nil if none is set.
 func (id *Identifier) GetGoAnnotation() *GoGeneratorAnnotation {
 	return id.GoAnnotations
 }
@@ -307,15 +302,14 @@ type MemberExpression struct {
 	// RelativeLocation is the source position relative to the containing element.
 	RelativeLocation Location
 
-	// SourceLength is the number of bytes this expression spans in the source
-	// text.
+	// SourceLength is the number of bytes this expression spans in the source text.
 	SourceLength int
 }
 
 // String returns the text form of the member expression.
 //
-// Returns string which contains the base, an optional chaining operator if
-// present, and the property name joined together.
+// Returns string which contains the base, an optional chaining operator if present, and
+// the property name joined together.
 func (me *MemberExpression) String() string {
 	var b strings.Builder
 	b.WriteString(me.Base.String())
@@ -333,8 +327,8 @@ func (me *MemberExpression) String() string {
 // Returns int which is the number of bytes the expression spans.
 func (me *MemberExpression) GetSourceLength() int { return me.SourceLength }
 
-// TransformIdentifiers applies a transform function to all identifiers in the
-// base and property expressions.
+// TransformIdentifiers applies a transform function to all identifiers in the base and
+// property expressions.
 //
 // Takes f (func(string) string) which transforms each identifier name.
 //
@@ -353,8 +347,8 @@ func (me *MemberExpression) TransformIdentifiers(f func(string) string) Expressi
 
 // Clone creates a deep copy of the MemberExpression.
 //
-// Returns Expression which is the cloned member expression, or nil if the
-// receiver is nil.
+// Returns Expression which is the cloned member expression, or nil if the receiver is
+// nil.
 func (me *MemberExpression) Clone() Expression {
 	if me == nil {
 		return nil
@@ -385,8 +379,8 @@ func (me *MemberExpression) SetLocation(location Location, length int) {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (me *MemberExpression) GetGoAnnotation() *GoGeneratorAnnotation {
 	return me.GoAnnotations
 }
@@ -412,8 +406,7 @@ type IndexExpression struct {
 	// Optional indicates whether this uses optional chaining (?.[]).
 	Optional bool
 
-	// RelativeLocation is the source location of this expression in the original
-	// source.
+	// RelativeLocation is the source location of this expression in the original source.
 	RelativeLocation Location
 
 	// SourceLength is the byte length of this expression in the source code.
@@ -422,8 +415,8 @@ type IndexExpression struct {
 
 // String returns the text form of the index expression.
 //
-// Returns string which is the formatted expression. When Optional is true,
-// the result uses optional chaining syntax (?.[) instead of standard brackets.
+// Returns string which is the formatted expression. When Optional is true, the result
+// uses optional chaining syntax (?.[) instead of standard brackets.
 func (ie *IndexExpression) String() string {
 	var builder strings.Builder
 	builder.Grow(len(ie.Base.String()) + len(ie.Index.String()) + 3)
@@ -438,14 +431,14 @@ func (ie *IndexExpression) String() string {
 	return builder.String()
 }
 
-// GetSourceLength returns the length of this expression in bytes as it
-// appears in the original source code.
+// GetSourceLength returns the length of this expression in bytes as it appears in the
+// original source code.
 //
 // Returns int which is the byte length of the expression.
 func (ie *IndexExpression) GetSourceLength() int { return ie.SourceLength }
 
-// TransformIdentifiers recursively transforms identifiers in the base and
-// index expressions.
+// TransformIdentifiers recursively transforms identifiers in the base and index
+// expressions.
 //
 // Takes f (func(string) string) which transforms each identifier name.
 //
@@ -463,8 +456,7 @@ func (ie *IndexExpression) TransformIdentifiers(f func(string) string) Expressio
 
 // Clone creates a deep copy of the IndexExpression.
 //
-// Returns Expression which is the cloned expression, or nil if the receiver
-// is nil.
+// Returns Expression which is the cloned expression, or nil if the receiver is nil.
 func (ie *IndexExpression) Clone() Expression {
 	if ie == nil {
 		return nil
@@ -509,8 +501,8 @@ func (ie *IndexExpression) SetLocation(location Location, length int) {
 // UnaryOp represents a unary operator such as ! or -.
 type UnaryOp string
 
-// UnaryExpression represents a unary expression such as negation or logical not.
-// It implements the Expression interface.
+// UnaryExpression represents a unary expression such as negation or logical not. It
+// implements the Expression interface.
 type UnaryExpression struct {
 	// Right is the expression to which the unary operator applies.
 	Right Expression
@@ -521,8 +513,8 @@ type UnaryExpression struct {
 	// Operator specifies which unary operation to apply to the expression.
 	Operator UnaryOp
 
-	// RelativeLocation is the source position of this expression, stored relative
-	// to the parent node.
+	// RelativeLocation is the source position of this expression, stored relative to the
+	// parent node.
 	RelativeLocation Location
 
 	// SourceLength is the byte length of this expression in the source code.
@@ -541,14 +533,13 @@ func (u *UnaryExpression) String() string {
 	return string(u.Operator) + rs
 }
 
-// GetSourceLength returns the byte length of this expression in the original
-// source.
+// GetSourceLength returns the byte length of this expression in the original source.
 //
 // Returns int which is the byte length of the expression.
 func (u *UnaryExpression) GetSourceLength() int { return u.SourceLength }
 
-// TransformIdentifiers applies a transform function to all identifiers in
-// the right-hand expression.
+// TransformIdentifiers applies a transform function to all identifiers in the right-hand
+// expression.
 //
 // Takes f (func(string) string) which transforms each identifier name.
 //
@@ -565,8 +556,7 @@ func (u *UnaryExpression) TransformIdentifiers(f func(string) string) Expression
 
 // Clone creates a deep copy of the UnaryExpression.
 //
-// Returns Expression which is the cloned expression, or nil if the receiver
-// is nil.
+// Returns Expression which is the cloned expression, or nil if the receiver is nil.
 func (u *UnaryExpression) Clone() Expression {
 	if u == nil {
 		return nil
@@ -582,8 +572,8 @@ func (u *UnaryExpression) Clone() Expression {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for this node, or nil
-// if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for this node, or nil if none is
+// set.
 func (u *UnaryExpression) GetGoAnnotation() *GoGeneratorAnnotation {
 	return u.GoAnnotations
 }
@@ -611,8 +601,8 @@ func (u *UnaryExpression) SetLocation(location Location, length int) {
 // BinaryOp represents a binary operator such as +, ==, or &&.
 type BinaryOp string
 
-// BinaryExpression represents a binary operation such as a + b.
-// It implements the Expression interface.
+// BinaryExpression represents a binary operation such as a + b. It implements the
+// Expression interface.
 type BinaryExpression struct {
 	// Left is the left-hand operand of the binary expression.
 	Left Expression
@@ -629,13 +619,12 @@ type BinaryExpression struct {
 	// RelativeLocation is the position of this expression in the original source.
 	RelativeLocation Location
 
-	// SourceLength is the length of this expression in bytes within the source
-	// code.
+	// SourceLength is the length of this expression in bytes within the source code.
 	SourceLength int
 }
 
-// GetSourceLength returns the length of this expression in bytes as it
-// appears in the original source.
+// GetSourceLength returns the length of this expression in bytes as it appears in the
+// original source.
 //
 // Returns int which is the byte length of the expression.
 func (b *BinaryExpression) GetSourceLength() int { return b.SourceLength }
@@ -658,8 +647,8 @@ func (b *BinaryExpression) String() string {
 	return builder.String()
 }
 
-// TransformIdentifiers applies a function to all identifiers in the left and
-// right expressions of this binary expression.
+// TransformIdentifiers applies a function to all identifiers in the left and right
+// expressions of this binary expression.
 //
 // Takes f (func(string) string) which changes each identifier name.
 //
@@ -677,9 +666,8 @@ func (b *BinaryExpression) TransformIdentifiers(f func(string) string) Expressio
 
 // Clone creates a deep copy of the BinaryExpression.
 //
-// Returns Expression which is a new BinaryExpression with all fields
-// copied, or nil
-// if the receiver is nil.
+// Returns Expression which is a new BinaryExpression with all fields copied, or nil if
+// the receiver is nil.
 func (b *BinaryExpression) Clone() Expression {
 	if b == nil {
 		return nil
@@ -696,8 +684,8 @@ func (b *BinaryExpression) Clone() Expression {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if no annotation is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// no annotation is set.
 func (b *BinaryExpression) GetGoAnnotation() *GoGeneratorAnnotation {
 	return b.GoAnnotations
 }
@@ -722,8 +710,8 @@ func (b *BinaryExpression) SetLocation(location Location, length int) {
 	b.RelativeLocation, b.SourceLength = location, length
 }
 
-// ForInExpression represents a for-in loop expression that iterates over a
-// collection. It implements the Expression interface.
+// ForInExpression represents a for-in loop expression that iterates over a collection. It
+// implements the Expression interface.
 type ForInExpression struct {
 	// IndexVariable is the optional loop index variable; nil when not used.
 	IndexVariable *Identifier
@@ -737,16 +725,14 @@ type ForInExpression struct {
 	// GoAnnotations holds the Go code generation settings for this expression.
 	GoAnnotations *GoGeneratorAnnotation
 
-	// RelativeLocation is the source location of this expression in the original
-	// source.
+	// RelativeLocation is the source location of this expression in the original source.
 	RelativeLocation Location
 
 	// SourceLength is the byte length of this expression in the source code.
 	SourceLength int
 }
 
-// GetSourceLength returns the length in bytes of this expression in the
-// original source.
+// GetSourceLength returns the length in bytes of this expression in the original source.
 //
 // Returns int which is the byte length of the expression.
 func (f *ForInExpression) GetSourceLength() int { return f.SourceLength }
@@ -762,14 +748,11 @@ func (f *ForInExpression) String() string {
 		f.IndexVariable.String(), f.ItemVariable.String(), f.Collection.String())
 }
 
-// TransformIdentifiers recursively transforms identifiers in the collection
-// expression.
+// TransformIdentifiers recursively transforms identifiers in the collection expression.
 //
-// Takes x (func(string) string) which transforms each identifier
-// name.
+// Takes x (func(string) string) which transforms each identifier name.
 //
-// Returns Expression which is a new ForInExpression with transformed
-// identifiers.
+// Returns Expression which is a new ForInExpression with transformed identifiers.
 func (f *ForInExpression) TransformIdentifiers(x func(string) string) Expression {
 	return &ForInExpression{
 		IndexVariable:    f.IndexVariable,
@@ -797,8 +780,7 @@ func (f *ForInExpression) SetGoAnnotation(ann *GoGeneratorAnnotation) {
 
 // Clone creates a deep copy of the ForInExpression.
 //
-// Returns Expression which is the cloned expression, or nil if the receiver
-// is nil.
+// Returns Expression which is the cloned expression, or nil if the receiver is nil.
 func (f *ForInExpression) Clone() Expression {
 	if f == nil {
 		return nil
@@ -841,22 +823,20 @@ func (f *ForInExpression) SetLocation(location Location, length int) {
 	f.RelativeLocation, f.SourceLength = location, length
 }
 
-// CallExpression represents a function or method call expression in the AST.
-// It implements the Expression interface and stores the callee, arguments,
-// and source location information for the call.
+// CallExpression represents a function or method call expression in the AST. It
+// implements the Expression interface and stores the callee, arguments, and source
+// location information for the call.
 type CallExpression struct {
 	// Callee is the expression being called.
 	Callee Expression
 
-	// GoAnnotations holds the Go code generator annotation for this call
-	// expression.
+	// GoAnnotations holds the Go code generator annotation for this call expression.
 	GoAnnotations *GoGeneratorAnnotation
 
 	// Args holds the function arguments in the order they appear.
 	Args []Expression
 
-	// RelativeLocation is the source location of this expression in the original
-	// source.
+	// RelativeLocation is the source location of this expression in the original source.
 	RelativeLocation Location
 
 	// LparenLocation is the position of the opening parenthesis.
@@ -871,8 +851,8 @@ type CallExpression struct {
 
 // String returns the call expression as text.
 //
-// Returns string which holds the callee name followed by its arguments in
-// brackets, such as "foo(x, y)".
+// Returns string which holds the callee name followed by its arguments in brackets, such
+// as "foo(x, y)".
 func (c *CallExpression) String() string {
 	var b strings.Builder
 	b.WriteString(c.Callee.String())
@@ -892,13 +872,11 @@ func (c *CallExpression) String() string {
 // Returns int which is the byte length of the expression.
 func (c *CallExpression) GetSourceLength() int { return c.SourceLength }
 
-// TransformIdentifiers recursively transforms identifiers in the callee and
-// arguments.
+// TransformIdentifiers recursively transforms identifiers in the callee and arguments.
 //
 // Takes f (func(string) string) which transforms each identifier name.
 //
-// Returns Expression which is a new CallExpression with all
-// identifiers transformed.
+// Returns Expression which is a new CallExpression with all identifiers transformed.
 func (c *CallExpression) TransformIdentifiers(f func(string) string) Expression {
 	newCallee := c.Callee.TransformIdentifiers(f)
 	newArgs := make([]Expression, len(c.Args))
@@ -918,8 +896,8 @@ func (c *CallExpression) TransformIdentifiers(f func(string) string) Expression 
 
 // Clone creates a deep copy of the CallExpression.
 //
-// Returns Expression which is a new CallExpression with all fields copied, or nil
-// if the receiver is nil.
+// Returns Expression which is a new CallExpression with all fields copied, or nil if the
+// receiver is nil.
 func (c *CallExpression) Clone() Expression {
 	if c == nil {
 		return nil
@@ -966,11 +944,10 @@ func (c *CallExpression) SetLocation(location Location, length int) {
 	c.RelativeLocation, c.SourceLength = location, length
 }
 
-// TemplateLiteralPart represents a single segment of a template literal.
-// Each part is either a plain string or a parsed expression.
+// TemplateLiteralPart represents a single segment of a template literal. Each part is
+// either a plain string or a parsed expression.
 type TemplateLiteralPart struct {
-	// Expression is the parsed expression for this part; nil when IsLiteral is
-	// true.
+	// Expression is the parsed expression for this part; nil when IsLiteral is true.
 	Expression Expression
 
 	// Literal holds the raw string content of this template part.
@@ -1006,11 +983,10 @@ func (tlp *TemplateLiteralPart) Clone() TemplateLiteralPart {
 // Returns Location which is the position relative to the template literal.
 func (tlp *TemplateLiteralPart) GetRelativeLocation() Location { return tlp.RelativeLocation }
 
-// TemplateLiteral represents a template string such as `Hello, ${user.name}`.
-// It implements the Expression interface.
+// TemplateLiteral represents a template string such as `Hello, ${user.name}`. It
+// implements the Expression interface.
 type TemplateLiteral struct {
-	// GoAnnotations holds the Go code generator annotation for this template
-	// literal.
+	// GoAnnotations holds the Go code generator annotation for this template literal.
 	GoAnnotations *GoGeneratorAnnotation
 
 	// Parts holds the template literal segments in order.
@@ -1023,16 +999,16 @@ type TemplateLiteral struct {
 	SourceLength int
 }
 
-// GetSourceLength returns the length of this expression in bytes as it
-// appears in the original source.
+// GetSourceLength returns the length of this expression in bytes as it appears in the
+// original source.
 //
 // Returns int which is the byte length of the expression.
 func (tl *TemplateLiteral) GetSourceLength() int { return tl.SourceLength }
 
 // String returns the template literal as a string.
 //
-// Returns string which is the template literal text with backticks and
-// interpolation markers (${}) escaped.
+// Returns string which is the template literal text with backticks and interpolation
+// markers (${}) escaped.
 func (tl *TemplateLiteral) String() string {
 	var b strings.Builder
 	_, _ = b.WriteRune('`')
@@ -1058,8 +1034,8 @@ func (tl *TemplateLiteral) String() string {
 	return b.String()
 }
 
-// TransformIdentifiers applies a transform function to all identifiers within
-// the expression parts of this template literal.
+// TransformIdentifiers applies a transform function to all identifiers within the
+// expression parts of this template literal.
 //
 // Takes f (func(string) string) which transforms each identifier name.
 //
@@ -1083,8 +1059,7 @@ func (tl *TemplateLiteral) TransformIdentifiers(f func(string) string) Expressio
 
 // Clone creates a deep copy of the TemplateLiteral.
 //
-// Returns Expression which is the cloned template literal, or nil if the
-// receiver is nil.
+// Returns Expression which is the cloned template literal, or nil if the receiver is nil.
 func (tl *TemplateLiteral) Clone() Expression {
 	if tl == nil {
 		return nil
@@ -1105,8 +1080,8 @@ func (tl *TemplateLiteral) Clone() Expression {
 
 // GetGoAnnotation returns the code generation annotation for this node.
 //
-// Returns *GoGeneratorAnnotation which is the annotation for code generation,
-// or nil if none is set.
+// Returns *GoGeneratorAnnotation which is the annotation for code generation, or nil if
+// none is set.
 func (tl *TemplateLiteral) GetGoAnnotation() *GoGeneratorAnnotation {
 	return tl.GoAnnotations
 }
@@ -1131,8 +1106,8 @@ func (tl *TemplateLiteral) SetLocation(location Location, length int) {
 	tl.RelativeLocation, tl.SourceLength = location, length
 }
 
-// LinkedMessageExpression represents a linked message reference in i18n templates
-// (e.g., @common.greeting). The @ operator references other translation keys.
+// LinkedMessageExpression represents a linked message reference in i18n templates (e.g.,
+// @common.greeting). The @ operator references other translation keys.
 type LinkedMessageExpression struct {
 	// Path is the path expression, either an Identifier or a MemberExpression chain.
 	Path Expression
@@ -1140,8 +1115,7 @@ type LinkedMessageExpression struct {
 	// GoAnnotations holds the Go code generation settings.
 	GoAnnotations *GoGeneratorAnnotation
 
-	// RelativeLocation is the source location of this expression in the original
-	// source.
+	// RelativeLocation is the source location of this expression in the original source.
 	RelativeLocation Location
 
 	// SourceLength is the number of bytes this expression spans in the source.
@@ -1155,19 +1129,16 @@ func (lm *LinkedMessageExpression) String() string {
 	return "@" + lm.Path.String()
 }
 
-// GetSourceLength returns the byte length of this expression in the original
-// source.
+// GetSourceLength returns the byte length of this expression in the original source.
 //
 // Returns int which is the number of bytes the expression spans.
 func (lm *LinkedMessageExpression) GetSourceLength() int { return lm.SourceLength }
 
-// TransformIdentifiers recursively transforms identifiers in the path
-// expression.
+// TransformIdentifiers recursively transforms identifiers in the path expression.
 //
 // Takes f (func(string) string) which transforms each identifier string.
 //
-// Returns Expression which is a new LinkedMessageExpression with transformed
-// identifiers.
+// Returns Expression which is a new LinkedMessageExpression with transformed identifiers.
 func (lm *LinkedMessageExpression) TransformIdentifiers(f func(string) string) Expression {
 	return &LinkedMessageExpression{
 		Path:             lm.Path.TransformIdentifiers(f),
@@ -1179,9 +1150,8 @@ func (lm *LinkedMessageExpression) TransformIdentifiers(f func(string) string) E
 
 // Clone creates a deep copy of the LinkedMessageExpression.
 //
-// Returns Expression which is a new LinkedMessageExpression with all
-// fields copied,
-// or nil if the receiver is nil.
+// Returns Expression which is a new LinkedMessageExpression with all fields copied, or
+// nil if the receiver is nil.
 func (lm *LinkedMessageExpression) Clone() Expression {
 	if lm == nil {
 		return nil
@@ -1275,8 +1245,7 @@ var (
 //
 // Takes op (string) which is the operator to look up.
 //
-// Returns int which is the precedence level, or precLowest if the operator
-// is not found.
+// Returns int which is the precedence level, or precLowest if the operator is not found.
 func getPrecedence(op string) int {
 	if p, ok := precedences[op]; ok {
 		return p

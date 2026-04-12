@@ -16,15 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_gmail provides a Gmail-based email
-// provider for sending emails through Gmail's SMTP server.
+// Package email_provider_gmail provides a Gmail-based email provider for sending emails
+// through Gmail's SMTP server.
 //
-// The provider connects via STARTTLS and supports plain text and
-// HTML bodies, CC/BCC recipients, file attachments, and
-// CID-embedded images.
+// The provider connects via STARTTLS and supports plain text and HTML bodies, CC/BCC
+// recipients, file attachments, and CID-embedded images.
 //
 // # Thread safety
 //
-// All methods are safe for concurrent use. Each Send call creates
-// a new SMTP connection, so no shared state exists.
+// All methods are safe for concurrent use. Each Send call creates a new SMTP connection,
+// so no shared state exists.
 package email_provider_gmail

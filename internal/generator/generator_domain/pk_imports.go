@@ -25,45 +25,41 @@ import (
 const (
 	// PKFrameworkURL is the import path for the PK runtime core framework.
 	//
-	// Exported so consumers (e.g. the WASM playground) can construct an
-	// importmap that rewrites this to an in-browser Blob URL without
-	// parsing JS.
+	// Exported so consumers (e.g. the WASM playground) can construct an importmap that
+	// rewrites this to an in-browser Blob URL without parsing JS.
 	PKFrameworkURL = "/_piko/dist/ppframework.core.es.js"
 
-	// PKComponentsURL is the import path for the PK components
-	// extension. Compiled component classes import PPElement, dom, and
-	// makeReactive from this module.
+	// PKComponentsURL is the import path for the PK components extension. Compiled component
+	// classes import PPElement, dom, and makeReactive from this module.
 	PKComponentsURL = "/_piko/dist/ppframework.components.es.js"
 
-	// PKActionsGenURL is the import path for the auto-generated actions
-	// file. Always emitted; contains the empty `action` namespace by
-	// default.
+	// PKActionsGenURL is the import path for the auto-generated actions file. Always
+	// emitted; contains the empty `action` namespace by default.
 	PKActionsGenURL = "/_piko/assets/pk-js/pk/actions.gen.js"
 )
 
 var (
-	// pkIdentifiers lists identifiers that may appear in PK source code and need
-	// to be imported from the runtime.
+	// pkIdentifiers lists identifiers that may appear in PK source code and need to be
+	// imported from the runtime.
 	//
-	// User-facing helpers (refs, navigate, bus, etc.) are no longer listed here
-	// because they are accessed via the global piko.* namespace (e.g. piko.refs,
-	// piko.nav.navigate()). Internal identifiers like _createRefs and
-	// getGlobalPageContext are added automatically by the source transformer.
+	// User-facing helpers (refs, navigate, bus, etc.) are no longer listed here because they
+	// are accessed via the global piko.* namespace (e.g. piko.refs, piko.nav.navigate()).
+	// Internal identifiers like _createRefs and getGlobalPageContext are added automatically
+	// by the source transformer.
 	pkIdentifiers = []string{
 		"action",
 	}
 
-	// identifierPatterns caches compiled regex patterns for each identifier.
-	// Uses word boundaries to avoid false positives (e.g., "preferences"
-	// should not match "refs").
+	// identifierPatterns caches compiled regex patterns for each identifier. Uses word
+	// boundaries to avoid false positives (e.g., "preferences" should not match "refs").
 	identifierPatterns = make(map[string]*regexp.Regexp)
 )
 
-// prepareSourceWithImports scans the source for PK runtime identifiers and
-// adds the matching import statement at the start.
+// prepareSourceWithImports scans the source for PK runtime identifiers and adds the
+// matching import statement at the start.
 //
-// The action namespace is always imported from pk/actions.gen.js so that
-// typed actions like action.echo.message() are available.
+// The action namespace is always imported from pk/actions.gen.js so that typed actions
+// like action.echo.message() are available.
 //
 // Takes source (string) which is the source code to scan.
 //
@@ -94,18 +90,16 @@ func detectUsedIdentifiers(source string) []string {
 	return used
 }
 
-// buildImportStatement creates ES module import statements for the given
-// identifiers using AST-based code generation.
+// buildImportStatement creates ES module import statements for the given identifiers
+// using AST-based code generation.
 //
 // The function always imports `action` from the generated actions file
-// (pk/actions.gen.js) so that the typed action namespace is available.
-// Other identifiers are imported from the PK framework.
+// (pk/actions.gen.js) so that the typed action namespace is available. Other identifiers
+// are imported from the PK framework.
 //
-// When the identifiers slice is empty, the function still returns the action
-// import.
+// When the identifiers slice is empty, the function still returns the action import.
 //
-// Takes identifiers ([]string) which lists the symbols to import from the
-// PK framework.
+// Takes identifiers ([]string) which lists the symbols to import from the PK framework.
 //
 // Returns string which contains the formatted import statements.
 func buildImportStatement(identifiers []string) string {

@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_collector_plausible provides an analytics collector
-// that sends events to the Plausible Analytics Events API.
+// Package analytics_collector_plausible provides an analytics collector that sends events
+// to the Plausible Analytics Events API.
 //
-// Plausible is a privacy-friendly, cookie-free analytics service.
-// This collector sends events server-side, so no client-side
-// JavaScript is needed and events cannot be blocked by ad blockers.
+// Plausible is a privacy-friendly, cookie-free analytics service. This collector sends
+// events server-side, so no client-side JavaScript is needed and events cannot be blocked
+// by ad blockers.
 //
 // # Usage
 //
@@ -39,7 +39,6 @@
 //
 // # Authentication
 //
-// Plausible uses domain-based identification for the Events API.
-// No API key is required, the domain must match a site configured
-// in your Plausible account.
+// Plausible uses domain-based identification for the Events API. No API key is required,
+// the domain must match a site configured in your Plausible account.
 package analytics_collector_plausible

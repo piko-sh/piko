@@ -18,7 +18,9 @@
 
 package browser
 
-import "time"
+import (
+	"time"
+)
 
 // StepState represents the current state of a test step during its run.
 type StepState int
@@ -56,8 +58,8 @@ type Step struct {
 }
 
 // InteractiveRunner provides the interface for interactive test execution.
-// Implementations control how test steps are presented to users and how
-// user input is gathered for step-through debugging.
+// Implementations control how test steps are presented to users and how user input is
+// gathered for step-through debugging.
 type InteractiveRunner interface {
 	// Start sets up the runner with the given test name.
 	//
@@ -68,9 +70,8 @@ type InteractiveRunner interface {
 	// This should be called once before any steps are run.
 	Start(testName string) error
 
-	// BeforeStep is called before each action runs.
-	// The runner should show the step as running and wait for user input
-	// if in paused mode.
+	// BeforeStep is called before each action runs. The runner should show the step as
+	// running and wait for user input if in paused mode.
 	//
 	// Takes action (string) which is the name of the step to run.
 	// Takes detail (string) which gives extra information about the step.
@@ -84,8 +85,8 @@ type InteractiveRunner interface {
 	// Takes duration (time.Duration) which is how long the step took.
 	AfterStep(action, detail string, failed bool, duration time.Duration)
 
-	// WaitForContinue blocks until the user signals to continue.
-	// In autoplay mode, this returns at once after a short delay.
+	// WaitForContinue blocks until the user signals to continue. In autoplay mode, this
+	// returns at once after a short delay.
 	WaitForContinue()
 
 	// Close releases all resources held by the runner.

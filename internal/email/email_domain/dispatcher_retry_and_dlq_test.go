@@ -21,7 +21,6 @@ package email_domain
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -91,7 +90,7 @@ func TestDispatcher_DeadLetter_OnPermanentFailure(t *testing.T) {
 	provider := newFakeProvider(false)
 	dlq := &emailDLQ{}
 	dlq.CountFunc = func(_ context.Context) (int, error) {
-		return int(atomic.LoadInt64(&dlq.AddCallCount)), nil
+		return int(dlq.AddCallCount.Load()), nil
 	}
 	config := email_dto.DispatcherConfig{
 		JitterFunc:      func(_ time.Duration) time.Duration { return 0 },

@@ -21,6 +21,7 @@ func BenchmarkAttrWriters_NoPrealloc(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
+
 		var writers []*ast_domain.DirectWriter
 		for range 6 {
 			dw := ast_domain.GetDirectWriter()
@@ -62,6 +63,7 @@ func BenchmarkAttrWriters_NoPrealloc_10(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
+
 		var writers []*ast_domain.DirectWriter
 		for range 10 {
 			dw := ast_domain.GetDirectWriter()

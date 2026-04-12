@@ -29,13 +29,12 @@ import (
 )
 
 const (
-	// autoHeightSentinel is a very tall page height (~350 metres) used
-	// when AutoHeight is enabled. Content flows into this space without
-	// triggering pagination.
+	// autoHeightSentinel is a very tall page height (~350 metres) used when AutoHeight is
+	// enabled. Content flows into this space without triggering pagination.
 	autoHeightSentinel = 1e6
 
-	// defaultRootFontSize is the root font size used when no explicit
-	// default is configured in the layout config.
+	// defaultRootFontSize is the root font size used when no explicit default is configured
+	// in the layout config.
 	defaultRootFontSize = 12.0
 )
 
@@ -49,13 +48,12 @@ type LayouterAdapter struct {
 	imageResolver layouter_domain.ImageResolverPort
 }
 
-// NewLayouterAdapter creates a new layouter adapter with the given
-// font metrics and image resolver implementations.
+// NewLayouterAdapter creates a new layouter adapter with the given font metrics and image
+// resolver implementations.
 //
-// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides
-// text measurement.
-// Takes imageResolver (layouter_domain.ImageResolverPort) which
-// provides image dimensions.
+// Takes fontMetrics (layouter_domain.FontMetricsPort) which provides text measurement.
+// Takes imageResolver (layouter_domain.ImageResolverPort) which provides image
+// dimensions.
 //
 // Returns *LayouterAdapter which implements pdfwriter_domain.LayoutPort.
 func NewLayouterAdapter(
@@ -68,21 +66,18 @@ func NewLayouterAdapter(
 	}
 }
 
-// Layout resolves CSS, builds the box tree, performs layout, and returns
-// the result containing the positioned box tree.
+// Layout resolves CSS, builds the box tree, performs layout, and returns the result
+// containing the positioned box tree.
 //
 // Takes ctx (context.Context) which carries cancellation and tracing.
-// Takes tree (*ast_domain.TemplateAST) which is the template AST to
-// lay out.
-// Takes styling (string) which is the CSS from the template's style
-// block.
-// Takes config (layouter_dto.LayoutConfig) which specifies page
-// dimensions and font settings.
+// Takes tree (*ast_domain.TemplateAST) which is the template AST to lay out.
+// Takes styling (string) which is the CSS from the template's style block.
+// Takes config (layouter_dto.LayoutConfig) which specifies page dimensions and font
+// settings.
 //
-// Returns *layouter_dto.LayoutResult which contains the positioned
-// box tree and fragment tree.
-// Returns error when CSS resolution, box tree construction, or layout
-// fails.
+// Returns *layouter_dto.LayoutResult which contains the positioned box tree and fragment
+// tree.
+// Returns error when CSS resolution, box tree construction, or layout fails.
 func (adapter *LayouterAdapter) Layout(
 	ctx context.Context,
 	tree *ast_domain.TemplateAST,
@@ -125,13 +120,12 @@ func (adapter *LayouterAdapter) Layout(
 	}, nil
 }
 
-// buildPages produces the page output list. For auto-height layouts a
-// single page is measured from the content extent; otherwise the box
-// tree is paginated uniformly.
+// buildPages produces the page output list. For auto-height layouts a single page is
+// measured from the content extent; otherwise the box tree is paginated uniformly.
 //
 // Takes rootBox (*layouter_domain.LayoutBox) which is the laid-out box tree.
-// Takes config (layouter_dto.LayoutConfig) which specifies page dimensions
-// and auto-height settings.
+// Takes config (layouter_dto.LayoutConfig) which specifies page dimensions and
+// auto-height settings.
 //
 // Returns []layouter_dto.PageOutput which holds the generated page list.
 func buildPages(

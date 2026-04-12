@@ -58,17 +58,19 @@ const (
 	// importStrings is the import path for the strings package.
 	importStrings = "strings"
 
-	// maxSQLiteBindVariables is the maximum number of bind variables SQLite
-	// supports in a single statement (SQLITE_MAX_VARIABLE_NUMBER default).
+	// maxSQLiteBindVariables is the maximum number of bind variables SQLite supports in a
+	// single statement (SQLITE_MAX_VARIABLE_NUMBER default).
 	maxSQLiteBindVariables = 999
 )
 
-// SQLEmitter implements CodeEmitterPort by generating Go source code targeting
-// the database/sql runtime. All code generation uses go/ast node construction
-// for deterministic, syntactically valid output.
+// SQLEmitter implements CodeEmitterPort by generating Go source code targeting the
+// database/sql runtime. All code generation uses go/ast node construction for
+// deterministic, syntactically valid output.
 type SQLEmitter struct{}
 
-var _ querier_domain.CodeEmitterPort = (*SQLEmitter)(nil)
+var (
+	_ querier_domain.CodeEmitterPort = (*SQLEmitter)(nil)
+)
 
 // NewSQLEmitter creates a new database/sql code emitter.
 //
@@ -77,15 +79,13 @@ func NewSQLEmitter() *SQLEmitter {
 	return &SQLEmitter{}
 }
 
-// EmitQueries generates Go source code for query methods, parameter structs,
-// result structs, and SQL constants from analysed queries. Queries are grouped
-// by source filename, producing one .sql.go file per source SQL file.
+// EmitQueries generates Go source code for query methods, parameter structs, result
+// structs, and SQL constants from analysed queries. Queries are grouped by source
+// filename, producing one .sql.go file per source SQL file.
 //
 // Takes packageName (string) which is the Go package name for generated files.
-// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked
-// queries.
-// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type
-// mappings.
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the type-checked queries.
+// Takes mappings (*querier_dto.TypeMappingTable) which defines SQL-to-Go type mappings.
 //
 // Returns []querier_dto.GeneratedFile which contains the query source files.
 // Returns error when code emission fails.
@@ -98,8 +98,8 @@ func (*SQLEmitter) EmitQueries(
 	return emitter_shared.EmitQueries(packageName, queries, mappings, strategy, &sqlBatchHandler{strategy: strategy})
 }
 
-// EmitOTel generates the otel.go file containing the QueryNameResolver
-// function that maps SQL query constant text to human-readable operation names.
+// EmitOTel generates the otel.go file containing the QueryNameResolver function that maps
+// SQL query constant text to human-readable operation names.
 //
 // Takes packageName (string) which is the Go package name.
 // Takes queries ([]*querier_dto.AnalysedQuery) which provide query names.
@@ -110,13 +110,13 @@ func (*SQLEmitter) EmitOTel(packageName string, queries []*querier_dto.AnalysedQ
 	return emitter_shared.EmitOTel(packageName, queries)
 }
 
-// sqlStrategy implements emitter_shared.MethodStrategy for the database/sql
-// runtime target. It provides SQL-specific method names (QueryContext,
-// QueryRowContext, ExecContext) and reader/writer connection field selection.
+// sqlStrategy implements emitter_shared.MethodStrategy for the database/sql runtime
+// target. It provides SQL-specific method names (QueryContext, QueryRowContext,
+// ExecContext) and reader/writer connection field selection.
 type sqlStrategy struct{}
 
-// ConnectionField returns "reader" for read-only queries and "writer"
-// otherwise, matching the database/sql Queries struct layout.
+// ConnectionField returns "reader" for read-only queries and "writer" otherwise, matching
+// the database/sql Queries struct layout.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to check.
 //
@@ -166,8 +166,7 @@ func (*sqlStrategy) QueriesReceiver() *ast.FieldList {
 	)
 }
 
-// ExecResultReturnType returns sql.Result as the return type for :execresult
-// methods.
+// ExecResultReturnType returns sql.Result as the return type for :execresult methods.
 //
 // Returns ast.Expr which is the sql.Result type expression.
 func (*sqlStrategy) ExecResultReturnType() ast.Expr {
@@ -254,8 +253,7 @@ func (*sqlStrategy) RuntimeBuilderImports(tracker *emitter_shared.ImportTracker)
 	tracker.AddImport("database/sql")
 }
 
-// NeedsSliceExpansion reports whether slice parameters require runtime SQL
-// rewriting.
+// NeedsSliceExpansion reports whether slice parameters require runtime SQL rewriting.
 //
 // Returns bool which is always true for the database/sql emitter.
 func (*sqlStrategy) NeedsSliceExpansion() bool { return true }

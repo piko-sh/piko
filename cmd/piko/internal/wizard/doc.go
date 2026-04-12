@@ -16,7 +16,7 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package wizard provides the interactive Bubble Tea wizard for
-// scaffolding new Piko projects. The main entry point is [Run],
-// which launches the terminal UI and handles the result.
+// Package wizard provides the interactive Bubble Tea wizard for scaffolding new Piko
+// projects. The main entry point is [Run], which launches the terminal UI and handles the
+// result.
 package wizard

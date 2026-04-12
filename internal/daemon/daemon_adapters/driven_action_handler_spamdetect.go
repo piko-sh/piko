@@ -34,8 +34,7 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
-// validateSpamDetect checks spam detection for actions that implement
-// SpamProtected.
+// validateSpamDetect checks spam detection for actions that implement SpamProtected.
 //
 // Takes request (*http.Request) which provides the HTTP request context.
 // Takes action (any) which is the action to check for SpamProtected.
@@ -69,8 +68,7 @@ func (h *ActionHandler) validateSpamDetect(
 	return h.evaluateSpamResult(ctx, submission, schema, action, actionName)
 }
 
-// buildSpamSubmission constructs a Submission from the HTTP request
-// and schema.
+// buildSpamSubmission constructs a Submission from the HTTP request and schema.
 //
 // Takes request (*http.Request) which provides the HTTP request data.
 // Takes arguments (map[string]any) which contains the form field values.
@@ -159,13 +157,12 @@ func captureHeaders(request *http.Request, headerNames []string) map[string]stri
 	return captured
 }
 
-// evaluateSpamResult runs spam analysis, records the score on the
-// action's request metadata, and checks if the submission is spam.
+// evaluateSpamResult runs spam analysis, records the score on the action's request
+// metadata, and checks if the submission is spam.
 //
 // Takes submission (*spamdetect_dto.Submission) which is the form data.
 // Takes schema (*spamdetect_dto.Schema) which describes the form fields.
-// Takes action (any) which may implement SpamConfigurable and provide
-// request metadata.
+// Takes action (any) which may implement SpamConfigurable and provide request metadata.
 // Takes actionName (string) which identifies the action for logging.
 //
 // Returns error when the submission is detected as spam.
@@ -197,12 +194,11 @@ func (h *ActionHandler) evaluateSpamResult(
 	return nil
 }
 
-// recordSpamScore stores the spam detection score and reasons on the
-// action's request metadata when the action provides it.
+// recordSpamScore stores the spam detection score and reasons on the action's request
+// metadata when the action provides it.
 //
 // Takes action (any) which may expose request metadata.
-// Takes result (*spamdetect_dto.AnalysisResult) which contains the
-// analysis verdict.
+// Takes result (*spamdetect_dto.AnalysisResult) which contains the analysis verdict.
 func recordSpamScore(action any, result *spamdetect_dto.AnalysisResult) {
 	if result == nil {
 		return
@@ -235,11 +231,9 @@ func recordSpamScore(action any, result *spamdetect_dto.AnalysisResult) {
 	}
 }
 
-// collectSpamReasons gathers all reasons from form-level and
-// field-level results.
+// collectSpamReasons gathers all reasons from form-level and field-level results.
 //
-// Takes result (*spamdetect_dto.AnalysisResult) which contains the
-// analysis verdict.
+// Takes result (*spamdetect_dto.AnalysisResult) which contains the analysis verdict.
 //
 // Returns []string which contains the combined reasons.
 func collectSpamReasons(result *spamdetect_dto.AnalysisResult) []string {
@@ -251,11 +245,9 @@ func collectSpamReasons(result *spamdetect_dto.AnalysisResult) []string {
 	return reasons
 }
 
-// collectSpamFieldScores extracts non-zero field scores from the
-// analysis result.
+// collectSpamFieldScores extracts non-zero field scores from the analysis result.
 //
-// Takes result (*spamdetect_dto.AnalysisResult) which contains the
-// analysis verdict.
+// Takes result (*spamdetect_dto.AnalysisResult) which contains the analysis verdict.
 //
 // Returns map[string]float64 which maps field keys to their scores.
 func collectSpamFieldScores(result *spamdetect_dto.AnalysisResult) map[string]float64 {
@@ -274,14 +266,12 @@ func collectSpamFieldScores(result *spamdetect_dto.AnalysisResult) map[string]fl
 	return scores
 }
 
-// handleSpamAnalyseError converts spam analysis errors into appropriate
-// responses.
+// handleSpamAnalyseError converts spam analysis errors into appropriate responses.
 //
 // Takes err (error) which is the analysis error.
 // Takes actionName (string) which identifies the action for logging.
 //
-// Returns error which is nil when the error is non-fatal, or a
-// rejection error otherwise.
+// Returns error which is nil when the error is non-fatal, or a rejection error otherwise.
 func handleSpamAnalyseError(ctx context.Context, err error, actionName string) error {
 	if errors.Is(err, spamdetect_dto.ErrSpamDetectDisabled) {
 		return nil
@@ -303,8 +293,7 @@ func handleSpamAnalyseError(ctx context.Context, err error, actionName string) e
 	return fmt.Errorf("spam detection analysis failed: %w", err)
 }
 
-// readStringArg reads a string value from the arguments map without
-// deleting the key.
+// readStringArg reads a string value from the arguments map without deleting the key.
 //
 // Takes arguments (map[string]any) which contains the form arguments.
 // Takes key (string) which identifies the argument to read.
@@ -322,8 +311,7 @@ func readStringArg(arguments map[string]any, key string) string {
 	return value
 }
 
-// extractStringArg reads a string value from the arguments map and
-// deletes the key.
+// extractStringArg reads a string value from the arguments map and deletes the key.
 //
 // Takes arguments (map[string]any) which contains the form arguments.
 // Takes key (string) which identifies the argument to extract.
@@ -342,8 +330,8 @@ func extractStringArg(arguments map[string]any, key string) string {
 	return value
 }
 
-// writeSpamDetectError writes a spam detection rejection response and
-// logs the underlying error for debugging.
+// writeSpamDetectError writes a spam detection rejection response and logs the underlying
+// error for debugging.
 //
 // Takes w (http.ResponseWriter) which receives the JSON error response.
 // Takes err (error) which is the underlying spam detection error.
@@ -358,8 +346,7 @@ func (h *ActionHandler) writeSpamDetectError(ctx context.Context, w http.Respons
 	})
 }
 
-// parseFormTimestamp parses a millisecond Unix timestamp string into
-// time.Time.
+// parseFormTimestamp parses a millisecond Unix timestamp string into time.Time.
 //
 // Takes token (string) which is the millisecond timestamp.
 //

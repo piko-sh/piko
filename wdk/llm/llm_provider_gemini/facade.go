@@ -18,13 +18,14 @@
 
 package llm_provider_gemini
 
-import "piko.sh/piko/wdk/llm"
+import (
+	"piko.sh/piko/wdk/llm"
+)
 
 // NewGeminiProvider creates a new Google Gemini LLM provider with the given
 // configuration.
 //
-// Takes config (Config) which contains the provider
-// configuration including API key.
+// Takes config (Config) which contains the provider configuration including API key.
 //
 // Returns llm.ProviderPort which can be registered with the LLM service.
 // Returns error when the configuration is invalid.

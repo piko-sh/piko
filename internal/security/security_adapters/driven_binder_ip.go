@@ -29,28 +29,29 @@ import (
 	"piko.sh/piko/internal/security/security_dto"
 )
 
-var _ security_domain.RequestContextBinderAdapter = (*ipBinderAdapter)(nil)
+var (
+	_ security_domain.RequestContextBinderAdapter = (*ipBinderAdapter)(nil)
+)
 
 const (
 	// decimalBase is the number base used to format numbers as decimal strings.
 	decimalBase = 10
 )
 
-// ipBinderAdapter binds CSRF tokens to client IP addresses.
-// It implements RequestContextBinderAdapter by reading the already-resolved
-// client IP from the request context (set by RealIPMiddleware), ensuring
-// consistency with the trusted proxy rules.
+// ipBinderAdapter binds CSRF tokens to client IP addresses. It implements
+// RequestContextBinderAdapter by reading the already-resolved client IP from the request
+// context (set by RealIPMiddleware), ensuring consistency with the trusted proxy rules.
 type ipBinderAdapter struct{}
 
-// GetBindingIdentifier extracts and normalises the client IP address from the
-// request context. It uses the IP resolved by RealIPMiddleware to ensure
-// consistency with rate limiting and other downstream consumers.
+// GetBindingIdentifier extracts and normalises the client IP address from the request
+// context. It uses the IP resolved by RealIPMiddleware to ensure consistency with rate
+// limiting and other downstream consumers.
 //
-// Takes r (*http.Request) which provides the incoming HTTP request to extract
-// the client IP from.
+// Takes r (*http.Request) which provides the incoming HTTP request to extract the client
+// IP from.
 //
-// Returns string which is the normalised client IP address, or
-// "context_no_request" when r is nil.
+// Returns string which is the normalised client IP address, or "context_no_request" when
+// r is nil.
 func (*ipBinderAdapter) GetBindingIdentifier(r *http.Request) string {
 	if r == nil {
 		return "context_no_request"
@@ -68,22 +69,21 @@ func (*ipBinderAdapter) GetBindingIdentifier(r *http.Request) string {
 	return normaliseIP(clientIP)
 }
 
-// NewIPBinderAdapter creates a new adapter that binds request context based on
-// IP address.
+// NewIPBinderAdapter creates a new adapter that binds request context based on IP
+// address.
 //
-// Returns security_domain.RequestContextBinderAdapter which binds request
-// context using the client IP address.
+// Returns security_domain.RequestContextBinderAdapter which binds request context using
+// the client IP address.
 func NewIPBinderAdapter() security_domain.RequestContextBinderAdapter {
 	return &ipBinderAdapter{}
 }
 
-// normaliseIP converts an IP address string to a consistent, compact
-// identifier.
+// normaliseIP converts an IP address string to a consistent, compact identifier.
 //
-// When the input is an IPv4 address, returns the uint32 representation
-// as a string (e.g., "2035327534"). When the input is an IPv6 address,
-// returns the canonical string representation (e.g., "2001:db8::1").
-// If the input is not a valid IP, returns the original string.
+// When the input is an IPv4 address, returns the uint32 representation as a string (e.g.,
+// "2035327534"). When the input is an IPv6 address, returns the canonical string
+// representation (e.g., "2001:db8::1"). If the input is not a valid IP, returns the
+// original string.
 //
 // Takes ipString (string) which is the IP address to normalise.
 //

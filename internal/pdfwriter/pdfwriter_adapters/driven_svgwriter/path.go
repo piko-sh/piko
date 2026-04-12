@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	// quadraticToCubicFactor holds the 2/3 scaling factor for converting
-	// quadratic Bezier control points to cubic Bezier control points.
+	// quadraticToCubicFactor holds the 2/3 scaling factor for converting quadratic Bezier
+	// control points to cubic Bezier control points.
 	quadraticToCubicFactor = 2.0 / 3.0
 
 	// degreesToRadians holds the conversion factor from degrees to radians.
@@ -105,8 +105,8 @@ type pathState struct {
 
 // ParsePathData parses an SVG path d attribute into absolute-coordinate commands.
 //
-// Relative commands are converted to absolute. H/V->L, S->C, T->Q, and Q->C
-// since PDF only supports cubic Bezier.
+// Relative commands are converted to absolute. H/V->L, S->C, T->Q, and Q->C since PDF
+// only supports cubic Bezier.
 //
 // Takes d (string) which specifies the SVG path d attribute value.
 //
@@ -143,13 +143,13 @@ func ParsePathData(d string) ([]PathCommand, error) {
 	return state.commands, nil
 }
 
-// processPathCommand processes a single path command and its arguments from the
-// token stream, updating the path state.
+// processPathCommand processes a single path command and its arguments from the token
+// stream, updating the path state.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
-// Takes tokens ([]pathToken) which specifies the full token stream. Takes i
-// (int) which specifies the current position in the token stream. Takes cmd
-// (byte) which specifies the command letter to process.
+// Takes tokens ([]pathToken) which specifies the full token stream.
+// Takes i (int) which specifies the current position in the token stream.
+// Takes cmd (byte) which specifies the command letter to process.
 //
 // Returns int which holds the updated token stream position.
 // Returns error when the arguments are missing or malformed.
@@ -190,13 +190,14 @@ func processPathCommand(state *pathState, tokens []pathToken, i int, cmd byte) (
 	return i, nil
 }
 
-// applyPathCommand dispatches a single absolute command to the appropriate
-// handler, updating the path state.
+// applyPathCommand dispatches a single absolute command to the appropriate handler,
+// updating the path state.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
-// Takes absCmd (byte) which specifies the uppercase command letter. Takes args
-// ([]float64) which specifies the command arguments. Takes first (bool) which
-// specifies whether this is the first argument group for the command.
+// Takes absCmd (byte) which specifies the uppercase command letter.
+// Takes args ([]float64) which specifies the command arguments.
+// Takes first (bool) which specifies whether this is the first argument group for the
+// command.
 func applyPathCommand(state *pathState, absCmd byte, args []float64, first bool) {
 	switch absCmd {
 	case 'M':
@@ -224,12 +225,13 @@ func applyPathCommand(state *pathState, absCmd byte, args []float64, first bool)
 	}
 }
 
-// applyMoveCommand applies a move-to command, treating subsequent coordinate
-// pairs as implicit line-to commands.
+// applyMoveCommand applies a move-to command, treating subsequent coordinate pairs as
+// implicit line-to commands.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
-// Takes args ([]float64) which specifies the X and Y coordinates. Takes first
-// (bool) which specifies whether this is the initial move or an implicit line.
+// Takes args ([]float64) which specifies the X and Y coordinates.
+// Takes first (bool) which specifies whether this is the initial move or an implicit
+// line.
 func applyMoveCommand(state *pathState, args []float64, first bool) {
 	if first {
 		state.commands = append(state.commands, PathCommand{Type: 'M', Args: []float64{args[0], args[1]}})
@@ -251,8 +253,8 @@ func applyLineCommand(state *pathState, args []float64) {
 	state.lastCPX, state.lastCPY = state.cx, state.cy
 }
 
-// applyCubicCommand applies a cubic Bezier command and updates the current
-// position and last control point.
+// applyCubicCommand applies a cubic Bezier command and updates the current position and
+// last control point.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
 // Takes args ([]float64) which specifies the six cubic Bezier arguments.
@@ -264,8 +266,8 @@ func applyCubicCommand(state *pathState, args []float64) {
 	state.cx, state.cy = args[cubicEndXIndex], args[cubicEndYIndex]
 }
 
-// applySmoothCubicCommand applies a smooth cubic Bezier command by reflecting
-// the previous control point, then emitting a full cubic command.
+// applySmoothCubicCommand applies a smooth cubic Bezier command by reflecting the
+// previous control point, then emitting a full cubic command.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
 // Takes args ([]float64) which specifies the four smooth cubic arguments.
@@ -282,8 +284,8 @@ func applySmoothCubicCommand(state *pathState, args []float64) {
 	state.cx, state.cy = args[cubicCP1XIndex], args[cubicCP1YIndex]
 }
 
-// applyQuadCommand converts a quadratic Bezier to a cubic Bezier and appends
-// the resulting command.
+// applyQuadCommand converts a quadratic Bezier to a cubic Bezier and appends the
+// resulting command.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
 // Takes args ([]float64) which specifies the four quadratic Bezier arguments.
@@ -301,8 +303,8 @@ func applyQuadCommand(state *pathState, args []float64) {
 	state.cx, state.cy = endX, endY
 }
 
-// applySmoothQuadCommand applies a smooth quadratic Bezier by reflecting the
-// previous control point, converting to cubic, and appending the result.
+// applySmoothQuadCommand applies a smooth quadratic Bezier by reflecting the previous
+// control point, converting to cubic, and appending the result.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
 // Takes args ([]float64) which specifies the two smooth quadratic arguments.
@@ -324,8 +326,8 @@ func applySmoothQuadCommand(state *pathState, args []float64) {
 	state.cx, state.cy = endX, endY
 }
 
-// applyArcCommand converts an SVG arc to cubic Bezier segments and appends
-// them to the path state.
+// applyArcCommand converts an SVG arc to cubic Bezier segments and appends them to the
+// path state.
 //
 // Takes state (*pathState) which specifies the current path parsing state.
 // Takes args ([]float64) which specifies the seven arc arguments.
@@ -370,17 +372,17 @@ type arcParams struct {
 
 // ArcToCubics converts an SVG arc to cubic Bezier segments.
 //
-// Takes startX (float64) which specifies the starting X coordinate. Takes
-// startY (float64) which specifies the starting Y coordinate. Takes rx
-// (float64) which specifies the X radius. Takes ry (float64) which specifies
-// the Y radius. Takes xAxisRotation (float64) which specifies the ellipse
-// rotation in degrees. Takes largeArc (bool) which specifies the large-arc
-// flag. Takes sweep (bool) which specifies the sweep flag. Takes endX
-// (float64) which specifies the ending X coordinate. Takes endY (float64)
-// which specifies the ending Y coordinate.
+// Takes startX (float64) which specifies the starting X coordinate.
+// Takes startY (float64) which specifies the starting Y coordinate.
+// Takes rx (float64) which specifies the X radius.
+// Takes ry (float64) which specifies the Y radius.
+// Takes xAxisRotation (float64) which specifies the ellipse rotation in degrees.
+// Takes largeArc (bool) which specifies the large-arc flag.
+// Takes sweep (bool) which specifies the sweep flag.
+// Takes endX (float64) which specifies the ending X coordinate.
+// Takes endY (float64) which specifies the ending Y coordinate.
 //
-// Returns []PathCommand which holds the cubic Bezier segments approximating the
-// arc.
+// Returns []PathCommand which holds the cubic Bezier segments approximating the arc.
 func ArcToCubics(startX, startY, rx, ry, xAxisRotation float64, largeArc, sweep bool, endX, endY float64) []PathCommand { //nolint:revive // arc conversion requires all params
 	params := arcParams{
 		startX: startX, startY: startY,
@@ -392,13 +394,13 @@ func ArcToCubics(startX, startY, rx, ry, xAxisRotation float64, largeArc, sweep 
 	return arcToCubicsFromParams(params)
 }
 
-// arcToCubicsFromParams converts an SVG arc to cubic Bezier segments using
-// the bundled arc parameters.
+// arcToCubicsFromParams converts an SVG arc to cubic Bezier segments using the bundled
+// arc parameters.
 //
 // Takes p (arcParams) which specifies the arc geometry.
 //
-// Returns []PathCommand which holds the cubic Bezier segments, or nil if
-// the start and end points coincide.
+// Returns []PathCommand which holds the cubic Bezier segments, or nil if the start and
+// end points coincide.
 func arcToCubicsFromParams(p arcParams) []PathCommand {
 	if p.startX == p.endX && p.startY == p.endY {
 		return nil
@@ -418,19 +420,17 @@ func arcToCubicsFromParams(p arcParams) []PathCommand {
 	return emitArcSegments(centreX, centreY, p.rx, p.ry, phi, theta1, dtheta)
 }
 
-// computeArcCentre computes the ellipse centre and angle span for an SVG arc
-// using the endpoint parameterisation.
+// computeArcCentre computes the ellipse centre and angle span for an SVG arc using the
+// endpoint parameterisation.
 //
-// Takes p (arcParams) which specifies the arc geometry. Takes cosPhi (float64)
-// which specifies the cosine of the X axis rotation. Takes sinPhi (float64)
-// which specifies the sine of the X axis rotation.
+// Takes p (arcParams) which specifies the arc geometry.
+// Takes cosPhi (float64) which specifies the cosine of the X axis rotation.
+// Takes sinPhi (float64) which specifies the sine of the X axis rotation.
 //
 // Returns centreX (float64) which holds the ellipse centre X.
 // Returns centreY (float64) which holds the ellipse centre Y.
-// Returns theta1 (float64) which holds the start angle in
-// radians.
-// Returns dtheta (float64) which holds the angular span in
-// radians.
+// Returns theta1 (float64) which holds the start angle in radians.
+// Returns dtheta (float64) which holds the angular span in radians.
 func computeArcCentre(p arcParams, cosPhi, sinPhi float64) (centreX, centreY, theta1, dtheta float64) {
 	dx := (p.startX - p.endX) / 2
 	dy := (p.startY - p.endY) / 2
@@ -478,15 +478,16 @@ func computeArcCentre(p arcParams, cosPhi, sinPhi float64) (centreX, centreY, th
 	return centreX, centreY, theta1, dtheta
 }
 
-// emitArcSegments splits an arc into segments of at most 90 degrees and
-// converts each to a cubic Bezier command.
+// emitArcSegments splits an arc into segments of at most 90 degrees and converts each to
+// a cubic Bezier command.
 //
-// Takes centreX (float64) which specifies the ellipse centre X. Takes centreY
-// (float64) which specifies the ellipse centre Y. Takes rx (float64) which
-// specifies the X radius. Takes ry (float64) which specifies the Y radius.
-// Takes phi (float64) which specifies the X axis rotation in radians. Takes
-// theta1 (float64) which specifies the start angle. Takes dtheta (float64)
-// which specifies the angular span.
+// Takes centreX (float64) which specifies the ellipse centre X.
+// Takes centreY (float64) which specifies the ellipse centre Y.
+// Takes rx (float64) which specifies the X radius.
+// Takes ry (float64) which specifies the Y radius.
+// Takes phi (float64) which specifies the X axis rotation in radians.
+// Takes theta1 (float64) which specifies the start angle.
+// Takes dtheta (float64) which specifies the angular span.
 //
 // Returns []PathCommand which holds the cubic Bezier segments.
 func emitArcSegments(centreX, centreY, rx, ry, phi, theta1, dtheta float64) []PathCommand {
@@ -503,15 +504,15 @@ func emitArcSegments(centreX, centreY, rx, ry, phi, theta1, dtheta float64) []Pa
 	return result
 }
 
-// arcSegmentToCubic converts a single arc segment into a cubic Bezier
-// PathCommand.
+// arcSegmentToCubic converts a single arc segment into a cubic Bezier PathCommand.
 //
-// Takes cx (float64) which specifies the ellipse centre X. Takes cy (float64)
-// which specifies the ellipse centre Y. Takes rx (float64) which specifies the
-// X radius. Takes ry (float64) which specifies the Y radius. Takes phi
-// (float64) which specifies the X axis rotation in radians. Takes theta1
-// (float64) which specifies the segment start angle. Takes theta2 (float64)
-// which specifies the segment end angle.
+// Takes cx (float64) which specifies the ellipse centre X.
+// Takes cy (float64) which specifies the ellipse centre Y.
+// Takes rx (float64) which specifies the X radius.
+// Takes ry (float64) which specifies the Y radius.
+// Takes phi (float64) which specifies the X axis rotation in radians.
+// Takes theta1 (float64) which specifies the segment start angle.
+// Takes theta2 (float64) which specifies the segment end angle.
 //
 // Returns PathCommand which holds the cubic Bezier approximation of the segment.
 func arcSegmentToCubic(cx, cy, rx, ry, phi, theta1, theta2 float64) PathCommand {
@@ -561,10 +562,10 @@ func arcSegmentToCubic(cx, cy, rx, ry, phi, theta1, theta2 float64) PathCommand 
 
 // vecAngle computes the signed angle between two 2D vectors.
 //
-// Takes ux (float64) which specifies the first vector X component. Takes uy
-// (float64) which specifies the first vector Y component. Takes vx (float64)
-// which specifies the second vector X component. Takes vy (float64) which
-// specifies the second vector Y component.
+// Takes ux (float64) which specifies the first vector X component.
+// Takes uy (float64) which specifies the first vector Y component.
+// Takes vx (float64) which specifies the second vector X component.
+// Takes vy (float64) which specifies the second vector Y component.
 //
 // Returns float64 which holds the signed angle in radians.
 func vecAngle(ux, uy, vx, vy float64) float64 {
@@ -621,11 +622,11 @@ func tokenizePath(d string) ([]pathToken, error) {
 	return tokens, nil
 }
 
-// readNumber reads a complete numeric token from the reader, starting with
-// the given first rune.
+// readNumber reads a complete numeric token from the reader, starting with the given
+// first rune.
 //
-// Takes r (*strings.Reader) which specifies the input reader. Takes first
-// (rune) which specifies the first character of the number already consumed.
+// Takes r (*strings.Reader) which specifies the input reader.
+// Takes first (rune) which specifies the first character of the number already consumed.
 //
 // Returns string which holds the complete numeric token.
 func readNumber(r *strings.Reader, first rune) string {
@@ -648,14 +649,14 @@ func readNumber(r *strings.Reader, first rune) string {
 	return buf.String()
 }
 
-// appendNumberRune attempts to append a rune to the number buffer, handling
-// digits, decimal points, and exponent notation.
+// appendNumberRune attempts to append a rune to the number buffer, handling digits,
+// decimal points, and exponent notation.
 //
-// Takes buf (*strings.Builder) which specifies the buffer to append to. Takes
-// r (*strings.Reader) which specifies the input reader for exponent sign
-// lookahead. Takes ch (rune) which specifies the rune to process. Takes hasDot
-// (*bool) which specifies whether a decimal point has been seen. Takes
-// hasExponent (*bool) which specifies whether an exponent has been seen.
+// Takes buf (*strings.Builder) which specifies the buffer to append to.
+// Takes r (*strings.Reader) which specifies the input reader for exponent sign lookahead.
+// Takes ch (rune) which specifies the rune to process.
+// Takes hasDot (*bool) which specifies whether a decimal point has been seen.
+// Takes hasExponent (*bool) which specifies whether an exponent has been seen.
 //
 // Returns bool which holds true if the rune was accepted as part of the number.
 func appendNumberRune(buf *strings.Builder, r *strings.Reader, ch rune, hasDot, hasExponent *bool) bool {
@@ -677,11 +678,11 @@ func appendNumberRune(buf *strings.Builder, r *strings.Reader, ch rune, hasDot, 
 	return false
 }
 
-// readExponentSign reads an optional sign character following an exponent
-// indicator and appends it to the buffer.
+// readExponentSign reads an optional sign character following an exponent indicator and
+// appends it to the buffer.
 //
-// Takes buf (*strings.Builder) which specifies the buffer to append to. Takes
-// r (*strings.Reader) which specifies the input reader.
+// Takes buf (*strings.Builder) which specifies the buffer to append to.
+// Takes r (*strings.Reader) which specifies the input reader.
 func readExponentSign(buf *strings.Builder, r *strings.Reader) {
 	next, _, err := r.ReadRune()
 	if err != nil {
@@ -709,8 +710,8 @@ func isPathCommand(ch rune) bool {
 	return false
 }
 
-// commandArgCount returns the number of numeric arguments expected for the
-// given SVG path command.
+// commandArgCount returns the number of numeric arguments expected for the given SVG path
+// command.
 //
 // Takes cmd (byte) which specifies the command letter (case insensitive).
 //
@@ -737,8 +738,8 @@ func commandArgCount(cmd byte) int {
 //
 // Takes cmd (byte) which specifies the command letter to convert.
 //
-// Returns byte which holds the uppercase command letter, or the original if
-// already uppercase.
+// Returns byte which holds the uppercase command letter, or the original if already
+// uppercase.
 func toUpper(cmd byte) byte {
 	if cmd >= 'a' && cmd <= 'z' {
 		return cmd - asciiCaseDiff
@@ -746,17 +747,16 @@ func toUpper(cmd byte) byte {
 	return cmd
 }
 
-// consumeArgs reads the specified number of numeric arguments from the token
-// stream starting at the given position.
+// consumeArgs reads the specified number of numeric arguments from the token stream
+// starting at the given position.
 //
-// Takes tokens ([]pathToken) which specifies the full token stream. Takes pos
-// (int) which specifies the starting position. Takes argCount (int) which
-// specifies the number of arguments to consume.
+// Takes tokens ([]pathToken) which specifies the full token stream.
+// Takes pos (int) which specifies the starting position.
+// Takes argCount (int) which specifies the number of arguments to consume.
 //
 // Returns []float64 which holds the parsed argument values.
 // Returns int which holds the updated position.
-// Returns error when there are insufficient tokens or
-// invalid numbers.
+// Returns error when there are insufficient tokens or invalid numbers.
 func consumeArgs(tokens []pathToken, pos, argCount int) ([]float64, int, error) {
 	args := make([]float64, argCount)
 	for j := range argCount {
@@ -788,13 +788,13 @@ func parsePathFloat(s string) (float64, error) {
 	return result, err
 }
 
-// makeAbsolute converts relative command arguments to absolute by adding the
-// current position offsets.
+// makeAbsolute converts relative command arguments to absolute by adding the current
+// position offsets.
 //
-// Takes absCmd (byte) which specifies the uppercase command type. Takes args
-// ([]float64) which specifies the arguments to convert in place. Takes cx
-// (float64) which specifies the current X position. Takes cy (float64) which
-// specifies the current Y position.
+// Takes absCmd (byte) which specifies the uppercase command type.
+// Takes args ([]float64) which specifies the arguments to convert in place.
+// Takes cx (float64) which specifies the current X position.
+// Takes cy (float64) which specifies the current Y position.
 func makeAbsolute(absCmd byte, args []float64, cx, cy float64) {
 	switch absCmd {
 	case 'M', 'L', 'T':

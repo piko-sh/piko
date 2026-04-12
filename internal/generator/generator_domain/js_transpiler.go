@@ -36,8 +36,8 @@ type TranspileOptions struct {
 	// Filename is the source file path used in error messages and source maps.
 	Filename string
 
-	// ModuleName is the Go module name for @/ alias resolution. When set,
-	// import paths starting with @/ are rewritten to served asset paths.
+	// ModuleName is the Go module name for @/ alias resolution. When set, import paths
+	// starting with @/ are rewritten to served asset paths.
 	ModuleName string
 
 	// Minify enables shorter syntax and removes whitespace when true.
@@ -50,22 +50,20 @@ type TranspileResult struct {
 	Code string
 }
 
-// JSTranspiler transpiles TypeScript to JavaScript using esbuild's parser
-// and printer. It strips type annotations while preserving runtime code.
+// JSTranspiler transpiles TypeScript to JavaScript using esbuild's parser and printer. It
+// strips type annotations while preserving runtime code.
 type JSTranspiler struct{}
 
 // NewJSTranspiler creates a new JSTranspiler instance.
 //
-// Returns *JSTranspiler which is ready to convert TypeScript
-// code.
+// Returns *JSTranspiler which is ready to convert TypeScript code.
 func NewJSTranspiler() *JSTranspiler {
 	return &JSTranspiler{}
 }
 
 // Transpile converts TypeScript source code to JavaScript.
 //
-// It parses the TypeScript, removes type annotations, and outputs clean
-// JavaScript.
+// It parses the TypeScript, removes type annotations, and outputs clean JavaScript.
 //
 // Takes source (string) which is the TypeScript source code to convert.
 // Takes opts (TranspileOptions) which controls the transpilation behaviour.

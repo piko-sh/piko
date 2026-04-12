@@ -61,8 +61,8 @@ const (
 	// logKeyDensities is the log key for image density values.
 	logKeyDensities = "densities"
 
-	// transformKeyDensity is the key for storing density values in the
-	// TransformationParams map for image variants.
+	// transformKeyDensity is the key for storing density values in the TransformationParams
+	// map for image variants.
 	transformKeyDensity = "_density"
 
 	// transformKeyResponsive is the internal marker for responsive image processing.

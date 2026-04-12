@@ -16,11 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package video_provider_mock provides a mock video transcoder for
-// testing applications that use piko's video service.
+// Package video_provider_mock provides a mock video transcoder for testing applications
+// that use piko's video service.
 //
-// The provider records all method calls for inspection and allows
-// tests to control return values and errors.
+// The provider records all method calls for inspection and allows tests to control return
+// values and errors.
 //
 // # Usage
 //

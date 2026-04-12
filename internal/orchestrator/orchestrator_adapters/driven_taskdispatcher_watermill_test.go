@@ -142,14 +142,14 @@ func (m *mockExecutor) getCallCount() int {
 }
 
 func newTrackingDelayedPublisher() *orchestrator_domain.MockDelayedPublisher {
-	var count int64
+	var count atomic.Int64
 	m := &orchestrator_domain.MockDelayedPublisher{}
 	m.ScheduleFunc = func(_ context.Context, _ *orchestrator_domain.Task) error {
-		atomic.AddInt64(&count, 1)
+		count.Add(1)
 		return nil
 	}
 	m.PendingCountFunc = func() int {
-		return int(atomic.LoadInt64(&count))
+		return int(count.Load())
 	}
 	return m
 }
@@ -268,7 +268,7 @@ func Test_watermillTaskDispatcher_Dispatch_Deduplication(t *testing.T) {
 		err := dispatcher.Dispatch(ctx, task)
 		require.NoError(t, err)
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&store.CreateTaskWithDedupCallCount))
+		assert.Equal(t, int64(1), store.CreateTaskWithDedupCallCount.Load())
 	})
 
 	t.Run("blocks duplicate task", func(t *testing.T) {
@@ -366,11 +366,11 @@ func Test_watermillTaskDispatcher_IsIdle_AfterTaskFailsWithRetries(t *testing.T)
 	dispatcher := newWatermillTaskDispatcher(config, eventBus, store,
 		withWatermillDelayedPublisher(delayedPub))
 
-	atomic.StoreInt64(&dispatcher.TasksDispatched, 3)
-	atomic.StoreInt64(&dispatcher.TasksCompleted, 0)
-	atomic.StoreInt64(&dispatcher.TasksFailed, 1)
-	atomic.StoreInt64(&dispatcher.TasksRetried, 2)
-	atomic.StoreInt64(&dispatcher.pendingTasks, 0)
+	dispatcher.TasksDispatched.Store(3)
+	dispatcher.TasksCompleted.Store(0)
+	dispatcher.TasksFailed.Store(1)
+	dispatcher.TasksRetried.Store(2)
+	dispatcher.pendingTasks.Store(0)
 
 	assert.True(t, dispatcher.IsIdle(),
 		"dispatcher should be idle when dispatched == completed + failed + retried (3 == 0+1+2)")
@@ -386,11 +386,11 @@ func Test_watermillTaskDispatcher_IsIdle_AfterRetryThenSuccess(t *testing.T) {
 	dispatcher := newWatermillTaskDispatcher(config, eventBus, nil,
 		withWatermillDelayedPublisher(delayedPub))
 
-	atomic.StoreInt64(&dispatcher.TasksDispatched, 2)
-	atomic.StoreInt64(&dispatcher.TasksCompleted, 1)
-	atomic.StoreInt64(&dispatcher.TasksFailed, 0)
-	atomic.StoreInt64(&dispatcher.TasksRetried, 1)
-	atomic.StoreInt64(&dispatcher.pendingTasks, 0)
+	dispatcher.TasksDispatched.Store(2)
+	dispatcher.TasksCompleted.Store(1)
+	dispatcher.TasksFailed.Store(0)
+	dispatcher.TasksRetried.Store(1)
+	dispatcher.pendingTasks.Store(0)
 
 	assert.True(t, dispatcher.IsIdle(),
 		"dispatcher should be idle when dispatched == completed + failed + retried (2 == 1+0+1)")
@@ -407,11 +407,11 @@ func Test_watermillTaskDispatcher_IsIdle_AfterMixedSuccessAndFailure(t *testing.
 	dispatcher := newWatermillTaskDispatcher(config, eventBus, nil,
 		withWatermillDelayedPublisher(delayedPub))
 
-	atomic.StoreInt64(&dispatcher.TasksDispatched, 5)
-	atomic.StoreInt64(&dispatcher.TasksCompleted, 2)
-	atomic.StoreInt64(&dispatcher.TasksFailed, 1)
-	atomic.StoreInt64(&dispatcher.TasksRetried, 2)
-	atomic.StoreInt64(&dispatcher.pendingTasks, 0)
+	dispatcher.TasksDispatched.Store(5)
+	dispatcher.TasksCompleted.Store(2)
+	dispatcher.TasksFailed.Store(1)
+	dispatcher.TasksRetried.Store(2)
+	dispatcher.pendingTasks.Store(0)
 
 	assert.True(t, dispatcher.IsIdle(),
 		"dispatcher should be idle when dispatched == completed + failed + retried (5 == 2+1+2)")
@@ -428,11 +428,11 @@ func Test_watermillTaskDispatcher_IsIdle_ZeroRetryFailsImmediately(t *testing.T)
 	dispatcher := newWatermillTaskDispatcher(config, eventBus, nil,
 		withWatermillDelayedPublisher(delayedPub))
 
-	atomic.StoreInt64(&dispatcher.TasksDispatched, 1)
-	atomic.StoreInt64(&dispatcher.TasksCompleted, 0)
-	atomic.StoreInt64(&dispatcher.TasksFailed, 1)
-	atomic.StoreInt64(&dispatcher.TasksRetried, 0)
-	atomic.StoreInt64(&dispatcher.pendingTasks, 0)
+	dispatcher.TasksDispatched.Store(1)
+	dispatcher.TasksCompleted.Store(0)
+	dispatcher.TasksFailed.Store(1)
+	dispatcher.TasksRetried.Store(0)
+	dispatcher.pendingTasks.Store(0)
 
 	assert.True(t, dispatcher.IsIdle(),
 		"dispatcher should be idle when dispatched == completed + failed + retried (1 == 0+1+0)")
@@ -447,11 +447,11 @@ func Test_watermillTaskDispatcher_IsIdle_NotIdleWithDelayedPending(t *testing.T)
 	dispatcher := newWatermillTaskDispatcher(config, eventBus, nil,
 		withWatermillDelayedPublisher(delayedPub))
 
-	atomic.StoreInt64(&dispatcher.TasksDispatched, 1)
-	atomic.StoreInt64(&dispatcher.TasksCompleted, 0)
-	atomic.StoreInt64(&dispatcher.TasksFailed, 0)
-	atomic.StoreInt64(&dispatcher.TasksRetried, 1)
-	atomic.StoreInt64(&dispatcher.pendingTasks, 0)
+	dispatcher.TasksDispatched.Store(1)
+	dispatcher.TasksCompleted.Store(0)
+	dispatcher.TasksFailed.Store(0)
+	dispatcher.TasksRetried.Store(1)
+	dispatcher.pendingTasks.Store(0)
 
 	_ = delayedPub.Schedule(context.Background(), &orchestrator_domain.Task{
 		ID:                 "delayed-1",
@@ -473,11 +473,11 @@ func Test_watermillTaskDispatcher_IsIdle_NotIdleWithInFlightTasks(t *testing.T) 
 	dispatcher := newWatermillTaskDispatcher(config, eventBus, nil,
 		withWatermillDelayedPublisher(delayedPub))
 
-	atomic.StoreInt64(&dispatcher.TasksDispatched, 1)
-	atomic.StoreInt64(&dispatcher.TasksCompleted, 1)
-	atomic.StoreInt64(&dispatcher.TasksFailed, 0)
-	atomic.StoreInt64(&dispatcher.TasksRetried, 0)
-	atomic.StoreInt64(&dispatcher.pendingTasks, 0)
+	dispatcher.TasksDispatched.Store(1)
+	dispatcher.TasksCompleted.Store(1)
+	dispatcher.TasksFailed.Store(0)
+	dispatcher.TasksRetried.Store(0)
+	dispatcher.pendingTasks.Store(0)
 
 	dispatcher.InFlightTasks.Store("task-inflight", &orchestrator_domain.Task{ID: "task-inflight"})
 
@@ -538,7 +538,7 @@ func Test_watermillTaskDispatcher_DispatchDelayed(t *testing.T) {
 	assert.Equal(t, orchestrator_domain.StatusScheduled, task.Status)
 	assert.Equal(t, executeAt, task.ScheduledExecuteAt)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&store.CreateTaskWithDedupCallCount))
+	assert.Equal(t, int64(1), store.CreateTaskWithDedupCallCount.Load())
 
 	assert.Equal(t, 1, delayedPub.PendingCount())
 }

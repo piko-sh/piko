@@ -16,14 +16,11 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package querier_adapter wraps the code-generated SQLite
-// queries to satisfy the orchestrator DAL and task store
-// interfaces.
+// Package querier_adapter wraps the code-generated SQLite queries to satisfy the
+// orchestrator DAL and task store interfaces.
 //
-// The [Adapter] type handles JSON serialisation of payload,
-// config, and result fields, Unix-second timestamp conversion,
-// dynamic SQL expansion for IN-clause queries, and transaction
-// lifecycle management. It bridges the gap between the domain
-// layer's typed models and the flat row types produced by the
-// code generator.
+// The [Adapter] type handles JSON serialisation of payload, config, and result fields,
+// Unix-second timestamp conversion, dynamic SQL expansion for IN-clause queries, and
+// transaction lifecycle management. It bridges the gap between the domain layer's typed
+// models and the flat row types produced by the code generator.
 package querier_adapter

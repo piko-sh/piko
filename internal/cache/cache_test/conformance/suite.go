@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/internal/cache/cache_dto"
 )
 
-// StringConfig holds configuration for cache conformance test suites.
-// It specifies how to create cache instances and which features to test.
+// StringConfig holds configuration for cache conformance test suites. It specifies how to
+// create cache instances and which features to test.
 type StringConfig struct {
 	// ProviderFactory creates a cache instance for testing.
 	ProviderFactory func(t *testing.T, opts cache_dto.Options[string, string]) cache_domain.Cache[string, string]
@@ -59,10 +59,10 @@ type StringConfig struct {
 	// SupportsRefresh indicates whether the store supports TTL refresh operations.
 	SupportsRefresh bool
 
-	// HonoursContextCancellation indicates whether the provider respects
-	// context cancellation and deadlines. Distributed providers (Redis, Valkey)
-	// set this to true. In-memory providers (Otter) leave it false because
-	// their operations are non-blocking and succeed regardless of context state.
+	// HonoursContextCancellation indicates whether the provider respects context
+	// cancellation and deadlines. Distributed providers (Redis, Valkey) set this to true.
+	// In-memory providers (Otter) leave it false because their operations are non-blocking
+	// and succeed regardless of context state.
 	HonoursContextCancellation bool
 }
 
@@ -74,8 +74,7 @@ type ProductConfig struct {
 	// AdvanceTime advances the simulated clock by the given duration.
 	AdvanceTime func(d time.Duration)
 
-	// Cleanup is called after all tests complete; nil means no cleanup is
-	// performed.
+	// Cleanup is called after all tests complete; nil means no cleanup is performed.
 	Cleanup func()
 }
 
@@ -107,8 +106,8 @@ type variableExpiryCalculator[K comparable, V any] struct{}
 //
 // Takes entry (cache_dto.Entry) which contains the expiry time in nanoseconds.
 //
-// Returns time.Duration which is the remaining time until expiry. Returns zero
-// if the entry has no expiry set, or one nanosecond if already expired.
+// Returns time.Duration which is the remaining time until expiry.
+// Returns zero if the entry has no expiry set, or one nanosecond if already expired.
 func (c *variableExpiryCalculator[K, V]) ExpireAfterCreate(entry cache_dto.Entry[K, V]) time.Duration {
 	if entry.ExpiresAtNano <= 0 {
 		return 0
@@ -136,8 +135,8 @@ func (c *variableExpiryCalculator[K, V]) ExpireAfterRead(entry cache_dto.Entry[K
 // RunStringSuite runs the complete string operations test suite.
 //
 // Takes t (*testing.T) which is the test context.
-// Takes config (StringConfig) which specifies which tests to run and provides
-// the test fixtures.
+// Takes config (StringConfig) which specifies which tests to run and provides the test
+// fixtures.
 func RunStringSuite(t *testing.T, config StringConfig) {
 	t.Helper()
 

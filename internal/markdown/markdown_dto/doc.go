@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package markdown_dto contains the types used to represent processed Markdown
-// content and its associated metadata, including page information, navigation
-// data, and extracted elements such as headings, images, and links.
+// Package markdown_dto contains the types used to represent processed Markdown content
+// and its associated metadata, including page information, navigation data, and extracted
+// elements such as headings, images, and links.
 package markdown_dto

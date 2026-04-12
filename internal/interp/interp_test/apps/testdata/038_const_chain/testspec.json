@@ -1,0 +1,4 @@
+{
+  "description": "Const block in one file references const declared in another file (Go resolves consts at compile time)",
+  "expected": "kbBytes=1024 mbBytes=1048576 gbKb=1048576"
+}

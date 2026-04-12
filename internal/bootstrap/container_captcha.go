@@ -49,11 +49,10 @@ var (
 	_ captcha_domain.ClientIPExtractor = clientIPExtractorFunc(nil)
 )
 
-// AddCaptchaProvider registers a named captcha provider for verification
-// operations.
+// AddCaptchaProvider registers a named captcha provider for verification operations.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (CaptchaProvider) which handles captcha verification.
@@ -65,16 +64,16 @@ func (c *Container) AddCaptchaProvider(name string, provider captcha_domain.Capt
 	registerCloseableForShutdown(c.GetAppContext(), "CaptchaProvider-"+name, provider)
 }
 
-// SetCaptchaDefaultProvider sets the default captcha provider to use when
-// none is specified.
+// SetCaptchaDefaultProvider sets the default captcha provider to use when none is
+// specified.
 //
 // Takes name (string) which identifies the provider to use as the default.
 func (c *Container) SetCaptchaDefaultProvider(name string) {
 	c.captchaDefaultProvider = name
 }
 
-// GetCaptchaService returns the captcha service, initialising a default one if
-// none was provided.
+// GetCaptchaService returns the captcha service, initialising a default one if none was
+// provided.
 //
 // Returns captcha_domain.CaptchaServicePort which provides captcha verification
 // operations.
@@ -86,8 +85,7 @@ func (c *Container) GetCaptchaService() (captcha_domain.CaptchaServicePort, erro
 	return c.captchaService, c.captchaErr
 }
 
-// createDefaultCaptchaService sets up the captcha service using default
-// settings.
+// createDefaultCaptchaService sets up the captcha service using default settings.
 func (c *Container) createDefaultCaptchaService() {
 	ctx := c.GetAppContext()
 	ctx, l := logger_domain.From(ctx, log)
@@ -118,8 +116,8 @@ func (c *Container) createDefaultCaptchaService() {
 		logger_domain.String("provider", providerName))
 }
 
-// selectCaptchaProvider selects the appropriate captcha provider based on
-// options or config.
+// selectCaptchaProvider selects the appropriate captcha provider based on options or
+// config.
 //
 // Returns string which is the selected provider name.
 // Returns captcha_domain.CaptchaProvider which provides verification.
@@ -154,9 +152,9 @@ func (c *Container) selectCaptchaProvider(ctx context.Context) (providerName str
 	return c.createCaptchaProviderFromConfig(ctx)
 }
 
-// createCaptchaProviderFromConfig creates a captcha provider based on config
-// settings. This fallback only supports the hmac_challenge provider for
-// simple config-based initialisation.
+// createCaptchaProviderFromConfig creates a captcha provider based on config settings.
+// This fallback only supports the hmac_challenge provider for simple config-based
+// initialisation.
 //
 // Returns string which is the selected provider name.
 // Returns captcha_domain.CaptchaProvider which provides verification.
@@ -189,9 +187,9 @@ func (c *Container) createCaptchaProviderFromConfig(ctx context.Context) (provid
 	}
 }
 
-// createHMACChallengeProvider creates the built-in HMAC challenge provider.
-// The secret resolution follows the same pattern as CSRF secrets: config >
-// persisted temp file > generated ephemeral.
+// createHMACChallengeProvider creates the built-in HMAC challenge provider. The secret
+// resolution follows the same pattern as CSRF secrets: config > persisted temp file >
+// generated ephemeral.
 //
 // Returns string which is the provider name.
 // Returns captcha_domain.CaptchaProvider which provides HMAC-based verification.
@@ -209,8 +207,8 @@ func (c *Container) createHMACChallengeProvider() (providerName string, provider
 	return "hmac_challenge", provider, nil
 }
 
-// captchaCloudProviderConfigError returns an error for cloud captcha providers
-// that cannot be set up via a config file.
+// captchaCloudProviderConfigError returns an error for cloud captcha providers that
+// cannot be set up via a config file.
 //
 // Takes providerType (string) which identifies the unsupported provider.
 //
@@ -235,8 +233,7 @@ func (*Container) captchaCloudProviderConfigError(providerType string) error {
 // buildCaptchaService creates the captcha service with the selected provider.
 //
 // Takes providerName (string) which identifies the provider to register.
-// Takes baseProvider (captcha_domain.CaptchaProvider) which handles
-// verification.
+// Takes baseProvider (captcha_domain.CaptchaProvider) which handles verification.
 //
 // Returns captcha_domain.CaptchaServicePort which is the configured service.
 // Returns error when the service cannot be built.
@@ -290,11 +287,10 @@ func (c *Container) buildCaptchaService(
 
 // SetCaptchaService sets a pre-configured captcha service on the container.
 //
-// If the service implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the service implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
-// Takes service (captcha_domain.CaptchaServicePort) which is the captcha
-// service to use.
+// Takes service (captcha_domain.CaptchaServicePort) which is the captcha service to use.
 func (c *Container) SetCaptchaService(service captcha_domain.CaptchaServicePort) {
 	c.captchaOnce.Do(func() {})
 	c.captchaService = service
@@ -303,8 +299,8 @@ func (c *Container) SetCaptchaService(service captcha_domain.CaptchaServicePort)
 
 // IsAllowed checks whether the given key is within its rate limit.
 //
-// Takes ctx (context.Context) which propagates cancellation into the
-// underlying rate limit service.
+// Takes ctx (context.Context) which propagates cancellation into the underlying rate
+// limit service.
 // Takes key (string) which identifies the resource being limited.
 // Takes limit (int) which is the maximum allowed requests.
 // Takes window (time.Duration) which is the time period for the limit.

@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package linguistics_phonetic_dutch provides a Dutch phonetic encoder
-// for the linguistics package.
+// Package linguistics_phonetic_dutch provides a Dutch phonetic encoder for the
+// linguistics package.
 //
-// The encoder converts Dutch words into phonetic codes that enable
-// "sounds-like" matching, handling Dutch-specific patterns such as
-// digraphs, guttural consonants, and vowel combinations. It
-// self-registers via an init function so that a blank import is
+// The encoder converts Dutch words into phonetic codes that enable "sounds-like"
+// matching, handling Dutch-specific patterns such as digraphs, guttural consonants, and
+// vowel combinations. It self-registers via an init function so that a blank import is
 // sufficient to make it available through the registry.
 //
 // [Encoder] is safe for concurrent use.

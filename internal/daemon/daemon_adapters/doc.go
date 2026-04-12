@@ -16,41 +16,38 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package daemon_adapters implements the daemon domain ports for HTTP
-// routing, request handling, action dispatch, response caching,
-// middleware, and server lifecycle management. It uses the go-chi
-// router and integrates with OpenTelemetry for observability.
+// Package daemon_adapters implements the daemon domain ports for HTTP routing, request
+// handling, action dispatch, response caching, middleware, and server lifecycle
+// management. It uses the go-chi router and integrates with OpenTelemetry for
+// observability.
 //
 // # Route handling
 //
-// The package handles three categories of routes: page routes (full
-// HTML rendering with i18n), partial routes (fragment rendering for
-// HTMX-style updates), and action routes (JSON API endpoints with
-// CSRF protection and optional SSE transport).
+// The package handles three categories of routes: page routes (full HTML rendering with
+// i18n), partial routes (fragment rendering for HTMX-style updates), and action routes
+// (JSON API endpoints with CSRF protection and optional SSE transport).
 //
-// Routes are mounted from the manifest store using
-// [MountRoutesFromManifest], which registers handlers with appropriate
-// middleware chains. Actions are dispatched through generated wrapper
-// functions via [ActionHandler] rather than reflection.
+// Routes are mounted from the manifest store using [MountRoutesFromManifest], which
+// registers handlers with appropriate middleware chains. Actions are dispatched through
+// generated wrapper functions via [ActionHandler] rather than reflection.
 //
 // # Action registry
 //
-// Generated code registers actions at init time via [RegisterAction]
-// and [RegisterActions]. The bootstrap layer retrieves all registered
-// actions with [GetGlobalActionRegistry] for mounting onto the router.
+// Generated code registers actions at init time via [RegisterAction] and
+// [RegisterActions]. The bootstrap layer retrieves all registered actions with
+// [GetGlobalActionRegistry] for mounting onto the router.
 //
 // # Caching
 //
-// [CacheMiddleware] provides multi-tier caching with static page
-// caching, Brotli and gzip compression via pooled writers,
-// ETag-based conditional responses, singleflight stampede
-// protection, background artefact persistence for cache warming,
-// and streaming compression for non-cacheable responses.
+// [CacheMiddleware] provides multi-tier caching with static page caching, Brotli and gzip
+// compression via pooled writers, ETag-based conditional responses, singleflight stampede
+// protection, background artefact persistence for cache warming, and streaming
+// compression for non-cacheable responses.
 //
 // # Thread safety
 //
-// All exported types are safe for concurrent use. [RouterManager] uses
-// read-write locks for atomic router swaps. [CacheMiddleware] uses
-// singleflight groups and pooled resources for thread-safe caching.
-// The global action registry is protected by a read-write mutex.
+// All exported types are safe for concurrent use. [RouterManager] uses read-write locks
+// for atomic router swaps. [CacheMiddleware] uses singleflight groups and pooled
+// resources for thread-safe caching. The global action registry is protected by a
+// read-write mutex.
 package daemon_adapters

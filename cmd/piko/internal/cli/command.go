@@ -32,8 +32,8 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// monitoringConnection abstracts the gRPC connection so that handlers can be
-// tested with mock clients.
+// monitoringConnection abstracts the gRPC connection so that handlers can be tested with
+// mock clients.
 type monitoringConnection interface {
 	// HealthClient returns the health service client for this connection.
 	//
@@ -53,20 +53,20 @@ type monitoringConnection interface {
 
 	// RegistryClient returns the registry inspector service client.
 	//
-	// Returns pb.RegistryInspectorServiceClient which provides access to the
-	// registry inspection API.
+	// Returns pb.RegistryInspectorServiceClient which provides access to the registry
+	// inspection API.
 	RegistryClient() pb.RegistryInspectorServiceClient
 
 	// DispatcherClient returns the client for the dispatcher inspector service.
 	//
-	// Returns pb.DispatcherInspectorServiceClient which provides access to
-	// dispatcher inspection operations.
+	// Returns pb.DispatcherInspectorServiceClient which provides access to dispatcher
+	// inspection operations.
 	DispatcherClient() pb.DispatcherInspectorServiceClient
 
 	// RateLimiterClient returns the rate limiter inspector service client.
 	//
-	// Returns pb.RateLimiterInspectorServiceClient which provides access to rate
-	// limiter inspection operations.
+	// Returns pb.RateLimiterInspectorServiceClient which provides access to rate limiter
+	// inspection operations.
 	RateLimiterClient() pb.RateLimiterInspectorServiceClient
 
 	// ProviderInfoClient returns the client for accessing provider information.
@@ -81,8 +81,8 @@ type monitoringConnection interface {
 
 	// WatchdogClient returns the client for the watchdog inspector service.
 	//
-	// Returns pb.WatchdogInspectorServiceClient which provides access to
-	// watchdog inspection operations.
+	// Returns pb.WatchdogInspectorServiceClient which provides access to watchdog inspection
+	// operations.
 	WatchdogClient() pb.WatchdogInspectorServiceClient
 
 	// Close releases any resources held by the source.
@@ -93,8 +93,8 @@ type monitoringConnection interface {
 
 // CommandContext carries IO writers and shared state through the command chain.
 type CommandContext struct {
-	// Conn is the gRPC connection to the monitoring server; nil for commands
-	// that do not require a connection.
+	// Conn is the gRPC connection to the monitoring server; nil for commands that do not
+	// require a connection.
 	Conn monitoringConnection
 
 	// Factory creates sandboxes for filesystem access.
@@ -127,28 +127,29 @@ type command struct {
 	// needsConnection indicates whether this command requires a gRPC connection.
 	needsConnection bool
 
-	// longRunning indicates the command runs indefinitely until interrupted.
-	// When true, the context has no timeout deadline.
+	// longRunning indicates the command runs indefinitely until interrupted. When true, the
+	// context has no timeout deadline.
 	longRunning bool
 }
 
-// commands maps command names to their definitions.
-var commands = map[string]*command{
-	"get":         {name: "get", usage: "piko get <resource> [flags]", description: "Display resources", needsConnection: true, run: runGet},
-	"describe":    {name: "describe", usage: "piko describe <resource> [id]", description: "Show detailed information", needsConnection: true, run: runDescribe},
-	"info":        {name: "info", usage: "piko info [category] [flags]", description: "Display system information", needsConnection: true, run: runInfo},
-	"watch":       {name: "watch", usage: "piko watch <resource> [flags]", description: "Stream resource updates", needsConnection: true, longRunning: true, run: runWatch},
-	"diagnostics": {name: "diagnostics", usage: "piko diagnostics [flags]", description: "Test connectivity to monitoring server", needsConnection: false, run: runDiagnosticsCmd},
-	"tui":         {name: "tui", usage: "piko tui [flags]", description: "Launch the interactive terminal UI", needsConnection: false, longRunning: true, run: runTUICmd},
-	"profiling":   {name: "profiling", usage: "piko profiling <subcommand> [flags]", description: "Control runtime profiling", needsConnection: true, run: runProfiling},
-	"watchdog":    {name: "watchdog", usage: "piko watchdog <subcommand> [flags]", description: "Manage watchdog diagnostic profiles", needsConnection: true, run: runWatchdog},
-}
+var (
+	// commands maps command names to their definitions.
+	commands = map[string]*command{
+		"get":         {name: "get", usage: "piko get <resource> [flags]", description: "Display resources", needsConnection: true, run: runGet},
+		"describe":    {name: "describe", usage: "piko describe <resource> [id]", description: "Show detailed information", needsConnection: true, run: runDescribe},
+		"info":        {name: "info", usage: "piko info [category] [flags]", description: "Display system information", needsConnection: true, run: runInfo},
+		"watch":       {name: "watch", usage: "piko watch <resource> [flags]", description: "Stream resource updates", needsConnection: true, longRunning: true, run: runWatch},
+		"diagnostics": {name: "diagnostics", usage: "piko diagnostics [flags]", description: "Test connectivity to monitoring server", needsConnection: false, run: runDiagnosticsCmd},
+		"tui":         {name: "tui", usage: "piko tui [flags]", description: "Launch the interactive terminal UI", needsConnection: false, longRunning: true, run: runTUICmd},
+		"profiling":   {name: "profiling", usage: "piko profiling <subcommand> [flags]", description: "Control runtime profiling", needsConnection: true, run: runProfiling},
+		"watchdog":    {name: "watchdog", usage: "piko watchdog <subcommand> [flags]", description: "Manage watchdog diagnostic profiles", needsConnection: true, run: runWatchdog},
+	}
+)
 
 // RunCommand dispatches a CLI subcommand using os.Stdout and os.Stderr.
 //
 // Takes subcommand (string) which identifies the command to run.
-// Takes arguments ([]string) which contains the remaining arguments after the
-// subcommand.
+// Takes arguments ([]string) which contains the remaining arguments after the subcommand.
 //
 // Returns int which is the exit code: 0 for success, 1 for errors.
 func RunCommand(subcommand string, arguments []string) int {
@@ -158,8 +159,7 @@ func RunCommand(subcommand string, arguments []string) int {
 // RunCommandWithIO dispatches a CLI subcommand with explicit IO writers.
 //
 // Takes subcommand (string) which identifies the command to run.
-// Takes arguments ([]string) which contains the remaining arguments after the
-// subcommand.
+// Takes arguments ([]string) which contains the remaining arguments after the subcommand.
 // Takes stdout (io.Writer) which receives standard output.
 // Takes stderr (io.Writer) which receives error output.
 //
@@ -223,8 +223,8 @@ func RunCommandWithIO(subcommand string, arguments []string, stdout, stderr io.W
 	return 0
 }
 
-// buildResourceList derives a sorted, comma-separated list of resource names
-// from a dispatch map's keys.
+// buildResourceList derives a sorted, comma-separated list of resource names from a
+// dispatch map's keys.
 //
 // Takes m (map[string]V) which is the dispatch map to extract keys from.
 //

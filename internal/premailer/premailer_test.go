@@ -36,7 +36,9 @@ func getStyleAttr(t *testing.T, node *ast_domain.TemplateNode) string {
 	return style
 }
 
-var whitespaceRegex = regexp.MustCompile(`\s+`)
+var (
+	whitespaceRegex = regexp.MustCompile(`\s+`)
+)
 
 func getHeadStyleContent(t *testing.T, tree *ast_domain.TemplateAST) string {
 	t.Helper()

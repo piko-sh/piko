@@ -18,6 +18,10 @@
 
 package cache_invalidation_test
 
-import "flag"
+import (
+	"flag"
+)
 
-var updateGolden = flag.Bool("update", false, "Update golden files")
+var (
+	updateGolden = flag.Bool("update", false, "Update golden files")
+)

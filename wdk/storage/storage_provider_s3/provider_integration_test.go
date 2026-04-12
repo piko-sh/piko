@@ -62,8 +62,10 @@ type testEnv struct {
 	s3Client    *s3.Client
 }
 
-var globalEnv *testEnv
-var sharedProvider storage.ProviderPort
+var (
+	globalEnv *testEnv
+	sharedProvider storage.ProviderPort
+)
 
 func setupTestEnvironment(ctx context.Context) (*testEnv, error) {
 	request := testcontainers.ContainerRequest{

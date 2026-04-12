@@ -30,7 +30,9 @@ import (
 	"piko.sh/piko/internal/render/render_dto"
 )
 
-var _ render_domain.RegistryPort = (*SpyRegistryPort)(nil)
+var (
+	_ render_domain.RegistryPort = (*SpyRegistryPort)(nil)
+)
 
 // SpyRegistryPort captures artefact lookup calls while delegating to an
 // optional real implementation, allowing verification that the correct
@@ -88,8 +90,7 @@ func NewSpyRegistryPortWithDelegate(delegate render_domain.RegistryPort) *SpyReg
 // Pre-computes CachedSymbol to match production behaviour.
 //
 // Takes assetID (string) which identifies the asset to configure.
-// Takes data (*render_domain.ParsedSvgData) which provides the SVG data to
-// store.
+// Takes data (*render_domain.ParsedSvgData) which provides the SVG data to store.
 //
 // Safe for concurrent use; protected by a mutex.
 func (s *SpyRegistryPort) SetSVGData(assetID string, data *render_domain.ParsedSvgData) {
@@ -105,8 +106,7 @@ func (s *SpyRegistryPort) SetSVGData(assetID string, data *render_domain.ParsedS
 // type.
 //
 // Takes componentType (string) which identifies the component to configure.
-// Takes data (*render_dto.ComponentMetadata) which provides the metadata to
-// store.
+// Takes data (*render_dto.ComponentMetadata) which provides the metadata to store.
 //
 // Safe for concurrent use; protected by mutex.
 func (s *SpyRegistryPort) SetComponentData(componentType string, data *render_dto.ComponentMetadata) {
@@ -270,8 +270,8 @@ func (s *SpyRegistryPort) GetArtefactServePath(ctx context.Context, artefactID s
 // Takes sourcePath (string) which specifies the path to the source content.
 // Takes sourceData (io.Reader) which provides the artefact content to store.
 // Takes storageBackendID (string) which identifies the storage backend to use.
-// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the
-// profiles to apply to the artefact.
+// Takes desiredProfiles ([]registry_dto.NamedProfile) which specifies the profiles
+// to apply to the artefact.
 //
 // Returns *registry_dto.ArtefactMeta which contains metadata for the artefact.
 // Returns error when the delegate is nil or the operation fails.

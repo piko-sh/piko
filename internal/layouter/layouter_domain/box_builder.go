@@ -28,8 +28,10 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// cssKeywordCounter is the CSS "counter" keyword string.
-const cssKeywordCounter = "counter"
+const (
+	// cssKeywordCounter is the CSS "counter" keyword string.
+	cssKeywordCounter = "counter"
+)
 
 const (
 	// formTextWidth holds the default width for text input elements.
@@ -57,18 +59,15 @@ const (
 	formTagButton = "button"
 )
 
-// BuildBoxTree constructs a LayoutBox tree from a TemplateAST and its
-// resolved styles. The returned root box represents the initial containing
-// block with the page dimensions.
+// BuildBoxTree constructs a LayoutBox tree from a TemplateAST and its resolved styles.
+// The returned root box represents the initial containing block with the page dimensions.
 //
-// Takes ctx (context.Context) which is the context for the build
-// operation.
-// Takes tree (*ast_domain.TemplateAST) which is the parsed template
-// to convert into a box tree.
-// Takes styleMap (StyleMap) which maps template nodes to their
-// computed styles.
-// Takes imageResolver (ImageResolverPort) which resolves image
-// dimensions for replaced elements.
+// Takes ctx (context.Context) which is the context for the build operation.
+// Takes tree (*ast_domain.TemplateAST) which is the parsed template to convert into a box
+// tree.
+// Takes styleMap (StyleMap) which maps template nodes to their computed styles.
+// Takes imageResolver (ImageResolverPort) which resolves image dimensions for replaced
+// elements.
 //
 // Returns *LayoutBox which is the root of the constructed box tree.
 // Returns error which is nil on success.
@@ -109,8 +108,8 @@ func BuildBoxTree(
 	return rootBox, nil
 }
 
-// boxTreeBuilder holds the state needed to walk a TemplateAST and
-// produce a LayoutBox tree.
+// boxTreeBuilder holds the state needed to walk a TemplateAST and produce a LayoutBox
+// tree.
 type boxTreeBuilder struct {
 	// styleMap maps each template node to its computed style.
 	styleMap StyleMap
@@ -118,29 +117,23 @@ type boxTreeBuilder struct {
 	// pseudoStyleMap maps nodes to their pseudo-element styles.
 	pseudoStyleMap PseudoStyleMap
 
-	// imageResolver resolves intrinsic dimensions for replaced
-	// elements such as images.
+	// imageResolver resolves intrinsic dimensions for replaced elements such as images.
 	imageResolver ImageResolverPort
 
-	// counters tracks CSS counter values. Each counter name
-	// maps to a stack of integer values; counter-reset pushes,
-	// end of element pops.
+	// counters tracks CSS counter values. Each counter name maps to a stack of integer
+	// values; counter-reset pushes, end of element pops.
 	counters map[string][]int
 }
 
-// buildSubtree recursively converts a template node and its
-// children into LayoutBox nodes appended to the parent box.
+// buildSubtree recursively converts a template node and its children into LayoutBox nodes
+// appended to the parent box.
 //
-// Takes node (*ast_domain.TemplateNode) which is the
-// template node to convert.
-// Takes parent (*LayoutBox) which is the box to append
-// the new child boxes to.
-// Takes containingBlock (*LayoutBox) which is the nearest
-// positioned or transformed ancestor for absolutely-positioned
-// descendants.
-// Takes transformAncestor (*LayoutBox) which is the nearest
-// ancestor with a CSS transform, used as the containing block
-// for fixed-position descendants.
+// Takes node (*ast_domain.TemplateNode) which is the template node to convert.
+// Takes parent (*LayoutBox) which is the box to append the new child boxes to.
+// Takes containingBlock (*LayoutBox) which is the nearest positioned or transformed
+// ancestor for absolutely-positioned descendants.
+// Takes transformAncestor (*LayoutBox) which is the nearest ancestor with a CSS
+// transform, used as the containing block for fixed-position descendants.
 func (b *boxTreeBuilder) buildSubtree(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -156,7 +149,7 @@ func (b *boxTreeBuilder) buildSubtree(
 		return
 	}
 
-	switch node.NodeType {
+	switch node.NodeType { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case ast_domain.NodeText:
 		b.buildTextBox(node, parent, containingBlock, transformAncestor)
 		return
@@ -180,19 +173,15 @@ func (b *boxTreeBuilder) buildSubtree(
 	b.processElementNode(ctx, node, style, parent, containingBlock, transformAncestor)
 }
 
-// processElementNode handles the creation and population of a
-// LayoutBox for an element node, including box-type-specific
-// setup, counter operations, pseudo-element insertion, and
-// recursive child processing.
+// processElementNode handles the creation and population of a LayoutBox for an element
+// node, including box-type-specific setup, counter operations, pseudo-element insertion,
+// and recursive child processing.
 //
 // Takes ctx (context.Context) which carries the cancellation signal.
-// Takes node (*ast_domain.TemplateNode) which is the element node
-// to process.
-// Takes style (*ComputedStyle) which is the computed style for
-// the node.
+// Takes node (*ast_domain.TemplateNode) which is the element node to process.
+// Takes style (*ComputedStyle) which is the computed style for the node.
 // Takes parent (*LayoutBox) which is the parent box to append to.
-// Takes containingBlock (*LayoutBox) which is the nearest positioned
-// ancestor.
+// Takes containingBlock (*LayoutBox) which is the nearest positioned ancestor.
 func (b *boxTreeBuilder) processElementNode(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -261,14 +250,12 @@ func (b *boxTreeBuilder) processElementNode(
 	fixAnonymousBoxes(box)
 }
 
-// insertPseudoElement creates a synthetic text run box
-// for a ::before or ::after pseudo-element if one is
-// defined for the given node.
+// insertPseudoElement creates a synthetic text run box for a ::before or ::after
+// pseudo-element if one is defined for the given node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the source node.
 // Takes parent (*LayoutBox) which is the box to insert into.
-// Takes containingBlock (*LayoutBox) which is the nearest positioned
-// ancestor.
+// Takes containingBlock (*LayoutBox) which is the nearest positioned ancestor.
 // Takes pseudoType (PseudoType) which selects before or after.
 func (b *boxTreeBuilder) insertPseudoElement(
 	node *ast_domain.TemplateNode,
@@ -304,14 +291,12 @@ func (b *boxTreeBuilder) insertPseudoElement(
 	}
 }
 
-// processCounterReset handles counter-reset declarations by
-// pushing new values onto the counter stacks.
+// processCounterReset handles counter-reset declarations by pushing new values onto the
+// counter stacks.
 //
-// Takes style (*ComputedStyle) which holds the counter-reset
-// declarations.
+// Takes style (*ComputedStyle) which holds the counter-reset declarations.
 //
-// Returns int which is the number of resets performed so
-// popCounterResets can undo them.
+// Returns int which is the number of resets performed so popCounterResets can undo them.
 func (b *boxTreeBuilder) processCounterReset(style *ComputedStyle) int {
 	if len(style.CounterReset) == 0 {
 		return 0
@@ -325,13 +310,11 @@ func (b *boxTreeBuilder) processCounterReset(style *ComputedStyle) int {
 	return len(style.CounterReset)
 }
 
-// processCounterIncrement handles counter-increment
-// declarations by incrementing the top value on each
-// counter's stack. If a counter has not been reset, an
-// implicit reset to 0 is performed first.
+// processCounterIncrement handles counter-increment declarations by incrementing the top
+// value on each counter's stack. If a counter has not been reset, an implicit reset to 0
+// is performed first.
 //
-// Takes style (*ComputedStyle) which holds the counter-increment
-// declarations.
+// Takes style (*ComputedStyle) which holds the counter-increment declarations.
 func (b *boxTreeBuilder) processCounterIncrement(style *ComputedStyle) {
 	if len(style.CounterIncrement) == 0 {
 		return
@@ -349,12 +332,10 @@ func (b *boxTreeBuilder) processCounterIncrement(style *ComputedStyle) {
 	}
 }
 
-// popCounterResets undoes the counter-reset operations
-// performed by processCounterReset, restoring the counter
-// stacks to their state before this element.
+// popCounterResets undoes the counter-reset operations performed by processCounterReset,
+// restoring the counter stacks to their state before this element.
 //
-// Takes style (*ComputedStyle) which holds the counter-reset
-// declarations to undo.
+// Takes style (*ComputedStyle) which holds the counter-reset declarations to undo.
 func (b *boxTreeBuilder) popCounterResets(style *ComputedStyle, _ int) {
 	for _, entry := range style.CounterReset {
 		stack := b.counters[entry.Name]
@@ -364,9 +345,8 @@ func (b *boxTreeBuilder) popCounterResets(style *ComputedStyle, _ int) {
 	}
 }
 
-// resolveContentValue resolves counter() and counters()
-// function calls in a CSS content value string, replacing
-// them with the current counter values.
+// resolveContentValue resolves counter() and counters() function calls in a CSS content
+// value string, replacing them with the current counter values.
 //
 // Takes content (string) which is the CSS content value to resolve.
 //
@@ -378,9 +358,8 @@ func (b *boxTreeBuilder) resolveContentValue(content string) string {
 	return b.resolveCounterCalls(content)
 }
 
-// resolveCounterCalls replaces counter(name) and
-// counters(name, separator) calls in the content string
-// with resolved values.
+// resolveCounterCalls replaces counter(name) and counters(name, separator) calls in the
+// content string with resolved values.
 //
 // Takes content (string) which is the content string to process.
 //
@@ -410,17 +389,15 @@ func (b *boxTreeBuilder) resolveCounterCalls(content string) string {
 	return result.String()
 }
 
-// resolveNextCounterToken processes the next counter() or counters()
-// function call at the start of the input string.
+// resolveNextCounterToken processes the next counter() or counters() function call at the
+// start of the input string.
 //
-// Takes input (string) which is the remaining content string
-// starting at a counter keyword.
+// Takes input (string) which is the remaining content string starting at a counter
+// keyword.
 //
-// Returns consumed (int) which is the number of bytes
-// consumed from the input.
+// Returns consumed (int) which is the number of bytes consumed from the input.
 // Returns resolved (string) which is the replacement text.
-// Returns done (bool) which is true when parsing should
-// stop.
+// Returns done (bool) which is true when parsing should stop.
 func (b *boxTreeBuilder) resolveNextCounterToken(input string) (consumed int, resolved string, done bool) {
 	if strings.HasPrefix(input, "counters(") {
 		end := strings.Index(input, ")")
@@ -457,9 +434,8 @@ func (b *boxTreeBuilder) resolveCounterFunc(args string) string {
 	return strconv.Itoa(stack[len(stack)-1])
 }
 
-// resolveCountersFunc resolves a counters(name, separator)
-// call, joining all values in the counter stack with the
-// separator.
+// resolveCountersFunc resolves a counters(name, separator) call, joining all values in
+// the counter stack with the separator.
 //
 // Takes args (string) which is the arguments inside the parentheses.
 //
@@ -487,15 +463,13 @@ func (b *boxTreeBuilder) resolveCountersFunc(args string) string {
 	return strings.Join(strs, separator)
 }
 
-// buildTextBox creates an inline text run box from a text
-// node and appends it to the parent box.
+// buildTextBox creates an inline text run box from a text node and appends it to the
+// parent box.
 //
-// Takes node (*ast_domain.TemplateNode) which is the
-// text node to convert.
-// Takes parent (*LayoutBox) which is the box to append
-// the new text run to.
-// Takes containingBlock (*LayoutBox) which is the nearest
-// positioned ancestor for absolutely-positioned descendants.
+// Takes node (*ast_domain.TemplateNode) which is the text node to convert.
+// Takes parent (*LayoutBox) which is the box to append the new text run to.
+// Takes containingBlock (*LayoutBox) which is the nearest positioned ancestor for
+// absolutely-positioned descendants.
 func (*boxTreeBuilder) buildTextBox(
 	node *ast_domain.TemplateNode,
 	parent *LayoutBox,
@@ -522,12 +496,10 @@ func (*boxTreeBuilder) buildTextBox(
 	parent.Children = append(parent.Children, box)
 }
 
-// clearNonInheritedTextRunProperties resets non-inherited
-// CSS properties on a text run's style. Text runs are
-// anonymous boxes created from DOM text nodes; they copy
-// the parent's full ComputedStyle for convenience, but
-// non-inherited visual properties like box-shadow, borders,
-// backgrounds, and dimensional properties must not apply.
+// clearNonInheritedTextRunProperties resets non-inherited CSS properties on a text run's
+// style. Text runs are anonymous boxes created from DOM text nodes; they copy the
+// parent's full ComputedStyle for convenience, but non-inherited visual properties like
+// box-shadow, borders, backgrounds, and dimensional properties must not apply.
 //
 // Takes style (*ComputedStyle) which is the style to reset.
 func clearNonInheritedTextRunProperties(style *ComputedStyle) {
@@ -564,15 +536,13 @@ func clearNonInheritedTextRunProperties(style *ComputedStyle) {
 	style.BackdropFilter = nil
 }
 
-// resolveNodeStyle looks up the computed style for a
-// template node, returning a default style if none is
-// found.
+// resolveNodeStyle looks up the computed style for a template node, returning a default
+// style if none is found.
 //
-// Takes node (*ast_domain.TemplateNode) which is the
-// node to look up.
+// Takes node (*ast_domain.TemplateNode) which is the node to look up.
 //
-// Returns *ComputedStyle which is the computed style for
-// the node, or a default if none is mapped.
+// Returns *ComputedStyle which is the computed style for the node, or a default if none
+// is mapped.
 func (b *boxTreeBuilder) resolveNodeStyle(node *ast_domain.TemplateNode) *ComputedStyle {
 	if style, exists := b.styleMap[node]; exists {
 		return style
@@ -580,14 +550,12 @@ func (b *boxTreeBuilder) resolveNodeStyle(node *ast_domain.TemplateNode) *Comput
 	return new(DefaultComputedStyle())
 }
 
-// resolveIntrinsicDimensions fetches the natural width
-// and height of a replaced element and stores them on
-// the box.
+// resolveIntrinsicDimensions fetches the natural width and height of a replaced element
+// and stores them on the box.
 //
-// Takes box (*LayoutBox) which is the box to store the
-// intrinsic dimensions on.
-// Takes node (*ast_domain.TemplateNode) which is the
-// source node containing the image src attribute.
+// Takes box (*LayoutBox) which is the box to store the intrinsic dimensions on.
+// Takes node (*ast_domain.TemplateNode) which is the source node containing the image src
+// attribute.
 func (b *boxTreeBuilder) resolveIntrinsicDimensions(ctx context.Context, box *LayoutBox, node *ast_domain.TemplateNode) {
 	_, l := logger_domain.From(ctx, nil)
 	if b.imageResolver == nil {
@@ -618,23 +586,17 @@ func (b *boxTreeBuilder) resolveIntrinsicDimensions(ctx context.Context, box *La
 	box.IntrinsicHeight = height
 }
 
-// determineBoxType selects the appropriate box type for
-// a node based on its element kind, display style, and
-// the parent box type.
+// determineBoxType selects the appropriate box type for a node based on its element kind,
+// display style, and the parent box type.
 //
-// Takes node (*ast_domain.TemplateNode) which is the
-// template node to classify.
-// Takes style (*ComputedStyle) which is the computed
-// style containing the display value.
-// Takes parentBoxType (BoxType) which is the box type
-// of the parent container.
-// Takes parentDisplay (Display) which is the parent's
-// display value, used to decide whether a flex/grid
-// item's children inherit flex/grid item status or get
-// their natural type.
+// Takes node (*ast_domain.TemplateNode) which is the template node to classify.
+// Takes style (*ComputedStyle) which is the computed style containing the display value.
+// Takes parentBoxType (BoxType) which is the box type of the parent container.
+// Takes parentDisplay (Display) which is the parent's display value, used to decide
+// whether a flex/grid item's children inherit flex/grid item status or get their natural
+// type.
 //
-// Returns BoxType which is the resolved box type for
-// the node.
+// Returns BoxType which is the resolved box type for the node.
 func determineBoxType(node *ast_domain.TemplateNode, style *ComputedStyle, parentBoxType BoxType, parentDisplay DisplayType) BoxType {
 	if isReplacedElement(node) {
 		return BoxReplaced
@@ -645,7 +607,7 @@ func determineBoxType(node *ast_domain.TemplateNode, style *ComputedStyle, paren
 	}
 
 	if parentBoxType == BoxFlexItem {
-		switch parentDisplay {
+		switch parentDisplay { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case DisplayFlex, DisplayInlineFlex:
 			return BoxFlexItem
 		}
@@ -656,7 +618,7 @@ func determineBoxType(node *ast_domain.TemplateNode, style *ComputedStyle, paren
 	}
 
 	if parentBoxType == BoxGridItem {
-		switch parentDisplay {
+		switch parentDisplay { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		case DisplayGrid, DisplayInlineGrid:
 			return BoxGridItem
 		}
@@ -686,17 +648,15 @@ func determineBoxType(node *ast_domain.TemplateNode, style *ComputedStyle, paren
 	}
 }
 
-// resolveMarkerText returns the marker string for a list
-// item based on the list style type and the item's
-// ordinal position.
+// resolveMarkerText returns the marker string for a list item based on the list style
+// type and the item's ordinal position.
 //
-// Takes style (*ComputedStyle) which is the list item's
-// computed style containing the list style type.
-// Takes parent (*LayoutBox) which is the parent box
-// used to count preceding list item siblings.
+// Takes style (*ComputedStyle) which is the list item's computed style containing the
+// list style type.
+// Takes parent (*LayoutBox) which is the parent box used to count preceding list item
+// siblings.
 //
-// Returns string which is the marker text, or empty if
-// the list style type is none.
+// Returns string which is the marker text, or empty if the list style type is none.
 func resolveMarkerText(style *ComputedStyle, parent *LayoutBox) string {
 	switch style.ListStyleType {
 	case ListStyleTypeDisc:
@@ -720,14 +680,13 @@ func resolveMarkerText(style *ComputedStyle, parent *LayoutBox) string {
 
 // generateListMarker creates a marker box for a list item.
 //
-// For list-style-position: inside the marker is an inline text run
-// prepended to the children. For outside the marker is a
-// BoxListMarker positioned separately during layout.
+// For list-style-position: inside the marker is an inline text run prepended to the
+// children. For outside the marker is a BoxListMarker positioned separately during
+// layout.
 //
-// Takes listItem (*LayoutBox) which is the list item
-// box to add the marker to.
-// Takes markerText (string) which is the text content
-// of the marker, such as a bullet or number.
+// Takes listItem (*LayoutBox) which is the list item box to add the marker to.
+// Takes markerText (string) which is the text content of the marker, such as a bullet or
+// number.
 func generateListMarker(listItem *LayoutBox, markerText string) {
 	markerStyle := listItem.Style
 	markerStyle.Display = DisplayInline
@@ -753,20 +712,15 @@ func generateListMarker(listItem *LayoutBox, markerText string) {
 	listItem.Children = append([]*LayoutBox{marker}, listItem.Children...)
 }
 
-// parseIntAttributeOrDefault reads a named attribute from
-// the node, parses it as an integer, and returns the value
-// clamped to a minimum of 1. Returns defaultValue if the
+// parseIntAttributeOrDefault reads a named attribute from the node, parses it as an
+// integer, and returns the value clamped to a minimum of 1. Returns defaultValue if the
 // attribute is missing or unparseable.
 //
-// Takes node (*ast_domain.TemplateNode) which is the node
-// to read the attribute from.
-// Takes name (string) which is the attribute name to look
-// for.
-// Takes defaultValue (int) which is returned when the
-// attribute is absent or invalid.
+// Takes node (*ast_domain.TemplateNode) which is the node to read the attribute from.
+// Takes name (string) which is the attribute name to look for.
+// Takes defaultValue (int) which is returned when the attribute is absent or invalid.
 //
-// Returns int which is the parsed attribute value, at
-// least 1.
+// Returns int which is the parsed attribute value, at least 1.
 func parseIntAttributeOrDefault(node *ast_domain.TemplateNode, name string, defaultValue int) int {
 	for i := range node.Attributes {
 		if node.Attributes[i].Name == name {
@@ -780,8 +734,8 @@ func parseIntAttributeOrDefault(node *ast_domain.TemplateNode, name string, defa
 	return defaultValue
 }
 
-// inheritLanguage returns the lang attribute from the node if
-// present, otherwise inherits from the parent's Language.
+// inheritLanguage returns the lang attribute from the node if present, otherwise inherits
+// from the parent's Language.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 // Takes parent (*LayoutBox) which is the parent box for inheritance.
@@ -794,8 +748,8 @@ func inheritLanguage(node *ast_domain.TemplateNode, parent *LayoutBox) string {
 	return parent.Style.Language
 }
 
-// nodeAttribute returns the value of the named attribute
-// on the node, or empty string if not found.
+// nodeAttribute returns the value of the named attribute on the node, or empty string if
+// not found.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to search.
 // Takes name (string) which is the attribute name to find.
@@ -810,14 +764,12 @@ func nodeAttribute(node *ast_domain.TemplateNode, name string) string {
 	return ""
 }
 
-// isReplacedElement reports whether the node represents
-// an HTML replaced element such as img or video.
+// isReplacedElement reports whether the node represents an HTML replaced element such as
+// img or video.
 //
-// Takes node (*ast_domain.TemplateNode) which is the
-// node to check.
+// Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true if the node is a replaced
-// element.
+// Returns bool which is true if the node is a replaced element.
 func isReplacedElement(node *ast_domain.TemplateNode) bool {
 	switch node.TagName {
 	case "img", "svg", "video", "canvas", "iframe",
@@ -829,13 +781,12 @@ func isReplacedElement(node *ast_domain.TemplateNode) bool {
 	}
 }
 
-// isFormElement reports whether the node is an HTML form
-// element that requires special intrinsic dimension handling.
+// isFormElement reports whether the node is an HTML form element that requires special
+// intrinsic dimension handling.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
-// Returns bool which is true for input, textarea, select, and
-// button elements.
+// Returns bool which is true for input, textarea, select, and button elements.
 func isFormElement(node *ast_domain.TemplateNode) bool {
 	switch node.TagName {
 	case "input", "textarea", "select", formTagButton:
@@ -845,14 +796,12 @@ func isFormElement(node *ast_domain.TemplateNode) bool {
 	}
 }
 
-// resolveFormIntrinsicDimensions sets default intrinsic
-// dimensions for form elements, matching typical browser
-// defaults. These are used when the author does not
-// specify explicit width/height via CSS.
+// resolveFormIntrinsicDimensions sets default intrinsic dimensions for form elements,
+// matching typical browser defaults. These are used when the author does not specify
+// explicit width/height via CSS.
 //
 // Takes box (*LayoutBox) which is the box to set dimensions on.
-// Takes node (*ast_domain.TemplateNode) which is the form element
-// node.
+// Takes node (*ast_domain.TemplateNode) which is the form element node.
 func resolveFormIntrinsicDimensions(box *LayoutBox, node *ast_domain.TemplateNode) {
 	inputType := nodeAttribute(node, "type")
 	if inputType == "" {
@@ -887,14 +836,12 @@ func resolveFormIntrinsicDimensions(box *LayoutBox, node *ast_domain.TemplateNod
 	}
 }
 
-// extractTextContent returns the plain text content of a
-// node, concatenating rich text literals when present.
+// extractTextContent returns the plain text content of a node, concatenating rich text
+// literals when present.
 //
-// Takes node (*ast_domain.TemplateNode) which is the
-// node to extract text from.
+// Takes node (*ast_domain.TemplateNode) which is the node to extract text from.
 //
-// Returns string which is the plain text content, or
-// empty if the node has no text.
+// Returns string which is the plain text content, or empty if the node has no text.
 func extractTextContent(node *ast_domain.TemplateNode) string {
 	if node.TextContentWriter != nil && node.TextContentWriter.Len() > 0 {
 		return node.TextContentWriter.StringRaw()
@@ -917,12 +864,11 @@ func extractTextContent(node *ast_domain.TemplateNode) string {
 	return ""
 }
 
-// fixAnonymousBoxes wraps inline children in anonymous
-// block boxes when a box contains a mix of inline and
-// block level children.
+// fixAnonymousBoxes wraps inline children in anonymous block boxes when a box contains a
+// mix of inline and block level children.
 //
-// Takes box (*LayoutBox) which is the box whose
-// children may need anonymous block wrapping.
+// Takes box (*LayoutBox) which is the box whose children may need anonymous block
+// wrapping.
 func fixAnonymousBoxes(box *LayoutBox) {
 	if len(box.Children) == 0 {
 		return
@@ -956,14 +902,12 @@ func fixAnonymousBoxes(box *LayoutBox) {
 	box.Children = newChildren
 }
 
-// hasMixedChildren reports whether the box contains both
-// inline-level and block-level children (excluding list
-// markers), which requires anonymous block wrapping.
+// hasMixedChildren reports whether the box contains both inline-level and block-level
+// children (excluding list markers), which requires anonymous block wrapping.
 //
 // Takes box (*LayoutBox) which is the box to check.
 //
-// Returns bool which is true when both inline and block
-// children are present.
+// Returns bool which is true when both inline and block children are present.
 func hasMixedChildren(box *LayoutBox) bool {
 	hasInline := false
 	hasBlock := false
@@ -983,16 +927,13 @@ func hasMixedChildren(box *LayoutBox) bool {
 	return hasInline && hasBlock
 }
 
-// wrapInAnonymousBlock creates an anonymous block box
-// that parents the given inline children.
+// wrapInAnonymousBlock creates an anonymous block box that parents the given inline
+// children.
 //
-// Takes children ([]*LayoutBox) which is the inline
-// children to wrap.
-// Takes parent (*LayoutBox) which is the original
-// parent box whose style is inherited.
+// Takes children ([]*LayoutBox) which is the inline children to wrap.
+// Takes parent (*LayoutBox) which is the original parent box whose style is inherited.
 //
-// Returns *LayoutBox which is the new anonymous block
-// box containing the children.
+// Returns *LayoutBox which is the new anonymous block box containing the children.
 func wrapInAnonymousBlock(children []*LayoutBox, parent *LayoutBox) *LayoutBox {
 	anonymousStyle := parent.Style.InheritedComputedStyle()
 	anonymousStyle.Display = DisplayBlock

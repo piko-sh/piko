@@ -44,22 +44,24 @@ const (
 	seedPlaceholderDurationMs = 4
 )
 
-// SeedExecutor implements SeedExecutorPort using database/sql. It handles
-// seed history tracking and SQL execution for all supported dialects.
+// SeedExecutor implements SeedExecutorPort using database/sql. It handles seed history
+// tracking and SQL execution for all supported dialects.
 type SeedExecutor struct {
 	// database holds the underlying database connection pool.
 	database *sql.DB
 
-	// pinnedSeedLockConnection holds the dedicated connection that owns the
-	// seed advisory lock when one has been acquired via AcquireSeedLock.
-	// Nil when no lock is currently held.
+	// pinnedSeedLockConnection holds the dedicated connection that owns the seed advisory
+	// lock when one has been acquired via AcquireSeedLock. Nil when no lock is currently
+	// held.
 	pinnedSeedLockConnection *sql.Conn
 
 	// dialectConfig holds the dialect-specific SQL and behaviour.
 	dialectConfig DialectConfig
 }
 
-var _ querier_domain.SeedExecutorPort = (*SeedExecutor)(nil)
+var (
+	_ querier_domain.SeedExecutorPort = (*SeedExecutor)(nil)
+)
 
 // NewSeedExecutor creates a new SQL-based seed executor.
 //
@@ -88,8 +90,7 @@ func (e *SeedExecutor) EnsureSeedTable(ctx context.Context) error {
 	return nil
 }
 
-// AppliedSeeds returns all seeds that have been applied, ordered by version
-// ascending.
+// AppliedSeeds returns all seeds that have been applied, ordered by version ascending.
 //
 // Returns []querier_dto.AppliedSeed which lists all applied seeds.
 // Returns error when the history cannot be read.
@@ -113,15 +114,14 @@ func (e *SeedExecutor) AppliedSeeds(ctx context.Context) ([]querier_dto.AppliedS
 	return seeds, rows.Err()
 }
 
-// ExecuteSeed runs a single seed's SQL content in a transaction and records it
-// in the history table.
+// ExecuteSeed runs a single seed's SQL content in a transaction and records it in the
+// history table.
 //
-// The INSERT into piko_seeds is rendered through the dialect's
-// InsertSeedSQLFunc, which yields an idempotent statement (e.g. "ON CONFLICT
-// (version) DO NOTHING" on PostgreSQL/SQLite, "INSERT IGNORE" on MySQL). This
-// keeps concurrent seed runs across multiple replicas safe even if both
-// resolve the same seed as pending: the second writer's record insert becomes
-// a no-op rather than a primary-key violation.
+// The INSERT into piko_seeds is rendered through the dialect's InsertSeedSQLFunc, which
+// yields an idempotent statement (e.g. "ON CONFLICT (version) DO NOTHING" on
+// PostgreSQL/SQLite, "INSERT IGNORE" on MySQL). This keeps concurrent seed runs across
+// multiple replicas safe even if both resolve the same seed as pending: the second
+// writer's record insert becomes a no-op rather than a primary-key violation.
 //
 // Takes seed (querier_dto.SeedRecord) which holds the seed SQL and metadata.
 //
@@ -155,15 +155,14 @@ func (e *SeedExecutor) ExecuteSeed(ctx context.Context, seed querier_dto.SeedRec
 	return tx.Commit()
 }
 
-// AcquireSeedLock acquires the dialect-specific advisory lock for seed
-// runs. The lock uses a key distinct from the migration lock so seed and
-// migration runs serialise independently rather than starving each other.
+// AcquireSeedLock acquires the dialect-specific advisory lock for seed runs. The lock
+// uses a key distinct from the migration lock so seed and migration runs serialise
+// independently rather than starving each other.
 //
-// When the dialect has no SeedLockStrategy configured, this falls back to a
-// no-op lock. That is correct for single-replica deployments (and SQLite,
-// where file-level locking suffices) but unsafe for multi-replica setups
-// using a dialect that has not been updated; callers in such configurations
-// should ensure SeedLockStrategy is set.
+// When the dialect has no SeedLockStrategy configured, this falls back to a no-op lock.
+// That is correct for single-replica deployments (and SQLite, where file-level locking
+// suffices) but unsafe for multi-replica setups using a dialect that has not been
+// updated; callers in such configurations should ensure SeedLockStrategy is set.
 //
 // Takes ctx (context.Context) for cancellation and timeout control.
 //
@@ -181,8 +180,8 @@ func (e *SeedExecutor) AcquireSeedLock(ctx context.Context) error {
 	return nil
 }
 
-// ReleaseSeedLock releases the dialect-specific advisory lock previously
-// acquired by AcquireSeedLock. Safe to call when no lock is held.
+// ReleaseSeedLock releases the dialect-specific advisory lock previously acquired by
+// AcquireSeedLock. Safe to call when no lock is held.
 //
 // Takes ctx (context.Context) for cancellation and timeout control.
 //
@@ -211,14 +210,13 @@ func (e *SeedExecutor) ClearSeedHistory(ctx context.Context) error {
 	return nil
 }
 
-// renderSeedInsertSQL builds the dialect-specific idempotent INSERT statement
-// for the piko_seeds history table. Falls back to a plain INSERT only when
-// the dialect has not configured InsertSeedSQLFunc, which is reserved for
-// legacy callers; modern dialect builders always populate the field.
+// renderSeedInsertSQL builds the dialect-specific idempotent INSERT statement for the
+// piko_seeds history table. Falls back to a plain INSERT only when the dialect has not
+// configured InsertSeedSQLFunc, which is reserved for legacy callers; modern dialect
+// builders always populate the field.
 //
 // Returns string which is the rendered INSERT statement.
-// Returns error when the dialect lacks both the new function and the
-// placeholder helper.
+// Returns error when the dialect lacks both the new function and the placeholder helper.
 func (e *SeedExecutor) renderSeedInsertSQL() (string, error) {
 	if e.dialectConfig.PlaceholderFunc == nil {
 		return "", errors.New("seed executor missing PlaceholderFunc")
@@ -238,9 +236,8 @@ func (e *SeedExecutor) renderSeedInsertSQL() (string, error) {
 	), nil
 }
 
-// executeSeedSQL executes the seed SQL content against the transaction. When
-// the dialect requires statement splitting (MySQL), individual statements are
-// executed separately.
+// executeSeedSQL executes the seed SQL content against the transaction. When the dialect
+// requires statement splitting (MySQL), individual statements are executed separately.
 //
 // Takes tx (*sql.Tx) which is the active database transaction.
 // Takes content ([]byte) which holds the raw seed SQL.

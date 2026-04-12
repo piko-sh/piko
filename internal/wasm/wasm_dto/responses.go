@@ -201,8 +201,7 @@ type HoverResponse struct {
 	Success bool `json:"success"`
 }
 
-// Range represents a span of text in source code, defined by start and end
-// positions.
+// Range represents a span of text in source code, defined by start and end positions.
 type Range struct {
 	// Start is the beginning position of the range.
 	Start Position `json:"start"`
@@ -237,8 +236,7 @@ type ParseTemplateResponse struct {
 
 // TemplateAST holds the parsed form of a PK template.
 type TemplateAST struct {
-	// ScriptBlock contains parsed information about the Go script block from
-	// the template.
+	// ScriptBlock contains parsed information about the Go script block from the template.
 	ScriptBlock *ScriptBlockInfo `json:"scriptBlock,omitempty"`
 
 	// Nodes holds the top-level template nodes.

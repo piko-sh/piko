@@ -49,8 +49,7 @@ const (
 	// logFieldThreshold is the log field key for the memory threshold value.
 	logFieldThreshold = "threshold"
 
-	// serviceName is the name used to identify the storage service in health
-	// probes.
+	// serviceName is the name used to identify the storage service in health probes.
 	serviceName = "StorageService"
 
 	// presignUploadPath is the URL path for presigned upload requests.
@@ -62,17 +61,15 @@ const (
 	// queryParamToken is the query parameter key for presigned URL tokens.
 	queryParamToken = "token"
 
-	// queryParamProvider is the query parameter key for provider names in
-	// presigned URLs.
+	// queryParamProvider is the query parameter key for provider names in presigned URLs.
 	queryParamProvider = "provider"
 
-	// urlQuerySeparator is the character that separates a URL path from its
-	// query string.
+	// urlQuerySeparator is the character that separates a URL path from its query string.
 	urlQuerySeparator = "?"
 )
 
-// service provides the main storage service implementation.
-// It implements storage.Service, io.Closer, and healthprobe.Probe.
+// service provides the main storage service implementation. It implements
+// storage.Service, io.Closer, and healthprobe.Probe.
 type service struct {
 	// dispatcher queues notifications for background sending; nil means send now.
 	dispatcher StorageDispatcherPort
@@ -86,15 +83,14 @@ type service struct {
 	// registry holds the provider registry for managing storage backends.
 	registry *provider_domain.StandardRegistry[StorageProviderPort]
 
-	// transformerRegistry holds stream transformers that change data during
-	// transfer.
+	// transformerRegistry holds stream transformers that change data during transfer.
 	transformerRegistry *TransformerRegistry
 
 	// repositoryRegistry stores repository settings and controls access.
 	repositoryRegistry *RepositoryRegistry
 
-	// cancelFunc cancels the service's internal context, stopping background
-	// goroutines such as the presign RID cache cleanup loop.
+	// cancelFunc cancels the service's internal context, stopping background goroutines such
+	// as the presign RID cache cleanup loop.
 	cancelFunc context.CancelCauseFunc
 
 	// getGroup stops repeated fetch requests for the same cache key.
@@ -106,29 +102,29 @@ type service struct {
 	// config holds the service settings used for validation.
 	config ServiceConfig
 
-	// totalBytesStored tracks the approximate total bytes stored for soft
-	// quota enforcement, updated atomically on Put/Remove and reset on
-	// restart.
-	totalBytesStored int64
+	// totalBytesStored tracks the approximate total bytes stored for soft quota enforcement,
+	// updated atomically on Put/Remove and reset on restart.
+	totalBytesStored atomic.Int64
 
 	// mu guards access to the providers map.
 	mu sync.RWMutex
 }
 
-var _ Service = (*service)(nil)
+var (
+	_ Service = (*service)(nil)
+)
 
-// PutObject handles the full upload lifecycle, including validation,
-// content-addressing, multipart decision logic, and delegation to the
-// appropriate provider.
+// PutObject handles the full upload lifecycle, including validation, content-addressing,
+// multipart decision logic, and delegation to the appropriate provider.
 //
 // Takes providerName (string) which identifies the storage provider to use.
 // Takes params (*storage_dto.PutParams) which specifies the upload settings.
 //
-// Returns error when validation fails, the provider is not found, or the
-// upload operation fails.
+// Returns error when validation fails, the provider is not found, or the upload operation
+// fails.
 func (s *service) PutObject(ctx context.Context, providerName string, params *storage_dto.PutParams) error {
 	startTime := s.clock.Now()
-	atomic.AddInt64(&s.stats.TotalOperations, 1)
+	s.stats.TotalOperations.Add(1)
 
 	if err := validatePutParams(params, &s.config); err != nil {
 		s.recordOperationFailure(ctx, OperationPut)
@@ -175,22 +171,21 @@ func (s *service) PutObject(ctx context.Context, providerName string, params *st
 	}
 
 	if params.Size > 0 {
-		atomic.AddInt64(&s.totalBytesStored, params.Size)
+		s.totalBytesStored.Add(params.Size)
 	}
 
 	s.recordOperationSuccess(ctx, OperationPut, startTime)
 	return nil
 }
 
-// GetObject orchestrates object retrieval, intelligently deciding whether to
-// use singleflight caching for small files or direct streaming for large ones.
+// GetObject orchestrates object retrieval, intelligently deciding whether to use
+// singleflight caching for small files or direct streaming for large ones.
 //
 // Takes providerName (string) which identifies the storage provider to use.
 // Takes params (storage_dto.GetParams) which specifies the object to retrieve.
 //
 // Returns io.ReadCloser which provides access to the object data.
-// Returns error when params are invalid, provider is not found, or retrieval
-// fails.
+// Returns error when params are invalid, provider is not found, or retrieval fails.
 func (s *service) GetObject(ctx context.Context, providerName string, params storage_dto.GetParams) (io.ReadCloser, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	startTime := s.clock.Now()
@@ -252,8 +247,8 @@ func (s *service) GetObject(ctx context.Context, providerName string, params sto
 // Takes params (storage_dto.GetParams) which specifies the object to query.
 //
 // Returns *ObjectInfo which contains the object metadata.
-// Returns error when params are invalid, provider is not found, or the stat
-// operation fails.
+// Returns error when params are invalid, provider is not found, or the stat operation
+// fails.
 func (s *service) StatObject(ctx context.Context, providerName string, params storage_dto.GetParams) (*ObjectInfo, error) {
 	startTime := s.clock.Now()
 
@@ -277,14 +272,13 @@ func (s *service) StatObject(ctx context.Context, providerName string, params st
 	return info, nil
 }
 
-// CopyObject copies an object from source to destination, optionally across
-// repositories.
+// CopyObject copies an object from source to destination, optionally across repositories.
 //
 // Takes providerName (string) which identifies the storage provider to use.
 // Takes params (storage_dto.CopyParams) which specifies source and destination.
 //
-// Returns error when params are invalid, the provider is not found, or the
-// copy operation fails.
+// Returns error when params are invalid, the provider is not found, or the copy operation
+// fails.
 func (s *service) CopyObject(ctx context.Context, providerName string, params storage_dto.CopyParams) error {
 	startTime := s.clock.Now()
 
@@ -325,8 +319,7 @@ func (s *service) CopyObject(ctx context.Context, providerName string, params st
 // Takes providerName (string) which identifies the storage provider to use.
 // Takes params (storage_dto.GetParams) which specifies the object to remove.
 //
-// Returns error when params are invalid, provider is not found, or removal
-// fails.
+// Returns error when params are invalid, provider is not found, or removal fails.
 func (s *service) RemoveObject(ctx context.Context, providerName string, params storage_dto.GetParams) error {
 	startTime := s.clock.Now()
 
@@ -353,7 +346,7 @@ func (s *service) RemoveObject(ctx context.Context, providerName string, params 
 	}
 
 	if removedSize > 0 {
-		atomic.AddInt64(&s.totalBytesStored, -removedSize)
+		s.totalBytesStored.Add(-removedSize)
 	}
 
 	duration := s.clock.Now().Sub(startTime).Milliseconds()
@@ -378,8 +371,7 @@ func (s *service) GetObjectHash(ctx context.Context, providerName string, params
 // GeneratePresignedUploadURL creates a presigned URL for uploading an object.
 //
 // Takes providerName (string) which identifies the storage provider to use.
-// Takes params (storage_dto.PresignParams) which specifies the upload
-// parameters.
+// Takes params (storage_dto.PresignParams) which specifies the upload parameters.
 //
 // Returns string which is the presigned URL for uploading.
 // Returns error when the URL cannot be generated.
@@ -392,16 +384,14 @@ func (s *service) GeneratePresignedUploadURL(ctx context.Context, providerName s
 	)
 }
 
-// GeneratePresignedDownloadURL creates a time-limited URL for direct client
-// downloads.
+// GeneratePresignedDownloadURL creates a time-limited URL for direct client downloads.
 //
-// If the provider supports native presigned URLs (e.g., S3, GCS), it delegates
-// to the provider. Otherwise, it generates a service-level presigned URL using
-// HMAC-signed tokens that can be validated by the HTTP download handler.
+// If the provider supports native presigned URLs (e.g., S3, GCS), it delegates to the
+// provider. Otherwise, it generates a service-level presigned URL using HMAC-signed
+// tokens that can be validated by the HTTP download handler.
 //
 // Takes providerName (string) which identifies the storage provider to use.
-// Takes params (storage_dto.PresignDownloadParams) which specifies the download
-// settings.
+// Takes params (storage_dto.PresignDownloadParams) which specifies the download settings.
 //
 // Returns string which is the presigned URL for downloading.
 // Returns error when the provider is not found or URL generation fails.
@@ -414,32 +404,31 @@ func (s *service) GeneratePresignedDownloadURL(ctx context.Context, providerName
 	)
 }
 
-// Name returns the service identifier for health probe discovery.
-// Implements the healthprobe_domain.Probe interface.
+// Name returns the service identifier for health probe discovery. Implements the
+// healthprobe_domain.Probe interface.
 //
 // Returns string which is the constant "StorageService".
 func (*service) Name() string {
 	return serviceName
 }
 
-// GetPresignConfig returns the presigned URL configuration for this service,
-// giving bootstrap code access to the presign settings for creating the HTTP
-// upload handler.
+// GetPresignConfig returns the presigned URL configuration for this service, giving
+// bootstrap code access to the presign settings for creating the HTTP upload handler.
 //
-// Returns PresignConfig which contains the presign settings including secret,
-// expiry, and size limits.
+// Returns PresignConfig which contains the presign settings including secret, expiry, and
+// size limits.
 func (s *service) GetPresignConfig() PresignConfig {
 	return s.config.PresignConfig
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies that storage providers are available and operational.
+// Check implements the healthprobe_domain.Probe interface. It verifies that storage
+// providers are available and operational.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
-// Returns healthprobe_dto.Status which contains the health state, message,
-// timing information, and dependency statuses.
+// Returns healthprobe_dto.Status which contains the health state, message, timing
+// information, and dependency statuses.
 func (s *service) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := s.clock.Now()
 
@@ -468,12 +457,11 @@ func (s *service) Check(ctx context.Context, checkType healthprobe_dto.CheckType
 	}
 }
 
-// Close shuts down the storage service and releases all provider resources.
-// It goes through all registered providers and calls their Close methods
-// via the registry.
+// Close shuts down the storage service and releases all provider resources. It goes
+// through all registered providers and calls their Close methods via the registry.
 //
-// Returns error when one or more providers fail to close; errors from
-// individual providers are collected and returned as a combined error.
+// Returns error when one or more providers fail to close; errors from individual
+// providers are collected and returned as a combined error.
 func (s *service) Close(ctx context.Context) error {
 	if s.cancelFunc != nil {
 		s.cancelFunc(errors.New("storage service shutdown"))
@@ -484,12 +472,11 @@ func (s *service) Close(ctx context.Context) error {
 	return nil
 }
 
-// RegisterPublicRepository registers a repository as publicly accessible.
-// Public repositories serve files via permanent URLs without authentication.
+// RegisterPublicRepository registers a repository as publicly accessible. Public
+// repositories serve files via permanent URLs without authentication.
 //
 // Takes name (string) which identifies the repository.
-// Takes cacheControl (string) which specifies the Cache-Control header for
-// files.
+// Takes cacheControl (string) which specifies the Cache-Control header for files.
 func (s *service) RegisterPublicRepository(name string, cacheControl string) {
 	s.repositoryRegistry.Register(&RepositoryConfig{
 		Name:         name,
@@ -498,12 +485,11 @@ func (s *service) RegisterPublicRepository(name string, cacheControl string) {
 	})
 }
 
-// RegisterPrivateRepository registers a repository as requiring authentication.
-// Private repositories serve files via presigned URLs with HMAC tokens.
+// RegisterPrivateRepository registers a repository as requiring authentication. Private
+// repositories serve files via presigned URLs with HMAC tokens.
 //
 // Takes name (string) which identifies the repository.
-// Takes cacheControl (string) which specifies the Cache-Control header for
-// files.
+// Takes cacheControl (string) which specifies the Cache-Control header for files.
 func (s *service) RegisterPrivateRepository(name string, cacheControl string) {
 	s.repositoryRegistry.Register(&RepositoryConfig{
 		Name:         name,
@@ -541,8 +527,8 @@ func (s *service) GetPublicBaseURL() string {
 
 // BuildPublicURL constructs a public storage URL for the given path.
 //
-// If PublicFallbackBaseURL is set, returns an absolute URL. Otherwise,
-// returns a relative URL.
+// If PublicFallbackBaseURL is set, returns an absolute URL. Otherwise, returns a relative
+// URL.
 //
 // Takes path (string) which is the URL path for the storage resource.
 //
@@ -554,20 +540,19 @@ func (s *service) BuildPublicURL(path string) string {
 	return path
 }
 
-// generatePresignedURLGeneric creates a time-limited URL
-// for direct client uploads.
+// generatePresignedURLGeneric creates a time-limited URL for direct client uploads.
 //
-// If the provider supports native presigned URLs (e.g., S3, GCS), it delegates
-// to the provider. Otherwise, it generates a service-level presigned URL using
-// HMAC-signed tokens that can be validated by the HTTP upload handler.
+// If the provider supports native presigned URLs (e.g., S3, GCS), it delegates to the
+// provider. Otherwise, it generates a service-level presigned URL using HMAC-signed
+// tokens that can be validated by the HTTP upload handler.
 //
 // Takes providerName (string) which identifies the storage provider to use.
 // Takes key (string) which is the object key for the presigned URL.
 // Takes operation (string) which names the operation for metrics.
-// Takes presignNative (func(StorageProviderPort) (string, error)) which
-// generates a native presigned URL via the provider.
-// Takes presignFallback (func() (string, error)) which generates a
-// service-level presigned URL when the provider lacks native support.
+// Takes presignNative (func(StorageProviderPort) (string, error)) which generates a
+// native presigned URL via the provider.
+// Takes presignFallback (func() (string, error)) which generates a service-level
+// presigned URL when the provider lacks native support.
 //
 // Returns string which is the presigned URL for uploading.
 // Returns error when the provider is not found or URL generation fails.
@@ -608,17 +593,15 @@ func (s *service) generatePresignedURLGeneric(
 	return result, nil
 }
 
-// generateFallbackPresignedDownloadURL creates a service-level presigned URL
-// for providers that do not support native presigned URLs (e.g., disk
-// provider).
+// generateFallbackPresignedDownloadURL creates a service-level presigned URL for
+// providers that do not support native presigned URLs (e.g., disk provider).
 //
 // The generated URL points to the framework's HTTP download handler at
-// /_piko/storage/download and includes an HMAC-signed token containing the
-// download parameters.
+// /_piko/storage/download and includes an HMAC-signed token containing the download
+// parameters.
 //
 // Takes providerName (string) which identifies the target storage provider.
-// Takes params (storage_dto.PresignDownloadParams) which specifies the download
-// settings.
+// Takes params (storage_dto.PresignDownloadParams) which specifies the download settings.
 //
 // Returns string which is the presigned URL with a signed token.
 // Returns error when token generation fails.
@@ -659,11 +642,9 @@ func (s *service) generateFallbackPresignedDownloadURL(ctx context.Context, prov
 	return downloadURL, nil
 }
 
-// buildPresignedDownloadURL builds the full URL for the presigned download
-// endpoint.
+// buildPresignedDownloadURL builds the full URL for the presigned download endpoint.
 //
-// Takes token (string) which is the signed token to include as a query
-// parameter.
+// Takes token (string) which is the signed token to include as a query parameter.
 // Takes providerName (string) which identifies the storage provider.
 //
 // Returns string which is the complete presigned download URL.
@@ -684,8 +665,8 @@ func (s *service) buildPresignedDownloadURL(token string, providerName string) s
 	return downloadPath + urlQuerySeparator + params.Encode()
 }
 
-// generateFallbackPresignedURL creates a service-level presigned URL for
-// providers that do not support native presigned URLs (e.g., disk provider).
+// generateFallbackPresignedURL creates a service-level presigned URL for providers that
+// do not support native presigned URLs (e.g., disk provider).
 //
 // The generated URL points to the framework's HTTP upload handler at
 // /_piko/storage/upload and includes an HMAC-signed token containing the upload
@@ -736,11 +717,9 @@ func (s *service) generateFallbackPresignedURL(ctx context.Context, providerName
 	return uploadURL, nil
 }
 
-// buildPresignedUploadURL builds the full URL for the presigned upload
-// endpoint.
+// buildPresignedUploadURL builds the full URL for the presigned upload endpoint.
 //
-// Takes token (string) which is the signed token to include as a query
-// parameter.
+// Takes token (string) which is the signed token to include as a query parameter.
 // Takes providerName (string) which identifies the storage provider.
 //
 // Returns string which is the complete presigned upload URL.
@@ -761,9 +740,9 @@ func (s *service) buildPresignedUploadURL(token string, providerName string) str
 	return uploadPath + urlQuerySeparator + params.Encode()
 }
 
-// checkStorageQuota returns an error if adding size bytes would exceed the
-// configured MaxStorageBytes limit. When MaxStorageBytes is 0 (the default) or
-// size is unknown (0), the check is skipped.
+// checkStorageQuota returns an error if adding size bytes would exceed the configured
+// MaxStorageBytes limit. When MaxStorageBytes is 0 (the default) or size is unknown (0),
+// the check is skipped.
 //
 // Takes size (int64) which is the number of bytes about to be stored.
 //
@@ -772,7 +751,7 @@ func (s *service) checkStorageQuota(size int64) error {
 	if s.config.MaxStorageBytes <= 0 || size <= 0 {
 		return nil
 	}
-	current := atomic.LoadInt64(&s.totalBytesStored)
+	current := s.totalBytesStored.Load()
 	if current+size > s.config.MaxStorageBytes {
 		return fmt.Errorf("storage quota exceeded: current %d bytes + %d bytes would exceed limit of %d bytes",
 			current, size, s.config.MaxStorageBytes)
@@ -785,7 +764,7 @@ func (s *service) checkStorageQuota(size int64) error {
 // Takes operation (string) which names the operation being recorded.
 // Takes startTime (time.Time) which marks when the operation began.
 func (s *service) recordOperationSuccess(ctx context.Context, operation string, startTime time.Time) {
-	atomic.AddInt64(&s.stats.SuccessfulOperations, 1)
+	s.stats.SuccessfulOperations.Add(1)
 	duration := s.clock.Now().Sub(startTime).Milliseconds()
 	operationDuration.Record(ctx, float64(duration), metric.WithAttributes(attribute.String(LogFieldOperation, operation)))
 	operationsTotal.Add(ctx, 1, metric.WithAttributes(attribute.String(LogFieldOperation, operation)))
@@ -795,12 +774,12 @@ func (s *service) recordOperationSuccess(ctx context.Context, operation string, 
 //
 // Takes operation (string) which names the failed operation.
 func (s *service) recordOperationFailure(ctx context.Context, operation string) {
-	atomic.AddInt64(&s.stats.FailedOperations, 1)
+	s.stats.FailedOperations.Add(1)
 	operationErrorsTotal.Add(ctx, 1, metric.WithAttributes(attribute.String(LogFieldOperation, operation)))
 }
 
-// executeStringOperation runs a provider operation that returns a string and
-// records metrics for the operation.
+// executeStringOperation runs a provider operation that returns a string and records
+// metrics for the operation.
 //
 // Takes providerName (string) which identifies the storage provider to use.
 // Takes operation (string) which names the operation for metrics labels.
@@ -830,8 +809,7 @@ func (s *service) executeStringOperation(
 	return result, nil
 }
 
-// getObjectViaStream retrieves an object directly from the provider without
-// caching.
+// getObjectViaStream retrieves an object directly from the provider without caching.
 //
 // Takes provider (StorageProviderPort) which provides access to storage.
 // Takes params (storage_dto.GetParams) which specifies the object to retrieve.
@@ -848,14 +826,13 @@ func (*service) getObjectViaStream(
 	return reader, nil
 }
 
-// getObjectViaSingleflight uses a singleflight group to deduplicate
-// concurrent requests for the same object.
+// getObjectViaSingleflight uses a singleflight group to deduplicate concurrent requests
+// for the same object.
 //
-// The singleflight buffer is bounded by SingleflightMemoryThreshold (the same
-// gating threshold used to decide whether to use this path). A provider that
-// reports a small object via Stat but streams more bytes than the threshold
-// is rejected with ErrSingleflightObjectTooLarge so an oversized payload
-// cannot dominate memory.
+// The singleflight buffer is bounded by SingleflightMemoryThreshold (the same gating
+// threshold used to decide whether to use this path). A provider that reports a small
+// object via Stat but streams more bytes than the threshold is rejected with
+// ErrSingleflightObjectTooLarge so an oversized payload cannot dominate memory.
 //
 // Takes provider (StorageProviderPort) which fetches the object data.
 // Takes providerName (string) which identifies the provider for cache keys.
@@ -910,8 +887,8 @@ func (s *service) getObjectViaSingleflight(
 	return io.NopCloser(bytes.NewReader(data)), nil
 }
 
-// checkLiveness performs a basic liveness health check.
-// It only verifies that the service is initialised with at least one provider.
+// checkLiveness performs a basic liveness health check. It only verifies that the service
+// is initialised with at least one provider.
 //
 // Takes startTime (time.Time) which records when the health check began.
 //
@@ -941,15 +918,12 @@ func (s *service) checkLiveness(ctx context.Context, startTime time.Time) health
 
 // checkProviderHealth checks the health of all registered storage providers.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to run.
-// Takes defaultProvider (string) which names the default provider for state
-// aggregation.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// run.
+// Takes defaultProvider (string) which names the default provider for state aggregation.
 //
-// Returns healthprobe_dto.State which is the combined health state across all
-// providers.
-// Returns []*healthprobe_dto.Status which contains the status of each
-// provider.
+// Returns healthprobe_dto.State which is the combined health state across all providers.
+// Returns []*healthprobe_dto.Status which contains the status of each provider.
 func (s *service) checkProviderHealth(
 	ctx context.Context, checkType healthprobe_dto.CheckType, defaultProvider string,
 ) (healthprobe_dto.State, []*healthprobe_dto.Status) {
@@ -994,13 +968,12 @@ func (s *service) checkProviderHealth(
 	return overallState, dependencies
 }
 
-// aggregateProviderState determines the overall health state based on
-// individual provider states.
+// aggregateProviderState determines the overall health state based on individual provider
+// states.
 //
-// Takes currentState (healthprobe_dto.State) which is the current
-// aggregated state.
-// Takes providerState (healthprobe_dto.State) which is the state of the
-// provider being processed.
+// Takes currentState (healthprobe_dto.State) which is the current aggregated state.
+// Takes providerState (healthprobe_dto.State) which is the state of the provider being
+// processed.
 // Takes isDefault (bool) which indicates if this is the default provider.
 //
 // Returns healthprobe_dto.State which is the new aggregated state.
@@ -1026,8 +999,8 @@ func (*service) aggregateProviderState(
 
 // NewService creates a new storage service with the given options.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes opts (...ServiceOption) which sets the service behaviour.
 //
 // Returns Service which is the storage service ready for use.
@@ -1066,21 +1039,13 @@ func NewService(ctx context.Context, opts ...ServiceOption) Service {
 		getGroup:            singleflight.Group{},
 		mu:                  sync.RWMutex{},
 		stats: ServiceStats{
-			StartTime:            clk.Now(),
-			TotalOperations:      0,
-			SuccessfulOperations: 0,
-			FailedOperations:     0,
-			RetryAttempts:        0,
-			CacheHits:            0,
-			CacheMisses:          0,
-			DLQEntries:           0,
+			StartTime: clk.Now(),
 		},
 	}
 }
 
-// NewServiceWithDefaultProvider creates a new storage service with a specified
-// default provider name. The provider itself must be registered separately via
-// RegisterProvider.
+// NewServiceWithDefaultProvider creates a new storage service with a specified default
+// provider name. The provider itself must be registered separately via RegisterProvider.
 //
 // Takes opts (...ServiceOption) which configures the service behaviour.
 //
@@ -1120,29 +1085,22 @@ func NewServiceWithDefaultProvider(_ string, opts ...ServiceOption) Service {
 		getGroup:            singleflight.Group{},
 		mu:                  sync.RWMutex{},
 		stats: ServiceStats{
-			StartTime:            clk.Now(),
-			TotalOperations:      0,
-			SuccessfulOperations: 0,
-			FailedOperations:     0,
-			RetryAttempts:        0,
-			CacheHits:            0,
-			CacheMisses:          0,
-			DLQEntries:           0,
+			StartTime: clk.Now(),
 		},
 	}
 }
 
-// resolveStorageTempSandbox returns a temp sandbox for CAS operations,
-// preferring the injected sandbox, then the factory, then a no-op fallback.
+// resolveStorageTempSandbox returns a temp sandbox for CAS operations, preferring the
+// injected sandbox, then the factory, then a no-op fallback.
 //
 // It logs a warning and returns nil when no sandbox can be created.
 //
-// Takes config (*ServiceConfig) which provides the sandbox, factory, and
-// related settings.
+// Takes config (*ServiceConfig) which provides the sandbox, factory, and related
+// settings.
 // Takes l (logger_domain.Logger) which logs warnings on failure.
 //
-// Returns safedisk.Sandbox which provides write access to the temp directory,
-// or nil when creation fails.
+// Returns safedisk.Sandbox which provides write access to the temp directory, or nil when
+// creation fails.
 func resolveStorageTempSandbox(config *ServiceConfig, l logger_domain.Logger) safedisk.Sandbox {
 	if config.TempSandbox != nil {
 		return config.TempSandbox
@@ -1164,12 +1122,12 @@ func resolveStorageTempSandbox(config *ServiceConfig, l logger_domain.Logger) sa
 	return sandbox
 }
 
-// enableMultipartIfNeeded turns on multipart upload for large files when the
-// provider supports it.
+// enableMultipartIfNeeded turns on multipart upload for large files when the provider
+// supports it.
 //
 // Takes provider (StorageProviderPort) which is checked for multipart support.
-// Takes params (*storage_dto.PutParams) which is updated with a default
-// multipart config if needed.
+// Takes params (*storage_dto.PutParams) which is updated with a default multipart config
+// if needed.
 // Takes providerName (string) which identifies the provider in log messages.
 func enableMultipartIfNeeded(
 	ctx context.Context,
@@ -1195,8 +1153,8 @@ func enableMultipartIfNeeded(
 }
 
 // unwrapStorageProvider walks through wrapper layers (TransformerWrapper,
-// retryableOperation, CircuitBreakerWrapper) to retrieve the underlying
-// storage provider for type assertions such as health check support.
+// retryableOperation, CircuitBreakerWrapper) to retrieve the underlying storage provider
+// for type assertions such as health check support.
 //
 // Takes provider (StorageProviderPort) which may be a wrapped provider.
 //

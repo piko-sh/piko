@@ -18,7 +18,9 @@
 
 package annotator_dto
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestActionManifest_AddAndGet(t *testing.T) {
 	m := NewActionManifest()

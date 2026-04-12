@@ -25,8 +25,8 @@ import (
 	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 )
 
-// HoneypotDetector checks whether a hidden honeypot field was filled,
-// which strongly indicates a bot.
+// HoneypotDetector checks whether a hidden honeypot field was filled, which strongly
+// indicates a bot.
 type HoneypotDetector struct{}
 
 // NewHoneypotDetector creates a new honeypot detector.
@@ -92,8 +92,7 @@ func (*HoneypotDetector) Analyse(ctx context.Context, submission *spamdetect_dto
 	}, nil
 }
 
-// HealthCheck always succeeds because the detector has no external
-// dependencies.
+// HealthCheck always succeeds because the detector has no external dependencies.
 //
 // Returns error which is always nil.
 func (*HoneypotDetector) HealthCheck(_ context.Context) error { return nil }

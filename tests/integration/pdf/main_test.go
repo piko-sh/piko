@@ -38,7 +38,9 @@ import (
 	browserpkg "piko.sh/piko/wdk/browser"
 )
 
-var browser *browserpkg.Browser
+var (
+	browser *browserpkg.Browser
+)
 
 type testCase struct {
 	Name string
@@ -133,10 +135,12 @@ func TestPdfRendering_Integration(t *testing.T) {
 	}
 }
 
-var subprocessSemaphore = func() chan struct{} {
-	concurrency := max(runtime.NumCPU()/4, 1)
-	return make(chan struct{}, concurrency)
-}()
+var (
+	subprocessSemaphore = func() chan struct{} {
+		concurrency := max(runtime.NumCPU()/4, 1)
+		return make(chan struct{}, concurrency)
+	}()
+)
 
 func runTestInSubprocess(t *testing.T, testName string) {
 	t.Helper()

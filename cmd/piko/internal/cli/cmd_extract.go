@@ -26,61 +26,61 @@ import (
 	"strings"
 )
 
-// parseStatus discriminates between successful parse, help request, and
-// error so each subcommand can map them to the right process exit code.
+// parseStatus discriminates between successful parse, help request, and error so each
+// subcommand can map them to the right process exit code.
 type parseStatus int
 
 const (
-	// parseOK means parsing completed successfully and the command
-	// should run.
+	// parseOK means parsing completed successfully and the command should run.
 	parseOK parseStatus = iota
 
-	// parseHelp means the user asked for help and the command should
-	// exit with status 0 without running.
+	// parseHelp means the user asked for help and the command should exit with status 0
+	// without running.
 	parseHelp
 
-	// parseError means parsing failed; the caller should exit with a
-	// non-zero status.
+	// parseError means parsing failed; the caller should exit with a non-zero status.
 	parseError
 )
+const (
 
-// errFlagRequiresValueFmt is the format string used when a required
-// flag value is missing from the command line.
-const errFlagRequiresValueFmt = "%s requires a value\n"
+	// errFlagRequiresValueFmt is the format string used when a required flag value is
+	// missing from the command line.
+	errFlagRequiresValueFmt = "%s requires a value\n"
+)
 
-// extractSubcommandHandler is the contract implemented by every
-// `piko extract` subcommand: parse its own flags, do its job, and
-// return a process exit code.
+// extractSubcommandHandler is the contract implemented by every `piko extract`
+// subcommand: parse its own flags, do its job, and return a process exit code.
 type extractSubcommandHandler func(arguments []string, stdout, stderr io.Writer) int
 
-// extractSubcommands maps the subcommand name to its handler. Adding
-// a new subcommand is a matter of implementing a handler with the
-// extractSubcommandHandler signature and registering it here.
-var extractSubcommands = map[string]extractSubcommandHandler{
-	"generate": runExtractGenerate,
-	"discover": runExtractDiscover,
-	"init":     runExtractInit,
-	"check":    runExtractCheck,
-}
+var (
+	// extractSubcommands maps the subcommand name to its handler. Adding a new subcommand is
+	// a matter of implementing a handler with the extractSubcommandHandler signature and
+	// registering it here.
+	extractSubcommands = map[string]extractSubcommandHandler{
+		"generate": runExtractGenerate,
+		"discover": runExtractDiscover,
+		"init":     runExtractInit,
+		"check":    runExtractCheck,
+	}
+)
 
-// RunExtract runs the `piko extract` command, dispatching to the named
-// subcommand. With no arguments it prints the help and exits 0 so
-// users can discover the available subcommands.
+// RunExtract runs the `piko extract` command, dispatching to the named subcommand. With
+// no arguments it prints the help and exits 0 so users can discover the available
+// subcommands.
 //
-// Takes arguments ([]string) which contains the command-line arguments
-// following "extract".
+// Takes arguments ([]string) which contains the command-line arguments following
+// "extract".
 //
 // Returns int which is the exit code: 0 on success, 1 on error.
 func RunExtract(arguments []string) int {
 	return RunExtractWithIO(arguments, os.Stdout, os.Stderr)
 }
 
-// RunExtractWithIO runs the `piko extract` command with explicit output
-// writers, which makes it straightforward to test and embed the
-// dispatcher in other contexts.
+// RunExtractWithIO runs the `piko extract` command with explicit output writers, which
+// makes it straightforward to test and embed the dispatcher in other contexts.
 //
-// Takes arguments ([]string) which contains the command-line arguments
-// following "extract".
+// Takes arguments ([]string) which contains the command-line arguments following
+// "extract".
 // Takes stdout (io.Writer) which receives normal output messages.
 // Takes stderr (io.Writer) which receives error and diagnostic messages.
 //
@@ -105,8 +105,8 @@ func RunExtractWithIO(arguments []string, stdout, stderr io.Writer) int {
 	return handler(arguments[1:], stdout, stderr)
 }
 
-// extractUsage writes the usage information for the extract command and
-// lists the available subcommands in a stable order.
+// extractUsage writes the usage information for the extract command and lists the
+// available subcommands in a stable order.
 //
 // Takes w (io.Writer) which receives the usage text.
 func extractUsage(w io.Writer) {
@@ -140,8 +140,8 @@ Run "piko extract <subcommand> --help" for details on any subcommand.
 	_, _ = fmt.Fprint(w, builder.String())
 }
 
-// extractSubcommandSummary returns a one-line summary for use in the
-// parent `piko extract` help output.
+// extractSubcommandSummary returns a one-line summary for use in the parent `piko
+// extract` help output.
 //
 // Takes name (string) which is the subcommand name.
 //

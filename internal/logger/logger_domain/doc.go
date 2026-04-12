@@ -16,25 +16,23 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package logger_domain defines the [Logger] interface and implements
-// structured logging with OpenTelemetry integration.
+// Package logger_domain defines the [Logger] interface and implements structured logging
+// with OpenTelemetry integration.
 //
-// It handles automatic trace correlation, span lifecycle management,
-// configurable log levels, error notification batching, and a
-// pluggable integration system for third-party observability services.
-// Context propagation helpers ([WithLogger], [From], [MustFrom])
+// It handles automatic trace correlation, span lifecycle management, configurable log
+// levels, error notification batching, and a pluggable integration system for third-party
+// observability services. Context propagation helpers ([WithLogger], [From], [MustFrom])
 // thread loggers through call chains.
 //
 // # Log levels
 //
-// Piko uses a seven-level hierarchy with clear separation between
-// framework internals and user application logs. TRACE (-8) covers
-// framework loop internals and per-node processing. INTERNAL (-6) is
-// for service registration, cache ops, and adapter lifecycle. DEBUG
-// (-4) is for user application debugging. INFO (0) is the production
-// default for normal operational events. NOTICE (2) marks critical
-// lifecycle events. WARN (4) covers recoverable issues and deprecated
-// features. ERROR (8) indicates failures requiring attention.
+// Piko uses a seven-level hierarchy with clear separation between framework internals and
+// user application logs. TRACE (-8) covers framework loop internals and per-node
+// processing. INTERNAL (-6) is for service registration, cache ops, and adapter
+// lifecycle. DEBUG (-4) is for user application debugging. INFO (0) is the production
+// default for normal operational events. NOTICE (2) marks critical lifecycle events. WARN
+// (4) covers recoverable issues and deprecated features. ERROR (8) indicates failures
+// requiring attention.
 //
 // # Usage
 //
@@ -58,15 +56,13 @@
 //
 // # Environment configuration
 //
-// The PIKO_LOG_LEVEL environment variable overrides the log level.
-// It accepts level names (e.g. "trace") or numeric values (e.g.
-// "-8").
+// The PIKO_LOG_LEVEL environment variable overrides the log level. It accepts level names
+// (e.g. "trace") or numeric values (e.g. "-8").
 //
 // # Thread safety
 //
-// All [Logger] methods are safe for concurrent use. The LogFactory
-// and [lifecycleManager] use appropriate synchronisation for their
-// mutable state. The [NotificationHandler] uses mutex-protected
-// shared state across handler instances created by WithAttrs and
+// All [Logger] methods are safe for concurrent use. The LogFactory and [lifecycleManager]
+// use appropriate synchronisation for their mutable state. The [NotificationHandler] uses
+// mutex-protected shared state across handler instances created by WithAttrs and
 // WithGroup.
 package logger_domain

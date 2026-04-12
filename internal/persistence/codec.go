@@ -35,8 +35,8 @@ var (
 	_ wal_domain.ValueCodec[*orchestrator_domain.Task] = TaskCodec{}
 )
 
-// StringKeyCodec implements wal_domain.KeyCodec for string keys.
-// Uses simple byte conversion for minimal overhead.
+// StringKeyCodec implements wal_domain.KeyCodec for string keys. Uses simple byte
+// conversion for minimal overhead.
 type StringKeyCodec struct{}
 
 // EncodeKey converts a string key to bytes.
@@ -59,9 +59,8 @@ func (StringKeyCodec) DecodeKey(data []byte) (string, error) {
 	return string(data), nil
 }
 
-// ArtefactMetaCodec implements wal_domain.ValueCodec for
-// *registry_dto.ArtefactMeta. It uses Sonic for fast JSON marshalling,
-// consistent with the DTO's internal serialisation.
+// ArtefactMetaCodec implements wal_domain.ValueCodec for *registry_dto.ArtefactMeta. It
+// uses Sonic for fast JSON marshalling, consistent with the DTO's internal serialisation.
 type ArtefactMetaCodec struct{}
 
 // EncodeValue serialises an ArtefactMeta to JSON bytes.
@@ -88,8 +87,8 @@ func (ArtefactMetaCodec) DecodeValue(data []byte) (*registry_dto.ArtefactMeta, e
 	return &v, nil
 }
 
-// TaskCodec implements wal_domain.ValueCodec for *orchestrator_domain.Task.
-// Uses standard JSON marshalling.
+// TaskCodec implements wal_domain.ValueCodec for *orchestrator_domain.Task. Uses standard
+// JSON marshalling.
 type TaskCodec struct{}
 
 // EncodeValue serialises a Task to JSON bytes.

@@ -56,8 +56,7 @@ func (ae *attributeEmitter) emitStyleAttribute(nodeVar *goast.Ident, node *ast_d
 	return ae.emitDynamicStyle(nodeVar, node, staticStyle, dynamicExpr)
 }
 
-// emitStaticOnlyStyle creates a static style attribute and appends it to a
-// slice.
+// emitStaticOnlyStyle creates a static style attribute and appends it to a slice.
 //
 // Takes attributeSlice (goast.Expr) which is the slice to append the attribute to.
 // Takes staticStyle (string) which is the CSS style value.
@@ -76,8 +75,8 @@ func (*attributeEmitter) emitStaticOnlyStyle(attributeSlice goast.Expr, staticSt
 
 // emitDynamicStyle handles dynamic styles with optional p-show directive.
 //
-// Uses DirectWriter for zero-allocation deferred HTML escaping. Checks
-// node.DirShow directly instead of using a flag.
+// Uses DirectWriter for zero-allocation deferred HTML escaping. Checks node.DirShow
+// directly instead of using a flag.
 //
 // Takes nodeVar (*goast.Ident) which identifies the target node variable.
 // Takes node (*ast_domain.TemplateNode) which provides the template node.
@@ -103,13 +102,11 @@ func (ae *attributeEmitter) emitDynamicStyle(
 	return allStmts, allDiags
 }
 
-// buildStyleExpression builds a style expression from fixed and dynamic
-// sources. Uses *BytesArena helpers for zero-allocation rendering via arena
-// allocation.
+// buildStyleExpression builds a style expression from fixed and dynamic sources. Uses
+// *BytesArena helpers for zero-allocation rendering via arena allocation.
 //
 // Takes staticStyle (string) which is the fixed CSS style string.
-// Takes dynamicExpr (*ast_domain.Expression) which is a dynamic style value to
-// process.
+// Takes dynamicExpr (*ast_domain.Expression) which is a dynamic style value to process.
 //
 // Returns goast.Expr which is the final combined style expression as a *[]byte.
 // Returns []goast.Stmt which contains any setup statements needed.
@@ -158,8 +155,8 @@ func (ae *attributeEmitter) buildStyleExpression(
 	return finalStyleVar, allStmts, allDiags
 }
 
-// applyShowDirective applies the p-show directive logic to hide elements when
-// the condition is false. Uses AppendHiddenToStyleBytes for zero-allocation.
+// applyShowDirective applies the p-show directive logic to hide elements when the
+// condition is false. Uses AppendHiddenToStyleBytes for zero-allocation.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the p-show directive.
 // Takes styleVar (goast.Expr) which is the current style expression (*[]byte).
@@ -194,11 +191,10 @@ func (ae *attributeEmitter) applyShowDirective(
 	return tempStyleVar, allStmts, allDiags
 }
 
-// buildStyleWithDirectWriter builds statements that output a style attribute
-// using a direct writer.
+// buildStyleWithDirectWriter builds statements that output a style attribute using a
+// direct writer.
 //
-// Generated code pattern:
-// bufferPointerVar := styleExpr  // *[]byte from *Bytes helper
+// Generated code pattern: bufferPointerVar := styleExpr // *[]byte from *Bytes helper
 //
 //	if bufferPointerVar != nil {
 //	    dwVar := pikoruntime.GetDirectWriter()
@@ -208,8 +204,7 @@ func (ae *attributeEmitter) applyShowDirective(
 //	}
 //
 // Takes nodeVar (*goast.Ident) which is the node to attach the style to.
-// Takes styleVar (goast.Expr) which is the style expression (*[]byte) to
-// output.
+// Takes styleVar (goast.Expr) which is the style expression (*[]byte) to output.
 //
 // Returns []goast.Stmt which contains the built AST statements.
 func (ae *attributeEmitter) buildStyleWithDirectWriter(nodeVar *goast.Ident, styleVar goast.Expr) []goast.Stmt {
@@ -224,8 +219,7 @@ func (ae *attributeEmitter) buildStyleWithDirectWriter(nodeVar *goast.Ident, sty
 
 // extractStaticStyle retrieves the static style attribute value from a node.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to extract
-// from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to extract from.
 //
 // Returns string which is the style attribute value, or empty if not found.
 func extractStaticStyle(node *ast_domain.TemplateNode) string {
@@ -233,13 +227,13 @@ func extractStaticStyle(node *ast_domain.TemplateNode) string {
 	return staticStyle
 }
 
-// extractDynamicStyleExpression returns the dynamic style expression from a
-// template node.
+// extractDynamicStyleExpression returns the dynamic style expression from a template
+// node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns *ast_domain.Expression which is the style expression, or nil if the
-// node has no dynamic style.
+// Returns *ast_domain.Expression which is the style expression, or nil if the node has no
+// dynamic style.
 func extractDynamicStyleExpression(node *ast_domain.TemplateNode) *ast_domain.Expression {
 	if node.DirStyle != nil && node.DirStyle.Expression != nil {
 		return &node.DirStyle.Expression
@@ -255,9 +249,9 @@ func extractDynamicStyleExpression(node *ast_domain.TemplateNode) *ast_domain.Ex
 }
 
 // selectBuildStyleBytesHelper returns the appropriate fixed-arity
-// BuildStyleStringBytesArena function name based on the number of parts. Uses
-// fixed-arity arena functions to avoid variadic slice heap escape and eliminate
-// sync.Pool allocations.
+// BuildStyleStringBytesArena function name based on the number of parts. Uses fixed-arity
+// arena functions to avoid variadic slice heap escape and eliminate sync.Pool
+// allocations.
 //
 // Takes partCount (int) which is the number of string parts.
 //

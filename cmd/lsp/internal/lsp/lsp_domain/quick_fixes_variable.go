@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/internal/sfcparser"
 )
 
-// generateUndefinedVariableFixes creates fix options for undefined variables.
-// This includes typo corrections and adding new props to the component.
+// generateUndefinedVariableFixes creates fix options for undefined variables. This
+// includes typo corrections and adding new props to the component.
 //
 // Takes diagnostic (protocol.Diagnostic) which contains the error details.
 // Takes document (*document) which provides the source document context.
@@ -58,18 +58,17 @@ func generateUndefinedVariableFixes(ctx context.Context, diagnostic protocol.Dia
 	return actions
 }
 
-// generateAddToPropsEdit creates a fix to add a new field to the component's
-// Props struct. This modifies the current document's <script> block to add the
-// missing prop.
+// generateAddToPropsEdit creates a fix to add a new field to the component's Props
+// struct. This modifies the current document's <script> block to add the missing prop.
 //
-// Takes diagnostic (protocol.Diagnostic) which contains the undefined
-// variable error details.
+// Takes diagnostic (protocol.Diagnostic) which contains the undefined variable error
+// details.
 // Takes document (*document) which provides the document content and URI.
-// Takes fixData (undefinedVariableData) which provides the prop name
-// and suggested type for the new field.
+// Takes fixData (undefinedVariableData) which provides the prop name and suggested type
+// for the new field.
 //
-// Returns *protocol.CodeAction which is the add-to-props fix action,
-// or nil if the modification cannot be prepared.
+// Returns *protocol.CodeAction which is the add-to-props fix action, or nil if the
+// modification cannot be prepared.
 func generateAddToPropsEdit(ctx context.Context, diagnostic protocol.Diagnostic, document *document, _ *workspace, fixData undefinedVariableData) *protocol.CodeAction {
 	_, l := logger_domain.From(ctx, log)
 
@@ -90,8 +89,8 @@ func generateAddToPropsEdit(ctx context.Context, diagnostic protocol.Diagnostic,
 	}
 }
 
-// prepareAddPropModification parses an SFC file and modifies its AST to add a
-// new prop field.
+// prepareAddPropModification parses an SFC file and modifies its AST to add a new prop
+// field.
 //
 // Takes content ([]byte) which contains the SFC file content to parse.
 // Takes fixData (undefinedVariableData) which provides the prop field details.

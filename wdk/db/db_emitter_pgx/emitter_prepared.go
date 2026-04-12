@@ -22,14 +22,15 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// EmitPrepared returns an empty generated file. pgx's connection pool handles
-// implicit prepared statement caching per connection, so no explicit
-// PreparedDBTX wrapper is needed.
+// EmitPrepared returns an empty generated file.
+//
+// pgx's connection pool handles implicit prepared statement caching per connection, so no
+// explicit PreparedDBTX wrapper is needed.
 //
 // Takes packageName (string) which is the target package name.
 // Takes queries ([]*querier_dto.AnalysedQuery) which are ignored.
 //
-// Returns querier_dto.GeneratedFile with empty content.
+// Returns GeneratedFile which is the zero value with empty content.
 // Returns error which is always nil.
 func (*PgxEmitter) EmitPrepared(
 	_ string,

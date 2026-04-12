@@ -19,24 +19,22 @@
 package driven_code_emitter_go_literal
 
 const (
-	// HTMLAttributeTypeFmt is the format string for building HTMLAttribute type
-	// names in generated Go AST code.
+	// HTMLAttributeTypeFmt is the format string for building HTMLAttribute type names in
+	// generated Go AST code.
 	HTMLAttributeTypeFmt = "%s.HTMLAttribute"
 
-	// FieldNameName is the struct field name for the Name field of an HTML
-	// attribute.
+	// FieldNameName is the struct field name for the Name field of an HTML attribute.
 	FieldNameName = "Name"
 
 	// FieldNameValue is the struct field name for the Value field when building
 	// HTMLAttribute composite literals in the generated Go AST.
 	FieldNameValue = "Value"
 
-	// BlankIdentifier is the underscore character used to discard values in Go
-	// assignments.
+	// BlankIdentifier is the underscore character used to discard values in Go assignments.
 	BlankIdentifier = "_"
 
-	// DiagnosticsVarName is the variable name used to store diagnostics during
-	// code generation.
+	// DiagnosticsVarName is the variable name used to store diagnostics during code
+	// generation.
 	DiagnosticsVarName = "diagnostics"
 
 	// StringTypeName is the Go type name for string literals in generated code.
@@ -93,8 +91,8 @@ const (
 	// EmptyInterfaceTypeName is the Go type name for the empty interface.
 	EmptyInterfaceTypeName = "interface{}"
 
-	// RequestVarName is the variable name for the HTTP request parameter in
-	// generated function signatures.
+	// RequestVarName is the variable name for the HTTP request parameter in generated
+	// function signatures.
 	RequestVarName = "r"
 
 	// OkVarName is the variable name for the success flag in type assertions.
@@ -139,63 +137,62 @@ const (
 	// IntValueOne is the integer value one, used when converting boolean to number.
 	IntValueOne = 1
 
-	// ChildCountThreshold is the number of child elements below which static HTML
-	// output is used instead of dynamic rendering.
+	// ChildCountThreshold is the number of child elements below which static HTML output is
+	// used instead of dynamic rendering.
 	ChildCountThreshold = 3
 
 	// AttributeCapacityBuffer is the extra space added to attribute slice capacity
-	// estimates. It provides room for attributes that directives may add, such as
-	// class, style, and event handlers.
+	// estimates. It provides room for attributes that directives may add, such as class,
+	// style, and event handlers.
 	AttributeCapacityBuffer = 8
 
-	// StatementSliceCapacity is the default capacity for statement slices created
-	// during template node emission.
+	// StatementSliceCapacity is the default capacity for statement slices created during
+	// template node emission.
 	StatementSliceCapacity = 16
 
-	// PartialAttributeCapacity is the number of attributes added for public
-	// partial invocations: "partial", "partial_name", and "partial_src".
+	// PartialAttributeCapacity is the number of attributes added for public partial
+	// invocations: "partial", "partial_name", and "partial_src".
 	PartialAttributeCapacity = 3
 
-	// PartialPropsAttributeCapacity is the extra capacity for the
-	// "partial_props" attribute, added only when a public partial has
-	// query-bound primitive props.
+	// PartialPropsAttributeCapacity is the extra capacity for the "partial_props" attribute,
+	// added only when a public partial has query-bound primitive props.
 	PartialPropsAttributeCapacity = 1
 
-	// SingleDirectiveAttrCount is the count for directive-based attributes
-	// (DirClass, DirStyle, Key) that each contribute one attribute.
+	// SingleDirectiveAttrCount is the count for directive-based attributes (DirClass,
+	// DirStyle, Key) that each contribute one attribute.
 	SingleDirectiveAttrCount = 1
 
-	// PikoImgSrcsetAttrCount is the number of attributes added for srcset
-	// on piko:img elements.
+	// PikoImgSrcsetAttrCount is the number of attributes added for srcset on piko:img
+	// elements.
 	PikoImgSrcsetAttrCount = 1
 
-	// PikoImgSizesAttrCount is the number of attributes added for the sizes
-	// attribute on piko:img elements. This is only added when width descriptors
-	// are present and sizes is specified.
+	// PikoImgSizesAttrCount is the number of attributes added for the sizes attribute on
+	// piko:img elements. This is only added when width descriptors are present and sizes is
+	// specified.
 	PikoImgSizesAttrCount = 1
 
-	// MiscDirectiveCapacity is the starting slice capacity for miscellaneous
-	// directive statements during code generation.
+	// MiscDirectiveCapacity is the starting slice capacity for miscellaneous directive
+	// statements during code generation.
 	MiscDirectiveCapacity = 4
 
-	// defaultDiagnosticCapacity is the default pre-allocation capacity for
-	// diagnostic slices during code emission.
+	// defaultDiagnosticCapacity is the default pre-allocation capacity for diagnostic slices
+	// during code emission.
 	defaultDiagnosticCapacity = 4
 
-	// largeDiagnosticCapacity is a larger pre-allocation capacity for diagnostic
-	// slices when more diagnostics are expected.
+	// largeDiagnosticCapacity is a larger pre-allocation capacity for diagnostic slices when
+	// more diagnostics are expected.
 	largeDiagnosticCapacity = 8
 
-	// defaultEmissionStatementCapacity is the default pre-allocation capacity
-	// for statement slices during code emission.
+	// defaultEmissionStatementCapacity is the default pre-allocation capacity for statement
+	// slices during code emission.
 	defaultEmissionStatementCapacity = 8
 
-	// smallEmissionStatementCapacity is a smaller pre-allocation capacity for
-	// statement slices when fewer statements are expected.
+	// smallEmissionStatementCapacity is a smaller pre-allocation capacity for statement
+	// slices when fewer statements are expected.
 	smallEmissionStatementCapacity = 4
 
-	// directWriterStatementCapacity is the pre-allocation capacity for
-	// statement slices used in direct writer emission contexts.
+	// directWriterStatementCapacity is the pre-allocation capacity for statement slices used
+	// in direct writer emission contexts.
 	directWriterStatementCapacity = 6
 
 	// TokenKindInt is the token kind for integer literals, matching go/token.INT.
@@ -234,12 +231,12 @@ const (
 	// varNameQP is the variable name for query parameter values in generated code.
 	varNameQP = "qp"
 
-	// pkgStrconv is the strconv package name used when building AST nodes for
-	// number parsing functions.
+	// pkgStrconv is the strconv package name used when building AST nodes for number parsing
+	// functions.
 	pkgStrconv = "strconv"
 
-	// pkgSafeconv is the import alias for the Piko safeconv package used for
-	// clamped integer conversions in query parameter fallbacks.
+	// pkgSafeconv is the import alias for the Piko safeconv package used for clamped integer
+	// conversions in query parameter fallbacks.
 	pkgSafeconv = "safeconv"
 
 	// pkgJSON is the import name for the standard library JSON package.
@@ -296,28 +293,25 @@ const (
 	// mathsToBigInt is the name of the ToBigInt method on maths.Decimal.
 	mathsToBigInt = "ToBigInt"
 
-	// mathsNewDecimalFromInt is the constructor name for creating a Decimal from
-	// an int64.
+	// mathsNewDecimalFromInt is the constructor name for creating a Decimal from an int64.
 	mathsNewDecimalFromInt = "NewDecimalFromInt"
 
-	// mathsNewDecimalFromFloat is the constructor name for creating a Decimal from
-	// a float64.
+	// mathsNewDecimalFromFloat is the constructor name for creating a Decimal from a
+	// float64.
 	mathsNewDecimalFromFloat = "NewDecimalFromFloat"
 
-	// mathsNewDecimalFromString is the constructor name for creating a Decimal
-	// from a string.
+	// mathsNewDecimalFromString is the constructor name for creating a Decimal from a
+	// string.
 	mathsNewDecimalFromString = "NewDecimalFromString"
 
-	// mathsNewBigIntFromInt is the constructor name for creating a BigInt from
-	// an int64.
+	// mathsNewBigIntFromInt is the constructor name for creating a BigInt from an int64.
 	mathsNewBigIntFromInt = "NewBigIntFromInt"
 
-	// mathsNewBigIntFromString is the name of the constructor that creates a BigInt
-	// from a string value.
+	// mathsNewBigIntFromString is the name of the constructor that creates a BigInt from a
+	// string value.
 	mathsNewBigIntFromString = "NewBigIntFromString"
 
-	// helperValueToString names the runtime helper function that converts
-	// values to strings.
+	// helperValueToString names the runtime helper function that converts values to strings.
 	helperValueToString = "ValueToString"
 
 	// numericBaseDecimal is the base ten value for decimal number parsing.
@@ -359,8 +353,7 @@ const (
 	// identRenderErr is the variable name for render errors in generated code.
 	identRenderErr = "renderErr"
 
-	// identInternalMetadata is the struct name for internal metadata
-	// in generated code.
+	// identInternalMetadata is the struct name for internal metadata in generated code.
 	identInternalMetadata = "InternalMetadata"
 
 	// identCtx is the variable name for the context parameter in generated code.

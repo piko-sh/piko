@@ -60,17 +60,16 @@ const (
 	// fnv1aPrime64 is the 64-bit prime number used in FNV-1a hash calculations.
 	fnv1aPrime64 = 0x100000001b3
 
-	// maxNodesPerDocument caps AST traversal depth for asset resolution to
-	// protect against pathologically large documents driving unbounded
-	// registrar calls.
+	// maxNodesPerDocument caps AST traversal depth for asset resolution to protect against
+	// pathologically large documents driving unbounded registrar calls.
 	maxNodesPerDocument = 200_000
 )
 
-// MarkdownProvider implements CollectionProvider for static markdown files.
-// All file operations are sandboxed for security.
+// MarkdownProvider implements CollectionProvider for static markdown files. All file
+// operations are sandboxed for security.
 //
-// This is the canonical implementation of a static provider. It demonstrates
-// the full lifecycle of a collection provider:
+// This is the canonical implementation of a static provider. It demonstrates the full
+// lifecycle of a collection provider:
 //   - Discovery: Recursively scans directories for .md files
 //   - Analysis: Extracts locale, slug, and metadata from paths and frontmatter
 //   - Processing: Parses markdown to AST using the markdown service
@@ -88,8 +87,8 @@ const (
 //   - Processing: O(m) where m = markdown files
 //   - Memory: ~10KB per markdown file + AST size
 type MarkdownProvider struct {
-	// sandbox provides restricted file system access for reading content files.
-	// Used by DiscoverCollections and Check for project-level operations.
+	// sandbox provides restricted file system access for reading content files. Used by
+	// DiscoverCollections and Check for project-level operations.
 	sandbox safedisk.Sandbox
 
 	// markdownService turns markdown content into structured output.
@@ -98,14 +97,14 @@ type MarkdownProvider struct {
 	// renderService extracts plain text from AST for search indexing.
 	renderService render_domain.RenderService
 
-	// assetRegistrar publishes sibling asset files (referenced from markdown
-	// via relative <img> src attributes) to the runtime artefact registry
-	// and returns the URL to rewrite into the rendered AST. When nil, asset
-	// resolution is skipped and relative src values pass through unchanged.
+	// assetRegistrar publishes sibling asset files (referenced from markdown via relative
+	// <img> src attributes) to the runtime artefact registry and returns the URL to rewrite
+	// into the rendered AST. When nil, asset resolution is skipped and relative src values
+	// pass through unchanged.
 	assetRegistrar collection_domain.AssetRegistrar
 
-	// scanner finds content files in collection directories.
-	// Used by DiscoverCollections and Check for project-level operations.
+	// scanner finds content files in collection directories. Used by DiscoverCollections and
+	// Check for project-level operations.
 	scanner *fileScanner
 
 	// name is the unique identifier for this provider.
@@ -116,18 +115,15 @@ type MarkdownProvider struct {
 //
 // The sandbox is used for all file operations to ensure security.
 //
-// Takes name (string) which is the unique provider name (typically
-// "markdown").
+// Takes name (string) which is the unique provider name (typically "markdown").
 // Takes sandbox (safedisk.Sandbox) which provides secure file system access.
-// Takes markdownService (markdown_domain.MarkdownService) which parses
-// markdown files.
-// Takes renderService (render_domain.RenderService) which extracts plain text
-// from AST for search indexing. Can be nil if plain text extraction is not
-// needed.
-// Takes assetRegistrar (collection_domain.AssetRegistrar) which registers
-// sibling asset files discovered inside a .md file so they are served at
-// runtime and rewrites the AST src to the registry URL. Can be nil when
-// asset resolution is not needed (for example in narrow unit tests).
+// Takes markdownService (markdown_domain.MarkdownService) which parses markdown files.
+// Takes renderService (render_domain.RenderService) which extracts plain text from AST
+// for search indexing. Can be nil if plain text extraction is not needed.
+// Takes assetRegistrar (collection_domain.AssetRegistrar) which registers sibling asset
+// files discovered inside a .md file so they are served at runtime and rewrites the AST
+// src to the registry URL. Can be nil when asset resolution is not needed (for example in
+// narrow unit tests).
 //
 // Returns *MarkdownProvider which is fully initialised and ready for use.
 func NewMarkdownProvider(
@@ -163,17 +159,14 @@ func (*MarkdownProvider) Type() collection_domain.ProviderType {
 	return collection_domain.ProviderTypeStatic
 }
 
-// DiscoverCollections scans the configured paths and returns available
-// collections.
+// DiscoverCollections scans the configured paths and returns available collections.
 //
-// For markdown, each subdirectory under the base path is treated as a
-// collection.
+// For markdown, each subdirectory under the base path is treated as a collection.
 //
-// Takes config (collection_dto.ProviderConfig) which provides the base path
-// and locale settings.
+// Takes config (collection_dto.ProviderConfig) which provides the base path and locale
+// settings.
 //
-// Returns []collection_dto.CollectionInfo which describes each discovered
-// collection.
+// Returns []collection_dto.CollectionInfo which describes each discovered collection.
 // Returns error when the base path cannot be accessed.
 func (m *MarkdownProvider) DiscoverCollections(
 	ctx context.Context,
@@ -212,12 +205,11 @@ func (m *MarkdownProvider) DiscoverCollections(
 
 // ValidateTargetType checks that a target struct type works with markdown.
 //
-// This is called at build time when the user writes:
-// posts, err := data.GetCollection[BlogPost]("blog")
-// The markdown provider accepts any struct type. Validation happens at compile
-// time instead. If the generated struct literal has fields that do not match,
-// the Go compiler will report the error. This gives clearer error messages and
-// avoids repeating type checks that the compiler already does well.
+// This is called at build time when the user writes: posts, err :=
+// data.GetCollection[BlogPost]("blog") The markdown provider accepts any struct type.
+// Validation happens at compile time instead. If the generated struct literal has fields
+// that do not match, the Go compiler will report the error. This gives clearer error
+// messages and avoids repeating type checks that the compiler already does well.
 //
 // Returns error when the type is not valid or not compatible.
 func (*MarkdownProvider) ValidateTargetType(_ ast.Expr) error {
@@ -226,16 +218,14 @@ func (*MarkdownProvider) ValidateTargetType(_ ast.Expr) error {
 
 // FetchStaticContent loads and processes all markdown files in a collection.
 //
-// This is the core method for static providers. It scans the collection
-// directory for .md files, parses each file's frontmatter and content,
-// converts markdown to Piko AST, analyses paths for locale and slug, and
-// links translations by translation key.
+// This is the core method for static providers. It scans the collection directory for .md
+// files, parses each file's frontmatter and content, converts markdown to Piko AST,
+// analyses paths for locale and slug, and links translations by translation key.
 //
-// Takes collectionName (string) which specifies the collection to fetch
-// (e.g. "blog").
+// Takes collectionName (string) which specifies the collection to fetch (e.g. "blog").
 //
-// Returns []collection_dto.ContentItem which contains the processed markdown
-// files ready to be transformed into virtual entry points by CollectionService.
+// Returns []collection_dto.ContentItem which contains the processed markdown files ready
+// to be transformed into virtual entry points by CollectionService.
 // Returns error when the collection directory cannot be scanned.
 func (m *MarkdownProvider) FetchStaticContent(
 	ctx context.Context,
@@ -305,14 +295,13 @@ func (m *MarkdownProvider) FetchStaticContent(
 
 // GenerateRuntimeFetcher generates code for runtime data fetching.
 //
-// Markdown is a static provider, so an error is returned.
-// Dynamic fetching is not supported for markdown files.
+// Markdown is a static provider, so an error is returned. Dynamic fetching is not
+// supported for markdown files.
 //
-// If hybrid (ISR) support is added in the future, the implementation would
-// generate code to re-parse the markdown file at runtime for revalidation.
+// If hybrid (ISR) support is added, the implementation would generate code to re-parse
+// the markdown file at runtime for revalidation.
 //
-// Returns *collection_dto.RuntimeFetcherCode which is always nil for this
-// provider.
+// Returns *collection_dto.RuntimeFetcherCode which is always nil for this provider.
 // Returns error when called, as markdown does not support runtime fetching.
 func (*MarkdownProvider) GenerateRuntimeFetcher(
 	_ context.Context,
@@ -323,11 +312,11 @@ func (*MarkdownProvider) GenerateRuntimeFetcher(
 	return nil, errors.New("markdown provider does not support runtime fetching (static only)")
 }
 
-// Check implements the healthprobe_domain.Probe interface.
-// It verifies that the markdown content directory is accessible.
+// Check implements the healthprobe_domain.Probe interface. It verifies that the markdown
+// content directory is accessible.
 //
-// Returns healthprobe_dto.Status which indicates whether the content directory
-// exists and is accessible.
+// Returns healthprobe_dto.Status which indicates whether the content directory exists and
+// is accessible.
 func (m *MarkdownProvider) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -353,17 +342,15 @@ func (m *MarkdownProvider) Check(_ context.Context, _ healthprobe_dto.CheckType)
 	}
 }
 
-// ComputeETag computes a content fingerprint for hybrid mode staleness
-// detection.
+// ComputeETag computes a content fingerprint for hybrid mode staleness detection.
 //
 // For markdown files, the ETag is computed from the aggregate hash of all file
-// modification times in the collection. This is efficient as it avoids reading
-// file contents while still detecting changes.
+// modification times in the collection. This is efficient as it avoids reading file
+// contents while still detecting changes.
 //
 // ETag format: "md-{xxhash64 hex}" (e.g., "md-a1b2c3d4e5f67890")
 //
-// Takes collectionName (string) which specifies the collection to compute the
-// ETag for.
+// Takes collectionName (string) which specifies the collection to compute the ETag for.
 //
 // Returns string which is the computed ETag, or "md-empty" if no files exist.
 // Returns error when scanning the collection directory fails.
@@ -433,12 +420,11 @@ func (m *MarkdownProvider) ComputeETag(
 
 // ValidateETag checks if the current content matches an expected ETag.
 //
-// Efficiently detects changes by recomputing the ETag and comparing it against
-// the expected value. Avoids reading file contents.
+// Efficiently detects changes by recomputing the ETag and comparing it against the
+// expected value. Avoids reading file contents.
 //
 // Takes collectionName (string) which specifies the collection to validate.
-// Takes expectedETag (string) which is the previously computed ETag to
-// compare against.
+// Takes expectedETag (string) which is the previously computed ETag to compare against.
 //
 // Returns currentETag (string) which is the freshly computed ETag.
 // Returns changed (bool) which is true when the content has changed.
@@ -468,8 +454,8 @@ func (m *MarkdownProvider) ValidateETag(
 
 // GenerateRevalidator returns nil to indicate no generated code is needed.
 //
-// For the markdown provider, revalidation is handled directly by the hybrid
-// registry at runtime, not through generated code. The hybrid registry calls:
+// For the markdown provider, revalidation is handled directly by the hybrid registry at
+// runtime, not through generated code. The hybrid registry calls:
 //  1. ValidateETag() to check for file changes
 //  2. FetchStaticContent() to re-scan and re-parse markdown files if changed
 //  3. Serialises new content to FlatBuffer and updates the cache
@@ -490,15 +476,14 @@ func (*MarkdownProvider) GenerateRevalidator(
 	return nil, nil
 }
 
-// processCollectionEntry processes a single directory entry during collection
-// discovery.
+// processCollectionEntry processes a single directory entry during collection discovery.
 //
 // Takes entry (fs.DirEntry) which is the directory entry to process.
 // Takes contentPath (string) which is the path to the content directory.
 // Takes config (collection_dto.ProviderConfig) which provides locale settings.
 //
-// Returns collection_dto.CollectionInfo which contains the discovered
-// collection metadata.
+// Returns collection_dto.CollectionInfo which contains the discovered collection
+// metadata.
 // Returns bool which indicates whether the entry was a valid collection.
 func (m *MarkdownProvider) processCollectionEntry(
 	ctx context.Context,
@@ -533,11 +518,9 @@ func (m *MarkdownProvider) processCollectionEntry(
 	return info, true
 }
 
-// detectLocalesInFiles analyses file paths to determine which locales are
-// present.
+// detectLocalesInFiles analyses file paths to determine which locales are present.
 //
-// Takes files ([]*discoveredFile) which contains the discovered files to
-// analyse.
+// Takes files ([]*discoveredFile) which contains the discovered files to analyse.
 // Takes configuredLocales ([]string) which lists the known locale codes.
 // Takes defaultLocale (string) which specifies the fallback locale.
 //
@@ -605,40 +588,37 @@ func (m *MarkdownProvider) processMarkdownFile(
 	return m.buildContentItem(ctx, processed, pathInfo, collectionName, content, file.relativePath)
 }
 
-// resolveAndRewriteAssets rewrites relative <img> srcs and <a> hrefs
-// inside an AST.
+// resolveAndRewriteAssets rewrites relative <img> srcs and <a> hrefs inside an AST.
 //
-// Both Markdown-syntax nodes (which become img/a Elements) and raw HTML
-// blocks that contain <img>/<a> tags (which render as NodeRawHTML) are
-// handled.
+// Both Markdown-syntax nodes (which become img/a Elements) and raw HTML blocks that
+// contain <img>/<a> tags (which render as NodeRawHTML) are handled.
 //
-// For images: each relative src (e.g. "../diagrams/foo.svg") is resolved
-// against the .md file's directory, registered with the artefact
-// registry, and replaced with the returned serve URL.
+// For images: each relative src (e.g. "../diagrams/foo.svg") is resolved against the .md
+// file's directory, registered with the artefact registry, and replaced with the returned
+// serve URL.
 //
-// For anchors: each relative href whose path component ends in .md is
-// resolved against the .md file's directory and rewritten to the public
-// URL produced by analyser, preserving any "#fragment" or "?query"
-// suffix. This lets a single source link (e.g. "../tutorials/foo.md")
-// render as a working file link on GitHub and as a clean URL on the
-// website.
+// For anchors: each relative href whose path component ends in .md is resolved against
+// the .md file's directory and rewritten to the public URL produced by analyser,
+// preserving any "#fragment" or "?query" suffix. This lets a single source link (e.g.
+// "../tutorials/foo.md") render as a working file link on GitHub and as a clean URL on
+// the website.
 //
-// Non-relative refs (absolute URLs, data URIs, mailto:, fragment-only
-// anchors, already-served paths) and non-.md hrefs are left untouched.
-// Failures for individual nodes are logged and do not fail the overall
-// build; the original attribute is preserved.
+// Non-relative refs (absolute URLs, data URIs, mailto:, fragment-only anchors,
+// already-served paths) and non-.md hrefs are left untouched. Failures for individual
+// nodes are logged and do not fail the overall build; the original attribute is
+// preserved.
 //
-// Takes sandbox (safedisk.Sandbox) which is the source tree for this
-// content. For external modules the sandbox covers the module's content
-// root so relative paths like "../diagrams/..." resolve inside it.
-// Takes mdRelativePath (string) which is the .md file path relative to
-// the sandbox root; used as the anchor for resolving relative refs.
-// Takes collectionName (string) which scopes the artefactID and prefixes
-// the public URL produced for anchor hrefs.
-// Takes analyser (*pathAnalyser) which maps a resolved .md path to its
-// public URL. May be nil to disable anchor href rewriting.
-// Takes tree (*ast_domain.TemplateAST) which is walked and mutated in
-// place. A nil tree is ignored.
+// Takes sandbox (safedisk.Sandbox) which is the source tree for this content. For
+// external modules the sandbox covers the module's content root so relative paths like
+// "../diagrams/..." resolve inside it.
+// Takes mdRelativePath (string) which is the .md file path relative to the sandbox root;
+// used as the anchor for resolving relative refs.
+// Takes collectionName (string) which scopes the artefactID and prefixes the public URL
+// produced for anchor hrefs.
+// Takes analyser (*pathAnalyser) which maps a resolved .md path to its public URL. May be
+// nil to disable anchor href rewriting.
+// Takes tree (*ast_domain.TemplateAST) which is walked and mutated in place. A nil tree
+// is ignored.
 func (m *MarkdownProvider) resolveAndRewriteAssets(
 	ctx context.Context,
 	sandbox safedisk.Sandbox,
@@ -680,12 +660,10 @@ func (m *MarkdownProvider) resolveAndRewriteAssets(
 	}
 }
 
-// rewriteAssetNode dispatches a single AST node to the correct rewriter
-// based on its type. Element nodes other than <img>/<a> and empty
-// RawHTML nodes are ignored.
+// rewriteAssetNode dispatches a single AST node to the correct rewriter based on its
+// type. Element nodes other than <img>/<a> and empty RawHTML nodes are ignored.
 //
-// Takes node (*ast_domain.TemplateNode) which is mutated in place when a
-// rewrite applies.
+// Takes node (*ast_domain.TemplateNode) which is mutated in place when a rewrite applies.
 func (m *MarkdownProvider) rewriteAssetNode(
 	ctx context.Context,
 	sandbox safedisk.Sandbox,
@@ -695,7 +673,7 @@ func (m *MarkdownProvider) rewriteAssetNode(
 	analyser *pathAnalyser,
 	node *ast_domain.TemplateNode,
 ) {
-	switch node.NodeType {
+	switch node.NodeType { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case ast_domain.NodeElement:
 		switch node.TagName {
 		case tagNameImg:
@@ -722,13 +700,12 @@ func (m *MarkdownProvider) rewriteAssetNode(
 	}
 }
 
-// rewriteElementImg handles a single <img> element node, registering the
-// referenced asset via the registrar and mutating the node's src attribute
-// in place when a rewrite is possible.
+// rewriteElementImg handles a single <img> element node, registering the referenced asset
+// via the registrar and mutating the node's src attribute in place when a rewrite is
+// possible.
 //
-// Takes node (*ast_domain.TemplateNode) which is mutated in place on
-// success. Non-relative srcs and traversals outside the sandbox leave the
-// node unchanged.
+// Takes node (*ast_domain.TemplateNode) which is mutated in place on success.
+// Non-relative srcs and traversals outside the sandbox leave the node unchanged.
 func (m *MarkdownProvider) rewriteElementImg(
 	ctx context.Context,
 	sandbox safedisk.Sandbox,
@@ -766,20 +743,17 @@ func (m *MarkdownProvider) rewriteElementImg(
 		logger_domain.String("serve_url", serveURL))
 }
 
-// rewriteElementAnchor handles a single <a> element node, rewriting an
-// .md href that points at a sibling document inside the collection to
-// the public URL produced by analyser. Hrefs that aren't relative .md
-// links (absolute URLs, fragments, queries, mailto:, paths without .md)
-// leave the node unchanged.
+// rewriteElementAnchor handles a single <a> element node, rewriting an .md href that
+// points at a sibling document inside the collection to the public URL produced by
+// analyser. Hrefs that aren't relative .md links (absolute URLs, fragments, queries,
+// mailto:, paths without .md) leave the node unchanged.
 //
-// On a successful rewrite the tag is also promoted from <a> to <piko:a>
-// so the runtime renderer emits the soft-navigation marker attribute and
-// the frontend intercepts the click for SPA-style navigation. Only
-// in-collection links get promoted; external and non-md anchors stay as
-// plain <a> tags.
+// On a successful rewrite the tag is also promoted from <a> to <piko:a> so the runtime
+// renderer emits the soft-navigation marker attribute and the frontend intercepts the
+// click for SPA-style navigation. Only in-collection links get promoted; external and
+// non-md anchors stay as plain <a> tags.
 //
-// Takes node (*ast_domain.TemplateNode) which is mutated in place when a
-// rewrite applies.
+// Takes node (*ast_domain.TemplateNode) which is mutated in place when a rewrite applies.
 func (*MarkdownProvider) rewriteElementAnchor(
 	ctx context.Context,
 	mdDirectory string,
@@ -812,8 +786,8 @@ func (*MarkdownProvider) rewriteElementAnchor(
 
 // resolveContentPath returns the sandbox-relative path for a content file.
 //
-// For external modules, file paths are relative to the sandbox root.
-// For local content, the path is prefixed with content/{collection}/.
+// For external modules, file paths are relative to the sandbox root. For local content,
+// the path is prefixed with content/{collection}/.
 //
 // Takes filePath (string) which is the path to the content file.
 // Takes collectionName (string) which identifies the content collection.
@@ -828,8 +802,8 @@ func resolveContentPath(filePath, collectionName string, isExternal bool) string
 
 // buildContentItem constructs a ContentItem from processed markdown.
 //
-// Takes processed (*markdown_dto.ProcessedMarkdown) which contains the parsed
-// markdown with metadata and AST.
+// Takes processed (*markdown_dto.ProcessedMarkdown) which contains the parsed markdown
+// with metadata and AST.
 // Takes pathInfo (*pathInfo) which provides URL, slug, and locale information.
 // Takes collectionName (string) which identifies the content collection.
 // Takes content ([]byte) which holds the raw markdown content.
@@ -887,12 +861,11 @@ func (m *MarkdownProvider) buildContentItem(
 
 // extractPlainContent extracts plain text from AST for search indexing.
 //
-// Takes processed (*markdown_dto.ProcessedMarkdown) which contains the parsed
-// markdown AST.
+// Takes processed (*markdown_dto.ProcessedMarkdown) which contains the parsed markdown
+// AST.
 // Takes relativePath (string) which identifies the file for logging.
 //
-// Returns string which contains the plain text content, or empty if extraction
-// fails.
+// Returns string which contains the plain text content, or empty if extraction fails.
 func (m *MarkdownProvider) extractPlainContent(
 	ctx context.Context,
 	processed *markdown_dto.ProcessedMarkdown,
@@ -912,13 +885,12 @@ func (m *MarkdownProvider) extractPlainContent(
 	return plainContent
 }
 
-// linkTranslations populates alternate locale information for translation
-// linking.
+// linkTranslations populates alternate locale information for translation linking.
 //
-// Takes items ([]collection_dto.ContentItem) which receives alternate locale
-// metadata for each content item.
-// Takes translationGroups (map[string][]int) which maps translation keys to
-// indices of items that are translations of each other.
+// Takes items ([]collection_dto.ContentItem) which receives alternate locale metadata for
+// each content item.
+// Takes translationGroups (map[string][]int) which maps translation keys to indices of
+// items that are translations of each other.
 func (*MarkdownProvider) linkTranslations(
 	ctx context.Context,
 	items []collection_dto.ContentItem,
@@ -961,23 +933,22 @@ func (*MarkdownProvider) linkTranslations(
 		logger_domain.Int("items_linked", linkedCount))
 }
 
-// extractNavigationMetadata derives or extracts navigation metadata for a
-// content item.
+// extractNavigationMetadata derives or extracts navigation metadata for a content item.
 //
 // Priority order:
 //  1. Explicit frontmatter nav metadata (if provided)
 //  2. Path-based derivation from PathSegments for default "sidebar" group
 //  3. Apply path-based defaults to fill in missing fields
 //
-// This preserves backward compatibility: files without nav frontmatter
-// still get organised hierarchically based on their directory structure.
+// This preserves backward compatibility: files without nav frontmatter still get
+// organised hierarchically based on their directory structure.
 //
-// Takes processed (*markdown_dto.ProcessedMarkdown) which provides the parsed
-// content with any existing navigation metadata.
+// Takes processed (*markdown_dto.ProcessedMarkdown) which provides the parsed content
+// with any existing navigation metadata.
 // Takes pathInfo (*pathInfo) which contains the path segments for derivation.
 //
-// Returns *markdown_dto.NavigationMetadata which contains the navigation
-// settings, either from frontmatter or derived from the path.
+// Returns *markdown_dto.NavigationMetadata which contains the navigation settings, either
+// from frontmatter or derived from the path.
 func (*MarkdownProvider) extractNavigationMetadata(
 	ctx context.Context,
 	processed *markdown_dto.ProcessedMarkdown,
@@ -1005,13 +976,13 @@ func (*MarkdownProvider) extractNavigationMetadata(
 
 // getDefaultConfig returns a default configuration.
 //
-// Uses the basePath field if set (via SetBasePath), otherwise falls back
-// to the sandbox root directory.
+// Uses the basePath field if set (via SetBasePath), otherwise falls back to the sandbox
+// root directory.
 //
 // Takes basePath (string) which overrides the sandbox root when non-empty.
 //
-// Returns collection_dto.ProviderConfig which contains sensible defaults
-// including common locales and English as the default locale.
+// Returns collection_dto.ProviderConfig which contains sensible defaults including common
+// locales and English as the default locale.
 func (m *MarkdownProvider) getDefaultConfig(basePath string) collection_dto.ProviderConfig {
 	if basePath == "" {
 		basePath = m.sandbox.Root()
@@ -1046,8 +1017,8 @@ type slugOverride struct {
 	url string
 }
 
-// xxHash64 provides FNV-1a hashing despite the misleading name.
-// A local version avoids adding an external dependency.
+// xxHash64 provides FNV-1a hashing despite the misleading name. A local version avoids
+// adding an external dependency.
 type xxHash64 struct {
 	// h is the current hash value.
 	h uint64
@@ -1074,8 +1045,8 @@ func (x *xxHash64) Sum64() uint64 {
 //
 // Takes fm (map[string]any) which contains the frontmatter key-value pairs.
 //
-// Returns contentDates which holds the date strings for published, created,
-// and updated times in RFC3339 format.
+// Returns contentDates which holds the date strings for published, created, and updated
+// times in RFC3339 format.
 func extractDates(fm map[string]any) contentDates {
 	var dates contentDates
 	if fm == nil {
@@ -1093,15 +1064,13 @@ func extractDates(fm map[string]any) contentDates {
 	return dates
 }
 
-// extractSlugOverride extracts a custom slug from frontmatter if present. The
-// raw value is run through sanitiseRelativePath so user-supplied values cannot
-// inject ".." segments, control characters or backslashes into the FlatBuffer
-// key or the public URL.
+// extractSlugOverride extracts a custom slug from frontmatter if present. The raw value
+// is run through sanitiseRelativePath so user-supplied values cannot inject ".."
+// segments, control characters or backslashes into the FlatBuffer key or the public URL.
 //
 // Takes fm (map[string]any) which contains the frontmatter data to search.
 // Takes collectionName (string) which specifies the collection path segment.
-// Takes defaultURL (string) which provides the fallback URL when no slug is
-// found.
+// Takes defaultURL (string) which provides the fallback URL when no slug is found.
 //
 // Returns slugOverride which contains the extracted slug and the computed URL.
 func extractSlugOverride(fm map[string]any, collectionName, defaultURL string) slugOverride {
@@ -1125,12 +1094,12 @@ func extractSlugOverride(fm map[string]any, collectionName, defaultURL string) s
 
 // buildMetadata creates a metadata map from processed markdown.
 //
-// Takes processed (*markdown_dto.ProcessedMarkdown) which provides the parsed
-// markdown content and its extracted metadata.
+// Takes processed (*markdown_dto.ProcessedMarkdown) which provides the parsed markdown
+// content and its extracted metadata.
 // Takes isDraft (bool) which shows whether the content is a draft.
 //
-// Returns map[string]any which contains the frontmatter and standard metadata
-// fields ready for use in templates.
+// Returns map[string]any which contains the frontmatter and standard metadata fields
+// ready for use in templates.
 func buildMetadata(processed *markdown_dto.ProcessedMarkdown, isDraft bool) map[string]any {
 	metadata := make(map[string]any)
 	if processed.Metadata.Frontmatter != nil {
@@ -1149,8 +1118,7 @@ func buildMetadata(processed *markdown_dto.ProcessedMarkdown, isDraft bool) map[
 	return metadata
 }
 
-// buildCollectionInfo creates a CollectionInfo struct for a markdown
-// collection.
+// buildCollectionInfo creates a CollectionInfo struct for a markdown collection.
 //
 // Takes name (string) which specifies the collection name.
 // Takes sandboxRoot (string) which is the root path of the sandbox.
@@ -1158,8 +1126,7 @@ func buildMetadata(processed *markdown_dto.ProcessedMarkdown, isDraft bool) map[
 // Takes files ([]*discoveredFile) which contains the discovered files.
 // Takes locales ([]string) which lists the available locales.
 //
-// Returns collection_dto.CollectionInfo which contains the collection
-// metadata.
+// Returns collection_dto.CollectionInfo which contains the collection metadata.
 func buildCollectionInfo(
 	name, sandboxRoot, collectionPath string,
 	files []*discoveredFile,
@@ -1188,8 +1155,8 @@ func buildCollectionInfo(
 //
 // Takes pathInfo (*pathInfo) which contains the parsed path segments.
 //
-// Returns *markdown_dto.NavGroupMetadata which contains the derived
-// navigation metadata with section and subsection populated from the path.
+// Returns *markdown_dto.NavGroupMetadata which contains the derived navigation metadata
+// with section and subsection populated from the path.
 func deriveNavFromPath(pathInfo *pathInfo) *markdown_dto.NavGroupMetadata {
 	nav := &markdown_dto.NavGroupMetadata{
 		Order:      defaultNavOrder,
@@ -1216,15 +1183,15 @@ func deriveNavFromPath(pathInfo *pathInfo) *markdown_dto.NavGroupMetadata {
 
 // applyNavDefaults fills in missing navigation fields with path-based defaults.
 //
-// Frontmatter can partly override navigation while keeping path-based
-// derivation for fields that are not set.
+// Frontmatter can partly override navigation while keeping path-based derivation for
+// fields that are not set.
 //
-// Takes group (*markdown_dto.NavGroupMetadata) which contains the navigation
-// metadata to fill with defaults.
+// Takes group (*markdown_dto.NavGroupMetadata) which contains the navigation metadata to
+// fill with defaults.
 // Takes pathInfo (*pathInfo) which provides path context for deriving defaults.
 //
-// Returns *markdown_dto.NavGroupMetadata which is the same group with any empty
-// fields set from path-based derivation.
+// Returns *markdown_dto.NavGroupMetadata which is the same group with any empty fields
+// set from path-based derivation.
 func applyNavDefaults(
 	group *markdown_dto.NavGroupMetadata,
 	pathInfo *pathInfo,

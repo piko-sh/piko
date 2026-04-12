@@ -21,18 +21,11 @@
 //go:build !safe && !(js && wasm) && amd64
 
 #include "textflag.h"
+#include "funcdata.h"
 #include "asm_dispatch_offsets.h"
 #include "asm_dispatch_amd64.h"
 
-// Dispatch loop initialisation, jump table setup, and exit handlers.
-
-// func initJumpTable(table *[256]uintptr)
-//
-// Populates the 256-entry dispatch table with handler addresses.
-// Tier 1 opcodes get their specific handler addresses; all other
-// entries point to the tier2Fallback handler.
-//
-// Takes table (*[256]uintptr) at FP+0.
+// initJumpTable fills the 256-entry dispatch table; tier-1 opcodes get their specific handlers, others get tier2Fallback.
 TEXT ·initJumpTable(SB), NOSPLIT, $0-8
 	MOVQ    table+0(FP), DI
 
@@ -47,286 +40,897 @@ initjt_fill:
 
 	MOVQ    table+0(FP), DI
 
-	LEAQ    ·handlerNop(SB), AX
-	MOVQ    AX, 0(DI)
-
-	LEAQ    ·handlerMoveInt(SB), AX
+	LEAQ    ·handlerLoadIntConst(SB), AX
 	MOVQ    AX, 16(DI)
 
-	LEAQ    ·handlerMoveFloat(SB), AX
+	LEAQ    ·handlerLoadFloatConst(SB), AX
 	MOVQ    AX, 24(DI)
 
-	LEAQ    ·handlerLoadIntConst(SB), AX
-	MOVQ    AX, 32(DI)
-
-	LEAQ    ·handlerLoadFloatConst(SB), AX
-	MOVQ    AX, 40(DI)
-
-	LEAQ    ·handlerLoadBool(SB), AX
-	MOVQ    AX, 48(DI)
-
-	LEAQ    ·handlerLoadIntConstSmall(SB), AX
-	MOVQ    AX, 56(DI)
-
-	LEAQ    ·handlerAddInt(SB), AX
-	MOVQ    AX, 64(DI)
-
-	LEAQ    ·handlerSubInt(SB), AX
-	MOVQ    AX, 72(DI)
-
-	LEAQ    ·handlerMulInt(SB), AX
-	MOVQ    AX, 80(DI)
-
-	LEAQ    ·handlerDivInt(SB), AX
-	MOVQ    AX, 88(DI)
-
-	LEAQ    ·handlerRemInt(SB), AX
-	MOVQ    AX, 96(DI)
-
-	LEAQ    ·handlerNegInt(SB), AX
-	MOVQ    AX, 104(DI)
-
-	LEAQ    ·handlerIncInt(SB), AX
-	MOVQ    AX, 112(DI)
-
-	LEAQ    ·handlerDecInt(SB), AX
-	MOVQ    AX, 120(DI)
-
-	LEAQ    ·handlerBitAnd(SB), AX
-	MOVQ    AX, 128(DI)
-
-	LEAQ    ·handlerBitOr(SB), AX
-	MOVQ    AX, 136(DI)
-
-	LEAQ    ·handlerBitXor(SB), AX
-	MOVQ    AX, 144(DI)
-
-	LEAQ    ·handlerBitAndNot(SB), AX
-	MOVQ    AX, 152(DI)
-
-	LEAQ    ·handlerBitNot(SB), AX
-	MOVQ    AX, 160(DI)
-
-	LEAQ    ·handlerShiftLeft(SB), AX
-	MOVQ    AX, 168(DI)
-
-	LEAQ    ·handlerShiftRight(SB), AX
-	MOVQ    AX, 176(DI)
-
-	LEAQ    ·handlerAddFloat(SB), AX
-	MOVQ    AX, 184(DI)
-
-	LEAQ    ·handlerSubFloat(SB), AX
-	MOVQ    AX, 192(DI)
-
-	LEAQ    ·handlerMulFloat(SB), AX
-	MOVQ    AX, 200(DI)
-
-	LEAQ    ·handlerDivFloat(SB), AX
-	MOVQ    AX, 208(DI)
-
-	LEAQ    ·handlerNegFloat(SB), AX
-	MOVQ    AX, 216(DI)
-
-	LEAQ    ·handlerEqInt(SB), AX
-	MOVQ    AX, 224(DI)
-
-	LEAQ    ·handlerNeInt(SB), AX
-	MOVQ    AX, 232(DI)
-
-	LEAQ    ·handlerLtInt(SB), AX
-	MOVQ    AX, 240(DI)
-
-	LEAQ    ·handlerLeInt(SB), AX
-	MOVQ    AX, 248(DI)
-
-	LEAQ    ·handlerGtInt(SB), AX
-	MOVQ    AX, 256(DI)
-
-	LEAQ    ·handlerGeInt(SB), AX
-	MOVQ    AX, 264(DI)
-
-	LEAQ    ·handlerEqFloat(SB), AX
-	MOVQ    AX, 272(DI)
-
-	LEAQ    ·handlerNeFloat(SB), AX
-	MOVQ    AX, 280(DI)
-
-	LEAQ    ·handlerLtFloat(SB), AX
-	MOVQ    AX, 288(DI)
-
-	LEAQ    ·handlerLeFloat(SB), AX
-	MOVQ    AX, 296(DI)
-
-	LEAQ    ·handlerGtFloat(SB), AX
-	MOVQ    AX, 304(DI)
-
-	LEAQ    ·handlerGeFloat(SB), AX
-	MOVQ    AX, 312(DI)
-
-	LEAQ    ·handlerIntToFloat(SB), AX
-	MOVQ    AX, 320(DI)
-
-	LEAQ    ·handlerFloatToInt(SB), AX
-	MOVQ    AX, 328(DI)
-
-	LEAQ    ·handlerNot(SB), AX
-	MOVQ    AX, 336(DI)
-
-	LEAQ    ·handlerJump(SB), AX
-	MOVQ    AX, 344(DI)
-
-	LEAQ    ·handlerJumpIfTrue(SB), AX
-	MOVQ    AX, 352(DI)
-
-	LEAQ    ·handlerJumpIfFalse(SB), AX
-	MOVQ    AX, 360(DI)
-
-	LEAQ    ·handlerCallInline(SB), AX
-	MOVQ    AX, 368(DI)
-
-	LEAQ    ·handlerReturnInline(SB), AX
-	MOVQ    AX, 376(DI)
-
-	LEAQ    ·handlerReturnVoidInline(SB), AX
-	MOVQ    AX, 384(DI)
-
-	LEAQ    ·handlerTailCallExit(SB), AX
-	MOVQ    AX, 392(DI)
-
-	LEAQ    ·handlerSubIntConst(SB), AX
-	MOVQ    AX, 400(DI)
-
-	LEAQ    ·handlerAddIntConst(SB), AX
+	LEAQ    ·handlerLoadStringConst(SB), AX
 	MOVQ    AX, 408(DI)
 
-	LEAQ    ·handlerLeIntConstJumpFalse(SB), AX
-	MOVQ    AX, 416(DI)
-
-	LEAQ    ·handlerLtIntConstJumpFalse(SB), AX
+	LEAQ    ·handlerLoadBoolConst(SB), AX
 	MOVQ    AX, 424(DI)
 
-	LEAQ    ·handlerEqIntConstJumpFalse(SB), AX
-	MOVQ    AX, 432(DI)
+	LEAQ    ·handlerAddInt(SB), AX
+	MOVQ    AX, 32(DI)
 
-	LEAQ    ·handlerEqIntConstJumpTrue(SB), AX
-	MOVQ    AX, 440(DI)
+	LEAQ    ·handlerSubInt(SB), AX
+	MOVQ    AX, 40(DI)
 
-	LEAQ    ·handlerGeIntConstJumpFalse(SB), AX
+	LEAQ    ·handlerMulInt(SB), AX
+	MOVQ    AX, 48(DI)
+
+	LEAQ    ·handlerDivInt(SB), AX
+	MOVQ    AX, 56(DI)
+
+	LEAQ    ·handlerRemInt(SB), AX
+	MOVQ    AX, 64(DI)
+
+	LEAQ    ·handlerBitAnd(SB), AX
+	MOVQ    AX, 72(DI)
+
+	LEAQ    ·handlerBitOr(SB), AX
+	MOVQ    AX, 80(DI)
+
+	LEAQ    ·handlerBitXor(SB), AX
+	MOVQ    AX, 88(DI)
+
+	LEAQ    ·handlerBitAndNot(SB), AX
+	MOVQ    AX, 96(DI)
+
+	LEAQ    ·handlerShiftLeft(SB), AX
+	MOVQ    AX, 104(DI)
+
+	LEAQ    ·handlerShiftRight(SB), AX
+	MOVQ    AX, 112(DI)
+
+	LEAQ    ·handlerAddFloat(SB), AX
+	MOVQ    AX, 120(DI)
+
+	LEAQ    ·handlerSubFloat(SB), AX
+	MOVQ    AX, 128(DI)
+
+	LEAQ    ·handlerMulFloat(SB), AX
+	MOVQ    AX, 136(DI)
+
+	LEAQ    ·handlerDivFloat(SB), AX
+	MOVQ    AX, 144(DI)
+
+	LEAQ    ·handlerAddUint(SB), AX
 	MOVQ    AX, 448(DI)
 
-	LEAQ    ·handlerGtIntConstJumpFalse(SB), AX
+	LEAQ    ·handlerSubUint(SB), AX
 	MOVQ    AX, 456(DI)
 
-	LEAQ    ·handlerMulIntConst(SB), AX
+	LEAQ    ·handlerMulUint(SB), AX
 	MOVQ    AX, 464(DI)
 
-	LEAQ    ·handlerAddIntJump(SB), AX
-	MOVQ    AX, 472(DI)
-
-	LEAQ    ·handlerIncIntJumpLt(SB), AX
-	MOVQ    AX, 480(DI)
-
-	LEAQ    ·handlerMathSqrt(SB), AX
+	LEAQ    ·handlerBitAndUint(SB), AX
 	MOVQ    AX, 488(DI)
 
-	LEAQ    ·handlerMathAbs(SB), AX
+	LEAQ    ·handlerBitOrUint(SB), AX
 	MOVQ    AX, 496(DI)
 
-	LEAQ    ·handlerLenString(SB), AX
+	LEAQ    ·handlerBitXorUint(SB), AX
+	MOVQ    AX, 504(DI)
+
+	LEAQ    ·handlerBitAndNotUint(SB), AX
+	MOVQ    AX, 512(DI)
+
+	LEAQ    ·handlerShiftLeftUint(SB), AX
+	MOVQ    AX, 520(DI)
+
+	LEAQ    ·handlerShiftRightUint(SB), AX
+	MOVQ    AX, 528(DI)
+
+	LEAQ    ·handlerEqUint(SB), AX
 	MOVQ    AX, 536(DI)
 
-	LEAQ    ·handlerStringIndex(SB), AX
+	LEAQ    ·handlerNeUint(SB), AX
 	MOVQ    AX, 544(DI)
 
-	LEAQ    ·handlerEqString(SB), AX
+	LEAQ    ·handlerLtUint(SB), AX
 	MOVQ    AX, 552(DI)
 
-	LEAQ    ·handlerNeString(SB), AX
+	LEAQ    ·handlerLeUint(SB), AX
 	MOVQ    AX, 560(DI)
 
-	LEAQ    ·handlerSliceString(SB), AX
+	LEAQ    ·handlerGtUint(SB), AX
 	MOVQ    AX, 568(DI)
 
-	LEAQ    ·handlerStringIndexToInt(SB), AX
+	LEAQ    ·handlerGeUint(SB), AX
 	MOVQ    AX, 576(DI)
 
-	LEAQ    ·handlerLenStringLtJumpFalse(SB), AX
+	LEAQ    ·handlerEqInt(SB), AX
+	MOVQ    AX, 152(DI)
+
+	LEAQ    ·handlerNeInt(SB), AX
+	MOVQ    AX, 160(DI)
+
+	LEAQ    ·handlerLtInt(SB), AX
+	MOVQ    AX, 168(DI)
+
+	LEAQ    ·handlerLeInt(SB), AX
+	MOVQ    AX, 176(DI)
+
+	LEAQ    ·handlerGtInt(SB), AX
+	MOVQ    AX, 184(DI)
+
+	LEAQ    ·handlerGeInt(SB), AX
+	MOVQ    AX, 192(DI)
+
+	LEAQ    ·handlerEqFloat(SB), AX
+	MOVQ    AX, 200(DI)
+
+	LEAQ    ·handlerNeFloat(SB), AX
+	MOVQ    AX, 208(DI)
+
+	LEAQ    ·handlerLtFloat(SB), AX
+	MOVQ    AX, 216(DI)
+
+	LEAQ    ·handlerLeFloat(SB), AX
+	MOVQ    AX, 224(DI)
+
+	LEAQ    ·handlerGtFloat(SB), AX
+	MOVQ    AX, 232(DI)
+
+	LEAQ    ·handlerGeFloat(SB), AX
+	MOVQ    AX, 240(DI)
+
+	LEAQ    ·handlerEqString(SB), AX
+	MOVQ    AX, 368(DI)
+
+	LEAQ    ·handlerNeString(SB), AX
+	MOVQ    AX, 376(DI)
+
+	LEAQ    ·handlerStringIndex(SB), AX
+	MOVQ    AX, 360(DI)
+
+	LEAQ    ·handlerSliceString(SB), AX
+	MOVQ    AX, 384(DI)
+
+	LEAQ    ·handlerStringIndexToInt(SB), AX
+	MOVQ    AX, 392(DI)
+
+	LEAQ    ·handlerJumpIfTrue(SB), AX
+	MOVQ    AX, 248(DI)
+
+	LEAQ    ·handlerJumpIfFalse(SB), AX
+	MOVQ    AX, 256(DI)
+
+	LEAQ    ·handlerSubIntConst(SB), AX
+	MOVQ    AX, 280(DI)
+
+	LEAQ    ·handlerAddIntConst(SB), AX
+	MOVQ    AX, 288(DI)
+
+	LEAQ    ·handlerLeIntConstJumpFalse(SB), AX
+	MOVQ    AX, 296(DI)
+
+	LEAQ    ·handlerLtIntConstJumpFalse(SB), AX
+	MOVQ    AX, 304(DI)
+
+	LEAQ    ·handlerEqIntConstJumpFalse(SB), AX
+	MOVQ    AX, 312(DI)
+
+	LEAQ    ·handlerEqIntConstJumpTrue(SB), AX
+	MOVQ    AX, 320(DI)
+
+	LEAQ    ·handlerGeIntConstJumpFalse(SB), AX
+	MOVQ    AX, 328(DI)
+
+	LEAQ    ·handlerGtIntConstJumpFalse(SB), AX
+	MOVQ    AX, 336(DI)
+
+	LEAQ    ·handlerMulIntConst(SB), AX
+	MOVQ    AX, 344(DI)
+
+	LEAQ    ·handlerAddIntJump(SB), AX
+	MOVQ    AX, 352(DI)
+
+	LEAQ    ·handlerCallInline(SB), AX
+	MOVQ    AX, 264(DI)
+
+	LEAQ    ·handlerCallInlineScalar(SB), AX
+	MOVQ    AX, 1912(DI)
+
+	LEAQ    ·handlerTailCallInline(SB), AX
+	MOVQ    AX, 272(DI)
+
+	LEAQ    ·handlerTruncateNarrow(SB), AX
+	MOVQ    AX, 776(DI)
+
+	LEAQ    ·handlerTier2ShimTypeAssert(SB), AX
+	MOVQ    AX, 1368(DI)
+
+	LEAQ    ·handlerTier2ShimIndex(SB), AX
+	MOVQ    AX, 928(DI)
+
+	LEAQ    ·handlerTier2ShimIndexSet(SB), AX
+	MOVQ    AX, 936(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOk(SB), AX
+	MOVQ    AX, 968(DI)
+
+	LEAQ    ·handlerTier2ShimMapSet(SB), AX
+	MOVQ    AX, 960(DI)
+
+	LEAQ    ·handlerTier2ShimAppendSpread(SB), AX
+	MOVQ    AX, 984(DI)
+
+	LEAQ    ·handlerTier2ShimCopy(SB), AX
+	MOVQ    AX, 1000(DI)
+
+	LEAQ    ·handlerTier2ShimSliceOp(SB), AX
+	MOVQ    AX, 944(DI)
+
+	LEAQ    ·handlerTier2ShimSliceGetInt(SB), AX
+	MOVQ    AX, 1008(DI)
+
+	LEAQ    ·handlerTier2ShimSliceSetInt(SB), AX
+	MOVQ    AX, 1016(DI)
+
+	LEAQ    ·handlerTier2ShimSliceGetFloat(SB), AX
+	MOVQ    AX, 1024(DI)
+
+	LEAQ    ·handlerTier2ShimSliceSetFloat(SB), AX
+	MOVQ    AX, 1032(DI)
+
+	LEAQ    ·handlerTier2ShimSliceGetString(SB), AX
+	MOVQ    AX, 1040(DI)
+
+	LEAQ    ·handlerTier2ShimSliceSetString(SB), AX
+	MOVQ    AX, 1048(DI)
+
+	LEAQ    ·handlerTier2ShimSliceGetBool(SB), AX
+	MOVQ    AX, 1056(DI)
+
+	LEAQ    ·handlerTier2ShimSliceSetBool(SB), AX
+	MOVQ    AX, 1064(DI)
+
+	LEAQ    ·handlerTier2ShimSliceGetUint(SB), AX
+	MOVQ    AX, 1072(DI)
+
+	LEAQ    ·handlerTier2ShimSliceSetUint(SB), AX
+	MOVQ    AX, 1080(DI)
+
+	LEAQ    ·handlerTier2ShimAddr(SB), AX
+	MOVQ    AX, 1344(DI)
+
+	LEAQ    ·handlerTier2ShimDeref(SB), AX
+	MOVQ    AX, 1352(DI)
+
+	LEAQ    ·handlerTier2ShimConvert(SB), AX
+	MOVQ    AX, 1376(DI)
+
+	LEAQ    ·handlerTier2ShimPackInterface(SB), AX
+	MOVQ    AX, 784(DI)
+
+	LEAQ    ·handlerTier2ShimUnpackInterface(SB), AX
+	MOVQ    AX, 792(DI)
+
+	LEAQ    ·handlerTier2ShimMakeSlice(SB), AX
+	MOVQ    AX, 920(DI)
+
+	LEAQ    ·handlerTier2ShimMakeClosure(SB), AX
+	MOVQ    AX, 856(DI)
+
+	LEAQ    ·handlerTier2ShimAllocIndirect(SB), AX
+	MOVQ    AX, 1360(DI)
+
+	LEAQ    ·handlerTier2ShimGetGlobal(SB), AX
+	MOVQ    AX, 1384(DI)
+
+	LEAQ    ·handlerTier2ShimSetGlobal(SB), AX
+	MOVQ    AX, 1392(DI)
+
+	LEAQ    ·handlerTier2ShimGetGlobalWide(SB), AX
+	MOVQ    AX, 1560(DI)
+
+	LEAQ    ·handlerTier2ShimSetGlobalWide(SB), AX
+	MOVQ    AX, 1568(DI)
+
+	LEAQ    ·handlerTier2ShimGetUpvalue(SB), AX
+	MOVQ    AX, 864(DI)
+
+	LEAQ    ·handlerTier2ShimSetUpvalue(SB), AX
+	MOVQ    AX, 872(DI)
+
+	LEAQ    ·handlerTier2ShimSyncClosureUpvalues(SB), AX
+	MOVQ    AX, 880(DI)
+
+	LEAQ    ·handlerTier2ShimResetSharedCell(SB), AX
+	MOVQ    AX, 888(DI)
+
+	LEAQ    ·handlerTier2ShimWriteSharedCell(SB), AX
+	MOVQ    AX, 896(DI)
+
+	LEAQ    ·handlerTier2ShimBindMethod(SB), AX
+	MOVQ    AX, 1304(DI)
+
+	LEAQ    ·handlerTier2ShimRangeInit(SB), AX
+	MOVQ    AX, 1328(DI)
+
+	LEAQ    ·handlerTier2ShimRangeNext(SB), AX
+	MOVQ    AX, 1336(DI)
+
+	LEAQ    ·handlerTier2ShimMoveGeneral(SB), AX
+	MOVQ    AX, 400(DI)
+
+	LEAQ    ·handlerTier2ShimLoadGeneralConst(SB), AX
+	MOVQ    AX, 416(DI)
+
+	LEAQ    ·handlerTier2ShimEqGeneral(SB), AX
+	MOVQ    AX, 688(DI)
+
+	LEAQ    ·handlerTier2ShimNeGeneral(SB), AX
+	MOVQ    AX, 696(DI)
+
+	LEAQ    ·handlerTier2ShimLtGeneral(SB), AX
+	MOVQ    AX, 704(DI)
+
+	LEAQ    ·handlerTier2ShimLeGeneral(SB), AX
+	MOVQ    AX, 712(DI)
+
+	LEAQ    ·handlerTier2ShimGtGeneral(SB), AX
+	MOVQ    AX, 720(DI)
+
+	LEAQ    ·handlerTier2ShimGeGeneral(SB), AX
+	MOVQ    AX, 728(DI)
+
+	LEAQ    ·handlerTier2ShimEqInterfaceNil(SB), AX
+	MOVQ    AX, 1776(DI)
+
+	LEAQ    ·handlerTier2ShimNeInterfaceNil(SB), AX
+	MOVQ    AX, 1784(DI)
+
+	LEAQ    ·handlerTier2ShimConcatString(SB), AX
+	MOVQ    AX, 640(DI)
+
+	LEAQ    ·handlerTier2ShimConcatRuneString(SB), AX
+	MOVQ    AX, 648(DI)
+
+	LEAQ    ·handlerTier2ShimStrContains(SB), AX
+	MOVQ    AX, 1432(DI)
+
+	LEAQ    ·handlerTier2ShimStrContainsRune(SB), AX
+	MOVQ    AX, 1424(DI)
+
+	LEAQ    ·handlerTier2ShimStrHasPrefix(SB), AX
+	MOVQ    AX, 1440(DI)
+
+	LEAQ    ·handlerTier2ShimStrHasSuffix(SB), AX
+	MOVQ    AX, 1448(DI)
+
+	LEAQ    ·handlerTier2ShimStrEqualFold(SB), AX
+	MOVQ    AX, 1456(DI)
+
+	LEAQ    ·handlerTier2ShimStrIndex(SB), AX
+	MOVQ    AX, 1464(DI)
+
+	LEAQ    ·handlerTier2ShimStrIndexRune(SB), AX
+	MOVQ    AX, 1504(DI)
+
+	LEAQ    ·handlerTier2ShimStrLastIndex(SB), AX
+	MOVQ    AX, 1520(DI)
+
+	LEAQ    ·handlerTier2ShimStrCount(SB), AX
+	MOVQ    AX, 1472(DI)
+
+	LEAQ    ·handlerTier2ShimStrTrim(SB), AX
+	MOVQ    AX, 1496(DI)
+
+	LEAQ    ·handlerTier2ShimStrTrimPrefix(SB), AX
+	MOVQ    AX, 1480(DI)
+
+	LEAQ    ·handlerTier2ShimStrTrimSuffix(SB), AX
+	MOVQ    AX, 1488(DI)
+
+	LEAQ    ·handlerTier2ShimStrRepeat(SB), AX
+	MOVQ    AX, 1512(DI)
+
+	LEAQ    ·handlerTier2ShimStrJoin(SB), AX
+	MOVQ    AX, 1528(DI)
+
+	LEAQ    ·handlerTier2ShimStrSplit(SB), AX
+	MOVQ    AX, 1536(DI)
+
+	LEAQ    ·handlerTier2ShimStrReplaceAll(SB), AX
+	MOVQ    AX, 1544(DI)
+
+	LEAQ    ·handlerTier2ShimMathPow(SB), AX
+	MOVQ    AX, 1552(DI)
+
+	LEAQ    ·handlerTier2ShimBuildComplex(SB), AX
+	MOVQ    AX, 632(DI)
+
+	LEAQ    ·handlerTier2ShimAddComplex(SB), AX
 	MOVQ    AX, 584(DI)
+
+	LEAQ    ·handlerTier2ShimSubComplex(SB), AX
+	MOVQ    AX, 592(DI)
+
+	LEAQ    ·handlerTier2ShimMulComplex(SB), AX
+	MOVQ    AX, 600(DI)
+
+	LEAQ    ·handlerTier2ShimDivComplex(SB), AX
+	MOVQ    AX, 608(DI)
+
+	LEAQ    ·handlerTier2ShimEqComplex(SB), AX
+	MOVQ    AX, 616(DI)
+
+	LEAQ    ·handlerTier2ShimNeComplex(SB), AX
+	MOVQ    AX, 624(DI)
+
+	LEAQ    ·handlerTier2ShimLoadComplexConst(SB), AX
+	MOVQ    AX, 440(DI)
+
+	LEAQ    ·handlerTier2ShimUnsafeString(SB), AX
+	MOVQ    AX, 1400(DI)
+
+	LEAQ    ·handlerTier2ShimUnsafeSlice(SB), AX
+	MOVQ    AX, 1408(DI)
+
+	LEAQ    ·handlerTier2ShimUnsafeAdd(SB), AX
+	MOVQ    AX, 1416(DI)
+
+	LEAQ    ·handlerTier2ShimMapGetIntInt(SB), AX
+	MOVQ    AX, 1120(DI)
+
+	LEAQ    ·handlerTier2ShimMapSetIntInt(SB), AX
+	MOVQ    AX, 1128(DI)
+
+	LEAQ    ·handlerTier2ShimMapGetStringInt(SB), AX
+	MOVQ    AX, 1136(DI)
+
+	LEAQ    ·handlerTier2ShimMapSetStringInt(SB), AX
+	MOVQ    AX, 1144(DI)
+
+	LEAQ    ·handlerTier2ShimMapGetStringString(SB), AX
+	MOVQ    AX, 1152(DI)
+
+	LEAQ    ·handlerTier2ShimMapSetStringString(SB), AX
+	MOVQ    AX, 1160(DI)
+
+	LEAQ    ·handlerTier2ShimMapGetIntString(SB), AX
+	MOVQ    AX, 1168(DI)
+
+	LEAQ    ·handlerTier2ShimMapSetIntString(SB), AX
+	MOVQ    AX, 1176(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkIntInt(SB), AX
+	MOVQ    AX, 1184(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkStringInt(SB), AX
+	MOVQ    AX, 1192(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkStringString(SB), AX
+	MOVQ    AX, 1200(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkIntString(SB), AX
+	MOVQ    AX, 1208(DI)
+
+	LEAQ    ·handlerTier2ShimMapGetIntGeneral(SB), AX
+	MOVQ    AX, 1216(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkIntGeneral(SB), AX
+	MOVQ    AX, 1224(DI)
+
+	LEAQ    ·handlerTier2ShimMapGetStringGeneral(SB), AX
+	MOVQ    AX, 1232(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkStringGeneral(SB), AX
+	MOVQ    AX, 1240(DI)
+
+	LEAQ    ·handlerTier2ShimMapSetStringGeneral(SB), AX
+	MOVQ    AX, 1248(DI)
+
+	LEAQ    ·handlerTier2ShimMapAddIntInt(SB), AX
+	MOVQ    AX, 1256(DI)
+
+	LEAQ    ·handlerTier2ShimMapAddStringInt(SB), AX
+	MOVQ    AX, 1264(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkJumpIfFalseIntInt(SB), AX
+	MOVQ    AX, 1792(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkJumpIfFalseStringInt(SB), AX
+	MOVQ    AX, 1800(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkJumpIfFalseStringString(SB), AX
+	MOVQ    AX, 1808(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkJumpIfFalseIntString(SB), AX
+	MOVQ    AX, 1816(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkJumpIfFalseIntGeneral(SB), AX
+	MOVQ    AX, 1824(DI)
+
+	LEAQ    ·handlerTier2ShimMapIndexOkJumpIfFalseStringGeneral(SB), AX
+	MOVQ    AX, 1832(DI)
+
+	LEAQ    ·handlerTier2ShimGetStructFieldGeneralT0(SB), AX
+	MOVQ    AX, 1664(DI)
+
+	LEAQ    ·handlerTier2ShimSetStructFieldGeneralT0(SB), AX
+	MOVQ    AX, 1672(DI)
+
+	LEAQ    ·handlerTier2ShimCopyStructFieldGeneralT0(SB), AX
+	MOVQ    AX, 1680(DI)
+
+	LEAQ    ·handlerTier2ShimSwapStructFieldsGeneralT0(SB), AX
+	MOVQ    AX, 1840(DI)
+
+	LEAQ    ·handlerTier2ShimGetStructFieldRawPointerT0(SB), AX
+	MOVQ    AX, 1848(DI)
+
+	LEAQ    ·handlerTier2ShimGetStructFieldIntT0(SB), AX
+	MOVQ    AX, 1600(DI)
+
+	LEAQ    ·handlerTier2ShimSetStructFieldIntT0(SB), AX
+	MOVQ    AX, 1608(DI)
+
+	LEAQ    ·handlerTier2ShimGetStructFieldUintT0(SB), AX
+	MOVQ    AX, 1616(DI)
+
+	LEAQ    ·handlerTier2ShimSetStructFieldUintT0(SB), AX
+	MOVQ    AX, 1624(DI)
+
+	LEAQ    ·handlerTier2ShimGetStructFieldFloatT0(SB), AX
+	MOVQ    AX, 1632(DI)
+
+	LEAQ    ·handlerTier2ShimSetStructFieldFloatT0(SB), AX
+	MOVQ    AX, 1640(DI)
+
+	LEAQ    ·handlerTier2ShimGetStructFieldBoolT0(SB), AX
+	MOVQ    AX, 1648(DI)
+
+	LEAQ    ·handlerTier2ShimSetStructFieldBoolT0(SB), AX
+	MOVQ    AX, 1656(DI)
+
+	LEAQ    ·handlerTier2ShimTestNilJumpFalse(SB), AX
+	MOVQ    AX, 808(DI)
+
+	LEAQ    ·handlerTier2ShimTestNilJumpTrue(SB), AX
+	MOVQ    AX, 800(DI)
 
 	RET     
 
-// func initJumpTableSSE41(table *[256]uintptr)
-//
-// Patches entries for ROUNDSD-based handlers (Floor, Ceil, Trunc).
-// Only called when the CPU supports SSE4.1.
+// initJumpTableSSE41 patches dispatch entries for ROUNDSD-based handlers (Floor, Ceil, Trunc); called only when the CPU supports SSE4.1.
 TEXT ·initJumpTableSSE41(SB), NOSPLIT, $0-8
 	MOVQ    table+0(FP), DI
 
-	LEAQ    ·handlerMathFloor(SB), AX
-	MOVQ    AX, 504(DI)
 
-	LEAQ    ·handlerMathCeil(SB), AX
-	MOVQ    AX, 512(DI)
 
-	LEAQ    ·handlerMathTrunc(SB), AX
-	MOVQ    AX, 520(DI)
 
 	RET     
 
-// func dispatchLoop(ctx *DispatchContext)
-//
-// Entry point for the ASM dispatch loop. Loads ctx into registers and
-// performs the first dispatch. Subsequent dispatches happen at the tail
-// of each handler via the DISPATCH_NEXT macro.
+// initSubOpJumpTables installs .abi0 addresses of tier-1+ ASM handlers into the sub-op jump tables, bypassing the ABIInternal wrapper that adds a per-dispatch frame.
+TEXT ·initSubOpJumpTables(SB), NOSPLIT, $0-0
+	LEAQ    ·handlerSubOpMoveInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+288(SB)
+
+	LEAQ    ·handlerSubOpMoveFloat(SB), AX
+	MOVQ    AX, ·tier1JumpTable+296(SB)
+
+	LEAQ    ·handlerSubOpMoveBool(SB), AX
+	MOVQ    AX, ·tier1JumpTable+312(SB)
+
+	LEAQ    ·handlerSubOpMoveUint(SB), AX
+	MOVQ    AX, ·tier1JumpTable+320(SB)
+
+	LEAQ    ·handlerSubOpMoveString(SB), AX
+	MOVQ    AX, ·tier1JumpTable+304(SB)
+
+	LEAQ    ·handlerJump(SB), AX
+	MOVQ    AX, ·tier1JumpTable+600(SB)
+
+	LEAQ    ·handlerLoadIntConstSmall(SB), AX
+	MOVQ    AX, ·tier1JumpTable+608(SB)
+
+	LEAQ    ·handlerLoadBool(SB), AX
+	MOVQ    AX, ·tier1JumpTable+616(SB)
+
+	LEAQ    ·handlerIncIntJumpLt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+624(SB)
+
+	LEAQ    ·handlerLenStringLtJumpFalse(SB), AX
+	MOVQ    AX, ·tier1JumpTable+632(SB)
+
+	LEAQ    ·handlerSubOpIncStructFieldInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+872(SB)
+
+	LEAQ    ·handlerSubOpDecStructFieldInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+880(SB)
+
+	LEAQ    ·handlerSubOpIncStructFieldUint(SB), AX
+	MOVQ    AX, ·tier1JumpTable+888(SB)
+
+	LEAQ    ·handlerSubOpDecStructFieldUint(SB), AX
+	MOVQ    AX, ·tier1JumpTable+896(SB)
+
+	LEAQ    ·handlerReturnInline(SB), AX
+	MOVQ    AX, ·tier2JumpTable+80(SB)
+
+	LEAQ    ·handlerSubOpTier2IncInt(SB), AX
+	MOVQ    AX, ·tier2JumpTable+8(SB)
+
+	LEAQ    ·handlerSubOpTier2DecInt(SB), AX
+	MOVQ    AX, ·tier2JumpTable+16(SB)
+
+	LEAQ    ·handlerSubOpTier2IncUint(SB), AX
+	MOVQ    AX, ·tier2JumpTable+24(SB)
+
+	LEAQ    ·handlerSubOpTier2DecUint(SB), AX
+	MOVQ    AX, ·tier2JumpTable+32(SB)
+
+	LEAQ    ·handlerSubOpLenSliceIntDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+136(SB)
+
+	LEAQ    ·handlerSubOpLenSliceFloatDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+168(SB)
+
+	LEAQ    ·handlerSubOpLenSliceStringDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+200(SB)
+
+	LEAQ    ·handlerSubOpLenSliceBoolDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+232(SB)
+
+	LEAQ    ·handlerSubOpLenSliceUintDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+264(SB)
+
+	LEAQ    ·handlerSubOpSliceGetFloatDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+152(SB)
+
+	LEAQ    ·handlerSubOpSliceSetFloatDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+160(SB)
+
+	LEAQ    ·handlerSubOpSliceGetUintDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+248(SB)
+
+	LEAQ    ·handlerSubOpSliceSetUintDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+256(SB)
+
+	LEAQ    ·handlerSubOpSliceGetBoolDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+216(SB)
+
+	LEAQ    ·handlerSubOpSliceSetBoolDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+224(SB)
+
+	LEAQ    ·handlerSubOpSliceGetStringDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+184(SB)
+
+	LEAQ    ·handlerSubOpSliceSetStringDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+192(SB)
+
+	LEAQ    ·handlerSubOpLenSliceByteDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+928(SB)
+
+	LEAQ    ·handlerSubOpSliceGetByteDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+912(SB)
+
+	LEAQ    ·handlerSubOpSliceSetByteDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+920(SB)
+
+	LEAQ    ·handlerSubOpSliceByteSlice(SB), AX
+	MOVQ    AX, ·tier1JumpTable+936(SB)
+
+	LEAQ    ·handlerSubOpRangeNextSliceByte(SB), AX
+	MOVQ    AX, ·tier1JumpTable+944(SB)
+
+	LEAQ    ·handlerSubOpRangeCheckUintJumpFalse(SB), AX
+	MOVQ    AX, ·tier1JumpTable+976(SB)
+
+	LEAQ    ·handlerSubOpMoveSliceInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1176(SB)
+
+	LEAQ    ·handlerSubOpMoveSliceFloat(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1184(SB)
+
+	LEAQ    ·handlerSubOpMoveSliceString(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1192(SB)
+
+	LEAQ    ·handlerSubOpMoveSliceBool(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1200(SB)
+
+	LEAQ    ·handlerSubOpMoveSliceUint(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1208(SB)
+
+	LEAQ    ·handlerSubOpMoveSliceByte(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1216(SB)
+
+	LEAQ    ·handlerSubOpSliceSliceIntDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1272(SB)
+
+	LEAQ    ·handlerSubOpSliceSliceFloatDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1280(SB)
+
+	LEAQ    ·handlerSubOpSliceSliceStringDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1288(SB)
+
+	LEAQ    ·handlerSubOpSliceSliceBoolDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1296(SB)
+
+	LEAQ    ·handlerSubOpSliceSliceUintDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1304(SB)
+
+	LEAQ    ·handlerSubOpAppendSliceIntDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1224(SB)
+
+	LEAQ    ·handlerSubOpAppendSliceFloatDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1232(SB)
+
+	LEAQ    ·handlerSubOpAppendSliceStringDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1240(SB)
+
+	LEAQ    ·handlerSubOpAppendSliceBoolDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1248(SB)
+
+	LEAQ    ·handlerSubOpAppendSliceUintDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1256(SB)
+
+	LEAQ    ·handlerSubOpAppendSliceByteDirect(SB), AX
+	MOVQ    AX, ·tier1JumpTable+1264(SB)
+
+	LEAQ    ·handlerSubOpRealComplex(SB), AX
+	MOVQ    AX, ·tier1JumpTable+72(SB)
+
+	LEAQ    ·handlerSubOpImagComplex(SB), AX
+	MOVQ    AX, ·tier1JumpTable+80(SB)
+
+	LEAQ    ·handlerSubOpMoveComplex(SB), AX
+	MOVQ    AX, ·tier1JumpTable+120(SB)
+
+	LEAQ    ·handlerSubOpNegComplex(SB), AX
+	MOVQ    AX, ·tier1JumpTable+112(SB)
+
+	LEAQ    ·handlerSubOpMathSin(SB), AX
+	MOVQ    AX, ·tier1JumpTable+8(SB)
+
+	LEAQ    ·handlerSubOpMathCos(SB), AX
+	MOVQ    AX, ·tier1JumpTable+16(SB)
+
+	LEAQ    ·handlerSubOpMathExp(SB), AX
+	MOVQ    AX, ·tier1JumpTable+24(SB)
+
+	LEAQ    ·handlerSubOpMathTan(SB), AX
+	MOVQ    AX, ·tier1JumpTable+32(SB)
+
+	LEAQ    ·handlerSubOpMathMod(SB), AX
+	MOVQ    AX, ·tier1JumpTable+40(SB)
+
+	LEAQ    ·handlerSubOpStrconvFormatBool(SB), AX
+	MOVQ    AX, ·tier1JumpTable+48(SB)
+
+	LEAQ    ·handlerSubOpStrconvItoa(SB), AX
+	MOVQ    AX, ·tier1JumpTable+64(SB)
+
+	LEAQ    ·handlerSubOpStrconvFormatInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+56(SB)
+
+	LEAQ    ·handlerSubOpCap(SB), AX
+	MOVQ    AX, ·tier1JumpTable+104(SB)
+
+	LEAQ    ·handlerSubOpBytesToString(SB), AX
+	MOVQ    AX, ·tier1JumpTable+88(SB)
+
+	LEAQ    ·handlerSubOpBoxSliceInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+272(SB)
+
+	LEAQ    ·handlerSubOpUnboxSliceInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+280(SB)
+
+	LEAQ    ·handlerSubOpMakeSliceInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+128(SB)
+
+	LEAQ    ·handlerSubOpMakeSliceFloat(SB), AX
+	MOVQ    AX, ·tier1JumpTable+144(SB)
+
+	LEAQ    ·handlerSubOpMakeSliceString(SB), AX
+	MOVQ    AX, ·tier1JumpTable+176(SB)
+
+	LEAQ    ·handlerSubOpMakeSliceBool(SB), AX
+	MOVQ    AX, ·tier1JumpTable+208(SB)
+
+	LEAQ    ·handlerSubOpMakeSliceUint(SB), AX
+	MOVQ    AX, ·tier1JumpTable+240(SB)
+
+	LEAQ    ·handlerSubOpMakeSliceByte(SB), AX
+	MOVQ    AX, ·tier1JumpTable+904(SB)
+
+	LEAQ    ·handlerSubOpNegInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+376(SB)
+
+	LEAQ    ·handlerSubOpNegFloat(SB), AX
+	MOVQ    AX, ·tier1JumpTable+384(SB)
+
+	LEAQ    ·handlerSubOpBitNot(SB), AX
+	MOVQ    AX, ·tier1JumpTable+392(SB)
+
+	LEAQ    ·handlerSubOpIntToFloat(SB), AX
+	MOVQ    AX, ·tier1JumpTable+408(SB)
+
+	LEAQ    ·handlerSubOpFloatToInt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+416(SB)
+
+	LEAQ    ·handlerSubOpUintToFloat(SB), AX
+	MOVQ    AX, ·tier1JumpTable+464(SB)
+
+	LEAQ    ·handlerSubOpFloatToUint(SB), AX
+	MOVQ    AX, ·tier1JumpTable+472(SB)
+
+	LEAQ    ·handlerSubOpMathSqrt(SB), AX
+	MOVQ    AX, ·tier1JumpTable+480(SB)
+
+	LEAQ    ·handlerSubOpMathAbs(SB), AX
+	MOVQ    AX, ·tier1JumpTable+488(SB)
+
+	LEAQ    ·handlerSubOpMathFloor(SB), AX
+	MOVQ    AX, ·tier1JumpTable+496(SB)
+
+	LEAQ    ·handlerSubOpMathCeil(SB), AX
+	MOVQ    AX, ·tier1JumpTable+504(SB)
+
+	LEAQ    ·handlerSubOpMathTrunc(SB), AX
+	MOVQ    AX, ·tier1JumpTable+512(SB)
+
+	LEAQ    ·handlerSubOpMathRound(SB), AX
+	MOVQ    AX, ·tier1JumpTable+520(SB)
+
+	LEAQ    ·handlerSubOpLenString(SB), AX
+	MOVQ    AX, ·tier1JumpTable+528(SB)
+
+	RET     
+
+// dispatchLoop is the ASM dispatch entry point; loads ctx into pinned registers and performs the first dispatch (subsequent dispatches happen via DISPATCH_NEXT at each handler tail).
 TEXT ·dispatchLoop(SB), NOSPLIT, $0-8
 	MOVQ    ctx+0(FP), R15
-	MOVQ    0(R15), R12
-	MOVQ    8(R15), R13
-	MOVQ    16(R15), R14
-	MOVQ    24(R15), R8
-	MOVQ    40(R15), R9
-	MOVQ    56(R15), R11
-	MOVQ    88(R15), R10
+	MOVQ    CTX_CODE_BASE(R15), R12
+	MOVQ    CTX_CODE_LEN(R15), R13
+	MOVQ    CTX_PC(R15), R14
+	MOVQ    CTX_INTS_BASE(R15), R8
+	MOVQ    CTX_FLOATS_BASE(R15), R9
+	MOVQ    CTX_INT_CONSTS_BASE(R15), R11
+	LEAQ    ·flatJumpTable(SB), R10
 	DISPATCH_NEXT()
 
-// tier2Fallback is the default handler for non-Tier-1 opcodes.
-// Un-advances pc and returns to Go with EXIT_TIER2.
-TEXT ·tier2Fallback(SB), NOSPLIT, $0
+// tier2Fallback is the default handler for non-tier-1 opcodes; un-advances pc and returns to Go with EXIT_TIER2.
+TEXT ·tier2Fallback(SB), NOSPLIT|NOFRAME, $0
 	DECQ    R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_TIER2, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_TIER2, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     
 
 // handlerCallExit exits to Go with EXIT_CALL for dedicated OpCall handling.
-TEXT ·handlerCallExit(SB), NOSPLIT, $0
+TEXT ·handlerCallExit(SB), NOSPLIT|NOFRAME, $0
 	DECQ    R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_CALL, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_CALL, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     
 
 // handlerReturnExit exits to Go with EXIT_RETURN for dedicated OpReturn handling.
-TEXT ·handlerReturnExit(SB), NOSPLIT, $0
+TEXT ·handlerReturnExit(SB), NOSPLIT|NOFRAME, $0
 	DECQ    R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_RETURN, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_RETURN, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     
 
 // handlerReturnVoidExit exits to Go with EXIT_RETURN_VOID for dedicated OpReturnVoid handling.
-TEXT ·handlerReturnVoidExit(SB), NOSPLIT, $0
+TEXT ·handlerReturnVoidExit(SB), NOSPLIT|NOFRAME, $0
 	DECQ    R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_RETURN_VOID, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_RETURN_VOID, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     
 
 // handlerTailCallExit exits to Go with EXIT_TAIL_CALL for dedicated OpTailCall handling.
-TEXT ·handlerTailCallExit(SB), NOSPLIT, $0
+TEXT ·handlerTailCallExit(SB), NOSPLIT|NOFRAME, $0
 	DECQ    R14
-	MOVQ    R14, 16(R15)
-	MOVQ    $EXIT_TAIL_CALL, 96(R15)
-	MOVQ    R14, 104(R15)
+	MOVQ    R14, CTX_PC(R15)
+	MOVQ    $EXIT_TAIL_CALL, CTX_EXIT_REASON(R15)
+	MOVQ    R14, CTX_EXIT_PC(R15)
 	RET     

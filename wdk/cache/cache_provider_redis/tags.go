@@ -34,9 +34,9 @@ const (
 	keyTagsPrefix = "keytags:"
 )
 
-// addTagsToKey associates a key with a set of tags in Redis using Sets. It
-// creates both forward (tag -> keys) and reverse (key -> tags) mappings using a
-// pipeline for efficiency.
+// addTagsToKey associates a key with a set of tags in Redis using Sets. It creates both
+// forward (tag -> keys) and reverse (key -> tags) mappings using a pipeline for
+// efficiency.
 //
 // Takes client (*redis.Client) which provides the Redis connection.
 // Takes key (string) which is the cache key to associate with tags.
@@ -65,8 +65,8 @@ func addTagsToKey(ctx context.Context, client *redis.Client, namespace string, k
 	return nil
 }
 
-// getKeysByTags retrieves all unique keys associated with the given tags.
-// It uses SUNION for an efficient union operation on the server side.
+// getKeysByTags retrieves all unique keys associated with the given tags. It uses SUNION
+// for an efficient union operation on the server side.
 //
 // Takes client (*redis.Client) which provides the Redis connection.
 // Takes tags ([]string) which specifies the tags to look up.
@@ -91,9 +91,8 @@ func getKeysByTags(ctx context.Context, client *redis.Client, namespace string, 
 	return keys, nil
 }
 
-// performTagInvalidation removes all keys associated with the given tags and
-// the tags themselves. This is an atomic operation within Redis using a
-// pipeline.
+// performTagInvalidation removes all keys associated with the given tags and the tags
+// themselves. This is an atomic operation within Redis using a pipeline.
 //
 // Takes client (*redis.Client) which provides the Redis connection.
 // Takes tags ([]string) which specifies the tags whose keys should be removed.
@@ -136,8 +135,8 @@ func performTagInvalidation(ctx context.Context, client *redis.Client, namespace
 	return len(keys), nil
 }
 
-// removeKeyFromTags removes a key from all its associated tag sets.
-// This prevents memory leaks when keys are deleted directly via Invalidate().
+// removeKeyFromTags removes a key from all its associated tag sets. This prevents memory
+// leaks when keys are deleted directly via Invalidate().
 //
 // Takes client (*redis.Client) which provides the Redis connection.
 // Takes key (string) which is the cache key to remove from tag sets.

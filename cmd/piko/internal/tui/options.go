@@ -28,8 +28,8 @@ import (
 // Option configures the TUI by modifying its configuration and providers.
 type Option func(*tui_dto.Config, *tui_domain.Providers)
 
-// WithConfig applies settings from a TUI Config (typically loaded via
-// LoadConfig from tui.yaml or PIKO_TUI_* environment variables).
+// WithConfig applies settings from a TUI Config (typically loaded via LoadConfig from
+// tui.yaml or PIKO_TUI_* environment variables).
 //
 // Takes tuiConfig (Config) which provides the Piko configuration settings.
 //
@@ -41,10 +41,8 @@ type Option func(*tui_dto.Config, *tui_domain.Providers)
 //   - Theme -> Theme
 //   - Title -> Title
 //
-// Example:
-// // Load from Piko config
-// tuiConfig := loadPikoConfig() // your config loading logic
-// t, err := tui.New(
+// Example: // Load from Piko config tuiConfig := loadPikoConfig() // your config loading
+// logic t, err := tui.New(
 //
 //	tui.WithConfig(tuiConfig.TUI),
 //	tui.WithMonitoringEndpoint("localhost:9091"),
@@ -69,8 +67,8 @@ func WithConfig(tuiConfig Config) Option {
 	}
 }
 
-// WithPikoEndpoint sets the base URL for the Piko server.
-// This is the main address where the Piko application is running.
+// WithPikoEndpoint sets the base URL for the Piko server. This is the main address where
+// the Piko application is running.
 //
 // Takes url (string) which is the base URL (e.g. "http://localhost:8080").
 //
@@ -83,9 +81,9 @@ func WithPikoEndpoint(url string) Option {
 
 // WithMonitoringEndpoint configures the gRPC monitoring server endpoint.
 //
-// When set, the TUI uses gRPC to fetch all monitoring data instead of
-// direct database access or HTTP endpoints. This enables remote monitoring
-// via kubectl port-forward and makes the TUI database-agnostic.
+// When set, the TUI uses gRPC to fetch all monitoring data instead of direct database
+// access or HTTP endpoints. This enables remote monitoring via kubectl port-forward and
+// makes the TUI database-agnostic.
 //
 // The gRPC monitoring server provides:
 //   - Resource data (orchestrator tasks, registry artefacts)
@@ -93,8 +91,7 @@ func WithPikoEndpoint(url string) Option {
 //   - Health status
 //   - File descriptor information
 //
-// Takes address (string) which is the gRPC server address,
-// such as "localhost:9091".
+// Takes address (string) which is the gRPC server address, such as "localhost:9091".
 //
 // Returns Option which configures the TUI to use gRPC monitoring.
 func WithMonitoringEndpoint(address string) Option {
@@ -103,8 +100,8 @@ func WithMonitoringEndpoint(address string) Option {
 	}
 }
 
-// WithPrometheus configures an external Prometheus server for metrics,
-// queried alongside PikoEndpoint when both are set.
+// WithPrometheus configures an external Prometheus server for metrics, queried alongside
+// PikoEndpoint when both are set.
 //
 // Takes url (string) which is the Prometheus URL (e.g., "http://localhost:9090").
 //
@@ -128,8 +125,8 @@ func WithJaeger(url string) Option {
 	}
 }
 
-// WithRefreshInterval sets the interval between data refreshes.
-// Lower values give more frequent updates but increase system load.
+// WithRefreshInterval sets the interval between data refreshes. Lower values give more
+// frequent updates but increase system load.
 //
 // Takes d (time.Duration) which is the refresh interval (default: 2s).
 //
@@ -140,8 +137,8 @@ func WithRefreshInterval(d time.Duration) Option {
 	}
 }
 
-// WithTheme sets the UI theme for the terminal interface.
-// Available themes: "default" (256-colour), "minimal" (16-colour).
+// WithTheme sets the UI theme for the terminal interface. Available themes: "default"
+// (256-colour), "minimal" (16-colour).
 //
 // Takes theme (string) which specifies the theme name to use.
 //
@@ -163,8 +160,8 @@ func WithTitle(title string) Option {
 	}
 }
 
-// WithPanel adds a custom panel to the TUI.
-// Custom panels appear after the built-in panels.
+// WithPanel adds a custom panel to the TUI. Custom panels appear after the built-in
+// panels.
 //
 // Takes p (tui_domain.Panel) which is the panel to add.
 //
@@ -190,8 +187,7 @@ func WithMetricsProvider(p tui_domain.MetricsProvider) Option {
 //
 // Takes p (tui_domain.TracesProvider) which is the provider to add.
 //
-// Returns Option which configures the providers to include the given traces
-// provider.
+// Returns Option which configures the providers to include the given traces provider.
 func WithTracesProvider(p tui_domain.TracesProvider) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.Traces = append(providers.Traces, p)
@@ -224,8 +220,7 @@ func WithHealthProvider(p tui_domain.HealthProvider) Option {
 //
 // Takes p (tui_domain.FDsProvider) which is the provider to add.
 //
-// Returns Option which adds the provider to the list of file descriptor
-// providers.
+// Returns Option which adds the provider to the list of file descriptor providers.
 func WithFDsProvider(p tui_domain.FDsProvider) Option {
 	return func(_ *tui_dto.Config, providers *tui_domain.Providers) {
 		providers.FDs = append(providers.FDs, p)

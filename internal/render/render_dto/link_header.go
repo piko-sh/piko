@@ -18,9 +18,8 @@
 
 package render_dto
 
-// LinkHeader represents an HTTP Link header for resource hints such as preload,
-// prefetch, or preconnect. These headers enable browsers to optimise resource
-// loading.
+// LinkHeader represents an HTTP Link header for resource hints such as preload, prefetch,
+// or preconnect. These headers enable browsers to optimise resource loading.
 type LinkHeader struct {
 	// URL is the address of the linked resource.
 	URL string
@@ -34,8 +33,8 @@ type LinkHeader struct {
 	// Type specifies the MIME type hint for the resource.
 	Type string
 
-	// CrossOrigin specifies the CORS setting for the resource request. Valid
-	// values are "anonymous" or "use-credentials"; any other non-empty value
-	// outputs the crossorigin attribute without a value.
+	// CrossOrigin specifies the CORS setting for the resource request. Valid values are
+	// "anonymous" or "use-credentials"; any other non-empty value outputs the crossorigin
+	// attribute without a value.
 	CrossOrigin string
 }

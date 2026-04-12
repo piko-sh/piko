@@ -23,38 +23,36 @@ import (
 	"piko.sh/piko/wdk/cache"
 )
 
-// ErrGobInputTooLarge is surfaced by Unmarshal when a gob payload exceeds
-// the configured cap.
-//
-// Use errors.Is to detect this condition. Re-exported from the internal
-// adapter package.
-var ErrGobInputTooLarge = encoder_gob.ErrGobInputTooLarge
+var (
+	// ErrGobInputTooLarge is surfaced by Unmarshal when a gob payload exceeds the configured
+	// cap.
+	//
+	// Use errors.Is to detect this condition. Re-exported from the internal adapter package.
+	ErrGobInputTooLarge = encoder_gob.ErrGobInputTooLarge
+)
 
-// SetMaxGobInputBytes overrides the maximum byte size accepted when decoding
-// a gob payload. A value of zero or below disables the cap, which is not
-// recommended for attacker-influenced cache contents.
+// SetMaxGobInputBytes overrides the maximum byte size accepted when decoding a gob
+// payload. A value of zero or below disables the cap, which is not recommended for
+// attacker-influenced cache contents.
 //
 // Takes maxBytes (int64) which is the new cap in bytes.
 func SetMaxGobInputBytes(maxBytes int64) {
 	encoder_gob.SetMaxGobInputBytes(maxBytes)
 }
 
-// MaxGobInputBytes returns the active byte-size cap enforced when decoding
-// gob payloads.
+// MaxGobInputBytes returns the active byte-size cap enforced when decoding gob payloads.
 //
-// Returns int64 which is the current cap; a value of zero indicates no cap
-// is enforced.
+// Returns int64 which is the current cap; a value of zero indicates no cap is enforced.
 func MaxGobInputBytes() int64 {
 	return encoder_gob.MaxGobInputBytes()
 }
 
 // New creates a Gob encoder for any given type V.
 //
-// Decoding enforces a configurable input-size cap (see SetMaxGobInputBytes)
-// so a malicious or corrupt gob stream cannot trigger unbounded allocations.
+// Decoding enforces a configurable input-size cap (see SetMaxGobInputBytes) so a
+// malicious or corrupt gob stream cannot trigger unbounded allocations.
 //
-// Returns EncoderPort[V] which handles Gob encoding and decoding for the
-// given type.
+// Returns EncoderPort[V] which handles Gob encoding and decoding for the given type.
 //
 // Example:
 //

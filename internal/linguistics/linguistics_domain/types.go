@@ -25,13 +25,12 @@ const (
 	// DefaultMaxTokenLength is the longest token length to process.
 	DefaultMaxTokenLength = 50
 
-	// DefaultPhoneticCodeLength is the standard length of codes that the phonetic
-	// encoder produces.
+	// DefaultPhoneticCodeLength is the standard length of codes that the phonetic encoder
+	// produces.
 	DefaultPhoneticCodeLength = 4
 )
 
-// Token represents a single analysed token from text with its various forms
-// and position.
+// Token represents a single analysed token from text with its various forms and position.
 type Token struct {
 	// Original is the token as it appeared in the source text.
 	Original string
@@ -39,16 +38,16 @@ type Token struct {
 	// Normalised is the lowercase form with accents and special marks removed.
 	Normalised string
 
-	// Stemmed is the root form of the word (e.g., "running" becomes "run").
-	// Only populated when using a stemmer.
+	// Stemmed is the root form of the word (e.g., "running" becomes "run"). Only populated
+	// when using a stemmer.
 	Stemmed string
 
-	// Phonetic is the Double Metaphone encoding of the token.
-	// Only set when phonetic encoding is enabled.
+	// Phonetic is the Double Metaphone encoding of the token. Only set when phonetic
+	// encoding is enabled.
 	Phonetic string
 
-	// Position is the offset of this token in the original text, measured in
-	// tokens rather than bytes.
+	// Position is the offset of this token in the original text, measured in tokens rather
+	// than bytes.
 	Position int
 
 	// ByteOffset is the starting byte position in the original text.
@@ -62,32 +61,30 @@ type Token struct {
 type AnalysisMode int
 
 const (
-	// AnalysisModeBasic performs only tokenisation and normalisation. This is the
-	// fastest option, suitable for exact and prefix matching.
+	// AnalysisModeBasic performs only tokenisation and normalisation. This is the fastest
+	// option, suitable for exact and prefix matching.
 	AnalysisModeBasic AnalysisMode = iota
 
-	// AnalysisModeFast performs tokenisation, normalisation, and stop word
-	// filtering. Good balance of performance and quality for most use cases.
+	// AnalysisModeFast performs tokenisation, normalisation, and stop word filtering. Good
+	// balance of performance and quality for most use cases.
 	AnalysisModeFast
 
-	// AnalysisModeSmart performs full linguistic analysis including stemming and
-	// phonetics. Best for fuzzy matching and handling misspellings.
+	// AnalysisModeSmart performs full linguistic analysis including stemming and phonetics.
+	// Best for fuzzy matching and handling misspellings.
 	AnalysisModeSmart
 )
 
-// AnalyserConfig configures the text analysis pipeline.
-// Fields ordered for optimal memory alignment (larger types first).
+// AnalyserConfig configures the text analysis pipeline. Fields ordered for optimal memory
+// alignment (larger types first).
 type AnalyserConfig struct {
-	// StopWords is a set of words to filter out (e.g., "the", "and", "is").
-	// Only used in Fast and Smart modes.
+	// StopWords is a set of words to filter out (e.g., "the", "and", "is"). Only used in
+	// Fast and Smart modes.
 	StopWords map[string]bool
 
-	// Language specifies the language for stemming, defaulting
-	// to "english".
+	// Language specifies the language for stemming, defaulting to "english".
 	Language string
 
-	// MinTokenLength filters out tokens shorter than this value; 0 means no
-	// minimum.
+	// MinTokenLength filters out tokens shorter than this value; 0 means no minimum.
 	MinTokenLength int
 
 	// MaxTokenLength sets the maximum length for tokens; 0 means no limit.
@@ -107,13 +104,12 @@ func DefaultConfig() AnalyserConfig {
 	return DefaultConfigForLanguage(LanguageEnglish)
 }
 
-// DefaultConfigForLanguage returns a default configuration for a given
-// language. The stop words are set based on the language code.
+// DefaultConfigForLanguage returns a default configuration for a given language. The stop
+// words are set based on the language code.
 //
 // Takes language (string) which specifies the language code for the analyser.
 //
-// Returns AnalyserConfig which contains the default settings for the given
-// language.
+// Returns AnalyserConfig which contains the default settings for the given language.
 func DefaultConfigForLanguage(language string) AnalyserConfig {
 	language = ValidateLanguage(language)
 
@@ -127,15 +123,15 @@ func DefaultConfigForLanguage(language string) AnalyserConfig {
 	}
 }
 
-// DefaultStopWords returns the default stop words for the specified language.
-// It first tries the builtin stop words registry, then falls back to hardcoded
-// stop words for backward compatibility.
+// DefaultStopWords returns the default stop words for the specified language. It first
+// tries the builtin stop words registry, then falls back to hardcoded stop words for
+// backward compatibility.
 //
-// Takes language (string) which specifies the language code
-// (e.g. "english", "spanish", "french", "german").
+// Takes language (string) which specifies the language code (e.g. "english", "spanish",
+// "french", "german").
 //
-// Returns map[string]bool which contains the stop words as keys with true
-// values for quick lookup.
+// Returns map[string]bool which contains the stop words as keys with true values for
+// quick lookup.
 func DefaultStopWords(language string) map[string]bool {
 	provider := CreateStopWordsProvider("builtin")
 	stopWords := provider.GetStopWords(language)
@@ -146,13 +142,13 @@ func DefaultStopWords(language string) map[string]bool {
 	return defaultStopWordsFallback(language)
 }
 
-// defaultStopWordsFallback provides hardcoded stop words for backward
-// compatibility when no stop words adapter is imported.
+// defaultStopWordsFallback provides hardcoded stop words for backward compatibility when
+// no stop words adapter is imported.
 //
 // Takes language (string) which specifies the language for stop words.
 //
-// Returns map[string]bool which contains the stop words for the given
-// language, defaulting to English if the language is not supported.
+// Returns map[string]bool which contains the stop words for the given language,
+// defaulting to English if the language is not supported.
 func defaultStopWordsFallback(language string) map[string]bool {
 	switch language {
 	case "spanish":
@@ -210,8 +206,8 @@ func defaultEnglishStopWords() map[string]bool {
 
 // defaultSpanishStopWords returns hardcoded Spanish stop words.
 //
-// Returns map[string]bool which contains the set of common Spanish words to
-// filter from text.
+// Returns map[string]bool which contains the set of common Spanish words to filter from
+// text.
 func defaultSpanishStopWords() map[string]bool {
 	return makeStopWordSet([]string{
 		"el", "la", "los", "las", "un", "una", "unos", "unas",
@@ -258,8 +254,7 @@ func defaultRussianStopWords() map[string]bool {
 
 // defaultDutchStopWords returns hardcoded Dutch stop words.
 //
-// Returns map[string]bool which contains Dutch stop words as keys for fast
-// lookup.
+// Returns map[string]bool which contains Dutch stop words as keys for fast lookup.
 func defaultDutchStopWords() map[string]bool {
 	return makeStopWordSet([]string{
 		"de", "het", "een",
@@ -307,8 +302,7 @@ func defaultGermanStopWords() map[string]bool {
 
 // defaultSwedishStopWords returns hardcoded Swedish stop words.
 //
-// Returns map[string]bool which contains the stop words as keys for fast
-// lookup.
+// Returns map[string]bool which contains the stop words as keys for fast lookup.
 func defaultSwedishStopWords() map[string]bool {
 	return makeStopWordSet([]string{
 		"en", "ett", "den", "det", "de",

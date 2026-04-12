@@ -29,42 +29,38 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// CacheTransformerPort defines the interface for cache value transformers.
-// Unlike storage transformers which work with io.Reader streams, cache
-// transformers work directly with byte slices for efficiency with in-memory
-// cache values.
+// CacheTransformerPort defines the interface for cache value transformers. Unlike storage
+// transformers which work with io.Reader streams, cache transformers work directly with
+// byte slices for efficiency with in-memory cache values.
 type CacheTransformerPort interface {
-	// Name returns the unique name of this transformer (e.g. "zstd",
-	// "crypto-service").
+	// Name returns the unique name of this transformer (e.g. "zstd", "crypto-service").
 	Name() string
 
-	// Type returns the category of this transformer, such as compression,
-	// encryption, or custom.
+	// Type returns the category of this transformer, such as compression, encryption, or
+	// custom.
 	Type() cache_dto.TransformerType
 
 	// Priority returns the order in which this processor runs.
 	//
-	// Returns int where lower numbers run first during Set operations.
-	// Suggested values: Compression 100-199, Encryption 200-299, Custom 300+.
+	// Returns int where lower numbers run first during Set operations. Suggested values:
+	// Compression 100-199, Encryption 200-299, Custom 300+.
 	Priority() int
 
-	// Transform applies the forward transformation such as compress or encrypt.
-	// It is used during Set operations.
+	// Transform applies the forward transformation such as compress or encrypt. It is used
+	// during Set operations.
 	//
 	// Takes input ([]byte) which is the data to transform.
-	// Takes options (any) which is sourced from
-	// TransformConfig.TransformerOptions[Name()].
+	// Takes options (any) which is sourced from TransformConfig.TransformerOptions[Name()].
 	//
 	// Returns []byte which is the transformed data.
 	// Returns error when the transformation fails.
 	Transform(ctx context.Context, input []byte, options any) ([]byte, error)
 
-	// Reverse applies the reverse transformation such as decompress or decrypt.
-	// It is used during Get operations.
+	// Reverse applies the reverse transformation such as decompress or decrypt. It is used
+	// during Get operations.
 	//
 	// Takes input ([]byte) which is the data to transform.
-	// Takes options (any) which is sourced from
-	// TransformConfig.TransformerOptions[Name()].
+	// Takes options (any) which is sourced from TransformConfig.TransformerOptions[Name()].
 	//
 	// Returns []byte which is the transformed data.
 	// Returns error when the reverse transformation fails.
@@ -88,12 +84,12 @@ func NewTransformerRegistry() *TransformerRegistry {
 
 // Register adds a new transformer to the registry.
 //
-// Takes ctx (context.Context) which carries logging context for trace and
-// request ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace and request ID
+// propagation.
 // Takes transformer (CacheTransformerPort) which is the transformer to add.
 //
-// Returns error when transformer is nil, has an empty name, or a transformer
-// with the same name is already registered.
+// Returns error when transformer is nil, has an empty name, or a transformer with the
+// same name is already registered.
 func (r *TransformerRegistry) Register(ctx context.Context, transformer CacheTransformerPort) error {
 	if transformer == nil {
 		return errTransformerNil
@@ -147,8 +143,8 @@ func (r *TransformerRegistry) GetNames() []string {
 	return names
 }
 
-// TransformerChain represents an ordered sequence of transformers to be applied
-// to cache values.
+// TransformerChain represents an ordered sequence of transformers to be applied to cache
+// values.
 type TransformerChain struct {
 	// config holds the options for each transformer in the chain.
 	config *cache_dto.TransformConfig
@@ -157,16 +153,12 @@ type TransformerChain struct {
 	transformers []CacheTransformerPort
 }
 
-// NewTransformerChain creates and sorts a new transformer chain based on a
-// configuration.
+// NewTransformerChain creates and sorts a new transformer chain based on a configuration.
 //
-// Takes registry (*TransformerRegistry) which provides the available
-// transformers.
-// Takes config (*cache_dto.TransformConfig) which specifies which transformers
-// to enable.
+// Takes registry (*TransformerRegistry) which provides the available transformers.
+// Takes config (*cache_dto.TransformConfig) which specifies which transformers to enable.
 //
-// Returns *TransformerChain which contains the sorted transformers ready for
-// use.
+// Returns *TransformerChain which contains the sorted transformers ready for use.
 // Returns error when the registry is nil or a transformer cannot be found.
 func NewTransformerChain(registry *TransformerRegistry, config *cache_dto.TransformConfig) (*TransformerChain, error) {
 	if registry == nil {
@@ -203,8 +195,7 @@ func (c *TransformerChain) IsEmpty() bool {
 	return len(c.transformers) == 0
 }
 
-// GetTransformerNames returns the ordered list of transformer names in this
-// chain.
+// GetTransformerNames returns the ordered list of transformer names in this chain.
 //
 // Returns []string which contains the names in execution order.
 func (c *TransformerChain) GetTransformerNames() []string {
@@ -215,11 +206,10 @@ func (c *TransformerChain) GetTransformerNames() []string {
 	return names
 }
 
-// Transform applies all transformers in forward priority order for Set
-// operations.
+// Transform applies all transformers in forward priority order for Set operations.
 //
-// Data flows: original -> transformer[0] -> transformer[1] -> ... -> storage.
-// If the chain is empty, the input is returned unchanged.
+// Data flows: original -> transformer[0] -> transformer[1] -> ... -> storage. If the
+// chain is empty, the input is returned unchanged.
 //
 // Takes input ([]byte) which is the data to transform.
 //
@@ -249,9 +239,8 @@ func (c *TransformerChain) Transform(ctx context.Context, input []byte) ([]byte,
 	return current, nil
 }
 
-// Reverse applies all transformers in reverse priority order for Get
-// operations. Data flows from storage through each transformer back to the
-// original format.
+// Reverse applies all transformers in reverse priority order for Get operations. Data
+// flows from storage through each transformer back to the original format.
 //
 // Takes input ([]byte) which contains the data to reverse transform.
 //
@@ -265,8 +254,7 @@ func (c *TransformerChain) Reverse(ctx context.Context, input []byte) ([]byte, e
 	ctx, l := logger_domain.From(ctx, log)
 
 	current := input
-	for i := len(c.transformers) - 1; i >= 0; i-- {
-		transformer := c.transformers[i]
+	for _, transformer := range slices.Backward(c.transformers) {
 		options := c.config.TransformerOptions[transformer.Name()]
 		reversed, err := transformer.Reverse(ctx, current, options)
 		if err != nil {
@@ -282,15 +270,15 @@ func (c *TransformerChain) Reverse(ctx context.Context, input []byte) ([]byte, e
 	return current, nil
 }
 
-// TransformedValue wraps a cache value with transformation metadata.
-// This enables automatic reversal on Get operations even when the transform
-// configuration changes between Set and Get.
+// TransformedValue wraps a cache value with transformation metadata. This enables
+// automatic reversal on Get operations even when the transform configuration changes
+// between Set and Get.
 type TransformedValue struct {
 	// Data holds the transformed bytes after compression and encryption.
 	Data []byte `json:"data"`
 
-	// Transformers lists the names of transformers that were applied, in order.
-	// This list is used to reverse the changes when data is retrieved.
+	// Transformers lists the names of transformers that were applied, in order. This list is
+	// used to reverse the changes when data is retrieved.
 	Transformers []string `json:"transformers"`
 
 	// Version is the schema version; allows for future format changes.
@@ -302,8 +290,8 @@ type TransformedValue struct {
 // Takes data ([]byte) which contains the raw value to wrap.
 // Takes transformers ([]string) which lists the transformations to apply.
 //
-// Returns *TransformedValue which holds the data with its transformation
-// metadata and version set to 1.
+// Returns *TransformedValue which holds the data with its transformation metadata and
+// version set to 1.
 func NewTransformedValue(data []byte, transformers []string) *TransformedValue {
 	return &TransformedValue{
 		Data:         data,
@@ -334,9 +322,8 @@ func UnmarshalTransformedValue(data []byte) (*TransformedValue, error) {
 	return &tv, nil
 }
 
-// IsTransformedValue checks if the given bytes represent a TransformedValue
-// by attempting to unmarshal it and checking for the presence of a positive
-// version field.
+// IsTransformedValue checks if the given bytes represent a TransformedValue by attempting
+// to unmarshal it and checking for the presence of a positive version field.
 //
 // Takes data ([]byte) which contains the JSON data to check.
 //

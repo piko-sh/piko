@@ -25,6 +25,10 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseCTEList parses a WITH ... clause and returns the CTE definitions.
+//
+// Returns []querier_dto.RawCTEDefinition which lists the parsed CTEs in declared order.
+// Returns error when an individual CTE fails to parse.
 func (p *parser) parseCTEList() ([]querier_dto.RawCTEDefinition, error) {
 	p.mustKeyword(keywordWITH)
 	isRecursive := p.matchKeyword("RECURSIVE")
@@ -47,6 +51,13 @@ func (p *parser) parseCTEList() ([]querier_dto.RawCTEDefinition, error) {
 	return definitions, nil
 }
 
+// parseSingleCTEDefinition parses one CTE definition within a WITH clause.
+//
+// Takes isRecursive (bool) which records whether the enclosing WITH used the RECURSIVE
+// keyword.
+//
+// Returns querier_dto.RawCTEDefinition which describes the parsed CTE.
+// Returns error when parsing the name, columns, or body fails.
 func (p *parser) parseSingleCTEDefinition(isRecursive bool) (querier_dto.RawCTEDefinition, error) {
 	cteName, err := p.parseIdentifierOrKeyword()
 	if err != nil {
@@ -86,6 +97,8 @@ func (p *parser) parseSingleCTEDefinition(isRecursive bool) (querier_dto.RawCTED
 	return definition, nil
 }
 
+// skipMaterialisationHint consumes an optional MATERIALIZED or NOT MATERIALIZED hint
+// between AS and the CTE body.
 func (p *parser) skipMaterialisationHint() {
 	p.matchKeyword("MATERIALIZED")
 	if p.matchKeyword(keywordNOT) {
@@ -93,6 +106,15 @@ func (p *parser) skipMaterialisationHint() {
 	}
 }
 
+// analyseCTEBody analyses a CTE body's tokens, dispatching to SELECT, VALUES, or DML
+// analysis as appropriate.
+//
+// Takes cteTokens ([]token) which are the parenthesised tokens of the CTE body.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the body's structural analysis, or nil
+// when analysis failed.
+// Returns *parser which is the child parser used so its parameter state can be merged by
+// the caller.
 func (p *parser) analyseCTEBody(cteTokens []token) (*querier_dto.RawQueryAnalysis, *parser) {
 	cteParser := newParser(cteTokens)
 	var cteAnalysis *querier_dto.RawQueryAnalysis
@@ -114,6 +136,12 @@ func (p *parser) analyseCTEBody(cteTokens []token) (*querier_dto.RawQueryAnalysi
 	return cteAnalysis, cteParser
 }
 
+// analyseCTEBodyDML analyses a CTE body that begins with INSERT, UPDATE, or DELETE.
+//
+// Takes cteParser (*parser) which is the parser positioned at the CTE body's first token.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the body's analysis.
+// Returns error when the underlying DML analysis fails.
 func (*parser) analyseCTEBodyDML(cteParser *parser) (*querier_dto.RawQueryAnalysis, error) {
 	switch {
 	case cteParser.isKeyword("INSERT"):
@@ -125,6 +153,11 @@ func (*parser) analyseCTEBodyDML(cteParser *parser) (*querier_dto.RawQueryAnalys
 	}
 }
 
+// parseCTEColumnNames parses the optional column list preceding AS in a CTE definition.
+//
+// Returns []string which lists the parsed column names, or nil when no column list
+// precedes AS.
+// Returns error when parsing an individual identifier fails.
 func (p *parser) parseCTEColumnNames() ([]string, error) {
 	if p.current().kind != tokenLeftParen || p.isKeyword(keywordAS) {
 		return nil, nil
@@ -135,6 +168,13 @@ func (p *parser) parseCTEColumnNames() ([]string, error) {
 	return p.parseColumnList()
 }
 
+// populateCTEDefinition copies the body analysis and explicit column names onto a CTE
+// definition.
+//
+// Takes definition (*querier_dto.RawCTEDefinition) which is the CTE record to populate.
+// Takes analysis (*querier_dto.RawQueryAnalysis) which provides the body's output
+// columns, from-tables, and joins.
+// Takes columnNames ([]string) which optionally overrides the body's output column names.
 func (*parser) populateCTEDefinition(
 	definition *querier_dto.RawCTEDefinition,
 	analysis *querier_dto.RawQueryAnalysis,
@@ -158,6 +198,11 @@ func (*parser) populateCTEDefinition(
 	definition.CompoundBranches = analysis.CompoundBranches
 }
 
+// peekForAS looks ahead past a balanced parenthesis run to detect whether a CTE column
+// list precedes AS rather than the body.
+//
+// Returns bool which is true when the current parenthesis run is the CTE column list,
+// false when it is the body.
 func (p *parser) peekForAS() bool {
 	saved := p.position
 	depth := 0
@@ -184,6 +229,11 @@ func (p *parser) peekForAS() bool {
 	return true
 }
 
+// parseColumnList parses a parenthesised comma-separated list of column identifiers.
+//
+// Returns []string which lists the parsed names in declared order.
+// Returns error when the opening parenthesis is missing or an identifier cannot be
+// parsed.
 func (p *parser) parseColumnList() ([]string, error) {
 	if p.current().kind != tokenLeftParen {
 		return nil, fmt.Errorf("expected '(' at position %d", p.current().position)
@@ -210,6 +260,10 @@ func (p *parser) parseColumnList() ([]string, error) {
 	return names, nil
 }
 
+// parseOutputColumns parses the SELECT or RETURNING projection list.
+//
+// Returns []querier_dto.RawOutputColumn which lists the parsed columns in declared order.
+// Returns error when an individual column fails to parse.
 func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 	var columns []querier_dto.RawOutputColumn
 
@@ -229,6 +283,11 @@ func (p *parser) parseOutputColumns() ([]querier_dto.RawOutputColumn, error) {
 	return columns, nil
 }
 
+// parseOneOutputColumn parses a single projection list entry, handling star, qualified
+// star, expression, and alias forms.
+//
+// Returns querier_dto.RawOutputColumn which describes the parsed entry.
+// Returns error when parsing the optional alias fails.
 func (p *parser) parseOneOutputColumn() (querier_dto.RawOutputColumn, error) {
 	if p.current().kind == tokenStar {
 		p.advance()
@@ -256,6 +315,13 @@ func (p *parser) parseOneOutputColumn() (querier_dto.RawOutputColumn, error) {
 	return column, nil
 }
 
+// parseOutputColumnAlias parses an AS alias or bare identifier alias for an output column
+// and writes it onto column.
+//
+// Takes column (*querier_dto.RawOutputColumn) which is the column record to update with
+// the alias.
+//
+// Returns error when parsing an AS alias identifier fails.
 func (p *parser) parseOutputColumnAlias(column *querier_dto.RawOutputColumn) error {
 	if p.matchKeyword(keywordAS) {
 		alias, aliasErr := p.parseIdentifierOrKeyword()
@@ -271,10 +337,20 @@ func (p *parser) parseOutputColumnAlias(column *querier_dto.RawOutputColumn) err
 	return nil
 }
 
+// parseReturningClause parses the projection list of a RETURNING clause.
+//
+// Returns []querier_dto.RawOutputColumn which lists the parsed columns in declared order.
+// Returns error when an individual column fails to parse.
 func (p *parser) parseReturningClause() ([]querier_dto.RawOutputColumn, error) {
 	return p.parseOutputColumns()
 }
 
+// expressionToOutputColumn copies attributes from an expression into a raw output column,
+// recognising column references and function calls.
+//
+// Takes expression (querier_dto.Expression) which is the parsed projection expression.
+// Takes column (*querier_dto.RawOutputColumn) which receives the projected name,
+// expression, and qualifiers.
 func (*parser) expressionToOutputColumn(expression querier_dto.Expression, column *querier_dto.RawOutputColumn) {
 	switch expr := expression.(type) {
 	case *querier_dto.ColumnRefExpression:
@@ -289,11 +365,22 @@ func (*parser) expressionToOutputColumn(expression querier_dto.Expression, colum
 	}
 }
 
+// isSelectTerminator reports whether the current token is a keyword that ends a SELECT
+// projection or table source.
+//
+// Returns bool which is true when the current keyword terminates a SELECT sub-clause.
 func (p *parser) isSelectTerminator() bool {
 	return p.isAnyKeyword(keywordFROM, keywordWHERE, keywordGROUP, keywordHAVING, keywordORDER, keywordLIMIT, keywordOFFSET,
 		keywordFETCH, keywordFOR, keywordUNION, keywordINTERSECT, keywordEXCEPT, keywordON, keywordRETURNING, "INTO", "WINDOW")
 }
 
+// parseFromClause parses a FROM clause, including comma-separated tables and explicit
+// JOIN clauses.
+//
+// Returns []querier_dto.TableReference which lists the comma-joined base tables in
+// declared order.
+// Returns []querier_dto.JoinClause which lists the explicit joins in declared order.
+// Returns error when parsing a table source or join condition fails.
 func (p *parser) parseFromClause() ([]querier_dto.TableReference, []querier_dto.JoinClause, error) {
 	var tables []querier_dto.TableReference
 	var joins []querier_dto.JoinClause
@@ -328,6 +415,12 @@ func (p *parser) parseFromClause() ([]querier_dto.TableReference, []querier_dto.
 	return tables, joins, nil
 }
 
+// appendCommaJoinedTable appends one comma-joined table source to tables.
+//
+// Takes tables (*[]querier_dto.TableReference) which is the slice to extend with the
+// parsed table reference.
+//
+// Returns error when parsing the table source fails.
 func (p *parser) appendCommaJoinedTable(tables *[]querier_dto.TableReference) error {
 	p.advance()
 	p.matchKeyword(keywordLATERAL)
@@ -341,6 +434,14 @@ func (p *parser) appendCommaJoinedTable(tables *[]querier_dto.TableReference) er
 	return nil
 }
 
+// appendExplicitJoin appends one explicit JOIN clause to joins, including its ON or USING
+// condition.
+//
+// Takes joinKind (querier_dto.JoinKind) which is the parsed join kind.
+// Takes joins (*[]querier_dto.JoinClause) which is the slice to extend with the parsed
+// join.
+//
+// Returns error when parsing the table source fails.
 func (p *parser) appendExplicitJoin(joinKind querier_dto.JoinKind, joins *[]querier_dto.JoinClause) error {
 	p.matchKeyword(keywordLATERAL)
 
@@ -356,6 +457,15 @@ func (p *parser) appendExplicitJoin(joinKind querier_dto.JoinKind, joins *[]quer
 	return nil
 }
 
+// parseTableSource parses a table source as a base table, derived table, PIVOT or
+// UNPIVOT, or table-valued function.
+//
+// Takes joinKind (querier_dto.JoinKind) which records how the source is joined into the
+// FROM clause.
+//
+// Returns *querier_dto.TableReference which is the base table reference, or nil when the
+// source was consumed via a derived-table, pivot, or table-valued function path.
+// Returns error when parsing a derived table fails.
 func (p *parser) parseTableSource(joinKind querier_dto.JoinKind) (*querier_dto.TableReference, error) {
 	if p.isSubqueryStart() {
 		if err := p.parseDerivedTable(joinKind); err != nil {
@@ -374,10 +484,19 @@ func (p *parser) parseTableSource(joinKind querier_dto.JoinKind) (*querier_dto.T
 	return new(p.parseTableReference()), nil
 }
 
+// isPivotOrUnpivot reports whether the current token introduces a PIVOT or UNPIVOT
+// clause.
+//
+// Returns bool which is true for PIVOT or UNPIVOT keywords.
 func (p *parser) isPivotOrUnpivot() bool {
 	return p.isKeyword(keywordPIVOT) || p.isKeyword(keywordUNPIVOT)
 }
 
+// parsePivotOrUnpivot parses a PIVOT or UNPIVOT clause and records its alias on the
+// derived-table list.
+//
+// Takes joinKind (querier_dto.JoinKind) which records how the pivot is joined into the
+// FROM clause.
 func (p *parser) parsePivotOrUnpivot(joinKind querier_dto.JoinKind) {
 	p.advance()
 
@@ -402,12 +521,18 @@ func (p *parser) parsePivotOrUnpivot(joinKind querier_dto.JoinKind) {
 	}
 }
 
+// isJoinOrClauseKeyword reports whether the current keyword starts a join or ends the
+// current FROM table source.
+//
+// Returns bool which is true when the current keyword cannot be an alias.
 func (p *parser) isJoinOrClauseKeyword() bool {
 	return p.isAnyKeyword(keywordWHERE, keywordGROUP, keywordHAVING, keywordORDER, keywordLIMIT,
 		keywordOFFSET, keywordJOIN, "INNER", "LEFT", "RIGHT", "FULL", "CROSS", keywordON,
 		keywordUNION, keywordINTERSECT, keywordEXCEPT, keywordQUALIFY, keywordPOSITIONAL)
 }
 
+// parseJoinCondition consumes an optional ON predicate or USING column list following a
+// JOIN clause.
 func (p *parser) parseJoinCondition() {
 	if p.matchKeyword(keywordON) {
 		p.parseWhereClause()
@@ -418,6 +543,9 @@ func (p *parser) parseJoinCondition() {
 	}
 }
 
+// parseTableReference parses a schema-qualified table reference with an optional alias.
+//
+// Returns querier_dto.TableReference which describes the parsed schema, name, and alias.
 func (p *parser) parseTableReference() querier_dto.TableReference {
 	if p.current().kind != tokenIdentifier {
 		return querier_dto.TableReference{}
@@ -443,6 +571,11 @@ func (p *parser) parseTableReference() querier_dto.TableReference {
 	return querier_dto.TableReference{Schema: schema, Name: name, Alias: alias}
 }
 
+// isSubqueryStart reports whether the cursor sits on a "(" that begins a derived-table
+// subquery.
+//
+// Returns bool which is true when the next tokens form a SELECT, WITH, or VALUES
+// subquery.
 func (p *parser) isSubqueryStart() bool {
 	if p.current().kind != tokenLeftParen {
 		return false
@@ -455,11 +588,23 @@ func (p *parser) isSubqueryStart() bool {
 	return result
 }
 
+// isTableValuedFunctionStart reports whether the cursor sits on an identifier followed by
+// "(" that introduces a table-valued function.
+//
+// Returns bool which is true when the next tokens form a function call that is not
+// SELECT, WITH, or VALUES.
 func (p *parser) isTableValuedFunctionStart() bool {
 	return p.current().kind == tokenIdentifier && p.peek().kind == tokenLeftParen &&
 		!p.isAnyKeyword(keywordSELECT, keywordWITH, keywordVALUES)
 }
 
+// parseDerivedTable parses a parenthesised SELECT subquery and records it on the
+// derived-table list with its alias and join kind.
+//
+// Takes joinKind (querier_dto.JoinKind) which records how the derived table is joined
+// into the FROM clause.
+//
+// Returns error when the inner SELECT fails to parse or analyse.
 func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 	innerTokens, collectError := p.collectParenthesised()
 	if collectError != nil {
@@ -497,6 +642,11 @@ func (p *parser) parseDerivedTable(joinKind querier_dto.JoinKind) error {
 	return nil
 }
 
+// parseTableValuedFunction parses a table-valued function call along with its optional
+// WITH ORDINALITY, alias, and column definition list.
+//
+// Takes joinKind (querier_dto.JoinKind) which records how the call is joined into the
+// FROM clause.
 func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	functionName := strings.ToLower(p.advance().value)
 	p.advance()
@@ -537,6 +687,11 @@ func (p *parser) parseTableValuedFunction(joinKind querier_dto.JoinKind) {
 	})
 }
 
+// parseTVFColumnDefinitions parses an explicit column definition list attached to a
+// table-valued function alias.
+//
+// Returns []querier_dto.TVFColumnDefinition which lists the parsed name and type pairs in
+// declared order.
 func (p *parser) parseTVFColumnDefinitions() []querier_dto.TVFColumnDefinition {
 	p.advance()
 	var definitions []querier_dto.TVFColumnDefinition
@@ -566,21 +721,32 @@ func (p *parser) parseTVFColumnDefinitions() []querier_dto.TVFColumnDefinition {
 	return definitions
 }
 
+// joinKeywordEntry maps a join keyword to its kind and whether OUTER may follow.
 type joinKeywordEntry struct {
+	// kind is the join kind produced when this keyword is matched.
 	kind querier_dto.JoinKind
 
+	// hasOuter records whether an OUTER keyword may follow.
 	hasOuter bool
 }
 
-var joinKeywordDispatch = map[string]joinKeywordEntry{
-	"INNER":           {kind: querier_dto.JoinInner},
-	"LEFT":            {kind: querier_dto.JoinLeft, hasOuter: true},
-	"RIGHT":           {kind: querier_dto.JoinRight, hasOuter: true},
-	"FULL":            {kind: querier_dto.JoinFull, hasOuter: true},
-	"CROSS":           {kind: querier_dto.JoinCross},
-	keywordPOSITIONAL: {kind: querier_dto.JoinPositional},
-}
+var (
+	// joinKeywordDispatch maps each recognised join-prefix keyword to its dispatch entry.
+	joinKeywordDispatch = map[string]joinKeywordEntry{
+		"INNER":           {kind: querier_dto.JoinInner},
+		"LEFT":            {kind: querier_dto.JoinLeft, hasOuter: true},
+		"RIGHT":           {kind: querier_dto.JoinRight, hasOuter: true},
+		"FULL":            {kind: querier_dto.JoinFull, hasOuter: true},
+		"CROSS":           {kind: querier_dto.JoinCross},
+		keywordPOSITIONAL: {kind: querier_dto.JoinPositional},
+	}
+)
 
+// parseJoinKeyword consumes a join prefix keyword along with optional NATURAL, OUTER, and
+// JOIN tokens.
+//
+// Returns querier_dto.JoinKind which is the kind of the consumed join.
+// Returns bool which is true when a join keyword was consumed.
 func (p *parser) parseJoinKeyword() (querier_dto.JoinKind, bool) {
 	p.matchKeyword("NATURAL")
 
@@ -602,6 +768,10 @@ func (p *parser) parseJoinKeyword() (querier_dto.JoinKind, bool) {
 	return 0, false
 }
 
+// isJoinKeyword reports whether the current token introduces a join clause that would
+// terminate an alias scan.
+//
+// Returns bool which is true for any join-prefix keyword.
 func (p *parser) isJoinKeyword() bool {
 	return p.isAnyKeyword(keywordJOIN, "INNER", "LEFT", "RIGHT", "FULL", "CROSS", "NATURAL")
 }

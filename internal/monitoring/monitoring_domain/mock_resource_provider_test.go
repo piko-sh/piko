@@ -20,7 +20,6 @@ package monitoring_domain
 
 import (
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestMockResourceProvider_GetResources(t *testing.T) {
 		assert.Nil(t, result.Categories)
 		assert.Equal(t, int32(0), result.Total)
 		assert.Equal(t, int64(0), result.TimestampMs)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetResourcesCallCount))
+		assert.Equal(t, int64(1), mock.GetResourcesCallCount.Load())
 	})
 
 	t.Run("delegates to GetResourcesFunc", func(t *testing.T) {
@@ -84,7 +83,7 @@ func TestMockResourceProvider_GetResources(t *testing.T) {
 		assert.Equal(t, int32(2), result.Categories[0].Count)
 		assert.Equal(t, "tcp", result.Categories[1].Category)
 		assert.Equal(t, int32(1), result.Categories[1].Count)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetResourcesCallCount))
+		assert.Equal(t, int64(1), mock.GetResourcesCallCount.Load())
 	})
 }
 
@@ -99,7 +98,7 @@ func TestMockResourceProvider_ZeroValueIsUsable(t *testing.T) {
 	assert.Nil(t, result.Categories)
 	assert.Equal(t, int32(0), result.Total)
 	assert.Equal(t, int64(0), result.TimestampMs)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetResourcesCallCount))
+	assert.Equal(t, int64(1), mock.GetResourcesCallCount.Load())
 }
 
 func TestMockResourceProvider_ConcurrentAccess(t *testing.T) {
@@ -133,7 +132,7 @@ func TestMockResourceProvider_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetResourcesCallCount))
+	assert.Equal(t, int64(goroutines), mock.GetResourcesCallCount.Load())
 }
 
 func TestMockResourceProvider_ImplementsInterface(t *testing.T) {

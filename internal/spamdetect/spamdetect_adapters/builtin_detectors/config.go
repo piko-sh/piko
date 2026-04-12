@@ -38,51 +38,49 @@ const (
 	// maxBlocklistPatterns is the upper bound on blocklist regex patterns.
 	maxBlocklistPatterns = 1024
 
-	// maxBlocklistPatternLength caps each individual blocklist regex pattern
-	// to keep compiled NFA size bounded.
+	// maxBlocklistPatternLength caps each individual blocklist regex pattern to keep
+	// compiled NFA size bounded.
 	maxBlocklistPatternLength = 4096
 
 	// maxAnalyseFieldLength is the maximum field length processed during analysis.
 	maxAnalyseFieldLength = 4096
 
-	// detectorSpamThreshold is the per-detector score above which the
-	// detector marks a submission as spam.
+	// detectorSpamThreshold is the per-detector score above which the detector marks a
+	// submission as spam.
 	detectorSpamThreshold = 0.5
 )
 
 // Config configures the built-in detectors registered by RegisterDefaults.
 type Config struct {
-	// RepetitionCache is the cache instance for tracking repeated
-	// submissions. When nil, repetition detection is disabled.
+	// RepetitionCache is the cache instance for tracking repeated submissions. When nil,
+	// repetition detection is disabled.
 	RepetitionCache cache_domain.Cache[string, RepetitionEntry]
 
-	// RepetitionIPScoped scopes repetition tracking per client IP when
-	// true. Default true.
+	// RepetitionIPScoped scopes repetition tracking per client IP when true. Default true.
 	RepetitionIPScoped *bool
 
-	// BigramAnalysers holds language-specific bigram analysers injected
-	// via DI from the linguistics module. When empty, the built-in
-	// English bigram fallback is used.
+	// BigramAnalysers holds language-specific bigram analysers injected via DI from the
+	// linguistics module. When empty, the built-in English bigram fallback is used.
 	BigramAnalysers []linguistics_domain.BigramAnalyserPort
 
-	// BlocklistPatterns is a list of regex patterns for the blocklist
-	// detector. Limited to 1024 patterns.
+	// BlocklistPatterns is a list of regex patterns for the blocklist detector. Limited to
+	// 1024 patterns.
 	BlocklistPatterns []string
 
-	// RepetitionTTL is the time window for tracking repeated submissions.
-	// Default 10 minutes.
+	// RepetitionTTL is the time window for tracking repeated submissions. Default 10
+	// minutes.
 	RepetitionTTL time.Duration
 
-	// TimingMinDuration is the minimum expected time between form load
-	// and submit. Default 2s.
+	// TimingMinDuration is the minimum expected time between form load and submit. Default
+	// 2s.
 	TimingMinDuration time.Duration
 
-	// GibberishThreshold is the entropy ratio above which text is flagged
-	// as gibberish. Default 0.6.
+	// GibberishThreshold is the entropy ratio above which text is flagged as gibberish.
+	// Default 0.6.
 	GibberishThreshold float64
 
-	// LinkDensityMaxLinks is the maximum number of links allowed before
-	// scoring as spam. Default 3.
+	// LinkDensityMaxLinks is the maximum number of links allowed before scoring as spam.
+	// Default 3.
 	LinkDensityMaxLinks int
 }
 

@@ -20,30 +20,29 @@
 
 package render_domain
 
-// In WASM builds, the frontend module HTML (preload links, config scripts,
-// module scripts, dev widget) is not needed. The daemon_frontend package
-// embeds ~4.5MB of ppframework JS bundles that would bloat the WASM binary.
+// In WASM builds, the frontend module HTML (preload links, config scripts, module
+// scripts, dev widget) is not needed. The daemon_frontend package embeds ~4.5MB of
+// ppframework JS bundles that would bloat the WASM binary.
 
-// getModulePreloadHTML returns empty HTML since preload
-// links are not needed in WASM builds.
+// getModulePreloadHTML returns empty HTML since preload links are not needed in WASM
+// builds.
 //
 // Returns string which is always empty.
 func getModulePreloadHTML() string { return "" }
 
-// getModuleConfigHTML returns empty HTML since the config
-// script is not needed in WASM builds.
+// getModuleConfigHTML returns empty HTML since the config script is not needed in WASM
+// builds.
 //
 // Returns string which is always empty.
 func getModuleConfigHTML() string { return "" }
 
-// getModuleScriptHTML returns empty HTML since the module
-// script is not needed in WASM builds.
+// getModuleScriptHTML returns empty HTML since the module script is not needed in WASM
+// builds.
 //
 // Returns string which is always empty.
 func getModuleScriptHTML() string { return "" }
 
-// getDevWidgetHTML returns empty HTML since the dev widget
-// is not needed in WASM builds.
+// getDevWidgetHTML returns empty HTML since the dev widget is not needed in WASM builds.
 //
 // Returns string which is always empty.
 func getDevWidgetHTML() string { return "" }

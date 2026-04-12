@@ -16,10 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package persistence defines the port interfaces and types for the
-// persistence hexagon, allowing the application to switch between database
-// backends (SQLite, PostgreSQL, D1) without coupling to driver-specific
-// types.
+// Package persistence defines the port interfaces and types for the persistence hexagon,
+// allowing the application to switch between database backends (SQLite, PostgreSQL, D1)
+// without coupling to driver-specific types.
 //
 // # Usage
 //

@@ -290,4 +290,6 @@ func (m *mockCatalogueProvider) BuildCatalogue(ctx context.Context) (*querier_dt
 	return newTestCatalogue("public"), nil, nil
 }
 
-var _ CatalogueProviderPort = (*mockCatalogueProvider)(nil)
+var (
+	_ CatalogueProviderPort = (*mockCatalogueProvider)(nil)
+)

@@ -38,8 +38,8 @@ var (
 
 // extractWithAccessor extracts a field value using cached reflection access.
 //
-// This is the safe version that always uses reflect.ValueOf and field traversal
-// instead of unsafe pointer arithmetic.
+// This is the safe version that always uses reflect.ValueOf and field traversal instead
+// of unsafe pointer arithmetic.
 //
 // Takes value (V) which is the struct or pointer to struct to extract from.
 // Takes accessor (*fieldAccessor) which provides the cached field access path.
@@ -93,8 +93,8 @@ func (fe *FieldExtractor[V]) compareFieldDirect(value V, fieldPath string, opera
 
 // typeKey returns a stable uintptr identifier for a reflect.Type.
 //
-// This is the safe version that uses a monotonic counter and sync.Map
-// instead of extracting the interface pointer via unsafe.
+// This is the safe version that uses a monotonic counter and sync.Map instead of
+// extracting the interface pointer via unsafe.
 //
 // Takes t (reflect.Type) which is the type to get a key from.
 //
@@ -108,9 +108,9 @@ func typeKey(t reflect.Type) uintptr {
 	return actual.(uintptr)
 }
 
-// compareExtractedValue compares an extracted value against a target using the
-// given filter operation. Supports float64, int/int64, and string comparisons
-// via type assertions.
+// compareExtractedValue compares an extracted value against a target using the given
+// filter operation. Supports float64, int/int64, and string comparisons via type
+// assertions.
 //
 // Takes extracted (any) which is the value extracted from the struct field.
 // Takes operator (cache_dto.FilterOp) which specifies the comparison operation.
@@ -248,8 +248,8 @@ func compareIntValue(fieldVal int64, operator cache_dto.FilterOp, targetValue an
 	return false, false
 }
 
-// compareStringValue compares a string value against a target using the
-// specified filter operation.
+// compareStringValue compares a string value against a target using the specified filter
+// operation.
 //
 // Takes fieldVal (string) which is the value to compare.
 // Takes operator (cache_dto.FilterOp) which specifies the comparison operation.

@@ -20,12 +20,12 @@ package local_aes_gcm
 
 // Config holds settings for the local AES-GCM encryption provider.
 type Config struct {
-	// KeyID is an optional name for this key, used for key rotation when multiple
-	// keys exist. Defaults to "local-default" if empty.
+	// KeyID is an optional name for this key, used for key rotation when multiple keys
+	// exist. Defaults to "local-default" if empty.
 	KeyID string
 
-	// Key is the 32-byte encryption key for AES-256-GCM. Load this from a safe
-	// source such as an environment variable or secrets manager.
+	// Key is the 32-byte encryption key for AES-256-GCM. Load this from a safe source such
+	// as an environment variable or secrets manager.
 	Key []byte
 }
 

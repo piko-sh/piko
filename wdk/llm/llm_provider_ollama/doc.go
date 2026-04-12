@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package llm_provider_ollama provides an Ollama LLM and embedding
-// provider adapter.
+// Package llm_provider_ollama provides an Ollama LLM and embedding provider adapter.
 //
-// The provider implements both completions and embeddings against
-// a locally-hosted Ollama server. By default it will auto-start
-// the Ollama binary if the server is unreachable, and auto-pull
-// models before first use.
+// The provider implements both completions and embeddings against a locally-hosted Ollama
+// server. By default it will auto-start the Ollama binary if the server is unreachable,
+// and auto-pull models before first use.
 //
 // # Supply chain verification
 //
@@ -34,9 +32,9 @@
 //	    },
 //	)
 //
-// When a digest is set, the provider verifies the locally installed
-// model's digest matches before using it. A mismatch returns an
-// error indicating a possible supply chain compromise.
+// When a digest is set, the provider verifies the locally installed model's digest
+// matches before using it. A mismatch returns an error indicating a possible supply chain
+// compromise.
 //
 // # Thread safety
 //

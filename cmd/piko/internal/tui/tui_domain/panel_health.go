@@ -35,8 +35,8 @@ import (
 )
 
 const (
-	// healthStateCount is the number of displayable health states (healthy,
-	// degraded, unhealthy).
+	// healthStateCount is the number of displayable health states (healthy, degraded,
+	// unhealthy).
 	healthStateCount = 3
 
 	// probeKeyLiveness is the key used to identify the liveness probe.
@@ -48,12 +48,10 @@ const (
 	// healthHistorySize is the number of historical check results to retain.
 	healthHistorySize = 1800
 
-	// healthSparklineWidth is the width in columns for sparklines in the health
-	// panel.
+	// healthSparklineWidth is the width in columns for sparklines in the health panel.
 	healthSparklineWidth = 30
 
-	// healthWeightHealthy is the weight for healthy state in average health
-	// calculations.
+	// healthWeightHealthy is the weight for healthy state in average health calculations.
 	healthWeightHealthy = 1.0
 
 	// healthWeightDegraded is the weight value for a degraded health state.
@@ -69,8 +67,8 @@ var (
 	_ ItemRenderer[healthDisplayItem] = (*healthRenderer)(nil)
 )
 
-// healthDisplayItem represents a single row in the health panel list.
-// It can be either a probe header or a dependency entry under a probe.
+// healthDisplayItem represents a single row in the health panel list. It can be either a
+// probe header or a dependency entry under a probe.
 type healthDisplayItem struct {
 	// probeStatus holds the health check result for this probe.
 	probeStatus *HealthStatus
@@ -81,16 +79,16 @@ type healthDisplayItem struct {
 	// probeKey identifies the health probe and tracks expansion state.
 	probeKey string
 
-	// dependencyIndex is the position of the dependency within the probe for
-	// unique identification.
+	// dependencyIndex is the position of the dependency within the probe for unique
+	// identification.
 	dependencyIndex int
 
 	// isProbeRow indicates whether this item is a probe header row.
 	isProbeRow bool
 }
 
-// HealthPanel displays the status of liveness and readiness probes.
-// It implements the Panel interface.
+// HealthPanel displays the status of liveness and readiness probes. It implements the
+// Panel interface.
 type HealthPanel struct {
 	*AssetViewer[healthDisplayItem]
 
@@ -106,16 +104,13 @@ type HealthPanel struct {
 	// err holds the last error from a health check refresh; nil means success.
 	err error
 
-	// liveness holds the current liveness probe status; nil until the first
-	// refresh.
+	// liveness holds the current liveness probe status; nil until the first refresh.
 	liveness *HealthStatus
 
-	// readiness holds the current readiness probe status; nil until the first
-	// refresh.
+	// readiness holds the current readiness probe status; nil until the first refresh.
 	readiness *HealthStatus
 
-	// livenessHistory stores recent liveness probe results for the sparkline
-	// display.
+	// livenessHistory stores recent liveness probe results for the sparkline display.
 	livenessHistory *HistoryRing
 
 	// readinessHistory holds recent readiness probe results for display.
@@ -146,8 +141,7 @@ type HealthRefreshMessage struct {
 // NewHealthPanel creates a new health panel.
 //
 // Takes provider (HealthProvider) which supplies health check data.
-// Takes c (clock.Clock) which provides time functions; if nil, uses the real
-// clock.
+// Takes c (clock.Clock) which provides time functions; if nil, uses the real clock.
 //
 // Returns *HealthPanel which is the configured panel ready for use.
 func NewHealthPanel(provider HealthProvider, c clock.Clock) *HealthPanel {
@@ -227,8 +221,7 @@ func (p *HealthPanel) View(width, height int) string {
 	})
 }
 
-// handleRefreshMessage processes a health refresh message and updates the panel
-// state.
+// handleRefreshMessage processes a health refresh message and updates the panel state.
 //
 // Takes message (HealthRefreshMessage) which contains the health check results.
 //
@@ -255,8 +248,8 @@ func (p *HealthPanel) handleRefreshMessage(message HealthRefreshMessage) {
 	p.lastRefresh = p.clock.Now()
 }
 
-// rebuildDisplayItems builds a flat list of display items from the current
-// panel state. Must be called while holding both mutexes.
+// rebuildDisplayItems builds a flat list of display items from the current panel state.
+// Must be called while holding both mutexes.
 func (p *HealthPanel) rebuildDisplayItems() {
 	items := make([]healthDisplayItem, 0)
 
@@ -330,11 +323,10 @@ func (p *HealthPanel) handleKey(message tea.KeyPressMsg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// toggleHealthExpansion handles the expansion toggle and rebuilds the item
-// list.
+// toggleHealthExpansion handles the expansion toggle and rebuilds the item list.
 //
-// Safe for concurrent use. Acquires both the parent mutex and stateMutex before
-// changing the expansion state.
+// Safe for concurrent use. Acquires both the parent mutex and stateMutex before changing
+// the expansion state.
 func (p *HealthPanel) toggleHealthExpansion() {
 	mu := p.Mutex()
 	if mu != nil {
@@ -360,11 +352,11 @@ func (p *HealthPanel) toggleHealthExpansion() {
 	p.rebuildDisplayItems()
 }
 
-// getItemAtCursorUnlocked returns the item at the current cursor position.
-// Must be called with the AssetViewer mutex held.
+// getItemAtCursorUnlocked returns the item at the current cursor position. Must be called
+// with the AssetViewer mutex held.
 //
-// Returns *healthDisplayItem which is the item at the cursor, or nil if the
-// cursor is out of bounds.
+// Returns *healthDisplayItem which is the item at the cursor, or nil if the cursor is out
+// of bounds.
 func (p *HealthPanel) getItemAtCursorUnlocked() *healthDisplayItem {
 	items := p.items
 	cursor := p.Cursor()
@@ -380,8 +372,7 @@ func (p *HealthPanel) getItemAtCursorUnlocked() *healthDisplayItem {
 //
 // Returns int which is the number of lines written to the builder.
 //
-// Safe for concurrent use. Acquires a read lock on stateMutex to access shared
-// state.
+// Safe for concurrent use. Acquires a read lock on stateMutex to access shared state.
 func (p *HealthPanel) renderHealthHeader(content *strings.Builder) int {
 	usedLines := 0
 
@@ -407,13 +398,12 @@ func (p *HealthPanel) renderHealthHeader(content *strings.Builder) int {
 	return usedLines
 }
 
-// renderHealthEmptyState renders the empty state message when no health data
-// is available yet.
+// renderHealthEmptyState renders the empty state message when no health data is available
+// yet.
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 //
-// Safe for concurrent use. Acquires a read lock on stateMutex to access the
-// error state.
+// Safe for concurrent use. Acquires a read lock on stateMutex to access the error state.
 func (p *HealthPanel) renderHealthEmptyState(content *strings.Builder) {
 	p.stateMutex.RLock()
 	err := p.err
@@ -470,8 +460,7 @@ func (p *HealthPanel) renderProbeItem(ctx *ScrollContext, item healthDisplayItem
 //
 // Takes ctx (*ScrollContext) which provides the scrollable rendering context.
 // Takes item (healthDisplayItem) which holds the dependency to display.
-// Takes selected (bool) which indicates whether this item is currently
-// selected.
+// Takes selected (bool) which indicates whether this item is currently selected.
 func (p *HealthPanel) renderDependencyItem(ctx *ScrollContext, item healthDisplayItem, selected bool) {
 	ctx.WriteLineIfVisible(func() string {
 		return p.renderDependencyRow(item.dependency, selected)
@@ -479,16 +468,15 @@ func (p *HealthPanel) renderDependencyItem(ctx *ScrollContext, item healthDispla
 	p.renderDependencyDetails(ctx, item.dependency)
 }
 
-// renderProbeHeader renders a header row for a probe with cursor, expand
-// marker, status indicator, title, state text, sparkline, and duration.
+// renderProbeHeader renders a header row for a probe with cursor, expand marker, status
+// indicator, title, state text, sparkline, and duration.
 //
 // Takes item (healthDisplayItem) which contains the probe data to display.
 // Takes selected (bool) which shows if this row is currently selected.
 //
 // Returns string which is the formatted header row ready for display.
 //
-// Safe for concurrent use. Acquires a read lock on stateMutex to access
-// history data.
+// Safe for concurrent use. Acquires a read lock on stateMutex to access history data.
 func (p *HealthPanel) renderProbeHeader(item healthDisplayItem, selected bool) string {
 	cursor := RenderCursor(selected, p.Focused())
 	expanded := p.IsExpanded(item.probeKey)
@@ -541,8 +529,8 @@ func (p *HealthPanel) renderProbeHeader(item healthDisplayItem, selected bool) s
 // Takes dependency (*HealthStatus) which provides the health status to show.
 // Takes selected (bool) which indicates whether this row is selected.
 //
-// Returns string which is the formatted row with cursor, indicator, name,
-// state, and duration.
+// Returns string which is the formatted row with cursor, indicator, name, state, and
+// duration.
 func (p *HealthPanel) renderDependencyRow(dependency *HealthStatus, selected bool) string {
 	cursor := RenderCursorStyled(selected, p.Focused(), ChildCursorConfig())
 	indicator := healthStateIndicator(dependency.State)
@@ -561,8 +549,8 @@ func (p *HealthPanel) renderDependencyRow(dependency *HealthStatus, selected boo
 	return fmt.Sprintf("%s%s %s  %s%s", cursor, indicator, name, stateText, durationString)
 }
 
-// renderDependencyDetails renders the full details for a dependency that
-// cannot be selected.
+// renderDependencyDetails renders the full details for a dependency that cannot be
+// selected.
 //
 // Takes ctx (*ScrollContext) which provides the scroll context for output.
 // Takes dependency (*HealthStatus) which specifies the dependency to render.
@@ -591,8 +579,8 @@ func (*HealthPanel) renderDependencyDetails(ctx *ScrollContext, dependency *Heal
 //
 // Takes status (*HealthStatus) which provides the health status to summarise.
 //
-// Returns string which contains the formatted summary showing component counts
-// by state. Returns an empty string if no components exist.
+// Returns string which contains the formatted summary showing component counts by state.
+// Returns an empty string if no components exist.
 func (*HealthPanel) renderProbeSummary(status *HealthStatus) string {
 	counts := status.CountByState()
 	parts := make([]string, 0, healthStateCount)
@@ -615,8 +603,8 @@ func (*HealthPanel) renderProbeSummary(status *HealthStatus) string {
 		RenderDimText(fmt.Sprintf("(%d components: %s)", len(status.Dependencies), strings.Join(parts, ", "))))
 }
 
-// updateHealthHistory appends the current health states to the history.
-// Must be called while holding stateMutex.
+// updateHealthHistory appends the current health states to the history. Must be called
+// while holding stateMutex.
 func (p *HealthPanel) updateHealthHistory() {
 	if p.liveness != nil {
 		p.livenessHistory.Append(healthStateToValue(p.liveness.State))
@@ -628,8 +616,8 @@ func (p *HealthPanel) updateHealthHistory() {
 
 // refresh fetches new health data from the provider.
 //
-// Returns tea.Cmd which produces a HealthRefreshMessage with liveness and
-// readiness status.
+// Returns tea.Cmd which produces a HealthRefreshMessage with liveness and readiness
+// status.
 func (p *HealthPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
@@ -653,8 +641,7 @@ func (p *HealthPanel) refresh() tea.Cmd {
 
 // RenderRow renders a health display item row.
 //
-// Takes item (healthDisplayItem) which holds the health data to
-// render.
+// Takes item (healthDisplayItem) which holds the health data to render.
 // Takes _ (int) which is the unused line index.
 // Takes selected (bool) which indicates if this row is selected.
 // Takes _ (bool) which is the unused focused state.
@@ -670,12 +657,11 @@ func (r *healthRenderer) RenderRow(item healthDisplayItem, _ int, selected, _ bo
 
 // RenderExpanded returns expanded content lines for a health item.
 //
-// Takes item (healthDisplayItem) which holds the health data to
-// expand.
+// Takes item (healthDisplayItem) which holds the health data to expand.
 // Takes _ (int) which is the unused content width.
 //
-// Returns []string which contains the detail lines, or nil if no
-// expanded content is available.
+// Returns []string which contains the detail lines, or nil if no expanded content is
+// available.
 func (r *healthRenderer) RenderExpanded(item healthDisplayItem, _ int) []string {
 	if item.isProbeRow {
 		if !r.panel.IsExpanded(item.probeKey) && len(item.probeStatus.Dependencies) > 0 {
@@ -707,11 +693,10 @@ func (r *healthRenderer) RenderExpanded(item healthDisplayItem, _ int) []string 
 
 // GetID returns a unique identifier for the health item.
 //
-// Takes item (healthDisplayItem) which specifies the health display item to
-// identify.
+// Takes item (healthDisplayItem) which specifies the health display item to identify.
 //
-// Returns string which is the probe key for probe rows, or a composite key
-// combining probe key and dependency index for other items.
+// Returns string which is the probe key for probe rows, or a composite key combining
+// probe key and dependency index for other items.
 func (*healthRenderer) GetID(item healthDisplayItem) string {
 	if item.isProbeRow {
 		return item.probeKey

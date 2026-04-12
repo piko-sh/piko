@@ -18,24 +18,23 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package image_provider_vips implements the image transformer port
-// using libvips via govips.
+// Package image_provider_vips implements the image transformer port using libvips via
+// govips.
 //
-// libvips is a demand-driven, horizontally threaded image processing
-// library that handles large images with low memory usage. This is
-// the recommended provider for production deployments.
+// libvips is a demand-driven, horizontally threaded image processing library that handles
+// large images with low memory usage. This is the recommended provider for production
+// deployments.
 //
 // Output formats: JPEG, PNG, WebP, AVIF, GIF.
 //
 // # Resource management
 //
-// The [Provider.Close] method must be called during application
-// shutdown to release libvips resources.
+// The [Provider.Close] method must be called during application shutdown to release
+// libvips resources.
 //
 // # Thread safety
 //
-// All methods are safe for concurrent use. The provider uses an
-// internal semaphore to limit concurrent operations to
-// [runtime.NumCPU], preventing unbounded resource consumption
-// under load.
+// All methods are safe for concurrent use. The provider uses an internal semaphore to
+// limit concurrent operations to [runtime.NumCPU], preventing unbounded resource
+// consumption under load.
 package image_provider_vips

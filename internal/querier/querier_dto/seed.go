@@ -18,7 +18,9 @@
 
 package querier_dto
 
-import "time"
+import (
+	"time"
+)
 
 // SeedFile represents a parsed seed file with version, name, and content.
 type SeedFile struct {
@@ -58,8 +60,8 @@ type AppliedSeed struct {
 
 // SeedStatus combines a seed file with its applied state.
 type SeedStatus struct {
-	// AppliedAt holds the timestamp when the seed was applied, or the zero
-	// value if not yet applied.
+	// AppliedAt holds the timestamp when the seed was applied, or the zero value if not yet
+	// applied.
 	AppliedAt time.Time
 
 	// Name holds the descriptive name of the seed.
@@ -74,8 +76,8 @@ type SeedStatus struct {
 	// Applied indicates whether the seed has been applied.
 	Applied bool
 
-	// ChecksumMatch indicates whether the applied checksum matches the
-	// current file on disk. Always true for unapplied seeds.
+	// ChecksumMatch indicates whether the applied checksum matches the current file on disk.
+	// Always true for unapplied seeds.
 	ChecksumMatch bool
 }
 

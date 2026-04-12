@@ -23,36 +23,35 @@ import (
 	"errors"
 )
 
-// ResourceDescriptor is implemented by hexagon services that want their
-// providers to be discoverable via `piko get providers <type>` and
-// `piko describe provider <type> <name>`.
+// ResourceDescriptor is implemented by hexagon services that want their providers to be
+// discoverable via `piko get providers <type>` and `piko describe provider <type>
+// <name>`.
 //
-// Discovery uses structural type assertion at bootstrap time, following the
-// same pattern as healthprobe_domain.Probe. Services that implement this
-// interface are automatically registered with the provider info aggregator.
+// Discovery uses structural type assertion at bootstrap time, following the same pattern
+// as healthprobe_domain.Probe. Services that satisfy ResourceDescriptor are automatically
+// registered with the provider info aggregator.
 type ResourceDescriptor interface {
-	// ResourceType returns the CLI resource name (e.g. "email", "storage",
-	// "cache") used as the subcommand argument in `piko get providers <type>`.
+	// ResourceType returns the CLI resource name (e.g. "email", "storage", "cache") used as
+	// the subcommand argument in `piko get providers <type>`.
 	//
 	// Returns string which is a lowercase, stable identifier.
 	ResourceType() string
 
-	// ResourceListColumns returns column definitions for the provider list
-	// table. The DEFAULT indicator column is prepended automatically by the
-	// CLI; implementations should not include it.
+	// ResourceListColumns returns column definitions for the provider list table. The
+	// DEFAULT indicator column is prepended automatically by the CLI; implementations should
+	// not include it.
 	//
 	// Returns []ColumnDefinition which describes each column header and key.
 	ResourceListColumns() []ColumnDefinition
 
-	// ResourceListProviders returns all registered providers as list rows.
-	// Each entry's Values map is keyed by the Key field from the corresponding
-	// ColumnDefinition.
+	// ResourceListProviders returns all registered providers as list rows. Each entry's
+	// Values map is keyed by the Key field from the corresponding ColumnDefinition.
 	//
 	// Returns []ProviderListEntry which contains one entry per provider.
 	ResourceListProviders(ctx context.Context) []ProviderListEntry
 
-	// ResourceDescribeProvider returns detailed information for a single
-	// named provider, structured as titled sections of key-value entries.
+	// ResourceDescribeProvider returns detailed information for a single named provider,
+	// structured as titled sections of key-value entries.
 	//
 	// Takes name (string) which identifies the provider to describe.
 	//
@@ -66,12 +65,11 @@ type ColumnDefinition struct {
 	// Header is the display text shown in the table header (e.g. "TYPE").
 	Header string
 
-	// Key is the lookup key in ProviderListEntry.Values that provides the
-	// cell value for this column.
+	// Key is the lookup key in ProviderListEntry.Values that provides the cell value for
+	// this column.
 	Key string
 
-	// WideOnly indicates that this column is only shown in wide output mode
-	// (-o wide).
+	// WideOnly indicates that this column is only shown in wide output mode (-o wide).
 	WideOnly bool
 }
 
@@ -83,13 +81,11 @@ type ProviderListEntry struct {
 	// Name is the registered name of the provider.
 	Name string
 
-	// IsDefault indicates whether this is the default provider for the
-	// resource type.
+	// IsDefault indicates whether this is the default provider for the resource type.
 	IsDefault bool
 }
 
-// ProviderDetail holds structured sections for the describe view of a
-// single provider.
+// ProviderDetail holds structured sections for the describe view of a single provider.
 type ProviderDetail struct {
 	// Name is the provider name.
 	Name string
@@ -98,8 +94,7 @@ type ProviderDetail struct {
 	Sections []InfoSection
 }
 
-// InfoSection is a titled group of key-value entries within a provider
-// detail view.
+// InfoSection is a titled group of key-value entries within a provider detail view.
 type InfoSection struct {
 	// Title is the section heading (e.g. "Configuration", "Health").
 	Title string
@@ -117,30 +112,27 @@ type InfoEntry struct {
 	Value string
 }
 
-// SubResourceDescriptor is optionally implemented by services whose providers
-// have discoverable sub-resources such as cache namespaces or storage
-// repositories.
+// SubResourceDescriptor is optionally implemented by services whose providers have
+// discoverable sub-resources such as cache namespaces or storage repositories.
 //
 // Discovery uses structural type assertion, following the same pattern as
 // ResourceDescriptor. Services that do not implement SubResourceDescriptor are
 // unaffected; the CLI falls back to the filtered provider list.
 type SubResourceDescriptor interface {
-	// ResourceSubResourceName returns the plural display name for the
-	// sub-resource kind (e.g. "namespaces", "repositories").
+	// ResourceSubResourceName returns the plural display name for the sub-resource kind
+	// (e.g. "namespaces", "repositories").
 	//
 	// Returns string which is used as a table title and in section headings.
 	ResourceSubResourceName() string
 
-	// ResourceSubResourceColumns returns column definitions for the
-	// sub-resource list table. Unlike ResourceListColumns, no DEFAULT
-	// column is prepended.
+	// ResourceSubResourceColumns returns column definitions for the sub-resource list table.
+	// Unlike ResourceListColumns, no DEFAULT column is prepended.
 	//
 	// Returns []ColumnDefinition which describes each column header and key.
 	ResourceSubResourceColumns() []ColumnDefinition
 
-	// ResourceListSubResources returns all sub-resources for a named
-	// provider. Each entry's Values map is keyed by the Key field from the
-	// corresponding ColumnDefinition.
+	// ResourceListSubResources returns all sub-resources for a named provider. Each entry's
+	// Values map is keyed by the Key field from the corresponding ColumnDefinition.
 	//
 	// Takes providerName (string) which identifies the provider.
 	//
@@ -149,17 +141,19 @@ type SubResourceDescriptor interface {
 	ResourceListSubResources(ctx context.Context, providerName string) ([]ProviderListEntry, error)
 }
 
-// ResourceTypeDescriptor is optionally implemented by services that support
-// service-level describe via `piko describe providers <type>`. It provides an
-// overview of the resource type rather than a single provider.
+// ResourceTypeDescriptor is optionally implemented by services that support service-level
+// describe via `piko describe providers <type>`. It provides an overview of the resource
+// type rather than a single provider.
 type ResourceTypeDescriptor interface {
-	// ResourceDescribeType returns a service-level overview including
-	// provider count, default provider, and service-specific statistics.
+	// ResourceDescribeType returns a service-level overview including provider count,
+	// default provider, and service-specific statistics.
 	//
 	// Returns *ProviderDetail which contains the structured sections.
 	ResourceDescribeType(ctx context.Context) *ProviderDetail
 }
 
-// ErrNoSubResources is returned when a provider does not support sub-resource
-// listing. The CLI uses this to fall back to the filtered provider list.
-var ErrNoSubResources = errors.New("provider does not support sub-resources")
+var (
+	// ErrNoSubResources is returned when a provider does not support sub-resource listing.
+	// The CLI uses this to fall back to the filtered provider list.
+	ErrNoSubResources = errors.New("provider does not support sub-resources")
+)

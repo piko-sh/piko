@@ -51,8 +51,10 @@ func createBenchmarkCache(b *testing.B, maxWeight uint64) registry_domain.Metada
 	return registry_adapters.NewMetadataCache(otterCache)
 }
 
-var blackholeServiceArtefact *registry_dto.ArtefactMeta
-var blackholeServiceArtefacts []*registry_dto.ArtefactMeta
+var (
+	blackholeServiceArtefact *registry_dto.ArtefactMeta
+	blackholeServiceArtefacts []*registry_dto.ArtefactMeta
+)
 
 func setupRegistryServiceBenchmark(b *testing.B, numArtefacts, variantsPer, tagsPer, profilesPer int) (registry_domain.RegistryService, []string, func()) {
 	b.Helper()

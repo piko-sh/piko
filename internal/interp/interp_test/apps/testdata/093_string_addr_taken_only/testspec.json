@@ -1,0 +1,5 @@
+{
+  "description": "Cross-package address-take only: lib.F takes string (address-taken), returns len(s). Tests &s heap-promote alone across packages, without extra struct param.",
+  "modulePath": "testpkg",
+  "expected": "5"
+}

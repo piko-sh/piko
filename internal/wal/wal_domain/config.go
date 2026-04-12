@@ -30,16 +30,15 @@ const (
 	// SyncModeNone performs no explicit sync; the OS decides when to flush.
 	SyncModeNone SyncMode = iota
 
-	// SyncModeEveryWrite performs fsync after every write operation. This is the
-	// safest mode but also the slowest, so use it when data loss is unacceptable.
+	// SyncModeEveryWrite performs fsync after every write operation. This is the safest mode
+	// but also the slowest, so use it when data loss is unacceptable.
 	SyncModeEveryWrite
 
-	// SyncModeBatched performs fsync periodically based on time interval
-	// and/or write count thresholds. This provides a balance between
-	// durability and performance.
+	// SyncModeBatched performs fsync periodically based on time interval and/or write count
+	// thresholds. This provides a balance between durability and performance.
 	//
-	// DATA LOSS WINDOW: With SyncModeBatched, there is a small window where
-	// data could be lost on crash:
+	// DATA LOSS WINDOW: With SyncModeBatched, there is a small window where data could be
+	// lost on crash:
 	//   - Up to BatchSyncCount entries pending in memory
 	//   - Up to BatchSyncInterval duration (~50us default) between flushes
 	//
@@ -48,14 +47,14 @@ const (
 	//   - Occasional re-computation on recovery is tolerable
 	//   - High throughput is prioritised over zero-data-loss guarantees
 	//
-	// For applications requiring zero data loss, use SyncModeEveryWrite
-	// (at the cost of ~10x lower throughput due to per-write fsync).
+	// For applications requiring zero data loss, use SyncModeEveryWrite (at the cost of ~10x
+	// lower throughput due to per-write fsync).
 	SyncModeBatched
 )
 
 const (
-	// DefaultBaseDir is the default base directory for WAL storage.
-	// WAL files are stored in subdirectories named after the cache/WAL name.
+	// DefaultBaseDir is the default base directory for WAL storage. WAL files are stored in
+	// subdirectories named after the cache/WAL name.
 	DefaultBaseDir = ".piko/wal"
 
 	// DefaultSyncMode is the default sync mode for new WAL instances.
@@ -67,12 +66,12 @@ const (
 	// DefaultBatchSyncCount is the default number of writes that trigger a sync.
 	DefaultBatchSyncCount = 100
 
-	// DefaultSnapshotThreshold is the default number of WAL entries before
-	// an automatic snapshot is triggered.
+	// DefaultSnapshotThreshold is the default number of WAL entries before an automatic
+	// snapshot is triggered.
 	DefaultSnapshotThreshold = 10000
 
-	// DefaultCompressionLevel is the default zstd compression level (1-19).
-	// Level 3 provides a good balance between speed and compression ratio.
+	// DefaultCompressionLevel is the default zstd compression level (1-19). Level 3 provides
+	// a good balance between speed and compression ratio.
 	DefaultCompressionLevel = 3
 
 	// MaxCompressionLevel is the maximum allowed zstd compression level.
@@ -84,8 +83,8 @@ const (
 
 // String returns the string representation of the sync mode.
 //
-// Returns string which is the mode name such as "NONE", "EVERY_WRITE", or
-// "BATCHED". Returns "UNKNOWN" for undefined mode values.
+// Returns string which is the mode name such as "NONE", "EVERY_WRITE", or "BATCHED".
+// Returns "UNKNOWN" for undefined mode values.
 func (m SyncMode) String() string {
 	switch m {
 	case SyncModeNone:
@@ -101,61 +100,51 @@ func (m SyncMode) String() string {
 
 // Config configures the WAL behaviour.
 type Config struct {
-	// Dir is the required directory for WAL and snapshot files, created
-	// automatically if it does not exist.
+	// Dir is the required directory for WAL and snapshot files, created automatically if it
+	// does not exist.
 	Dir string
 
-	// WALFileName is the name of the write-ahead log file within Dir.
-	// Default: "data.wal".
+	// WALFileName is the name of the write-ahead log file within Dir. Default: "data.wal".
 	WALFileName string
 
-	// SnapshotFileName is the name of the snapshot file within Dir.
-	// Default: "snapshot.piko".
+	// SnapshotFileName is the name of the snapshot file within Dir. Default:
+	// "snapshot.piko".
 	SnapshotFileName string
 
-	// BatchSyncInterval is the maximum time between syncs in
-	// batched mode, where a sync occurs when this interval
-	// elapses or when BatchSyncCount writes have been reached,
+	// BatchSyncInterval is the maximum time between syncs in batched mode, where a sync
+	// occurs when this interval elapses or when BatchSyncCount writes have been reached,
 	// whichever comes first (default: 100ms).
 	BatchSyncInterval time.Duration
 
-	// BatchSyncCount is the number of writes that trigger a sync
-	// in batched mode, where a sync also occurs when
-	// BatchSyncInterval elapses, whichever comes first
-	// (default: 100).
+	// BatchSyncCount is the number of writes that trigger a sync in batched mode, where a
+	// sync also occurs when BatchSyncInterval elapses, whichever comes first (default: 100).
 	BatchSyncCount int
 
-	// SnapshotThreshold is the number of WAL entries that trigger an automatic
-	// snapshot followed by WAL truncation, where 0 disables automatic
-	// snapshots.
-	// Default: 10000.
+	// SnapshotThreshold is the number of WAL entries that trigger an automatic snapshot
+	// followed by WAL truncation, where 0 disables automatic snapshots. Default: 10000.
 	SnapshotThreshold int
 
-	// MaxWALSize is the advisory maximum WAL file size in bytes
-	// before compaction is recommended, where the WAL may
-	// temporarily exceed this limit (default: 64MB).
+	// MaxWALSize is the advisory maximum WAL file size in bytes before compaction is
+	// recommended, where the WAL may temporarily exceed this limit (default: 64MB).
 	MaxWALSize int64
 
-	// CompressionLevel sets the zstd compression level (1-19),
-	// where higher levels provide better compression at the cost
-	// of speed (default: 3).
+	// CompressionLevel sets the zstd compression level (1-19), where higher levels provide
+	// better compression at the cost of speed (default: 3).
 	CompressionLevel int
 
-	// SyncMode controls the durability versus performance trade-off for writes.
-	// Default is SyncModeBatched.
+	// SyncMode controls the durability versus performance trade-off for writes. Default is
+	// SyncModeBatched.
 	SyncMode SyncMode
 
-	// EnableCompression enables zstd compression for snapshot
-	// files, where WAL entries remain uncompressed to maintain
-	// append performance (default: true).
+	// EnableCompression enables zstd compression for snapshot files, where WAL entries
+	// remain uncompressed to maintain append performance (default: true).
 	EnableCompression bool
 
 	// DisableAlignedWrites disables 4KB-aligned writes.
 	//
-	// By default (zero value), writes are padded to 4KB sector
-	// boundaries to reduce SSD write amplification. Set to true
-	// for HDD or RAM-backed filesystems where alignment overhead
-	// is unnecessary.
+	// By default (zero value), writes are padded to 4KB sector boundaries to reduce SSD
+	// write amplification. Set to true for HDD or RAM-backed filesystems where alignment
+	// overhead is unnecessary.
 	DisableAlignedWrites bool
 }
 
@@ -178,11 +167,10 @@ func (c Config) Validate() error {
 	return nil
 }
 
-// WithDefaults returns a copy of the config with default values applied
-// for any zero-value fields.
+// WithDefaults returns a copy of the config with default values applied for any
+// zero-value fields.
 //
-// Returns Config which is the configuration with defaults set for any
-// unspecified fields.
+// Returns Config which is the configuration with defaults set for any unspecified fields.
 func (c Config) WithDefaults() Config {
 	if c.SyncMode == 0 {
 		c.SyncMode = DefaultSyncMode
@@ -213,8 +201,7 @@ func (c Config) WithDefaults() Config {
 
 // DefaultConfig returns a Config with sensible default values.
 //
-// Takes directory (string) which specifies where WAL and snapshot
-// files are stored.
+// Takes directory (string) which specifies where WAL and snapshot files are stored.
 //
 // Returns Config which contains the initialised configuration.
 func DefaultConfig(directory string) Config {
@@ -232,12 +219,11 @@ func DefaultConfig(directory string) Config {
 	}
 }
 
-// DefaultConfigNamed returns a Config using the default .piko/wal/{name}
-// directory. This is a convenience function for creating WAL configs with
-// sensible defaults.
+// DefaultConfigNamed returns a Config using the default .piko/wal/{name} directory. This
+// is a convenience function for creating WAL configs with sensible defaults.
 //
-// Takes name (string) which specifies the subdirectory name within the default
-// WAL base directory.
+// Takes name (string) which specifies the subdirectory name within the default WAL base
+// directory.
 //
 // Returns Config which contains the WAL settings with the directory set to
 // .piko/wal/{name}.

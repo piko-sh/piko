@@ -1,0 +1,4 @@
+{
+  "description": "Generic constraint interface declared in one file, generic function using it in another, instantiation in main",
+  "expected": "intMax=9 floatMax=3.14 strMax=zebra"
+}

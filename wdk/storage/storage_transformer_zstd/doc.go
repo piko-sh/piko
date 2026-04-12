@@ -16,15 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package storage_transformer_zstd implements Zstandard compression
-// for storage streams.
+// Package storage_transformer_zstd implements Zstandard compression for storage streams.
 //
-// It applies transparent compression on uploads and decompression on
-// downloads. Zstd typically achieves better compression than gzip with
-// faster decompression, reducing storage costs whilst maintaining read
-// performance. The compression level is configurable from
-// SpeedFastest (1) through SpeedBestCompression (11).
+// It applies transparent compression on uploads and decompression on downloads. Zstd
+// typically achieves better compression than gzip with faster decompression, reducing
+// storage costs whilst maintaining read performance. The compression level is
+// configurable from SpeedFastest (1) through SpeedBestCompression (11).
 //
-// All methods are safe for concurrent use. Each Transform and Reverse
-// call creates independent encoder/decoder instances.
+// All methods are safe for concurrent use. Each Transform and Reverse call creates
+// independent encoder/decoder instances.
 package storage_transformer_zstd

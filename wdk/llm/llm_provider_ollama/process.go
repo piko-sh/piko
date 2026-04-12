@@ -45,34 +45,36 @@ const (
 	stopGracePeriod = 5 * time.Second
 )
 
-// managedOllamaEnvKeys holds the set of environment variable names that are
-// forwarded to the managed Ollama process.
-var managedOllamaEnvKeys = map[string]struct{}{
-	"APPDATA":           {},
-	"COMSPEC":           {},
-	"DYLD_LIBRARY_PATH": {},
-	"HOME":              {},
-	"HTTPS_PROXY":       {},
-	"HTTP_PROXY":        {},
-	"LANG":              {},
-	"LC_ALL":            {},
-	"LC_CTYPE":          {},
-	"LD_LIBRARY_PATH":   {},
-	"LOCALAPPDATA":      {},
-	"NO_PROXY":          {},
-	"PATH":              {},
-	"PROGRAMDATA":       {},
-	"SSL_CERT_DIR":      {},
-	"SSL_CERT_FILE":     {},
-	"SYSTEMROOT":        {},
-	"TEMP":              {},
-	"TMP":               {},
-	"TMPDIR":            {},
-	"USERPROFILE":       {},
-	"XDG_CACHE_HOME":    {},
-	"XDG_CONFIG_HOME":   {},
-	"XDG_DATA_HOME":     {},
-}
+var (
+	// managedOllamaEnvKeys holds the set of environment variable names that are forwarded to
+	// the managed Ollama process.
+	managedOllamaEnvKeys = map[string]struct{}{
+		"APPDATA":           {},
+		"COMSPEC":           {},
+		"DYLD_LIBRARY_PATH": {},
+		"HOME":              {},
+		"HTTPS_PROXY":       {},
+		"HTTP_PROXY":        {},
+		"LANG":              {},
+		"LC_ALL":            {},
+		"LC_CTYPE":          {},
+		"LD_LIBRARY_PATH":   {},
+		"LOCALAPPDATA":      {},
+		"NO_PROXY":          {},
+		"PATH":              {},
+		"PROGRAMDATA":       {},
+		"SSL_CERT_DIR":      {},
+		"SSL_CERT_FILE":     {},
+		"SYSTEMROOT":        {},
+		"TEMP":              {},
+		"TMP":               {},
+		"TMPDIR":            {},
+		"USERPROFILE":       {},
+		"XDG_CACHE_HOME":    {},
+		"XDG_CONFIG_HOME":   {},
+		"XDG_DATA_HOME":     {},
+	}
+)
 
 // managedProcess tracks an Ollama subprocess spawned by the provider.
 type managedProcess struct {
@@ -124,8 +126,8 @@ func (p *managedProcess) Stop() error {
 // Returns *managedProcess which manages the subprocess lifecycle.
 // Returns error when the binary cannot be found or the server fails to start.
 //
-// Spawns a goroutine to read stderr output from the subprocess. The goroutine
-// terminates when the subprocess exits.
+// Spawns a goroutine to read stderr output from the subprocess. The goroutine terminates
+// when the subprocess exits.
 func startOllama(binaryPath, host string) (*managedProcess, error) {
 	_, l := logger.From(context.Background(), log)
 	if binaryPath == "" {
@@ -182,8 +184,8 @@ func startOllama(binaryPath, host string) (*managedProcess, error) {
 	}, nil
 }
 
-// newManagedOllamaCommand creates the managed `ollama serve` command with an
-// explicit environment and explicit stdio handling.
+// newManagedOllamaCommand creates the managed `ollama serve` command with an explicit
+// environment and explicit stdio handling.
 //
 // Takes binaryPath (string) which is the path to the ollama binary.
 // Takes host (string) which is the Ollama API endpoint.
@@ -200,8 +202,8 @@ func newManagedOllamaCommand(binaryPath, host string, currentEnv []string) *exec
 	return command
 }
 
-// buildManagedOllamaEnv constructs a minimal child environment for the managed
-// Ollama process.
+// buildManagedOllamaEnv constructs a minimal child environment for the managed Ollama
+// process.
 //
 // Takes currentEnv ([]string) which is the parent environment to filter.
 // Takes host (string) which is the Ollama API endpoint to set.
@@ -227,8 +229,8 @@ func buildManagedOllamaEnv(currentEnv []string, host string) []string {
 	return env
 }
 
-// shouldPreserveManagedOllamaEnv reports whether an environment variable is
-// required for a managed Ollama process to behave correctly.
+// shouldPreserveManagedOllamaEnv reports whether an environment variable is required for
+// a managed Ollama process to behave correctly.
 //
 // Takes key (string) which is the environment variable name to check.
 //
@@ -242,8 +244,8 @@ func shouldPreserveManagedOllamaEnv(key string) bool {
 	return ok
 }
 
-// waitForHealth polls the Ollama health endpoint until it responds or the
-// timeout elapses.
+// waitForHealth polls the Ollama health endpoint until it responds or the timeout
+// elapses.
 //
 // Takes host (string) which is the Ollama API base URL.
 // Takes timeout (time.Duration) which is the maximum time to wait.

@@ -34,32 +34,29 @@ const (
 	// defaultEmbeddingModel is the default model used for generating embeddings.
 	defaultEmbeddingModel = "all-minilm"
 
-	// defaultHTTPTimeout is the default timeout for non-streaming HTTP
-	// requests to the Ollama API.
+	// defaultHTTPTimeout is the default timeout for non-streaming HTTP requests to the
+	// Ollama API.
 	defaultHTTPTimeout = 10 * time.Minute
 
-	// defaultImageFetchMaxBytes is the maximum allowed image size when
-	// fetching URL-referenced images (20 MiB).
+	// defaultImageFetchMaxBytes is the maximum allowed image size when fetching
+	// URL-referenced images (20 MiB).
 	defaultImageFetchMaxBytes = 20 << 20
 
 	// defaultImageFetchTimeout is the per-image fetch timeout.
 	defaultImageFetchTimeout = 30 * time.Second
 )
 
-// ModelRef identifies an Ollama model by name with an optional SHA256 digest
-// for supply chain verification. When a Digest is set, the provider verifies
-// that the local model's digest matches before using it, preventing
-// substitution attacks.
+// ModelRef identifies an Ollama model by name with an optional SHA256 digest for supply
+// chain verification. When a Digest is set, the provider verifies that the local model's
+// digest matches before using it, preventing substitution attacks.
 //
-// Use [Model] for a plain name or [ModelWithDigest] to pin to a specific
-// version.
+// Use Model for a plain name or ModelWithDigest to pin to a specific version.
 type ModelRef struct {
 	// Name is the Ollama model name (e.g. "llama3.2", "nomic-embed-text").
 	Name string
 
-	// Digest is an optional SHA256 digest to verify against the
-	// locally installed model, refusing a mismatch to prevent
-	// substitution attacks.
+	// Digest is an optional SHA256 digest to verify against the locally installed model,
+	// refusing a mismatch to prevent substitution attacks.
 	//
 	// Obtain the digest from `ollama list` or the Ollama registry.
 	Digest string
@@ -79,14 +76,13 @@ func (m ModelRef) IsZero() bool {
 	return m.Name == ""
 }
 
-// verifyDigest checks that gotDigest matches the expected digest in the ref.
-// Matching is prefix-based, so truncated digests work (as shown by
-// `ollama list`).
+// verifyDigest checks that gotDigest matches the expected digest in the ref. Matching is
+// prefix-based, so truncated digests work (as shown by `ollama list`).
 //
 // Takes gotDigest (string) which is the actual digest to compare.
 //
-// Returns error when the digests do not match, indicating a possible supply
-// chain compromise.
+// Returns error when the digests do not match, indicating a possible supply chain
+// compromise.
 func (m ModelRef) verifyDigest(gotDigest string) error {
 	if m.Digest == "" {
 		return nil
@@ -105,16 +101,14 @@ func (m ModelRef) verifyDigest(gotDigest string) error {
 	return nil
 }
 
-// ImageFetchConfig controls how the Ollama provider fetches URL-referenced
-// images. This must be explicitly enabled because it causes the provider to
-// make outbound HTTP requests to arbitrary URLs supplied in messages.
+// ImageFetchConfig controls how the Ollama provider fetches URL-referenced images. This
+// must be explicitly enabled because it causes the provider to make outbound HTTP
+// requests to arbitrary URLs supplied in messages.
 type ImageFetchConfig struct {
-	// MaxBytes is the maximum allowed image size in bytes.
-	// Defaults to 20 MiB when zero.
+	// MaxBytes is the maximum allowed image size in bytes. Defaults to 20 MiB when zero.
 	MaxBytes int64
 
-	// Timeout is the per-image fetch timeout.
-	// Defaults to 30 seconds when zero.
+	// Timeout is the per-image fetch timeout. Defaults to 30 seconds when zero.
 	Timeout time.Duration
 }
 
@@ -133,37 +127,37 @@ func (c ImageFetchConfig) withDefaults() ImageFetchConfig {
 
 // Config holds settings for the Ollama provider.
 type Config struct {
-	// AutoStart spawns `ollama serve` as a managed subprocess if the
-	// server is not reachable on startup, defaulting to true.
+	// AutoStart spawns `ollama serve` as a managed subprocess if the server is not reachable
+	// on startup, defaulting to true.
 	AutoStart *bool
 
-	// AutoPull downloads models via Ollama's Pull API if they are not found
-	// locally. Defaults to true.
+	// AutoPull downloads models via Ollama's Pull API if they are not found locally.
+	// Defaults to true.
 	AutoPull *bool
 
-	// ImageFetch configures optional downloading of URL-referenced images,
-	// disabled by default for security so that nil causes image URL content
-	// parts to be silently skipped.
+	// ImageFetch configures optional downloading of URL-referenced images, disabled by
+	// default for security so that nil causes image URL content parts to be silently
+	// skipped.
 	ImageFetch *ImageFetchConfig
 
-	// DefaultModel is the model to use for completions when not given in
-	// requests. Defaults to "llama3.2".
+	// DefaultModel is the model to use for completions when not given in requests. Defaults
+	// to "llama3.2".
 	DefaultModel ModelRef
 
-	// DefaultEmbeddingModel is the model to use for embeddings when not given
-	// in requests. Defaults to "all-minilm".
+	// DefaultEmbeddingModel is the model to use for embeddings when not given in requests.
+	// Defaults to "all-minilm".
 	DefaultEmbeddingModel ModelRef
 
 	// Host is the Ollama API endpoint. Defaults to "http://localhost:11434".
 	Host string
 
-	// BinaryPath is the path to the ollama binary. If empty, the binary is
-	// auto-detected from $PATH.
+	// BinaryPath is the path to the ollama binary. If empty, the binary is auto-detected
+	// from $PATH.
 	BinaryPath string
 
-	// HTTPTimeout is the timeout for non-streaming HTTP requests to the
-	// Ollama API, defaulting to 10 minutes. Streaming calls are
-	// unaffected as they use per-request context cancellation.
+	// HTTPTimeout is the timeout for non-streaming HTTP requests to the Ollama API,
+	// defaulting to 10 minutes. Streaming calls are unaffected as they use per-request
+	// context cancellation.
 	HTTPTimeout time.Duration
 }
 
@@ -202,7 +196,7 @@ func (c Config) WithDefaults() Config {
 	return c
 }
 
-// Model creates a [ModelRef] from a plain model name.
+// Model creates a ModelRef from a plain model name.
 //
 // Takes name (string) which specifies the model name.
 //
@@ -211,15 +205,14 @@ func Model(name string) ModelRef {
 	return ModelRef{Name: name}
 }
 
-// ModelWithDigest creates a [ModelRef] pinned to a specific SHA256 digest.
+// ModelWithDigest creates a ModelRef pinned to a specific SHA256 digest.
 //
 // Takes name (string) which specifies the model name.
 // Takes digest (string) which is the SHA256 digest to pin the model to.
 //
 // Returns ModelRef which is the model reference pinned to the specified digest.
 //
-// The digest should be the value shown in `ollama list` (e.g.
-// "1b226e2802db").
+// The digest should be the value shown in `ollama list` (e.g. "1b226e2802db").
 func ModelWithDigest(name, digest string) ModelRef {
 	return ModelRef{Name: name, Digest: digest}
 }

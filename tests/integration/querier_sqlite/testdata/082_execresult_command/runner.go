@@ -93,10 +93,10 @@ func main() {
 	}
 
 	result := map[string]any{
-		"hits_affected":   hitsAffected,
-		"hits_value":      hitsCounter.Value,
-		"errors_affected": errorsAffected,
-		"errors_value":    errorsCounter.Value,
+		"hits_affected":    hitsAffected,
+		"hits_value":       hitsCounter.Value,
+		"errors_affected":  errorsAffected,
+		"errors_value":     errorsCounter.Value,
 		"missing_affected": missingAffected,
 	}
 

@@ -33,9 +33,8 @@ var (
 	_ driver.ConnBeginTx = (*d1Conn)(nil)
 )
 
-// d1Conn implements driver.Conn and driver.ConnBeginTx for Cloudflare D1.
-// Since D1 is accessed over HTTP, there is no persistent connection to manage;
-// Close is a no-op.
+// d1Conn implements driver.Conn and driver.ConnBeginTx for Cloudflare D1. Since D1 is
+// accessed over HTTP, there is no persistent connection to manage; Close is a no-op.
 type d1Conn struct {
 	// api is the Cloudflare API client used to execute D1 queries.
 	api *cloudflare.API
@@ -43,9 +42,9 @@ type d1Conn struct {
 	// rc is the Cloudflare resource container (account identifier).
 	rc *cloudflare.ResourceContainer
 
-	// activeTx holds the currently active transaction, or nil when no
-	// transaction is in progress. When set, ExecContext on statements routes
-	// through the transaction's batch instead of executing immediately.
+	// activeTx holds the currently active transaction, or nil when no transaction is in
+	// progress. When set, ExecContext on statements routes through the transaction's batch
+	// instead of executing immediately.
 	activeTx *d1Tx
 
 	// databaseID is the UUID of the D1 database.
@@ -72,8 +71,8 @@ func (*d1Conn) Close() error {
 	return nil
 }
 
-// Begin starts a new transaction. D1 does not support interactive transactions,
-// so statements are collected and executed as a single batch on Commit.
+// Begin starts a new transaction. D1 does not support interactive transactions, so
+// statements are collected and executed as a single batch on Commit.
 //
 // Returns driver.Tx which collects statements for batch execution.
 // Returns error when a transaction is already active.
@@ -90,11 +89,11 @@ func (c *d1Conn) Begin() (driver.Tx, error) {
 	return tx, nil
 }
 
-// BeginTx starts a new transaction with the given context and options. D1 does
-// not support isolation levels or read-only transactions, so opts is ignored.
+// BeginTx starts a new transaction with the given context and options. D1 does not
+// support isolation levels or read-only transactions, so opts is ignored.
 //
-// Takes ctx (context.Context) which is unused since D1 transactions are
-// deferred to Commit time.
+// Takes ctx (context.Context) which is unused since D1 transactions are deferred to
+// Commit time.
 // Takes opts (driver.TxOptions) which is ignored.
 //
 // Returns driver.Tx which collects statements for batch execution.

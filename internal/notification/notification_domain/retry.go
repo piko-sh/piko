@@ -22,31 +22,31 @@ import (
 	"piko.sh/piko/internal/retry"
 )
 
-// errorClassifier classifies errors for retry decisions, treating
-// notification-specific validation errors as permanent in addition to the
-// shared defaults.
-var errorClassifier = retry.NewErrorClassifier(
-	retry.WithPermanentErrors(
-		ErrProviderNotFound,
-		ErrNoProviders,
-		ErrNoDefaultProvider,
-		ErrEmptyMessage,
-		ErrEmptyTitle,
-		ErrUnsupportedContentType,
-		ErrMessageTooLong,
-	),
-	retry.WithRetryablePatterns(
-		"slack api",
-		"discord webhook",
-		"webhook error",
-		"circuit breaker open",
-	),
+var (
+	// errorClassifier classifies errors for retry decisions, treating notification-specific
+	// validation errors as permanent in addition to the shared defaults.
+	errorClassifier = retry.NewErrorClassifier(
+		retry.WithPermanentErrors(
+			ErrProviderNotFound,
+			ErrNoProviders,
+			ErrNoDefaultProvider,
+			ErrEmptyMessage,
+			ErrEmptyTitle,
+			ErrUnsupportedContentType,
+			ErrMessageTooLong,
+		),
+		retry.WithRetryablePatterns(
+			"slack api",
+			"discord webhook",
+			"webhook error",
+			"circuit breaker open",
+		),
+	)
 )
 
-// IsRetryableError reports whether an error is temporary and worth retrying.
-// It checks for network errors, system call errors, and known retryable
-// messages, whilst filtering out permanent errors including validation
-// failures and missing provider errors.
+// IsRetryableError reports whether an error is temporary and worth retrying. It checks
+// for network errors, system call errors, and known retryable messages, whilst filtering
+// out permanent errors including validation failures and missing provider errors.
 //
 // Takes err (error) which is the error to check.
 //

@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Provides helper functions for the annotator service including diagnostic
-// collection, error handling, and result aggregation. Contains utility methods
-// that support the main service operations during the compilation pipeline
-// execution.
+// Provides helper functions for the annotator service including diagnostic collection,
+// error handling, and result aggregation. Contains utility methods that support the main
+// service operations during the compilation pipeline execution.
 
 import (
 	"cmp"
@@ -73,16 +72,14 @@ type annotationJobResult struct {
 	diagnostics []*ast_domain.Diagnostic
 }
 
-// createAnnotationWorker creates a worker function for the annotation
-// errgroup.
+// createAnnotationWorker creates a worker function for the annotation errgroup.
 //
 // Takes jobs (<-chan *annotationJob) which provides annotation jobs to process.
-// Takes results (chan<- *annotationJobResult) which receives completed job
-// results.
+// Takes results (chan<- *annotationJobResult) which receives completed job results.
 // Takes config (*annotationWorkerConfig) which sets worker behaviour.
 //
-// Returns func() error which processes jobs until the channel closes or the
-// context is cancelled.
+// Returns func() error which processes jobs until the channel closes or the context is
+// cancelled.
 func (s *AnnotatorService) createAnnotationWorker(
 	ctx context.Context,
 	jobs <-chan *annotationJob,
@@ -146,8 +143,7 @@ func (s *AnnotatorService) processAnnotationJob(
 // createErrorJobResult creates a job result for a failed annotation.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes vc (*annotator_dto.VirtualComponent) which is the component that
-// failed.
+// Takes vc (*annotator_dto.VirtualComponent) which is the component that failed.
 // Takes err (error) which is the error that occurred.
 //
 // Returns *annotationJobResult which holds the error details and a nil result.
@@ -178,11 +174,10 @@ func (*AnnotatorService) createErrorJobResult(
 // prepareAnnotationJob creates an annotation job for a virtual component.
 //
 // Takes ctx (context.Context) which is the parent context for the job.
-// Takes vc (*annotator_dto.VirtualComponent) which specifies the component to
-// annotate.
+// Takes vc (*annotator_dto.VirtualComponent) which specifies the component to annotate.
 //
-// Returns *annotationJob which contains the component and a context carrying
-// the session logger.
+// Returns *annotationJob which contains the component and a context carrying the session
+// logger.
 func (s *AnnotatorService) prepareAnnotationJob(ctx context.Context, vc *annotator_dto.VirtualComponent) *annotationJob {
 	relPath, err := filepath.Rel(s.resolver.GetBaseDir(), vc.Source.SourcePath)
 	if err != nil {
@@ -200,8 +195,8 @@ func (s *AnnotatorService) prepareAnnotationJob(ctx context.Context, vc *annotat
 // runSrcsetAnnotation adds srcset attributes to images for responsive display.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which holds the
-// component results to update with srcset attributes.
+// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which holds the component
+// results to update with srcset attributes.
 func (s *AnnotatorService) runSrcsetAnnotation(
 	ctx context.Context,
 	finalResult *annotator_dto.ProjectAnnotationResult,
@@ -227,18 +222,17 @@ func (s *AnnotatorService) runSrcsetAnnotation(
 
 // runAnnotationWorkerPool starts workers that annotate components in parallel.
 //
-// Takes components (map[string]*annotator_dto.VirtualComponent) which are
-// the components to annotate.
+// Takes components (map[string]*annotator_dto.VirtualComponent) which are the components
+// to annotate.
 // Takes config (*annotationWorkerConfig) which sets worker behaviour.
 //
-// Returns <-chan *annotationJobResult which yields annotation results and
-// closes when all workers finish.
+// Returns <-chan *annotationJobResult which yields annotation results and closes when all
+// workers finish.
 // Returns error which is always nil (kept for future use).
 //
-// Spawns a goroutine that sends jobs to the workers, plus one
-// goroutine per worker. An additional goroutine waits for all workers to
-// finish and then closes the results channel. The spawned workers run until
-// all jobs are processed.
+// Spawns a goroutine that sends jobs to the workers, plus one goroutine per worker. An
+// additional goroutine waits for all workers to finish and then closes the results
+// channel. The spawned workers run until all jobs are processed.
 func (s *AnnotatorService) runAnnotationWorkerPool(
 	ctx context.Context,
 	components map[string]*annotator_dto.VirtualComponent,
@@ -265,12 +259,11 @@ func (s *AnnotatorService) runAnnotationWorkerPool(
 	return results, nil
 }
 
-// buildActionsFromManifest converts an ActionManifest into a map of
-// ActionInfoProvider for use in semantic analysis. This enables auto-discovery
-// of actions without requiring callers to pass an explicit actions map.
+// buildActionsFromManifest converts an ActionManifest into a map of ActionInfoProvider
+// for use in semantic analysis. This enables auto-discovery of actions without requiring
+// callers to pass an explicit actions map.
 //
-// Takes manifest (*annotator_dto.ActionManifest) which contains discovered
-// actions.
+// Takes manifest (*annotator_dto.ActionManifest) which contains discovered actions.
 //
 // Returns map[string]ActionInfoProvider which maps action names to their info.
 func buildActionsFromManifest(manifest *annotator_dto.ActionManifest) map[string]ActionInfoProvider {
@@ -286,8 +279,8 @@ func buildActionsFromManifest(manifest *annotator_dto.ActionManifest) map[string
 	return actions
 }
 
-// calculateWorkerCount finds the number of workers to use based on the CPU
-// count and job count.
+// calculateWorkerCount finds the number of workers to use based on the CPU count and job
+// count.
 //
 // Takes jobCount (int) which is the number of jobs to process.
 //
@@ -298,12 +291,10 @@ func calculateWorkerCount(jobCount int) int {
 
 // feedAnnotationJobs sends annotation jobs to a channel for processing.
 //
-// Takes jobs (chan<- *annotationJob) which receives the prepared annotation
-// jobs.
-// Takes prepareJob (func(...)) which creates an annotation job from a virtual
-// component.
-// Takes components (map[string]*annotator_dto.VirtualComponent) which holds
-// the virtual components to process.
+// Takes jobs (chan<- *annotationJob) which receives the prepared annotation jobs.
+// Takes prepareJob (func(...)) which creates an annotation job from a virtual component.
+// Takes components (map[string]*annotator_dto.VirtualComponent) which holds the virtual
+// components to process.
 func feedAnnotationJobs(
 	ctx context.Context,
 	jobs chan<- *annotationJob,
@@ -320,13 +311,13 @@ func feedAnnotationJobs(
 	}
 }
 
-// aggregateAnnotationResults collects results from the results channel and
-// stores them in the final result.
+// aggregateAnnotationResults collects results from the results channel and stores them in
+// the final result.
 //
-// Takes resultsChan (<-chan *annotationJobResult) which provides annotation
-// job results to collect.
-// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which receives
-// the collected diagnostics and component results.
+// Takes resultsChan (<-chan *annotationJobResult) which provides annotation job results
+// to collect.
+// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which receives the collected
+// diagnostics and component results.
 //
 // Returns []error which contains serious errors found during collection.
 func aggregateAnnotationResults(
@@ -353,12 +344,11 @@ func aggregateAnnotationResults(
 	return severeErrors
 }
 
-// runAssetAggregation gathers assets from all components into a single
-// manifest.
+// runAssetAggregation gathers assets from all components into a single manifest.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which holds
-// component results and receives the final asset manifest.
+// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which holds component
+// results and receives the final asset manifest.
 func runAssetAggregation(
 	ctx context.Context,
 	finalResult *annotator_dto.ProjectAnnotationResult,
@@ -376,21 +366,20 @@ func runAssetAggregation(
 		logger_domain.Int("unique_assets_found", len(finalResult.FinalAssetManifest)))
 }
 
-// handlePhase2Completion checks for errors after annotation and returns the
-// final result.
+// handlePhase2Completion checks for errors after annotation and returns the final result.
 //
-// When fault tolerance is on, it logs a warning and returns partial results
-// even if there are errors. When fault tolerance is off, it returns an error
-// if there are any build errors.
+// When fault tolerance is on, it logs a warning and returns partial results even if there
+// are errors. When fault tolerance is off, it returns an error if there are any build
+// errors.
 //
 // Takes ctx (context.Context) which carries the logger.
-// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which contains
-// the annotation results to check.
+// Takes finalResult (*annotator_dto.ProjectAnnotationResult) which contains the
+// annotation results to check.
 // Takes logStore (*CompilationLogStore) which holds build log entries.
 // Takes options (*annotationOptions) which controls fault tolerance behaviour.
 //
-// Returns *annotator_dto.ProjectAnnotationResult which is the processed
-// result with duplicate diagnostics removed.
+// Returns *annotator_dto.ProjectAnnotationResult which is the processed result with
+// duplicate diagnostics removed.
 // Returns *CompilationLogStore which is the unchanged log store.
 // Returns error when there are build errors and fault tolerance is off.
 func handlePhase2Completion(

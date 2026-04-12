@@ -18,8 +18,8 @@
 
 package querier_dto
 
-// DerivedTableSource identifies the origin of a derived (virtual) table in the
-// FROM clause.
+// DerivedTableSource identifies the origin of a derived (virtual) table in the FROM
+// clause.
 type DerivedTableSource uint8
 
 const (
@@ -36,9 +36,9 @@ const (
 	DerivedSourceSubquery
 )
 
-// DerivedTableReference describes a virtual table in the FROM clause that does
-// not exist in the catalogue. Engine adapters emit these for UNNEST, FLATTEN,
-// table-valued functions, and subqueries in FROM position.
+// DerivedTableReference describes a virtual table in the FROM clause that does not exist
+// in the catalogue. Engine adapters emit these for UNNEST, FLATTEN, table-valued
+// functions, and subqueries in FROM position.
 type DerivedTableReference struct {
 	// Alias is the table alias used in the query.
 	Alias string
@@ -53,14 +53,14 @@ type DerivedTableReference struct {
 	JoinKind JoinKind
 }
 
-// RawQueryAnalysis is the engine adapter's initial analysis of a query before
-// the domain applies type resolution and nullability propagation.
+// RawQueryAnalysis is the engine adapter's initial analysis of a query before the domain
+// applies type resolution and nullability propagation.
 type RawQueryAnalysis struct {
 	// InsertTable is the target table name for INSERT statements.
 	InsertTable string
 
-	// RawDerivedTables holds unresolved subqueries in FROM clauses. The domain
-	// layer resolves these and converts them to DerivedTableReference entries.
+	// RawDerivedTables holds unresolved subqueries in FROM clauses. The domain layer
+	// resolves these and converts them to DerivedTableReference entries.
 	RawDerivedTables []RawDerivedTableReference
 
 	// FromTables holds the tables referenced in the FROM clause.
@@ -72,8 +72,8 @@ type RawQueryAnalysis struct {
 	// CTEDefinitions holds any WITH clause CTE definitions.
 	CTEDefinitions []RawCTEDefinition
 
-	// DerivedTables holds virtual tables from UNNEST, FLATTEN, table-valued
-	// functions, or subqueries in the FROM clause.
+	// DerivedTables holds virtual tables from UNNEST, FLATTEN, table-valued functions, or
+	// subqueries in the FROM clause.
 	DerivedTables []DerivedTableReference
 
 	// OutputColumns holds the unresolved output column references.
@@ -82,13 +82,12 @@ type RawQueryAnalysis struct {
 	// GroupByColumns holds the columns referenced in a GROUP BY clause.
 	GroupByColumns []ColumnReference
 
-	// CompoundBranches holds the branches of a compound query
-	// (UNION, UNION ALL, INTERSECT, EXCEPT).
+	// CompoundBranches holds the branches of a compound query (UNION, UNION ALL, INTERSECT,
+	// EXCEPT).
 	CompoundBranches []RawCompoundBranch
 
-	// RawTableValuedFunctions holds unresolved table-valued function calls in
-	// FROM clauses. The domain layer resolves these into DerivedTableReference
-	// entries.
+	// RawTableValuedFunctions holds unresolved table-valued function calls in FROM clauses.
+	// The domain layer resolves these into DerivedTableReference entries.
 	RawTableValuedFunctions []RawTableValuedFunctionReference
 
 	// ParameterReferences holds the unresolved parameter references.
@@ -100,9 +99,9 @@ type RawQueryAnalysis struct {
 	// HasReturning indicates whether the statement has a RETURNING clause.
 	HasReturning bool
 
-	// ReadOnly indicates the query does not modify data. SELECT and VALUES
-	// statements are read-only unless they contain FOR UPDATE/SHARE locking
-	// clauses or data-modifying CTEs (INSERT/UPDATE/DELETE inside WITH).
+	// ReadOnly indicates the query does not modify data. SELECT and VALUES statements are
+	// read-only unless they contain FOR UPDATE/SHARE locking clauses or data-modifying CTEs
+	// (INSERT/UPDATE/DELETE inside WITH).
 	ReadOnly bool
 }
 
@@ -123,8 +122,8 @@ const (
 	CompoundExcept
 )
 
-// RawCompoundBranch holds a single branch of a compound query with its
-// operator and unresolved query analysis.
+// RawCompoundBranch holds a single branch of a compound query with its operator and
+// unresolved query analysis.
 type RawCompoundBranch struct {
 	// Query is the unresolved analysis of this branch's SELECT.
 	Query *RawQueryAnalysis
@@ -133,9 +132,9 @@ type RawCompoundBranch struct {
 	Operator CompoundOperator
 }
 
-// RawDerivedTableReference holds an unresolved subquery in a FROM clause.
-// The domain layer resolves the inner query's output columns and converts
-// this into a DerivedTableReference for scope resolution.
+// RawDerivedTableReference holds an unresolved subquery in a FROM clause. The domain
+// layer resolves the inner query's output columns and converts this into a
+// DerivedTableReference for scope resolution.
 type RawDerivedTableReference struct {
 	// InnerQuery is the unresolved analysis of the subquery.
 	InnerQuery *RawQueryAnalysis
@@ -147,19 +146,19 @@ type RawDerivedTableReference struct {
 	JoinKind JoinKind
 }
 
-// TVFColumnDefinition holds a column name and optional type name from an
-// AS alias(col1 type1, col2 type2) clause on a table-valued function.
+// TVFColumnDefinition holds a column name and optional type name from an AS alias(col1
+// type1, col2 type2) clause on a table-valued function.
 type TVFColumnDefinition struct {
 	// Name is the column name.
 	Name string
 
-	// TypeName is the raw engine type name (e.g. "text", "integer", "int4[]"),
-	// or empty when the column definition provides only a name without a type.
+	// TypeName is the raw engine type name (e.g. "text", "integer", "int4[]"), or empty when
+	// the column definition provides only a name without a type.
 	TypeName string
 }
 
-// RawTableValuedFunctionReference holds an unresolved table-valued function
-// call in a FROM clause (e.g. json_each, generate_series).
+// RawTableValuedFunctionReference holds an unresolved table-valued function call in a
+// FROM clause (e.g. json_each, generate_series).
 type RawTableValuedFunctionReference struct {
 	// FunctionName is the table-valued function name.
 	FunctionName string
@@ -195,23 +194,23 @@ type RawOutputColumn struct {
 
 // RawParameterReference is an unresolved parameter reference from the engine.
 type RawParameterReference struct {
-	// ColumnReference is the column this parameter is compared with or assigned
-	// to, if applicable.
+	// ColumnReference is the column this parameter is compared with or assigned to, if
+	// applicable.
 	ColumnReference *ColumnReference
 
 	// CastType is the explicit cast type, if the parameter appears in a CAST.
 	CastType *SQLType
 
-	// Name is the identifier for named parameters (:email, @user_id, $name).
-	// Empty for positional/numbered parameters.
+	// Name is the identifier for named parameters (:email, @user_id, $name). Empty for
+	// positional/numbered parameters.
 	Name string
 
-	// Number is the positional parameter number ($1, ?1, etc.) or sequential
-	// ordinal for anonymous question-mark style.
+	// Number is the positional parameter number ($1, ?1, etc.) or sequential ordinal for
+	// anonymous question-mark style.
 	Number int
 
-	// Context describes where the parameter appears (comparison, function arg,
-	// assignment, cast, etc.) for type inference.
+	// Context describes where the parameter appears (comparison, function arg, assignment,
+	// cast, etc.) for type inference.
 	Context ParameterContext
 }
 
@@ -243,11 +242,10 @@ const (
 	// ParameterContextOffset indicates a parameter in an OFFSET clause.
 	ParameterContextOffset
 
-	// ParameterContextLike indicates a parameter inside a LIKE / ILIKE /
-	// GLOB / REGEXP pattern expression. The associated ColumnReference
-	// (when set) names the column on the left of the pattern operator;
-	// the parameter itself always carries a string pattern, so the
-	// analyser types it as text regardless of the column's type.
+	// ParameterContextLike indicates a parameter inside a LIKE / ILIKE / GLOB / REGEXP
+	// pattern expression. The associated ColumnReference (when set) names the column on the
+	// left of the pattern operator; the parameter itself always carries a string pattern, so
+	// the analyser types it as text regardless of the column's type.
 	ParameterContextLike
 
 	// ParameterContextUnknown indicates a parameter in an unrecognised context.
@@ -303,8 +301,8 @@ const (
 	// JoinCross is a CROSS JOIN.
 	JoinCross
 
-	// JoinPositional is a DuckDB POSITIONAL JOIN that joins tables by row
-	// position, padding with NULLs when one side is shorter.
+	// JoinPositional is a DuckDB POSITIONAL JOIN that joins tables by row position, padding
+	// with NULLs when one side is shorter.
 	JoinPositional
 )
 
@@ -329,8 +327,8 @@ type RawCTEDefinition struct {
 	IsRecursive bool
 }
 
-// ScopeKind identifies the context that created a scope in the nested scope
-// chain used for column resolution.
+// ScopeKind identifies the context that created a scope in the nested scope chain used
+// for column resolution.
 type ScopeKind uint8
 
 const (
@@ -343,13 +341,13 @@ const (
 	// ScopeKindSubquery is a scope created for a subquery.
 	ScopeKindSubquery
 
-	// ScopeKindLateral is a scope created for a LATERAL join that can
-	// reference columns from preceding tables in the FROM clause.
+	// ScopeKindLateral is a scope created for a LATERAL join that can reference columns from
+	// preceding tables in the FROM clause.
 	ScopeKindLateral
 )
 
-// ScopedTable is a table within a scope, carrying its columns with
-// JOIN-adjusted nullability.
+// ScopedTable is a table within a scope, carrying its columns with JOIN-adjusted
+// nullability.
 type ScopedTable struct {
 	// Schema is the table's schema name.
 	Schema string
@@ -357,8 +355,8 @@ type ScopedTable struct {
 	// Name is the table name.
 	Name string
 
-	// Alias is the table alias used in the query, or the table name if no
-	// alias was specified.
+	// Alias is the table alias used in the query, or the table name if no alias was
+	// specified.
 	Alias string
 
 	// Columns holds the columns with JOIN-adjusted nullability.
@@ -371,8 +369,8 @@ type ScopedTable struct {
 	IsWithoutRowID bool
 }
 
-// ScopedColumn is a column within a scoped table, carrying its resolved type
-// and JOIN-adjusted nullability.
+// ScopedColumn is a column within a scoped table, carrying its resolved type and
+// JOIN-adjusted nullability.
 type ScopedColumn struct {
 	// Name is the column name.
 	Name string
@@ -380,7 +378,7 @@ type ScopedColumn struct {
 	// SQLType is the resolved SQL type from the catalogue.
 	SQLType SQLType
 
-	// Nullable indicates whether this column can be NULL in the current scope,
-	// accounting for JOIN type adjustments.
+	// Nullable indicates whether this column can be NULL in the current scope, accounting
+	// for JOIN type adjustments.
 	Nullable bool
 }

@@ -27,9 +27,11 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// devJSON is a JSON encoder configured to sort map keys so that SSE and REST
-// responses from the dev tools have deterministic field ordering.
-var devJSON = json.Freeze(json.Config{SortMapKeys: true})
+var (
+	// devJSON is a JSON encoder configured to sort map keys so that SSE and REST responses
+	// from the dev tools have deterministic field ordering.
+	devJSON = json.Freeze(json.Config{SortMapKeys: true})
+)
 
 func init() {
 	pretouchTypes := []reflect.Type{

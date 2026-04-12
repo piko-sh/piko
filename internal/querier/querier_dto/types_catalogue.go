@@ -23,8 +23,8 @@ type CatalogueMutation struct {
 	// FunctionSignature holds the function signature for CREATE FUNCTION.
 	FunctionSignature *FunctionSignature
 
-	// ViewDefinition holds the parsed SELECT body of a CREATE VIEW statement.
-	// The catalogue builder uses this to resolve the view's output column types.
+	// ViewDefinition holds the parsed SELECT body of a CREATE VIEW statement. The catalogue
+	// builder uses this to resolve the view's output column types.
 	ViewDefinition *RawQueryAnalysis
 
 	// ConstraintName is the constraint affected by DROP CONSTRAINT.
@@ -48,8 +48,8 @@ type CatalogueMutation struct {
 	// OwnedByColumn is the column that owns a sequence.
 	OwnedByColumn string
 
-	// VirtualModuleName is the module name from CREATE VIRTUAL TABLE ... USING
-	// module(...), or empty for non-virtual tables.
+	// VirtualModuleName is the module name from CREATE VIRTUAL TABLE ... USING module(...),
+	// or empty for non-virtual tables.
 	VirtualModuleName string
 
 	// OwnedByTable is the table that owns a sequence (OWNED BY table.column).
@@ -70,15 +70,15 @@ type CatalogueMutation struct {
 	// Columns holds column definitions for CREATE TABLE or ADD COLUMN.
 	Columns []Column
 
-	// InheritsTables lists parent tables from an INHERITS clause on CREATE TABLE.
-	// The catalogue builder prepends each parent's columns to the child table.
+	// InheritsTables lists parent tables from an INHERITS clause on CREATE TABLE. The
+	// catalogue builder prepends each parent's columns to the child table.
 	InheritsTables []TableReference
 
 	// EnumValues holds enum values for CREATE TYPE or ADD VALUE.
 	EnumValues []string
 
-	// Origin records which migration file produced this mutation. Set by the
-	// catalogue builder before applying each mutation.
+	// Origin records which migration file produced this mutation. Set by the catalogue
+	// builder before applying each mutation.
 	Origin MigrationOrigin
 
 	// Kind identifies the type of mutation (create table, alter column, etc.).
@@ -196,12 +196,12 @@ const (
 	// GeneratedKindNone indicates the column is not generated.
 	GeneratedKindNone GeneratedKind = iota
 
-	// GeneratedKindVirtual indicates a VIRTUAL generated column (computed on
-	// read, not physically stored). This is the default in SQLite.
+	// GeneratedKindVirtual indicates a VIRTUAL generated column (computed on read, not
+	// physically stored). This is the default in SQLite.
 	GeneratedKindVirtual
 
-	// GeneratedKindStored indicates a STORED generated column (computed on
-	// write and physically stored).
+	// GeneratedKindStored indicates a STORED generated column (computed on write and
+	// physically stored).
 	GeneratedKindStored
 )
 
@@ -231,8 +231,8 @@ type Column struct {
 	// IsGenerated indicates whether the column is a generated column.
 	IsGenerated bool
 
-	// GeneratedKind distinguishes VIRTUAL from STORED generated columns.
-	// Only meaningful when IsGenerated is true.
+	// GeneratedKind distinguishes VIRTUAL from STORED generated columns. Only meaningful
+	// when IsGenerated is true.
 	GeneratedKind GeneratedKind
 
 	// IsArray indicates whether the column is an array type.
@@ -247,12 +247,12 @@ type FunctionSignature struct {
 	// Schema is the schema the function belongs to.
 	Schema string
 
-	// Language is the declared function language (e.g. "sql", "plpgsql", "c"),
-	// or empty if not declared or not applicable.
+	// Language is the declared function language (e.g. "sql", "plpgsql", "c"), or empty if
+	// not declared or not applicable.
 	Language string
 
-	// BodySQL holds the raw SQL body text for LANGUAGE sql functions, used by
-	// the catalogue builder to re-analyse the function body.
+	// BodySQL holds the raw SQL body text for LANGUAGE sql functions, used by the catalogue
+	// builder to re-analyse the function body.
 	//
 	// Empty for procedural languages or when the body is not captured.
 	BodySQL string
@@ -260,8 +260,8 @@ type FunctionSignature struct {
 	// Arguments describes the function's parameters.
 	Arguments []FunctionArgument
 
-	// CalledFunctions records qualified function names called within the body.
-	// Populated during body analysis; used for call graph construction.
+	// CalledFunctions records qualified function names called within the body. Populated
+	// during body analysis; used for call graph construction.
 	CalledFunctions []string
 
 	// Origin records which migration introduced the function.
@@ -270,8 +270,8 @@ type FunctionSignature struct {
 	// ReturnType is the function's return type.
 	ReturnType SQLType
 
-	// MinArguments is the minimum number of arguments required, where arguments
-	// beyond this index have implicit defaults.
+	// MinArguments is the minimum number of arguments required, where arguments beyond this
+	// index have implicit defaults.
 	//
 	// When zero, defaults to len(Arguments) (all required).
 	MinArguments int
@@ -282,21 +282,20 @@ type FunctionSignature struct {
 	// IsAggregate indicates whether the function is an aggregate.
 	IsAggregate bool
 
-	// IsStrict indicates that NULL is returned on any NULL argument.
-	// PostgreSQL: STRICT or RETURNS NULL ON NULL INPUT.
+	// IsStrict indicates that NULL is returned on any NULL argument. PostgreSQL: STRICT or
+	// RETURNS NULL ON NULL INPUT.
 	IsStrict bool
 
 	// NullableBehaviour describes how the function handles NULL arguments.
 	NullableBehaviour FunctionNullableBehaviour
 
-	// DataAccess describes whether the function may modify data. Built-in
-	// functions are DataAccessReadOnly; user-defined functions default to
-	// DataAccessUnknown (treated as potentially modifying) unless the DDL
-	// declares otherwise.
+	// DataAccess describes whether the function may modify data. Built-in functions are
+	// DataAccessReadOnly; user-defined functions default to DataAccessUnknown (treated as
+	// potentially modifying) unless the DDL declares otherwise.
 	DataAccess FunctionDataAccess
 
-	// IsVariadic indicates the last argument can repeat zero or more times.
-	// When true, the resolver matches any arity >= MinArguments.
+	// IsVariadic indicates the last argument can repeat zero or more times. When true, the
+	// resolver matches any arity >= MinArguments.
 	IsVariadic bool
 }
 
@@ -304,17 +303,16 @@ type FunctionSignature struct {
 type FunctionDataAccess uint8
 
 const (
-	// DataAccessUnknown means the function's data access is not declared.
-	// Treated conservatively as potentially modifying data.
+	// DataAccessUnknown means the function's data access is not declared. Treated
+	// conservatively as potentially modifying data.
 	DataAccessUnknown FunctionDataAccess = iota
 
-	// DataAccessReadOnly means the function does not modify data
-	// (PostgreSQL: IMMUTABLE or STABLE; MySQL: NO SQL, READS SQL DATA, or
-	// DETERMINISTIC without MODIFIES SQL DATA).
+	// DataAccessReadOnly means the function does not modify data (PostgreSQL: IMMUTABLE or
+	// STABLE; MySQL: NO SQL, READS SQL DATA, or DETERMINISTIC without MODIFIES SQL DATA).
 	DataAccessReadOnly
 
-	// DataAccessModifiesData means the function may modify data
-	// (PostgreSQL: VOLATILE (default); MySQL: MODIFIES SQL DATA).
+	// DataAccessModifiesData means the function may modify data (PostgreSQL: VOLATILE
+	// (default); MySQL: MODIFIES SQL DATA).
 	DataAccessModifiesData
 )
 
@@ -326,8 +324,8 @@ type FunctionArgument struct {
 	// Type is the parameter type.
 	Type SQLType
 
-	// IsOptional indicates this argument has a default value and can be
-	// omitted. Optional arguments must come after all required arguments.
+	// IsOptional indicates this argument has a default value and can be omitted. Optional
+	// arguments must come after all required arguments.
 	IsOptional bool
 }
 
@@ -335,23 +333,23 @@ type FunctionArgument struct {
 type FunctionNullableBehaviour uint8
 
 const (
-	// FunctionNullableCalledOnNull means the function is called even when
-	// arguments are NULL. The result nullability depends on the function.
+	// FunctionNullableCalledOnNull means the function is called even when arguments are
+	// NULL. The result nullability depends on the function.
 	FunctionNullableCalledOnNull FunctionNullableBehaviour = iota
 
-	// FunctionNullableReturnsNullOnNull means NULL is returned when any
-	// argument is NULL (SQL STRICT / RETURNS NULL ON NULL INPUT).
+	// FunctionNullableReturnsNullOnNull means NULL is returned when any argument is NULL
+	// (SQL STRICT / RETURNS NULL ON NULL INPUT).
 	FunctionNullableReturnsNullOnNull
 
-	// FunctionNullableNeverNull means the function never returns NULL
-	// regardless of input (e.g. COUNT, COALESCE).
+	// FunctionNullableNeverNull means the function never returns NULL regardless of input
+	// (e.g. COUNT, COALESCE).
 	FunctionNullableNeverNull
 )
 
-// FunctionResolution is the result of engine-provided custom function
-// resolution, returned by FunctionResolverPort.ResolveFunctionCall. This
-// allows engines to handle context-dependent or polymorphic functions that
-// the standard overload resolution cannot match.
+// FunctionResolution is the result of engine-provided custom function resolution,
+// returned by FunctionResolverPort.ResolveFunctionCall. This allows engines to handle
+// context-dependent or polymorphic functions that the standard overload resolution cannot
+// match.
 type FunctionResolution struct {
 	// ReturnType is the resolved return type.
 	ReturnType SQLType
@@ -369,21 +367,20 @@ type FunctionResolution struct {
 	ReturnsSet bool
 }
 
-// MigrationOrigin records which migration file introduced or last modified a
-// catalogue object, enabling precise error messages that point back to the DDL
-// source.
+// MigrationOrigin records which migration file introduced or last modified a catalogue
+// object, enabling precise error messages that point back to the DDL source.
 type MigrationOrigin struct {
-	// Filename is the migration file that introduced this object
-	// (e.g. "001_create_users.sql").
+	// Filename is the migration file that introduced this object (e.g.
+	// "001_create_users.sql").
 	Filename string
 
-	// Index is the zero-based sequential position of the migration file
-	// after lexicographic sorting.
+	// Index is the zero-based sequential position of the migration file after lexicographic
+	// sorting.
 	Index int
 }
 
-// Catalogue represents the full schema state of a database, built from
-// replaying migration files.
+// Catalogue represents the full schema state of a database, built from replaying
+// migration files.
 type Catalogue struct {
 	// Schemas maps schema names to their contents.
 	Schemas map[string]*Schema
@@ -395,8 +392,8 @@ type Catalogue struct {
 	DefaultSchema string
 }
 
-// Schema represents a single database schema containing tables, views,
-// enums, functions, and types.
+// Schema represents a single database schema containing tables, views, enums, functions,
+// and types.
 type Schema struct {
 	// Tables maps table names to their definitions.
 	Tables map[string]*Table
@@ -431,8 +428,8 @@ type Table struct {
 	// Comment is the table comment, if any.
 	Comment string
 
-	// VirtualModuleName is the module name from CREATE VIRTUAL TABLE ... USING
-	// module(...), or empty for non-virtual tables.
+	// VirtualModuleName is the module name from CREATE VIRTUAL TABLE ... USING module(...),
+	// or empty for non-virtual tables.
 	VirtualModuleName string
 
 	// Columns holds the table's columns in declaration order.

@@ -18,14 +18,12 @@
 
 package storage_dto
 
-// MigrateParams holds all settings for moving objects
-// between storage providers.
+// MigrateParams holds all settings for moving objects between storage providers.
 type MigrateParams struct {
 	// SourceProvider is the name of the registered provider to migrate data from.
 	SourceProvider string
 
-	// DestinationProvider is the name of the registered
-	// provider to migrate data to.
+	// DestinationProvider is the name of the registered provider to migrate data to.
 	DestinationProvider string
 
 	// Repository is the name of the repository that holds the objects to migrate.
@@ -34,17 +32,15 @@ type MigrateParams struct {
 	// Keys lists the object keys to migrate.
 	Keys []string
 
-	// Concurrency is the number of files to migrate at the same time.
-	// Defaults to 10 if not set.
+	// Concurrency is the number of files to migrate at the same time. Defaults to 10 if not
+	// set.
 	Concurrency int
 
-	// RemoveSourceAfterSuccess, if true, deletes the object from the source
-	// provider after a successful copy, turning the operation into a move.
-	// Defaults to false.
+	// RemoveSourceAfterSuccess, if true, deletes the object from the source provider after a
+	// successful copy, turning the operation into a move. Defaults to false.
 	RemoveSourceAfterSuccess bool
 
-	// ContinueOnError determines if the batch should
-	// continue after individual failures.
+	// ContinueOnError determines if the batch should continue after individual failures.
 	// Defaults to true.
 	ContinueOnError bool
 }

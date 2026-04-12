@@ -23,24 +23,23 @@ import (
 	"strings"
 )
 
-// SubstitutePageNumbers walks the layout box tree and replaces {page} and
-// {pages} placeholders in text nodes. After substitution, glyphs are
-// re-shaped using the provided font metrics so that the painted text
-// matches the new content.
+// SubstitutePageNumbers walks the layout box tree and replaces {page} and {pages}
+// placeholders in text nodes. After substitution, glyphs are re-shaped using the provided
+// font metrics so that the painted text matches the new content.
 //
-// This should be called after pagination (which assigns PageIndex to each
-// box) but before painting.
+// This should be called after pagination (which assigns PageIndex to each box) but before
+// painting.
 //
 // Takes root (*LayoutBox) which is the root of the box tree.
 // Takes totalPages (int) which is the total number of pages in the document.
-// Takes fontMetrics (FontMetricsPort) which is used to re-shape glyphs
-// after text substitution.
+// Takes fontMetrics (FontMetricsPort) which is used to re-shape glyphs after text
+// substitution.
 func SubstitutePageNumbers(root *LayoutBox, totalPages int, fontMetrics FontMetricsPort) {
 	substitutePageNumbersRecursive(root, totalPages, fontMetrics)
 }
 
-// substitutePageNumbersRecursive recursively walks the box tree and
-// replaces page number placeholders in text nodes.
+// substitutePageNumbersRecursive recursively walks the box tree and replaces page number
+// placeholders in text nodes.
 //
 // Takes box (*LayoutBox) which is the current box to process.
 // Takes totalPages (int) which is the total number of pages.

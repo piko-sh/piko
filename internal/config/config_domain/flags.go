@@ -25,9 +25,9 @@ import (
 	"strings"
 )
 
-// stringSliceValue wraps a string slice pointer for use as a
-// flag value, implementing fmt.Stringer, where slice points to
-// the target slice that stores the parsed flag values.
+// stringSliceValue wraps a string slice pointer for use as a flag value, implementing
+// fmt.Stringer, where slice points to the target slice that stores the parsed flag
+// values.
 type stringSliceValue struct {
 	// slice points to the target slice that stores parsed values.
 	slice *[]string
@@ -45,8 +45,7 @@ func (s *stringSliceValue) String() string {
 
 // Set parses a delimiter-separated string into the slice.
 //
-// Takes value (string) which is the string to parse. An empty string clears
-// the slice.
+// Takes value (string) which is the string to parse. An empty string clears the slice.
 //
 // Returns error which is always nil.
 func (s *stringSliceValue) Set(value string) error {
@@ -58,8 +57,8 @@ func (s *stringSliceValue) Set(value string) error {
 	return nil
 }
 
-// stringMapValue holds the state for parsing string-to-string map flags.
-// It implements fmt.Stringer.
+// stringMapValue holds the state for parsing string-to-string map flags. It implements
+// fmt.Stringer.
 type stringMapValue struct {
 	// sMap points to the map that holds parsed key-value pairs.
 	sMap *map[string]string
@@ -70,8 +69,8 @@ type stringMapValue struct {
 
 // String returns the map as a formatted string for flag display.
 //
-// Returns string which is the formatted key-value pairs using configured
-// delimiters, or an empty string if the map is nil or empty.
+// Returns string which is the formatted key-value pairs using configured delimiters, or
+// an empty string if the map is nil or empty.
 func (m *stringMapValue) String() string {
 	if m.sMap == nil || len(*m.sMap) == 0 {
 		return ""
@@ -115,12 +114,11 @@ func (m *stringMapValue) Set(value string) error {
 	return nil
 }
 
-// parseFlags parses command-line flags and records which flags were set on
-// the struct fields.
+// parseFlags parses command-line flags and records which flags were set on the struct
+// fields.
 //
 // Takes ptr (any) which is the struct pointer to receive flag values.
-// Takes ctx (*LoadContext) which provides the loading context with prefix
-// information.
+// Takes ctx (*LoadContext) which provides the loading context with prefix information.
 //
 // Returns error when flag parsing fails.
 func (l *Loader) parseFlags(ptr any, ctx *LoadContext) error {
@@ -134,8 +132,8 @@ func (l *Loader) parseFlags(ptr any, ctx *LoadContext) error {
 	return nil
 }
 
-// attributeVisitedFlagsFromCoordinator assigns visited flags from the
-// coordinator to the configuration structure.
+// attributeVisitedFlagsFromCoordinator assigns visited flags from the coordinator to the
+// configuration structure.
 //
 // Takes ptr (any) which is a pointer to the configuration structure.
 // Takes ctx (*LoadContext) which provides the loading context.
@@ -155,8 +153,8 @@ func (l *Loader) attributeVisitedFlagsFromCoordinator(ptr any, ctx *LoadContext,
 	}
 }
 
-// makeFlagAttributionProcessor creates a processor that records where a
-// configuration field value came from when it was set by a command-line flag.
+// makeFlagAttributionProcessor creates a processor that records where a configuration
+// field value came from when it was set by a command-line flag.
 //
 // Takes ctx (*LoadContext) which holds the map of field source attributions.
 // Takes visitedFlag (*flag.Flag) which is the flag being recorded.
@@ -176,8 +174,8 @@ func makeFlagAttributionProcessor(ctx *LoadContext, visitedFlag *flag.Flag) proc
 //
 // Takes tags (reflect.StructTag) which holds the field metadata.
 //
-// Returns string which is the usage text with environment variable name and
-// default value added if present.
+// Returns string which is the usage text with environment variable name and default value
+// added if present.
 func buildFlagUsage(tags reflect.StructTag) string {
 	usage := tags.Get("usage")
 	if envName := tags.Get("env"); envName != "" {
@@ -189,8 +187,8 @@ func buildFlagUsage(tags reflect.StructTag) string {
 	return usage
 }
 
-// filterTestFlags removes Go test flags and common test utility flags from
-// the given argument list.
+// filterTestFlags removes Go test flags and common test utility flags from the given
+// argument list.
 //
 // Takes arguments ([]string) which contains the command line arguments to filter.
 //

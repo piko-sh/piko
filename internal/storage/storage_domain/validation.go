@@ -26,17 +26,15 @@ import (
 	"piko.sh/piko/internal/storage/storage_dto"
 )
 
-// validatePutParams validates upload parameters.
-// It checks for security issues (path traversal), valid keys, size limits,
-// and content types.
+// validatePutParams validates upload parameters. It checks for security issues (path
+// traversal), valid keys, size limits, and content types.
 //
-// Takes params (*storage_dto.PutParams) which specifies the upload parameters
-// to validate.
-// Takes config (*ServiceConfig) which provides size limits and other
-// validation settings.
+// Takes params (*storage_dto.PutParams) which specifies the upload parameters to
+// validate.
+// Takes config (*ServiceConfig) which provides size limits and other validation settings.
 //
-// Returns error when validation fails due to invalid repository, key, size,
-// content type, or multipart configuration.
+// Returns error when validation fails due to invalid repository, key, size, content type,
+// or multipart configuration.
 func validatePutParams(params *storage_dto.PutParams, config *ServiceConfig) error {
 	if params.Repository == "" {
 		return errInvalidRepository
@@ -76,14 +74,13 @@ func validatePutParams(params *storage_dto.PutParams, config *ServiceConfig) err
 	return nil
 }
 
-// validateCASParams checks Content-Addressable Storage (CAS) parameters.
-// Changes params in place to set defaults if needed.
+// validateCASParams checks Content-Addressable Storage (CAS) parameters. Changes params
+// in place to set defaults if needed.
 //
-// Takes params (*storage_dto.PutParams) which holds the CAS parameters to
-// check.
+// Takes params (*storage_dto.PutParams) which holds the CAS parameters to check.
 //
-// Returns error when the hash algorithm is not supported, the expected hash
-// format is not valid, or a key was given (CAS creates keys from content).
+// Returns error when the hash algorithm is not supported, the expected hash format is not
+// valid, or a key was given (CAS creates keys from content).
 func validateCASParams(params *storage_dto.PutParams) error {
 	if params.HashAlgorithm == "" {
 		params.HashAlgorithm = "sha256"
@@ -109,15 +106,13 @@ func validateCASParams(params *storage_dto.PutParams) error {
 	return nil
 }
 
-// validateHashFormat checks that a hash string is correct for the given
-// algorithm.
+// validateHashFormat checks that a hash string is correct for the given algorithm.
 //
 // Takes hash (string) which is the hexadecimal hash value to check.
 // Takes algorithm (string) which specifies the hash algorithm (sha256 or md5).
 //
-// Returns error when the hash is not valid hexadecimal, when the algorithm is
-// not known, or when the hash length does not match the expected length for
-// the algorithm.
+// Returns error when the hash is not valid hexadecimal, when the algorithm is not known,
+// or when the hash length does not match the expected length for the algorithm.
 func validateHashFormat(hash, algorithm string) error {
 	hash = strings.TrimSpace(hash)
 
@@ -146,8 +141,8 @@ func validateHashFormat(hash, algorithm string) error {
 //
 // Takes s (string) which is the string to check.
 //
-// Returns bool which is true if the string is not empty and contains only
-// valid hexadecimal characters (0-9, a-f, A-F).
+// Returns bool which is true if the string is not empty and contains only valid
+// hexadecimal characters (0-9, a-f, A-F).
 func isHexString(s string) bool {
 	if len(s) == 0 {
 		return false
@@ -162,12 +157,12 @@ func isHexString(s string) bool {
 
 // validateMultipartConfig validates multipart upload configuration parameters.
 //
-// Takes config (storage_dto.MultipartUploadConfig) which specifies the
-// multipart upload settings to validate.
+// Takes config (storage_dto.MultipartUploadConfig) which specifies the multipart upload
+// settings to validate.
 //
 // Returns error when the part size is outside the allowed range (5 MB to 5 GB),
-// concurrency is less than 1 or exceeds MaxMultipartConcurrency, or max retries
-// is negative or exceeds MaxRetries.
+// concurrency is less than 1 or exceeds MaxMultipartConcurrency, or max retries is
+// negative or exceeds MaxRetries.
 func validateMultipartConfig(config storage_dto.MultipartUploadConfig) error {
 	const minPartSize = 5 * 1024 * 1024
 	const maxPartSize = 5 * 1024 * 1024 * 1024
@@ -201,11 +196,11 @@ func validateMultipartConfig(config storage_dto.MultipartUploadConfig) error {
 
 // validateByteRange checks that byte range values are valid for partial reads.
 //
-// Takes byteRange (storage_dto.ByteRange) which specifies the start and end
-// positions for reading.
+// Takes byteRange (storage_dto.ByteRange) which specifies the start and end positions for
+// reading.
 //
-// Returns error when start is negative, or when end is less than start unless
-// end is -1 to indicate end of file.
+// Returns error when start is negative, or when end is less than start unless end is -1
+// to indicate end of file.
 func validateByteRange(byteRange storage_dto.ByteRange) error {
 	if byteRange.Start < 0 {
 		return fmt.Errorf("byte range start must be non-negative, got %d", byteRange.Start)
@@ -223,11 +218,11 @@ func validateByteRange(byteRange storage_dto.ByteRange) error {
 
 // validateGetParams checks parameters for read operations.
 //
-// Takes params (storage_dto.GetParams) which contains the repository, key, and
-// optional byte range to check.
+// Takes params (storage_dto.GetParams) which contains the repository, key, and optional
+// byte range to check.
 //
-// Returns error when the repository is empty, the key is not valid, or the
-// byte range check fails.
+// Returns error when the repository is empty, the key is not valid, or the byte range
+// check fails.
 func validateGetParams(params storage_dto.GetParams) error {
 	if params.Repository == "" {
 		return errInvalidRepository
@@ -248,11 +243,11 @@ func validateGetParams(params storage_dto.GetParams) error {
 
 // validateCopyParams checks that copy operation parameters are valid.
 //
-// Takes params (storage_dto.CopyParams) which specifies the source and
-// destination repositories and keys.
+// Takes params (storage_dto.CopyParams) which specifies the source and destination
+// repositories and keys.
 //
-// Returns error when the source or destination repository is empty, or when
-// either key fails validation.
+// Returns error when the source or destination repository is empty, or when either key
+// fails validation.
 func validateCopyParams(params storage_dto.CopyParams) error {
 	if params.SourceRepository == "" {
 		return errInvalidSourceRepo
@@ -271,14 +266,13 @@ func validateCopyParams(params storage_dto.CopyParams) error {
 	return nil
 }
 
-// validateKey checks that an object key is safe and well-formed.
-// It prevents path traversal attacks and rejects unsafe input.
+// validateKey checks that an object key is safe and well-formed. It prevents path
+// traversal attacks and rejects unsafe input.
 //
 // Takes key (string) which is the object key to check.
 //
-// Returns error when the key is empty, an absolute path, contains path
-// traversal sequences, contains dangerous characters, or is longer than
-// MaxKeyLength.
+// Returns error when the key is empty, an absolute path, contains path traversal
+// sequences, contains dangerous characters, or is longer than MaxKeyLength.
 func validateKey(key string) error {
 	if key == "" {
 		return errKeyEmpty
@@ -304,9 +298,8 @@ func validateKey(key string) error {
 	return nil
 }
 
-// sanitiseKey cleans a key by removing or replacing unsafe characters and
-// making paths consistent. This is a safety measure; validation should still
-// be the main check.
+// sanitiseKey cleans a key by removing or replacing unsafe characters and making paths
+// consistent. This is a safety measure; validation should still be the main check.
 //
 // Takes key (string) which is the raw key to clean.
 //
@@ -323,13 +316,12 @@ func sanitiseKey(key string) string {
 	return key
 }
 
-// containsDangerousChars checks for characters that could be dangerous in
-// file paths.
+// containsDangerousChars checks for characters that could be dangerous in file paths.
 //
 // Takes key (string) which is the path key to check for dangerous characters.
 //
-// Returns bool which is true if the key contains null bytes, carriage returns,
-// or newlines.
+// Returns bool which is true if the key contains null bytes, carriage returns, or
+// newlines.
 func containsDangerousChars(key string) bool {
 	dangerous := []string{
 		"\x00",
@@ -374,14 +366,13 @@ func isValidContentType(contentType string) bool {
 
 // validatePutManyParams validates parameters for batch upload operations.
 //
-// Takes params (*storage_dto.PutManyParams) which contains the batch upload
-// specification including repository and objects.
-// Takes config (*ServiceConfig) which provides validation limits such as
-// maximum batch size.
+// Takes params (*storage_dto.PutManyParams) which contains the batch upload specification
+// including repository and objects.
+// Takes config (*ServiceConfig) which provides validation limits such as maximum batch
+// size.
 //
-// Returns error when the repository is empty, no objects are provided, the
-// batch size exceeds the configured maximum, or any individual object fails
-// validation.
+// Returns error when the repository is empty, no objects are provided, the batch size
+// exceeds the configured maximum, or any individual object fails validation.
 func validatePutManyParams(params *storage_dto.PutManyParams, config *ServiceConfig) error {
 	if params.Repository == "" {
 		return errInvalidRepository
@@ -409,8 +400,7 @@ func validatePutManyParams(params *storage_dto.PutManyParams, config *ServiceCon
 	return nil
 }
 
-// validateConcurrency checks that the concurrency value is valid for batch
-// operations.
+// validateConcurrency checks that the concurrency value is valid for batch operations.
 //
 // Takes concurrency (int) which specifies the number of workers to run at once.
 //
@@ -431,8 +421,8 @@ func validateConcurrency(concurrency int) error {
 // Takes storageObject (PutObjectSpec) which holds the object details to check.
 // Takes config (*ServiceConfig) which sets the size limits.
 //
-// Returns error when the key is not valid, size is negative or too large,
-// or the content type is empty or not valid.
+// Returns error when the key is not valid, size is negative or too large, or the content
+// type is empty or not valid.
 func validatePutObjectSpec(index int, storageObject storage_dto.PutObjectSpec, config *ServiceConfig) error {
 	if err := validateKey(storageObject.Key); err != nil {
 		return fmt.Errorf("validation failed for object at index %d: %w", index, err)
@@ -461,14 +451,12 @@ func validatePutObjectSpec(index int, storageObject storage_dto.PutObjectSpec, c
 
 // validateRemoveManyParams validates parameters for batch delete operations.
 //
-// Takes params (*storage_dto.RemoveManyParams) which contains the repository,
-// keys, and concurrency settings for the batch removal.
-// Takes config (*ServiceConfig) which provides limits such as maximum batch
-// size.
+// Takes params (*storage_dto.RemoveManyParams) which contains the repository, keys, and
+// concurrency settings for the batch removal.
+// Takes config (*ServiceConfig) which provides limits such as maximum batch size.
 //
-// Returns error when the repository is empty, no keys are provided, batch size
-// exceeds the configured maximum, concurrency is invalid, or any key fails
-// validation.
+// Returns error when the repository is empty, no keys are provided, batch size exceeds
+// the configured maximum, concurrency is invalid, or any key fails validation.
 func validateRemoveManyParams(params *storage_dto.RemoveManyParams, config *ServiceConfig) error {
 	if params.Repository == "" {
 		return errInvalidRepository

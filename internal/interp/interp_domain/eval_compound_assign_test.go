@@ -130,10 +130,10 @@ func TestEvalCompoundAssignInterfaceSlice(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "interface_slice_add_assign",

@@ -28,7 +28,9 @@ import (
 // "base64:SGVsbG8gV29ybGQ=". It implements the Resolver interface.
 type Base64Resolver struct{}
 
-var _ = Resolver(&Base64Resolver{})
+var (
+	_ = Resolver(&Base64Resolver{})
+)
 
 // GetPrefix returns the "base64:" prefix for base64-encoded values.
 //

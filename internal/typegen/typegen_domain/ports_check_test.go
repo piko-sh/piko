@@ -18,4 +18,6 @@
 
 package typegen_domain
 
-var _ TypeInfoProvider = (*TypeInfoService)(nil)
+var (
+	_ TypeInfoProvider = (*TypeInfoService)(nil)
+)

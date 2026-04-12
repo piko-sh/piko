@@ -32,15 +32,14 @@ import (
 
 // createEncoder creates and initialises an encoder based on the transcode spec.
 //
-// Takes spec (TranscodeSpec) which defines the target codec and
-// encoding parameters.
-// Takes decoderCtx (*astiav.CodecContext) which provides the source video
-// properties for encoder configuration.
+// Takes spec (TranscodeSpec) which defines the target codec and encoding parameters.
+// Takes decoderCtx (*astiav.CodecContext) which provides the source video properties for
+// encoder configuration.
 //
-// Returns *astiav.CodecContext which is the configured and opened encoder
-// context ready for encoding frames.
-// Returns error when the codec is not found, encoder allocation fails, or the
-// encoder cannot be opened with the specified options.
+// Returns *astiav.CodecContext which is the configured and opened encoder context ready
+// for encoding frames.
+// Returns error when the codec is not found, encoder allocation fails, or the encoder
+// cannot be opened with the specified options.
 func (p *Provider) createEncoder(
 	ctx context.Context, spec media.TranscodeSpec, decoderCtx *astiav.CodecContext,
 ) (*astiav.CodecContext, error) {
@@ -67,17 +66,14 @@ func (p *Provider) createEncoder(
 	return encoderCtx, nil
 }
 
-// allocateEncoderContext looks up the codec, finds the FFmpeg
-// encoder, and allocates a codec context for it.
+// allocateEncoderContext looks up the codec, finds the FFmpeg encoder, and allocates a
+// codec context for it.
 //
-// Takes spec (TranscodeSpec) which identifies the codec to
-// allocate.
+// Takes spec (TranscodeSpec) which identifies the codec to allocate.
 //
-// Returns *astiav.CodecContext which is the allocated encoder
-// context.
+// Returns *astiav.CodecContext which is the allocated encoder context.
 // Returns *astiav.Codec which is the resolved FFmpeg encoder.
-// Returns error when the codec is not found or allocation
-// fails.
+// Returns error when the codec is not found or allocation fails.
 func (p *Provider) allocateEncoderContext(
 	ctx context.Context, spec media.TranscodeSpec,
 ) (*astiav.CodecContext, *astiav.Codec, error) {
@@ -101,17 +97,14 @@ func (p *Provider) allocateEncoderContext(
 	return encoderCtx, encoder, nil
 }
 
-// configureAndOpenEncoder configures the encoder parameters
-// and opens it with codec-specific options. The caller must
-// free encoderCtx on error.
+// configureAndOpenEncoder configures the encoder parameters and opens it with
+// codec-specific options. The caller must free encoderCtx on error.
 //
-// Takes encoderCtx (*astiav.CodecContext) which is the
-// encoder context to configure.
+// Takes encoderCtx (*astiav.CodecContext) which is the encoder context to configure.
 // Takes encoder (*astiav.Codec) which is the FFmpeg encoder.
-// Takes spec (TranscodeSpec) which provides the encoding
-// settings.
-// Takes decoderCtx (*astiav.CodecContext) which supplies
-// fallback values from the input stream.
+// Takes spec (TranscodeSpec) which provides the encoding settings.
+// Takes decoderCtx (*astiav.CodecContext) which supplies fallback values from the input
+// stream.
 //
 // Returns error when configuration or opening fails.
 func (p *Provider) configureAndOpenEncoder(
@@ -142,16 +135,13 @@ func (p *Provider) configureAndOpenEncoder(
 	return nil
 }
 
-// buildEncoderOptionsDict builds an astiav dictionary from
-// codec-specific encoder options.
+// buildEncoderOptionsDict builds an astiav dictionary from codec-specific encoder
+// options.
 //
-// Takes spec (*media.TranscodeSpec) which specifies the codec
-// and encoding parameters.
+// Takes spec (*media.TranscodeSpec) which specifies the codec and encoding parameters.
 //
-// Returns *astiav.Dictionary which contains the encoder
-// option key-value pairs.
-// Returns error when option retrieval or dictionary
-// population fails.
+// Returns *astiav.Dictionary which contains the encoder option key-value pairs.
+// Returns error when option retrieval or dictionary population fails.
 func (p *Provider) buildEncoderOptionsDict(spec *media.TranscodeSpec) (*astiav.Dictionary, error) {
 	encoderOptions, err := p.codecRegistry.GetEncoderOptions(spec)
 	if err != nil {
@@ -168,14 +158,13 @@ func (p *Provider) buildEncoderOptionsDict(spec *media.TranscodeSpec) (*astiav.D
 	return optionsDict, nil
 }
 
-// configureEncoder configures the encoder context with the transcode spec
-// parameters.
+// configureEncoder configures the encoder context with the transcode spec parameters.
 //
 // Takes encoderCtx (*astiav.CodecContext) which is the encoder to configure.
 // Takes spec (TranscodeSpec) which specifies the transcode settings.
 // Takes codecConfig (*CodecConfig) which provides codec-specific configuration.
-// Takes decoderCtx (*astiav.CodecContext) which supplies fallback values from
-// the input stream.
+// Takes decoderCtx (*astiav.CodecContext) which supplies fallback values from the input
+// stream.
 //
 // Returns error when configuration fails.
 func (*Provider) configureEncoder(
@@ -241,8 +230,7 @@ func (*Provider) configureEncoder(
 //
 // Takes encoderCtx (*astiav.CodecContext) which provides the encoder settings.
 // Takes frame (*astiav.Frame) which is the frame to encode.
-// Takes onPacket (func(*astiav.Packet) error) which handles each encoded
-// packet.
+// Takes onPacket (func(*astiav.Packet) error) which handles each encoded packet.
 //
 // Returns error when encoding fails or onPacket returns an error.
 func (*Provider) encodeFrame(
@@ -293,8 +281,7 @@ func (*Provider) encodeFrame(
 // flushEncoder sends any remaining packets from the encoder.
 //
 // Takes encoderCtx (*astiav.CodecContext) which is the encoder to flush.
-// Takes onPacket (func(*astiav.Packet) error) which handles each flushed
-// packet.
+// Takes onPacket (func(*astiav.Packet) error) which handles each flushed packet.
 //
 // Returns error when flushing fails or packet handling returns an error.
 func (*Provider) flushEncoder(
@@ -353,10 +340,10 @@ func (*Provider) flushEncoder(
 // Takes dstHeight (int) which specifies the target height in pixels.
 // Takes dstPixFmt (astiav.PixelFormat) which specifies the target pixel format.
 //
-// Returns *astiav.Frame which is the scaled frame, or the original if no
-// scaling was needed.
-// Returns error when the scaler context cannot be created, buffer allocation
-// fails, or the scaling operation fails.
+// Returns *astiav.Frame which is the scaled frame, or the original if no scaling was
+// needed.
+// Returns error when the scaler context cannot be created, buffer allocation fails, or
+// the scaling operation fails.
 func (*Provider) scaleFrameForEncoder(
 	ctx context.Context,
 	srcFrame *astiav.Frame,
@@ -406,11 +393,9 @@ func (*Provider) scaleFrameForEncoder(
 	return dstFrame, nil
 }
 
-// recordEncoderMetric increments the codec-specific encode
-// operation counter.
+// recordEncoderMetric increments the codec-specific encode operation counter.
 //
-// Takes codec (string) which identifies which codec counter
-// to increment.
+// Takes codec (string) which identifies which codec counter to increment.
 func recordEncoderMetric(ctx context.Context, codec string) {
 	switch codec {
 	case "h264":

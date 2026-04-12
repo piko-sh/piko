@@ -38,7 +38,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"piko.sh/piko/wdk/json"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/annotator/annotator_adapters"
 	"piko.sh/piko/internal/annotator/annotator_domain"
@@ -56,10 +55,13 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_adapters"
 	"piko.sh/piko/internal/testutil/leakcheck"
+	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/safedisk"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files by regenerating from PK sources")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files by regenerating from PK sources")
+)
 
 type TestSpec struct {
 	Description string                     `json:"description"`

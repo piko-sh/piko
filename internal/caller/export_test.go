@@ -18,4 +18,6 @@
 
 package caller
 
-var CropFilename = cropFilename
+var (
+	CropFilename = cropFilename
+)

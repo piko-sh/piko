@@ -45,19 +45,18 @@ const (
 
 // PDFOptions configures PDF generation.
 type PDFOptions struct {
-	// PageRanges specifies paper ranges to print, e.g., '1-5, 8, 11-13'.
-	// Empty string means all pages.
+	// PageRanges specifies paper ranges to print, e.g., '1-5, 8, 11-13'. Empty string means
+	// all pages.
 	PageRanges string
 
-	// HeaderTemplate is the HTML template for the page header.
-	// Should be valid HTML markup with the following CSS classes:
-	// date (formatted print date), title (document title),
-	// url (document location), pageNumber (current page number),
-	// totalPages (total pages in the document).
+	// HeaderTemplate is the HTML template for the page header. Should be valid HTML markup
+	// with the following CSS classes: date (formatted print date), title (document title),
+	// url (document location), pageNumber (current page number), totalPages (total pages in
+	// the document).
 	HeaderTemplate string
 
-	// FooterTemplate is the HTML template for the page footer.
-	// Uses the same format as HeaderTemplate.
+	// FooterTemplate is the HTML template for the page footer. Uses the same format as
+	// HeaderTemplate.
 	FooterTemplate string
 
 	// Scale is the zoom level for page rendering; default is 1.0.
@@ -93,8 +92,8 @@ type PDFOptions struct {
 
 // DefaultPDFOptions returns sensible defaults for PDF generation.
 //
-// Returns PDFOptions which contains letter-sized page settings with default
-// margins and background printing enabled.
+// Returns PDFOptions which contains letter-sized page settings with default margins and
+// background printing enabled.
 func DefaultPDFOptions() PDFOptions {
 	return PDFOptions{
 		PageRanges:        "",
@@ -125,8 +124,7 @@ func A4PDFOptions() PDFOptions {
 
 // PrintToPDF generates a PDF of the current page using default options.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// operation.
+// Takes ctx (*ActionContext) which provides the browser context for the operation.
 //
 // Returns []byte which contains the PDF data.
 // Returns error when the PDF generation fails.
@@ -227,8 +225,8 @@ func PrintToPDFWithHeaderFooter(ctx *ActionContext, header, footer string) ([]by
 	return PrintToPDFWithOptions(ctx, opts)
 }
 
-// PrintToPDFPageRange generates a PDF of specific pages.
-// Use pageRanges like "1-5, 8, 11-13" for specific pages.
+// PrintToPDFPageRange generates a PDF of specific pages. Use pageRanges like "1-5, 8,
+// 11-13" for specific pages.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes pageRanges (string) which specifies pages to include in the PDF.

@@ -26,20 +26,19 @@ import (
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 )
 
-// MockCounterStore is a test double for CounterStorePort where nil
-// function fields return zero values and call counts are tracked
-// atomically.
+// MockCounterStore is a test double for CounterStorePort where nil function fields return
+// zero values and call counts are tracked atomically.
 type MockCounterStore struct {
-	// IncrementAndGetFunc is the function called by
-	// IncrementAndGet.
+	// IncrementAndGetFunc is the function called by IncrementAndGet.
 	IncrementAndGetFunc func(ctx context.Context, key string, delta int64, window time.Duration) (ratelimiter_dto.CounterResult, error)
 
-	// IncrementAndGetCallCount tracks how many times
-	// IncrementAndGet was called.
-	IncrementAndGetCallCount int64
+	// IncrementAndGetCallCount tracks how many times IncrementAndGet was called.
+	IncrementAndGetCallCount atomic.Int64
 }
 
-var _ CounterStorePort = (*MockCounterStore)(nil)
+var (
+	_ CounterStorePort = (*MockCounterStore)(nil)
+)
 
 // IncrementAndGet delegates to IncrementAndGetFunc if set.
 //
@@ -50,7 +49,7 @@ var _ CounterStorePort = (*MockCounterStore)(nil)
 //
 // Returns (CounterResult{}, nil) if IncrementAndGetFunc is nil.
 func (m *MockCounterStore) IncrementAndGet(ctx context.Context, key string, delta int64, window time.Duration) (ratelimiter_dto.CounterResult, error) {
-	atomic.AddInt64(&m.IncrementAndGetCallCount, 1)
+	m.IncrementAndGetCallCount.Add(1)
 	if m.IncrementAndGetFunc != nil {
 		return m.IncrementAndGetFunc(ctx, key, delta, window)
 	}

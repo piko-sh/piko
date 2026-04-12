@@ -26,27 +26,25 @@ import (
 	"piko.sh/piko/internal/search/search_dto"
 )
 
-// MockQueryProcessor is a test double for search_domain.QueryProcessorPort
-// that returns zero values from nil function fields and tracks call counts
-// atomically.
+// MockQueryProcessor is a test double for search_domain.QueryProcessorPort that returns
+// zero values from nil function fields and tracks call counts atomically.
 type MockQueryProcessor struct {
 	// SearchFunc is the function called by Search.
 	SearchFunc func(ctx context.Context, query string, reader search_domain.IndexReaderPort, scorer search_domain.ScorerPort, config search_dto.SearchConfig) ([]search_domain.QueryResult, error)
 
-	// SearchCallCount tracks how many times Search was
-	// called.
-	SearchCallCount int64
+	// SearchCallCount tracks how many times Search was called.
+	SearchCallCount atomic.Int64
 }
 
-var _ search_domain.QueryProcessorPort = (*MockQueryProcessor)(nil)
+var (
+	_ search_domain.QueryProcessorPort = (*MockQueryProcessor)(nil)
+)
 
 // Search delegates to SearchFunc if set.
 //
-// Takes ctx (context.Context) which carries deadlines and cancellation
-// signals.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
 // Takes query (string) which is the search query string.
-// Takes reader (search_domain.IndexReaderPort) which provides access
-// to the search index.
+// Takes reader (search_domain.IndexReaderPort) which provides access to the search index.
 // Takes scorer (search_domain.ScorerPort) which computes relevance scores.
 // Takes config (search_dto.SearchConfig) which provides search configuration.
 //
@@ -55,7 +53,7 @@ func (m *MockQueryProcessor) Search(
 	ctx context.Context, query string, reader search_domain.IndexReaderPort,
 	scorer search_domain.ScorerPort, config search_dto.SearchConfig,
 ) ([]search_domain.QueryResult, error) {
-	atomic.AddInt64(&m.SearchCallCount, 1)
+	m.SearchCallCount.Add(1)
 	if m.SearchFunc != nil {
 		return m.SearchFunc(ctx, query, reader, scorer, config)
 	}

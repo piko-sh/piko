@@ -51,9 +51,8 @@ type serviceConfig struct {
 // ServiceOption configures a service created by NewServiceFromManifest.
 type ServiceOption func(*serviceConfig)
 
-// WithFont registers an additional font for PDF rendering. NotoSans is
-// always included as the default; use this option to add extra font
-// families, weights, or styles.
+// WithFont registers an additional font for PDF rendering. NotoSans is always included as
+// the default; use this option to add extra font families, weights, or styles.
 //
 // Takes family (string) which is the CSS font-family name.
 // Takes weight (int) which is the CSS font-weight value (100-900).
@@ -72,9 +71,8 @@ func WithFont(family string, weight int, style int, data []byte) ServiceOption {
 	}
 }
 
-// WithVariableFont registers an OpenType variable font for
-// PDF rendering, where a single file covers a continuous
-// weight range and replaces multiple static font files.
+// WithVariableFont registers an OpenType variable font for PDF rendering, where a single
+// file covers a continuous weight range and replaces multiple static font files.
 //
 // Takes family (string) which is the CSS font-family name.
 // Takes weightMin (int) which is the minimum weight (e.g. 100).
@@ -96,8 +94,8 @@ func WithVariableFont(family string, weightMin, weightMax int, style int, data [
 	}
 }
 
-// WithExcludeDefaultBold prevents the default NotoSans-Bold font from being
-// registered, forcing the PDF painter to synthesise bold via fill+stroke.
+// WithExcludeDefaultBold prevents the default NotoSans-Bold font from being registered,
+// forcing the PDF painter to synthesise bold via fill+stroke.
 //
 // Returns ServiceOption which disables the default bold font.
 func WithExcludeDefaultBold() ServiceOption {
@@ -106,9 +104,8 @@ func WithExcludeDefaultBold() ServiceOption {
 	}
 }
 
-// WithSVGVectorRendering enables native SVG-to-PDF vector rendering. SVG
-// images embedded as data URIs will be rendered as crisp vector paths
-// instead of rasterised images.
+// WithSVGVectorRendering enables native SVG-to-PDF vector rendering. SVG images embedded
+// as data URIs will be rendered as crisp vector paths instead of rasterised images.
 //
 // Returns ServiceOption which enables vector SVG rendering.
 func WithSVGVectorRendering() ServiceOption {
@@ -117,21 +114,20 @@ func WithSVGVectorRendering() ServiceOption {
 	}
 }
 
-// NewServiceFromManifest creates a PDF writer service from a compiled
-// manifest file. This is intended for tests and CLI tools that need to
-// render PDFs without the full daemon bootstrap.
+// NewServiceFromManifest creates a PDF writer service from a compiled manifest file. This
+// is intended for tests and CLI tools that need to render PDFs without the full daemon
+// bootstrap.
 //
-// NotoSans regular (400) is always registered. NotoSans bold (700) is
-// registered unless WithExcludeDefaultBold is used. Additional fonts can
-// be added via WithFont and WithVariableFont.
+// NotoSans regular (400) is always registered. NotoSans bold (700) is registered unless
+// WithExcludeDefaultBold is used. Additional fonts can be added via WithFont and
+// WithVariableFont.
 //
-// Takes manifestPath (string) which is the path to the compiled manifest
-// file (e.g. "dist/manifest.bin").
+// Takes manifestPath (string) which is the path to the compiled manifest file (e.g.
+// "dist/manifest.bin").
 // Takes opts (...ServiceOption) which configure fonts and rendering.
 //
 // Returns Service which is the configured PDF writer service.
-// Returns error when the manifest cannot be loaded or font metrics
-// cannot be created.
+// Returns error when the manifest cannot be loaded or font metrics cannot be created.
 func NewServiceFromManifest(ctx context.Context, manifestPath string, opts ...ServiceOption) (Service, error) {
 	config := &serviceConfig{}
 	for _, opt := range opts {
@@ -194,8 +190,8 @@ type manifestTemplateRunner struct {
 	store *templater_adapters.ManifestStore
 }
 
-// RunPdfWithProps loads the page entry from the manifest store and returns
-// the AST tree and styling.
+// RunPdfWithProps loads the page entry from the manifest store and returns the AST tree
+// and styling.
 //
 // Takes templatePath (string) which is the page path to look up.
 // Takes props (any) which holds optional component props for rendering.

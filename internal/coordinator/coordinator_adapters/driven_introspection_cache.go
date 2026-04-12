@@ -30,30 +30,31 @@ import (
 )
 
 const (
-	// defaultIntrospectionCacheSize is the number of introspection cache entries
-	// to keep.
+	// defaultIntrospectionCacheSize is the number of introspection cache entries to keep.
 	defaultIntrospectionCacheSize = 5
 )
 
-// introspectionCache implements IntrospectionCachePort using the cache hexagon.
-// It is the first tier of a two-tier caching system.
+// introspectionCache implements IntrospectionCachePort using the cache hexagon. It is the
+// first tier of a two-tier caching system.
 //
-// This cache stores Phase 1 annotation pipeline results (buildUnifiedGraph,
-// virtualiseModule, initialiseTypeResolver). These operations are costly
-// because they call packages.Load() for full Go type introspection.
+// This cache stores introspection-phase annotation pipeline results (buildUnifiedGraph,
+// virtualiseModule, initialiseTypeResolver). These operations are costly because they
+// call packages.Load() for full Go type introspection.
 //
-// Phase 1 only depends on <script> blocks from .pk files and all .go files.
-// When only <template>, <style>, or <i18n> blocks change, cached data can be
-// reused, skipping to Phase 2 for better performance.
+// Introspection only depends on <script> blocks from .pk files and all .go files. When
+// only <template>, <style>, or <i18n> blocks change, cached data can be reused, skipping
+// the introspection phase for better performance.
 type introspectionCache struct {
 	// cache is the underlying cache instance from the cache hexagon.
 	cache cache_domain.Cache[string, *coordinator_domain.IntrospectionCacheEntry]
 }
 
-var _ coordinator_domain.IntrospectionCachePort = (*introspectionCache)(nil)
+var (
+	_ coordinator_domain.IntrospectionCachePort = (*introspectionCache)(nil)
+)
 
-// Get retrieves an introspection cache entry by key. If found, it validates
-// the entry before returning.
+// Get retrieves an introspection cache entry by key. If found, it validates the entry
+// before returning.
 //
 // Takes key (string) which identifies the cache entry to retrieve.
 //
@@ -103,12 +104,11 @@ func (c *introspectionCache) Get(ctx context.Context, key string) (*coordinator_
 
 // Set stores an introspection cache entry with the given key.
 //
-// If the key already exists, its value is updated. If the cache is at capacity,
-// the least recently used item is evicted before adding the new entry.
+// If the key already exists, its value is updated. If the cache is at capacity, the least
+// recently used item is evicted before adding the new entry.
 //
 // Takes key (string) which identifies the cache entry.
-// Takes entry (*coordinator_domain.IntrospectionCacheEntry) which is the
-// value to store.
+// Takes entry (*coordinator_domain.IntrospectionCacheEntry) which is the value to store.
 //
 // Returns error when the entry is invalid.
 func (c *introspectionCache) Set(ctx context.Context, key string, entry *coordinator_domain.IntrospectionCacheEntry) error {
@@ -166,14 +166,12 @@ func (c *introspectionCache) Close() {
 	}
 }
 
-// NewIntrospectionCache creates a new cache for storing introspection results,
-// backed by the cache hexagon.
+// NewIntrospectionCache creates a new cache for storing introspection results, backed by
+// the cache hexagon.
 //
-// Takes cacheService (cache_domain.Service) which provides the cache
-// infrastructure.
+// Takes cacheService (cache_domain.Service) which provides the cache infrastructure.
 //
-// Returns coordinator_domain.IntrospectionCachePort which is the cache ready
-// for use.
+// Returns coordinator_domain.IntrospectionCachePort which is the cache ready for use.
 // Returns error when the cache cannot be created.
 func NewIntrospectionCache(ctx context.Context, cacheService cache_domain.Service) (coordinator_domain.IntrospectionCachePort, error) {
 	c, err := cache_domain.NewCacheBuilder[string, *coordinator_domain.IntrospectionCacheEntry](cacheService).

@@ -18,7 +18,6 @@
 
 // Package netutil provides network utility helpers.
 //
-// Currently it offers [IsPortInUseError], which inspects an error
-// chain to determine whether a listen failure was caused by a port
-// that is already bound.
+// Currently it offers [IsPortInUseError], which inspects an error chain to determine
+// whether a listen failure was caused by a port that is already bound.
 package netutil

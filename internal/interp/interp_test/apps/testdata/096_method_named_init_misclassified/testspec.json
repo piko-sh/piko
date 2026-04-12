@@ -1,0 +1,5 @@
+{
+  "description": "Method named init() on a user type was mis-classified as a package-level init function. registerFuncDecl gated solely on Name.Name == \"init\" without checking declaration.Recv == nil. yaml.v3's `func (p *parser) init()` (decode.go:62) hit this and was added to initFunctionIndices; Service.ExecuteInits invoked it with NO arguments at startup, leaving general[0] invalid, then structFieldReflectWrite rehydrated general[0] with the POINTEE struct (not the *T pointer), which silently derailed every subsequent pointer-receiver method call. Fix: require declaration.Recv == nil in compiler_statements.go and session_compile.go (funcDeclNames, isInitFuncDecl).",
+  "modulePath": "testpkg",
+  "expected": "ready=true value=hello"
+}

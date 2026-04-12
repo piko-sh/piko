@@ -62,8 +62,7 @@ const (
 	// DefaultMinTokenLength is the default minimum token length for text analysis.
 	DefaultMinTokenLength = linguistics_domain.DefaultMinTokenLength
 
-	// DefaultMaxTokenLength is the default maximum length for tokens in text
-	// processing.
+	// DefaultMaxTokenLength is the default maximum length for tokens in text processing.
 	DefaultMaxTokenLength = linguistics_domain.DefaultMaxTokenLength
 
 	// DefaultPhoneticCodeLength is the default length for generated phonetic codes.
@@ -174,8 +173,8 @@ func NewTokeniser(config AnalyserConfig) *Tokeniser {
 
 // NewNormaliser creates a new text normaliser.
 //
-// Takes preserveCase (bool) which controls whether letter case is preserved
-// during normalisation.
+// Takes preserveCase (bool) which controls whether letter case is preserved during
+// normalisation.
 //
 // Returns *Normaliser which is the configured normaliser ready for use.
 func NewNormaliser(preserveCase bool) *Normaliser {
@@ -184,8 +183,7 @@ func NewNormaliser(preserveCase bool) *Normaliser {
 
 // NewPhoneticEncoder creates a new Double Metaphone encoder.
 //
-// Takes maxLength (int) which specifies the maximum length of the encoded
-// output.
+// Takes maxLength (int) which specifies the maximum length of the encoded output.
 //
 // Returns *PhoneticEncoder which is the configured encoder ready for use.
 func NewPhoneticEncoder(maxLength int) *PhoneticEncoder {
@@ -212,11 +210,9 @@ func WithTokeniser(tokeniser TokeniserPort) Option {
 
 // WithPhoneticEncoder sets a custom phonetic encoder implementation.
 //
-// Takes encoder (PhoneticEncoderPort) which provides the phonetic encoding
-// logic.
+// Takes encoder (PhoneticEncoderPort) which provides the phonetic encoding logic.
 //
-// Returns Option which configures the linguistics service to use the given
-// encoder.
+// Returns Option which configures the linguistics service to use the given encoder.
 func WithPhoneticEncoder(encoder PhoneticEncoderPort) Option {
 	return linguistics_domain.WithPhoneticEncoder(encoder)
 }
@@ -230,9 +226,9 @@ func WithStopWordsProvider(provider StopWordsProviderPort) Option {
 	return linguistics_domain.WithStopWordsProvider(provider)
 }
 
-// WithLanguage configures the analyser with stemmer, phonetic encoder, and
-// stop words provider for the specified language. This is a convenience
-// function that looks up all three components from their respective registries.
+// WithLanguage configures the analyser with stemmer, phonetic encoder, and stop words
+// provider for the specified language. This is a convenience function that looks up all
+// three components from their respective registries.
 //
 // Takes language (string) which specifies the language to configure.
 //
@@ -256,8 +252,7 @@ func RegisterStemmerFactory(language string, factory func() (StemmerPort, error)
 	linguistics_domain.RegisterStemmerFactory(language, factory)
 }
 
-// RegisterPhoneticEncoderFactory registers a phonetic encoder factory for a
-// language.
+// RegisterPhoneticEncoderFactory registers a phonetic encoder factory for a language.
 //
 // Takes language (string) which specifies the language code for the encoder.
 // Takes factory (func) which creates a new phonetic encoder when called.
@@ -268,8 +263,8 @@ func RegisterPhoneticEncoderFactory(language string, factory func() (PhoneticEnc
 // RegisterStopWordsProviderFactory registers a stop words provider factory.
 //
 // Takes name (string) which identifies the provider factory.
-// Takes factory (func() (StopWordsProviderPort, error)) which creates new
-// provider instances.
+// Takes factory (func() (StopWordsProviderPort, error)) which creates new provider
+// instances.
 func RegisterStopWordsProviderFactory(name string, factory func() (StopWordsProviderPort, error)) {
 	linguistics_domain.RegisterStopWordsProviderFactory(name, factory)
 }
@@ -287,8 +282,8 @@ func CreateStemmer(language string) StemmerPort {
 //
 // Takes language (string) which specifies the language code for encoding.
 //
-// Returns PhoneticEncoderPort which provides phonetic encoding for the
-// specified language.
+// Returns PhoneticEncoderPort which provides phonetic encoding for the specified
+// language.
 func CreatePhoneticEncoder(language string) PhoneticEncoderPort {
 	return linguistics_domain.CreatePhoneticEncoder(language)
 }
@@ -316,10 +311,10 @@ func Jaro(a, b string) float64 {
 //
 // Takes a (string) which is the first string to compare.
 // Takes b (string) which is the second string to compare.
-// Takes boostThreshold (float64) which sets the minimum similarity score
-// required before the prefix bonus is applied.
-// Takes prefixSize (int) which limits how many prefix characters are
-// considered for the bonus.
+// Takes boostThreshold (float64) which sets the minimum similarity score required before
+// the prefix bonus is applied.
+// Takes prefixSize (int) which limits how many prefix characters are considered for the
+// bonus.
 //
 // Returns float64 which is the similarity score between 0.0 and 1.0.
 func JaroWinkler(a, b string, boostThreshold float64, prefixSize int) float64 {
@@ -370,8 +365,8 @@ func NewNoOpStemmer(language string) StemmerPort {
 //
 // Takes language (string) which specifies the language for the encoder.
 //
-// Returns PhoneticEncoderPort which is a no-op encoder that performs no
-// phonetic transformations.
+// Returns PhoneticEncoderPort which is a no-op encoder that performs no phonetic
+// transformations.
 func NewNoOpPhoneticEncoder(language string) PhoneticEncoderPort {
 	return linguistics_domain.NewNoOpPhoneticEncoder(language)
 }
@@ -390,17 +385,16 @@ func RegisteredStemmerFactories() []string {
 	return linguistics_domain.RegisteredStemmerFactories()
 }
 
-// RegisteredPhoneticEncoderFactories returns the list of registered phonetic
-// encoder languages.
-//
-// Returns []string which contains the names of all available phonetic encoder
+// RegisteredPhoneticEncoderFactories returns the list of registered phonetic encoder
 // languages.
+//
+// Returns []string which contains the names of all available phonetic encoder languages.
 func RegisteredPhoneticEncoderFactories() []string {
 	return linguistics_domain.RegisteredPhoneticEncoderFactories()
 }
 
-// RegisteredStopWordsProviderFactories returns the list of registered stop
-// words provider names.
+// RegisteredStopWordsProviderFactories returns the list of registered stop words provider
+// names.
 //
 // Returns []string which contains the names of all registered providers.
 func RegisteredStopWordsProviderFactories() []string {

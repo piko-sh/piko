@@ -45,38 +45,42 @@ const (
 	// defaultFilePerm is the permission mode for cache files.
 	defaultFilePerm = 0644
 
-	// initialBuilderSize is the starting buffer size in bytes for FlatBuffer
-	// builders. Sized at 256 KiB to avoid repeated growByteBuffer reallocations
-	// when serialising large type data.
+	// initialBuilderSize is the starting buffer size in bytes for FlatBuffer builders. Sized
+	// at 256 KiB to avoid repeated growByteBuffer reallocations when serialising large type
+	// data.
 	initialBuilderSize = 256 * 1024
 
 	// flatbufferVectorAlignment is the byte alignment for FlatBuffer vectors.
 	flatbufferVectorAlignment = 4
 )
 
-// builderPool reuses FlatBuffer Builder instances to reduce allocation pressure
-// during type data serialisation.
-var builderPool = sync.Pool{
-	New: func() any {
-		return flatbuffers.NewBuilder(initialBuilderSize)
-	},
-}
+var (
+	// builderPool reuses FlatBuffer Builder instances to reduce allocation pressure during
+	// type data serialisation.
+	builderPool = sync.Pool{
+		New: func() any {
+			return flatbuffers.NewBuilder(initialBuilderSize)
+		},
+	}
+)
 
-// FlatBufferCache provides high-performance binary caching of TypeData using
-// FlatBuffers. It implements TypeDataProvider with parallel unpacking for large
-// datasets and zero-copy string reading.
+// FlatBufferCache provides high-performance binary caching of TypeData using FlatBuffers.
+// It implements TypeDataProvider with parallel unpacking for large datasets and zero-copy
+// string reading.
 type FlatBufferCache struct {
 	// sandbox provides sandboxed file system operations for cache access.
 	sandbox safedisk.Sandbox
 }
 
-var _ inspector_domain.TypeDataProvider = (*FlatBufferCache)(nil)
+var (
+	_ inspector_domain.TypeDataProvider = (*FlatBufferCache)(nil)
+)
 
-// NewFlatBufferCache creates a new FlatBufferCache with the given sandbox.
-// The sandbox root is the cache directory.
+// NewFlatBufferCache creates a new FlatBufferCache with the given sandbox. The sandbox
+// root is the cache directory.
 //
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access
-// to the cache directory.
+// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access to the
+// cache directory.
 //
 // Returns *FlatBufferCache which is ready for use.
 func NewFlatBufferCache(sandbox safedisk.Sandbox) *FlatBufferCache {
@@ -88,8 +92,7 @@ func NewFlatBufferCache(sandbox safedisk.Sandbox) *FlatBufferCache {
 // Takes cacheKey (string) which identifies the cached type data to retrieve.
 //
 // Returns *inspector_dto.TypeData which contains the deserialised type data.
-// Returns error when the cache is missing, corrupt, or has a schema version
-// mismatch.
+// Returns error when the cache is missing, corrupt, or has a schema version mismatch.
 func (fc *FlatBufferCache) GetTypeData(_ context.Context, cacheKey string) (*inspector_dto.TypeData, error) {
 	if fc.sandbox == nil || cacheKey == "" {
 		return nil, errors.New("flatbuffer cache provider requires a sandbox and key")
@@ -124,11 +127,11 @@ func (fc *FlatBufferCache) GetTypeData(_ context.Context, cacheKey string) (*ins
 // Takes cacheKey (string) which identifies the cache entry.
 // Takes data (*inspector_dto.TypeData) which contains the type data to store.
 //
-// Returns error when the cache is not initialised, the key is empty,
-// the directory cannot be created, or the file write fails.
+// Returns error when the cache is not initialised, the key is empty, the directory cannot
+// be created, or the file write fails.
 //
-// The write is atomic using a temporary file and rename. The output includes
-// a 32-byte schema hash prefix for automatic cache invalidation.
+// The write is atomic using a temporary file and rename. The output includes a 32-byte
+// schema hash prefix for automatic cache invalidation.
 func (fc *FlatBufferCache) SaveTypeData(_ context.Context, cacheKey string, data *inspector_dto.TypeData) error {
 	if fc.sandbox == nil || cacheKey == "" {
 		return errors.New("flatbuffer cache saver requires a sandbox and key")
@@ -164,8 +167,8 @@ func (fc *FlatBufferCache) SaveTypeData(_ context.Context, cacheKey string, data
 //
 // Takes cacheKey (string) which identifies the cache entry to remove.
 //
-// Returns error when the cache directory or key is empty, or when the file
-// cannot be removed.
+// Returns error when the cache directory or key is empty, or when the file cannot be
+// removed.
 func (fc *FlatBufferCache) InvalidateCache(_ context.Context, cacheKey string) error {
 	if fc.sandbox == nil || cacheKey == "" {
 		return errors.New("flatbuffer cache invalidator requires a sandbox and key")
@@ -193,11 +196,10 @@ func (fc *FlatBufferCache) ClearCache(_ context.Context) error {
 	return nil
 }
 
-// EncodeTypeDataToFBS encodes TypeData to FlatBuffers binary format. Use it
-// to generate pre-bundled stdlib data for WASM builds.
+// EncodeTypeDataToFBS encodes TypeData to FlatBuffers binary format. Use it to generate
+// pre-bundled stdlib data for WASM builds.
 //
-// Takes data (*inspector_dto.TypeData) which contains the type information to
-// encode.
+// Takes data (*inspector_dto.TypeData) which contains the type information to encode.
 //
 // Returns []byte which contains the FlatBuffers binary representation.
 func EncodeTypeDataToFBS(data *inspector_dto.TypeData) []byte {
@@ -214,8 +216,8 @@ func EncodeTypeDataToFBS(data *inspector_dto.TypeData) []byte {
 	return result
 }
 
-// DecodeTypeDataFromFBS decodes FlatBuffers binary data into a TypeData
-// struct. Use it to load pre-bundled standard library data in WASM builds.
+// DecodeTypeDataFromFBS decodes FlatBuffers binary data into a TypeData struct. Use it to
+// load pre-bundled standard library data in WASM builds.
 //
 // Takes data ([]byte) which contains the FlatBuffers binary data to parse.
 //
@@ -248,8 +250,7 @@ func packTypeData(b *flatbuffers.Builder, data *inspector_dto.TypeData) flatbuff
 	return inspector_schema_gen.TypeDataEnd(b)
 }
 
-// packFileToPackageEntry creates a FlatBuffers entry that maps a file to its
-// package.
+// packFileToPackageEntry creates a FlatBuffers entry that maps a file to its package.
 //
 // Takes b (*flatbuffers.Builder) which builds the FlatBuffers binary.
 // Takes key (string) which is the file path.
@@ -553,8 +554,8 @@ func packFunction(b *flatbuffers.Builder, f *inspector_dto.Function) flatbuffers
 // packFunctionSignature writes a function signature to a FlatBuffer.
 //
 // Takes b (*flatbuffers.Builder) which is the buffer to write to.
-// Takes sig (*inspector_dto.FunctionSignature) which holds the parameters and
-// results to write.
+// Takes sig (*inspector_dto.FunctionSignature) which holds the parameters and results to
+// write.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the written signature.
 func packFunctionSignature(b *flatbuffers.Builder, sig *inspector_dto.FunctionSignature) flatbuffers.UOffsetT {
@@ -615,11 +616,10 @@ func unpackTypeData(fb *inspector_schema_gen.TypeData) *inspector_dto.TypeData {
 	}
 }
 
-// unpackFileToPackageEntry extracts the key and value strings from a file to
-// package entry.
+// unpackFileToPackageEntry extracts the key and value strings from a file to package
+// entry.
 //
-// Takes fb (*inspector_schema_gen.FileToPackageEntry) which holds the packed
-// entry data.
+// Takes fb (*inspector_schema_gen.FileToPackageEntry) which holds the packed entry data.
 //
 // Returns key (string) which is the file path.
 // Returns value (string) which is the package name.
@@ -632,8 +632,8 @@ func unpackFileToPackageEntry(fb *inspector_schema_gen.FileToPackageEntry) (key,
 // Takes fb (*inspector_schema_gen_gen.FunctionSignature) which is the FlatBuffer
 // representation to unpack.
 //
-// Returns inspector_dto.FunctionSignature which contains the extracted
-// parameter and result type strings.
+// Returns inspector_dto.FunctionSignature which contains the extracted parameter and
+// result type strings.
 func unpackFunctionSignature(fb *inspector_schema_gen.FunctionSignature) inspector_dto.FunctionSignature {
 	paramsLen := fb.ParamsLength()
 	resultsLen := fb.ResultsLength()
@@ -756,8 +756,8 @@ func packStringSlice(b *flatbuffers.Builder, s []string) flatbuffers.UOffsetT {
 // Returns flatbuffers.UOffsetT which is the offset of the new vector.
 func createVector(b *flatbuffers.Builder, offsets []flatbuffers.UOffsetT) flatbuffers.UOffsetT {
 	b.StartVector(flatbufferVectorAlignment, len(offsets), flatbufferVectorAlignment)
-	for i := len(offsets) - 1; i >= 0; i-- {
-		b.PrependUOffsetT(offsets[i])
+	for _, offset := range slices.Backward(offsets) {
+		b.PrependUOffsetT(offset)
 	}
 	return b.EndVector(len(offsets))
 }
@@ -765,8 +765,8 @@ func createVector(b *flatbuffers.Builder, offsets []flatbuffers.UOffsetT) flatbu
 // unpackMap builds a map from a list of items using the given functions.
 //
 // Takes length (int) which is the number of items to process.
-// Takes getItem (func(*T, int) bool) which gets an item at the given index
-// into the pointer and returns true if it worked.
+// Takes getItem (func(*T, int) bool) which gets an item at the given index into the
+// pointer and returns true if it worked.
 // Takes unpacker (func(*T) (K, V)) which gets a key and value from an item.
 //
 // Returns map[K]V which holds the key-value pairs, or nil if length is zero.

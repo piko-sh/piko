@@ -26,18 +26,16 @@ import (
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_dto"
 )
 
-// addDSSDictionary creates a Document Security Store (DSS) dictionary
-// in the catalog containing pre-fetched OCSP responses and CRLs for
-// long-term validation (PAdES B-LT and above). The DSS follows the
-// PDF 2.0 / ETSI EN 319 142-1 specification.
+// addDSSDictionary creates a Document Security Store (DSS) dictionary in the catalog
+// containing pre-fetched OCSP responses and CRLs for long-term validation (PAdES B-LT and
+// above). The DSS follows the PDF 2.0 / ETSI EN 319 142-1 specification.
 //
-// Each OCSP response and CRL is stored as a separate stream object.
-// The DSS dictionary references these streams via /OCSPs and /CRLs
-// arrays.
+// Each OCSP response and CRL is stored as a separate stream object. The DSS dictionary
+// references these streams via /OCSPs and /CRLs arrays.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF document writer.
-// Takes opts (*pdfwriter_dto.PadesSignOptions) which provides the
-// pre-fetched OCSP responses and CRLs.
+// Takes opts (*pdfwriter_dto.PadesSignOptions) which provides the pre-fetched OCSP
+// responses and CRLs.
 //
 // Returns error when the catalog cannot be located or updated.
 func addDSSDictionary(writer *pdfparse.Writer, opts *pdfwriter_dto.PadesSignOptions) error {

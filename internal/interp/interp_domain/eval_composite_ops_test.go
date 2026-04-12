@@ -29,21 +29,21 @@ func TestTypedSliceOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
 
-		{"set_string", `s := make([]string, 3); s[0] = "hi"; s[1] = "there"; s[0]`, "hi"},
-		{"set_bool", `s := make([]bool, 2); s[0] = true; s[1] = false; s[0]`, true},
-		{"set_bool_read_false", `s := make([]bool, 2); s[0] = true; s[1] = false; s[1]`, false},
+		{name: "set_string", code: `s := make([]string, 3); s[0] = "hi"; s[1] = "there"; s[0]`, expect: "hi"},
+		{name: "set_bool", code: `s := make([]bool, 2); s[0] = true; s[1] = false; s[0]`, expect: true},
+		{name: "set_bool_read_false", code: `s := make([]bool, 2); s[0] = true; s[1] = false; s[1]`, expect: false},
 
-		{"append_int", `s := []int{1}; s = append(s, 2, 3); s[2]`, int64(3)},
-		{"append_string", `s := []string{"a"}; s = append(s, "b"); s[1]`, "b"},
-		{"append_float", `s := []float64{1.0}; s = append(s, 2.5); s[1]`, float64(2.5)},
-		{"append_bool", `s := []bool{true}; s = append(s, false); s[1]`, false},
-		{"append_multiple", `s := []int{1}; s = append(s, 2, 3, 4, 5); len(s)`, int64(5)},
-		{"append_empty", `s := make([]int, 0); s = append(s, 42); s[0]`, int64(42)},
+		{name: "append_int", code: `s := []int{1}; s = append(s, 2, 3); s[2]`, expect: int64(3)},
+		{name: "append_string", code: `s := []string{"a"}; s = append(s, "b"); s[1]`, expect: "b"},
+		{name: "append_float", code: `s := []float64{1.0}; s = append(s, 2.5); s[1]`, expect: float64(2.5)},
+		{name: "append_bool", code: `s := []bool{true}; s = append(s, false); s[1]`, expect: false},
+		{name: "append_multiple", code: `s := []int{1}; s = append(s, 2, 3, 4, 5); len(s)`, expect: int64(5)},
+		{name: "append_empty", code: `s := make([]int, 0); s = append(s, 42); s[0]`, expect: int64(42)},
 	}
 
 	for _, tt := range tests {
@@ -61,13 +61,13 @@ func TestMapIntKeyOperations(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"map_int_int_set_get", `m := map[int]int{1: 10}; m[2] = 20; m[1] + m[2]`, int64(30)},
-		{"map_int_int_overwrite", `m := map[int]int{1: 10}; m[1] = 99; m[1]`, int64(99)},
-		{"map_int_int_len", `m := map[int]int{}; m[1] = 1; m[2] = 2; m[3] = 3; len(m)`, int64(3)},
+		{name: "map_int_int_set_get", code: `m := map[int]int{1: 10}; m[2] = 20; m[1] + m[2]`, expect: int64(30)},
+		{name: "map_int_int_overwrite", code: `m := map[int]int{1: 10}; m[1] = 99; m[1]`, expect: int64(99)},
+		{name: "map_int_int_len", code: `m := map[int]int{}; m[1] = 1; m[2] = 2; m[3] = 3; len(m)`, expect: int64(3)},
 	}
 
 	for _, tt := range tests {
@@ -85,20 +85,20 @@ func TestRangeOverSlice(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"range_index_value", `sum := 0; for _, v := range []int{10, 20, 30} { sum += v }; sum`, int64(60)},
-		{"range_index_only", `last := 0; for i := range []int{10, 20, 30} { last = i }; last`, int64(2)},
-		{"range_string_slice", `
+		{name: "range_index_value", code: `sum := 0; for _, v := range []int{10, 20, 30} { sum += v }; sum`, expect: int64(60)},
+		{name: "range_index_only", code: `last := 0; for i := range []int{10, 20, 30} { last = i }; last`, expect: int64(2)},
+		{name: "range_string_slice", code: `
 s := ""
 for _, v := range []string{"a", "b", "c"} {
     s += v
 }
-s`, "abc"},
-		{"range_float_slice", `sum := 0.0; for _, v := range []float64{1.1, 2.2, 3.3} { sum += v }; sum`, float64(6.6)},
-		{"range_bool_slice", `count := 0; for _, v := range []bool{true, false, true} { if v { count++ } }; count`, int64(2)},
+s`, expect: "abc"},
+		{name: "range_float_slice", code: `sum := 0.0; for _, v := range []float64{1.1, 2.2, 3.3} { sum += v }; sum`, expect: float64(6.6)},
+		{name: "range_bool_slice", code: `count := 0; for _, v := range []bool{true, false, true} { if v { count++ } }; count`, expect: int64(2)},
 	}
 
 	for _, tt := range tests {
@@ -116,19 +116,19 @@ func TestMethodValues(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"closure_variable_call", `
+		{name: "closure_variable_call", code: `
 f := func(x int) int { return x * 2 }
-f(21)`, int64(42)},
-		{"closure_in_slice", `
+f(21)`, expect: int64(42)},
+		{name: "closure_in_slice", code: `
 fns := []func(int) int{
     func(x int) int { return x + 1 },
     func(x int) int { return x * 2 },
 }
-fns[0](10) + fns[1](10)`, int64(31)},
+fns[0](10) + fns[1](10)`, expect: int64(31)},
 	}
 
 	for _, tt := range tests {
@@ -146,17 +146,17 @@ func TestSelectSend(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"select_send", `
+		{name: "select_send", code: `
 ch := make(chan int, 1)
 select {
 case ch <- 42:
 }
-<-ch`, int64(42)},
-		{"select_default", `
+<-ch`, expect: int64(42)},
+		{name: "select_default", code: `
 ch := make(chan int)
 x := 0
 select {
@@ -165,7 +165,7 @@ case v := <-ch:
 default:
     x = -1
 }
-x`, int64(-1)},
+x`, expect: int64(-1)},
 	}
 
 	for _, tt := range tests {
@@ -183,12 +183,12 @@ func TestAddressOf(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"addr_deref", `x := 42; p := &x; *p`, int64(42)},
-		{"addr_modify", `x := 10; p := &x; *p = 20; x`, int64(20)},
+		{name: "addr_deref", code: `x := 42; p := &x; *p`, expect: int64(42)},
+		{name: "addr_modify", code: `x := 10; p := &x; *p = 20; x`, expect: int64(20)},
 	}
 
 	for _, tt := range tests {

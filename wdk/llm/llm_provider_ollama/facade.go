@@ -23,20 +23,18 @@ import (
 	"fmt"
 )
 
-// OllamaProvider wraps the internal Ollama provider and exposes
-// Ollama-specific methods such as [EnsureModels]. It implements
-// llm.ProviderPort and llm.EmbeddingProviderPort via embedding.
+// OllamaProvider wraps the internal Ollama provider and exposes Ollama-specific methods
+// such as EnsureModels. It implements llm.ProviderPort and llm.EmbeddingProviderPort via
+// embedding.
 type OllamaProvider struct {
 	*ollamaProvider
 }
 
-// NewOllamaProvider creates a new Ollama LLM provider with the given
-// configuration.
+// NewOllamaProvider creates a new Ollama LLM provider with the given configuration.
 //
 // The returned provider implements both llm.ProviderPort (completions) and
-// llm.EmbeddingProviderPort (embeddings). When registered via
-// piko.WithLLMProvider, the framework automatically detects and registers the
-// embedding capability.
+// llm.EmbeddingProviderPort (embeddings). When registered via piko.WithLLMProvider, the
+// framework automatically detects and registers the embedding capability.
 //
 // Takes config (Config) which contains the provider configuration.
 //
@@ -50,12 +48,12 @@ func NewOllamaProvider(config Config) (*OllamaProvider, error) {
 	return &OllamaProvider{ollamaProvider: p}, nil
 }
 
-// EnsureModels downloads the configured default completion and embedding
-// models if they are not already available locally. Call this at application
-// startup to avoid first-request latency from on-demand model pulls.
+// EnsureModels downloads the configured default completion and embedding models if they
+// are not already available locally. Call this at application startup to avoid
+// first-request latency from on-demand model pulls.
 //
-// After ensuring the embedding model, this also queries its vector dimension
-// so that [EmbeddingDimensions] returns the correct value immediately.
+// After ensuring the embedding model, this also queries its vector dimension so that
+// EmbeddingDimensions returns the correct value immediately.
 //
 // Returns error when a model cannot be pulled or verified.
 func (p *OllamaProvider) EnsureModels(ctx context.Context) error {

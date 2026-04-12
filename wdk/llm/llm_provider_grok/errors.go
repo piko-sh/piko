@@ -26,14 +26,13 @@ import (
 
 // rewrapError converts ProviderError instances from "openai" to "grok".
 //
-// Non-ProviderError errors pass through unchanged. The Retry-After hint is
-// preserved so callers can honour the upstream server's wait
-// recommendation.
+// Non-ProviderError errors pass through unchanged. The Retry-After hint is preserved so
+// callers can honour the upstream server's wait recommendation.
 //
 // Takes err (error) which is the error to inspect and potentially rewrap.
 //
-// Returns error which is either a rewrapped *llm_domain.ProviderError with
-// Provider set to "grok", or the original error.
+// Returns error which is either a rewrapped *llm_domain.ProviderError with Provider set
+// to "grok", or the original error.
 func rewrapError(err error) error {
 	if err == nil {
 		return nil

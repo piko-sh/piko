@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -41,19 +42,18 @@ const (
 	// logValueComponent is the component name for shutdown log entries.
 	logValueComponent = "shutdown"
 
-	// DefaultTimeout is the default timeout for shutdown cleanup tasks.
-	// This gives enough time for apps with several services (database links,
-	// caches, OTEL exporters) to shut down in a controlled way.
+	// DefaultTimeout is the default timeout for shutdown cleanup tasks. This gives enough
+	// time for apps with several services (database links, caches, OTEL exporters) to shut
+	// down in a controlled way.
 	DefaultTimeout = 30 * time.Second
 
-	// MinFunctionTimeout is the shortest timeout given to each cleanup function.
-	// Each function gets at least this much time, even when total time left is
-	// less.
+	// MinFunctionTimeout is the shortest timeout given to each cleanup function. Each
+	// function gets at least this much time, even when total time left is less.
 	MinFunctionTimeout = 500 * time.Millisecond
 )
 
-// CleanupFunc represents a function that runs during shutdown. It receives a
-// context that may have a timeout and returns an error on failure.
+// CleanupFunc represents a function that runs during shutdown. It receives a context that
+// may have a timeout and returns an error on failure.
 type CleanupFunc func(ctx context.Context) error
 
 // namedCleanup pairs a cleanup function with its name for ordered shutdown.
@@ -68,9 +68,8 @@ type namedCleanup struct {
 // ManagerOption configures a shutdown Manager.
 type ManagerOption func(*Manager)
 
-// Manager coordinates shutdown cleanup functions. Use NewManager to create
-// instances for testing, or use the package-level functions which use a
-// shared default instance.
+// Manager coordinates shutdown cleanup functions. Use NewManager to create instances for
+// testing, or use the package-level functions which use a shared default instance.
 type Manager struct {
 	// clock provides time operations for timeout calculations.
 	clock clock.Clock
@@ -78,23 +77,23 @@ type Manager struct {
 	// cleanupFuncs holds the functions to run during shutdown.
 	cleanupFuncs []namedCleanup
 
-	// funcsLock protects cleanupFuncs during registration and cleanup.
-	// Uses RWMutex to allow reading at the same time while protecting writes.
+	// funcsLock protects cleanupFuncs during registration and cleanup. Uses RWMutex to allow
+	// reading at the same time while protecting writes.
 	funcsLock sync.RWMutex
 
-	// cleanupInProgress indicates whether cleanup is currently running. Uses
-	// atomic.Bool for lock-free reads, preventing new registrations during
-	// cleanup.
+	// cleanupInProgress indicates whether cleanup is currently running. Uses atomic.Bool for
+	// lock-free reads, preventing new registrations during cleanup.
 	cleanupInProgress atomic.Bool
 }
 
-// defaultManager is the global instance used by package-level functions
-// for a simpler developer experience.
-var defaultManager = NewManager()
+var (
+	// defaultManager is the global instance used by package-level functions for a simpler
+	// developer experience.
+	defaultManager = NewManager()
+)
 
-// NewManager creates a new shutdown manager with isolated state. This is
-// useful for testing where you need independent instances that do not
-// interfere with each other.
+// NewManager creates a new shutdown manager with isolated state. This is useful for
+// testing where you need independent instances that do not interfere with each other.
 //
 // Takes opts (...ManagerOption) which configures optional behaviour.
 //
@@ -114,21 +113,18 @@ func NewManager(opts ...ManagerOption) *Manager {
 
 // Register adds a cleanup function to be executed during shutdown.
 //
-// Functions are executed in reverse registration order (LIFO) when shutdown is
-// triggered. The name is used for logging and tracing purposes to identify
-// the cleanup function.
+// Functions are executed in reverse registration order (LIFO) when shutdown is triggered.
+// The name is used for logging and tracing purposes to identify the cleanup function.
 //
-// If cleanup is already in progress, logs a warning and returns without
-// registering. Prevents potential deadlocks from cleanup functions attempting
-// to register new cleanup handlers.
+// If cleanup is already in progress, logs a warning and returns without registering.
+// Prevents potential deadlocks from cleanup functions attempting to register new cleanup
+// handlers.
 //
 // Takes ctx (context.Context) which carries trace and logging context.
 // Takes name (string) which identifies the cleanup function in logs and traces.
-// Takes cleanupFunction (CleanupFunc) which is the function to call
-// during shutdown.
+// Takes cleanupFunction (CleanupFunc) which is the function to call during shutdown.
 //
-// Safe for concurrent use. Uses a mutex to protect the cleanup
-// function list.
+// Safe for concurrent use. Uses a mutex to protect the cleanup function list.
 func (m *Manager) Register(ctx context.Context, name string, cleanupFunction CleanupFunc) {
 	ctx, span, l := log.Span(ctx, "shutdown.Register",
 		logger_domain.String(logger_domain.FieldStrComponent, logValueComponent),
@@ -157,12 +153,12 @@ func (m *Manager) Register(ctx context.Context, name string, cleanupFunction Cle
 	l.Internal("Registered cleanup function", logger_domain.String("name", name))
 }
 
-// ListenAndShutdown waits for a shutdown signal (SIGINT or SIGTERM), then
-// runs all registered cleanup functions within the given timeout. Calls
-// os.Exit(0) after cleanup finishes.
+// ListenAndShutdown waits for a shutdown signal (SIGINT or SIGTERM), then runs all
+// registered cleanup functions within the given timeout. Calls os.Exit(0) after cleanup
+// finishes.
 //
-// Takes totalTimeout (time.Duration) which sets the maximum time for all
-// cleanup tasks to complete.
+// Takes totalTimeout (time.Duration) which sets the maximum time for all cleanup tasks to
+// complete.
 func (m *Manager) ListenAndShutdown(totalTimeout time.Duration) {
 	ctx := context.Background()
 	ctx, span, l := log.Span(ctx, "shutdown.ListenAndShutdown",
@@ -199,14 +195,12 @@ func (m *Manager) ListenAndShutdown(totalTimeout time.Duration) {
 
 // ListenAndShutdownWithSignal waits for a signal and then runs cleanup.
 //
-// A testable version of ListenAndShutdown. Accepts a signal channel so that
-// tests can trigger shutdown without using OS signals. Unlike
-// ListenAndShutdown, does not call os.Exit. The caller must handle the exit
-// behaviour.
+// A testable version of ListenAndShutdown. Accepts a signal channel so that tests can
+// trigger shutdown without using OS signals. Unlike ListenAndShutdown, does not call
+// os.Exit. The caller must handle the exit behaviour.
 //
 // Takes totalTimeout (time.Duration) which sets the maximum time for cleanup.
-// Takes sigChan (<-chan os.Signal) which is the channel to listen for shutdown
-// signals.
+// Takes sigChan (<-chan os.Signal) which is the channel to listen for shutdown signals.
 func (m *Manager) ListenAndShutdownWithSignal(ctx context.Context, totalTimeout time.Duration, sigChan <-chan os.Signal) {
 	ctx, span, l := log.Span(ctx, "shutdown.ListenAndShutdownWithSignal",
 		logger_domain.String(logger_domain.FieldStrComponent, logValueComponent),
@@ -224,24 +218,22 @@ func (m *Manager) ListenAndShutdownWithSignal(ctx context.Context, totalTimeout 
 	l.Internal("Cleanup completed")
 }
 
-// Cleanup executes all registered cleanup functions within the specified
-// timeout.
+// Cleanup executes all registered cleanup functions within the specified timeout.
 //
-// Functions are executed sequentially in reverse registration order (LIFO),
-// similar to Go's defer semantics. This means resources registered early (such
-// as the logger) are cleaned up last, allowing later-registered components to
-// log during their cleanup.
+// Functions are executed sequentially in reverse registration order (LIFO), similar to
+// Go's defer semantics. This means resources registered early (such as the logger) are
+// cleaned up last, allowing later-registered components to log during their cleanup.
 //
-// Each function receives a per-function timeout budget calculated by dividing
-// the remaining time among remaining functions, with a minimum of
-// MinFunctionTimeout. If a function panics, the panic is recovered and logged,
-// and execution continues with the remaining functions.
+// Each function receives a per-function timeout budget calculated by dividing the
+// remaining time among remaining functions, with a minimum of MinFunctionTimeout. If a
+// function panics, the panic is recovered and logged, and execution continues with the
+// remaining functions.
 //
-// Takes totalTimeout (time.Duration) which specifies the maximum time allowed
-// for all cleanup functions to complete.
+// Takes totalTimeout (time.Duration) which specifies the maximum time allowed for all
+// cleanup functions to complete.
 //
-// Safe for concurrent use. Acquires the internal lock briefly to copy the list
-// of cleanup functions before executing them.
+// Safe for concurrent use. Acquires the internal lock briefly to copy the list of cleanup
+// functions before executing them.
 func (m *Manager) Cleanup(parentCtx context.Context, totalTimeout time.Duration) {
 	ctx, span, l := log.Span(parentCtx, "shutdown.Cleanup",
 		logger_domain.String(logger_domain.FieldStrComponent, logValueComponent),
@@ -283,8 +275,8 @@ func (m *Manager) Reset() {
 	m.cleanupFuncs = make([]namedCleanup, 0)
 }
 
-// Count returns the number of registered cleanup functions.
-// Intended for testing and diagnostics.
+// Count returns the number of registered cleanup functions. Intended for testing and
+// diagnostics.
 //
 // Returns int which is the current count of cleanup functions.
 //
@@ -295,24 +287,22 @@ func (m *Manager) Count() int {
 	return len(m.cleanupFuncs)
 }
 
-// IsCleanupInProgress returns whether cleanup is currently running.
-// This can be used to check if new registrations will be rejected.
+// IsCleanupInProgress returns whether cleanup is currently running. This can be used to
+// check if new registrations will be rejected.
 //
 // Returns bool which is true if cleanup is in progress.
 func (m *Manager) IsCleanupInProgress() bool {
 	return m.cleanupInProgress.Load()
 }
 
-// runCleanupFunctions runs cleanup functions in LIFO order with deadline
-// tracking.
+// runCleanupFunctions runs cleanup functions in LIFO order with deadline tracking.
 //
 // Takes span (trace.Span) which records tracing events for the cleanup process.
 // Takes funcs ([]namedCleanup) which contains the cleanup functions to run.
 // Takes deadline (time.Time) which specifies when cleanup must finish.
 func (m *Manager) runCleanupFunctions(ctx context.Context, span trace.Span, funcs []namedCleanup, deadline time.Time) {
 	ctx, l := logger_domain.From(ctx, log)
-	for i := len(funcs) - 1; i >= 0; i-- {
-		cleanup := funcs[i]
+	for i, cleanup := range slices.Backward(funcs) {
 		remaining := i + 1
 
 		if m.clock.Now().After(deadline) {
@@ -344,15 +334,13 @@ func (m *Manager) runCleanupFunctions(ctx context.Context, span trace.Span, func
 	l.Internal("All cleanup functions completed")
 }
 
-// executeCleanupFunction runs a single cleanup function with panic recovery.
-// It wraps the function execution in a span and recovers from any panic,
-// converting it to an error.
+// executeCleanupFunction runs a single cleanup function with panic recovery. It wraps the
+// function execution in a span and recovers from any panic, converting it to an error.
 //
-// Takes ctx (context.Context) which provides the parent context for
-// the cleanup operation.
+// Takes ctx (context.Context) which provides the parent context for the cleanup
+// operation.
 // Takes cleanup (namedCleanup) which is the cleanup function to execute.
-// Takes timeout (time.Duration) which limits how long the function may
-// run.
+// Takes timeout (time.Duration) which limits how long the function may run.
 //
 // Returns resultErr (error) when the cleanup function fails or panics.
 func (*Manager) executeCleanupFunction(ctx context.Context, cleanup namedCleanup, timeout time.Duration) (resultErr error) {
@@ -375,8 +363,8 @@ func (*Manager) executeCleanupFunction(ctx context.Context, cleanup namedCleanup
 	return resultErr
 }
 
-// WithClock sets the clock used for timeout calculations. If not provided,
-// the real system clock is used.
+// WithClock sets the clock used for timeout calculations. If not provided, the real
+// system clock is used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -391,33 +379,31 @@ func WithClock(c clock.Clock) ManagerOption {
 
 // Register adds a cleanup function to the global default manager.
 //
-// This is a convenience function that delegates to defaultManager.Register.
-// For testing, create a new Manager instance using NewManager instead.
+// This is a convenience function that delegates to defaultManager.Register. For testing,
+// create a new Manager instance using NewManager instead.
 //
 // Takes ctx (context.Context) which carries trace and logging context.
 // Takes name (string) which identifies the cleanup function for logging.
-// Takes cleanupFunction (CleanupFunc) which is the function to call
-// during shutdown.
+// Takes cleanupFunction (CleanupFunc) which is the function to call during shutdown.
 func Register(ctx context.Context, name string, cleanupFunction CleanupFunc) {
 	defaultManager.Register(ctx, name, cleanupFunction)
 }
 
-// ListenAndShutdown waits for a shutdown signal, then runs cleanup and calls
-// os.Exit(0).
+// ListenAndShutdown waits for a shutdown signal, then runs cleanup and calls os.Exit(0).
 //
 // This is a convenience function that calls defaultManager.ListenAndShutdown().
 //
-// Takes totalTimeout (time.Duration) which sets the maximum time allowed for
-// cleanup before forcing exit.
+// Takes totalTimeout (time.Duration) which sets the maximum time allowed for cleanup
+// before forcing exit.
 func ListenAndShutdown(totalTimeout time.Duration) {
 	defaultManager.ListenAndShutdown(totalTimeout)
 }
 
-// Cleanup executes all cleanup functions on the global default manager.
-// This is a convenience function that delegates to defaultManager.Cleanup().
+// Cleanup executes all cleanup functions on the global default manager. This is a
+// convenience function that delegates to defaultManager.Cleanup().
 //
-// Takes totalTimeout (time.Duration) which limits the total time for all
-// cleanup operations.
+// Takes totalTimeout (time.Duration) which limits the total time for all cleanup
+// operations.
 func Cleanup(ctx context.Context, totalTimeout time.Duration) {
 	defaultManager.Cleanup(ctx, totalTimeout)
 }

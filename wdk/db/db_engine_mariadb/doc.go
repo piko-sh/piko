@@ -16,7 +16,7 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_engine_mariadb provides a MariaDB engine adapter derived from the
-// MySQL engine. It configures db_engine_mysql with MariaDB-specific dialect
-// options for additional clauses, types, and built-in functions.
+// Package db_engine_mariadb provides a MariaDB engine adapter derived from the MySQL
+// engine. It configures db_engine_mysql with MariaDB-specific dialect options for
+// additional clauses, types, and built-in functions.
 package db_engine_mariadb

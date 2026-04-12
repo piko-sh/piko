@@ -18,15 +18,13 @@
 
 // Package seo_adapters implements the driven ports for the SEO hexagon.
 //
-// It implements the SEO domain ports: fetching dynamic URLs from HTTP
-// endpoints, storing SEO artefacts (sitemap.xml, robots.txt) in the
-// registry, and translating annotator domain objects into SEO-specific
-// views via [ProjectViewTranslator].
+// It implements the SEO domain ports: fetching dynamic URLs from HTTP endpoints, storing
+// SEO artefacts (sitemap.xml, robots.txt) in the registry, and translating annotator
+// domain objects into SEO-specific views via [ProjectViewTranslator].
 //
 // # Thread safety
 //
-// [HTTPSourceAdapter] is safe for concurrent use; the underlying HTTP
-// client and circuit breaker handle synchronisation internally.
-// [RegistryStorageAdapter] thread safety depends on the underlying
-// registry service implementation.
+// [HTTPSourceAdapter] is safe for concurrent use; the underlying HTTP client and circuit
+// breaker handle synchronisation internally. [RegistryStorageAdapter] thread safety
+// depends on the underlying registry service implementation.
 package seo_adapters

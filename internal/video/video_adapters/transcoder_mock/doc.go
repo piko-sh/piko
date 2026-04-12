@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package transcoder_mock is an in-memory test double for
-// [video_domain.TranscoderPort] and [video_domain.StreamingTranscoderPort].
+// Package transcoder_mock is an in-memory test double for [video_domain.TranscoderPort]
+// and [video_domain.StreamingTranscoderPort].
 //
-// It records all method calls for inspection and supports configurable
-// return values, error injection, and latency simulation, allowing
-// tests to verify transcoding behaviour without FFmpeg.
+// It records all method calls for inspection and supports configurable return values,
+// error injection, and latency simulation, allowing tests to verify transcoding behaviour
+// without FFmpeg.
 //
 // # Usage
 //
@@ -38,7 +38,7 @@
 //
 // # Thread safety
 //
-// All methods on Provider are safe for concurrent use. Internal state
-// is protected by a sync.RWMutex, and getter methods return copies of
-// recorded call slices to prevent external mutation.
+// All methods on Provider are safe for concurrent use. Internal state is protected by a
+// sync.RWMutex, and getter methods return copies of recorded call slices to prevent
+// external mutation.
 package transcoder_mock

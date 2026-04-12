@@ -22,15 +22,87 @@
 
 #include "textflag.h"
 
-// func dotF32(a, b []float32) float32
+// dotF32 computes sum(a[i]*b[i]) for f32 vectors using 8-way NEON unrolling.
 TEXT ·dotF32(SB), NOSPLIT, $0-52
 	MOVD a_base+0(FP), R0
 	MOVD a_len+8(FP), R2
 	MOVD b_base+24(FP), R1
 
 	VEOR V0.B16, V0.B16, V0.B16
+	VEOR V4.B16, V4.B16, V4.B16
+	VEOR V5.B16, V5.B16, V5.B16
+	VEOR V6.B16, V6.B16, V6.B16
+	VEOR V7.B16, V7.B16, V7.B16
+	VEOR V8.B16, V8.B16, V8.B16
+	VEOR V9.B16, V9.B16, V9.B16
+	VEOR V10.B16, V10.B16, V10.B16
 	VEOR V3.B16, V3.B16, V3.B16
 
+	CMP  $32, R2
+	BLT  dot_tail4
+
+dot_loop32:
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V0.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V4.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V5.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V6.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V7.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V8.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V9.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	VLD1 (R0), [V1.S4]
+	VLD1 (R1), [V2.S4]
+	VFMLA V1.S4, V2.S4, V10.S4
+
+	ADD  $16, R0
+	ADD  $16, R1
+	SUB  $32, R2
+	CMP  $32, R2
+	BGE  dot_loop32
+
+	WORD $0x4E24D400
+	WORD $0x4E25D400
+	WORD $0x4E26D400
+	WORD $0x4E27D400
+	WORD $0x4E28D400
+	WORD $0x4E29D400
+	WORD $0x4E2AD400
+
+dot_tail4:
 	CMP  $4, R2
 	BLT  dot_tail
 
@@ -51,10 +123,10 @@ dot_tail_loop:
 	FMOVS (R0), F1
 	FMOVS (R1), F2
 	FMADDS F1, F3, F2, F3
-	ADD  $4, R0
-	ADD  $4, R1
-	SUB  $1, R2
-	CBNZ R2, dot_tail_loop
+	ADD   $4, R0
+	ADD   $4, R1
+	SUB   $1, R2
+	CBNZ  R2, dot_tail_loop
 
 dot_reduce:
 	WORD $0x6E20D400

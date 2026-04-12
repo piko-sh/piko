@@ -21,6 +21,7 @@ package generator_adapters
 import (
 	"context"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/google/flatbuffers/go"
@@ -681,8 +682,8 @@ func TestUnpackSlice(t *testing.T) {
 	}
 
 	offsets := make([]flatbuffers.UOffsetT, len(refs))
-	for i := len(refs) - 1; i >= 0; i-- {
-		offsets[i] = packAssetRef(builder, refs[i])
+	for i, ref := range slices.Backward(refs) {
+		offsets[i] = packAssetRef(builder, ref)
 	}
 
 	assetRefsVec := createVector(builder, offsets)

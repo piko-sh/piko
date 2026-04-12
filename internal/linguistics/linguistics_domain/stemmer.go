@@ -18,7 +18,9 @@
 
 package linguistics_domain
 
-import "strings"
+import (
+	"strings"
+)
 
 const (
 	// LanguageEnglish is the default language for text analysis.
@@ -49,8 +51,8 @@ const (
 	LanguageHungarian = "hungarian"
 )
 
-// ValidateLanguage normalises a language string by lowercasing and trimming
-// whitespace. If the result is empty, returns LanguageEnglish as the default.
+// ValidateLanguage normalises a language string by lowercasing and trimming whitespace.
+// If the result is empty, returns LanguageEnglish as the default.
 //
 // Takes language (string) which is the language code to validate.
 //
@@ -63,9 +65,8 @@ func ValidateLanguage(language string) string {
 	return normalised
 }
 
-// SupportedLanguages returns a list of commonly supported language names for
-// backwards compatibility. Actual language support depends on which stemmer
-// adapter is used.
+// SupportedLanguages returns a list of commonly supported language names for backwards
+// compatibility. Actual language support depends on which stemmer adapter is used.
 //
 // Returns []string which contains the language names.
 func SupportedLanguages() []string {

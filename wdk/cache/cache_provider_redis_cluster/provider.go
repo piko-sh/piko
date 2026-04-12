@@ -30,9 +30,9 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// RedisClusterProvider implements the cache.Provider interface for Redis
-// Cluster. It manages a single shared client connection across all namespaces,
-// where each namespace becomes a key prefix (e.g., "users:", "products:").
+// RedisClusterProvider implements the cache.Provider interface for Redis Cluster. It
+// manages a single shared client connection across all namespaces, where each namespace
+// becomes a key prefix (e.g., "users:", "products:").
 type RedisClusterProvider struct {
 	// client is the shared Redis Cluster client connection.
 	client *redis.ClusterClient
@@ -47,14 +47,16 @@ type RedisClusterProvider struct {
 	mu sync.RWMutex
 }
 
-var _ cache.Provider = (*RedisClusterProvider)(nil)
+var (
+	_ cache.Provider = (*RedisClusterProvider)(nil)
+)
 
-// NewRedisClusterProvider creates a new Redis Cluster provider with a shared
-// client connection. All namespaces created from this provider share the same
-// Redis Cluster connection.
+// NewRedisClusterProvider creates a new Redis Cluster provider with a shared client
+// connection. All namespaces created from this provider share the same Redis Cluster
+// connection.
 //
-// Takes config (Config) which specifies the cluster addresses, password, timeouts,
-// and encoding registry.
+// Takes config (Config) which specifies the cluster addresses, password, timeouts, and
+// encoding registry.
 //
 // Returns *RedisClusterProvider which is the configured provider ready for use.
 // Returns error when the registry is nil or the cluster cannot be reached.
@@ -101,12 +103,12 @@ func NewRedisClusterProvider(config Config) (*RedisClusterProvider, error) {
 	return provider, nil
 }
 
-// CreateNamespaceTyped creates a new Redis Cluster cache instance for the
-// given namespace.
+// CreateNamespaceTyped creates a new Redis Cluster cache instance for the given
+// namespace.
 //
-// The namespace is used as a key prefix. The same Redis Cluster client is
-// shared across all namespaces. This is a non-generic method that uses type
-// erasure; call CreateNamespace[K,V]() for type safety.
+// The namespace is used as a key prefix. The same Redis Cluster client is shared across
+// all namespaces. This is a non-generic method that uses type erasure; call
+// CreateNamespace[K,V]() for type safety.
 //
 // Takes namespace (string) which specifies the key prefix for the cache.
 // Takes options (any) which provides cache configuration settings.
@@ -117,8 +119,8 @@ func (p *RedisClusterProvider) CreateNamespaceTyped(namespace string, options an
 	return createRedisClusterCache(p, namespace, options)
 }
 
-// Close releases all resources managed by this provider.
-// For Redis Cluster, this closes the shared client connection.
+// Close releases all resources managed by this provider. For Redis Cluster, this closes
+// the shared client connection.
 //
 // Returns error when the Redis Cluster client fails to close.
 //

@@ -20,26 +20,28 @@ package layouter_dto
 
 // Predefined page size constants in points (1 point = 1/72 inch).
 
-// PageA4 is the ISO A4 page size (210mm x 297mm).
-var PageA4 = PageConfig{
-	Width:  595.28,
-	Height: 841.89,
-}
+var (
+	// PageA4 is the ISO A4 page size (210mm x 297mm).
+	PageA4 = PageConfig{
+		Width:  595.28,
+		Height: 841.89,
+	}
 
-// PageA3 is the ISO A3 page size (297mm x 420mm).
-var PageA3 = PageConfig{
-	Width:  841.89,
-	Height: 1190.55,
-}
+	// PageA3 is the ISO A3 page size (297mm x 420mm).
+	PageA3 = PageConfig{
+		Width:  841.89,
+		Height: 1190.55,
+	}
 
-// PageLetter is the US Letter page size (8.5in x 11in).
-var PageLetter = PageConfig{
-	Width:  612.0,
-	Height: 792.0,
-}
+	// PageLetter is the US Letter page size (8.5in x 11in).
+	PageLetter = PageConfig{
+		Width:  612.0,
+		Height: 792.0,
+	}
 
-// PageLegal is the US Legal page size (8.5in x 14in).
-var PageLegal = PageConfig{
-	Width:  612.0,
-	Height: 1008.0,
-}
+	// PageLegal is the US Legal page size (8.5in x 14in).
+	PageLegal = PageConfig{
+		Width:  612.0,
+		Height: 1008.0,
+	}
+)

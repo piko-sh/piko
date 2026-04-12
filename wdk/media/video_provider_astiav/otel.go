@@ -84,8 +84,7 @@ var (
 	// FramesDropped counts the number of frames that have been dropped.
 	FramesDropped metric.Int64Counter
 
-	// H264EncodeOperations is a codec-specific metric that counts H.264 encoding
-	// operations.
+	// H264EncodeOperations is a codec-specific metric that counts H.264 encoding operations.
 	H264EncodeOperations metric.Int64Counter
 
 	// H265EncodeOperations counts the total number of H.265 encode operations.
@@ -115,8 +114,7 @@ var (
 	// StreamBytesRead is a counter that tracks the total bytes read from streams.
 	StreamBytesRead metric.Int64Counter
 
-	// StreamBytesWritten is a counter metric that tracks the total bytes written
-	// to streams.
+	// StreamBytesWritten is a counter metric that tracks the total bytes written to streams.
 	StreamBytesWritten metric.Int64Counter
 
 	// HLSSegmentsCreated counts the number of HLS segments created.
@@ -125,8 +123,7 @@ var (
 	// HLSPlaylistsGenerated counts the number of HLS playlists generated.
 	HLSPlaylistsGenerated metric.Int64Counter
 
-	// HLSSegmentationDuration records the time taken to segment media into HLS
-	// format.
+	// HLSSegmentationDuration records the time taken to segment media into HLS format.
 	HLSSegmentationDuration metric.Float64Histogram
 
 	// HLSSegmentationErrors counts errors that occur during HLS video segmentation.
@@ -135,8 +132,8 @@ var (
 	// ContextPoolHits counts the number of times a context is reused from the pool.
 	ContextPoolHits metric.Int64Counter
 
-	// ContextPoolMisses counts how many times a context was not found in the pool
-	// and had to be created anew.
+	// ContextPoolMisses counts how many times a context was not found in the pool and had to
+	// be created anew.
 	ContextPoolMisses metric.Int64Counter
 
 	// ContextPoolSize tracks the current number of contexts in the pool.
@@ -145,15 +142,15 @@ var (
 	// BufferPoolHits counts the number of times a buffer was found in the pool.
 	BufferPoolHits metric.Int64Counter
 
-	// BufferPoolMisses counts the number of times a buffer was not available in
-	// the pool and had to be allocated.
+	// BufferPoolMisses counts the number of times a buffer was not available in the pool and
+	// had to be allocated.
 	BufferPoolMisses metric.Int64Counter
 
 	// BufferPoolSize tracks the current size of the buffer pool.
 	BufferPoolSize metric.Int64UpDownCounter
 
-	// TranscodeLatency is a performance metric that records the time taken for
-	// transcoding operations.
+	// TranscodeLatency is a performance metric that records the time taken for transcoding
+	// operations.
 	TranscodeLatency metric.Float64Histogram
 
 	// PacketProcessingTime records the time taken to process each packet.
@@ -171,8 +168,7 @@ var (
 	// TranscodeCount counts the total number of transcode operations.
 	TranscodeCount metric.Int64Counter
 
-	// TranscodeErrorCount is a metric counter that tracks the number of transcode
-	// errors.
+	// TranscodeErrorCount is a metric counter that tracks the number of transcode errors.
 	TranscodeErrorCount metric.Int64Counter
 
 	// TranscodeDuration records the duration of transcode operations.
@@ -187,8 +183,7 @@ var (
 	// VP9TranscodeCount counts VP9 transcode operations.
 	VP9TranscodeCount metric.Int64Counter
 
-	// FramesProcessedCount is a counter that tracks the total number of frames
-	// processed.
+	// FramesProcessedCount is a counter that tracks the total number of frames processed.
 	FramesProcessedCount metric.Int64Counter
 
 	// AverageTranscodeFPS records the average FPS achieved during transcoding.

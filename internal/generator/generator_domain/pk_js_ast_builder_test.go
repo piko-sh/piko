@@ -21,9 +21,9 @@ package generator_domain
 import (
 	"testing"
 
-	parsejs "github.com/tdewolff/parse/v2/js"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	parsejs "github.com/tdewolff/parse/v2/js"
 )
 
 func TestNewJSASTBuilder(t *testing.T) {

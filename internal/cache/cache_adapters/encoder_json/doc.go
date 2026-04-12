@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package encoder_json implements the cache encoder port using JSON
-// serialisation.
+// Package encoder_json implements the cache encoder port using JSON serialisation.
 //
-// This adapter works with any JSON-encodable Go type. It uses the Sonic
-// JSON library configured with CopyString to prevent memory issues when
-// decoded objects outlive the original JSON buffer. It is the default
-// encoding strategy when no specialised binary encoder is needed.
+// This adapter works with any JSON-encodable Go type. It uses the Sonic JSON library
+// configured with CopyString to prevent memory issues when decoded objects outlive the
+// original JSON buffer. It is the default encoding strategy when no specialised binary
+// encoder is needed.
 //
 // # Usage
 //

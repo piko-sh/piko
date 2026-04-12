@@ -1,0 +1,14 @@
+{
+  "name": "11_trie_50k_words",
+  "description": "Build a 16-way trie from 50,000 deterministically-generated words, then run 50,000 longest-prefix queries against another LCG-driven word set. Returns sum of matched prefix lengths modulo 2^32.",
+  "args": [],
+  "expected_stdout_sha256": "cf24d9f94429d45efe23dbda4423ebdb8ef9253728342c9dfe2b852c238124d0",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "ea2170877d1a29a1c988f8e4f389e269da56d94f798ed91e22ae017cde905f49",
+    "py/cpython.py": "0e1a3383c16f339be00459cc6ba056b6a6ab86bafcea07e22a187d096b68cc2f",
+    "py/pypy.py": "0e1a3383c16f339be00459cc6ba056b6a6ab86bafcea07e22a187d096b68cc2f"
+  }
+}

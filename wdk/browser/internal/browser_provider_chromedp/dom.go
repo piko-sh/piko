@@ -34,10 +34,10 @@ import (
 )
 
 var (
-	// goldenFileFormatter is a pre-configured formatter for formatting captured
-	// DOM snapshots in golden files. It uses RawHTMLMode to treat p-* attributes
-	// as regular HTML (not directives), since the captured DOM contains runtime
-	// values like p-key="r.0:0" that aren't valid expressions.
+	// goldenFileFormatter is a pre-configured formatter for formatting captured DOM
+	// snapshots in golden files. It uses RawHTMLMode to treat p-* attributes as regular HTML
+	// (not directives), since the captured DOM contains runtime values like p-key="r.0:0"
+	// that aren't valid expressions.
 	goldenFileFormatter = formatter_domain.NewFormatterServiceWithOptions(&formatter_domain.FormatOptions{
 		FileFormat:          formatter_domain.FormatHTML,
 		IndentSize:          2,
@@ -81,8 +81,8 @@ type Dimensions struct {
 
 // DefaultNormaliseOptions returns the default normalisation options.
 //
-// Returns NormaliseOptions which contains sensible defaults for text
-// normalisation with UUID replacement and HTML formatting enabled.
+// Returns NormaliseOptions which contains sensible defaults for text normalisation with
+// UUID replacement and HTML formatting enabled.
 func DefaultNormaliseOptions() NormaliseOptions {
 	return NormaliseOptions{
 		ReplaceUUIDs: true,
@@ -128,14 +128,13 @@ func NormaliseDOM(html string, opts NormaliseOptions) string {
 	return strings.TrimSpace(normalised)
 }
 
-// FindElement finds DOM elements matching the given selector, with support for
-// shadow DOM piercing using the " >>> " syntax.
+// FindElement finds DOM elements matching the given selector, with support for shadow DOM
+// piercing using the " >>> " syntax.
 //
-// The " >>> " syntax allows piercing into shadow roots:
-// "host-element >>> .shadow-content"
+// The " >>> " syntax allows piercing into shadow roots: "host-element >>>
+// .shadow-content"
 //
-// Takes selector (string) which specifies the CSS selector to match
-// elements.
+// Takes selector (string) which specifies the CSS selector to match elements.
 //
 // Returns []*cdp.Node which contains the matching DOM nodes.
 // Returns error when no elements match or the selector is invalid.
@@ -161,14 +160,14 @@ func FindElement(ctx context.Context, selector string) ([]*cdp.Node, error) {
 	return nodes, nil
 }
 
-// FindElements finds multiple elements by CSS selector, with support for
-// shadow DOM piercing. Use " >>> " to pierce into shadow roots, for example
-// "host-element >>> .shadow-content".
+// FindElements finds multiple elements by CSS selector, with support for shadow DOM
+// piercing. Use " >>> " to pierce into shadow roots, for example "host-element >>>
+// .shadow-content".
 //
 // Takes selector (string) which specifies the CSS selector to match.
 //
-// Returns []*cdp.Node which contains the matching elements, or an empty slice
-// if none are found.
+// Returns []*cdp.Node which contains the matching elements, or an empty slice if none are
+// found.
 // Returns error when the selector query fails.
 func FindElements(ctx context.Context, selector string) ([]*cdp.Node, error) {
 	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM FindElements exceeded %s timeout", 500*time.Millisecond))
@@ -228,8 +227,7 @@ func GetElementText(ctx context.Context, selector string) (string, error) {
 // Takes selector (string) which specifies the CSS selector for the element.
 // Takes attributeName (string) which specifies the name of the attribute to get.
 //
-// Returns *string which is the attribute value, or nil if the attribute does
-// not exist.
+// Returns *string which is the attribute value, or nil if the attribute does not exist.
 // Returns error when the attribute cannot be retrieved.
 func GetElementAttribute(ctx context.Context, selector, attributeName string) (*string, error) {
 	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetElementAttribute exceeded %s timeout", 500*time.Millisecond))
@@ -255,8 +253,8 @@ func GetElementAttribute(ctx context.Context, selector, attributeName string) (*
 
 // GetElementHTML gets the outer HTML of an element.
 //
-// When the selector contains a shadow DOM separator, the HTML is retrieved
-// from the shadow DOM instead.
+// When the selector contains a shadow DOM separator, the HTML is retrieved from the
+// shadow DOM instead.
 //
 // Takes selector (string) which specifies the CSS selector for the element.
 //
@@ -282,8 +280,8 @@ func GetElementHTML(ctx context.Context, selector string) (string, error) {
 
 // GetElementValue gets the value property of an input element.
 //
-// Takes selector (string) which identifies the target element, supporting
-// shadow DOM paths using the shadow DOM separator.
+// Takes selector (string) which identifies the target element, supporting shadow DOM
+// paths using the shadow DOM separator.
 //
 // Returns string which is the current value of the input element.
 // Returns error when the element cannot be found or the value cannot be read.
@@ -367,8 +365,8 @@ func IsElementEnabled(ctx context.Context, selector string) (bool, error) {
 
 // EvalOnElement evaluates JavaScript on an element matching the selector.
 //
-// Takes selector (string) which identifies the target element, supporting
-// shadow DOM selectors with a separator.
+// Takes selector (string) which identifies the target element, supporting shadow DOM
+// selectors with a separator.
 // Takes js (string) which contains the JavaScript code to execute.
 // Takes arguments (...any) which provides arguments to pass to the JavaScript.
 //
@@ -425,8 +423,8 @@ func ScrollIntoView(ctx context.Context, selector string) error {
 
 // GetAllAttributes gets all attributes of an element as a map.
 //
-// Takes selector (string) which identifies the element to query, supporting
-// shadow DOM selectors.
+// Takes selector (string) which identifies the element to query, supporting shadow DOM
+// selectors.
 //
 // Returns map[string]string which contains all attribute name-value pairs.
 // Returns error when the element is not found or the query fails.
@@ -460,14 +458,12 @@ func GetAllAttributes(ctx context.Context, selector string) (map[string]string, 
 
 // SetElementAttribute sets an attribute on an element.
 //
-// Takes selector (string) which identifies the target element using a CSS
-// selector, with support for shadow DOM paths separated by ShadowDOMSeparator.
+// Takes selector (string) which identifies the target element using a CSS selector, with
+// support for shadow DOM paths separated by ShadowDOMSeparator.
 // Takes attributeName (string) which specifies the name of the attribute to set.
-// Takes attributeValue (string) which provides the value to assign
-// to the attribute.
+// Takes attributeValue (string) which provides the value to assign to the attribute.
 //
-// Returns error when the element cannot be found or the attribute cannot be
-// set.
+// Returns error when the element cannot be found or the attribute cannot be set.
 func SetElementAttribute(ctx context.Context, selector, attributeName, attributeValue string) error {
 	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM SetElementAttribute exceeded %s timeout", 500*time.Millisecond))
 	defer cancel()
@@ -495,12 +491,11 @@ func SetElementAttribute(ctx context.Context, selector, attributeName, attribute
 
 // RemoveElementAttribute removes an attribute from an element.
 //
-// Takes selector (string) which identifies the target element, supporting
-// shadow DOM selectors with the ShadowDOMSeparator.
+// Takes selector (string) which identifies the target element, supporting shadow DOM
+// selectors with the ShadowDOMSeparator.
 // Takes attributeName (string) which specifies the attribute to remove.
 //
-// Returns error when the element is not found or the attribute cannot be
-// removed.
+// Returns error when the element is not found or the attribute cannot be removed.
 func RemoveElementAttribute(ctx context.Context, selector, attributeName string) error {
 	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM RemoveElementAttribute exceeded %s timeout", 500*time.Millisecond))
 	defer cancel()
@@ -562,8 +557,8 @@ func GetElementDimensions(ctx context.Context, selector string) (*Dimensions, er
 
 // HasShadowRoot checks if an element has a shadow root.
 //
-// Takes hostSelector (string) which specifies the CSS selector for the host
-// element to check.
+// Takes hostSelector (string) which specifies the CSS selector for the host element to
+// check.
 //
 // Returns bool which is true if the element has a shadow root attached.
 // Returns error when the shadow root check fails or times out.
@@ -585,13 +580,12 @@ func HasShadowRoot(ctx context.Context, hostSelector string) (bool, error) {
 
 // GetShadowRootHTML gets the innerHTML of an element's shadow root.
 //
-// Takes hostSelector (string) which specifies the CSS selector for the host
-// element containing the shadow root.
+// Takes hostSelector (string) which specifies the CSS selector for the host element
+// containing the shadow root.
 //
-// Returns string which is the innerHTML of the shadow root, or empty string
-// if the element has no shadow root.
-// Returns error when the element cannot be found or the shadow root cannot
-// be accessed.
+// Returns string which is the innerHTML of the shadow root, or empty string if the
+// element has no shadow root.
+// Returns error when the element cannot be found or the shadow root cannot be accessed.
 func GetShadowRootHTML(ctx context.Context, hostSelector string) (string, error) {
 	fastCtx, cancel := context.WithTimeoutCause(ctx, 500*time.Millisecond, fmt.Errorf("DOM GetShadowRootHTML exceeded %s timeout", 500*time.Millisecond))
 	defer cancel()
@@ -611,9 +605,9 @@ func GetShadowRootHTML(ctx context.Context, hostSelector string) (string, error)
 	return *html, nil
 }
 
-// GetFormData returns the form data from a form element (or its closest
-// ancestor form) as a map, returning only the last value for multi-value
-// fields (use EvalOnElement for full control).
+// GetFormData returns the form data from a form element (or its closest ancestor form) as
+// a map, returning only the last value for multi-value fields (use EvalOnElement for full
+// control).
 //
 // Takes ctx (context.Context) which controls the evaluation timeout.
 // Takes selector (string) which identifies the form element.
@@ -636,9 +630,9 @@ func GetFormData(ctx context.Context, selector string) (map[string]any, error) {
 	return data, nil
 }
 
-// ListenForEvent attaches an event listener to the element matching selector,
-// capturing e.detail into a window-scoped variable. The captured detail can
-// later be retrieved with GetEventDetail using the same eventName.
+// ListenForEvent attaches an event listener to the element matching selector, capturing
+// e.detail into a window-scoped variable. The captured detail can later be retrieved with
+// GetEventDetail using the same eventName.
 //
 // Takes ctx (context.Context) which controls the evaluation timeout.
 // Takes selector (string) which identifies the target element.
@@ -653,9 +647,9 @@ func ListenForEvent(ctx context.Context, selector, eventName string) error {
 
 	var findElementJS string
 	if strings.Contains(selector, ShadowDOMSeparator) {
-		parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
+		host, shadow, _ := strings.Cut(selector, ShadowDOMSeparator)
 		findElementJS = fmt.Sprintf(`document.querySelector(%s).shadowRoot.querySelector(%s)`,
-			strconv.Quote(parts[0]), strconv.Quote(parts[1]))
+			strconv.Quote(host), strconv.Quote(shadow))
 	} else {
 		findElementJS = fmt.Sprintf(`document.querySelector(%s)`, strconv.Quote(selector))
 	}
@@ -677,8 +671,8 @@ func ListenForEvent(ctx context.Context, selector, eventName string) error {
 	return nil
 }
 
-// GetEventDetail returns the event detail captured by a prior ListenForEvent
-// call. Returns nil if the event has not been received yet.
+// GetEventDetail returns the event detail captured by a prior ListenForEvent call.
+// Returns nil if the event has not been received yet.
 //
 // Takes ctx (context.Context) which controls the evaluation timeout.
 // Takes eventName (string) which specifies the event name to check.
@@ -705,17 +699,15 @@ func GetEventDetail(ctx context.Context, eventName string) (any, error) {
 
 // findElementInShadowDOM handles the >>> shadow DOM piercing syntax.
 //
-// Takes selector (string) which contains the host and shadow selectors
-// separated by the shadow DOM separator.
+// Takes selector (string) which contains the host and shadow selectors separated by the
+// shadow DOM separator.
 //
-// Returns []*cdp.Node which is a placeholder slice; actual operations use
-// JavaScript directly.
-// Returns error when the shadow host cannot be found or the element does not
-// exist within the shadow DOM.
+// Returns []*cdp.Node which is a placeholder slice; actual operations use JavaScript
+// directly.
+// Returns error when the shadow host cannot be found or the element does not exist within
+// the shadow DOM.
 func findElementInShadowDOM(ctx context.Context, selector string) ([]*cdp.Node, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_find_element.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -734,19 +726,17 @@ func findElementInShadowDOM(ctx context.Context, selector string) ([]*cdp.Node, 
 	return []*cdp.Node{{}}, nil
 }
 
-// findElementsInShadowDOM handles the >>> shadow DOM piercing syntax for
-// multiple elements.
+// findElementsInShadowDOM handles the >>> shadow DOM piercing syntax for multiple
+// elements.
 //
-// Takes selector (string) which contains the host and shadow selectors
-// separated by the shadow DOM separator.
+// Takes selector (string) which contains the host and shadow selectors separated by the
+// shadow DOM separator.
 //
-// Returns []*cdp.Node which contains placeholder nodes matching the count of
-// found elements.
+// Returns []*cdp.Node which contains placeholder nodes matching the count of found
+// elements.
 // Returns error when the shadow host cannot be found or evaluated.
 func findElementsInShadowDOM(ctx context.Context, selector string) ([]*cdp.Node, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_find_elements_count.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -768,15 +758,13 @@ func findElementsInShadowDOM(ctx context.Context, selector string) ([]*cdp.Node,
 
 // getTextFromShadowDOM gets text from an element inside shadow DOM.
 //
-// Takes selector (string) which specifies the combined host and shadow element
-// selector separated by ShadowDOMSeparator.
+// Takes selector (string) which specifies the combined host and shadow element selector
+// separated by ShadowDOMSeparator.
 //
 // Returns string which is the trimmed text content of the shadow DOM element.
 // Returns error when the shadow DOM element cannot be found or evaluated.
 func getTextFromShadowDOM(ctx context.Context, selector string) (string, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_text.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -791,20 +779,17 @@ func getTextFromShadowDOM(ctx context.Context, selector string) (string, error) 
 	return strings.TrimSpace(text), nil
 }
 
-// getAttributeFromShadowDOM gets an attribute from an element inside shadow
-// DOM.
+// getAttributeFromShadowDOM gets an attribute from an element inside shadow DOM.
 //
-// Takes selector (string) which specifies the element path using a shadow DOM
-// separator to split host and shadow selectors.
+// Takes selector (string) which specifies the element path using a shadow DOM separator
+// to split host and shadow selectors.
 // Takes attributeName (string) which specifies the attribute name to retrieve.
 //
-// Returns *string which contains the attribute value, or nil if the element
-// or attribute does not exist.
+// Returns *string which contains the attribute value, or nil if the element or attribute
+// does not exist.
 // Returns error when the JavaScript execution fails.
 func getAttributeFromShadowDOM(ctx context.Context, selector, attributeName string) (*string, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_attribute.js.tmpl", map[string]any{
 		"Host":     hostSelector,
@@ -825,15 +810,13 @@ func getAttributeFromShadowDOM(ctx context.Context, selector, attributeName stri
 
 // getHTMLFromShadowDOM gets HTML from an element inside shadow DOM.
 //
-// Takes selector (string) which specifies the element path using shadow DOM
-// separator format (host selector + separator + shadow selector).
+// Takes selector (string) which specifies the element path using shadow DOM separator
+// format (host selector + separator + shadow selector).
 //
 // Returns string which contains the HTML content of the matched element.
 // Returns error when the shadow DOM evaluation fails.
 func getHTMLFromShadowDOM(ctx context.Context, selector string) (string, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_html.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -850,15 +833,13 @@ func getHTMLFromShadowDOM(ctx context.Context, selector string) (string, error) 
 
 // getValueFromShadowDOM gets the value from an input inside shadow DOM.
 //
-// Takes selector (string) which specifies the combined host and shadow
-// selector separated by the shadow DOM separator.
+// Takes selector (string) which specifies the combined host and shadow selector separated
+// by the shadow DOM separator.
 //
 // Returns string which is the value of the matched input element.
 // Returns error when the JavaScript execution fails.
 func getValueFromShadowDOM(ctx context.Context, selector string) (string, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_value.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -875,15 +856,13 @@ func getValueFromShadowDOM(ctx context.Context, selector string) (string, error)
 
 // isVisibleInShadowDOM checks visibility of an element inside shadow DOM.
 //
-// Takes selector (string) which specifies the element using a shadow DOM
-// separator to split the host and shadow selectors.
+// Takes selector (string) which specifies the element using a shadow DOM separator to
+// split the host and shadow selectors.
 //
 // Returns bool which indicates whether the element is visible.
 // Returns error when the visibility check fails.
 func isVisibleInShadowDOM(ctx context.Context, selector string) (bool, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_is_visible.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -898,17 +877,16 @@ func isVisibleInShadowDOM(ctx context.Context, selector string) (bool, error) {
 	return visible, nil
 }
 
-// queryDOMBoolProperty checks a boolean DOM property by running a JS template
-// and its shadow DOM equivalent.
+// queryDOMBoolProperty checks a boolean DOM property by running a JS template and its
+// shadow DOM equivalent.
 //
 // Takes selector (string) which identifies the element to query.
 // Takes jsTemplate (string) which specifies the JS template for normal DOM.
-// Takes shadowJSTemplate (string) which specifies the JS template for shadow
-// DOM.
+// Takes shadowJSTemplate (string) which specifies the JS template for shadow DOM.
 // Takes errorContext (string) which describes the property for error messages.
 // Takes nilErrorFmt (string) which is the format string for nil result errors.
-// Takes shadowNilErrorFmt (string) which is the format string for shadow DOM
-// nil result errors.
+// Takes shadowNilErrorFmt (string) which is the format string for shadow DOM nil result
+// errors.
 //
 // Returns bool which is the property value.
 // Returns error when the element is not found or the query fails.
@@ -944,23 +922,18 @@ func queryDOMBoolProperty(
 	return boolResult, nil
 }
 
-// queryBoolPropertyInShadowDOM checks a boolean property on an element inside
-// shadow DOM.
+// queryBoolPropertyInShadowDOM checks a boolean property on an element inside shadow DOM.
 //
-// Takes selector (string) which specifies the combined host and shadow
-// selector separated by the shadow DOM separator.
-// Takes shadowJSTemplate (string) which specifies the JS template for shadow
-// DOM queries.
+// Takes selector (string) which specifies the combined host and shadow selector separated
+// by the shadow DOM separator.
+// Takes shadowJSTemplate (string) which specifies the JS template for shadow DOM queries.
 // Takes errorContext (string) which describes the property for error messages.
 // Takes nilErrorFmt (string) which is the format string for nil result errors.
 //
 // Returns bool which is the property value.
-// Returns error when the element cannot be found or the result type is
-// unexpected.
+// Returns error when the element cannot be found or the result type is unexpected.
 func queryBoolPropertyInShadowDOM(ctx context.Context, selector, shadowJSTemplate, errorContext, nilErrorFmt string) (bool, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute(shadowJSTemplate, map[string]any{
 		"Host":   hostSelector,
@@ -985,18 +958,14 @@ func queryBoolPropertyInShadowDOM(ctx context.Context, selector, shadowJSTemplat
 
 // evalOnShadowDOMElement evaluates JS on an element inside shadow DOM.
 //
-// Takes selector (string) which specifies the combined host and shadow
-// selector separated by the shadow DOM separator.
-// Takes js (string) which contains the JavaScript code to execute on
-// the matched element.
+// Takes selector (string) which specifies the combined host and shadow selector separated
+// by the shadow DOM separator.
+// Takes js (string) which contains the JavaScript code to execute on the matched element.
 //
 // Returns any which is the result of the JavaScript evaluation.
-// Returns error when the shadow DOM element cannot be found or the
-// script fails.
+// Returns error when the shadow DOM element cannot be found or the script fails.
 func evalOnShadowDOMElement(ctx context.Context, selector, js string, _ ...any) (any, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	fullJS := scripts.MustExecute("shadow_eval_on_element.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -1019,9 +988,7 @@ func evalOnShadowDOMElement(ctx context.Context, selector, js string, _ ...any) 
 //
 // Returns error when the element cannot be found or the scroll fails.
 func scrollIntoViewInShadowDOM(ctx context.Context, selector string) error {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_scroll_into_view.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -1047,9 +1014,7 @@ func scrollIntoViewInShadowDOM(ctx context.Context, selector string) error {
 // Returns map[string]string which contains all attribute name-value pairs.
 // Returns error when the element is not found or script execution fails.
 func getAllAttributesInShadowDOM(ctx context.Context, selector string) (map[string]string, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_all_attributes.js.tmpl", map[string]any{
 		"Host":   hostSelector,
@@ -1074,17 +1039,15 @@ func getAllAttributesInShadowDOM(ctx context.Context, selector string) (map[stri
 
 // setAttributeInShadowDOM sets an attribute on a shadow DOM element.
 //
-// Takes selector (string) which specifies the element path using
-// ShadowDOMSeparator to separate host and shadow selectors.
+// Takes selector (string) which specifies the element path using ShadowDOMSeparator to
+// separate host and shadow selectors.
 // Takes attributeName (string) which is the name of the attribute to set.
 // Takes attributeValue (string) which is the value to assign to the attribute.
 //
-// Returns error when the JavaScript execution fails or the element is not
-// found in the shadow DOM.
+// Returns error when the JavaScript execution fails or the element is not found in the
+// shadow DOM.
 func setAttributeInShadowDOM(ctx context.Context, selector, attributeName, attributeValue string) error {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_set_attribute.js.tmpl", map[string]any{
 		"Host":      hostSelector,
@@ -1106,16 +1069,13 @@ func setAttributeInShadowDOM(ctx context.Context, selector, attributeName, attri
 
 // removeAttributeInShadowDOM removes an attribute from a shadow DOM element.
 //
-// Takes selector (string) which specifies the element path using the shadow
-// DOM separator to identify the host and shadow elements.
+// Takes selector (string) which specifies the element path using the shadow DOM separator
+// to identify the host and shadow elements.
 // Takes attributeName (string) which is the name of the attribute to remove.
 //
-// Returns error when the attribute cannot be removed or the element is not
-// found.
+// Returns error when the attribute cannot be removed or the element is not found.
 func removeAttributeInShadowDOM(ctx context.Context, selector, attributeName string) error {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_remove_attribute.js.tmpl", map[string]any{
 		"Host":     hostSelector,
@@ -1136,16 +1096,13 @@ func removeAttributeInShadowDOM(ctx context.Context, selector, attributeName str
 
 // getDimensionsInShadowDOM gets dimensions of a shadow DOM element.
 //
-// Takes selector (string) which specifies the element path using shadow DOM
-// separator notation (host selector + separator + shadow selector).
+// Takes selector (string) which specifies the element path using shadow DOM separator
+// notation (host selector + separator + shadow selector).
 //
 // Returns *Dimensions which contains the position and size of the element.
-// Returns error when the JavaScript execution fails or the element is not
-// found.
+// Returns error when the JavaScript execution fails or the element is not found.
 func getDimensionsInShadowDOM(ctx context.Context, selector string) (*Dimensions, error) {
-	parts := strings.SplitN(selector, ShadowDOMSeparator, 2)
-	hostSelector := parts[0]
-	shadowSelector := parts[1]
+	hostSelector, shadowSelector, _ := strings.Cut(selector, ShadowDOMSeparator)
 
 	js := scripts.MustExecute("shadow_get_rect.js.tmpl", map[string]any{
 		"Host":   hostSelector,

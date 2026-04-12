@@ -23,78 +23,73 @@ import (
 	"strings"
 )
 
-// DialectConfig holds dialect-specific SQL and behaviour for the migration
-// executor. Each supported database engine provides a pre-built config via
-// PostgresDialect() or SQLiteDialect().
+// DialectConfig holds dialect-specific SQL and behaviour for the migration executor. Each
+// supported database engine provides a pre-built config via PostgresDialect() or
+// SQLiteDialect().
 type DialectConfig struct {
 	// LockStrategy provides database-specific advisory locking for migrations.
 	LockStrategy LockStrategy
 
 	// SeedLockStrategy provides database-specific advisory locking for seeds.
 	//
-	// It must use a distinct key from LockStrategy so seed and migration
-	// runs can serialise independently. When nil the seed executor falls
-	// back to a no-op lock, which is correct only for single-replica
-	// deployments.
+	// It must use a distinct key from LockStrategy so seed and migration runs can serialise
+	// independently. When nil the seed executor falls back to a no-op lock, which is correct
+	// only for single-replica deployments.
 	SeedLockStrategy LockStrategy
 
-	// PlaceholderFunc converts a 1-based parameter index to the dialect's
-	// placeholder syntax ("$1" for PostgreSQL, "?" for SQLite).
+	// PlaceholderFunc converts a 1-based parameter index to the dialect's parameter-marker
+	// syntax ("$1" for PostgreSQL, "?" for SQLite).
 	PlaceholderFunc func(index int) string
 
-	// InsertSeedSQLFunc builds the dialect-specific INSERT statement for
-	// recording an applied seed.
+	// InsertSeedSQLFunc builds the dialect-specific INSERT statement for recording an
+	// applied seed.
 	//
-	// The returned SQL must be idempotent: a re-application of an
-	// already-recorded seed must succeed without raising a primary-key
-	// violation. PostgreSQL/SQLite use "ON CONFLICT (version) DO NOTHING";
-	// MySQL uses "INSERT IGNORE".
+	// The returned SQL must be idempotent: a re-application of an already-recorded seed must
+	// succeed without raising a primary-key violation. PostgreSQL/SQLite use "ON CONFLICT
+	// (version) DO NOTHING"; MySQL uses "INSERT IGNORE".
 	//
-	// Takes versionPlaceholder (string) which is the placeholder for the
-	// version column, e.g. "$1" or "?".
-	// Takes namePlaceholder (string) which is the placeholder for the
-	// name column.
-	// Takes checksumPlaceholder (string) which is the placeholder for the
-	// checksum column.
-	// Takes durationPlaceholder (string) which is the placeholder for the
-	// duration_ms column.
+	// Takes versionPlaceholder (string) which is the parameter marker for the version
+	// column, e.g. "$1" or "?".
+	// Takes namePlaceholder (string) which is the parameter marker for the name column.
+	// Takes checksumPlaceholder (string) which is the parameter marker for the checksum
+	// column.
+	// Takes durationPlaceholder (string) which is the parameter marker for the duration_ms
+	// column.
 	//
 	// Returns string which is the complete INSERT statement.
 	InsertSeedSQLFunc func(versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder string) string
 
-	// CreateTableSQL is the DDL statement for creating the piko_migrations
-	// history table. Includes all columns: version, name, checksum,
-	// applied_at, duration_ms, down_checksum, last_statement, dirty.
+	// CreateTableSQL is the DDL statement for creating the piko_migrations history table.
+	// Includes all columns: version, name, checksum, applied_at, duration_ms, down_checksum,
+	// last_statement, dirty.
 	CreateTableSQL string
 
-	// CreateSeedTableSQL is the DDL statement for creating the piko_seeds
-	// history table. Empty when seed tracking is not configured.
+	// CreateSeedTableSQL is the DDL statement for creating the piko_seeds history table.
+	// Empty when seed tracking is not configured.
 	CreateSeedTableSQL string
 
-	// PreMigrationStatements holds SQL statements executed on the pinned
-	// connection after lock acquisition and before any migrations run.
-	// Typical uses include SET ROLE, SET search_path, or
-	// SET statement_timeout.
+	// PreMigrationStatements holds SQL statements executed on the pinned connection after
+	// lock acquisition and before any migrations run. Typical uses include SET ROLE, SET
+	// search_path, or SET statement_timeout.
 	PreMigrationStatements []string
 
-	// AlterStatements holds SQL statements executed after CREATE TABLE to
-	// evolve the migration table schema. Duplicate column errors are
-	// suppressed so the statements are idempotent.
+	// AlterStatements holds SQL statements executed after CREATE TABLE to evolve the
+	// migration table schema. Duplicate column errors are suppressed so the statements are
+	// idempotent.
 	AlterStatements []string
 
-	// SplitStatements controls whether migration SQL is split on semicolons
-	// and executed as individual statements. Required for MySQL which does
-	// not support multi-statement execution by default.
+	// SplitStatements controls whether migration SQL is split on semicolons and executed as
+	// individual statements. Required for MySQL which does not support multi-statement
+	// execution by default.
 	SplitStatements bool
 }
 
-// postgresOnConflictSeedInsert builds an idempotent INSERT statement using
-// PostgreSQL's "ON CONFLICT (version) DO NOTHING" clause. SQLite (in modern
-// versions) accepts the same syntax.
+// postgresOnConflictSeedInsert builds an idempotent INSERT statement using PostgreSQL's
+// "ON CONFLICT (version) DO NOTHING" clause. SQLite (in modern versions) accepts the same
+// syntax.
 //
-// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder,
-// durationPlaceholder (string) which are the dialect-specific placeholder
-// tokens for the four bound columns.
+// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder
+// (string) which are the dialect-specific parameter markers for the four bound columns.
 //
 // Returns string which is the complete INSERT statement.
 func postgresOnConflictSeedInsert(
@@ -106,13 +101,12 @@ func postgresOnConflictSeedInsert(
 	)
 }
 
-// sqliteOnConflictSeedInsert builds an idempotent INSERT statement using
-// SQLite's "ON CONFLICT(version) DO NOTHING" clause (no space between ON
-// CONFLICT and the column list, mirroring SQLite's grammar).
+// sqliteOnConflictSeedInsert builds an idempotent INSERT statement using SQLite's "ON
+// CONFLICT(version) DO NOTHING" clause (no space between ON CONFLICT and the column list,
+// mirroring SQLite's grammar).
 //
-// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder,
-// durationPlaceholder (string) which are the dialect-specific placeholder
-// tokens for the four bound columns.
+// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder
+// (string) which are the dialect-specific parameter markers for the four bound columns.
 //
 // Returns string which is the complete INSERT statement.
 func sqliteOnConflictSeedInsert(
@@ -126,12 +120,11 @@ func sqliteOnConflictSeedInsert(
 
 // mysqlIgnoreSeedInsert builds an idempotent INSERT using MySQL's INSERT IGNORE.
 //
-// MySQL 5.7+ also supports "INSERT ... ON DUPLICATE KEY UPDATE", but
-// INSERT IGNORE is the simplest no-op equivalent.
+// MySQL 5.7+ also supports "INSERT ... ON DUPLICATE KEY UPDATE", but INSERT IGNORE is the
+// simplest no-op equivalent.
 //
-// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder,
-// durationPlaceholder (string) which are the dialect-specific placeholder
-// tokens for the four bound columns.
+// Takes versionPlaceholder, namePlaceholder, checksumPlaceholder, durationPlaceholder
+// (string) which are the dialect-specific parameter markers for the four bound columns.
 //
 // Returns string which is the complete INSERT statement.
 func mysqlIgnoreSeedInsert(
@@ -145,8 +138,8 @@ func mysqlIgnoreSeedInsert(
 
 // PostgresDialect returns a DialectConfig for PostgreSQL databases.
 //
-// Returns DialectConfig which is configured with PostgreSQL-specific SQL,
-// advisory locking, and $N placeholder syntax.
+// Returns DialectConfig which is configured with PostgreSQL-specific SQL, advisory
+// locking, and $N placeholder syntax.
 func PostgresDialect() DialectConfig {
 	return DialectConfig{
 		CreateTableSQL: `CREATE TABLE IF NOT EXISTS piko_migrations (
@@ -175,14 +168,14 @@ func PostgresDialect() DialectConfig {
 	}
 }
 
-// PostgresPgBouncerDialect returns a DialectConfig for PostgreSQL databases
-// behind PgBouncer in transaction mode.
+// PostgresPgBouncerDialect returns a DialectConfig for PostgreSQL databases behind
+// PgBouncer in transaction mode.
 //
-// Advisory locks are not available in this configuration, so a table-based lock
-// via SELECT ... FOR UPDATE is used instead.
+// Advisory locks are not available in this configuration, so a table-based lock via
+// SELECT ... FOR UPDATE is used instead.
 //
-// Returns DialectConfig which is configured with PostgreSQL-specific SQL,
-// table-based locking, and $N placeholder syntax.
+// Returns DialectConfig which is configured with PostgreSQL-specific SQL, table-based
+// locking, and $N placeholder syntax.
 func PostgresPgBouncerDialect() DialectConfig {
 	return DialectConfig{
 		CreateTableSQL: `CREATE TABLE IF NOT EXISTS piko_migrations (
@@ -223,9 +216,9 @@ func PostgresPgBouncerDialect() DialectConfig {
 
 // MySQLDialect returns a DialectConfig for MySQL databases.
 //
-// Returns DialectConfig which is configured with MySQL-specific SQL,
-// advisory locking, and ? placeholder syntax. SplitStatements is enabled
-// since MySQL does not support multi-statement execution by default.
+// Returns DialectConfig which is configured with MySQL-specific SQL, advisory locking,
+// and ? placeholder syntax. SplitStatements is enabled since MySQL does not support
+// multi-statement execution by default.
 func MySQLDialect() DialectConfig {
 	return DialectConfig{
 		CreateTableSQL: `CREATE TABLE IF NOT EXISTS piko_migrations (
@@ -253,16 +246,15 @@ func MySQLDialect() DialectConfig {
 	}
 }
 
-// MySQLDialectWithDSN returns a DialectConfig for MySQL databases, detecting
-// whether the DSN already includes multiStatements=true. When the driver is
-// configured to handle multi-statement execution natively, the framework
-// disables its own statement splitting to avoid interfering with stored
-// procedures or complex migration SQL.
+// MySQLDialectWithDSN returns a DialectConfig for MySQL databases, detecting whether the
+// DSN already includes multiStatements=true. When the driver is configured to handle
+// multi-statement execution natively, the framework disables its own statement splitting
+// to avoid interfering with stored procedures or complex migration SQL.
 //
 // Takes dsn (string) which is the MySQL data source name.
 //
-// Returns DialectConfig which is configured for MySQL with automatic
-// SplitStatements detection.
+// Returns DialectConfig which is configured for MySQL with automatic SplitStatements
+// detection.
 func MySQLDialectWithDSN(dsn string) DialectConfig {
 	dialect := MySQLDialect()
 	if strings.Contains(dsn, "multiStatements=true") {
@@ -273,8 +265,8 @@ func MySQLDialectWithDSN(dsn string) DialectConfig {
 
 // SQLiteDialect returns a DialectConfig for SQLite databases.
 //
-// Returns DialectConfig which is configured with SQLite-specific SQL,
-// no-op locking, and ? placeholder syntax.
+// Returns DialectConfig which is configured with SQLite-specific SQL, no-op locking, and
+// ? placeholder syntax.
 func SQLiteDialect() DialectConfig {
 	return DialectConfig{
 		CreateTableSQL: `CREATE TABLE IF NOT EXISTS piko_migrations (

@@ -20,7 +20,6 @@ package interp_domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"go/ast"
 	"go/types"
@@ -30,46 +29,24 @@ import (
 )
 
 var (
-	// linkedFunctionReflectType is cached once so the linked-call
-	// detection path doesn't rebuild the type descriptor on every
-	// selector lookup.
+	// linkedFunctionReflectType is cached once so the linked-call detection path doesn't
+	// rebuild the type descriptor on every selector lookup.
 	linkedFunctionReflectType = reflect.TypeFor[interp_link.LinkedFunction]()
-
-	// errLinkedCallNoInstance reports that go/types has no instantiation
-	// recorded for a //piko:link call site; usually the source is
-	// invalid or the expression was not a generic call.
-	errLinkedCallNoInstance = errors.New("//piko:link call target has no type instantiation")
-
-	// errLinkedCallArityMismatch reports a type-argument count that
-	// disagrees with the LinkedFunction's declared TypeArgCount.
-	errLinkedCallArityMismatch = errors.New("//piko:link call target type argument count mismatch")
-
-	// errLinkedCallTypeArgUnresolvable reports a type argument that
-	// cannot be converted from go/types to reflect.Type.
-	errLinkedCallTypeArgUnresolvable = errors.New("//piko:link call target cannot resolve type argument")
-
-	// errLinkedCallTooManyTypeArgs reports a LinkedFunction sentinel
-	// whose declared TypeArgCount exceeds maxLinkedTypeArgCount.
-	// Guards against a malformed or hostile registration driving
-	// unbounded allocation through resolveLinkedTypeArgs.
-	errLinkedCallTooManyTypeArgs = errors.New("//piko:link call target declares too many type arguments")
 )
 
 // tryCompileLinkedCall routes a generic call through its sibling.
 //
-// The non-generic sibling function is loaded into the call register
-// and the instantiated type arguments, resolved via
-// types.Info.Instances, are attached to the call site for the VM to
-// prepend at dispatch time.
+// The non-generic sibling function is loaded into the call register and the instantiated
+// type arguments, resolved via types.Info.Instances, are attached to the call site for
+// the VM to prepend at dispatch time.
 //
-// Takes selectorExpression (*ast.SelectorExpr) which is the selector
-// naming the generic function.
-// Takes expression (*ast.CallExpr) which is the enclosing call
-// expression (its Fun has already been unwrapped of any [T] / [T1, T2]
-// instantiation markers).
+// Takes selectorExpression (*ast.SelectorExpr) which is the selector naming the generic
+// function.
+// Takes expression (*ast.CallExpr) which is the enclosing call expression (its Fun has
+// already been unwrapped of any [T] / [T1, T2] instantiation markers).
 //
-// Returns the call result location, a bool indicating that the linked
-// path handled the call, and any compilation error encountered.
+// Returns the call result location, a bool indicating that the linked path handled the
+// call, and any compilation error encountered.
 func (c *compiler) tryCompileLinkedCall(
 	ctx context.Context,
 	selectorExpression *ast.SelectorExpr,
@@ -86,7 +63,7 @@ func (c *compiler) tryCompileLinkedCall(
 	if !found || !value.IsValid() || value.Type() != linkedFunctionReflectType {
 		return varLocation{}, false, nil
 	}
-	linked, ok := value.Interface().(interp_link.LinkedFunction)
+	linked, ok := reflect.TypeAssert[interp_link.LinkedFunction](value)
 	if !ok {
 		return varLocation{}, false, nil
 	}
@@ -97,27 +74,29 @@ func (c *compiler) tryCompileLinkedCall(
 	}
 
 	fnRegister := c.scopes.alloc.alloc(registerGeneral)
-	constIndex := c.function.addGeneralConstant(linked.Target, generalConstantDescriptor{
+	constIndex, err := c.function.addGeneralConstant(linked.Target, generalConstantDescriptor{
 		kind:        generalConstantPackageSymbol,
 		packagePath: typeObject.Pkg().Path(),
 		symbolName:  typeObject.Name(),
 	})
+	if err != nil {
+		return varLocation{}, false, err
+	}
 	c.function.emitWide(opLoadGeneralConst, fnRegister, constIndex)
 
-	location, err := c.compileLinkedNativeCall(ctx, expression, varLocation{register: fnRegister, kind: registerGeneral}, typeArgs)
-	return location, true, err
+	location, callErr := c.compileLinkedNativeCall(ctx, expression, varLocation{register: fnRegister, kind: registerGeneral}, typeArgs)
+	return location, true, callErr
 }
 
-// resolveLinkedTypeArgs extracts the concrete type arguments from
-// types.Info.Instances for an instantiated generic call and converts
-// each to a reflect.Type. It fails if go/types did not record an
-// instantiation for the selector (usually means the source is invalid
-// or the expression was not a generic instantiation).
+// resolveLinkedTypeArgs extracts the concrete type arguments from types.Info.Instances
+// for an instantiated generic call and converts each to a reflect.Type. It fails if
+// go/types did not record an instantiation for the selector (usually means the source is
+// invalid or the expression was not a generic instantiation).
 //
 // Takes selectorExpression (*ast.SelectorExpr) which names the generic.
-// Takes expectedCount (int) which is the TypeArgCount declared on the
-// LinkedFunction. A mismatch indicates a codegen bug rather than user
-// error, so it is reported as a compilation failure.
+// Takes expectedCount (int) which is the TypeArgCount declared on the LinkedFunction. A
+// mismatch indicates a codegen bug rather than user error, so it is reported as a
+// compilation failure.
 //
 // Returns the resolved []reflect.Type and any conversion error.
 func (c *compiler) resolveLinkedTypeArgs(
@@ -148,7 +127,7 @@ func (c *compiler) resolveLinkedTypeArgs(
 	for position := range expectedCount {
 		reflectType := c.typeToReflect(ctx, typeArgs.At(position))
 		if reflectType == nil {
-			return nil, fmt.Errorf("%w: %s arg %d (%s) at %s",
+			return nil, fmt.Errorf("%w: %s argument %d (%s) at %s",
 				errLinkedCallTypeArgUnresolvable, selectorExpression.Sel.Name,
 				position, typeArgs.At(position),
 				c.positionString(selectorExpression.Pos()))
@@ -158,38 +137,23 @@ func (c *compiler) resolveLinkedTypeArgs(
 	return reflected, nil
 }
 
-// typeArgsLen reports the length of a *types.TypeList, treating a nil
-// list as zero rather than panicking.
+// emitLinkedCallWithReturns handles the multi-return assignment path (a, b :=
+// pkg.Fn[T](...)) when pkg.Fn resolves to an interp_link LinkedFunction. It mirrors
+// tryCompileLinkedCall but writes into pre-allocated return locations provided by the
+// assignment compiler instead of allocating its own.
 //
-// Takes list (*types.TypeList) which may be nil.
-//
-// Returns the number of entries in the list, or 0 when nil.
-func typeArgsLen(list *types.TypeList) int {
-	if list == nil {
-		return 0
-	}
-	return list.Len()
-}
-
-// emitLinkedCallWithReturns handles the multi-return assignment path
-// (a, b := pkg.Fn[T](...)) when pkg.Fn resolves to an interp_link
-// LinkedFunction. It mirrors tryCompileLinkedCall but writes into
-// pre-allocated return locations provided by the assignment compiler
-// instead of allocating its own.
-//
-// Takes selectorExpression (*ast.SelectorExpr) which names the
-// generic.
-// Takes callExpr (*ast.CallExpr) which is the enclosing call (its Fun
-// has already been unwrapped of [T] / [T1, T2] by the caller).
-// Takes returnLocs ([]varLocation) which are the pre-allocated return
-// registers allocated by the multi-return assignment compiler.
+// Takes selectorExpression (*ast.SelectorExpr) which names the generic.
+// Takes callExpression (*ast.CallExpr) which is the enclosing call (its Fun has already
+// been unwrapped of [T] / [T1, T2] by the caller).
+// Takes returnLocations ([]varLocation) which are the pre-allocated return registers
+// allocated by the multi-return assignment compiler.
 //
 // Returns true when the linked path handled the call, plus any error.
 func (c *compiler) emitLinkedCallWithReturns(
 	ctx context.Context,
 	selectorExpression *ast.SelectorExpr,
-	callExpr *ast.CallExpr,
-	returnLocs []varLocation,
+	callExpression *ast.CallExpr,
+	returnLocations []varLocation,
 ) (bool, error) {
 	if c.symbols == nil {
 		return false, nil
@@ -202,7 +166,7 @@ func (c *compiler) emitLinkedCallWithReturns(
 	if !found || !value.IsValid() || value.Type() != linkedFunctionReflectType {
 		return false, nil
 	}
-	linked, ok := value.Interface().(interp_link.LinkedFunction)
+	linked, ok := reflect.TypeAssert[interp_link.LinkedFunction](value)
 	if !ok {
 		return false, nil
 	}
@@ -213,82 +177,107 @@ func (c *compiler) emitLinkedCallWithReturns(
 	}
 
 	fnRegister := c.scopes.alloc.alloc(registerGeneral)
-	constIndex := c.function.addGeneralConstant(linked.Target, generalConstantDescriptor{
+	constIndex, err := c.function.addGeneralConstant(linked.Target, generalConstantDescriptor{
 		kind:        generalConstantPackageSymbol,
 		packagePath: typeObject.Pkg().Path(),
 		symbolName:  typeObject.Name(),
 	})
+	if err != nil {
+		return false, err
+	}
 	c.function.emitWide(opLoadGeneralConst, fnRegister, constIndex)
 
-	argLocs, err := c.compileArgExprs(ctx, callExpr)
+	argumentLocations, err := c.compileArgumentExpressions(ctx, callExpression)
 	if err != nil {
 		return false, err
 	}
 
+	argumentTypeNames, argumentTypeStrings := c.resolveArgumentStaticTypes(callExpression)
 	site := callSite{
-		isNative:       true,
-		nativeRegister: fnRegister,
-		arguments:      argLocs,
-		returns:        returnLocs,
-		linkedTypeArgs: typeArgs,
+		isNative:                  true,
+		nativeRegister:            fnRegister,
+		arguments:                 argumentLocations,
+		returns:                   returnLocations,
+		linkedTypeArgs:            typeArgs,
+		argumentStaticTypeNames:   argumentTypeNames,
+		argumentStaticTypeStrings: argumentTypeStrings,
 	}
-	siteIndex := c.function.addCallSite(site)
+	siteIndex, addErr := c.function.addCallSite(&site)
+	if addErr != nil {
+		return false, addErr
+	}
 	c.function.emitWide(opCallNative, 0, siteIndex)
 	return true, nil
 }
 
-// compileLinkedNativeCall compiles the argument list and emits an
-// opCallNative for a linked generic. It mirrors compileNativeCallFromLocation
-// but stores the resolved type args on the call site so the VM handler
-// prepends them before invoking the sibling.
+// compileLinkedNativeCall compiles the argument list and emits an opCallNative for a
+// linked generic. It mirrors compileNativeCallFromLocation but stores the resolved type
+// args on the call site so the VM handler prepends them before invoking the sibling.
 //
-// Takes expression (*ast.CallExpr) which is the call whose args need
-// compiling.
-// Takes fnLocation (varLocation) which points at the register holding
-// the sibling's reflect.Value (loaded by tryCompileLinkedCall).
-// Takes typeArgs ([]reflect.Type) which are the instantiated type
-// arguments the VM prepends at call time.
+// Takes expression (*ast.CallExpr) which is the call whose args need compiling.
+// Takes functionLocation (varLocation) which points at the register holding the sibling's
+// reflect.Value (loaded by tryCompileLinkedCall).
+// Takes typeArgs ([]reflect.Type) which are the instantiated type arguments the VM
+// prepends at call time.
 //
-// Returns the first return register (or zero value when void) and any
-// compilation error.
+// Returns the first return register (or zero value when void) and any compilation error.
 func (c *compiler) compileLinkedNativeCall(
 	ctx context.Context,
 	expression *ast.CallExpr,
-	fnLocation varLocation,
+	functionLocation varLocation,
 	typeArgs []reflect.Type,
 ) (varLocation, error) {
-	argLocs := make([]varLocation, len(expression.Args))
-	for argIndex, arg := range expression.Args {
-		location, err := c.compileExpression(ctx, arg)
+	argumentLocations := make([]varLocation, len(expression.Args))
+	for argumentIndex, argument := range expression.Args {
+		location, err := c.compileExpression(ctx, argument)
 		if err != nil {
 			return varLocation{}, err
 		}
-		argLocs[argIndex] = c.coerceEvalBoolResult(ctx, c.info, arg, location)
+		argumentLocations[argumentIndex] = c.coerceEvalBoolResult(ctx, c.info, argument, location)
 	}
 
-	var returnLocs []varLocation
+	var returnLocations []varLocation
 	var resultLocation varLocation
 	typeAndValue := c.info.Types[expression.Fun]
 	if signature, ok := typeAndValue.Type.Underlying().(*types.Signature); ok {
 		for resultVariable := range signature.Results().Variables() {
-			kind := kindForType(resultVariable.Type())
+			kind := c.kindFor(resultVariable.Type())
 			register := c.scopes.alloc.alloc(kind)
-			returnLocs = append(returnLocs, varLocation{register: register, kind: kind})
+			returnLocations = append(returnLocations, varLocation{register: register, kind: kind})
 		}
-		if len(returnLocs) > 0 {
-			resultLocation = returnLocs[0]
+		if len(returnLocations) > 0 {
+			resultLocation = returnLocations[0]
 		}
 	}
 
+	argumentTypeNames, argumentTypeStrings := c.resolveArgumentStaticTypes(expression)
 	site := callSite{
-		isNative:       true,
-		nativeRegister: fnLocation.register,
-		arguments:      argLocs,
-		returns:        returnLocs,
-		linkedTypeArgs: typeArgs,
+		isNative:                  true,
+		nativeRegister:            functionLocation.register,
+		arguments:                 argumentLocations,
+		returns:                   returnLocations,
+		linkedTypeArgs:            typeArgs,
+		argumentStaticTypeNames:   argumentTypeNames,
+		argumentStaticTypeStrings: argumentTypeStrings,
 	}
-	siteIndex := c.function.addCallSite(site)
+	siteIndex, err := c.function.addCallSite(&site)
+	if err != nil {
+		return varLocation{}, err
+	}
 	c.function.emitWide(opCallNative, 0, siteIndex)
 
 	return resultLocation, nil
+}
+
+// typeArgsLen reports the length of a *types.TypeList, treating a nil list as zero rather
+// than panicking.
+//
+// Takes list (*types.TypeList) which may be nil.
+//
+// Returns the number of entries in the list, or 0 when nil.
+func typeArgsLen(list *types.TypeList) int {
+	if list == nil {
+		return 0
+	}
+	return list.Len()
 }

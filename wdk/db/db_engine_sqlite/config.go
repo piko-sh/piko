@@ -24,6 +24,9 @@ import (
 )
 
 // SQLite returns an EngineConfig for SQLite databases.
+//
+// Returns db.EngineConfig which wires the SQLite engine adapter together with its
+// migration dialect.
 func SQLite() db.EngineConfig {
 	return db.EngineConfig{
 		Engine:           NewSQLiteEngine(),

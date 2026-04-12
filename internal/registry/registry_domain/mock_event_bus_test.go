@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestMockEventBus_Publish(t *testing.T) {
 		err := m.Publish(context.Background(), "topic-1", orchestrator_domain.Event{})
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PublishCallCount))
+		assert.Equal(t, int64(1), m.PublishCallCount.Load())
 	})
 
 	t.Run("delegates to PublishFunc", func(t *testing.T) {
@@ -58,7 +57,7 @@ func TestMockEventBus_Publish(t *testing.T) {
 		err := m.Publish(context.Background(), "topic-1", event)
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PublishCallCount))
+		assert.Equal(t, int64(1), m.PublishCallCount.Load())
 	})
 
 	t.Run("propagates error from PublishFunc", func(t *testing.T) {
@@ -87,7 +86,7 @@ func TestMockEventBus_Subscribe(t *testing.T) {
 
 		assert.Nil(t, got)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SubscribeCallCount))
+		assert.Equal(t, int64(1), m.SubscribeCallCount.Load())
 	})
 
 	t.Run("delegates to SubscribeFunc", func(t *testing.T) {
@@ -104,7 +103,7 @@ func TestMockEventBus_Subscribe(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, (<-chan orchestrator_domain.Event)(eventChannel), got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SubscribeCallCount))
+		assert.Equal(t, int64(1), m.SubscribeCallCount.Load())
 	})
 
 	t.Run("propagates error from SubscribeFunc", func(t *testing.T) {
@@ -133,7 +132,7 @@ func TestMockEventBus_Close(t *testing.T) {
 		err := m.Close(context.Background())
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 
 	t.Run("delegates to CloseFunc", func(t *testing.T) {
@@ -150,7 +149,7 @@ func TestMockEventBus_Close(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 
 	t.Run("propagates error from CloseFunc", func(t *testing.T) {
@@ -209,7 +208,7 @@ func TestMockEventBus_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PublishCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SubscribeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CloseCallCount))
+	assert.Equal(t, int64(goroutines), m.PublishCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SubscribeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CloseCallCount.Load())
 }

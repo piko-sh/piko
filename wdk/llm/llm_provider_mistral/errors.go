@@ -25,22 +25,23 @@ import (
 	"piko.sh/piko/internal/llm/llm_domain"
 )
 
-// providerNameMistral is the canonical provider name used when constructing
-// ProviderError values from the Mistral adapter.
-const providerNameMistral = "mistral"
+const (
+	// providerNameMistral is the canonical provider name used when constructing
+	// ProviderError values from the Mistral adapter.
+	providerNameMistral = "mistral"
+)
 
-// newProviderError builds a *llm_domain.ProviderError from a non-OK upstream
-// response so the retry executor can classify the failure (via StatusCode)
-// and honour any Retry-After hint the server emitted. The provided cause is
-// preserved as Err for `errors.As` walks.
+// newProviderError builds a *llm_domain.ProviderError from a non-OK upstream response so
+// the retry executor can classify the failure (via StatusCode) and honour any Retry-After
+// hint the server emitted. The provided cause is preserved as Err for `errors.As` walks.
 //
-// Takes response (*http.Response) which is the non-OK upstream response whose
-// status code and headers are inspected. May be nil.
+// Takes response (*http.Response) which is the non-OK upstream response whose status code
+// and headers are inspected. May be nil.
 // Takes message (string) which is a human-readable summary of the failure.
 // Takes cause (error) which becomes the wrapped underlying error.
 //
-// Returns *llm_domain.ProviderError which carries the status code, message,
-// retry-after hint, and underlying error.
+// Returns *llm_domain.ProviderError which carries the status code, message, retry-after
+// hint, and underlying error.
 func newProviderError(response *http.Response, message string, cause error) *llm_domain.ProviderError {
 	providerErr := &llm_domain.ProviderError{
 		Provider: providerNameMistral,

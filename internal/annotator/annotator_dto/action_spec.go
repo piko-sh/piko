@@ -18,16 +18,17 @@
 
 package annotator_dto
 
-import "time"
+import (
+	"time"
+)
 
 // ActionSpec represents complete metadata for a parsed action. It implements
-// ActionInfoProvider and is the primary output of action discovery, used by
-// code generators, the annotator for template validation, and the LSP for
-// completions and hover information.
+// ActionInfoProvider and is the primary output of action discovery, used by code
+// generators, the annotator for template validation, and the LSP for completions and
+// hover information.
 type ActionSpec struct {
-	// Call Signature
-	// ReturnType describes the response type (first return value).
-	// May be nil if the action returns nothing or only error.
+	// Call Signature ReturnType describes the response type (first return value). May be nil
+	// if the action returns nothing or only error.
 	ReturnType *TypeSpec
 
 	// ResourceLimits contains resource constraint configuration.
@@ -39,46 +40,40 @@ type ActionSpec struct {
 	// RateLimit contains rate limiting configuration if HasRateLimit is true.
 	RateLimit *RateLimitSpec
 
-	// Identity
-	// PackagePath is the fully qualified Go package import path.
+	// Identity PackagePath is the fully qualified Go package import path.
 	PackagePath string
 
-	// Go Metadata
-	// PackageName is the Go package name, which is the last component of the
+	// Go Metadata PackageName is the Go package name, which is the last component of the
 	// package path.
 	PackageName string
 
 	// StructName is the name of the action struct, such as "CreateAction".
 	StructName string
 
-	// Documentation
-	// Description is the godoc comment for the action struct.
+	// Documentation Description is the godoc comment for the action struct.
 	Description string
 
 	// FilePath is the path to the action file relative to the project root.
 	FilePath string
 
-	// Name is the action name in dot notation, derived from the file path.
-	// For example, "customer.create" comes from actions/customer/create.go.
+	// Name is the action name in dot notation, derived from the file path. For example,
+	// "customer.create" comes from actions/customer/create.go.
 	Name string
 
-	// TSFunctionName is the camelCase function name for TypeScript output.
-	// It is derived from the action path, for example "customerCreate" from
-	// "customer.create".
+	// TSFunctionName is the camelCase function name for TypeScript output. It is derived
+	// from the action path, for example "customerCreate" from "customer.create".
 	TSFunctionName string
 
-	// Configuration (from optional interfaces)
-	// HTTPMethod is the HTTP method (default: "POST").
-	// Set via MethodOverridable interface.
+	// Configuration (from optional interfaces) HTTPMethod is the HTTP method (default:
+	// "POST"). Set via MethodOverridable interface.
 	HTTPMethod string
 
-	// CallParams contains the parameters of the Call method.
-	// May be empty if the action takes no parameters.
+	// CallParams contains the parameters of the Call method. May be empty if the action
+	// takes no parameters.
 	CallParams []ParamSpec
 
-	// Transport & Streaming
-	// Transports lists the supported transport mechanisms.
-	// Derived from interface implementations.
+	// Transport & Streaming Transports lists the supported transport mechanisms. Derived
+	// from interface implementations.
 	Transports []Transport
 
 	// HasSSE indicates if the action implements SSECapable.
@@ -96,8 +91,8 @@ type ActionSpec struct {
 	// HasCacheConfig indicates if the action implements Cacheable.
 	HasCacheConfig bool
 
-	// HasError indicates whether the Call method returns an error.
-	// This is almost always true for actions.
+	// HasError indicates whether the Call method returns an error. This is almost always
+	// true for actions.
 	HasError bool
 }
 
@@ -114,8 +109,8 @@ const (
 
 // ParamSpec describes a parameter in an action's Call method signature.
 type ParamSpec struct {
-	// Struct contains the struct definition if this param is a struct type.
-	// nil for primitive types.
+	// Struct contains the struct definition if this param is a struct type. nil for
+	// primitive types.
 	Struct *TypeSpec
 
 	// Name is the parameter name from the Go code.
@@ -124,8 +119,8 @@ type ParamSpec struct {
 	// GoType is the Go type as a string (e.g., "int64", "string", "*Customer").
 	GoType string
 
-	// TSType is the equivalent TypeScript type
-	// (e.g., "number", "string", "Customer | null").
+	// TSType is the equivalent TypeScript type (e.g., "number", "string", "Customer |
+	// null").
 	TSType string
 
 	// JSONName is the JSON field name (from json tag or converted from Go name).
@@ -134,20 +129,18 @@ type ParamSpec struct {
 	// Optional indicates if this is a pointer type (nullable in TypeScript).
 	Optional bool
 
-	// Special Type Flags
-	// These indicate special handling required for this parameter.
+	// Special Type Flags These indicate special handling required for this parameter.
 	// IsFileUpload indicates this parameter is piko.FileUpload.
 	//
-	// Behaviour: The wrapper generator will generate multipart form
-	// handling code.
+	// Behaviour: The wrapper generator will generate multipart form handling code.
 	IsFileUpload bool
 
-	// IsFileUploadSlice indicates this parameter is []piko.FileUpload.
-	// The wrapper generator will generate multiple file handling code.
+	// IsFileUploadSlice indicates this parameter is []piko.FileUpload. The wrapper generator
+	// will generate multiple file handling code.
 	IsFileUploadSlice bool
 
-	// IsRawBody indicates this parameter is piko.RawBody.
-	// The handler will pass the raw request body to this parameter.
+	// IsRawBody indicates this parameter is piko.RawBody. The handler will pass the raw
+	// request body to this parameter.
 	IsRawBody bool
 }
 
@@ -159,8 +152,8 @@ type TypeSpec struct {
 	// PackagePath is the fully qualified Go package path where the type is defined.
 	PackagePath string
 
-	// PackageName is the declared Go package name (e.g., "arguments" for a
-	// package in directory "args"). May differ from the last path segment.
+	// PackageName is the declared Go package name (e.g., "arguments" for a package in
+	// directory "args"). May differ from the last path segment.
 	PackageName string
 
 	// Description is the godoc comment for the type.
@@ -172,8 +165,7 @@ type TypeSpec struct {
 
 // FieldSpec describes a field within a struct type.
 type FieldSpec struct {
-	// NestedType contains the type spec for nested struct fields.
-	// nil for primitive types.
+	// NestedType contains the type spec for nested struct fields. nil for primitive types.
 	NestedType *TypeSpec
 
 	// Name is the Go field name.
@@ -230,8 +222,7 @@ type ResourceLimitSpec struct {
 	// MaxMemoryUsage is the maximum memory usage in bytes.
 	MaxMemoryUsage int64
 
-	// SSE-specific limits
-	// MaxSSEDuration is the maximum SSE connection duration.
+	// SSE-specific limits MaxSSEDuration is the maximum SSE connection duration.
 	MaxSSEDuration time.Duration
 
 	// SSEHeartbeatInterval is the interval between SSE heartbeat messages.
@@ -250,8 +241,7 @@ type CacheConfigSpec struct {
 	HasCustomKeyFunc bool
 }
 
-// Method returns the HTTP method for this action (implements
-// ActionInfoProvider).
+// Method returns the HTTP method for this action (implements ActionInfoProvider).
 //
 // Returns string which is the HTTP method, defaulting to "POST" if not set.
 func (s *ActionSpec) Method() string {

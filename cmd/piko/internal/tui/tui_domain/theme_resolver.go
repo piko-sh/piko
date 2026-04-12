@@ -24,18 +24,18 @@ import (
 )
 
 const (
-	// EnvNoColor is the canonical NO_COLOR signal recognised across CLI
-	// tooling. When set to any non-empty value, the resolver picks the
-	// no-colour theme regardless of any other configuration.
+	// EnvNoColor is the canonical NO_COLOR signal recognised across CLI tooling. When set to
+	// any non-empty value, the resolver picks the no-colour theme regardless of any other
+	// configuration.
 	EnvNoColor = "NO_COLOR"
 
-	// EnvThemeOverride is the piko-specific environment variable that
-	// overrides the configured theme name when set to a registered theme.
+	// EnvThemeOverride is the piko-specific environment variable that overrides the
+	// configured theme name when set to a registered theme.
 	EnvThemeOverride = "PIKO_TUI_THEME"
 )
 
-// ResolveTheme returns the theme to render with given a registry and a
-// configured theme name.
+// ResolveTheme returns the theme to render with given a registry and a configured theme
+// name.
 //
 // The resolution order is:
 //
@@ -45,16 +45,16 @@ const (
 //  4. Otherwise the registry's default is used.
 //
 // Takes registry (*ThemeRegistry) which holds the registered themes.
-// Takes configName (string) which is the user-configured theme identifier;
-// empty string defers to the next step in the order above.
+// Takes configName (string) which is the user-configured theme identifier; empty string
+// defers to the next step in the order above.
 //
 // Returns Theme which is the resolved theme for rendering.
 func ResolveTheme(registry *ThemeRegistry, configName string) Theme {
 	return resolveThemeWithEnv(registry, configName, osLookupEnv)
 }
 
-// resolveThemeWithEnv is ResolveTheme with an injected environment lookup,
-// kept package-private so tests can drive the resolver deterministically.
+// resolveThemeWithEnv is ResolveTheme with an injected environment lookup, kept
+// package-private so tests can drive the resolver deterministically.
 //
 // Takes registry (*ThemeRegistry) which holds the registered themes.
 // Takes configName (string) which is the user-configured theme identifier.

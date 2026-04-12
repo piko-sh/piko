@@ -16,22 +16,20 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package otter implements the orchestrator DAL using in-memory otter
-// cache for development, testing, and embedded deployments.
+// Package otter implements the orchestrator DAL using in-memory otter cache for
+// development, testing, and embedded deployments.
 //
-// It has no external dependencies. The adapter maintains secondary
-// indexes (time-based, workflow, deduplication) for efficient task
-// queries and supports pseudo-transactions via mutex locking.
+// It has no external dependencies. The adapter maintains secondary indexes (time-based,
+// workflow, deduplication) for efficient task queries and supports pseudo-transactions
+// via mutex locking.
 //
-// The DAL can operate with an internally created otter cache or accept
-// an externally configured one via [WithCache]. When an external cache
-// with WAL persistence is injected, [DAL.RebuildIndexes] must be
-// called after WAL recovery to restore secondary indexes from the
-// primary data.
+// The DAL can operate with an internally created otter cache or accept an externally
+// configured one via [WithCache]. When an external cache with WAL persistence is
+// injected, [DAL.RebuildIndexes] must be called after WAL recovery to restore secondary
+// indexes from the primary data.
 //
-// All exported methods are safe for concurrent use. Write operations
-// acquire a full mutex lock, and read operations use a read lock.
-// [DAL.RunAtomic] holds the write lock for the duration of the
-// callback, journals cache mutations for rollback, and snapshots
+// All exported methods are safe for concurrent use. Write operations acquire a full mutex
+// lock, and read operations use a read lock. [DAL.RunAtomic] holds the write lock for the
+// duration of the callback, journals cache mutations for rollback, and snapshots
 // non-cache state for restore on error.
 package otter

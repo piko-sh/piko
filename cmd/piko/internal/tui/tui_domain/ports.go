@@ -25,9 +25,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// Provider defines the base interface for all data providers.
-// Providers fetch data from external sources such as databases and APIs
-// and make it available to panels for display.
+// Provider defines the base interface for all data providers. Providers fetch data from
+// external sources such as databases and APIs and make it available to panels for
+// display.
 type Provider interface {
 	// Name returns a readable name for this provider.
 	//
@@ -45,28 +45,28 @@ type Provider interface {
 	Close() error
 }
 
-// RefreshableProvider extends Provider with support for periodic data refresh.
-// Most providers implement it to allow automatic data updates.
+// RefreshableProvider extends Provider with support for periodic data refresh. Most
+// providers implement it to allow automatic data updates.
 type RefreshableProvider interface {
 	Provider
 
-	// Refresh fetches the latest data from the data source.
-	// Called periodically by the TUI service.
+	// Refresh fetches the latest data from the data source. Called periodically by the TUI
+	// service.
 	//
 	// Takes ctx (context.Context) for cancellation.
 	//
 	// Returns error when the refresh operation fails.
 	Refresh(ctx context.Context) error
 
-	// RefreshInterval returns how often this provider should refresh.
-	// The TUI service uses this to schedule refresh operations.
+	// RefreshInterval returns how often this provider should refresh. The TUI service uses
+	// this to schedule refresh operations.
 	//
 	// Returns time.Duration which specifies the time between refreshes.
 	RefreshInterval() time.Duration
 }
 
-// MetricsProvider retrieves metrics data from backends such as Piko's OTEL
-// endpoint or Prometheus. It implements tui_domain.MetricsProvider.
+// MetricsProvider retrieves metrics data from backends such as Piko's OTEL endpoint or
+// Prometheus. It implements tui_domain.MetricsProvider.
 type MetricsProvider interface {
 	RefreshableProvider
 
@@ -99,8 +99,8 @@ type MetricsProvider interface {
 	Current(ctx context.Context, metric string) (*MetricValue, error)
 }
 
-// TracesProvider retrieves trace data from observability backends.
-// It implements tui_domain.TracesProvider for displaying traces in the UI.
+// TracesProvider retrieves trace data from observability backends. It implements
+// tui_domain.TracesProvider for displaying traces in the UI.
 type TracesProvider interface {
 	RefreshableProvider
 
@@ -132,16 +132,15 @@ type TracesProvider interface {
 	Get(ctx context.Context, traceID string) ([]Span, error)
 }
 
-// ResourceProvider gives access to application resources from databases.
-// It is the main provider for registry artefacts and orchestrator tasks,
-// and implements the tui_domain.ResourceProvider interface.
+// ResourceProvider gives access to application resources from databases. It is the main
+// provider for registry artefacts and orchestrator tasks, and implements the
+// tui_domain.ResourceProvider interface.
 type ResourceProvider interface {
 	RefreshableProvider
 
 	// List fetches all resources of a given kind.
 	//
-	// Takes kind (string) which identifies the resource type (e.g., "artefact",
-	// "task").
+	// Takes kind (string) which identifies the resource type (e.g., "artefact", "task").
 	//
 	// Returns []Resource which contains the resources.
 	// Returns error when the list fails.
@@ -161,13 +160,13 @@ type ResourceProvider interface {
 	Summary(ctx context.Context) (map[string]map[ResourceStatus]int, error)
 }
 
-// HealthProvider provides access to health check data from application
-// endpoints. It returns liveness and readiness probe status for monitoring.
+// HealthProvider provides access to health check data from application endpoints. It
+// returns liveness and readiness probe status for monitoring.
 type HealthProvider interface {
 	RefreshableProvider
 
-	// Liveness fetches the current liveness status.
-	// Liveness indicates if the application is running and not deadlocked.
+	// Liveness fetches the current liveness status. Liveness indicates if the application is
+	// running and not deadlocked.
 	//
 	// Takes ctx (context.Context) for cancellation.
 	//
@@ -175,8 +174,8 @@ type HealthProvider interface {
 	// Returns error when the check cannot be performed.
 	Liveness(ctx context.Context) (*HealthStatus, error)
 
-	// Readiness fetches the current readiness status.
-	// Readiness indicates if the application is ready to serve traffic.
+	// Readiness fetches the current readiness status. Readiness indicates if the application
+	// is ready to serve traffic.
 	//
 	// Takes ctx (context.Context) for cancellation.
 	//
@@ -185,8 +184,8 @@ type HealthProvider interface {
 	Readiness(ctx context.Context) (*HealthStatus, error)
 }
 
-// SystemProvider provides access to runtime system statistics from the server.
-// It extends RefreshableProvider to add CPU, memory, goroutine, and GC stats.
+// SystemProvider provides access to runtime system statistics from the server. It extends
+// RefreshableProvider to add CPU, memory, goroutine, and GC stats.
 type SystemProvider interface {
 	RefreshableProvider
 
@@ -204,8 +203,8 @@ type SystemStats struct {
 	// Timestamp is when the statistics were collected.
 	Timestamp time.Time
 
-	// Build holds version and compile-time details such as Go version, commit
-	// hash, and build timestamp.
+	// Build holds version and compile-time details such as Go version, commit hash, and
+	// build timestamp.
 	Build SystemBuildInfo
 
 	// Runtime holds Go runtime settings such as GOGC and GOMEMLIMIT.
@@ -217,8 +216,8 @@ type SystemStats struct {
 	// Memory holds Go runtime memory statistics.
 	Memory SystemMemoryStats
 
-	// Process holds metrics about the current process such as PID, thread count,
-	// file descriptor count, and memory usage.
+	// Process holds metrics about the current process such as PID, thread count, file
+	// descriptor count, and memory usage.
 	Process SystemProcessInfo
 
 	// Uptime is how long the application has been running.
@@ -363,8 +362,8 @@ type SystemRuntimeConfig struct {
 	GOMEMLIMIT string
 }
 
-// FDsProvider fetches file descriptor data from the Piko server. It gives
-// visibility into open files, sockets, and other OS resources.
+// FDsProvider fetches file descriptor data from the Piko server. It gives visibility into
+// open files, sockets, and other OS resources.
 type FDsProvider interface {
 	RefreshableProvider
 
@@ -409,8 +408,7 @@ type FDInfo struct {
 	// Target is the path or address the file descriptor points to.
 	Target string
 
-	// FirstSeen is when this file descriptor was first observed, as Unix
-	// milliseconds.
+	// FirstSeen is when this file descriptor was first observed, as Unix milliseconds.
 	FirstSeen int64
 
 	// AgeMs is how long the file descriptor has been open, in milliseconds.
@@ -420,11 +418,11 @@ type FDInfo struct {
 	FD int
 }
 
-// Panel represents a discrete UI section that can be focused and rendered.
-// Panels follow the bubbletea model pattern for state management.
+// Panel represents a discrete UI section that can be focused and rendered. Panels follow
+// the bubbletea model pattern for state management.
 type Panel interface {
-	// ID returns a unique identifier for this panel.
-	// Used for panel switching and configuration.
+	// ID returns a unique identifier for this panel. Used for panel switching and
+	// configuration.
 	//
 	// Returns string which uniquely identifies this panel.
 	ID() string
@@ -434,14 +432,14 @@ type Panel interface {
 	// Returns string which is the text shown in the panel header.
 	Title() string
 
-	// Init initialises the panel and returns any initial commands.
-	// Called once when the panel is first created.
+	// Init initialises the panel and returns any initial commands. Called once when the
+	// panel is first created.
 	//
 	// Returns tea.Cmd which may contain async initialisation work.
 	Init() tea.Cmd
 
-	// Update handles messages and returns updated panel and commands.
-	// Only called when this panel is focused.
+	// Update handles messages and returns updated panel and commands. Only called when this
+	// panel is focused.
 	//
 	// Takes message (tea.Msg) which contains the message to handle.
 	//
@@ -462,8 +460,8 @@ type Panel interface {
 	// Returns bool which is true if the panel has focus.
 	Focused() bool
 
-	// SetFocused sets the focus state of the panel.
-	// Called by the TUI service when focus changes.
+	// SetFocused sets the focus state of the panel. Called by the TUI service when focus
+	// changes.
 	//
 	// Takes focused (bool) which specifies the new focus state.
 	SetFocused(focused bool)
@@ -475,9 +473,8 @@ type Panel interface {
 
 	// DetailView renders the right-hand detail body for the panel.
 	//
-	// Panels with no per-row detail return the empty string; the
-	// composer falls back to a placeholder hint in that case. The
-	// returned string must be sized to (width, height).
+	// Panels with no per-row detail return the empty string; the composer falls back to a
+	// placeholder hint in that case. The returned string must be sized to (width, height).
 	//
 	// Takes width (int) and height (int) for the inner content area.
 	//
@@ -486,9 +483,8 @@ type Panel interface {
 
 	// Selection returns what is currently selected in the panel.
 	//
-	// The composer hands this to other panels for cross-panel
-	// coordination (e.g. trace -> route navigation). Panels with no
-	// selectable rows return Selection{}.
+	// The composer hands this to other panels for cross-panel coordination (e.g. trace ->
+	// route navigation). Panels with no selectable rows return Selection{}.
 	//
 	// Returns Selection describing the focused row, or empty.
 	Selection() Selection

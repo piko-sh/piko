@@ -26,30 +26,28 @@ import (
 
 // Collector is the driven port that analytics backends implement.
 //
-// Implementations must be safe for concurrent use from multiple goroutines. The
-// Event passed to Collect must not be retained after Collect completes; copy
-// any needed data.
+// Implementations must be safe for concurrent use from multiple goroutines. The Event
+// passed to Collect must not be retained after Collect completes; copy any needed data.
 type Collector interface {
-	// Start launches any background goroutines (e.g. flush loops)
-	// needed by the collector.
+	// Start launches any background goroutines (e.g. flush loops) needed by the collector.
 	Start(ctx context.Context)
 
-	// Collect receives a single analytics event. The implementation
-	// may buffer events internally for batching.
+	// Collect receives a single analytics event. The implementation may buffer events
+	// internally for batching.
 	//
 	// Takes event (*analytics_dto.Event) which carries the event data.
 	//
 	// Returns error when the event cannot be accepted.
 	Collect(ctx context.Context, event *analytics_dto.Event) error
 
-	// Flush sends any buffered events to the backend. Called during
-	// graceful shutdown and optionally on a timer.
+	// Flush sends any buffered events to the backend. Called during graceful shutdown and
+	// optionally on a timer.
 	//
 	// Returns error when flushing fails.
 	Flush(ctx context.Context) error
 
-	// Close releases resources held by the collector. Called once
-	// during shutdown after Flush.
+	// Close releases resources held by the collector. Called once during shutdown after
+	// Flush.
 	//
 	// Returns error when cleanup fails.
 	Close(ctx context.Context) error

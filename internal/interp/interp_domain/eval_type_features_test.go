@@ -147,7 +147,7 @@ func TestEvalInterfacePacking(t *testing.T) {
 		{
 			name:   "pack int into interface",
 			code:   "var i interface{} = 42\ni",
-			expect: int64(42),
+			expect: 42,
 		},
 		{
 			name:   "pack string into interface",

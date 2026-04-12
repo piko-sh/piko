@@ -27,8 +27,7 @@ import (
 	"piko.sh/piko/internal/image/image_dto"
 )
 
-// providerCapability describes what features a specific image provider
-// supports.
+// providerCapability describes what features a specific image provider supports.
 type providerCapability struct {
 	// supportedModifiers maps lowercase modifier names to their availability.
 	supportedModifiers map[string]bool
@@ -37,16 +36,15 @@ type providerCapability struct {
 	supportedFormats []string
 }
 
-// ValidateTransformationSpec checks a transformation spec DTO for valid values
-// and returns a normalised version.
+// ValidateTransformationSpec checks a transformation spec DTO for valid values and
+// returns a normalised version.
 //
-// If capabilities is provided, it validates provider-specific formats and
-// modifiers.
+// If capabilities is provided, it validates provider-specific formats and modifiers.
 //
-// Takes spec (image_dto.TransformationSpec) which is the transformation
-// specification to validate.
-// Takes capabilities (map[string]providerCapability) which provides
-// provider-specific validation rules, or nil to skip provider validation.
+// Takes spec (image_dto.TransformationSpec) which is the transformation specification to
+// validate.
+// Takes capabilities (map[string]providerCapability) which provides provider-specific
+// validation rules, or nil to skip provider validation.
 //
 // Returns image_dto.TransformationSpec which is the normalised specification.
 // Returns error when dimensions, quality, or optional fields are invalid.
@@ -71,13 +69,12 @@ func ValidateTransformationSpec(spec image_dto.TransformationSpec, capabilities 
 	return normalisedSpec, nil
 }
 
-// normaliseSpecFields validates and normalises format, fit, and background
-// fields.
+// normaliseSpecFields validates and normalises format, fit, and background fields.
 //
-// Takes spec (image_dto.TransformationSpec) which contains the fields to
-// validate and normalise.
-// Takes capabilities (map[string]providerCapability) which defines the
-// supported capabilities for each provider.
+// Takes spec (image_dto.TransformationSpec) which contains the fields to validate and
+// normalise.
+// Takes capabilities (map[string]providerCapability) which defines the supported
+// capabilities for each provider.
 //
 // Returns image_dto.TransformationSpec which contains the normalised fields.
 // Returns error when any field validation fails.
@@ -107,10 +104,9 @@ func normaliseSpecFields(spec image_dto.TransformationSpec, capabilities map[str
 
 // validateOptionalFields checks optional fields in a transformation spec.
 //
-// Takes spec (image_dto.TransformationSpec) which contains the fields to
-// check.
-// Takes capabilities (map[string]providerCapability) which defines provider
-// validation rules.
+// Takes spec (image_dto.TransformationSpec) which contains the fields to check.
+// Takes capabilities (map[string]providerCapability) which defines provider validation
+// rules.
 //
 // Returns error when any optional field fails validation.
 func validateOptionalFields(spec image_dto.TransformationSpec, capabilities map[string]providerCapability) error {
@@ -137,8 +133,7 @@ func validateOptionalFields(spec image_dto.TransformationSpec, capabilities map[
 
 // validateDimensions checks that width and height are not negative.
 //
-// Takes spec (image_dto.TransformationSpec) which holds the dimensions to
-// check.
+// Takes spec (image_dto.TransformationSpec) which holds the dimensions to check.
 //
 // Returns error when width or height is negative.
 func validateDimensions(spec image_dto.TransformationSpec) error {
@@ -153,11 +148,9 @@ func validateDimensions(spec image_dto.TransformationSpec) error {
 
 // validateQuality checks that quality is within the valid range.
 //
-// Takes spec (image_dto.TransformationSpec) which contains the quality value
-// to validate.
+// Takes spec (image_dto.TransformationSpec) which contains the quality value to validate.
 //
-// Returns error when quality is less than minQuality or greater than
-// maxQuality.
+// Returns error when quality is less than minQuality or greater than maxQuality.
 func validateQuality(spec image_dto.TransformationSpec) error {
 	if spec.Quality < minQuality || spec.Quality > maxQuality {
 		return fmt.Errorf("quality must be between %d and %d, got %d", minQuality, maxQuality, spec.Quality)
@@ -165,13 +158,12 @@ func validateQuality(spec image_dto.TransformationSpec) error {
 	return nil
 }
 
-// validateAndNormaliseFormat checks the output format and returns the
-// lowercase version.
+// validateAndNormaliseFormat checks the output format and returns the lowercase version.
 //
 // Takes format (string) which is the output format to check.
 // Takes provider (string) which names the provider to check against.
-// Takes capabilities (map[string]providerCapability) which maps provider names
-// to their supported features.
+// Takes capabilities (map[string]providerCapability) which maps provider names to their
+// supported features.
 //
 // Returns string which is the format in lowercase.
 // Returns error when the format is not supported or not valid for the provider.
@@ -229,8 +221,8 @@ func validateAndNormaliseFit(fit image_dto.FitMode) (string, error) {
 //
 // Takes fit (string) which is the fit mode to check.
 //
-// Returns bool which is true if fit is one of the valid options (cover,
-// contain, fill, inside, outside), false otherwise.
+// Returns bool which is true if fit is one of the valid options (cover, contain, fill,
+// inside, outside), false otherwise.
 func isFitModeValid(fit string) bool {
 	switch fit {
 	case "cover", "contain", "fill", "inside", "outside":
@@ -240,9 +232,8 @@ func isFitModeValid(fit string) bool {
 	}
 }
 
-// validateAndNormaliseBackground checks and normalises a background colour
-// string. It validates that the value is a valid hex colour format starting
-// with #.
+// validateAndNormaliseBackground checks and normalises a background colour string. It
+// validates that the value is a valid hex colour format starting with #.
 //
 // Takes background (string) which is the colour value to check.
 //
@@ -258,30 +249,27 @@ func validateAndNormaliseBackground(background string) (string, error) {
 	return normalised, nil
 }
 
-// shouldValidateModifiers checks if modifier validation should run.
-// It returns true when the spec has modifiers, a provider is set, and
-// capabilities are available.
+// shouldValidateModifiers checks if modifier validation should run. It returns true when
+// the spec has modifiers, a provider is set, and capabilities are available.
 //
-// Takes spec (image_dto.TransformationSpec) which holds the transformation
-// details including modifiers and provider.
-// Takes capabilities (map[string]providerCapability) which maps provider names
-// to their capabilities.
+// Takes spec (image_dto.TransformationSpec) which holds the transformation details
+// including modifiers and provider.
+// Takes capabilities (map[string]providerCapability) which maps provider names to their
+// capabilities.
 //
 // Returns bool which is true when all conditions for validation are met.
 func shouldValidateModifiers(spec image_dto.TransformationSpec, capabilities map[string]providerCapability) bool {
 	return len(spec.Modifiers) > 0 && spec.Provider != "" && capabilities != nil
 }
 
-// validateFormatForProvider checks if a format is supported by a given
-// provider.
+// validateFormatForProvider checks if a format is supported by a given provider.
 //
-// When the provider is not found in capabilities, returns nil to skip
-// validation.
+// When the provider is not found in capabilities, returns nil to skip validation.
 //
 // Takes format (string) which specifies the image format to check.
 // Takes provider (string) which identifies the provider to check against.
-// Takes capabilities (map[string]providerCapability) which holds the supported
-// formats for each provider.
+// Takes capabilities (map[string]providerCapability) which holds the supported formats
+// for each provider.
 //
 // Returns error when the format is not supported by the given provider.
 func validateFormatForProvider(format, provider string, capabilities map[string]providerCapability) error {
@@ -299,17 +287,17 @@ func validateFormatForProvider(format, provider string, capabilities map[string]
 		format, provider, strings.Join(capability.supportedFormats, ", "))
 }
 
-// validateModifiersForProvider checks if all modifiers are supported by the
-// selected provider.
+// validateModifiersForProvider checks if all modifiers are supported by the selected
+// provider.
 //
-// When the provider is not found in capabilities, returns nil without
-// validation. The unknown provider will fail at execution time.
+// When the provider is not found in capabilities, returns nil without validation. The
+// unknown provider will fail at execution time.
 //
-// Takes modifiers (map[string]string) which contains the modifier key-value
-// pairs to validate.
+// Takes modifiers (map[string]string) which contains the modifier key-value pairs to
+// validate.
 // Takes provider (string) which identifies the image processing provider.
-// Takes capabilities (map[string]providerCapability) which maps provider names
-// to their supported modifiers.
+// Takes capabilities (map[string]providerCapability) which maps provider names to their
+// supported modifiers.
 //
 // Returns error when any modifier is not supported by the provider.
 func validateModifiersForProvider(modifiers map[string]string, provider string, capabilities map[string]providerCapability) error {
@@ -334,15 +322,14 @@ func validateModifiersForProvider(modifiers map[string]string, provider string, 
 	return nil
 }
 
-// validatePlaceholderSpec checks the placeholder settings are valid.
+// validatePlaceholderSpec checks the low-quality image preview settings are valid.
 //
 // When the spec is disabled, returns nil without any checks.
 //
-// Takes spec (*image_dto.PlaceholderSpec) which holds the placeholder
-// settings to check.
+// Takes spec (*image_dto.PlaceholderSpec) which holds the LQIP preview settings to check.
 //
-// Returns error when width, height, or blur sigma is negative, or when
-// quality is outside the range 0 to maxQuality.
+// Returns error when width, height, or blur sigma is negative, or when quality is outside
+// the range 0 to maxQuality.
 func validatePlaceholderSpec(spec *image_dto.PlaceholderSpec) error {
 	if !spec.Enabled {
 		return nil
@@ -368,13 +355,13 @@ func validatePlaceholderSpec(spec *image_dto.PlaceholderSpec) error {
 
 // validateAspectRatio validates the aspect ratio format.
 //
-// Accepts formats such as "16:9", "4:3", or "1:1" where both width and height
-// are positive numbers.
+// Accepts formats such as "16:9", "4:3", or "1:1" where both width and height are
+// positive numbers.
 //
 // Takes ar (string) which specifies the aspect ratio to validate.
 //
-// Returns error when the format is invalid, values cannot be parsed as
-// numbers, or either dimension is not positive.
+// Returns error when the format is invalid, values cannot be parsed as numbers, or either
+// dimension is not positive.
 func validateAspectRatio(ar string) error {
 	parts := strings.Split(ar, ":")
 	if len(parts) != 2 {

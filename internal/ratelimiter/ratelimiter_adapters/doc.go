@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package ratelimiter_adapters bridges the rate limiter domain with the
-// cache infrastructure.
+// Package ratelimiter_adapters bridges the rate limiter domain with the cache
+// infrastructure.
 //
 // It implements [ratelimiter_domain.TokenBucketStorePort] and
-// [ratelimiter_domain.CounterStorePort] using the cache hexagon's atomic
-// operations ([cache_domain.Cache.Compute] and
-// [cache_domain.Cache.ComputeWithTTL]) for thread-safe state management
-// across Otter, Redis, and Redis Cluster backends.
+// [ratelimiter_domain.CounterStorePort] using the cache hexagon's atomic operations
+// ([cache_domain.Cache.Compute] and [cache_domain.Cache.ComputeWithTTL]) for thread-safe
+// state management across Otter, Redis, and Redis Cluster backends.
 package ratelimiter_adapters

@@ -35,15 +35,14 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// runInitialTasksInBackground spawns a goroutine that runs the lifecycle
-// service's one-time startup tasks (theme seeding, configuration loading,
-// asset discovery). Errors are logged unless the context has already been
-// cancelled.
+// runInitialTasksInBackground spawns a goroutine that runs the lifecycle service's
+// one-time startup tasks (theme seeding, configuration loading, asset discovery). Errors
+// are logged unless the context has already been cancelled.
 //
 // Takes appCtx (context.Context) which controls the lifetime of the goroutine.
 // Takes l (logger_domain.Logger) which logs errors from the background tasks.
-// Takes lifecycleService (lifecycle_domain.LifecycleService) which provides the
-// initial tasks to run.
+// Takes lifecycleService (lifecycle_domain.LifecycleService) which provides the initial
+// tasks to run.
 func runInitialTasksInBackground(appCtx context.Context, l logger_domain.Logger, lifecycleService lifecycle_domain.LifecycleService) {
 	go func() {
 		if err := lifecycleService.RunInitialTasks(appCtx); err != nil {
@@ -54,13 +53,12 @@ func runInitialTasksInBackground(appCtx context.Context, l logger_domain.Logger,
 	}()
 }
 
-// wireMonitoringInspectors connects the orchestrator and registry inspectors
-// to the monitoring service if it is enabled, then starts the service.
+// wireMonitoringInspectors connects the orchestrator and registry inspectors to the
+// monitoring service if it is enabled, then starts the service.
 //
-// Takes c (*Container) which provides access to the monitoring and inspector
-// services.
-// Takes renderRegistry (render_domain.RegistryPort) which may implement the
-// render cache stats provider interface.
+// Takes c (*Container) which provides access to the monitoring and inspector services.
+// Takes renderRegistry (render_domain.RegistryPort) which may implement the render cache
+// stats provider interface.
 func wireMonitoringInspectors(c *Container, renderRegistry render_domain.RegistryPort) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
@@ -90,14 +88,14 @@ func wireMonitoringInspectors(c *Container, renderRegistry render_domain.Registr
 	c.StartProfilingServer()
 }
 
-// buildDaemonWithWatcher is a common helper for building a daemon that requires
-// a filesystem watcher, typically for development modes.
+// buildDaemonWithWatcher is a common helper for building a daemon that requires a
+// filesystem watcher, typically for development modes.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes modeName (string) which describes the mode for error messages.
-// Takes sandboxFactory (safedisk.Factory) which creates sandboxes for
-// filesystem access within the watcher.
+// Takes sandboxFactory (safedisk.Factory) which creates sandboxes for filesystem access
+// within the watcher.
 // Takes buildDeps (func) which creates the daemon's dependency struct.
 //
 // Returns daemon_domain.DaemonService which is the initialised daemon.
@@ -133,17 +131,15 @@ func buildDaemonWithWatcher(
 	return daemon_domain.NewService(ctx, deps), nil
 }
 
-// wireDevAPIOptionalDeps attaches optional monitoring providers to the dev API
-// handler and event broadcaster. Each provider is best-effort; failures are
-// logged and the handler gracefully degrades to returning {"available": false}
-// for that endpoint.
+// wireDevAPIOptionalDeps attaches optional monitoring providers to the dev API handler
+// and event broadcaster. Each provider is best-effort; failures are logged and the
+// handler gracefully degrades to returning {"available": false} for that endpoint.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes c (*Container) which provides the dependency injection container.
-// Takes devAPIHandler (*daemon_adapters.DevAPIHandler) which is the handler to
-// configure.
-// Takes devEventBroadcaster (*daemon_adapters.DevEventBroadcaster) which is
-// the broadcaster to configure.
+// Takes devAPIHandler (*daemon_adapters.DevAPIHandler) which is the handler to configure.
+// Takes devEventBroadcaster (*daemon_adapters.DevEventBroadcaster) which is the
+// broadcaster to configure.
 func wireDevAPIOptionalDeps(
 	ctx context.Context,
 	c *Container,
@@ -172,12 +168,11 @@ func wireDevAPIOptionalDeps(
 }
 
 // ensureTypeDefinitions writes TypeScript type definitions to dist/ts/ for IDE
-// integration, enabling autocomplete for the piko namespace and server-side
-// actions. Errors are logged but do not fail the build.
+// integration, enabling autocomplete for the piko namespace and server-side actions.
+// Errors are logged but do not fail the build.
 //
 // Takes ctx (context.Context) which carries logging context.
-// Takes c (*Container) which provides the application context and
-// server configuration.
+// Takes c (*Container) which provides the application context and server configuration.
 func ensureTypeDefinitions(ctx context.Context, c *Container) {
 	_, l := logger_domain.From(ctx, log)
 	appCtx := c.GetAppContext()

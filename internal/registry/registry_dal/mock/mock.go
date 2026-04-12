@@ -31,11 +31,15 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-var _ registry_dal.RegistryDALWithTx = (*RegistryDAL)(nil)
+var (
+	_ registry_dal.RegistryDALWithTx = (*RegistryDAL)(nil)
+)
 
-// defaultGCHintLimit is the default limit for GC hint queries when no limit is
-// specified.
-const defaultGCHintLimit = 100
+const (
+	// defaultGCHintLimit is the default limit for GC hint queries when no limit is
+	// specified.
+	defaultGCHintLimit = 100
+)
 
 // Behaviour defines settings that control how mock methods act during tests.
 type Behaviour struct {
@@ -64,9 +68,9 @@ type CallRecord struct {
 	Args []any
 }
 
-// RegistryDAL is a mock implementation of the RegistryDALWithTx interface.
-// It stores artefacts and blob references in memory, and supports transaction
-// simulation for testing purposes.
+// RegistryDAL is a mock implementation of the RegistryDALWithTx interface. It stores
+// artefacts and blob references in memory, and supports transaction simulation for
+// testing purposes.
 type RegistryDAL struct {
 	// artefacts stores artefact metadata keyed by artefact ID.
 	artefacts map[string]*registry_dto.ArtefactMeta
@@ -221,11 +225,11 @@ func (m *RegistryDAL) Close() error {
 
 // RunAtomic executes fn within a transaction.
 //
-// Takes fn (func(...)) which is the function to run inside the
-// transaction, receiving a MetadataStore scoped to that transaction.
+// Takes fn (func(...)) which is the function to run inside the transaction, receiving a
+// MetadataStore scoped to that transaction.
 //
-// Returns error when the transaction function fails or when configured
-// mock behaviour returns an error.
+// Returns error when the transaction function fails or when configured mock behaviour
+// returns an error.
 func (m *RegistryDAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
 	return m.withTransaction(ctx, func(ctx context.Context, transactionDAL registry_dal.RegistryDAL) error {
 		store, ok := transactionDAL.(registry_domain.MetadataStore)
@@ -247,14 +251,12 @@ func (m *RegistryDAL) IsInTransaction() bool {
 	return m.inTransaction
 }
 
-// GetArtefact retrieves artefact metadata by ID. Implements
-// registry_dal.MetadataDAL.
+// GetArtefact retrieves artefact metadata by ID. Implements registry_dal.MetadataDAL.
 //
 // Takes artefactID (string) which identifies the artefact to retrieve.
 //
 // Returns *registry_dto.ArtefactMeta which is a copy of the artefact metadata.
-// Returns error when the artefact is not found or a set behaviour triggers an
-// error.
+// Returns error when the artefact is not found or a set behaviour triggers an error.
 //
 // Safe for concurrent use; protected by a read lock.
 func (m *RegistryDAL) GetArtefact(_ context.Context, artefactID string) (*registry_dto.ArtefactMeta, error) {
@@ -274,8 +276,8 @@ func (m *RegistryDAL) GetArtefact(_ context.Context, artefactID string) (*regist
 	return new(*artefact), nil
 }
 
-// GetMultipleArtefacts retrieves metadata for the specified artefact IDs.
-// Implements registry_dal.MetadataDAL.
+// GetMultipleArtefacts retrieves metadata for the specified artefact IDs. Implements
+// registry_dal.MetadataDAL.
 //
 // Takes artefactIDs ([]string) which specifies the IDs of artefacts to fetch.
 //
@@ -325,11 +327,11 @@ func (m *RegistryDAL) ListAllArtefactIDs(_ context.Context) ([]string, error) {
 	return ids, nil
 }
 
-// SearchArtefacts searches for artefacts matching the given query criteria.
-// Implements registry_dal.MetadataDAL.
+// SearchArtefacts searches for artefacts matching the given query criteria. Implements
+// registry_dal.MetadataDAL.
 //
-// Takes query (registry_domain.SearchQuery) which specifies the search
-// criteria including tag filters.
+// Takes query (registry_domain.SearchQuery) which specifies the search criteria including
+// tag filters.
 //
 // Returns []*registry_dto.ArtefactMeta which contains the matching artefacts.
 // Returns error when the query is empty or uses unsupported RediSearch syntax.
@@ -361,8 +363,7 @@ func (m *RegistryDAL) SearchArtefacts(_ context.Context, query registry_domain.S
 // Takes tagKey (string) which specifies the tag key to search for.
 // Takes tagValues ([]string) which specifies the tag values to match against.
 //
-// Returns []*registry_dto.ArtefactMeta which contains copies of matching
-// artefacts.
+// Returns []*registry_dto.ArtefactMeta which contains copies of matching artefacts.
 // Returns error when the configured behaviour produces an error.
 //
 // Safe for concurrent use; uses a read lock during the search.
@@ -404,8 +405,8 @@ func (m *RegistryDAL) SearchArtefactsByTagValues(_ context.Context, tagKey strin
 	return results, nil
 }
 
-// FindArtefactByVariantStorageKey retrieves artefact metadata by its variant
-// storage key. Implements registry_dal.MetadataDAL.
+// FindArtefactByVariantStorageKey retrieves artefact metadata by its variant storage key.
+// Implements registry_dal.MetadataDAL.
 //
 // Takes storageKey (string) which identifies the variant's storage location.
 //
@@ -435,11 +436,11 @@ func (m *RegistryDAL) FindArtefactByVariantStorageKey(_ context.Context, storage
 	return new(*artefact), nil
 }
 
-// PopGCHints retrieves and removes garbage collection hints from the store.
-// Implements registry_dal.MetadataDAL.
+// PopGCHints retrieves and removes garbage collection hints from the store. Implements
+// registry_dal.MetadataDAL.
 //
-// Takes limit (int) which specifies the maximum number of hints to return.
-// When limit is zero or negative, a default limit is used.
+// Takes limit (int) which specifies the maximum number of hints to return. When limit is
+// zero or negative, a default limit is used.
 //
 // Returns []registry_dto.GCHint which contains the removed hints.
 // Returns error when the configured behaviour fails.
@@ -471,14 +472,13 @@ func (m *RegistryDAL) PopGCHints(_ context.Context, limit int) ([]registry_dto.G
 	return hints, nil
 }
 
-// AtomicUpdate applies a set of actions as a single atomic operation.
-// Implements registry_dal.MetadataDAL.
+// AtomicUpdate applies a set of actions as a single atomic operation. Implements
+// registry_dal.MetadataDAL.
 //
-// Takes actions ([]registry_dto.AtomicAction) which specifies the operations
-// to perform atomically.
+// Takes actions ([]registry_dto.AtomicAction) which specifies the operations to perform
+// atomically.
 //
-// Returns error when an action type is unrecognised or a configured behaviour
-// fails.
+// Returns error when an action type is unrecognised or a configured behaviour fails.
 //
 // Safe for concurrent use; protected by a mutex.
 func (m *RegistryDAL) AtomicUpdate(_ context.Context, actions []registry_dto.AtomicAction) error {
@@ -508,8 +508,7 @@ func (m *RegistryDAL) AtomicUpdate(_ context.Context, actions []registry_dto.Ato
 
 // IncrementBlobRefCount implements registry_dal.MetadataDAL.
 //
-// Takes blob (registry_domain.BlobReference) which identifies the blob to
-// increment.
+// Takes blob (registry_domain.BlobReference) which identifies the blob to increment.
 //
 // Returns int which is the new reference count after incrementing.
 // Returns error when the configured behaviour produces an error.
@@ -537,13 +536,12 @@ func (m *RegistryDAL) IncrementBlobRefCount(_ context.Context, blob registry_dom
 	return entry.RefCount, nil
 }
 
-// DecrementBlobRefCount decrements the reference count for a blob and removes
-// it when the count reaches zero. Implements registry_dal.MetadataDAL.
+// DecrementBlobRefCount decrements the reference count for a blob and removes it when the
+// count reaches zero. Implements registry_dal.MetadataDAL.
 //
 // Takes storageKey (string) which identifies the blob to decrement.
 //
-// Returns int which is the new reference count, or zero if the blob was
-// removed.
+// Returns int which is the new reference count, or zero if the blob was removed.
 // Returns bool which is true when the blob was removed due to zero references.
 // Returns error when the blob reference is not found.
 //
@@ -576,8 +574,7 @@ func (m *RegistryDAL) DecrementBlobRefCount(_ context.Context, storageKey string
 //
 // Takes storageKey (string) which identifies the blob to look up.
 //
-// Returns int which is the reference count, or zero if the blob does not
-// exist.
+// Returns int which is the reference count, or zero if the blob does not exist.
 // Returns error when the configured mock behaviour fails.
 //
 // Safe for concurrent use; protected by a read lock.
@@ -625,11 +622,9 @@ func (m *RegistryDAL) SetBlobRefCount(storageKey string, blob registry_domain.Bl
 	}
 }
 
-// AddGCHint adds a GC hint directly to the registry.
-// This is a test helper.
+// AddGCHint adds a GC hint directly to the registry. This is a test helper.
 //
-// Takes hint (registry_dto.GCHint) which specifies the garbage collection hint
-// to add.
+// Takes hint (registry_dto.GCHint) which specifies the garbage collection hint to add.
 //
 // Safe for concurrent use.
 func (m *RegistryDAL) AddGCHint(hint registry_dto.GCHint) {
@@ -662,12 +657,11 @@ func (m *RegistryDAL) GetGCHintCount() int {
 
 // withTransaction is an internal helper used by RunAtomic.
 //
-// Takes operation (func(...)) which is the function to execute within
-// the transaction. The function receives a transaction-isolated copy
-// of the DAL.
+// Takes operation (func(...)) which is the function to execute within the transaction.
+// The function receives a transaction-isolated copy of the DAL.
 //
-// Returns error when the transaction function fails or when configured
-// mock behaviour returns an error.
+// Returns error when the transaction function fails or when configured mock behaviour
+// returns an error.
 //
 // Safe for concurrent use. Holds a mutex lock for the duration of the transaction.
 func (m *RegistryDAL) withTransaction(ctx context.Context, operation func(ctx context.Context, dal registry_dal.RegistryDAL) error) error {
@@ -731,11 +725,9 @@ func (m *RegistryDAL) executeBehaviour(method string) error {
 	return nil
 }
 
-// createTransactionCopy creates a deep copy of the mock for transaction
-// isolation.
+// createTransactionCopy creates a deep copy of the mock for transaction isolation.
 //
-// Returns *RegistryDAL which is the isolated copy with inTransaction set to
-// true.
+// Returns *RegistryDAL which is the isolated copy with inTransaction set to true.
 func (m *RegistryDAL) createTransactionCopy() *RegistryDAL {
 	txMock := &RegistryDAL{
 		artefacts:             make(map[string]*registry_dto.ArtefactMeta),
@@ -787,14 +779,13 @@ func (m *RegistryDAL) commitTransaction(txMock *RegistryDAL) {
 	m.calls = append(m.calls, txMock.calls...)
 }
 
-// findMatchingIDsByTagIntersection finds artefact IDs that match all tag
-// key-value pairs.
+// findMatchingIDsByTagIntersection finds artefact IDs that match all tag key-value pairs.
 //
-// Takes tagQuery (map[string]string) which specifies the tag key-value pairs
-// to match against.
+// Takes tagQuery (map[string]string) which specifies the tag key-value pairs to match
+// against.
 //
-// Returns map[string]struct{} which contains the matching artefact IDs, or an
-// empty map if no matches are found.
+// Returns map[string]struct{} which contains the matching artefact IDs, or an empty map
+// if no matches are found.
 func (m *RegistryDAL) findMatchingIDsByTagIntersection(tagQuery map[string]string) map[string]struct{} {
 	var matchingIDs map[string]struct{}
 
@@ -818,8 +809,8 @@ func (m *RegistryDAL) findMatchingIDsByTagIntersection(tagQuery map[string]strin
 // Takes tagKey (string) which specifies the tag key to look up.
 // Takes tagValue (string) which specifies the tag value to match.
 //
-// Returns []string which contains the matching artefact IDs, or nil if the
-// tag key or value does not exist.
+// Returns []string which contains the matching artefact IDs, or nil if the tag key or
+// value does not exist.
 func (m *RegistryDAL) getIDsForTag(tagKey, tagValue string) []string {
 	valueMap, keyExists := m.tagIndex[tagKey]
 	if !keyExists {
@@ -832,15 +823,15 @@ func (m *RegistryDAL) getIDsForTag(tagKey, tagValue string) []string {
 	return ids
 }
 
-// intersectIDSets finds the common IDs between a set and a slice.
-// If existing is nil, creates a new set from the ids slice.
+// intersectIDSets finds the common IDs between a set and a slice. If existing is nil,
+// creates a new set from the ids slice.
 //
-// Takes existing (map[string]struct{}) which is the current set to check
-// against, or nil to create a new set.
+// Takes existing (map[string]struct{}) which is the current set to check against, or nil
+// to create a new set.
 // Takes ids ([]string) which contains the IDs to match or add.
 //
-// Returns map[string]struct{} which contains only IDs found in both inputs,
-// or all IDs if existing was nil.
+// Returns map[string]struct{} which contains only IDs found in both inputs, or all IDs if
+// existing was nil.
 func (*RegistryDAL) intersectIDSets(existing map[string]struct{}, ids []string) map[string]struct{} {
 	if existing == nil {
 		newSet := make(map[string]struct{}, len(ids))
@@ -863,8 +854,7 @@ func (*RegistryDAL) intersectIDSets(existing map[string]struct{}, ids []string) 
 //
 // Takes ids (map[string]struct{}) which specifies the artefact IDs to collect.
 //
-// Returns []*registry_dto.ArtefactMeta which contains copies of the matching
-// artefacts.
+// Returns []*registry_dto.ArtefactMeta which contains copies of the matching artefacts.
 func (m *RegistryDAL) collectArtefactsByIDs(ids map[string]struct{}) []*registry_dto.ArtefactMeta {
 	results := make([]*registry_dto.ArtefactMeta, 0, len(ids))
 	for id := range ids {
@@ -901,8 +891,8 @@ func (m *RegistryDAL) deleteArtefactInternal(artefactID string) {
 
 // addArtefactIndexEntries adds index entries for an artefact.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact
-// metadata to be indexed.
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the artefact metadata to be
+// indexed.
 func (m *RegistryDAL) addArtefactIndexEntries(artefact *registry_dto.ArtefactMeta) {
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
@@ -919,8 +909,8 @@ func (m *RegistryDAL) addArtefactIndexEntries(artefact *registry_dto.ArtefactMet
 
 // removeArtefactIndexEntries removes index entries for an artefact.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which specifies the artefact
-// whose index entries should be removed.
+// Takes artefact (*registry_dto.ArtefactMeta) which specifies the artefact whose index
+// entries should be removed.
 func (m *RegistryDAL) removeArtefactIndexEntries(artefact *registry_dto.ArtefactMeta) {
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
@@ -932,8 +922,8 @@ func (m *RegistryDAL) removeArtefactIndexEntries(artefact *registry_dto.Artefact
 	}
 }
 
-// removeIDFromTagIndex removes an artefact ID from a specific tag key-value
-// pair in the index.
+// removeIDFromTagIndex removes an artefact ID from a specific tag key-value pair in the
+// index.
 //
 // Takes tagKey (string) which identifies the tag category.
 // Takes tagValue (string) which specifies the tag value within the category.

@@ -25,23 +25,24 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// defaultPoolSize is the number of pre-allocated analysers in the pool. It
-// matches the number of CPUs to allow one analyser per goroutine without
-// contention.
-var defaultPoolSize = runtime.NumCPU()
+var (
+	// defaultPoolSize is the number of pre-allocated analysers in the pool. It matches the
+	// number of CPUs to allow one analyser per goroutine without contention.
+	defaultPoolSize = runtime.NumCPU()
+)
 
-// NewTextAnalyser creates a [cache_dto.TextAnalyseFunc] from a linguistics
-// configuration. The returned function uses an internal analyser pool for
-// concurrent safety and low allocation overhead.
+// NewTextAnalyser creates a [cache_dto.TextAnalyseFunc] from a linguistics configuration.
+// The returned function uses an internal analyser pool for concurrent safety and low
+// allocation overhead.
 //
-// In [linguistics_domain.AnalysisModeSmart] mode, tokens are stemmed to their
-// root form (e.g. "running" -> "run"). In other modes, normalised tokens are
-// returned (lowercase, diacritics removed, stop words filtered).
+// In [linguistics_domain.AnalysisModeSmart] mode, tokens are stemmed to their root form
+// (e.g. "running" -> "run"). In other modes, normalised tokens are returned (lowercase,
+// diacritics removed, stop words filtered).
 //
-// Takes config (linguistics_domain.AnalyserConfig) which specifies language,
-// mode, stop words, and token length limits.
-// Takes opts (...linguistics_domain.Option) which configure custom stemmers,
-// phonetic encoders, or stop words providers.
+// Takes config (linguistics_domain.AnalyserConfig) which specifies language, mode, stop
+// words, and token length limits.
+// Takes opts (...linguistics_domain.Option) which configure custom stemmers, phonetic
+// encoders, or stop words providers.
 //
 // Returns cache_dto.TextAnalyseFunc which is safe for concurrent use.
 func NewTextAnalyser(config linguistics_domain.AnalyserConfig, opts ...linguistics_domain.Option) cache_dto.TextAnalyseFunc {
@@ -58,11 +59,10 @@ func NewTextAnalyser(config linguistics_domain.AnalyserConfig, opts ...linguisti
 	}
 }
 
-// NewEnglishTextAnalyser creates a text analyser configured for English
-// with Smart mode (stemming and phonetic encoding).
+// NewEnglishTextAnalyser creates a text analyser configured for English with Smart mode
+// (stemming and phonetic encoding).
 //
-// This is a convenience function equivalent to:
-// NewTextAnalyser(smartConfig,
+// This is a convenience function equivalent to: NewTextAnalyser(smartConfig,
 //
 //	linguistics_domain.WithLanguage("english"))
 //
@@ -70,8 +70,7 @@ func NewTextAnalyser(config linguistics_domain.AnalyserConfig, opts ...linguisti
 //
 //	_ "piko.sh/piko/wdk/linguistics/linguistics_language_english"
 //
-// Returns cache_dto.TextAnalyseFunc which is safe for concurrent
-// use.
+// Returns cache_dto.TextAnalyseFunc which is safe for concurrent use.
 func NewEnglishTextAnalyser() cache_dto.TextAnalyseFunc {
 	config := linguistics_domain.DefaultConfigForLanguage(linguistics_domain.LanguageEnglish)
 	config.Mode = linguistics_domain.AnalysisModeSmart
@@ -79,21 +78,17 @@ func NewEnglishTextAnalyser() cache_dto.TextAnalyseFunc {
 	return NewTextAnalyser(config, linguistics_domain.WithLanguage(linguistics_domain.LanguageEnglish))
 }
 
-// NewTextAnalyserForLanguage creates a text analyser for the
-// specified language.
+// NewTextAnalyserForLanguage creates a text analyser for the specified language.
 //
-// The analyser uses Smart mode with language-specific stemming and
-// phonetic encoding. Language adapters must be imported for these
-// features to work:
+// The analyser uses Smart mode with language-specific stemming and phonetic encoding.
+// Language adapters must be imported for these features to work:
 //
 //	_ "piko.sh/piko/wdk/linguistics/linguistics_language_french"
 //
-// Takes language (string) which is the language code (e.g.
-// "english", "french", "german", "spanish", "dutch", "russian",
-// "swedish", "norwegian", "hungarian").
+// Takes language (string) which is the language code (e.g. "english", "french", "german",
+// "spanish", "dutch", "russian", "swedish", "norwegian", "hungarian").
 //
-// Returns cache_dto.TextAnalyseFunc which is safe for concurrent
-// use.
+// Returns cache_dto.TextAnalyseFunc which is safe for concurrent use.
 func NewTextAnalyserForLanguage(language string) cache_dto.TextAnalyseFunc {
 	config := linguistics_domain.DefaultConfigForLanguage(language)
 	config.Mode = linguistics_domain.AnalysisModeSmart

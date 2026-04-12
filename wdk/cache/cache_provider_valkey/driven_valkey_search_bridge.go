@@ -66,8 +66,7 @@ func (a *ValkeyAdapter[K, V]) EstimatedSize() int {
 
 // Stats returns cache statistics from the Valkey server.
 //
-// Returns cache.Stats which contains hit and miss counts from the server's
-// INFO command.
+// Returns cache.Stats which contains hit and miss counts from the server's INFO command.
 func (a *ValkeyAdapter[K, V]) Stats() cache.Stats {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("valkey Stats exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -123,11 +122,11 @@ func (a *ValkeyAdapter[K, V]) Close(ctx context.Context) error {
 	return nil
 }
 
-// SetExpiresAfter updates the time-to-live for an existing key using the
-// Valkey EXPIRE command.
+// SetExpiresAfter updates the time-to-live for an existing key using the Valkey EXPIRE
+// command.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -156,8 +155,8 @@ func (a *ValkeyAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, expire
 
 // GetMaximum returns the Valkey maxmemory configuration value.
 //
-// Returns uint64 which is the maximum memory in bytes, or 0 if the value
-// cannot be retrieved or parsed.
+// Returns uint64 which is the maximum memory in bytes, or 0 if the value cannot be
+// retrieved or parsed.
 func (a *ValkeyAdapter[K, V]) GetMaximum() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("valkey GetMaximum exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -185,11 +184,10 @@ func (*ValkeyAdapter[K, V]) SetMaximum(_ uint64) {
 	l.Warn("SetMaximum is not supported by the Valkey provider and will have no effect.")
 }
 
-// WeightedSize returns the memory usage in bytes from the Valkey used_memory
-// statistic.
+// WeightedSize returns the memory usage in bytes from the Valkey used_memory statistic.
 //
-// Returns uint64 which is the memory usage in bytes, or zero if the statistic
-// cannot be read.
+// Returns uint64 which is the memory usage in bytes, or zero if the statistic cannot be
+// read.
 func (a *ValkeyAdapter[K, V]) WeightedSize() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("valkey WeightedSize exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -212,8 +210,7 @@ func (a *ValkeyAdapter[K, V]) WeightedSize() uint64 {
 	return 0
 }
 
-// SetRefreshableAfter is a no-op as Valkey does not natively support refresh
-// scheduling.
+// SetRefreshableAfter is a no-op as Valkey does not natively support refresh scheduling.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 //
@@ -225,14 +222,13 @@ func (*ValkeyAdapter[K, V]) SetRefreshableAfter(ctx context.Context, _ K, _ time
 	return nil
 }
 
-// Search performs full-text search across indexed TEXT fields, returning an
-// error for text queries because Valkey Search does not support TEXT fields
-// and directing callers to use Query() instead.
+// Search performs full-text search across indexed TEXT fields, returning an error for
+// text queries because Valkey Search does not support TEXT fields and directing callers
+// to use Query() instead.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes query (string) which is the search query to match against TEXT fields.
-// Takes opts (*cache.SearchOptions) which contains filters, pagination, and
-// sorting.
+// Takes opts (*cache.SearchOptions) which contains filters, pagination, and sorting.
 //
 // Returns SearchResult containing matching items and total count.
 // Returns error if search is not supported or the search fails.
@@ -257,13 +253,11 @@ func (a *ValkeyAdapter[K, V]) Search(ctx context.Context, query string, opts *ca
 	return a.searchWithValkeySearch(timeoutCtx, query, opts)
 }
 
-// Query performs structured filtering, sorting, and pagination without
-// full-text search.
+// Query performs structured filtering, sorting, and pagination without full-text search.
 // Returns ErrSearchNotSupported if no SearchSchema was configured.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
-// Takes opts (*cache.QueryOptions) which contains filters, pagination, and
-// sorting.
+// Takes opts (*cache.QueryOptions) which contains filters, pagination, and sorting.
 //
 // Returns SearchResult containing matching items and total count.
 // Returns error if search is not supported or the query fails.
@@ -290,8 +284,8 @@ func (a *ValkeyAdapter[K, V]) SupportsSearch() bool {
 
 // GetSchema returns the search schema set for this cache.
 //
-// Returns *cache.SearchSchema which is the schema for this cache, or nil if
-// the cache does not support search.
+// Returns *cache.SearchSchema which is the schema for this cache, or nil if the cache
+// does not support search.
 func (a *ValkeyAdapter[K, V]) GetSchema() *cache.SearchSchema {
 	return a.schema
 }

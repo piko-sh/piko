@@ -33,8 +33,8 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// seoService generates SEO files such as sitemaps and robots.txt.
-// It implements SEOService, SEOServicePort, and Probe interfaces.
+// seoService generates SEO files such as sitemaps and robots.txt. It implements
+// SEOService, SEOServicePort, and Probe interfaces.
 type seoService struct {
 	// storagePort handles writing sitemaps and robots.txt files to storage.
 	storagePort SEOStoragePort
@@ -49,11 +49,11 @@ type seoService struct {
 	config config.SEOConfig
 }
 
-// GenerateArtefacts creates sitemap.xml and robots.txt files and stores them
-// in the registry. It implements the SEOService interface.
+// GenerateArtefacts creates sitemap.xml and robots.txt files and stores them in the
+// registry. It implements the SEOService interface.
 //
-// Takes view (*seo_dto.ProjectView) which provides the project data for
-// sitemap generation.
+// Takes view (*seo_dto.ProjectView) which provides the project data for sitemap
+// generation.
 //
 // Returns error when sitemap generation fails or robots.txt cannot be stored.
 func (s *seoService) GenerateArtefacts(ctx context.Context, view *seo_dto.ProjectView) error {
@@ -76,19 +76,19 @@ func (s *seoService) GenerateArtefacts(ctx context.Context, view *seo_dto.Projec
 	})
 }
 
-// Name returns the probe's identifier for health check reporting.
-// It implements the healthprobe_domain.Probe interface.
+// Name returns the probe's identifier for health check reporting. It implements the
+// healthprobe_domain.Probe interface.
 //
 // Returns string which is the probe name "SEOService".
 func (*seoService) Name() string {
 	return "SEOService"
 }
 
-// Check implements the healthprobe_domain.Probe interface. It checks
-// whether the SEO service is working.
+// Check implements the healthprobe_domain.Probe interface. It checks whether the SEO
+// service is working.
 //
-// Returns healthprobe_dto.Status which indicates healthy state when fully
-// operational, or degraded state when the storage port is not initialised.
+// Returns healthprobe_dto.Status which indicates healthy state when fully operational, or
+// degraded state when the storage port is not initialised.
 func (s *seoService) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -112,8 +112,7 @@ func (s *seoService) Check(_ context.Context, _ healthprobe_dto.CheckType) healt
 
 // generateAndStoreSitemaps builds and stores all sitemap files.
 //
-// Takes view (*seo_dto.ProjectView) which provides the project data for
-// sitemap creation.
+// Takes view (*seo_dto.ProjectView) which provides the project data for sitemap creation.
 //
 // Returns int which is the total number of URLs in the sitemaps.
 // Returns error when building or storing the sitemap fails.
@@ -139,14 +138,13 @@ func (s *seoService) generateAndStoreSitemaps(
 
 // storeSitemapWithIndex stores several sitemap chunks and a sitemap index.
 //
-// Takes result (*seo_dto.SitemapBuildResult) which contains the sitemaps and
-// index to store.
-// Takes compressionProfiles ([]registry_dto.NamedProfile) which specifies the
-// compression formats to use.
+// Takes result (*seo_dto.SitemapBuildResult) which contains the sitemaps and index to
+// store.
+// Takes compressionProfiles ([]registry_dto.NamedProfile) which specifies the compression
+// formats to use.
 //
 // Returns int which is the total number of URLs stored across all chunks.
-// Returns error when storing a sitemap chunk fails or the index cannot be
-// saved.
+// Returns error when storing a sitemap chunk fails or the index cannot be saved.
 func (s *seoService) storeSitemapWithIndex(
 	ctx context.Context,
 	result *seo_dto.SitemapBuildResult,
@@ -184,8 +182,8 @@ func (s *seoService) storeSitemapWithIndex(
 // storeSingleSitemap saves a single sitemap file as sitemap.xml.
 //
 // Takes sitemap (seo_dto.Sitemap) which contains the URLs to store.
-// Takes compressionProfiles ([]registry_dto.NamedProfile) which specifies
-// which compression formats to use.
+// Takes compressionProfiles ([]registry_dto.NamedProfile) which specifies which
+// compression formats to use.
 //
 // Returns int which is the number of URLs stored.
 // Returns error when XML conversion fails or storage fails.
@@ -215,11 +213,10 @@ func (s *seoService) storeSingleSitemap(
 
 // marshalAndStoreSitemap marshals a sitemap to XML and stores it.
 //
-// Takes sitemap (*seo_dto.Sitemap) which provides the sitemap data to
-// marshal.
+// Takes sitemap (*seo_dto.Sitemap) which provides the sitemap data to marshal.
 // Takes artefactID (string) which identifies where to store the result.
-// Takes compressionProfiles ([]registry_dto.NamedProfile) which specifies
-// which compression formats to apply.
+// Takes compressionProfiles ([]registry_dto.NamedProfile) which specifies which
+// compression formats to apply.
 //
 // Returns error when XML marshalling fails or storage fails.
 func (s *seoService) marshalAndStoreSitemap(
@@ -243,10 +240,9 @@ func (s *seoService) marshalAndStoreSitemap(
 
 // storeSitemapIndexFile marshals and stores a sitemap index as sitemap.xml.
 //
-// Takes index (*seo_dto.SitemapIndex) which specifies the sitemap index to
-// marshal.
-// Takes compressionProfiles ([]registry_dto.NamedProfile) which defines the
-// compression formats to apply when storing.
+// Takes index (*seo_dto.SitemapIndex) which specifies the sitemap index to marshal.
+// Takes compressionProfiles ([]registry_dto.NamedProfile) which defines the compression
+// formats to apply when storing.
 //
 // Returns error when XML marshalling fails or storage fails.
 func (s *seoService) storeSitemapIndexFile(
@@ -311,8 +307,8 @@ func (*seoService) recordMetrics(
 
 // buildCompressionProfiles creates compression profiles for sitemap storage.
 //
-// Returns []registry_dto.NamedProfile which contains profiles for gzip and
-// brotli compression.
+// Returns []registry_dto.NamedProfile which contains profiles for gzip and brotli
+// compression.
 func (*seoService) buildCompressionProfiles() []registry_dto.NamedProfile {
 	gzipTags := registry_dto.Tags{}
 	gzipTags.SetByName("encoding", "gzip")
@@ -345,13 +341,13 @@ type SEOServiceOption func(*seoServiceOptions)
 
 // seoServiceOptions holds optional configuration for the SEO service.
 type seoServiceOptions struct {
-	// sandboxFactory holds the sandbox factory for file operations such as
-	// checking sitemap file modification times.
+	// sandboxFactory holds the sandbox factory for file operations such as checking sitemap
+	// file modification times.
 	sandboxFactory safedisk.Factory
 }
 
-// WithSEOSandboxFactory sets a sandbox factory for file operations such as
-// checking sitemap file modification times.
+// WithSEOSandboxFactory sets a sandbox factory for file operations such as checking
+// sitemap file modification times.
 //
 // Takes factory (safedisk.Factory) which provides sandboxed filesystem access.
 //
@@ -365,16 +361,15 @@ func WithSEOSandboxFactory(factory safedisk.Factory) SEOServiceOption {
 // NewSEOService creates a new SEO service with all required dependencies.
 //
 // Takes seoConfig (config.SEOConfig) which specifies the SEO settings.
-// Takes i18nDefaultLocale (string) which specifies the default locale for
+// Takes i18nDefaultLocale (string) which specifies the default locale for sitemap
+// generation.
+// Takes storagePort (SEOStoragePort) which provides the storage backend for SEO data.
+// Takes dynamicURLPort (DynamicURLSourcePort) which supplies dynamic URL sources for
 // sitemap generation.
-// Takes storagePort (SEOStoragePort) which provides the storage backend for
-// SEO data.
-// Takes dynamicURLPort (DynamicURLSourcePort) which supplies dynamic URL
-// sources for sitemap generation.
 //
 // Returns SEOService which is the configured service ready for use.
-// Returns error when SEO is disabled in the configuration or when the
-// sitemap hostname is not set.
+// Returns error when SEO is disabled in the configuration or when the sitemap hostname is
+// not set.
 func NewSEOService(
 	seoConfig config.SEOConfig,
 	i18nDefaultLocale string,

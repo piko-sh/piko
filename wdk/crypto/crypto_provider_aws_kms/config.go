@@ -22,20 +22,25 @@ import (
 	"errors"
 )
 
-// defaultMaxRetries is the default maximum number of retry attempts for
-// transient failures.
-const defaultMaxRetries = 3
+const (
+	// defaultMaxRetries is the default maximum number of retry attempts for transient
+	// failures.
+	defaultMaxRetries = 3
+)
 
-// Config holds configuration for the AWS KMS encryption provider. This provider
-// delegates all cryptographic operations to AWS Key Management Service,
-// ensuring that master keys never leave AWS's Hardware Security Modules (HSMs).
+// Config holds configuration for the AWS KMS encryption provider. This provider delegates
+// all cryptographic operations to AWS Key Management Service, ensuring that master keys
+// never leave AWS's Hardware Security Modules (HSMs).
 type Config struct {
-	// KeyID is the identifier for the KMS key. Can be one of:
+	// KeyID is the identifier for the KMS key.
+	//
+	// Accepted forms:
 	//   - Key ID: 1234abcd-12ab-34cd-56ef-1234567890ab
 	//   - Key ARN, e.g.:
 	//     arn:aws:kms:us-east-1:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab
 	//   - Alias name: alias/my-key
 	//   - Alias ARN: arn:aws:kms:us-east-1:123456789012:alias/my-key
+	//
 	// Required.
 	KeyID string
 
@@ -43,12 +48,12 @@ type Config struct {
 	// "eu-west-1"). REQUIRED.
 	Region string
 
-	// MaxRetries is the maximum number of retry attempts for short-lived failures.
-	// Default is 3; must be zero or greater.
+	// MaxRetries is the maximum number of retry attempts for short-lived failures. Default
+	// is 3; must be zero or greater.
 	MaxRetries int
 
-	// EnableMetrics enables CloudWatch metric publishing for KMS operations.
-	// Default is false.
+	// EnableMetrics enables CloudWatch metric publishing for KMS operations. Default is
+	// false.
 	EnableMetrics bool
 }
 
@@ -70,8 +75,7 @@ func (c *Config) Validate() error {
 
 // WithDefaults returns a copy of the config with default values applied.
 //
-// Returns Config which has default values set for any fields that were not
-// specified.
+// Returns Config which has default values set for any fields that were not specified.
 func (c Config) WithDefaults() Config {
 	if c.MaxRetries == 0 {
 		c.MaxRetries = defaultMaxRetries

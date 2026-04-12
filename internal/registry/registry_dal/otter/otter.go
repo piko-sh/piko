@@ -38,12 +38,11 @@ const (
 	// defaultCacheCapacity is the default number of items the cache can store.
 	defaultCacheCapacity = 100_000
 
-	// maxTransactionTimeout is the maximum duration a RunAtomic transaction
-	// may hold the mutex before the context is cancelled.
+	// maxTransactionTimeout is the maximum duration a RunAtomic transaction may hold the
+	// mutex before the context is cancelled.
 	maxTransactionTimeout = 30 * time.Second
 
-	// tagKeySeparator joins tag keys and values in the tag index (e.g.
-	// "category:blog").
+	// tagKeySeparator joins tag keys and values in the tag index (e.g. "category:blog").
 	tagKeySeparator = ":"
 )
 
@@ -65,27 +64,24 @@ type blobRef struct {
 	refCount int
 }
 
-// DAL provides in-memory storage for registry artefacts using otter cache.
-// It implements RegistryDALWithTx and RegistryInspector.
+// DAL provides in-memory storage for registry artefacts using otter cache. It implements
+// RegistryDALWithTx and RegistryInspector.
 type DAL struct {
-	// artefacts stores artefact metadata by artefact ID. Uses the cache
-	// hexagon's ProviderPort for optional WAL persistence.
+	// artefacts stores artefact metadata by artefact ID. Uses the cache hexagon's
+	// ProviderPort for optional WAL persistence.
 	artefacts cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta]
 
-	// tagIndex maps "tagKey:tagValue" strings to sets of artefact IDs for
-	// tag-based search. Uses the cache hexagon's TagIndex for fast exact-match
-	// lookups.
+	// tagIndex maps "tagKey:tagValue" strings to sets of artefact IDs for tag-based search.
+	// Uses the cache hexagon's TagIndex for fast exact-match lookups.
 	tagIndex *provider_otter.TagIndex[string]
 
-	// variantKeyIndex maps variant and chunk storage keys to their parent artefact
-	// ID.
+	// variantKeyIndex maps variant and chunk storage keys to their parent artefact ID.
 	variantKeyIndex map[string]string
 
-	// blobRefs maps storage keys to their reference counts for content
-	// deduplication.
+	// blobRefs maps storage keys to their reference counts for content deduplication.
 	blobRefs map[string]*blobRef
 
-	// gcHints holds garbage collection hints for orphaned blobs awaiting removal.
+	// gcHints holds garbage collection hints for orphaned blobs queued for removal.
 	gcHints []registry_dto.GCHint
 
 	// ownsCache indicates whether this DAL is responsible for closing the cache.
@@ -97,8 +93,8 @@ type DAL struct {
 
 // Config holds settings for the otter-based registry DAL.
 type Config struct {
-	// Capacity is the maximum number of items to store.
-	// Defaults to 100,000 if zero or negative.
+	// Capacity is the maximum number of items to store. Defaults to 100,000 if zero or
+	// negative.
 	Capacity int64
 }
 
@@ -124,32 +120,29 @@ func (d *DAL) Close() error {
 
 // RunAtomic executes fn within a transaction with rollback support.
 //
-// All cache mutations are journalled so they can be undone if fn
-// returns an error. Non-cache state (blobRefs, gcHints,
-// variantKeyIndex) is snapshotted and restored on rollback.
+// All cache mutations are journalled so they can be undone if fn returns an error.
+// Non-cache state (blobRefs, gcHints, variantKeyIndex) is snapshotted and restored on
+// rollback.
 //
-// Takes fn (func) which receives a transactional MetadataStore
-// scoped to this transaction.
+// Takes fn (func) which receives a transactional MetadataStore scoped to this
+// transaction.
 //
-// Returns error when fn returns an error (after rolling back all
-// mutations) or when the transaction context is cancelled before commit.
+// Returns error when fn returns an error (after rolling back all mutations) or when the
+// transaction context is cancelled before commit.
 //
-// Panics if fn panics; the transaction is rolled back before the
-// panic is re-raised.
+// Panics if fn panics; the transaction is rolled back before the panic is re-raised.
 //
 // Concurrency: safe for concurrent use; acquires a write lock for the entire duration.
 //
-// IMPORTANT: fn MUST NOT block on I/O, network, or any external resource. The
-// DAL holds an exclusive write lock for the entire duration of fn, so any
-// blocking work inside the callback stalls every other reader and writer of
-// this DAL. The provided ctx carries a maxTransactionTimeout deadline (see
-// the constant) which fn should respect by checking ctx.Err() at decision
-// points; on timeout the transaction is rolled back at the goto cancel/commit
-// path. The lock-wide model is intentional for the in-memory otter DAL where
-// cross-key journalling and tag-index integrity demand consistent reads of
-// non-cache state during the callback. A sharded or per-key locking refactor
-// would require redesigning the snapshot/rollback protocol and is tracked
-// outside this fix.
+// IMPORTANT: fn MUST NOT block on I/O, network, or any external resource. The DAL holds
+// an exclusive write lock for the entire duration of fn, so any blocking work inside the
+// callback stalls every other reader and writer of this DAL. The provided ctx carries a
+// maxTransactionTimeout deadline (see the constant) which fn should respect by checking
+// ctx.Err() at decision points; on timeout the transaction is rolled back at the goto
+// cancel/commit path. The lock-wide model is intentional for the in-memory otter DAL
+// where cross-key journalling and tag-index integrity demand consistent reads of
+// non-cache state during the callback. A sharded or per-key locking refactor would
+// require redesigning the snapshot/rollback protocol and is tracked outside this fix.
 func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error {
 	ctx, cancel := context.WithTimeoutCause(ctx, maxTransactionTimeout,
 		fmt.Errorf("transaction exceeded maximum duration of %s", maxTransactionTimeout))
@@ -207,31 +200,28 @@ func (d *DAL) RunAtomic(ctx context.Context, fn func(ctx context.Context, transa
 	return nil
 }
 
-// otterTransactionDAL is a transaction-scoped MetadataStore that
-// wraps the parent DAL.
+// otterTransactionDAL is a transaction-scoped MetadataStore that wraps the parent DAL.
 //
-// It uses a journalled cache for artefact mutations and snapshots
-// non-cache state (blobRefs, gcHints, variantKeyIndex) for
-// rollback. All methods skip mutex acquisition since the parent's
-// mu is already held by RunAtomic.
+// It uses a journalled cache for artefact mutations and snapshots non-cache state
+// (blobRefs, gcHints, variantKeyIndex) for rollback. All methods skip mutex acquisition
+// since the parent's mu is already held by RunAtomic.
 type otterTransactionDAL struct {
 	// parent is the owning DAL whose state is being mutated.
 	parent *DAL
 
-	// transactionCache journals artefact cache mutations for
-	// rollback.
+	// transactionCache journals artefact cache mutations for rollback.
 	transactionCache cache_domain.TransactionCache[string, *registry_dto.ArtefactMeta]
 
-	// blobRefSnapshots stores the old blobRef value (or nil if absent) for each
-	// key that was mutated. Only the first mutation per key is recorded.
+	// blobRefSnapshots stores the old blobRef value (or nil if absent) for each key that was
+	// mutated. Only the first mutation per key is recorded.
 	blobRefSnapshots map[string]*blobRef
 
-	// newBlobRefKeys tracks keys that were created during the transaction (did
-	// not exist before). On rollback these are deleted.
+	// newBlobRefKeys tracks keys that were created during the transaction (did not exist
+	// before). On rollback these are deleted.
 	newBlobRefKeys map[string]struct{}
 
-	// variantKeySnapshots stores the old variantKeyIndex value (or "" if absent)
-	// for each key that was mutated.
+	// variantKeySnapshots stores the old variantKeyIndex value (or "" if absent) for each
+	// key that was mutated.
 	variantKeySnapshots map[string]string
 
 	// newVariantKeys tracks keys that were created during the transaction.
@@ -255,13 +245,11 @@ func (tx *otterTransactionDAL) GetArtefact(ctx context.Context, artefactID strin
 	return artefact, nil
 }
 
-// GetMultipleArtefacts fetches several artefacts from the
-// transaction cache.
+// GetMultipleArtefacts fetches several artefacts from the transaction cache.
 //
 // Takes artefactIDs ([]string) which lists the IDs to fetch.
 //
-// Returns []*ArtefactMeta which contains the found
-// artefacts.
+// Returns []*ArtefactMeta which contains the found artefacts.
 // Returns error which is always nil.
 func (tx *otterTransactionDAL) GetMultipleArtefacts(ctx context.Context, artefactIDs []string) ([]*registry_dto.ArtefactMeta, error) {
 	results := make([]*registry_dto.ArtefactMeta, 0, len(artefactIDs))
@@ -275,8 +263,7 @@ func (tx *otterTransactionDAL) GetMultipleArtefacts(ctx context.Context, artefac
 	return results, nil
 }
 
-// ListAllArtefactIDs returns all artefact IDs from the transaction
-// cache.
+// ListAllArtefactIDs returns all artefact IDs from the transaction cache.
 //
 // Returns []string which contains all artefact IDs.
 // Returns error which is always nil.
@@ -290,11 +277,9 @@ func (tx *otterTransactionDAL) ListAllArtefactIDs(_ context.Context) ([]string, 
 
 // SearchArtefacts finds artefacts matching the given tag query.
 //
-// Takes query (registry_domain.SearchQuery) which specifies the
-// search terms.
+// Takes query (registry_domain.SearchQuery) which specifies the search terms.
 //
-// Returns []*ArtefactMeta which contains the matching
-// artefacts.
+// Returns []*ArtefactMeta which contains the matching artefacts.
 // Returns error which is always nil.
 func (tx *otterTransactionDAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
 	if len(query.SimpleTagQuery) == 0 {
@@ -315,14 +300,12 @@ func (tx *otterTransactionDAL) SearchArtefacts(ctx context.Context, query regist
 	return results, nil
 }
 
-// SearchArtefactsByTagValues searches for artefacts with a specific
-// tag key.
+// SearchArtefactsByTagValues searches for artefacts with a specific tag key.
 //
 // Takes tagKey (string) which specifies the tag key to match.
 // Takes tagValues ([]string) which lists acceptable values.
 //
-// Returns []*ArtefactMeta which contains the matching
-// artefacts.
+// Returns []*ArtefactMeta which contains the matching artefacts.
 // Returns error which is always nil.
 func (tx *otterTransactionDAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error) {
 	if len(tagValues) == 0 {
@@ -346,8 +329,7 @@ func (tx *otterTransactionDAL) SearchArtefactsByTagValues(ctx context.Context, t
 	return results, nil
 }
 
-// FindArtefactByVariantStorageKey finds an artefact by variant
-// storage key.
+// FindArtefactByVariantStorageKey finds an artefact by variant storage key.
 //
 // Takes storageKey (string) which identifies the variant.
 //
@@ -386,8 +368,7 @@ func (tx *otterTransactionDAL) PopGCHints(_ context.Context, limit int) ([]regis
 
 // AtomicUpdate runs a batch of actions using the transaction cache.
 //
-// Takes actions ([]registry_dto.AtomicAction) which lists the
-// operations to perform.
+// Takes actions ([]registry_dto.AtomicAction) which lists the operations to perform.
 //
 // Returns error when any action fails.
 func (tx *otterTransactionDAL) AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error {
@@ -415,11 +396,9 @@ func (tx *otterTransactionDAL) AtomicUpdate(ctx context.Context, actions []regis
 	return nil
 }
 
-// IncrementBlobRefCount increments the reference count,
-// snapshotting first.
+// IncrementBlobRefCount increments the reference count, snapshotting first.
 //
-// Takes blob (registry_domain.BlobReference) which identifies the
-// blob.
+// Takes blob (registry_domain.BlobReference) which identifies the blob.
 //
 // Returns int which is the count after the increment.
 // Returns error which is always nil.
@@ -440,8 +419,7 @@ func (tx *otterTransactionDAL) IncrementBlobRefCount(_ context.Context, blob reg
 	return ref.refCount, nil
 }
 
-// DecrementBlobRefCount decrements the reference count,
-// snapshotting first.
+// DecrementBlobRefCount decrements the reference count, snapshotting first.
 //
 // Takes storageKey (string) which identifies the blob.
 //
@@ -493,8 +471,7 @@ func (*otterTransactionDAL) Close() error {
 	return nil
 }
 
-// snapshotBlobRef records the old value for a blob ref key before
-// mutation.
+// snapshotBlobRef records the old value for a blob ref key before mutation.
 //
 // Takes key (string) which identifies the blob ref to snapshot.
 func (tx *otterTransactionDAL) snapshotBlobRef(key string) {
@@ -514,8 +491,7 @@ func (tx *otterTransactionDAL) snapshotBlobRef(key string) {
 	}
 }
 
-// snapshotVariantKey records the old value for a variant key index
-// entry.
+// snapshotVariantKey records the old value for a variant key index entry.
 //
 // Takes key (string) which identifies the variant key to snapshot.
 func (tx *otterTransactionDAL) snapshotVariantKey(key string) {
@@ -569,11 +545,9 @@ func (tx *otterTransactionDAL) rollback(ctx context.Context) {
 	}
 }
 
-// upsertArtefactLocked inserts or updates an artefact in the
-// transaction cache.
+// upsertArtefactLocked inserts or updates an artefact in the transaction cache.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which is the
-// artefact to store.
+// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to store.
 func (tx *otterTransactionDAL) upsertArtefactLocked(ctx context.Context, artefact *registry_dto.ArtefactMeta) {
 	if old, found, _ := tx.transactionCache.GetIfPresent(ctx, artefact.ID); found {
 		tx.removeArtefactIndexesLocked(old)
@@ -584,11 +558,9 @@ func (tx *otterTransactionDAL) upsertArtefactLocked(ctx context.Context, artefac
 	tx.addArtefactIndexesLocked(artefact)
 }
 
-// deleteArtefactLocked removes an artefact from the transaction
-// cache.
+// deleteArtefactLocked removes an artefact from the transaction cache.
 //
-// Takes artefactID (string) which identifies the artefact to
-// remove.
+// Takes artefactID (string) which identifies the artefact to remove.
 func (tx *otterTransactionDAL) deleteArtefactLocked(ctx context.Context, artefactID string) {
 	artefact, found, _ := tx.transactionCache.GetIfPresent(ctx, artefactID)
 	if !found {
@@ -599,11 +571,9 @@ func (tx *otterTransactionDAL) deleteArtefactLocked(ctx context.Context, artefac
 	_ = tx.transactionCache.Invalidate(ctx, artefactID)
 }
 
-// addArtefactIndexesLocked updates indexes, snapshotting variant
-// keys.
+// addArtefactIndexesLocked updates indexes, snapshotting variant keys.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which is the
-// artefact to index.
+// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to index.
 func (tx *otterTransactionDAL) addArtefactIndexesLocked(artefact *registry_dto.ArtefactMeta) {
 	for i := range artefact.ActualVariants {
 		if artefact.ActualVariants[i].StorageKey != "" {
@@ -633,11 +603,10 @@ func (tx *otterTransactionDAL) addArtefactIndexesLocked(artefact *registry_dto.A
 	}
 }
 
-// removeArtefactIndexesLocked removes indexes, snapshotting variant
-// keys.
+// removeArtefactIndexesLocked removes indexes, snapshotting variant keys.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which is the
-// artefact whose indexes should be removed.
+// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact whose indexes should
+// be removed.
 func (tx *otterTransactionDAL) removeArtefactIndexesLocked(artefact *registry_dto.ArtefactMeta) {
 	for i := range artefact.ActualVariants {
 		if artefact.ActualVariants[i].StorageKey != "" {
@@ -720,12 +689,11 @@ func (d *DAL) ListAllArtefactIDs(_ context.Context) ([]string, error) {
 //
 // Takes query (registry_domain.SearchQuery) which specifies the search terms.
 //
-// Returns []*ArtefactMeta which contains the matching
-// artefacts.
+// Returns []*ArtefactMeta which contains the matching artefacts.
 // Returns error when the search fails.
 //
-// Safe for concurrent use. Uses a read lock to protect
-// access to the tag index and artefacts cache.
+// Safe for concurrent use. Uses a read lock to protect access to the tag index and
+// artefacts cache.
 func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -748,18 +716,16 @@ func (d *DAL) SearchArtefacts(ctx context.Context, query registry_domain.SearchQ
 	return d.collectArtefactsByIDs(ctx, matchingIDs), nil
 }
 
-// SearchArtefactsByTagValues searches for artefacts with a specific tag key
-// and any of the given values.
+// SearchArtefactsByTagValues searches for artefacts with a specific tag key and any of
+// the given values.
 //
 // Takes tagKey (string) which specifies the tag key to match.
 // Takes tagValues ([]string) which lists the acceptable values.
 //
-// Returns []*ArtefactMeta which contains the matching
-// artefacts.
+// Returns []*ArtefactMeta which contains the matching artefacts.
 // Returns error which is always nil.
 //
-// Safe for concurrent use; holds a read lock during the
-// search.
+// Safe for concurrent use; holds a read lock during the search.
 func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error) {
 	if len(tagValues) == 0 {
 		return []*registry_dto.ArtefactMeta{}, nil
@@ -790,13 +756,10 @@ func (d *DAL) SearchArtefactsByTagValues(ctx context.Context, tagKey string, tag
 //
 // Takes storageKey (string) which identifies the variant to search for.
 //
-// Returns *ArtefactMeta which contains the artefact
-// metadata.
-// Returns error when no artefact has a variant with that
-// storage key.
+// Returns *ArtefactMeta which contains the artefact metadata.
+// Returns error when no artefact has a variant with that storage key.
 //
-// Safe for concurrent use. Uses a read lock to access the
-// variant key index.
+// Safe for concurrent use. Uses a read lock to access the variant key index.
 func (d *DAL) FindArtefactByVariantStorageKey(ctx context.Context, storageKey string) (*registry_dto.ArtefactMeta, error) {
 	d.mu.RLock()
 	artefactID, found := d.variantKeyIndex[storageKey]
@@ -1052,14 +1015,14 @@ func (d *DAL) ListRecentArtefacts(_ context.Context, limit int32) ([]registry_do
 	return results, nil
 }
 
-// RebuildIndexes rebuilds all secondary indexes from the primary cache data.
-// Call this after WAL recovery to restore tagIndex and variantKeyIndex.
+// RebuildIndexes rebuilds all secondary indexes from the primary cache data. Call this
+// after WAL recovery to restore tagIndex and variantKeyIndex.
 //
 // Safe for concurrent use; acquires the DAL mutex.
 //
-// Note: blobRefs and gcHints are not recovered - these are ephemeral data that
-// reset on restart. Blob reference counts reset to zero, which may leave
-// orphaned blobs (blob cleanup is idempotent so this is safe).
+// Note: blobRefs and gcHints are not recovered - these are ephemeral data that reset on
+// restart. Blob reference counts reset to zero, which may leave orphaned blobs (blob
+// cleanup is idempotent so this is safe).
 func (d *DAL) RebuildIndexes(ctx context.Context) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -1076,14 +1039,14 @@ func (d *DAL) RebuildIndexes(ctx context.Context) {
 		logger_domain.Int("artefact_count", d.artefacts.EstimatedSize()))
 }
 
-// intersectTagMatches returns the set of artefact IDs matching ALL tag
-// key-value pairs via set intersection.
+// intersectTagMatches returns the set of artefact IDs matching ALL tag key-value pairs
+// via set intersection.
 //
-// Takes tags (map[string]string) which specifies the tag key-value pairs to
-// match against.
+// Takes tags (map[string]string) which specifies the tag key-value pairs to match
+// against.
 //
-// Returns map[string]struct{} which contains the IDs that match all tags, or
-// nil when no matches are found.
+// Returns map[string]struct{} which contains the IDs that match all tags, or nil when no
+// matches are found.
 func (d *DAL) intersectTagMatches(tags map[string]string) map[string]struct{} {
 	var matchingIDs map[string]struct{}
 
@@ -1112,14 +1075,11 @@ func (d *DAL) intersectTagMatches(tags map[string]string) map[string]struct{} {
 	return matchingIDs
 }
 
-// collectArtefactsByIDs looks up artefacts from the cache for each ID in the
-// set.
+// collectArtefactsByIDs looks up artefacts from the cache for each ID in the set.
 //
-// Takes ids (map[string]struct{}) which specifies the set of artefact IDs to
-// look up.
+// Takes ids (map[string]struct{}) which specifies the set of artefact IDs to look up.
 //
-// Returns []*ArtefactMeta which contains the cached artefacts
-// found for the given IDs.
+// Returns []*ArtefactMeta which contains the cached artefacts found for the given IDs.
 func (d *DAL) collectArtefactsByIDs(ctx context.Context, ids map[string]struct{}) []*registry_dto.ArtefactMeta {
 	results := make([]*registry_dto.ArtefactMeta, 0, len(ids))
 	for id := range ids {
@@ -1156,8 +1116,7 @@ func (d *DAL) deleteArtefactLocked(ctx context.Context, artefactID string) {
 	_ = d.artefacts.Invalidate(ctx, artefactID)
 }
 
-// addArtefactIndexesLocked updates indexes for an artefact. Caller must hold
-// mu.
+// addArtefactIndexesLocked updates indexes for an artefact. Caller must hold mu.
 //
 // Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to index.
 func (d *DAL) addArtefactIndexesLocked(artefact *registry_dto.ArtefactMeta) {
@@ -1187,11 +1146,10 @@ func (d *DAL) addArtefactIndexesLocked(artefact *registry_dto.ArtefactMeta) {
 	}
 }
 
-// removeArtefactIndexesLocked removes indexes for an artefact.
-// Caller must hold mu.
+// removeArtefactIndexesLocked removes indexes for an artefact. Caller must hold mu.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact whose
-// indexes should be removed.
+// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact whose indexes should
+// be removed.
 func (d *DAL) removeArtefactIndexesLocked(artefact *registry_dto.ArtefactMeta) {
 	for i := range artefact.ActualVariants {
 		if artefact.ActualVariants[i].StorageKey != "" {
@@ -1221,9 +1179,9 @@ func (d *DAL) removeArtefactIndexesLocked(artefact *registry_dto.ArtefactMeta) {
 
 // WithCache injects an externally configured cache instance.
 //
-// This enables WAL persistence when the cache is created with
-// PersistenceConfig. When provided, the DAL will not close the cache on
-// shutdown. The caller is responsible for cache lifecycle management.
+// This enables WAL persistence when the cache is created with PersistenceConfig. When
+// provided, the DAL will not close the cache on shutdown. The caller is responsible for
+// cache lifecycle management.
 //
 // Takes cache (cache_domain.ProviderPort) which is the cache to use.
 //
@@ -1238,8 +1196,7 @@ func WithCache(cache cache_domain.ProviderPort[string, *registry_dto.ArtefactMet
 // NewOtterDAL creates a new in-memory registry DAL using otter cache.
 //
 // Takes config (Config) which specifies cache settings.
-// Takes opts (...Option) which configures optional features like cache
-// injection.
+// Takes opts (...Option) which configures optional features like cache injection.
 //
 // Returns registry_dal.RegistryDALWithTx which is the configured DAL.
 // Returns error when the cache cannot be created.

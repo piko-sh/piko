@@ -30,16 +30,15 @@ type TypeCatalogue struct {
 	Types map[string]SQLType
 }
 
-// TypeMappingTable holds the complete set of SQL-to-Go type mappings,
-// combining framework defaults with user overrides.
+// TypeMappingTable holds the complete set of SQL-to-Go type mappings, combining framework
+// defaults with user overrides.
 type TypeMappingTable struct {
-	// Mappings holds the ordered list of type mappings. Later entries override
-	// earlier ones for the same SQL type.
+	// Mappings holds the ordered list of type mappings. Later entries override earlier ones
+	// for the same SQL type.
 	Mappings []TypeMapping
 }
 
-// TypeMapping maps a SQL type to Go types for both nullable and non-nullable
-// contexts.
+// TypeMapping maps a SQL type to Go types for both nullable and non-nullable contexts.
 type TypeMapping struct {
 	// NotNull is the Go type to use when the column is NOT NULL.
 	NotNull GoType
@@ -47,8 +46,8 @@ type TypeMapping struct {
 	// Nullable is the Go type to use when the column is nullable.
 	Nullable GoType
 
-	// SQLName is an optional engine-specific name for finer-grained matching
-	// (e.g. "numeric" vs "decimal"), where empty matches any name in the category.
+	// SQLName is an optional engine-specific name for finer-grained matching (e.g. "numeric"
+	// vs "decimal"), where empty matches any name in the category.
 	SQLName string
 
 	// SQLCategory is the type category this mapping applies to.
@@ -57,16 +56,16 @@ type TypeMapping struct {
 
 // GoType identifies a Go type by its import path and name.
 type GoType struct {
-	// Package is the Go import path (e.g. "piko.sh/piko/wdk/maths"), or empty
-	// for built-in types (string, int64, etc.).
+	// Package is the Go import path (e.g. "piko.sh/piko/wdk/maths"), or empty for built-in
+	// types (string, int64, etc.).
 	Package string
 
 	// Name is the Go type name (e.g. "Decimal", "string", "*int64").
 	Name string
 }
 
-// AnalysedQuery is the fully resolved result of query analysis, with all
-// types and nullability propagated.
+// AnalysedQuery is the fully resolved result of query analysis, with all types and
+// nullability propagated.
 type AnalysedQuery struct {
 	// InsertTable is the target table for :copyfrom queries.
 	InsertTable string
@@ -92,8 +91,8 @@ type AnalysedQuery struct {
 	// InsertColumns holds the target column names for :copyfrom queries.
 	InsertColumns []string
 
-	// AllowedColumns holds the columns that can be used in runtime WHERE
-	// and ORDER BY clauses.
+	// AllowedColumns holds the columns that can be used in runtime WHERE and ORDER BY
+	// clauses.
 	AllowedColumns []AllowedColumn
 
 	// Directives holds all parsed piko. directives for the query.
@@ -108,12 +107,12 @@ type AnalysedQuery struct {
 	// Command is the execution pattern from the piko.command directive.
 	Command QueryCommand
 
-	// DynamicRuntime indicates this query uses piko.dynamic: runtime to
-	// generate a fluent runtime builder instead of a standard method.
+	// DynamicRuntime indicates this query uses piko.dynamic: runtime to generate a fluent
+	// runtime builder instead of a standard method.
 	DynamicRuntime bool
 
-	// ReadOnly indicates the query does not modify data. Downstream consumers
-	// can use this to route read-only queries to read replicas.
+	// ReadOnly indicates the query does not modify data. Downstream consumers can use this
+	// to route read-only queries to read replicas.
 	ReadOnly bool
 }
 
@@ -143,16 +142,16 @@ type OutputColumn struct {
 	// SQLType is the resolved SQL type.
 	SQLType SQLType
 
-	// Nullable indicates whether the column can be NULL, accounting for JOIN
-	// nullability, expression nullability, and aggregate behaviour.
+	// Nullable indicates whether the column can be NULL, accounting for JOIN nullability,
+	// expression nullability, and aggregate behaviour.
 	Nullable bool
 
 	// IsEmbedded indicates this column is part of a piko.embed group.
 	IsEmbedded bool
 
-	// EmbedIsOuter indicates the embedded table was introduced via LEFT, RIGHT,
-	// or FULL JOIN. When true, the emitter generates a pointer type for the
-	// embedded struct (nil when no matching row exists).
+	// EmbedIsOuter indicates the embedded table was introduced via LEFT, RIGHT, or FULL
+	// JOIN. When true, the emitter generates a pointer type for the embedded struct (nil
+	// when no matching row exists).
 	EmbedIsOuter bool
 }
 
@@ -164,12 +163,12 @@ type QueryParameter struct {
 	// MaxLimit holds the maximum allowed value for a piko.limit parameter.
 	MaxLimit *int
 
-	// Name is the parameter name from piko.param directive, or inferred from
-	// the column name.
+	// Name is the parameter name from piko.param directive, or inferred from the column
+	// name.
 	Name string
 
-	// SortableColumns holds the allowed ORDER BY column names from a
-	// piko.sortable directive's columns: option.
+	// SortableColumns holds the allowed ORDER BY column names from a piko.sortable
+	// directive's columns: option.
 	SortableColumns []string
 
 	// SQLType is the resolved SQL type.
@@ -184,8 +183,7 @@ type QueryParameter struct {
 	// IsSlice indicates the parameter expands to multiple values (piko.slice).
 	IsSlice bool
 
-	// IsOptional indicates the parameter is for a dynamic WHERE clause
-	// (piko.optional).
+	// IsOptional indicates the parameter is for a dynamic WHERE clause (piko.optional).
 	IsOptional bool
 
 	// Kind identifies the directive kind that declared this parameter.
@@ -197,8 +195,8 @@ type QueryDirectives struct {
 	// NullableOverride forces nullability on or off for the entire query result.
 	NullableOverride *bool
 
-	// ReadOnlyOverride forces the query's read-only flag on or off, overriding
-	// the automatically detected value from statement analysis.
+	// ReadOnlyOverride forces the query's read-only flag on or off, overriding the
+	// automatically detected value from statement analysis.
 	ReadOnlyOverride *bool
 
 	// EmbedTables holds table names from inline piko.embed directives.
@@ -210,20 +208,18 @@ type QueryDirectives struct {
 	// Slices holds parameter numbers declared with piko.slice.
 	Slices []int
 
-	// DynamicOrderByColumns holds allowed ORDER BY columns from
-	// piko.sortable directives.
+	// DynamicOrderByColumns holds allowed ORDER BY columns from piko.sortable directives.
 	DynamicOrderByColumns []string
 
 	// ParamOverrides holds explicit type overrides from piko.param.
 	ParamOverrides []ParamOverride
 
-	// DynamicRuntime indicates a piko.dynamic: runtime directive was specified,
-	// causing generation of a fluent runtime query builder.
+	// DynamicRuntime indicates a piko.dynamic: runtime directive was specified, causing
+	// generation of a fluent runtime query builder.
 	DynamicRuntime bool
 }
 
-// ParamOverride is an explicit parameter type override from a piko.param
-// directive.
+// ParamOverride is an explicit parameter type override from a piko.param directive.
 type ParamOverride struct {
 	// Name is the parameter name.
 	Name string
@@ -235,8 +231,8 @@ type ParamOverride struct {
 	Nullable bool
 }
 
-// GenerationResult holds the output of the querier's code generation for a
-// single named database connection.
+// GenerationResult holds the output of the querier's code generation for a single named
+// database connection.
 type GenerationResult struct {
 	// Files holds the generated source files.
 	Files []GeneratedFile
@@ -254,8 +250,8 @@ type GeneratedFile struct {
 	Content []byte
 }
 
-// SourceError is a diagnostic error or warning mapped back to the source SQL
-// file with line and column information.
+// SourceError is a diagnostic error or warning mapped back to the source SQL file with
+// line and column information.
 type SourceError struct {
 	// Filename is the source SQL file path.
 	Filename string
@@ -263,8 +259,8 @@ type SourceError struct {
 	// Message describes the error.
 	Message string
 
-	// Code is a stable error code for documentation and suppression
-	// (e.g. "Q001" for unknown column).
+	// Code is a stable error code for documentation and suppression (e.g. "Q001" for unknown
+	// column).
 	Code string
 
 	// Suggestion is an optional fix suggestion.
@@ -293,8 +289,7 @@ const (
 	// SeverityError indicates a fatal error that prevents code generation.
 	SeverityError ErrorSeverity = iota
 
-	// SeverityWarning indicates a potential problem that does not block
-	// generation.
+	// SeverityWarning indicates a potential problem that does not block generation.
 	SeverityWarning
 
 	// SeverityHint indicates a suggestion for improvement.

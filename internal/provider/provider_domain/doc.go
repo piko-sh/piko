@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package provider_domain manages named provider instances (e.g. email
-// senders, storage backends) through a type-safe, generic registry.
+// Package provider_domain manages named provider instances (e.g. email senders, storage
+// backends) through a type-safe, generic registry.
 //
-// The [ProviderRegistry] port and its production implementation
-// [StandardRegistry] support registration, default selection, discovery,
-// and graceful shutdown.
+// The [ProviderRegistry] port and its production implementation [StandardRegistry]
+// support registration, default selection, discovery, and graceful shutdown.
 //
 // # Usage
 //
@@ -33,6 +32,6 @@
 //
 // # Thread safety
 //
-// [StandardRegistry] is safe for concurrent use. All read operations
-// use a read lock and all write operations use an exclusive lock.
+// [StandardRegistry] is safe for concurrent use. All read operations use a read lock and
+// all write operations use an exclusive lock.
 package provider_domain

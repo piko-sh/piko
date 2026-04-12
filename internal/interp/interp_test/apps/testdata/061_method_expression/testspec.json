@@ -1,0 +1,4 @@
+{
+  "description": "Method expressions T.M and (*T).M for a type defined in one file are passed across files as first-class values and invoked through helper dispatchers",
+  "expected": "initial=5 final=8"
+}

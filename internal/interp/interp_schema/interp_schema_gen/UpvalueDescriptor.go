@@ -40,8 +40,24 @@ func (rcv *UpvalueDescriptor) MutateIsLocal(n bool) bool {
 	return rcv._tab.MutateBool(rcv._tab.Pos+flatbuffers.UOffsetT(2), n)
 }
 
-func CreateUpvalueDescriptor(builder *flatbuffers.Builder, index byte, kind RegisterKind, isLocal bool) flatbuffers.UOffsetT {
-	builder.Prep(1, 3)
+func (rcv *UpvalueDescriptor) IsIndirect() bool {
+	return rcv._tab.GetBool(rcv._tab.Pos + flatbuffers.UOffsetT(3))
+}
+func (rcv *UpvalueDescriptor) MutateIsIndirect(n bool) bool {
+	return rcv._tab.MutateBool(rcv._tab.Pos+flatbuffers.UOffsetT(3), n)
+}
+
+func (rcv *UpvalueDescriptor) OriginalKind() RegisterKind {
+	return RegisterKind(rcv._tab.GetInt8(rcv._tab.Pos + flatbuffers.UOffsetT(4)))
+}
+func (rcv *UpvalueDescriptor) MutateOriginalKind(n RegisterKind) bool {
+	return rcv._tab.MutateInt8(rcv._tab.Pos+flatbuffers.UOffsetT(4), int8(n))
+}
+
+func CreateUpvalueDescriptor(builder *flatbuffers.Builder, index byte, kind RegisterKind, isLocal bool, isIndirect bool, originalKind RegisterKind) flatbuffers.UOffsetT {
+	builder.Prep(1, 5)
+	builder.PrependInt8(int8(originalKind))
+	builder.PrependBool(isIndirect)
 	builder.PrependBool(isLocal)
 	builder.PrependInt8(int8(kind))
 	builder.PrependByte(index)

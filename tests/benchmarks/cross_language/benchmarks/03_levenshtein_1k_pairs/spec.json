@@ -1,0 +1,14 @@
+{
+  "name": "03_levenshtein_1k_pairs",
+  "description": "Compute Levenshtein edit distance for 1000 string pairs generated deterministically from a 32-bit LCG. Returns the sum of all distances.",
+  "args": [],
+  "expected_stdout_sha256": "59e19706d51d39f66711c2653cd7eb1291c94d9b55eb14bda74ce4dc636d015a",
+  "k_inner": 3,
+  "timeout_seconds": 180,
+  "source_sha256": {
+    "go/native_main.go": "26e0ee195eb6501c0b49d438ae32f69498fbae65737630a608faa30d5f51a7db",
+    "go/piko_source.go": "57c1f23001c367a58bdbda77240d5c95198a47060f1e255b411a5b39df45c85e",
+    "py/cpython.py": "40b10b6b507fa738e4408cb3fdb272fcf3dbe172c87a4d14569e2a05bdb8363d",
+    "py/pypy.py": "40b10b6b507fa738e4408cb3fdb272fcf3dbe172c87a4d14569e2a05bdb8363d"
+  }
+}

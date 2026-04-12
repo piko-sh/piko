@@ -30,17 +30,14 @@ const (
 	// ctxDefault is the default context outside any block.
 	ctxDefault tidyContext = iota
 
-	// ctxCompositeLiteral is the context inside a composite
-	// literal.
+	// ctxCompositeLiteral is the context inside a composite literal.
 	ctxCompositeLiteral
 
-	// ctxBlock is the context inside a function or
-	// control-flow block.
+	// ctxBlock is the context inside a function or control-flow block.
 	ctxBlock
 )
 
-// tidier tracks state while reformatting compact Go source
-// into readable multi-line form.
+// tidier tracks state while reformatting compact Go source into readable multi-line form.
 type tidier struct {
 	// builder accumulates the formatted output.
 	builder strings.Builder
@@ -54,27 +51,22 @@ type tidier struct {
 	// cursor is the current read position in runes.
 	cursor int
 
-	// stringDelim is the delimiter that opened the current
-	// string literal.
+	// stringDelim is the delimiter that opened the current string literal.
 	stringDelim rune
 
-	// inString is true when the cursor is inside a string
-	// literal.
+	// inString is true when the cursor is inside a string literal.
 	inString bool
 
 	// inComment is true when the cursor is inside a comment.
 	inComment bool
 
-	// isMultiLineComment is true when the current comment
-	// uses block style.
+	// isMultiLineComment is true when the current comment uses block style.
 	isMultiLineComment bool
 }
 
-// newTidier creates a tidier initialised with the given
-// compact source string.
+// newTidier creates a tidier initialised with the given compact source string.
 //
-// Takes compact (string) which is the single-line Go
-// source to reformat.
+// Takes compact (string) which is the single-line Go source to reformat.
 //
 // Returns *tidier which is the initialised tidier.
 func newTidier(compact string) *tidier {
@@ -90,20 +82,17 @@ func newTidier(compact string) *tidier {
 	}
 }
 
-// tidyGoLiteral formats a compact Go literal string by
-// adding newlines and trailing commas inside composite
-// literals.
+// tidyGoLiteral formats a compact Go literal string by adding newlines and trailing
+// commas inside composite literals.
 //
-// Takes compact (string) which is the single-line Go
-// source to reformat.
+// Takes compact (string) which is the single-line Go source to reformat.
 //
 // Returns the reformatted multi-line string.
 func tidyGoLiteral(compact string) string {
 	return newTidier(compact).run()
 }
 
-// run processes all runes and returns the formatted
-// output.
+// run processes all runes and returns the formatted output.
 //
 // Returns string which is the reformatted source text.
 func (t *tidier) run() string {
@@ -165,8 +154,8 @@ func (t *tidier) processComment() {
 	t.cursor++
 }
 
-// processCode dispatches the current rune to the
-// appropriate handler based on its character.
+// processCode dispatches the current rune to the appropriate handler based on its
+// character.
 func (t *tidier) processCode() {
 	r := t.runes[t.cursor]
 	nextRune := t.peekRune()
@@ -194,8 +183,7 @@ func (t *tidier) processCode() {
 	t.cursor++
 }
 
-// handleCommentStart processes a slash that begins a
-// comment sequence.
+// handleCommentStart processes a slash that begins a comment sequence.
 func (t *tidier) handleCommentStart() {
 	if t.context() == ctxCompositeLiteral {
 		last := findLastMeaningfulChar(t.builder.String())
@@ -214,8 +202,8 @@ func (t *tidier) handleCommentStart() {
 	}
 }
 
-// handleOpeningBrace pushes the appropriate context and
-// emits a newline for composite literals.
+// handleOpeningBrace pushes the appropriate context and emits a newline for composite
+// literals.
 func (t *tidier) handleOpeningBrace() {
 	trimmedBuffer := strings.TrimRightFunc(t.builder.String(), unicode.IsSpace)
 	isBlock := isFunctionOrControlBlock(trimmedBuffer)
@@ -232,8 +220,8 @@ func (t *tidier) handleOpeningBrace() {
 	}
 }
 
-// handleClosingBrace inserts a trailing comma for
-// composite literals and pops the context stack.
+// handleClosingBrace inserts a trailing comma for composite literals and pops the context
+// stack.
 func (t *tidier) handleClosingBrace() {
 	ctx := t.context()
 	if ctx == ctxCompositeLiteral {
@@ -249,8 +237,7 @@ func (t *tidier) handleClosingBrace() {
 	_, _ = t.builder.WriteRune('}')
 }
 
-// handleComma writes a comma and appends a newline when
-// inside a composite literal.
+// handleComma writes a comma and appends a newline when inside a composite literal.
 func (t *tidier) handleComma() {
 	_, _ = t.builder.WriteRune(',')
 	if t.context() == ctxCompositeLiteral {
@@ -258,8 +245,7 @@ func (t *tidier) handleComma() {
 	}
 }
 
-// context returns the current brace context from the
-// top of the stack.
+// context returns the current brace context from the top of the stack.
 //
 // Returns tidyContext which is the current context.
 func (t *tidier) context() tidyContext {
@@ -283,22 +269,19 @@ func (t *tidier) popContext() {
 	}
 }
 
-// shouldPopContext reports whether the given context
-// should be removed when a closing brace is encountered.
+// shouldPopContext reports whether the given context should be removed when a closing
+// brace is encountered.
 //
 // Takes ctx (tidyContext) which is the context to check.
 //
-// Returns bool which is true if the context should be
-// popped.
+// Returns bool which is true if the context should be popped.
 func (*tidier) shouldPopContext(ctx tidyContext) bool {
 	return ctx == ctxCompositeLiteral || ctx == ctxBlock
 }
 
-// peekRune returns the rune after the cursor without
-// advancing.
+// peekRune returns the rune after the cursor without advancing.
 //
-// Returns rune which is the next rune, or 0 if at the
-// end.
+// Returns rune which is the next rune, or 0 if at the end.
 func (t *tidier) peekRune() rune {
 	if t.cursor+1 < len(t.runes) {
 		return t.runes[t.cursor+1]
@@ -306,11 +289,9 @@ func (t *tidier) peekRune() rune {
 	return 0
 }
 
-// peekNextMeaningfulChar returns the first non-whitespace
-// rune after the cursor.
+// peekNextMeaningfulChar returns the first non-whitespace rune after the cursor.
 //
-// Returns rune which is the next non-whitespace rune, or
-// 0 if none remains.
+// Returns rune which is the next non-whitespace rune, or 0 if none remains.
 func (t *tidier) peekNextMeaningfulChar() rune {
 	for i := t.cursor + 1; i < len(t.runes); i++ {
 		r := t.runes[i]
@@ -321,15 +302,12 @@ func (t *tidier) peekNextMeaningfulChar() rune {
 	return 0
 }
 
-// isFunctionOrControlBlock checks whether an opening
-// brace belongs to a function or control-flow block
-// rather than a composite literal.
+// isFunctionOrControlBlock checks whether an opening brace belongs to a function or
+// control-flow block rather than a composite literal.
 //
-// Takes s (string) which is the source text preceding
-// the brace.
+// Takes s (string) which is the source text preceding the brace.
 //
-// Returns true when the brace opens a function or
-// control-flow block.
+// Returns true when the brace opens a function or control-flow block.
 func isFunctionOrControlBlock(s string) bool {
 	lastBrace := -1
 	for i := len(s) - 1; i >= 0; i-- {
@@ -355,13 +333,12 @@ func isFunctionOrControlBlock(s string) bool {
 	return hasControlKeywordPrefix(segment)
 }
 
-// hasControlKeywordPrefix reports whether the segment
-// starts with a Go control keyword or contains func.
+// hasControlKeywordPrefix reports whether the segment starts with a Go control keyword or
+// contains func.
 //
 // Takes segment (string) which is the text to inspect.
 //
-// Returns bool which is true if a control keyword is
-// found.
+// Returns bool which is true if a control keyword is found.
 func hasControlKeywordPrefix(segment string) bool {
 	if strings.Contains(segment, "func") {
 		return true
@@ -374,8 +351,8 @@ func hasControlKeywordPrefix(segment string) bool {
 		strings.HasPrefix(segment, "default")
 }
 
-// findLastMeaningfulChar returns the last character that
-// is not whitespace or part of a comment.
+// findLastMeaningfulChar returns the last character that is not whitespace or part of a
+// comment.
 //
 // Takes s (string) which is the source text to inspect.
 //

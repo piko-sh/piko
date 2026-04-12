@@ -2720,4 +2720,6 @@ func (*mockResolverWithFailures) FindModuleBoundary(_ context.Context, _ string)
 	return "", "", errors.New("not implemented")
 }
 
-var _ resolver_domain.ResolverPort = (*mockResolverWithFailures)(nil)
+var (
+	_ resolver_domain.ResolverPort = (*mockResolverWithFailures)(nil)
+)

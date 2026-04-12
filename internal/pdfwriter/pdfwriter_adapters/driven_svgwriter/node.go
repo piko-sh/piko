@@ -39,11 +39,11 @@ type SVG struct {
 	Height float64
 }
 
-// IntrinsicWidth returns the SVG intrinsic width. If an explicit width is
-// set it is returned; otherwise the viewBox width is used.
+// IntrinsicWidth returns the SVG intrinsic width. If an explicit width is set it is
+// returned; otherwise the viewBox width is used.
 //
-// Returns float64 which holds the effective width in user
-// units, or zero if neither is available.
+// Returns float64 which holds the effective width in user units, or zero if neither is
+// available.
 func (s *SVG) IntrinsicWidth() float64 {
 	if s.Width > 0 {
 		return s.Width
@@ -54,11 +54,11 @@ func (s *SVG) IntrinsicWidth() float64 {
 	return 0
 }
 
-// IntrinsicHeight returns the SVG intrinsic height. If an explicit height
-// is set it is returned; otherwise the viewBox height is used.
+// IntrinsicHeight returns the SVG intrinsic height. If an explicit height is set it is
+// returned; otherwise the viewBox height is used.
 //
-// Returns float64 which holds the effective height in user
-// units, or zero if neither is available.
+// Returns float64 which holds the effective height in user units, or zero if neither is
+// available.
 func (s *SVG) IntrinsicHeight() float64 {
 	if s.Height > 0 {
 		return s.Height
@@ -107,16 +107,15 @@ type ViewBox struct {
 
 // AspectRatio holds the parsed preserveAspectRatio attribute.
 //
-// Align is one of "none", "xMinYMin", "xMidYMin", "xMaxYMin",
-// "xMinYMid", "xMidYMid", "xMaxYMid", "xMinYMax", "xMidYMax",
-// "xMaxYMax". MeetOrSlice is "meet" or "slice".
+// Align is one of "none", "xMinYMin", "xMidYMin", "xMaxYMin", "xMinYMid", "xMidYMid",
+// "xMaxYMid", "xMinYMax", "xMidYMax", "xMaxYMax". MeetOrSlice is "meet" or "slice".
 type AspectRatio struct {
-	// Align holds the alignment value controlling how the
-	// viewBox is positioned within the viewport.
+	// Align holds the alignment value controlling how the viewBox is positioned within the
+	// viewport.
 	Align string
 
-	// MeetOrSlice holds either "meet" or "slice" controlling
-	// whether the viewBox fits within or fills the viewport.
+	// MeetOrSlice holds either "meet" or "slice" controlling whether the viewBox fits within
+	// or fills the viewport.
 	MeetOrSlice string
 }
 

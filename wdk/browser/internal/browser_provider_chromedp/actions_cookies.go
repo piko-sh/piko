@@ -45,8 +45,8 @@ type Cookie struct {
 	// Path specifies the URL path scope for the cookie.
 	Path string
 
-	// SameSite specifies the cookie's SameSite attribute; valid values are
-	// "Strict", "Lax", or "None".
+	// SameSite specifies the cookie's SameSite attribute; valid values are "Strict", "Lax",
+	// or "None".
 	SameSite string
 
 	// HTTPOnly indicates whether the cookie is inaccessible to JavaScript.
@@ -67,8 +67,8 @@ type CookieOptions struct {
 	// Path is the cookie path; empty defaults to "/".
 	Path string
 
-	// SameSite controls cross-site request cookie behaviour; valid values are
-	// "Strict", "Lax", or "None"; empty string uses browser default.
+	// SameSite controls cross-site request cookie behaviour; valid values are "Strict",
+	// "Lax", or "None"; empty string uses browser default.
 	SameSite string
 
 	// HTTPOnly indicates whether the cookie is inaccessible to JavaScript.
@@ -134,12 +134,11 @@ func GetAllCookies(ctx *ActionContext) ([]*Cookie, error) {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes name (string) which specifies the cookie name.
 // Takes value (string) which specifies the cookie value.
-// Takes opts (*CookieOptions) which specifies additional cookie properties
-// such as domain, path, expiry, and security settings. May be nil for
-// defaults.
+// Takes opts (*CookieOptions) which specifies additional cookie properties such as
+// domain, path, expiry, and security settings. May be nil for defaults.
 //
-// Returns error when the current URL cannot be retrieved or when the cookie
-// cannot be set.
+// Returns error when the current URL cannot be retrieved or when the cookie cannot be
+// set.
 func SetCookie(ctx *ActionContext, name, value string, opts *CookieOptions) error {
 	var currentURL string
 	err := chromedp.Run(ctx.Ctx, chromedp.Location(&currentURL))
@@ -187,8 +186,7 @@ func SetCookie(ctx *ActionContext, name, value string, opts *CookieOptions) erro
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes name (string) which specifies the cookie name to delete.
 //
-// Returns error when the current URL cannot be retrieved or the cookie cannot
-// be deleted.
+// Returns error when the current URL cannot be retrieved or the cookie cannot be deleted.
 func DeleteCookie(ctx *ActionContext, name string) error {
 	var currentURL string
 	err := chromedp.Run(ctx.Ctx, chromedp.Location(&currentURL))
@@ -283,8 +281,8 @@ func convertCookie(c *network.Cookie) *Cookie {
 	}
 }
 
-// parseSameSite converts a string to the CDP SameSite enum.
-// Defaults to Lax if the value is not recognised.
+// parseSameSite converts a string to the CDP SameSite enum. Defaults to Lax if the value
+// is not recognised.
 //
 // Takes s (string) which specifies the SameSite value to parse.
 //

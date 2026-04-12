@@ -43,9 +43,9 @@ const (
 	aes128KeySize = 16
 )
 
-// Provider implements cloud-backed encryption using Google Cloud Key
-// Management Service (KMS). The master encryption key never leaves Google's
-// Hardware Security Modules (HSMs).
+// Provider implements cloud-backed encryption using Google Cloud Key Management Service
+// (KMS). The master encryption key never leaves Google's Hardware Security Modules
+// (HSMs).
 type Provider struct {
 	// client is the GCP KMS client used for cryptographic operations.
 	client *kms.KeyManagementClient
@@ -54,7 +54,9 @@ type Provider struct {
 	keyID string
 }
 
-var _ crypto.EncryptionProvider = (*Provider)(nil)
+var (
+	_ crypto.EncryptionProvider = (*Provider)(nil)
+)
 
 // Type returns the provider type.
 //
@@ -65,16 +67,16 @@ func (*Provider) Type() crypto.ProviderType {
 
 // Encrypt encrypts plaintext using Google Cloud KMS.
 //
-// The ciphertext is a self-contained blob that includes the encrypted data
-// and metadata about the key and version used. The returned ciphertext is
-// Base64-encoded for safe storage in databases. For bulk encryption, use
-// GenerateDataKey and encrypt locally to reduce KMS calls.
+// The ciphertext is a self-contained blob that includes the encrypted data and metadata
+// about the key and version used. The returned ciphertext is Base64-encoded for safe
+// storage in databases. For bulk encryption, use GenerateDataKey and encrypt locally to
+// reduce KMS calls.
 //
-// Takes request (*crypto.EncryptRequest) which specifies the plaintext to encrypt
-// and optionally a key ID to override the default.
+// Takes request (*crypto.EncryptRequest) which specifies the plaintext to encrypt and
+// optionally a key ID to override the default.
 //
-// Returns *crypto.EncryptResponse which contains the Base64-encoded ciphertext,
-// key ID, and provider information.
+// Returns *crypto.EncryptResponse which contains the Base64-encoded ciphertext, key ID,
+// and provider information.
 // Returns error when plaintext is empty or KMS encryption fails.
 func (p *Provider) Encrypt(ctx context.Context, request *crypto.EncryptRequest) (*crypto.EncryptResponse, error) {
 	if request.Plaintext == "" {
@@ -105,16 +107,15 @@ func (p *Provider) Encrypt(ctx context.Context, request *crypto.EncryptRequest) 
 
 // Decrypt decrypts a GCP KMS ciphertext.
 //
-// The ciphertext must be a Base64-encoded GCP KMS ciphertext blob. GCP KMS
-// automatically identifies the correct key version from the ciphertext, so
-// the KeyID in the request is optional.
+// The ciphertext must be a Base64-encoded GCP KMS ciphertext blob. GCP KMS automatically
+// identifies the correct key version from the ciphertext, so the KeyID in the request is
+// optional.
 //
-// Takes request (*crypto.DecryptRequest) which contains the ciphertext to
-// decrypt.
+// Takes request (*crypto.DecryptRequest) which contains the ciphertext to decrypt.
 //
 // Returns *crypto.DecryptResponse which contains the decrypted plaintext.
-// Returns error when the ciphertext is empty, has invalid Base64 encoding, or
-// when the GCP KMS decryption fails.
+// Returns error when the ciphertext is empty, has invalid Base64 encoding, or when the
+// GCP KMS decryption fails.
 func (p *Provider) Decrypt(ctx context.Context, request *crypto.DecryptRequest) (*crypto.DecryptResponse, error) {
 	if request.Ciphertext == "" {
 		return nil, crypto.ErrEmptyCiphertext
@@ -138,11 +139,9 @@ func (p *Provider) Decrypt(ctx context.Context, request *crypto.DecryptRequest) 
 	}, nil
 }
 
-// GenerateDataKey creates a new data encryption key (DEK) for
-// envelope encryption.
+// GenerateDataKey creates a new data encryption key (DEK) for envelope encryption.
 //
-// This implements the same pattern as AWS KMS for envelope
-// encryption:
+// This implements the same pattern as AWS KMS for envelope encryption:
 //
 //  1. Call GenerateDataKey once to get a plaintext DEK and its encrypted version
 //  2. Use the plaintext DEK to encrypt your data locally (fast, no network calls)
@@ -155,11 +154,11 @@ func (p *Provider) Decrypt(ctx context.Context, request *crypto.DecryptRequest) 
 //
 // This pattern reduces KMS API calls from N (one per item) to 1 or 2 per batch.
 //
-// GCP KMS doesn't have a native GenerateDataKey API like AWS KMS.
-// We implement it by generating a random key locally and encrypting it with KMS.
+// GCP KMS doesn't have a native GenerateDataKey API like AWS KMS. We implement it by
+// generating a random key locally and encrypting it with KMS.
 //
-// Takes request (*crypto.GenerateDataKeyRequest) which specifies the key ID and
-// key spec for the generated data key.
+// Takes request (*crypto.GenerateDataKeyRequest) which specifies the key ID and key spec
+// for the generated data key.
 //
 // Returns *crypto.DataKey which contains the plaintext and encrypted key pair.
 // Returns error when random key generation or KMS encryption fails.
@@ -206,11 +205,11 @@ func (p *Provider) GenerateDataKey(ctx context.Context, request *crypto.Generate
 	}, nil
 }
 
-// GetKeyInfo retrieves metadata about the GCP KMS key.
-// This includes the key state, creation date, and rotation schedule.
+// GetKeyInfo retrieves metadata about the GCP KMS key. This includes the key state,
+// creation date, and rotation schedule.
 //
-// Takes keyID (string) which specifies the key to query. If empty, uses the
-// provider's default key.
+// Takes keyID (string) which specifies the key to query. If empty, uses the provider's
+// default key.
 //
 // Returns *crypto.KeyInfo which contains the key metadata.
 // Returns error when the key is not found or the API call fails.
@@ -264,8 +263,7 @@ func (p *Provider) GetKeyInfo(ctx context.Context, keyID string) (*crypto.KeyInf
 //
 // This validates that:
 //   - The KMS key exists and is enabled
-//   - The caller has cloudkms.cryptoKeyVersions.useToEncrypt and
-//     useToDecrypt permissions
+//   - The caller has cloudkms.cryptoKeyVersions.useToEncrypt and useToDecrypt permissions
 //   - Network connectivity to Google Cloud KMS is working
 //
 // Returns error when encryption, decryption, or roundtrip validation fails.
@@ -295,22 +293,21 @@ func (p *Provider) HealthCheck(ctx context.Context) error {
 
 // NewProvider creates a new Google Cloud KMS encryption provider.
 //
-// It automatically loads credentials from the environment using Application
-// Default Credentials (ADC):
-//   - GOOGLE_APPLICATION_CREDENTIALS environment variable (path to service
-//     account key)
+// It automatically loads credentials from the environment using Application Default
+// Credentials (ADC):
+//   - GOOGLE_APPLICATION_CREDENTIALS environment variable (path to service account key)
 //   - Compute Engine/Cloud Run/GKE service account
 //   - gcloud auth application-default login credentials
 //
-// The provider performs a validation call to GetCryptoKey on initialisation
-// to ensure the key exists and the caller has permission to use it.
+// The provider performs a validation call to GetCryptoKey on initialisation to ensure the
+// key exists and the caller has permission to use it.
 //
 // Takes config (Config) which specifies the KMS key location and settings.
 // Takes opts (...option.ClientOption) which provides optional client settings.
 //
 // Returns crypto.EncryptionProvider which is ready for use.
-// Returns error when the config is invalid, the KMS client cannot be created,
-// or the key cannot be accessed.
+// Returns error when the config is invalid, the KMS client cannot be created, or the key
+// cannot be accessed.
 func NewProvider(ctx context.Context, config Config, opts ...option.ClientOption) (crypto.EncryptionProvider, error) {
 	config = config.WithDefaults()
 	if err := config.Validate(); err != nil {
@@ -339,8 +336,8 @@ func NewProvider(ctx context.Context, config Config, opts ...option.ClientOption
 
 // mapKeyState translates GCP KMS key states to our domain's KeyStatus enum.
 //
-// Takes state (kmspb.CryptoKeyVersion_CryptoKeyVersionState) which is the GCP
-// KMS key version state to translate.
+// Takes state (kmspb.CryptoKeyVersion_CryptoKeyVersionState) which is the GCP KMS key
+// version state to translate.
 //
 // Returns crypto.KeyStatus which is the corresponding domain key status.
 func mapKeyState(state kmspb.CryptoKeyVersion_CryptoKeyVersionState) crypto.KeyStatus {
@@ -354,8 +351,8 @@ func mapKeyState(state kmspb.CryptoKeyVersion_CryptoKeyVersionState) crypto.KeyS
 	}
 }
 
-// zeroBytes overwrites a byte slice with zeros to remove sensitive data from
-// memory. This is a critical security measure for ephemeral encryption keys.
+// zeroBytes overwrites a byte slice with zeros to remove sensitive data from memory. This
+// is a critical security measure for ephemeral encryption keys.
 //
 // Takes data ([]byte) which is the byte slice to overwrite with zeros.
 func zeroBytes(data []byte) {

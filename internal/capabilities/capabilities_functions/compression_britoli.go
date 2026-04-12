@@ -33,14 +33,14 @@ const (
 	// parameters.
 	defaultBrotliLevel = brotli.DefaultCompression
 
-	// paramBrotliLevel is the key used in the capability parameters map to specify
-	// the compression level.
+	// paramBrotliLevel is the key used in the capability parameters map to specify the
+	// compression level.
 	paramBrotliLevel = "level"
 )
 
-// brotliPools manages a collection of sync.Pools, one for each compression
-// level. This avoids frequent allocations of brotli.Writer objects and their
-// internal buffers, reducing GC pressure under high load.
+// brotliPools manages a collection of sync.Pools, one for each compression level. This
+// avoids frequent allocations of brotli.Writer objects and their internal buffers,
+// reducing GC pressure under high load.
 type brotliPools struct {
 	// pools maps compression levels to their writer pools.
 	pools map[int]*sync.Pool
@@ -49,17 +49,15 @@ type brotliPools struct {
 	mu sync.RWMutex
 }
 
-// getPoolForLevel retrieves or creates a sync.Pool for a given compression
-// level. It uses a double-checked lock pattern for safe, lazy initialisation
-// of pools.
+// getPoolForLevel retrieves or creates a sync.Pool for a given compression level. It uses
+// a double-checked lock pattern for safe, lazy initialisation of pools.
 //
 // Takes level (int) which specifies the Brotli compression quality.
 //
-// Returns *sync.Pool which provides reusable Brotli writers for the given
-// level.
+// Returns *sync.Pool which provides reusable Brotli writers for the given level.
 //
-// Safe for concurrent use. Uses a read-write mutex with double-checked
-// locking to allow concurrent reads while serialising pool creation.
+// Safe for concurrent use. Uses a read-write mutex with double-checked locking to allow
+// concurrent reads while serialising pool creation.
 func (p *brotliPools) getPoolForLevel(level int) *sync.Pool {
 	p.mu.RLock()
 	pool, ok := p.pools[level]
@@ -88,14 +86,16 @@ func (p *brotliPools) getPoolForLevel(level int) *sync.Pool {
 	return pool
 }
 
-// globalBrotliPools is the single shared instance of the pool manager.
-var globalBrotliPools = &brotliPools{
-	pools: make(map[int]*sync.Pool),
-	mu:    sync.RWMutex{},
-}
+var (
+	// globalBrotliPools is the single shared instance of the pool manager.
+	globalBrotliPools = &brotliPools{
+		pools: make(map[int]*sync.Pool),
+		mu:    sync.RWMutex{},
+	}
+)
 
-// pooledBrotliWriter wraps a brotli.Writer and implements io.WriteCloser.
-// It holds a reference to the sync.Pool it came from for proper reuse.
+// pooledBrotliWriter wraps a brotli.Writer and implements io.WriteCloser. It holds a
+// reference to the sync.Pool it came from for proper reuse.
 type pooledBrotliWriter struct {
 	*brotli.Writer
 
@@ -103,8 +103,8 @@ type pooledBrotliWriter struct {
 	pool *sync.Pool
 }
 
-// Close closes the underlying brotli.Writer to flush its buffers, then
-// returns the writer object to the pool for reuse.
+// Close closes the underlying brotli.Writer to flush its buffers, then returns the writer
+// object to the pool for reuse.
 //
 // Returns error when the underlying writer fails to close.
 func (w *pooledBrotliWriter) Close() error {
@@ -116,12 +116,11 @@ func (w *pooledBrotliWriter) Close() error {
 	return nil
 }
 
-// Brotli returns a capability function that performs streaming Brotli
-// compression. It uses a sync.Pool to reuse brotli.Writer objects for better
-// performance.
+// Brotli returns a capability function that performs streaming Brotli compression. It
+// uses a sync.Pool to reuse brotli.Writer objects for better performance.
 //
-// Returns capabilities_domain.CapabilityFunc which compresses request or
-// response bodies using Brotli.
+// Returns capabilities_domain.CapabilityFunc which compresses request or response bodies
+// using Brotli.
 func Brotli() capabilities_domain.CapabilityFunc {
 	return createCompressionCapability(compressionConfig{
 		spanName:     "BrotliCompression",
@@ -134,11 +133,10 @@ func Brotli() capabilities_domain.CapabilityFunc {
 // parseBrotliLevel extracts the compression level from params.
 //
 // Takes params (CapabilityParams) which contains the settings to parse.
-// Takes defaultLevel (int) which is the fallback if the value is missing or
-// invalid.
+// Takes defaultLevel (int) which is the fallback if the value is missing or invalid.
 //
-// Returns int which is the parsed level, or defaultLevel if the parameter is
-// missing, not a number, or outside the valid brotli range.
+// Returns int which is the parsed level, or defaultLevel if the parameter is missing, not
+// a number, or outside the valid brotli range.
 func parseBrotliLevel(params capabilities_domain.CapabilityParams, defaultLevel int) int {
 	levelString, ok := params[paramBrotliLevel]
 	if !ok {
@@ -161,8 +159,7 @@ func parseBrotliLevel(params capabilities_domain.CapabilityParams, defaultLevel 
 //
 // Takes level (int) which sets the brotli compression quality.
 //
-// Returns writerFactory which produces pooled brotli writers for the given
-// level.
+// Returns writerFactory which produces pooled brotli writers for the given level.
 func brotliWriterFactory(level int) writerFactory {
 	return func(destination io.Writer) (io.WriteCloser, error) {
 		pool := globalBrotliPools.getPoolForLevel(level)

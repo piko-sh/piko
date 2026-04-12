@@ -18,13 +18,16 @@
 
 package ast_domain
 
-// Defines feature flags for controlling which expression features are enabled in different parsing contexts.
-// Provides bitmask constants for identifiers, operators, literals, and advanced features with predefined sets for paths, i18n, and compilation.
+// Defines feature flags for controlling which expression features are enabled in
+// different parsing contexts. Provides bitmask constants for identifiers, operators,
+// literals, and advanced features with predefined sets for paths, i18n, and compilation.
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// ExpressionFeature is a bitmask that shows which expression features are
-// allowed in different parts of the system. It implements fmt.Stringer.
+// ExpressionFeature is a bitmask that shows which expression features are allowed in
+// different parts of the system. It implements fmt.Stringer.
 type ExpressionFeature uint32
 
 const (
@@ -37,8 +40,8 @@ const (
 	// FeatureIndexExpr allows index access (e.g., "items[0]").
 	FeatureIndexExpr
 
-	// FeatureLiteralIndex requires indices to be literals (int or string).
-	// When set, dynamic index expressions like "items[i]" are forbidden.
+	// FeatureLiteralIndex requires indices to be literals (int or string). When set, dynamic
+	// index expressions like "items[i]" are forbidden.
 	FeatureLiteralIndex
 
 	// FeatureBinaryExpression allows binary operators (e.g., "a + b", "x == y").
@@ -86,12 +89,12 @@ const (
 	// IndexExpression with literals. Used by Binder for form field paths.
 	FeaturesPath = FeatureIdentifier | FeatureMemberExpr | FeatureIndexExpr | FeatureLiteralIndex | FeatureLiterals
 
-	// FeaturesI18n enables path expressions and the linked message operator.
-	// Used by the i18n system for translation key references.
+	// FeaturesI18n enables path expressions and the linked message operator. Used by the
+	// i18n system for translation key references.
 	FeaturesI18n = FeaturesPath | FeatureLinkedMessage
 
-	// FeaturesCompiler is the feature set for the template compiler. It allows all
-	// features except linked messages.
+	// FeaturesCompiler is the feature set for the template compiler. It allows all features
+	// except linked messages.
 	FeaturesCompiler = FeatureIdentifier | FeatureMemberExpr | FeatureIndexExpr |
 		FeatureBinaryExpression | FeatureUnaryExpression | FeatureCallExpression | FeatureTernaryExpression |
 		FeatureTemplateLiteral | FeatureForInExpr | FeatureObjectLiteral |
@@ -152,15 +155,14 @@ func (f ExpressionFeature) String() string {
 	}
 }
 
-// ValidateExpressionFeatures checks that an expression tree only uses allowed
-// features.
+// ValidateExpressionFeatures checks that an expression tree only uses allowed features.
 //
 // Takes expression (Expression) which is the expression tree to check.
 // Takes allowed (ExpressionFeature) which is a bitmask of allowed features.
 // Takes sourcePath (string) which is the source file path for error messages.
 //
-// Returns []*Diagnostic which holds Error-level results for each feature that
-// is not allowed, or nil if all features are allowed.
+// Returns []*Diagnostic which holds Error-level results for each feature that is not
+// allowed, or nil if all features are allowed.
 func ValidateExpressionFeatures(expression Expression, allowed ExpressionFeature, sourcePath string) []*Diagnostic {
 	if expression == nil {
 		return nil
@@ -178,8 +180,8 @@ func ValidateExpressionFeatures(expression Expression, allowed ExpressionFeature
 	return diagnostics
 }
 
-// ValidatePathExpression checks that an expression is a valid path expression.
-// This is a wrapper for common validation.
+// ValidatePathExpression checks that an expression is a valid path expression. This is a
+// wrapper for common validation.
 //
 // Takes expression (Expression) which is the expression to check.
 // Takes sourcePath (string) which identifies the source for diagnostics.
@@ -189,9 +191,8 @@ func ValidatePathExpression(expression Expression, sourcePath string) []*Diagnos
 	return ValidateExpressionFeatures(expression, FeaturesPath, sourcePath)
 }
 
-// IsPathExpression reports whether the given expression is valid for use as a
-// path expression. This is a helper that returns a boolean instead of
-// diagnostics.
+// IsPathExpression reports whether the given expression is valid for use as a path
+// expression. This is a helper that returns a boolean instead of diagnostics.
 //
 // Takes expression (Expression) which is the expression to check.
 //
@@ -203,12 +204,10 @@ func IsPathExpression(expression Expression) bool {
 // validateSingleNode checks whether a single expression node is allowed.
 //
 // Takes expression (Expression) which is the expression node to check.
-// Takes allowed (ExpressionFeature) which specifies the features that are
-// allowed.
+// Takes allowed (ExpressionFeature) which specifies the features that are allowed.
 // Takes sourcePath (string) which is the file path for error messages.
 //
-// Returns *Diagnostic which describes the problem, or nil if the node is
-// allowed.
+// Returns *Diagnostic which describes the problem, or nil if the node is allowed.
 func validateSingleNode(expression Expression, allowed ExpressionFeature, sourcePath string) *Diagnostic {
 	if index, ok := expression.(*IndexExpression); ok {
 		if allowed.Has(FeatureLiteralIndex) && !isLiteralIndex(index.Index) {
@@ -239,8 +238,8 @@ func validateSingleNode(expression Expression, allowed ExpressionFeature, source
 // Takes expression (Expression) which is the expression node to check.
 // Takes allowed (ExpressionFeature) which specifies already allowed features.
 //
-// Returns ExpressionFeature which is the required feature, or 0 if the node
-// is always allowed.
+// Returns ExpressionFeature which is the required feature, or 0 if the node is always
+// allowed.
 // Returns string which describes the feature, or empty if always allowed.
 //
 //nolint:revive // expression dispatch

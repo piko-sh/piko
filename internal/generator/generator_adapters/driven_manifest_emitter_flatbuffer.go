@@ -40,23 +40,24 @@ const (
 	// initialBuilderSize is the starting buffer size for the FlatBuffer builder.
 	initialBuilderSize = 1024
 
-	// uOffsetTSize is the size in bytes of a FlatBuffer UOffsetT (unsigned 32-bit
-	// offset).
+	// uOffsetTSize is the size in bytes of a FlatBuffer UOffsetT (unsigned 32-bit offset).
 	uOffsetTSize = 4
 )
 
-// FlatBufferManifestEmitter implements ManifestEmitterPort to write a binary
-// FlatBuffers manifest. It uses atomic writes and sandboxes all file
-// operations to prevent path traversal attacks.
+// FlatBufferManifestEmitter implements ManifestEmitterPort to write a binary FlatBuffers
+// manifest. It uses atomic writes and sandboxes all file operations to prevent path
+// traversal attacks.
 type FlatBufferManifestEmitter struct {
 	// sandbox restricts file operations to a safe directory.
 	sandbox safedisk.Sandbox
 }
 
-var _ generator_domain.ManifestEmitterPort = (*FlatBufferManifestEmitter)(nil)
+var (
+	_ generator_domain.ManifestEmitterPort = (*FlatBufferManifestEmitter)(nil)
+)
 
-// NewFlatBufferManifestEmitter creates a manifest emitter that writes output
-// in FlatBuffers format.
+// NewFlatBufferManifestEmitter creates a manifest emitter that writes output in
+// FlatBuffers format.
 //
 // Takes sandbox (safedisk.Sandbox) which provides the output folder.
 //
@@ -65,12 +66,11 @@ func NewFlatBufferManifestEmitter(sandbox safedisk.Sandbox) *FlatBufferManifestE
 	return &FlatBufferManifestEmitter{sandbox: sandbox}
 }
 
-// EmitCode generates the final manifest.bin file by serialising the given
-// Manifest to FlatBuffers format and writing it atomically. The output includes
-// a 32-byte schema hash prefix for automatic cache invalidation.
+// EmitCode generates the final manifest.bin file by serialising the given Manifest to
+// FlatBuffers format and writing it atomically. The output includes a 32-byte schema hash
+// prefix for automatic cache invalidation.
 //
-// Takes manifest (*generator_dto.Manifest) which contains the data to
-// serialise.
+// Takes manifest (*generator_dto.Manifest) which contains the data to serialise.
 // Takes outputPath (string) which specifies where to write the output file.
 //
 // Returns error when the atomic write to the filesystem fails.
@@ -99,8 +99,8 @@ func (e *FlatBufferManifestEmitter) EmitCode(
 // packManifest serialises a manifest into a FlatBuffer.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write into.
-// Takes manifest (*generator_dto.Manifest) which holds the pages, partials,
-// and emails to pack.
+// Takes manifest (*generator_dto.Manifest) which holds the pages, partials, and emails to
+// pack.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the packed manifest.
 func packManifest(b *flatbuffers.Builder, manifest *generator_dto.Manifest) flatbuffers.UOffsetT {
@@ -196,8 +196,8 @@ func packPageEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestPageEntr
 // packPartialEntry writes a manifest partial entry to FlatBuffers format.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write the entry to.
-// Takes entry (*generator_dto.ManifestPartialEntry) which holds the partial
-// entry data to write.
+// Takes entry (*generator_dto.ManifestPartialEntry) which holds the partial entry data to
+// write.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the written entry.
 func packPartialEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestPartialEntry) flatbuffers.UOffsetT {
@@ -224,8 +224,8 @@ func packPartialEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestParti
 	return gen_fb.ManifestPartialEntryFBEnd(b)
 }
 
-// packEmailEntryMapItem serialises a key-value pair into a FlatBuffer email
-// entry map item.
+// packEmailEntryMapItem serialises a key-value pair into a FlatBuffer email entry map
+// item.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write the item to.
 // Takes key (string) which is the map key for this entry.
@@ -241,8 +241,8 @@ func packEmailEntryMapItem(b *flatbuffers.Builder, key string, value generator_d
 	return gen_fb.EmailEntryMapItemFBEnd(b)
 }
 
-// localisableEntryFields holds pre-created string offsets shared by email and
-// PDF FlatBuffer entries, both of which have identical field layouts.
+// localisableEntryFields holds pre-created string offsets shared by email and PDF
+// FlatBuffer entries, both of which have identical field layouts.
 type localisableEntryFields struct {
 	// pkgPathOff holds the FlatBuffer offset for the package path string.
 	pkgPathOff flatbuffers.UOffsetT
@@ -260,17 +260,16 @@ type localisableEntryFields struct {
 	hasSupportedLocales bool
 }
 
-// prepareLocalisableEntry creates the string offsets common to email and PDF
-// entries.
+// prepareLocalisableEntry creates the string offsets common to email and PDF entries.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write strings into.
 // Takes pkgPath (string) which is the Go package path.
 // Takes srcPath (string) which is the source file path.
 // Takes styleBlock (string) which is the scoped CSS content.
-// Takes hasSupportedLocales (bool) which indicates whether a supported locales
-// function exists.
-// Takes translations (i18n_domain.Translations) which holds locale translation
-// key-value pairs.
+// Takes hasSupportedLocales (bool) which indicates whether a supported locales function
+// exists.
+// Takes translations (i18n_domain.Translations) which holds locale translation key-value
+// pairs.
 //
 // Returns localisableEntryFields which contains the pre-created offsets.
 func prepareLocalisableEntry(
@@ -288,9 +287,9 @@ func prepareLocalisableEntry(
 	}
 }
 
-// localisableEntryPacker holds the FlatBuffer Start/Add/End callbacks for a
-// single table type, allowing email and PDF entries (which share an identical
-// field layout) to be packed by the same generic helper.
+// localisableEntryPacker holds the FlatBuffer Start/Add/End callbacks for a single table
+// type, allowing email and PDF entries (which share an identical field layout) to be
+// packed by the same generic helper.
 type localisableEntryPacker struct {
 	// start begins a new FlatBuffer table for this entry type.
 	start func(*flatbuffers.Builder)
@@ -317,38 +316,39 @@ type localisableEntryPacker struct {
 	end func(*flatbuffers.Builder) flatbuffers.UOffsetT
 }
 
-// emailEntryPacker holds the FlatBuffer callbacks for email entry tables.
-var emailEntryPacker = localisableEntryPacker{
-	start:                  gen_fb.ManifestEmailEntryFBStart,
-	addPackagePath:         gen_fb.ManifestEmailEntryFBAddPackagePath,
-	addSourcePath:          gen_fb.ManifestEmailEntryFBAddOriginalSourcePath,
-	addStyleBlock:          gen_fb.ManifestEmailEntryFBAddStyleBlock,
-	addHasSupportedLocales: gen_fb.ManifestEmailEntryFBAddHasSupportedLocales,
-	addLocalTranslations:   gen_fb.ManifestEmailEntryFBAddLocalTranslations,
-	addHasPreview:          gen_fb.ManifestEmailEntryFBAddHasPreview,
-	end:                    gen_fb.ManifestEmailEntryFBEnd,
-}
+var (
+	// emailEntryPacker holds the FlatBuffer callbacks for email entry tables.
+	emailEntryPacker = localisableEntryPacker{
+		start:                  gen_fb.ManifestEmailEntryFBStart,
+		addPackagePath:         gen_fb.ManifestEmailEntryFBAddPackagePath,
+		addSourcePath:          gen_fb.ManifestEmailEntryFBAddOriginalSourcePath,
+		addStyleBlock:          gen_fb.ManifestEmailEntryFBAddStyleBlock,
+		addHasSupportedLocales: gen_fb.ManifestEmailEntryFBAddHasSupportedLocales,
+		addLocalTranslations:   gen_fb.ManifestEmailEntryFBAddLocalTranslations,
+		addHasPreview:          gen_fb.ManifestEmailEntryFBAddHasPreview,
+		end:                    gen_fb.ManifestEmailEntryFBEnd,
+	}
 
-// pdfEntryPacker holds the FlatBuffer callbacks for PDF entry tables.
-var pdfEntryPacker = localisableEntryPacker{
-	start:                  gen_fb.ManifestPdfEntryFBStart,
-	addPackagePath:         gen_fb.ManifestPdfEntryFBAddPackagePath,
-	addSourcePath:          gen_fb.ManifestPdfEntryFBAddOriginalSourcePath,
-	addStyleBlock:          gen_fb.ManifestPdfEntryFBAddStyleBlock,
-	addHasSupportedLocales: gen_fb.ManifestPdfEntryFBAddHasSupportedLocales,
-	addLocalTranslations:   gen_fb.ManifestPdfEntryFBAddLocalTranslations,
-	addHasPreview:          gen_fb.ManifestPdfEntryFBAddHasPreview,
-	end:                    gen_fb.ManifestPdfEntryFBEnd,
-}
+	// pdfEntryPacker holds the FlatBuffer callbacks for PDF entry tables.
+	pdfEntryPacker = localisableEntryPacker{
+		start:                  gen_fb.ManifestPdfEntryFBStart,
+		addPackagePath:         gen_fb.ManifestPdfEntryFBAddPackagePath,
+		addSourcePath:          gen_fb.ManifestPdfEntryFBAddOriginalSourcePath,
+		addStyleBlock:          gen_fb.ManifestPdfEntryFBAddStyleBlock,
+		addHasSupportedLocales: gen_fb.ManifestPdfEntryFBAddHasSupportedLocales,
+		addLocalTranslations:   gen_fb.ManifestPdfEntryFBAddLocalTranslations,
+		addHasPreview:          gen_fb.ManifestPdfEntryFBAddHasPreview,
+		end:                    gen_fb.ManifestPdfEntryFBEnd,
+	}
+)
 
-// packLocalisableEntry serialises an email or PDF entry into a FlatBuffer
-// table using the callbacks in p to target the correct generated type.
+// packLocalisableEntry serialises an email or PDF entry into a FlatBuffer table using the
+// callbacks in p to target the correct generated type.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
 // Takes f (localisableEntryFields) which holds the pre-created offsets.
 // Takes hasPreview (bool) which indicates whether a preview is available.
-// Takes p (localisableEntryPacker) which provides the type-specific FlatBuffer
-// callbacks.
+// Takes p (localisableEntryPacker) which provides the type-specific FlatBuffer callbacks.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the finished table.
 func packLocalisableEntry(
@@ -370,8 +370,7 @@ func packLocalisableEntry(
 // packEmailEntry writes an email entry to a FlatBuffer table.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
-// Takes entry (*generator_dto.ManifestEmailEntry) which holds the email data
-// to store.
+// Takes entry (*generator_dto.ManifestEmailEntry) which holds the email data to store.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the finished table.
 func packEmailEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestEmailEntry) flatbuffers.UOffsetT {
@@ -379,8 +378,7 @@ func packEmailEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestEmailEn
 	return packLocalisableEntry(b, f, entry.HasPreview, emailEntryPacker)
 }
 
-// packPdfEntryMapItem serialises a key-value pair into a FlatBuffer PDF
-// entry map item.
+// packPdfEntryMapItem serialises a key-value pair into a FlatBuffer PDF entry map item.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write the item to.
 // Takes key (string) which is the map key for this entry.
@@ -399,8 +397,7 @@ func packPdfEntryMapItem(b *flatbuffers.Builder, key string, value generator_dto
 // packPdfEntry writes a PDF entry to a FlatBuffer table.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
-// Takes entry (*generator_dto.ManifestPdfEntry) which holds the PDF data
-// to store.
+// Takes entry (*generator_dto.ManifestPdfEntry) which holds the PDF data to store.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the finished table.
 func packPdfEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestPdfEntry) flatbuffers.UOffsetT {
@@ -408,13 +405,12 @@ func packPdfEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestPdfEntry)
 	return packLocalisableEntry(b, f, entry.HasPreview, pdfEntryPacker)
 }
 
-// packErrorPageEntryMapItem serialises a key-value pair into a FlatBuffer
-// error page entry map item.
+// packErrorPageEntryMapItem serialises a key-value pair into a FlatBuffer error page
+// entry map item.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write the item to.
 // Takes key (string) which is the map key for this entry.
-// Takes value (generator_dto.ManifestErrorPageEntry) which is the error page
-// entry data.
+// Takes value (generator_dto.ManifestErrorPageEntry) which is the error page entry data.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised item.
 func packErrorPageEntryMapItem(b *flatbuffers.Builder, key string, value generator_dto.ManifestErrorPageEntry) flatbuffers.UOffsetT {
@@ -429,8 +425,8 @@ func packErrorPageEntryMapItem(b *flatbuffers.Builder, key string, value generat
 // packErrorPageEntry writes an error page entry to a FlatBuffer table.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
-// Takes entry (*generator_dto.ManifestErrorPageEntry) which holds the error
-// page data to store.
+// Takes entry (*generator_dto.ManifestErrorPageEntry) which holds the error page data to
+// store.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the finished table.
 func packErrorPageEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestErrorPageEntry) flatbuffers.UOffsetT {
@@ -463,8 +459,7 @@ func packErrorPageEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestErr
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
 // Takes ref (templater_dto.AssetRef) which contains the kind and path to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed asset
-// reference.
+// Returns flatbuffers.UOffsetT which is the offset of the packed asset reference.
 func packAssetRef(b *flatbuffers.Builder, ref templater_dto.AssetRef) flatbuffers.UOffsetT {
 	kindOff := b.CreateString(ref.Kind)
 	pathOff := b.CreateString(ref.Path)
@@ -474,15 +469,14 @@ func packAssetRef(b *flatbuffers.Builder, ref templater_dto.AssetRef) flatbuffer
 	return gen_fb.AssetRefFBEnd(b)
 }
 
-// packRoutePatterns packs a map of locale codes to route patterns into a
-// FlatBuffers vector of RoutePatternMapItemFB entries.
+// packRoutePatterns packs a map of locale codes to route patterns into a FlatBuffers
+// vector of RoutePatternMapItemFB entries.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
-// Takes patterns (map[string]string) which maps locale codes to their route
-// patterns.
+// Takes patterns (map[string]string) which maps locale codes to their route patterns.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0
-// if patterns is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the packed vector, or 0 if patterns
+// is empty.
 func packRoutePatterns(b *flatbuffers.Builder, patterns map[string]string) flatbuffers.UOffsetT {
 	if len(patterns) == 0 {
 		return 0
@@ -503,8 +497,8 @@ func packRoutePatterns(b *flatbuffers.Builder, patterns map[string]string) flatb
 	}
 
 	gen_fb.ManifestPageEntryFBStartRoutePatternsVector(b, len(offsets))
-	for i := len(offsets) - 1; i >= 0; i-- {
-		b.PrependUOffsetT(offsets[i])
+	for _, offset := range slices.Backward(offsets) {
+		b.PrependUOffsetT(offset)
 	}
 	return b.EndVector(len(offsets))
 }
@@ -516,8 +510,8 @@ func packRoutePatterns(b *flatbuffers.Builder, patterns map[string]string) flatb
 // When translations is empty, returns 0.
 //
 // Takes b (*flatbuffers.Builder) which is the buffer to write to.
-// Takes translations (i18n_domain.Translations) which maps locales to their
-// translation key-value pairs.
+// Takes translations (i18n_domain.Translations) which maps locales to their translation
+// key-value pairs.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the packed vector.
 func packLocaleTranslations(b *flatbuffers.Builder, translations i18n_domain.Translations) flatbuffers.UOffsetT {
@@ -541,14 +535,14 @@ func packLocaleTranslations(b *flatbuffers.Builder, translations i18n_domain.Tra
 	return createVector(b, offsets)
 }
 
-// packTranslationKeyValueMap converts a map of translation key-value pairs
-// into a FlatBuffers vector of TranslationKeyValueFB entries.
+// packTranslationKeyValueMap converts a map of translation key-value pairs into a
+// FlatBuffers vector of TranslationKeyValueFB entries.
 //
 // Takes b (*flatbuffers.Builder) which is the builder used to write data.
 // Takes kvMap (map[string]string) which holds the translation pairs to pack.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the created vector, or
-// zero if the map is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the created vector, or zero if the
+// map is empty.
 func packTranslationKeyValueMap(b *flatbuffers.Builder, kvMap map[string]string) flatbuffers.UOffsetT {
 	if len(kvMap) == 0 {
 		return 0
@@ -606,15 +600,15 @@ func packMap[K comparable, V any](b *flatbuffers.Builder, m map[K]V, packer func
 // Takes s ([]T) which holds the items to pack.
 // Takes packer (func(...)) which converts each item into a FlatBuffers offset.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the new vector, or 0 if
-// the slice is empty.
+// Returns flatbuffers.UOffsetT which is the offset of the new vector, or 0 if the slice
+// is empty.
 func packSlice[T any](b *flatbuffers.Builder, s []T, packer func(*flatbuffers.Builder, T) flatbuffers.UOffsetT) flatbuffers.UOffsetT {
 	if len(s) == 0 {
 		return 0
 	}
 	offsets := make([]flatbuffers.UOffsetT, len(s))
-	for i := len(s) - 1; i >= 0; i-- {
-		offsets[i] = packer(b, s[i])
+	for i, item := range slices.Backward(s) {
+		offsets[i] = packer(b, item)
 	}
 	return createVector(b, offsets)
 }
@@ -632,8 +626,8 @@ func packStringSlice(b *flatbuffers.Builder, s []string) flatbuffers.UOffsetT {
 		return 0
 	}
 	offsets := make([]flatbuffers.UOffsetT, len(s))
-	for i := len(s) - 1; i >= 0; i-- {
-		offsets[i] = b.CreateString(s[i])
+	for i, str := range slices.Backward(s) {
+		offsets[i] = b.CreateString(str)
 	}
 	return createVector(b, offsets)
 }
@@ -646,8 +640,8 @@ func packStringSlice(b *flatbuffers.Builder, s []string) flatbuffers.UOffsetT {
 // Returns flatbuffers.UOffsetT which is the offset of the finished vector.
 func createVector(b *flatbuffers.Builder, offsets []flatbuffers.UOffsetT) flatbuffers.UOffsetT {
 	b.StartVector(uOffsetTSize, len(offsets), uOffsetTSize)
-	for i := len(offsets) - 1; i >= 0; i-- {
-		b.PrependUOffsetT(offsets[i])
+	for _, offset := range slices.Backward(offsets) {
+		b.PrependUOffsetT(offset)
 	}
 	return b.EndVector(len(offsets))
 }

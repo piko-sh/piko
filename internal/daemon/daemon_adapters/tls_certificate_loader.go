@@ -24,8 +24,8 @@ import (
 	"piko.sh/piko/internal/tlscert"
 )
 
-// newCertificateLoader creates a CertificateLoader with the daemon's OTEL
-// metrics wired as callbacks.
+// newCertificateLoader creates a CertificateLoader with the daemon's OTEL metrics wired
+// as callbacks.
 //
 // Takes certFile (string) which is the path to the PEM-encoded certificate.
 // Takes keyFile (string) which is the path to the PEM-encoded private key.

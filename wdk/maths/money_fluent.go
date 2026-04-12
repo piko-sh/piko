@@ -37,8 +37,8 @@ func (m Money) Abs() Money {
 	return m
 }
 
-// Negate returns the negated value of the money amount (-m).
-// It guarantees that negating zero returns a canonical (positive) zero.
+// Negate returns the negated value of the money amount (-m). It guarantees that negating
+// zero returns a canonical (positive) zero.
 //
 // Returns Money which is the negated value, or the original if in error state.
 func (m Money) Negate() Money {
@@ -58,12 +58,10 @@ func (m Money) Negate() Money {
 	return Money{amount: negated}
 }
 
-// RoundToStandard rounds the money amount to the standard number of decimal
-// places for its currency. For example, USD rounds to 2 places, JPY to
-// 0 places.
+// RoundToStandard rounds the money amount to the standard number of decimal places for
+// its currency. For example, USD rounds to 2 places, JPY to 0 places.
 //
-// Returns Money which is the rounded value, or the original if an error
-// exists.
+// Returns Money which is the rounded value, or the original if an error exists.
 //
 // Safe for concurrent use; takes a read lock on the currency registry.
 func (m Money) RoundToStandard() Money {
@@ -75,8 +73,8 @@ func (m Money) RoundToStandard() Money {
 	return Money{amount: m.amount.Round()}
 }
 
-// RoundTo rounds the money amount to a custom number of decimal places using
-// the specified rounding mode.
+// RoundTo rounds the money amount to a custom number of decimal places using the
+// specified rounding mode.
 //
 // Takes places (uint8) which specifies the number of decimal places.
 // Takes mode (currency.RoundingMode) which determines the rounding behaviour.
@@ -220,8 +218,8 @@ func (m Money) GetPercentInt(i int64) Money {
 	return m.GetPercent(NewDecimalFromInt(i))
 }
 
-// GetPercentString returns a new Money value representing the given percentage
-// of this Money.
+// GetPercentString returns a new Money value representing the given percentage of this
+// Money.
 //
 // Takes i (string) which is the percentage value as a decimal string.
 //
@@ -230,8 +228,8 @@ func (m Money) GetPercentString(i string) Money {
 	return m.GetPercent(NewDecimalFromString(i))
 }
 
-// GetPercentFloat returns a new Money value representing the given percentage
-// of this money amount.
+// GetPercentFloat returns a new Money value representing the given percentage of this
+// money amount.
 //
 // Takes i (float64) which specifies the percentage to calculate.
 //
@@ -244,9 +242,9 @@ func (m Money) GetPercentFloat(i float64) Money {
 //
 // Takes m2 (Money) which is the base value to compare against.
 //
-// Returns Decimal which is the percentage value. Returns an error-state
-// Decimal if the currencies do not match or if either Money value is in an
-// error state.
+// Returns Decimal which is the percentage value.
+// Returns an error-state Decimal if the currencies do not match or if either Money value
+// is in an error state.
 func (m Money) AsPercentOf(m2 Money) Decimal {
 	if m.err != nil {
 		return ZeroDecimalWithError(m.err)
@@ -279,8 +277,8 @@ func (m Money) AsPercentOfInt(i int64) Decimal {
 	return m.AsPercentOf(NewMoneyFromInt(i, code))
 }
 
-// AsPercentOfString returns this money value as a percentage of the amount
-// given as a string.
+// AsPercentOfString returns this money value as a percentage of the amount given as a
+// string.
 //
 // Takes i (string) which is the divisor amount as a decimal string.
 //
@@ -328,13 +326,11 @@ func (m Money) WhenZero(callback func(Money) Money) Money {
 	return m
 }
 
-// WhenPositive applies the function callback if the money value is
-// valid and positive.
+// WhenPositive applies the function callback if the money value is valid and positive.
 //
 // Takes callback (func(Money) Money) which transforms the money value.
 //
-// Returns Money which is the result of callback if positive, or
-// the original value.
+// Returns Money which is the result of callback if positive, or the original value.
 func (m Money) WhenPositive(callback func(Money) Money) Money {
 	if m.CheckIsPositive() {
 		return callback(m)
@@ -346,8 +342,7 @@ func (m Money) WhenPositive(callback func(Money) Money) Money {
 //
 // Takes callback (func(Money) Money) which transforms the negative money value.
 //
-// Returns Money which is the result of callback if negative, or
-// the original value.
+// Returns Money which is the result of callback if negative, or the original value.
 func (m Money) WhenNegative(callback func(Money) Money) Money {
 	if m.CheckIsNegative() {
 		return callback(m)
@@ -355,8 +350,8 @@ func (m Money) WhenNegative(callback func(Money) Money) Money {
 	return m
 }
 
-// Ceil returns the smallest whole number value greater than or equal to m.
-// The operation rounds up the underlying amount while keeping the currency.
+// Ceil returns the smallest whole number value greater than or equal to m. The operation
+// rounds up the underlying amount while keeping the currency.
 //
 // Returns Money which contains the rounded up value with the same currency.
 func (m Money) Ceil() Money {
@@ -372,11 +367,9 @@ func (m Money) Ceil() Money {
 	return NewMoneyFromDecimal(ceiledAmount, code)
 }
 
-// Floor rounds down the amount to the nearest whole number.
-// The currency stays the same.
+// Floor rounds down the amount to the nearest whole number. The currency stays the same.
 //
-// Returns Money which holds the rounded down amount, or keeps any existing
-// error state.
+// Returns Money which holds the rounded down amount, or keeps any existing error state.
 func (m Money) Floor() Money {
 	if m.err != nil {
 		return m
@@ -390,8 +383,8 @@ func (m Money) Floor() Money {
 	return NewMoneyFromDecimal(flooredAmount, code)
 }
 
-// Truncate returns a copy with only the whole number part, removing any
-// decimal places. The currency stays the same.
+// Truncate returns a copy with only the whole number part, removing any decimal places.
+// The currency stays the same.
 //
 // Returns Money which contains the truncated amount with the same currency.
 func (m Money) Truncate() Money {
@@ -407,13 +400,12 @@ func (m Money) Truncate() Money {
 	return NewMoneyFromDecimal(truncatedAmount, code)
 }
 
-// WhenInteger applies the function callback if the money amount is
-// a valid integer.
+// WhenInteger applies the function callback if the money amount is a valid integer.
 //
 // Takes callback (func(Money) Money) which transforms the money value.
 //
-// Returns Money which is the transformed value if integer, otherwise the
-// original value unchanged.
+// Returns Money which is the transformed value if integer, otherwise the original value
+// unchanged.
 func (m Money) WhenInteger(callback func(Money) Money) Money {
 	if m.CheckIsInteger() {
 		return callback(m)
@@ -421,8 +413,8 @@ func (m Money) WhenInteger(callback func(Money) Money) Money {
 	return m
 }
 
-// WhenBetween applies the function callback if the money amount is valid and
-// between minVal and maxVal (inclusive).
+// WhenBetween applies the function callback if the money amount is valid and between
+// minVal and maxVal (inclusive).
 //
 // Takes minVal (Money) which specifies the lower bound of the range.
 // Takes maxVal (Money) which specifies the upper bound of the range.
@@ -436,15 +428,15 @@ func (m Money) WhenBetween(minVal, maxVal Money, callback func(Money) Money) Mon
 	return m
 }
 
-// WhenCloseTo applies the function callback if the money amount is valid and close
-// to the target value within the given tolerance.
+// WhenCloseTo applies the function callback if the money amount is valid and close to the
+// target value within the given tolerance.
 //
 // Takes target (Money) which specifies the value to compare against.
 // Takes tolerance (Money) which defines the acceptable difference range.
 // Takes callback (func(...)) which transforms the money when close to target.
 //
-// Returns Money which is either the transformed value or the original if not
-// close to target.
+// Returns Money which is either the transformed value or the original if not close to
+// target.
 func (m Money) WhenCloseTo(target, tolerance Money, callback func(Money) Money) Money {
 	if m.CheckIsCloseTo(target, tolerance) {
 		return callback(m)
@@ -452,13 +444,11 @@ func (m Money) WhenCloseTo(target, tolerance Money, callback func(Money) Money) 
 	return m
 }
 
-// WhenEven applies the function callback if the money amount is a valid, even
-// integer.
+// WhenEven applies the function callback if the money amount is a valid, even integer.
 //
 // Takes callback (func(Money) Money) which transforms the money when even.
 //
-// Returns Money which is the transformed value if even, or the original
-// value unchanged.
+// Returns Money which is the transformed value if even, or the original value unchanged.
 func (m Money) WhenEven(callback func(Money) Money) Money {
 	if m.CheckIsEven() {
 		return callback(m)
@@ -466,14 +456,11 @@ func (m Money) WhenEven(callback func(Money) Money) Money {
 	return m
 }
 
-// WhenOdd applies the function callback if the money amount is a
-// valid, odd integer.
+// WhenOdd applies the function callback if the money amount is a valid, odd integer.
 //
-// Takes callback (func(Money) Money) which transforms the money when the amount is
-// odd.
+// Takes callback (func(Money) Money) which transforms the money when the amount is odd.
 //
-// Returns Money which is either the transformed value or the original money
-// unchanged.
+// Returns Money which is either the transformed value or the original money unchanged.
 func (m Money) WhenOdd(callback func(Money) Money) Money {
 	if m.CheckIsOdd() {
 		return callback(m)
@@ -481,8 +468,8 @@ func (m Money) WhenOdd(callback func(Money) Money) Money {
 	return m
 }
 
-// WhenMultipleOf applies the function callback if the money amount is a valid
-// multiple of the other money amount.
+// WhenMultipleOf applies the function callback if the money amount is a valid multiple of
+// the other money amount.
 //
 // Takes other (Money) which specifies the divisor to check against.
 // Takes callback (func(...)) which transforms the money if the check passes.

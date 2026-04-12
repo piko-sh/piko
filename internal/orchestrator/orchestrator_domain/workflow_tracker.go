@@ -28,8 +28,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// checkAndResolveWorkflow checks if a workflow has finished and resolves its
-// receipt.
+// checkAndResolveWorkflow checks if a workflow has finished and resolves its receipt.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
 // Takes workflowID (string) which identifies the workflow to check.
@@ -66,11 +65,10 @@ func (s *orchestratorService) checkAndResolveWorkflow(ctx context.Context, workf
 	})
 }
 
-// registerReceipt adds a new receipt to the internal map and persists to
-// database.
+// registerReceipt adds a new receipt to the internal map and persists to database.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is
-// detached internally so persistence completes independently.
+// Takes ctx (context.Context) which carries tracing values; cancellation is detached
+// internally so persistence completes independently.
 // Takes receiptID (string) which is the unique identifier for this receipt.
 // Takes receipt (*WorkflowReceipt) which is the workflow receipt to store.
 func (s *orchestratorService) registerReceipt(ctx context.Context, receiptID string, receipt *WorkflowReceipt) {
@@ -90,8 +88,8 @@ func (s *orchestratorService) registerReceipt(ctx context.Context, receiptID str
 	}
 }
 
-// registerReceiptInMemory adds a receipt to the in-memory map without
-// persisting to the store.
+// registerReceiptInMemory adds a receipt to the in-memory map without persisting to the
+// store.
 //
 // Takes ctx (context.Context) which carries tracing values for metrics.
 // Takes receipt (*WorkflowReceipt) which is the workflow receipt to track.
@@ -110,11 +108,10 @@ func (s *orchestratorService) registerReceiptInMemory(ctx context.Context, recei
 
 // removeReceipt removes a specific receipt from the waitlist.
 //
-// Takes receiptToRemove (*WorkflowReceipt) which specifies the receipt to
-// remove from the workflow's waitlist.
+// Takes receiptToRemove (*WorkflowReceipt) which specifies the receipt to remove from the
+// workflow's waitlist.
 //
-// Safe for concurrent use. Acquires the receipts mutex for the duration of the
-// operation.
+// Safe for concurrent use. Acquires the receipts mutex for the duration of the operation.
 func (s *orchestratorService) removeReceipt(receiptToRemove *WorkflowReceipt) {
 	s.receiptsMutex.Lock()
 	defer s.receiptsMutex.Unlock()
@@ -136,18 +133,16 @@ func (s *orchestratorService) removeReceipt(receiptToRemove *WorkflowReceipt) {
 	}
 }
 
-// resolveReceipts resolves all waiting receipts for a completed workflow. Also
-// resolves receipts in the database for cross-node coordination.
+// resolveReceipts resolves all waiting receipts for a completed workflow. Also resolves
+// receipts in the database for cross-node coordination.
 //
-// Takes ctx (context.Context) which carries tracing values; cancellation is
-// detached internally so resolution completes independently.
-// Takes workflowID (string) which identifies the workflow whose receipts to
-// resolve.
-// Takes err (error) which is passed to each receipt to indicate success or
-// failure.
+// Takes ctx (context.Context) which carries tracing values; cancellation is detached
+// internally so resolution completes independently.
+// Takes workflowID (string) which identifies the workflow whose receipts to resolve.
+// Takes err (error) which is passed to each receipt to indicate success or failure.
 //
-// Safe for concurrent use. Acquires receiptsMutex to retrieve and remove
-// waiters, then releases the lock before resolving receipts.
+// Safe for concurrent use. Acquires receiptsMutex to retrieve and remove waiters, then
+// releases the lock before resolving receipts.
 func (s *orchestratorService) resolveReceipts(ctx context.Context, workflowID string, err error) {
 	ctx, l := logger_domain.From(ctx, log)
 	s.receiptsMutex.Lock()
@@ -182,11 +177,9 @@ func (s *orchestratorService) resolveReceipts(ctx context.Context, workflowID st
 	}
 }
 
-// subscribeToCompletionEvents subscribes to task.completed events to resolve
-// workflow receipts. When all tasks in a workflow complete, the associated
-// receipts are resolved.
+// subscribeToCompletionEvents subscribes to task.completed events to resolve workflow
+// receipts. When all tasks in a workflow complete, the associated receipts are resolved.
 func (s *orchestratorService) subscribeToCompletionEvents() {
-	defer s.wg.Done()
 	defer goroutine.RecoverPanic(s.runCtx, "orchestrator.subscribeToCompletionEvents")
 
 	ctx, scl := logger_domain.From(s.runCtx, log)
@@ -219,12 +212,10 @@ func (s *orchestratorService) subscribeToCompletionEvents() {
 	l.Internal("Completion event subscription shutting down")
 }
 
-// handleCompletionEvent processes a task.completed event to resolve workflow
-// receipts.
+// handleCompletionEvent processes a task.completed event to resolve workflow receipts.
 //
 // Takes ctx (context.Context) which carries tracing spans and cancellation.
-// Takes event (Event) which contains the completion payload with workflow ID
-// and status.
+// Takes event (Event) which contains the completion payload with workflow ID and status.
 func (s *orchestratorService) handleCompletionEvent(ctx context.Context, event Event) {
 	workflowID := getPayloadString(event.Payload, "workflowId")
 	status := getPayloadString(event.Payload, "status")

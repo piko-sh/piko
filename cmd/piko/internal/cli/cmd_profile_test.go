@@ -2394,10 +2394,12 @@ func TestCapturePhase_Integration(t *testing.T) {
 	}
 }
 
-var _ = io.Discard
-var _ = http.StatusOK
-var _ = (*httptest.Server)(nil)
-var _ = json.Unmarshal
-var _ = (*atomic.Value)(nil)
-var _ = tea.Quit
-var _ = context.Background
+var (
+	_ = io.Discard
+	_ = http.StatusOK
+	_ = (*httptest.Server)(nil)
+	_ = json.Unmarshal
+	_ = (*atomic.Value)(nil)
+	_ = tea.Quit
+	_ = context.Background
+)

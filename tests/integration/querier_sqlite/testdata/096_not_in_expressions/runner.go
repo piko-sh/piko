@@ -79,7 +79,7 @@ func main() {
 	}
 
 	result := map[string]any{
-		"workflow_summary":  workflowSummary,
+		"workflow_summary": workflowSummary,
 		"active_tasks":     activeTasks,
 		"outside_priority": outsidePriority,
 		"not_matching":     notMatching,

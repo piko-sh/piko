@@ -28,15 +28,15 @@ import (
 
 // BuildQueryMethod constructs the query method on *Queries for a single query,
 // dispatching to the appropriate builder based on the command type. When a
-// BatchCopyFromHandler is provided (non-nil), batch and copyfrom commands are
-// also supported.
+// BatchCopyFromHandler is provided (non-nil), batch and copyfrom commands are also
+// supported.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
 // Takes tracker (*ImportTracker) for import collection.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
-// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or
-// nil if unsupported.
+// Takes batchHandler (BatchCopyFromHandler) which handles batch/copyfrom, or nil if
+// unsupported.
 //
 // Returns ast.Decl which is the method declaration.
 func BuildQueryMethod(
@@ -82,8 +82,8 @@ func BuildQueryMethod(
 	}
 }
 
-// BuildDynamicQueryMethod dispatches to the appropriate dynamic method builder
-// based on the query command type.
+// BuildDynamicQueryMethod dispatches to the appropriate dynamic method builder based on
+// the query command type.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.
@@ -179,9 +179,9 @@ func BuildOneMethod(
 	}
 }
 
-// buildOneMethodScanStatements constructs the common VarDecl + embed
-// pre-allocation + Scan + error-check statements shared by both the
-// slice-expansion and normal branches of BuildOneMethod.
+// buildOneMethodScanStatements constructs the common VarDecl + embed pre-allocation +
+// Scan + error-check statements shared by both the slice-expansion and normal branches of
+// BuildOneMethod.
 //
 // Takes rowTypeName (string) which is the row struct name.
 // Takes queryRowCall (ast.Expr) which is the QueryRow call expression.
@@ -247,17 +247,17 @@ func BuildManyMethod(
 	}
 }
 
-// BuildRowsIterationBody constructs the full body of a :many method including
-// Query call, error check, defer Close, var results, for loop with Scan,
-// rows.Err check, and final return.
+// BuildRowsIterationBody constructs the full body of a :many method including Query call,
+// error check, defer Close, var results, for loop with Scan, rows.Err check, and final
+// return.
 //
 // When query is non-nil, embed handling is included in the scan loop.
 //
 // Takes rowTypeName (string) which is the row struct name.
 // Takes queryArguments ([]ast.Expr) which are the Query call arguments.
 // Takes scanArguments ([]ast.Expr) which are the Scan call arguments.
-// Takes query (*querier_dto.AnalysedQuery) which defines embed handling, or
-// nil to skip embeds.
+// Takes query (*querier_dto.AnalysedQuery) which defines embed handling, or nil to skip
+// embeds.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns []ast.Stmt which contains the method body statements.
@@ -266,8 +266,8 @@ func BuildRowsIterationBody(rowTypeName string, queryArguments []ast.Expr, scanA
 	return buildRowsIterationBodyFromCall(rowTypeName, dbCall, scanArguments, query)
 }
 
-// BuildRowsIterationBodyFromSliceCall constructs the body of a :many method
-// from a pre-built call expression with ellipsis for slice-expanded queries.
+// BuildRowsIterationBodyFromSliceCall constructs the body of a :many method from a
+// pre-built call expression with ellipsis for slice-expanded queries.
 //
 // Takes rowTypeName (string) which is the row struct name.
 // Takes dbCall (*ast.CallExpr) which is the pre-built database call.
@@ -279,8 +279,8 @@ func BuildRowsIterationBodyFromSliceCall(rowTypeName string, dbCall *ast.CallExp
 	return buildRowsIterationBodyFromCall(rowTypeName, dbCall, scanArguments, query)
 }
 
-// buildRowsIterationBodyFromCall constructs the full body of a :many method
-// from a database call expression.
+// buildRowsIterationBodyFromCall constructs the full body of a :many method from a
+// database call expression.
 //
 // Takes rowTypeName (string) which is the row struct name.
 // Takes dbCall (*ast.CallExpr) which is the database call expression.
@@ -322,13 +322,13 @@ func buildRowsIterationBodyFromCall(rowTypeName string, dbCall *ast.CallExpr, sc
 	}
 }
 
-// BuildRowsScanLoop constructs the inner loop body that declares a row
-// variable, scans into it, and appends to results.
+// BuildRowsScanLoop constructs the inner loop body that declares a row variable, scans
+// into it, and appends to results.
 //
 // Takes rowTypeName (string) which is the row struct name.
 // Takes scanArguments ([]ast.Expr) which are the Scan call arguments.
-// Takes query (*querier_dto.AnalysedQuery) which defines embed handling, or
-// nil to skip embeds.
+// Takes query (*querier_dto.AnalysedQuery) which defines embed handling, or nil to skip
+// embeds.
 //
 // Returns []ast.Stmt which contains the loop body statements.
 func BuildRowsScanLoop(rowTypeName string, scanArguments []ast.Expr, query *querier_dto.AnalysedQuery) []ast.Stmt {
@@ -442,8 +442,8 @@ func BuildExecMethod(
 	}
 }
 
-// BuildExecResultMethod constructs a :execresult method returning the
-// database-specific result type.
+// BuildExecResultMethod constructs a :execresult method returning the database-specific
+// result type.
 //
 // Takes query (*querier_dto.AnalysedQuery) which defines the query to emit.
 // Takes mappings (*querier_dto.TypeMappingTable) for type resolution.

@@ -23,16 +23,15 @@ import (
 	"go/token"
 )
 
-// buildPropToStringExpr generates a Go AST expression that converts a prop
-// field value to its string representation, suitable for use as a query
-// parameter value.
+// buildPropToStringExpr generates a Go AST expression that converts a prop field value to
+// its string representation, suitable for use as a query parameter value.
 //
-// Takes fieldAccess (goast.Expr) which is the expression accessing the prop
-// field (e.g. props_key.FieldName).
+// Takes fieldAccess (goast.Expr) which is the expression accessing the prop field (e.g.
+// props_key.FieldName).
 // Takes baseType (string) which is the Go base type name of the field.
 //
-// Returns goast.Expr which converts the field value to a string using the
-// appropriate strconv function, or the field directly for string types.
+// Returns goast.Expr which converts the field value to a string using the appropriate
+// strconv function, or the field directly for string types.
 func buildPropToStringExpr(fieldAccess goast.Expr, baseType string) goast.Expr {
 	switch baseType {
 	case "int":

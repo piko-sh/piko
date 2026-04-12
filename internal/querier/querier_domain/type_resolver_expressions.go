@@ -26,28 +26,25 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// booleanNotNull is the pre-built SQL type descriptor for a non-nullable boolean column.
-var booleanNotNull = querier_dto.SQLType{
-	Category:   querier_dto.TypeCategoryBoolean,
-	EngineName: querier_dto.CanonicalBoolean,
-}
+var (
+	// booleanNotNull is the pre-built SQL type descriptor for a non-nullable boolean column.
+	booleanNotNull = querier_dto.SQLType{
+		Category:   querier_dto.TypeCategoryBoolean,
+		EngineName: querier_dto.CanonicalBoolean,
+	}
+)
 
-// resolveExpressionType infers the SQL type and
-// nullability of a typed expression from the engine
-// adapter. Dispatches on the concrete expression type
-// via a type switch for compile-time safety.
+// resolveExpressionType infers the SQL type and nullability of a typed expression from
+// the engine adapter. Dispatches on the concrete expression type via a type switch for
+// compile-time safety.
 //
-// Takes expression (querier_dto.Expression) which
-// specifies the expression to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for column and CTE lookups.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the expression modifies data.
+// Takes expression (querier_dto.Expression) which specifies the expression to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for column and CTE lookups.
+// Takes dataModifying (*bool) which specifies a flag set to true if the expression
+// modifies data.
 //
-// Returns querier_dto.SQLType which holds the inferred
-// SQL type of the expression.
-// Returns bool which indicates whether the result is
-// nullable.
+// Returns querier_dto.SQLType which holds the inferred SQL type of the expression.
+// Returns bool which indicates whether the result is nullable.
 // Returns error which indicates a resolution failure.
 func (r *typeResolver) resolveExpressionType(
 	expression querier_dto.Expression,
@@ -100,21 +97,16 @@ func (r *typeResolver) resolveExpressionType(
 	}
 }
 
-// resolveColumnRefExpression resolves a column
-// reference expression by looking up the column in the
-// scope chain and returning its type and nullability.
+// resolveColumnRefExpression resolves a column reference expression by looking up the
+// column in the scope chain and returning its type and nullability.
 //
-// Takes expression (*querier_dto.ColumnRefExpression)
-// which specifies the column reference to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for column lookups.
+// Takes expression (*querier_dto.ColumnRefExpression) which specifies the column
+// reference to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for column lookups.
 //
-// Returns querier_dto.SQLType which holds the column's
-// SQL type.
-// Returns bool which indicates whether the column is
-// nullable.
-// Returns error which indicates Q030 for nil references
-// or a scope resolution failure.
+// Returns querier_dto.SQLType which holds the column's SQL type.
+// Returns bool which indicates whether the column is nullable.
+// Returns error which indicates Q030 for nil references or a scope resolution failure.
 func (*typeResolver) resolveColumnRefExpression(
 	expression *querier_dto.ColumnRefExpression,
 	scope *scopeChain,
@@ -134,25 +126,20 @@ func (*typeResolver) resolveColumnRefExpression(
 	return column.SQLType, column.Nullable, nil
 }
 
-// resolveFunctionCallExpression resolves a function
-// call by performing overload resolution against the
-// function resolver and inferring nullability from the
-// function's nullable behaviour and argument
-// nullability.
+// resolveFunctionCallExpression resolves a function call by performing overload
+// resolution against the function resolver and inferring nullability from the function's
+// nullable behaviour and argument nullability.
 //
-// Takes expression (*querier_dto.FunctionCallExpression)
-// which specifies the function call to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving argument expressions.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the function modifies data.
+// Takes expression (*querier_dto.FunctionCallExpression) which specifies the function
+// call to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving argument
+// expressions.
+// Takes dataModifying (*bool) which specifies a flag set to true if the function modifies
+// data.
 //
-// Returns querier_dto.SQLType which holds the
-// function's return type.
-// Returns bool which indicates whether the result is
-// nullable.
-// Returns error which indicates a resolution or
-// overload failure.
+// Returns querier_dto.SQLType which holds the function's return type.
+// Returns bool which indicates whether the result is nullable.
+// Returns error which indicates a resolution or overload failure.
 func (r *typeResolver) resolveFunctionCallExpression(
 	expression *querier_dto.FunctionCallExpression,
 	scope *scopeChain,
@@ -207,24 +194,19 @@ func (r *typeResolver) resolveFunctionCallExpression(
 	return match.returnType, nullable, nil
 }
 
-// resolveCoalesceExpression resolves a COALESCE
-// expression by computing the common supertype of all
-// arguments. The result is nullable only if every
-// argument is nullable.
+// resolveCoalesceExpression resolves a COALESCE expression by computing the common
+// supertype of all arguments. The result is nullable only if every argument is nullable.
 //
-// Takes expression (*querier_dto.CoalesceExpression)
-// which specifies the COALESCE to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving argument expressions.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if any argument modifies data.
+// Takes expression (*querier_dto.CoalesceExpression) which specifies the COALESCE to
+// resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving argument
+// expressions.
+// Takes dataModifying (*bool) which specifies a flag set to true if any argument modifies
+// data.
 //
-// Returns querier_dto.SQLType which holds the common
-// supertype of all arguments.
-// Returns bool which indicates whether the result is
-// nullable.
-// Returns error which indicates Q030 for a nil
-// expression.
+// Returns querier_dto.SQLType which holds the common supertype of all arguments.
+// Returns bool which indicates whether the result is nullable.
+// Returns error which indicates Q030 for a nil expression.
 func (r *typeResolver) resolveCoalesceExpression(
 	expression *querier_dto.CoalesceExpression,
 	scope *scopeChain,
@@ -252,24 +234,19 @@ func (r *typeResolver) resolveCoalesceExpression(
 	return resultType, allNullable, nil
 }
 
-// resolveCastExpression resolves a CAST expression by
-// normalising the target type name through the engine
-// adapter and preserving the inner expression's
-// nullability.
+// resolveCastExpression resolves a CAST expression by normalising the target type name
+// through the engine adapter and preserving the inner expression's nullability.
 //
-// Takes expression (*querier_dto.CastExpression) which
-// specifies the CAST to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving the inner expression.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the inner expression modifies data.
-//
-// Returns querier_dto.SQLType which holds the
-// normalised target type.
-// Returns bool which indicates whether the result is
-// nullable (inherits from the inner expression).
-// Returns error which indicates Q030 for a nil
+// Takes expression (*querier_dto.CastExpression) which specifies the CAST to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving the inner
 // expression.
+// Takes dataModifying (*bool) which specifies a flag set to true if the inner expression
+// modifies data.
+//
+// Returns querier_dto.SQLType which holds the normalised target type.
+// Returns bool which indicates whether the result is nullable (inherits from the inner
+// expression).
+// Returns error which indicates Q030 for a nil expression.
 func (r *typeResolver) resolveCastExpression(
 	expression *querier_dto.CastExpression,
 	scope *scopeChain,
@@ -290,13 +267,15 @@ func (r *typeResolver) resolveCastExpression(
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, innerNullable, nil
 }
 
-// resolveLiteralExpression resolves a literal expression by normalising its type
-// name through the engine adapter. Literals are never nullable.
+// resolveLiteralExpression resolves a literal expression by normalising its type name
+// through the engine adapter. Literals are never nullable.
 //
-// Takes expression (*querier_dto.LiteralExpression) which specifies the literal to resolve.
+// Takes expression (*querier_dto.LiteralExpression) which specifies the literal to
+// resolve.
 //
 // Returns querier_dto.SQLType which holds the normalised literal type.
-// Returns bool which indicates whether the result is nullable (always false for literals).
+// Returns bool which indicates whether the result is nullable (always false for
+// literals).
 // Returns error which indicates Q030 for a nil expression.
 func (r *typeResolver) resolveLiteralExpression(
 	expression *querier_dto.LiteralExpression,
@@ -311,25 +290,20 @@ func (r *typeResolver) resolveLiteralExpression(
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, false, nil
 }
 
-// resolveBinaryOpExpression resolves a binary operator
-// expression by inferring the result type from the
-// operator and operand types. Special cases include
-// string concatenation, JSON operators, and bitwise
-// operators.
+// resolveBinaryOpExpression resolves a binary operator expression by inferring the result
+// type from the operator and operand types. Special cases include string concatenation,
+// JSON operators, and bitwise operators.
 //
-// Takes expression (*querier_dto.BinaryOpExpression)
-// which specifies the binary operation to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving operand expressions.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if either operand modifies data.
+// Takes expression (*querier_dto.BinaryOpExpression) which specifies the binary operation
+// to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving operand
+// expressions.
+// Takes dataModifying (*bool) which specifies a flag set to true if either operand
+// modifies data.
 //
-// Returns querier_dto.SQLType which holds the inferred
-// result type.
-// Returns bool which indicates whether the result is
-// nullable.
-// Returns error which indicates Q030 for a nil
-// expression.
+// Returns querier_dto.SQLType which holds the inferred result type.
+// Returns bool which indicates whether the result is nullable.
+// Returns error which indicates Q030 for a nil expression.
 func (r *typeResolver) resolveBinaryOpExpression(
 	expression *querier_dto.BinaryOpExpression,
 	scope *scopeChain,
@@ -373,24 +347,18 @@ func (r *typeResolver) resolveBinaryOpExpression(
 	}
 }
 
-// resolveUnaryOpExpression resolves a unary operator
-// expression. NOT operators always produce a
-// non-nullable boolean; other operators preserve the
-// operand type.
+// resolveUnaryOpExpression resolves a unary operator expression. NOT operators always
+// produce a non-nullable boolean; other operators preserve the operand type.
 //
-// Takes expression (*querier_dto.UnaryOpExpression)
-// which specifies the unary operation to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving the operand.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the operand modifies data.
+// Takes expression (*querier_dto.UnaryOpExpression) which specifies the unary operation
+// to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving the operand.
+// Takes dataModifying (*bool) which specifies a flag set to true if the operand modifies
+// data.
 //
-// Returns querier_dto.SQLType which holds the inferred
-// result type.
-// Returns bool which indicates whether the result is
-// nullable.
-// Returns error which indicates Q030 for a nil
-// expression.
+// Returns querier_dto.SQLType which holds the inferred result type.
+// Returns bool which indicates whether the result is nullable.
+// Returns error which indicates Q030 for a nil expression.
 func (r *typeResolver) resolveUnaryOpExpression(
 	expression *querier_dto.UnaryOpExpression,
 	scope *scopeChain,
@@ -409,25 +377,20 @@ func (r *typeResolver) resolveUnaryOpExpression(
 	return operandType, operandNullable, operandError
 }
 
-// resolveCaseWhenExpression resolves a CASE/WHEN
-// expression by computing the common supertype across
-// all branch results and the ELSE result. The result is
-// nullable if any branch is nullable or the ELSE clause
-// is absent.
+// resolveCaseWhenExpression resolves a CASE/WHEN expression by computing the common
+// supertype across all branch results and the ELSE result. The result is nullable if any
+// branch is nullable or the ELSE clause is absent.
 //
-// Takes expression (*querier_dto.CaseWhenExpression)
-// which specifies the CASE expression to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving branch expressions.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if any branch modifies data.
+// Takes expression (*querier_dto.CaseWhenExpression) which specifies the CASE expression
+// to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving branch
+// expressions.
+// Takes dataModifying (*bool) which specifies a flag set to true if any branch modifies
+// data.
 //
-// Returns querier_dto.SQLType which holds the common
-// supertype of all branches.
-// Returns bool which indicates whether the result is
-// nullable.
-// Returns error which indicates Q030 for a nil
-// expression.
+// Returns querier_dto.SQLType which holds the common supertype of all branches.
+// Returns bool which indicates whether the result is nullable.
+// Returns error which indicates Q030 for a nil expression.
 func (r *typeResolver) resolveCaseWhenExpression(
 	expression *querier_dto.CaseWhenExpression,
 	scope *scopeChain,
@@ -464,24 +427,19 @@ func (r *typeResolver) resolveCaseWhenExpression(
 	return resultType, nullable, nil
 }
 
-// resolveWindowFunctionExpression resolves a window
-// function expression by delegating to the underlying
-// function call resolution.
+// resolveWindowFunctionExpression resolves a window function expression by delegating to
+// the underlying function call resolution.
 //
-// Takes expression
-// (*querier_dto.WindowFunctionExpression) which
-// specifies the window function to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving function arguments.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the function modifies data.
+// Takes expression (*querier_dto.WindowFunctionExpression) which specifies the window
+// function to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving function
+// arguments.
+// Takes dataModifying (*bool) which specifies a flag set to true if the function modifies
+// data.
 //
-// Returns querier_dto.SQLType which holds the
-// function's return type.
-// Returns bool which indicates whether the result is
-// nullable.
-// Returns error which indicates Q030 for a nil
-// expression or function resolution failure.
+// Returns querier_dto.SQLType which holds the function's return type.
+// Returns bool which indicates whether the result is nullable.
+// Returns error which indicates Q030 for a nil expression or function resolution failure.
 func (r *typeResolver) resolveWindowFunctionExpression(
 	expression *querier_dto.WindowFunctionExpression,
 	scope *scopeChain,
@@ -494,16 +452,13 @@ func (r *typeResolver) resolveWindowFunctionExpression(
 	return r.resolveFunctionCallExpression(expression.Function, scope, dataModifying)
 }
 
-// resolveCustomType resolves an unknown SQL type
-// against the catalogue's enums and composite types.
-// For array types, recursively resolves the element
-// type.
+// resolveCustomType resolves an unknown SQL type against the catalogue's enums and
+// composite types. For array types, recursively resolves the element type.
 //
-// Takes sqlType (querier_dto.SQLType) which specifies
-// the type to resolve.
+// Takes sqlType (querier_dto.SQLType) which specifies the type to resolve.
 //
-// Returns querier_dto.SQLType which holds the resolved
-// type with category and metadata populated.
+// Returns querier_dto.SQLType which holds the resolved type with category and metadata
+// populated.
 func (r *typeResolver) resolveCustomType(sqlType querier_dto.SQLType) querier_dto.SQLType {
 	if sqlType.Category == querier_dto.TypeCategoryArray && sqlType.ElementType != nil {
 		resolved := r.resolveCustomType(*sqlType.ElementType)
@@ -531,24 +486,20 @@ func (r *typeResolver) resolveCustomType(sqlType querier_dto.SQLType) querier_dt
 	return sqlType
 }
 
-// resolveScalarSubqueryExpression resolves a scalar
-// subquery expression by creating an inner scope and
-// resolving the first output column of the inner query.
-// The result is always nullable since the subquery may
-// return zero rows.
+// resolveScalarSubqueryExpression resolves a scalar subquery expression by creating an
+// inner scope and resolving the first output column of the inner query. The result is
+// always nullable since the subquery may return zero rows.
 //
-// Takes expression
-// (*querier_dto.ScalarSubqueryExpression) which
-// specifies the subquery to resolve.
-// Takes outerScope (*scopeChain) which specifies the
-// parent scope for correlated references.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the subquery modifies data.
+// Takes expression (*querier_dto.ScalarSubqueryExpression) which specifies the subquery
+// to resolve.
+// Takes outerScope (*scopeChain) which specifies the parent scope for correlated
+// references.
+// Takes dataModifying (*bool) which specifies a flag set to true if the subquery modifies
+// data.
 //
-// Returns querier_dto.SQLType which holds the type of
-// the first output column.
-// Returns bool which indicates whether the result is
-// nullable (always true for subqueries).
+// Returns querier_dto.SQLType which holds the type of the first output column.
+// Returns bool which indicates whether the result is nullable (always true for
+// subqueries).
 // Returns error which indicates a resolution failure.
 func (r *typeResolver) resolveScalarSubqueryExpression(
 	expression *querier_dto.ScalarSubqueryExpression,
@@ -574,25 +525,20 @@ func (r *typeResolver) resolveScalarSubqueryExpression(
 	return resolvedType, true, nil
 }
 
-// resolveArraySubscriptExpression resolves an array
-// subscript expression by extracting the element type
-// from the array type. The result is always nullable
-// since the subscript index may be out of bounds.
+// resolveArraySubscriptExpression resolves an array subscript expression by extracting
+// the element type from the array type. The result is always nullable since the subscript
+// index may be out of bounds.
 //
-// Takes expression
-// (*querier_dto.ArraySubscriptExpression) which
-// specifies the subscript to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving the array expression.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the array expression modifies data.
+// Takes expression (*querier_dto.ArraySubscriptExpression) which specifies the subscript
+// to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving the array
+// expression.
+// Takes dataModifying (*bool) which specifies a flag set to true if the array expression
+// modifies data.
 //
-// Returns querier_dto.SQLType which holds the array
-// element type.
-// Returns bool which indicates whether the result is
-// nullable (always true).
-// Returns error which indicates a resolution failure
-// for the array expression.
+// Returns querier_dto.SQLType which holds the array element type.
+// Returns bool which indicates whether the result is nullable (always true).
+// Returns error which indicates a resolution failure for the array expression.
 func (r *typeResolver) resolveArraySubscriptExpression(
 	expression *querier_dto.ArraySubscriptExpression,
 	scope *scopeChain,
@@ -612,7 +558,8 @@ func (r *typeResolver) resolveArraySubscriptExpression(
 //
 // Takes expression (*querier_dto.LambdaExpression) which specifies the lambda to resolve.
 // Takes scope (*scopeChain) which specifies the scope chain for resolving the body.
-// Takes dataModifying (*bool) which specifies a flag set to true if the body modifies data.
+// Takes dataModifying (*bool) which specifies a flag set to true if the body modifies
+// data.
 //
 // Returns querier_dto.SQLType which holds the type of the lambda body.
 // Returns bool which indicates whether the result is nullable.
@@ -628,25 +575,20 @@ func (r *typeResolver) resolveLambdaExpression(
 	return r.resolveExpressionType(expression.Body, scope, dataModifying)
 }
 
-// resolveStructFieldAccessExpression resolves a struct
-// field access expression by resolving the struct
-// expression and then looking up the named field within
-// its struct fields.
+// resolveStructFieldAccessExpression resolves a struct field access expression by
+// resolving the struct expression and then looking up the named field within its struct
+// fields.
 //
-// Takes expression
-// (*querier_dto.StructFieldAccessExpression) which
-// specifies the field access to resolve.
-// Takes scope (*scopeChain) which specifies the scope
-// chain for resolving the struct expression.
-// Takes dataModifying (*bool) which specifies a flag
-// set to true if the struct expression modifies data.
+// Takes expression (*querier_dto.StructFieldAccessExpression) which specifies the field
+// access to resolve.
+// Takes scope (*scopeChain) which specifies the scope chain for resolving the struct
+// expression.
+// Takes dataModifying (*bool) which specifies a flag set to true if the struct expression
+// modifies data.
 //
-// Returns querier_dto.SQLType which holds the type of
-// the accessed field.
-// Returns bool which indicates whether the result is
-// nullable.
-// Returns error which indicates a resolution failure
-// for the struct expression.
+// Returns querier_dto.SQLType which holds the type of the accessed field.
+// Returns bool which indicates whether the result is nullable.
+// Returns error which indicates a resolution failure for the struct expression.
 func (r *typeResolver) resolveStructFieldAccessExpression(
 	expression *querier_dto.StructFieldAccessExpression,
 	scope *scopeChain,
@@ -666,15 +608,13 @@ func (r *typeResolver) resolveStructFieldAccessExpression(
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}, true, nil
 }
 
-// addRawTablesToScope registers tables from a raw query
-// analysis into the given scope by looking them up in
-// the catalogue. Both FROM tables and JOIN clause
-// tables are registered.
+// addRawTablesToScope registers tables from a raw query analysis into the given scope by
+// looking them up in the catalogue. Both FROM tables and JOIN clause tables are
+// registered.
 //
-// Takes raw (*querier_dto.RawQueryAnalysis) which
-// specifies the raw query with table references.
-// Takes scope (*scopeChain) which specifies the scope
-// to populate with resolved tables.
+// Takes raw (*querier_dto.RawQueryAnalysis) which specifies the raw query with table
+// references.
+// Takes scope (*scopeChain) which specifies the scope to populate with resolved tables.
 func (r *typeResolver) addRawTablesToScope(raw *querier_dto.RawQueryAnalysis, scope *scopeChain) {
 	for _, tableReference := range raw.FromTables {
 		schemaName := tableReference.Schema
@@ -704,18 +644,15 @@ func (r *typeResolver) addRawTablesToScope(raw *querier_dto.RawQueryAnalysis, sc
 	}
 }
 
-// commonSupertype returns the common supertype of two
-// SQL types following the engine's promotion and
-// implicit casting rules. Used for CASE/WHEN branches,
-// UNION columns, and COALESCE arguments.
+// commonSupertype returns the common supertype of two SQL types following the engine's
+// promotion and implicit casting rules. Used for CASE/WHEN branches, UNION columns, and
+// COALESCE arguments.
 //
-// Takes left (querier_dto.SQLType) which specifies the
-// first type to merge.
-// Takes right (querier_dto.SQLType) which specifies the
-// second type to merge.
+// Takes left (querier_dto.SQLType) which specifies the first type to merge.
+// Takes right (querier_dto.SQLType) which specifies the second type to merge.
 //
-// Returns querier_dto.SQLType which holds the common
-// supertype, or unknown if no promotion path exists.
+// Returns querier_dto.SQLType which holds the common supertype, or unknown if no
+// promotion path exists.
 func (r *typeResolver) commonSupertype(left querier_dto.SQLType, right querier_dto.SQLType) querier_dto.SQLType {
 	if left.Category == querier_dto.TypeCategoryUnknown {
 		return right
@@ -742,9 +679,9 @@ func (r *typeResolver) commonSupertype(left querier_dto.SQLType, right querier_d
 	return querier_dto.SQLType{Category: querier_dto.TypeCategoryUnknown}
 }
 
-// isBooleanExpression returns true for expression types that always resolve to
-// a non-nullable boolean result (comparisons, IS NULL, IN, BETWEEN, logical
-// operators, EXISTS).
+// isBooleanExpression returns true for expression types that always resolve to a
+// non-nullable boolean result (comparisons, IS NULL, IN, BETWEEN, logical operators,
+// EXISTS).
 //
 // Takes expression (querier_dto.Expression) which specifies the expression to classify.
 //
@@ -763,17 +700,14 @@ func isBooleanExpression(expression querier_dto.Expression) bool {
 	}
 }
 
-// expressionFeature maps a concrete expression type to
-// its corresponding SQLExpressionFeature flag. Returns
-// 0 for expression kinds that do not need feature
-// validation (column refs, function calls, literals,
-// casts, coalesce).
+// expressionFeature maps a concrete expression type to its corresponding
+// SQLExpressionFeature flag. Returns 0 for expression kinds that do not need feature
+// validation (column refs, function calls, literals, casts, coalesce).
 //
-// Takes expression (querier_dto.Expression) which
-// specifies the expression to map.
+// Takes expression (querier_dto.Expression) which specifies the expression to map.
 //
-// Returns querier_dto.SQLExpressionFeature which holds
-// the feature flag, or 0 if no validation is needed.
+// Returns querier_dto.SQLExpressionFeature which holds the feature flag, or 0 if no
+// validation is needed.
 func expressionFeature(expression querier_dto.Expression) querier_dto.SQLExpressionFeature {
 	switch expr := expression.(type) {
 	case *querier_dto.BinaryOpExpression:
@@ -827,14 +761,12 @@ func binaryOpFeature(operator string) querier_dto.SQLExpressionFeature {
 	}
 }
 
-// comparisonFeature maps a comparison operator string
-// to its SQLExpressionFeature flag.
+// comparisonFeature maps a comparison operator string to its SQLExpressionFeature flag.
 //
-// Takes operator (string) which specifies the
-// comparison operator (e.g. "LIKE", "GLOB", "=").
+// Takes operator (string) which specifies the comparison operator (e.g. "LIKE", "GLOB",
+// "=").
 //
-// Returns querier_dto.SQLExpressionFeature which holds
-// the corresponding feature flag.
+// Returns querier_dto.SQLExpressionFeature which holds the corresponding feature flag.
 func comparisonFeature(operator string) querier_dto.SQLExpressionFeature {
 	switch operator {
 	case "LIKE", "GLOB", "REGEXP", "MATCH":
@@ -844,16 +776,14 @@ func comparisonFeature(operator string) querier_dto.SQLExpressionFeature {
 	}
 }
 
-// extractErrorCode extracts a Q-code prefix from an
-// error message. Error messages follow the format
-// "Q0NN: description".
+// extractErrorCode extracts a Q-code prefix from an error message. Error messages follow
+// the format "Q0NN: description".
 //
-// Takes err (error) which specifies the error whose
-// message is parsed for a Q-code prefix.
+// Takes err (error) which specifies the error whose message is parsed for a Q-code
+// prefix.
 //
-// Returns string which holds the extracted Q-code
-// (e.g. "Q001"), defaulting to "Q001" if no code is
-// found.
+// Returns string which holds the extracted Q-code (e.g. "Q001"), defaulting to "Q001" if
+// no code is found.
 func extractErrorCode(err error) string {
 	message := err.Error()
 	if len(message) >= errorCodeMinLength && message[0] == 'Q' && message[errorCodePrefixLength] == ':' {

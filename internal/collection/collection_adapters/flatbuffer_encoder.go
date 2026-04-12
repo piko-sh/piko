@@ -34,57 +34,60 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// MaxCollectionItems caps the number of items a single collection may contain.
-// Acts as a DoS guardrail so a runaway content directory cannot exhaust memory
-// while encoding the FlatBuffer blob.
-const MaxCollectionItems = 100_000
+const (
+	// MaxCollectionItems caps the number of items a single collection may contain. Acts as a
+	// DoS guardrail so a runaway content directory cannot exhaust memory while encoding the
+	// FlatBuffer blob.
+	MaxCollectionItems = 100_000
 
-// MaxSlugBytes caps the byte length of a single item's slug. Slugs become
-// FlatBuffer keys, log fields and URL captures, so the cap acts as
-// defence-in-depth against pathological filenames or hostile providers.
-const MaxSlugBytes = 1024
+	// MaxSlugBytes caps the byte length of a single item's slug. Slugs become FlatBuffer
+	// keys, log fields and URL captures, so the cap acts as defence-in-depth against
+	// pathological filenames or hostile providers.
+	MaxSlugBytes = 1024
 
-// asciiControlMaxExclusive is the upper bound (exclusive) of the ASCII C0
-// control range; runes below this are non-printable.
-const asciiControlMaxExclusive = 0x20
+	// asciiControlMaxExclusive is the upper bound (exclusive) of the ASCII C0 control range;
+	// runes below this are non-printable.
+	asciiControlMaxExclusive = 0x20
 
-// asciiDelete is the ASCII DEL character, the only control point above the
-// printable range that must also be rejected from slugs.
-const asciiDelete = 0x7F
+	// asciiDelete is the ASCII DEL character, the only control point above the printable
+	// range that must also be rejected from slugs.
+	asciiDelete = 0x7F
+)
 
-// deterministicJSON encodes Metadata with sorted map keys so that the
-// generated FlatBuffer blob is byte-stable across runs.
-var deterministicJSON = json.Freeze(json.Config{SortMapKeys: true})
+var (
+	// deterministicJSON encodes Metadata with sorted map keys so that the generated
+	// FlatBuffer blob is byte-stable across runs.
+	deterministicJSON = json.Freeze(json.Config{SortMapKeys: true})
 
-// ErrEmptyCollection is returned when EncodeCollection receives no items.
-var ErrEmptyCollection = errors.New("cannot encode empty collection")
+	// ErrEmptyCollection is returned when EncodeCollection receives no items.
+	ErrEmptyCollection = errors.New("cannot encode empty collection")
 
-// ErrEmptySlug is returned when an item lacks the slug used as its lookup key.
-var ErrEmptySlug = errors.New("collection item has empty slug")
+	// ErrEmptySlug is returned when an item lacks the slug used as its lookup key.
+	ErrEmptySlug = errors.New("collection item has empty slug")
 
-// ErrDuplicateSlug is returned when two items share the same slug.
-var ErrDuplicateSlug = errors.New("collection contains duplicate slug")
+	// ErrDuplicateSlug is returned when two items share the same slug.
+	ErrDuplicateSlug = errors.New("collection contains duplicate slug")
 
-// ErrTooManyItems is returned when an encode request exceeds MaxCollectionItems.
-var ErrTooManyItems = errors.New("collection exceeds maximum item count")
+	// ErrTooManyItems is returned when an encode request exceeds MaxCollectionItems.
+	ErrTooManyItems = errors.New("collection exceeds maximum item count")
 
-// ErrInvalidSlug is returned when a slug fails structural validation (length,
-// UTF-8, control characters, traversal segments).
-var ErrInvalidSlug = errors.New("collection item slug is invalid")
+	// ErrInvalidSlug is returned when a slug fails structural validation (length, UTF-8,
+	// control characters, traversal segments).
+	ErrInvalidSlug = errors.New("collection item slug is invalid")
 
-// ErrEmptyBlob is returned when DecodeCollectionItem is called with no payload.
-var ErrEmptyBlob = errors.New("cannot decode from empty blob")
+	// ErrEmptyBlob is returned when DecodeCollectionItem is called with no payload.
+	ErrEmptyBlob = errors.New("cannot decode from empty blob")
 
-// ErrSlugNotInBlob is returned when DecodeCollectionItem cannot find the slug.
-var ErrSlugNotInBlob = errors.New("slug not found in collection")
+	// ErrSlugNotInBlob is returned when DecodeCollectionItem cannot find the slug.
+	ErrSlugNotInBlob = errors.New("slug not found in collection")
 
-// ErrSchemaVersionMismatch is returned when the blob's schema version differs
-// from the build's expected version.
-var ErrSchemaVersionMismatch = errors.New("collection schema version mismatch")
+	// ErrSchemaVersionMismatch is returned when the blob's schema version differs from the
+	// build's expected version.
+	ErrSchemaVersionMismatch = errors.New("collection schema version mismatch")
+)
 
-// FlatBufferEncoder packs ContentItem slices into compact binary blobs and
-// supports O(log n) lookup at runtime via FlatBuffer binary search keyed by
-// item slug.
+// FlatBufferEncoder packs ContentItem slices into compact binary blobs and supports O(log
+// n) lookup at runtime via FlatBuffer binary search keyed by item slug.
 type FlatBufferEncoder struct{}
 
 // NewFlatBufferEncoder constructs a FlatBufferEncoder ready for use.
@@ -96,17 +99,16 @@ func NewFlatBufferEncoder() *FlatBufferEncoder {
 
 // EncodeCollection packs items into a versioned FlatBuffer blob keyed by slug.
 //
-// Items are sorted by Slug so the FlatBuffer ItemsByKey binary search can
-// locate them at lookup time. Validation runs before encoding: empty input,
-// items with empty Slug, duplicate slugs, and counts above MaxCollectionItems
-// are all rejected up front.
+// Items are sorted by Slug so the FlatBuffer ItemsByKey binary search can locate them at
+// lookup time. Validation runs before encoding: empty input, items with empty Slug,
+// duplicate slugs, and counts above MaxCollectionItems are all rejected up front.
 //
 // Takes items ([]collection_dto.ContentItem) which is the slice to encode.
 //
 // Returns []byte which is the packed FlatBuffer blob.
-// Returns error which is a sentinel (ErrEmptyCollection, ErrEmptySlug,
-// ErrDuplicateSlug, or ErrTooManyItems) wrapped with context describing the
-// offending item, or nil on success.
+// Returns error which is a sentinel (ErrEmptyCollection, ErrEmptySlug, ErrDuplicateSlug,
+// or ErrTooManyItems) wrapped with context describing the offending item, or nil on
+// success.
 func (*FlatBufferEncoder) EncodeCollection(items []collection_dto.ContentItem) ([]byte, error) {
 	if len(items) == 0 {
 		return nil, ErrEmptyCollection
@@ -137,8 +139,8 @@ func (*FlatBufferEncoder) EncodeCollection(items []collection_dto.ContentItem) (
 	}
 
 	coll_fb.StaticCollectionFBStartItemsVector(builder, len(itemOffsets))
-	for i := len(itemOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(itemOffsets[i])
+	for _, itemOffset := range slices.Backward(itemOffsets) {
+		builder.PrependUOffsetT(itemOffset)
 	}
 	itemsVectorOffset := builder.EndVector(len(itemOffsets))
 
@@ -157,11 +159,10 @@ func (*FlatBufferEncoder) EncodeCollection(items []collection_dto.ContentItem) (
 
 // DecodeCollectionItem extracts a single item from a versioned blob by slug.
 //
-// The blob's FlatBuffer "route" field is named for legacy reasons but stores
-// the item's slug, so the lookup key passed in must be a slug (e.g.
-// "anthropic"), not a URL path. Performs an O(log n) binary search without
-// decoding the entire collection and returns raw bytes for lazy decoding by the
-// caller.
+// The blob's FlatBuffer "route" field is named for legacy reasons but stores the item's
+// slug, so the lookup key passed in must be a slug (e.g. "anthropic"), not a URL path.
+// Performs an O(log n) binary search without decoding the entire collection and returns
+// raw bytes for lazy decoding by the caller.
 //
 // Takes blob ([]byte) which is the versioned encoded collection produced by
 // EncodeCollection.
@@ -169,11 +170,11 @@ func (*FlatBufferEncoder) EncodeCollection(items []collection_dto.ContentItem) (
 //
 // Returns metadataJSON ([]byte) which is the raw JSON metadata for the item.
 // Returns contentAST ([]byte) which is the encoded content AST.
-// Returns excerptAST ([]byte) which is the encoded excerpt AST, or nil when
-// the item has no excerpt.
+// Returns excerptAST ([]byte) which is the encoded excerpt AST, or nil when the item has
+// no excerpt.
 // Returns err (error) which is ErrEmptyBlob if the blob is empty,
-// ErrSchemaVersionMismatch if the schema version differs, or ErrSlugNotInBlob
-// when the slug is absent.
+// ErrSchemaVersionMismatch if the schema version differs, or ErrSlugNotInBlob when the
+// slug is absent.
 func (*FlatBufferEncoder) DecodeCollectionItem(
 	blob []byte,
 	slug string,
@@ -202,20 +203,18 @@ func (*FlatBufferEncoder) DecodeCollectionItem(
 	return metadataJSON, contentAST, excerptAST, nil
 }
 
-// validateSlugs scans sorted items for empty, malformed or duplicate slug
-// values.
+// validateSlugs scans sorted items for empty, malformed or duplicate slug values.
 //
-// Items must already be sorted by Slug so duplicate detection is a single
-// linear scan. validateSlug enforces structural rules (length, UTF-8, control
-// characters, traversal segments) so a hostile provider cannot smuggle a slug
-// containing log-corrupting bytes or path-traversal tokens into the runtime.
+// Items must already be sorted by Slug so duplicate detection is a single linear scan.
+// validateSlug enforces structural rules (length, UTF-8, control characters, traversal
+// segments) so a hostile provider cannot smuggle a slug containing log-corrupting bytes
+// or path-traversal tokens into the runtime.
 //
-// Takes sorted ([]collection_dto.ContentItem) which is the slug-sorted item
-// slice to validate.
+// Takes sorted ([]collection_dto.ContentItem) which is the slug-sorted item slice to
+// validate.
 //
-// Returns error which is ErrEmptySlug, ErrInvalidSlug or ErrDuplicateSlug
-// wrapped with the offending value, or nil when all slugs are valid and
-// unique.
+// Returns error which is ErrEmptySlug, ErrInvalidSlug or ErrDuplicateSlug wrapped with
+// the offending value, or nil when all slugs are valid and unique.
 func validateSlugs(sorted []collection_dto.ContentItem) error {
 	for i := range sorted {
 		if sorted[i].Slug == "" {
@@ -231,14 +230,13 @@ func validateSlugs(sorted []collection_dto.ContentItem) error {
 	return nil
 }
 
-// validateSlug enforces the structural contract for a single slug. Slugs must
-// be valid UTF-8, fit MaxSlugBytes, contain no ASCII control characters or
-// path-traversal segments, and not begin or end with a separator.
+// validateSlug enforces the structural contract for a single slug. Slugs must be valid
+// UTF-8, fit MaxSlugBytes, contain no ASCII control characters or path-traversal
+// segments, and not begin or end with a separator.
 //
 // Takes slug (string) which is the slug to validate.
 //
-// Returns error describing the rule violated, or nil when the slug is well
-// formed.
+// Returns error describing the rule violated, or nil when the slug is well formed.
 func validateSlug(slug string) error {
 	if len(slug) > MaxSlugBytes {
 		return fmt.Errorf("length %d exceeds cap %d", len(slug), MaxSlugBytes)
@@ -266,8 +264,8 @@ func validateSlug(slug string) error {
 	return nil
 }
 
-// slugSegments splits a slug on the path separator. A single-segment slug
-// without separators returns a one-element slice.
+// slugSegments splits a slug on the path separator. A single-segment slug without
+// separators returns a one-element slice.
 //
 // Takes slug (string) which is the slug to split.
 //
@@ -296,8 +294,8 @@ func slugSegments(slug string) []string {
 
 // encodeContentItem encodes a single ContentItem into FlatBuffer format.
 //
-// The FlatBuffer "route" key is set from item.Slug; the field is named "route"
-// for legacy schema reasons.
+// The FlatBuffer "route" key is set from item.Slug; the field is named "route" for legacy
+// schema reasons.
 //
 // Takes builder (*flatbuffers.Builder) which buffers the encoded bytes.
 // Takes item (*collection_dto.ContentItem) which is the source content item.

@@ -19,19 +19,30 @@
 package db_engine_sqlite
 
 const (
+	// paramNameX is the canonical name for a first numeric or generic argument in SQLite
+	// built-in function signatures.
 	paramNameX = "x"
 
+	// paramNameY is the canonical name for a second numeric or generic argument in SQLite
+	// built-in function signatures.
 	paramNameY = "y"
 
+	// paramNameStr is the canonical name for a string argument.
 	paramNameStr = "str"
 
+	// paramNameJSON is the canonical name for a JSON-text argument.
 	paramNameJSON = "json"
 
+	// paramNameExpression is the canonical name for a window function expression argument.
 	paramNameExpression = "expression"
 
+	// paramNameTable is the canonical name for a table-reference argument used by FTS5 and
+	// R-Tree auxiliary functions.
 	paramNameTable = "table"
 
+	// paramNameFormat is the canonical name for a format-string argument.
 	paramNameFormat = "format"
 
+	// paramNameValue is the canonical name for a generic value argument.
 	paramNameValue = "value"
 )

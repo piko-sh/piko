@@ -34,21 +34,19 @@ const (
 	// IdentExists holds the identifier name for the map lookup existence flag.
 	IdentExists = "exists"
 
-	// IdentGroupIndex holds the identifier name for the map that indexes
-	// groups by key.
+	// IdentGroupIndex holds the identifier name for the map that indexes groups by key.
 	IdentGroupIndex = "groupIndex"
 
-	// IdentGroupOrder holds the identifier name for the slice that preserves
-	// group insertion order.
+	// IdentGroupOrder holds the identifier name for the slice that preserves group insertion
+	// order.
 	IdentGroupOrder = "groupOrder"
 
-	// IdentKey holds the identifier name for the current key variable in the
-	// range loop.
+	// IdentKey holds the identifier name for the current key variable in the range loop.
 	IdentKey = "key"
 )
 
-// TempVariable describes a temporary variable declared for scanning a column
-// in a grouped query.
+// TempVariable describes a temporary variable declared for scanning a column in a grouped
+// query.
 type TempVariable struct {
 	// Name holds the generated Go variable name for this temporary.
 	Name string
@@ -56,15 +54,13 @@ type TempVariable struct {
 	// ColumnName holds the original SQL column name.
 	ColumnName string
 
-	// EmbedTable holds the embed table name, or empty if the column is not
-	// embedded.
+	// EmbedTable holds the embed table name, or empty if the column is not embedded.
 	EmbedTable string
 }
 
 // GroupedContext holds precomputed values for grouped method body generation.
 type GroupedContext struct {
-	// KeyTypeExpression holds the AST type expression for the group-by key
-	// column.
+	// KeyTypeExpression holds the AST type expression for the group-by key column.
 	KeyTypeExpression ast.Expr
 
 	// Strategy holds the database-specific method strategy.
@@ -88,30 +84,27 @@ type GroupedContext struct {
 	// EmbedGroups holds the embed groups derived from the output columns.
 	EmbedGroups []EmbedGroup
 
-	// KeyColumnIndex holds the index of the group-by key column in the output
-	// columns.
+	// KeyColumnIndex holds the index of the group-by key column in the output columns.
 	KeyColumnIndex int
 }
 
 // HasGroupByKey reports whether the query has a piko.group_by directive.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query to
-// inspect.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query to inspect.
 //
-// Returns bool which is true when the query has a non-empty GroupByKey and
-// embedded columns.
+// Returns bool which is true when the query has a non-empty GroupByKey and embedded
+// columns.
 func HasGroupByKey(query *querier_dto.AnalysedQuery) bool {
 	return len(query.GroupByKey) > 0 && HasEmbeddedColumns(query)
 }
 
-// GroupByKeyColumn extracts the column name portion from the first group_by
-// key (e.g., "orders.id" -> "id").
+// GroupByKeyColumn extracts the column name portion from the first group_by key (e.g.,
+// "orders.id" -> "id").
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// containing the group_by directive.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query containing the
+// group_by directive.
 //
-// Returns string which holds the column name portion, or empty if no group_by
-// key exists.
+// Returns string which holds the column name portion, or empty if no group_by key exists.
 func GroupByKeyColumn(query *querier_dto.AnalysedQuery) string {
 	if len(query.GroupByKey) == 0 {
 		return ""
@@ -123,15 +116,14 @@ func GroupByKeyColumn(query *querier_dto.AnalysedQuery) string {
 	return parts[0]
 }
 
-// FindKeyColumnIndex returns the index of the group_by key column in the
-// output columns and its OutputColumn definition.
+// FindKeyColumnIndex returns the index of the group_by key column in the output columns
+// and its OutputColumn definition.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query to
-// search.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query to search.
 //
 // Returns int which holds the column index, or -1 if not found.
-// Returns *querier_dto.OutputColumn which holds the matched column definition,
-// or nil if not found.
+// Returns *querier_dto.OutputColumn which holds the matched column definition, or nil if
+// not found.
 func FindKeyColumnIndex(query *querier_dto.AnalysedQuery) (int, *querier_dto.OutputColumn) {
 	keyColumn := GroupByKeyColumn(query)
 	keyTable := GroupByKeyTable(query)
@@ -161,15 +153,12 @@ func FindKeyColumnIndex(query *querier_dto.AnalysedQuery) (int, *querier_dto.Out
 	return -1, nil
 }
 
-// BuildGroupedManyMethod constructs a :many method that groups rows by a key
-// column, producing a result where detail-embed fields are slices.
+// BuildGroupedManyMethod constructs a :many method that groups rows by a key column,
+// producing a result where detail-embed fields are slices.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query
-// definition.
-// Takes mappings (*querier_dto.TypeMappingTable) which holds the SQL-to-Go
-// type mappings.
-// Takes tracker (*ImportTracker) which tracks required imports for the
-// generated file.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed query definition.
+// Takes mappings (*querier_dto.TypeMappingTable) which holds the SQL-to-Go type mappings.
+// Takes tracker (*ImportTracker) which tracks required imports for the generated file.
 // Takes strategy (MethodStrategy) which provides database-specific AST nodes.
 //
 // Returns *ast.FuncDecl which holds the complete grouped method AST node.
@@ -231,10 +220,9 @@ func BuildGroupedManyMethod(
 
 // BuildGroupedMethodBody constructs the body of a grouped :many method.
 //
-// Takes groupContext (*GroupedContext) which holds precomputed values for the
-// grouped method.
-// Takes queryArguments ([]ast.Expr) which holds the query call argument
-// expressions.
+// Takes groupContext (*GroupedContext) which holds precomputed values for the grouped
+// method.
+// Takes queryArguments ([]ast.Expr) which holds the query call argument expressions.
 //
 // Returns []ast.Stmt which holds the complete method body statements.
 func BuildGroupedMethodBody(groupContext *GroupedContext, queryArguments []ast.Expr) []ast.Stmt {
@@ -264,15 +252,13 @@ func BuildGroupedMethodBody(groupContext *GroupedContext, queryArguments []ast.E
 	return statements
 }
 
-// BuildDynamicPreamble constructs the dynamic query preamble statements
-// including parameter initialisation and optional sort query init.
+// BuildDynamicPreamble constructs the dynamic query preamble statements including
+// parameter initialisation and optional sort query init.
 //
-// Takes query (*querier_dto.AnalysedQuery) which holds the analysed dynamic
-// query.
+// Takes query (*querier_dto.AnalysedQuery) which holds the analysed dynamic query.
 //
 // Returns []ast.Stmt which holds the preamble statements.
-// Returns []ast.Expr which holds the query argument expressions for the
-// database call.
+// Returns []ast.Expr which holds the query argument expressions for the database call.
 func BuildDynamicPreamble(query *querier_dto.AnalysedQuery) ([]ast.Stmt, []ast.Expr) {
 	statements := BuildParamsInitStatements(query)
 	sortParameter := FindSortableParameter(query)
@@ -283,13 +269,12 @@ func BuildDynamicPreamble(query *querier_dto.AnalysedQuery) ([]ast.Stmt, []ast.E
 	return statements, BuildDynamicQueryArgs(query)
 }
 
-// BuildGroupedQueryExecution constructs the query execution, error check,
-// defer close, and group index/order variable declarations.
+// BuildGroupedQueryExecution constructs the query execution, error check, defer close,
+// and group index/order variable declarations.
 //
-// Takes groupContext (*GroupedContext) which holds precomputed values for the
-// grouped method.
-// Takes queryArguments ([]ast.Expr) which holds the query call argument
-// expressions.
+// Takes groupContext (*GroupedContext) which holds precomputed values for the grouped
+// method.
+// Takes queryArguments ([]ast.Expr) which holds the query call argument expressions.
 //
 // Returns []ast.Stmt which holds the execution and initialisation statements.
 func BuildGroupedQueryExecution(groupContext *GroupedContext, queryArguments []ast.Expr) []ast.Stmt {
@@ -330,8 +315,8 @@ func BuildGroupedQueryExecution(groupContext *GroupedContext, queryArguments []a
 
 // BuildGroupedScanLoop constructs the for-loop body for a grouped query.
 //
-// Takes groupContext (*GroupedContext) which holds precomputed values for the
-// grouped method.
+// Takes groupContext (*GroupedContext) which holds precomputed values for the grouped
+// method.
 //
 // Returns []ast.Stmt which holds the loop body statements including variable
 // declarations, scan, and group check.
@@ -344,13 +329,13 @@ func BuildGroupedScanLoop(groupContext *GroupedContext) []ast.Stmt {
 	return statements
 }
 
-// BuildGroupExistsCheck constructs the if-exists check that either appends
-// detail rows to an existing group or creates a new group entry.
+// BuildGroupExistsCheck constructs the if-exists check that either appends detail rows to
+// an existing group or creates a new group entry.
 //
-// Takes groupContext (*GroupedContext) which holds precomputed values for the
-// grouped method.
-// Takes tempVariables ([]TempVariable) which holds the temporary scan
-// variables for all columns.
+// Takes groupContext (*GroupedContext) which holds precomputed values for the grouped
+// method.
+// Takes tempVariables ([]TempVariable) which holds the temporary scan variables for all
+// columns.
 //
 // Returns *ast.IfStmt which holds the if-exists branching statement.
 func BuildGroupExistsCheck(groupContext *GroupedContext, tempVariables []TempVariable) *ast.IfStmt {
@@ -395,16 +380,15 @@ func BuildGroupExistsCheck(groupContext *GroupedContext, tempVariables []TempVar
 	}
 }
 
-// BuildGroupedTempVariables creates temp variable declarations and scan args
-// for all output columns.
+// BuildGroupedTempVariables creates temp variable declarations and scan args for all
+// output columns.
 //
-// Takes groupContext (*GroupedContext) which holds precomputed values for the
-// grouped method.
+// Takes groupContext (*GroupedContext) which holds precomputed values for the grouped
+// method.
 //
 // Returns []TempVariable which holds the metadata for each temporary variable.
 // Returns []ast.Stmt which holds the variable declaration statements.
-// Returns []ast.Expr which holds the address-of expressions for scan
-// arguments.
+// Returns []ast.Expr which holds the address-of expressions for scan arguments.
 func BuildGroupedTempVariables(groupContext *GroupedContext) ([]TempVariable, []ast.Stmt, []ast.Expr) {
 	columns := groupContext.Query.OutputColumns
 	tempVariables := make([]TempVariable, len(columns))
@@ -434,11 +418,10 @@ func BuildGroupedTempVariables(groupContext *GroupedContext) ([]TempVariable, []
 
 // BuildScanIfStatement constructs the scan call with error check.
 //
-// Takes scanArgs ([]ast.Expr) which holds the address-of expressions for the
-// scan destinations.
+// Takes scanArgs ([]ast.Expr) which holds the address-of expressions for the scan
+// destinations.
 //
-// Returns []ast.Stmt which holds the scan call wrapped in an error-checking if
-// statement.
+// Returns []ast.Stmt which holds the scan call wrapped in an error-checking if statement.
 func BuildScanIfStatement(scanArgs []ast.Expr) []ast.Stmt {
 	return []ast.Stmt{
 		goastutil.IfStmt(
@@ -460,16 +443,15 @@ func BuildScanIfStatement(scanArgs []ast.Expr) []ast.Stmt {
 	}
 }
 
-// BuildKeyEmbedEntryFields builds the composite literal fields for key
-// (non-detail) embed groups.
+// BuildKeyEmbedEntryFields builds the composite literal fields for key (non-detail) embed
+// groups.
 //
-// Takes groupContext (*GroupedContext) which holds precomputed values for the
-// grouped method.
-// Takes tempVariables ([]TempVariable) which holds the temporary scan
-// variables for all columns.
+// Takes groupContext (*GroupedContext) which holds precomputed values for the grouped
+// method.
+// Takes tempVariables ([]TempVariable) which holds the temporary scan variables for all
+// columns.
 //
-// Returns []ast.Expr which holds the key-value expressions for the composite
-// literal.
+// Returns []ast.Expr which holds the key-value expressions for the composite literal.
 func BuildKeyEmbedEntryFields(groupContext *GroupedContext, tempVariables []TempVariable) []ast.Expr {
 	var entryFields []ast.Expr
 	for i := range groupContext.EmbedGroups {
@@ -503,14 +485,13 @@ func BuildKeyEmbedEntryFields(groupContext *GroupedContext, tempVariables []Temp
 	return entryFields
 }
 
-// BuildFlatEntryFields builds the composite literal fields for non-embedded
-// (flat) columns.
-//
-// Takes tempVariables ([]TempVariable) which holds the temporary scan
-// variables for all columns.
-//
-// Returns []ast.Expr which holds the key-value expressions for non-embedded
+// BuildFlatEntryFields builds the composite literal fields for non-embedded (flat)
 // columns.
+//
+// Takes tempVariables ([]TempVariable) which holds the temporary scan variables for all
+// columns.
+//
+// Returns []ast.Expr which holds the key-value expressions for non-embedded columns.
 func BuildFlatEntryFields(tempVariables []TempVariable) []ast.Expr {
 	var entryFields []ast.Expr
 	for i := range tempVariables {
@@ -527,16 +508,15 @@ func BuildFlatEntryFields(tempVariables []TempVariable) []ast.Expr {
 	return entryFields
 }
 
-// BuildDetailAppendStatements constructs the append statements for non-key
-// (detail) embed groups in the grouped loop body.
+// BuildDetailAppendStatements constructs the append statements for non-key (detail) embed
+// groups in the grouped loop body.
 //
-// Takes groupContext (*GroupedContext) which holds precomputed values for the
-// grouped method.
-// Takes tempVariables ([]TempVariable) which holds the temporary scan
-// variables for all columns.
+// Takes groupContext (*GroupedContext) which holds precomputed values for the grouped
+// method.
+// Takes tempVariables ([]TempVariable) which holds the temporary scan variables for all
+// columns.
 //
-// Returns []ast.Stmt which holds the append statements for detail embed
-// groups.
+// Returns []ast.Stmt which holds the append statements for detail embed groups.
 func BuildDetailAppendStatements(groupContext *GroupedContext, tempVariables []TempVariable) []ast.Stmt {
 	var statements []ast.Stmt
 
@@ -602,8 +582,8 @@ func BuildDetailAppendStatements(groupContext *GroupedContext, tempVariables []T
 //
 // Takes rowTypeName (string) which holds the name of the generated row type.
 //
-// Returns []ast.Stmt which holds the result slice creation, range loop, and
-// return statements.
+// Returns []ast.Stmt which holds the result slice creation, range loop, and return
+// statements.
 func BuildGroupedResultAssembly(rowTypeName string) []ast.Stmt {
 	return []ast.Stmt{
 		goastutil.DefineStmt(IdentResults,

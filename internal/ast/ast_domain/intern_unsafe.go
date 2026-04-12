@@ -20,21 +20,23 @@
 
 package ast_domain
 
-// Provides the zero-allocation version of string interning using unsafe memory operations for production builds.
-// Creates temporary string views for map lookups without allocating memory, optimising performance for high-frequency string operations.
+// Provides the zero-allocation version of string interning using unsafe memory operations
+// for production builds. Creates temporary string views for map lookups without
+// allocating memory, optimising performance for high-frequency string operations.
 
-import "piko.sh/piko/internal/mem"
+import (
+	"piko.sh/piko/internal/mem"
+)
 
-// internBytes returns a stored string if the bytes match a known value, or
-// creates a new string from the bytes.
+// internBytes returns a stored string if the bytes match a known value, or creates a new
+// string from the bytes.
 //
-// Avoids memory allocation by using mem.String to create a temporary string
-// view for the map lookup. If found, returns the stored string.
+// Avoids memory allocation by using mem.String to create a temporary string view for the
+// map lookup. If found, returns the stored string.
 //
 // Takes b ([]byte) which contains the bytes to look up or convert.
 //
-// Returns string which is the stored string if found, or a new string from the
-// bytes.
+// Returns string which is the stored string if found, or a new string from the bytes.
 func internBytes(b []byte) string {
 	key := mem.String(b)
 	if interned, ok := internedStrings[key]; ok {

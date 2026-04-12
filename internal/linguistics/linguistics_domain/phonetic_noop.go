@@ -18,9 +18,9 @@
 
 package linguistics_domain
 
-// NoOpPhoneticEncoder is a phonetic encoder that returns empty strings.
-// It implements the PhoneticEncoderPort interface and is used as the default
-// when no phonetic encoder is configured.
+// NoOpPhoneticEncoder is a phonetic encoder that returns empty strings. It implements the
+// PhoneticEncoderPort interface and is used as the default when no phonetic encoder is
+// configured.
 //
 // Use this when:
 //   - No phonetic encoding is required for your use case
@@ -31,24 +31,26 @@ type NoOpPhoneticEncoder struct {
 	language string
 }
 
-var _ PhoneticEncoderPort = (*NoOpPhoneticEncoder)(nil)
+var (
+	_ PhoneticEncoderPort = (*NoOpPhoneticEncoder)(nil)
+)
 
-// NewNoOpPhoneticEncoder creates a no-op phonetic encoder for the specified
-// language. The encoder will return empty strings for all words.
+// NewNoOpPhoneticEncoder creates a no-op phonetic encoder for the specified language. The
+// encoder will return empty strings for all words.
 //
-// Takes language (string) which is the language code to associate with this
-// encoder. The language is normalised using ValidateLanguage.
+// Takes language (string) which is the language code to associate with this encoder. The
+// language is normalised using ValidateLanguage.
 //
-// Returns *NoOpPhoneticEncoder which implements PhoneticEncoderPort but
-// performs no encoding.
+// Returns *NoOpPhoneticEncoder which implements PhoneticEncoderPort but performs no
+// encoding.
 func NewNoOpPhoneticEncoder(language string) *NoOpPhoneticEncoder {
 	return &NoOpPhoneticEncoder{
 		language: ValidateLanguage(language),
 	}
 }
 
-// Encode returns an empty string. Satisfies the PhoneticEncoderPort interface
-// without performing any actual phonetic encoding.
+// Encode returns an empty string. Satisfies the PhoneticEncoderPort interface without
+// performing any actual phonetic encoding.
 //
 // Returns string which is always empty.
 func (*NoOpPhoneticEncoder) Encode(_ string) string {

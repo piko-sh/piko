@@ -18,35 +18,35 @@
 
 package render_dto
 
-import "sync"
+import (
+	"sync"
+)
 
-// ProbeData holds data collected during the probe phase (CollectMetadata) that
-// can be reused by the render phase (RenderAST) to avoid redundant cache
-// lookups. Pooled and designed to be expanded as more data is plumbed between
-// probe and render in future.
+// ProbeData holds data collected during the probe phase (CollectMetadata) that can be
+// reused by the render phase (RenderAST) to avoid redundant cache lookups. Pooled and
+// designed to grow as further data is plumbed between probe and render.
 type ProbeData struct {
-	// ComponentMetadata maps component tag names to their metadata. Populated
-	// by BulkGetComponentMetadata during the probe phase.
+	// ComponentMetadata maps component tag names to their metadata. Populated by
+	// BulkGetComponentMetadata during the probe phase.
 	ComponentMetadata map[string]*ComponentMetadata
 
-	// CaptchaScripts maps provider names to their pre-resolved script paths.
-	// Populated during the probe phase when the page uses piko:captcha
-	// elements, so the render phase can emit correct serve URLs without
-	// repeating registry lookups.
+	// CaptchaScripts maps provider names to their pre-resolved script paths. Populated
+	// during the probe phase when the page uses piko:captcha elements, so the render phase
+	// can emit correct serve URLs without repeating registry lookups.
 	CaptchaScripts map[string]*CaptchaScriptProbeData
 }
 
-// CaptchaScriptProbeData holds the pre-resolved paths for a captcha
-// provider's scripts, collected during the probe phase.
+// CaptchaScriptProbeData holds the pre-resolved paths for a captcha provider's scripts,
+// collected during the probe phase.
 type CaptchaScriptProbeData struct {
-	// InitScriptServePath is the resolved URL path for the init script,
-	// including the content hash for cache busting (e.g.
-	// "/_piko/captcha/init-turnstile_pass_a1b2c3.min.js"), or empty when the
-	// artefact has not been registered yet.
+	// InitScriptServePath is the resolved URL path for the init script, including the
+	// content hash for cache busting (e.g.
+	// "/_piko/captcha/init-turnstile_pass_a1b2c3.min.js"), or empty when the artefact has
+	// not been registered yet.
 	InitScriptServePath string
 
-	// SDKScriptURLs lists external provider SDK script URLs
-	// (e.g. "https://challenges.cloudflare.com/turnstile/v0/api.js").
+	// SDKScriptURLs lists external provider SDK script URLs (e.g.
+	// "https://challenges.cloudflare.com/turnstile/v0/api.js").
 	SDKScriptURLs []string
 }
 
@@ -58,13 +58,15 @@ func (p *ProbeData) Reset() {
 	p.CaptchaScripts = nil
 }
 
-// probeDataPool reuses ProbeData instances to reduce allocation pressure
-// between probe and render phases.
-var probeDataPool = sync.Pool{
-	New: func() any {
-		return &ProbeData{}
-	},
-}
+var (
+	// probeDataPool reuses ProbeData instances to reduce allocation pressure between probe
+	// and render phases.
+	probeDataPool = sync.Pool{
+		New: func() any {
+			return &ProbeData{}
+		},
+	}
+)
 
 // AcquireProbeData retrieves a ProbeData from the pool.
 //

@@ -1,0 +1,4 @@
+{
+  "description": "Goroutines launched from one file mutate a struct defined in another file via pointer receivers",
+  "expected": "total=30"
+}

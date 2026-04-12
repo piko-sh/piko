@@ -16,28 +16,26 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package config holds piko's internal value-type definitions for the
-// configuration domains the framework cares about (network, security,
-// paths, storage, database, OTLP, build, and so on). These are plain Go
-// structs consumed by With* options on piko.New and by the bootstrap
-// pipeline; they are not part of piko's public API.
+// Package config holds piko's internal value-type definitions for the configuration
+// domains the framework cares about (network, security, paths, storage, database, OTLP,
+// build, and so on). These are plain Go structs consumed by With* options on piko.New and
+// by the bootstrap pipeline; they are not part of piko's public API.
 //
-// Users never reference these types directly. Configure the framework via
-// With* functional options passed to piko.New. The sole env-var carve-out
-// is PIKO_LOG_LEVEL, which is read directly in piko.New and applied via
-// WithLogLevel before user options are processed.
+// Users never reference these types directly. Configure the framework via With*
+// functional options passed to piko.New. The sole env-var carve-out is PIKO_LOG_LEVEL,
+// which is read directly in piko.New and applied via WithLogLevel before user options are
+// processed.
 //
 // # Precedence
 //
 // During bootstrap (highest to lowest):
 //
 //  1. Programmatic overrides (individual With* options)
-//  2. Resolved placeholder strings (e.g. "aws-secret:my/key")
+//  2. Resolved reference strings (e.g. "aws-secret:my/key")
 //  3. Programmatic defaults
 //  4. Struct-tag defaults
 //
-// No file or env loading happens at the framework level. If you want
-// file/env-driven configuration for your own application, use the
-// user-facing utility at [piko.sh/piko/wdk/config] which exposes the
-// underlying loader machinery.
+// No file or env loading happens at the framework level. If you want file/env-driven
+// configuration for your own application, use the user-facing utility at
+// [piko.sh/piko/wdk/config] which exposes the underlying loader machinery.
 package config

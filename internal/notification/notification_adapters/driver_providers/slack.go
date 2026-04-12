@@ -31,7 +31,9 @@ import (
 	"piko.sh/piko/internal/safeerror"
 )
 
-var _ notification_domain.NotificationProviderPort = (*SlackProvider)(nil)
+var (
+	_ notification_domain.NotificationProviderPort = (*SlackProvider)(nil)
+)
 
 const (
 	// slackMaxMessageLength is the maximum character length for a Slack message.
@@ -44,8 +46,8 @@ const (
 	slackBlockKeyText = "text"
 )
 
-// SlackProvider sends notifications to Slack using webhooks. It implements
-// the NotificationProviderPort interface.
+// SlackProvider sends notifications to Slack using webhooks. It implements the
+// NotificationProviderPort interface.
 type SlackProvider struct {
 	// httpClient sends HTTP requests to the Slack API.
 	httpClient *http.Client
@@ -56,11 +58,11 @@ type SlackProvider struct {
 
 // Send delivers a notification to Slack.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and metadata.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// metadata.
 //
-// Returns error when the payload cannot be formatted, the request fails, or
-// Slack returns a non-OK status.
+// Returns error when the payload cannot be formatted, the request fails, or Slack returns
+// a non-OK status.
 func (s *SlackProvider) Send(ctx context.Context, params *notification_dto.SendParams) error {
 	payload, err := s.formatSlackPayload(params)
 	if err != nil {
@@ -90,11 +92,11 @@ func (s *SlackProvider) Send(ctx context.Context, params *notification_dto.SendP
 	return nil
 }
 
-// SendBulk sends multiple notifications by falling back to individual sends,
-// as Slack webhooks do not support bulk operations.
+// SendBulk sends multiple notifications by falling back to individual sends, as Slack
+// webhooks do not support bulk operations.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notification payloads to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notification
+// payloads to send.
 //
 // Returns error when any individual send fails.
 func (s *SlackProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -106,8 +108,7 @@ func (s *SlackProvider) SendBulk(ctx context.Context, notifications []*notificat
 	return nil
 }
 
-// SupportsBulkSending reports whether Slack supports bulk sending (it does
-// not).
+// SupportsBulkSending reports whether Slack supports bulk sending (it does not).
 //
 // Returns bool which is always false for this provider.
 func (*SlackProvider) SupportsBulkSending() bool {
@@ -116,8 +117,8 @@ func (*SlackProvider) SupportsBulkSending() bool {
 
 // GetCapabilities returns the capabilities of the Slack provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes the
-// supported features such as rich formatting, images, and message limits.
+// Returns notification_domain.ProviderCapabilities which describes the supported features
+// such as rich formatting, images, and message limits.
 func (*SlackProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: true,
@@ -138,8 +139,8 @@ func (*SlackProvider) Close(_ context.Context) error {
 
 // formatSlackPayload converts notification params to Slack Block Kit format.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and context to format.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// context to format.
 //
 // Returns []byte which is the JSON-encoded Slack payload.
 // Returns error when JSON marshalling fails.
@@ -172,8 +173,8 @@ func (s *SlackProvider) formatSlackPayload(params *notification_dto.SendParams) 
 
 // buildHeaderBlock creates a Slack header block with priority emoji.
 //
-// Takes params (*notification_dto.SendParams) which provides the notification
-// content and priority context.
+// Takes params (*notification_dto.SendParams) which provides the notification content and
+// priority context.
 //
 // Returns map[string]any which contains the formatted Slack header block.
 func (s *SlackProvider) buildHeaderBlock(params *notification_dto.SendParams) map[string]any {
@@ -224,8 +225,8 @@ func (*SlackProvider) getPriorityEmoji(priority notification_dto.NotificationPri
 // NewSlackProvider creates a new Slack notification provider.
 //
 // Takes webhookURL (string) which specifies the Slack webhook endpoint.
-// Takes client (*http.Client) which provides the HTTP client. If nil, a default
-// client with a 30-second timeout is used.
+// Takes client (*http.Client) which provides the HTTP client. If nil, a default client
+// with a 30-second timeout is used.
 //
 // Returns notification_domain.NotificationProviderPort which is ready to send
 // notifications.
@@ -269,8 +270,8 @@ func buildImageBlock(imageURL string) map[string]any {
 // Takes source (string) which specifies the source label for the context.
 // Takes environment (string) which specifies the environment label.
 //
-// Returns map[string]any which contains the Slack context block, or nil if
-// both source and environment are empty.
+// Returns map[string]any which contains the Slack context block, or nil if both source
+// and environment are empty.
 func buildContextBlock(source, environment string) map[string]any {
 	elements := make([]map[string]any, 0)
 	if source != "" {

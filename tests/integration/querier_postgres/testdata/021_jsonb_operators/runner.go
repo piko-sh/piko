@@ -61,8 +61,8 @@ func main() {
 	}
 
 	result := map[string]any{
-		"extract_string_field":    extracted,
-		"find_by_containment":     contained,
+		"extract_string_field":      extracted,
+		"find_by_containment":       contained,
 		"build_object_from_columns": built,
 	}
 

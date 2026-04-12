@@ -25,37 +25,39 @@ import (
 	"io/fs"
 	"path/filepath"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/generator/generator_domain"
 	"piko.sh/piko/internal/generator/generator_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// JSONManifestProvider implements ManifestProviderPort to load a project
-// manifest from a JSON file on disk.
+// JSONManifestProvider implements ManifestProviderPort to load a project manifest from a
+// JSON file on disk.
 type JSONManifestProvider struct {
 	// sandbox provides file system access for reading the manifest file.
 	sandbox safedisk.Sandbox
 
-	// factory creates sandboxes with validated paths. When set and sandbox is
-	// nil, the factory is used before falling back to NewNoOpSandbox.
+	// factory creates sandboxes with validated paths. When set and sandbox is nil, the
+	// factory is used before falling back to NewNoOpSandbox.
 	factory safedisk.Factory
 
 	// manifestFileName is the path to the manifest file within the sandbox.
 	manifestFileName string
 }
 
-var _ generator_domain.ManifestProviderPort = (*JSONManifestProvider)(nil)
+var (
+	_ generator_domain.ManifestProviderPort = (*JSONManifestProvider)(nil)
+)
 
 // JSONManifestProviderOption sets up a JSONManifestProvider during creation.
 type JSONManifestProviderOption func(*JSONManifestProvider)
 
-// NewJSONManifestProvider creates a provider that reads from a JSON manifest
-// file at the given path.
+// NewJSONManifestProvider creates a provider that reads from a JSON manifest file at the
+// given path.
 //
 // Takes manifestPath (string) which is the path to the JSON manifest file.
-// Takes opts (...JSONManifestProviderOption) which provides optional
-// configuration such as WithJSONManifestSandbox for testing.
+// Takes opts (...JSONManifestProviderOption) which provides optional configuration such
+// as WithJSONManifestSandbox for testing.
 //
 // Returns *JSONManifestProvider which is ready to read from the given path.
 func NewJSONManifestProvider(manifestPath string, opts ...JSONManifestProviderOption) *JSONManifestProvider {
@@ -79,12 +81,11 @@ func NewJSONManifestProvider(manifestPath string, opts ...JSONManifestProviderOp
 	return p
 }
 
-// Load reads the manifest.json file from disk, parses it, and returns the
-// Manifest DTO.
+// Load reads the manifest.json file from disk, parses it, and returns the Manifest DTO.
 //
 // Returns *generator_dto.Manifest which contains the parsed manifest data.
-// Returns error when the file path is empty, sandbox is unavailable, the file
-// cannot be read, or the JSON is malformed.
+// Returns error when the file path is empty, sandbox is unavailable, the file cannot be
+// read, or the JSON is malformed.
 func (p *JSONManifestProvider) Load(_ context.Context) (*generator_dto.Manifest, error) {
 	if p.manifestFileName == "" {
 		return nil, errors.New("JSON manifest provider requires a valid file path")
@@ -110,33 +111,29 @@ func (p *JSONManifestProvider) Load(_ context.Context) (*generator_dto.Manifest,
 	return &manifest, nil
 }
 
-// WithJSONManifestFactory sets the sandbox factory for the JSON manifest
-// provider. When no sandbox is injected, the factory is tried before falling
-// back to NewNoOpSandbox.
+// WithJSONManifestFactory sets the sandbox factory for the JSON manifest provider. When
+// no sandbox is injected, the factory is tried before falling back to NewNoOpSandbox.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes with validated
-// paths.
+// Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
-// Returns JSONManifestProviderOption which configures the provider with the
-// factory.
+// Returns JSONManifestProviderOption which configures the provider with the factory.
 func WithJSONManifestFactory(factory safedisk.Factory) JSONManifestProviderOption {
 	return func(p *JSONManifestProvider) {
 		p.factory = factory
 	}
 }
 
-// createManifestSandbox creates a read-only sandbox for the directory
-// containing the manifest file. When factory is non-nil it is used to create
-// the sandbox; otherwise a no-op sandbox is created as a fallback.
+// createManifestSandbox creates a read-only sandbox for the directory containing the
+// manifest file. When factory is non-nil it is used to create the sandbox; otherwise a
+// no-op sandbox is created as a fallback.
 //
-// Takes manifestPath (string) which is the path to the manifest file. The
-// parent directory is used as the sandbox root.
-// Takes factory (safedisk.Factory) which creates sandboxes with validated
-// paths. May be nil.
+// Takes manifestPath (string) which is the path to the manifest file. The parent
+// directory is used as the sandbox root.
+// Takes factory (safedisk.Factory) which creates sandboxes with validated paths. May be
+// nil.
 // Takes description (string) which identifies the sandbox in diagnostics.
 //
-// Returns safedisk.Sandbox which provides read access to the manifest
-// directory.
+// Returns safedisk.Sandbox which provides read access to the manifest directory.
 // Returns error when the sandbox cannot be created.
 func createManifestSandbox(manifestPath string, factory safedisk.Factory, description string) (safedisk.Sandbox, error) {
 	manifestDir := filepath.Dir(manifestPath)
@@ -146,16 +143,15 @@ func createManifestSandbox(manifestPath string, factory safedisk.Factory, descri
 	return safedisk.NewNoOpSandbox(manifestDir, safedisk.ModeReadOnly)
 }
 
-// WithJSONManifestSandbox sets a custom sandbox for the JSON manifest provider.
-// Inject a mock sandbox to test file system operations.
+// WithJSONManifestSandbox sets a custom sandbox for the JSON manifest provider. Inject a
+// mock sandbox to test file system operations.
 //
 // If not set, a real sandbox is created using safedisk.NewNoOpSandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides file system access for reading
-// the manifest file.
+// Takes sandbox (safedisk.Sandbox) which provides file system access for reading the
+// manifest file.
 //
-// Returns JSONManifestProviderOption which sets up the provider with the
-// given sandbox.
+// Returns JSONManifestProviderOption which sets up the provider with the given sandbox.
 func WithJSONManifestSandbox(sandbox safedisk.Sandbox) JSONManifestProviderOption {
 	return func(p *JSONManifestProvider) {
 		p.sandbox = sandbox

@@ -86,7 +86,9 @@ func (e *mockNetError) Error() string   { return "mock net error" }
 func (e *mockNetError) Timeout() bool   { return e.timeout }
 func (e *mockNetError) Temporary() bool { return false }
 
-var _ net.Error = (*mockNetError)(nil)
+var (
+	_ net.Error = (*mockNetError)(nil)
+)
 
 func TestErrorClassifier_IsRetryable_NetworkTimeout(t *testing.T) {
 	c := retry.NewErrorClassifier()

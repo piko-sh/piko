@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +42,7 @@ func TestMockQueryProcessor_Search(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SearchCallCount))
+		assert.Equal(t, int64(1), m.SearchCallCount.Load())
 	})
 
 	t.Run("delegates to SearchFunc", func(t *testing.T) {
@@ -112,5 +111,5 @@ func TestMockQueryProcessor_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SearchCallCount))
+	assert.Equal(t, int64(goroutines), m.SearchCallCount.Load())
 }

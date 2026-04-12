@@ -63,13 +63,13 @@ func TestTemplaterService_SetRunner(t *testing.T) {
 	ast := NewTestAST()
 	metadata := NewTestMetadata()
 
-	var runPageCalled int64
+	var runPageCalled atomic.Int64
 	newRunner.RunPageFunc = func(
 		_ context.Context,
 		_ templater_dto.PageDefinition,
 		_ *http.Request,
 	) (*ast_domain.TemplateAST, templater_dto.InternalMetadata, string, error) {
-		atomic.AddInt64(&runPageCalled, 1)
+		runPageCalled.Add(1)
 		return ast, metadata, "", nil
 	}
 
@@ -94,7 +94,7 @@ func TestTemplaterService_SetRunner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error but got: %v", err)
 	}
-	if atomic.LoadInt64(&runPageCalled) == 0 {
+	if runPageCalled.Load() == 0 {
 		t.Fatal("expected RunPage to be called on the new runner")
 	}
 }
@@ -149,10 +149,10 @@ func TestTemplaterService_RenderPage_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error but got: %v", err)
 	}
-	if atomic.LoadInt64(&fixture.MockRunner.RunPageCallCount) == 0 {
+	if fixture.MockRunner.RunPageCallCount.Load() == 0 {
 		t.Fatal("expected RunPage to be called")
 	}
-	if atomic.LoadInt64(&fixture.MockRenderer.RenderPageCallCount) == 0 {
+	if fixture.MockRenderer.RenderPageCallCount.Load() == 0 {
 		t.Fatal("expected RenderPage to be called")
 	}
 }
@@ -405,10 +405,10 @@ func TestTemplaterService_RenderPartial_Success(t *testing.T) {
 	})
 
 	AssertNoError(t, err)
-	if atomic.LoadInt64(&fixture.MockRunner.RunPartialCallCount) == 0 {
+	if fixture.MockRunner.RunPartialCallCount.Load() == 0 {
 		t.Fatal("expected RunPartial to be called")
 	}
-	if atomic.LoadInt64(&fixture.MockRenderer.RenderPartialCallCount) == 0 {
+	if fixture.MockRenderer.RenderPartialCallCount.Load() == 0 {
 		t.Fatal("expected RenderPartial to be called")
 	}
 }
@@ -691,7 +691,7 @@ func TestHasRedirect_NoRedirect(t *testing.T) {
 	})
 
 	AssertNoError(t, err)
-	if atomic.LoadInt64(&fixture.MockRenderer.RenderPageCallCount) == 0 {
+	if fixture.MockRenderer.RenderPageCallCount.Load() == 0 {
 		t.Fatal("expected RenderPage to be called")
 	}
 }

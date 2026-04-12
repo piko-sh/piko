@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package metrics provides a provider-agnostic facade for exposing
-// application metrics from a Piko server.
+// Package metrics provides a provider-agnostic facade for exposing application metrics
+// from a Piko server.
 //
-// It defines the [Exporter] interface that all metrics backends must
-// implement. Exporters integrate with the OpenTelemetry
-// MeterProvider and expose an HTTP handler that monitoring systems
-// can scrape. Custom exporters can be created by implementing the
+// It defines the [Exporter] interface that all metrics backends must implement. Exporters
+// integrate with the OpenTelemetry MeterProvider and expose an HTTP handler that
+// monitoring systems can scrape. Custom exporters can be created by implementing the
 // [Exporter] interface directly.
 package metrics

@@ -18,14 +18,13 @@
 
 package security_dto
 
-// CSRFPair holds a short-lived token and its matching action token for CSRF
-// protection.
+// CSRFPair holds a short-lived token and its matching action token for CSRF protection.
 type CSRFPair struct {
 	// RawEphemeralToken is the raw ephemeral CSRF token for HTML output.
 	RawEphemeralToken string
 
-	// ActionToken holds the CSRF token for form submissions. It is a byte slice
-	// for zero-allocation generation; valid only for the lifetime of the buffer
-	// passed to GenerateCSRFPair.
+	// ActionToken holds the CSRF token for form submissions. It is a byte slice for
+	// zero-allocation generation; valid only for the lifetime of the buffer passed to
+	// GenerateCSRFPair.
 	ActionToken []byte
 }

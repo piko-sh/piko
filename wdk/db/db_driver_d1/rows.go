@@ -25,12 +25,13 @@ import (
 	"math"
 )
 
-// Compile-time interface check.
-var _ driver.Rows = (*d1Rows)(nil)
+var (
+	_ driver.Rows = (*d1Rows)(nil)
+)
 
-// d1Rows implements driver.Rows over the slice of map results returned by the
-// D1 HTTP API. Column order is determined once at construction time and kept
-// consistent across all rows.
+// d1Rows implements driver.Rows over the slice of map results returned by the D1 HTTP
+// API. Column order is determined once at construction time and kept consistent across
+// all rows.
 type d1Rows struct {
 	// columns holds the column names in sorted order.
 	columns []string
@@ -56,18 +57,17 @@ func (*d1Rows) Close() error {
 	return nil
 }
 
-// Next advances to the next row and populates dest with the row's values. The
-// values are ordered to match Columns.
+// Next advances to the next row and populates dest with the row's values. The values are
+// ordered to match Columns.
 //
 // D1 returns JSON, so the type mapping is:
-//   - nil    -> nil
+//   - nil -> nil
 //   - float64 -> int64 if the value is a whole number, otherwise float64
-//   - bool   -> bool
+//   - bool -> bool
 //   - string -> string
-//   - other  -> fmt.Sprintf("%v", value)
+//   - other -> fmt.Sprintf("%v", value)
 //
-// Takes dest ([]driver.Value) which receives the column values for the current
-// row.
+// Takes dest ([]driver.Value) which receives the column values for the current row.
 //
 // Returns error which is io.EOF when no more rows remain, or nil on success.
 func (r *d1Rows) Next(dest []driver.Value) error {
@@ -90,8 +90,7 @@ func (r *d1Rows) Next(dest []driver.Value) error {
 	return nil
 }
 
-// convertD1Value converts a value from D1's JSON representation to a
-// driver.Value.
+// convertD1Value converts a value from D1's JSON representation to a driver.Value.
 //
 // Takes value (any) which is the raw value from the D1 API response.
 //

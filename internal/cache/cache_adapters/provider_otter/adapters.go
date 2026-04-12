@@ -63,8 +63,8 @@ func (a *expiryCalculatorAdapter[K, V]) ExpireAfterRead(entry otter.Entry[K, V])
 	return a.calculator.ExpireAfterRead(convertEntryToDTO(entry))
 }
 
-// refreshCalculatorAdapter wraps a cache_dto.RefreshCalculator to implement
-// the otter.RefreshCalculator interface.
+// refreshCalculatorAdapter wraps a cache_dto.RefreshCalculator to implement the
+// otter.RefreshCalculator interface.
 type refreshCalculatorAdapter[K comparable, V any] struct {
 	// calculator decides when to refresh the cache and which rules to use.
 	calculator cache_dto.RefreshCalculator[K, V]
@@ -89,8 +89,8 @@ func (a *refreshCalculatorAdapter[K, V]) RefreshAfterUpdate(entry otter.Entry[K,
 	return a.calculator.RefreshAfterUpdate(convertEntryToDTO(entry), oldValue)
 }
 
-// RefreshAfterReload returns the duration to wait before the next refresh
-// after an entry is reloaded.
+// RefreshAfterReload returns the duration to wait before the next refresh after an entry
+// is reloaded.
 //
 // Takes entry (otter.Entry[K, V]) which is the cache entry that was reloaded.
 // Takes oldValue (V) which is the previous value before the reload.
@@ -100,8 +100,7 @@ func (a *refreshCalculatorAdapter[K, V]) RefreshAfterReload(entry otter.Entry[K,
 	return a.calculator.RefreshAfterReload(convertEntryToDTO(entry), oldValue)
 }
 
-// RefreshAfterReloadFailure returns the refresh duration after a reload
-// failure.
+// RefreshAfterReloadFailure returns the refresh duration after a reload failure.
 //
 // Takes entry (otter.Entry) which is the cache entry that failed to reload.
 // Takes err (error) which is the error that caused the reload failure.
@@ -111,8 +110,8 @@ func (a *refreshCalculatorAdapter[K, V]) RefreshAfterReloadFailure(entry otter.E
 	return a.calculator.RefreshAfterReloadFailure(convertEntryToDTO(entry), err)
 }
 
-// statsRecorderAdapter wraps a StatsRecorder to provide the otter
-// stats.Recorder interface.
+// statsRecorderAdapter wraps a StatsRecorder to provide the otter stats.Recorder
+// interface.
 type statsRecorderAdapter struct {
 	// recorder tracks cache statistics such as hits, misses, and evictions.
 	recorder cache_dto.StatsRecorder
@@ -198,8 +197,8 @@ func (a *loggerAdapter) Warn(_ context.Context, message string, err error) {
 // Error logs an error message with optional error details.
 //
 // Takes message (string) which is the error message to log.
-// Takes err (error) which provides optional error details; if not nil, it is
-// added to the log output.
+// Takes err (error) which provides optional error details; if not nil, it is added to the
+// log output.
 func (a *loggerAdapter) Error(_ context.Context, message string, err error) {
 	if err != nil {
 		a.logger.Error(message, "error", err)
@@ -210,8 +209,7 @@ func (a *loggerAdapter) Error(_ context.Context, message string, err error) {
 
 // convertEntryToDTO converts an otter.Entry to cache_dto.Entry.
 //
-// Takes otterEntry (otter.Entry[K, V]) which is the otter cache
-// entry to convert.
+// Takes otterEntry (otter.Entry[K, V]) which is the otter cache entry to convert.
 //
 // Returns cache_dto.Entry[K, V] which is the converted DTO entry.
 func convertEntryToDTO[K comparable, V any](otterEntry otter.Entry[K, V]) cache_dto.Entry[K, V] {
@@ -225,14 +223,12 @@ func convertEntryToDTO[K comparable, V any](otterEntry otter.Entry[K, V]) cache_
 	}
 }
 
-// convertDeletionEventToDTO converts an otter.DeletionEvent to
-// cache_dto.DeletionEvent.
+// convertDeletionEventToDTO converts an otter.DeletionEvent to cache_dto.DeletionEvent.
 //
-// Takes otterEvent (otter.DeletionEvent[K, V]) which is the otter
-// deletion event to convert.
+// Takes otterEvent (otter.DeletionEvent[K, V]) which is the otter deletion event to
+// convert.
 //
-// Returns cache_dto.DeletionEvent[K, V] which is the converted
-// DTO deletion event.
+// Returns cache_dto.DeletionEvent[K, V] which is the converted DTO deletion event.
 func convertDeletionEventToDTO[K comparable, V any](otterEvent otter.DeletionEvent[K, V]) cache_dto.DeletionEvent[K, V] {
 	return cache_dto.DeletionEvent[K, V]{
 		Key:   otterEvent.Key,
@@ -243,11 +239,10 @@ func convertDeletionEventToDTO[K comparable, V any](otterEvent otter.DeletionEve
 
 // wrapExpiryCalculator wraps a cache_dto.ExpiryCalculator to work with otter.
 //
-// Takes calculator (cache_dto.ExpiryCalculator[K, V]) which is
-// the calculator to wrap.
+// Takes calculator (cache_dto.ExpiryCalculator[K, V]) which is the calculator to wrap.
 //
-// Returns otter.ExpiryCalculator[K, V] which is the wrapped
-// calculator, or nil if the input is nil.
+// Returns otter.ExpiryCalculator[K, V] which is the wrapped calculator, or nil if the
+// input is nil.
 func wrapExpiryCalculator[K comparable, V any](calculator cache_dto.ExpiryCalculator[K, V]) otter.ExpiryCalculator[K, V] {
 	if calculator == nil {
 		return nil
@@ -257,11 +252,10 @@ func wrapExpiryCalculator[K comparable, V any](calculator cache_dto.ExpiryCalcul
 
 // wrapRefreshCalculator wraps a cache_dto.RefreshCalculator to work with otter.
 //
-// Takes calculator (cache_dto.RefreshCalculator[K, V]) which is
-// the calculator to wrap.
+// Takes calculator (cache_dto.RefreshCalculator[K, V]) which is the calculator to wrap.
 //
-// Returns otter.RefreshCalculator[K, V] which is the wrapped
-// calculator, or nil if the input is nil.
+// Returns otter.RefreshCalculator[K, V] which is the wrapped calculator, or nil if the
+// input is nil.
 func wrapRefreshCalculator[K comparable, V any](calculator cache_dto.RefreshCalculator[K, V]) otter.RefreshCalculator[K, V] {
 	if calculator == nil {
 		return nil
@@ -271,11 +265,11 @@ func wrapRefreshCalculator[K comparable, V any](calculator cache_dto.RefreshCalc
 
 // wrapOnDeletion wraps a cache_dto OnDeletion callback to work with otter.
 //
-// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which is the deletion
-// event handler to wrap.
+// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which is the deletion event
+// handler to wrap.
 //
-// Returns func(e otter.DeletionEvent[K, V]) which is the wrapped callback for
-// otter. Returns nil if callback is nil.
+// Returns func(e otter.DeletionEvent[K, V]) which is the wrapped callback for otter.
+// Returns nil if callback is nil.
 func wrapOnDeletion[K comparable, V any](callback func(e cache_dto.DeletionEvent[K, V])) func(e otter.DeletionEvent[K, V]) {
 	if callback == nil {
 		return nil
@@ -285,14 +279,14 @@ func wrapOnDeletion[K comparable, V any](callback func(e cache_dto.DeletionEvent
 	}
 }
 
-// wrapOnAtomicDeletion wraps a cache_dto OnAtomicDeletion callback to work
-// with otter.
+// wrapOnAtomicDeletion wraps a cache_dto OnAtomicDeletion callback to work with otter.
 //
-// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which is the
-// cache_dto deletion event handler to wrap.
+// Takes callback (func(e cache_dto.DeletionEvent[K, V])) which is the cache_dto deletion
+// event handler to wrap.
 //
-// Returns func(e otter.DeletionEvent[K, V]) which is the wrapped callback
-// that works with otter. Returns nil if callback is nil.
+// Returns func(e otter.DeletionEvent[K, V]) which is the wrapped callback that works with
+// otter.
+// Returns nil if callback is nil.
 func wrapOnAtomicDeletion[K comparable, V any](callback func(e cache_dto.DeletionEvent[K, V])) func(e otter.DeletionEvent[K, V]) {
 	if callback == nil {
 		return nil
@@ -304,11 +298,10 @@ func wrapOnAtomicDeletion[K comparable, V any](callback func(e cache_dto.Deletio
 
 // wrapStatsRecorder wraps a StatsRecorder to work with otter's stats system.
 //
-// Takes recorder (cache_dto.StatsRecorder) which provides the stats recording
-// interface to adapt.
+// Takes recorder (cache_dto.StatsRecorder) which provides the stats recording interface
+// to adapt.
 //
-// Returns stats.Recorder which is the adapted recorder, or nil if the input
-// is nil.
+// Returns stats.Recorder which is the adapted recorder, or nil if the input is nil.
 func wrapStatsRecorder(recorder cache_dto.StatsRecorder) stats.Recorder {
 	if recorder == nil {
 		return nil

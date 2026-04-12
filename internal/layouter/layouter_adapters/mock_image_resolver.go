@@ -18,33 +18,34 @@
 
 package layouter_adapters
 
-// Implements a mock ImageResolverPort for testing that returns fixed
-// dimensions for any image source. Uses the function-field pattern.
+// Implements a mock ImageResolverPort for testing that returns fixed dimensions for any
+// image source. Uses the function-field pattern.
 
-import "context"
+import (
+	"context"
+)
 
 const (
-	// mockImageWidth is the default width in points returned by
-	// MockImageResolver when no override function is set.
+	// mockImageWidth is the default width in points returned by MockImageResolver when no
+	// override function is set.
 	mockImageWidth = 100.0
 
-	// mockImageHeight is the default height in points returned by
-	// MockImageResolver when no override function is set.
+	// mockImageHeight is the default height in points returned by MockImageResolver when no
+	// override function is set.
 	mockImageHeight = 100.0
 )
 
-// MockImageResolver is a test double for ImageResolverPort that returns fixed
-// image dimensions. The function field can be overridden; nil uses the
-// default (100x100 points).
+// MockImageResolver is a test double for ImageResolverPort that returns fixed image
+// dimensions. The function field can be overridden; nil uses the default (100x100
+// points).
 type MockImageResolver struct {
-	// GetImageDimensionsFunc is an optional override for the
-	// GetImageDimensions method. When nil, the default 100x100
-	// point dimensions are returned.
+	// GetImageDimensionsFunc is an optional override for the GetImageDimensions method. When
+	// nil, the default 100x100 point dimensions are returned.
 	GetImageDimensionsFunc func(ctx context.Context, source string) (width, height float64, err error)
 }
 
-// GetImageDimensions returns the intrinsic dimensions for the given image
-// source. Default: 100x100 points.
+// GetImageDimensions returns the intrinsic dimensions for the given image source.
+// Default: 100x100 points.
 //
 // Takes source (string) which is the image source path or URL.
 //

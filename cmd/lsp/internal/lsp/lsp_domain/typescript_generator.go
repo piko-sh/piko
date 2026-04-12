@@ -42,19 +42,18 @@ const (
 	tsTypeSuffixNull = " | null"
 )
 
-// typeScriptGenerator converts Go types to TypeScript type definitions.
-// It provides in-memory type generation for LSP hover and completion features.
+// typeScriptGenerator converts Go types to TypeScript type definitions. It provides
+// in-memory type generation for LSP hover and completion features.
 type typeScriptGenerator struct{}
 
-// GenerateStateInterface generates a TypeScript interface for a PK state
-// type. This creates the PageState interface that represents the Render
-// function's response.
+// GenerateStateInterface generates a TypeScript interface for a PK state type. This
+// creates the PageState interface that represents the Render function's response.
 //
 // Takes stateType (*inspector_dto.Type) which provides the Go type to convert.
 // Takes interfaceName (string) which specifies the name for the interface.
 //
-// Returns string which contains the generated TypeScript interface definition,
-// or an empty string if stateType is nil or has no fields.
+// Returns string which contains the generated TypeScript interface definition, or an
+// empty string if stateType is nil or has no fields.
 func (g *typeScriptGenerator) GenerateStateInterface(stateType *inspector_dto.Type, interfaceName string) string {
 	if stateType == nil || len(stateType.Fields) == 0 {
 		return ""
@@ -76,16 +75,16 @@ func (g *typeScriptGenerator) GenerateStateInterface(stateType *inspector_dto.Ty
 	return b.String()
 }
 
-// GenerateStateDeclaration generates a full state declaration including the
-// interface and the state variable.
+// GenerateStateDeclaration generates a full state declaration including the interface and
+// the state variable.
 //
-// Takes stateType (*inspector_dto.Type) which defines the structure of the
-// state to generate.
+// Takes stateType (*inspector_dto.Type) which defines the structure of the state to
+// generate.
 // Takes typeName (string) which specifies the name for the generated type.
 //
-// Returns string which contains the combined interface definition and state
-// variable declaration, or an empty string if stateType is nil or the
-// interface cannot be generated.
+// Returns string which contains the combined interface definition and state variable
+// declaration, or an empty string if stateType is nil or the interface cannot be
+// generated.
 func (g *typeScriptGenerator) GenerateStateDeclaration(stateType *inspector_dto.Type, typeName string) string {
 	if stateType == nil {
 		return ""
@@ -106,11 +105,10 @@ func (g *typeScriptGenerator) GenerateStateDeclaration(stateType *inspector_dto.
 // GeneratePropsInterface creates a TypeScript interface from a Go type.
 //
 // Takes propsType (*inspector_dto.Type) which defines the Go type to convert.
-// Takes interfaceName (string) which specifies the name for the output
-// interface.
+// Takes interfaceName (string) which specifies the name for the output interface.
 //
-// Returns string which contains the TypeScript interface definition. Returns
-// an empty interface when propsType is nil or has no fields.
+// Returns string which contains the TypeScript interface definition.
+// Returns an empty interface when propsType is nil or has no fields.
 func (g *typeScriptGenerator) GeneratePropsInterface(propsType *inspector_dto.Type, interfaceName string) string {
 	if propsType == nil || len(propsType.Fields) == 0 {
 		return fmt.Sprintf("interface %s {}", interfaceName)
@@ -138,8 +136,7 @@ func (g *typeScriptGenerator) GeneratePropsInterface(propsType *inspector_dto.Ty
 
 // GenerateRefsInterface generates a TypeScript interface for p-ref elements.
 //
-// Takes refNames ([]string) which lists the reference names to include in the
-// interface.
+// Takes refNames ([]string) which lists the reference names to include in the interface.
 //
 // Returns string which contains the generated TypeScript interface definition.
 func (*typeScriptGenerator) GenerateRefsInterface(refNames []string) string {
@@ -222,11 +219,10 @@ func (g *typeScriptGenerator) goTypeToTypeScript(field *inspector_dto.Field) str
 	return g.primitiveToTypeScript(field.TypeString, field.UnderlyingTypeString)
 }
 
-// compositeToTypeScript handles composite types (slices, maps, arrays,
-// pointers) and converts them to TypeScript equivalents.
+// compositeToTypeScript handles composite types (slices, maps, arrays, pointers) and
+// converts them to TypeScript equivalents.
 //
-// Takes field (*inspector_dto.Field) which contains the composite type to
-// convert.
+// Takes field (*inspector_dto.Field) which contains the composite type to convert.
 //
 // Returns string which is the TypeScript type representation.
 func (g *typeScriptGenerator) compositeToTypeScript(field *inspector_dto.Field) string {
@@ -248,11 +244,10 @@ func (g *typeScriptGenerator) compositeToTypeScript(field *inspector_dto.Field) 
 	}
 }
 
-// sliceOrArrayToTypeScript converts slice or array composite parts to a
-// TypeScript array type.
+// sliceOrArrayToTypeScript converts slice or array composite parts to a TypeScript array
+// type.
 //
-// Takes parts ([]*inspector_dto.CompositePart) which contains the type parts
-// to convert.
+// Takes parts ([]*inspector_dto.CompositePart) which contains the type parts to convert.
 //
 // Returns string which is the TypeScript array type representation.
 func (g *typeScriptGenerator) sliceOrArrayToTypeScript(parts []*inspector_dto.CompositePart) string {
@@ -264,8 +259,8 @@ func (g *typeScriptGenerator) sliceOrArrayToTypeScript(parts []*inspector_dto.Co
 
 // mapToTypeScript converts map composite parts to TypeScript Record type.
 //
-// Takes parts ([]*inspector_dto.CompositePart) which contains the key and value
-// type definitions for the map.
+// Takes parts ([]*inspector_dto.CompositePart) which contains the key and value type
+// definitions for the map.
 //
 // Returns string which is the TypeScript Record type declaration.
 func (g *typeScriptGenerator) mapToTypeScript(parts []*inspector_dto.CompositePart) string {
@@ -282,11 +277,10 @@ func (g *typeScriptGenerator) mapToTypeScript(parts []*inspector_dto.CompositePa
 	return fmt.Sprintf("Record<%s, %s>", keyType, valueType)
 }
 
-// pointerToTypeScript converts pointer composite parts to a nullable TypeScript
-// type.
+// pointerToTypeScript converts pointer composite parts to a nullable TypeScript type.
 //
-// Takes parts ([]*inspector_dto.CompositePart) which contains the pointer's
-// target type information.
+// Takes parts ([]*inspector_dto.CompositePart) which contains the pointer's target type
+// information.
 //
 // Returns string which is the TypeScript type with a null suffix.
 func (g *typeScriptGenerator) pointerToTypeScript(parts []*inspector_dto.CompositePart) string {
@@ -298,8 +292,8 @@ func (g *typeScriptGenerator) pointerToTypeScript(parts []*inspector_dto.Composi
 
 // compositePartToTypeScript converts a composite part to TypeScript.
 //
-// Takes part (*inspector_dto.CompositePart) which specifies the composite type
-// structure to convert.
+// Takes part (*inspector_dto.CompositePart) which specifies the composite type structure
+// to convert.
 //
 // Returns string which is the TypeScript type representation.
 func (g *typeScriptGenerator) compositePartToTypeScript(part *inspector_dto.CompositePart) string {
@@ -314,11 +308,9 @@ func (g *typeScriptGenerator) compositePartToTypeScript(part *inspector_dto.Comp
 	return g.nestedCompositeToTypeScript(part)
 }
 
-// nestedCompositeToTypeScript handles nested composite types within a
-// composite part.
+// nestedCompositeToTypeScript handles nested composite types within a composite part.
 //
-// Takes part (*inspector_dto.CompositePart) which contains the composite type
-// to convert.
+// Takes part (*inspector_dto.CompositePart) which contains the composite type to convert.
 //
 // Returns string which is the TypeScript type representation.
 func (g *typeScriptGenerator) nestedCompositeToTypeScript(part *inspector_dto.CompositePart) string {
@@ -337,12 +329,11 @@ func (g *typeScriptGenerator) nestedCompositeToTypeScript(part *inspector_dto.Co
 	}
 }
 
-// primitiveToTypeScript converts a Go primitive type name to its TypeScript
-// equivalent.
+// primitiveToTypeScript converts a Go primitive type name to its TypeScript equivalent.
 //
 // Takes typeString (string) which is the Go type name to convert.
-// Takes underlyingTypeString (string) which is the underlying type for named
-// types, used when the underlying type is a primitive.
+// Takes underlyingTypeString (string) which is the underlying type for named types, used
+// when the underlying type is a primitive.
 //
 // Returns string which is the matching TypeScript type name.
 func (*typeScriptGenerator) primitiveToTypeScript(typeString, underlyingTypeString string) string {

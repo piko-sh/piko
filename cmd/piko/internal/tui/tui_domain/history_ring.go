@@ -18,13 +18,15 @@
 
 package tui_domain
 
-// historyRingDefaultCapacity is the default capacity for HistoryRing buffers.
-// This stores 1 hour of history when using 2-second refresh intervals.
-const historyRingDefaultCapacity = 1800
+const (
+	// historyRingDefaultCapacity is the default capacity for HistoryRing buffers. This
+	// stores 1 hour of history when using 2-second refresh intervals.
+	historyRingDefaultCapacity = 1800
+)
 
-// HistoryRing is a fixed-size circular buffer for sparkline data.
-// It maintains a sliding window of the most recent values, automatically
-// evicting the oldest values when capacity is exceeded.
+// HistoryRing is a fixed-size circular buffer for sparkline data. It maintains a sliding
+// window of the most recent values, automatically evicting the oldest values when
+// capacity is exceeded.
 type HistoryRing struct {
 	// values holds the recorded values in the order they were added.
 	values []float64
@@ -35,9 +37,8 @@ type HistoryRing struct {
 
 // NewHistoryRing creates a new history ring with the given capacity.
 //
-// Capacity must be positive; if zero or negative, defaults to
-// historyRingDefaultCapacity (equivalent to 1 hour at 2-second refresh
-// intervals).
+// Capacity must be positive; if zero or negative, defaults to historyRingDefaultCapacity
+// (equivalent to 1 hour at 2-second refresh intervals).
 //
 // Takes capacity (int) which specifies the maximum number of values to store.
 //
@@ -52,8 +53,8 @@ func NewHistoryRing(capacity int) *HistoryRing {
 	}
 }
 
-// Append adds a value to the history ring buffer.
-// When the buffer is full, the oldest value is removed.
+// Append adds a value to the history ring buffer. When the buffer is full, the oldest
+// value is removed.
 //
 // Takes value (float64) which is the value to add.
 func (h *HistoryRing) Append(value float64) {
@@ -63,8 +64,8 @@ func (h *HistoryRing) Append(value float64) {
 	}
 }
 
-// AppendAll adds multiple values to the history.
-// Values are added in order, with the oldest first.
+// AppendAll adds multiple values to the history. Values are added in order, with the
+// oldest first.
 //
 // Takes values ([]float64) which contains the values to append.
 func (h *HistoryRing) AppendAll(values []float64) {
@@ -114,8 +115,8 @@ func (h *HistoryRing) Clear() {
 	h.values = h.values[:0]
 }
 
-// Stats returns basic statistics about the values in the buffer.
-// If the buffer is empty, all values are zero.
+// Stats returns basic statistics about the values in the buffer. If the buffer is empty,
+// all values are zero.
 //
 // Returns minVal (float64) which is the smallest value in the buffer.
 // Returns maxVal (float64) which is the largest value in the buffer.

@@ -99,8 +99,8 @@ func runBulkOpsTests(t *testing.T, config StringConfig) {
 
 }
 
-// testBulkGetAllCached verifies that BulkGet returns cached values without
-// calling the loader.
+// testBulkGetAllCached verifies that BulkGet returns cached values without calling the
+// loader.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -140,8 +140,8 @@ func testBulkGetAllCached(t *testing.T, config StringConfig) {
 	}
 }
 
-// testBulkGetAllMissing verifies that BulkGet calls the loader for keys not
-// present in the cache.
+// testBulkGetAllMissing verifies that BulkGet calls the loader for keys not present in
+// the cache.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -285,8 +285,8 @@ func testBulkSetBasic(t *testing.T, config StringConfig) {
 	}
 }
 
-// testBulkSetWithTags tests that BulkSet correctly associates tags with items
-// and that InvalidateByTags removes all items with the specified tag.
+// testBulkSetWithTags tests that BulkSet correctly associates tags with items and that
+// InvalidateByTags removes all items with the specified tag.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and configuration.
@@ -355,8 +355,8 @@ func testBulkSetEmpty(t *testing.T, config StringConfig) {
 	}
 }
 
-// testInvalidateByTagsSingle verifies that cache entries with a specific tag
-// are invalidated while entries with other tags remain.
+// testInvalidateByTagsSingle verifies that cache entries with a specific tag are
+// invalidated while entries with other tags remain.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -405,8 +405,8 @@ func testInvalidateByTagsSingle(t *testing.T, config StringConfig) {
 	}
 }
 
-// testInvalidateByTagsMultiple verifies that cache entries can be invalidated
-// by multiple tags in a single call.
+// testInvalidateByTagsMultiple verifies that cache entries can be invalidated by multiple
+// tags in a single call.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -455,8 +455,8 @@ func testInvalidateByTagsMultiple(t *testing.T, config StringConfig) {
 	}
 }
 
-// testInvalidateByTagsNoMatch verifies that invalidating by a non-existent tag
-// does not affect entries with different tags.
+// testInvalidateByTagsNoMatch verifies that invalidating by a non-existent tag does not
+// affect entries with different tags.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache factory and settings.
@@ -532,8 +532,8 @@ func testInvalidateAllEmpty(t *testing.T, config StringConfig) {
 	}
 }
 
-// testBulkRefresh tests that bulk refresh updates existing cache entries
-// with new values from a bulk loader.
+// testBulkRefresh tests that bulk refresh updates existing cache entries with new values
+// from a bulk loader.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which provides the cache provider factory.

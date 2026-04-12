@@ -19,6 +19,7 @@
 package i18n_adapters
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 
@@ -30,12 +31,12 @@ import (
 type LoaderMode string
 
 const (
-	// LoaderModeFlatBuffer is the default loading mode using pre-parsed FlatBuffer
-	// files with no memory allocation.
+	// LoaderModeFlatBuffer is the default loading mode using pre-parsed FlatBuffer files
+	// with no memory allocation.
 	LoaderModeFlatBuffer LoaderMode = "flatbuffer"
 
-	// LoaderModeJSON uses JSON files for debugging and development.
-	// Templates are parsed at runtime, which is slower but easier to inspect.
+	// LoaderModeJSON uses JSON files for debugging and development. Templates are parsed at
+	// runtime, which is slower but easier to inspect.
 	LoaderModeJSON LoaderMode = "json"
 )
 
@@ -44,25 +45,24 @@ type LoaderConfig struct {
 	// Sandbox provides safe file system access for loading translation files.
 	Sandbox safedisk.Sandbox
 
-	// Mode specifies whether to load translations from FlatBuffer or JSON.
-	// Default is LoaderModeFlatBuffer.
+	// Mode specifies whether to load translations from FlatBuffer or JSON. Default is
+	// LoaderModeFlatBuffer.
 	Mode LoaderMode
 
-	// FlatBufferPath is the path to the i18n.bin FlatBuffer file, relative to
-	// the sandbox root. Required when Mode is LoaderModeFlatBuffer.
+	// FlatBufferPath is the path to the i18n.bin FlatBuffer file, relative to the sandbox
+	// root. Required when Mode is LoaderModeFlatBuffer.
 	FlatBufferPath string
 
-	// JSONDirectory is the path to the directory with JSON translation files,
-	// relative to the sandbox root. Required when Mode is LoaderModeJSON.
+	// JSONDirectory is the path to the directory with JSON translation files, relative to
+	// the sandbox root. Required when Mode is LoaderModeJSON.
 	JSONDirectory string
 
 	// DefaultLocale is the fallback locale when a translation is missing.
 	DefaultLocale string
 }
 
-// Loader provides a unified interface for loading translations from
-// either FlatBuffer or JSON sources based on configuration.
-// All file operations are sandboxed for security.
+// Loader provides a unified interface for loading translations from either FlatBuffer or
+// JSON sources based on configuration. All file operations are sandboxed for security.
 type Loader struct {
 	// fbProvider holds the FlatBuffer provider; kept alive to retain loaded data.
 	fbProvider *flatBufferProvider
@@ -73,17 +73,13 @@ type Loader struct {
 
 // NewLoader creates a new translation loader with the given configuration.
 //
-// Takes config (LoaderConfig) which specifies the loader settings including
-// mode and default locale.
+// Takes config (LoaderConfig) which specifies the loader settings including mode and
+// default locale.
 //
 // Returns *Loader which is ready for use after loading translations.
 func NewLoader(config LoaderConfig) *Loader {
-	if config.Mode == "" {
-		config.Mode = LoaderModeFlatBuffer
-	}
-	if config.DefaultLocale == "" {
-		config.DefaultLocale = "en-GB"
-	}
+	config.Mode = cmp.Or(config.Mode, LoaderModeFlatBuffer)
+	config.DefaultLocale = cmp.Or(config.DefaultLocale, "en-GB")
 	return &Loader{
 		fbProvider: nil,
 		config:     config,
@@ -92,9 +88,9 @@ func NewLoader(config LoaderConfig) *Loader {
 
 // Load reads translations from the configured source and returns a Store.
 //
-// For FlatBuffer mode: Uses zero-allocation parsing. The Loader must be kept
-// alive as long as the Store is in use to prevent the underlying data from
-// being garbage collected.
+// For FlatBuffer mode: Uses zero-allocation parsing. The Loader must be kept alive as
+// long as the Store is in use to prevent the underlying data from being garbage
+// collected.
 //
 // For JSON mode: Parses templates at runtime. Suitable for debugging.
 //
@@ -149,8 +145,8 @@ func (l *Loader) loadFlatBuffer() (*i18n_domain.Store, error) {
 // loadJSON loads translations from JSON files in the configured directory.
 //
 // Returns *i18n_domain.Store which contains the loaded translations.
-// Returns error when the JSON directory or sandbox is not configured, or when
-// loading fails.
+// Returns error when the JSON directory or sandbox is not configured, or when loading
+// fails.
 func (l *Loader) loadJSON() (*i18n_domain.Store, error) {
 	if l.config.JSONDirectory == "" {
 		return nil, errors.New("JSON directory is required for JSON mode")

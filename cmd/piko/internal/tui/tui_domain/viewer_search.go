@@ -26,8 +26,8 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// SearchMixin provides search and filter features for panels.
-// Embed this in panels that need search support.
+// SearchMixin provides search and filter features for panels. Embed this in panels that
+// need search support.
 type SearchMixin struct {
 	// searchBox is the search input widget for user queries.
 	searchBox *SearchBox
@@ -38,13 +38,13 @@ type SearchMixin struct {
 	// searchQuery stores the current search filter text; empty means no filter.
 	searchQuery string
 
-	// filteredItems holds the indices of items that match the current search query;
-	// nil when no filter is active.
+	// filteredItems holds the indices of items that match the current search query; nil when
+	// no filter is active.
 	filteredItems []int
 }
 
-// NewSearchMixin creates a new search mixin with the given filter callback.
-// The callback is called when the search query changes.
+// NewSearchMixin creates a new search mixin with the given filter callback. The callback
+// is called when the search query changes.
 //
 // Takes onFilter (func()) which is called when the search query changes.
 //
@@ -115,8 +115,7 @@ func (m *SearchMixin) HasQuery() bool {
 
 // FilteredItems returns the indices of items that match the current filter.
 //
-// Returns []int which contains the matching indices, or nil if no filter is
-// active.
+// Returns []int which contains the matching indices, or nil if no filter is active.
 func (m *SearchMixin) FilteredItems() []int {
 	return m.filteredItems
 }
@@ -166,12 +165,12 @@ func (m *SearchMixin) HandleKey(message tea.KeyPressMsg, width int) (bool, tea.C
 	return false, nil
 }
 
-// UpdateFilter rebuilds the filtered items list based on the current search
-// query by testing each item against the provided match function.
+// UpdateFilter rebuilds the filtered items list based on the current search query by
+// testing each item against the provided match function.
 //
 // Takes itemCount (int) which is the total number of items to filter.
-// Takes matchFunc (func(...)) which tests if an item at the given index
-// matches the query; the query passed to matchFunc is already lowercased.
+// Takes matchFunc (func(...)) which tests if an item at the given index matches the
+// query; the query passed to matchFunc is already lowercased.
 func (m *SearchMixin) UpdateFilter(itemCount int, matchFunc func(index int, query string) bool) {
 	if m.searchQuery == "" {
 		m.filteredItems = nil
@@ -189,11 +188,11 @@ func (m *SearchMixin) UpdateFilter(itemCount int, matchFunc func(index int, quer
 
 // GetDisplayIndices returns the indices of items to display.
 //
-// Takes totalItems (int) which specifies the total number of items when no
-// filter is active.
+// Takes totalItems (int) which specifies the total number of items when no filter is
+// active.
 //
-// Returns []int which contains the filtered indices if a search filter is
-// active, or all indices from 0 to totalItems-1 otherwise.
+// Returns []int which contains the filtered indices if a search filter is active, or all
+// indices from 0 to totalItems-1 otherwise.
 func (m *SearchMixin) GetDisplayIndices(totalItems int) []int {
 	if len(m.filteredItems) > 0 || m.searchQuery != "" {
 		return m.filteredItems
@@ -205,8 +204,7 @@ func (m *SearchMixin) GetDisplayIndices(totalItems int) []int {
 	return items
 }
 
-// RenderHeader renders the search box and filter status into the content
-// builder.
+// RenderHeader renders the search box and filter status into the content builder.
 //
 // Takes content (*strings.Builder) which receives the rendered output.
 // Takes totalCount (int) which is the total number of items before filtering.
@@ -233,8 +231,8 @@ func (m *SearchMixin) RenderHeader(content *strings.Builder, totalCount int) int
 	return usedLines
 }
 
-// AdjustCursorAfterFilter adjusts the cursor position after a filter update.
-// If the cursor is beyond the filtered items, it is moved to the last item.
+// AdjustCursorAfterFilter adjusts the cursor position after a filter update. If the
+// cursor is beyond the filtered items, it is moved to the last item.
 //
 // Takes cursor (int) which is the current cursor position to adjust.
 //
@@ -249,8 +247,8 @@ func (m *SearchMixin) AdjustCursorAfterFilter(cursor int) int {
 	return cursor
 }
 
-// StatusFilterMixin provides status-based filtering for panels.
-// This is separate from search filtering and can be combined with it.
+// StatusFilterMixin provides status-based filtering for panels. This is separate from
+// search filtering and can be combined with it.
 type StatusFilterMixin struct {
 	// filterStatus holds the current status filter; nil means no filter is set.
 	filterStatus *ResourceStatus
@@ -291,8 +289,8 @@ func (m *StatusFilterMixin) HasFilter() bool {
 	return m.filterStatus != nil
 }
 
-// CycleFilter moves to the next status filter value in the cycle.
-// The order is: nil -> Healthy -> Degraded -> Unhealthy -> Pending -> nil.
+// CycleFilter moves to the next status filter value in the cycle. The order is: nil ->
+// Healthy -> Degraded -> Unhealthy -> Pending -> nil.
 func (m *StatusFilterMixin) CycleFilter() {
 	if m.filterStatus == nil {
 		m.filterStatus = new(ResourceStatusHealthy)
@@ -324,8 +322,7 @@ func (m *StatusFilterMixin) MatchesFilter(status ResourceStatus) bool {
 	return status == *m.filterStatus
 }
 
-// RenderFilterStatus renders the current filter status into the content
-// builder.
+// RenderFilterStatus renders the current filter status into the content builder.
 //
 // Takes content (*strings.Builder) which receives the rendered filter status.
 //

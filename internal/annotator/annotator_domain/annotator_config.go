@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// AnnotatorPathsConfig holds the resolved path values needed by the annotator
-// service. All fields are value types; pointer-to-value conversion is performed
-// in the bootstrap layer.
+// AnnotatorPathsConfig holds the resolved path values needed by the annotator service.
+// All fields are value types; pointer-to-value conversion is performed in the bootstrap
+// layer.
 type AnnotatorPathsConfig struct {
 	// PagesSourceDir is the directory for page definition files.
 	PagesSourceDir string

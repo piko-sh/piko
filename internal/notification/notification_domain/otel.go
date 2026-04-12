@@ -82,8 +82,8 @@ var (
 	// multiCastCount tracks the number of multi-cast notifications sent.
 	multiCastCount metric.Int64Counter
 
-	// partialFailureCount tracks notifications with partial failures where some
-	// providers succeeded and some failed.
+	// partialFailureCount tracks notifications with partial failures where some providers
+	// succeeded and some failed.
 	partialFailureCount metric.Int64Counter
 )
 

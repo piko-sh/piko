@@ -1,0 +1,181 @@
+fmt := import("fmt")
+os := import("os")
+times := import("times")
+
+CACHE_CAPACITY := 1024
+TOTAL_OPERATIONS := 100000
+KEYSPACE_SIZE := CACHE_CAPACITY * 4
+LCG_MASK := 0xFFFFFFFF
+
+int_to_decimal := func(value) {
+	if value == 0 {
+		return "0"
+	}
+	negative := value < 0
+	if negative {
+		value = -value
+	}
+	digits := []
+	for value > 0 {
+		digits = append(digits, char(int('0') + value % 10))
+		value = value / 10
+	}
+	out := ""
+	for i := len(digits) - 1; i >= 0; i-- {
+		out += digits[i]
+	}
+	if negative {
+		return "-" + out
+	}
+	return out
+}
+
+do_lru := func() {
+	node_key := []
+	node_value := []
+	node_prev := []
+	node_next := []
+	free_list := []
+	lookup := {}
+	head := -1
+	tail := -1
+	size := 0
+
+	allocate_node := func(key, value) {
+		if len(free_list) > 0 {
+			slot := free_list[len(free_list) - 1]
+			free_list = free_list[:len(free_list) - 1]
+			node_key[slot] = key
+			node_value[slot] = value
+			node_prev[slot] = -1
+			node_next[slot] = -1
+			return slot
+		}
+		slot := len(node_key)
+		node_key = append(node_key, key)
+		node_value = append(node_value, value)
+		node_prev = append(node_prev, -1)
+		node_next = append(node_next, -1)
+		return slot
+	}
+
+	detach := func(slot) {
+		prev := node_prev[slot]
+		next := node_next[slot]
+		if prev != -1 {
+			node_next[prev] = next
+		} else {
+			head = next
+		}
+		if next != -1 {
+			node_prev[next] = prev
+		} else {
+			tail = prev
+		}
+	}
+
+	attach_at_front := func(slot) {
+		node_prev[slot] = -1
+		node_next[slot] = head
+		if head != -1 {
+			node_prev[head] = slot
+		}
+		head = slot
+		if tail == -1 {
+			tail = slot
+		}
+	}
+
+	move_to_front := func(slot) {
+		if slot == head {
+			return
+		}
+		detach(slot)
+		attach_at_front(slot)
+	}
+
+	cache_get := func(key) {
+		key_str := string(key)
+		existing := lookup[key_str]
+		if is_undefined(existing) {
+			return [0, false]
+		}
+		move_to_front(existing)
+		return [node_value[existing], true]
+	}
+
+	cache_put := func(key, value) {
+		key_str := string(key)
+		existing := lookup[key_str]
+		if !is_undefined(existing) {
+			node_value[existing] = value
+			move_to_front(existing)
+			return
+		}
+		slot := allocate_node(key, value)
+		lookup[key_str] = slot
+		attach_at_front(slot)
+		size++
+		if size > CACHE_CAPACITY {
+			removed := tail
+			detach(removed)
+			delete(lookup, string(node_key[removed]))
+			free_list = append(free_list, removed)
+			size--
+		}
+	}
+
+	state := 13579246
+	hit_count := 0
+	for operation_index := 0; operation_index < TOTAL_OPERATIONS; operation_index++ {
+		state = (state * 1664525 + 1013904223) & LCG_MASK
+		key := (state >> 8) & (KEYSPACE_SIZE - 1)
+		is_get := (state >> 31) == 0
+		if is_get {
+			result := cache_get(key)
+			if result[1] {
+				hit_count++
+			}
+		} else {
+			value := state & 0xFFFF
+			cache_put(key, value)
+		}
+	}
+	return int_to_decimal(hit_count)
+}
+
+run := func() {
+	return do_lru()
+}
+
+run_inner := func(k) {
+	start_nanos := times.time_unix_nano(times.now())
+	last := ""
+	for index := 0; index < k; index++ {
+		last = do_lru()
+	}
+	elapsed_nanos := times.time_unix_nano(times.now()) - start_nanos
+	return [last, elapsed_nanos]
+}
+
+args := os.args()
+mode := "endtoend"
+k := 0
+for i := 0; i < len(args); i++ {
+	if args[i] == "--mode" && i+1 < len(args) {
+		mode = args[i+1]
+	}
+	if args[i] == "--k" && i+1 < len(args) {
+		k = int(args[i+1])
+	}
+}
+
+if mode == "inner" {
+	result := run_inner(k)
+	fmt.println(result[0])
+	stderr := os.create("/dev/stderr")
+	stderr.write_string(fmt.sprintf("INNER_ELAPSED_NS=%d\n", result[1]))
+	stderr.close()
+} else {
+	fmt.println(run())
+}

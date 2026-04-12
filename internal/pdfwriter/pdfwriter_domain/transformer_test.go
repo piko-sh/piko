@@ -37,7 +37,9 @@ type mockTransformer struct {
 	priority          int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*mockTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*mockTransformer)(nil)
+)
 
 func (m *mockTransformer) Name() string                        { return m.name }
 func (m *mockTransformer) Type() pdfwriter_dto.TransformerType { return m.ttype }

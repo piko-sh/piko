@@ -24,19 +24,18 @@ import (
 )
 
 const (
-	// DefaultServePath is the default URL path prefix for serving compiled
-	// assets. Consumers with config access may use
-	// bootstrap.ServerConfig.Paths.ArtefactServePath instead.
+	// DefaultServePath is the default URL path prefix for serving compiled assets. Consumers
+	// with config access may use bootstrap.ServerConfig.Paths.ArtefactServePath instead.
 	DefaultServePath = "/_piko/assets"
 
 	// ModuleAliasPrefix is the @/ prefix used for module-relative asset paths.
 	ModuleAliasPrefix = "@/"
 )
 
-// NeedsTransform reports whether a source path requires asset pipeline
-// transformation. Returns false for empty strings, absolute URLs (http://,
-// https://), data URIs, protocol-relative URLs (//), absolute paths (/), and
-// paths already prefixed with servePath.
+// NeedsTransform reports whether a source path requires asset pipeline transformation.
+// Returns false for empty strings, absolute URLs (http://, https://), data URIs,
+// protocol-relative URLs (//), absolute paths (/), and paths already prefixed with
+// servePath.
 //
 // Takes src (string) which is the source path to check.
 // Takes servePath (string) which is the asset serve path prefix to detect
@@ -65,8 +64,8 @@ func NeedsTransform(src, servePath string) bool {
 	return true
 }
 
-// NeedsCleaning reports whether a path requires filepath.Clean. A path needs
-// cleaning if it contains "./", "..", "//", or ends with "/".
+// NeedsCleaning reports whether a path requires filepath.Clean. A path needs cleaning if
+// it contains "./", "..", "//", or ends with "/".
 //
 // Takes src (string) which is the path to check.
 //
@@ -78,9 +77,8 @@ func NeedsCleaning(src string) bool {
 		strings.HasSuffix(src, "/")
 }
 
-// ResolveModuleAlias resolves the @/ path alias by replacing it with
-// moduleName + "/". If src does not start with @/ or moduleName is empty, src
-// is returned unchanged.
+// ResolveModuleAlias resolves the @/ path alias by replacing it with moduleName + "/". If
+// src does not start with @/ or moduleName is empty, src is returned unchanged.
 //
 // Takes src (string) which is the source path that may contain @/ prefix.
 // Takes moduleName (string) which is the Go module name for alias resolution.
@@ -96,14 +94,12 @@ func ResolveModuleAlias(src, moduleName string) string {
 	return moduleName + "/" + strings.TrimPrefix(src, ModuleAliasPrefix)
 }
 
-// Transform applies the full asset path transformation pipeline: checks
-// whether transformation is needed, resolves the @/ module alias, cleans the
-// path if necessary, and prepends the serve path. Returns src unchanged if no
-// transformation is needed.
+// Transform applies the full asset path transformation pipeline: checks whether
+// transformation is needed, resolves the @/ module alias, cleans the path if necessary,
+// and prepends the serve path. Returns src unchanged if no transformation is needed.
 //
 // Takes src (string) which is the original source path.
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
 // Takes servePath (string) which is the URL path prefix for serving assets.
 //
 // Returns string which is the transformed source path.
@@ -121,11 +117,11 @@ func Transform(src, moduleName, servePath string) string {
 	return servePath + "/" + resolved
 }
 
-// AppendTransformed appends a transformed asset source path to buffer
-// using a zero-allocation buffer-based API for hot render paths.
+// AppendTransformed appends a transformed asset source path to buffer using a
+// zero-allocation buffer-based API for hot render paths.
 //
-// It does not perform module alias resolution because the render
-// layer receives already-resolved paths.
+// It does not perform module alias resolution because the render layer receives
+// already-resolved paths.
 //
 // Takes buffer ([]byte) which is the buffer to append to.
 // Takes src (string) which is the asset source path to transform.

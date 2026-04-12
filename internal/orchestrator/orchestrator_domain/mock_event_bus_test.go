@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -68,9 +67,9 @@ func TestMockEventBus_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PublishCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SubscribeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CloseCallCount))
+	assert.Equal(t, int64(goroutines), m.PublishCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SubscribeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CloseCallCount.Load())
 }
 
 func TestMockEventBus_Publish(t *testing.T) {
@@ -83,7 +82,7 @@ func TestMockEventBus_Publish(t *testing.T) {
 		err := m.Publish(context.Background(), "topic", Event{})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PublishCallCount))
+		assert.Equal(t, int64(1), m.PublishCallCount.Load())
 	})
 
 	t.Run("delegates to PublishFunc", func(t *testing.T) {
@@ -133,7 +132,7 @@ func TestMockEventBus_Subscribe(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, eventChannel)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SubscribeCallCount))
+		assert.Equal(t, int64(1), m.SubscribeCallCount.Load())
 	})
 
 	t.Run("delegates to SubscribeFunc", func(t *testing.T) {
@@ -180,7 +179,7 @@ func TestMockEventBus_Close(t *testing.T) {
 		err := m.Close(context.Background())
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 
 	t.Run("delegates to CloseFunc", func(t *testing.T) {
@@ -258,10 +257,10 @@ func TestMockEventBus_ConcurrentAccessWithHandler(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PublishCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SubscribeCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CloseCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.SubscribeWithHandlerCallCount))
+	assert.Equal(t, int64(goroutines), m.PublishCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SubscribeCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CloseCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.SubscribeWithHandlerCallCount.Load())
 }
 
 func TestMockEventBus_SubscribeWithHandler(t *testing.T) {
@@ -275,7 +274,7 @@ func TestMockEventBus_SubscribeWithHandler(t *testing.T) {
 		err := m.SubscribeWithHandler(context.Background(), "topic", handler)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.SubscribeWithHandlerCallCount))
+		assert.Equal(t, int64(1), m.SubscribeWithHandlerCallCount.Load())
 	})
 
 	t.Run("delegates to SubscribeWithHandlerFunc", func(t *testing.T) {

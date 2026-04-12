@@ -45,8 +45,13 @@ func TestExtractMathPackage(t *testing.T) {
 
 	pi, ok := symMap["Pi"]
 	require.True(t, ok, "math.Pi should be extracted")
-	require.True(t, pi.IsUntypedConst, "math.Pi should be untyped")
+	require.False(t, pi.IsUntypedConst, "math.Pi is representable as float64 and should be emitted")
 	require.Equal(t, SymbolConst, pi.Kind)
+	require.Equal(t, "math.Pi", pi.ConstValue)
+
+	maxUint64, ok := symMap["MaxUint64"]
+	require.True(t, ok, "math.MaxUint64 should be extracted")
+	require.True(t, maxUint64.IsUntypedConst, "math.MaxUint64 overflows default type int and must stay skipped")
 
 	sqrt, ok := symMap["Sqrt"]
 	require.True(t, ok, "math.Sqrt should be extracted")

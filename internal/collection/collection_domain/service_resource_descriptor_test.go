@@ -36,7 +36,9 @@ type metadataProvider struct {
 func (m *metadataProvider) GetProviderType() string             { return "test" }
 func (m *metadataProvider) GetProviderMetadata() map[string]any { return m.metadata }
 
-var _ provider_domain.ProviderMetadata = (*metadataProvider)(nil)
+var (
+	_ provider_domain.ProviderMetadata = (*metadataProvider)(nil)
+)
 
 func TestCollectionService_ResourceType(t *testing.T) {
 	t.Parallel()

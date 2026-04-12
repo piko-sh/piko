@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package registry_adapters implements the storage and caching ports
-// defined by registry_domain. It handles artefact metadata persistence
-// and caching through the cache hexagon's factory blueprint pattern.
+// Package registry_adapters implements the storage and caching ports defined by
+// registry_domain. It handles artefact metadata persistence and caching through the cache
+// hexagon's factory blueprint pattern.
 //
 // All implementations are safe for concurrent use.
 package registry_adapters

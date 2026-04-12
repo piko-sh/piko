@@ -26,8 +26,8 @@ import (
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
 
-// RateLimiterInspectorService implements the gRPC service for inspecting
-// rate limiter state.
+// RateLimiterInspectorService implements the gRPC service for inspecting rate limiter
+// state.
 type RateLimiterInspectorService struct {
 	pb.UnimplementedRateLimiterInspectorServiceServer
 
@@ -37,11 +37,10 @@ type RateLimiterInspectorService struct {
 
 // NewRateLimiterInspectorService creates a new RateLimiterInspectorService.
 //
-// Takes inspector (RateLimiterInspector) which provides rate limiter
-// inspection capabilities.
+// Takes inspector (RateLimiterInspector) which provides rate limiter inspection
+// capabilities.
 //
-// Returns *RateLimiterInspectorService which is ready for use as a gRPC
-// service handler.
+// Returns *RateLimiterInspectorService which is ready for use as a gRPC service handler.
 func NewRateLimiterInspectorService(inspector ratelimiter_domain.RateLimiterInspector) *RateLimiterInspectorService {
 	return &RateLimiterInspectorService{
 		UnimplementedRateLimiterInspectorServiceServer: pb.UnimplementedRateLimiterInspectorServiceServer{},
@@ -49,11 +48,10 @@ func NewRateLimiterInspectorService(inspector ratelimiter_domain.RateLimiterInsp
 	}
 }
 
-// GetRateLimiterStatus returns the current rate limiter configuration and
-// aggregate counters.
+// GetRateLimiterStatus returns the current rate limiter configuration and aggregate
+// counters.
 //
-// Returns *pb.GetRateLimiterStatusResponse which contains the rate limiter
-// status.
+// Returns *pb.GetRateLimiterStatusResponse which contains the rate limiter status.
 // Returns error when the status cannot be retrieved.
 func (s *RateLimiterInspectorService) GetRateLimiterStatus(ctx context.Context, _ *pb.GetRateLimiterStatusRequest) (*pb.GetRateLimiterStatusResponse, error) {
 	status, err := s.inspector.GetStatus(ctx)

@@ -56,14 +56,15 @@ const (
 	fieldPathName = "path"
 )
 
-// errWatcherClosed is returned when an operation is attempted on a closed
-// file watcher.
-var errWatcherClosed = errors.New("watcher is closed")
+var (
+	// errWatcherClosed is returned when an operation is attempted on a closed file watcher.
+	errWatcherClosed = errors.New("watcher is closed")
+)
 
-// fsNotifyWatcher implements lifecycle_domain.FileSystemWatcher using the
-// fsnotify library. It distinguishes between static recursive watches for core
-// source directories and dynamic file watches for specific asset files that
-// the build process has identified as dependencies.
+// fsNotifyWatcher implements lifecycle_domain.FileSystemWatcher using the fsnotify
+// library. It distinguishes between static recursive watches for core source directories
+// and dynamic file watches for specific asset files that the build process has identified
+// as dependencies.
 type fsNotifyWatcher struct {
 	// scanGroup prevents concurrent scans of the same directory root.
 	scanGroup singleflight.Group
@@ -77,8 +78,7 @@ type fsNotifyWatcher struct {
 	// dynamicFiles tracks files that are being watched for changes.
 	dynamicFiles map[string]bool
 
-	// debounced tracks when files were last processed to filter rapid
-	// duplicate events.
+	// debounced tracks when files were last processed to filter rapid duplicate events.
 	debounced map[string]time.Time
 
 	// shutdownCh signals scan goroutines to stop; closed during shutdown.
@@ -100,23 +100,22 @@ type fsNotifyWatcher struct {
 	isClosed bool
 }
 
-var _ lifecycle_domain.FileSystemWatcher = (*fsNotifyWatcher)(nil)
+var (
+	_ lifecycle_domain.FileSystemWatcher = (*fsNotifyWatcher)(nil)
+)
 
-// Watch sets up the initial, static watches on core source directories
-// and starts the event loop. It recursively scans these directories
-// and adds a watch to every subdirectory found.
+// Watch sets up the initial, static watches on core source directories and starts the
+// event loop. It recursively scans these directories and adds a watch to every
+// subdirectory found.
 //
-// Takes ctx (context.Context) which controls the lifetime of the
-// event loop.
-// Takes staticRecursiveDirs ([]string) which lists directories to
-// watch recursively.
+// Takes ctx (context.Context) which controls the lifetime of the event loop.
+// Takes staticRecursiveDirs ([]string) which lists directories to watch recursively.
 //
-// Returns <-chan lifecycle_dto.FileEvent which delivers file system
-// events.
+// Returns <-chan lifecycle_dto.FileEvent which delivers file system events.
 // Returns error when the watcher has been closed.
 //
-// Safe for concurrent use. Spawns goroutines to scan static
-// directories and run the event loop.
+// Safe for concurrent use. Spawns goroutines to scan static directories and run the event
+// loop.
 func (f *fsNotifyWatcher) Watch(
 	ctx context.Context,
 	staticRecursiveDirs []string,
@@ -156,8 +155,7 @@ func (f *fsNotifyWatcher) Watch(
 //
 // Returns error when the underlying file watcher fails to close.
 //
-// Safe for concurrent use. Concurrent callers block until the first
-// call completes.
+// Safe for concurrent use. Concurrent callers block until the first call completes.
 func (f *fsNotifyWatcher) Close() error {
 	var closeErr error
 	f.closeOnce.Do(func() {
@@ -182,8 +180,8 @@ func (f *fsNotifyWatcher) Close() error {
 	return nil
 }
 
-// UpdateWatchedFiles reconciles the watcher's state with the latest list of
-// required asset files from the build system.
+// UpdateWatchedFiles reconciles the watcher's state with the latest list of required
+// asset files from the build system.
 //
 // Takes files ([]string) which specifies the current set of files to watch.
 //
@@ -232,11 +230,9 @@ func (f *fsNotifyWatcher) addNewDynamicWatches(ctx context.Context, newFiles map
 	}
 }
 
-// removeOldDynamicWatches removes watches for files that are no longer
-// dependencies.
+// removeOldDynamicWatches removes watches for files that are no longer dependencies.
 //
-// Takes newFiles (map[string]bool) which contains the current set of
-// dependency files.
+// Takes newFiles (map[string]bool) which contains the current set of dependency files.
 //
 // Must be called with mutex held.
 func (f *fsNotifyWatcher) removeOldDynamicWatches(ctx context.Context, newFiles map[string]bool) {
@@ -256,15 +252,15 @@ func (f *fsNotifyWatcher) removeOldDynamicWatches(ctx context.Context, newFiles 
 	}
 }
 
-// scanAndWatchDirectory walks a directory tree, adding every subdirectory to
-// the underlying fsnotify watcher and recording it in the staticDirs map.
+// scanAndWatchDirectory walks a directory tree, adding every subdirectory to the
+// underlying fsnotify watcher and recording it in the staticDirs map.
 //
 // Takes root (string) which specifies the directory path to scan and watch.
 //
 // Returns error when the watcher is closed or the directory walk fails.
 //
-// Safe for concurrent use. Uses singleflight to prevent concurrent scans of
-// the same directory root.
+// Safe for concurrent use. Uses singleflight to prevent concurrent scans of the same
+// directory root.
 func (f *fsNotifyWatcher) scanAndWatchDirectory(ctx context.Context, root string) error {
 	f.mu.Lock()
 	if f.isClosed {
@@ -300,8 +296,8 @@ func (f *fsNotifyWatcher) scanAndWatchDirectory(ctx context.Context, root string
 // Takes d (fs.DirEntry) which holds details about the directory entry.
 // Takes walkErr (error) which is any error found while reading the path.
 //
-// Returns error when adding a watch fails; returns nil to skip files and
-// errors, or fs.SkipDir to skip excluded directories.
+// Returns error when adding a watch fails; returns nil to skip files and errors, or
+// fs.SkipDir to skip excluded directories.
 func (f *fsNotifyWatcher) walkDirCallback(ctx context.Context, path string, d fs.DirEntry, walkErr error) error {
 	if walkErr != nil {
 		_, l := logger_domain.From(ctx, log)
@@ -320,8 +316,7 @@ func (f *fsNotifyWatcher) walkDirCallback(ctx context.Context, path string, d fs
 	return nil
 }
 
-// shouldSkipDirectory determines if a directory should be skipped during
-// scanning.
+// shouldSkipDirectory determines if a directory should be skipped during scanning.
 //
 // Takes path (string) which is the full path to the directory.
 // Takes d (fs.DirEntry) which provides directory entry information.
@@ -373,13 +368,11 @@ func (f *fsNotifyWatcher) tryAddStaticWatch(ctx context.Context, path string) er
 	return nil
 }
 
-// removeStaticWatch removes a watch on a directory that was deleted or
-// renamed.
+// removeStaticWatch removes a watch on a directory that was deleted or renamed.
 //
 // Takes directory (string) which specifies the directory path to stop watching.
 //
-// Safe for concurrent use; protects access to the static directories map with
-// a mutex.
+// Safe for concurrent use; protects access to the static directories map with a mutex.
 func (f *fsNotifyWatcher) removeStaticWatch(ctx context.Context, directory string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -427,8 +420,8 @@ func (f *fsNotifyWatcher) runEventLoop(ctx context.Context, out chan<- lifecycle
 // handleFsnotifyEvent processes a single raw event from the file watcher.
 //
 // Takes ev (fsnotify.Event) which is the raw file system event to process.
-// Takes out (chan<- lifecycle_dto.FileEvent) which receives the converted
-// event if it passes filtering.
+// Takes out (chan<- lifecycle_dto.FileEvent) which receives the converted event if it
+// passes filtering.
 func (f *fsNotifyWatcher) handleFsnotifyEvent(
 	ctx context.Context,
 	ev fsnotify.Event,
@@ -453,8 +446,8 @@ func (f *fsNotifyWatcher) handleFsnotifyEvent(
 //
 // Takes ev (fsnotify.Event) which is the file system event to check.
 //
-// Returns bool which is true when the event should be ignored, such as
-// editor backup files ending with a tilde.
+// Returns bool which is true when the event should be ignored, such as editor backup
+// files ending with a tilde.
 func (*fsNotifyWatcher) shouldIgnoreEvent(ctx context.Context, ev fsnotify.Event) bool {
 	if strings.HasSuffix(ev.Name, "~") {
 		_, l := logger_domain.From(ctx, log)
@@ -468,8 +461,7 @@ func (*fsNotifyWatcher) shouldIgnoreEvent(ctx context.Context, ev fsnotify.Event
 //
 // Takes ev (fsnotify.Event) which is the file system event to check.
 //
-// Returns bool which is true if the event was debounced and should not be
-// processed.
+// Returns bool which is true if the event was debounced and should not be processed.
 //
 // Safe for concurrent use. Protects debounce state with a mutex.
 func (f *fsNotifyWatcher) shouldDebounceEvent(ctx context.Context, ev fsnotify.Event) bool {
@@ -489,13 +481,13 @@ func (f *fsNotifyWatcher) shouldDebounceEvent(ctx context.Context, ev fsnotify.E
 	return false
 }
 
-// handleDirectoryCreation processes a create event for a new directory inside
-// a statically watched tree.
+// handleDirectoryCreation processes a create event for a new directory inside a
+// statically watched tree.
 //
 // Takes ev (fsnotify.Event) which is the filesystem event to process.
 //
-// Spawns a goroutine to scan and watch the new directory and its children.
-// Safe for concurrent use; guards internal state with a mutex.
+// Spawns a goroutine to scan and watch the new directory and its children. Safe for
+// concurrent use; guards internal state with a mutex.
 func (f *fsNotifyWatcher) handleDirectoryCreation(ctx context.Context, ev fsnotify.Event) {
 	if !ev.Has(fsnotify.Create) {
 		return
@@ -544,8 +536,7 @@ func (f *fsNotifyWatcher) handleDirectoryCreation(ctx context.Context, ev fsnoti
 	})
 }
 
-// handleDirectoryRemoval handles the case when a watched directory is
-// removed or renamed.
+// handleDirectoryRemoval handles the case when a watched directory is removed or renamed.
 //
 // Takes ev (fsnotify.Event) which specifies the file system event to process.
 func (f *fsNotifyWatcher) handleDirectoryRemoval(ctx context.Context, ev fsnotify.Event) {
@@ -557,8 +548,7 @@ func (f *fsNotifyWatcher) handleDirectoryRemoval(ctx context.Context, ev fsnotif
 // forwardEvent sends a file system event to the output channel.
 //
 // Takes ev (fsnotify.Event) which is the file system event to send.
-// Takes out (chan<- lifecycle_dto.FileEvent) which receives the converted
-// event.
+// Takes out (chan<- lifecycle_dto.FileEvent) which receives the converted event.
 func (*fsNotifyWatcher) forwardEvent(ctx context.Context, ev fsnotify.Event, out chan<- lifecycle_dto.FileEvent) {
 	outEvt := lifecycle_dto.FileEvent{
 		Path: ev.Name,
@@ -570,9 +560,8 @@ func (*fsNotifyWatcher) forwardEvent(ctx context.Context, ev fsnotify.Event, out
 	}
 }
 
-// isPathCoveredByStaticWatch checks if a file's parent directory or any
-// ancestor is already monitored by a static recursive watch, making a
-// specific file watch redundant.
+// isPathCoveredByStaticWatch checks if a file's parent directory or any ancestor is
+// already monitored by a static recursive watch, making a specific file watch redundant.
 //
 // Takes filePath (string) which is the path to check for coverage.
 //
@@ -596,11 +585,9 @@ func (f *fsNotifyWatcher) isPathCoveredByStaticWatch(filePath string) bool {
 
 // NewFSNotifyWatcher creates a new, uninitialised fsnotify-based watcher.
 //
-// Takes sandboxFactory (safedisk.Factory) which creates sandboxes for
-// filesystem access.
+// Takes sandboxFactory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
-// Returns lifecycle_domain.FileSystemWatcher which is ready to be configured
-// and started.
+// Returns lifecycle_domain.FileSystemWatcher which is ready to be configured and started.
 // Returns error when the underlying fsnotify watcher cannot be created.
 func NewFSNotifyWatcher(sandboxFactory safedisk.Factory) (lifecycle_domain.FileSystemWatcher, error) {
 	w, err := fsnotify.NewWatcher()
@@ -622,13 +609,12 @@ func NewFSNotifyWatcher(sandboxFactory safedisk.Factory) (lifecycle_domain.FileS
 	}, nil
 }
 
-// mapToFileEventType converts an fsnotify operation bitmask to the domain's
-// event type.
+// mapToFileEventType converts an fsnotify operation bitmask to the domain's event type.
 //
 // Takes op (fsnotify.Op) which is the filesystem operation bitmask to convert.
 //
-// Returns lifecycle_dto.FileEventType which represents the mapped domain event
-// type, or FileEventTypeUnknown if the operation is not recognised.
+// Returns lifecycle_dto.FileEventType which represents the mapped domain event type, or
+// FileEventTypeUnknown if the operation is not recognised.
 func mapToFileEventType(op fsnotify.Op) lifecycle_dto.FileEventType {
 	switch {
 	case op&fsnotify.Create != 0:

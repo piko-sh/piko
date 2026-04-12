@@ -43,14 +43,14 @@ const (
 	// defaultOrchestratorCapacity is the default capacity for the orchestrator.
 	defaultOrchestratorCapacity = 100_000
 
-	// defaultSnapshotThreshold is the default number of operations before a cache
-	// snapshot is triggered.
+	// defaultSnapshotThreshold is the default number of operations before a cache snapshot
+	// is triggered.
 	defaultSnapshotThreshold = 10_000
 )
 
 var (
-	// errProviderNotConnected is returned when an operation is attempted on an
-	// otter persistence provider that has not been connected.
+	// errProviderNotConnected is returned when an operation is attempted on an otter
+	// persistence provider that has not been connected.
 	errProviderNotConnected = errors.New("otter provider not connected")
 
 	// log is the package-level logger for the persistence package.
@@ -59,35 +59,35 @@ var (
 
 // Config holds settings for the otter persistence provider.
 type Config struct {
-	// Persistence sets up optional WAL-based persistence.
-	// When nil or Enabled is false, the cache works only in memory.
+	// Persistence sets up optional WAL-based persistence. When nil or Enabled is false, the
+	// cache works only in memory.
 	Persistence *PersistenceProviderConfig
 
-	// RegistryCapacity is the maximum number of registry artefacts to store.
-	// Defaults to 100,000 if zero or negative.
+	// RegistryCapacity is the maximum number of registry artefacts to store. Defaults to
+	// 100,000 if zero or negative.
 	RegistryCapacity int64
 
-	// OrchestratorCapacity is the maximum number of orchestrator tasks to store.
-	// Defaults to 100,000 if zero or negative.
+	// OrchestratorCapacity is the maximum number of orchestrator tasks to store. Defaults to
+	// 100,000 if zero or negative.
 	OrchestratorCapacity int64
 }
 
 // PersistenceProviderConfig configures WAL-based persistence for the provider.
 type PersistenceProviderConfig struct {
-	// WALDir is the folder path for write-ahead log and snapshot files.
-	// Defaults to ".piko/wal/persistence" if empty.
+	// WALDir is the folder path for write-ahead log and snapshot files. Defaults to
+	// ".piko/wal/persistence" if empty.
 	WALDir string
 
-	// SnapshotThreshold is the number of WAL entries before triggering a snapshot.
-	// Defaults to 10,000 if zero.
+	// SnapshotThreshold is the number of WAL entries before triggering a snapshot. Defaults
+	// to 10,000 if zero.
 	SnapshotThreshold int
 
-	// Enabled controls whether persistence is active. When false, the caches
-	// operate purely in memory.
+	// Enabled controls whether persistence is active. When false, the caches operate purely
+	// in memory.
 	Enabled bool
 
-	// SyncMode controls how writes are saved to disk. Defaults to
-	// SyncModeBatched for good speed with data safety.
+	// SyncMode controls how writes are saved to disk. Defaults to SyncModeBatched for good
+	// speed with data safety.
 	SyncMode wal_domain.SyncMode
 }
 
@@ -105,13 +105,12 @@ type Provider struct {
 	// orchestratorDALFactory is the orchestrator DAL factory; initialised by Connect.
 	orchestratorDALFactory *otterOrchestratorDALFactory
 
-	// persistentCaches holds caches created with WAL persistence. These must
-	// be closed separately from the DALs because DALs that receive injected
-	// caches (ownsCache=false) do not close them.
+	// persistentCaches holds caches created with WAL persistence. These must be closed
+	// separately from the DALs because DALs that receive injected caches (ownsCache=false)
+	// do not close them.
 	persistentCaches []interface{ Close(context.Context) error }
 
-	// config holds the provider settings including cache capacities and
-	// persistence options.
+	// config holds the provider settings including cache capacities and persistence options.
 	config Config
 
 	// mu guards access to connected and cache fields.
@@ -125,8 +124,8 @@ type Provider struct {
 //
 // Takes config (Config) which specifies cache settings.
 //
-// Returns *Provider which is the uninitialised provider. Call Connect to
-// establish the caches.
+// Returns *Provider which is the uninitialised provider. Call Connect to establish the
+// caches.
 func NewProvider(config Config) *Provider {
 	return &Provider{
 		config: config,
@@ -264,8 +263,8 @@ func (p *Provider) HealthCheck(_ context.Context) error {
 
 // GetHealthDetails returns provider-specific health metrics.
 //
-// Returns map[string]any which contains health information including
-// provider name, connection state, and cache capacities.
+// Returns map[string]any which contains health information including provider name,
+// connection state, and cache capacities.
 //
 // Safe for concurrent use. Protected by a read lock on the provider mutex.
 func (p *Provider) GetHealthDetails(_ context.Context) map[string]any {
@@ -303,8 +302,7 @@ func (p *Provider) RegistryDALFactory() (RegistryDALFactory, error) {
 	return p.registryDALFactory, nil
 }
 
-// OrchestratorDALFactory returns a factory for creating Orchestrator data
-// access layers.
+// OrchestratorDALFactory returns a factory for creating Orchestrator data access layers.
 //
 // Returns OrchestratorDALFactory which provides orchestrator DAL instances.
 // Returns error when called before Connect has been called.
@@ -320,8 +318,7 @@ func (p *Provider) OrchestratorDALFactory() (OrchestratorDALFactory, error) {
 	return p.orchestratorDALFactory, nil
 }
 
-// persistenceEnabled reports whether WAL-based persistence is configured
-// and active.
+// persistenceEnabled reports whether WAL-based persistence is configured and active.
 //
 // Returns bool which is true when persistence is both configured and enabled.
 func (p *Provider) persistenceEnabled() bool {
@@ -330,15 +327,13 @@ func (p *Provider) persistenceEnabled() bool {
 
 // createPersistentCaches creates caches with WAL persistence enabled.
 //
-// Takes registryCapacity (int64) which sets the maximum registry cache
-// size.
-// Takes orchestratorCapacity (int64) which sets the maximum orchestrator
-// cache size.
+// Takes registryCapacity (int64) which sets the maximum registry cache size.
+// Takes orchestratorCapacity (int64) which sets the maximum orchestrator cache size.
 //
-// Returns cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta] which
-// is the WAL-backed artefact metadata cache.
-// Returns cache_domain.ProviderPort[string, *orchestrator_domain.Task] which
-// is the WAL-backed task cache.
+// Returns cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta] which is the
+// WAL-backed artefact metadata cache.
+// Returns cache_domain.ProviderPort[string, *orchestrator_domain.Task] which is the
+// WAL-backed task cache.
 // Returns error when cache creation fails.
 func (p *Provider) createPersistentCaches(registryCapacity, orchestratorCapacity int64) (
 	registryCache cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta],
@@ -393,8 +388,8 @@ func (p *Provider) createPersistentCaches(registryCapacity, orchestratorCapacity
 	return registryCache, orchCache, nil
 }
 
-// otterRegistryDALFactory creates registry data access layers from a shared
-// otter DAL. It implements the RegistryDALFactory interface.
+// otterRegistryDALFactory creates registry data access layers from a shared otter DAL. It
+// implements the RegistryDALFactory interface.
 type otterRegistryDALFactory struct {
 	// dal holds the registry data access layer instance.
 	dal any
@@ -408,8 +403,8 @@ func (f *otterRegistryDALFactory) NewRegistryDAL() (any, error) {
 	return f.dal, nil
 }
 
-// otterOrchestratorDALFactory creates orchestrator DALs from a shared otter DAL.
-// It implements OrchestratorDALFactory.
+// otterOrchestratorDALFactory creates orchestrator DALs from a shared otter DAL. It
+// implements OrchestratorDALFactory.
 type otterOrchestratorDALFactory struct {
 	// dal holds the cached OrchestratorDAL instance.
 	dal any
@@ -436,8 +431,7 @@ func valueOrDefault[T int | int64](v, fallback T) T {
 	return v
 }
 
-// rebuildIndexes calls RebuildIndexes on the given DAL if it implements
-// the method.
+// rebuildIndexes calls RebuildIndexes on the given DAL if it implements the method.
 //
 // Takes ctx (context.Context) which carries logging context.
 // Takes dal (any) which is checked for a RebuildIndexes method.
@@ -454,8 +448,7 @@ func rebuildIndexes(ctx context.Context, dal any) {
 // Takes syncMode (wal_domain.SyncMode) which controls how writes are synced.
 // Takes snapshotThreshold (int) which sets when snapshots are triggered.
 //
-// Returns wal_domain.Config which is the complete configuration with defaults
-// applied.
+// Returns wal_domain.Config which is the complete configuration with defaults applied.
 func buildWALConfig(walDir, subDir string, syncMode wal_domain.SyncMode, snapshotThreshold int) wal_domain.Config {
 	return wal_domain.Config{
 		Dir:               filepath.Join(walDir, subDir),

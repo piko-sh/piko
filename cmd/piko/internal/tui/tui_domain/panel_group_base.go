@@ -18,12 +18,12 @@
 
 package tui_domain
 
-// BasePanelGroup is the shared implementation embedded by every concrete
-// PanelGroup. It holds the identifier, title, hotkey, and items, and
-// supplies default Items / DefaultItemID / Visible behaviour.
+// BasePanelGroup is the shared implementation embedded by every concrete PanelGroup. It
+// holds the identifier, title, hotkey, and items, and supplies default Items /
+// DefaultItemID / Visible behaviour.
 //
-// Concrete groups embed BasePanelGroup and only override behaviour that
-// genuinely diverges. The four built-in groups all use the defaults.
+// Concrete groups embed BasePanelGroup and only override behaviour that genuinely
+// diverges. The four built-in groups all use the defaults.
 type BasePanelGroup struct {
 	// id uniquely identifies the group within a model.
 	id GroupID
@@ -38,8 +38,8 @@ type BasePanelGroup struct {
 	hotkey rune
 }
 
-// NewBasePanelGroup constructs a BasePanelGroup. Concrete groups embed
-// it via composition.
+// NewBasePanelGroup constructs a BasePanelGroup. Concrete groups embed it via
+// composition.
 //
 // Takes id (GroupID) which uniquely identifies the group.
 // Takes title (string) which is the tab label.
@@ -73,8 +73,8 @@ func (g *BasePanelGroup) Items() []MenuItem { return g.items }
 
 // DefaultItemID implements PanelGroup.
 //
-// Returns ItemID which is the first item's ID, or an empty ItemID when
-// the group is unpopulated.
+// Returns ItemID which is the first item's ID, or an empty ItemID when the group is
+// unpopulated.
 func (g *BasePanelGroup) DefaultItemID() ItemID {
 	if len(g.items) == 0 {
 		return ""
@@ -87,13 +87,12 @@ func (g *BasePanelGroup) DefaultItemID() ItemID {
 // Returns bool which is true when the group has at least one item.
 func (g *BasePanelGroup) Visible() bool { return len(g.items) > 0 }
 
-// MenuItemSpec describes one menu entry in a group. Specs whose Panel
-// is nil are filtered out by buildGroup so groups can declare every
-// possible item up-front and let the service drop the ones whose
-// providers are not configured.
+// MenuItemSpec describes one menu entry in a group. Specs whose Panel is nil are filtered
+// out by buildGroup so groups can declare every possible item up-front and let the
+// service drop the ones whose providers are not configured.
 type MenuItemSpec struct {
-	// Panel is the panel rendered when this item is active. Specs
-	// with a nil Panel are dropped.
+	// Panel is the panel rendered when this item is active. Specs with a nil Panel are
+	// dropped.
 	Panel Panel
 
 	// ID is the menu item identifier.
@@ -102,13 +101,13 @@ type MenuItemSpec struct {
 	// Label is the rendered left-column label.
 	Label string
 
-	// Hotkey is the keyboard accelerator string (see MenuItem.Hotkey
-	// for the supported syntax: "1"-"0", "shift+1"-"shift+0", ...).
+	// Hotkey is the keyboard accelerator string (see MenuItem.Hotkey for the supported
+	// syntax: "1"-"0", "shift+1"-"shift+0", ...).
 	Hotkey string
 }
 
-// collectMenuItems materialises a non-nil-Panel subset of specs into
-// MenuItem values, preserving order.
+// collectMenuItems materialises a non-nil-Panel subset of specs into MenuItem values,
+// preserving order.
 //
 // Takes specs ([]MenuItemSpec) which is the ordered candidate list.
 //
@@ -129,13 +128,12 @@ func collectMenuItems(specs []MenuItemSpec) []MenuItem {
 	return items
 }
 
-// buildGroup is the shared body of every NewXGroup constructor:
-// filter nil panels and return a BasePanelGroup wrapping the rest.
+// buildGroup is the shared body of every NewXGroup constructor: filter nil panels and
+// return a BasePanelGroup wrapping the rest.
 //
-// Takes id (GroupID), title (string), hotkey (rune) which configure
-// the surrounding tab.
-// Takes specs ([]MenuItemSpec) which is the ordered candidate menu
-// list; nil-Panel specs are silently dropped.
+// Takes id (GroupID), title (string), hotkey (rune) which configure the surrounding tab.
+// Takes specs ([]MenuItemSpec) which is the ordered candidate menu list; nil-Panel specs
+// are silently dropped.
 //
 // Returns PanelGroup ready for registration with the model.
 func buildGroup(id GroupID, title string, hotkey rune, specs []MenuItemSpec) PanelGroup {

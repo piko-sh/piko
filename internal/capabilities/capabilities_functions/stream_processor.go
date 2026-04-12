@@ -28,34 +28,36 @@ import (
 )
 
 const (
-	// copyBufferSize defines the size of the buffer used for streaming data
-	// through the processing pipe. 32KB is a common and effective size.
+	// copyBufferSize defines the size of the buffer used for streaming data through the
+	// processing pipe. 32KB is a common and effective size.
 	copyBufferSize = 32 * 1024
 )
 
-// bufferPool reuses byte-slice buffers to reduce allocation pressure during
-// stream processing.
-var bufferPool = sync.Pool{
-	New: func() any {
-		return new(make([]byte, copyBufferSize))
-	},
-}
+var (
+	// bufferPool reuses byte-slice buffers to reduce allocation pressure during stream
+	// processing.
+	bufferPool = sync.Pool{
+		New: func() any {
+			return new(make([]byte, copyBufferSize))
+		},
+	}
+)
 
-// writerFactory is a function type for creating streaming io.WriteCloser
-// wrappers, such as gzip.Writer or brotli.Writer, around a destination writer.
+// writerFactory is a function type for creating streaming io.WriteCloser wrappers, such
+// as gzip.Writer or brotli.Writer, around a destination writer.
 type writerFactory func(dst io.Writer) (io.WriteCloser, error)
 
-// processStream sets up a cancellable, streaming data transformation pipeline.
-// It creates an io.Pipe and runs a goroutine to pull data from the input,
-// transform it using a writer from the factory, and push it into the pipe.
+// processStream sets up a cancellable, streaming data transformation pipeline. It creates
+// an io.Pipe and runs a goroutine to pull data from the input, transform it using a
+// writer from the factory, and push it into the pipe.
 //
 // Takes inputData (io.Reader) which provides the source data to transform.
 // Takes factory (writerFactory) which creates the writer for transformation.
 //
 // Returns io.Reader which is the reading end of the pipe for the consumer.
 //
-// The spawned goroutine runs until the copy completes, the context is
-// cancelled, or an error occurs. Errors are propagated through the pipe.
+// The spawned goroutine runs until the copy completes, the context is cancelled, or an
+// error occurs. Errors are propagated through the pipe.
 func processStream(ctx context.Context, inputData io.Reader, factory writerFactory) io.Reader {
 	ctx, l := logger_domain.From(ctx, log)
 	pr, pw := io.Pipe()
@@ -102,18 +104,15 @@ func processStream(ctx context.Context, inputData io.Reader, factory writerFacto
 	return pr
 }
 
-// copyWithContext performs an io.Copy-like operation that is
-// cancellable via the context, reading from src, writing to dst,
-// and checking for cancellation before each read.
+// copyWithContext performs an io.Copy-like operation that is cancellable via the context,
+// reading from src, writing to dst, and checking for cancellation before each read.
 //
-// Takes ctx (context.Context) which controls cancellation of the copy
-// operation.
+// Takes ctx (context.Context) which controls cancellation of the copy operation.
 // Takes destination (io.Writer) which is the destination to write data to.
 // Takes source (io.Reader) which is the source to read data from.
 //
 // Returns int64 which is the total number of bytes written.
-// Returns error when the context is cancelled, a read fails, or a write
-// fails.
+// Returns error when the context is cancelled, a read fails, or a write fails.
 //
 // loop requires nested control flow.
 //

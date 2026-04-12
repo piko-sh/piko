@@ -28,17 +28,18 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-var _ validatorPort = (*validator)(nil)
+var (
+	_ validatorPort = (*validator)(nil)
+)
 
-// validator implements the validatorPort interface.
-// It uses a ComponentRegistry to look up the rules for each component.
+// validator implements the validatorPort interface. It uses a ComponentRegistry to look
+// up the rules for each component.
 type validator struct {
 	// registry holds registered components used to validate tags.
 	registry ComponentRegistry
 }
 
-// Validate checks each PikoML node in the AST against its component
-// definition.
+// Validate checks each PikoML node in the AST against its component definition.
 //
 // Takes ast (*ast_domain.TemplateAST) which is the parsed template to check.
 //
@@ -51,8 +52,8 @@ func (v *validator) Validate(ast *ast_domain.TemplateAST) []*Error {
 	return diagnostics
 }
 
-// validateNode is the recursive heart of the validator. It checks a single
-// node and all of its descendants.
+// validateNode is the recursive heart of the validator. It checks a single node and all
+// of its descendants.
 //
 // Takes node (*ast_domain.TemplateNode) which is the current node to validate.
 // Takes parentComponent (Component) which is the parent's component definition.
@@ -83,10 +84,9 @@ func (v *validator) validateNode(node *ast_domain.TemplateNode, parentComponent 
 
 // validateNonPMLChildren recursively validates children of non-PML nodes.
 //
-// Takes node (*ast_domain.TemplateNode) which is the parent node whose children
-// will be validated.
-// Takes parentComponent (Component) which provides the component context for
-// validation.
+// Takes node (*ast_domain.TemplateNode) which is the parent node whose children will be
+// validated.
+// Takes parentComponent (Component) which provides the component context for validation.
 //
 // Returns []*Error which contains any validation errors found in child nodes.
 func (v *validator) validateNonPMLChildren(node *ast_domain.TemplateNode, parentComponent Component) []*Error {
@@ -97,14 +97,14 @@ func (v *validator) validateNonPMLChildren(node *ast_domain.TemplateNode, parent
 	return diagnostics
 }
 
-// handleUnknownComponent creates an error for unknown components and validates
-// their children.
+// handleUnknownComponent creates an error for unknown components and validates their
+// children.
 //
 // Takes node (*ast_domain.TemplateNode) which is the unknown component node.
 // Takes parentComponent (Component) which is the parent for child validation.
 //
-// Returns []*Error which contains the unknown component error plus any child
-// validation errors.
+// Returns []*Error which contains the unknown component error plus any child validation
+// errors.
 func (v *validator) handleUnknownComponent(node *ast_domain.TemplateNode, parentComponent Component) []*Error {
 	diagnostics := make([]*Error, 0, 1+len(node.Children))
 	diagnostics = append(diagnostics, newError(
@@ -119,8 +119,7 @@ func (v *validator) handleUnknownComponent(node *ast_domain.TemplateNode, parent
 	return diagnostics
 }
 
-// validateParentChildRelationship checks if the node is allowed as a child
-// of its parent.
+// validateParentChildRelationship checks if the node is allowed as a child of its parent.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to validate.
 // Takes component (Component) which provides the allowed parents list.
@@ -204,8 +203,8 @@ func (v *validator) validateComponentChildren(node *ast_domain.TemplateNode, com
 	return diagnostics
 }
 
-// validateAttributeValue checks if a given value conforms to the attribute's
-// type definition.
+// validateAttributeValue checks if a given value conforms to the attribute's type
+// definition.
 //
 // Takes value (string) which is the value to check.
 // Takes definition (AttributeDefinition) which specifies the type constraints.
@@ -232,8 +231,8 @@ func (*validator) validateAttributeValue(_ /* attributeName */, value string, de
 
 // newValidator creates a new PikoML validator.
 //
-// Takes registry (ComponentRegistry) which provides access to registered
-// components for validation.
+// Takes registry (ComponentRegistry) which provides access to registered components for
+// validation.
 //
 // Returns validatorPort which validates PikoML documents against the registry.
 func newValidator(registry ComponentRegistry) validatorPort {

@@ -44,7 +44,7 @@ func TestFacade_TypeAliases_AreInterchangeable(t *testing.T) {
 
 func TestFacade_NewSchema_Errors(t *testing.T) {
 	t.Parallel()
-	entries := make([]spamdetect.SchemaEntry, 0)
+	entries := make([]spamdetect.SchemaEntry, 0, spamdetect_dto.MaxDetectorCount()+10)
 	for index := range spamdetect_dto.MaxDetectorCount() + 10 {
 		entries = append(entries, spamdetect.Language("lang_"+string(rune('a'+index%26))))
 	}
@@ -58,7 +58,7 @@ func TestFacade_MustNewSchema_Panics(t *testing.T) {
 		recovered := recover()
 		assert.NotNil(t, recovered, "MustNewSchema must panic on invalid schema")
 	}()
-	entries := make([]spamdetect.SchemaEntry, 0)
+	entries := make([]spamdetect.SchemaEntry, 0, spamdetect_dto.MaxDetectorCount()+10)
 	for index := range spamdetect_dto.MaxDetectorCount() + 10 {
 		entries = append(entries, spamdetect.Language("lang_"+string(rune('a'+index%26))))
 	}

@@ -27,18 +27,17 @@ import (
 
 // OtlpTraceExporterFactory creates an OTLP trace exporter for the given protocol.
 //
-// Returns the exporter (as any, concrete type is sdktrace.SpanExporter) and an
-// optional closer (e.g. a gRPC connection) that should be closed during shutdown.
+// Returns the exporter (as any, concrete type is sdktrace.SpanExporter) and an optional
+// closer (e.g. a gRPC connection) that should be closed during shutdown.
 type OtlpTraceExporterFactory func(ctx context.Context, config OtelSetupConfig) (exporter any, closer io.Closer, err error)
 
-// OtlpMetricExporterFactory creates an OTLP metric exporter for the given
-// protocol. Returns the exporter (as any, concrete type is
-// sdkmetric.Exporter) and an optional closer that should be closed during
-// shutdown.
+// OtlpMetricExporterFactory creates an OTLP metric exporter for the given protocol.
+// Returns the exporter (as any, concrete type is sdkmetric.Exporter) and an optional
+// closer that should be closed during shutdown.
 type OtlpMetricExporterFactory func(ctx context.Context, config OtelSetupConfig) (exporter any, closer io.Closer, err error)
 
-// OtlpProtocol bundles trace and metric exporter factories for a named
-// protocol (e.g. "grpc", "http").
+// OtlpProtocol bundles trace and metric exporter factories for a named protocol (e.g.
+// "grpc", "http").
 type OtlpProtocol struct {
 	// TraceExporterFactory holds the factory for creating trace exporters.
 	TraceExporterFactory OtlpTraceExporterFactory

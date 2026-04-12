@@ -18,22 +18,26 @@
 
 package llm_provider_grok
 
-import "errors"
+import (
+	"errors"
+)
 
-// DefaultBaseURL is the default xAI Grok API endpoint.
-const DefaultBaseURL = "https://api.x.ai/v1"
+const (
+	// DefaultBaseURL is the default xAI Grok API endpoint.
+	DefaultBaseURL = "https://api.x.ai/v1"
+)
 
 // Config holds settings for the Grok provider.
 type Config struct {
 	// APIKey is the xAI API key. Required.
 	APIKey string
 
-	// BaseURL is a custom API endpoint. Leave empty to use the default
-	// xAI endpoint (https://api.x.ai/v1).
+	// BaseURL is a custom API endpoint. Leave empty to use the default xAI endpoint
+	// (https://api.x.ai/v1).
 	BaseURL string
 
-	// DefaultModel is the model to use when not given in requests.
-	// Defaults to "grok-3" if empty.
+	// DefaultModel is the model to use when not given in requests. Defaults to "grok-3" if
+	// empty.
 	DefaultModel string
 }
 

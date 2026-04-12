@@ -29,13 +29,14 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// runtimeOverviewHistory bounds the heap/goroutine history kept for
-// the Runtime overview detail-pane chart.
-const runtimeOverviewHistory = 600
+const (
+	// runtimeOverviewHistory bounds the heap/goroutine history kept for the Runtime overview
+	// detail-pane chart.
+	runtimeOverviewHistory = 600
+)
 
-// RuntimeOverviewPanel is the at-a-glance Runtime -> Overview panel:
-// system snapshot tiles in the centre, ntcharts heap + goroutines in
-// the detail. Implements Panel.
+// RuntimeOverviewPanel is the at-a-glance Runtime -> Overview panel: system snapshot
+// tiles in the centre, ntcharts heap + goroutines in the detail. Implements Panel.
 type RuntimeOverviewPanel struct {
 	// clock supplies time for tests; defaults to the real clock.
 	clock clock.Clock
@@ -52,18 +53,18 @@ type RuntimeOverviewPanel struct {
 	// heapHistory holds heap-alloc samples for the detail-pane chart.
 	heapHistory *HistoryRing
 
-	// goroutineHistory holds goroutine-count samples for the detail
-	// chart.
+	// goroutineHistory holds goroutine-count samples for the detail chart.
 	goroutineHistory *HistoryRing
 
 	BasePanel
 
-	// stateMutex guards stats / err / history for safe concurrent
-	// reads.
+	// stateMutex guards stats / err / history for safe concurrent reads.
 	stateMutex sync.RWMutex
 }
 
-var _ Panel = (*RuntimeOverviewPanel)(nil)
+var (
+	_ Panel = (*RuntimeOverviewPanel)(nil)
+)
 
 // NewRuntimeOverviewPanel constructs the Runtime overview panel.
 //
@@ -128,9 +129,8 @@ func (p *RuntimeOverviewPanel) Update(message tea.Msg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// View renders the centre as a compact tile view: uptime, CPU,
-// memory, goroutines. The denser per-field table lives in the
-// detail pane.
+// View renders the centre as a compact tile view: uptime, CPU, memory, goroutines. The
+// denser per-field table lives in the detail pane.
 //
 // Takes width (int) which is the column width for the tile.
 // Takes height (int) which is the row height for the tile.
@@ -151,8 +151,8 @@ func (p *RuntimeOverviewPanel) View(width, height int) string {
 	return p.RenderFrame(body)
 }
 
-// DetailView renders the right-pane detail with the full per-field
-// table plus a heap + goroutines chart.
+// DetailView renders the right-pane detail with the full per-field table plus a heap +
+// goroutines chart.
 //
 // Takes width (int) which is the column width for the detail body.
 // Takes height (int) which is the row height for the detail body.
@@ -177,9 +177,8 @@ func (p *RuntimeOverviewPanel) DetailView(width, height int) string {
 	return RenderDetailBodyWithChart(nil, p.detailBody(snap.stats), series, "Heap & goroutines", width, height)
 }
 
-// tileBody renders the centre-pane tile summary: a short list of
-// "hero" stats with no fine-grained breakdown. The detail pane shows
-// the full table and history chart.
+// tileBody renders the centre-pane tile summary: a short list of "hero" stats with no
+// fine-grained breakdown. The detail pane shows the full table and history chart.
 //
 // Takes stats (*SystemStats) which is the most recent snapshot.
 //
@@ -201,11 +200,10 @@ func (*RuntimeOverviewPanel) tileBody(stats *SystemStats) inspector.DetailBody {
 	}
 }
 
-// runtimeOverviewSnapshot bundles all values rendered together so they
-// can be read under a single lock acquisition.
+// runtimeOverviewSnapshot bundles all values rendered together so they can be read under
+// a single lock acquisition.
 type runtimeOverviewSnapshot struct {
-	// stats is the most recent SystemStats payload, or nil before any
-	// refresh has succeeded.
+	// stats is the most recent SystemStats payload, or nil before any refresh has succeeded.
 	stats *SystemStats
 
 	// err is the most recent refresh error, or nil after success.
@@ -218,11 +216,10 @@ type runtimeOverviewSnapshot struct {
 	goroutines []float64
 }
 
-// snapshot reads stats, err, and both history rings under stateMutex
-// so renders cannot race against concurrent stats writes.
+// snapshot reads stats, err, and both history rings under stateMutex so renders cannot
+// race against concurrent stats writes.
 //
-// Returns runtimeOverviewSnapshot containing a coherent view of the
-// state.
+// Returns runtimeOverviewSnapshot containing a coherent view of the state.
 func (p *RuntimeOverviewPanel) snapshot() runtimeOverviewSnapshot {
 	p.stateMutex.RLock()
 	defer p.stateMutex.RUnlock()
@@ -234,8 +231,7 @@ func (p *RuntimeOverviewPanel) snapshot() runtimeOverviewSnapshot {
 	}
 }
 
-// detailBody renders the right-pane detail body with the full per-field
-// runtime table.
+// detailBody renders the right-pane detail body with the full per-field runtime table.
 //
 // Takes stats (*SystemStats) which is the latest stats snapshot.
 //
@@ -261,8 +257,7 @@ func (*RuntimeOverviewPanel) detailBody(stats *SystemStats) inspector.DetailBody
 	}
 }
 
-// refresh returns a command that fetches fresh SystemStats from the
-// configured provider.
+// refresh returns a command that fetches fresh SystemStats from the configured provider.
 //
 // Returns tea.Cmd which delivers a systemStatsMessage.
 func (p *RuntimeOverviewPanel) refresh() tea.Cmd { return refreshSystemStatsCmd(p.provider) }

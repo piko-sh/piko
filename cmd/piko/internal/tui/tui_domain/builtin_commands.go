@@ -24,9 +24,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// RegisterBuiltinCommands populates a registry with the canonical command
-// set. Callers can extend the registry afterwards by calling Register with
-// additional Command values.
+// RegisterBuiltinCommands populates a registry with the canonical command set. Callers
+// can extend the registry afterwards by calling Register with additional Command values.
 //
 // Takes registry (*CommandRegistry) which receives the built-in commands.
 func RegisterBuiltinCommands(registry *CommandRegistry) {
@@ -63,11 +62,11 @@ func runHelpCommand(_ []string, _ *Model) tea.Cmd {
 	return func() tea.Msg { return toggleHelpMessage{} }
 }
 
-// runThemeCommand applies a theme by name or lists registered themes when
-// no name is given.
+// runThemeCommand applies a theme by name or lists registered themes when no name is
+// given.
 //
-// Takes args ([]string) which are the parsed command arguments; the first
-// argument names the theme to apply.
+// Takes args ([]string) which are the parsed command arguments; the first argument names
+// the theme to apply.
 // Takes model (*Model) which is the active TUI model.
 //
 // Returns tea.Cmd which is always nil; mutations occur on the model directly.
@@ -98,8 +97,8 @@ func runThemeCommand(args []string, model *Model) tea.Cmd {
 
 // runFocusCommand emits a focus-panel message for the given panel ID.
 //
-// Takes args ([]string) which are the parsed command arguments; the first
-// argument is the panel ID.
+// Takes args ([]string) which are the parsed command arguments; the first argument is the
+// panel ID.
 // Takes model (*Model) which is the active TUI model.
 //
 // Returns tea.Cmd which delivers a focusPanelMessage, or nil when args are missing.
@@ -111,11 +110,11 @@ func runFocusCommand(args []string, model *Model) tea.Cmd {
 	return func() tea.Msg { return focusPanelMessage{panelID: id} }
 }
 
-// runLayoutCommand forces a specific layout, or clears the override when
-// invoked without arguments.
+// runLayoutCommand forces a specific layout, or clears the override when invoked without
+// arguments.
 //
-// Takes args ([]string) which are the parsed command arguments; the first
-// argument names the layout (single|two|three).
+// Takes args ([]string) which are the parsed command arguments; the first argument names
+// the layout (single|two|three).
 // Takes model (*Model) which is the active TUI model.
 //
 // Returns tea.Cmd which is always nil; mutations occur on the model directly.

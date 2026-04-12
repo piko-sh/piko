@@ -25,8 +25,7 @@ import (
 
 // New creates a JSON encoder for any given type V.
 //
-// Returns EncoderPort[V] which handles JSON encoding and decoding for the
-// given type.
+// Returns EncoderPort[V] which handles JSON encoding and decoding for the given type.
 //
 // Example:
 //

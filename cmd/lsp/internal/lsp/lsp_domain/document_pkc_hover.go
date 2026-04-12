@@ -26,8 +26,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// checkPKCStatePropertyHoverContext detects state.propName references for hover
-// in PKC template content.
+// checkPKCStatePropertyHoverContext detects state.propName references for hover in PKC
+// template content.
 //
 // Takes line (string) which is the text content of the current line.
 // Takes cursor (int) which is the character offset of the cursor.
@@ -57,8 +57,8 @@ func (*document) checkPKCStatePropertyHoverContext(line string, cursor int, posi
 	}
 }
 
-// getPKCStatePropertyHover returns hover info for a state property in a PKC
-// file, showing the type, nullability, and default value.
+// getPKCStatePropertyHover returns hover info for a state property in a PKC file, showing
+// the type, nullability, and default value.
 //
 // Takes ctx (*PKHoverContext) which identifies the property.
 //
@@ -96,8 +96,8 @@ func (d *document) getPKCStatePropertyHover(ctx *PKHoverContext) (*protocol.Hove
 	}, nil
 }
 
-// getPKCHandlerHover returns hover info for a function in a PKC file using
-// cached metadata, showing the function signature with parameter names.
+// getPKCHandlerHover returns hover info for a function in a PKC file using cached
+// metadata, showing the function signature with parameter names.
 //
 // Takes ctx (*PKHoverContext) which identifies the function.
 //

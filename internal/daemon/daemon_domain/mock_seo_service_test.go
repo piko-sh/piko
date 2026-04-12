@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,7 @@ func TestMockSEOService_GenerateArtefacts(t *testing.T) {
 		err := mock.GenerateArtefacts(context.Background(), &seo_dto.ProjectView{})
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateArtefactsCallCount))
+		assert.Equal(t, int64(1), mock.GenerateArtefactsCallCount.Load())
 	})
 
 	t.Run("delegates to GenerateArtefactsFunc", func(t *testing.T) {
@@ -67,7 +66,7 @@ func TestMockSEOService_GenerateArtefacts(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, ctx, capturedCtx)
 		assert.Equal(t, view, capturedView)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateArtefactsCallCount))
+		assert.Equal(t, int64(1), mock.GenerateArtefactsCallCount.Load())
 	})
 
 	t.Run("propagates error from GenerateArtefactsFunc", func(t *testing.T) {
@@ -84,7 +83,7 @@ func TestMockSEOService_GenerateArtefacts(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Equal(t, expectedErr.Error(), err.Error())
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateArtefactsCallCount))
+		assert.Equal(t, int64(1), mock.GenerateArtefactsCallCount.Load())
 	})
 }
 
@@ -96,7 +95,7 @@ func TestMockSEOService_ZeroValueIsUsable(t *testing.T) {
 	err := mock.GenerateArtefacts(context.Background(), &seo_dto.ProjectView{})
 
 	require.NoError(t, err)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GenerateArtefactsCallCount))
+	assert.Equal(t, int64(1), mock.GenerateArtefactsCallCount.Load())
 }
 
 func TestMockSEOService_ConcurrentAccess(t *testing.T) {
@@ -117,7 +116,7 @@ func TestMockSEOService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GenerateArtefactsCallCount))
+	assert.Equal(t, int64(goroutines), mock.GenerateArtefactsCallCount.Load())
 }
 
 func TestMockSEOService_ImplementsSEOServicePort(t *testing.T) {

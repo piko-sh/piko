@@ -61,38 +61,34 @@ var (
 	// cacheMissCount counts the number of cache misses.
 	cacheMissCount metric.Int64Counter
 
-	// cacheGenerationDuration tracks the duration of cache generation in
-	// milliseconds.
+	// cacheGenerationDuration tracks the duration of cache generation in milliseconds.
 	cacheGenerationDuration metric.Float64Histogram
 
 	// serverStartupDuration tracks the duration of server startup in milliseconds.
 	serverStartupDuration metric.Float64Histogram
 
-	// serverShutdownDuration records how long server shutdown takes in
-	// milliseconds.
+	// serverShutdownDuration records how long server shutdown takes in milliseconds.
 	serverShutdownDuration metric.Float64Histogram
 
 	// serverErrorCount tracks the number of server errors.
 	serverErrorCount metric.Int64Counter
 
-	// lazyArtefactServeCount tracks how many artefacts were served while still in
-	// PENDING state.
+	// lazyArtefactServeCount tracks how many artefacts were served while still in PENDING
+	// state.
 	lazyArtefactServeCount metric.Int64Counter
 
-	// lazyVariantGenerationDuration tracks the time to generate the first variant
-	// for PENDING artefacts.
+	// lazyVariantGenerationDuration tracks the time to generate the first variant for
+	// PENDING artefacts.
 	lazyVariantGenerationDuration metric.Float64Histogram
 
-	// backgroundVariantQueueCount tracks the number of variants queued for
-	// background generation.
+	// backgroundVariantQueueCount tracks the number of variants queued for background
+	// generation.
 	backgroundVariantQueueCount metric.Int64Counter
 
-	// artefactMetadataCacheHitCount tracks the number of artefact metadata cache
-	// hits.
+	// artefactMetadataCacheHitCount tracks the number of artefact metadata cache hits.
 	artefactMetadataCacheHitCount metric.Int64Counter
 
-	// artefactMetadataCacheMissCount tracks the number of artefact metadata cache
-	// misses.
+	// artefactMetadataCacheMissCount tracks the number of artefact metadata cache misses.
 	artefactMetadataCacheMissCount metric.Int64Counter
 
 	// actionRateLimitedCount tracks requests rejected by per-action rate limiting.
@@ -110,36 +106,32 @@ var (
 	// tlsCertificateReloadCount tracks successful TLS certificate reloads.
 	tlsCertificateReloadCount metric.Int64Counter
 
-	// tlsCertificateReloadErrorCount tracks failed TLS certificate reload
-	// attempts.
+	// tlsCertificateReloadErrorCount tracks failed TLS certificate reload attempts.
 	tlsCertificateReloadErrorCount metric.Int64Counter
 
 	// metricAttrMu guards metricAttrCache.
 	//
-	// The cache stores metric.MeasurementOption by path and method
-	// to avoid re-creating the attribute.Set on every request. The
-	// number of unique path+method combinations is bounded by the
-	// route table (typically < 100), so this cache is small and
-	// never needs eviction.
+	// The cache stores metric.MeasurementOption by path and method to avoid re-creating the
+	// attribute.Set on every request. The number of unique path+method combinations is
+	// bounded by the route table (typically < 100), so this cache is small and never needs
+	// eviction.
 	metricAttrMu sync.RWMutex
 
-	// metricAttrCache stores pre-built metric measurement options keyed by
-	// path and method to avoid repeated attribute allocations.
+	// metricAttrCache stores pre-built metric measurement options keyed by path and method
+	// to avoid repeated attribute allocations.
 	metricAttrCache = make(map[string]map[string]metric.MeasurementOption)
 )
 
-// cachedMetricOption returns a metric.MeasurementOption with the given
-// path and method attributes. Results are cached so repeat calls with
-// the same arguments produce zero allocations.
+// cachedMetricOption returns a metric.MeasurementOption with the given path and method
+// attributes. Results are cached so repeat calls with the same arguments produce zero
+// allocations.
 //
 // Takes path (string) which identifies the route path for the metric.
 // Takes method (string) which identifies the HTTP method for the metric.
 //
-// Returns metric.MeasurementOption which contains the cached path and
-// method attributes.
+// Returns metric.MeasurementOption which contains the cached path and method attributes.
 //
-// Safe for concurrent use. Uses a read-write mutex to protect the shared
-// cache map.
+// Safe for concurrent use. Uses a read-write mutex to protect the shared cache map.
 func cachedMetricOption(path, method string) metric.MeasurementOption {
 	metricAttrMu.RLock()
 	if methods, ok := metricAttrCache[path]; ok {

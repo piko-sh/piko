@@ -33,21 +33,19 @@ const (
 	// ellipsisLength is the length of the ellipsis string in characters.
 	ellipsisLength = len(ellipsis)
 
-	// metadataDefaultIndent is the default number of spaces used to indent
-	// metadata values.
+	// metadataDefaultIndent is the default number of spaces used to indent metadata values.
 	metadataDefaultIndent = 6
 
 	// metadataDefaultWidthAdj is the default width adjustment for metadata rows.
 	metadataDefaultWidthAdj = 10
 
-	// metadataSelectedOffset is the number of spaces to reduce from the indent
-	// when an item is selected.
+	// metadataSelectedOffset is the number of spaces to reduce from the indent when an item
+	// is selected.
 	metadataSelectedOffset = 2
 )
 
-// BasePanel provides shared behaviour for all panels in the TUI.
-// Embed in panel types to get default key bindings, focus handling, and scroll
-// support.
+// BasePanel provides shared behaviour for all panels in the TUI. Embed in panel types to
+// get default key bindings, focus handling, and scroll support.
 type BasePanel struct {
 	// id is the unique identifier for this panel.
 	id string
@@ -55,9 +53,8 @@ type BasePanel struct {
 	// title is the text shown in the panel header.
 	title string
 
-	// titleSuffix is appended to the title in RenderFrame so panels
-	// can surface live status (e.g. scroll position) without changing
-	// the stable panel title.
+	// titleSuffix is appended to the title in RenderFrame so panels can surface live status
+	// (e.g. scroll position) without changing the stable panel title.
 	titleSuffix string
 
 	// keyBindings holds the key bindings for this panel.
@@ -69,12 +66,10 @@ type BasePanel struct {
 	// height is the panel height in lines.
 	height int
 
-	// cursor is the zero-based position of the selected item in the
-	// list.
+	// cursor is the zero-based position of the selected item in the list.
 	cursor int
 
-	// scrollOffset is the current vertical scroll position for
-	// scrollable content.
+	// scrollOffset is the current vertical scroll position for scrollable content.
 	scrollOffset int
 
 	// focused indicates whether the panel has focus.
@@ -86,8 +81,8 @@ type BasePanel struct {
 // Takes id (string) which specifies the unique identifier for the panel.
 // Takes title (string) which specifies the display title for the panel.
 //
-// Returns BasePanel which is initialised with default values for dimensions,
-// cursor position, and focus state.
+// Returns BasePanel which is initialised with default values for dimensions, cursor
+// position, and focus state.
 func NewBasePanel(id, title string) BasePanel {
 	return BasePanel{
 		id:           id,
@@ -101,8 +96,8 @@ func NewBasePanel(id, title string) BasePanel {
 	}
 }
 
-// SetTitleSuffix replaces the dim suffix appended to the panel title in
-// RenderFrame. Pass an empty string to clear it.
+// SetTitleSuffix replaces the dim suffix appended to the panel title in RenderFrame. Pass
+// an empty string to clear it.
 //
 // Takes suffix (string) which is the new title suffix.
 func (p *BasePanel) SetTitleSuffix(suffix string) {
@@ -160,17 +155,16 @@ func (p *BasePanel) Height() int {
 	return p.height
 }
 
-// ContentHeight returns the height available for content, accounting for
-// borders and title.
+// ContentHeight returns the height available for content, accounting for borders and
+// title.
 //
-// Returns int which is the usable height in lines, or zero if the panel is
-// too small.
+// Returns int which is the usable height in lines, or zero if the panel is too small.
 func (p *BasePanel) ContentHeight() int {
 	return max(0, p.height-PanelChromeHeight)
 }
 
-// ContentWidth returns the width available for content, after accounting for
-// borders and padding.
+// ContentWidth returns the width available for content, after accounting for borders and
+// padding.
 //
 // Returns int which is the usable width inside the panel.
 func (p *BasePanel) ContentWidth() int {
@@ -207,8 +201,7 @@ func (p *BasePanel) SetScrollOffset(offset int) {
 
 // KeyMap returns the panel's key bindings.
 //
-// Returns []KeyBinding which contains the configured key bindings for this
-// panel.
+// Returns []KeyBinding which contains the configured key bindings for this panel.
 func (p *BasePanel) KeyMap() []KeyBinding {
 	return p.keyBindings
 }
@@ -229,12 +222,11 @@ func (*BasePanel) Init() tea.Cmd {
 
 // DetailView is the default implementation of Panel.DetailView.
 //
-// It returns the empty string so the composer falls back to its
-// placeholder. Panels that produce real detail content shadow this
-// method with their own implementation.
+// Yields the empty string so the composer falls back to its placeholder. Panels that
+// produce real detail content shadow the default with their own implementation.
 //
-// Takes width (int) and height (int) which are ignored by the
-// default; concrete implementations use them.
+// Takes width (int) which is ignored by the default; concrete implementations use it.
+// Takes height (int) which is ignored by the default; concrete implementations use it.
 //
 // Returns string which is always "" for the default.
 func (*BasePanel) DetailView(_, _ int) string {
@@ -243,9 +235,8 @@ func (*BasePanel) DetailView(_, _ int) string {
 
 // Selection is the default implementation of Panel.Selection.
 //
-// It returns the empty Selection so panels without selectable rows can embed
-// BasePanel without adding boilerplate. Panels with row selection shadow the
-// default.
+// It returns the empty Selection so panels without selectable rows can embed BasePanel
+// without adding boilerplate. Panels with row selection shadow the default.
 //
 // Returns Selection which is the zero value.
 func (*BasePanel) Selection() Selection {
@@ -360,8 +351,7 @@ type MetadataRowConfig struct {
 	ContentWidth int
 }
 
-// StatusIndicator returns a styled symbol that shows the health state of a
-// resource.
+// StatusIndicator returns a styled symbol that shows the health state of a resource.
 //
 // Takes status (ResourceStatus) which specifies the health state to display.
 //
@@ -401,40 +391,38 @@ func StatusStyle(status ResourceStatus) lipgloss.Style {
 	}
 }
 
-// TruncateString shortens a string to fit within a given visible width,
-// adding an ellipsis if needed. The width is measured in terminal cells, not
-// bytes, so multi-byte UTF-8 sequences and embedded ANSI escapes are handled
-// correctly.
+// TruncateString shortens a string to fit within a given visible width, adding an
+// ellipsis if needed. The width is measured in terminal cells, not bytes, so multi-byte
+// UTF-8 sequences and embedded ANSI escapes are handled correctly.
 //
 // Takes s (string) which is the string to shorten.
 // Takes maxWidth (int) which is the maximum number of terminal cells allowed.
 //
-// Returns string which is the shortened string with an ellipsis, or the
-// original string if it fits within maxWidth.
+// Returns string which is the shortened string with an ellipsis, or the original string
+// if it fits within maxWidth.
 func TruncateString(s string, maxWidth int) string {
 	return TruncateANSI(s, maxWidth)
 }
 
-// PadRight pads a string to the given visible width with spaces on the right.
-// The width is measured in terminal cells; multi-byte UTF-8 sequences and
-// embedded ANSI escapes are handled correctly.
+// PadRight pads a string to the given visible width with spaces on the right. The width
+// is measured in terminal cells; multi-byte UTF-8 sequences and embedded ANSI escapes are
+// handled correctly.
 //
 // Takes s (string) which is the string to pad.
 // Takes width (int) which is the target width in terminal cells.
 //
-// Returns string which is the padded string. If the input is longer than the
-// target width, it is cut short to fit.
+// Returns string which is the padded string. If the input is longer than the target
+// width, it is cut short to fit.
 func PadRight(s string, width int) string {
 	return PadRightANSI(s, width)
 }
 
-// RenderMetadataRow renders a metadata key-value row with styling and
-// indentation for terminal display.
+// RenderMetadataRow renders a metadata key-value row with styling and indentation for
+// terminal display.
 //
 // Takes key (string) which is the label for the row.
 // Takes value (string) which is the content to display.
-// Takes config (MetadataRowConfig) which controls indentation, width, and
-// focus state.
+// Takes config (MetadataRowConfig) which controls indentation, width, and focus state.
 //
 // Returns string which is the styled row ready for display.
 func RenderMetadataRow(key, value string, config MetadataRowConfig) string {

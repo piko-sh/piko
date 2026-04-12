@@ -25,62 +25,59 @@ import (
 	"piko.sh/piko/internal/image/image_dto"
 )
 
-// Service is the primary (driving) port for the image hexagon. It defines
-// the high-level image processing operations available to the application,
-// orchestrating transformation and storage.
+// Service is the primary (driving) port for the image hexagon. It defines the high-level
+// image processing operations available to the application, orchestrating transformation
+// and storage.
 //
 // Service implements image_domain.Service and media.ImageService.
 type Service interface {
-	// Transform creates a new transform builder for the given input.
-	// This is the fluent API entry point for performing image transformations.
+	// Transform creates a new transform builder for the given input. This is the fluent API
+	// entry point for performing image transformations.
 	//
 	// Takes input (io.Reader) which provides the source image data.
 	//
-	// Returns *TransformBuilder which provides a fluent interface for
-	// configuring and executing the transformation.
+	// Returns *TransformBuilder which provides a fluent interface for configuring and
+	// executing the transformation.
 	Transform(input io.Reader) *TransformBuilder
 
-	// TransformStream performs a direct streaming transform from input to result
-	// stream.
+	// TransformStream performs a direct streaming transform from input to result stream.
 	//
 	// Takes input (io.Reader) which provides the source image data.
 	// Takes spec (image_dto.TransformationSpec) which defines the transformation.
 	//
-	// Returns *image_dto.TransformedImageResult which contains the transformed
-	// image data.
+	// Returns *image_dto.TransformedImageResult which contains the transformed image data.
 	// Returns error when the transformation fails.
 	TransformStream(ctx context.Context, input io.Reader, spec image_dto.TransformationSpec) (*image_dto.TransformedImageResult, error)
 
-	// GenerateResponsiveVariants creates multiple image variants for responsive
-	// images. It parses sizes and densities from the spec's ResponsiveSpec and
-	// generates all necessary variants.
+	// GenerateResponsiveVariants creates multiple image variants for responsive images. It
+	// parses sizes and densities from the spec's ResponsiveSpec and generates all necessary
+	// variants.
 	//
 	// Takes input (io.Reader) which provides the source image data.
-	// Takes baseSpec (image_dto.TransformationSpec) which defines the base
-	// transformation settings including responsive configuration.
+	// Takes baseSpec (image_dto.TransformationSpec) which defines the base transformation
+	// settings including responsive configuration.
 	//
-	// Returns []image_dto.ResponsiveVariant which contains metadata for building
-	// srcset attributes.
+	// Returns []image_dto.ResponsiveVariant which contains metadata for building srcset
+	// attributes.
 	// Returns error when variant generation fails.
 	GenerateResponsiveVariants(ctx context.Context, input io.Reader, baseSpec image_dto.TransformationSpec) ([]image_dto.ResponsiveVariant, error)
 
-	// GeneratePlaceholder creates a tiny, low-quality, heavily blurred
-	// placeholder image (LQIP).
+	// GeneratePlaceholder creates a tiny, low-quality, heavily blurred preview image (LQIP -
+	// low-quality image preview).
 	//
 	// Takes input (io.Reader) which provides the source image data.
-	// Takes baseSpec (image_dto.TransformationSpec) which defines the base
-	// transformation settings.
+	// Takes baseSpec (image_dto.TransformationSpec) which defines the base transformation
+	// settings.
 	//
-	// Returns string which is the placeholder as a base64-encoded data URL
-	// suitable for inline embedding.
-	// Returns error when placeholder generation fails.
+	// Returns string which is the preview as a base64-encoded data URL suitable for inline
+	// embedding.
+	// Returns error when preview generation fails.
 	GeneratePlaceholder(ctx context.Context, input io.Reader, baseSpec image_dto.TransformationSpec) (string, error)
 
 	// GetDimensions extracts width and height from image data without transforming.
 	//
-	// Uses lightweight header decoding (image.DecodeConfig) for minimal overhead.
-	// Supports all formats registered with the standard library (JPEG, PNG, GIF,
-	// WebP).
+	// Uses lightweight header decoding (image.DecodeConfig) for minimal overhead. Supports
+	// all formats registered with the standard library (JPEG, PNG, GIF, WebP).
 	//
 	// Takes input (io.Reader) which provides the source image data.
 	//
@@ -90,12 +87,10 @@ type Service interface {
 	GetDimensions(ctx context.Context, input io.Reader) (width int, height int, err error)
 }
 
-// TransformerPort is the driven port for image transformation adapters.
-// It defines the contract that a concrete image processing library (such as
-// govips) must fulfil.
+// TransformerPort is the driven port for image transformation adapters. It defines the
+// contract that a concrete image processing library (such as govips) must fulfil.
 type TransformerPort interface {
-	// Transform reads from input, applies the given specification, and writes to
-	// output.
+	// Transform reads from input, applies the given specification, and writes to output.
 	//
 	// Takes input (io.Reader) which supplies the source data.
 	// Takes output (io.Writer) which receives the transformed data.
@@ -105,28 +100,24 @@ type TransformerPort interface {
 	// Returns error when the transformation fails.
 	Transform(ctx context.Context, input io.Reader, output io.Writer, spec image_dto.TransformationSpec) (mimeType string, err error)
 
-	// GetSupportedFormats returns the list of output formats this provider can
-	// generate. Format names should be lowercase (e.g., "jpeg", "png", "webp",
-	// "avif").
+	// GetSupportedFormats returns the list of output formats this provider can generate.
+	// Format names should be lowercase (e.g., "jpeg", "png", "webp", "avif").
 	//
 	// Returns []string which contains the supported format names.
 	GetSupportedFormats() []string
 
-	// GetDimensions extracts width and height from image data without
-	// transformation. Providers should use lightweight header decoding
-	// when possible.
+	// GetDimensions extracts width and height from image data without transformation.
+	// Providers should use lightweight header decoding when possible.
 	//
 	// Takes input (io.Reader) which provides the source image data.
 	//
 	// Returns width (int) in pixels.
 	// Returns height (int) in pixels.
-	// Returns error when the image cannot be decoded or is not supported
-	// by this provider.
+	// Returns error when the image cannot be decoded or is not supported by this provider.
 	GetDimensions(ctx context.Context, input io.Reader) (width int, height int, err error)
 
-	// GetSupportedModifiers returns the list of transformation modifiers this
-	// provider supports. Modifier names should be lowercase (e.g., "greyscale",
-	// "blur", "hue").
+	// GetSupportedModifiers returns the list of transformation modifiers this provider
+	// supports. Modifier names should be lowercase (e.g., "greyscale", "blur", "hue").
 	//
 	// Returns []string which contains the supported modifier names.
 	GetSupportedModifiers() []string

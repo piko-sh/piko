@@ -75,8 +75,8 @@ type StatusBarData struct {
 
 // DefaultStatusBarConfig returns sensible defaults for status bar styling.
 //
-// Returns StatusBarConfig which contains pre-configured styles for the status
-// bar, including colours for keys, descriptions, separators, and health states.
+// Returns StatusBarConfig which contains pre-configured styles for the status bar,
+// including colours for keys, descriptions, separators, and health states.
 func DefaultStatusBarConfig() StatusBarConfig {
 	return StatusBarConfig{
 		Style: lipgloss.NewStyle().
@@ -99,8 +99,8 @@ func DefaultStatusBarConfig() StatusBarConfig {
 
 // StatusBar renders a styled status bar with key bindings and provider states.
 //
-// Takes data (StatusBarData) which provides the key bindings, provider
-// statuses, and last refresh time to show.
+// Takes data (StatusBarData) which provides the key bindings, provider statuses, and last
+// refresh time to show.
 // Takes config (*StatusBarConfig) which sets the styles for each element.
 // Takes width (int) which sets the total width of the bar.
 //
@@ -179,13 +179,12 @@ func MiniStatusBar(panelName string, itemCount int, selectedIndex int, config *S
 
 // HelpBar renders a help bar showing key bindings that change based on context.
 //
-// Takes bindings ([]KeyBinding) which specifies the keys and descriptions to
-// show.
+// Takes bindings ([]KeyBinding) which specifies the keys and descriptions to show.
 // Takes config (*StatusBarConfig) which provides the styling for the bar.
 // Takes width (int) which sets the maximum width of the rendered bar.
 //
-// Returns string which is the styled help bar. If the content is too wide, it
-// is cut short and ends with an ellipsis.
+// Returns string which is the styled help bar. If the content is too wide, it is cut
+// short and ends with an ellipsis.
 func HelpBar(bindings []KeyBinding, config *StatusBarConfig, width int) string {
 	parts := make([]string, 0, len(bindings))
 

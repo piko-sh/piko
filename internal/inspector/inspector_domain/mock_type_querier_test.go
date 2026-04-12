@@ -36,13 +36,13 @@ func TestMockTypeQuerier_ResolveExprToNamedType(t *testing.T) {
 	t.Run("nil ResolveExprToNamedTypeFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got, name := m.ResolveExprToNamedType(&goast.Ident{Name: "X"}, "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
 		assert.Equal(t, "", name)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to ResolveExprToNamedTypeFunc", func(t *testing.T) {
@@ -70,13 +70,13 @@ func TestMockTypeQuerier_ResolveExprToNamedTypeWithMemoization(t *testing.T) {
 	t.Run("nil ResolveExprToNamedTypeWithMemoizationFunc returns zero values", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got, name := m.ResolveExprToNamedTypeWithMemoization(context.Background(), &goast.Ident{Name: "X"}, "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
 		assert.Equal(t, "", name)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to ResolveExprToNamedTypeWithMemoizationFunc", func(t *testing.T) {
@@ -104,13 +104,13 @@ func TestMockTypeQuerier_ResolveToUnderlyingAST(t *testing.T) {
 	t.Run("nil ResolveToUnderlyingASTFunc returns typeExpr unchanged", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		input := &goast.Ident{Name: "Original"}
 		got := m.ResolveToUnderlyingAST(input, "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Same(t, input, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to ResolveToUnderlyingASTFunc", func(t *testing.T) {
@@ -135,14 +135,14 @@ func TestMockTypeQuerier_ResolveToUnderlyingASTWithContext(t *testing.T) {
 	t.Run("nil ResolveToUnderlyingASTWithContextFunc returns typeExpr and empty string", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		input := &goast.Ident{Name: "T"}
 		got, filePath := m.ResolveToUnderlyingASTWithContext(context.Background(), input, "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Same(t, input, got)
 		assert.Equal(t, "", filePath)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to ResolveToUnderlyingASTWithContextFunc", func(t *testing.T) {
@@ -168,12 +168,12 @@ func TestMockTypeQuerier_GetAllSymbols(t *testing.T) {
 	t.Run("nil GetAllSymbolsFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.GetAllSymbols()
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to GetAllSymbolsFunc", func(t *testing.T) {
@@ -200,12 +200,12 @@ func TestMockTypeQuerier_GetImplementationIndex(t *testing.T) {
 	t.Run("nil GetImplementationIndexFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.GetImplementationIndex()
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to GetImplementationIndexFunc", func(t *testing.T) {
@@ -231,12 +231,12 @@ func TestMockTypeQuerier_GetTypeHierarchyIndex(t *testing.T) {
 	t.Run("nil GetTypeHierarchyIndexFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.GetTypeHierarchyIndex()
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to GetTypeHierarchyIndexFunc", func(t *testing.T) {
@@ -262,12 +262,12 @@ func TestMockTypeQuerier_FindFieldInfo(t *testing.T) {
 	t.Run("nil FindFieldInfoFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindFieldInfo(context.Background(), &goast.Ident{Name: "T"}, "Name", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindFieldInfoFunc", func(t *testing.T) {
@@ -296,12 +296,12 @@ func TestMockTypeQuerier_FindFieldType(t *testing.T) {
 	t.Run("nil FindFieldTypeFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindFieldType(&goast.Ident{Name: "T"}, "Name", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindFieldTypeFunc", func(t *testing.T) {
@@ -326,12 +326,12 @@ func TestMockTypeQuerier_FindFuncSignature(t *testing.T) {
 	t.Run("nil FindFuncSignatureFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindFuncSignature("fmt", "Println", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindFuncSignatureFunc", func(t *testing.T) {
@@ -362,12 +362,12 @@ func TestMockTypeQuerier_FindFuncReturnType(t *testing.T) {
 	t.Run("nil FindFuncReturnTypeFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindFuncReturnType("fmt", "Sprintf", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindFuncReturnTypeFunc", func(t *testing.T) {
@@ -393,12 +393,12 @@ func TestMockTypeQuerier_FindFuncInfo(t *testing.T) {
 	t.Run("nil FindFuncInfoFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindFuncInfo("pkg", "DoWork", "pkg/a", "a.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindFuncInfoFunc", func(t *testing.T) {
@@ -424,12 +424,12 @@ func TestMockTypeQuerier_FindMethodSignature(t *testing.T) {
 	t.Run("nil FindMethodSignatureFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindMethodSignature(&goast.Ident{Name: "T"}, "Read", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindMethodSignatureFunc", func(t *testing.T) {
@@ -458,12 +458,12 @@ func TestMockTypeQuerier_FindMethodReturnType(t *testing.T) {
 	t.Run("nil FindMethodReturnTypeFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindMethodReturnType(&goast.Ident{Name: "T"}, "Close", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindMethodReturnTypeFunc", func(t *testing.T) {
@@ -488,12 +488,12 @@ func TestMockTypeQuerier_FindMethodInfo(t *testing.T) {
 	t.Run("nil FindMethodInfoFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindMethodInfo(&goast.Ident{Name: "T"}, "String", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindMethodInfoFunc", func(t *testing.T) {
@@ -519,12 +519,12 @@ func TestMockTypeQuerier_ResolvePackageAlias(t *testing.T) {
 	t.Run("nil ResolvePackageAliasFunc returns empty string", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.ResolvePackageAlias("fmt", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to ResolvePackageAliasFunc", func(t *testing.T) {
@@ -549,12 +549,12 @@ func TestMockTypeQuerier_FindPackageVariable(t *testing.T) {
 	t.Run("nil FindPackageVariableFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindPackageVariable("os", "Stdin", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindPackageVariableFunc", func(t *testing.T) {
@@ -581,12 +581,12 @@ func TestMockTypeQuerier_FindPackageVariableType(t *testing.T) {
 	t.Run("nil FindPackageVariableTypeFunc returns empty string", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindPackageVariableType("os", "Args", "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindPackageVariableTypeFunc", func(t *testing.T) {
@@ -611,13 +611,13 @@ func TestMockTypeQuerier_GetAllPackages(t *testing.T) {
 	t.Run("nil GetAllPackagesFunc returns empty map", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.GetAllPackages()
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		require.NotNil(t, got)
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to GetAllPackagesFunc", func(t *testing.T) {
@@ -644,12 +644,12 @@ func TestMockTypeQuerier_FindRenderReturnType(t *testing.T) {
 	t.Run("nil FindRenderReturnTypeFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindRenderReturnType("pkg/comp", "comp.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindRenderReturnTypeFunc", func(t *testing.T) {
@@ -675,13 +675,13 @@ func TestMockTypeQuerier_GetImportsForFile(t *testing.T) {
 	t.Run("nil GetImportsForFileFunc returns empty map", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.GetImportsForFile("pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		require.NotNil(t, got)
 		assert.Empty(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to GetImportsForFileFunc", func(t *testing.T) {
@@ -706,12 +706,12 @@ func TestMockTypeQuerier_FindPropsType(t *testing.T) {
 	t.Run("nil FindPropsTypeFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindPropsType("comp.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindPropsTypeFunc", func(t *testing.T) {
@@ -736,12 +736,12 @@ func TestMockTypeQuerier_GetAllFieldsAndMethods(t *testing.T) {
 	t.Run("nil GetAllFieldsAndMethodsFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.GetAllFieldsAndMethods(&goast.Ident{Name: "T"}, "pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to GetAllFieldsAndMethodsFunc", func(t *testing.T) {
@@ -766,12 +766,12 @@ func TestMockTypeQuerier_FindFileWithImportAlias(t *testing.T) {
 	t.Run("nil FindFileWithImportAliasFunc returns empty string", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindFileWithImportAlias("pkg/n", "n", "pkg/n")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindFileWithImportAliasFunc", func(t *testing.T) {
@@ -797,12 +797,12 @@ func TestMockTypeQuerier_FindPackagePathForTypeDTO(t *testing.T) {
 	t.Run("nil FindPackagePathForTypeDTOFunc returns empty string", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.FindPackagePathForTypeDTO(&inspector_dto.Type{Name: "X"})
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to FindPackagePathForTypeDTOFunc", func(t *testing.T) {
@@ -827,12 +827,12 @@ func TestMockTypeQuerier_Debug(t *testing.T) {
 	t.Run("nil DebugFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.Debug("pkg", "file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to DebugFunc", func(t *testing.T) {
@@ -857,12 +857,12 @@ func TestMockTypeQuerier_PackagePathForFile(t *testing.T) {
 	t.Run("nil PackagePathForFileFunc returns empty string", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.PackagePathForFile("file.go")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Equal(t, "", got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to PackagePathForFileFunc", func(t *testing.T) {
@@ -886,12 +886,12 @@ func TestMockTypeQuerier_GetFilesForPackage(t *testing.T) {
 	t.Run("nil GetFilesForPackageFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.GetFilesForPackage("pkg/p")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to GetFilesForPackageFunc", func(t *testing.T) {
@@ -916,12 +916,12 @@ func TestMockTypeQuerier_DebugDTO(t *testing.T) {
 	t.Run("nil DebugDTOFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.DebugDTO()
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to DebugDTOFunc", func(t *testing.T) {
@@ -947,12 +947,12 @@ func TestMockTypeQuerier_DebugPackageDTO(t *testing.T) {
 	t.Run("nil DebugPackageDTOFunc returns nil", func(t *testing.T) {
 		t.Parallel()
 		m := &MockTypeQuerier{}
-		var calls int64
+		var calls atomic.Int64
 		got := m.DebugPackageDTO("pkg/r")
-		atomic.AddInt64(&calls, 1)
+		calls.Add(1)
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&calls))
+		assert.Equal(t, int64(1), calls.Load())
 	})
 
 	t.Run("delegates to DebugPackageDTOFunc", func(t *testing.T) {

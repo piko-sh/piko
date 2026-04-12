@@ -28,6 +28,12 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// introspectViews fills the schema's Views map.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schema (*querier_dto.Schema) which receives the views.
+//
+// Returns error when any query or column introspection fails.
 func (provider *PgIntrospectionProvider) introspectViews(
 	ctx context.Context,
 	schema *querier_dto.Schema,
@@ -78,6 +84,12 @@ func (provider *PgIntrospectionProvider) introspectViews(
 	return nil
 }
 
+// introspectEnums fills the schema's Enums map.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schema (*querier_dto.Schema) which receives the enums.
+//
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) introspectEnums(
 	ctx context.Context,
 	schema *querier_dto.Schema,
@@ -127,12 +139,21 @@ func (provider *PgIntrospectionProvider) introspectEnums(
 	return nil
 }
 
+// compositeField is one attribute of a PostgreSQL composite type.
 type compositeField struct {
+	// attributeName is the field identifier inside the composite.
 	attributeName string
 
+	// typeName is the formatted PostgreSQL type for the field.
 	typeName string
 }
 
+// introspectCompositeTypes fills the schema's CompositeTypes map.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schema (*querier_dto.Schema) which receives the composites.
+//
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) introspectCompositeTypes(
 	ctx context.Context,
 	schema *querier_dto.Schema,
@@ -173,6 +194,13 @@ func (provider *PgIntrospectionProvider) introspectCompositeTypes(
 	return nil
 }
 
+// queryCompositeTypes runs the pg_type composite-attribute query.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+//
+// Returns *sql.Rows which the caller must close.
+// Returns error when the query fails to dispatch.
 func (provider *PgIntrospectionProvider) queryCompositeTypes(
 	ctx context.Context,
 	schemaName string,
@@ -191,6 +219,12 @@ func (provider *PgIntrospectionProvider) queryCompositeTypes(
 		schemaName)
 }
 
+// assembleCompositeTypes materialises composite DTOs onto the schema.
+//
+// Takes schema (*querier_dto.Schema) which receives the composites.
+// Takes compositeMap (map[string][]compositeField) which maps a composite name to its
+// fields in declaration order.
+// Takes compositeOrder ([]string) which preserves discovery order.
 func (provider *PgIntrospectionProvider) assembleCompositeTypes(
 	schema *querier_dto.Schema,
 	compositeMap map[string][]compositeField,
@@ -216,6 +250,12 @@ func (provider *PgIntrospectionProvider) assembleCompositeTypes(
 	}
 }
 
+// introspectFunctions fills the schema's Functions map.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schema (*querier_dto.Schema) which receives the functions.
+//
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) introspectFunctions(
 	ctx context.Context,
 	schema *querier_dto.Schema,
@@ -237,6 +277,13 @@ func (provider *PgIntrospectionProvider) introspectFunctions(
 	return rows.Err()
 }
 
+// queryFunctions runs the pg_proc lookup query for one schema.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes schemaName (string) which selects the owning schema.
+//
+// Returns *sql.Rows which the caller must close.
+// Returns error when the query fails to dispatch.
 func (provider *PgIntrospectionProvider) queryFunctions(
 	ctx context.Context,
 	schemaName string,
@@ -256,6 +303,13 @@ func (provider *PgIntrospectionProvider) queryFunctions(
 		schemaName)
 }
 
+// scanFunctionRow decodes one row and builds a function signature.
+//
+// Takes rows (*sql.Rows) which is positioned on the row to scan.
+// Takes schemaName (string) which is the owning schema.
+//
+// Returns *querier_dto.FunctionSignature which is the decoded entry.
+// Returns error when scanning fails.
 func (provider *PgIntrospectionProvider) scanFunctionRow(
 	rows *sql.Rows,
 	schemaName string,
@@ -296,6 +350,13 @@ func (provider *PgIntrospectionProvider) scanFunctionRow(
 	}, nil
 }
 
+// parseReturnType strips the SETOF prefix and normalises the type.
+//
+// Takes returnTypeString (string) which is the formatted return type.
+// Takes typeNormaliser (TypeNormaliser) which maps the cleaned name.
+//
+// Returns querier_dto.SQLType which is the normalised return type.
+// Returns bool which is true when the result represents a set.
 func parseReturnType(
 	returnTypeString string,
 	typeNormaliser TypeNormaliser,
@@ -311,6 +372,15 @@ func parseReturnType(
 	return typeNormaliser.NormaliseTypeName(strings.TrimSpace(cleanedReturnType)), returnsSet
 }
 
+// parseFunctionArguments splits the argument list at the top level.
+//
+// Comma splitting respects parenthesised groups so that composite or array types within
+// an argument are not mis-split.
+//
+// Takes argumentsString (string) which is the raw argument list.
+// Takes typeNormaliser (TypeNormaliser) which maps each type name.
+//
+// Returns []querier_dto.FunctionArgument which is the parsed list.
 func parseFunctionArguments(
 	argumentsString string,
 	typeNormaliser TypeNormaliser,
@@ -325,7 +395,7 @@ func parseFunctionArguments(
 	depth := 0
 	start := 0
 
-	for i := 0; i < len(trimmed); i++ {
+	for i := range len(trimmed) {
 		switch trimmed[i] {
 		case '(':
 			depth++
@@ -346,6 +416,15 @@ func parseFunctionArguments(
 	return arguments
 }
 
+// parseSingleArgument extracts name, type, and default flag.
+//
+// Strips parameter mode prefixes (IN, OUT, INOUT, VARIADIC) and the trailing DEFAULT
+// clause before tokenising.
+//
+// Takes raw (string) which is the unprocessed argument text.
+// Takes typeNormaliser (TypeNormaliser) which maps the resolved type.
+//
+// Returns querier_dto.FunctionArgument which is the parsed argument.
 func parseSingleArgument(
 	raw string,
 	typeNormaliser TypeNormaliser,
@@ -390,30 +469,48 @@ func parseSingleArgument(
 	}
 }
 
-var knownTypeKeywords = []string{
-	"integer", "int", "int2", "int4", "int8",
-	"smallint", "bigint", "serial", "bigserial", "smallserial",
-	"real", "float", "float4", "float8", "double",
-	"numeric", "decimal", "money",
-	"boolean", "bool",
-	"text", "varchar", "char", "character", "name",
-	"bytea", "bit",
-	"timestamp", "timestamptz", "date", "time", "timetz", "interval",
-	"json", "jsonb",
-	"uuid",
-	"inet", "cidr", "macaddr", "macaddr8",
-	"point", "line", "lseg", "box", "path", "polygon", "circle",
-	"oid", "regclass", "regtype", "regproc", "regprocedure",
-	"void", "trigger", "record", "anyelement", "anyarray",
-	"anynonarray", "anyenum", "anyrange", "any",
-	"xml", "tsvector", "tsquery",
-}
+var (
+	// knownTypeKeywords lists PostgreSQL built-in scalar type identifiers used by
+	// looksLikeTypeName to disambiguate name-less arguments.
+	knownTypeKeywords = []string{
+		"integer", "int", "int2", "int4", "int8",
+		"smallint", "bigint", "serial", "bigserial", "smallserial",
+		"real", "float", "float4", "float8", "double",
+		"numeric", "decimal", "money",
+		"boolean", "bool",
+		"text", "varchar", "char", "character", "name",
+		"bytea", "bit",
+		"timestamp", "timestamptz", "date", "time", "timetz", "interval",
+		"json", "jsonb",
+		"uuid",
+		"inet", "cidr", "macaddr", "macaddr8",
+		"point", "line", "lseg", "box", "path", "polygon", "circle",
+		"oid", "regclass", "regtype", "regproc", "regprocedure",
+		"void", "trigger", "record", "anyelement", "anyarray",
+		"anynonarray", "anyenum", "anyrange", "any",
+		"xml", "tsvector", "tsquery",
+	}
+)
 
+// looksLikeTypeName reports whether the token looks like a SQL type.
+//
+// Takes token (string) which is the candidate identifier.
+//
+// Returns bool which is true when token matches a known keyword or ends with the array
+// marker "[]".
 func looksLikeTypeName(token string) bool {
 	lower := strings.ToLower(token)
 	return slices.Contains(knownTypeKeywords, lower) || strings.HasSuffix(lower, "[]")
 }
 
+// introspectExtensions fills the catalogue's Extensions set.
+//
+// Ignores the built-in plpgsql extension because it is always present.
+//
+// Takes ctx (context.Context) which carries deadlines and cancel.
+// Takes catalogue (*querier_dto.Catalogue) which receives entries.
+//
+// Returns error when the query or scan fails.
 func (provider *PgIntrospectionProvider) introspectExtensions(
 	ctx context.Context,
 	catalogue *querier_dto.Catalogue,

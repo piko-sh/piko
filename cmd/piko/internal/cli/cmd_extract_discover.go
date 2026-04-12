@@ -28,27 +28,25 @@ import (
 	"piko.sh/piko/internal/json"
 )
 
-// extractDiscoverFlags holds the parsed flags for the discover
-// subcommand.
+// extractDiscoverFlags holds the parsed flags for the discover subcommand.
 type extractDiscoverFlags struct {
 	// root is the project root directory.
 	root string
 
-	// outputFormat controls how the discovered packages are rendered:
-	// "list", "yaml", or "json".
+	// outputFormat controls how the discovered packages are rendered: "list", "yaml", or
+	// "json".
 	outputFormat string
 
-	// ignore is the comma-separated list of additional import paths
-	// to exclude from the result.
+	// ignore is the comma-separated list of additional import paths to exclude from the
+	// result.
 	ignore string
 }
 
-// runExtractDiscover walks the project, computes the transitive
-// import graph, filters out already-registered packages, and prints
-// the remaining required packages.
+// runExtractDiscover walks the project, computes the transitive import graph, filters out
+// already-registered packages, and prints the remaining required packages.
 //
-// Takes arguments ([]string) which contains the subcommand arguments
-// (without the leading "discover").
+// Takes arguments ([]string) which contains the subcommand arguments (without the leading
+// "discover").
 // Takes stdout (io.Writer) which receives the discovered list.
 // Takes stderr (io.Writer) which receives warnings and diagnostics.
 //
@@ -140,8 +138,7 @@ func parseExtractDiscoverArgs(arguments []string, stderr io.Writer) (extractDisc
 	return flags, parseOK
 }
 
-// splitIgnoreList turns a comma-separated ignore list into a trimmed
-// non-empty slice.
+// splitIgnoreList turns a comma-separated ignore list into a trimmed non-empty slice.
 //
 // Takes raw (string) which is the comma-separated input.
 //
@@ -161,14 +158,13 @@ func splitIgnoreList(raw string) []string {
 	return trimmed
 }
 
-// renderDiscoverResult prints the discovered result in the requested
-// format. Warnings (cgo, generics) always go to stderr.
+// renderDiscoverResult prints the discovered result in the requested format. Warnings
+// (cgo, generics) always go to stderr.
 //
 // Takes stdout (io.Writer) which receives the primary output.
 // Takes stderr (io.Writer) which receives warnings.
 // Takes format (string) which selects "list", "yaml", or "json".
-// Takes result (driver_symbols_extract.DiscoverResult) which is the
-// discovery output.
+// Takes result (driver_symbols_extract.DiscoverResult) which is the discovery output.
 //
 // Returns error when rendering fails.
 func renderDiscoverResult(stdout, stderr io.Writer, format string, result driver_symbols_extract.DiscoverResult) error {
@@ -204,8 +200,7 @@ func renderDiscoverResult(stdout, stderr io.Writer, format string, result driver
 	return nil
 }
 
-// extractDiscoverUsage writes the usage information for the discover
-// subcommand.
+// extractDiscoverUsage writes the usage information for the discover subcommand.
 //
 // Takes w (io.Writer) which receives the usage text.
 func extractDiscoverUsage(w io.Writer) {

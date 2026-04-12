@@ -18,9 +18,9 @@
 
 package bootstrap
 
-// This file orchestrates the command-line build process for a Piko project.
-// It translates a CLI command into a series of calls to the core services,
-// handling discovery, compilation, and artefact writing.
+// This file orchestrates the command-line build process for a Piko project. It translates
+// a CLI command into a series of calls to the core services, handling discovery,
+// compilation, and artefact writing.
 
 import (
 	"context"
@@ -57,14 +57,13 @@ const (
 	// GenerateModeAll is the run mode that creates all build outputs.
 	GenerateModeAll = "all"
 
-	// GenerateModeSQL is the generate mode that runs the querier code
-	// generator against all registered databases, producing typed Go query
-	// methods from SQL files.
+	// GenerateModeSQL is the generate mode that runs the querier code generator against all
+	// registered databases, producing typed Go query methods from SQL files.
 	GenerateModeSQL = "sql"
 
 	// GenerateModeAssets is the generate mode that runs annotation to discover
-	// template-derived asset requirements (image sizes, densities, formats),
-	// then builds static assets. Code emission and formatting are skipped.
+	// template-derived asset requirements (image sizes, densities, formats), then builds
+	// static assets. Code emission and formatting are skipped.
 	GenerateModeAssets = "assets"
 
 	// minHTTPStatusCode is the lowest valid HTTP status code.
@@ -76,13 +75,15 @@ const (
 	// generatedFilePerms is the file permission for generated source files.
 	generatedFilePerms = 0o600
 
-	// buildGCPercent is the GOGC percentage used during builds to reduce GC
-	// pressure at the cost of higher peak memory.
+	// buildGCPercent is the GOGC percentage used during builds to reduce GC pressure at the
+	// cost of higher peak memory.
 	buildGCPercent = 500
 )
 
-// errNoPagesFound is a checkable error for when no entry points are found.
-var errNoPagesFound = errors.New("no pages found in configured directory")
+var (
+	// errNoPagesFound is a checkable error for when no entry points are found.
+	errNoPagesFound = errors.New("no pages found in configured directory")
+)
 
 // buildOperation holds the state and logic for a single build run.
 type buildOperation struct {
@@ -105,8 +106,8 @@ type buildOperation struct {
 	sqlQueryCount int
 }
 
-// walkEntryContext holds the state needed to process a single file system entry
-// during a directory walk.
+// walkEntryContext holds the state needed to process a single file system entry during a
+// directory walk.
 type walkEntryContext struct {
 	// sourceRoot is the absolute path to the source folder being walked.
 	sourceRoot string
@@ -131,14 +132,13 @@ type walkEntryContext struct {
 //
 // The exact steps depend on runMode:
 //   - GenerateModeSQL: generates SQL only, then returns.
-//   - GenerateModeAssets: initialises the orchestrator, discovers entry points,
-//     runs annotation (no code emission), feeds asset requirements to the
-//     pipeline, then builds static assets.
-//   - GenerateModeAll: generates SQL, initialises the orchestrator, discovers
-//     entry points, runs annotation, then runs code emission and asset building
-//     in parallel.
-//   - GenerateModeManifest: discovers entry points, generates and writes
-//     artefacts (no SQL, no assets).
+//   - GenerateModeAssets: initialises the orchestrator, discovers entry points, runs
+//     annotation (no code emission), feeds asset requirements to the pipeline, then
+//     builds static assets.
+//   - GenerateModeAll: generates SQL, initialises the orchestrator, discovers entry
+//     points, runs annotation, then runs code emission and asset building in parallel.
+//   - GenerateModeManifest: discovers entry points, generates and writes artefacts (no
+//     SQL, no assets).
 //
 // Returns error when any step fails.
 func (op *buildOperation) execute(ctx context.Context) error {
@@ -175,9 +175,9 @@ func (op *buildOperation) execute(ctx context.Context) error {
 	}
 }
 
-// prepareForDiscovery runs any mode-specific setup that must happen before
-// entry-point discovery. For GenerateModeAll it generates SQL first; for modes
-// that need the asset pipeline it initialises the orchestrator.
+// prepareForDiscovery runs any mode-specific setup that must happen before entry-point
+// discovery. For GenerateModeAll it generates SQL first; for modes that need the asset
+// pipeline it initialises the orchestrator.
 //
 // Returns error when SQL generation or orchestrator initialisation fails.
 func (op *buildOperation) prepareForDiscovery(ctx context.Context) error {
@@ -196,16 +196,15 @@ func (op *buildOperation) prepareForDiscovery(ctx context.Context) error {
 	return nil
 }
 
-// discoverEntryPointsWithFallback discovers entry points and handles the
-// "no pages found" case. It returns found=true when pages were discovered and
-// the caller should continue; found=false means the build is complete.
+// discoverEntryPointsWithFallback discovers entry points and handles the "no pages found"
+// case. It returns found=true when pages were discovered and the caller should continue;
+// found=false means the build is complete.
 //
 // Takes l (logger_domain.Logger) which provides structured logging.
 //
-// Returns found (bool) which is true when pages were discovered and the caller
-// should continue.
-// Returns err (error) when discovery fails for a reason other than no pages
-// found.
+// Returns found (bool) which is true when pages were discovered and the caller should
+// continue.
+// Returns err (error) when discovery fails for a reason other than no pages found.
 func (op *buildOperation) discoverEntryPointsWithFallback(ctx context.Context, l logger_domain.Logger) (found bool, err error) {
 	if err := op.discoverEntryPoints(ctx); err != nil {
 		if !errors.Is(err, errNoPagesFound) {
@@ -221,8 +220,8 @@ func (op *buildOperation) discoverEntryPointsWithFallback(ctx context.Context, l
 	return true, nil
 }
 
-// generateAndWriteArtefacts runs code generation, writes the output files and
-// manifest, and prints the build summary.
+// generateAndWriteArtefacts runs code generation, writes the output files and manifest,
+// and prints the build summary.
 //
 // Returns error when any generation or write step fails.
 func (op *buildOperation) generateAndWriteArtefacts(ctx context.Context) error {
@@ -260,13 +259,12 @@ func (op *buildOperation) generateAndWriteArtefacts(ctx context.Context) error {
 	return nil
 }
 
-// initialiseOrchestratorEarly initialises the orchestrator service
-// early in the build process.
+// initialiseOrchestratorEarly initialises the orchestrator service early in the build
+// process.
 //
-// This is critical for 'all' mode because the orchestrator's event bridge must
-// be subscribed to artefact events before any artefacts are created during
-// generation. Without this, events published during runGeneration would have
-// no subscribers.
+// This is critical for 'all' mode because the orchestrator's event bridge must be
+// subscribed to artefact events before any artefacts are created during generation.
+// Without this, events published during runGeneration would have no subscribers.
 //
 // Returns error when the orchestrator service fails to initialise.
 func (op *buildOperation) initialiseOrchestratorEarly(ctx context.Context) error {
@@ -280,11 +278,11 @@ func (op *buildOperation) initialiseOrchestratorEarly(ctx context.Context) error
 	return nil
 }
 
-// runAnnotationAndBuildAssets runs annotation to discover template-derived
-// asset requirements, feeds them to the asset pipeline, then builds all static
-// assets. This is the core of GenerateModeAssets: it gives the asset pipeline
-// the FinalAssetManifest (image sizes, densities, formats extracted from
-// templates) without running the expensive code emission and formatting steps.
+// runAnnotationAndBuildAssets runs annotation to discover template-derived asset
+// requirements, feeds them to the asset pipeline, then builds all static assets. This is
+// the core of GenerateModeAssets: it gives the asset pipeline the FinalAssetManifest
+// (image sizes, densities, formats extracted from templates) without running the
+// expensive code emission and formatting steps.
 //
 // Returns error when annotation or asset building fails.
 func (op *buildOperation) runAnnotationAndBuildAssets(ctx context.Context) error {
@@ -305,15 +303,14 @@ func (op *buildOperation) runAnnotationAndBuildAssets(ctx context.Context) error
 	return op.buildStaticAssets(ctx)
 }
 
-// processAnnotationForAssets feeds the annotation result's FinalAssetManifest
-// to the asset pipeline so template-derived transformation profiles (image
-// sizes, densities, formats) are registered before the filesystem walk.
+// processAnnotationForAssets feeds the annotation result's FinalAssetManifest to the
+// asset pipeline so template-derived transformation profiles (image sizes, densities,
+// formats) are registered before the filesystem walk.
 //
-// Takes annotationResult (*annotator_dto.ProjectAnnotationResult) which
-// contains the FinalAssetManifest from template analysis.
+// Takes annotationResult (*annotator_dto.ProjectAnnotationResult) which contains the
+// FinalAssetManifest from template analysis.
 //
-// Returns error when the registry service cannot be obtained or processing
-// fails.
+// Returns error when the registry service cannot be obtained or processing fails.
 func (op *buildOperation) processAnnotationForAssets(
 	ctx context.Context,
 	annotationResult *annotator_dto.ProjectAnnotationResult,
@@ -327,10 +324,10 @@ func (op *buildOperation) processAnnotationForAssets(
 	return pipeline.ProcessBuildResult(ctx, annotationResult)
 }
 
-// runAnnotationEmitAndBuildAssets runs annotation first, then fans out code
-// emission (with artefact writing) and asset building in parallel. This is
-// the GenerateModeAll fast path: the expensive code formatting in EmitProject
-// runs concurrently with image processing and other asset tasks.
+// runAnnotationEmitAndBuildAssets runs annotation first, then fans out code emission
+// (with artefact writing) and asset building in parallel. This is the GenerateModeAll
+// fast path: the expensive code formatting in EmitProject runs concurrently with image
+// processing and other asset tasks.
 //
 // Returns error when annotation, emission, or asset building fails.
 func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) error {
@@ -390,8 +387,8 @@ func (op *buildOperation) runAnnotationEmitAndBuildAssets(ctx context.Context) e
 	return nil
 }
 
-// runEmissionLeg runs code emission, artefact writes, and manifest writing.
-// It is the first leg of the parallel GenerateModeAll build.
+// runEmissionLeg runs code emission, artefact writes, and manifest writing. It is the
+// first leg of the parallel GenerateModeAll build.
 //
 // Takes generatorService which drives code emission.
 // Takes annotationResult which contains the pre-computed annotation output.
@@ -427,9 +424,8 @@ func (op *buildOperation) runEmissionLeg(
 	return genDuration, nil
 }
 
-// runAssetLeg processes annotation-derived asset profiles and then runs the
-// static asset build. It is the second leg of the parallel GenerateModeAll
-// build.
+// runAssetLeg processes annotation-derived asset profiles and then runs the static asset
+// build. It is the second leg of the parallel GenerateModeAll build.
 //
 // Takes annotationResult which contains the FinalAssetManifest.
 //
@@ -444,18 +440,16 @@ func (op *buildOperation) runAssetLeg(
 	return op.runStaticAssetBuild(ctx)
 }
 
-// discoverEntryPoints walks the configured pages, partials, and emails
-// directories to find all .pk files that should be part of the build. It
-// distinguishes between pages (routable entry points) and partials, and
-// respects the public/private naming convention (any file or directory
-// prefixed with '_' is private).
+// discoverEntryPoints walks the configured pages, partials, and emails directories to
+// find all .pk files that should be part of the build. It distinguishes between pages
+// (routable entry points) and partials, and respects the public/private naming convention
+// (any file or directory prefixed with '_' is private).
 //
-// When E2EMode is enabled, also discovers pages and partials from the E2E
-// directory. E2E entries are marked with IsE2EOnly=true and will override
-// production entries with the same relative path.
+// When E2EMode is enabled, also discovers pages and partials from the E2E directory. E2E
+// entries are marked with IsE2EOnly=true and will override production entries with the
+// same relative path.
 //
-// Returns error when directory discovery fails or no public entry points are
-// found.
+// Returns error when directory discovery fails or no public entry points are found.
 func (op *buildOperation) discoverEntryPoints(ctx context.Context) error {
 	_, l := logger_domain.From(ctx, log)
 
@@ -498,8 +492,8 @@ func (op *buildOperation) discoverEntryPoints(ctx context.Context) error {
 	return nil
 }
 
-// discoverDirectory scans a source directory and appends EntryPoint objects
-// to the operation's list.
+// discoverDirectory scans a source directory and appends EntryPoint objects to the
+// operation's list.
 //
 // Takes ctx (context.Context) which carries cancellation and logging context.
 // Takes sourceDir (string) which specifies the directory path to scan.
@@ -508,8 +502,8 @@ func (op *buildOperation) discoverEntryPoints(ctx context.Context) error {
 // Takes isPotentiallyPdf (bool) which indicates if entries may be PDF templates.
 // Takes isE2EOnly (bool) which indicates if entries are E2E test-only.
 //
-// Returns error when the directory cannot be checked, the resolver cannot be
-// obtained, or walking the directory fails.
+// Returns error when the directory cannot be checked, the resolver cannot be obtained, or
+// walking the directory fails.
 func (op *buildOperation) discoverDirectory(ctx context.Context, sourceDir string, isPotentiallyPage, isPotentiallyEmail, isPotentiallyPdf, isE2EOnly bool) error {
 	serverConfig := op.container.serverConfig
 	baseDir := deref(serverConfig.Paths.BaseDir, ".")
@@ -544,14 +538,12 @@ func (op *buildOperation) discoverDirectory(ctx context.Context, sourceDir strin
 	})
 }
 
-// checkSourceDirectory checks if the source directory exists and decides
-// whether to process it.
+// checkSourceDirectory checks if the source directory exists and decides whether to
+// process it.
 //
 // Takes ctx (context.Context) which carries the logging context.
-// Takes sourceDir (string) which is the relative source
-// directory name.
-// Takes sourceRoot (string) which is the absolute path to the
-// source directory.
+// Takes sourceDir (string) which is the relative source directory name.
+// Takes sourceRoot (string) which is the absolute path to the source directory.
 // Takes isPotentiallyPage (bool) which is true if this is a pages directory.
 // Takes isPotentiallyEmail (bool) which is true if this is an emails directory.
 // Takes isPotentiallyPdf (bool) which is true if this is a PDFs directory.
@@ -602,11 +594,10 @@ func (op *buildOperation) checkSourceDirectory(ctx context.Context, sourceDir, s
 // Takes absPath (string) which is the absolute path to the entry.
 // Takes d (os.DirEntry) which provides entry metadata.
 // Takes walkErr (error) which is any error from the walk operation.
-// Takes wctx (walkEntryContext) which provides source context for entry
-// processing.
+// Takes wctx (walkEntryContext) which provides source context for entry processing.
 //
-// Returns error when the context is cancelled, walkErr is non-nil, or the
-// relative path cannot be computed.
+// Returns error when the context is cancelled, walkErr is non-nil, or the relative path
+// cannot be computed.
 func (op *buildOperation) processWalkEntry(
 	ctx context.Context,
 	absPath string,
@@ -662,16 +653,16 @@ func (op *buildOperation) processWalkEntry(
 
 // errorPageResult holds the parsed result of an error page filename check.
 type errorPageResult struct {
-	// statusCode is the exact HTTP status code (e.g., 404). Zero for catch-all
-	// and range error pages.
+	// statusCode is the exact HTTP status code (e.g., 404). Zero for catch-all and range
+	// error pages.
 	statusCode int
 
-	// rangeMin is the lower bound of a range error page (e.g., 400 for
-	// !400-499.pk). Zero when the page is not a range.
+	// rangeMin is the lower bound of a range error page (e.g., 400 for !400-499.pk). Zero
+	// when the page is not a range.
 	rangeMin int
 
-	// rangeMax is the upper bound of a range error page (e.g., 499 for
-	// !400-499.pk). Zero when the page is not a range.
+	// rangeMax is the upper bound of a range error page (e.g., 499 for !400-499.pk). Zero
+	// when the page is not a range.
 	rangeMax int
 
 	// isErrorPage is true when the filename matches a valid error page pattern.
@@ -693,11 +684,9 @@ func (op *buildOperation) hasPublicEntryPoint() bool {
 	return false
 }
 
-// runGeneration gets the generator service and runs the main compilation
-// pipeline.
+// runGeneration gets the generator service and runs the main compilation pipeline.
 //
-// Returns error when the generator service cannot be obtained or generation
-// fails.
+// Returns error when the generator service cannot be obtained or generation fails.
 func (op *buildOperation) runGeneration(ctx context.Context) error {
 	generatorService, err := op.container.GetGeneratorService()
 	if err != nil {
@@ -774,8 +763,7 @@ func (op *buildOperation) writeManifest(ctx context.Context) error {
 	return nil
 }
 
-// buildStaticAssets runs the static asset build process and prints the
-// summary to stderr.
+// buildStaticAssets runs the static asset build process and prints the summary to stderr.
 //
 // Returns error when a required service cannot be obtained or the build fails.
 func (op *buildOperation) buildStaticAssets(ctx context.Context) error {
@@ -789,12 +777,11 @@ func (op *buildOperation) buildStaticAssets(ctx context.Context) error {
 	return nil
 }
 
-// runStaticAssetBuild runs the static asset build process, returning the
-// result without printing a summary. The caller is responsible for printing
-// or combining the result with other summaries.
+// runStaticAssetBuild runs the static asset build process, returning the result without
+// printing a summary. The caller is responsible for printing or combining the result with
+// other summaries.
 //
-// Returns *lifecycle_domain.BuildResult which holds task counts and failure
-// details.
+// Returns *lifecycle_domain.BuildResult which holds task counts and failure details.
 // Returns error when a required service cannot be obtained or the build fails.
 func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_domain.BuildResult, error) {
 	ctx, l := logger_domain.From(ctx, log)
@@ -845,11 +832,11 @@ func (op *buildOperation) runStaticAssetBuild(ctx context.Context) (*lifecycle_d
 	return result, nil
 }
 
-// buildLifecyclePathsConfig constructs a LifecyclePathsConfig by dereferencing
-// the pointer fields from the server configuration.
+// buildLifecyclePathsConfig constructs a LifecyclePathsConfig by dereferencing the
+// pointer fields from the server configuration.
 //
-// Returns lifecycle_domain.LifecyclePathsConfig which holds the resolved path
-// values for file system operations.
+// Returns lifecycle_domain.LifecyclePathsConfig which holds the resolved path values for
+// file system operations.
 func (op *buildOperation) buildLifecyclePathsConfig() lifecycle_domain.LifecyclePathsConfig {
 	paths := op.container.serverConfig.Paths
 	return lifecycle_domain.LifecyclePathsConfig{
@@ -863,8 +850,8 @@ func (op *buildOperation) buildLifecyclePathsConfig() lifecycle_domain.Lifecycle
 	}
 }
 
-// BuildProject runs the build process for the piko generate command.
-// It creates and runs a build operation with the given settings.
+// BuildProject runs the build process for the piko generate command. It creates and runs
+// a build operation with the given settings.
 //
 // Takes runMode (string) which sets how the build should run.
 // Takes c (*Container) which holds the dependencies needed for the build.
@@ -893,21 +880,20 @@ func BuildProject(
 	return operation.execute(ctx)
 }
 
-// isErrorPage checks whether a filename follows the error page
-// convention.
+// isErrorPage checks whether a filename follows the error page convention.
 //
 // Supported patterns:
 //   - !NNN.pk -- exact status code (e.g., !404.pk, !500.pk)
 //   - !NNN-NNN.pk -- status code range (e.g., !400-499.pk)
 //   - !error.pk -- catch-all for any error status code
 //
-// Status codes must be valid HTTP codes in the range 100-599. For ranges,
-// the minimum must not exceed the maximum.
+// Status codes must be valid HTTP codes in the range 100-599. For ranges, the minimum
+// must not exceed the maximum.
 //
 // Takes filename (string) which is the base filename to check (e.g., "!404.pk").
 //
-// Returns errorPageResult which describes the error page type, or a zero-value
-// result when the filename is not an error page.
+// Returns errorPageResult which describes the error page type, or a zero-value result
+// when the filename is not an error page.
 func isErrorPage(filename string) errorPageResult {
 	name := strings.TrimSuffix(filename, ".pk")
 	if name == filename {
@@ -944,10 +930,10 @@ func isErrorPage(filename string) errorPageResult {
 	return errorPageResult{isErrorPage: true, statusCode: code}
 }
 
-// generateSQL runs the querier code generator against all registered databases
-// that have query files configured. For each database with QueryFS set, it
-// builds a schema catalogue from the migration files, analyses the SQL queries,
-// and writes typed Go code to the output directory.
+// generateSQL runs the querier code generator against all registered databases that have
+// query files configured. For each database with QueryFS set, it builds a schema
+// catalogue from the migration files, analyses the SQL queries, and writes typed Go code
+// to the output directory.
 //
 // Returns error when any database's code generation fails.
 func (op *buildOperation) generateSQL(ctx context.Context) error {
@@ -981,8 +967,7 @@ func (op *buildOperation) generateSQL(ctx context.Context) error {
 	return nil
 }
 
-// generateSQLForDatabase generates typed Go code for a single database
-// registration.
+// generateSQLForDatabase generates typed Go code for a single database registration.
 //
 // Takes name (string) which identifies the database registration.
 // Takes reg (*DatabaseRegistration) which provides the database configuration.
@@ -1062,8 +1047,8 @@ func checkSQLDiagnostics(l logger_domain.Logger, name string, diagnostics []quer
 	return nil
 }
 
-// writeSQLGeneratedFiles writes the generated Go files to the output directory
-// using safedisk for safe file operations.
+// writeSQLGeneratedFiles writes the generated Go files to the output directory using
+// safedisk for safe file operations.
 //
 // Takes outputDir (string) which is the directory to write files into.
 // Takes name (string) which identifies the database for error messages.

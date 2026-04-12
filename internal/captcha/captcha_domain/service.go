@@ -39,34 +39,33 @@ import (
 )
 
 const (
-	// circuitBreakerTimeout is how long the circuit stays open before letting a
-	// test request through.
+	// circuitBreakerTimeout is how long the circuit stays open before letting a test request
+	// through.
 	circuitBreakerTimeout = 30 * time.Second
 
-	// circuitBreakerBucketPeriod is the duration of each measurement bucket
-	// for tracking failure counts.
+	// circuitBreakerBucketPeriod is the duration of each measurement bucket for tracking
+	// failure counts.
 	circuitBreakerBucketPeriod = 10 * time.Second
 
-	// circuitBreakerConsecutiveFailures is the number of consecutive failures
-	// required to trip the circuit breaker.
+	// circuitBreakerConsecutiveFailures is the number of consecutive failures required to
+	// trip the circuit breaker.
 	circuitBreakerConsecutiveFailures = 5
 
-	// safeCallCaptchaType is the goroutine.SafeCallValue label for provider
-	// type lookups.
+	// safeCallCaptchaType is the goroutine.SafeCallValue label for provider type lookups.
 	safeCallCaptchaType = "captcha.Type"
 
-	// maxTokenLength is the maximum allowed length of a captcha token at the
-	// service level. This provides defence-in-depth above the provider layer.
+	// maxTokenLength is the maximum allowed length of a captcha token at the service level.
+	// This provides defence-in-depth above the provider layer.
 	maxTokenLength = 8192
 
-	// maxActionLength is the maximum allowed length of an action name at the
-	// service level. This provides defence-in-depth above the provider layer.
+	// maxActionLength is the maximum allowed length of an action name at the service level.
+	// This provides defence-in-depth above the provider layer.
 	maxActionLength = 256
 
-	// rateLimitKeyMaxLength caps the length of the IP segment in rate limit
-	// keys to prevent oversized inputs from bloating storage. SHA-256 hex is
-	// 64 characters and a parsed netip.Addr canonical form is well below
-	// this, so any caller-supplied value beyond this length is truncated.
+	// rateLimitKeyMaxLength caps the length of the IP segment in rate limit keys to prevent
+	// oversized inputs from bloating storage. SHA-256 hex is 64 characters and a parsed
+	// netip.Addr canonical form is well below this, so any caller-supplied value beyond this
+	// length is truncated.
 	rateLimitKeyMaxLength = 64
 )
 
@@ -86,12 +85,12 @@ type captchaService struct {
 	// breaker guards against failures in the captcha provider service.
 	breaker *gobreaker.CircuitBreaker[*captcha_dto.VerifyResponse]
 
-	// rateLimiter throttles verification and challenge requests per IP. Nil
-	// disables rate limiting.
+	// rateLimiter throttles verification and challenge requests per IP. Nil disables rate
+	// limiting.
 	rateLimiter RateLimiter
 
-	// ipExtractor extracts the real client IP from requests, accounting for
-	// trusted proxy headers. Nil falls back to RemoteAddr.
+	// ipExtractor extracts the real client IP from requests, accounting for trusted proxy
+	// headers. Nil falls back to RemoteAddr.
 	ipExtractor ClientIPExtractor
 
 	// clock provides the time source for duration measurements.
@@ -107,8 +106,7 @@ type captchaService struct {
 // ServiceOption configures the captcha service.
 type ServiceOption func(*captchaService)
 
-// WithDefaultScoreThreshold sets the default score threshold for score-based
-// providers.
+// WithDefaultScoreThreshold sets the default score threshold for score-based providers.
 //
 // Takes threshold (float64) which is the minimum required score.
 //
@@ -119,8 +117,8 @@ func WithDefaultScoreThreshold(threshold float64) ServiceOption {
 	}
 }
 
-// WithRateLimiter sets the rate limiter used to throttle captcha verification
-// and challenge requests per IP.
+// WithRateLimiter sets the rate limiter used to throttle captcha verification and
+// challenge requests per IP.
 //
 // Takes limiter (RateLimiter) which provides the rate limiting check.
 //
@@ -131,12 +129,12 @@ func WithRateLimiter(limiter RateLimiter) ServiceOption {
 	}
 }
 
-// WithClientIPExtractor sets the client IP extractor used by the challenge
-// rate limiter to determine the real client IP address. Without an extractor
-// the service falls back to RemoteAddr, which may be incorrect behind proxies.
+// WithClientIPExtractor sets the client IP extractor used by the challenge rate limiter
+// to determine the real client IP address. Without an extractor the service falls back to
+// RemoteAddr, which may be incorrect behind proxies.
 //
-// Takes extractor (ClientIPExtractor) which extracts the client IP from
-// requests using trusted proxy configuration.
+// Takes extractor (ClientIPExtractor) which extracts the client IP from requests using
+// trusted proxy configuration.
 //
 // Returns ServiceOption which configures the IP extractor on the service.
 func WithClientIPExtractor(extractor ClientIPExtractor) ServiceOption {
@@ -183,8 +181,8 @@ func NewCaptchaService(config *captcha_dto.ServiceConfig, options ...ServiceOpti
 	return service, nil
 }
 
-// Verify verifies a captcha token using the default provider and the service's
-// default score threshold.
+// Verify verifies a captcha token using the default provider and the service's default
+// score threshold.
 //
 // Takes token (string) which is the captcha response token from the client.
 // Takes remoteIP (string) which is the client's IP address.
@@ -203,8 +201,7 @@ func (s *captchaService) Verify(ctx context.Context, token, remoteIP, action str
 // Takes action (string) which identifies the protected form or flow.
 // Takes scoreThreshold (float64) which is the minimum required score.
 //
-// Returns *captcha_dto.VerifyResponse which contains the full verification
-// result.
+// Returns *captcha_dto.VerifyResponse which contains the full verification result.
 // Returns error when verification fails.
 func (s *captchaService) VerifyWithScore(ctx context.Context, token, remoteIP, action string, scoreThreshold float64) (*captcha_dto.VerifyResponse, error) {
 	if token == "" {
@@ -296,9 +293,9 @@ func (s *captchaService) GetProviderByName(ctx context.Context, name string) (Ca
 	return s.registry.GetProvider(ctx, name)
 }
 
-// SiteKey returns the public site key of the default captcha provider.
-// Lookups are static so an internal background context is acceptable; the
-// provider implementation itself does not honour cancellation.
+// SiteKey returns the public site key of the default captcha provider. Lookups are static
+// so an internal background context is acceptable; the provider implementation itself
+// does not honour cancellation.
 //
 // Returns string which is the site key, or empty if no provider is set.
 func (s *captchaService) SiteKey() string {
@@ -311,9 +308,9 @@ func (s *captchaService) SiteKey() string {
 	return provider.SiteKey()
 }
 
-// ScriptURL returns the JavaScript SDK URL of the default captcha provider.
-// Lookups are static so an internal background context is acceptable; the
-// provider implementation itself does not honour cancellation.
+// ScriptURL returns the JavaScript SDK URL of the default captcha provider. Lookups are
+// static so an internal background context is acceptable; the provider implementation
+// itself does not honour cancellation.
 //
 // Returns string which is the script URL, or empty if not applicable.
 func (s *captchaService) ScriptURL() string {
@@ -349,8 +346,7 @@ func (s *captchaService) RegisterProvider(ctx context.Context, name string, prov
 	return s.registry.RegisterProvider(ctx, name, provider)
 }
 
-// SetDefaultProvider sets the provider to use when no specific provider is
-// named.
+// SetDefaultProvider sets the provider to use when no specific provider is named.
 //
 // Takes name (string) which is the name of the provider to use as default.
 //
@@ -385,8 +381,7 @@ func (s *captchaService) HasProvider(name string) bool {
 
 // ListProviders returns details about all registered providers.
 //
-// Returns []provider_domain.ProviderInfo which contains information about each
-// provider.
+// Returns []provider_domain.ProviderInfo which contains information about each provider.
 func (s *captchaService) ListProviders(ctx context.Context) []provider_domain.ProviderInfo {
 	return s.registry.ListProviders(ctx)
 }
@@ -402,12 +397,12 @@ func (s *captchaService) HealthCheck(ctx context.Context) error {
 	return provider.HealthCheck(ctx)
 }
 
-// ChallengeHandler returns an HTTP handler for generating challenge tokens if
-// the default provider supports it, or nil otherwise. Provider lookup is a
-// static read so the internal context only needs cancellation on return.
+// ChallengeHandler returns an HTTP handler for generating challenge tokens if the default
+// provider supports it, or nil otherwise. Provider lookup is a static read so the
+// internal context only needs cancellation on return.
 //
-// Returns http.Handler which generates challenge tokens, or nil if the provider
-// does not support challenge generation.
+// Returns http.Handler which generates challenge tokens, or nil if the provider does not
+// support challenge generation.
 func (s *captchaService) ChallengeHandler() http.Handler {
 	ctx, cancel := context.WithCancelCause(context.Background())
 	defer cancel(errors.New("captchaService.ChallengeHandler returning"))
@@ -433,12 +428,11 @@ func (s *captchaService) Close(ctx context.Context) error {
 
 // sanitiseRateLimitIP normalises an IP string for use as a rate-limit key.
 //
-// Whitespace is trimmed and the input is validated with netip.ParseAddr so
-// unparseable values cannot be used to inject key separators or otherwise
-// spoof distinct buckets. Inputs that fail to parse fall back to the
-// SHA-256 hex of the trimmed value, which yields a stable bucket per
-// attacker without leaking attacker-controlled bytes into the key. The
-// result is capped at rateLimitKeyMaxLength characters.
+// Whitespace is trimmed and the input is validated with netip.ParseAddr so unparseable
+// values cannot be used to inject key separators or otherwise spoof distinct buckets.
+// Inputs that fail to parse fall back to the SHA-256 hex of the trimmed value, which
+// yields a stable bucket per attacker without leaking attacker-controlled bytes into the
+// key. The result is capped at rateLimitKeyMaxLength characters.
 //
 // Takes ip (string) which is the raw IP candidate, typically from
 // ClientIPExtractor.ExtractClientIP or http.Request.RemoteAddr.
@@ -463,17 +457,14 @@ func sanitiseRateLimitIP(ip string) string {
 
 // checkVerifyRateLimit enforces the per-IP captcha verification limit.
 //
-// Storage failures are treated as fail-closed (the request is rate limited)
-// so an unavailable backing store cannot be exploited as a rate limit
-// bypass.
+// Storage failures are treated as fail-closed (the request is rate limited) so an
+// unavailable backing store cannot be exploited as a rate limit bypass.
 //
-// Takes remoteIP (string) which is the client's IP address used as the rate
-// limit key.
+// Takes remoteIP (string) which is the client's IP address used as the rate limit key.
 //
-// Returns error which is ErrRateLimited if the limit is exceeded or the
-// backing store fails, or nil when the limiter is unconfigured, the
-// configured limit is non-positive, or the limiter explicitly allowed the
-// request.
+// Returns error which is ErrRateLimited if the limit is exceeded or the backing store
+// fails, or nil when the limiter is unconfigured, the configured limit is non-positive,
+// or the limiter explicitly allowed the request.
 func (s *captchaService) checkVerifyRateLimit(ctx context.Context, remoteIP string) error {
 	if s.rateLimiter == nil || s.config.VerifyRateLimit <= 0 {
 		return nil
@@ -497,15 +488,13 @@ func (s *captchaService) checkVerifyRateLimit(ctx context.Context, remoteIP stri
 
 // wrapChallengeRateLimit adds per-IP challenge rate limiting to a handler.
 //
-// Backend failures fail closed (the request is rate limited) and are
-// surfaced via the structured logger so an unavailable backing store
-// cannot be used to bypass the limit.
+// Backend failures fail closed (the request is rate limited) and are surfaced via the
+// structured logger so an unavailable backing store cannot be used to bypass the limit.
 //
 // Takes next (http.Handler) which is the handler to wrap with rate limiting.
 //
-// Returns http.Handler which enforces the challenge rate limit before
-// delegating to next, or next unchanged when no rate limiter is configured
-// or the limit is zero.
+// Returns http.Handler which enforces the challenge rate limit before delegating to next,
+// or next unchanged when no rate limiter is configured or the limit is zero.
 func (s *captchaService) wrapChallengeRateLimit(next http.Handler) http.Handler {
 	if s.rateLimiter == nil || s.config.ChallengeRateLimit <= 0 {
 		return next
@@ -541,8 +530,8 @@ func (s *captchaService) wrapChallengeRateLimit(next http.Handler) http.Handler 
 	})
 }
 
-// callProvider executes the captcha verification against the provider with
-// circuit breaker protection.
+// callProvider executes the captcha verification against the provider with circuit
+// breaker protection.
 //
 // Takes provider (CaptchaProvider) which handles the verification.
 // Takes token (string) which is the captcha response token.
@@ -580,19 +569,19 @@ func (s *captchaService) callProvider(ctx context.Context, provider CaptchaProvi
 	return response, providerType, durationMS, nil
 }
 
-// evaluateResponse checks the verification result against success, action
-// binding, and score thresholds.
+// evaluateResponse checks the verification result against success, action binding, and
+// score thresholds.
 //
 // Takes response (*captcha_dto.VerifyResponse) which is the provider's result.
 // Takes providerType (string) which identifies the provider for metrics.
 // Takes durationMS (int64) which is the verification duration in milliseconds.
 // Takes scoreThreshold (float64) which is the minimum required score.
-// Takes expectedAction (string) which is the action the token should have been
-// generated for; empty skips the check.
+// Takes expectedAction (string) which is the action the token should have been generated
+// for; empty skips the check.
 //
 // Returns *captcha_dto.VerifyResponse which is the original response.
-// Returns error when the verification failed, the action mismatches, or the
-// score is below threshold.
+// Returns error when the verification failed, the action mismatches, or the score is
+// below threshold.
 func (*captchaService) evaluateResponse(
 	ctx context.Context,
 	response *captcha_dto.VerifyResponse,
@@ -666,8 +655,8 @@ func recordMetrics(ctx context.Context, providerType, status string, durationMS 
 
 // newCaptchaCircuitBreaker creates a circuit breaker for the captcha service.
 //
-// Returns *gobreaker.CircuitBreaker[*captcha_dto.VerifyResponse] which guards
-// against cascading failures.
+// Returns *gobreaker.CircuitBreaker[*captcha_dto.VerifyResponse] which guards against
+// cascading failures.
 func newCaptchaCircuitBreaker() *gobreaker.CircuitBreaker[*captcha_dto.VerifyResponse] {
 	settings := gobreaker.Settings{
 		Name:         "captcha-service",

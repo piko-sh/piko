@@ -16,12 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package component_domain defines the [ComponentRegistry] port interface
-// and validation logic for the PKC component registry system.
+// Package component_domain defines the [ComponentRegistry] port interface and validation
+// logic for the PKC component registry system.
 //
-// It enforces tag name rules from the Web Components specification and
-// Piko's reserved namespace constraints, and prevents shadowing of
-// standard HTML element names.
+// It enforces tag name rules from the Web Components specification and Piko's reserved
+// namespace constraints, and prevents shadowing of standard HTML element names.
 //
 // # Validation rules
 //
@@ -35,9 +34,8 @@
 //
 // # Integration
 //
-// Adapters implementing [ComponentRegistry] are populated at startup
-// with locally discovered components and external components registered
-// via the WithComponents() facade option. The registry is consumed by
-// the rendering pipeline to resolve custom element tags to their
-// component definitions (see [component_dto.ComponentDefinition]).
+// Adapters implementing [ComponentRegistry] are populated at startup with locally
+// discovered components and external components registered via the WithComponents()
+// facade option. The registry is consumed by the rendering pipeline to resolve custom
+// element tags to their component definitions (see [component_dto.ComponentDefinition]).
 package component_domain

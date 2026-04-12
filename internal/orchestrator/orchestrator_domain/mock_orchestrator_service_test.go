@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -87,15 +86,15 @@ func TestMockOrchestratorService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RegisterExecutorCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DispatchCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ScheduleCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.RunCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.StopCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ActiveTasksCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.PendingTasksCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.GetTaskDispatcherCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.DispatchDirectCallCount))
+	assert.Equal(t, int64(goroutines), m.RegisterExecutorCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DispatchCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ScheduleCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.RunCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.StopCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.ActiveTasksCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.PendingTasksCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.GetTaskDispatcherCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.DispatchDirectCallCount.Load())
 }
 
 func TestMockOrchestratorService_RegisterExecutor(t *testing.T) {
@@ -108,7 +107,7 @@ func TestMockOrchestratorService_RegisterExecutor(t *testing.T) {
 		err := m.RegisterExecutor(context.Background(), "exec", nil)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RegisterExecutorCallCount))
+		assert.Equal(t, int64(1), m.RegisterExecutorCallCount.Load())
 	})
 
 	t.Run("delegates to RegisterExecutorFunc", func(t *testing.T) {
@@ -125,7 +124,7 @@ func TestMockOrchestratorService_RegisterExecutor(t *testing.T) {
 		err := m.RegisterExecutor(context.Background(), "my-executor", nil)
 		require.NoError(t, err)
 		assert.Equal(t, "my-executor", capturedName)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RegisterExecutorCallCount))
+		assert.Equal(t, int64(1), m.RegisterExecutorCallCount.Load())
 	})
 
 	t.Run("propagates error from RegisterExecutorFunc", func(t *testing.T) {
@@ -154,7 +153,7 @@ func TestMockOrchestratorService_Dispatch(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, receipt)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DispatchCallCount))
+		assert.Equal(t, int64(1), m.DispatchCallCount.Load())
 	})
 
 	t.Run("delegates to DispatchFunc", func(t *testing.T) {
@@ -203,7 +202,7 @@ func TestMockOrchestratorService_Schedule(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, receipt)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ScheduleCallCount))
+		assert.Equal(t, int64(1), m.ScheduleCallCount.Load())
 	})
 
 	t.Run("delegates to ScheduleFunc", func(t *testing.T) {
@@ -250,7 +249,7 @@ func TestMockOrchestratorService_Run(t *testing.T) {
 		m := &MockOrchestratorService{}
 		m.Run(context.Background())
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.RunCallCount))
+		assert.Equal(t, int64(1), m.RunCallCount.Load())
 	})
 
 	t.Run("delegates to RunFunc", func(t *testing.T) {
@@ -277,7 +276,7 @@ func TestMockOrchestratorService_Stop(t *testing.T) {
 		m := &MockOrchestratorService{}
 		m.Stop()
 
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.StopCallCount))
+		assert.Equal(t, int64(1), m.StopCallCount.Load())
 	})
 
 	t.Run("delegates to StopFunc", func(t *testing.T) {
@@ -305,7 +304,7 @@ func TestMockOrchestratorService_ActiveTasks(t *testing.T) {
 		got := m.ActiveTasks(context.Background())
 
 		assert.Equal(t, int64(0), got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ActiveTasksCallCount))
+		assert.Equal(t, int64(1), m.ActiveTasksCallCount.Load())
 	})
 
 	t.Run("delegates to ActiveTasksFunc", func(t *testing.T) {
@@ -332,7 +331,7 @@ func TestMockOrchestratorService_PendingTasks(t *testing.T) {
 		got := m.PendingTasks(context.Background())
 
 		assert.Equal(t, int64(0), got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.PendingTasksCallCount))
+		assert.Equal(t, int64(1), m.PendingTasksCallCount.Load())
 	})
 
 	t.Run("delegates to PendingTasksFunc", func(t *testing.T) {
@@ -359,7 +358,7 @@ func TestMockOrchestratorService_GetTaskDispatcher(t *testing.T) {
 		got := m.GetTaskDispatcher()
 
 		assert.Nil(t, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.GetTaskDispatcherCallCount))
+		assert.Equal(t, int64(1), m.GetTaskDispatcherCallCount.Load())
 	})
 
 	t.Run("delegates to GetTaskDispatcherFunc", func(t *testing.T) {
@@ -388,7 +387,7 @@ func TestMockOrchestratorService_DispatchDirect(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Nil(t, receipt)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.DispatchDirectCallCount))
+		assert.Equal(t, int64(1), m.DispatchDirectCallCount.Load())
 	})
 
 	t.Run("delegates to DispatchDirectFunc", func(t *testing.T) {

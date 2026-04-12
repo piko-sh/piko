@@ -24,27 +24,29 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// resourceDescriptorSources lists all services that may implement
-// provider_domain.ResourceDescriptor. This table-driven approach follows the
-// same pattern as healthprobe.go serviceProbes.
-var resourceDescriptorSources = []probeRegistration{
-	{name: "EmailService", getter: func(c *Container) (any, error) { return c.GetEmailService() }},
-	{name: "StorageService", getter: func(c *Container) (any, error) { return c.GetStorageService() }},
-	{name: "CacheService", getter: func(c *Container) (any, error) { return c.GetCacheService() }},
-	{name: "CollectionService", getter: func(c *Container) (any, error) { return c.GetCollectionService() }},
-	{name: "DatabaseService", getter: func(c *Container) (any, error) { return c.GetDatabaseService() }},
-	{name: "LLMService", getter: func(c *Container) (any, error) { return c.GetLLMService() }},
-	{name: "CaptchaService", getter: func(c *Container) (any, error) { return c.GetCaptchaService() }},
-	{name: "SpamDetectService", getter: func(c *Container) (any, error) { return c.GetSpamDetectService() }},
-}
+var (
+	// resourceDescriptorSources lists all services that may implement
+	// provider_domain.ResourceDescriptor. This table-driven approach follows the same
+	// pattern as healthprobe.go serviceProbes.
+	resourceDescriptorSources = []probeRegistration{
+		{name: "EmailService", getter: func(c *Container) (any, error) { return c.GetEmailService() }},
+		{name: "StorageService", getter: func(c *Container) (any, error) { return c.GetStorageService() }},
+		{name: "CacheService", getter: func(c *Container) (any, error) { return c.GetCacheService() }},
+		{name: "CollectionService", getter: func(c *Container) (any, error) { return c.GetCollectionService() }},
+		{name: "DatabaseService", getter: func(c *Container) (any, error) { return c.GetDatabaseService() }},
+		{name: "LLMService", getter: func(c *Container) (any, error) { return c.GetLLMService() }},
+		{name: "CaptchaService", getter: func(c *Container) (any, error) { return c.GetCaptchaService() }},
+		{name: "SpamDetectService", getter: func(c *Container) (any, error) { return c.GetSpamDetectService() }},
+	}
+)
 
-// createProviderInfoAggregator discovers all services implementing
-// ResourceDescriptor and builds an aggregator for monitoring.
+// createProviderInfoAggregator discovers all services implementing ResourceDescriptor and
+// builds an aggregator for monitoring.
 //
 // Takes c (*Container) which provides access to service instances.
 //
-// Returns monitoring_domain.ProviderInfoInspector which aggregates all
-// discovered resource descriptors, or nil if none are found.
+// Returns monitoring_domain.ProviderInfoInspector which aggregates all discovered
+// resource descriptors, or nil if none are found.
 func createProviderInfoAggregator(c *Container) monitoring_domain.ProviderInfoInspector {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	l.Internal("Discovering resource descriptors...")

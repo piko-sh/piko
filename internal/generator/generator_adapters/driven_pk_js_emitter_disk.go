@@ -38,14 +38,16 @@ const (
 	filePermissions = 0600
 )
 
-var _ generator_domain.PKJSEmitterPort = (*DiskPKJSEmitter)(nil)
+var (
+	_ generator_domain.PKJSEmitterPort = (*DiskPKJSEmitter)(nil)
+)
 
-// DiskPKJSEmitter implements PKJSEmitterPort to transpile and write JavaScript
-// directly to disk. This is used for testing to capture generated JS files
-// for golden file verification.
+// DiskPKJSEmitter implements PKJSEmitterPort to transpile and write JavaScript directly
+// to disk. This is used for testing to capture generated JS files for golden file
+// verification.
 //
-// Unlike PKJSEmitter which stores to a registry, this adapter writes files
-// directly to the filesystem, making them available for test assertions.
+// Unlike PKJSEmitter which stores to a registry, this adapter writes files directly to
+// the filesystem, making them available for test assertions.
 type DiskPKJSEmitter struct {
 	// transpiler converts TypeScript source code to JavaScript.
 	transpiler *generator_domain.JSTranspiler
@@ -57,8 +59,8 @@ type DiskPKJSEmitter struct {
 	// sandbox provides sandboxed filesystem access for writing JS files.
 	sandbox safedisk.Sandbox
 
-	// factory creates sandboxes with validated paths. When set and sandbox is
-	// nil, the factory is used before falling back to NewNoOpSandbox.
+	// factory creates sandboxes with validated paths. When set and sandbox is nil, the
+	// factory is used before falling back to NewNoOpSandbox.
 	factory safedisk.Factory
 
 	// outputDir is the base folder where JS files are saved.
@@ -76,8 +78,8 @@ type DiskPKJSEmitterOption func(*DiskPKJSEmitter)
 
 // NewDiskPKJSEmitter creates a new disk-based PK JavaScript emitter.
 //
-// Takes outputDir (string) which is the base directory where JS files will be
-// written. Files are written as <outputDir>/<artefactID>.
+// Takes outputDir (string) which is the base directory where JS files will be written.
+// Files are written as <outputDir>/<artefactID>.
 // Takes minify (bool) which controls whether to minify the output JavaScript.
 // Takes opts (...DiskPKJSEmitterOption) which provides optional configuration.
 //
@@ -111,26 +113,21 @@ func NewDiskPKJSEmitter(outputDir string, minify bool, opts ...DiskPKJSEmitterOp
 	return e
 }
 
-// EmitJS transpiles TypeScript/JavaScript source and writes it to disk. The
-// artefact ID uses the pk-js/ prefix for consistency with the registry adapter.
+// EmitJS transpiles TypeScript/JavaScript source and writes it to disk. The artefact ID
+// uses the pk-js/ prefix for consistency with the registry adapter.
 //
-// For example:
-// pagePath: "pages/checkout"
-// outputDir: "/tmp/golden"
-// -> artefact ID: "pk-js/pages/checkout.js"
-// -> file written to: /tmp/golden/pk-js/pages/checkout.js
+// For example: pagePath: "pages/checkout" outputDir: "/tmp/golden" -> artefact ID:
+// "pk-js/pages/checkout.js" -> file written to: /tmp/golden/pk-js/pages/checkout.js
 //
-// Takes source (string) which is the TypeScript/JavaScript source code
-// to transpile.
-// Takes pagePath (string) which identifies the page this script
-// belongs to.
+// Takes source (string) which is the TypeScript/JavaScript source code to transpile.
+// Takes pagePath (string) which identifies the page this script belongs to.
 //
-// Returns string which is the artefact ID that can be used to look up
-// the file path via GetWrittenFilePath.
+// Returns string which is the artefact ID that can be used to look up the file path via
+// GetWrittenFilePath.
 // Returns error when transpilation or file writing fails.
 //
-// Safe for concurrent use. Access to the written files map is
-// serialised by an internal mutex.
+// Safe for concurrent use. Access to the written files map is serialised by an internal
+// mutex.
 func (e *DiskPKJSEmitter) EmitJS(
 	ctx context.Context,
 	source string,
@@ -179,13 +176,11 @@ func (e *DiskPKJSEmitter) EmitJS(
 	return artefactID, nil
 }
 
-// GetWrittenFilePath returns the absolute path where a given artefact was
-// written.
+// GetWrittenFilePath returns the absolute path where a given artefact was written.
 //
 // Takes artefactID (string) which identifies the artefact to look up.
 //
-// Returns string which is the file path, or empty if the artefact was not
-// written.
+// Returns string which is the file path, or empty if the artefact was not written.
 //
 // Safe for concurrent use.
 func (e *DiskPKJSEmitter) GetWrittenFilePath(artefactID string) string {
@@ -194,8 +189,8 @@ func (e *DiskPKJSEmitter) GetWrittenFilePath(artefactID string) string {
 	return e.writtenFiles[artefactID]
 }
 
-// GetAllWrittenFiles returns a copy of all written files.
-// Key: artefactID, Value: absolute path.
+// GetAllWrittenFiles returns a copy of all written files. Key: artefactID, Value:
+// absolute path.
 //
 // Returns map[string]string which maps artefact IDs to absolute file paths.
 //
@@ -209,8 +204,7 @@ func (e *DiskPKJSEmitter) GetAllWrittenFiles() map[string]string {
 	return result
 }
 
-// Reset clears the record of written files.
-// Use it between test cases.
+// Reset clears the record of written files. Use it between test cases.
 //
 // Safe for concurrent use.
 func (e *DiskPKJSEmitter) Reset() {
@@ -219,12 +213,10 @@ func (e *DiskPKJSEmitter) Reset() {
 	e.writtenFiles = make(map[string]string)
 }
 
-// WithEmitterFactory sets the sandbox factory for the disk PK JS emitter. When
-// no sandbox is injected, the factory is tried before falling back to
-// NewNoOpSandbox.
+// WithEmitterFactory sets the sandbox factory for the disk PK JS emitter. When no sandbox
+// is injected, the factory is tried before falling back to NewNoOpSandbox.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes with validated
-// paths.
+// Takes factory (safedisk.Factory) which creates sandboxes with validated paths.
 //
 // Returns DiskPKJSEmitterOption which configures the emitter with the factory.
 func WithEmitterFactory(factory safedisk.Factory) DiskPKJSEmitterOption {
@@ -233,12 +225,11 @@ func WithEmitterFactory(factory safedisk.Factory) DiskPKJSEmitterOption {
 	}
 }
 
-// WithEmitterSandbox returns an option that injects a sandbox for filesystem
-// operations. The emitter uses this sandbox instead of creating one from the
-// output directory, allowing testing with MockSandbox.
+// WithEmitterSandbox returns an option that injects a sandbox for filesystem operations.
+// The emitter uses this sandbox instead of creating one from the output directory,
+// allowing testing with MockSandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides the filesystem sandbox to
-// use.
+// Takes sandbox (safedisk.Sandbox) which provides the filesystem sandbox to use.
 //
 // Returns DiskPKJSEmitterOption which configures the emitter with the sandbox.
 func WithEmitterSandbox(sandbox safedisk.Sandbox) DiskPKJSEmitterOption {

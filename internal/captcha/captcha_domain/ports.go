@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/internal/provider/provider_domain"
 )
 
-// RateLimiter checks whether a keyed rate limit has been exceeded, used by
-// the captcha service to throttle verification and challenge requests per IP.
-// Implementations are provided by the security hexagon via bootstrap wiring.
+// RateLimiter checks whether a keyed rate limit has been exceeded, used by the captcha
+// service to throttle verification and challenge requests per IP. Implementations are
+// provided by the security hexagon via bootstrap wiring.
 type RateLimiter interface {
 	// IsAllowed checks whether the given key is within its rate limit.
 	//
@@ -43,9 +43,9 @@ type RateLimiter interface {
 	IsAllowed(ctx context.Context, key string, limit int, window time.Duration) (bool, error)
 }
 
-// ClientIPExtractor extracts the real client IP address from an HTTP request,
-// accounting for trusted proxy headers. Implementations are provided by the
-// security hexagon via bootstrap wiring.
+// ClientIPExtractor extracts the real client IP address from an HTTP request, accounting
+// for trusted proxy headers. Implementations are provided by the security hexagon via
+// bootstrap wiring.
 type ClientIPExtractor interface {
 	// ExtractClientIP returns the client IP address from the request.
 	//
@@ -62,34 +62,32 @@ type CaptchaProvider interface {
 
 	// Verify verifies a captcha token and returns the verification result.
 	//
-	// Takes request (*captcha_dto.VerifyRequest) which contains the captcha
-	// token, client IP, and action name.
+	// Takes request (*captcha_dto.VerifyRequest) which contains the captcha token, client
+	// IP, and action name.
 	//
-	// Returns *captcha_dto.VerifyResponse which contains the verification
-	// result including success status and optional score.
+	// Returns *captcha_dto.VerifyResponse which contains the verification result including
+	// success status and optional score.
 	// Returns error when the verification request fails.
 	Verify(ctx context.Context, request *captcha_dto.VerifyRequest) (*captcha_dto.VerifyResponse, error)
 
-	// SiteKey returns the public site key for the captcha provider. This is
-	// used by the frontend widget to initialise the captcha challenge.
+	// SiteKey returns the public site key for the captcha provider. This is used by the
+	// frontend widget to initialise the captcha challenge.
 	//
 	// Returns string which is the public site key.
 	SiteKey() string
 
-	// ScriptURL returns the URL of the captcha provider's JavaScript SDK,
-	// injected into the page as a script tag, or an empty string for providers
-	// that do not require an external script (e.g. the built-in HMAC challenge
-	// provider).
+	// ScriptURL returns the URL of the captcha provider's JavaScript SDK, injected into the
+	// page as a script tag, or an empty string for providers that do not require an external
+	// script (e.g. the built-in HMAC challenge provider).
 	//
 	// Returns string which is the script URL, or empty.
 	ScriptURL() string
 
-	// RenderRequirements returns the frontend rendering configuration for this
-	// provider, describing the HTML, scripts, and CSP domains needed to
-	// display the captcha widget on a page.
+	// RenderRequirements returns the frontend rendering configuration for this provider,
+	// describing the HTML, scripts, and CSP domains needed to display the captcha widget on
+	// a page.
 	//
-	// Returns *captcha_dto.RenderRequirements which contains the rendering
-	// configuration.
+	// Returns *captcha_dto.RenderRequirements which contains the rendering configuration.
 	RenderRequirements() *captcha_dto.RenderRequirements
 
 	// HealthCheck verifies provider connectivity and configuration.
@@ -98,8 +96,8 @@ type CaptchaProvider interface {
 	HealthCheck(ctx context.Context) error
 }
 
-// CaptchaServicePort defines the public interface for captcha verification.
-// This is what other hexagons and the action handler middleware depend on.
+// CaptchaServicePort defines the public interface for captcha verification. This is what
+// other hexagons and the action handler middleware depend on.
 //
 // The service layer abstracts provider-specific details and provides:
 //   - Simplified API for common use cases
@@ -107,34 +105,32 @@ type CaptchaProvider interface {
 //   - Provider management (registration, selection)
 //   - Observability integration (metrics, tracing, logging)
 type CaptchaServicePort interface {
-	// Verify verifies a captcha token using the default provider and the
-	// service's default score threshold for score-based providers.
+	// Verify verifies a captcha token using the default provider and the service's default
+	// score threshold for score-based providers.
 	//
 	// Takes token (string) which is the captcha response token from the client.
 	// Takes remoteIP (string) which is the client's IP address.
 	// Takes action (string) which identifies the protected form or flow.
 	//
-	// Returns error when verification fails, the token is missing, the score
-	// is below the default threshold, or the provider is unavailable.
+	// Returns error when verification fails, the token is missing, the score is below the
+	// default threshold, or the provider is unavailable.
 	Verify(ctx context.Context, token, remoteIP, action string) error
 
-	// VerifyWithScore verifies a captcha token and returns the full response,
-	// allowing callers to inspect the score and other provider-specific data.
+	// VerifyWithScore verifies a captcha token and returns the full response, allowing
+	// callers to inspect the score and other provider-specific data.
 	//
 	// Takes token (string) which is the captcha response token from the client.
 	// Takes remoteIP (string) which is the client's IP address.
 	// Takes action (string) which identifies the protected form or flow.
-	// Takes scoreThreshold (float64) which is the minimum required score; use
-	// 0 to accept any score.
+	// Takes scoreThreshold (float64) which is the minimum required score; use 0 to accept
+	// any score.
 	//
-	// Returns *captcha_dto.VerifyResponse which contains the full verification
-	// result.
+	// Returns *captcha_dto.VerifyResponse which contains the full verification result.
 	// Returns error when verification fails.
 	VerifyWithScore(ctx context.Context, token, remoteIP, action string, scoreThreshold float64) (*captcha_dto.VerifyResponse, error)
 
-	// VerifyWithProvider verifies a captcha token using a specific named
-	// provider instead of the default. The provider must have been registered
-	// via WithCaptchaProvider.
+	// VerifyWithProvider verifies a captcha token using a specific named provider instead of
+	// the default. The provider must have been registered via WithCaptchaProvider.
 	//
 	// Takes providerName (string) which identifies the provider to use.
 	// Takes token (string) which is the captcha response token from the client.
@@ -142,8 +138,7 @@ type CaptchaServicePort interface {
 	// Takes action (string) which identifies the protected form or flow.
 	// Takes scoreThreshold (float64) which is the minimum required score.
 	//
-	// Returns *captcha_dto.VerifyResponse which contains the verification
-	// result.
+	// Returns *captcha_dto.VerifyResponse which contains the verification result.
 	// Returns error when the provider is not found or verification fails.
 	VerifyWithProvider(ctx context.Context, providerName, token, remoteIP, action string, scoreThreshold float64) (*captcha_dto.VerifyResponse, error)
 
@@ -184,8 +179,7 @@ type CaptchaServicePort interface {
 	// Returns error when the provider cannot be registered.
 	RegisterProvider(ctx context.Context, name string, provider CaptchaProvider) error
 
-	// SetDefaultProvider sets the provider to use when no specific provider
-	// is named.
+	// SetDefaultProvider sets the provider to use when no specific provider is named.
 	//
 	// Takes name (string) which is the name of the provider to use as default.
 	//
@@ -202,12 +196,11 @@ type CaptchaServicePort interface {
 
 	// ListProviders returns details about all registered providers.
 	//
-	// Returns []provider_domain.ProviderInfo which contains information about
-	// each provider.
+	// Returns []provider_domain.ProviderInfo which contains information about each provider.
 	ListProviders(ctx context.Context) []provider_domain.ProviderInfo
 
-	// HealthCheck verifies the captcha service is operational by checking the
-	// default provider's connectivity.
+	// HealthCheck verifies the captcha service is operational by checking the default
+	// provider's connectivity.
 	//
 	// Returns error when the health check fails.
 	HealthCheck(ctx context.Context) error

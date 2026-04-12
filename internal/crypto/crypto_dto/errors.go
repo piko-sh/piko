@@ -33,8 +33,8 @@ var (
 	// ErrInvalidCiphertext indicates the ciphertext is malformed or corrupted.
 	ErrInvalidCiphertext = errors.New("invalid ciphertext format")
 
-	// ErrDecryptionFailed indicates that decryption failed due to a wrong key,
-	// tampered data, or other cryptographic error.
+	// ErrDecryptionFailed indicates that decryption failed due to a wrong key, tampered
+	// data, or other cryptographic error.
 	ErrDecryptionFailed = errors.New("decryption failed")
 
 	// ErrEncryptionFailed indicates that an encryption operation failed.
@@ -52,8 +52,8 @@ var (
 	// ErrEmptyCiphertext indicates an attempt to decrypt empty data.
 	ErrEmptyCiphertext = errors.New("ciphertext cannot be empty")
 
-	// ErrContextMismatch indicates the decryption context does not match the
-	// encryption context.
+	// ErrContextMismatch indicates the decryption context does not match the encryption
+	// context.
 	ErrContextMismatch = errors.New("decryption context does not match encryption context")
 
 	// ErrKeyRotationInProgress is returned when a key rotation is already running.
@@ -97,8 +97,8 @@ func NewEncryptionError(op, provider, keyID string, err error) *EncryptionError 
 
 // Error implements the error interface for EncryptionError.
 //
-// Returns string which describes the failed crypto operation, including the
-// provider and key ID when available.
+// Returns string which describes the failed crypto operation, including the provider and
+// key ID when available.
 func (e *EncryptionError) Error() string {
 	if e.KeyID != "" {
 		return fmt.Sprintf("crypto %s failed with provider %s and key %s: %v", e.Operation, e.Provider, e.KeyID, e.Err)

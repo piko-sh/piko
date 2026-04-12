@@ -24,17 +24,19 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-const testHTMLEmulation = `<!DOCTYPE html>
-<html>
-<head><title>Emulation Test</title></head>
-<body>
-<div id="viewport-info"></div>
-<script>
-document.getElementById('viewport-info').textContent =
-    window.innerWidth + 'x' + window.innerHeight;
-</script>
-</body>
-</html>`
+const (
+	testHTMLEmulation = `<!DOCTYPE html>
+	<html>
+	<head><title>Emulation Test</title></head>
+	<body>
+	<div id="viewport-info"></div>
+	<script>
+	document.getElementById('viewport-info').textContent =
+	    window.innerWidth + 'x' + window.innerHeight;
+	</script>
+	</body>
+	</html>`
+)
 
 func TestDeviceEmulation(t *testing.T) {
 	t.Parallel()

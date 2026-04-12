@@ -22,13 +22,13 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 )
 
-// BuildResult wraps the annotator's full result to provide a stable
-// contract for coordinator consumers. This DTO can be extended with metadata
-// without breaking consumers, as long as the core AnnotationResult is preserved.
+// BuildResult wraps the annotator's full result to provide a stable contract for
+// coordinator consumers. This DTO can be extended with metadata without breaking
+// consumers, as long as the core AnnotationResult is preserved.
 type BuildResult struct {
-	// AnnotationResult is the primary payload of a successful build. It contains the
-	// fully analysed and annotated ASTs for each page, the complete dependency graph,
-	// the virtual Go module, and the final aggregated asset manifest. It is the
-	// complete, authoritative representation of the compiled project.
+	// AnnotationResult is the primary payload of a successful build. It contains the fully
+	// analysed and annotated ASTs for each page, the complete dependency graph, the virtual
+	// Go module, and the final aggregated asset manifest. It is the complete, authoritative
+	// representation of the compiled project.
 	*annotator_dto.ProjectAnnotationResult
 }

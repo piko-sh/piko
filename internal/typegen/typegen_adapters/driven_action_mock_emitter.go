@@ -58,11 +58,11 @@ func NewActionMockEmitter() *ActionMockEmitter {
 
 // EmitMocks generates TypeScript mock code from action specs.
 //
-// Output is written to a separate file (actions.mock.ts) to keep the main
-// actions file clean.
+// Output is written to a separate file (actions.mock.ts) to keep the main actions file
+// clean.
 //
-// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to
-// generate mocks for.
+// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to generate mocks
+// for.
 //
 // Returns []byte which contains the generated TypeScript mock code.
 // Returns error when code generation fails.
@@ -88,8 +88,8 @@ func (e *ActionMockEmitter) EmitMocks(_ context.Context, specs []annotator_dto.A
 // emitImports writes the necessary imports from the main actions file.
 //
 // Takes b (*strings.Builder) which receives the generated import statements.
-// Takes specs ([]annotator_dto.ActionSpec) which provides action specs to
-// extract return types from.
+// Takes specs ([]annotator_dto.ActionSpec) which provides action specs to extract return
+// types from.
 func (*ActionMockEmitter) emitImports(b *strings.Builder, specs []annotator_dto.ActionSpec) {
 	b.WriteString("import type { ActionError } from './action';\n")
 
@@ -205,8 +205,8 @@ func (*ActionMockEmitter) emitCreateMockFunction(b *strings.Builder) {
 // emitMocksObject emits the mocks object with entries for each action.
 //
 // Takes b (*strings.Builder) which receives the generated TypeScript code.
-// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to
-// generate mocks for.
+// Takes specs ([]annotator_dto.ActionSpec) which defines the actions to generate mocks
+// for.
 func (e *ActionMockEmitter) emitMocksObject(b *strings.Builder, specs []annotator_dto.ActionSpec) {
 	b.WriteString(tsJSDocOpen)
 	b.WriteString(" * Pre-configured mocks for all actions\n")
@@ -261,11 +261,11 @@ func (e *ActionMockEmitter) emitMocksObject(b *strings.Builder, specs []annotato
 
 // generateDefaultValue generates a sensible default value for a type spec.
 //
-// Takes typeSpec (*annotator_dto.TypeSpec) which defines the type to
-// generate a default value for.
+// Takes typeSpec (*annotator_dto.TypeSpec) which defines the type to generate a default
+// value for.
 //
-// Returns string which contains the generated default value as a JavaScript
-// object literal, or "undefined" if typeSpec is nil.
+// Returns string which contains the generated default value as a JavaScript object
+// literal, or "undefined" if typeSpec is nil.
 func (e *ActionMockEmitter) generateDefaultValue(typeSpec *annotator_dto.TypeSpec) string {
 	if typeSpec == nil {
 		return "undefined"

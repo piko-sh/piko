@@ -1,0 +1,4 @@
+{
+  "description": "Three concrete types in three files implementing same interface, dispatched via slice; tests method-table resolution across files",
+  "expected": "circle=78.54 square=16.00 triangle=6.00 sum=100.54"
+}

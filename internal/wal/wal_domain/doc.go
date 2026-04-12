@@ -16,19 +16,16 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package wal_domain defines the core abstractions and business types for
-// write-ahead logging.
+// Package wal_domain defines the core abstractions and business types for write-ahead
+// logging.
 //
-// It defines port interfaces ([WAL], [SnapshotStore]) and codec
-// interfaces for binary serialisation used to persist cache operations
-// to disk. Entries are written to the log before being applied; on
-// recovery the log is replayed to reconstruct state. Snapshots
-// complement the WAL with periodic point-in-time copies that reduce
-// recovery time.
+// It defines port interfaces ([WAL], [SnapshotStore]) and codec interfaces for binary
+// serialisation used to persist cache operations to disk. Entries are written to the log
+// before being applied; on recovery the log is replayed to reconstruct state. Snapshots
+// complement the WAL with periodic point-in-time copies that reduce recovery time.
 //
 // # Thread safety
 //
-// Implementations of the [WAL] interface must be safe for concurrent
-// [WAL.Append] calls. The [WAL.Recover] iterator holds a lock and
-// should be consumed promptly.
+// Implementations of the [WAL] interface must be safe for concurrent [WAL.Append] calls.
+// The [WAL.Recover] iterator holds a lock and should be consumed promptly.
 package wal_domain

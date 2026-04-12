@@ -16,11 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package pdfparse provides a minimal PDF parser and writer for
-// post-processing transformations.
+// Package pdfparse provides a minimal PDF parser and writer for post-processing
+// transformations.
 //
-// It supports reading traditional cross-reference tables,
-// resolving indirect object references, decompressing
-// FlateDecode streams, and rewriting modified PDFs with updated
+// It supports reading traditional cross-reference tables, resolving indirect object
+// references, decompressing FlateDecode streams, and rewriting modified PDFs with updated
 // cross-reference tables and trailers.
 package pdfparse

@@ -29,8 +29,6 @@ import (
 	"testing"
 	"time"
 
-	"sync/atomic"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	qt "github.com/valyala/quicktemplate"
@@ -764,7 +762,7 @@ func TestGetCSRFIfNeeded_CachesResult(t *testing.T) {
 
 	assert.Equal(t, result1.RawEphemeralToken, result2.RawEphemeralToken)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mockCSRF.GenerateCSRFPairCallCount))
+	assert.Equal(t, int64(1), mockCSRF.GenerateCSRFPairCallCount.Load())
 }
 
 func TestIsVoidElement_AllVoidElements(t *testing.T) {
@@ -2169,7 +2167,7 @@ func TestEnsureCSRFForMeta(t *testing.T) {
 
 			if tc.expectedCount > 0 {
 				if mock, ok := rctx.csrfService.(*security_domain.MockCSRFTokenService); ok {
-					assert.Equal(t, int64(tc.expectedCount), atomic.LoadInt64(&mock.GenerateCSRFPairCallCount))
+					assert.Equal(t, int64(tc.expectedCount), mock.GenerateCSRFPairCallCount.Load())
 				}
 			}
 		})
@@ -2190,7 +2188,7 @@ func TestEnsureCSRFForMeta_CalledTwiceOnlyGeneratesOnce(t *testing.T) {
 	pair2 := ro.ensureCSRFForMeta(rctx)
 	require.NotNil(t, pair2)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mockCSRF.GenerateCSRFPairCallCount), "GenerateCSRFPair should only be called once due to sync.Once")
+	assert.Equal(t, int64(1), mockCSRF.GenerateCSRFPairCallCount.Load(), "GenerateCSRFPair should only be called once due to sync.Once")
 	assert.Equal(t, pair1.RawEphemeralToken, pair2.RawEphemeralToken)
 }
 

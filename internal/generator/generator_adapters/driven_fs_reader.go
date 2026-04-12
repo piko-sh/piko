@@ -28,34 +28,35 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// FSReader implements FSReaderPort for reading files from the file system.
-// It uses a sandbox to prevent path traversal attacks.
+// FSReader implements FSReaderPort for reading files from the file system. It uses a
+// sandbox to prevent path traversal attacks.
 type FSReader struct {
 	// sandbox provides safe file access within a set directory.
 	sandbox safedisk.Sandbox
 }
 
-var _ generator_domain.FSReaderPort = (*FSReader)(nil)
+var (
+	_ generator_domain.FSReaderPort = (*FSReader)(nil)
+)
 
-// NewFSReader creates a new file system reader that works within the given
-// sandbox.
+// NewFSReader creates a new file system reader that works within the given sandbox.
 //
 // The sandbox should be set up for the project's source folder.
 //
-// Takes sandbox (safedisk.Sandbox) which sets the allowed file system limits
-// for reading files.
+// Takes sandbox (safedisk.Sandbox) which sets the allowed file system limits for reading
+// files.
 //
 // Returns *FSReader which provides sandboxed file reading.
 func NewFSReader(sandbox safedisk.Sandbox) *FSReader {
 	return &FSReader{sandbox: sandbox}
 }
 
-// ReadFile reads the content of a file at the given path.
-// It includes logging and OpenTelemetry metrics for observability.
+// ReadFile reads the content of a file at the given path. It includes logging and
+// OpenTelemetry metrics for observability.
 //
-// The filePath can be absolute (within the sandbox root) or relative.
-// Absolute paths are changed to relative paths within the sandbox.
-// Relative paths with extra sandbox directory prefixes are cleaned.
+// The filePath can be absolute (within the sandbox root) or relative. Absolute paths are
+// changed to relative paths within the sandbox. Relative paths with extra sandbox
+// directory prefixes are cleaned.
 //
 // Takes filePath (string) which specifies the path to the file to read.
 //

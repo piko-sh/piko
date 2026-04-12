@@ -18,9 +18,9 @@
 
 package annotator_domain
 
-// Validates PK event handlers by checking that referenced functions exist in
-// the client script exports. Provides compile-time safety for p-on event
-// bindings by verifying function names and async compatibility.
+// Validates PK event handlers by checking that referenced functions exist in the client
+// script exports. Provides compile-time safety for p-on event bindings by verifying
+// function names and async compatibility.
 
 import (
 	"fmt"
@@ -30,13 +30,14 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// maxExportsToDisplay is the maximum number of export names to show in error
-// messages before shortening the list to "and N more".
-const maxExportsToDisplay = 5
+const (
+	// maxExportsToDisplay is the maximum number of export names to show in error messages
+	// before shortening the list to "and N more".
+	maxExportsToDisplay = 5
+)
 
-// PKValidator validates PK client-side JavaScript integration.
-// It verifies that p-on event handlers reference valid exported functions
-// from the client script block.
+// PKValidator validates PK client-side JavaScript integration. It verifies that p-on
+// event handlers reference valid exported functions from the client script block.
 type PKValidator struct {
 	// clientExports stores the parsed export data from the client script.
 	clientExports *ClientScriptExports
@@ -65,8 +66,8 @@ type PKValidator struct {
 // Takes clientScript (string) which is the raw JavaScript or TypeScript code.
 // Takes sfcPath (string) which is the path to the PK file.
 //
-// Returns *PKValidator which may have nil clientExports if the script is
-// empty or cannot be parsed.
+// Returns *PKValidator which may have nil clientExports if the script is empty or cannot
+// be parsed.
 func NewPKValidator(clientScript string, sfcPath string) *PKValidator {
 	var exports *ClientScriptExports
 	if clientScript != "" {
@@ -97,14 +98,13 @@ func (v *PKValidator) HasClientScript() bool {
 	return v != nil && v.clientExports != nil && len(v.clientExports.ExportedFunctions) > 0
 }
 
-// ValidateEventHandler checks if a p-on directive references a valid exported
-// function from the client script.
+// ValidateEventHandler checks if a p-on directive references a valid exported function
+// from the client script.
 //
-// For directives without a modifier, the expression should be a call to an
-// exported function. Extracts the function name and validates it exists.
+// For directives without a modifier, the expression should be a call to an exported
+// function. Extracts the function name and validates it exists.
 //
-// Takes directive (*ast_domain.Directive) which is the event directive to
-// validate.
+// Takes directive (*ast_domain.Directive) which is the event directive to validate.
 // Takes ctx (*AnalysisContext) which receives any diagnostic messages.
 func (v *PKValidator) ValidateEventHandler(directive *ast_domain.Directive, ctx *AnalysisContext) {
 	if v == nil || directive == nil {
@@ -144,14 +144,13 @@ func (v *PKValidator) ValidateEventHandler(directive *ast_domain.Directive, ctx 
 	}
 }
 
-// ReportUnusedExports does nothing. Exists because top-level functions are
-// now auto-exported, so utility functions called by event handlers are valid
-// and expected.
+// ReportUnusedExports does nothing. Exists because top-level functions are now
+// auto-exported, so utility functions called by event handlers are valid and expected.
 func (*PKValidator) ReportUnusedExports(_ *AnalysisContext, _ ast_domain.Location) {
 }
 
-// RegisterImportedPartials records the partial aliases imported in this
-// component. The semantic analyser calls this when processing PikoImports.
+// RegisterImportedPartials records the partial aliases imported in this component. The
+// semantic analyser calls this when processing PikoImports.
 //
 // Takes aliases ([]string) which are the partial import aliases to register.
 func (v *PKValidator) RegisterImportedPartials(aliases []string) {
@@ -163,9 +162,9 @@ func (v *PKValidator) RegisterImportedPartials(aliases []string) {
 	}
 }
 
-// MarkPartialRendered records that a partial has been rendered in the
-// template. This prevents false warnings about unused imports when a partial
-// is rendered but not used in reloadPartial() calls.
+// MarkPartialRendered records that a partial has been rendered in the template. This
+// prevents false warnings about unused imports when a partial is rendered but not used in
+// reloadPartial() calls.
 //
 // Takes alias (string) which is the import alias of the rendered partial.
 func (v *PKValidator) MarkPartialRendered(alias string) {
@@ -175,13 +174,12 @@ func (v *PKValidator) MarkPartialRendered(alias string) {
 	v.renderedPartials[alias] = true
 }
 
-// ReportOrphanedPartials adds warnings for partials that are imported but never
-// used. This includes partials that are neither rendered in the template nor
-// referenced in reloadPartial() or reloadGroup() calls.
+// ReportOrphanedPartials adds warnings for partials that are imported but never used.
+// This includes partials that are neither rendered in the template nor referenced in
+// reloadPartial() or reloadGroup() calls.
 //
 // Takes ctx (*AnalysisContext) which receives warning diagnostics.
-// Takes scriptLocation (ast_domain.Location) which is the location for
-// diagnostics.
+// Takes scriptLocation (ast_domain.Location) which is the location for diagnostics.
 func (v *PKValidator) ReportOrphanedPartials(ctx *AnalysisContext, scriptLocation ast_domain.Location) {
 	if v == nil || len(v.importedPartials) == 0 {
 		return
@@ -208,8 +206,8 @@ func (v *PKValidator) ReportOrphanedPartials(ctx *AnalysisContext, scriptLocatio
 	}
 }
 
-// analysePartialUsage scans the client script for reloadPartial and
-// reloadGroup calls and records which partial aliases are used.
+// analysePartialUsage scans the client script for reloadPartial and reloadGroup calls and
+// records which partial aliases are used.
 //
 // Takes script (string) which contains the client script to analyse.
 func (v *PKValidator) analysePartialUsage(script string) {
@@ -222,8 +220,8 @@ func (v *PKValidator) analysePartialUsage(script string) {
 	v.extractReloadGroupCalls(script)
 }
 
-// extractPartialCalls finds calls like reloadPartial('alias') or
-// reloadPartial("alias") in the given script text.
+// extractPartialCalls finds calls like reloadPartial('alias') or reloadPartial("alias")
+// in the given script text.
 //
 // Takes script (string) which is the source text to search.
 // Takes functionName (string) which is the function name to match.
@@ -256,8 +254,8 @@ func (v *PKValidator) extractPartialCalls(script, functionName string) {
 	}
 }
 
-// extractReloadGroupCalls finds calls like reloadGroup(['alias1', 'alias2'])
-// and extracts the aliases from them.
+// extractReloadGroupCalls finds calls like reloadGroup(['alias1', 'alias2']) and extracts
+// the aliases from them.
 //
 // Takes script (string) which contains the JavaScript code to search.
 func (v *PKValidator) extractReloadGroupCalls(script string) {
@@ -268,8 +266,8 @@ func (v *PKValidator) extractReloadGroupCalls(script string) {
 	}
 }
 
-// extractReloadGroupForPattern finds all matches of a pattern in the script
-// and extracts aliases from each match.
+// extractReloadGroupForPattern finds all matches of a pattern in the script and extracts
+// aliases from each match.
 //
 // Takes script (string) which is the script content to search.
 // Takes pattern (string) which is the pattern to match against.
@@ -297,8 +295,8 @@ func (v *PKValidator) extractReloadGroupForPattern(script, pattern string) {
 // Takes script (string) which contains the text to search.
 // Takes startIndex (int) which is the position just after the opening bracket.
 //
-// Returns int which is the position after the closing bracket, or startIndex if
-// no matching bracket is found.
+// Returns int which is the position after the closing bracket, or startIndex if no
+// matching bracket is found.
 func (*PKValidator) findClosingBracket(script string, startIndex int) int {
 	bracketDepth := 1
 	endIndex := startIndex
@@ -319,10 +317,9 @@ func (*PKValidator) findClosingBracket(script string, startIndex int) int {
 	return endIndex
 }
 
-// extractAliasesFromArray finds partial aliases in an array literal string.
-// It handles both single-quoted ('alias1', 'alias2') and double-quoted
-// ("alias1", "alias2") formats, and stores valid aliases in the usedPartials
-// map.
+// extractAliasesFromArray finds partial aliases in an array literal string. It handles
+// both single-quoted ('alias1', 'alias2') and double-quoted ("alias1", "alias2") formats,
+// and stores valid aliases in the usedPartials map.
 //
 // Takes content (string) which is the array literal to parse for aliases.
 func (v *PKValidator) extractAliasesFromArray(content string) {
@@ -346,15 +343,15 @@ func (v *PKValidator) extractAliasesFromArray(content string) {
 	}
 }
 
-// extractHandlerName gets the function name from an event handler directive.
-// It handles both simple calls like "handleClick()" and calls with arguments
-// like "handleClick(event, data)".
+// extractHandlerName gets the function name from an event handler directive. It handles
+// both simple calls like "handleClick()" and calls with arguments like
+// "handleClick(event, data)".
 //
-// Takes directive (*ast_domain.Directive) which contains the parsed event
-// handler expression.
+// Takes directive (*ast_domain.Directive) which contains the parsed event handler
+// expression.
 //
-// Returns string which is the function name, or empty if the directive is nil
-// or has no valid expression.
+// Returns string which is the function name, or empty if the directive is nil or has no
+// valid expression.
 func extractHandlerName(directive *ast_domain.Directive) string {
 	if directive == nil {
 		return ""
@@ -383,8 +380,8 @@ func extractHandlerName(directive *ast_domain.Directive) string {
 	return rawExpr
 }
 
-// isLikelyGoFunction checks if a name looks like a Go exported function.
-// Exported functions in Go start with an uppercase letter.
+// isLikelyGoFunction checks if a name looks like a Go exported function. Exported
+// functions in Go start with an uppercase letter.
 //
 // Takes name (string) which is the function name to check.
 //
@@ -397,14 +394,13 @@ func isLikelyGoFunction(name string) bool {
 	return firstChar >= 'A' && firstChar <= 'Z'
 }
 
-// isCommonUtilityName checks if a name matches common utility function
-// patterns. These are functions that might be exported but used elsewhere, not
-// as event handlers.
+// isCommonUtilityName checks if a name matches common utility function patterns. These
+// are functions that might be exported but used elsewhere, not as event handlers.
 //
 // Takes name (string) which is the function name to check.
 //
-// Returns bool which is true if the name starts with a common utility prefix
-// such as "init", "setup", "create", "get", or "validate".
+// Returns bool which is true if the name starts with a common utility prefix such as
+// "init", "setup", "create", "get", or "validate".
 func isCommonUtilityName(name string) bool {
 	utilityPatterns := []string{
 		"init", "setup", "configure", "register",
@@ -427,8 +423,8 @@ func isCommonUtilityName(name string) bool {
 //
 // Takes exports (*ClientScriptExports) which contains the functions to format.
 //
-// Returns string which lists up to five export names with a count of any
-// remaining, or "(none)" if there are no exports.
+// Returns string which lists up to five export names with a count of any remaining, or
+// "(none)" if there are no exports.
 func formatAvailableExports(exports *ClientScriptExports) string {
 	if exports == nil || len(exports.ExportedFunctions) == 0 {
 		return "(none)"
@@ -448,8 +444,8 @@ func formatAvailableExports(exports *ClientScriptExports) string {
 
 // isValidPartialAlias checks whether a string is a valid partial alias.
 //
-// A valid alias must start with a letter or underscore. The rest may contain
-// only letters, numbers, or underscores.
+// A valid alias must start with a letter or underscore. The rest may contain only
+// letters, numbers, or underscores.
 //
 // Takes alias (string) which is the string to check.
 //

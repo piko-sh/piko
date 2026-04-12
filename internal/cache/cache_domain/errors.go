@@ -18,54 +18,52 @@
 
 package cache_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	// ErrProviderNotFound is returned when a requested cache provider has not been
 	// registered.
 	ErrProviderNotFound = errors.New("cache provider not found")
 
-	// ErrSearchNotSupported is returned when a provider does not support search.
-	// Providers that do not support search should wrap this error with extra
-	// context, such as suggesting an alternative provider (e.g., RediSearch
-	// instead of Redis).
+	// ErrSearchNotSupported is returned when a provider does not support search. Providers
+	// that do not support search should wrap this error with extra context, such as
+	// suggesting an alternative provider (e.g., RediSearch instead of Redis).
 	ErrSearchNotSupported = errors.New("search operations not supported by this provider")
 
-	// errInvalidConfiguration is returned when the options provided to NewCache
-	// are invalid.
+	// errInvalidConfiguration is returned when the options provided to NewCache are invalid.
 	errInvalidConfiguration = errors.New("invalid cache configuration")
 
-	// ErrTransactionFinalised is returned when an operation is attempted on a
-	// transaction that has already been committed or rolled back.
+	// ErrTransactionFinalised is returned when an operation is attempted on a transaction
+	// that has already been committed or rolled back.
 	ErrTransactionFinalised = errors.New("transaction already finalised")
 
-	// ErrNestedTransactionUnsupported is returned when RunAtomic is called
-	// from within an existing transaction.
+	// ErrNestedTransactionUnsupported is returned when RunAtomic is called from within an
+	// existing transaction.
 	ErrNestedTransactionUnsupported = errors.New("nested transactions are not supported")
 
-	// ErrInvalidateByTagsUnsupported is returned when InvalidateByTags is
-	// called within a transaction, because the cache interface does not
-	// expose tag-to-key resolution for rollback journalling.
+	// ErrInvalidateByTagsUnsupported is returned when InvalidateByTags is called within a
+	// transaction, because the cache interface does not expose tag-to-key resolution for
+	// rollback journalling.
 	ErrInvalidateByTagsUnsupported = errors.New("InvalidateByTags is not supported within a transaction")
 
-	// ErrInvalidateAllUnsupported is returned when InvalidateAll is called
-	// within a transaction, because bulk invalidation cannot be efficiently
-	// journalled at the key level.
+	// ErrInvalidateAllUnsupported is returned when InvalidateAll is called within a
+	// transaction, because bulk invalidation cannot be efficiently journalled at the key
+	// level.
 	ErrInvalidateAllUnsupported = errors.New("InvalidateAll is not supported within a transaction")
 
-	// errTransformerNil is returned when a nil transformer is provided during
-	// registration.
+	// errTransformerNil is returned when a nil transformer is provided during registration.
 	errTransformerNil = errors.New("transformer cannot be nil")
 
-	// errTransformerNameEmpty is returned when a transformer is registered with
-	// an empty name.
+	// errTransformerNameEmpty is returned when a transformer is registered with an empty
+	// name.
 	errTransformerNameEmpty = errors.New("transformer name cannot be empty")
 
-	// errEncoderNil is returned when a nil encoder is provided during
-	// registration.
+	// errEncoderNil is returned when a nil encoder is provided during registration.
 	errEncoderNil = errors.New("encoder cannot be nil")
 
-	// errEncoderNoType is returned when an encoder does not declare a concrete
-	// type to handle.
+	// errEncoderNoType is returned when an encoder does not declare a concrete type to
+	// handle.
 	errEncoderNoType = errors.New("encoder must handle a concrete type")
 )

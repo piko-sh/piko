@@ -1,0 +1,15 @@
+package lib
+
+import "fmt"
+
+type Label struct {
+	name string
+}
+
+func NewLabel(name string) Label {
+	return Label{name: name}
+}
+
+func (l Label) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`{"name":%q,"len":%d}`, l.name, len(l.name))), nil
+}

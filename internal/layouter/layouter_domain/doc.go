@@ -16,13 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package layouter_domain contains the core domain types, port interfaces, and
-// algorithms for the Piko layout engine.
+// Package layouter_domain contains the core domain types, port interfaces, and algorithms
+// for the Piko layout engine.
 //
-// The layout engine transforms a post-render [ast_domain.TemplateAST] into a
-// tree of positioned [LayoutBox] nodes with resolved CSS styles. External
-// consumers (such as pdfwriter) use this positioned box tree to produce
-// visual output in their chosen format.
+// The layout engine transforms a post-render [ast_domain.TemplateAST] into a tree of
+// positioned [LayoutBox] nodes with resolved CSS styles. External consumers (such as
+// pdfwriter) use this positioned box tree to produce visual output in their chosen
+// format.
 //
 // # Pipeline
 //
@@ -35,9 +35,9 @@
 //
 // # Design rationale
 //
-// PDF rendering requires CSS layout computation that browsers perform natively but
-// Go does not provide. Rather than shelling out to a headless browser, the layouter
-// implements a CSS layout engine directly so that Piko can produce paginated PDF
-// output from the same HTML/CSS templates used for web rendering, without external
-// dependencies or child processes.
+// PDF rendering requires CSS layout computation that browsers perform natively but Go
+// does not provide. Rather than shelling out to a headless browser, the layouter
+// implements a CSS layout engine directly so that Piko can produce paginated PDF output
+// from the same HTML/CSS templates used for web rendering, without external dependencies
+// or child processes.
 package layouter_domain

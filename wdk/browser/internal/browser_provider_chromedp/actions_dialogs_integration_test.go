@@ -23,17 +23,19 @@ import (
 	"time"
 )
 
-const testHTMLDialogs = `<!DOCTYPE html>
-<html>
-<head><title>Dialog Test</title></head>
-<body>
-<button id="alert-btn" onclick="alert('Test Alert')">Show Alert</button>
-<button id="confirm-btn" onclick="document.getElementById('confirm-result').textContent = confirm('Test Confirm?') ? 'yes' : 'no'">Show Confirm</button>
-<button id="prompt-btn" onclick="document.getElementById('prompt-result').textContent = prompt('Enter value:', 'default') || 'cancelled'">Show Prompt</button>
-<div id="confirm-result"></div>
-<div id="prompt-result"></div>
-</body>
-</html>`
+const (
+	testHTMLDialogs = `<!DOCTYPE html>
+	<html>
+	<head><title>Dialog Test</title></head>
+	<body>
+	<button id="alert-btn" onclick="alert('Test Alert')">Show Alert</button>
+	<button id="confirm-btn" onclick="document.getElementById('confirm-result').textContent = confirm('Test Confirm?') ? 'yes' : 'no'">Show Confirm</button>
+	<button id="prompt-btn" onclick="document.getElementById('prompt-result').textContent = prompt('Enter value:', 'default') || 'cancelled'">Show Prompt</button>
+	<div id="confirm-result"></div>
+	<div id="prompt-result"></div>
+	</body>
+	</html>`
+)
 
 func TestDialogHandler(t *testing.T) {
 	t.Parallel()

@@ -18,14 +18,15 @@
 
 package collection_dto
 
-import "piko.sh/piko/wdk/safedisk"
+import (
+	"piko.sh/piko/wdk/safedisk"
+)
 
 // ContentSource describes where a collection's content files are located.
 //
-// Created per collection directive and passed to provider methods, keeping
-// providers stateless with respect to file location. This separates the
-// concern of "how to process content" (the provider) from "where content
-// lives" (the source).
+// Created per collection directive and passed to provider methods, keeping providers
+// stateless with respect to file location. This separates the concern of "how to process
+// content" (the provider) from "where content lives" (the source).
 type ContentSource struct {
 	// Sandbox provides restricted filesystem access to the content directory.
 	Sandbox safedisk.Sandbox
@@ -33,7 +34,7 @@ type ContentSource struct {
 	// BasePath is the root directory for resolving content file paths.
 	BasePath string
 
-	// IsExternal indicates the content comes from an external Go module
-	// rather than the local project's content/ directory.
+	// IsExternal indicates the content comes from an external Go module rather than the
+	// local project's content/ directory.
 	IsExternal bool
 }

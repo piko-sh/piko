@@ -27,12 +27,12 @@ var (
 	// meter is the package-level meter for mock provider metrics.
 	meter = otel.Meter("piko/internal/email/email_adapters/provider_mock")
 
-	// sendTotal tracks the total number of email send attempts.
-	// Labels: status (success|error), send_type (single|bulk).
+	// sendTotal tracks the total number of email send attempts. Labels: status
+	// (success|error), send_type (single|bulk).
 	sendTotal metric.Int64Counter
 
-	// sendDuration tracks how long email send operations take in milliseconds.
-	// Labels: status (success|error), send_type (single|bulk).
+	// sendDuration tracks how long email send operations take in milliseconds. Labels:
+	// status (success|error), send_type (single|bulk).
 	sendDuration metric.Float64Histogram
 )
 

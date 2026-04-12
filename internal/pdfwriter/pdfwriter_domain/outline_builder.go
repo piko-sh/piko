@@ -18,7 +18,9 @@
 
 package pdfwriter_domain
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	// headingLevelH1 holds the numeric level for an h1 heading.
@@ -55,8 +57,8 @@ type OutlineEntry struct {
 	YPosition float64
 }
 
-// OutlineBuilder collects heading entries and writes the PDF outline
-// tree structure (bookmarks).
+// OutlineBuilder collects heading entries and writes the PDF outline tree structure
+// (bookmarks).
 type OutlineBuilder struct {
 	// entries holds the flat list of headings collected during painting.
 	entries []OutlineEntry
@@ -71,8 +73,8 @@ func NewOutlineBuilder() *OutlineBuilder {
 
 // AddEntry records a heading for the outline tree.
 //
-// Takes entry (OutlineEntry) which holds the heading title, level, page,
-// and vertical position.
+// Takes entry (OutlineEntry) which holds the heading title, level, page, and vertical
+// position.
 func (ob *OutlineBuilder) AddEntry(entry OutlineEntry) {
 	ob.entries = append(ob.entries, entry)
 }
@@ -96,13 +98,12 @@ type outlineNode struct {
 	entry OutlineEntry
 }
 
-// WriteObjects writes the outline tree as PDF objects and returns the
-// outline root object number for inclusion in the catalog. Returns 0
-// if there are no entries.
+// WriteObjects writes the outline tree as PDF objects and returns the outline root object
+// number for inclusion in the catalog. Returns 0 if there are no entries.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
-// Takes pageObjectNumbers ([]int) which maps page indices to their
-// PDF object numbers for destination references.
+// Takes pageObjectNumbers ([]int) which maps page indices to their PDF object numbers for
+// destination references.
 //
 // Returns the object number of the outline root, or 0 if empty.
 func (ob *OutlineBuilder) WriteObjects(writer *PdfDocumentWriter, pageObjectNumbers []int) int {
@@ -125,22 +126,17 @@ func (ob *OutlineBuilder) WriteObjects(writer *PdfDocumentWriter, pageObjectNumb
 	return rootNumber
 }
 
-// writeChildren writes a list of sibling nodes and returns the first
-// and last object numbers plus the total visible item count.
+// writeChildren writes a list of sibling nodes and returns the first and last object
+// numbers plus the total visible item count.
 //
 // Takes writer (*PdfDocumentWriter) which receives the PDF objects.
 // Takes nodes ([]*outlineNode) which is the sibling list to write.
-// Takes parentNumber (int) which is the parent object number for
-// /Parent references.
-// Takes pageObjectNumbers ([]int) which maps page indices to PDF
-// object numbers.
+// Takes parentNumber (int) which is the parent object number for /Parent references.
+// Takes pageObjectNumbers ([]int) which maps page indices to PDF object numbers.
 //
-// Returns firstNumber (int) which is the first child
-// object number.
-// Returns lastNumber (int) which is the last child object
-// number.
-// Returns count (int) which is the total visible item
-// count.
+// Returns firstNumber (int) which is the first child object number.
+// Returns lastNumber (int) which is the last child object number.
+// Returns count (int) which is the total visible item count.
 func (ob *OutlineBuilder) writeChildren(
 	writer *PdfDocumentWriter,
 	nodes []*outlineNode,
@@ -201,11 +197,10 @@ func (ob *OutlineBuilder) writeChildren(
 	return numbers[0], numbers[len(numbers)-1], count
 }
 
-// buildTree converts the flat list of entries into a nested tree based
-// on heading levels.
+// buildTree converts the flat list of entries into a nested tree based on heading levels.
 //
-// An h2 following an h1 becomes a child of the h1; an h1 following an
-// h2 pops back up to be a sibling of the earlier h1.
+// An h2 following an h1 becomes a child of the h1; an h1 following an h2 pops back up to
+// be a sibling of the earlier h1.
 //
 // Returns []*outlineNode which holds the root-level nodes of the tree.
 func (ob *OutlineBuilder) buildTree() []*outlineNode {
@@ -233,8 +228,8 @@ func (ob *OutlineBuilder) buildTree() []*outlineNode {
 	return roots
 }
 
-// headingLevel returns the heading level (1-6) for the given tag name,
-// or 0 if it is not a heading.
+// headingLevel returns the heading level (1-6) for the given tag name, or 0 if it is not
+// a heading.
 //
 // Takes tagName (string) which is the HTML tag name (e.g. "h1", "h2").
 //

@@ -31,21 +31,23 @@ import (
 	"piko.sh/piko/wdk/json"
 )
 
-var _ = config.Resolver(&Resolver{})
+var (
+	_ = config.Resolver(&Resolver{})
+)
 
-// Resolver fetches secrets from Google Cloud Secret Manager.
-// It implements the config.Resolver interface.
+// Resolver fetches secrets from Google Cloud Secret Manager. It implements the
+// config.Resolver interface.
 //
-// Circuit breaker protection is provided by the config Loader layer,
-// not by this resolver directly.
+// Circuit breaker protection is provided by the config Loader layer, not by this resolver
+// directly.
 //
 // The value must be the full resource name of the secret version, for example:
 // "projects/my-project-id/secrets/my-secret/versions/latest"
 //
 // It supports two formats for secrets:
 //   - Plain string: "gcp-secret:projects/.../versions/latest"
-//   - JSON key: "gcp-secret:projects/.../versions/latest#key" extracts "key"
-//     from a JSON secret.
+//   - JSON key: "gcp-secret:projects/.../versions/latest#key" extracts "key" from a JSON
+//     secret.
 type Resolver struct {
 	// client accesses GCP Secret Manager to fetch secret versions.
 	client *secretmanager.Client
@@ -53,8 +55,8 @@ type Resolver struct {
 
 // NewResolver creates and initialises a new GCP Secret Manager resolver.
 //
-// It uses Application Default Credentials (ADC) for authentication.
-// Ensure the application has the secretmanager.secretAccessor IAM role.
+// It uses Application Default Credentials (ADC) for authentication. Ensure the
+// application has the secretmanager.secretAccessor IAM role.
 //
 // Returns *Resolver which is the configured resolver ready for use.
 // Returns error when the GCP Secret Manager client cannot be created.
@@ -78,12 +80,12 @@ func (*Resolver) GetPrefix() string {
 
 // Resolve fetches the secret value from GCP Secret Manager.
 //
-// Takes value (string) which specifies the secret resource name, optionally
-// followed by "#key" to extract a specific field from a JSON secret.
+// Takes value (string) which specifies the secret resource name, optionally followed by
+// "#key" to extract a specific field from a JSON secret.
 //
 // Returns string which is the secret value or extracted JSON field.
-// Returns error when the secret format is invalid, the secret is not found,
-// or JSON parsing fails when a key is specified.
+// Returns error when the secret format is invalid, the secret is not found, or JSON
+// parsing fails when a key is specified.
 func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	secretName, jsonKey, _ := strings.Cut(value, "#")
 	if secretName == "" {
@@ -117,9 +119,9 @@ func (r *Resolver) Resolve(ctx context.Context, value string) (string, error) {
 	return secretValue, nil
 }
 
-// Register creates a new GCP Secret Manager resolver and registers it in the
-// global resolver registry. This is a convenience function equivalent to
-// [NewResolver] followed by [config.RegisterResolver].
+// Register creates a new GCP Secret Manager resolver and registers it in the global
+// resolver registry. This is a convenience function equivalent to NewResolver followed by
+// config.RegisterResolver.
 //
 // Returns error when resolver creation or registration fails.
 //

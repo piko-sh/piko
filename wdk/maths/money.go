@@ -25,23 +25,27 @@ import (
 	"github.com/bojanz/currency"
 )
 
-// DefaultCurrencyCode is the fallback currency code used when none is given.
-const DefaultCurrencyCode = "GBP"
+const (
+	// DefaultCurrencyCode is the fallback currency code used when none is given.
+	DefaultCurrencyCode = "GBP"
+)
 
-// currencyRegistryMutex protects the global currency registry from concurrent
-// access. A read lock is required for creating or formatting money, and a
-// write lock is required for registering a new currency.
-var currencyRegistryMutex sync.RWMutex
+var (
+	// currencyRegistryMutex protects the global currency registry from concurrent access. A
+	// read lock is required for creating or formatting money, and a write lock is required
+	// for registering a new currency.
+	currencyRegistryMutex sync.RWMutex
+)
 
-// CurrencyDefinition is an alias for the currency library's Definition type.
-// It holds the data needed to register a new currency or replace an existing one.
+// CurrencyDefinition is an alias for the currency library's Definition type. It holds the
+// data needed to register a new currency or replace an existing one.
 type CurrencyDefinition = currency.Definition
 
 // Money represents a monetary value with a specific currency.
 //
-// It uses a fluent API and passes on the first error found in a chain of
-// operations. Money implements fmt.Stringer, json.Marshaler, json.Unmarshaler,
-// sql.Scanner, and driver.Valuer.
+// It uses a fluent API and passes on the first error found in a chain of operations.
+// Money implements fmt.Stringer, json.Marshaler, json.Unmarshaler, sql.Scanner, and
+// driver.Valuer.
 type Money struct {
 	// err holds the first error from a chain of operations.
 	err error
@@ -50,14 +54,13 @@ type Money struct {
 	amount currency.Amount
 }
 
-// NewMoneyFromDecimal creates a Money value from a Decimal amount and a
-// currency code.
+// NewMoneyFromDecimal creates a Money value from a Decimal amount and a currency code.
 //
 // Takes amount (Decimal) which specifies the monetary value.
 // Takes code (string) which specifies the ISO 4217 currency code.
 //
-// Returns Money which contains the validated monetary amount, or an error
-// if the amount or currency code is not valid.
+// Returns Money which contains the validated monetary amount, or an error if the amount
+// or currency code is not valid.
 //
 // Safe for concurrent use; acquires a read lock on the currency registry.
 func NewMoneyFromDecimal(amount Decimal, code string) Money {
@@ -78,8 +81,7 @@ func NewMoneyFromDecimal(amount Decimal, code string) Money {
 	return Money{amount: cAmount}
 }
 
-// NewMoneyFromString creates a Money value from a string amount and a
-// currency code.
+// NewMoneyFromString creates a Money value from a string amount and a currency code.
 //
 // Takes amount (string) which specifies the monetary value as a decimal string.
 // Takes code (string) which specifies the currency code (e.g. "GBP", "USD").
@@ -89,26 +91,25 @@ func NewMoneyFromString(amount string, code string) Money {
 	return NewMoneyFromDecimal(NewDecimalFromString(amount), code)
 }
 
-// NewMoneyFromInt creates a Money value from an integer amount in major
-// currency units, such as pounds or dollars.
+// NewMoneyFromInt creates a Money value from an integer amount in major currency units,
+// such as pounds or dollars.
 //
 // Takes amount (int64) which specifies the value in major currency units.
-// Takes code (string) which specifies the currency code, such as "GBP" or
-// "USD".
+// Takes code (string) which specifies the currency code, such as "GBP" or "USD".
 //
 // Returns Money which holds the monetary value with the given currency.
 func NewMoneyFromInt(amount int64, code string) Money {
 	return NewMoneyFromDecimal(NewDecimalFromInt(amount), code)
 }
 
-// NewMoneyFromMinorInt creates a Money object from an int64 representing the
-// minor unit (e.g., cents, pence).
+// NewMoneyFromMinorInt creates a Money object from an int64 representing the minor unit
+// (e.g., cents, pence).
 //
 // Takes amount (int64) which is the value in minor units.
 // Takes code (string) which is the ISO 4217 currency code.
 //
-// Returns Money which contains the parsed amount or an error if the currency
-// code is invalid.
+// Returns Money which contains the parsed amount or an error if the currency code is
+// invalid.
 //
 // Safe for concurrent use by multiple goroutines.
 func NewMoneyFromMinorInt(amount int64, code string) Money {
@@ -121,8 +122,7 @@ func NewMoneyFromMinorInt(amount int64, code string) Money {
 	return Money{amount: cAmount}
 }
 
-// NewMoneyFromFloat creates a Money value from a float64 amount and currency
-// code.
+// NewMoneyFromFloat creates a Money value from a float64 amount and currency code.
 //
 // Takes amount (float64) which is the monetary value.
 // Takes code (string) which is the currency code (e.g. "GBP", "USD").
@@ -139,8 +139,8 @@ func (m Money) Err() error {
 	return m.err
 }
 
-// Must returns the Money value or panics if it holds an error.
-// Use this for setup or tests where an error means a bug in the code.
+// Must returns the Money value or panics if it holds an error. Use this for setup or
+// tests where an error means a bug in the code.
 //
 // Returns Money which is the valid value.
 //
@@ -156,8 +156,8 @@ func (m Money) Must() Money {
 //
 // Takes other (Money) which is the value to add to m.
 //
-// Returns Money which is the sum. Returns an error-state Money if the
-// currencies do not match.
+// Returns Money which is the sum.
+// Returns an error-state Money if the currencies do not match.
 func (m Money) Add(other Money) Money {
 	if m.err != nil {
 		return m
@@ -176,8 +176,8 @@ func (m Money) Add(other Money) Money {
 //
 // Takes amount (Decimal) which is the value to add.
 //
-// Returns Money which contains the sum, or the original value unchanged if it
-// has an error.
+// Returns Money which contains the sum, or the original value unchanged if it has an
+// error.
 func (m Money) AddDecimal(amount Decimal) Money {
 	if m.err != nil {
 		return m
@@ -190,8 +190,8 @@ func (m Money) AddDecimal(amount Decimal) Money {
 //
 // Takes amount (BigInt) which is the value to add.
 //
-// Returns Money which is the result of the addition, or the original value
-// if an error was already present.
+// Returns Money which is the result of the addition, or the original value if an error
+// was already present.
 func (m Money) AddBigInt(amount BigInt) Money {
 	if m.err != nil {
 		return m
@@ -228,8 +228,8 @@ func (m Money) AddMinorInt(amount int64) Money {
 //
 // Takes amount (float64) which is the value to add.
 //
-// Returns Money which contains the sum, or the original value unchanged if it
-// already has an error.
+// Returns Money which contains the sum, or the original value unchanged if it already has
+// an error.
 func (m Money) AddFloat(amount float64) Money {
 	if m.err != nil {
 		return m
@@ -253,8 +253,9 @@ func (m Money) AddString(amount string) Money {
 //
 // Takes other (Money) which is the amount to subtract.
 //
-// Returns Money which is the difference. Returns a Money with an error state
-// if either value has an error or the currencies do not match.
+// Returns Money which is the difference.
+// Returns a Money with an error state if either value has an error or the currencies do
+// not match.
 func (m Money) Subtract(other Money) Money {
 	if m.err != nil {
 		return m
@@ -273,8 +274,8 @@ func (m Money) Subtract(other Money) Money {
 //
 // Takes amount (Decimal) which specifies the value to subtract.
 //
-// Returns Money which is the result of the subtraction, or the original
-// Money if it contains an error.
+// Returns Money which is the result of the subtraction, or the original Money if it
+// contains an error.
 func (m Money) SubtractDecimal(amount Decimal) Money {
 	if m.err != nil {
 		return m
@@ -299,8 +300,8 @@ func (m Money) SubtractBigInt(amount BigInt) Money {
 //
 // Takes amount (int64) which is the value to subtract.
 //
-// Returns Money which is the result of the subtraction. If the receiver
-// already has an error, it returns unchanged.
+// Returns Money which is the result of the subtraction. If the receiver already has an
+// error, it returns unchanged.
 func (m Money) SubtractInt(amount int64) Money {
 	if m.err != nil {
 		return m
@@ -325,8 +326,8 @@ func (m Money) SubtractMinorInt(amount int64) Money {
 //
 // Takes amount (float64) which is the value to subtract.
 //
-// Returns Money which is the result of the subtraction, or the original
-// value unchanged if it already contains an error.
+// Returns Money which is the result of the subtraction, or the original value unchanged
+// if it already contains an error.
 func (m Money) SubtractFloat(amount float64) Money {
 	if m.err != nil {
 		return m
@@ -350,8 +351,8 @@ func (m Money) SubtractString(amount string) Money {
 //
 // Takes factor (Decimal) which specifies the value to multiply by.
 //
-// Returns Money which holds the result, or an error state if either value
-// has an error or if the multiplication fails.
+// Returns Money which holds the result, or an error state if either value has an error or
+// if the multiplication fails.
 func (m Money) Multiply(factor Decimal) Money {
 	if m.err != nil {
 		return m
@@ -387,8 +388,8 @@ func (m Money) MultiplyBigInt(factor BigInt) Money {
 //
 // Takes factor (int64) which is the multiplier to apply.
 //
-// Returns Money which is the result of the multiplication, or the original
-// Money if it already contains an error.
+// Returns Money which is the result of the multiplication, or the original Money if it
+// already contains an error.
 func (m Money) MultiplyInt(factor int64) Money {
 	if m.err != nil {
 		return m
@@ -408,8 +409,7 @@ func (m Money) MultiplyFloat(factor float64) Money {
 	return m.Multiply(NewDecimalFromFloat(factor))
 }
 
-// MultiplyString multiplies the money amount by a decimal factor given as a
-// string.
+// MultiplyString multiplies the money amount by a decimal factor given as a string.
 //
 // Takes factor (string) which is the multiplier in decimal string format.
 //
@@ -425,8 +425,9 @@ func (m Money) MultiplyString(factor string) Money {
 //
 // Takes factor (Decimal) which specifies the value to divide by.
 //
-// Returns Money which contains the divided amount. Returns an error state when
-// the receiver has an error, the factor has an error, or the division fails.
+// Returns Money which contains the divided amount.
+// Returns an error state when the receiver has an error, the factor has an error, or the
+// division fails.
 func (m Money) Divide(factor Decimal) Money {
 	if m.err != nil {
 		return m
@@ -450,8 +451,8 @@ func (m Money) Divide(factor Decimal) Money {
 //
 // Takes factor (BigInt) which is the divisor to divide the money value by.
 //
-// Returns Money which is the result of the division, or the original value
-// if it already holds an error.
+// Returns Money which is the result of the division, or the original value if it already
+// holds an error.
 func (m Money) DivideBigInt(factor BigInt) Money {
 	if m.err != nil {
 		return m
@@ -495,25 +496,24 @@ func (m Money) DivideString(factor string) Money {
 	return m.Divide(NewDecimalFromString(factor))
 }
 
-// Remainder returns what is left after dividing this amount by the given
-// factor.
+// Remainder returns what is left after dividing this amount by the given factor.
 //
 // Takes factor (Decimal) which is the number to divide by.
 //
-// Returns Money which holds the remainder in the same currency. Returns Money
-// with an error when the receiver or factor has an error, or when the factor
-// is zero.
+// Returns Money which holds the remainder in the same currency.
+// Returns Money with an error when the receiver or factor has an error, or when the
+// factor is zero.
 func (m Money) Remainder(factor Decimal) Money {
 	return m.divisionRemainder(factor, Decimal.Truncate, "remainder")
 }
 
-// RemainderBigInt returns the remainder after dividing the money value by the
-// given factor.
+// RemainderBigInt returns the remainder after dividing the money value by the given
+// factor.
 //
 // Takes factor (BigInt) which is the divisor for the remainder operation.
 //
-// Returns Money which contains the remainder, or the original value with its
-// error preserved if the receiver already had an error.
+// Returns Money which contains the remainder, or the original value with its error
+// preserved if the receiver already had an error.
 func (m Money) RemainderBigInt(factor BigInt) Money {
 	if m.err != nil {
 		return m
@@ -521,13 +521,13 @@ func (m Money) RemainderBigInt(factor BigInt) Money {
 	return m.Remainder(factor.ToDecimal())
 }
 
-// RemainderInt returns the remainder after dividing the money value by a given
-// integer factor.
+// RemainderInt returns the remainder after dividing the money value by a given integer
+// factor.
 //
 // Takes factor (int64) which is the divisor for the remainder operation.
 //
-// Returns Money which contains the remainder, or the original value with its
-// error if one was already set.
+// Returns Money which contains the remainder, or the original value with its error if one
+// was already set.
 func (m Money) RemainderInt(factor int64) Money {
 	if m.err != nil {
 		return m
@@ -535,8 +535,8 @@ func (m Money) RemainderInt(factor int64) Money {
 	return m.Remainder(NewDecimalFromInt(factor))
 }
 
-// RemainderFloat returns the remainder after dividing the money amount by the
-// given factor.
+// RemainderFloat returns the remainder after dividing the money amount by the given
+// factor.
 //
 // Takes factor (float64) which is the divisor for the remainder operation.
 //
@@ -552,8 +552,8 @@ func (m Money) RemainderFloat(factor float64) Money {
 //
 // Takes factor (string) which is the divisor as a decimal string.
 //
-// Returns Money which contains the remainder, or an error if the receiver
-// already has one.
+// Returns Money which contains the remainder, or an error if the receiver already has
+// one.
 func (m Money) RemainderString(factor string) Money {
 	if m.err != nil {
 		return m
@@ -565,19 +565,19 @@ func (m Money) RemainderString(factor string) Money {
 //
 // Takes factor (Decimal) which is the divisor for the modulus operation.
 //
-// Returns Money which contains the remainder, or an error if the receiver
-// already has an error, factor has an error, or factor is zero.
+// Returns Money which contains the remainder, or an error if the receiver already has an
+// error, factor has an error, or factor is zero.
 func (m Money) Modulus(factor Decimal) Money {
 	return m.divisionRemainder(factor, Decimal.Floor, "modulus")
 }
 
-// ModulusBigInt returns the remainder after dividing the monetary value by the
-// given factor.
+// ModulusBigInt returns the remainder after dividing the monetary value by the given
+// factor.
 //
 // Takes factor (BigInt) which specifies the divisor for the modulus operation.
 //
-// Returns Money which contains the remainder, or the original value with its
-// error if one was already present.
+// Returns Money which contains the remainder, or the original value with its error if one
+// was already present.
 func (m Money) ModulusBigInt(factor BigInt) Money {
 	if m.err != nil {
 		return m
@@ -687,11 +687,11 @@ func (m *Money) MultiplyInPlace(factor Decimal) {
 	m.amount = newAmount
 }
 
-// RoundedDefaultFormat returns the monetary value as a formatted string with
-// the amount rounded to the nearest whole unit.
+// RoundedDefaultFormat returns the monetary value as a formatted string with the amount
+// rounded to the nearest whole unit.
 //
-// Returns string which is the formatted value using en_GB locale. If the Money
-// has an error, returns the formatted zero value for the currency.
+// Returns string which is the formatted value using en_GB locale. If the Money has an
+// error, returns the formatted zero value for the currency.
 func (m Money) RoundedDefaultFormat() string {
 	if m.err != nil {
 		code, err := m.CurrencyCode()
@@ -708,9 +708,9 @@ func (m Money) RoundedDefaultFormat() string {
 	return formatter.Format(roundedAmount)
 }
 
-// divisionRemainder computes the remainder after dividing by factor using the
-// given rounding function. This is the shared logic for both Remainder (which
-// uses Truncate) and Modulus (which uses Floor).
+// divisionRemainder computes the remainder after dividing by factor using the given
+// rounding function. This is the shared logic for both Remainder (which uses Truncate)
+// and Modulus (which uses Floor).
 //
 // Takes factor (Decimal) which is the divisor for the calculation.
 // Takes roundFunction (func(...)) which applies the rounding method to the result.
@@ -749,9 +749,8 @@ func (m Money) divisionRemainder(factor Decimal, roundFunction func(Decimal) Dec
 	return NewMoneyFromDecimal(resultAmount, code)
 }
 
-// currencyCode returns the currency code from a Money value that is known to
-// be error-free. All callers must have already checked m.err != nil before
-// invoking it.
+// currencyCode returns the currency code from a Money value that is known to be
+// error-free. All callers must have already checked m.err != nil before invoking it.
 //
 // Returns string which is the ISO 4217 currency code.
 func (m Money) currencyCode() string {
@@ -792,8 +791,7 @@ func ZeroMoneyWithError(code string, err error) Money {
 	return m
 }
 
-// OneMoney returns a Money value that represents one major unit of the given
-// currency.
+// OneMoney returns a Money value that represents one major unit of the given currency.
 //
 // Takes code (string) which specifies the ISO currency code.
 //

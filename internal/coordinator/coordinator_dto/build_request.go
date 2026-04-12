@@ -23,15 +23,15 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-// BuildRequest encapsulates all the inputs for a full, unique, and
-// deterministic project build. It includes the source file entry points
-// and any external context that could influence the final compiled output.
+// BuildRequest encapsulates all the inputs for a full, unique, and deterministic project
+// build. It includes the source file entry points and any external context that could
+// influence the final compiled output.
 //
 // Actions are auto-discovered from the actions/ directory during annotation.
 type BuildRequest struct {
 	// Resolver provides path resolution for this build. When set, it overrides the
-	// coordinator's default resolver, enabling per-module resolution in LSP
-	// contexts where files from different Go modules may be analysed.
+	// coordinator's default resolver, enabling per-module resolution in LSP contexts where
+	// files from different Go modules may be analysed.
 	Resolver resolver_domain.ResolverPort
 
 	// CausationID is the identifier used to trace the cause of status updates.

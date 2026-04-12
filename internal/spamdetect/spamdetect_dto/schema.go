@@ -29,9 +29,8 @@ const (
 	// defaultFieldMaxLength is the default maximum byte length for field values.
 	defaultFieldMaxLength = 64 * 1024
 
-	// maxFieldMaxLength is the upper bound a caller may set for an
-	// individual field's MaxLength. Prevents misconfiguration from
-	// allocating excessive memory per submission.
+	// maxFieldMaxLength is the upper bound a caller may set for an individual field's
+	// MaxLength. Prevents misconfiguration from allocating excessive memory per submission.
 	maxFieldMaxLength = 1024 * 1024
 
 	// defaultFieldWeight is the default scoring weight for a field.
@@ -43,17 +42,16 @@ const (
 	// maxDetectorOptions is the upper bound on per-schema detector config entries.
 	maxDetectorOptions = 64
 
-	// maxDetectorOptionEntries is the upper bound on entries inside a
-	// single detector's option map. Prevents misconfiguration from
-	// allocating excessive memory when the option map is cloned.
+	// maxDetectorOptionEntries is the upper bound on entries inside a single detector's
+	// option map. Prevents misconfiguration from allocating excessive memory when the option
+	// map is cloned.
 	maxDetectorOptionEntries = 64
 )
 
 // FieldType identifies the semantic type of a form field.
 //
-// Built-in types are defined as constants. Users may define additional
-// types as plain FieldType strings for use with custom detectors and
-// third-party providers.
+// Built-in types are defined as constants. Users may define additional types as plain
+// FieldType strings for use with custom detectors and third-party providers.
 type FieldType string
 
 const (
@@ -73,9 +71,8 @@ const (
 	FieldTypeURL FieldType = "url"
 )
 
-// Schema is an immutable description of a form's spam-checkable fields.
-// Built via NewSchema (or MustNewSchema) and shared safely across
-// concurrent requests.
+// Schema is an immutable description of a form's spam-checkable fields. Built via
+// NewSchema (or MustNewSchema) and shared safely across concurrent requests.
 type Schema struct {
 	// detectorWeights maps detector names to their scoring weight.
 	detectorWeights map[string]float64
@@ -89,8 +86,8 @@ type Schema struct {
 	// asyncHandler is called when async detectors complete.
 	asyncHandler AsyncResultHandler
 
-	// buildErrors accumulates validation errors discovered during
-	// construction. Surfaced via NewSchema's error return.
+	// buildErrors accumulates validation errors discovered during construction. Surfaced via
+	// NewSchema's error return.
 	buildErrors []error
 
 	// honeypotKey is the form argument key for the hidden honeypot field.
@@ -133,19 +130,18 @@ type Field struct {
 	Weight float64
 }
 
-// AsyncResultHandler is called when asynchronous detectors complete
-// their analysis after the initial synchronous response.
+// AsyncResultHandler is called when asynchronous detectors complete their analysis after
+// the initial synchronous response.
 type AsyncResultHandler func(submissionID string, result *AnalysisResult)
 
-// SchemaEntry is implemented by anything that can configure a Schema
-// during construction.
+// SchemaEntry is implemented by anything that can configure a Schema during construction.
 type SchemaEntry interface {
 	// applyToSchema applies this entry's configuration to the schema.
 	applyToSchema(schema *Schema)
 }
 
-// FieldEntry configures a single field. Returned by TextField and other
-// typed field builders.
+// FieldEntry configures a single field. Returned by TextField and other typed field
+// builders.
 type FieldEntry struct {
 	// field holds the field configuration.
 	field Field
@@ -171,17 +167,16 @@ func (g fieldGroupEntry) applyToSchema(schema *Schema) {
 	}
 }
 
-// NewSchema creates an immutable Schema from the given entries. The
-// returned schema is usable on error for diagnostic purposes but
-// reflects the partial state at the point each validation failed.
+// NewSchema creates an immutable Schema from the given entries. The returned schema is
+// usable on error for diagnostic purposes but reflects the partial state at the point
+// each validation failed.
 //
-// Takes entries (...SchemaEntry) which configure the schema fields and
-// options.
+// Takes entries (...SchemaEntry) which configure the schema fields and options.
 //
 // Returns *Schema which is the immutable schema, safe for concurrent use.
-// Returns error which aggregates validation failures via errors.Join,
-// or nil when the schema is valid. Errors include entry-cap breaches,
-// duplicate field keys, and thresholds outside [0, 1].
+// Returns error which aggregates validation failures via errors.Join, or nil when the
+// schema is valid. Errors include entry-cap breaches, duplicate field keys, and
+// thresholds outside [0, 1].
 func NewSchema(entries ...SchemaEntry) (*Schema, error) {
 	schema := &Schema{
 		threshold: defaultScoreThreshold,
@@ -202,12 +197,10 @@ func NewSchema(entries ...SchemaEntry) (*Schema, error) {
 	return schema, errors.Join(schema.buildErrors...)
 }
 
-// MustNewSchema creates a schema and panics on validation failure. Use
-// only in tests or for compile-time constants where the entries are
-// known to be valid.
+// MustNewSchema creates a schema and panics on validation failure. Use only in tests or
+// for compile-time constants where the entries are known to be valid.
 //
-// Takes entries (...SchemaEntry) which configure the schema fields and
-// options.
+// Takes entries (...SchemaEntry) which configure the schema fields and options.
 //
 // Returns *Schema which is the validated schema.
 //
@@ -220,8 +213,7 @@ func MustNewSchema(entries ...SchemaEntry) *Schema {
 	return schema
 }
 
-// newFieldEntry creates a FieldEntry with the given key, type, and
-// signals.
+// newFieldEntry creates a FieldEntry with the given key, type, and signals.
 //
 // Takes key (string) which is the form argument key.
 // Takes fieldType (FieldType) which is the semantic type.
@@ -312,8 +304,7 @@ func Honeypot(key string) SchemaEntry {
 	})
 }
 
-// Timing declares the form argument key for the signed form-load
-// timestamp token.
+// Timing declares the form argument key for the signed form-load timestamp token.
 //
 // Takes key (string) which is the timing field key.
 //
@@ -338,9 +329,8 @@ func Threshold(threshold float64) SchemaEntry {
 
 // Language adds an expected content language (ISO 639-1 code).
 //
-// Multiple calls add multiple languages. The gibberish detector
-// analyses text against all declared languages and uses the best
-// score.
+// Multiple calls add multiple languages. The gibberish detector analyses text against all
+// declared languages and uses the best score.
 //
 // Takes language (string) which is the ISO 639-1 language code.
 //
@@ -355,8 +345,8 @@ func Language(language string) SchemaEntry {
 	})
 }
 
-// DetectorWeight sets the scoring weight for a named detector when
-// computing field-level scores.
+// DetectorWeight sets the scoring weight for a named detector when computing field-level
+// scores.
 //
 // Takes detectorName (string) which identifies the detector.
 // Takes weight (float64) which is the scoring weight.
@@ -409,8 +399,7 @@ func OnAsyncResult(handler AsyncResultHandler) SchemaEntry {
 	})
 }
 
-// Meta declares a static metadata key-value pair that is copied into
-// every submission.
+// Meta declares a static metadata key-value pair that is copied into every submission.
 //
 // Takes key (string) which is the metadata key.
 // Takes value (string) which is the metadata value.
@@ -429,8 +418,8 @@ func Meta(key, value string) SchemaEntry {
 	})
 }
 
-// CaptureHeader declares an HTTP request header that should be captured
-// into the submission for provider use.
+// CaptureHeader declares an HTTP request header that should be captured into the
+// submission for provider use.
 //
 // Takes headerName (string) which is the header name to capture.
 //
@@ -445,8 +434,8 @@ func CaptureHeader(headerName string) SchemaEntry {
 	})
 }
 
-// FieldGroup composes multiple field entries into a single SchemaEntry
-// for reuse across schemas.
+// FieldGroup composes multiple field entries into a single SchemaEntry for reuse across
+// schemas.
 //
 // Takes fields (...*FieldEntry) which are the entries to group.
 //
@@ -468,8 +457,8 @@ func FieldGroup(fields ...*FieldEntry) SchemaEntry {
 	return fieldGroupEntry(copied)
 }
 
-// MaxLength sets the maximum byte length for the field's value during
-// sanitisation. Values are clamped to [1, maxFieldMaxLength].
+// MaxLength sets the maximum byte length for the field's value during sanitisation.
+// Values are clamped to [1, maxFieldMaxLength].
 //
 // Takes length (int) which is the maximum byte length.
 //
@@ -485,8 +474,7 @@ func (f *FieldEntry) MaxLength(length int) *FieldEntry {
 	return f
 }
 
-// Weight sets the scoring weight for the field when computing the
-// composite score.
+// Weight sets the scoring weight for the field when computing the composite score.
 //
 // Takes weight (float64) which is the scoring weight (default 1.0).
 //
@@ -540,24 +528,24 @@ func (s *Schema) FieldsWithType(fieldType FieldType) []Field {
 	return matched
 }
 
-// HoneypotKey returns the form argument key for the hidden honeypot
-// field, or an empty string if not configured.
+// HoneypotKey returns the form argument key for the hidden honeypot field, or an empty
+// string if not configured.
 //
 // Returns string which is the honeypot key.
 func (s *Schema) HoneypotKey() string {
 	return s.honeypotKey
 }
 
-// TimingKey returns the form argument key for the form-load timestamp
-// token, or an empty string if not configured.
+// TimingKey returns the form argument key for the form-load timestamp token, or an empty
+// string if not configured.
 //
 // Returns string which is the timing key.
 func (s *Schema) TimingKey() string {
 	return s.timingKey
 }
 
-// ScoreThreshold returns the composite score threshold for this schema,
-// or 0 if no explicit threshold was set.
+// ScoreThreshold returns the composite score threshold for this schema, or 0 if no
+// explicit threshold was set.
 //
 // Returns float64 which is the threshold, or 0 for the service default.
 func (s *Schema) ScoreThreshold() float64 {
@@ -574,8 +562,7 @@ func (s *Schema) GetLanguages() []string {
 	return slices.Clone(s.languages)
 }
 
-// GetDetectorWeight returns the scoring weight for the named detector,
-// or 0 if not set.
+// GetDetectorWeight returns the scoring weight for the named detector, or 0 if not set.
 //
 // Takes name (string) which identifies the detector.
 //
@@ -587,8 +574,8 @@ func (s *Schema) GetDetectorWeight(name string) float64 {
 	return s.detectorWeights[name]
 }
 
-// DetectorOptions returns a copy of the per-schema configuration for
-// the named detector, or nil if not set.
+// DetectorOptions returns a copy of the per-schema configuration for the named detector,
+// or nil if not set.
 //
 // Takes detectorName (string) which identifies the detector.
 //
@@ -607,8 +594,7 @@ func (s *Schema) AsyncHandler() AsyncResultHandler {
 	return s.asyncHandler
 }
 
-// GetMetadata returns a copy of the static metadata map declared by
-// Meta() entries.
+// GetMetadata returns a copy of the static metadata map declared by Meta() entries.
 //
 // Returns map[string]string which is the metadata copy.
 func (s *Schema) GetMetadata() map[string]string {
@@ -642,8 +628,8 @@ func (s *Schema) HasSignal(signal Signal) bool {
 	return false
 }
 
-// AllSignals returns the deduplicated set of signals used across all
-// fields and schema-level declarations (honeypot, timing).
+// AllSignals returns the deduplicated set of signals used across all fields and
+// schema-level declarations (honeypot, timing).
 //
 // Returns []Signal which contains the deduplicated signals.
 func (s *Schema) AllSignals() []Signal {
@@ -679,9 +665,8 @@ func (s *Schema) recordCapExceeded(builder string, capacity int) {
 	s.buildErrors = append(s.buildErrors, fmt.Errorf("%w: %s limited to %d entries", ErrSchemaCapExceeded, builder, capacity))
 }
 
-// validate aggregates field-count, duplicate-key, and threshold errors
-// onto the schema's buildErrors slice. Called by NewSchema before
-// returning.
+// validate aggregates field-count, duplicate-key, and threshold errors onto the schema's
+// buildErrors slice. Called by NewSchema before returning.
 func (s *Schema) validate() {
 	if len(s.fields) > maxSchemaFields {
 		s.buildErrors = append(s.buildErrors, fmt.Errorf("%w: %d fields declared, maximum is %d", ErrSchemaTooManyFields, len(s.fields), maxSchemaFields))

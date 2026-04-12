@@ -22,42 +22,38 @@ const (
 	// StreamingEnvelopeVersion is the version byte for the v2 streaming format.
 	StreamingEnvelopeVersion byte = 0x02
 
-	// DefaultChunkSize is the size of each plaintext chunk for streaming
-	// encryption (64KB).
+	// DefaultChunkSize is the size of each plaintext chunk for streaming encryption (64KB).
 	//
-	// It provides a good balance between memory usage and performance.
-	// Each chunk will be slightly larger when encrypted due to the GCM
-	// authentication tag.
+	// It provides a good balance between memory usage and performance. Each chunk will be
+	// slightly larger when encrypted due to the GCM authentication tag.
 	DefaultChunkSize = 64 * 1024
 )
 
-// StreamingHeader represents the metadata at the beginning of a v2
-// streaming ciphertext.
+// StreamingHeader represents the metadata at the beginning of a v2 streaming ciphertext.
 //
-// The header is written as:
-// [Version (1 byte)] [Header Length (4 bytes)] [JSON-encoded StreamingHeader]
-// The JSON encoding allows for extensibility and human-readability
+// The header is written as: [Version (1 byte)] [Header Length (4 bytes)] [JSON-encoded
+// StreamingHeader] The JSON encoding allows for extensibility and human-readability
 // during debugging.
 type StreamingHeader struct {
 	// KeyID is the identifier of the master encryption key used.
 	KeyID string `json:"key_id"`
 
-	// Provider identifies which encryption provider was used (e.g.,
-	// "local_aes_gcm", "aws_kms").
+	// Provider identifies which encryption provider was used (e.g., "local_aes_gcm",
+	// "aws_kms").
 	Provider string `json:"provider"`
 
-	// IV is the base64-encoded initialisation vector for the stream. Per-chunk
-	// IVs are derived from this base IV during AES-GCM streaming decryption.
+	// IV is the base64-encoded initialisation vector for the stream. Per-chunk IVs are
+	// derived from this base IV during AES-GCM streaming decryption.
 	IV string `json:"iv"`
 
-	// EncryptedDataKey is the encrypted data key, encoded in Base64. Only present
-	// when using envelope encryption (AWS KMS, GCP KMS); empty for local_aes_gcm.
+	// EncryptedDataKey is the encrypted data key, encoded in Base64. Only present when using
+	// envelope encryption (AWS KMS, GCP KMS); empty for local_aes_gcm.
 	EncryptedDataKey string `json:"edk,omitempty"`
 
 	// Algorithm specifies the encryption method used (e.g., "AES-256-GCM").
 	Algorithm string `json:"algorithm,omitempty"`
 
-	// Version is the format version number, always 2 for streaming format.
-	// This is also stored in the version byte but is included here for ease of use.
+	// Version is the format version number, always 2 for streaming format. This is also
+	// stored in the version byte but is included here for ease of use.
 	Version int `json:"version"`
 }

@@ -16,12 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package otter implements the registry DAL using in-memory otter
-// cache for development, testing, and embedded deployments.
+// Package otter implements the registry DAL using in-memory otter cache for development,
+// testing, and embedded deployments.
 //
-// It has no external dependencies. The adapter maintains secondary
-// indexes for tag-based search and variant storage key lookups, and
-// supports blob reference counting for content deduplication.
+// It has no external dependencies. The adapter maintains secondary indexes for tag-based
+// search and variant storage key lookups, and supports blob reference counting for
+// content deduplication.
 //
 // All exported methods are safe for concurrent use.
 package otter

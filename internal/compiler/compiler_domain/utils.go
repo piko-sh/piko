@@ -34,8 +34,10 @@ const (
 	singleSpace = " "
 )
 
-// whitespacePattern matches one or more consecutive whitespace characters.
-var whitespacePattern = regexp.MustCompile(`\s+`)
+var (
+	// whitespacePattern matches one or more consecutive whitespace characters.
+	whitespacePattern = regexp.MustCompile(`\s+`)
+)
 
 // nodeKeyGenerator generates unique keys for VDOM nodes in base36 format.
 type nodeKeyGenerator struct {
@@ -85,8 +87,8 @@ func base36(n int) string {
 	return sign + result
 }
 
-// escapeBackticks replaces backtick characters with escaped backticks for use
-// in template literals.
+// escapeBackticks replaces backtick characters with escaped backticks for use in template
+// literals.
 //
 // Takes inputText (string) which is the text to process.
 //
@@ -95,13 +97,11 @@ func escapeBackticks(inputText string) string {
 	return strings.ReplaceAll(inputText, "`", "\\`")
 }
 
-// normaliseWhitespace replaces tabs, newlines, and multiple spaces with single
-// spaces.
+// normaliseWhitespace replaces tabs, newlines, and multiple spaces with single spaces.
 //
 // Takes inputText (string) which is the text to process.
 //
-// Returns string which is the text with all whitespace changed to single
-// spaces.
+// Returns string which is the text with all whitespace changed to single spaces.
 func normaliseWhitespace(inputText string) string {
 	noTabs := strings.ReplaceAll(inputText, "\t", singleSpace)
 	noNewlines := strings.ReplaceAll(noTabs, "\n", singleSpace)
@@ -109,8 +109,8 @@ func normaliseWhitespace(inputText string) string {
 	return whitespacePattern.ReplaceAllString(noCarriage, singleSpace)
 }
 
-// createStaticGetterFunction builds a static getter property for a JavaScript
-// class by parsing a temporary class snippet.
+// createStaticGetterFunction builds a static getter property for a JavaScript class by
+// parsing a temporary class snippet.
 //
 // Takes getterName (string) which specifies the name of the static getter.
 // Takes content (string) which provides the string value the getter returns.
@@ -141,15 +141,13 @@ func createStaticGetterFunction(getterName, content string) (*js_ast.Property, e
 	return nil, fmt.Errorf("failed to create static getter %q", getterName)
 }
 
-// findClassDeclarationByName finds the first named class declaration
-// in a JavaScript AST, checking both export default and regular class
-// statements.
+// findClassDeclarationByName finds the first named class declaration in a JavaScript AST,
+// checking both export default and regular class statements.
 //
-// Takes syntaxTree (*js_ast.AST) which is the parsed JavaScript AST
-// to search.
+// Takes syntaxTree (*js_ast.AST) which is the parsed JavaScript AST to search.
 //
-// Returns *js_ast.Class which is the first named class found, or nil
-// if no named class declaration exists.
+// Returns *js_ast.Class which is the first named class found, or nil if no named class
+// declaration exists.
 func findClassDeclarationByName(syntaxTree *js_ast.AST, _ string) *js_ast.Class {
 	for _, statement := range getStmtsFromAST(syntaxTree) {
 		switch node := statement.Data.(type) {

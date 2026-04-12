@@ -18,71 +18,66 @@
 
 package ast_domain
 
-// Defines annotation structures that attach metadata to AST nodes for guiding
-// code generation and runtime behaviour. Contains type information, collection
-// data, responsive image variants, and compilation flags used throughout the
-// template processing pipeline.
+// Defines annotation structures that attach metadata to AST nodes for guiding code
+// generation and runtime behaviour. Contains type information, collection data,
+// responsive image variants, and compilation flags used throughout the template
+// processing pipeline.
 
 import (
 	goast "go/ast"
 	"maps"
 )
 
-// RuntimeAnnotation holds metadata that controls how requests are handled at
-// runtime.
+// RuntimeAnnotation holds metadata that controls how requests are handled at runtime.
 type RuntimeAnnotation struct {
 	// NeedsCSRF indicates whether this handler requires CSRF protection.
 	NeedsCSRF bool `json:"needs_csrf,omitempty"`
 }
 
-// GoGeneratorAnnotation contains metadata attached to AST nodes to guide Go
-// code generation. This annotation is populated during type resolution and
-// static analysis phases.
+// GoGeneratorAnnotation contains metadata attached to AST nodes to guide Go code
+// generation. This annotation is populated during type resolution and static analysis
+// phases.
 type GoGeneratorAnnotation struct {
 	// EffectiveKeyExpression holds the parsed expression for the map key type.
 	EffectiveKeyExpression Expression
 
-	// DynamicCollectionInfo holds metadata for collections built at runtime;
-	// nil means the collection is not dynamic.
+	// DynamicCollectionInfo holds metadata for collections built at runtime; nil means the
+	// collection is not dynamic.
 	DynamicCollectionInfo any
 
-	// StaticCollectionLiteral holds the AST expression for a static collection
-	// value; nil means no static literal is present.
+	// StaticCollectionLiteral holds the AST expression for a static collection value; nil
+	// means no static literal is present.
 	StaticCollectionLiteral goast.Expr
 
-	// ParentTypeName is the name of the containing type; nil when there is no
-	// parent.
+	// ParentTypeName is the name of the containing type; nil when there is no parent.
 	ParentTypeName *string
 
-	// BaseCodeGenVarName is the variable name used as the base for generated code;
-	// nil means no base variable is set.
+	// BaseCodeGenVarName is the variable name used as the base for generated code; nil means
+	// no base variable is set.
 	BaseCodeGenVarName *string
 
 	// GeneratedSourcePath is the file path where the generated code is written.
 	GeneratedSourcePath *string
 
-	// DynamicAttributeOrigins maps attribute names to the package alias where they
-	// were defined.
+	// DynamicAttributeOrigins maps attribute names to the package alias where they were
+	// defined.
 	DynamicAttributeOrigins map[string]string
 
-	// ResolvedType holds the parsed type details for this annotation; nil if type
-	// resolution has not yet been done.
+	// ResolvedType holds the parsed type details for this annotation; nil if type resolution
+	// has not yet been done.
 	ResolvedType *ResolvedTypeInfo
 
 	// Symbol holds the resolved symbol data from the linter for this annotation.
 	Symbol *ResolvedSymbol
 
-	// PartialInfo holds details about partial template calls; nil if not a
-	// partial.
+	// PartialInfo holds details about partial template calls; nil if not a partial.
 	PartialInfo *PartialInvocationInfo
 
-	// PropDataSource holds the resolved type and source details for property
-	// binding.
+	// PropDataSource holds the resolved type and source details for property binding.
 	PropDataSource *PropDataSource
 
-	// OriginalSourcePath is the project-relative path of the original .pk source
-	// file. Used for error reporting, manifest generation, and partial expansion
-	// tracking.
+	// OriginalSourcePath is the project-relative path of the original .pk source file. Used
+	// for error reporting, manifest generation, and partial expansion tracking.
 	OriginalSourcePath *string
 
 	// OriginalPackageAlias is the package alias from the original source; nil if none.
@@ -91,9 +86,9 @@ type GoGeneratorAnnotation struct {
 	// FieldTag is the struct tag for the field; nil means no tag is set.
 	FieldTag *string
 
-	// SourceInvocationKey is the invocation key of the partial this
-	// identifier depends on, populated when resolving symbols from a
-	// partial's state or props for dependency tracking.
+	// SourceInvocationKey is the invocation key of the partial this identifier depends on,
+	// populated when resolving symbols from a partial's state or props for dependency
+	// tracking.
 	SourceInvocationKey *string
 
 	// StaticCollectionData holds the fixed data items for a collection field.
@@ -102,8 +97,8 @@ type GoGeneratorAnnotation struct {
 	// Srcset holds image variants used to build responsive srcset attributes.
 	Srcset []ResponsiveVariantMetadata
 
-	// Stringability indicates how the type can be converted to a string.
-	// A value of 0 means the type cannot be converted to a string.
+	// Stringability indicates how the type can be converted to a string. A value of 0 means
+	// the type cannot be converted to a string.
 	Stringability int
 
 	// IsStatic indicates whether this node contains only static content.
@@ -112,37 +107,36 @@ type GoGeneratorAnnotation struct {
 	// NeedsCSRF indicates whether the endpoint requires CSRF protection.
 	NeedsCSRF bool
 
-	// NeedsRuntimeSafetyCheck indicates whether the generated code requires nil
-	// or bounds checks at runtime.
+	// NeedsRuntimeSafetyCheck indicates whether the generated code requires nil or bounds
+	// checks at runtime.
 	NeedsRuntimeSafetyCheck bool
 
 	// IsStructurallyStatic indicates whether the element has no dynamic features.
 	IsStructurallyStatic bool
 
-	// IsPointerToStringable indicates whether this is a pointer to a type that
-	// can be converted to a string.
+	// IsPointerToStringable indicates whether this is a pointer to a type that can be
+	// converted to a string.
 	IsPointerToStringable bool
 
-	// IsCollectionCall indicates whether this annotation targets a collection
-	// method call.
+	// IsCollectionCall indicates whether this annotation targets a collection method call.
 	IsCollectionCall bool
 
-	// IsHybridCollection indicates whether the collection contains both static and
-	// dynamic items.
+	// IsHybridCollection indicates whether the collection contains both static and dynamic
+	// items.
 	IsHybridCollection bool
 
 	// IsMapAccess indicates whether this member expression uses map lookup syntax.
 	IsMapAccess bool
 
-	// IsFullyPrerenderable indicates this node and its entire subtree can be
-	// prerendered to HTML bytes at generation time. This is true only when:
-	// IsStatic is true AND the subtree contains no piko:svg, piko:img, piko:a,
-	// or piko:video tags that require runtime processing.
+	// IsFullyPrerenderable indicates this node and its entire subtree can be prerendered to
+	// HTML bytes at generation time. This is true only when: IsStatic is true AND the
+	// subtree contains no piko:svg, piko:img, piko:a, or piko:video tags that require
+	// runtime processing.
 	IsFullyPrerenderable bool
 }
 
-// ResponsiveVariantMetadata holds metadata for a single responsive image
-// variant. Used to build srcset attributes at code generation time.
+// ResponsiveVariantMetadata holds metadata for a single responsive image variant. Used to
+// build srcset attributes at code generation time.
 type ResponsiveVariantMetadata struct {
 	// Density is the pixel density descriptor for this variant (e.g. "1x", "2x").
 	Density string
@@ -162,57 +156,51 @@ type ResponsiveVariantMetadata struct {
 
 // PropDataSource tracks where a prop value comes from for code generation.
 type PropDataSource struct {
-	// ResolvedType holds the type details after resolution; nil if not yet
-	// resolved.
+	// ResolvedType holds the type details after resolution; nil if not yet resolved.
 	ResolvedType *ResolvedTypeInfo
 
-	// Symbol holds the resolved symbol data, including the name and source
-	// locations (declaration and reference) from the original .pk file.
+	// Symbol holds the resolved symbol data, including the name and source locations
+	// (declaration and reference) from the original .pk file.
 	Symbol *ResolvedSymbol
 
-	// BaseCodeGenVarName is the base variable name used during code generation.
-	// Nil means no name has been set yet.
+	// BaseCodeGenVarName is the base variable name used during code generation. Nil means no
+	// name has been set yet.
 	BaseCodeGenVarName *string
 }
 
-// ResolvedTypeInfo contains fully-qualified type information resolved during
-// analysis.
+// ResolvedTypeInfo contains fully-qualified type information resolved during analysis.
 type ResolvedTypeInfo struct {
 	// TypeExpression is the AST node for the resolved type.
 	TypeExpression goast.Expr
 
-	// PackageAlias is the local name used for the package in the source file where
-	// the type was resolved. For example, "uuid" for a GitHub-hosted import of
-	// google/uuid, or a generated name like "main_1b2e523d" for types local to a
-	// component.
+	// PackageAlias is the local name used for the package in the source file where the type
+	// was resolved. For example, "uuid" for a GitHub-hosted import of google/uuid, or a
+	// generated name like "main_1b2e523d" for types local to a component.
 	PackageAlias string
 
-	// CanonicalPackagePath is the full Go package import path, such as a
-	// GitHub-hosted module path for google/uuid, or a project-local path like
+	// CanonicalPackagePath is the full Go package import path, such as a GitHub-hosted
+	// module path for google/uuid, or a project-local path like
 	// "my-project/dist/pages/main_1b2e523d".
 	CanonicalPackagePath string
 
-	// InitialPackagePath is the package path where a generic type was
-	// instantiated, providing context to resolve substituted type
-	// arguments (empty for non-generic types).
+	// InitialPackagePath is the package path where a generic type was instantiated,
+	// providing context to resolve substituted type arguments (empty for non-generic types).
 	InitialPackagePath string
 
-	// InitialFilePath is the file path where a generic type was created.
-	// Works with InitialPackagePath to help find import paths for type arguments
-	// used in generic types.
+	// InitialFilePath is the file path where a generic type was created. Works with
+	// InitialPackagePath to help find import paths for type arguments used in generic types.
 	InitialFilePath string
 
-	// IsSynthetic indicates the type is a placeholder for type-checking that
-	// does not correspond to a real Go type. Synthetic types like $event
-	// (js.Event) must not leak into Go code generation.
+	// IsSynthetic indicates the type is a placeholder for type-checking that does not
+	// correspond to a real Go type. Synthetic types like $event (js.Event) must not leak
+	// into Go code generation.
 	IsSynthetic bool
 
-	// IsExportedPackageSymbol indicates whether this symbol is an exported
-	// package-level symbol (function, constant, or variable) from the component's
-	// script block. When true and CanonicalPackagePath differs from the current
-	// generation context, the generator emits qualified references (e.g.,
-	// pkgAlias.SymbolName) to distinguish from locally-generated binding
-	// variables like props_xxx.
+	// IsExportedPackageSymbol indicates whether this symbol is an exported package-level
+	// symbol (function, constant, or variable) from the component's script block. When true
+	// and CanonicalPackagePath differs from the current generation context, the generator
+	// emits qualified references (e.g., pkgAlias.SymbolName) to distinguish from
+	// locally-generated binding variables like props_xxx.
 	IsExportedPackageSymbol bool
 }
 
@@ -225,38 +213,36 @@ type JSAnnotation struct {
 	IsClientSafe bool
 }
 
-// ResolvedSymbol represents a symbol (variable, function, etc.) resolved in
-// the source.
+// ResolvedSymbol represents a symbol (variable, function, etc.) resolved in the source.
 //
 // Location Semantics:
-//   - ReferenceLocation: Where the symbol is USED in the template
-//     (e.g., "{{ state.Message }}" at Line 17).
-//   - DeclarationLocation: Where the symbol is DECLARED in the script block
-//     (e.g., "Message string" at Line 8).
+//   - ReferenceLocation: Where the symbol is USED in the template (e.g., "{{
+//     state.Message }}" at Line 17).
+//   - DeclarationLocation: Where the symbol is DECLARED in the script block (e.g.,
+//     "Message string" at Line 8).
 //
-// Both locations are in original .pk file coordinates (not virtual .go
-// coordinates). Virtual coordinates from the inspector are unmapped using
-// ScriptStartLocation.
+// Both locations are in original .pk file coordinates (not virtual .go coordinates).
+// Virtual coordinates from the inspector are unmapped using ScriptStartLocation.
 type ResolvedSymbol struct {
 	// Name is the identifier of the resolved symbol.
 	Name string
 
-	// ReferenceLocation is where this symbol appears in the template source.
-	// For example, line 17 in main.pk where "{{ state.Message }}" is used.
+	// ReferenceLocation is where this symbol appears in the template source. For example,
+	// line 17 in main.pk where "{{ state.Message }}" is used.
 	ReferenceLocation Location
 
-	// DeclarationLocation is where this symbol is declared in the script block
-	// of the original .pk file.
+	// DeclarationLocation is where this symbol is declared in the script block of the
+	// original .pk file.
 	//
-	// The position is unmapped from virtual coordinates (e.g., virtual Line 7
-	// becomes original Line 8). Used by LSP for "go to definition" functionality.
+	// The position is unmapped from virtual coordinates (e.g., virtual Line 7 becomes
+	// original Line 8). Used by LSP for "go to definition" functionality.
 	DeclarationLocation Location
 }
 
 // Clone creates a deep copy of the PropDataSource.
 //
-// Returns *PropDataSource which is a new instance with all fields
-// copied, or nil if the receiver is nil.
+// Returns *PropDataSource which is a new instance with all fields copied, or nil if the
+// receiver is nil.
 func (pds *PropDataSource) Clone() *PropDataSource {
 	if pds == nil {
 		return nil
@@ -290,8 +276,8 @@ func (rs *ResolvedSymbol) Clone() *ResolvedSymbol {
 
 // Clone creates a deep copy of the GoGeneratorAnnotation.
 //
-// Returns *GoGeneratorAnnotation which is the cloned instance, or nil if the
-// receiver is nil.
+// Returns *GoGeneratorAnnotation which is the cloned instance, or nil if the receiver is
+// nil.
 func (a *GoGeneratorAnnotation) Clone() *GoGeneratorAnnotation {
 	if a == nil {
 		return nil

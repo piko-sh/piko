@@ -19,7 +19,7 @@
 package email_dto
 
 const (
-	// EmailNameDefault is the fallback provider name used when no specific email
-	// provider is set.
+	// EmailNameDefault is the fallback provider name used when no specific email provider is
+	// set.
 	EmailNameDefault = "default"
 )

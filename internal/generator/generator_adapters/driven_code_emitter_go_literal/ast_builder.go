@@ -31,20 +31,18 @@ import (
 )
 
 const (
-	// defaultCollectionParamName is the URL parameter used when a
-	// collection-backed page omits an explicit `p-param`. Mirrors the runtime
-	// expectation that a route like `/blog/{slug}` exposes its slug under the
-	// key "slug".
+	// defaultCollectionParamName is the URL parameter used when a collection-backed page
+	// omits an explicit `p-param`. Mirrors the runtime expectation that a route like
+	// `/blog/{slug}` exposes its slug under the key "slug".
 	defaultCollectionParamName = "slug"
 
-	// catchAllParamName is chi's literal key for catch-all matches. The router
-	// captures the matched suffix here when a `{name:.+}` pattern is
-	// translated to the native `*` form.
+	// catchAllParamName is chi's literal key for catch-all matches. The router captures the
+	// matched suffix here when a `{name:.+}` pattern is translated to the native `*` form.
 	catchAllParamName = "*"
 )
 
-// AstBuilder defines the interface for building Go AST function
-// declarations. It enables mocking and testing of AST building logic.
+// AstBuilder defines the interface for building Go AST function declarations. It enables
+// mocking and testing of AST building logic.
 type AstBuilder interface {
 	// buildASTFunction builds an AST function declaration from the annotation.
 	//
@@ -68,18 +66,17 @@ type AstBuilder interface {
 	// Returns diagnostics ([]*ast_domain.Diagnostic) which contains any issues found.
 	emitNode(emitCtx *nodeEmissionContext) (statements []goast.Stmt, nodesConsumed int, diagnostics []*ast_domain.Diagnostic)
 
-	// topologicallySortInvocations sorts the given invocations based on their
-	// dependencies within the virtual module.
+	// topologicallySortInvocations sorts the given invocations based on their dependencies
+	// within the virtual module.
 	//
-	// Takes invocations ([]*annotator_dto.PartialInvocation) which are the
-	// invocations to sort.
-	// Takes virtualModule (*annotator_dto.VirtualModule) which provides the
-	// dependency context.
+	// Takes invocations ([]*annotator_dto.PartialInvocation) which are the invocations to
+	// sort.
+	// Takes virtualModule (*annotator_dto.VirtualModule) which provides the dependency
+	// context.
 	//
-	// Returns []*annotator_dto.PartialInvocation which contains the sorted
-	// invocations in dependency order.
-	// Returns []*ast_domain.Diagnostic which contains any errors found during
-	// sorting.
+	// Returns []*annotator_dto.PartialInvocation which contains the sorted invocations in
+	// dependency order.
+	// Returns []*ast_domain.Diagnostic which contains any errors found during sorting.
 	topologicallySortInvocations(
 		invocations []*annotator_dto.PartialInvocation,
 		virtualModule *annotator_dto.VirtualModule,
@@ -99,9 +96,9 @@ type AstBuilder interface {
 	) ([]goast.Stmt, []*ast_domain.Diagnostic)
 }
 
-// astBuilder implements the AstBuilder interface and coordinates the building
-// of Go AST code from template nodes. It passes node processing to specialised
-// sub-emitters for each type of construct.
+// astBuilder implements the AstBuilder interface and coordinates the building of Go AST
+// code from template nodes. It passes node processing to specialised sub-emitters for
+// each type of construct.
 type astBuilder struct {
 	// emitter holds the node emission context and annotation results.
 	emitter *emitter
@@ -122,19 +119,21 @@ type astBuilder struct {
 	expressionEmitter ExpressionEmitter
 }
 
-var _ AstBuilder = (*astBuilder)(nil)
+var (
+	_ AstBuilder = (*astBuilder)(nil)
+)
 
-// buildASTFunction builds the complete BuildAST function declaration.
-// It uses the Extract Method pattern to break the work into clear steps.
+// buildASTFunction builds the complete BuildAST function declaration. It uses the Extract
+// Method pattern to break the work into clear steps.
 //
-// Takes request (generator_dto.GenerateRequest) which provides the generation
-// request settings.
-// Takes result (*annotator_dto.AnnotationResult) which contains the
-// annotation data to use when building the function.
+// Takes request (generator_dto.GenerateRequest) which provides the generation request
+// settings.
+// Takes result (*annotator_dto.AnnotationResult) which contains the annotation data to
+// use when building the function.
 //
 // Returns *goast.FuncDecl which is the complete function declaration AST.
-// Returns []*ast_domain.Diagnostic which contains any problems found during
-// the build process.
+// Returns []*ast_domain.Diagnostic which contains any problems found during the build
+// process.
 func (b *astBuilder) buildASTFunction(
 	ctx context.Context,
 	request generator_dto.GenerateRequest,
@@ -148,14 +147,14 @@ func (b *astBuilder) buildASTFunction(
 
 // buildASTFunctionBody builds all the statements for a BuildAST function body.
 //
-// Takes request (generator_dto.GenerateRequest) which specifies the generation
-// settings, including virtual instances and collection name.
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotated
-// AST data for code generation.
+// Takes request (generator_dto.GenerateRequest) which specifies the generation settings,
+// including virtual instances and collection name.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotated AST data
+// for code generation.
 //
 // Returns []goast.Stmt which contains the generated function body statements.
-// Returns []*ast_domain.Diagnostic which contains any issues found during
-// statement building.
+// Returns []*ast_domain.Diagnostic which contains any issues found during statement
+// building.
 func (b *astBuilder) buildASTFunctionBody(
 	ctx context.Context,
 	request generator_dto.GenerateRequest,
@@ -197,14 +196,13 @@ func (b *astBuilder) buildASTFunctionBody(
 	return statements, allDiags
 }
 
-// buildComponentInitialisation builds the statements for setting up a
-// component, including the initial render call, translations, and partial
-// preparation.
+// buildComponentInitialisation builds the statements for setting up a component,
+// including the initial render call, translations, and partial preparation.
 //
-// Takes request (generator_dto.GenerateRequest) which provides the generation
-// request settings.
-// Takes result (*annotator_dto.AnnotationResult) which contains the annotation
-// data to process.
+// Takes request (generator_dto.GenerateRequest) which provides the generation request
+// settings.
+// Takes result (*annotator_dto.AnnotationResult) which contains the annotation data to
+// process.
 //
 // Returns []goast.Stmt which contains the generated setup statements.
 // Returns []*ast_domain.Diagnostic which contains any issues found.
@@ -234,16 +232,16 @@ func (b *astBuilder) buildComponentInitialisation(
 	return statements, allDiags
 }
 
-// buildLocalStoreStatement creates the statement for building and setting
-// a local translation Store if local translations exist.
+// buildLocalStoreStatement creates the statement for building and setting a local
+// translation Store if local translations exist.
 //
-// Takes request (generator_dto.GenerateRequest) which specifies the generation
-// request containing the source path.
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotation
-// result containing the virtual module and component data.
+// Takes request (generator_dto.GenerateRequest) which specifies the generation request
+// containing the source path.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotation result
+// containing the virtual module and component data.
 //
-// Returns goast.Stmt which is the expression statement for setting the local
-// Store, or nil if no local translations exist.
+// Returns goast.Stmt which is the expression statement for setting the local Store, or
+// nil if no local translations exist.
 func (b *astBuilder) buildLocalStoreStatement(
 	request generator_dto.GenerateRequest,
 	result *annotator_dto.AnnotationResult,
@@ -269,12 +267,11 @@ func (b *astBuilder) buildLocalStoreStatement(
 
 // buildRootNodesEmission sets up the root AST and emits all root nodes.
 //
-// Takes result (*annotator_dto.AnnotationResult) which holds the annotated
-// source to turn into AST statements.
+// Takes result (*annotator_dto.AnnotationResult) which holds the annotated source to turn
+// into AST statements.
 //
 // Returns []goast.Stmt which holds the generated AST statements.
-// Returns []*ast_domain.Diagnostic which holds any problems found during
-// emission.
+// Returns []*ast_domain.Diagnostic which holds any problems found during emission.
 func (b *astBuilder) buildRootNodesEmission(
 	ctx context.Context,
 	result *annotator_dto.AnnotationResult,
@@ -295,10 +292,10 @@ func (b *astBuilder) buildRootNodesEmission(
 
 // emitAllRootNodes walks the annotated AST and emits all root nodes.
 //
-// Takes result (*annotator_dto.AnnotationResult) which holds the annotated AST
-// with root nodes to process.
-// Takes rootNodesSlice (goast.Expr) which is the slice expression used to
-// index the emitted nodes.
+// Takes result (*annotator_dto.AnnotationResult) which holds the annotated AST with root
+// nodes to process.
+// Takes rootNodesSlice (goast.Expr) which is the slice expression used to index the
+// emitted nodes.
 //
 // Returns []goast.Stmt which holds the generated statements for all nodes.
 // Returns []*ast_domain.Diagnostic which holds any diagnostics from emission.
@@ -338,11 +335,11 @@ func (b *astBuilder) emitAllRootNodes(
 
 // newAstBuilder creates and wires an astBuilder with all its parts.
 //
-// Used for testing when an astBuilder is needed without pool management.
-// Production code should use getAstBuilder which gets builders from pools.
+// Used for testing when an astBuilder is needed without pool management. Production code
+// should use getAstBuilder which gets builders from pools.
 //
-// Uses a two-pass setup to break circular dependencies: first it creates all
-// parts, then it wires them together by passing interfaces.
+// Uses a two-pass setup to break circular dependencies: first it creates all parts, then
+// it wires them together by passing interfaces.
 //
 // Takes emitter (*emitter) which provides the code output capabilities.
 //
@@ -393,11 +390,10 @@ func newAstBuilder(emitter *emitter) *astBuilder {
 	return b
 }
 
-// createBuildASTFunctionSignature creates the function declaration for
-// BuildAST.
+// createBuildASTFunctionSignature creates the function declaration for BuildAST.
 //
-// Returns *goast.FuncDecl which is a function declaration node with parameters
-// and return types set but with an empty body.
+// Returns *goast.FuncDecl which is a function declaration node with parameters and return
+// types set but with an empty body.
 func createBuildASTFunctionSignature() *goast.FuncDecl {
 	return &goast.FuncDecl{
 		Name: cachedIdent("BuildAST"),
@@ -420,8 +416,7 @@ func createBuildASTFunctionSignature() *goast.FuncDecl {
 	}
 }
 
-// initialiseDiagnosticsVar creates a variable declaration for the diagnostics
-// slice.
+// initialiseDiagnosticsVar creates a variable declaration for the diagnostics slice.
 //
 // Returns goast.Stmt which is the variable declaration statement.
 func initialiseDiagnosticsVar() goast.Stmt {
@@ -439,23 +434,20 @@ func initialiseDiagnosticsVar() goast.Stmt {
 	}
 }
 
-// initialiseRootASTVar creates the statements to initialise the arena and
-// rootAST variable. Uses a RenderArena for all allocations, reducing ~1,614
-// pool operations to just 2 (Get arena + Put arena).
+// initialiseRootASTVar creates the statements to initialise the arena and rootAST
+// variable. Uses a RenderArena for all allocations, reducing ~1,614 pool operations to
+// just 2 (Get arena + Put arena).
 //
-// Generated code:
-// arena := pikoruntime.GetArena()
-// rootAST := arena.GetTemplateAST()
-// rootAST.SetArena(arena)
-// rootAST.RootNodes = arena.GetRootNodesSlice(n)
+// Generated code: arena := pikoruntime.GetArena() rootAST := arena.GetTemplateAST()
+// rootAST.SetArena(arena) rootAST.RootNodes = arena.GetRootNodesSlice(n)
 //
-// Takes rootASTVar (*goast.Ident) which is the identifier for the root AST
-// variable being initialised.
-// Takes result (*annotator_dto.AnnotationResult) which provides the annotated
-// AST data including root node count for pre-allocation.
+// Takes rootASTVar (*goast.Ident) which is the identifier for the root AST variable being
+// initialised.
+// Takes result (*annotator_dto.AnnotationResult) which provides the annotated AST data
+// including root node count for pre-allocation.
 //
-// Returns []goast.Stmt which contains the arena creation, AST initialisation,
-// and arena attachment statements.
+// Returns []goast.Stmt which contains the arena creation, AST initialisation, and arena
+// attachment statements.
 func initialiseRootASTVar(rootASTVar *goast.Ident, result *annotator_dto.AnnotationResult) []goast.Stmt {
 	arenaVar := cachedIdent(arenaVarName)
 	return []goast.Stmt{
@@ -482,22 +474,21 @@ func initialiseRootASTVar(rootASTVar *goast.Ident, result *annotator_dto.Annotat
 	}
 }
 
-// generateCollectionDataPopulation creates code that fills r.CollectionData
-// from the collection registry by calling GetStaticCollectionItem.
+// generateCollectionDataPopulation creates code that fills r.CollectionData from the
+// collection registry by calling GetStaticCollectionItem.
 //
-// The code reads the matched URL parameter (e.g. "slug") to identify the item
-// and fetches metadata, contentAST, and excerptAST for the matching slug in
-// the named collection. When the fetch fails, a CollectionNotFound error is
-// returned (HTTP 404) so the error page system can handle it. When the fetch
-// succeeds, it sets r.CollectionData to a map with these values under "page",
-// "contentAST", and "excerptAST" keys.
+// The code reads the matched URL parameter (e.g. "slug") to identify the item and fetches
+// metadata, contentAST, and excerptAST for the matching slug in the named collection.
+// When the fetch fails, a CollectionNotFound error is returned (HTTP 404) so the error
+// page system can handle it. When the fetch succeeds, it sets r.CollectionData to a map
+// with these values under "page", "contentAST", and "excerptAST" keys.
 //
 // Takes collectionName (string) which names the collection to query.
-// Takes paramName (string) which is the URL param to read for the slug
-// (defaults to "slug" when empty).
+// Takes paramName (string) which is the URL param to read for the slug (defaults to
+// "slug" when empty).
 //
-// Returns []goast.Stmt which contains the assignment, error check, and data
-// population statements.
+// Returns []goast.Stmt which contains the assignment, error check, and data population
+// statements.
 func generateCollectionDataPopulation(collectionName, paramName string) []goast.Stmt {
 	if paramName == "" {
 		paramName = defaultCollectionParamName
@@ -541,17 +532,16 @@ func generateCollectionDataPopulation(collectionName, paramName string) []goast.
 	return []goast.Stmt{assignStmt, errCheckStmt, dataAssignment}
 }
 
-// buildCollectionItemFetchAssign builds an assignment statement that fetches
-// data for a collection item by slug.
+// buildCollectionItemFetchAssign builds an assignment statement that fetches data for a
+// collection item by slug.
 //
 // The slug is read from the matched URL parameter (e.g. r.PathParam("slug")).
 //
-// Takes collectionName (string) which is the name of the collection to fetch
-// from.
+// Takes collectionName (string) which is the name of the collection to fetch from.
 // Takes paramName (string) which is the URL parameter that carries the slug.
 //
-// Returns *goast.AssignStmt which assigns metadata, content AST, excerpt AST,
-// and error from the runtime GetStaticCollectionItem call.
+// Returns *goast.AssignStmt which assigns metadata, content AST, excerpt AST, and error
+// from the runtime GetStaticCollectionItem call.
 func buildCollectionItemFetchAssign(collectionName, paramName string) *goast.AssignStmt {
 	slugExpr := pathParamExpr(paramName)
 
@@ -582,9 +572,9 @@ func buildCollectionItemFetchAssign(collectionName, paramName string) *goast.Ass
 
 // pathParamExpr builds the Go expression that reads a slug path parameter.
 //
-// Emits `cmp.Or(r.PathParam(paramName), r.PathParam("*"))`. The wildcard
-// fallback covers chi's native catch-all, which captures the matched URL
-// suffix under "*" rather than the named parameter.
+// Emits `cmp.Or(r.PathParam(paramName), r.PathParam("*"))`. The wildcard fallback covers
+// chi's native catch-all, which captures the matched URL suffix under "*" rather than the
+// named parameter.
 //
 // Takes paramName (string) which is the named parameter to read first.
 //
@@ -612,8 +602,8 @@ func pathParamCall(name string) goast.Expr {
 	}
 }
 
-// buildCollectionDataAssignment builds the assignment statement
-// r = r.WithCollectionData(map[string]interface{}{...}).
+// buildCollectionDataAssignment builds the assignment statement r =
+// r.WithCollectionData(map[string]interface{}{...}).
 //
 // This uses the functional setter pattern to keep RequestData unchanged.
 //
@@ -640,13 +630,11 @@ func buildCollectionDataAssignment() *goast.AssignStmt {
 	}
 }
 
-// generateDataVariableDeclaration creates the data variable declaration and
-// extraction logic for template use. It extracts the "page" key from
-// r.CollectionData() so templates can use {{ data.Title }} instead of
-// {{ data.page.Title }}.
+// generateDataVariableDeclaration creates the data variable declaration and extraction
+// logic for template use. It extracts the "page" key from r.CollectionData() so templates
+// can use {{ data.Title }} instead of {{ data.page.Title }}.
 //
-// Generated code:
-// var data interface{}
+// Generated code: var data interface{}
 //
 //	if rootMap, ok := r.CollectionData().(map[string]interface{}); ok {
 //	    if pageVal, ok := rootMap["page"]; ok {
@@ -656,8 +644,8 @@ func buildCollectionDataAssignment() *goast.AssignStmt {
 //	    }
 //	}
 //
-// Returns []goast.Stmt which contains the variable declaration and extraction
-// logic statements.
+// Returns []goast.Stmt which contains the variable declaration and extraction logic
+// statements.
 func generateDataVariableDeclaration() []goast.Stmt {
 	return []goast.Stmt{
 		buildDataVarDecl(),
@@ -665,8 +653,7 @@ func generateDataVariableDeclaration() []goast.Stmt {
 	}
 }
 
-// buildDataVarDecl builds a variable declaration statement for
-// var data interface{}.
+// buildDataVarDecl builds a variable declaration statement for var data interface{}.
 //
 // Returns *goast.DeclStmt which contains the AST node for the declaration.
 func buildDataVarDecl() *goast.DeclStmt {
@@ -678,8 +665,7 @@ func buildDataVarDecl() *goast.DeclStmt {
 	}
 }
 
-// buildCollectionDataCallExpr builds the AST node for the r.CollectionData()
-// method call.
+// buildCollectionDataCallExpr builds the AST node for the r.CollectionData() method call.
 //
 // Returns *goast.CallExpr which is the AST node for the method call.
 func buildCollectionDataCallExpr() *goast.CallExpr {
@@ -689,11 +675,11 @@ func buildCollectionDataCallExpr() *goast.CallExpr {
 }
 
 // buildDataExtractionIfStmt builds an if statement that extracts data from
-// CollectionData. It performs a type assertion to convert the result to a
-// string map and, if this succeeds, extracts page key data.
+// CollectionData. It performs a type assertion to convert the result to a string map and,
+// if this succeeds, extracts page key data.
 //
-// Returns *goast.IfStmt which contains the type assertion and conditional
-// extraction logic.
+// Returns *goast.IfStmt which contains the type assertion and conditional extraction
+// logic.
 func buildDataExtractionIfStmt() *goast.IfStmt {
 	collDataExpr := buildCollectionDataCallExpr()
 	mapType := &goast.MapType{Key: cachedIdent("string"), Value: cachedIdent(EmptyInterfaceTypeName)}
@@ -709,11 +695,11 @@ func buildDataExtractionIfStmt() *goast.IfStmt {
 	}
 }
 
-// buildPageKeyExtractionIfStmt builds an if statement that extracts the "page"
-// key from a root map.
+// buildPageKeyExtractionIfStmt builds an if statement that extracts the "page" key from a
+// root map.
 //
-// Returns *goast.IfStmt which checks for a "page" key and assigns either its
-// value or a fallback collection data expression.
+// Returns *goast.IfStmt which checks for a "page" key and assigns either its value or a
+// fallback collection data expression.
 func buildPageKeyExtractionIfStmt() *goast.IfStmt {
 	collDataExpr := buildCollectionDataCallExpr()
 

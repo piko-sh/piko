@@ -16,11 +16,9 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_driver_d1 provides a database/sql driver for
-// Cloudflare D1.
+// Package db_driver_d1 provides a database/sql driver for Cloudflare D1.
 //
-// It wraps D1's HTTP API behind Go's standard database/sql/driver
-// interfaces. Because D1 does not support interactive
-// transactions, the driver emulates them by collecting statements
-// and flushing them as a single batch on Commit.
+// It wraps D1's HTTP API behind Go's standard database/sql/driver interfaces. Because D1
+// does not support interactive transactions, the driver emulates them by collecting
+// statements and flushing them as a single batch on Commit.
 package db_driver_d1

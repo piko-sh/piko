@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +42,7 @@ func TestMockScorer_Score(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, search_domain.ScoreResult{}, got)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.ScoreCallCount))
+		assert.Equal(t, int64(1), m.ScoreCallCount.Load())
 	})
 
 	t.Run("delegates to ScoreFunc", func(t *testing.T) {
@@ -113,5 +112,5 @@ func TestMockScorer_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.ScoreCallCount))
+	assert.Equal(t, int64(goroutines), m.ScoreCallCount.Load())
 }

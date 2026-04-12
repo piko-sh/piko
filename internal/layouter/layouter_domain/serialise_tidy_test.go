@@ -20,6 +20,7 @@ package layouter_domain
 
 import (
 	goast "go/ast"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -830,18 +831,18 @@ func TestBuildStyleOverrideStatements_ModifiedStyle(t *testing.T) {
 
 	assert.GreaterOrEqual(t, len(stmts), 3)
 
-	var combined string
+	var combined strings.Builder
 	for _, stmt := range stmts {
 		if assign, ok := stmt.(*goast.AssignStmt); ok {
 			for _, rhs := range assign.Rhs {
-				combined += printExpr(rhs) + " "
+				combined.WriteString(printExpr(rhs) + " ")
 			}
 		}
 	}
 
-	assert.Contains(t, combined, "DisplayBlock")
-	assert.Contains(t, combined, "24")
-	assert.Contains(t, combined, "ColourWhite")
+	assert.Contains(t, combined.String(), "DisplayBlock")
+	assert.Contains(t, combined.String(), "24")
+	assert.Contains(t, combined.String(), "ColourWhite")
 }
 
 func TestBuildStyleOverrideStatements_DefaultIsEmpty(t *testing.T) {

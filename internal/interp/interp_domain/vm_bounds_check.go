@@ -25,44 +25,41 @@ import (
 )
 
 const (
-	// boundsTableIntConstant is the table name for integer constants
-	// in bounds-check error messages.
+	// boundsTableIntConstant is the table name for integer constants in bounds-check error
+	// messages.
 	boundsTableIntConstant = "int constant"
 
-	// boundsTableFloatConstant is the table name for float constants
-	// in bounds-check error messages.
+	// boundsTableFloatConstant is the table name for float constants in bounds-check error
+	// messages.
 	boundsTableFloatConstant = "float constant"
 
-	// boundsTableStringConstant is the table name for string
-	// constants in bounds-check error messages.
+	// boundsTableStringConstant is the table name for string constants in bounds-check error
+	// messages.
 	boundsTableStringConstant = "string constant"
 
-	// boundsTableGeneralConstant is the table name for general
-	// constants in bounds-check error messages.
+	// boundsTableGeneralConstant is the table name for general constants in bounds-check
+	// error messages.
 	boundsTableGeneralConstant = "general constant"
 
-	// boundsTableBoolConstant is the table name for boolean
-	// constants in bounds-check error messages.
+	// boundsTableBoolConstant is the table name for boolean constants in bounds-check error
+	// messages.
 	boundsTableBoolConstant = "bool constant"
 
-	// boundsTableUintConstant is the table name for unsigned integer
-	// constants in bounds-check error messages.
+	// boundsTableUintConstant is the table name for unsigned integer constants in
+	// bounds-check error messages.
 	boundsTableUintConstant = "uint constant"
 
-	// boundsTableComplexConstant is the table name for complex number
-	// constants in bounds-check error messages.
+	// boundsTableComplexConstant is the table name for complex number constants in
+	// bounds-check error messages.
 	boundsTableComplexConstant = "complex constant"
 
-	// boundsTableFunction is the table name for functions in
-	// bounds-check error messages.
+	// boundsTableFunction is the table name for functions in bounds-check error messages.
 	boundsTableFunction = "function"
 
-	// boundsTableTypeTable is the table name for type tables in
-	// bounds-check error messages.
+	// boundsTableTypeTable is the table name for type tables in bounds-check error messages.
 	boundsTableTypeTable = "type table"
 
-	// boundsTableCallSite is the table name for call sites in
-	// bounds-check error messages.
+	// boundsTableCallSite is the table name for call sites in bounds-check error messages.
 	boundsTableCallSite = "call site"
 
 	// registerRoleMap is the role name for map registers in diagnostic messages.
@@ -72,9 +69,9 @@ const (
 	registerRoleStruct = "struct"
 )
 
-// vmBoundsErr is a structured VM bounds-check error that keeps the Error()
-// message low-cardinality for log aggregation while preserving detailed
-// diagnostic information via DiagnosticDetail().
+// vmBoundsErr is a structured VM bounds-check error that keeps the Error() message
+// low-cardinality for log aggregation while preserving detailed diagnostic information
+// via DiagnosticDetail().
 type vmBoundsErr struct {
 	// tableName identifies the kind of table that was accessed out of range.
 	tableName string
@@ -99,8 +96,8 @@ func (e *vmBoundsErr) Error() string {
 	return fmt.Sprintf("%s index out of range", e.tableName)
 }
 
-// DiagnosticDetail returns the full diagnostic context for debugging,
-// including the index, table size, program counter, and function name.
+// DiagnosticDetail returns the full diagnostic context for debugging, including the
+// index, table size, program counter, and function name.
 //
 // Returns string containing the formatted diagnostic fields.
 func (e *vmBoundsErr) DiagnosticDetail() string {
@@ -110,14 +107,12 @@ func (e *vmBoundsErr) DiagnosticDetail() string {
 	)
 }
 
-// vmBoundsError sets a diagnostic error on the VM when a
-// bytecode-referenced table index is out of range.
+// vmBoundsError sets a diagnostic error on the VM when a bytecode-referenced table index
+// is out of range.
 //
 // Takes vm (*VM) which is the virtual machine to set the error on.
-// Takes frame (*callFrame) which provides the current program
-// counter and function name.
-// Takes tableName (string) which identifies the table that was
-// accessed out of range.
+// Takes frame (*callFrame) which provides the current program counter and function name.
+// Takes tableName (string) which identifies the table that was accessed out of range.
 // Takes index (int) which is the requested index.
 // Takes tableSize (int) which is the actual size of the table.
 func vmBoundsError(vm *VM, frame *callFrame, tableName string, index int, tableSize int) {
@@ -130,19 +125,17 @@ func vmBoundsError(vm *VM, frame *callFrame, tableName string, index int, tableS
 	}
 }
 
-// vmDiagnosticContext generates rich diagnostic context for VM
-// panics, including disassembled bytecode and nearby registers.
+// vmDiagnosticContext generates rich diagnostic context for VM panics, including
+// disassembled bytecode and nearby registers.
 //
-// Takes frame (*callFrame) which provides the current program
-// counter and function bytecode.
-// Takes registers (*Registers) which provides the register file
-// to inspect.
-// Takes focusRegister (int) which is the register index to
-// centre the diagnostic output around.
+// Takes frame (*callFrame) which provides the current program counter and function
+// bytecode.
+// Takes registers (*Registers) which provides the register file to inspect.
+// Takes focusRegister (int) which is the register index to centre the diagnostic output
+// around.
 //
-// Returns a multi-line string with disassembled bytecode around
-// the current program counter and the types of nearby general
-// registers.
+// Returns a multi-line string with disassembled bytecode around the current program
+// counter and the types of nearby general registers.
 func vmDiagnosticContext(frame *callFrame, registers *Registers, focusRegister int) string {
 	var b strings.Builder
 
@@ -168,17 +161,15 @@ func vmDiagnosticContext(frame *callFrame, registers *Registers, focusRegister i
 	return b.String()
 }
 
-// vmCallSiteDiagnostic generates diagnostic context specific to a
-// native call site, including argument and return register mappings.
+// vmCallSiteDiagnostic generates diagnostic context specific to a native call site,
+// including argument and return register mappings.
 //
-// Takes frame (*callFrame) which provides the current program
-// counter and function bytecode for inspecting preceding
-// instructions.
+// Takes frame (*callFrame) which provides the current program counter and function
+// bytecode for inspecting preceding instructions.
 // Takes site (*callSite) which is the call site to diagnose.
 //
-// Returns a multi-line string with the current site's return and
-// argument mappings, plus the preceding CALL_NATIVE site if
-// present.
+// Returns a multi-line string with the current site's return and argument mappings, plus
+// the preceding CALL_NATIVE site if present.
 func vmCallSiteDiagnostic(frame *callFrame, site *callSite) string {
 	var b strings.Builder
 
@@ -196,13 +187,12 @@ func vmCallSiteDiagnostic(frame *callFrame, site *callSite) string {
 	return b.String()
 }
 
-// vmDumpPrecedingCallNative appends diagnostic information about
-// the preceding instruction when it is a CALL_NATIVE.
+// vmDumpPrecedingCallNative appends diagnostic information about the preceding
+// instruction when it is a CALL_NATIVE.
 //
-// Takes b (*strings.Builder) which is the buffer to append
-// diagnostic output to.
-// Takes frame (*callFrame) which provides the current program
-// counter and function bytecode.
+// Takes b (*strings.Builder) which is the buffer to append diagnostic output to.
+// Takes frame (*callFrame) which provides the current program counter and function
+// bytecode.
 func vmDumpPrecedingCallNative(b *strings.Builder, frame *callFrame) {
 	pc := frame.programCounter
 	if pc < 2 {
@@ -218,9 +208,9 @@ func vmDumpPrecedingCallNative(b *strings.Builder, frame *callFrame) {
 	}
 	prevSite := &frame.function.callSites[prevSiteIndex]
 	fmt.Fprintf(b,
-		"preceding CALL_NATIVE (pc-2) site %d: nativeRegister=%d isMethod=%v methodRecvReg=%d args=%d returns=%d\n",
+		"preceding CALL_NATIVE (pc-2) site %d: nativeRegister=%d isMethod=%v methodReceiverRegister=%d args=%d returns=%d\n",
 		prevSiteIndex, prevSite.nativeRegister,
-		prevSite.isMethod, prevSite.methodRecvReg,
+		prevSite.isMethod, prevSite.methodReceiverRegister,
 		len(prevSite.arguments), len(prevSite.returns),
 	)
 	for i, ret := range prevSite.returns {
@@ -231,22 +221,24 @@ func vmDumpPrecedingCallNative(b *strings.Builder, frame *callFrame) {
 	}
 }
 
-// vmPanicInvalidRegister panics with a diagnostic message when a
-// VM handler encounters a zero reflect.Value in a general register.
+// vmPanicInvalidRegister raises an interpreted panic when a VM handler encounters a zero
+// reflect.Value in a general register.
 //
-// Takes handler (string) which is the name of the VM handler
-// that detected the error.
-// Takes registerRole (string) which describes the role of the
-// register (e.g. "map" or "struct").
-// Takes registerIndex (uint8) which is the index of the invalid
-// register.
+// The panic is a plain string carrying a formatted diagnostic. It is not a host crash:
+// the dispatch boundary installs a recover() (handleRecoveredHandlerPanic in vm_run.go)
+// that catches it and converts it into an interpreted panic, so interpreted defer/recover
+// observes it the same way it would a Go nil-pointer dereference. The function still does
+// not return - callers may treat the call as terminating the handler.
+//
+// Takes handler (string) which is the name of the VM handler that detected the error.
+// Takes registerRole (string) which describes the role of the register (e.g. "map" or
+// "struct").
+// Takes registerIndex (uint8) which is the index of the invalid register.
 // Takes inst (instruction) which is the current instruction.
-// Takes frame (*callFrame) which provides the current program
-// counter and function name.
-// Takes registers (*Registers) which provides the register file
-// for diagnostic context.
+// Takes frame (*callFrame) which provides the current program counter and function name.
+// Takes registers (*Registers) which provides the register file for diagnostic context.
 //
-// Panics unconditionally with a formatted diagnostic message.
+// Does not return; raises a recoverable panic with a formatted diagnostic message.
 func vmPanicInvalidRegister(handler string, registerRole string, registerIndex uint8, inst instruction, frame *callFrame, registers *Registers) {
 	panic(fmt.Sprintf(
 		"interp: %s - general[%d] (%s) is zero reflect.Value; "+
@@ -258,22 +250,22 @@ func vmPanicInvalidRegister(handler string, registerRole string, registerIndex u
 	))
 }
 
-// vmPanicNotStruct panics with a diagnostic message when a VM
-// handler expects a struct but finds a different kind.
+// vmPanicNotStruct raises an interpreted panic when a VM handler expects a struct but
+// finds a different kind.
 //
-// Takes handler (string) which is the name of the VM handler
-// that detected the error.
-// Takes registerIndex (uint8) which is the index of the register
-// containing the non-struct value.
-// Takes actual (reflect.Kind) which is the kind that was found
-// instead of struct.
+// Like vmPanicInvalidRegister, the panic is a plain string caught and converted into an
+// interpreted panic by handleRecoveredHandlerPanic at the dispatch boundary, rather than
+// crashing the host.
+//
+// Takes handler (string) which is the name of the VM handler that detected the error.
+// Takes registerIndex (uint8) which is the index of the register containing the
+// non-struct value.
+// Takes actual (reflect.Kind) which is the kind that was found instead of struct.
 // Takes inst (instruction) which is the current instruction.
-// Takes frame (*callFrame) which provides the current program
-// counter and function name.
-// Takes registers (*Registers) which provides the register file
-// for diagnostic context.
+// Takes frame (*callFrame) which provides the current program counter and function name.
+// Takes registers (*Registers) which provides the register file for diagnostic context.
 //
-// Panics unconditionally with a formatted diagnostic message.
+// Does not return; raises a recoverable panic with a formatted diagnostic message.
 func vmPanicNotStruct(handler string, registerIndex uint8, actual reflect.Kind, inst instruction, frame *callFrame, registers *Registers) {
 	panic(fmt.Sprintf(
 		"interp: %s - general[%d] is %v, expected struct; "+
@@ -285,20 +277,15 @@ func vmPanicNotStruct(handler string, registerIndex uint8, actual reflect.Kind, 
 	))
 }
 
-// vmPanicFieldIndex panics with a diagnostic message when a struct
-// field index is out of range.
+// vmPanicFieldIndex panics with a diagnostic message when a struct field index is out of
+// range.
 //
-// Takes handler (string) which is the name of the VM handler
-// that detected the error.
-// Takes structType (reflect.Type) which is the type of the
-// struct being accessed.
-// Takes fieldIndex (uint8) which is the out-of-range field
-// index.
+// Takes handler (string) which is the name of the VM handler that detected the error.
+// Takes structType (reflect.Type) which is the type of the struct being accessed.
+// Takes fieldIndex (uint8) which is the out-of-range field index.
 // Takes inst (instruction) which is the current instruction.
-// Takes frame (*callFrame) which provides the current program
-// counter and function name.
-// Takes registers (*Registers) which provides the register file
-// for diagnostic context.
+// Takes frame (*callFrame) which provides the current program counter and function name.
+// Takes registers (*Registers) which provides the register file for diagnostic context.
 //
 // Panics unconditionally with a formatted diagnostic message.
 func vmPanicFieldIndex(handler string, structType reflect.Type, fieldIndex uint8, inst instruction, frame *callFrame, registers *Registers) {
@@ -312,19 +299,15 @@ func vmPanicFieldIndex(handler string, structType reflect.Type, fieldIndex uint8
 	))
 }
 
-// vmPanicTypeMismatch panics with a diagnostic message when a Set
-// operation would fail due to incompatible types.
+// vmPanicTypeMismatch panics with a diagnostic message when a Set operation would fail
+// due to incompatible types.
 //
-// Takes handler (string) which is the name of the VM handler
-// that detected the error.
-// Takes expected (reflect.Type) which is the type that was
-// expected.
+// Takes handler (string) which is the name of the VM handler that detected the error.
+// Takes expected (reflect.Type) which is the type that was expected.
 // Takes actual (reflect.Type) which is the type that was found.
 // Takes inst (instruction) which is the current instruction.
-// Takes frame (*callFrame) which provides the current program
-// counter and function name.
-// Takes registers (*Registers) which provides the register file
-// for diagnostic context.
+// Takes frame (*callFrame) which provides the current program counter and function name.
+// Takes registers (*Registers) which provides the register file for diagnostic context.
 //
 // Panics unconditionally with a formatted diagnostic message.
 func vmPanicTypeMismatch(handler string, expected, actual reflect.Type, inst instruction, frame *callFrame, registers *Registers) {

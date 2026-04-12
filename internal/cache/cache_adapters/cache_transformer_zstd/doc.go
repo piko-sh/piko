@@ -16,21 +16,19 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_transformer_zstd implements the cache transformer port
-// using Zstandard compression.
+// Package cache_transformer_zstd implements the cache transformer port using Zstandard
+// compression.
 //
-// This adapter compresses and decompresses cached values using the zstd
-// algorithm. It provides good compression ratios with fast decompression. It
-// self-registers under the name "zstd" so the cache builder can
-// instantiate it from configuration.
+// This adapter compresses and decompresses cached values using the zstd algorithm. It
+// provides good compression ratios with fast decompression. It self-registers under the
+// name "zstd" so the cache builder can instantiate it from configuration.
 //
-// The compression level is configurable, ranging from fastest (level 1)
-// to best compression (level 11). Priority determines execution order in
-// the transformer pipeline; the recommended range for compression
-// transformers is 100-199.
+// The compression level is configurable, ranging from fastest (level 1) to best
+// compression (level 11). Priority determines execution order in the transformer
+// pipeline; the recommended range for compression transformers is 100-199.
 //
 // # Thread safety
 //
-// The underlying zstd encoder and decoder are safe for concurrent use.
-// A single transformer instance may be shared across goroutines.
+// The underlying zstd encoder and decoder are safe for concurrent use. A single
+// transformer instance may be shared across goroutines.
 package cache_transformer_zstd

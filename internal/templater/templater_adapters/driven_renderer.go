@@ -24,23 +24,23 @@ import (
 	"net/http"
 	"strings"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/email/email_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-// simpleRenderer implements RendererPort for testing purposes.
-// It outputs debug information instead of full HTML rendering.
+// simpleRenderer implements RendererPort for testing purposes. It outputs debug
+// information instead of full HTML rendering.
 type simpleRenderer struct{}
 
 // RenderPage writes debug information for a page template.
 //
-// Takes params (templater_domain.RenderPageParams) which contains the page
-// data to render.
+// Takes params (templater_domain.RenderPageParams) which contains the page data to
+// render.
 //
 // Returns error when writing the debug output fails.
 func (r *simpleRenderer) RenderPage(_ context.Context, params templater_domain.RenderPageParams) error {
@@ -49,8 +49,8 @@ func (r *simpleRenderer) RenderPage(_ context.Context, params templater_domain.R
 
 // RenderPartial outputs debug information about the partial being rendered.
 //
-// Takes params (templater_domain.RenderPageParams) which specifies the partial
-// to render and its context.
+// Takes params (templater_domain.RenderPageParams) which specifies the partial to render
+// and its context.
 //
 // Returns error when the debug output fails to write.
 func (r *simpleRenderer) RenderPartial(_ context.Context, params templater_domain.RenderPageParams) error {
@@ -59,8 +59,8 @@ func (r *simpleRenderer) RenderPartial(_ context.Context, params templater_domai
 
 // RenderEmail writes debug details about the email being rendered.
 //
-// Takes params (templater_domain.RenderEmailParams) which contains the email
-// template data including metadata, AST, and styling to display.
+// Takes params (templater_domain.RenderEmailParams) which contains the email template
+// data including metadata, AST, and styling to display.
 //
 // Returns error when the metadata cannot be marshalled or writing fails.
 func (*simpleRenderer) RenderEmail(_ context.Context, params templater_domain.RenderEmailParams) error {
@@ -101,8 +101,8 @@ func (*simpleRenderer) CollectMetadata(
 
 // RenderASTToPlainText extracts plain text from an AST for email rendering.
 //
-// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to
-// extract text from.
+// Takes templateAST (*ast_domain.TemplateAST) which is the parsed template to extract
+// text from.
 //
 // Returns string which contains the extracted plain text content.
 // Returns error which is always nil in the current implementation.
@@ -142,8 +142,8 @@ func (*simpleRenderer) GetLastEmailAssetRequests() []*email_dto.EmailAssetReques
 // renderDebug writes debug output about the page being rendered.
 //
 // Takes label (string) which identifies the type of debug output.
-// Takes params (templater_domain.RenderPageParams) which contains the page
-// definition, metadata, template AST, and writer for output.
+// Takes params (templater_domain.RenderPageParams) which contains the page definition,
+// metadata, template AST, and writer for output.
 //
 // Returns error when marshalling metadata fails or writing output fails.
 func (*simpleRenderer) renderDebug(label string, params templater_domain.RenderPageParams) error {

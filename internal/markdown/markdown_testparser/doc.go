@@ -16,13 +16,12 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package markdown_testparser provides a lightweight,
-// zero-dependency markdown parser that produces piko-native AST.
+// Package markdown_testparser provides a lightweight, zero-dependency markdown parser
+// that produces piko-native AST.
 //
-// It is intended exclusively for use in tests so that test
-// packages can avoid importing the goldmark WDK module. The
-// parser handles common CommonMark and GFM constructs including
-// ATX headings, paragraphs, emphasis, links, images, fenced code
-// blocks, blockquotes, lists, code spans, and YAML frontmatter.
-// It does not aim for full CommonMark compliance.
+// It is intended exclusively for use in tests so that test packages can avoid importing
+// the goldmark WDK module. The parser handles common CommonMark and GFM constructs
+// including ATX headings, paragraphs, emphasis, links, images, fenced code blocks,
+// blockquotes, lists, code spans, and YAML frontmatter. It does not aim for full
+// CommonMark compliance.
 package markdown_testparser

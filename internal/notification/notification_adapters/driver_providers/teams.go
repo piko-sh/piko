@@ -38,11 +38,13 @@ const (
 	teamsMaxMessageLength = 28000
 )
 
-// ErrTeamsResponseTooLarge indicates the Teams webhook reply exceeded the
-// maximum size cap and was truncated before parsing.
-var ErrTeamsResponseTooLarge = errors.New("teams response body exceeded maximum allowed size")
+var (
+	// ErrTeamsResponseTooLarge indicates the Teams webhook reply exceeded the maximum size
+	// cap and was truncated before parsing.
+	ErrTeamsResponseTooLarge = errors.New("teams response body exceeded maximum allowed size")
 
-var _ notification_domain.NotificationProviderPort = (*TeamsProvider)(nil)
+	_ notification_domain.NotificationProviderPort = (*TeamsProvider)(nil)
+)
 
 // teamsMessageCard holds the structure for a Microsoft Teams message card.
 type teamsMessageCard struct {
@@ -52,8 +54,7 @@ type teamsMessageCard struct {
 	// Context is the JSON-LD context URL for the message card schema.
 	Context string `json:"@context"`
 
-	// ThemeColor is the hex colour code for the card accent; empty uses the
-	// default.
+	// ThemeColor is the hex colour code for the card accent; empty uses the default.
 	ThemeColor string `json:"themeColor,omitempty"`
 
 	// Summary is a short text summary of the card content.
@@ -90,24 +91,23 @@ type teamsFact struct {
 	Value string `json:"value"`
 }
 
-// TeamsProvider sends notifications to Microsoft Teams using webhooks.
-// It implements the NotificationProviderPort interface.
+// TeamsProvider sends notifications to Microsoft Teams using webhooks. It implements the
+// NotificationProviderPort interface.
 type TeamsProvider struct {
 	// httpClient sends HTTP requests to the Teams webhook endpoint.
 	httpClient *http.Client
 
-	// webhookURL is the Microsoft Teams webhook endpoint for sending
-	// notifications.
+	// webhookURL is the Microsoft Teams webhook endpoint for sending notifications.
 	webhookURL string
 }
 
 // Send delivers a notification to Microsoft Teams.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and recipients.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// recipients.
 //
-// Returns error when the payload cannot be formatted, the request fails, or
-// Teams returns an unsuccessful response.
+// Returns error when the payload cannot be formatted, the request fails, or Teams returns
+// an unsuccessful response.
 func (t *TeamsProvider) Send(ctx context.Context, params *notification_dto.SendParams) error {
 	payload, err := t.formatTeamsPayload(params)
 	if err != nil {
@@ -151,8 +151,8 @@ func (t *TeamsProvider) Send(ctx context.Context, params *notification_dto.SendP
 
 // SendBulk sends multiple notifications.
 //
-// Takes notifications ([]*notification_dto.SendParams) which contains the
-// notifications to send.
+// Takes notifications ([]*notification_dto.SendParams) which contains the notifications
+// to send.
 //
 // Returns error when any notification fails to send.
 func (t *TeamsProvider) SendBulk(ctx context.Context, notifications []*notification_dto.SendParams) error {
@@ -173,8 +173,8 @@ func (*TeamsProvider) SupportsBulkSending() bool {
 
 // GetCapabilities returns the capabilities of the Teams provider.
 //
-// Returns notification_domain.ProviderCapabilities which describes the
-// supported features and limits for the Teams notification provider.
+// Returns notification_domain.ProviderCapabilities which describes the supported features
+// and limits for the Teams notification provider.
 func (*TeamsProvider) GetCapabilities() notification_domain.ProviderCapabilities {
 	return notification_domain.ProviderCapabilities{
 		SupportsRichFormatting: true,
@@ -195,8 +195,8 @@ func (*TeamsProvider) Close(_ context.Context) error {
 
 // formatTeamsPayload converts notification params to Teams MessageCard format.
 //
-// Takes params (*notification_dto.SendParams) which contains the notification
-// content and context to format.
+// Takes params (*notification_dto.SendParams) which contains the notification content and
+// context to format.
 //
 // Returns []byte which is the JSON-encoded MessageCard payload.
 // Returns error when JSON marshalling fails.
@@ -268,8 +268,8 @@ func (*TeamsProvider) priorityToThemeColor(priority notification_dto.Notificatio
 
 // determineTitle returns a title for the Teams card based on priority.
 //
-// Takes params (*notification_dto.SendParams) which provides the notification
-// context including priority level.
+// Takes params (*notification_dto.SendParams) which provides the notification context
+// including priority level.
 //
 // Returns string which is the formatted title with an appropriate emoji.
 func (*TeamsProvider) determineTitle(params *notification_dto.SendParams) string {
@@ -286,8 +286,8 @@ func (*TeamsProvider) determineTitle(params *notification_dto.SendParams) string
 // NewTeamsProvider creates a new Microsoft Teams notification provider.
 //
 // Takes webhookURL (string) which specifies the Teams webhook endpoint.
-// Takes client (*http.Client) which provides the HTTP client. If nil, a default
-// client with a 30-second timeout is used.
+// Takes client (*http.Client) which provides the HTTP client. If nil, a default client
+// with a 30-second timeout is used.
 //
 // Returns notification_domain.NotificationProviderPort which is ready to send
 // notifications.

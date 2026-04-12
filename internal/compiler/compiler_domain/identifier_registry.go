@@ -25,10 +25,10 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// identifierRegistry tracks the names of manually-created identifiers.
-// Since esbuild's EIdentifier stores names in a symbol table (not the struct),
-// and we create identifiers without registering them, we need this registry
-// to track names for the AST conversion to tdewolff.
+// identifierRegistry tracks the names of manually-created identifiers. Since esbuild's
+// EIdentifier stores names in a symbol table (not the struct), and we create identifiers
+// without registering them, we need this registry to track names for the AST conversion
+// to tdewolff.
 //
 // This is a global registry that should be cleared between compilation runs.
 type identifierRegistry struct {
@@ -40,22 +40,22 @@ type identifierRegistry struct {
 }
 
 var (
-	// globalIdentifierRegistry holds the process-wide registry mapping EIdentifier
-	// pointers to their original names.
+	// globalIdentifierRegistry holds the process-wide registry mapping EIdentifier pointers
+	// to their original names.
 	globalIdentifierRegistry = &identifierRegistry{
 		names: make(map[*js_ast.EIdentifier]string),
 		mu:    sync.RWMutex{},
 	}
 
-	// globalBindingRegistry holds the process-wide registry mapping BIdentifier
-	// pointers to their original names.
+	// globalBindingRegistry holds the process-wide registry mapping BIdentifier pointers to
+	// their original names.
 	globalBindingRegistry = &bindingRegistry{
 		names: make(map[*js_ast.BIdentifier]string),
 		mu:    sync.RWMutex{},
 	}
 
-	// globalLocRefRegistry holds the process-wide registry mapping LocRef pointers
-	// to their original names.
+	// globalLocRefRegistry holds the process-wide registry mapping LocRef pointers to their
+	// original names.
 	globalLocRefRegistry = &locRefRegistry{
 		names: make(map[*ast.LocRef]string),
 		mu:    sync.RWMutex{},
@@ -71,8 +71,8 @@ type bindingRegistry struct {
 	mu sync.RWMutex
 }
 
-// locRefRegistry tracks the names of LocRef instances that were created by
-// hand for class and function names.
+// locRefRegistry tracks the names of LocRef instances that were created by hand for class
+// and function names.
 type locRefRegistry struct {
 	// names maps LocRef pointers to the names they point to.
 	names map[*ast.LocRef]string
@@ -81,8 +81,8 @@ type locRefRegistry struct {
 	mu sync.RWMutex
 }
 
-// ClearIdentifierRegistry removes all registered identifiers.
-// Call this between compilation runs to prevent memory leaks.
+// ClearIdentifierRegistry removes all registered identifiers. Call this between
+// compilation runs to prevent memory leaks.
 //
 // Safe for concurrent use.
 func ClearIdentifierRegistry() {
@@ -109,8 +109,7 @@ func ClearLocRefRegistry() {
 	globalLocRefRegistry.names = make(map[*ast.LocRef]string)
 }
 
-// registerIdentifierName links a name to an identifier pointer in the global
-// registry.
+// registerIdentifierName links a name to an identifier pointer in the global registry.
 //
 // When identifier is nil or name is empty, returns without action.
 //
@@ -144,8 +143,8 @@ func lookupIdentifierName(identifier *js_ast.EIdentifier) string {
 	return globalIdentifierRegistry.names[identifier]
 }
 
-// makeIdentifier creates an EIdentifier and registers its name.
-// Use this instead of creating &js_ast.EIdentifier{} directly.
+// makeIdentifier creates an EIdentifier and registers its name. Use this instead of
+// creating &js_ast.EIdentifier{} directly.
 //
 // Takes name (string) which specifies the identifier name to register.
 //
@@ -175,8 +174,7 @@ func registerBindingName(bind *js_ast.BIdentifier, name string) {
 //
 // Takes bind (*js_ast.BIdentifier) which is the binding to look up.
 //
-// Returns string which is the stored name, or empty if bind is nil or not
-// found.
+// Returns string which is the stored name, or empty if bind is nil or not found.
 //
 // Safe for use by multiple goroutines at the same time.
 func lookupBindingName(bind *js_ast.BIdentifier) string {

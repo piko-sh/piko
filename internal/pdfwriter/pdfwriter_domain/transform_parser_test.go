@@ -23,7 +23,9 @@ import (
 	"testing"
 )
 
-const transformEpsilon = 1e-9
+const (
+	transformEpsilon = 1e-9
+)
 
 func assertTransform(t *testing.T, label string, input string, ea, eb, ec, ed, ee, ef float64) {
 	t.Helper()

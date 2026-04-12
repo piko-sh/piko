@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/healthprobe/healthprobe_adapters"
 	"piko.sh/piko/internal/healthprobe/healthprobe_domain"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
+	"piko.sh/piko/internal/json"
 )
 
 type alwaysHealthyProbe struct{}

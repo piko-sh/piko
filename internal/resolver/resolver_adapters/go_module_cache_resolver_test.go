@@ -180,7 +180,7 @@ func TestGoModuleCacheResolver_ResolveCSSPath(t *testing.T) {
 
 	_, err := resolver.ResolveCSSPath(ctx, "github.com/ui/lib/styles/theme.css", "/some/directory")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "not yet implemented")
+	assert.Contains(t, err.Error(), "unsupported")
 }
 
 func TestGoModuleCacheResolver_CacheThreadSafety(t *testing.T) {

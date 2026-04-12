@@ -27,8 +27,8 @@ import (
 
 // Hover handles hover requests to show type information for symbols.
 //
-// Takes params (*protocol.HoverParams) which specifies the document and
-// position to get hover information for.
+// Takes params (*protocol.HoverParams) which specifies the document and position to get
+// hover information for.
 //
 // Returns *protocol.Hover which contains the type information to display.
 // Returns error when the hover information cannot be found.

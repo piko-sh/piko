@@ -1,0 +1,4 @@
+{
+  "description": "Generic free functions split across two files in same package",
+  "expected": "a=9 b=7 c=pear d=zz"
+}

@@ -18,19 +18,18 @@
 
 package formatter_domain
 
-import "context"
+import (
+	"context"
+)
 
 const (
-	// defaultIndentSize is the default number of spaces used for each indent
-	// level.
+	// defaultIndentSize is the default number of spaces used for each indent level.
 	defaultIndentSize = 2
 
-	// defaultMaxLineLength is the default maximum line length before attribute
-	// wrapping.
+	// defaultMaxLineLength is the default maximum line length before attribute wrapping.
 	defaultMaxLineLength = 100
 
-	// defaultAttributeWrapIndent is the default additional indent for wrapped
-	// attributes.
+	// defaultAttributeWrapIndent is the default additional indent for wrapped attributes.
 	defaultAttributeWrapIndent = 1
 )
 
@@ -41,20 +40,19 @@ const (
 	// FormatAuto automatically detects the file format based on content.
 	FormatAuto FileFormat = iota
 
-	// FormatPK treats the input as a Piko Single File Component (.pk)
-	// containing <template>, <script>, and <style> blocks.
+	// FormatPK treats the input as a Piko Single File Component (.pk) containing <template>,
+	// <script>, and <style> blocks.
 	FormatPK
 
 	// FormatHTML treats the input as plain HTML without SFC block structure.
 	FormatHTML
 )
 
-// FormatterService is the main interface for formatting Piko template files. It
-// provides methods to format source code according to consistent, opinionated
-// rules.
+// FormatterService is the main interface for formatting Piko template files. It provides
+// methods to format source code according to consistent, opinionated rules.
 type FormatterService interface {
-	// Format formats raw source bytes of a .pk file and returns formatted bytes.
-	// It formats both the template and script blocks according to Piko rules.
+	// Format formats raw source bytes of a .pk file and returns formatted bytes. It formats
+	// both the template and script blocks according to Piko rules.
 	//
 	// Takes source ([]byte) which contains the raw .pk file content.
 	//
@@ -71,8 +69,8 @@ type FormatterService interface {
 	// Returns error when formatting fails.
 	FormatWithOptions(ctx context.Context, source []byte, opts *FormatOptions) ([]byte, error)
 
-	// FormatRange formats only a specific range within the source. The range is
-	// specified in line and character coordinates, which are zero-based.
+	// FormatRange formats only a specific range within the source. The range is specified in
+	// line and character coordinates, which are zero-based.
 	//
 	// Takes source ([]byte) which contains the original file content.
 	// Takes formatRange (Range) which specifies the region to format.
@@ -83,8 +81,8 @@ type FormatterService interface {
 	FormatRange(ctx context.Context, source []byte, formatRange Range, opts *FormatOptions) ([]byte, error)
 }
 
-// Range represents a text range with start and end positions.
-// Positions use zero-based line and character offsets.
+// Range represents a text range with start and end positions. Positions use zero-based
+// line and character offsets.
 type Range struct {
 	// StartLine is the zero-based line number where the range begins.
 	StartLine uint32
@@ -99,38 +97,37 @@ type Range struct {
 	EndCharacter uint32
 }
 
-// FormatOptions configures the formatting behaviour.
-// For now, we start with zero configuration (opinionated formatting), but the
-// type allows for future extensibility.
+// FormatOptions configures the formatting behaviour. The formatter is opinionated and
+// accepts only minimal configuration; the struct exists so further options can be added
+// without breaking callers.
 type FormatOptions struct {
-	// FileFormat specifies the type of file being formatted.
-	// Default: FormatAuto (auto-detect based on content).
+	// FileFormat specifies the type of file being formatted. Default: FormatAuto
+	// (auto-detect based on content).
 	FileFormat FileFormat
 
-	// IndentSize is the number of spaces per indentation level.
-	// Default is 2, following common HTML and template conventions.
+	// IndentSize is the number of spaces per indentation level. Default is 2, following
+	// common HTML and template conventions.
 	IndentSize int
 
-	// MaxLineLength is the maximum line length before opening tag attributes wrap.
-	// Set to 0 to disable; default is 100.
+	// MaxLineLength is the maximum line length before opening tag attributes wrap. Set to 0
+	// to disable; default is 100.
 	MaxLineLength int
 
-	// AttributeWrapIndent is the number of extra indent levels to add to wrapped
-	// attributes, relative to the element's indentation. Default is 1.
+	// AttributeWrapIndent is the number of extra indent levels to add to wrapped attributes,
+	// relative to the element's indentation. Default is 1.
 	AttributeWrapIndent int
 
-	// PreserveEmptyLines controls whether multiple blank lines in a row are kept.
-	// Default: false (reduce to a single blank line).
+	// PreserveEmptyLines controls whether multiple blank lines in a row are kept. Default:
+	// false (reduce to a single blank line).
 	PreserveEmptyLines bool
 
-	// SortAttributes determines whether to sort HTML attributes alphabetically
-	// for deterministic output and idempotency; default is true.
+	// SortAttributes determines whether to sort HTML attributes alphabetically for
+	// deterministic output and idempotency; default is true.
 	SortAttributes bool
 
-	// RawHTMLMode treats p-* attributes as regular HTML attributes
-	// rather than Piko directives, allowing formatting of rendered
-	// HTML output that contains runtime p-key values (e.g., "r.0:0")
-	// which are not valid expressions. Default: false.
+	// RawHTMLMode treats p-* attributes as regular HTML attributes rather than Piko
+	// directives, allowing formatting of rendered HTML output that contains runtime p-key
+	// values (e.g., "r.0:0") which are not valid expressions. Default: false.
 	RawHTMLMode bool
 }
 

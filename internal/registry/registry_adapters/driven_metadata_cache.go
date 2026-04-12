@@ -28,31 +28,34 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-var _ registry_domain.MetadataCache = (*metadataCache)(nil)
+var (
+	_ registry_domain.MetadataCache = (*metadataCache)(nil)
+)
 
-// approxProfileConfigSize is the approximate memory size of a profile
-// configuration in bytes.
-const approxProfileConfigSize = 128
+const (
+	// approxProfileConfigSize is the approximate memory size of a profile configuration in
+	// bytes.
+	approxProfileConfigSize = 128
+)
 
-// metadataCache wraps the cache hexagon to provide artefact metadata caching
-// for the Registry service. It implements registry_domain.MetadataCache.
+// metadataCache wraps the cache hexagon to provide artefact metadata caching for the
+// Registry service. It implements registry_domain.MetadataCache.
 //
 // Lets the Registry use the cache hexagon's features (multiple providers,
 // transformations) while keeping the MetadataCache interface.
 //
-// The adapter uses Cache[string, *ArtefactMeta] for full compile-time type
-// safety. The cache hexagon creates the typed instance using the factory
-// blueprint pattern, which allows:
+// The adapter uses Cache[string, *ArtefactMeta] for full compile-time type safety. The
+// cache hexagon creates the typed instance using the factory blueprint pattern, which
+// allows:
 //
 //  1. Full type safety with no runtime type assertions needed.
-//  2. Resource sharing where one provider serves multiple subsystems via
-//     namespaces.
+//  2. Resource sharing where one provider serves multiple subsystems via namespaces.
 //  3. No circular dependencies as cache_adapters imports registry_adapters.
 //  4. Easy provider swapping for all subsystems at once.
 //
-// The factory blueprint is registered in cache_provider.go via init(). This
-// lets the cache hexagon create Cache[string, *ArtefactMeta] without knowing
-// about the registry domain at compile time.
+// The factory blueprint is registered in cache_provider.go via init(). This lets the
+// cache hexagon create Cache[string, *ArtefactMeta] without knowing about the registry
+// domain at compile time.
 type metadataCache struct {
 	// cache stores artefact metadata indexed by artefact ID.
 	cache cache_domain.Cache[string, *registry_dto.ArtefactMeta]
@@ -77,8 +80,8 @@ func (c *metadataCache) Get(ctx context.Context, artefactID string) (*registry_d
 //
 // Takes artefactIDs ([]string) which lists the artefact IDs to look up.
 //
-// Returns hits ([]*registry_dto.ArtefactMeta) which contains the cached
-// artefacts that were found.
+// Returns hits ([]*registry_dto.ArtefactMeta) which contains the cached artefacts that
+// were found.
 // Returns misses ([]string) which contains the IDs not found in the cache.
 func (c *metadataCache) GetMultiple(ctx context.Context, artefactIDs []string) (hits []*registry_dto.ArtefactMeta, misses []string) {
 	hits = make([]*registry_dto.ArtefactMeta, 0, len(artefactIDs))
@@ -134,8 +137,8 @@ func (c *metadataCache) Delete(ctx context.Context, artefactID string) {
 
 // Close shuts down the cache and releases resources.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 //
 // Returns error when the cache cannot be closed cleanly.
 func (c *metadataCache) Close(ctx context.Context) error {
@@ -145,18 +148,18 @@ func (c *metadataCache) Close(ctx context.Context) error {
 	return err
 }
 
-// NewMetadataCache creates a new metadata cache adapter that wraps the cache
-// hexagon. The cache is provided via dependency injection, allowing full
-// flexibility in configuration (provider choice, transformations, etc.).
+// NewMetadataCache creates a new metadata cache adapter that wraps the cache hexagon. The
+// cache is provided via dependency injection, allowing full flexibility in configuration
+// (provider choice, transformations, etc.).
 //
-// Accepts fully-typed Cache[string, *ArtefactMeta] for compile-time type
-// safety. The typed cache is created using the factory blueprint pattern.
+// Accepts fully-typed Cache[string, *ArtefactMeta] for compile-time type safety. The
+// typed cache is created using the factory blueprint pattern.
 //
-// Takes cache (Cache[string, *ArtefactMeta]) which provides the underlying
-// typed cache storage.
+// Takes cache (Cache[string, *ArtefactMeta]) which provides the underlying typed cache
+// storage.
 //
-// Returns registry_domain.MetadataCache which is the configured metadata
-// cache ready for use.
+// Returns registry_domain.MetadataCache which is the configured metadata cache ready for
+// use.
 func NewMetadataCache(
 	cache cache_domain.Cache[string, *registry_dto.ArtefactMeta],
 ) registry_domain.MetadataCache {
@@ -165,13 +168,12 @@ func NewMetadataCache(
 	}
 }
 
-// ArtefactMetaWeigher calculates the approximate memory weight of an artefact
-// metadata entry. This weigher is used for weight-based cache eviction to
-// ensure the cache stays within its configured memory limits.
+// ArtefactMetaWeigher calculates the approximate memory weight of an artefact metadata
+// entry. This weigher is used for weight-based cache eviction to ensure the cache stays
+// within its configured memory limits.
 //
 // Takes key (string) which is the cache key for the artefact entry.
-// Takes art (*registry_dto.ArtefactMeta) which is the artefact metadata to
-// weigh.
+// Takes art (*registry_dto.ArtefactMeta) which is the artefact metadata to weigh.
 //
 // Returns uint32 which is the estimated memory size in bytes.
 func ArtefactMetaWeigher(key string, art *registry_dto.ArtefactMeta) uint32 {
@@ -201,8 +203,8 @@ func ArtefactMetaWeigher(key string, art *registry_dto.ArtefactMeta) uint32 {
 	return weight
 }
 
-// safeStringWeight returns the byte length of a string as uint32, capped at
-// MaxUint32 to prevent overflow.
+// safeStringWeight returns the byte length of a string as uint32, capped at MaxUint32 to
+// prevent overflow.
 //
 // Takes s (string) which is the string to measure.
 //

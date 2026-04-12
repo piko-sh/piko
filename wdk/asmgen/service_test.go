@@ -98,7 +98,7 @@ func TestGenerateFiles_ProducesCorrectFilename(t *testing.T) {
 	writer := newMemWriter()
 	group := minimalGroup("foo")
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	expectedPath := filepath.Join("out", "foo_amd64.s")
@@ -112,7 +112,7 @@ func TestGenerateFiles_LicenseHeaderPresent(t *testing.T) {
 	writer := newMemWriter()
 	group := minimalGroup("foo")
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "foo_amd64.s")])
@@ -125,7 +125,7 @@ func TestGenerateFiles_BuildConstraintPresent(t *testing.T) {
 	writer := newMemWriter()
 	group := minimalGroup("foo")
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "foo_amd64.s")])
@@ -139,7 +139,7 @@ func TestGenerateFiles_IncludesPresent(t *testing.T) {
 	group := minimalGroup("foo")
 	group.Includes = []string{"textflag.h", "offsets.h"}
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "foo_amd64.s")])
@@ -154,7 +154,7 @@ func TestGenerateFiles_HeaderComment(t *testing.T) {
 	group := minimalGroup("foo")
 	group.HeaderComment = "Arithmetic handlers for the dispatch loop."
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "foo_amd64.s")])
@@ -171,7 +171,7 @@ func TestGenerateFiles_HeaderCommentFunction(t *testing.T) {
 		return "dynamic header for " + string(arch)
 	}
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "foo_amd64.s")])
@@ -202,7 +202,7 @@ func TestGenerateFiles_HandlerEmitted(t *testing.T) {
 		},
 	}
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	assert.True(t, emitCalled, "handler Emit function should have been called")
@@ -267,13 +267,82 @@ func TestGenerateFiles_TextDirectiveFormat(t *testing.T) {
 				Handlers:        []HandlerDefinition[*testArch]{tc.handler},
 			}
 
-			err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+			err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 			require.NoError(t, err)
 
 			content := string(writer.files[filepath.Join("out", "txt_amd64.s")])
 			assert.Contains(t, content, tc.expected)
 		})
 	}
+}
+
+func TestGenerateFiles_PerArchFlagAndFrameSizeOverride(t *testing.T) {
+	t.Parallel()
+
+	handler := HandlerDefinition[*testArch]{
+		Name:      "myShim",
+		Comment:   "myShim is a BL-bearing shim.",
+		Flags:     "NOSPLIT|NOFRAME",
+		FrameSize: "$0",
+		ArchFlags: map[Architecture]string{
+			ArchitectureARM64: "NOSPLIT",
+		},
+		ArchFrameSize: map[Architecture]string{
+			ArchitectureARM64: "$32-0",
+		},
+		Emit: func(e *Emitter, _ *testArch) { e.Instruction("RET") },
+	}
+
+	group := FileGroup[*testArch]{
+		BaseName:        "ovr",
+		OutputDir:       "out",
+		BuildConstraint: "!safe",
+		Includes:        []string{"textflag.h"},
+		Handlers:        []HandlerDefinition[*testArch]{handler},
+	}
+
+	writer := newMemWriter()
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch(), newARM64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
+	require.NoError(t, err)
+
+	amd64Content := string(writer.files[filepath.Join("out", "ovr_amd64.s")])
+	assert.Contains(t, amd64Content, "TEXT \xc2\xb7myShim(SB), NOSPLIT|NOFRAME, $0",
+		"amd64 falls back to default Flags/FrameSize")
+
+	arm64Content := string(writer.files[filepath.Join("out", "ovr_arm64.s")])
+	assert.Contains(t, arm64Content, "TEXT \xc2\xb7myShim(SB), NOSPLIT, $32-0",
+		"arm64 picks up ArchFlags+ArchFrameSize override")
+}
+
+func TestGenerateFiles_PerArchOverridePartialFallsBack(t *testing.T) {
+	t.Parallel()
+
+	handler := HandlerDefinition[*testArch]{
+		Name:      "halfOverride",
+		Comment:   "halfOverride exercises the partial override path.",
+		Flags:     "NOSPLIT|NOFRAME",
+		FrameSize: "$16",
+		ArchFlags: map[Architecture]string{
+			ArchitectureARM64: "NOSPLIT",
+		},
+		Emit: func(e *Emitter, _ *testArch) { e.Instruction("RET") },
+	}
+
+	group := FileGroup[*testArch]{
+		BaseName:        "half",
+		OutputDir:       "out",
+		BuildConstraint: "!safe",
+		Includes:        []string{"textflag.h"},
+		Handlers:        []HandlerDefinition[*testArch]{handler},
+	}
+
+	writer := newMemWriter()
+	err := GenerateFiles(writer, []*testArch{newARM64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
+	require.NoError(t, err)
+
+	arm64Content := string(writer.files[filepath.Join("out", "half_arm64.s")])
+	assert.Contains(t, arm64Content, "TEXT \xc2\xb7halfOverride(SB), NOSPLIT, $16",
+		"arm64 takes flag override but inherits FrameSize=$16 from default")
 }
 
 func TestGenerateFiles_ArchitectureFilter(t *testing.T) {
@@ -304,7 +373,7 @@ func TestGenerateFiles_ArchitectureFilter(t *testing.T) {
 		},
 	}
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "filtered_amd64.s")])
@@ -333,7 +402,7 @@ func TestGenerateFiles_CommentFunction(t *testing.T) {
 		},
 	}
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "cf_amd64.s")])
@@ -364,7 +433,7 @@ func TestGenerateFiles_BlankLinesBetweenHandlers(t *testing.T) {
 		},
 	}
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	content := string(writer.files[filepath.Join("out", "multi_amd64.s")])
@@ -387,7 +456,7 @@ func TestGenerateFiles_HeaderFileGenerated(t *testing.T) {
 		},
 	}
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, nil, []HeaderFile{header})
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, nil, []HeaderFile{header}, nil)
 	require.NoError(t, err)
 
 	assert.True(t, emitCalled, "HeaderFile Emit should have been called")
@@ -403,7 +472,7 @@ func TestGenerateFiles_WriterErrorPropagates(t *testing.T) {
 	writer := &errWriter{err: expectedError}
 	group := minimalGroup("fail")
 
-	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(writer, []*testArch{newAMD64Arch()}, []FileGroup[*testArch]{group}, nil, nil)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, expectedError)
 }
@@ -418,10 +487,10 @@ func TestGenerateAndValidate_NoMismatches(t *testing.T) {
 	group.OutputDir = temporaryDirectory
 
 	diskWriter := NewDiskWriter()
-	err := GenerateFiles(diskWriter, []*testArch{arch}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(diskWriter, []*testArch{arch}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
-	mismatches, err := GenerateAndValidate([]*testArch{arch}, []FileGroup[*testArch]{group}, nil)
+	mismatches, err := GenerateAndValidate([]*testArch{arch}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 	assert.Empty(t, mismatches)
 }
@@ -436,7 +505,7 @@ func TestGenerateAndValidate_DetectsDifference(t *testing.T) {
 	group.OutputDir = temporaryDirectory
 
 	diskWriter := NewDiskWriter()
-	err := GenerateFiles(diskWriter, []*testArch{arch}, []FileGroup[*testArch]{group}, nil)
+	err := GenerateFiles(diskWriter, []*testArch{arch}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 
 	filePath := filepath.Join(temporaryDirectory, "drift_amd64.s")
@@ -449,7 +518,7 @@ func TestGenerateAndValidate_DetectsDifference(t *testing.T) {
 	err = os.WriteFile(filePath, []byte(tampered), 0o600)
 	require.NoError(t, err)
 
-	mismatches, err := GenerateAndValidate([]*testArch{arch}, []FileGroup[*testArch]{group}, nil)
+	mismatches, err := GenerateAndValidate([]*testArch{arch}, []FileGroup[*testArch]{group}, nil, nil)
 	require.NoError(t, err)
 	require.Len(t, mismatches, 1)
 

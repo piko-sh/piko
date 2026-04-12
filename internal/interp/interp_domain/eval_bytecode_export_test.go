@@ -313,9 +313,9 @@ func TestMakeVarLocationRoundTrip(t *testing.T) {
 	loc := MakeVarLocation(data)
 
 	cf := NewCompiledFunctionFromData(&CompiledFunctionData{
-		NamedResultLocs: []varLocation{loc},
+		NamedResultLocations: []varLocation{loc},
 	})
-	exported := cf.NamedResultLocs()
+	exported := cf.NamedResultLocations()
 	require.Len(t, exported, 1)
 	require.Equal(t, data.UpvalueIndex, exported[0].UpvalueIndex)
 	require.Equal(t, data.Register, exported[0].Register)
@@ -357,15 +357,15 @@ func TestMakeCallSiteRoundTrip(t *testing.T) {
 		Kind:     0,
 	}
 	csData := CallSiteData{
-		Arguments:       []VarLocationData{argData},
-		Returns:         []VarLocationData{retData},
-		FuncIndex:       10,
-		ClosureRegister: 5,
-		NativeRegister:  6,
-		IsClosure:       true,
-		IsNative:        false,
-		IsMethod:        true,
-		MethodRecvReg:   4,
+		Arguments:              []VarLocationData{argData},
+		Returns:                []VarLocationData{retData},
+		FuncIndex:              10,
+		ClosureRegister:        5,
+		NativeRegister:         6,
+		IsClosure:              true,
+		IsNative:               false,
+		IsMethod:               true,
+		MethodReceiverRegister: 4,
 	}
 	cs := MakeCallSite(csData)
 
@@ -382,7 +382,7 @@ func TestMakeCallSiteRoundTrip(t *testing.T) {
 	require.Equal(t, csData.IsClosure, exported[0].IsClosure)
 	require.Equal(t, csData.IsNative, exported[0].IsNative)
 	require.Equal(t, csData.IsMethod, exported[0].IsMethod)
-	require.Equal(t, csData.MethodRecvReg, exported[0].MethodRecvReg)
+	require.Equal(t, csData.MethodReceiverRegister, exported[0].MethodReceiverRegister)
 	require.Equal(t, argData.Register, exported[0].Arguments[0].Register)
 	require.Equal(t, retData.Register, exported[0].Returns[0].Register)
 }
@@ -391,27 +391,27 @@ func TestImportTypeDescriptorRoundTrip(t *testing.T) {
 	t.Parallel()
 
 	elemDesc := TypeDescriptorData{
-		Kind:      uint8(typeDescBasic),
+		Kind:      uint8(kindBasic),
 		BasicKind: uint8(reflect.Int),
 	}
 	keyDesc := TypeDescriptorData{
-		Kind:      uint8(typeDescBasic),
+		Kind:      uint8(kindBasic),
 		BasicKind: uint8(reflect.String),
 	}
 	valueDesc := TypeDescriptorData{
-		Kind:      uint8(typeDescBasic),
+		Kind:      uint8(kindBasic),
 		BasicKind: uint8(reflect.Float64),
 	}
 	fieldTypeDesc := TypeDescriptorData{
-		Kind:      uint8(typeDescBasic),
+		Kind:      uint8(kindBasic),
 		BasicKind: uint8(reflect.Bool),
 	}
 	paramDesc := TypeDescriptorData{
-		Kind:      uint8(typeDescBasic),
+		Kind:      uint8(kindBasic),
 		BasicKind: uint8(reflect.Int),
 	}
 	resultDesc := TypeDescriptorData{
-		Kind:      uint8(typeDescBasic),
+		Kind:      uint8(kindBasic),
 		BasicKind: uint8(reflect.String),
 	}
 
@@ -434,7 +434,7 @@ func TestImportTypeDescriptorRoundTrip(t *testing.T) {
 		Length:     10,
 		Dir:        2,
 		BasicKind:  0,
-		Kind:       uint8(typeDescStruct),
+		Kind:       uint8(kindStruct),
 		IsVariadic: true,
 	}
 
@@ -535,11 +535,11 @@ func TestNewCompiledFunctionFromDataRoundTrip(t *testing.T) {
 
 	instr := MakeInstruction(10, 1, 2, 3)
 	upval := MakeUpvalueDescriptor(UpvalueDescriptorData{Index: 1, Kind: 0, IsLocal: true})
-	namedLoc := MakeVarLocation(VarLocationData{Register: 5, Kind: 1})
+	namedLocation := MakeVarLocation(VarLocationData{Register: 5, Kind: 1})
 	cs := MakeCallSite(CallSiteData{FuncIndex: 2, IsClosure: true})
 
 	typeDesc := ImportTypeDescriptor(TypeDescriptorData{
-		Kind:      uint8(typeDescBasic),
+		Kind:      uint8(kindBasic),
 		BasicKind: uint8(reflect.Int),
 	})
 	genConstDesc := ImportGeneralConstantDescriptor(GeneralConstantDescriptorData{
@@ -570,7 +570,7 @@ func TestNewCompiledFunctionFromDataRoundTrip(t *testing.T) {
 		CallSites:                  []callSite{cs},
 		UpvalueDescriptors:         []UpvalueDescriptor{upval},
 		Functions:                  []*CompiledFunction{childFunc},
-		NamedResultLocs:            []varLocation{namedLoc},
+		NamedResultLocations:       []varLocation{namedLocation},
 		MethodTable:                map[string]uint16{"Point.Sum": 0},
 		VariableInitFunction:       varInitFunc,
 	}
@@ -702,7 +702,7 @@ func TestNewCompiledFunctionFromDataRoundTrip(t *testing.T) {
 
 	t.Run("named_result_locs", func(t *testing.T) {
 		t.Parallel()
-		nrl := cf.NamedResultLocs()
+		nrl := cf.NamedResultLocations()
 		require.Len(t, nrl, 1)
 		require.Equal(t, uint8(5), nrl[0].Register)
 		require.Equal(t, uint8(1), nrl[0].Kind)
@@ -868,7 +868,7 @@ func main() {
 		mainFn, err := cfs.FindFunction("main")
 		require.NoError(t, err)
 
-		require.Empty(t, mainFn.NamedResultLocs())
+		require.Empty(t, mainFn.NamedResultLocations())
 	})
 }
 
@@ -891,7 +891,7 @@ func main() { _, _ = divide(10, 2) }
 	cfs := compileFileSource(t, source)
 	divideFn, err := cfs.FindFunction("divide")
 	require.NoError(t, err)
-	require.NotEmpty(t, divideFn.NamedResultLocs(), "divide should have named result locations")
+	require.NotEmpty(t, divideFn.NamedResultLocations(), "divide should have named result locations")
 }
 
 func TestTypeNamesEmptyForSimplePrograms(t *testing.T) {
@@ -914,7 +914,7 @@ func TestEmptyNamedResultLocsExport(t *testing.T) {
 	t.Parallel()
 
 	cf := NewCompiledFunctionFromData(&CompiledFunctionData{})
-	require.Empty(t, cf.NamedResultLocs())
+	require.Empty(t, cf.NamedResultLocations())
 }
 
 func TestEmptyCallSitesExport(t *testing.T) {

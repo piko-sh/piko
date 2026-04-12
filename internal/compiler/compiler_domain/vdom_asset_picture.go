@@ -28,13 +28,12 @@ import (
 	"piko.sh/piko/internal/esbuild/js_ast"
 )
 
-// buildPikoPictureAST builds the JavaScript AST for a piko:picture element.
-// Transforms piko:picture into a picture element containing source elements
-// for each format and a fallback img element.
+// buildPikoPictureAST builds the JavaScript AST for a piko:picture element. Transforms
+// piko:picture into a picture element containing source elements for each format and a
+// fallback img element.
 //
 // Takes ctx (context.Context) which carries the module name.
-// Takes n (*ast_domain.TemplateNode) which is the piko:picture element to
-// process.
+// Takes n (*ast_domain.TemplateNode) which is the piko:picture element to process.
 // Takes buildContext (*nodeBuildContext) which holds events, loop variables, boolean
 // properties, and the module name for the build.
 // Takes keyJSExpr (js_ast.Expr) which is the key expression for the element.
@@ -99,8 +98,8 @@ func buildPikoPictureAST(
 	return pictureCall, nil
 }
 
-// buildPictureSourceElements creates <source> elements for each image format
-// when the image has responsive profiles.
+// buildPictureSourceElements creates <source> elements for each image format when the
+// image has responsive profiles.
 //
 // Takes transformedSrc (string) which is the transformed source URL.
 // Takes imgAttrs (pikoImgAttrs) which provides responsive image attributes.
@@ -138,17 +137,16 @@ func buildPictureSourceElements(transformedSrc string, imgAttrs pikoImgAttrs, fo
 	return children
 }
 
-// populateImgSrcProperties sets the src and srcset properties on the img
-// element based on whether the image has a static src with profiles, a plain
-// static src, or a dynamic src expression.
+// populateImgSrcProperties sets the src and srcset properties on the img element based on
+// whether the image has a static src with profiles, a plain static src, or a dynamic src
+// expression.
 //
 // Takes imgAttrs (pikoImgAttrs) which provides the image attributes.
 // Takes transformedSrc (string) which is the transformed source URL.
 // Takes fallbackFormat (string) which is the fallback image format.
 // Takes imgProperties (map[string]js_ast.Expr) which receives the properties.
 // Takes registry (*RegistryContext) which provides event binding state.
-// Takes moduleName (string) which is the Go module name for @/ alias
-// resolution.
+// Takes moduleName (string) which is the Go module name for @/ alias resolution.
 func populateImgSrcProperties(
 	imgAttrs pikoImgAttrs,
 	transformedSrc, fallbackFormat string,
@@ -178,8 +176,7 @@ func populateImgSrcProperties(
 	}
 }
 
-// buildSrcsetValueForFormat builds a srcset value filtered to a single image
-// format.
+// buildSrcsetValueForFormat builds a srcset value filtered to a single image format.
 //
 // Takes baseSrc (string) which is the transformed base source URL.
 // Takes attrs (pikoImgAttrs) which contains the responsive image attributes.
@@ -217,9 +214,8 @@ func buildSrcsetValueForFormat(baseSrc string, attrs pikoImgAttrs, format string
 	return strings.Join(parts, ", ")
 }
 
-// buildFallbackSrc returns the src URL for the fallback img element. Uses the
-// largest width variant for the given format, or the base URL if no widths are
-// specified.
+// buildFallbackSrc returns the src URL for the fallback img element. Uses the largest
+// width variant for the given format, or the base URL if no widths are specified.
 //
 // Takes baseSrc (string) which is the transformed base source URL.
 // Takes attrs (pikoImgAttrs) which contains the responsive image attributes.
@@ -243,8 +239,8 @@ func buildFallbackSrc(baseSrc string, attrs pikoImgAttrs, format string) string 
 	return baseSrc
 }
 
-// formatToMIMETypeCompiler maps an image format name to its MIME type for the
-// compiler layer.
+// formatToMIMETypeCompiler maps an image format name to its MIME type for the compiler
+// layer.
 //
 // Takes format (string) which is the format name.
 //
@@ -266,9 +262,8 @@ func formatToMIMETypeCompiler(format string) string {
 	}
 }
 
-// inferFallbackFormatCompiler determines the fallback image format based on
-// the source file extension. Transparent formats fall back to png; all others
-// fall back to jpg.
+// inferFallbackFormatCompiler determines the fallback image format based on the source
+// file extension. Transparent formats fall back to png; all others fall back to jpg.
 //
 // Takes src (string) which is the source image path.
 //

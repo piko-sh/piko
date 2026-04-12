@@ -18,7 +18,9 @@
 
 package templates
 
-import "embed"
+import (
+	"embed"
+)
 
 var (
 	// ReadmesFS embeds the readme files from the readmes directory.

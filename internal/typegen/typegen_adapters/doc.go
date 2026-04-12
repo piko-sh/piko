@@ -16,22 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package typegen_adapters implements TypeScript code emission,
-// action manifest serialisation, and embedded type definition
-// management for the typegen module.
+// Package typegen_adapters implements TypeScript code emission, action manifest
+// serialisation, and embedded type definition management for the typegen module.
 //
 // # Serialisation
 //
-// Action manifests can be serialised as FlatBuffer (high-performance
-// binary format with pooled builders) or JSON (human-readable with
-// camelCase keys for TypeScript/JavaScript compatibility). The
-// FlatBuffer deserialiser uses [mem.String] for zero-copy string
-// access; callers must not modify the source byte slice while the
-// returned DTO is in use.
+// Action manifests can be serialised as FlatBuffer (high-performance binary format with
+// pooled builders) or JSON (human-readable with camelCase keys for TypeScript/JavaScript
+// compatibility). The FlatBuffer deserialiser uses [mem.String] for zero-copy string
+// access; callers must not modify the source byte slice while the returned DTO is in use.
 //
 // # Thread safety
 //
-// The FlatBuffer builder pool ([GetBuilder], [PutBuilder]) is safe
-// for concurrent use. The emitters are stateless and safe to share
-// across goroutines.
+// The FlatBuffer builder pool ([GetBuilder], [PutBuilder]) is safe for concurrent use.
+// The emitters are stateless and safe to share across goroutines.
 package typegen_adapters

@@ -32,9 +32,9 @@ var (
 	sriHashes sync.Map
 )
 
-// SetSRIEnabled controls whether SRI integrity attributes are included in
-// generated HTML. Enabled by default in production mode, disabled in
-// development mode where assets change on every hot reload.
+// SetSRIEnabled controls whether SRI integrity attributes are included in generated HTML.
+// Enabled by default in production mode, disabled in development mode where assets change
+// on every hot reload.
 //
 // Takes enabled (bool) which activates SRI when true.
 func SetSRIEnabled(enabled bool) {
@@ -48,12 +48,12 @@ func IsSRIEnabled() bool {
 	return sriEnabled
 }
 
-// ComputeSRIHash computes a SHA-384 Subresource Integrity hash for the given
-// content bytes. The returned string is in the format "sha384-<base64>" as
-// specified by the W3C SRI specification.
+// ComputeSRIHash computes a SHA-384 Subresource Integrity hash for the given content
+// bytes. The returned string is in the format "sha384-<base64>" as specified by the W3C
+// SRI specification.
 //
-// The hash must be computed on uncompressed content, since browsers decompress
-// before verifying integrity.
+// The hash must be computed on uncompressed content, since browsers decompress before
+// verifying integrity.
 //
 // Takes content ([]byte) which is the uncompressed asset bytes to hash.
 //
@@ -63,8 +63,8 @@ func ComputeSRIHash(content []byte) string {
 	return "sha384-" + base64.StdEncoding.EncodeToString(h[:])
 }
 
-// SetSRIHash stores an SRI hash for the given asset path. Call this during
-// asset initialisation or registration.
+// SetSRIHash stores an SRI hash for the given asset path. Call this during asset
+// initialisation or registration.
 //
 // Takes assetPath (string) which identifies the asset.
 // Takes hash (string) which is the SRI hash to store.
@@ -76,8 +76,8 @@ func SetSRIHash(assetPath, hash string) {
 //
 // Takes assetPath (string) which identifies the asset to look up.
 //
-// Returns string which is the SRI hash, or empty when SRI is disabled or no
-// hash exists for the path.
+// Returns string which is the SRI hash, or empty when SRI is disabled or no hash exists
+// for the path.
 func GetSRIHash(assetPath string) string {
 	if !sriEnabled {
 		return ""
@@ -92,13 +92,12 @@ func GetSRIHash(assetPath string) string {
 	return ""
 }
 
-// FilterSRIHash returns the given hash when SRI is enabled, or an empty
-// string when disabled.
+// FilterSRIHash returns the given hash when SRI is enabled, or an empty string when
+// disabled.
 //
 // Takes hash (string) which is the SRI hash to filter.
 //
-// Returns string which is the hash unchanged when SRI is enabled, or empty
-// when disabled.
+// Returns string which is the hash unchanged when SRI is enabled, or empty when disabled.
 func FilterSRIHash(hash string) string {
 	if !sriEnabled {
 		return ""
@@ -106,8 +105,8 @@ func FilterSRIHash(hash string) string {
 	return hash
 }
 
-// ResetSRIState clears all cached SRI hashes and resets the enabled flag.
-// This is intended for use in tests only.
+// ResetSRIState clears all cached SRI hashes and resets the enabled flag. This is
+// intended for use in tests only.
 func ResetSRIState() {
 	sriEnabled = false
 	sriHashes = sync.Map{}

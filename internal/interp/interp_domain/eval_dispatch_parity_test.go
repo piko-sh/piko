@@ -35,16 +35,8 @@ func TestDispatchParitySpill(t *testing.T) {
 		source string
 		expect int64
 	}{
-		{
-			"spill_basic_sum",
-			generateAllAliveProgram(260),
-			triangular(260),
-		},
-		{
-			"spill_with_inc_dec",
-			generateSpillIncDecProgram(260),
-			triangular(260) + 1 - 1,
-		},
+		{name: "spill_basic_sum", source: generateAllAliveProgram(260), expect: triangular(260)},
+		{name: "spill_with_inc_dec", source: generateSpillIncDecProgram(260), expect: triangular(260) + 1 - 1},
 	}
 
 	for _, tt := range tests {
@@ -92,43 +84,43 @@ func TestDispatchParity(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 	}{
-		{"int_arithmetic", "2 + 3 * 4", int64(14)},
-		{"int_division", `x := 7; y := 2; x / y`, int64(3)},
-		{"int_remainder", `x := 7; y := 3; x % y`, int64(1)},
-		{"float_arithmetic", `x := 3.14; y := 2.0; x * y`, float64(6.28)},
-		{"float_division", `x := 10.0; y := 4.0; x / y`, float64(2.5)},
-		{"negation", `x := 42; -x`, int64(-42)},
-		{"float_negation", `x := 3.14; -x`, float64(-3.14)},
-		{"bitwise_and", `x := 0xFF; y := 0x0F; x & y`, int64(0x0F)},
-		{"bitwise_or", `x := 0xF0; y := 0x0F; x | y`, int64(0xFF)},
-		{"bitwise_xor", `x := 0xFF; y := 0x0F; x ^ y`, int64(0xF0)},
-		{"shift_left", `x := 1; y := 4; x << y`, int64(16)},
-		{"shift_right", `x := 16; y := 2; x >> y`, int64(4)},
-		{"comparison_eq_true", `x := 42; x == 42`, true},
-		{"comparison_eq_false", `x := 42; x == 43`, false},
-		{"comparison_lt", `x := 5; x < 10`, true},
-		{"comparison_gt", `x := 10; x > 5`, true},
-		{"boolean_not", `x := true; !x`, false},
-		{"conditional", `x := 5; if x > 3 { x = 100 }; x`, int64(100)},
-		{"for_loop_sum", `sum := 0; for i := 0; i < 10; i++ { sum += i }; sum`, int64(45)},
-		{"string_concat", `x := "hello"; y := " world"; x + y`, "hello world"},
-		{"nested_calls", "func fib(n int) int {\n\tif n <= 1 {\n\t\treturn n\n\t}\n\treturn fib(n-1) + fib(n-2)\n}\nfib(10)", int64(55)},
-		{"closure_capture", `x := 10; f := func() int { return x + 5 }; f()`, int64(15)},
-		{"int_to_float", `x := 42; float64(x)`, float64(42.0)},
-		{"float_to_int", `x := 42.7; int(x)`, int64(42)},
-		{"multiple_returns", `
+		{name: "int_arithmetic", code: "2 + 3 * 4", expect: int64(14)},
+		{name: "int_division", code: `x := 7; y := 2; x / y`, expect: int64(3)},
+		{name: "int_remainder", code: `x := 7; y := 3; x % y`, expect: int64(1)},
+		{name: "float_arithmetic", code: `x := 3.14; y := 2.0; x * y`, expect: float64(6.28)},
+		{name: "float_division", code: `x := 10.0; y := 4.0; x / y`, expect: float64(2.5)},
+		{name: "negation", code: `x := 42; -x`, expect: int64(-42)},
+		{name: "float_negation", code: `x := 3.14; -x`, expect: float64(-3.14)},
+		{name: "bitwise_and", code: `x := 0xFF; y := 0x0F; x & y`, expect: int64(0x0F)},
+		{name: "bitwise_or", code: `x := 0xF0; y := 0x0F; x | y`, expect: int64(0xFF)},
+		{name: "bitwise_xor", code: `x := 0xFF; y := 0x0F; x ^ y`, expect: int64(0xF0)},
+		{name: "shift_left", code: `x := 1; y := 4; x << y`, expect: int64(16)},
+		{name: "shift_right", code: `x := 16; y := 2; x >> y`, expect: int64(4)},
+		{name: "comparison_eq_true", code: `x := 42; x == 42`, expect: true},
+		{name: "comparison_eq_false", code: `x := 42; x == 43`, expect: false},
+		{name: "comparison_lt", code: `x := 5; x < 10`, expect: true},
+		{name: "comparison_gt", code: `x := 10; x > 5`, expect: true},
+		{name: "boolean_not", code: `x := true; !x`, expect: false},
+		{name: "conditional", code: `x := 5; if x > 3 { x = 100 }; x`, expect: int64(100)},
+		{name: "for_loop_sum", code: `sum := 0; for i := 0; i < 10; i++ { sum += i }; sum`, expect: int64(45)},
+		{name: "string_concat", code: `x := "hello"; y := " world"; x + y`, expect: "hello world"},
+		{name: "nested_calls", code: "func fib(n int) int {\n\tif n <= 1 {\n\t\treturn n\n\t}\n\treturn fib(n-1) + fib(n-2)\n}\nfib(10)", expect: int64(55)},
+		{name: "closure_capture", code: `x := 10; f := func() int { return x + 5 }; f()`, expect: int64(15)},
+		{name: "int_to_float", code: `x := 42; float64(x)`, expect: float64(42.0)},
+		{name: "float_to_int", code: `x := 42.7; int(x)`, expect: int64(42)},
+		{name: "multiple_returns", code: `
 			func swap(a, b int) (int, int) { return b, a }
 			x, y := swap(1, 2)
-			x*10 + y`, int64(21)},
-		{"string_length", `x := "hello"; len(x)`, int64(5)},
-		{"slice_operations", `
+			x*10 + y`, expect: int64(21)},
+		{name: "string_length", code: `x := "hello"; len(x)`, expect: int64(5)},
+		{name: "slice_operations", code: `
 			s := make([]int, 0)
 			s = append(s, 1, 2, 3)
-			s[0] + s[1] + s[2]`, int64(6)},
+			s[0] + s[1] + s[2]`, expect: int64(6)},
 	}
 
 	for _, tt := range tests {

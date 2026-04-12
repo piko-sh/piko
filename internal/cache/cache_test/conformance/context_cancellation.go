@@ -28,9 +28,9 @@ import (
 
 // runContextCancellationTests runs the context cancellation test suite.
 //
-// For in-memory providers, all operations should succeed even with a cancelled
-// context because they are non-blocking. For distributed providers, operations
-// should return context errors.
+// For in-memory providers, all operations should succeed even with a cancelled context
+// because they are non-blocking. For distributed providers, operations should return
+// context errors.
 //
 // Takes t (*testing.T) which is the test context.
 // Takes config (StringConfig) which specifies the cache configuration to test.

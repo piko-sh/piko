@@ -18,10 +18,10 @@
 
 package pdfwriter_domain
 
-// Renders a layout box tree to a multi-page PDF using absolute coordinates.
-// Embeds TrueType fonts as CIDFont Type2 when font entries are provided,
-// falling back to Helvetica Type1 when no embedded fonts are available.
-// The Y-axis is flipped: layout uses top-left origin, PDF uses bottom-left.
+// Renders a layout box tree to a multi-page PDF using absolute coordinates. Embeds
+// TrueType fonts as CIDFont Type2 when font entries are provided, falling back to
+// Helvetica Type1 when no embedded fonts are available. The Y-axis is flipped: layout
+// uses top-left origin, PDF uses bottom-left.
 
 import (
 	"context"
@@ -123,10 +123,10 @@ const (
 	formFieldAttrValue = "value"
 )
 
-// resolveBaselineOffset returns the distance from the top of the text
-// content box to the text baseline. Uses the layout-computed value
-// when available, falling back to the hardcoded baselineRatio for
-// boxes that did not pass through the full inline layout pipeline.
+// resolveBaselineOffset returns the distance from the top of the text content box to the
+// text baseline. Uses the layout-computed value when available, falling back to the
+// hardcoded baselineRatio for boxes that did not pass through the full inline layout
+// pipeline.
 //
 // Takes box (*layouter_domain.LayoutBox) which specifies the layout box to measure.
 //
@@ -206,16 +206,15 @@ type pdfFontKey struct {
 
 // PdfPainter renders a layout box tree to PDF.
 type PdfPainter struct {
-	// svgWriter is an optional port for rendering SVGs as native PDF
-	// vector commands. When nil, SVGs fall through to the raster image
-	// path.
+	// svgWriter is an optional port for rendering SVGs as native PDF vector commands. When
+	// nil, SVGs fall through to the raster image path.
 	svgWriter SVGWriterPort
 
 	// imageData holds the port that provides image bytes for embedding.
 	imageData ImageDataPort
 
-	// svgData is an optional port that provides raw SVG markup for
-	// sources. Required alongside svgWriter for vector rendering.
+	// svgData is an optional port that provides raw SVG markup for sources. Required
+	// alongside svgWriter for vector rendering.
 	svgData SVGDataPort
 
 	// variableFonts tracks which font keys are variable font instances.
@@ -233,8 +232,8 @@ type PdfPainter struct {
 	// pdfaConfig holds the optional PDF/A conformance configuration.
 	pdfaConfig *PdfAConfig
 
-	// glyphWidthFunc computes variation-aware glyph advance width in font
-	// design units, set by the caller for variable font support.
+	// glyphWidthFunc computes variation-aware glyph advance width in font design units, set
+	// by the caller for variable font support.
 	glyphWidthFunc func(family string, weight int, style int, glyphID uint16) int
 
 	// fontEmbedder holds the font embedder that writes CIDFont objects.
@@ -255,8 +254,8 @@ type PdfPainter struct {
 	// outlineBuilder holds the builder for the PDF document outline (bookmarks).
 	outlineBuilder *OutlineBuilder
 
-	// writer is set during Paint() to give sub-methods access to the
-	// document writer for allocating form XObject numbers.
+	// writer is set during Paint() to give sub-methods access to the document writer for
+	// allocating form XObject numbers.
 	writer *PdfDocumentWriter
 
 	// structTree holds the structure tree for tagged PDF accessibility.
@@ -265,9 +264,8 @@ type PdfPainter struct {
 	// watermark holds the optional watermark configuration.
 	watermark *WatermarkConfig
 
-	// maskFormObjects collects transparency group form XObjects created
-	// for mask-image during painting. Written to the PDF after page
-	// content streams.
+	// maskFormObjects collects transparency group form XObjects created for mask-image
+	// during painting. Written to the PDF after page content streams.
 	maskFormObjects []maskFormObject
 
 	// fontEntries holds the font entries available for embedding.
@@ -307,8 +305,8 @@ type pageObj struct {
 	contentNumber int
 }
 
-// maskFormObject holds the data for a deferred transparency group
-// form XObject used as an SMask.
+// maskFormObject holds the data for a deferred transparency group form XObject used as an
+// SMask.
 type maskFormObject struct {
 	// bbox holds the bounding box array string for the form XObject.
 	bbox string
@@ -323,15 +321,15 @@ type maskFormObject struct {
 	objectNumber int
 }
 
-// NewPdfPainter creates a new PDF painter with the given page dimensions
-// and optional font entries for embedding.
+// NewPdfPainter creates a new PDF painter with the given page dimensions and optional
+// font entries for embedding.
 //
 // Takes pageWidth (float64) which is the page width in points.
 // Takes pageHeight (float64) which is the page height in points.
-// Takes fontEntries ([]layouter_dto.FontEntry) which are the fonts
-// available for embedding. May be nil for Helvetica fallback.
-// Takes imageData (ImageDataPort) which provides image bytes for
-// embedding. May be nil to skip image rendering.
+// Takes fontEntries ([]layouter_dto.FontEntry) which are the fonts available for
+// embedding. May be nil for Helvetica fallback.
+// Takes imageData (ImageDataPort) which provides image bytes for embedding. May be nil to
+// skip image rendering.
 //
 // Returns *PdfPainter.
 func NewPdfPainter(pageWidth, pageHeight float64, fontEntries []layouter_dto.FontEntry, imageData ImageDataPort) *PdfPainter {
@@ -363,15 +361,15 @@ func NewPdfPainter(pageWidth, pageHeight float64, fontEntries []layouter_dto.Fon
 	}
 }
 
-// PainterConfig holds optional configuration applied to a PdfPainter before
-// painting. Use ConfigurePainter to apply this configuration in a single call.
+// PainterConfig holds optional configuration applied to a PdfPainter before painting. Use
+// ConfigurePainter to apply this configuration in a single call.
 type PainterConfig struct {
-	// SVGWriter is an optional SVG-to-PDF vector writer. When set, SVGs
-	// are rendered as native PDF drawing commands instead of raster images.
+	// SVGWriter is an optional SVG-to-PDF vector writer. When set, SVGs are rendered as
+	// native PDF drawing commands instead of raster images.
 	SVGWriter SVGWriterPort
 
-	// SVGData provides raw SVG markup for sources. Required alongside
-	// SVGWriter for vector rendering.
+	// SVGData provides raw SVG markup for sources. Required alongside SVGWriter for vector
+	// rendering.
 	SVGData SVGDataPort
 
 	// Metadata holds optional PDF metadata fields (title, author, etc.).
@@ -386,8 +384,8 @@ type PainterConfig struct {
 	// PdfAConfig holds optional PDF/A conformance configuration.
 	PdfAConfig *PdfAConfig
 
-	// GlyphWidthFunc computes variation-aware glyph advance widths in font
-	// design units for variable font support.
+	// GlyphWidthFunc computes variation-aware glyph advance widths in font design units for
+	// variable font support.
 	//
 	// When nil, widths are read from hmtx via GlyphAdvanceWidth.
 	GlyphWidthFunc func(family string, weight int, style int, glyphID uint16) int
@@ -399,8 +397,8 @@ type PainterConfig struct {
 	Tagged bool
 }
 
-// ConfigurePainter applies all settings from config to the painter. Call this
-// after NewPdfPainter and before Paint.
+// ConfigurePainter applies all settings from config to the painter. Call this after
+// NewPdfPainter and before Paint.
 //
 // Takes painter (*PdfPainter) which is the painter to configure.
 // Takes config (PainterConfig) which holds the settings to apply.
@@ -497,7 +495,10 @@ func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.Layou
 
 	pageObjNumbers := extractPageObjectNumbers(pageObjs)
 
-	acroformNumber := painter.writeAcroformObjects(writer, pageObjNumbers, pageAnnotRefs, pageCount)
+	acroformNumber, acroformError := painter.writeAcroformObjects(writer, pageObjNumbers, pageAnnotRefs, pageCount)
+	if acroformError != nil {
+		return acroformError
+	}
 
 	painter.writePageObjects(writer, pageObjs, pagesNumber, resources, pageAnnotRefs, pageCount)
 
@@ -507,9 +508,8 @@ func (painter *PdfPainter) Paint(ctx context.Context, result *layouter_dto.Layou
 	return writeError
 }
 
-// writeCatalogueAndTrailer writes the catalogue object,
-// info dictionary, and cross-reference trailer to the PDF
-// document writer.
+// writeCatalogueAndTrailer writes the catalogue object, info dictionary, and
+// cross-reference trailer to the PDF document writer.
 //
 // Takes writer (*PdfDocumentWriter) which specifies the document writer.
 // Takes catalogueNumber (int) which specifies the catalogue object number.
@@ -557,8 +557,8 @@ func (painter *PdfPainter) setWatermarkConfig(config WatermarkConfig) {
 	painter.watermark = &config
 }
 
-// setSVGWriter configures an optional SVG writer that renders SVGs as
-// native PDF vector commands.
+// setSVGWriter configures an optional SVG writer that renders SVGs as native PDF vector
+// commands.
 //
 // Takes writer (SVGWriterPort) which specifies the SVG-to-PDF writer.
 // Takes data (SVGDataPort) which provides raw SVG markup for sources.
@@ -584,16 +584,16 @@ func (painter *PdfPainter) setPdfA(config *PdfAConfig) {
 	}
 }
 
-// setGlyphWidthFunc sets a function that computes variation-aware glyph
-// advance widths in font design units.
+// setGlyphWidthFunc sets a function that computes variation-aware glyph advance widths in
+// font design units.
 //
 // Takes fn (func) which specifies the glyph width computation function.
 func (painter *PdfPainter) setGlyphWidthFunc(fn func(family string, weight int, style int, glyphID uint16) int) {
 	painter.glyphWidthFunc = fn
 }
 
-// extractPageObjectNumbers returns the page object numbers from a slice
-// of pageObj values.
+// extractPageObjectNumbers returns the page object numbers from a slice of pageObj
+// values.
 //
 // Takes objs ([]pageObj) which holds the page objects to extract numbers from.
 //
@@ -606,39 +606,43 @@ func extractPageObjectNumbers(objs []pageObj) []int {
 	return numbers
 }
 
-// writeAcroformObjects writes the AcroForm objects and
-// merges any form widget references into the per-page
-// annotation reference slice.
+// writeAcroformObjects writes the AcroForm objects and merges any form widget references
+// into the per-page annotation reference slice.
 //
 // Takes writer (*PdfDocumentWriter) which specifies the document writer.
 // Takes pageObjNumbers ([]int) which holds the per-page object numbers.
-// Takes pageAnnotRefs ([][]string) which holds the
-// per-page annotation references to merge into.
+// Takes pageAnnotRefs ([][]string) which holds the per-page annotation references to
+// merge into.
 // Takes pageCount (int) which specifies the total number of pages.
 //
 // Returns int which holds the AcroForm object number, or zero if no fields exist.
+// Returns error when the AcroFormBuilder rejects a field (e.g. an unhandled
+// FormFieldType).
 func (painter *PdfPainter) writeAcroformObjects(
 	writer *PdfDocumentWriter,
 	pageObjNumbers []int,
 	pageAnnotRefs [][]string,
 	pageCount int,
-) int {
+) (int, error) {
 	if !painter.acroformBuilder.HasFields() {
-		return 0
+		return 0, nil
 	}
-	acroformNumber, formWidgetRefs := painter.acroformBuilder.WriteObjects(writer, pageObjNumbers)
+	acroformNumber, formWidgetRefs, acroformError := painter.acroformBuilder.WriteObjects(writer, pageObjNumbers)
+	if acroformError != nil {
+		return 0, acroformError
+	}
 	for pageIdx, refs := range formWidgetRefs {
 		if pageIdx >= 0 && pageIdx < pageCount {
 			pageAnnotRefs[pageIdx] = append(pageAnnotRefs[pageIdx], refs...)
 		}
 	}
-	return acroformNumber
+	return acroformNumber, nil
 }
 
 // prepareWatermark builds the watermark prefix stream and font resource.
 //
-// Takes writer (*PdfDocumentWriter) which specifies
-// the document writer for font allocation.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer for font
+// allocation.
 //
 // Returns string which holds the watermark content stream prefix.
 // Returns string which holds the watermark font resource entry.
@@ -656,18 +660,14 @@ func (painter *PdfPainter) prepareWatermark(writer *PdfDocumentWriter) (prefix s
 	return prefix, fontResource
 }
 
-// renderPageStreams paints all pages and returns their
-// content streams.
+// renderPageStreams paints all pages and returns their content streams.
 //
-// Takes rootBox (*layouter_domain.LayoutBox) which holds
-// the root of the layout tree.
-// Takes pageCount (int) which specifies the number of
-// pages to render.
-// Takes watermarkPrefix (string) which holds the watermark
-// stream prefix prepended to each page.
+// Takes rootBox (*layouter_domain.LayoutBox) which holds the root of the layout tree.
+// Takes pageCount (int) which specifies the number of pages to render.
+// Takes watermarkPrefix (string) which holds the watermark stream prefix prepended to
+// each page.
 //
-// Returns []*ContentStream which holds the content streams
-// for each page.
+// Returns []*ContentStream which holds the content streams for each page.
 func (painter *PdfPainter) renderPageStreams(ctx context.Context, rootBox *layouter_domain.LayoutBox, pageCount int, watermarkPrefix string) []*ContentStream {
 	streams := make([]*ContentStream, pageCount)
 	for i := range streams {
@@ -824,24 +824,18 @@ func (painter *PdfPainter) writeStructTree(writer *PdfDocumentWriter, pageObjNum
 	return 0
 }
 
-// buildCatalogueDict assembles the PDF catalogue
-// dictionary string.
+// buildCatalogueDict assembles the PDF catalogue dictionary string.
 //
-// Takes pagesNumber (int) which specifies the pages tree
-// root object number.
-// Takes outlineRootNumber (int) which specifies the
-// outline root object number, or zero if none.
-// Takes structTreeRootNumber (int) which specifies the
-// structure tree root object number, or zero if none.
-// Takes acroformNumber (int) which specifies the AcroForm
-// object number, or zero if none.
-// Takes pageObjNumbers ([]int) which holds the per-page
-// object numbers.
-// Takes writer (*PdfDocumentWriter) which specifies the
-// document writer.
+// Takes pagesNumber (int) which specifies the pages tree root object number.
+// Takes outlineRootNumber (int) which specifies the outline root object number, or zero
+// if none.
+// Takes structTreeRootNumber (int) which specifies the structure tree root object number,
+// or zero if none.
+// Takes acroformNumber (int) which specifies the AcroForm object number, or zero if none.
+// Takes pageObjNumbers ([]int) which holds the per-page object numbers.
+// Takes writer (*PdfDocumentWriter) which specifies the document writer.
 //
-// Returns string which holds the assembled catalogue
-// dictionary.
+// Returns string which holds the assembled catalogue dictionary.
 func (painter *PdfPainter) buildCatalogueDict(pagesNumber, outlineRootNumber, structTreeRootNumber, acroformNumber int, pageObjNumbers []int, writer *PdfDocumentWriter) string {
 	catalogueDict := fmt.Sprintf("<< /Type /Catalog /Pages %s", FormatReference(pagesNumber))
 	if outlineRootNumber > 0 {
@@ -909,8 +903,7 @@ type resolvedFont struct {
 	found bool
 }
 
-// resolveFontData looks up font data for the given family, weight, and
-// style combination.
+// resolveFontData looks up font data for the given family, weight, and style combination.
 //
 // Takes family (string) which specifies the font family name.
 // Takes weight (int) which specifies the CSS font weight.

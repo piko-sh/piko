@@ -16,15 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package email_provider_mailgun implements the email provider
-// port using Mailgun.
+// Package email_provider_mailgun implements the email provider port using Mailgun.
 //
-// The adapter integrates with the Mailgun transactional email
-// API, supporting single and bulk sending, attachments, inline
-// images, and configurable rate limiting. EU region endpoints
-// are supported via the APIBase configuration option.
-// OpenTelemetry metrics are emitted for send attempts and
-// durations.
+// The adapter integrates with the Mailgun transactional email API, supporting single and
+// bulk sending, attachments, inline images, and configurable rate limiting. EU region
+// endpoints are supported via the APIBase configuration option. OpenTelemetry metrics are
+// emitted for send attempts and durations.
 //
 // # Thread safety
 //

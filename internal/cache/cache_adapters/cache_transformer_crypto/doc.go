@@ -16,21 +16,20 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_transformer_crypto implements the cache transformer port
-// using the centralised crypto service for encryption and decryption.
+// Package cache_transformer_crypto implements the cache transformer port using the
+// centralised crypto service for encryption and decryption.
 //
-// This adapter delegates all cryptographic operations to the application's
-// central crypto service, rather than managing keys directly. It
-// centralises key management and supports features such as key rotation.
-// The transformer self-registers under the blueprint name "crypto-service"
-// so the cache builder can instantiate it from configuration.
+// This adapter delegates all cryptographic operations to the application's central crypto
+// service, rather than managing keys directly. It centralises key management and supports
+// features such as key rotation. The transformer self-registers under the blueprint name
+// "crypto-service" so the cache builder can instantiate it from configuration.
 //
-// It is designed to run after compression in the cache pipeline. Its
-// default priority of 250 places it after compression transformers
-// (priority 100) on writes, and before them on reads.
+// It is designed to run after compression in the cache pipeline. Its default priority of
+// 250 places it after compression transformers (priority 100) on writes, and before them
+// on reads.
 //
 // # Thread safety
 //
-// All methods are safe for concurrent use, provided the underlying
-// crypto service implementation is also safe for concurrent use.
+// All methods are safe for concurrent use, provided the underlying crypto service
+// implementation is also safe for concurrent use.
 package cache_transformer_crypto

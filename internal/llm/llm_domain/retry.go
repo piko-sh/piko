@@ -38,24 +38,26 @@ const (
 	DefaultJitterFallback = 0.5
 )
 
-// llmErrorClassifier delegates string-based and network error classification
-// to the shared retry package, extended with LLM-specific permanent errors
-// and additional retryable HTTP status code patterns.
-var llmErrorClassifier = retry.NewErrorClassifier(
-	retry.WithPermanentErrors(
-		ErrEmptyModel, ErrEmptyMessages, ErrInvalidTemperature,
-		ErrInvalidTopP, ErrInvalidMaxTokens, ErrProviderNotFound,
-		ErrNoDefaultProvider, ErrProviderAlreadyExists,
-		ErrToolsNotSupported, ErrStructuredOutputNotSupported,
-		ErrStreamingNotSupported,
-	),
-	retry.WithRetryablePatterns(
-		"408", "409", "425", "429",
-		"overloaded", "overload",
-		"rate_limit", "timed out",
-		"broken pipe", "eof", "temporary",
-		"service unavailable",
-	),
+var (
+	// llmErrorClassifier delegates string-based and network error classification to the
+	// shared retry package, extended with LLM-specific permanent errors and additional
+	// retryable HTTP status code patterns.
+	llmErrorClassifier = retry.NewErrorClassifier(
+		retry.WithPermanentErrors(
+			ErrEmptyModel, ErrEmptyMessages, ErrInvalidTemperature,
+			ErrInvalidTopP, ErrInvalidMaxTokens, ErrProviderNotFound,
+			ErrNoDefaultProvider, ErrProviderAlreadyExists,
+			ErrToolsNotSupported, ErrStructuredOutputNotSupported,
+			ErrStreamingNotSupported,
+		),
+		retry.WithRetryablePatterns(
+			"408", "409", "425", "429",
+			"overloaded", "overload",
+			"rate_limit", "timed out",
+			"broken pipe", "eof", "temporary",
+			"service unavailable",
+		),
+	)
 )
 
 // RetryExecutor handles retry logic with exponential backoff for LLM requests.
@@ -72,8 +74,8 @@ type RetryExecutorOption func(*RetryExecutor)
 
 // NewRetryExecutor creates a new RetryExecutor with the given policy.
 //
-// Takes policy (*llm_dto.RetryPolicy) which configures the retry behaviour.
-// If policy is nil, a default policy is used.
+// Takes policy (*llm_dto.RetryPolicy) which configures the retry behaviour. If policy is
+// nil, a default policy is used.
 // Takes opts (...RetryExecutorOption) which are optional configuration functions.
 //
 // Returns *RetryExecutor ready to execute operations with retries.
@@ -91,8 +93,7 @@ func NewRetryExecutor(policy *llm_dto.RetryPolicy, opts ...RetryExecutorOption) 
 	return e
 }
 
-// Execute runs the given function with retries according to the configured
-// policy.
+// Execute runs the given function with retries according to the configured policy.
 //
 // Takes operation (func() error) which is the operation to execute.
 //
@@ -119,9 +120,9 @@ func (e *RetryExecutor) Execute(ctx context.Context, operation func() error) err
 	return lastErr
 }
 
-// IsRetryable determines whether an error should trigger a retry.
-// Errors are retryable if they indicate transient provider issues such as
-// rate limiting, timeouts, overload, or network errors.
+// IsRetryable determines whether an error should trigger a retry. Errors are retryable if
+// they indicate transient provider issues such as rate limiting, timeouts, overload, or
+// network errors.
 //
 // The check order is:
 //  1. RetryableError interface (typed errors self-classify)
@@ -158,23 +159,22 @@ func (e *RetryExecutor) GetPolicy() *llm_dto.RetryPolicy {
 
 // recordSuccessIfRetried records a success metric if this was a retry.
 //
-// Takes attempt (int) which is the current attempt number, where 0 means the
-// first attempt and values greater than 0 indicate retries.
+// Takes attempt (int) which is the current attempt number, where 0 means the initial
+// attempt and values greater than 0 indicate retries.
 func (*RetryExecutor) recordSuccessIfRetried(ctx context.Context, attempt int) {
 	if attempt > 0 {
 		retrySuccessCount.Add(ctx, 1)
 	}
 }
 
-// handleFailedAttempt handles a failed attempt and decides whether to stop
-// retrying.
+// handleFailedAttempt handles a failed attempt and decides whether to stop retrying.
 //
 // Takes attempt (int) which is the current attempt number.
 // Takes err (error) which is the error from the failed attempt.
 //
 // Returns bool which is true when retrying should stop.
-// Returns error when the error is not retryable, retries are exhausted, or
-// the wait is interrupted.
+// Returns error when the error is not retryable, retries are exhausted, or the wait is
+// interrupted.
 func (e *RetryExecutor) handleFailedAttempt(ctx context.Context, attempt int, err error) (bool, error) {
 	if !e.IsRetryable(err) {
 		return true, err
@@ -191,10 +191,10 @@ func (e *RetryExecutor) handleFailedAttempt(ctx context.Context, attempt int, er
 	return false, nil
 }
 
-// waitForRetry waits for the backoff duration before the next retry attempt.
-// When the previous error carries a Retry-After hint via ProviderError.RetryAfter
-// for status 429 or 503, that hint takes precedence over the calculated
-// exponential backoff (capped at llm_domain.MaxRetryAfterDuration).
+// waitForRetry waits for the backoff duration before the next retry attempt. When the
+// previous error carries a Retry-After hint via ProviderError.RetryAfter for status 429
+// or 503, that hint takes precedence over the calculated exponential backoff (capped at
+// llm_domain.MaxRetryAfterDuration).
 //
 // Takes attempt (int) which is the current retry attempt number.
 // Takes err (error) which is the error from the previous attempt.
@@ -231,13 +231,13 @@ func (e *RetryExecutor) waitForRetry(ctx context.Context, attempt int, err error
 	}
 }
 
-// retryAfterHint extracts the Retry-After hint from a ProviderError when the
-// status code is 429 or 503. Returns zero when no usable hint is present.
+// retryAfterHint extracts the Retry-After hint from a ProviderError when the status code
+// is 429 or 503. Returns zero when no usable hint is present.
 //
 // Takes err (error) which is the error to inspect.
 //
-// Returns time.Duration which is the parsed Retry-After value, or zero when
-// not applicable.
+// Returns time.Duration which is the parsed Retry-After value, or zero when not
+// applicable.
 func retryAfterHint(err error) time.Duration {
 	var providerErr *ProviderError
 	if !errors.As(err, &providerErr) {
@@ -256,8 +256,8 @@ func retryAfterHint(err error) time.Duration {
 	return providerErr.RetryAfter
 }
 
-// calculateBackoff computes the backoff duration for the given attempt number.
-// It uses exponential backoff with optional jitter.
+// calculateBackoff computes the backoff duration for the given attempt number. It uses
+// exponential backoff with optional jitter.
 //
 // Takes attempt (int) which specifies the retry attempt number.
 //
@@ -282,8 +282,8 @@ func (e *RetryExecutor) calculateBackoff(attempt int) time.Duration {
 	return time.Duration(backoff)
 }
 
-// WithRetryExecutorClock sets the clock used for time operations.
-// If not set, clock.RealClock() is used.
+// WithRetryExecutorClock sets the clock used for time operations. If not set,
+// clock.RealClock() is used.
 //
 // Takes c (clock.Clock) which provides time operations.
 //
@@ -294,8 +294,8 @@ func WithRetryExecutorClock(c clock.Clock) RetryExecutorOption {
 	}
 }
 
-// ExecuteWithResult runs the given function with retries, returning both
-// a result and error.
+// ExecuteWithResult runs the given function with retries, returning both a result and
+// error.
 //
 // Takes e (*RetryExecutor) which provides the retry policy and behaviour.
 // Takes operation (func() (T, error)) which is the operation to execute.

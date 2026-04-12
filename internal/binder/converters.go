@@ -33,8 +33,7 @@ import (
 )
 
 const (
-	// colourLenRGB is the length of a short RGB hex colour code without the #
-	// prefix.
+	// colourLenRGB is the length of a short RGB hex colour code without the # prefix.
 	colourLenRGB = 3
 
 	// colourLenRRGGBB is the length of a six-digit hex colour code (RRGGBB).
@@ -43,21 +42,20 @@ const (
 	// colourLenRRGGBBAA is the length of an RRGGBBAA hex colour string.
 	colourLenRRGGBBAA = 8
 
-	// colourScaleShortForm is the multiplier to convert 4-bit colour values to
-	// 8-bit.
+	// colourScaleShortForm is the multiplier to convert 4-bit colour values to 8-bit.
 	colourScaleShortForm = 17
 )
 
 // ConverterFunc defines a function that converts a string into a reflect.Value.
 type ConverterFunc func(value string) (reflect.Value, error)
 
-// primitiveConverter is a function type that converts a string to a value of
-// a given primitive type.
+// primitiveConverter is a function type that converts a string to a value of a given
+// primitive type.
 type primitiveConverter func(value string) (reflect.Value, error)
 
 var (
 	// primitiveConverters acts as a dispatch table for Go's built-in types.
-	primitiveConverters = map[reflect.Kind]primitiveConverter{
+	primitiveConverters = map[reflect.Kind]primitiveConverter{ //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 		reflect.String:    convertToString,
 		reflect.Bool:      convertToBool,
 		reflect.Int:       convertToInt,
@@ -75,8 +73,8 @@ var (
 		reflect.Interface: convertToInterface,
 	}
 
-	// timeLayouts defines the supported formats for string-to-time conversion, in
-	// order of preference.
+	// timeLayouts defines the supported formats for string-to-time conversion, in order of
+	// preference.
 	timeLayouts = []string{
 		time.RFC3339,
 		time.RFC3339Nano,
@@ -98,9 +96,9 @@ var (
 	}
 )
 
-// convertAndSet is the primary dispatcher for type conversion. It validates
-// the target field and delegates to the appropriate converter for custom or
-// primitive types, using pre-cached metadata from the fieldInfo struct.
+// convertAndSet is the primary dispatcher for type conversion. It validates the target
+// field and delegates to the appropriate converter for custom or primitive types, using
+// pre-cached metadata from the fieldInfo struct.
 //
 // Takes field (reflect.Value) which is the target struct field to set.
 // Takes value (string) which is the raw string value to convert.
@@ -137,9 +135,9 @@ func (b *ASTBinder) convertAndSet(field reflect.Value, value string, fullPath st
 	return nil
 }
 
-// convertToType selects a converter based on precedence: user-registered
-// converters, framework converters for well-known types, TextUnmarshaler, then
-// primitive kind converters.
+// convertToType selects a converter based on precedence: user-registered converters,
+// framework converters for well-known types, TextUnmarshaler, then primitive kind
+// converters.
 //
 // Takes value (string) which is the raw string to convert.
 // Takes fi (*fieldInfo) which provides the target type and unmarshaler.
@@ -173,14 +171,12 @@ func (b *ASTBinder) convertToType(value string, fi *fieldInfo) (reflect.Value, e
 
 // getUserConverter retrieves a user-registered converter for the given type.
 //
-// Takes targetType (reflect.Type) which specifies the type to find a
-// converter for.
+// Takes targetType (reflect.Type) which specifies the type to find a converter for.
 //
-// Returns ConverterFunc which is the registered converter, or nil if none
-// exists.
+// Returns ConverterFunc which is the registered converter, or nil if none exists.
 //
-// Uses sync.Map for lock-free reads, suited to read-heavy workloads. Skips
-// the lookup if no converters are registered.
+// Uses sync.Map for lock-free reads, suited to read-heavy workloads. Skips the lookup if
+// no converters are registered.
 func (b *ASTBinder) getUserConverter(targetType reflect.Type) ConverterFunc {
 	if !b.hasConverters.Load() {
 		return nil
@@ -204,8 +200,7 @@ func convertTimeType(value string) (reflect.Value, error) {
 	return reflect.ValueOf(t), err
 }
 
-// convertDurationType parses a duration string and returns it as a reflect
-// value.
+// convertDurationType parses a duration string and returns it as a reflect value.
 //
 // Takes value (string) which is the duration string to parse.
 //
@@ -277,15 +272,14 @@ func convertMoneyType(value string) (reflect.Value, error) {
 	return reflect.ValueOf(m), nil
 }
 
-// unmarshalText converts a string to a value using the TextUnmarshaler
-// interface.
+// unmarshalText converts a string to a value using the TextUnmarshaler interface.
 //
 // Takes targetType (reflect.Type) which specifies the type to create.
 // Takes value (string) which contains the text to convert.
 //
 // Returns reflect.Value which holds the converted value.
-// Returns error when the target type does not implement TextUnmarshaler or
-// when the conversion fails.
+// Returns error when the target type does not implement TextUnmarshaler or when the
+// conversion fails.
 func unmarshalText(targetType reflect.Type, value string) (reflect.Value, error) {
 	newInstance := reflect.New(targetType)
 	u, ok := reflect.TypeAssert[encoding.TextUnmarshaler](newInstance)
@@ -340,8 +334,7 @@ func parseDuration(value string) (time.Duration, error) {
 
 // parseURL parses a string as a URL.
 //
-// When the value is an empty string, returns an empty URL struct without
-// error.
+// When the value is an empty string, returns an empty URL struct without error.
 //
 // Takes value (string) which is the URL string to parse.
 //
@@ -379,12 +372,11 @@ func parseMailAddress(value string) (*mail.Address, error) {
 
 // parseColour parses a hex colour string into a color.Color value.
 //
-// Takes value (string) which is the colour in #RGB, #RRGGBB, or #RRGGBBAA
-// format. An empty string returns a zero-value RGBA.
+// Takes value (string) which is the colour in #RGB, #RRGGBB, or #RRGGBBAA format. An
+// empty string returns a zero-value RGBA.
 //
 // Returns color.Color which is the parsed colour as an RGBA value.
-// Returns error when the format is not valid or the hex values cannot be
-// parsed.
+// Returns error when the format is not valid or the hex values cannot be parsed.
 func parseColour(value string) (color.Color, error) {
 	if value == "" {
 		return color.RGBA{}, nil
@@ -429,8 +421,8 @@ func convertToString(value string) (reflect.Value, error) {
 
 // convertToInterface stores a string value as an interface{}/any type.
 //
-// Use it for binding to map[string]any and other dynamic types. The value is
-// stored as a string. The caller must handle any further type conversion.
+// Use it for binding to map[string]any and other dynamic types. The value is stored as a
+// string. The caller must handle any further type conversion.
 //
 // Takes value (string) which is the string to store.
 //
@@ -443,8 +435,8 @@ func convertToInterface(value string) (reflect.Value, error) {
 
 // convertToBool parses a string into a boolean reflect.Value.
 //
-// When value is empty, returns false without error. When value is "on",
-// returns true to support HTML checkbox values.
+// When value is empty, returns false without error. When value is "on", returns true to
+// support HTML checkbox values.
 //
 // Takes value (string) which is the string to parse as a boolean.
 //
@@ -461,8 +453,7 @@ func convertToBool(value string) (reflect.Value, error) {
 	return reflect.ValueOf(b), err
 }
 
-// convertToInt parses a string as a base-10 integer and returns it as a
-// reflect.Value.
+// convertToInt parses a string as a base-10 integer and returns it as a reflect.Value.
 //
 // Takes value (string) which is the numeric string to parse.
 //
@@ -524,8 +515,7 @@ func convertToInt32(value string) (reflect.Value, error) {
 //
 // Takes value (string) which is the number string to parse.
 //
-// Returns reflect.Value which holds the parsed int64, or zero if the input is
-// empty.
+// Returns reflect.Value which holds the parsed int64, or zero if the input is empty.
 // Returns error when the string is not a valid integer.
 func convertToInt64(value string) (reflect.Value, error) {
 	if value == "" {
@@ -551,8 +541,7 @@ func convertToUint(value string) (reflect.Value, error) {
 	return reflect.ValueOf(uint(u)), err
 }
 
-// convertToUint8 parses a string into an uint8 value wrapped in a
-// reflect.Value.
+// convertToUint8 parses a string into an uint8 value wrapped in a reflect.Value.
 //
 // When the value is empty, returns zero without error.
 //
@@ -591,8 +580,8 @@ func convertToUint16(value string) (reflect.Value, error) {
 // Takes value (string) which is the decimal number to parse.
 //
 // Returns reflect.Value which contains the parsed uint32.
-// Returns error when the string is not a valid decimal number or is out of
-// range for uint32.
+// Returns error when the string is not a valid decimal number or is out of range for
+// uint32.
 func convertToUint32(value string) (reflect.Value, error) {
 	if value == "" {
 		return reflect.ValueOf(uint32(0)), nil

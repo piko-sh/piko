@@ -50,7 +50,7 @@ func (e ErrorInfo) Display() string {
 }
 
 type PageData struct {
-	UserProduct fields.Pair[User, Product]             `json:"user_product"`
+	UserProduct fields.Pair[User, Product]              `json:"user_product"`
 	Mixed       fields.Triple[User, Product, ErrorInfo] `json:"mixed"`
 	UserResult  fields.Result[User, ErrorInfo]          `json:"user_result"`
 }

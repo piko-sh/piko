@@ -24,26 +24,25 @@ import (
 	"sync/atomic"
 )
 
-// MockServerAdapter is a test double for ServerAdapter where nil function
-// fields return zero values and call counts are tracked atomically.
+// MockServerAdapter is a test double for ServerAdapter where nil function fields return
+// zero values and call counts are tracked atomically.
 type MockServerAdapter struct {
-	// ListenAndServeFunc is the function called by
-	// ListenAndServe.
+	// ListenAndServeFunc is the function called by ListenAndServe.
 	ListenAndServeFunc func(address string, handler http.Handler) error
 
 	// ShutdownFunc is the function called by Shutdown.
 	ShutdownFunc func(ctx context.Context) error
 
-	// ListenAndServeCallCount tracks how many times
-	// ListenAndServe was called.
-	ListenAndServeCallCount int64
+	// ListenAndServeCallCount tracks how many times ListenAndServe was called.
+	ListenAndServeCallCount atomic.Int64
 
-	// ShutdownCallCount tracks how many times Shutdown
-	// was called.
-	ShutdownCallCount int64
+	// ShutdownCallCount tracks how many times Shutdown was called.
+	ShutdownCallCount atomic.Int64
 }
 
-var _ ServerAdapter = (*MockServerAdapter)(nil)
+var (
+	_ ServerAdapter = (*MockServerAdapter)(nil)
+)
 
 // ListenAndServe starts the HTTP server on the given address.
 //
@@ -52,7 +51,7 @@ var _ ServerAdapter = (*MockServerAdapter)(nil)
 //
 // Returns error, or nil if ListenAndServeFunc is nil.
 func (m *MockServerAdapter) ListenAndServe(address string, handler http.Handler) error {
-	atomic.AddInt64(&m.ListenAndServeCallCount, 1)
+	m.ListenAndServeCallCount.Add(1)
 	if m.ListenAndServeFunc != nil {
 		return m.ListenAndServeFunc(address, handler)
 	}
@@ -66,7 +65,7 @@ func (*MockServerAdapter) SetOnBound(_ func(address string)) {}
 //
 // Returns error, or nil if ShutdownFunc is nil.
 func (m *MockServerAdapter) Shutdown(ctx context.Context) error {
-	atomic.AddInt64(&m.ShutdownCallCount, 1)
+	m.ShutdownCallCount.Add(1)
 	if m.ShutdownFunc != nil {
 		return m.ShutdownFunc(ctx)
 	}

@@ -28,24 +28,22 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// circuitBreakerBucketPeriod is the duration of each measurement bucket
-// for tracking failure counts.
-const circuitBreakerBucketPeriod = 10 * time.Second
+const (
+	// circuitBreakerBucketPeriod is the duration of each measurement bucket for tracking
+	// failure counts.
+	circuitBreakerBucketPeriod = 10 * time.Second
+)
 
-// newCircuitBreaker initialises a new gobreaker instance with logging for state
-// changes.
+// newCircuitBreaker initialises a new gobreaker instance with logging for state changes.
 //
-// Takes ctx (context.Context) which carries logging context for trace and
-// request ID propagation.
-// Takes name (string) which identifies the circuit breaker in log
-// messages.
-// Takes maxFailures (int) which sets the consecutive failure
-// threshold before opening.
-// Takes timeout (time.Duration) which specifies how long the
-// circuit stays open before attempting recovery.
+// Takes ctx (context.Context) which carries logging context for trace and request ID
+// propagation.
+// Takes name (string) which identifies the circuit breaker in log messages.
+// Takes maxFailures (int) which sets the consecutive failure threshold before opening.
+// Takes timeout (time.Duration) which specifies how long the circuit stays open before
+// attempting recovery.
 //
-// Returns *gobreaker.CircuitBreaker[any] which is the configured
-// circuit breaker.
+// Returns *gobreaker.CircuitBreaker[any] which is the configured circuit breaker.
 func newCircuitBreaker(ctx context.Context, name string, maxFailures int, timeout time.Duration) *gobreaker.CircuitBreaker[any] {
 	var threshold uint32
 	if maxFailures > 0 {

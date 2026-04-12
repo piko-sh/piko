@@ -150,7 +150,7 @@ func TestWatchdog_StartupHistoryFirstRunNoEvents(t *testing.T) {
 	var file startupHistoryFile
 	require.NoError(t, json.Unmarshal(data, &file))
 	require.Len(t, file.Entries, 1)
-	assert.Nil(t, file.Entries[0].StoppedAt)
+	assert.True(t, file.Entries[0].StoppedAt.IsZero())
 }
 
 func TestWatchdog_StartupHistoryStopMarksClean(t *testing.T) {
@@ -173,7 +173,7 @@ func TestWatchdog_StartupHistoryStopMarksClean(t *testing.T) {
 	var file startupHistoryFile
 	require.NoError(t, json.Unmarshal(data, &file))
 	require.Len(t, file.Entries, 1)
-	require.NotNil(t, file.Entries[0].StoppedAt)
+	assert.False(t, file.Entries[0].StoppedAt.IsZero())
 	assert.Equal(t, "clean", file.Entries[0].Reason)
 }
 
@@ -192,7 +192,7 @@ func TestWatchdog_StartupHistoryRingTrimsToTen(t *testing.T) {
 	for i := range entries {
 		entries[i] = startupHistoryEntry{
 			StartedAt: startTime.Add(-time.Duration(20-i) * time.Minute),
-			StoppedAt: &stopped,
+			StoppedAt: stopped,
 			PID:       1000 + i,
 			Reason:    "clean",
 		}
@@ -218,7 +218,7 @@ func TestWatchdog_StartupHistoryRingTrimsToTen(t *testing.T) {
 	require.NoError(t, json.Unmarshal(data, &file))
 	assert.LessOrEqual(t, len(file.Entries), maxStartupHistoryEntries, "ring must not exceed maxStartupHistoryEntries")
 
-	assert.Nil(t, file.Entries[len(file.Entries)-1].StoppedAt)
+	assert.True(t, file.Entries[len(file.Entries)-1].StoppedAt.IsZero())
 }
 
 func TestProfileStore_WriteAndRotate(t *testing.T) {

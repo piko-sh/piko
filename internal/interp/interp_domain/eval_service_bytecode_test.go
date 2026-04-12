@@ -28,11 +28,11 @@ import (
 )
 
 type mockBytecodeStore struct {
-	savedKey string
-	savedCFS *CompiledFileSet
-	loadCFS  *CompiledFileSet
 	loadErr  error
 	saveErr  error
+	savedCFS *CompiledFileSet
+	loadCFS  *CompiledFileSet
+	savedKey string
 }
 
 func (m *mockBytecodeStore) SaveCompiledFileSet(_ context.Context, key string, cfs *CompiledFileSet) error {
@@ -148,7 +148,9 @@ func TestRegisterPackage(t *testing.T) {
 
 	source := `package main
 
-import "custom/pkg"
+import (
+	"custom/pkg"
+)
 
 func run() string {
 	return pkg.Hello()

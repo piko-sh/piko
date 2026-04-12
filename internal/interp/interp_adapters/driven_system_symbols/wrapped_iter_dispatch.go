@@ -33,79 +33,99 @@ const (
 	// pkgMaps is the Symbols map key for the maps package.
 	pkgMaps = "maps"
 
-	// minSequence2YieldParams is the minimum number of parameters for a
-	// valid iter.Seq2 yield function (key and value).
+	// minSequence2YieldParams is the minimum number of parameters for a valid iter.Seq2
+	// yield function (key and value).
 	minSequence2YieldParams = 2
 )
 
-// wrappedSlicesCollect wraps slices.Collect for use with dynamic iterator
-// types in the interpreter.
+// wrappedSlicesCollect wraps slices.Collect for use with dynamic iterator types in the
+// interpreter.
 //
 // Takes sequence (any) which is the iterator to collect into a slice.
 //
 // Returns a typed slice containing all values yielded by the iterator.
 func wrappedSlicesCollect(sequence any) any {
 	sequenceVal := reflect.ValueOf(sequence)
-	elemType, ok := iterSequenceElemType(sequenceVal)
+	elementType, ok := iterSequenceElemType(sequenceVal)
 	if !ok {
 		return iterCollectAny(sequenceVal)
 	}
-	sequence = convertSequenceToUnnamed(sequenceVal, elemType)
+	sequence = convertSequenceToUnnamed(sequenceVal, elementType)
 
-	switch elemType {
+	switch elementType {
 	case reflect.TypeFor[string]():
-		return slices.Collect(sequence.(func(func(string) bool)))
+		if typedSequence, matched := sequence.(func(func(string) bool)); matched {
+			return slices.Collect(typedSequence)
+		}
 	case reflect.TypeFor[int]():
-		return slices.Collect(sequence.(func(func(int) bool)))
+		if typedSequence, matched := sequence.(func(func(int) bool)); matched {
+			return slices.Collect(typedSequence)
+		}
 	case reflect.TypeFor[int64]():
-		return slices.Collect(sequence.(func(func(int64) bool)))
+		if typedSequence, matched := sequence.(func(func(int64) bool)); matched {
+			return slices.Collect(typedSequence)
+		}
 	case reflect.TypeFor[float64]():
-		return slices.Collect(sequence.(func(func(float64) bool)))
+		if typedSequence, matched := sequence.(func(func(float64) bool)); matched {
+			return slices.Collect(typedSequence)
+		}
 	case reflect.TypeFor[byte]():
-		return slices.Collect(sequence.(func(func(byte) bool)))
+		if typedSequence, matched := sequence.(func(func(byte) bool)); matched {
+			return slices.Collect(typedSequence)
+		}
 	case reflect.TypeFor[bool]():
-		return slices.Collect(sequence.(func(func(bool) bool)))
-	default:
-		return iterCollectReflect(sequenceVal, elemType)
+		if typedSequence, matched := sequence.(func(func(bool) bool)); matched {
+			return slices.Collect(typedSequence)
+		}
 	}
+	return iterCollectReflect(sequenceVal, elementType)
 }
 
-// wrappedSlicesSorted wraps slices.Sorted for use with dynamic iterator types
-// in the interpreter.
+// wrappedSlicesSorted wraps slices.Sorted for use with dynamic iterator types in the
+// interpreter.
 //
 // Takes sequence (any) which is the iterator to collect and sort.
 //
 // Returns a sorted typed slice containing all values yielded by the iterator.
 func wrappedSlicesSorted(sequence any) any {
 	sequenceVal := reflect.ValueOf(sequence)
-	elemType, ok := iterSequenceElemType(sequenceVal)
+	elementType, ok := iterSequenceElemType(sequenceVal)
 	if !ok {
 		result := iterCollectAny(sequenceVal)
 		reflectSortOrdered(result)
 		return result
 	}
-	sequence = convertSequenceToUnnamed(sequenceVal, elemType)
+	sequence = convertSequenceToUnnamed(sequenceVal, elementType)
 
-	switch elemType {
+	switch elementType {
 	case reflect.TypeFor[string]():
-		return slices.Sorted(sequence.(func(func(string) bool)))
+		if typedSequence, matched := sequence.(func(func(string) bool)); matched {
+			return slices.Sorted(typedSequence)
+		}
 	case reflect.TypeFor[int]():
-		return slices.Sorted(sequence.(func(func(int) bool)))
+		if typedSequence, matched := sequence.(func(func(int) bool)); matched {
+			return slices.Sorted(typedSequence)
+		}
 	case reflect.TypeFor[int64]():
-		return slices.Sorted(sequence.(func(func(int64) bool)))
+		if typedSequence, matched := sequence.(func(func(int64) bool)); matched {
+			return slices.Sorted(typedSequence)
+		}
 	case reflect.TypeFor[float64]():
-		return slices.Sorted(sequence.(func(func(float64) bool)))
+		if typedSequence, matched := sequence.(func(func(float64) bool)); matched {
+			return slices.Sorted(typedSequence)
+		}
 	case reflect.TypeFor[byte]():
-		return slices.Sorted(sequence.(func(func(byte) bool)))
-	default:
-		result := iterCollectReflect(sequenceVal, elemType)
-		reflectSortOrdered(result)
-		return result
+		if typedSequence, matched := sequence.(func(func(byte) bool)); matched {
+			return slices.Sorted(typedSequence)
+		}
 	}
+	result := iterCollectReflect(sequenceVal, elementType)
+	reflectSortOrdered(result)
+	return result
 }
 
-// wrappedSlicesSortedFunc wraps slices.SortedFunc for use with dynamic
-// iterator types in the interpreter.
+// wrappedSlicesSortedFunc wraps slices.SortedFunc for use with dynamic iterator types in
+// the interpreter.
 //
 // Takes sequence (any) which is the iterator to collect and sort.
 // Takes compareFunction (func(any, any) int) which is the comparison function.
@@ -115,8 +135,8 @@ func wrappedSlicesSortedFunc(sequence any, compareFunction func(any, any) int) a
 	return sortedFuncCommon(sequence, compareFunction, false)
 }
 
-// wrappedSlicesSortedStableFunc wraps slices.SortedStableFunc for use with
-// dynamic iterator types in the interpreter.
+// wrappedSlicesSortedStableFunc wraps slices.SortedStableFunc for use with dynamic
+// iterator types in the interpreter.
 //
 // Takes sequence (any) which is the iterator to collect and sort.
 // Takes compareFunction (func(any, any) int) which is the comparison function.
@@ -136,36 +156,42 @@ func wrappedSlicesSortedStableFunc(sequence any, compareFunction func(any, any) 
 // Returns a sorted slice collected from the iterator.
 func sortedFuncCommon(sequence any, compareFunction func(any, any) int, stable bool) any {
 	sequenceVal := reflect.ValueOf(sequence)
-	elemType, ok := iterSequenceElemType(sequenceVal)
+	elementType, ok := iterSequenceElemType(sequenceVal)
 	if !ok {
 		result := iterCollectAny(sequenceVal)
 		reflectSortWithCompareFunction(result, compareFunction)
 		return result
 	}
-	sequence = convertSequenceToUnnamed(sequenceVal, elemType)
+	sequence = convertSequenceToUnnamed(sequenceVal, elementType)
 
-	switch elemType {
+	var (
+		dispatched any
+		matched    bool
+	)
+	switch elementType {
 	case reflect.TypeFor[string]():
-		return sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[string], slices.SortedStableFunc[string])
+		dispatched, matched = sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[string], slices.SortedStableFunc[string])
 	case reflect.TypeFor[int]():
-		return sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[int], slices.SortedStableFunc[int])
+		dispatched, matched = sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[int], slices.SortedStableFunc[int])
 	case reflect.TypeFor[int64]():
-		return sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[int64], slices.SortedStableFunc[int64])
+		dispatched, matched = sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[int64], slices.SortedStableFunc[int64])
 	case reflect.TypeFor[float64]():
-		return sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[float64], slices.SortedStableFunc[float64])
+		dispatched, matched = sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[float64], slices.SortedStableFunc[float64])
 	case reflect.TypeFor[byte]():
-		return sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[byte], slices.SortedStableFunc[byte])
+		dispatched, matched = sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[byte], slices.SortedStableFunc[byte])
 	case reflect.TypeFor[bool]():
-		return sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[bool], slices.SortedStableFunc[bool])
-	default:
-		result := iterCollectReflect(sequenceVal, elemType)
-		reflectSortWithCompareFunction(result, compareFunction)
-		return result
+		dispatched, matched = sortedFuncDispatch(sequence, compareFunction, stable, slices.SortedFunc[bool], slices.SortedStableFunc[bool])
 	}
+	if matched {
+		return dispatched
+	}
+	result := iterCollectReflect(sequenceVal, elementType)
+	reflectSortWithCompareFunction(result, compareFunction)
+	return result
 }
 
-// wrappedMapsCollect wraps maps.Collect for use with dynamic iterator types in
-// the interpreter.
+// wrappedMapsCollect wraps maps.Collect for use with dynamic iterator types in the
+// interpreter.
 //
 // Takes sequence (any) which is the Seq2 iterator to collect into a map.
 //
@@ -184,8 +210,8 @@ func wrappedMapsCollect(sequence any) any {
 	return iterCollectSequence2Reflect(sequenceVal, keyType, valType)
 }
 
-// mapsCollectByType dispatches maps.Collect to the correct concrete
-// key/value type combination.
+// mapsCollectByType dispatches maps.Collect to the correct concrete key/value type
+// combination.
 //
 // Takes sequence (any) which is the iterator sequence to collect.
 // Takes keyType (reflect.Type) which is the map key type.
@@ -203,8 +229,8 @@ func mapsCollectByType(sequence any, keyType, valType reflect.Type) (any, bool) 
 	}
 }
 
-// mapsCollectByVal dispatches maps.Collect for a known key type K,
-// switching on the value type at runtime.
+// mapsCollectByVal dispatches maps.Collect for a known key type K, switching on the value
+// type at runtime.
 //
 // Takes sequence (any) which is the iterator sequence to collect.
 // Takes valType (reflect.Type) which is the map value type.
@@ -227,8 +253,7 @@ func mapsCollectByVal[K comparable](sequence any, valType reflect.Type) (any, bo
 	}
 }
 
-// mapsCollectTyped performs the typed maps.Collect call for a
-// concrete key/value pair.
+// mapsCollectTyped performs the typed maps.Collect call for a concrete key/value pair.
 //
 // Takes sequence (any) which is the iterator sequence to collect.
 //
@@ -246,8 +271,7 @@ func mapsCollectTyped[K comparable, V any](sequence any) (any, bool) {
 //
 // Takes sequenceVal (reflect.Value) which is the iterator function to inspect.
 //
-// Returns the element type and true if the yield function has at least one
-// parameter.
+// Returns the element type and true if the yield function has at least one parameter.
 //
 // Panics if sequenceVal is not a single-argument function.
 func iterSequenceElemType(sequenceVal reflect.Value) (reflect.Type, bool) {
@@ -262,14 +286,13 @@ func iterSequenceElemType(sequenceVal reflect.Value) (reflect.Type, bool) {
 	return nil, false
 }
 
-// iterSequence2Types extracts the key and value types from an iter.Seq2 function
-// via reflection.
+// iterSequence2Types extracts the key and value types from an iter.Seq2 function via
+// reflection.
 //
-// Takes sequenceVal (reflect.Value) which is the Seq2 iterator
-// function to inspect.
+// Takes sequenceVal (reflect.Value) which is the Seq2 iterator function to inspect.
 //
-// Returns the key type, value type, and true if the yield function has at
-// least two parameters.
+// Returns the key type, value type, and true if the yield function has at least two
+// parameters.
 //
 // Panics if sequenceVal is not a single-argument function.
 func iterSequence2Types(sequenceVal reflect.Value) (keyType, valType reflect.Type, ok bool) {
@@ -284,21 +307,21 @@ func iterSequence2Types(sequenceVal reflect.Value) (keyType, valType reflect.Typ
 	return nil, nil, false
 }
 
-// convertSequenceToUnnamed converts a named iter.Seq value to an unnamed function
-// type for type assertions.
+// convertSequenceToUnnamed converts a named iter.Seq value to an unnamed function type
+// for type assertions.
 //
 // Takes sequenceVal (reflect.Value) which is the iter.Seq value to convert.
-// Takes elemType (reflect.Type) which is the element type of the iterator.
+// Takes elementType (reflect.Type) which is the element type of the iterator.
 //
 // Returns the converted function as an unnamed func(func(E) bool) type.
-func convertSequenceToUnnamed(sequenceVal reflect.Value, elemType reflect.Type) any {
-	yieldType := reflect.FuncOf([]reflect.Type{elemType}, []reflect.Type{reflect.TypeFor[bool]()}, false)
+func convertSequenceToUnnamed(sequenceVal reflect.Value, elementType reflect.Type) any {
+	yieldType := reflect.FuncOf([]reflect.Type{elementType}, []reflect.Type{reflect.TypeFor[bool]()}, false)
 	iterType := reflect.FuncOf([]reflect.Type{yieldType}, nil, false)
 	return sequenceVal.Convert(iterType).Interface()
 }
 
-// convertSequence2ToUnnamed converts a named iter.Seq2 value to an unnamed
-// function type for type assertions.
+// convertSequence2ToUnnamed converts a named iter.Seq2 value to an unnamed function type
+// for type assertions.
 //
 // Takes sequenceVal (reflect.Value) which is the iter.Seq2 value to convert.
 // Takes keyType (reflect.Type) which is the key type of the iterator.
@@ -311,14 +334,20 @@ func convertSequence2ToUnnamed(sequenceVal reflect.Value, keyType, valType refle
 	return sequenceVal.Convert(iterType).Interface()
 }
 
-// iterCollectAny collects all values from an iterator into a typed slice using
-// runtime type inference.
+// iterCollectAny collects all values from an iterator, promoting the result to a concrete
+// typed slice when every yielded value shares one non-nil dynamic type, and falling back
+// to []any otherwise.
 //
-// Takes sequenceVal (reflect.Value) which is the iterator
-// function to collect from.
+// Promotion to a concrete element type lets callers such as reflectSortOrdered dispatch
+// on the slice type, but it is only safe when the sequence is homogeneous and contains no
+// nil values: a nil first element gives reflect.TypeOf(nil), and a later mismatched type
+// would fail reflect.Value.Set. In those cases the []any collected slice is returned
+// unchanged so neither situation panics.
 //
-// Returns a typed slice of the collected values, or []any if the
-// slice is empty.
+// Takes sequenceVal (reflect.Value) which is the iterator function to collect from.
+//
+// Returns a concrete typed slice when the values are homogeneous and non-nil, or the
+// collected []any otherwise (including when empty).
 func iterCollectAny(sequenceVal reflect.Value) any {
 	var collected []any
 	yieldFunction := func(v any) bool {
@@ -329,19 +358,25 @@ func iterCollectAny(sequenceVal reflect.Value) any {
 	if len(collected) == 0 {
 		return collected
 	}
-	elemType := reflect.TypeOf(collected[0])
-	result := reflect.MakeSlice(reflect.SliceOf(elemType), len(collected), len(collected))
+	elementType := reflect.TypeOf(collected[0])
+	if elementType == nil {
+		return collected
+	}
+	for _, v := range collected {
+		if reflect.TypeOf(v) != elementType {
+			return collected
+		}
+	}
+	result := reflect.MakeSlice(reflect.SliceOf(elementType), len(collected), len(collected))
 	for i, v := range collected {
 		result.Index(i).Set(reflect.ValueOf(v))
 	}
 	return result.Interface()
 }
 
-// iterCollectAny2 collects all key-value pairs from a Seq2 iterator into a
-// map.
+// iterCollectAny2 collects all key-value pairs from a Seq2 iterator into a map.
 //
-// Takes sequenceVal (reflect.Value) which is the Seq2 iterator
-// function to collect from.
+// Takes sequenceVal (reflect.Value) which is the Seq2 iterator function to collect from.
 //
 // Returns a map[any]any containing all collected key-value pairs.
 func iterCollectAny2(sequenceVal reflect.Value) map[any]any {
@@ -354,32 +389,32 @@ func iterCollectAny2(sequenceVal reflect.Value) map[any]any {
 	return result
 }
 
-// iterCollectReflect collects values from an iterator into a typed slice using
-// reflect.
+// iterCollectReflect collects values from an iterator into a typed slice using reflect.
 //
-// Takes sequenceVal (reflect.Value) which is the iterator
-// function to collect from.
-// Takes elemType (reflect.Type) which is the element type of the
-// resulting slice.
+// Ranges over the iterator directly via reflect.Value.Seq, which avoids a per-call
+// reflect.MakeFunc closure allocation and lets the reflect package fuse the
+// yield-callback machinery internally.
+//
+// Takes sequenceVal (reflect.Value) which is the iterator function to collect from.
+// Takes elementType (reflect.Type) which is the element type of the resulting slice.
 //
 // Returns a typed slice of all values yielded by the iterator.
-func iterCollectReflect(sequenceVal reflect.Value, elemType reflect.Type) any {
-	sliceType := reflect.SliceOf(elemType)
+func iterCollectReflect(sequenceVal reflect.Value, elementType reflect.Type) any {
+	sliceType := reflect.SliceOf(elementType)
 	result := reflect.MakeSlice(sliceType, 0, 0)
-	yieldType := sequenceVal.Type().In(0)
-	yieldFunction := reflect.MakeFunc(yieldType, func(arguments []reflect.Value) []reflect.Value {
-		result = reflect.Append(result, arguments[0])
-		return []reflect.Value{reflect.ValueOf(true)}
-	})
-	sequenceVal.Call([]reflect.Value{yieldFunction})
+	for v := range sequenceVal.Seq() {
+		result = reflect.Append(result, v)
+	}
 	return result.Interface()
 }
 
-// iterCollectSequence2Reflect collects key-value pairs from a Seq2 iterator into a
-// typed map using reflect.
+// iterCollectSequence2Reflect collects key-value pairs from a Seq2 iterator into a typed
+// map using reflect.
 //
-// Takes sequenceVal (reflect.Value) which is the Seq2 iterator
-// function to collect.
+// Ranges over the iterator directly via reflect.Value.Seq2, which avoids a per-call
+// reflect.MakeFunc closure allocation.
+//
+// Takes sequenceVal (reflect.Value) which is the Seq2 iterator function to collect.
 // Takes keyType (reflect.Type) which is the key type of the resulting map.
 // Takes valType (reflect.Type) which is the value type of the resulting map.
 //
@@ -387,17 +422,14 @@ func iterCollectReflect(sequenceVal reflect.Value, elemType reflect.Type) any {
 func iterCollectSequence2Reflect(sequenceVal reflect.Value, keyType, valType reflect.Type) any {
 	mapType := reflect.MapOf(keyType, valType)
 	result := reflect.MakeMap(mapType)
-	yieldType := sequenceVal.Type().In(0)
-	yieldFunction := reflect.MakeFunc(yieldType, func(arguments []reflect.Value) []reflect.Value {
-		result.SetMapIndex(arguments[0], arguments[1])
-		return []reflect.Value{reflect.ValueOf(true)}
-	})
-	sequenceVal.Call([]reflect.Value{yieldFunction})
+	for k, v := range sequenceVal.Seq2() {
+		result.SetMapIndex(k, v)
+	}
 	return result.Interface()
 }
 
-// sortedFuncDispatch calls the stable or unstable SortedFunc variant for a
-// concrete element type E.
+// sortedFuncDispatch calls the stable or unstable SortedFunc variant for a concrete
+// element type E.
 //
 // Takes sequence (any) which is the iterator function to sort.
 // Takes compareFunction (func(any, any) int) which is the comparison function.
@@ -405,22 +437,22 @@ func iterCollectSequence2Reflect(sequenceVal reflect.Value, keyType, valType ref
 // Takes unstableFunction (func) which is the unstable sort function.
 // Takes stableFunction (func) which is the stable sort function.
 //
-// Returns a sorted slice collected from the iterator.
-//
-// Panics if sequence cannot be asserted to the expected function type.
+// Returns a sorted slice collected from the iterator and true when the type assertion
+// matched. When the assertion fails the caller should fall back to the reflect-based
+// path.
 func sortedFuncDispatch[E any](sequence any, compareFunction func(any, any) int, stable bool,
 	unstableFunction, stableFunction func(iter.Seq[E], func(E, E) int) []E,
-) any {
+) (any, bool) {
 	rawSequence, ok := sequence.(func(func(E) bool))
 	if !ok {
-		panic(fmt.Sprintf("sortedFuncDispatch: expected func(func(%T) bool), got %T", *new(E), sequence))
+		return nil, false
 	}
 	typedSequence := iter.Seq[E](rawSequence)
 	wrap := func(a, b E) int { return compareFunction(a, b) }
 	if stable {
-		return stableFunction(typedSequence, wrap)
+		return stableFunction(typedSequence, wrap), true
 	}
-	return unstableFunction(typedSequence, wrap)
+	return unstableFunction(typedSequence, wrap), true
 }
 
 // reflectSortWithCompareFunction sorts a reflect-created slice using a comparison
@@ -449,8 +481,8 @@ func reflectSortWithCompareFunction(slice any, compareFunction func(any, any) in
 	}
 }
 
-// reflectSortOrdered sorts a reflect-created slice of ordered elements using
-// their natural ordering.
+// reflectSortOrdered sorts a reflect-created slice of ordered elements using their
+// natural ordering.
 //
 // Takes slice (any) which is the slice to sort in place.
 //

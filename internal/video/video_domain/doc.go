@@ -16,13 +16,11 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package video_domain owns the core video processing abstractions and
-// business logic.
+// Package video_domain owns the core video processing abstractions and business logic.
 //
-// It defines the [TranscoderPort] and [StreamingTranscoderPort] port
-// interfaces, a service layer that orchestrates transcoding with
-// validation and metrics, and domain types for video metadata and
-// encoding profiles.
+// It defines the [TranscoderPort] and [StreamingTranscoderPort] port interfaces, a
+// service layer that orchestrates transcoding with validation and metrics, and domain
+// types for video metadata and encoding profiles.
 //
 // # Usage
 //
@@ -40,6 +38,6 @@
 //
 // # Thread safety
 //
-// The service is safe for concurrent use. Each transcoding operation runs
-// independently with its own context.
+// The service is safe for concurrent use. Each transcoding operation runs independently
+// with its own context.
 package video_domain

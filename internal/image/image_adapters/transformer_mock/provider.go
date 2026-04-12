@@ -35,9 +35,8 @@ const (
 	mockImageHeight = 600
 )
 
-// TransformCall records the parameters passed to a single call of the Transform
-// method, letting tests inspect what the service is asking the transformer to
-// do.
+// TransformCall records the parameters passed to a single call of the Transform method,
+// letting tests inspect what the service is asking the transformer to do.
 type TransformCall struct {
 	// InputData is a copy of the raw image bytes passed to the transformer.
 	InputData []byte
@@ -46,13 +45,12 @@ type TransformCall struct {
 	Specification image_dto.TransformationSpec
 }
 
-// Provider is a thread-safe, in-memory implementation of TransformerPort.
-// It implements image_domain.TransformerPort and media.ImageTransformerPort
-// for unit and integration testing, allowing call inspection and simulation
-// of both successful transformations and errors.
+// Provider is a thread-safe, in-memory implementation of TransformerPort. It implements
+// image_domain.TransformerPort and media.ImageTransformerPort for unit and integration
+// testing, allowing call inspection and simulation of both successful transformations and
+// errors.
 type Provider struct {
-	// errToReturn is the error that Transform and Transcode return; nil means
-	// success.
+	// errToReturn is the error that Transform and Transcode return; nil means success.
 	errToReturn error
 
 	// mimeTypeToReturn is the MIME type to return when outputDataToReturn is set.
@@ -61,15 +59,17 @@ type Provider struct {
 	// transformCalls stores all calls made to Transform for test assertions.
 	transformCalls []TransformCall
 
-	// outputDataToReturn holds the data to write to the output writer
-	// when set; nil means no data is returned.
+	// outputDataToReturn holds the data to write to the output writer when set; nil means no
+	// data is returned.
 	outputDataToReturn []byte
 
 	// mu protects concurrent access to mock state.
 	mu sync.RWMutex
 }
 
-var _ image_domain.TransformerPort = (*Provider)(nil)
+var (
+	_ image_domain.TransformerPort = (*Provider)(nil)
+)
 
 // NewProvider creates a new mock image transformer for use in tests.
 //
@@ -84,14 +84,12 @@ func NewProvider() *Provider {
 	}
 }
 
-// Transform simulates an image transformation. It records the call
-// and returns either a configured error/result or, by default, passes
-// the input through to output.
+// Transform simulates an image transformation. It records the call and returns either a
+// configured error/result or, by default, passes the input through to output.
 //
 // Takes input (io.Reader) which provides the source image data.
 // Takes output (io.Writer) which receives the transformed image data.
-// Takes spec (image_dto.TransformationSpec) which defines the
-// transformation to apply.
+// Takes spec (image_dto.TransformationSpec) which defines the transformation to apply.
 //
 // Returns string which is the MIME type of the output.
 // Returns error when reading input or writing output fails.
@@ -126,16 +124,16 @@ func (p *Provider) Transform(_ context.Context, input io.Reader, output io.Write
 	return "image/mock", nil
 }
 
-// GetSupportedFormats returns a full set of formats for testing purposes.
-// The mock supports all formats to avoid breaking tests.
+// GetSupportedFormats returns a full set of formats for testing purposes. The mock
+// supports all formats to avoid breaking tests.
 //
 // Returns []string which contains all supported image format extensions.
 func (*Provider) GetSupportedFormats() []string {
 	return []string{"jpeg", "jpg", "png", "webp", "avif", "gif"}
 }
 
-// GetSupportedModifiers returns a full set of modifiers for testing purposes.
-// The mock supports all modifiers to avoid breaking tests.
+// GetSupportedModifiers returns a full set of modifiers for testing purposes. The mock
+// supports all modifiers to avoid breaking tests.
 //
 // Returns []string which contains all available image transformation modifiers.
 func (*Provider) GetSupportedModifiers() []string {
@@ -146,8 +144,7 @@ func (*Provider) GetSupportedModifiers() []string {
 	}
 }
 
-// SetError configures the mock to return the specified error on the next
-// Transform call.
+// SetError configures the mock to return the specified error on the next Transform call.
 //
 // Takes err (error) which is the error to return from subsequent calls.
 //
@@ -158,8 +155,8 @@ func (p *Provider) SetError(err error) {
 	p.errToReturn = err
 }
 
-// SetTransformResult configures the mock to return a specific successful result
-// on the next Transform call.
+// SetTransformResult configures the mock to return a specific successful result on the
+// next Transform call.
 //
 // Takes data ([]byte) which is the transformed output to return.
 // Takes mimeType (string) which is the MIME type of the output.
@@ -172,9 +169,8 @@ func (p *Provider) SetTransformResult(data []byte, mimeType string) {
 	p.mimeTypeToReturn = mimeType
 }
 
-// GetTransformCalls returns a copy of all recorded calls made to the
-// Transform method. Returning a copy prevents the test from modifying the
-// mock's internal state.
+// GetTransformCalls returns a copy of all recorded calls made to the Transform method.
+// Returning a copy prevents the test from modifying the mock's internal state.
 //
 // Returns []TransformCall which contains all recorded Transform calls.
 //
@@ -188,8 +184,8 @@ func (p *Provider) GetTransformCalls() []TransformCall {
 	return callsCopy
 }
 
-// Reset clears all recorded calls and configured return values, preparing
-// the mock for a new test case.
+// Reset clears all recorded calls and configured return values, preparing the mock for a
+// new test case.
 //
 // Safe for concurrent use.
 func (p *Provider) Reset() {
@@ -202,8 +198,8 @@ func (p *Provider) Reset() {
 	p.errToReturn = nil
 }
 
-// GetDimensions returns mock dimensions for testing purposes.
-// Always returns 800x600 unless configured otherwise.
+// GetDimensions returns mock dimensions for testing purposes. Always returns 800x600
+// unless configured otherwise.
 //
 // Takes ctx (context.Context) which is ignored in the mock.
 // Takes input (io.Reader) which is ignored in the mock.

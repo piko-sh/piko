@@ -16,11 +16,10 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package piko is the command-line tool for creating and managing Piko
-// projects.
+// Package piko is the command-line tool for creating and managing Piko projects.
 //
-// This package is a thin entry point that dispatches to subcommands implemented
-// in internal packages.
+// This package is a thin entry point that dispatches to subcommands implemented in
+// internal packages.
 //
 // # Subcommands
 //
@@ -33,6 +32,6 @@
 //   - version: Displays the CLI version
 //   - help: Displays usage information
 //
-// When invoked without a subcommand it displays a welcome message with
-// available commands and version information.
+// When invoked without a subcommand it displays a welcome message with available commands
+// and version information.
 package main

@@ -32,7 +32,9 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-var _ OrchestratorService = (*orchestratorService)(nil)
+var (
+	_ OrchestratorService = (*orchestratorService)(nil)
+)
 
 const (
 	// defaultSchedulerInterval is the default time between scheduler runs.
@@ -46,29 +48,25 @@ const (
 
 	// defaultInsertQueueSize is the default size of the insert queue.
 	defaultInsertQueueSize = 8192
-
-	// backgroundLoopCount is the number of background goroutines started
-	// during orchestrator startup.
-	backgroundLoopCount = 3
 )
 
-// ServiceConfig holds settings for the orchestrator service.
-// Use DefaultServiceConfig to get ready-to-use defaults.
+// ServiceConfig holds settings for the orchestrator service. Use DefaultServiceConfig to
+// get ready-to-use defaults.
 type ServiceConfig struct {
-	// TaskDispatcher allows injecting a custom task dispatcher, primarily for
-	// testing. If nil, a new dispatcher is created using DispatcherConfig.
+	// TaskDispatcher allows injecting a custom task dispatcher, primarily for testing. If
+	// nil, a new dispatcher is created using DispatcherConfig.
 	TaskDispatcher TaskDispatcher
 
-	// DispatcherConfig holds settings for the internal task dispatcher.
-	// If nil, the service uses DefaultDispatcherConfig().
+	// DispatcherConfig holds settings for the internal task dispatcher. If nil, the service
+	// uses DefaultDispatcherConfig().
 	DispatcherConfig *DispatcherConfig
 
-	// Clock provides time operations; if nil, defaults to RealClock().
-	// Useful for testing to make timing deterministic.
+	// Clock provides time operations; if nil, defaults to RealClock(). Useful for testing to
+	// make timing deterministic.
 	Clock clock.Clock
 
-	// SchedulerInterval is how often the scheduler checks for tasks to move from
-	// scheduled to pending status.
+	// SchedulerInterval is how often the scheduler checks for tasks to move from scheduled
+	// to pending status.
 	SchedulerInterval time.Duration
 
 	// BatchTimeout is the maximum time to wait before sending a partial batch.
@@ -77,19 +75,17 @@ type ServiceConfig struct {
 	// BatchSize is the maximum number of tasks to group before saving to the store.
 	BatchSize int
 
-	// InsertQueueSize is the buffer size for the task insertion channel;
-	// 0 means unbuffered.
+	// InsertQueueSize is the buffer size for the task insertion channel; 0 means unbuffered.
 	InsertQueueSize int
 }
 
-// ServiceOption configures a ServiceConfig during service construction.
-// Use these options to change service behaviour or inject test dependencies.
+// ServiceOption configures a ServiceConfig during service construction. Use these options
+// to change service behaviour or inject test dependencies.
 type ServiceOption func(*ServiceConfig)
 
-// orchestratorService manages the lifecycle of tasks, including dispatching,
-// scheduling, and coordinating workers. It implements OrchestratorService and
-// HealthProbe interfaces, and is the central component of the orchestration
-// domain.
+// orchestratorService manages the lifecycle of tasks, including dispatching, scheduling,
+// and coordinating workers. It implements OrchestratorService and HealthProbe interfaces,
+// and is the central component of the orchestration domain.
 type orchestratorService struct {
 	// taskStore stores and retrieves tasks.
 	taskStore TaskStore
@@ -136,10 +132,9 @@ type orchestratorService struct {
 	// batchSize is the maximum number of tasks to collect before inserting.
 	batchSize int
 
-	// taskInsertMutex gates writes to taskInsertChan so that the channel can
-	// be closed safely during shutdown without racing with senders. Senders
-	// take RLock; the shutdown path takes Lock to wait for in-flight senders
-	// before closing.
+	// taskInsertMutex gates writes to taskInsertChan so that the channel can be closed
+	// safely during shutdown without racing with senders. Senders take RLock; the shutdown
+	// path takes Lock to wait for in-flight senders before closing.
 	taskInsertMutex sync.RWMutex
 
 	// executorsMutex guards access to the executors map.
@@ -154,16 +149,16 @@ type orchestratorService struct {
 	// isStopped indicates whether the service has been stopped.
 	isStopped bool
 
-	// taskInsertClosed reports whether taskInsertChan has been closed by the
-	// shutdown path. Senders observe this under taskInsertMutex.RLock and
-	// short-circuit with ErrOrchestratorShuttingDown when set.
+	// taskInsertClosed reports whether taskInsertChan has been closed by the shutdown path.
+	// Senders observe this under taskInsertMutex.RLock and short-circuit with
+	// ErrOrchestratorShuttingDown when set.
 	taskInsertClosed bool
 }
 
 // ActiveTasks returns the number of tasks currently being processed by workers.
 //
-// Returns int64 which is the count of active workers, or zero if no dispatcher
-// is configured.
+// Returns int64 which is the count of active workers, or zero if no dispatcher is
+// configured.
 func (s *orchestratorService) ActiveTasks(_ context.Context) int64 {
 	if s.taskDispatcher != nil {
 		stats := s.taskDispatcher.Stats()
@@ -172,11 +167,10 @@ func (s *orchestratorService) ActiveTasks(_ context.Context) int64 {
 	return 0
 }
 
-// PendingTasks queries the task store for the number of tasks that are
-// scheduled, pending, or retrying.
+// PendingTasks queries the task store for the number of tasks that are scheduled,
+// pending, or retrying.
 //
-// Returns int64 which is the count of pending tasks, or zero if an error
-// occurs.
+// Returns int64 which is the count of pending tasks, or zero if an error occurs.
 func (s *orchestratorService) PendingTasks(ctx context.Context) int64 {
 	count, err := s.taskStore.PendingTaskCount(ctx)
 	if err != nil {
@@ -185,11 +179,10 @@ func (s *orchestratorService) PendingTasks(ctx context.Context) int64 {
 	return count
 }
 
-// GetTaskDispatcher returns the internal TaskDispatcher for direct task dispatch.
-// Used by the bridge for competing-consumer task distribution to the worker pool.
+// GetTaskDispatcher returns the internal TaskDispatcher for direct task dispatch. Used by
+// the bridge for competing-consumer task distribution to the worker pool.
 //
-// Returns TaskDispatcher which handles task distribution, or nil if none was
-// configured.
+// Returns TaskDispatcher which handles task distribution, or nil if none was configured.
 func (s *orchestratorService) GetTaskDispatcher() TaskDispatcher {
 	return s.taskDispatcher
 }
@@ -226,18 +219,18 @@ func (s *orchestratorService) RegisterExecutor(ctx context.Context, name string,
 	return nil
 }
 
-// Dispatch queues a task for batch insertion and returns a receipt immediately.
-// This is an asynchronous, non-blocking operation that avoids waiting for
-// database I/O, making the call very fast.
+// Dispatch queues a task for batch insertion and returns a receipt immediately. This is
+// an asynchronous, non-blocking operation that avoids waiting for database I/O, making
+// the call very fast.
 //
 // Takes task (*Task) which specifies the task to be queued for processing.
 //
 // Returns *WorkflowReceipt which tracks the dispatched workflow's progress.
 // Returns error when the task insertion queue is full due to backpressure.
 //
-// Concurrency: acquires taskInsertMutex.RLock to gate the channel send against
-// closure by the shutdown path; observes taskInsertClosed under the read lock
-// to short-circuit with ErrOrchestratorShuttingDown.
+// Concurrency: acquires taskInsertMutex.RLock to gate the channel send against closure by
+// the shutdown path; observes taskInsertClosed under the read lock to short-circuit with
+// ErrOrchestratorShuttingDown.
 func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*WorkflowReceipt, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "OrchestratorService.Dispatch",
@@ -280,9 +273,9 @@ func (s *orchestratorService) Dispatch(ctx context.Context, task *Task) (*Workfl
 	return receipt, nil
 }
 
-// DispatchDirect synchronously persists and dispatches a task, bypassing
-// the async batch insertion queue. This is primarily for testing where
-// deterministic, synchronous task dispatch is required.
+// DispatchDirect synchronously persists and dispatches a task, bypassing the async batch
+// insertion queue. This is primarily for testing where deterministic, synchronous task
+// dispatch is required.
 //
 // Unlike Dispatch, blocks until the task is persisted and dispatched, making tests
 // predictable without timing dependencies.
@@ -337,8 +330,8 @@ func (s *orchestratorService) DispatchDirect(ctx context.Context, task *Task) (*
 	return receipt, nil
 }
 
-// Schedule queues a task to run at a given time in the future. This is
-// non-blocking and returns a receipt straight away.
+// Schedule queues a task to run at a specified later time. This is non-blocking and
+// returns a receipt straight away.
 //
 // Takes task (*Task) which specifies the task to be scheduled.
 // Takes executeAt (time.Time) which specifies when the task should run.
@@ -346,9 +339,9 @@ func (s *orchestratorService) DispatchDirect(ctx context.Context, task *Task) (*
 // Returns *WorkflowReceipt which tracks the scheduled workflow's progress.
 // Returns error when the task queue is full.
 //
-// Concurrency: acquires taskInsertMutex.RLock to gate the channel send against
-// closure by the shutdown path; observes taskInsertClosed under the read lock
-// to short-circuit with ErrOrchestratorShuttingDown.
+// Concurrency: acquires taskInsertMutex.RLock to gate the channel send against closure by
+// the shutdown path; observes taskInsertClosed under the read lock to short-circuit with
+// ErrOrchestratorShuttingDown.
 func (s *orchestratorService) Schedule(ctx context.Context, task *Task, executeAt time.Time) (*WorkflowReceipt, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "OrchestratorService.Schedule",
@@ -397,9 +390,8 @@ func (s *orchestratorService) Schedule(ctx context.Context, task *Task, executeA
 
 // Run starts the orchestrator's background processes.
 //
-// Spawns goroutines for task dispatching, batch insertion, scheduled task
-// promotion, and completion event handling. Blocks until the context is
-// cancelled.
+// Spawns goroutines for task dispatching, batch insertion, scheduled task promotion, and
+// completion event handling. Blocks until the context is cancelled.
 //
 // Safe for concurrent use.
 func (s *orchestratorService) Run(ctx context.Context) {
@@ -425,10 +417,9 @@ func (s *orchestratorService) Run(ctx context.Context) {
 		})
 	}
 
-	s.wg.Add(backgroundLoopCount)
-	go s.batchInsertLoop()
-	go s.schedulerLoop()
-	go s.subscribeToCompletionEvents()
+	s.wg.Go(s.batchInsertLoop)
+	s.wg.Go(s.schedulerLoop)
+	s.wg.Go(s.subscribeToCompletionEvents)
 
 	l.Internal("Orchestrator Service started successfully")
 
@@ -439,8 +430,7 @@ func (s *orchestratorService) Run(ctx context.Context) {
 
 // Stop gracefully shuts down the orchestrator service.
 //
-// Safe for concurrent use. Blocks until all background goroutines have
-// finished.
+// Safe for concurrent use. Blocks until all background goroutines have finished.
 func (s *orchestratorService) Stop() {
 	s.stopMutex.Lock()
 	if s.isStopped {
@@ -461,10 +451,8 @@ func (s *orchestratorService) Stop() {
 	stl.Internal("Orchestrator Service stopped gracefully")
 }
 
-// schedulerLoop runs at regular intervals to move tasks from SCHEDULED to
-// PENDING status.
+// schedulerLoop runs at regular intervals to move tasks from SCHEDULED to PENDING status.
 func (s *orchestratorService) schedulerLoop() {
-	defer s.wg.Done()
 	defer goroutine.RecoverPanic(s.runCtx, "orchestrator.schedulerLoop")
 	ticker := s.clock.NewTicker(s.schedulerInterval)
 	defer ticker.Stop()
@@ -483,8 +471,8 @@ func (s *orchestratorService) schedulerLoop() {
 	}
 }
 
-// promoteScheduledTasks moves scheduled tasks to pending status when their
-// scheduled time has passed.
+// promoteScheduledTasks moves scheduled tasks to pending status when their scheduled time
+// has passed.
 func (s *orchestratorService) promoteScheduledTasks(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "OrchestratorService.promoteScheduledTasks")
@@ -505,8 +493,8 @@ func (s *orchestratorService) promoteScheduledTasks(ctx context.Context) {
 
 // DefaultServiceConfig returns service settings with sensible defaults.
 //
-// Returns ServiceConfig which contains default values for scheduler interval,
-// batch size, batch timeout, and insert queue size.
+// Returns ServiceConfig which contains default values for scheduler interval, batch size,
+// batch timeout, and insert queue size.
 func DefaultServiceConfig() ServiceConfig {
 	return ServiceConfig{
 		SchedulerInterval: defaultSchedulerInterval,
@@ -532,8 +520,8 @@ func WithSchedulerInterval(interval time.Duration) ServiceOption {
 // WithBatchConfig sets the batch insertion settings.
 //
 // Takes batchSize (int) which sets how many items to include in each batch.
-// Takes batchTimeout (time.Duration) which sets how long to wait before
-// sending a batch that is not yet full.
+// Takes batchTimeout (time.Duration) which sets how long to wait before sending a batch
+// that is not yet full.
 //
 // Returns ServiceOption which applies the batch settings to a service.
 func WithBatchConfig(batchSize int, batchTimeout time.Duration) ServiceOption {
@@ -565,21 +553,20 @@ func WithDispatcherConfig(config DispatcherConfig) ServiceOption {
 	}
 }
 
-// WithTaskDispatcher sets a custom TaskDispatcher for the service.
-// Useful for testing without running real worker goroutines.
+// WithTaskDispatcher sets a custom TaskDispatcher for the service. Useful for testing
+// without running real worker goroutines.
 //
 // Takes dispatcher (TaskDispatcher) which provides the task dispatch behaviour.
 //
-// Returns ServiceOption which configures the service to use the given
-// dispatcher.
+// Returns ServiceOption which configures the service to use the given dispatcher.
 func WithTaskDispatcher(dispatcher TaskDispatcher) ServiceOption {
 	return func(c *ServiceConfig) {
 		c.TaskDispatcher = dispatcher
 	}
 }
 
-// WithServiceClock sets a custom clock for time operations on the service.
-// This is mainly used for testing to make timing predictable.
+// WithServiceClock sets a custom clock for time operations on the service. This is mainly
+// used for testing to make timing predictable.
 //
 // Takes c (clock.Clock) which provides the time source for the service.
 //
@@ -594,16 +581,14 @@ func WithServiceClock(c clock.Clock) ServiceOption {
 
 // NewService creates a new orchestrator service with configurable settings.
 //
-// It requires a TaskStore for persistence and an EventBus for event-driven
-// coordination. Use ServiceOption functions to customise behaviour or inject
-// test dependencies.
+// It requires a TaskStore for persistence and an EventBus for event-driven coordination.
+// Use ServiceOption functions to customise behaviour or inject test dependencies.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation through background goroutines.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation through background goroutines.
 // Takes store (TaskStore) which provides persistence for tasks.
 // Takes eventBus (EventBus) which handles event-driven coordination.
-// Takes opts (...ServiceOption) which customises behaviour or injects
-// test dependencies.
+// Takes opts (...ServiceOption) which customises behaviour or injects test dependencies.
 //
 // Returns OrchestratorService which is the configured service ready for use.
 func NewService(ctx context.Context, store TaskStore, eventBus EventBus, opts ...ServiceOption) OrchestratorService {
@@ -658,8 +643,7 @@ func NewService(ctx context.Context, store TaskStore, eventBus EventBus, opts ..
 }
 
 // getPayloadString extracts a string value from a payload map.
-// Returns an empty string if the key does not exist or if the value is not a
-// string.
+// Returns an empty string if the key does not exist or if the value is not a string.
 //
 // Takes payload (map[string]any) which contains the key-value pairs to search.
 // Takes key (string) which specifies the key to look up.

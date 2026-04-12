@@ -165,10 +165,9 @@ func GetData[T any](r *RequestData) T {
 // instantiated T supplied by the interpreter; the remaining signature mirrors
 // GetData's non-generic parameters.
 //
-// Takes tType (reflect.Type) which is the instantiated type the user
-// wrote inside the brackets (e.g. Post from piko.GetData[Post](r)).
-// Takes r (*RequestData) which contains the CollectionData to extract
-// from.
+// Takes tType (reflect.Type) which is the instantiated type the user wrote inside
+// the brackets (e.g. Post from piko.GetData[Post](r)).
+// Takes r (*RequestData) which contains the CollectionData to extract from.
 //
 // Returns a reflect.Value of concrete type tType carrying the page
 // data, or a zero value of tType if conversion fails.
@@ -281,10 +280,9 @@ func GetAllCollectionItems(collectionName string) ([]map[string]any, error) {
 // The navigation metadata should follow the layout below:
 // metadata["Navigation"] = NavigationMetadata with Groups["sidebar"], etc.
 //
-// Takes items ([]map[string]interface{}) which is a slice of metadata maps
-// from a collection.
-// Takes config (NavigationConfig) which specifies navigation building
-// options.
+// Takes items ([]map[string]interface{}) which is a slice of metadata maps from a
+// collection.
+// Takes config (NavigationConfig) which specifies navigation building options.
 //
 // Returns *NavigationGroups which contains all named navigation trees.
 //
@@ -317,15 +315,12 @@ func BuildNavigationFromMetadata(ctx context.Context, items []map[string]any, co
 // configurable fuzzy matching.
 //
 // Takes r (*RequestData) which provides the request context.
-// Takes collectionName (string) which identifies the collection to
-// search.
-// Takes query (string) which is the search term to match against
-// collection items.
-// Takes opts (...SearchOption) which provides optional search
-// configuration such as fields, threshold, and limit.
+// Takes collectionName (string) which identifies the collection to search.
+// Takes query (string) which is the search term to match against collection items.
+// Takes opts (...SearchOption) which provides optional search configuration such as
+// fields, threshold, and limit.
 //
-// Returns []SearchResult[T] which contains matched items with relevance
-// scores.
+// Returns []SearchResult[T] which contains matched items with relevance scores.
 // Returns error when the search fails.
 //
 // Example usage:

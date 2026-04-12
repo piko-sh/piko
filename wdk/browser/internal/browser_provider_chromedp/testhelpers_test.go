@@ -24,7 +24,9 @@ import (
 	"time"
 )
 
-const perTestTimeout = 90 * time.Second
+const (
+	perTestTimeout = 90 * time.Second
+)
 
 func requirePool(t *testing.T) *BrowserPool {
 	t.Helper()

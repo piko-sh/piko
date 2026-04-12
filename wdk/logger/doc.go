@@ -16,19 +16,17 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package logger provides the public API for Piko's structured,
-// context-aware logging system.
+// Package logger provides the public API for Piko's structured, context-aware logging
+// system.
 //
-// Acts as the primary entry point for all logging in Piko applications,
-// re-exporting core types and functions from the internal logger
-// implementation and providing convenience methods for configuring output
-// handlers, integrations, and OpenTelemetry tracing.
+// Acts as the primary entry point for all logging in Piko applications, re-exporting core
+// types and functions from the internal logger implementation and providing convenience
+// methods for configuring output handlers, integrations, and OpenTelemetry tracing.
 //
 // # Getting started
 //
-// Obtain a logger for your package using [GetLogger], then call
-// its level methods (Trace, Debug, Info, Warn, Error) with
-// structured attributes:
+// Obtain a logger for your package using [GetLogger], then call its level methods (Trace,
+// Debug, Info, Warn, Error) with structured attributes:
 //
 //	log := logger.GetLogger("mypackage")
 //	log.Info("Request processed",
@@ -38,9 +36,8 @@
 //
 // # Configuring outputs
 //
-// Add output handlers before or after [Initialise]. The package
-// supports pretty-printed console output, JSON output, and
-// rotating file output:
+// Add output handlers before or after [Initialise]. The package supports pretty-printed
+// console output, JSON output, and rotating file output:
 //
 //	logger.AddPrettyOutput()
 //	logger.AddJSONOutput(logger.WithLevel(slog.LevelDebug))
@@ -49,29 +46,24 @@
 //	    logger.WithJSON(),
 //	)
 //
-// Use [AddFileOutputOnly] when stdout/stderr must remain clean,
-// such as in LSP servers.
+// Use [AddFileOutputOnly] when stdout/stderr must remain clean, such as in LSP servers.
 //
 // # Structured attributes
 //
-// All dynamic data should be passed as attributes rather than
-// interpolated into log messages. The package provides typed
-// attribute constructors: [String], [Int], [Int64], [Uint64],
-// [Float64], [Bool], [Time], [Duration], [Error], and [Field].
+// All dynamic data should be passed as attributes rather than interpolated into log
+// messages. The package provides typed attribute constructors: [String], [Int], [Int64],
+// [Uint64], [Float64], [Bool], [Time], [Duration], [Error], and [Field].
 //
-// Use the standard field key constants ([FieldStrMethod],
-// [FieldStrComponent], [FieldStrError], etc.) for consistent,
-// queryable log entries.
+// Use the standard field key constants ([FieldStrMethod], [FieldStrComponent],
+// [FieldStrError], etc.) for consistent, queryable log entries.
 //
 // # Notification integrations
 //
-// Notification integrations are available in the
-// logger_integration_* sub-packages. Import them explicitly so
-// that their SDKs are only included in your binary when needed.
+// Notification integrations are available in the logger_integration_* sub-packages.
+// Import them explicitly so that their SDKs are only included in your binary when needed.
 //
 // # Thread safety
 //
-// All exported functions and the [Logger] interface are safe for
-// concurrent use. Output handlers are managed through an
-// internal mutex-protected registry.
+// All exported functions and the [Logger] interface are safe for concurrent use. Output
+// handlers are managed through an internal mutex-protected registry.
 package logger

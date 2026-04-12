@@ -46,8 +46,8 @@ var (
 		"input": true, "link": true, "meta": true, "param": true, "source": true, "track": true, "wbr": true,
 	}
 
-	// interactivePseudoClasses maps CSS pseudo-classes that
-	// require user interaction and are stripped during compilation.
+	// interactivePseudoClasses maps CSS pseudo-classes that require user interaction and are
+	// stripped during compilation.
 	interactivePseudoClasses = map[string]bool{
 		"hover":         true,
 		"focus":         true,
@@ -104,13 +104,13 @@ type ScaffoldBuilder interface {
 
 // ScaffoldBuilderConfig holds settings for the scaffold builder.
 type ScaffoldBuilderConfig struct {
-	// CSSTreeShakingSafelist lists CSS class names that should never be
-	// tree-shaken, even when CSSTreeShaking is enabled. Use for dynamically
-	// added classes; specify names without the leading dot.
+	// CSSTreeShakingSafelist lists CSS class names that should never be tree-shaken, even
+	// when CSSTreeShaking is enabled. Use for dynamically added classes; specify names
+	// without the leading dot.
 	CSSTreeShakingSafelist []string
 
-	// CSSTreeShaking enables removal of unused CSS rules based on static HTML
-	// analysis. When disabled (default), all CSS is preserved.
+	// CSSTreeShaking enables removal of unused CSS rules based on static HTML analysis. When
+	// disabled (default), all CSS is preserved.
 	CSSTreeShaking bool
 }
 
@@ -132,9 +132,9 @@ type usedSelectors struct {
 	tags map[string]bool
 }
 
-// BuildStaticScaffold generates a static HTML scaffold from a template AST,
-// removing unused CSS rules when CSSTreeShaking is enabled in config and
-// preserving all CSS when disabled (default).
+// BuildStaticScaffold generates a static HTML scaffold from a template AST, removing
+// unused CSS rules when CSSTreeShaking is enabled in config and preserving all CSS when
+// disabled (default).
 //
 // Takes tAST (*ast_domain.TemplateAST) which provides the template structure.
 // Takes fullCSS (string) which contains the complete CSS.
@@ -201,11 +201,10 @@ func (builder *scaffoldBuilder) BuildStaticScaffold(ctx context.Context, tAST *a
 	return scaffold, nil
 }
 
-// WithScaffoldConfig returns a new context with the given ScaffoldBuilderConfig,
-// passing configuration through the context to the scaffold builder.
+// WithScaffoldConfig returns a new context with the given ScaffoldBuilderConfig, passing
+// configuration through the context to the scaffold builder.
 //
-// Takes config (ScaffoldBuilderConfig) which specifies the
-// scaffold builder settings.
+// Takes config (ScaffoldBuilderConfig) which specifies the scaffold builder settings.
 //
 // Returns context.Context which contains the configuration value.
 func WithScaffoldConfig(ctx context.Context, config ScaffoldBuilderConfig) context.Context {
@@ -214,8 +213,8 @@ func WithScaffoldConfig(ctx context.Context, config ScaffoldBuilderConfig) conte
 
 // GetScaffoldConfig retrieves the scaffold builder settings from the context.
 //
-// When no config was set in the context, returns an empty config with
-// tree-shaking disabled.
+// When no config was set in the context, returns an empty config with tree-shaking
+// disabled.
 //
 // Returns ScaffoldBuilderConfig which holds the scaffold builder settings.
 func GetScaffoldConfig(ctx context.Context) ScaffoldBuilderConfig {
@@ -225,11 +224,11 @@ func GetScaffoldConfig(ctx context.Context) ScaffoldBuilderConfig {
 	return ScaffoldBuilderConfig{}
 }
 
-// NewScaffoldBuilder creates a new ScaffoldBuilder with the given configuration.
-// If no config is provided, tree-shaking is disabled by default.
+// NewScaffoldBuilder creates a new ScaffoldBuilder with the given configuration. If no
+// config is provided, tree-shaking is disabled by default.
 //
-// Takes config (...ScaffoldBuilderConfig) which optionally provides configuration.
-// Only the first config is used if multiple are provided.
+// Takes config (...ScaffoldBuilderConfig) which optionally provides configuration. Only
+// the first config is used if multiple are provided.
 //
 // Returns ScaffoldBuilder which is ready for use.
 func NewScaffoldBuilder(config ...ScaffoldBuilderConfig) ScaffoldBuilder {
@@ -276,14 +275,13 @@ func buildStaticHTML(_ context.Context, tAST *ast_domain.TemplateAST) (string, *
 	return htmlBuilder.String(), selectors, nil
 }
 
-// treeShakeCSSWithFallback removes unused CSS rules from the given CSS string.
-// If removal fails, it returns the original CSS unchanged.
+// treeShakeCSSWithFallback removes unused CSS rules from the given CSS string. If removal
+// fails, it returns the original CSS unchanged.
 //
 // Takes fullCSS (string) which is the complete CSS to process.
 // Takes selectors (*usedSelectors) which contains the selectors to keep.
 //
-// Returns string which is the processed CSS, or the original CSS if processing
-// fails.
+// Returns string which is the processed CSS, or the original CSS if processing fails.
 func treeShakeCSSWithFallback(ctx context.Context, fullCSS string, selectors *usedSelectors) string {
 	ctx, l := logger_domain.From(ctx, log)
 	if strings.TrimSpace(fullCSS) == "" {
@@ -319,9 +317,8 @@ func assembleFinalScaffold(staticHTML, treeShakenCSS string) string {
 	return finalBuilder.String()
 }
 
-// writeStaticNodeAndCollectSelectors writes a static template node to the
-// builder and collects any CSS selectors used. Nodes with dynamic directives
-// (if or for) are skipped.
+// writeStaticNodeAndCollectSelectors writes a static template node to the builder and
+// collects any CSS selectors used. Nodes with dynamic directives (if or for) are skipped.
 //
 // Takes builder (*strings.Builder) which receives the HTML output.
 // Takes node (*ast_domain.TemplateNode) which is the template node to write.
@@ -343,8 +340,7 @@ func writeStaticNodeAndCollectSelectors(builder *strings.Builder, node *ast_doma
 	return nil
 }
 
-// writeElementNode writes an HTML element node to the builder and records its
-// selectors.
+// writeElementNode writes an HTML element node to the builder and records its selectors.
 //
 // Takes builder (*strings.Builder) which receives the rendered HTML output.
 // Takes node (*ast_domain.TemplateNode) which is the element node to render.
@@ -373,15 +369,13 @@ func writeElementNode(builder *strings.Builder, node *ast_domain.TemplateNode, s
 	return nil
 }
 
-// writeAttributesAndCollect writes HTML attributes to a builder and gathers
-// class and id selectors.
+// writeAttributesAndCollect writes HTML attributes to a builder and gathers class and id
+// selectors.
 //
-// Takes builder (*strings.Builder) which receives the formatted attribute
-// output.
-// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to
-// write.
-// Takes selectors (*usedSelectors) which gathers class and id selectors found
-// in the attributes.
+// Takes builder (*strings.Builder) which receives the formatted attribute output.
+// Takes attrs ([]ast_domain.HTMLAttribute) which contains the attributes to write.
+// Takes selectors (*usedSelectors) which gathers class and id selectors found in the
+// attributes.
 func writeAttributesAndCollect(builder *strings.Builder, attrs []ast_domain.HTMLAttribute, selectors *usedSelectors) {
 	for attributeIndex := range attrs {
 		attr := &attrs[attributeIndex]
@@ -393,13 +387,11 @@ func writeAttributesAndCollect(builder *strings.Builder, attrs []ast_domain.HTML
 	}
 }
 
-// collectAttributeSelectors gathers class and id selectors from an HTML
-// attribute.
+// collectAttributeSelectors gathers class and id selectors from an HTML attribute.
 //
-// Takes attr (*ast_domain.HTMLAttribute) which is the HTML attribute to extract
-// selectors from.
-// Takes selectors (*usedSelectors) which is the collection to add found
-// selectors to.
+// Takes attr (*ast_domain.HTMLAttribute) which is the HTML attribute to extract selectors
+// from.
+// Takes selectors (*usedSelectors) which is the collection to add found selectors to.
 func collectAttributeSelectors(attr *ast_domain.HTMLAttribute, selectors *usedSelectors) {
 	attributeNameLower := strings.ToLower(attr.Name)
 	switch attributeNameLower {
@@ -469,8 +461,7 @@ func shakeCSS(ctx context.Context, css string, selectors *usedSelectors) (string
 //
 // Takes rules ([]css_ast.Rule) which contains the CSS rules to check.
 // Takes selectors (*usedSelectors) which tracks which selectors are in use.
-// Takes symbols ([]es_ast.Symbol) which provides the JavaScript symbols to
-// match against.
+// Takes symbols ([]es_ast.Symbol) which provides the JavaScript symbols to match against.
 //
 // Returns []css_ast.Rule which contains only the rules that are needed.
 func filterRules(ctx context.Context, rules []css_ast.Rule, selectors *usedSelectors, symbols []es_ast.Symbol) []css_ast.Rule {
@@ -507,8 +498,7 @@ func shouldKeepRule(ctx context.Context, rule css_ast.Rule, selectors *usedSelec
 // Takes selectors (*usedSelectors) which holds the set of used selectors.
 // Takes symbols ([]es_ast.Symbol) which provides symbol data for matching.
 //
-// Returns bool which is true if the rule has matching selectors and should be
-// kept.
+// Returns bool which is true if the rule has matching selectors and should be kept.
 func filterSelectorRule(ctx context.Context, r *css_ast.RSelector, selectors *usedSelectors, symbols []es_ast.Symbol) bool {
 	keptSelectors := filterMatchingSelectors(r.Selectors, selectors, symbols)
 	if len(keptSelectors) == 0 {
@@ -521,8 +511,7 @@ func filterSelectorRule(ctx context.Context, r *css_ast.RSelector, selectors *us
 
 // filterMatchingSelectors returns only the selectors that match static content.
 //
-// Takes selectors ([]css_ast.ComplexSelector) which contains the CSS selectors
-// to filter.
+// Takes selectors ([]css_ast.ComplexSelector) which contains the CSS selectors to filter.
 // Takes usedSel (*usedSelectors) which tracks selectors used in the content.
 // Takes symbols ([]es_ast.Symbol) which provides the symbol table for matching.
 //
@@ -543,8 +532,7 @@ func filterMatchingSelectors(selectors []css_ast.ComplexSelector, usedSel *usedS
 // Takes selectors (*usedSelectors) which tracks selectors in use.
 // Takes symbols ([]es_ast.Symbol) which provides the symbol table.
 //
-// Returns bool which is true if the at-rule has rules remaining after
-// filtering.
+// Returns bool which is true if the at-rule has rules remaining after filtering.
 func filterAtRule(ctx context.Context, r *css_ast.RKnownAt, selectors *usedSelectors, symbols []es_ast.Symbol) bool {
 	if r.Rules == nil {
 		return false
@@ -553,8 +541,8 @@ func filterAtRule(ctx context.Context, r *css_ast.RKnownAt, selectors *usedSelec
 	return len(r.Rules) > 0
 }
 
-// collectUsedVariables scans CSS rules and records any CSS variables that are
-// used. It handles different rule types and calls itself for nested rules.
+// collectUsedVariables scans CSS rules and records any CSS variables that are used. It
+// handles different rule types and calls itself for nested rules.
 //
 // Takes rules ([]css_ast.Rule) which contains the CSS rules to scan.
 // Takes usedVars (map[string]bool) which stores the variable names found.
@@ -599,11 +587,11 @@ func isVarFunction(token css_ast.Token) bool {
 
 // extractVarName gets the variable name from a CSS var() function.
 //
-// Takes children (*[]css_ast.Token) which holds the tokens from a CSS var()
-// function call.
+// Takes children (*[]css_ast.Token) which holds the tokens from a CSS var() function
+// call.
 //
-// Returns string which is the variable name (starting with "--"), or an empty
-// string if no valid variable name is found.
+// Returns string which is the variable name (starting with "--"), or an empty string if
+// no valid variable name is found.
 func extractVarName(children *[]css_ast.Token) string {
 	if children == nil {
 		return ""
@@ -620,14 +608,14 @@ func extractVarName(children *[]css_ast.Token) string {
 	return ""
 }
 
-// stripUnusedDeclarations removes unused CSS custom property declarations and
-// strips properties listed in propertiesToStrip.
+// stripUnusedDeclarations removes unused CSS custom property declarations and strips
+// properties listed in propertiesToStrip.
 //
 // Takes rules ([]css_ast.Rule) which contains the CSS rules to filter.
 // Takes usedVars (map[string]bool) which tracks used CSS custom properties.
 //
-// Returns []css_ast.Rule which contains the filtered rules with unused
-// declarations removed.
+// Returns []css_ast.Rule which contains the filtered rules with unused declarations
+// removed.
 func stripUnusedDeclarations(rules []css_ast.Rule, usedVars map[string]bool) []css_ast.Rule {
 	var cleanedRules []css_ast.Rule
 	for _, rule := range rules {
@@ -654,8 +642,8 @@ func stripUnusedDeclarations(rules []css_ast.Rule, usedVars map[string]bool) []c
 	return cleanedRules
 }
 
-// selectorMatchesStaticContent checks whether all compound selectors in a
-// complex selector could match the static content.
+// selectorMatchesStaticContent checks whether all compound selectors in a complex
+// selector could match the static content.
 //
 // Takes selector (css_ast.ComplexSelector) which is the selector to check.
 // Takes selectors (*usedSelectors) which tracks selectors used in content.
@@ -671,17 +659,17 @@ func selectorMatchesStaticContent(selector css_ast.ComplexSelector, selectors *u
 	return true
 }
 
-// compoundSelectorIsPlausible checks whether a compound CSS selector could
-// match any element in the static content.
+// compoundSelectorIsPlausible checks whether a compound CSS selector could match any
+// element in the static content.
 //
 // Takes component (css_ast.CompoundSelector) which is the selector to check.
-// Takes selectors (*usedSelectors) which holds the tags, classes, and IDs
-// found in the content.
-// Takes symbols ([]es_ast.Symbol) which provides symbol data for working out
-// class and ID references.
+// Takes selectors (*usedSelectors) which holds the tags, classes, and IDs found in the
+// content.
+// Takes symbols ([]es_ast.Symbol) which provides symbol data for working out class and ID
+// references.
 //
-// Returns bool which is true if the selector might match content, or false if
-// it cannot match.
+// Returns bool which is true if the selector might match content, or false if it cannot
+// match.
 func compoundSelectorIsPlausible(component css_ast.CompoundSelector, selectors *usedSelectors, symbols []es_ast.Symbol) bool {
 	if hasInteractivePseudo(component) {
 		return false
@@ -698,8 +686,8 @@ func compoundSelectorIsPlausible(component css_ast.CompoundSelector, selectors *
 	return idMatchesUsedIDs(component, selectors, symbols)
 }
 
-// hasInteractivePseudo checks whether a compound selector contains any
-// interactive pseudo-class such as :hover, :focus, or :active.
+// hasInteractivePseudo checks whether a compound selector contains any interactive
+// pseudo-class such as :hover, :focus, or :active.
 //
 // Takes component (css_ast.CompoundSelector) which is the selector to check.
 //
@@ -720,8 +708,8 @@ func hasInteractivePseudo(component css_ast.CompoundSelector) bool {
 // Takes component (css_ast.CompoundSelector) which is the selector to check.
 // Takes selectors (*usedSelectors) which holds the set of used tag names.
 //
-// Returns bool which is true if there is no type selector, or if the tag name
-// is in the used selectors set.
+// Returns bool which is true if there is no type selector, or if the tag name is in the
+// used selectors set.
 func typeMatchesUsedTags(component css_ast.CompoundSelector, selectors *usedSelectors) bool {
 	if component.TypeSelector == nil {
 		return true
@@ -735,8 +723,8 @@ func typeMatchesUsedTags(component css_ast.CompoundSelector, selectors *usedSele
 // Takes selectors (*usedSelectors) which contains the set of used class names.
 // Takes symbols ([]es_ast.Symbol) which provides symbol information for lookup.
 //
-// Returns bool which is true if the component has no class selectors or if any
-// class selector matches a used class.
+// Returns bool which is true if the component has no class selectors or if any class
+// selector matches a used class.
 func classMatchesUsedClasses(component css_ast.CompoundSelector, selectors *usedSelectors, symbols []es_ast.Symbol) bool {
 	classSelectors := getClassesFromComponent(component, symbols)
 	if len(classSelectors) == 0 {
@@ -747,13 +735,12 @@ func classMatchesUsedClasses(component css_ast.CompoundSelector, selectors *used
 
 // idMatchesUsedIDs checks if any ID selector in a component matches a used ID.
 //
-// Takes component (css_ast.CompoundSelector) which is the CSS selector to
-// check.
+// Takes component (css_ast.CompoundSelector) which is the CSS selector to check.
 // Takes selectors (*usedSelectors) which holds the set of used IDs.
 // Takes symbols ([]es_ast.Symbol) which provides symbol data for matching.
 //
-// Returns bool which is true if the component has no ID selectors, or if any
-// ID selector matches a used ID.
+// Returns bool which is true if the component has no ID selectors, or if any ID selector
+// matches a used ID.
 func idMatchesUsedIDs(component css_ast.CompoundSelector, selectors *usedSelectors, symbols []es_ast.Symbol) bool {
 	idSelectors := getIDsFromComponent(component, symbols)
 	if len(idSelectors) == 0 {
@@ -779,13 +766,13 @@ func anyMatches(items []string, matches map[string]bool) bool {
 
 // getClassesFromComponent extracts CSS class names from a compound selector.
 //
-// Takes component (css_ast.CompoundSelector) which is the selector to extract
-// classes from.
-// Takes symbols ([]es_ast.Symbol) which provides the symbol table for finding
-// original class names.
+// Takes component (css_ast.CompoundSelector) which is the selector to extract classes
+// from.
+// Takes symbols ([]es_ast.Symbol) which provides the symbol table for finding original
+// class names.
 //
-// Returns []string which contains the original names of all class selectors
-// found in the component.
+// Returns []string which contains the original names of all class selectors found in the
+// component.
 func getClassesFromComponent(component css_ast.CompoundSelector, symbols []es_ast.Symbol) []string {
 	var classes []string
 	for _, sub := range component.SubclassSelectors {
@@ -800,13 +787,11 @@ func getClassesFromComponent(component css_ast.CompoundSelector, symbols []es_as
 
 // getIDsFromComponent extracts CSS ID selector names from a compound selector.
 //
-// Takes component (css_ast.CompoundSelector) which contains the CSS selector
-// to check.
-// Takes symbols ([]es_ast.Symbol) which provides the symbol table for name
-// lookup.
+// Takes component (css_ast.CompoundSelector) which contains the CSS selector to check.
+// Takes symbols ([]es_ast.Symbol) which provides the symbol table for name lookup.
 //
-// Returns []string which contains the original names of any ID selectors found
-// in the component.
+// Returns []string which contains the original names of any ID selectors found in the
+// component.
 func getIDsFromComponent(component css_ast.CompoundSelector, symbols []es_ast.Symbol) []string {
 	var ids []string
 	for _, sub := range component.SubclassSelectors {
@@ -819,8 +804,8 @@ func getIDsFromComponent(component css_ast.CompoundSelector, symbols []es_ast.Sy
 	return ids
 }
 
-// isHostSelector checks whether the selector contains a :host or
-// :host-context pseudo-class.
+// isHostSelector checks whether the selector contains a :host or :host-context
+// pseudo-class.
 //
 // Takes selector (css_ast.CompoundSelector) which is the selector to check.
 //

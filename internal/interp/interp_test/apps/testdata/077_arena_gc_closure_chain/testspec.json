@@ -1,0 +1,4 @@
+{
+  "description": "Creates a chain of closures, each capturing a string upvalue that escapes through the arena. Drives heavy upvalue traffic plus byte allocations so the GC has to keep closure-reachable strings live across reclamation cycles.",
+  "expected": "calls=500 final=segment-499"
+}

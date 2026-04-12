@@ -23,14 +23,16 @@ import (
 	"testing"
 )
 
-const testHTMLScreenshot = `<!DOCTYPE html>
-<html>
-<head><title>Screenshot Test</title></head>
-<body style="margin:0;padding:20px;background:#f0f0f0;">
-<div id="box" style="width:100px;height:100px;background:red;margin:10px;"></div>
-<div id="content" style="width:200px;height:50px;background:blue;margin:10px;"></div>
-</body>
-</html>`
+const (
+	testHTMLScreenshot = `<!DOCTYPE html>
+	<html>
+	<head><title>Screenshot Test</title></head>
+	<body style="margin:0;padding:20px;background:#f0f0f0;">
+	<div id="box" style="width:100px;height:100px;background:red;margin:10px;"></div>
+	<div id="content" style="width:200px;height:50px;background:blue;margin:10px;"></div>
+	</body>
+	</html>`
+)
 
 func TestScreenshotFormats(t *testing.T) {
 	t.Parallel()

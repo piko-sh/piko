@@ -18,15 +18,18 @@
 
 package tui_domain
 
-// Breakpoint expresses a "this terminal is wide and tall enough for layout
-// X" rule. The picker walks Breakpoints from largest to smallest and
-// returns the first whose minimums the terminal satisfies.
+import (
+	"slices"
+)
+
+// Breakpoint expresses a "this terminal is wide and tall enough for layout X" rule. The
+// picker walks Breakpoints from largest to smallest and returns the first whose minimums
+// the terminal satisfies.
 //
-// ShowsLeftByDefault and ShowsRightByDefault drive the GroupedView's
-// initial column visibility. Per the redesign, the right column collapses
-// before the left as the terminal narrows; below the smallest breakpoint
-// only the centre column is shown by default and the user toggles either
-// side on demand.
+// ShowsLeftByDefault and ShowsRightByDefault drive the GroupedView's initial column
+// visibility. Per the redesign, the right column collapses before the left as the
+// terminal narrows; below the smallest breakpoint only the centre column is shown by
+// default and the user toggles either side on demand.
 type Breakpoint struct {
 	// LayoutName names the layout to use when this breakpoint matches.
 	LayoutName string
@@ -37,70 +40,70 @@ type Breakpoint struct {
 	// MinHeight is the minimum terminal height (rows) required.
 	MinHeight int
 
-	// MaxVisiblePanes is the upper bound on simultaneously visible
-	// panes for this breakpoint.
+	// MaxVisiblePanes is the upper bound on simultaneously visible panes for this
+	// breakpoint.
 	MaxVisiblePanes int
 
-	// ShowsLeftByDefault selects whether the left column is visible
-	// when the layout activates.
+	// ShowsLeftByDefault selects whether the left column is visible when the layout
+	// activates.
 	ShowsLeftByDefault bool
 
-	// ShowsRightByDefault selects whether the right column is visible
-	// when the layout activates.
+	// ShowsRightByDefault selects whether the right column is visible when the layout
+	// activates.
 	ShowsRightByDefault bool
 }
 
-// DefaultBreakpoints describes the standard responsive breakpoints used by
-// the TUI. They are listed smallest-first; PickLayout walks them in reverse
-// so the widest matching layout wins.
-//
-// Visibility defaults follow the right-collapses-first rule:
-//   - >=160 cols: left + centre + right (all visible)
-//   - 100-159 cols: left + centre (right hidden by default; ']' toggles)
-//   - <100 cols: centre only (both hidden by default; '[' / ']' toggle)
-var DefaultBreakpoints = []Breakpoint{
-	{
-		MinWidth: 0, MinHeight: 0,
-		LayoutName:          LayoutNameSingle,
-		MaxVisiblePanes:     1,
-		ShowsLeftByDefault:  false,
-		ShowsRightByDefault: false,
-	},
-	{
-		MinWidth: 100, MinHeight: 24,
-		LayoutName:          LayoutNameTwoColumn,
-		MaxVisiblePanes:     2,
-		ShowsLeftByDefault:  true,
-		ShowsRightByDefault: false,
-	},
-	{
-		MinWidth: 160, MinHeight: 30,
-		LayoutName:          LayoutNameThreeColumn,
-		MaxVisiblePanes:     3,
-		ShowsLeftByDefault:  true,
-		ShowsRightByDefault: true,
-	},
-}
+var (
+	// DefaultBreakpoints describes the standard responsive breakpoints used by the TUI. They
+	// are listed smallest-first; PickLayout walks them in reverse so the widest matching
+	// layout wins.
+	//
+	// Visibility defaults follow the right-collapses-first rule:
+	//   - >=160 cols: left + centre + right (all visible)
+	//   - 100-159 cols: left + centre (right hidden by default; ']' toggles)
+	//   - <100 cols: centre only (both hidden by default; '[' / ']' toggle)
+	DefaultBreakpoints = []Breakpoint{
+		{
+			MinWidth: 0, MinHeight: 0,
+			LayoutName:          LayoutNameSingle,
+			MaxVisiblePanes:     1,
+			ShowsLeftByDefault:  false,
+			ShowsRightByDefault: false,
+		},
+		{
+			MinWidth: 100, MinHeight: 24,
+			LayoutName:          LayoutNameTwoColumn,
+			MaxVisiblePanes:     2,
+			ShowsLeftByDefault:  true,
+			ShowsRightByDefault: false,
+		},
+		{
+			MinWidth: 160, MinHeight: 30,
+			LayoutName:          LayoutNameThreeColumn,
+			MaxVisiblePanes:     3,
+			ShowsLeftByDefault:  true,
+			ShowsRightByDefault: true,
+		},
+	}
+)
 
-// PickBreakpoint walks breakpoints from largest to smallest and returns the
-// first whose MinWidth and MinHeight are satisfied by the supplied terminal
-// dimensions.
+// PickBreakpoint walks breakpoints from largest to smallest and returns the first whose
+// MinWidth and MinHeight are satisfied by the supplied terminal dimensions.
 //
-// Takes breakpoints ([]Breakpoint) which is the configured set; passing nil
-// uses DefaultBreakpoints.
+// Takes breakpoints ([]Breakpoint) which is the configured set; passing nil uses
+// DefaultBreakpoints.
 // Takes width (int) which is the terminal width.
 // Takes height (int) which is the terminal height.
 //
-// Returns Breakpoint which is the matched breakpoint. The smallest
-// breakpoint always matches because its minimums are zero, so the function
-// is total.
+// Returns Breakpoint which is the matched breakpoint. The smallest breakpoint always
+// matches because its minimums are zero, so the function is total.
 func PickBreakpoint(breakpoints []Breakpoint, width, height int) Breakpoint {
 	if len(breakpoints) == 0 {
 		breakpoints = DefaultBreakpoints
 	}
 
-	for i := len(breakpoints) - 1; i >= 0; i-- {
-		bp := breakpoints[i]
+	for _, breakpoint := range slices.Backward(breakpoints) {
+		bp := breakpoint
 		if width >= bp.MinWidth && height >= bp.MinHeight {
 			return bp
 		}

@@ -122,8 +122,41 @@ func (rcv *CompiledFileSet) MutateInitialisationFunctions(j int, n uint16) bool 
 	return false
 }
 
+func (rcv *CompiledFileSet) SlotAllocation(obj *SlotAllocation) *SlotAllocation {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		x := o + rcv._tab.Pos
+		if obj == nil {
+			obj = new(SlotAllocation)
+		}
+		obj.Init(rcv._tab.Bytes, x)
+		return obj
+	}
+	return nil
+}
+
+func (rcv *CompiledFileSet) PackageVariables(obj *PackageVariableEntry, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *CompiledFileSet) PackageVariablesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func CompiledFileSetStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+	builder.StartObject(6)
 }
 func CompiledFileSetAddRoot(builder *flatbuffers.Builder, root flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(root), 0)
@@ -142,6 +175,15 @@ func CompiledFileSetAddInitialisationFunctions(builder *flatbuffers.Builder, ini
 }
 func CompiledFileSetStartInitialisationFunctionsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(2, numElems, 2)
+}
+func CompiledFileSetAddSlotAllocation(builder *flatbuffers.Builder, slotAllocation flatbuffers.UOffsetT) {
+	builder.PrependStructSlot(4, flatbuffers.UOffsetT(slotAllocation), 0)
+}
+func CompiledFileSetAddPackageVariables(builder *flatbuffers.Builder, packageVariables flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(packageVariables), 0)
+}
+func CompiledFileSetStartPackageVariablesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func CompiledFileSetEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

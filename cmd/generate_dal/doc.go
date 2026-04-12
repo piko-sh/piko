@@ -16,6 +16,6 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Command generate_dal generates Go data-access-layer source files
-// from SQL migration and query definitions.
+// Command generate_dal generates Go data-access-layer source files from SQL migration and
+// query definitions.
 package main

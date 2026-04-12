@@ -77,16 +77,16 @@ const (
 	// pngCompressionBase is the divisor used to convert quality to compression level.
 	pngCompressionBase = 10
 
-	// avifEncodingSpeed controls AVIF encoding speed (0-10, higher is faster
-	// but produces larger files).
+	// avifEncodingSpeed controls AVIF encoding speed (0-10, higher is faster but produces
+	// larger files).
 	avifEncodingSpeed = 8
 
-	// dimensionHeaderPeekBytes caps the bytes read when peeking image
-	// dimensions; sufficient for JPEG/PNG/GIF/WebP/BMP/TIFF headers.
+	// dimensionHeaderPeekBytes caps the bytes read when peeking image dimensions; sufficient
+	// for JPEG/PNG/GIF/WebP/BMP/TIFF headers.
 	dimensionHeaderPeekBytes = 64 << 10
 
-	// dimensionFullReadBytes is the absolute cap when the header-peek
-	// path fails and a full vips decode is required.
+	// dimensionFullReadBytes is the absolute cap when the header-peek path fails and a full
+	// vips decode is required.
 	dimensionFullReadBytes = 32 << 20
 )
 
@@ -99,13 +99,12 @@ type Config struct {
 	// If nil, default configuration will be used.
 	media.ImageServiceConfig
 
-	// ConcurrencyLevel limits how many image tasks can run at the same time.
-	// If set to 0, it defaults to runtime.NumCPU().
+	// ConcurrencyLevel limits how many image tasks can run at the same time. If set to 0, it
+	// defaults to runtime.NumCPU().
 	ConcurrencyLevel int
 }
 
-// Provider implements the ImageTransformerPort interface using the govips
-// library.
+// Provider implements the ImageTransformerPort interface using the govips library.
 type Provider struct {
 	// semaphore limits the number of concurrent transforms.
 	semaphore chan struct{}
@@ -117,13 +116,14 @@ type Provider struct {
 	shutdownOnce sync.Once
 }
 
-var _ media.ImageTransformerPort = (*Provider)(nil)
+var (
+	_ media.ImageTransformerPort = (*Provider)(nil)
+)
 
-// NewProvider creates a new transformer and initialises the underlying vips
-// library.
+// NewProvider creates a new transformer and initialises the underlying vips library.
 //
-// It is critical to call the returned Close method on application shutdown
-// to free resources.
+// It is critical to call the returned Close method on application shutdown to free
+// resources.
 //
 // Takes config (Config) which specifies the provider configuration.
 //
@@ -159,8 +159,8 @@ func NewProvider(config Config) (*Provider, error) {
 // Takes spec (media.TransformationSpec) which defines the changes to apply.
 //
 // Returns string which is the MIME type of the output image.
-// Returns error when validation fails, the context is cancelled, or image
-// processing fails.
+// Returns error when validation fails, the context is cancelled, or image processing
+// fails.
 func (p *Provider) Transform(
 	ctx context.Context,
 	input io.Reader,
@@ -219,19 +219,18 @@ func (p *Provider) Transform(
 	return mimeType, nil
 }
 
-// GetSupportedFormats returns the list of output formats that libvips can
-// generate.
+// GetSupportedFormats returns the list of output formats that libvips can generate.
 //
 // Returns []string which contains the supported format identifiers.
 func (*Provider) GetSupportedFormats() []string {
 	return []string{"jpeg", "jpg", "png", "webp", "avif", "gif"}
 }
 
-// GetSupportedModifiers returns the list of transformation modifiers
-// supported by libvips.
+// GetSupportedModifiers returns the list of transformation modifiers supported by
+// libvips.
 //
-// Returns []string which contains the names of all supported image
-// transformation modifiers.
+// Returns []string which contains the names of all supported image transformation
+// modifiers.
 func (*Provider) GetSupportedModifiers() []string {
 	return []string{
 		"greyscale", "blur", "sharpen", "rotate", "flip",
@@ -240,9 +239,9 @@ func (*Provider) GetSupportedModifiers() []string {
 	}
 }
 
-// GetDimensions extracts width and height from image data using
-// lightweight header decoding, falling back to a full vips load
-// for formats the standard library cannot decode (e.g. AVIF).
+// GetDimensions extracts width and height from image data using lightweight header
+// decoding, falling back to a full vips load for formats the standard library cannot
+// decode (e.g. AVIF).
 //
 // Takes input (io.Reader) which provides the source image data.
 //
@@ -286,8 +285,7 @@ func (p *Provider) Close() error {
 	return nil
 }
 
-// decodeImage decodes the input stream into a vips.ImageRef, applying size
-// limits.
+// decodeImage decodes the input stream into a vips.ImageRef, applying size limits.
 //
 // Takes ctx (context.Context) which provides the request-scoped logger.
 // Takes input (io.Reader) which provides the image data to decode.
@@ -309,8 +307,8 @@ func (p *Provider) decodeImage(ctx context.Context, input io.Reader) (*vips.Imag
 	return img, nil
 }
 
-// validateImageSecurity validates image dimensions and pixel count against
-// security limits.
+// validateImageSecurity validates image dimensions and pixel count against security
+// limits.
 //
 // Takes img (*vips.ImageRef) which is the image to validate.
 //
@@ -348,10 +346,8 @@ func (p *Provider) validateImageSecurity(ctx context.Context, img *vips.ImageRef
 // resizeOrCrop handles the resizing and cropping logic based on the fit mode.
 //
 // Takes img (*vips.ImageRef) which is the image to resize or crop.
-// Takes spec (media.TransformationSpec) which defines the target dimensions
-// and fit mode.
-// Takes modifiers (map[string]string) which provides additional processing
-// options.
+// Takes spec (media.TransformationSpec) which defines the target dimensions and fit mode.
+// Takes modifiers (map[string]string) which provides additional processing options.
 //
 // Returns error when dimension calculation or resize execution fails.
 func (*Provider) resizeOrCrop(img *vips.ImageRef, spec media.TransformationSpec, modifiers map[string]string) error {
@@ -375,8 +371,7 @@ func (*Provider) resizeOrCrop(img *vips.ImageRef, spec media.TransformationSpec,
 // applyModifiers applies additional transformations based on the modifiers map.
 //
 // Takes img (*vips.ImageRef) which is the image to transform.
-// Takes modifiers (map[string]string) which specifies the transformations to
-// apply.
+// Takes modifiers (map[string]string) which specifies the transformations to apply.
 //
 // Returns error when any transformation fails.
 func (*Provider) applyModifiers(img *vips.ImageRef, modifiers map[string]string) error {
@@ -404,8 +399,8 @@ func (*Provider) applyModifiers(img *vips.ImageRef, modifiers map[string]string)
 // export encodes the vips.ImageRef into the specified output format.
 //
 // Takes img (*vips.ImageRef) which is the image to encode.
-// Takes spec (media.TransformationSpec) which defines the output format and
-// quality settings.
+// Takes spec (media.TransformationSpec) which defines the output format and quality
+// settings.
 //
 // Returns []byte which contains the encoded image data.
 // Returns string which is the MIME type of the encoded image.
@@ -465,8 +460,7 @@ func (*Provider) export(img *vips.ImageRef, spec media.TransformationSpec) ([]by
 
 // vipsLogger handles log messages from the govips library.
 //
-// Takes messageDomain (string) which identifies where the log message came
-// from.
+// Takes messageDomain (string) which identifies where the log message came from.
 // Takes verbosity (vips.LogLevel) which sets the severity level.
 // Takes message (string) which contains the log text.
 func vipsLogger(messageDomain string, verbosity vips.LogLevel, message string) {
@@ -482,14 +476,14 @@ func vipsLogger(messageDomain string, verbosity vips.LogLevel, message string) {
 	}
 }
 
-// parseAspectRatio parses an aspect ratio string like "16:9" and returns
-// the ratio as a decimal value.
+// parseAspectRatio parses an aspect ratio string like "16:9" and returns the ratio as a
+// decimal value.
 //
 // Takes ar (string) which specifies the aspect ratio in "width:height" format.
 //
 // Returns float64 which is the calculated ratio (width divided by height).
-// Returns error when the format is invalid, the values cannot be parsed, or
-// the dimensions are not positive.
+// Returns error when the format is invalid, the values cannot be parsed, or the
+// dimensions are not positive.
 func parseAspectRatio(ar string) (float64, error) {
 	parts := strings.Split(ar, ":")
 	if len(parts) != 2 {
@@ -513,14 +507,13 @@ func parseAspectRatio(ar string) (float64, error) {
 	return w / h, nil
 }
 
-// parseGravity determines the vips Interesting value from gravity or focus
-// modifiers.
+// parseGravity determines the vips Interesting value from gravity or focus modifiers.
 //
-// Takes modifiers (map[string]string) which contains the image processing
-// modifiers to check for gravity or focus settings.
+// Takes modifiers (map[string]string) which contains the image processing modifiers to
+// check for gravity or focus settings.
 //
-// Returns vips.Interesting which indicates the cropping strategy to use,
-// defaulting to centre if no recognised modifier is found.
+// Returns vips.Interesting which indicates the cropping strategy to use, defaulting to
+// centre if no recognised modifier is found.
 func parseGravity(modifiers map[string]string) vips.Interesting {
 	interesting := vips.InterestingCentre
 
@@ -592,11 +585,10 @@ func resizeFillVips(img *vips.ImageRef, targetW, targetH, currentW, currentH int
 	return img.ThumbnailWithSize(targetW, targetH, vips.InterestingNone, vips.SizeForce)
 }
 
-// calculateVipsTargetDimensions computes target dimensions, accounting for
-// aspect ratio.
+// calculateVipsTargetDimensions computes target dimensions, accounting for aspect ratio.
 //
-// Takes spec (media.TransformationSpec) which provides the requested width,
-// height, and optional aspect ratio.
+// Takes spec (media.TransformationSpec) which provides the requested width, height, and
+// optional aspect ratio.
 //
 // Returns targetWidth (int) which is the calculated target width.
 // Returns targetHeight (int) which is the calculated target height.
@@ -624,8 +616,7 @@ func calculateVipsTargetDimensions(spec media.TransformationSpec) (targetWidth i
 	return targetWidth, targetHeight, nil
 }
 
-// applyVipsWithoutEnlargement clamps target dimensions to not exceed current
-// dimensions.
+// applyVipsWithoutEnlargement clamps target dimensions to not exceed current dimensions.
 //
 // Takes enabled (bool) which controls whether clamping is applied.
 // Takes targetW (int) which specifies the desired width.
@@ -648,25 +639,25 @@ func applyVipsWithoutEnlargement(enabled bool, targetW, targetH, currentW, curre
 	return targetW, targetH
 }
 
-// inferMissingDimension computes the missing target dimension from the current
-// aspect ratio when only one of width or height is specified.
+// inferMissingDimension computes the missing target dimension from the current aspect
+// ratio when only one of width or height is specified.
 //
-// When targetW is 0, it is calculated from targetH and the aspect ratio.
-// When targetH is 0, it is calculated from targetW and the aspect ratio.
-// When both are non-zero, the values are returned unchanged.
+// When targetW is 0, it is calculated from targetH and the aspect ratio. When targetH is
+// 0, it is calculated from targetW and the aspect ratio. When both are non-zero, the
+// values are returned unchanged.
 //
-// This matches the behaviour of Go's imaging.Resize which treats a zero
-// dimension as "calculate from aspect ratio".
+// This matches the behaviour of Go's imaging.Resize which treats a zero dimension as
+// "calculate from aspect ratio".
 //
 // Takes targetW (int) which is the desired width, or 0 to infer from height.
 // Takes targetH (int) which is the desired height, or 0 to infer from width.
 // Takes currentW (int) which is the current image width in pixels.
 // Takes currentH (int) which is the current image height in pixels.
 //
-// Returns int which is the resolved width, guaranteed non-zero when a target
-// dimension was provided.
-// Returns int which is the resolved height, guaranteed non-zero when a target
-// dimension was provided.
+// Returns int which is the resolved width, guaranteed non-zero when a target dimension
+// was provided.
+// Returns int which is the resolved height, guaranteed non-zero when a target dimension
+// was provided.
 func inferMissingDimension(targetW, targetH, currentW, currentH int) (resolvedW int, resolvedH int) {
 	if targetW > 0 && targetH > 0 {
 		return targetW, targetH
@@ -697,8 +688,8 @@ func inferMissingDimension(targetW, targetH, currentW, currentH int) (resolvedW 
 // Takes targetH (int) which is the target height in pixels.
 // Takes currentW (int) which is the current image width in pixels.
 // Takes currentH (int) which is the current image height in pixels.
-// Takes modifiers (map[string]string) which provides extra options such as
-// gravity for cover mode.
+// Takes modifiers (map[string]string) which provides extra options such as gravity for
+// cover mode.
 //
 // Returns error when the fit mode is unsupported or the resize fails.
 func executeVipsResize(img *vips.ImageRef, fit media.FitMode, targetW, targetH, currentW, currentH int, modifiers map[string]string) error {
@@ -756,8 +747,7 @@ func applyVipsBlur(img *vips.ImageRef, modifiers map[string]string) error {
 	return nil
 }
 
-// applyVipsSharpen applies a sharpening filter to an image using the given
-// sigma value.
+// applyVipsSharpen applies a sharpening filter to an image using the given sigma value.
 //
 // Takes img (*vips.ImageRef) which is the image to sharpen.
 // Takes modifiers (map[string]string) which contains the sharpen sigma value.
@@ -781,8 +771,8 @@ func applyVipsSharpen(img *vips.ImageRef, modifiers map[string]string) error {
 // applyVipsRotation applies rotation transformation (90, 180, or 270 degrees).
 //
 // Takes img (*vips.ImageRef) which is the image to rotate.
-// Takes modifiers (map[string]string) which contains the rotation angle under
-// the "rotate" key.
+// Takes modifiers (map[string]string) which contains the rotation angle under the
+// "rotate" key.
 //
 // Returns error when the vips rotation operation fails.
 func applyVipsRotation(img *vips.ImageRef, modifiers map[string]string) error {
@@ -838,8 +828,8 @@ func applyVipsFlip(img *vips.ImageRef, modifiers map[string]string) error {
 // applyVipsTint applies a tint colour change to an image.
 //
 // Takes img (*vips.ImageRef) which is the image to change.
-// Takes modifiers (map[string]string) which contains the tint colour as a hex
-// value in the "tint" key.
+// Takes modifiers (map[string]string) which contains the tint colour as a hex value in
+// the "tint" key.
 //
 // Returns error when the vips modulate operation fails.
 func applyVipsTint(img *vips.ImageRef, modifiers map[string]string) error {
@@ -860,8 +850,8 @@ func applyVipsTint(img *vips.ImageRef, modifiers map[string]string) error {
 	return nil
 }
 
-// applyVipsColourAdjustments applies brightness, contrast, saturation, and hue
-// changes to an image.
+// applyVipsColourAdjustments applies brightness, contrast, saturation, and hue changes to
+// an image.
 //
 // Takes img (*vips.ImageRef) which is the image to change.
 // Takes modifiers (map[string]string) which contains the adjustment values.

@@ -26,8 +26,10 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// sectionSeparator is the markdown section separator used in hover documentation.
-const sectionSeparator = "\n\n"
+const (
+	// sectionSeparator is the markdown section separator used in hover documentation.
+	sectionSeparator = "\n\n"
+)
 
 // pikoBuiltinDocumentation holds documentation for a Piko builtin function.
 type pikoBuiltinDocumentation struct {
@@ -57,8 +59,7 @@ type pikoBuiltinDocumentation struct {
 }
 
 var (
-	// pikoBuiltinDocumentations is the registry of all documented
-	// Piko builtin functions.
+	// pikoBuiltinDocumentations is the registry of all documented Piko builtin functions.
 	pikoBuiltinDocumentations = map[string]pikoBuiltinDocumentation{
 		"len": {
 			Name:        "len",
@@ -285,8 +286,8 @@ var (
 // Takes cursor (int) which is the cursor position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context when the cursor is on
-// a built-in function, or nil when no match is found.
+// Returns *PKHoverContext which provides hover context when the cursor is on a built-in
+// function, or nil when no match is found.
 func (*document) checkBuiltinHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	builtinName, startPosition, endPosition := findBuiltinAtCursor(line, cursor)
 	if builtinName == "" {
@@ -336,8 +337,8 @@ func (*document) getBuiltinHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 // Takes line (string) which contains the text to search.
 // Takes cursor (int) which is the position within the line.
 //
-// Returns builtinName (string) which is the builtin name if found, or empty
-// if no builtin is at the cursor.
+// Returns builtinName (string) which is the builtin name if found, or empty if no builtin
+// is at the cursor.
 // Returns startPosition (int) which is the start position of the builtin name.
 // Returns endPosition (int) which is the end position of the builtin name.
 func findBuiltinAtCursor(line string, cursor int) (builtinName string, startPosition, endPosition int) {
@@ -390,11 +391,10 @@ func isIdentifierChar(c byte) bool {
 		(c >= '0' && c <= '9') || c == '_'
 }
 
-// formatBuiltinDocumentation formats built-in function documentation as
-// markdown.
+// formatBuiltinDocumentation formats built-in function documentation as markdown.
 //
-// Takes builtinDocumentation (pikoBuiltinDocumentation) which
-// holds the function documentation to format.
+// Takes builtinDocumentation (pikoBuiltinDocumentation) which holds the function
+// documentation to format.
 //
 // Returns string which is the formatted markdown text.
 func formatBuiltinDocumentation(builtinDocumentation pikoBuiltinDocumentation) string {

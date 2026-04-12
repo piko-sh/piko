@@ -16,7 +16,7 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_engine_cockroachdb provides a CockroachDB engine adapter derived
-// from the PostgreSQL engine. It configures db_engine_postgres with
-// CockroachDB-specific dialect options for types and built-in functions.
+// Package db_engine_cockroachdb provides a CockroachDB engine adapter derived from the
+// PostgreSQL engine. It configures db_engine_postgres with CockroachDB-specific dialect
+// options for types and built-in functions.
 package db_engine_cockroachdb

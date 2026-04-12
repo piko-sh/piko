@@ -18,25 +18,23 @@
 
 package provider_domain
 
-// ProviderMetadata is an optional interface for exposing provider capabilities.
-// Used for discovery and monitoring.
+// ProviderMetadata is an optional interface for exposing provider capabilities. Used for
+// discovery and monitoring.
 //
 // Implementation guidelines:
-//   - GetProviderType should return a stable, lowercase identifier
-//     (e.g., "smtp", "ses", "s3", "redis").
-//   - GetProviderMetadata can include version, region, capabilities, limits,
-//     and configuration details.
-//   - Metadata is included in ListProviders() responses for monitoring
-//     dashboards.
+//   - GetProviderType should return a stable, lowercase identifier (e.g., "smtp", "ses",
+//     "s3", "redis").
+//   - GetProviderMetadata can include version, region, capabilities, limits, and
+//     configuration details.
+//   - Metadata is included in ListProviders() responses for monitoring dashboards.
 type ProviderMetadata interface {
 	// GetProviderType returns the provider implementation type.
 	//
-	// Returns string which is a lowercase, stable identifier suitable for
-	// monitoring.
+	// Returns string which is a lowercase, stable identifier suitable for monitoring.
 	GetProviderType() string
 
-	// GetProviderMetadata returns arbitrary metadata about the provider, such as
-	// version, region, capabilities, and limits, for discovery and monitoring.
+	// GetProviderMetadata returns arbitrary metadata about the provider, such as version,
+	// region, capabilities, and limits, for discovery and monitoring.
 	//
 	// Returns map[string]any which contains provider-specific metadata.
 	GetProviderMetadata() map[string]any

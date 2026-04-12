@@ -24,19 +24,20 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
-// loggerCtxKey is the context key for storing enriched loggers.
-// Using a private struct type prevents key clashes with other packages.
+// loggerCtxKey is the context key for storing enriched loggers. Using a private struct
+// type prevents key clashes with other packages.
 type loggerCtxKey struct{}
 
-// defaultContextLogger is lazily initialised on first use via
-// resolveDefaultLogger. This avoids init-order issues while providing a
-// sensible fallback.
-var defaultContextLogger Logger
+var (
+	// defaultContextLogger is lazily initialised on first use via resolveDefaultLogger. This
+	// avoids init-order issues while providing a sensible fallback.
+	defaultContextLogger Logger
+)
 
 // WithLogger stores a logger in the given context for later retrieval.
 //
-// Request-scoped data (such as request_id or user_id) then flows through the
-// call stack without passing the logger as a parameter.
+// Request-scoped data (such as request_id or user_id) then flows through the call stack
+// without passing the logger as a parameter.
 //
 // Takes l (Logger) which is the logger to store in the context.
 //
@@ -45,29 +46,24 @@ func WithLogger(ctx context.Context, l Logger) context.Context {
 	return context.WithValue(ctx, loggerCtxKey{}, l)
 }
 
-// From retrieves the logger from context, using the PikoRequestCtx
-// cache on HTTP request paths for zero-allocation retrieval.
+// From retrieves the logger from context, using the PikoRequestCtx cache on HTTP request
+// paths for zero-allocation retrieval.
 //
 // Request path (PikoRequestCtx present):
 //   - Hot path: returns CachedLogger from PikoRequestCtx.
-//   - Cold path (first call per request): binds the fallback to
-//     the request context via WithSpanContext, caches it on
-//     PikoRequestCtx, and returns.
+//   - Cold path (first call per request): binds the fallback to the request context via
+//     WithSpanContext, caches it on PikoRequestCtx, and returns.
 //
 // Non-request path (no PikoRequestCtx):
-//   - Falls back to loggerCtxKey{} lookup and context.WithValue
-//     storage.
+//   - Falls back to loggerCtxKey{} lookup and context.WithValue storage.
 //
-// Takes fallback (Logger) which is the logger to use when none is
-// in context. Pass nil to fall back to a global default logger.
+// Takes fallback (Logger) which is the logger to use when none is in context. Pass nil to
+// fall back to a global default logger.
 //
-// Returns context.Context which contains the logger for downstream
-// retrieval.
-// Returns Logger which is the context logger, fallback, or global
-// default.
+// Returns context.Context which contains the logger for downstream retrieval.
+// Returns Logger which is the context logger, fallback, or global default.
 //
-// Cost: O(1) on request hot path, O(n) context lookup on
-// non-request paths.
+// Cost: O(1) on request hot path, O(n) context lookup on non-request paths.
 func From(ctx context.Context, fallback Logger) (context.Context, Logger) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -92,12 +88,11 @@ func From(ctx context.Context, fallback Logger) (context.Context, Logger) {
 
 // MustFrom retrieves the logger from context, panicking if not present.
 //
-// Checks PikoRequestCtx.CachedLogger first (request paths), then falls back
-// to loggerCtxKey{}.
+// Checks PikoRequestCtx.CachedLogger first (request paths), then falls back to
+// loggerCtxKey{}.
 //
-// Use this in code paths where a logger MUST be in context (e.g., after
-// middleware that guarantees it). Panicking early catches middleware
-// misconfiguration during development.
+// Use this in code paths where a logger MUST be in context (e.g., after middleware that
+// guarantees it). Panicking early catches middleware misconfiguration during development.
 //
 // Returns Logger which is the context logger.
 //
@@ -117,8 +112,8 @@ func MustFrom(ctx context.Context) Logger {
 
 // HasLogger reports whether a logger is stored in the context.
 //
-// Checks PikoRequestCtx.CachedLogger first (request paths), then falls back
-// to loggerCtxKey{}.
+// Checks PikoRequestCtx.CachedLogger first (request paths), then falls back to
+// loggerCtxKey{}.
 //
 // Returns bool which is true when a logger is present, false otherwise.
 func HasLogger(ctx context.Context) bool {
@@ -131,8 +126,8 @@ func HasLogger(ctx context.Context) bool {
 	return ok
 }
 
-// resolveFallback returns the fallback logger if non-nil, otherwise
-// lazily initialises and returns the global default context logger.
+// resolveFallback returns the fallback logger if non-nil, otherwise lazily initialises
+// and returns the global default context logger.
 //
 // Takes fallback (Logger) which is the preferred logger, or nil.
 //

@@ -32,15 +32,14 @@ const (
 	// tagPrefix is the key prefix for tag metadata in Redis Cluster.
 	tagPrefix = "tag:"
 
-	// keyTagsPrefix is the Redis key prefix for storing the set of tags linked to
-	// a cache key.
+	// keyTagsPrefix is the Redis key prefix for storing the set of tags linked to a cache
+	// key.
 	keyTagsPrefix = "keytags:"
 )
 
-// clusterHashTag wraps a tag name in hash tag braces to ensure same-slot
-// hashing in Redis Cluster. Only the content within {...} is used for slot
-// calculation, which allows multi-key operations like SUNION to work within
-// a tag's scope.
+// clusterHashTag wraps a tag name in hash tag braces to ensure same-slot hashing in Redis
+// Cluster. Only the content within {...} is used for slot calculation, which allows
+// multi-key operations like SUNION to work within a tag's scope.
 //
 // Takes tag (string) which is the tag name to wrap in hash braces.
 //
@@ -49,12 +48,12 @@ func clusterHashTag(tag string) string {
 	return fmt.Sprintf("{%s}", tag)
 }
 
-// addTagsToKey links a cache key to a set of tags in Redis Cluster using sets.
-// It creates both forward (tag to keys) and reverse (key to tags) mappings
-// using a pipeline for efficiency.
+// addTagsToKey links a cache key to a set of tags in Redis Cluster using sets. It creates
+// both forward (tag to keys) and reverse (key to tags) mappings using a pipeline for
+// efficiency.
 //
-// Tag operations use hash tags to ensure same-slot placement. The reverse index
-// (key to tags) is stored per-key and may be on different nodes.
+// Tag operations use hash tags to ensure same-slot placement. The reverse index (key to
+// tags) is stored per-key and may be on different nodes.
 //
 // Takes client (*redis.ClusterClient) which provides the Redis cluster connection.
 // Takes key (string) which is the cache key to link with tags.
@@ -91,9 +90,8 @@ func addTagsToKey(ctx context.Context, client *redis.ClusterClient, namespace st
 // Returns []string which contains the unique keys associated with the tags.
 // Returns error when the pipeline execution fails entirely.
 //
-// Uses individual SMEMBERS per tag key via a pipeline, then deduplicates
-// the results in Go. This avoids SUNION which would require all tag keys to
-// be on the same hash slot.
+// Uses individual SMEMBERS per tag key via a pipeline, then deduplicates the results in
+// Go. This avoids SUNION which would require all tag keys to be on the same hash slot.
 func getKeysByTags(ctx context.Context, client *redis.ClusterClient, namespace string, tags []string) ([]string, error) {
 	if len(tags) == 0 {
 		return nil, nil
@@ -121,9 +119,8 @@ func getKeysByTags(ctx context.Context, client *redis.ClusterClient, namespace s
 	return slices.Collect(maps.Keys(seen)), nil
 }
 
-// performTagInvalidation removes all keys linked to the given tags and the
-// tags themselves. This is an atomic operation within Redis Cluster using a
-// pipeline.
+// performTagInvalidation removes all keys linked to the given tags and the tags
+// themselves. This is an atomic operation within Redis Cluster using a pipeline.
 //
 // Takes client (*redis.ClusterClient) which provides the cluster connection.
 // Takes tags ([]string) which specifies the tags whose keys should be removed.
@@ -131,9 +128,9 @@ func getKeysByTags(ctx context.Context, client *redis.ClusterClient, namespace s
 // Returns int which is the number of keys that were removed.
 // Returns error when the pipeline execution fails.
 //
-// Cluster note: This operation deletes keys that may be spread across different
-// cluster nodes. The pipeline routes each DEL command to the correct node. Tag
-// set deletions go to the same node because of hash tags.
+// Cluster note: This operation deletes keys that may be spread across different cluster
+// nodes. The pipeline routes each DEL command to the correct node. Tag set deletions go
+// to the same node because of hash tags.
 func performTagInvalidation(ctx context.Context, client *redis.ClusterClient, namespace string, tags []string) (int, error) {
 	if len(tags) == 0 {
 		return 0, nil
@@ -171,8 +168,8 @@ func performTagInvalidation(ctx context.Context, client *redis.ClusterClient, na
 	return len(keys), nil
 }
 
-// removeKeyFromTags removes a key from all its linked tag sets.
-// This prevents memory leaks when keys are deleted directly via Invalidate.
+// removeKeyFromTags removes a key from all its linked tag sets. This prevents memory
+// leaks when keys are deleted directly via Invalidate.
 //
 // Takes client (*redis.ClusterClient) which provides the Redis connection.
 // Takes key (string) which is the cache key to remove from tag sets.

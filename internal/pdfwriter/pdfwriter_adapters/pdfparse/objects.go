@@ -63,15 +63,15 @@ const (
 
 // Object represents a parsed PDF object.
 //
-// The concrete value is stored in the Value field; its type is determined
-// by Type. For ObjectStream, the decoded stream bytes are in StreamData
-// and the stream dictionary is in Value (as Dict).
+// The concrete value is stored in the Value field; its type is determined by Type. For
+// ObjectStream, the decoded stream bytes are in StreamData and the stream dictionary is
+// in Value (as Dict).
 type Object struct {
 	// Value holds the Go representation of this PDF object.
 	Value any
 
-	// StreamData holds the raw (possibly compressed) stream bytes for
-	// ObjectStream objects. Nil for all other types.
+	// StreamData holds the raw (possibly compressed) stream bytes for ObjectStream objects.
+	// Nil for all other types.
 	StreamData []byte
 
 	// Type identifies which PDF object type this represents.
@@ -89,8 +89,8 @@ type Ref struct {
 
 // Dict represents a PDF dictionary as an ordered list of key-value pairs.
 //
-// Keys are PDF name objects (without the leading /). Order is preserved
-// to allow deterministic output when rewriting.
+// Keys are PDF name objects (without the leading /). Order is preserved to allow
+// deterministic output when rewriting.
 type Dict struct {
 	// Pairs holds the key-value pairs in document order.
 	Pairs []DictPair
@@ -109,8 +109,8 @@ type DictPair struct {
 //
 // Takes key (string) which specifies the dictionary key to look up.
 //
-// Returns Object which is the value associated with the key, or a null
-// object if the key is absent.
+// Returns Object which is the value associated with the key, or a null object if the key
+// is absent.
 func (d Dict) Get(key string) Object {
 	for _, pair := range d.Pairs {
 		if pair.Key == key {
@@ -120,8 +120,8 @@ func (d Dict) Get(key string) Object {
 	return Object{Type: ObjectNull}
 }
 
-// GetName returns the name value for the given key, or empty string if the
-// key is absent or not a name.
+// GetName returns the name value for the given key, or empty string if the key is absent
+// or not a name.
 //
 // Takes key (string) which specifies the dictionary key to look up.
 //
@@ -134,8 +134,8 @@ func (d Dict) GetName(key string) string {
 	return ""
 }
 
-// GetInt returns the integer value for the given key, or 0 if the key is
-// absent or not an integer.
+// GetInt returns the integer value for the given key, or 0 if the key is absent or not an
+// integer.
 //
 // Takes key (string) which specifies the dictionary key to look up.
 //
@@ -148,8 +148,8 @@ func (d Dict) GetInt(key string) int64 {
 	return 0
 }
 
-// GetArray returns the array value for the given key, or nil if the key is
-// absent or not an array.
+// GetArray returns the array value for the given key, or nil if the key is absent or not
+// an array.
 //
 // Takes key (string) which specifies the dictionary key to look up.
 //
@@ -162,13 +162,12 @@ func (d Dict) GetArray(key string) []Object {
 	return nil
 }
 
-// GetDict returns the dictionary value for the given key, or an empty Dict
-// if the key is absent or not a dictionary.
+// GetDict returns the dictionary value for the given key, or an empty Dict if the key is
+// absent or not a dictionary.
 //
 // Takes key (string) which specifies the dictionary key to look up.
 //
-// Returns Dict which is the nested dictionary, or an empty Dict if not
-// found.
+// Returns Dict which is the nested dictionary, or an empty Dict if not found.
 func (d Dict) GetDict(key string) Dict {
 	obj := d.Get(key)
 	if dict, ok := obj.Value.(Dict); ok && obj.Type == ObjectDictionary {
@@ -177,8 +176,8 @@ func (d Dict) GetDict(key string) Dict {
 	return Dict{}
 }
 
-// GetRef returns the reference value for the given key, or a zero Ref if
-// the key is absent or not a reference.
+// GetRef returns the reference value for the given key, or a zero Ref if the key is
+// absent or not a reference.
 //
 // Takes key (string) which specifies the dictionary key to look up.
 //
@@ -326,8 +325,7 @@ func StreamObj(d Dict, data []byte) Object {
 	return Object{Type: ObjectStream, Value: d, StreamData: data}
 }
 
-// String returns a human-readable representation of the object for
-// debugging.
+// String returns a human-readable representation of the object for debugging.
 //
 // Returns string which is the formatted representation.
 func (o Object) String() string {

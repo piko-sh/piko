@@ -18,53 +18,48 @@
 
 package security_domain
 
-import "errors"
+import (
+	"errors"
+)
 
 const (
-	// csrfErrorCodeExpired indicates the CSRF cookie was rotated or the
-	// safety-net timeout was exceeded. Frontend should refresh the partial
-	// and retry the action.
+	// csrfErrorCodeExpired indicates the CSRF cookie was rotated or the safety-net timeout
+	// was exceeded. Frontend should refresh the partial and retry the action.
 	csrfErrorCodeExpired = "csrf_expired"
 
-	// CSRFErrorCodeInvalid indicates the token format, signature, or binding
-	// is not valid. This usually means the token was changed or there is a bug.
+	// CSRFErrorCodeInvalid indicates the token format, signature, or binding is not valid.
+	// This usually means the token was changed or there is a bug.
 	CSRFErrorCodeInvalid = "csrf_invalid"
 
-	// CSRFErrorCodeMissing indicates that CSRF tokens were expected but not
-	// provided. This occurs when a browser request (identified by the
-	// Sec-Fetch-Site header) omits CSRF tokens entirely.
+	// CSRFErrorCodeMissing indicates that CSRF tokens were expected but not provided. This
+	// occurs when a browser request (identified by the Sec-Fetch-Site header) omits CSRF
+	// tokens entirely.
 	CSRFErrorCodeMissing = "csrf_missing"
 )
 
 var (
-	// errMissingSecret indicates that the HMAC secret key is not configured for
-	// CSRF.
+	// errMissingSecret indicates that the HMAC secret key is not configured for CSRF.
 	errMissingSecret = errors.New("security: HMAC secret key not configured for CSRF")
 
-	// errEphemeralTokenGeneration indicates that the CSRF ephemeral token
-	// generation failed.
+	// errEphemeralTokenGeneration indicates that the CSRF ephemeral token generation failed.
 	errEphemeralTokenGeneration = errors.New("security: failed to generate CSRF ephemeralToken ")
 
-	// errInvalidCSRFTokenFormat is returned when a CSRF token has the wrong
-	// format.
+	// errInvalidCSRFTokenFormat is returned when a CSRF token has the wrong format.
 	errInvalidCSRFTokenFormat = errors.New("security: invalid CSRF token format")
 
-	// errCSRFTokenSignature indicates that the CSRF token signature verification
-	// failed.
+	// errCSRFTokenSignature indicates that the CSRF token signature verification failed.
 	errCSRFTokenSignature = errors.New("security: CSRF token signature mismatch")
 
 	// errCSRFTokenExpired indicates that the CSRF token has expired.
 	errCSRFTokenExpired = errors.New("security: CSRF token expired")
 
-	// errCSRFCookieMissing is returned when the CSRF cookie is missing from the
-	// request.
+	// errCSRFCookieMissing is returned when the CSRF cookie is missing from the request.
 	errCSRFCookieMissing = errors.New("security: CSRF cookie not found")
 
 	// errCSRFCookieMismatch indicates the cookie value doesn't match the token.
 	errCSRFCookieMismatch = errors.New("security: CSRF cookie value mismatch")
 
-	// errCSRFEphemeralTokenMismatch indicates that the CSRF ephemeral token does
-	// not match.
+	// errCSRFEphemeralTokenMismatch indicates that the CSRF ephemeral token does not match.
 	errCSRFEphemeralTokenMismatch = errors.New("security: CSRF ephemeral token mismatch")
 
 	// errCSRFBinderMismatch indicates that the CSRF token binder does not match.
@@ -74,16 +69,15 @@ var (
 	errCSRFCookieSourceNil = errors.New("security: CSRF cookie source adapter is nil")
 )
 
-// CSRFValidationError provides structured error information for CSRF failures.
-// This enables the frontend to distinguish between different failure modes
-// and take appropriate recovery actions (e.g., refresh partial on expiry).
+// CSRFValidationError provides structured error information for CSRF failures. This
+// enables the frontend to distinguish between different failure modes and take
+// appropriate recovery actions (e.g., refresh partial on expiry).
 type CSRFValidationError struct {
-	// Err is the underlying error that caused this failure; nil if there is no
-	// cause.
+	// Err is the underlying error that caused this failure; nil if there is no cause.
 	Err error
 
-	// Code is the error code for frontend consumption.
-	// One of csrfErrorCodeExpired, CSRFErrorCodeInvalid, or CSRFErrorCodeMissing.
+	// Code is the error code for frontend consumption. One of csrfErrorCodeExpired,
+	// CSRFErrorCodeInvalid, or CSRFErrorCodeMissing.
 	Code string
 
 	// Message is a description of the error that users can read.
@@ -92,8 +86,8 @@ type CSRFValidationError struct {
 
 // Error implements the error interface.
 //
-// Returns string which contains the error message, including the wrapped
-// error if present.
+// Returns string which contains the error message, including the wrapped error if
+// present.
 func (e *CSRFValidationError) Error() string {
 	if e.Err != nil {
 		return e.Message + ": " + e.Err.Error()
@@ -108,8 +102,7 @@ func (e *CSRFValidationError) Unwrap() error {
 	return e.Err
 }
 
-// newCSRFValidationError creates a new CSRF validation error with the given
-// details.
+// newCSRFValidationError creates a new CSRF validation error with the given details.
 //
 // Takes code (string) which identifies the type of validation failure.
 // Takes message (string) which describes the error.

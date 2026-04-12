@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package builtin_detectors provides zero-dependency spam detection
-// detectors that operate on schema-annotated form fields.
+// Package builtin_detectors provides zero-dependency spam detection detectors that
+// operate on schema-annotated form fields.
 //
 // Six detectors are included:
 //
@@ -30,14 +30,13 @@
 //
 // Use [RegisterDefaults] to register all six with a service instance.
 //
-// Each detector implements [spamdetect_domain.Detector] and declares
-// which signals it handles. The service only invokes a detector when
-// the schema includes at least one of its signals.
+// Each detector implements [spamdetect_domain.Detector] and declares which signals it
+// handles. The service only invokes a detector when the schema includes at least one of
+// its signals.
 //
-// Time-sensitive detectors accept a [clock.Clock] option so TTL and
-// freshness behaviour can be controlled deterministically in tests.
-// [RepetitionDetector] uses the clock for entry FirstSeen timestamps;
-// pass [WithRepetitionClock] to inject a mock.
+// Time-sensitive detectors accept a [clock.Clock] option so TTL and freshness behaviour
+// can be controlled deterministically in tests. [RepetitionDetector] uses the clock for
+// entry FirstSeen timestamps; pass [WithRepetitionClock] to inject a mock.
 //
 // # Thread safety
 //

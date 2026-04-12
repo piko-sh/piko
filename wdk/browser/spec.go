@@ -26,16 +26,16 @@ import (
 	"piko.sh/piko/wdk/browser/internal/browser_provider_chromedp"
 )
 
-// TestSpec is an alias for browser_provider_chromedp.TestSpec.
-// It lets users create test specs in their own code.
+// TestSpec is an alias for browser_provider_chromedp.TestSpec. It lets users create test
+// specs in their own code.
 type TestSpec = browser_provider_chromedp.TestSpec
 
-// BrowserStep is an alias for browser_provider_chromedp.BrowserStep.
-// It is provided for users who want to create specs in code.
+// BrowserStep is an alias for browser_provider_chromedp.BrowserStep. It is provided for
+// users who want to create specs in code.
 type BrowserStep = browser_provider_chromedp.BrowserStep
 
-// RunSpec runs the test steps defined in a testspec JSON file, enabling
-// declarative testing where steps are set out in JSON.
+// RunSpec runs the test steps defined in a testspec JSON file, enabling declarative
+// testing where steps are set out in JSON.
 //
 // Takes t (testing.TB) which receives test failures and logging.
 // Takes specPath (string) which is the path to the testspec JSON file.
@@ -77,8 +77,8 @@ func RunSpec(t testing.TB, specPath string, opts ...SpecOption) {
 	executeBrowserSteps(t, page, spec.BrowserSteps)
 }
 
-// StepDetail returns a human-readable detail string for a browser step,
-// summarising what the step does based on its action type and fields.
+// StepDetail returns a human-readable detail string for a browser step, summarising what
+// the step does based on its action type and fields.
 //
 // Takes step (*BrowserStep) which is the step to describe.
 //
@@ -123,8 +123,8 @@ func getGlobalHarness() *Harness {
 //
 // Takes t (testing.TB) which reports test failures and errors.
 // Takes page (*Page) which provides the browser page context.
-// Takes steps ([]browser_provider_chromedp.BrowserStep) which defines the
-// actions to execute.
+// Takes steps ([]browser_provider_chromedp.BrowserStep) which defines the actions to
+// execute.
 func executeBrowserSteps(t testing.TB, page *Page, steps []browser_provider_chromedp.BrowserStep) {
 	for i := range steps {
 		step := &steps[i]
@@ -147,11 +147,10 @@ func executeBrowserSteps(t testing.TB, page *Page, steps []browser_provider_chro
 // formatStepDescription creates a human-readable description of a browser step.
 //
 // Takes stepNum (int) which is the step number in the sequence.
-// Takes step (*browser_provider_chromedp.BrowserStep) which is the step to
-// describe.
+// Takes step (*browser_provider_chromedp.BrowserStep) which is the step to describe.
 //
-// Returns string which is the formatted description including the action and
-// optional selector.
+// Returns string which is the formatted description including the action and optional
+// selector.
 func formatStepDescription(stepNum int, step *browser_provider_chromedp.BrowserStep) string {
 	description := fmt.Sprintf("step %d: %s", stepNum, step.Action)
 	if step.Selector != "" {

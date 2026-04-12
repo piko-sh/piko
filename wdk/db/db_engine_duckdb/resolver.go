@@ -24,22 +24,29 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// DuckDBFunctionResolver implements FunctionResolverPort for polymorphic
-// DuckDB functions whose return types depend on their argument types.
+// DuckDBFunctionResolver implements FunctionResolverPort for polymorphic DuckDB functions
+// whose return types depend on their argument types.
 type DuckDBFunctionResolver struct{}
 
-// NewDuckDBFunctionResolver creates a new DuckDB function resolver.
+// NewDuckDBFunctionResolver creates a DuckDB function resolver.
+//
+// Returns *DuckDBFunctionResolver which is the new resolver instance.
 func NewDuckDBFunctionResolver() *DuckDBFunctionResolver {
 	return &DuckDBFunctionResolver{}
 }
 
-// ResolveFunctionCall resolves a polymorphic DuckDB function call that the
-// standard overload resolution could not match. It inspects the argument types
-// to compute the correct return type for list, JSON, aggregate, conditional,
-// and type-introspection functions.
+// ResolveFunctionCall resolves a polymorphic DuckDB function call that the standard
+// overload resolution could not match. It inspects the argument types to compute the
+// correct return type for list, JSON, aggregate, conditional, and type-introspection
+// functions.
 //
-// Returns nil, nil for non-polymorphic functions so the caller falls back to
-// the standard catalogue lookup.
+// Takes name (string) which is the function name being called.
+// Takes argumentTypes ([]querier_dto.SQLType) which describes call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which is the resolved overload, or nil when the
+// function is not polymorphic so the caller falls back to the standard catalogue lookup.
+// Returns error when resolution fails.
 func (*DuckDBFunctionResolver) ResolveFunctionCall(
 	_ *querier_dto.Catalogue,
 	name string,
@@ -88,6 +95,14 @@ func (*DuckDBFunctionResolver) ResolveFunctionCall(
 	}
 }
 
+// resolveArrayAgg resolves array_agg and list aggregate return types.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which wraps the element type in an array, or
+// nil when the call has no arguments.
+// Returns error which is always nil.
 func resolveArrayAgg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -106,6 +121,14 @@ func resolveArrayAgg(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	}, nil
 }
 
+// resolveUnnest resolves the unnest set-returning function.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the set-returning element or
+// record type, or nil when the call has no arguments.
+// Returns error which is always nil.
 func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -135,6 +158,17 @@ func resolveUnnest(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionRe
 	}, nil
 }
 
+// resolveArrayPassthrough returns the array argument's type unchanged for array_append,
+// array_cat, array_remove, array_replace, and array_prepend.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+// Takes arrayArgumentIndex (int) which is the position of the array argument to pass
+// through.
+//
+// Returns *querier_dto.FunctionResolution which mirrors the array argument type, or nil
+// when too few arguments are provided.
+// Returns error which is always nil.
 func resolveArrayPassthrough(argumentTypes []querier_dto.SQLType, arrayArgumentIndex int) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) <= arrayArgumentIndex {
 		return nil, nil
@@ -146,6 +180,15 @@ func resolveArrayPassthrough(argumentTypes []querier_dto.SQLType, arrayArgumentI
 	}, nil
 }
 
+// resolveIdentityAggregate returns the first argument's type for aggregates such as min
+// and max where the result type matches the input type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which mirrors the first argument type, or nil
+// when the call has no arguments.
+// Returns error which is always nil.
 func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -158,6 +201,15 @@ func resolveIdentityAggregate(argumentTypes []querier_dto.SQLType) (*querier_dto
 	}, nil
 }
 
+// resolveSum resolves the sum aggregate return type by promoting small integers to
+// hugeint and falling back to numeric or float8 otherwise.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the promoted return type, or
+// nil when the call has no arguments.
+// Returns error which is always nil.
 func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -186,6 +238,15 @@ func resolveSum(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	}, nil
 }
 
+// resolveAvg resolves the avg aggregate return type, using float8 for floating-point
+// inputs and numeric otherwise.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the return type, or nil when
+// the call has no arguments.
+// Returns error which is always nil.
 func resolveAvg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) < 1 {
 		return nil, nil
@@ -208,6 +269,14 @@ func resolveAvg(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResol
 	}, nil
 }
 
+// resolveCoalesce returns the type of the first argument with a known category, falling
+// back to unknown when all arguments are unknown.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the chosen return type.
+// Returns error which is always nil.
 func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	for index := range argumentTypes {
 		if argumentTypes[index].Category != querier_dto.TypeCategoryUnknown {
@@ -224,6 +293,10 @@ func resolveCoalesce(argumentTypes []querier_dto.SQLType) (*querier_dto.Function
 	}, nil
 }
 
+// resolveTypeof resolves the typeof introspection function.
+//
+// Returns *querier_dto.FunctionResolution which describes the varchar return type.
+// Returns error which is always nil.
 func resolveTypeof() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryText, EngineName: "varchar"},
@@ -231,6 +304,10 @@ func resolveTypeof() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveStructPack resolves the struct_pack constructor.
+//
+// Returns *querier_dto.FunctionResolution which describes the struct return type.
+// Returns error which is always nil.
 func resolveStructPack() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryStruct, EngineName: "struct"},
@@ -238,6 +315,13 @@ func resolveStructPack() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveStructExtract resolves the struct_extract field accessor.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the unknown field return type.
+// Returns error which is always nil.
 func resolveStructExtract(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) >= 1 && argumentTypes[0].Category == querier_dto.TypeCategoryStruct {
 		return &querier_dto.FunctionResolution{
@@ -251,6 +335,14 @@ func resolveStructExtract(argumentTypes []querier_dto.SQLType) (*querier_dto.Fun
 	}, nil
 }
 
+// resolveStructInsert resolves the struct_insert mutation.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which mirrors the input struct type, or returns
+// a generic struct when no arguments are supplied.
+// Returns error which is always nil.
 func resolveStructInsert(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) >= 1 {
 		return &querier_dto.FunctionResolution{
@@ -264,6 +356,10 @@ func resolveStructInsert(argumentTypes []querier_dto.SQLType) (*querier_dto.Func
 	}, nil
 }
 
+// resolveMapConstruct resolves the map() constructor.
+//
+// Returns *querier_dto.FunctionResolution which describes the map return type.
+// Returns error which is always nil.
 func resolveMapConstruct() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryMap, EngineName: "map"},
@@ -271,6 +367,13 @@ func resolveMapConstruct() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveMapKeys resolves map_keys to an array of the map's key type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the array return type.
+// Returns error which is always nil.
 func resolveMapKeys(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) >= 1 {
 		return resolveMapComponent(argumentTypes[0].KeyType)
@@ -278,6 +381,13 @@ func resolveMapKeys(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionR
 	return resolveMapComponent(nil)
 }
 
+// resolveMapValues resolves map_values to an array of the map's value type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the array return type.
+// Returns error which is always nil.
 func resolveMapValues(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) >= 1 {
 		return resolveMapComponent(argumentTypes[0].ElementType)
@@ -285,6 +395,14 @@ func resolveMapValues(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 	return resolveMapComponent(nil)
 }
 
+// resolveMapComponent wraps a map's key or value type in an array resolution, falling
+// back to a generic list when no type is known.
+//
+// Takes extractedType (*querier_dto.SQLType) which is the key or value type pulled from
+// the source map.
+//
+// Returns *querier_dto.FunctionResolution which describes the array return type.
+// Returns error which is always nil.
 func resolveMapComponent(extractedType *querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if extractedType != nil {
 		componentType := *extractedType
@@ -303,6 +421,10 @@ func resolveMapComponent(extractedType *querier_dto.SQLType) (*querier_dto.Funct
 	}, nil
 }
 
+// resolveMapEntries resolves map_entries to a generic list of entries.
+//
+// Returns *querier_dto.FunctionResolution which describes the array return type.
+// Returns error which is always nil.
 func resolveMapEntries() (*querier_dto.FunctionResolution, error) {
 	return &querier_dto.FunctionResolution{
 		ReturnType:        querier_dto.SQLType{Category: querier_dto.TypeCategoryArray, EngineName: fallbackListEngineName},
@@ -310,6 +432,14 @@ func resolveMapEntries() (*querier_dto.FunctionResolution, error) {
 	}, nil
 }
 
+// resolveElementAt resolves element_at on a map or array container.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which describes the element return type, or an
+// unknown type when no container is matched.
+// Returns error which is always nil.
 func resolveElementAt(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) >= 1 {
 		containerType := argumentTypes[0]
@@ -332,6 +462,15 @@ func resolveElementAt(argumentTypes []querier_dto.SQLType) (*querier_dto.Functio
 	}, nil
 }
 
+// resolveListHigherOrder resolves list_transform, list_filter, and list_reduce to the
+// input list's type.
+//
+// Takes argumentTypes ([]querier_dto.SQLType) which describes the call argument types in
+// declared order.
+//
+// Returns *querier_dto.FunctionResolution which mirrors the input list type, falling back
+// to a generic list when no input is supplied.
+// Returns error which is always nil.
 func resolveListHigherOrder(argumentTypes []querier_dto.SQLType) (*querier_dto.FunctionResolution, error) {
 	if len(argumentTypes) >= 1 {
 		return &querier_dto.FunctionResolution{
@@ -345,6 +484,12 @@ func resolveListHigherOrder(argumentTypes []querier_dto.SQLType) (*querier_dto.F
 	}, nil
 }
 
+// isSmallInteger reports whether the engine name names a sub-bigint integer type that
+// promotes to hugeint under sum.
+//
+// Takes engineName (string) which is the type's engine-specific name.
+//
+// Returns bool which is true for small-integer engine names.
 func isSmallInteger(engineName string) bool {
 	switch engineName {
 	case "int1", "int2", "int4", "utinyint", "usmallint":

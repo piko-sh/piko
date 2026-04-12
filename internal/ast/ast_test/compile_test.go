@@ -35,7 +35,9 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-var update = flag.Bool("update", false, "update golden files")
+var (
+	update = flag.Bool("update", false, "update golden files")
+)
 
 func goldenFileHelper(t *testing.T, actualContent string, goldenPath ...string) {
 	t.Helper()

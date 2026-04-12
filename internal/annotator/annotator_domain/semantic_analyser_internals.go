@@ -18,10 +18,9 @@
 
 package annotator_domain
 
-// Provides internal helper functions for semantic analysis including text
-// content validation and node processing. Contains utility methods used by the
-// semantic analyser to validate template structure and content during AST
-// traversal.
+// Provides internal helper functions for semantic analysis including text content
+// validation and node processing. Contains utility methods used by the semantic analyser
+// to validate template structure and content during AST traversal.
 
 import (
 	"context"
@@ -30,23 +29,22 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// InternalsAnalyser handles the analysis of expressions internal to a
-// component. These are the "inner" parts of a node: text interpolations,
-// HTML content directives, and similar constructs.
+// InternalsAnalyser handles the analysis of expressions internal to a component. These
+// are the "inner" parts of a node: text interpolations, HTML content directives, and
+// similar constructs.
 type InternalsAnalyser struct {
 	// resolver looks up types for expressions during analysis.
 	resolver *TypeResolver
 }
 
-// AnalyseInternalExpressions analyses all expressions that are internal to a
-// component's template scope. This includes {{...}} interpolations in rich text
-// and directives like p-text and p-html that render content from the
-// component's state.
+// AnalyseInternalExpressions analyses all expressions that are internal to a component's
+// template scope. This includes {{...}} interpolations in rich text and directives like
+// p-text and p-html that render content from the component's state.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node
-// whose internal expressions are to be analysed.
-// Takes ctx (*AnalysisContext) which provides the analysis state, symbol
-// table, and diagnostic collector.
+// Takes node (*ast_domain.TemplateNode) which is the template node whose internal
+// expressions are to be analysed.
+// Takes ctx (*AnalysisContext) which provides the analysis state, symbol table, and
+// diagnostic collector.
 func (ia *InternalsAnalyser) AnalyseInternalExpressions(
 	goCtx context.Context,
 	node *ast_domain.TemplateNode,
@@ -91,8 +89,8 @@ func newInternalsAnalyser(resolver *TypeResolver) *InternalsAnalyser {
 	return &InternalsAnalyser{resolver: resolver}
 }
 
-// validateTextContentDirective checks that text content directives (p-text,
-// p-html) do not use $event.
+// validateTextContentDirective checks that text content directives (p-text, p-html) do
+// not use $event.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
 // Takes ctx (*AnalysisContext) which collects any errors found.

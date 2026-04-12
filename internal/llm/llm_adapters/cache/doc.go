@@ -16,13 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache implements [llm_domain.CacheStorePort] by bridging
-// the LLM domain to the internal/cache hexagon.
+// Package cache implements [llm_domain.CacheStorePort] by bridging the LLM domain to the
+// internal/cache hexagon.
 //
-// It handles expiry checks, TTL propagation, and hit/miss statistics,
-// delegating storage to the configured cache provider (Otter, Redis,
-// etc.). A typed factory blueprint is registered at init time so the
-// cache service can create instances without circular dependencies.
+// It handles expiry checks, TTL propagation, and hit/miss statistics, delegating storage
+// to the configured cache provider (Otter, Redis, etc.). A typed factory blueprint is
+// registered at init time so the cache service can create instances without circular
+// dependencies.
 //
 // # Usage
 //
@@ -38,7 +38,6 @@
 //
 // # Thread safety
 //
-// [Store] methods are safe for concurrent use. Hit and miss
-// counters use atomic operations, and the underlying cache
-// provider handles its own synchronisation.
+// [Store] methods are safe for concurrent use. Hit and miss counters use atomic
+// operations, and the underlying cache provider handles its own synchronisation.
 package cache

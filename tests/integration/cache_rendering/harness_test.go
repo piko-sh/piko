@@ -32,7 +32,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"piko.sh/piko/wdk/json"
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko"
 	"piko.sh/piko/internal/ast/ast_domain"
@@ -47,10 +46,13 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/wdk/interp/interp_provider_piko"
+	"piko.sh/piko/wdk/json"
 	"piko.sh/piko/wdk/logger"
 )
 
-var updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+var (
+	updateGoldenFiles = flag.Bool("update", false, "Update golden files")
+)
 
 type testCase struct {
 	Name string

@@ -16,9 +16,9 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package lifecycle_adapters implements the lifecycle_domain ports for
-// file watching (fsNotifyWatcher), production builds (buildService),
-// and interpreted code execution (InterpretedBuildOrchestrator).
+// Package lifecycle_adapters implements the lifecycle_domain ports for file watching
+// (fsNotifyWatcher), production builds (buildService), and interpreted code execution
+// (InterpretedBuildOrchestrator).
 //
 // # Hot reload architecture
 //
@@ -26,14 +26,12 @@
 //
 //  1. MarkDirty (fast path): On file save, components are marked dirty without
 //     recompilation. This gives sub-second feedback (~10-50ms).
-//  2. JITCompile (on request): Actual compilation occurs only when a
-//     dirty page is requested, compiling just the necessary component and its
-//     dependencies
+//  2. JITCompile (on request): Actual compilation occurs only when a dirty page is
+//     requested, compiling just the necessary component and its dependencies
 //
 // # Thread safety
 //
-// All exported types are safe for concurrent use. The InterpretedBuildOrchestrator
-// uses a combination of sync.RWMutex for state access, singleflight for
-// deduplicating concurrent compilations, and a semaphore for limiting
-// interpreter concurrency.
+// All exported types are safe for concurrent use. The InterpretedBuildOrchestrator uses a
+// combination of sync.RWMutex for state access, singleflight for deduplicating concurrent
+// compilations, and a semaphore for limiting interpreter concurrency.
 package lifecycle_adapters

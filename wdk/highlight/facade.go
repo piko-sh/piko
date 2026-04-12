@@ -22,6 +22,6 @@ import (
 	"piko.sh/piko/internal/highlight/highlight_domain"
 )
 
-// Highlighter is the interface for syntax highlighting code blocks.
-// Implementations can use different backends such as Chroma or Prism.
+// Highlighter is the interface for syntax highlighting code blocks. Implementations can
+// use different backends such as Chroma or Prism.
 type Highlighter = highlight_domain.Highlighter

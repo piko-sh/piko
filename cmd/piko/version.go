@@ -18,6 +18,8 @@
 
 package main
 
-// Version holds the current version of the Piko CLI. Override at build time
-// using: go build -ldflags "-X main.Version=1.0.0" ./cmd/piko.
-var Version = "0.1.0-alpha"
+var (
+	// Version holds the current version of the Piko CLI. Override at build time using: go
+	// build -ldflags "-X main.Version=1.0.0" ./cmd/piko.
+	Version = "0.1.0-alpha"
+)

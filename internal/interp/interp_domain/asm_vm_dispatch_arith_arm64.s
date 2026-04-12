@@ -21,37 +21,12 @@
 //go:build !safe && !(js && wasm) && arm64
 
 #include "textflag.h"
+#include "funcdata.h"
 #include "asm_dispatch_offsets.h"
 #include "asm_dispatch_arm64.h"
 
-// Data movement, arithmetic, and bitwise handlers.
-
-// handlerNop does nothing.
-TEXT ·handlerNop(SB), NOSPLIT, $0
-	DISPATCH_NEXT()
-
-// handlerMoveInt copies ints[B] to ints[A].
-TEXT ·handlerMoveInt(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	MOVD (R23)(R4<<3), R5
-	MOVD R5, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerMoveFloat copies floats[B] to floats[A].
-TEXT ·handlerMoveFloat(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	FMOVD (R24)(R4<<3), F0
-	FMOVD F0, (R24)(R3<<3)
-	DISPATCH_NEXT()
-
 // handlerLoadIntConst loads intConstants[B|(C<<8)] into ints[A].
-TEXT ·handlerLoadIntConst(SB), NOSPLIT, $0
+TEXT ·handlerLoadIntConst(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -61,36 +36,66 @@ TEXT ·handlerLoadIntConst(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerLoadFloatConst loads floatConstants[B|(C<<8)] into floats[A].
-TEXT ·handlerLoadFloatConst(SB), NOSPLIT, $0
+TEXT ·handlerLoadFloatConst(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
 	AND  $0xFFFF, R4, R4
-	MOVD  72(R19), R5
+	MOVD  CTX_FLT_CONSTS_BASE(R19), R5
 	FMOVD (R5)(R4<<3), F0
 	FMOVD F0, (R24)(R3<<3)
 	DISPATCH_NEXT()
 
-// handlerLoadBool sets ints[A] = B (0 or 1).
-TEXT ·handlerLoadBool(SB), NOSPLIT, $0
+// handlerLoadStringConst loads stringConstants[B|(C<<8)] into strings[A].
+TEXT ·handlerLoadStringConst(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
+	AND  $0xFFFF, R4, R4
+	MOVD CTX_STR_CONSTS_BASE(R19), R5
+	MOVD CTX_STRINGS_BASE(R19), R6
+	LSL  $4, R3, R3
+	LSL  $4, R4, R4
+	ADD  R3, R6, R7
+	ADD  R4, R5, R8
+	MOVD (R8), R9
+	MOVD 8(R8), R10
+	MOVD R9, (R7)
+	MOVD R10, 8(R7)
+	DISPATCH_NEXT()
+
+// handlerLoadBoolConst loads boolConstants[B|(C<<8)] into bools[A].
+TEXT ·handlerLoadBoolConst(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFFFF, R4, R4
+	MOVD CTX_BOOL_CONSTS_BASE(R19), R5
+	MOVD CTX_BOOLS_BASE(R19), R6
+	ADD  R4, R5, R7
+	ADD  R3, R6, R8
+	MOVBU (R7), R9
+	MOVB R9, (R8)
+	DISPATCH_NEXT()
+
+// handlerLoadBool sets ints[B] = C (0 or 1) in tier-1 form (subOpLoadBool).
+TEXT ·handlerLoadBool(SB), NOSPLIT|NOFRAME, $0
+	LSR  $16, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $24, R0, R4
 	MOVD R4, (R23)(R3<<3)
 	DISPATCH_NEXT()
 
-// handlerLoadIntConstSmall sets ints[A] = int64(B).
-TEXT ·handlerLoadIntConstSmall(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
+// handlerLoadIntConstSmall sets ints[B] = int64(C) in tier-1 form (subOpLoadIntConstSmall).
+TEXT ·handlerLoadIntConstSmall(SB), NOSPLIT|NOFRAME, $0
+	LSR  $16, R0, R3
 	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
+	LSR  $24, R0, R4
 	MOVD R4, (R23)(R3<<3)
 	DISPATCH_NEXT()
 
 // handlerAddInt sets ints[A] = ints[B] + ints[C].
-TEXT ·handlerAddInt(SB), NOSPLIT, $0
+TEXT ·handlerAddInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -103,7 +108,7 @@ TEXT ·handlerAddInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerSubInt sets ints[A] = ints[B] - ints[C].
-TEXT ·handlerSubInt(SB), NOSPLIT, $0
+TEXT ·handlerSubInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -116,7 +121,7 @@ TEXT ·handlerSubInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerMulInt sets ints[A] = ints[B] * ints[C].
-TEXT ·handlerMulInt(SB), NOSPLIT, $0
+TEXT ·handlerMulInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -129,7 +134,7 @@ TEXT ·handlerMulInt(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerDivInt sets ints[A] = ints[B] / ints[C].
-TEXT ·handlerDivInt(SB), NOSPLIT, $0
+TEXT ·handlerDivInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -146,7 +151,7 @@ dbz:
 	DIV_BY_ZERO_EXIT()
 
 // handlerRemInt sets ints[A] = ints[B] % ints[C].
-TEXT ·handlerRemInt(SB), NOSPLIT, $0
+TEXT ·handlerRemInt(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -166,37 +171,8 @@ TEXT ·handlerRemInt(SB), NOSPLIT, $0
 dbz:
 	DIV_BY_ZERO_EXIT()
 
-// handlerNegInt sets ints[A] = -ints[B].
-TEXT ·handlerNegInt(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	MOVD (R23)(R4<<3), R5
-	NEG  R5, R5
-	MOVD R5, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerIncInt increments ints[A] by one.
-TEXT ·handlerIncInt(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	MOVD (R23)(R3<<3), R5
-	ADD  $1, R5, R5
-	MOVD R5, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
-// handlerDecInt decrements ints[A] by one.
-TEXT ·handlerDecInt(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	MOVD (R23)(R3<<3), R5
-	SUB  $1, R5, R5
-	MOVD R5, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
 // handlerBitAnd sets ints[A] = ints[B] & ints[C].
-TEXT ·handlerBitAnd(SB), NOSPLIT, $0
+TEXT ·handlerBitAnd(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -209,7 +185,7 @@ TEXT ·handlerBitAnd(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerBitOr sets ints[A] = ints[B] | ints[C].
-TEXT ·handlerBitOr(SB), NOSPLIT, $0
+TEXT ·handlerBitOr(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -222,7 +198,7 @@ TEXT ·handlerBitOr(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerBitXor sets ints[A] = ints[B] ^ ints[C].
-TEXT ·handlerBitXor(SB), NOSPLIT, $0
+TEXT ·handlerBitXor(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -235,7 +211,7 @@ TEXT ·handlerBitXor(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerBitAndNot sets ints[A] = ints[B] &^ ints[C].
-TEXT ·handlerBitAndNot(SB), NOSPLIT, $0
+TEXT ·handlerBitAndNot(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -247,19 +223,8 @@ TEXT ·handlerBitAndNot(SB), NOSPLIT, $0
 	MOVD R6, (R23)(R3<<3)
 	DISPATCH_NEXT()
 
-// handlerBitNot sets ints[A] = ^ints[B].
-TEXT ·handlerBitNot(SB), NOSPLIT, $0
-	LSR  $8, R0, R3
-	AND  $0xFF, R3, R3
-	LSR  $16, R0, R4
-	AND  $0xFF, R4, R4
-	MOVD (R23)(R4<<3), R5
-	MVN  R5, R5
-	MOVD R5, (R23)(R3<<3)
-	DISPATCH_NEXT()
-
 // handlerShiftLeft sets ints[A] = ints[B] << uint(ints[C]).
-TEXT ·handlerShiftLeft(SB), NOSPLIT, $0
+TEXT ·handlerShiftLeft(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -268,11 +233,13 @@ TEXT ·handlerShiftLeft(SB), NOSPLIT, $0
 	MOVD (R23)(R4<<3), R6
 	MOVD (R23)(R5<<3), R7
 	LSL  R7, R6, R6
+	CMP  $64, R7
+	CSEL HS, ZR, R6, R6
 	MOVD R6, (R23)(R3<<3)
 	DISPATCH_NEXT()
 
 // handlerShiftRight sets ints[A] = ints[B] >> uint(ints[C]).
-TEXT ·handlerShiftRight(SB), NOSPLIT, $0
+TEXT ·handlerShiftRight(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -280,12 +247,15 @@ TEXT ·handlerShiftRight(SB), NOSPLIT, $0
 	LSR  $24, R0, R5
 	MOVD (R23)(R4<<3), R6
 	MOVD (R23)(R5<<3), R7
+	ASR  $63, R6, R8
 	ASR  R7, R6, R6
+	CMP  $64, R7
+	CSEL HS, R8, R6, R6
 	MOVD R6, (R23)(R3<<3)
 	DISPATCH_NEXT()
 
 // handlerAddFloat sets floats[A] = floats[B] + floats[C].
-TEXT ·handlerAddFloat(SB), NOSPLIT, $0
+TEXT ·handlerAddFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -298,7 +268,7 @@ TEXT ·handlerAddFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerSubFloat sets floats[A] = floats[B] - floats[C].
-TEXT ·handlerSubFloat(SB), NOSPLIT, $0
+TEXT ·handlerSubFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -311,7 +281,7 @@ TEXT ·handlerSubFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerMulFloat sets floats[A] = floats[B] * floats[C].
-TEXT ·handlerMulFloat(SB), NOSPLIT, $0
+TEXT ·handlerMulFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -324,7 +294,7 @@ TEXT ·handlerMulFloat(SB), NOSPLIT, $0
 	DISPATCH_NEXT()
 
 // handlerDivFloat sets floats[A] = floats[B] / floats[C].
-TEXT ·handlerDivFloat(SB), NOSPLIT, $0
+TEXT ·handlerDivFloat(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
@@ -336,13 +306,132 @@ TEXT ·handlerDivFloat(SB), NOSPLIT, $0
 	FMOVD F0, (R24)(R3<<3)
 	DISPATCH_NEXT()
 
-// handlerNegFloat sets floats[A] = -floats[B].
-TEXT ·handlerNegFloat(SB), NOSPLIT, $0
+// handlerAddUint sets uints[A] = uints[B] + uints[C].
+TEXT ·handlerAddUint(SB), NOSPLIT|NOFRAME, $0
 	LSR  $8, R0, R3
 	AND  $0xFF, R3, R3
 	LSR  $16, R0, R4
 	AND  $0xFF, R4, R4
-	FMOVD (R24)(R4<<3), F0
-	FNEGD F0, F0
-	FMOVD F0, (R24)(R3<<3)
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	ADD  R7, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerSubUint sets uints[A] = uints[B] - uints[C].
+TEXT ·handlerSubUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	SUB  R7, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerMulUint sets uints[A] = uints[B] * uints[C].
+TEXT ·handlerMulUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	MUL  R7, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerBitAndUint sets uints[A] = uints[B] & uints[C].
+TEXT ·handlerBitAndUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	AND  R7, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerBitOrUint sets uints[A] = uints[B] | uints[C].
+TEXT ·handlerBitOrUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	ORR  R7, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerBitXorUint sets uints[A] = uints[B] ^ uints[C].
+TEXT ·handlerBitXorUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	EOR  R7, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerBitAndNotUint sets uints[A] = uints[B] &^ uints[C].
+TEXT ·handlerBitAndNotUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	BIC  R7, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerShiftLeftUint sets uints[A] = uints[B] << uint(ints[C]).
+TEXT ·handlerShiftLeftUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	LSL  R7, R6, R6
+	CMP  $64, R7
+	CSEL HS, ZR, R6, R6
+	MOVD R6, (R8)(R3<<3)
+	DISPATCH_NEXT()
+
+// handlerShiftRightUint sets uints[A] = uints[B] >> uint(ints[C]).
+TEXT ·handlerShiftRightUint(SB), NOSPLIT|NOFRAME, $0
+	LSR  $8, R0, R3
+	AND  $0xFF, R3, R3
+	LSR  $16, R0, R4
+	AND  $0xFF, R4, R4
+	LSR  $24, R0, R5
+	MOVD CTX_UINTS_BASE(R19), R8
+	MOVD (R8)(R4<<3), R6
+	MOVD (R8)(R5<<3), R7
+	LSR  R7, R6, R6
+	CMP  $64, R7
+	CSEL HS, ZR, R6, R6
+	MOVD R6, (R8)(R3<<3)
 	DISPATCH_NEXT()

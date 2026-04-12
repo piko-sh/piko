@@ -28,15 +28,17 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-const testHTMLNetworkFetch = `<!DOCTYPE html>
-<html>
-<head><title>Network Test</title></head>
-<body>
-<button id="fetch-btn" onclick="fetch('/api/data').then(r=>r.json()).then(d=>document.getElementById('result').textContent=JSON.stringify(d))">Fetch</button>
-<button id="post-btn" onclick="fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ok:true})}).then(r=>r.json()).then(d=>document.getElementById('result').textContent=JSON.stringify(d))">Post</button>
-<div id="result"></div>
-</body>
-</html>`
+const (
+	testHTMLNetworkFetch = `<!DOCTYPE html>
+	<html>
+	<head><title>Network Test</title></head>
+	<body>
+	<button id="fetch-btn" onclick="fetch('/api/data').then(r=>r.json()).then(d=>document.getElementById('result').textContent=JSON.stringify(d))">Fetch</button>
+	<button id="post-btn" onclick="fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ok:true})}).then(r=>r.json()).then(d=>document.getElementById('result').textContent=JSON.stringify(d))">Post</button>
+	<div id="result"></div>
+	</body>
+	</html>`
+)
 
 func newNetworkTestServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

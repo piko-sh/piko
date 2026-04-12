@@ -24,76 +24,72 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// MethodStrategy abstracts the database-specific parts of method body
-// generation. Each emitter (database/sql, pgx) provides its own
-// implementation so that the shared method builders can produce correct
-// AST nodes for either runtime target.
+// MethodStrategy abstracts the database-specific parts of method body generation. Each
+// emitter (database/sql, pgx) provides its own implementation so that the shared method
+// builders can produce correct AST nodes for either runtime target.
 type MethodStrategy interface {
-	// ConnectionField returns the DBTX field name for a query.
-	// database/sql returns "reader" or "writer" based on ReadOnly;
-	// pgx always returns "db".
+	// ConnectionField returns the DBTX field name for a query. database/sql returns "reader"
+	// or "writer" based on ReadOnly; pgx always returns "db".
 	ConnectionField(query *querier_dto.AnalysedQuery) string
 
 	// DBCall constructs queries.{field}.{method}(args...) for a database call.
 	DBCall(field string, method string, args []ast.Expr) *ast.CallExpr
 
-	// QueryMethod returns the method name for row-returning queries
-	// ("QueryContext" or "Query").
+	// QueryMethod returns the method name for row-returning queries ("QueryContext" or
+	// "Query").
 	QueryMethod() string
 
-	// QueryRowMethod returns the method name for single-row queries
-	// ("QueryRowContext" or "QueryRow").
+	// QueryRowMethod returns the method name for single-row queries ("QueryRowContext" or
+	// "QueryRow").
 	QueryRowMethod() string
 
-	// ExecMethod returns the method name for exec queries
-	// ("ExecContext" or "Exec").
+	// ExecMethod returns the method name for exec queries ("ExecContext" or "Exec").
 	ExecMethod() string
 
 	// QueriesReceiver returns the standard *Queries receiver field list.
 	QueriesReceiver() *ast.FieldList
 
-	// ExecResultReturnType returns the return type AST for :execresult
-	// methods. database/sql returns sql.Result; pgx returns
-	// pgconn.CommandTag.
+	// ExecResultReturnType returns the return type AST for :execresult methods. database/sql
+	// returns sql.Result; pgx returns pgconn.CommandTag.
 	ExecResultReturnType() ast.Expr
 
-	// ExecResultImport adds the necessary import for the exec result type.
-	// database/sql adds "database/sql"; pgx adds the pgconn import.
+	// ExecResultImport adds the necessary import for the exec result type. database/sql adds
+	// "database/sql"; pgx adds the pgconn import.
 	ExecResultImport(tracker *ImportTracker)
 
-	// BuildExecRowsBody constructs the method body for :execrows commands.
-	// This differs because sql.Result.RowsAffected() returns (int64, error)
-	// while pgconn.CommandTag.RowsAffected() returns int64 directly.
+	// BuildExecRowsBody constructs the method body for :execrows commands. This differs
+	// because sql.Result.RowsAffected() returns (int64, error) while
+	// pgconn.CommandTag.RowsAffected() returns int64 directly.
 	BuildExecRowsBody(queryArgs []ast.Expr, field string) []ast.Stmt
 
-	// BuilderQueryCall constructs the database call for the runtime
-	// builder's All() terminal method.
+	// BuilderQueryCall constructs the database call for the runtime builder's All() terminal
+	// method.
 	BuilderQueryCall() *ast.CallExpr
 
-	// BuilderQueryRowCall constructs the single-row database call for the
-	// runtime builder's One() terminal method.
+	// BuilderQueryRowCall constructs the single-row database call for the runtime builder's
+	// One() terminal method.
 	BuilderQueryRowCall() *ast.CallExpr
 
-	// RuntimeBuilderImports adds any runtime-specific imports required by
-	// the builder declarations (e.g. "database/sql" for the SQL emitter).
+	// RuntimeBuilderImports adds any runtime-specific imports required by the builder
+	// declarations (e.g. "database/sql" for the SQL emitter).
 	RuntimeBuilderImports(tracker *ImportTracker)
 
-	// NeedsSliceExpansion reports whether this emitter requires runtime SQL
-	// rewriting for piko.slice parameters.
+	// NeedsSliceExpansion reports whether this emitter requires runtime SQL rewriting for
+	// piko.slice parameters.
 	NeedsSliceExpansion() bool
 
-	// MaxBindVariables returns the maximum number of bind variables a single
-	// SQL statement supports, used by batch insert to chunk multi-row VALUES.
+	// MaxBindVariables returns the maximum number of bind variables a single SQL statement
+	// supports, used by batch insert to chunk multi-row VALUES.
 	MaxBindVariables() int
 
-	// UsesNumberedParams reports whether the emitter uses numbered
-	// placeholders ($1, $2) rather than positional ones (?). This controls
-	// how batch multi-row VALUES clauses are expanded.
+	// UsesNumberedParams reports whether the emitter uses numbered placeholders ($1, $2)
+	// rather than positional ones (?). This controls how batch multi-row VALUES clauses are
+	// expanded.
 	UsesNumberedParams() bool
 }
 
-// BatchCopyFromHandler is an optional interface for emitters that support
-// batch and copyfrom commands (currently only pgx).
+// BatchCopyFromHandler is an optional interface for emitters that support batch and
+// copyfrom commands (currently only pgx).
 type BatchCopyFromHandler interface {
 	// BuildBatchMethod constructs a :batch method declaration.
 	BuildBatchMethod(query *querier_dto.AnalysedQuery, mappings *querier_dto.TypeMappingTable, tracker *ImportTracker) ast.Decl
@@ -107,15 +103,15 @@ type BatchCopyFromHandler interface {
 	// CopyFromImportPath returns the import path to add for copyfrom commands.
 	CopyFromImportPath() string
 
-	// NeedsCopyFromParamsStruct reports whether the copyfrom command needs
-	// a separate params struct declaration.
+	// NeedsCopyFromParamsStruct reports whether the copyfrom command needs a separate params
+	// struct declaration.
 	NeedsCopyFromParamsStruct() bool
 
-	// BuildCopyFromParamsStruct constructs the params struct declaration
-	// for copyfrom queries.
+	// BuildCopyFromParamsStruct constructs the params struct declaration for copyfrom
+	// queries.
 	BuildCopyFromParamsStruct(query *querier_dto.AnalysedQuery, mappings *querier_dto.TypeMappingTable, tracker *ImportTracker) ast.Decl
 
-	// EmitHelperFile returns an optional helper file needed by the batch
-	// implementation, or nil if no helper is needed.
+	// EmitHelperFile returns an optional helper file needed by the batch implementation, or
+	// nil if no helper is needed.
 	EmitHelperFile(packageName string) *querier_dto.GeneratedFile
 }

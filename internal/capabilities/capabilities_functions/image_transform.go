@@ -33,16 +33,20 @@ import (
 )
 
 const (
-	// defaultPlaceholderWidth is the width in pixels for placeholder images.
+	// defaultPlaceholderWidth is the default width in pixels for a low-quality image preview
+	// (LQIP).
 	defaultPlaceholderWidth = 20
 
-	// defaultPlaceholderHeight is the default height in pixels for placeholder images.
+	// defaultPlaceholderHeight is the default height in pixels for a low-quality image
+	// preview; 0 preserves aspect ratio.
 	defaultPlaceholderHeight = 0
 
-	// defaultPlaceholderQuality is the image quality for placeholders.
+	// defaultPlaceholderQuality is the default image-quality value for a low-quality image
+	// preview.
 	defaultPlaceholderQuality = 10
 
-	// defaultPlaceholderBlur is the blur sigma value for placeholder images.
+	// defaultPlaceholderBlur is the default blur sigma applied when generating a low-quality
+	// image preview.
 	defaultPlaceholderBlur = 5.0
 
 	// maxQuality is the maximum image quality percentage allowed.
@@ -52,15 +56,15 @@ const (
 	minQuality = 1
 )
 
-// ImageTransform creates a capability function that performs image
-// transformations. It depends on the image domain's Service to select the
-// provider and execute the transformation via streaming.
+// ImageTransform creates a capability function that performs image transformations. It
+// depends on the image domain's Service to select the provider and execute the
+// transformation via streaming.
 //
-// Takes imageService (image_domain.Service) which provides the image
-// transformation backend.
+// Takes imageService (image_domain.Service) which provides the image transformation
+// backend.
 //
-// Returns capabilities_domain.CapabilityFunc which wraps the transformation
-// logic for use within the capabilities system.
+// Returns capabilities_domain.CapabilityFunc which wraps the transformation logic for use
+// within the capabilities system.
 //
 // Supported Parameters:
 //
@@ -73,32 +77,22 @@ const (
 //
 // Fit & Sizing:
 //   - fit: Resize mode ("cover", "contain", "fill", "inside", "outside")
-//   - crop: Legacy boolean for backward compatibility
-//     (true="cover", false="contain")
+//   - crop: Legacy boolean for backward compatibility (true="cover", false="contain")
 //   - aspectratio: Force aspect ratio (e.g., "16:9", "4:3", "1:1")
 //   - withoutenlargement: Prevent upscaling ("true", "false")
 //
 // Visual Options:
 //   - background: Background colour for letterboxing (hex, e.g., "#FFFFFF")
 //
-// Provider-Specific Modifiers:
-// Any other parameters are passed as modifiers for advanced transformations:
-// - greyscale: "true"
-// - blur: "5.0" (sigma value)
-// - sharpen: "2.0" (sigma value)
-// - rotate: "90", "180", "270"
-// - flip: "horizontal", "vertical"
-// - brightness: "-100" to "100"
-// - contrast: "-100" to "100"
-// - saturation: "-100" to "100"
-// - hue: "0" to "360" (vips only)
-// - gravity: "centre", "entropy", "attention" (smart cropping)
-// - focus: alias for gravity
-// - tint: "#FF0000" (hex colour, vips only)
-// Responsive image generation (sizes, densities) and placeholder
-// generation are complex features that should use the dedicated service
-// methods (GenerateResponsiveVariants, GeneratePlaceholder) rather than
-// this capability.
+// Provider-Specific Modifiers: Any other parameters are passed as modifiers for advanced
+// transformations: - greyscale: "true" - blur: "5.0" (sigma value) - sharpen: "2.0"
+// (sigma value) - rotate: "90", "180", "270" - flip: "horizontal", "vertical" -
+// brightness: "-100" to "100" - contrast: "-100" to "100" - saturation: "-100" to "100" -
+// hue: "0" to "360" (vips only) - gravity: "centre", "entropy", "attention" (smart
+// cropping) - focus: alias for gravity - tint: "#FF0000" (hex colour, vips only)
+// Responsive image generation (sizes, densities) and low-quality image preview (LQIP)
+// generation are complex features that should use the dedicated service methods
+// (GenerateResponsiveVariants, GeneratePlaceholder) rather than this capability.
 func ImageTransform(imageService image_domain.Service) capabilities_domain.CapabilityFunc {
 	return func(ctx context.Context, inputData io.Reader, params capabilities_domain.CapabilityParams) (io.Reader, error) {
 		ctx, span, l := log.Span(ctx, "ImageTransformCapability")
@@ -121,12 +115,13 @@ func ImageTransform(imageService image_domain.Service) capabilities_domain.Capab
 	}
 }
 
-// parseIsPlaceholder checks if the params indicate a placeholder request.
+// parseIsPlaceholder checks whether the params request a low-quality image preview
+// (LQIP).
 //
 // Takes params (CapabilityParams) which contains the parameters to check.
 //
-// Returns bool which is true when the placeholder key exists and has a truthy
-// value (true, yes, or 1).
+// Returns bool which is true when the LQIP key exists and has a truthy value (true, yes,
+// or 1).
 func parseIsPlaceholder(params capabilities_domain.CapabilityParams) bool {
 	placeholderVal, ok := params["placeholder"]
 	if !ok {
@@ -138,12 +133,12 @@ func parseIsPlaceholder(params capabilities_domain.CapabilityParams) bool {
 
 // buildTransformSpec creates a TransformationSpec from the capability parameters.
 //
-// Takes params (capabilities_domain.CapabilityParams) which provides the
-// transformation settings to apply.
-// Takes isPlaceholder (bool) which indicates whether to build a placeholder spec.
+// Takes params (capabilities_domain.CapabilityParams) which provides the transformation
+// settings to apply.
+// Takes isPlaceholder (bool) which selects low-quality image preview (LQIP) generation.
 //
-// Returns image_dto.TransformationSpec which contains the configured
-// transformation settings.
+// Returns image_dto.TransformationSpec which contains the configured transformation
+// settings.
 func buildTransformSpec(params capabilities_domain.CapabilityParams, isPlaceholder bool) image_dto.TransformationSpec {
 	spec := image_dto.DefaultTransformationSpec()
 	spec.Modifiers = map[string]string{}
@@ -156,14 +151,13 @@ func buildTransformSpec(params capabilities_domain.CapabilityParams, isPlacehold
 	return spec
 }
 
-// buildPlaceholderSpec creates a PlaceholderSpec with defaults and overrides
-// from params.
+// buildPlaceholderSpec creates a PlaceholderSpec for a low-quality image preview (LQIP)
+// with defaults and overrides from params.
 //
-// Takes params (capabilities_domain.CapabilityParams) which provides the
-// capability parameters used to override default placeholder settings.
+// Takes params (capabilities_domain.CapabilityParams) which provides the capability
+// parameters used to override the default LQIP settings.
 //
-// Returns *image_dto.PlaceholderSpec which is the configured placeholder
-// specification.
+// Returns *image_dto.PlaceholderSpec which is the configured LQIP specification.
 func buildPlaceholderSpec(params capabilities_domain.CapabilityParams) *image_dto.PlaceholderSpec {
 	placeholder := &image_dto.PlaceholderSpec{
 		Enabled:   true,
@@ -189,14 +183,12 @@ func buildPlaceholderSpec(params capabilities_domain.CapabilityParams) *image_dt
 	return placeholder
 }
 
-// parsePlaceholderWidth extracts and validates the placeholder width from the
-// given parameters.
+// parsePlaceholderWidth extracts and validates the low-quality image preview (LQIP) width
+// from the given parameters.
 //
-// Takes params (CapabilityParams) which contains the capability parameters to
-// search.
+// Takes params (CapabilityParams) which contains the capability parameters to search.
 //
-// Returns int which is the width value if valid, or 0 if not present or
-// invalid.
+// Returns int which is the width value if valid, or 0 if not present or invalid.
 // Returns bool which indicates whether a valid width was found.
 func parsePlaceholderWidth(params capabilities_domain.CapabilityParams) (int, bool) {
 	value, ok := params["placeholder-width"]
@@ -210,11 +202,11 @@ func parsePlaceholderWidth(params capabilities_domain.CapabilityParams) (int, bo
 	return w, true
 }
 
-// parsePlaceholderHeight extracts and checks the placeholder height from the
-// given parameters.
+// parsePlaceholderHeight extracts and checks the low-quality image preview (LQIP) height
+// from the given parameters.
 //
-// Takes params (CapabilityParams) which contains the parameters to search for
-// a placeholder-height value.
+// Takes params (CapabilityParams) which contains the parameters to search for an LQIP
+// height value.
 //
 // Returns int which is the height value if valid, or 0 if not found or invalid.
 // Returns bool which shows whether a valid height was found.
@@ -230,14 +222,13 @@ func parsePlaceholderHeight(params capabilities_domain.CapabilityParams) (int, b
 	return h, true
 }
 
-// parsePlaceholderQuality extracts and checks the placeholder quality from
-// params.
+// parsePlaceholderQuality extracts and checks the low-quality image preview (LQIP)
+// quality from params.
 //
-// Takes params (CapabilityParams) which contains the parameters to search for
-// placeholder quality.
+// Takes params (CapabilityParams) which contains the parameters to search for the LQIP
+// quality value.
 //
-// Returns int which is the quality value if valid (1-100), or 0 if not found
-// or invalid.
+// Returns int which is the quality value if valid (1-100), or 0 if not found or invalid.
 // Returns bool which shows whether a valid quality was found.
 func parsePlaceholderQuality(params capabilities_domain.CapabilityParams) (int, bool) {
 	value, ok := params["placeholder-quality"]
@@ -251,15 +242,15 @@ func parsePlaceholderQuality(params capabilities_domain.CapabilityParams) (int, 
 	return q, true
 }
 
-// parsePlaceholderBlur extracts and validates the placeholder blur sigma
-// from the given parameters.
+// parsePlaceholderBlur extracts and validates the low-quality image preview (LQIP) blur
+// sigma from the given parameters.
 //
-// Takes params (capabilities_domain.CapabilityParams) which contains the
-// image transformation settings including the optional placeholder-blur key.
+// Takes params (capabilities_domain.CapabilityParams) which contains the image
+// transformation settings including the optional LQIP blur key.
 //
 // Returns float64 which is the blur sigma value if valid.
-// Returns bool which is true when a valid blur sigma was found (>= 0),
-// or false if not present or invalid.
+// Returns bool which is true when a valid blur sigma was found (>= 0), or false if not
+// present or invalid.
 func parsePlaceholderBlur(params capabilities_domain.CapabilityParams) (float64, bool) {
 	value, ok := params["placeholder-blur"]
 	if !ok {
@@ -272,50 +263,52 @@ func parsePlaceholderBlur(params capabilities_domain.CapabilityParams) (float64,
 	return b, true
 }
 
-// transformParamParsers maps lowercased parameter names to setter
-// functions that populate fields on a TransformationSpec.
-var transformParamParsers = map[string]func(string, *image_dto.TransformationSpec){
-	"provider": func(v string, s *image_dto.TransformationSpec) { s.Provider = v },
-	"width": func(v string, s *image_dto.TransformationSpec) {
-		if w, err := strconv.Atoi(v); err == nil && w >= 0 {
-			s.Width = w
-		}
-	},
-	"height": func(v string, s *image_dto.TransformationSpec) {
-		if h, err := strconv.Atoi(v); err == nil && h >= 0 {
-			s.Height = h
-		}
-	},
-	"quality": func(v string, s *image_dto.TransformationSpec) {
-		if q, err := strconv.Atoi(v); err == nil && q >= minQuality && q <= maxQuality {
-			s.Quality = q
-		}
-	},
-	"format": func(v string, s *image_dto.TransformationSpec) {
-		if v != "original" {
-			s.Format = v
-		}
-	},
-	"fit":                 func(v string, s *image_dto.TransformationSpec) { s.Fit = image_dto.FitMode(v) },
-	"aspectratio":         func(v string, s *image_dto.TransformationSpec) { s.AspectRatio = v },
-	"aspect_ratio":        func(v string, s *image_dto.TransformationSpec) { s.AspectRatio = v },
-	"withoutenlargement":  parseWithoutEnlargement,
-	"without_enlargement": parseWithoutEnlargement,
-	"background":          func(v string, s *image_dto.TransformationSpec) { s.Background = v },
-	"bg":                  func(v string, s *image_dto.TransformationSpec) { s.Background = v },
-	"placeholder":         func(string, *image_dto.TransformationSpec) {},
-	"placeholder-width":   func(string, *image_dto.TransformationSpec) {},
-	"placeholder-height":  func(string, *image_dto.TransformationSpec) {},
-	"placeholder-quality": func(string, *image_dto.TransformationSpec) {},
-	"placeholder-blur":    func(string, *image_dto.TransformationSpec) {},
-}
+var (
+	// transformParamParsers maps lowercased parameter names to setter functions that
+	// populate fields on a TransformationSpec.
+	transformParamParsers = map[string]func(string, *image_dto.TransformationSpec){
+		"provider": func(v string, s *image_dto.TransformationSpec) { s.Provider = v },
+		"width": func(v string, s *image_dto.TransformationSpec) {
+			if w, err := strconv.Atoi(v); err == nil && w >= 0 {
+				s.Width = w
+			}
+		},
+		"height": func(v string, s *image_dto.TransformationSpec) {
+			if h, err := strconv.Atoi(v); err == nil && h >= 0 {
+				s.Height = h
+			}
+		},
+		"quality": func(v string, s *image_dto.TransformationSpec) {
+			if q, err := strconv.Atoi(v); err == nil && q >= minQuality && q <= maxQuality {
+				s.Quality = q
+			}
+		},
+		"format": func(v string, s *image_dto.TransformationSpec) {
+			if v != "original" {
+				s.Format = v
+			}
+		},
+		"fit":                 func(v string, s *image_dto.TransformationSpec) { s.Fit = image_dto.FitMode(v) },
+		"aspectratio":         func(v string, s *image_dto.TransformationSpec) { s.AspectRatio = v },
+		"aspect_ratio":        func(v string, s *image_dto.TransformationSpec) { s.AspectRatio = v },
+		"withoutenlargement":  parseWithoutEnlargement,
+		"without_enlargement": parseWithoutEnlargement,
+		"background":          func(v string, s *image_dto.TransformationSpec) { s.Background = v },
+		"bg":                  func(v string, s *image_dto.TransformationSpec) { s.Background = v },
+		"placeholder":         func(string, *image_dto.TransformationSpec) {},
+		"placeholder-width":   func(string, *image_dto.TransformationSpec) {},
+		"placeholder-height":  func(string, *image_dto.TransformationSpec) {},
+		"placeholder-quality": func(string, *image_dto.TransformationSpec) {},
+		"placeholder-blur":    func(string, *image_dto.TransformationSpec) {},
+	}
+)
 
-// parseWithoutEnlargement parses a boolean value and sets the
-// WithoutEnlargement field on the spec.
+// parseWithoutEnlargement parses a boolean value and sets the WithoutEnlargement field on
+// the spec.
 //
 // Takes v (string) which is the raw boolean string to parse.
-// Takes s (*image_dto.TransformationSpec) which receives the
-// parsed WithoutEnlargement value.
+// Takes s (*image_dto.TransformationSpec) which receives the parsed WithoutEnlargement
+// value.
 func parseWithoutEnlargement(v string, s *image_dto.TransformationSpec) {
 	if we, err := strconv.ParseBool(v); err == nil {
 		s.WithoutEnlargement = we
@@ -324,11 +317,11 @@ func parseWithoutEnlargement(v string, s *image_dto.TransformationSpec) {
 
 // parseTransformParams populates the spec from the generic params map.
 //
-// Dispatches through the transformParamParsers lookup table. Unrecognised keys
-// are stored in the Modifiers map for provider-specific handling.
+// Dispatches through the transformParamParsers lookup table. Unrecognised keys are stored
+// in the Modifiers map for provider-specific handling.
 //
-// Takes params (capabilities_domain.CapabilityParams) which contains the
-// key-value pairs to parse.
+// Takes params (capabilities_domain.CapabilityParams) which contains the key-value pairs
+// to parse.
 // Takes spec (*image_dto.TransformationSpec) which receives the parsed values.
 func parseTransformParams(params capabilities_domain.CapabilityParams, spec *image_dto.TransformationSpec) {
 	for key, value := range params {
@@ -340,16 +333,15 @@ func parseTransformParams(params capabilities_domain.CapabilityParams, spec *ima
 	}
 }
 
-// executePlaceholderTransform creates a low quality image placeholder (LQIP).
+// executePlaceholderTransform creates a low-quality image preview (LQIP).
 //
 // Takes span (trace.Span) which receives error reports on failure.
-// Takes imageService (image_domain.Service) which creates the placeholder image.
+// Takes imageService (image_domain.Service) which creates the preview image.
 // Takes inputData (io.Reader) which provides the source image data.
-// Takes spec (*image_dto.TransformationSpec) which defines the placeholder
-// settings.
+// Takes spec (*image_dto.TransformationSpec) which defines the LQIP settings.
 //
 // Returns io.Reader which contains the created data URL string.
-// Returns error when the image service fails to create the placeholder.
+// Returns error when the image service fails to create the preview.
 func executePlaceholderTransform(
 	ctx context.Context,
 	span trace.Span,

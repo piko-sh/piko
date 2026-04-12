@@ -27,46 +27,45 @@ import (
 )
 
 var (
-	// errFontSubsetMaxpMissing is returned when the maxp table is missing or
-	// too short for font subsetting.
+	// errFontSubsetMaxpMissing is returned when the maxp table is missing or too short for
+	// font subsetting.
 	errFontSubsetMaxpMissing = errors.New("font_subset: missing or too short maxp table")
 
-	// errFontSubsetHeadMissing is returned when the head table is missing or
-	// too short for font subsetting.
+	// errFontSubsetHeadMissing is returned when the head table is missing or too short for
+	// font subsetting.
 	errFontSubsetHeadMissing = errors.New("font_subset: missing or too short head table")
 
-	// errFontSubsetLocaMissing is returned when the loca table is missing from
-	// the font being subsetted.
+	// errFontSubsetLocaMissing is returned when the loca table is missing from the font
+	// being subsetted.
 	errFontSubsetLocaMissing = errors.New("font_subset: missing loca table")
 
-	// errFontSubsetGlyfMissing is returned when the glyf table is missing from
-	// the font being subsetted.
+	// errFontSubsetGlyfMissing is returned when the glyf table is missing from the font
+	// being subsetted.
 	errFontSubsetGlyfMissing = errors.New("font_subset: missing glyf table")
 
-	// errFontSubsetHheaMissing is returned when the hhea table is missing or
-	// too short for font subsetting.
+	// errFontSubsetHheaMissing is returned when the hhea table is missing or too short for
+	// font subsetting.
 	errFontSubsetHheaMissing = errors.New("font_subset: missing or too short hhea table")
 
-	// errFontSubsetHmtxMissing is returned when the hmtx table is missing from
-	// the font being subsetted.
+	// errFontSubsetHmtxMissing is returned when the hmtx table is missing from the font
+	// being subsetted.
 	errFontSubsetHmtxMissing = errors.New("font_subset: missing hmtx table")
 
-	// errFontSubsetLocaTooShort is returned when the loca table in short
-	// format does not contain enough entries for all glyphs.
+	// errFontSubsetLocaTooShort is returned when the loca table in short format does not
+	// contain enough entries for all glyphs.
 	errFontSubsetLocaTooShort = errors.New("font_subset: loca table too short (short format)")
 
-	// errFontSubsetLocaLongTooShort is returned when the loca table in long
-	// format does not contain enough entries for all glyphs.
+	// errFontSubsetLocaLongTooShort is returned when the loca table in long format does not
+	// contain enough entries for all glyphs.
 	errFontSubsetLocaLongTooShort = errors.New("font_subset: loca table too short (long format)")
 )
 
-// SubsetTrueTypeFont produces a minimal TrueType font containing only the
-// glyphs referenced in usedGlyphs. Original glyph IDs are preserved:
-// unused glyph slots are zeroed out so /CIDToGIDMap /Identity remains valid.
+// SubsetTrueTypeFont produces a minimal TrueType font containing only the glyphs
+// referenced in usedGlyphs. Original glyph IDs are preserved: unused glyph slots are
+// zeroed out so /CIDToGIDMap /Identity remains valid.
 //
 // Takes rawFont ([]byte) which is the raw TTF file bytes.
-// Takes usedGlyphs (map[uint16]rune) which maps glyph IDs to their Unicode
-// codepoints.
+// Takes usedGlyphs (map[uint16]rune) which maps glyph IDs to their Unicode codepoints.
 //
 // Returns the subsetted TTF file bytes.
 // Returns error if required tables are missing or malformed.
@@ -133,8 +132,8 @@ func SubsetTrueTypeFont(rawFont []byte, usedGlyphs map[uint16]rune) ([]byte, err
 	return result, nil
 }
 
-// prepareSubsetHead creates a copy of the head table with loca format
-// set to long (1) and checksum zeroed for later recalculation.
+// prepareSubsetHead creates a copy of the head table with loca format set to long (1) and
+// checksum zeroed for later recalculation.
 //
 // Takes headData ([]byte) which holds the original head table bytes.
 //
@@ -147,8 +146,8 @@ func prepareSubsetHead(headData []byte) []byte {
 	return newHeadData
 }
 
-// resolveAndRebuildGlyphs resolves composite glyph dependencies and
-// rebuilds the glyf and loca tables with only the needed glyphs.
+// resolveAndRebuildGlyphs resolves composite glyph dependencies and rebuilds the glyf and
+// loca tables with only the needed glyphs.
 //
 // Takes glyfData ([]byte) which holds the original glyf table bytes.
 // Takes offsets ([]uint32) which holds the parsed loca offsets for each glyph.
@@ -167,8 +166,7 @@ func resolveAndRebuildGlyphs(glyfData []byte, offsets []uint32, glyphSet map[uin
 //
 // Returns hheaData ([]byte) which is the hhea table bytes.
 // Returns hmtxData ([]byte) which is the hmtx table bytes.
-// Returns err (error) which is non-nil when either table
-// is missing or too short.
+// Returns err (error) which is non-nil when either table is missing or too short.
 func readHmtxDependencies(tables map[string][]byte) (hheaData []byte, hmtxData []byte, err error) {
 	hheaData, hheaExists := tables["hhea"]
 	if !hheaExists || len(hheaData) < hheaMinBytes {
@@ -267,8 +265,8 @@ func parseLocaTable(data []byte, format int16, numberOfGlyphs int) ([]uint32, er
 	return offsets, nil
 }
 
-// resolveCompositeGlyphs iteratively adds component glyph IDs from composite
-// glyphs to glyphSet until no new dependencies are found.
+// resolveCompositeGlyphs iteratively adds component glyph IDs from composite glyphs to
+// glyphSet until no new dependencies are found.
 //
 // Takes glyfData ([]byte) which holds the original glyf table bytes.
 // Takes offsets ([]uint32) which holds the parsed loca offsets for each glyph.
@@ -296,8 +294,8 @@ func resolveCompositeGlyphs(glyfData []byte, offsets []uint32, glyphSet map[uint
 	}
 }
 
-// compositeComponentsForGlyph returns the component glyph IDs if the given
-// glyph is composite, or nil if it is simple or empty.
+// compositeComponentsForGlyph returns the component glyph IDs if the given glyph is
+// composite, or nil if it is simple or empty.
 //
 // Takes glyfData ([]byte) which holds the original glyf table bytes.
 // Takes offsets ([]uint32) which holds the parsed loca offsets for each glyph.
@@ -321,8 +319,7 @@ func compositeComponentsForGlyph(glyfData []byte, offsets []uint32, glyphID uint
 	return extractCompositeComponents(glyphData)
 }
 
-// extractCompositeComponents parses the component glyph IDs from
-// composite glyph data.
+// extractCompositeComponents parses the component glyph IDs from composite glyph data.
 //
 // Takes data ([]byte) which holds the raw glyph data starting at the glyph header.
 //
@@ -362,8 +359,8 @@ func extractCompositeComponents(data []byte) []uint16 {
 	return components
 }
 
-// advancePastCompositeTransform advances past the scale/affine transform
-// data in a composite glyph component.
+// advancePastCompositeTransform advances past the scale/affine transform data in a
+// composite glyph component.
 //
 // Takes flags (uint16) which holds the component flags indicating the transform type.
 // Takes position (int) which specifies the current byte offset in the glyph data.
@@ -382,8 +379,8 @@ func advancePastCompositeTransform(flags uint16, position int) int {
 	return position
 }
 
-// rebuildGlyfAndLoca builds new glyf and loca tables containing only glyphs
-// present in glyphSet, zeroing out unused glyph slots.
+// rebuildGlyfAndLoca builds new glyf and loca tables containing only glyphs present in
+// glyphSet, zeroing out unused glyph slots.
 //
 // Takes oldGlyfData ([]byte) which holds the original glyf table bytes.
 // Takes offsets ([]uint32) which holds the parsed loca offsets for each glyph.
@@ -419,8 +416,8 @@ func rebuildGlyfAndLoca(
 	return newGlyfData, newLocaData
 }
 
-// rebuildHmtx creates a copy of the hmtx table with metrics zeroed out
-// for glyphs not in the subset.
+// rebuildHmtx creates a copy of the hmtx table with metrics zeroed out for glyphs not in
+// the subset.
 //
 // Takes oldHmtxData ([]byte) which holds the original hmtx table bytes.
 // Takes glyphSet (map[uint16]bool) which holds the set of glyph IDs to retain.
@@ -453,8 +450,8 @@ func rebuildHmtx(oldHmtxData []byte, glyphSet map[uint16]bool, numberOfGlyphs, n
 	return newHmtxData
 }
 
-// buildSubsetCmap builds a format-4 cmap table for the subset font
-// from the given glyph-to-codepoint mapping.
+// buildSubsetCmap builds a format-4 cmap table for the subset font from the given
+// glyph-to-codepoint mapping.
 //
 // Takes usedGlyphs (map[uint16]rune) which maps glyph IDs to Unicode codepoints.
 //
@@ -510,7 +507,8 @@ type cmapSegment struct {
 
 // buildCmapSegments groups sorted mappings into contiguous segments.
 //
-// Takes mappings ([]cmapCodepointMapping) which holds the sorted codepoint-to-glyph pairs.
+// Takes mappings ([]cmapCodepointMapping) which holds the sorted codepoint-to-glyph
+// pairs.
 //
 // Returns []cmapSegment which holds the contiguous segments including the sentinel.
 func buildCmapSegments(mappings []cmapCodepointMapping) []cmapSegment {
@@ -605,8 +603,8 @@ func buildMinimalPost() []byte {
 	return post
 }
 
-// assembleTTFFile builds a complete TTF binary from the given table map,
-// writing the header, directory, and table data.
+// assembleTTFFile builds a complete TTF binary from the given table map, writing the
+// header, directory, and table data.
 //
 // Takes tables (map[string][]byte) which holds the table tag to data mapping.
 //
@@ -647,8 +645,8 @@ type ttfTableEntry struct {
 	length int
 }
 
-// computeTTFSearchRange computes the searchRange and entrySelector for the
-// TTF table directory.
+// computeTTFSearchRange computes the searchRange and entrySelector for the TTF table
+// directory.
 //
 // Takes numberOfTables (int) which specifies how many tables are in the font.
 //
@@ -739,8 +737,8 @@ func alignUp(n, alignment int) int {
 	return n
 }
 
-// computeTableChecksum computes the TTF checksum for a table by summing
-// its data as big-endian 32-bit words, padding to a 4-byte boundary.
+// computeTableChecksum computes the TTF checksum for a table by summing its data as
+// big-endian 32-bit words, padding to a 4-byte boundary.
 //
 // Takes data ([]byte) which holds the table bytes to checksum.
 //
@@ -758,12 +756,12 @@ func computeTableChecksum(data []byte) uint32 {
 	return sum
 }
 
-// fixHeadTableChecksum sets the checksumAdjustment field in the head table
-// so that the whole-file checksum equals the TTF magic value.
+// fixHeadTableChecksum sets the checksumAdjustment field in the head table so that the
+// whole-file checksum equals the TTF magic value.
 //
 // Takes data ([]byte) which holds the assembled TTF file bytes.
-// Takes tables (map[string][]byte) which holds the output table map for
-// updating the head directory checksum.
+// Takes tables (map[string][]byte) which holds the output table map for updating the head
+// directory checksum.
 func fixHeadTableChecksum(data []byte, tables map[string][]byte) {
 	numberOfTables := int(binary.BigEndian.Uint16(data[fieldSize32:maxpMinBytes]))
 	for i := range numberOfTables {

@@ -18,9 +18,13 @@
 
 package db_schema_registry_sqlite
 
-import "embed"
+import (
+	"embed"
+)
 
-// Migrations contains the SQLite migration files for the registry database.
-//
-//go:embed migrations/*.sql
-var Migrations embed.FS
+var (
+	// Migrations contains the SQLite migration files for the registry database.
+	//
+	//go:embed migrations/*.sql
+	Migrations embed.FS
+)

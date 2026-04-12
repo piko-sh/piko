@@ -22,20 +22,24 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this encoder.
-const Language = "english"
+const (
+	// Language is the language code for this encoder.
+	Language = "english"
+)
 
-var _ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+var (
+	_ linguistics_domain.PhoneticEncoderPort = (*Encoder)(nil)
+)
 
-// Encoder provides English phonetic encoding using the Double Metaphone
-// algorithm. It implements the linguistics_domain.PhoneticEncoderPort interface.
+// Encoder provides English phonetic encoding using the Double Metaphone algorithm. It
+// implements the linguistics_domain.PhoneticEncoderPort interface.
 type Encoder struct {
 	// encoder converts text to phonetic representations for comparison.
 	encoder *linguistics_domain.PhoneticEncoder
 }
 
-// NewWithMaxLength creates a new English Double Metaphone encoder with a custom
-// maximum code length.
+// NewWithMaxLength creates a new English Double Metaphone encoder with a custom maximum
+// code length.
 //
 // Takes maxLength (int) which controls the maximum length of phonetic codes.
 //
@@ -46,11 +50,11 @@ func NewWithMaxLength(maxLength int) (*Encoder, error) {
 	}, nil
 }
 
-// Encode returns the primary phonetic encoding of a word using the Double
-// Metaphone algorithm.
+// Encode returns the primary phonetic encoding of a word using the Double Metaphone
+// algorithm.
 //
-// Takes word (string) which is the word to encode. The word should be in lower
-// case and without accents for best results.
+// Takes word (string) which is the word to encode. The word should be in lower case and
+// without accents for best results.
 //
 // Returns string which is the phonetic code, typically four characters.
 func (e *Encoder) Encode(word string) string {

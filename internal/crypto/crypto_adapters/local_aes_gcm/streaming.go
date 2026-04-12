@@ -30,8 +30,8 @@ import (
 	"io"
 	"math"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/crypto/crypto_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/wdk/safeconv"
 )
 
@@ -46,9 +46,9 @@ const (
 	maxHeaderSizeBytes = 1024 * 1024
 )
 
-// encryptingWriter implements io.WriteCloser for streaming encryption.
-// It chunks the plaintext, encrypts each chunk with a unique IV, and writes
-// the encrypted chunks to the destination writer.
+// encryptingWriter implements io.WriteCloser for streaming encryption. It chunks the
+// plaintext, encrypts each chunk with a unique IV, and writes the encrypted chunks to the
+// destination writer.
 //
 // Memory usage: O(chunk_size) - typically 64KB, regardless of total data size.
 type encryptingWriter struct {
@@ -58,8 +58,8 @@ type encryptingWriter struct {
 	// aead is the AES-GCM cipher that encrypts chunks.
 	aead cipher.AEAD
 
-	// baseIV is the 12-byte base initialisation vector for the stream. It is
-	// combined with chunk numbers to create a unique IV for each chunk.
+	// baseIV is the 12-byte base initialisation vector for the stream. It is combined with
+	// chunk numbers to create a unique IV for each chunk.
 	baseIV []byte
 
 	// buffer holds plaintext data until a full chunk is ready for encryption.
@@ -125,8 +125,7 @@ func (w *encryptingWriter) Close() error {
 	return nil
 }
 
-// flushChunk encrypts the current buffer contents and writes them to the
-// output.
+// flushChunk encrypts the current buffer contents and writes them to the output.
 //
 // Returns error when writing the chunk length or encrypted data fails.
 func (w *encryptingWriter) flushChunk() error {
@@ -157,9 +156,8 @@ func (w *encryptingWriter) flushChunk() error {
 	return nil
 }
 
-// decryptingReader implements io.ReadCloser for streaming decryption.
-// It reads encrypted chunks, decrypts them with the appropriate IV, and
-// returns the plaintext to the caller.
+// decryptingReader implements io.ReadCloser for streaming decryption. It reads encrypted
+// chunks, decrypts them with the appropriate IV, and returns the plaintext to the caller.
 //
 // Memory usage: O(chunk_size) - typically 64KB, regardless of total data size.
 type decryptingReader struct {
@@ -190,8 +188,7 @@ type decryptingReader struct {
 // Takes p ([]byte) which is the buffer to fill with decrypted data.
 //
 // Returns n (int) which is the number of bytes written to p.
-// Returns err (error) when decryption fails or the stream ends
-// (io.EOF).
+// Returns err (error) when decryption fails or the stream ends (io.EOF).
 func (r *decryptingReader) Read(p []byte) (n int, err error) {
 	if r.closed {
 		return 0, errors.New("read from closed decryptingReader")
@@ -227,11 +224,9 @@ func (r *decryptingReader) Close() error {
 	return nil
 }
 
-// readChunk reads one encrypted chunk, decrypts it, and stores it in the
-// buffer.
+// readChunk reads one encrypted chunk, decrypts it, and stores it in the buffer.
 //
-// Returns error when the chunk length is invalid, reading fails, or decryption
-// fails.
+// Returns error when the chunk length is invalid, reading fails, or decryption fails.
 func (r *decryptingReader) readChunk() error {
 	chunkLenBytes := make([]byte, chunkLengthBytes)
 	if _, err := io.ReadFull(r.src, chunkLenBytes); err != nil {
@@ -272,8 +267,8 @@ func (r *decryptingReader) readChunk() error {
 //
 // Takes output (io.Writer) which receives the encrypted data stream.
 //
-// Returns io.WriteCloser which encrypts data written to it using
-// AES-256-GCM with a freshly generated IV.
+// Returns io.WriteCloser which encrypts data written to it using AES-256-GCM with a
+// freshly generated IV.
 // Returns error when IV generation or header writing fails.
 func (p *provider) EncryptStream(_ context.Context, output io.Writer, _ *crypto_dto.EncryptRequest) (io.WriteCloser, error) {
 	baseIV := make([]byte, IVSize)
@@ -337,18 +332,18 @@ func (p *provider) DecryptStream(_ context.Context, input io.Reader) (io.ReadClo
 	}, nil
 }
 
-// WriteStreamingHeader writes the v2 streaming envelope header to the output.
-// Format: [Version (1 byte)] [Header Length (4 bytes)] [JSON Header].
+// WriteStreamingHeader writes the v2 streaming envelope header to the output. Format:
+// [Version (1 byte)] [Header Length (4 bytes)] [JSON Header].
 //
-// Exported so that other providers (AWS KMS, GCP KMS) can reuse the same envelope
-// format for consistency.
+// Exported so that other providers (AWS KMS, GCP KMS) can reuse the same envelope format
+// for consistency.
 //
 // Takes output (io.Writer) which receives the encoded header bytes.
-// Takes header (*crypto_dto.StreamingHeader) which contains the envelope
-// metadata to encode.
+// Takes header (*crypto_dto.StreamingHeader) which contains the envelope metadata to
+// encode.
 //
-// Returns error when the header cannot be marshalled to JSON or when writing
-// to the output fails.
+// Returns error when the header cannot be marshalled to JSON or when writing to the
+// output fails.
 func WriteStreamingHeader(output io.Writer, header *crypto_dto.StreamingHeader) error {
 	headerBytes, err := json.Marshal(header)
 	if err != nil {
@@ -374,14 +369,14 @@ func WriteStreamingHeader(output io.Writer, header *crypto_dto.StreamingHeader) 
 
 // ReadStreamingHeader reads and parses the v2 streaming envelope header.
 //
-// Exported so that other providers (AWS KMS, GCP KMS) can reuse the same envelope
-// format for consistency.
+// Exported so that other providers (AWS KMS, GCP KMS) can reuse the same envelope format
+// for consistency.
 //
 // Takes input (io.Reader) which provides the encrypted stream to read from.
 //
 // Returns *crypto_dto.StreamingHeader which contains the parsed header data.
-// Returns error when the format is invalid, the version is unsupported, or
-// the header cannot be read.
+// Returns error when the format is invalid, the version is unsupported, or the header
+// cannot be read.
 func ReadStreamingHeader(input io.Reader) (*crypto_dto.StreamingHeader, error) {
 	versionByte := make([]byte, 1)
 	if _, err := io.ReadFull(input, versionByte); err != nil {
@@ -417,9 +412,9 @@ func ReadStreamingHeader(input io.Reader) (*crypto_dto.StreamingHeader, error) {
 	return &header, nil
 }
 
-// NewEncryptingWriter creates a new encrypting writer for streaming
-// encryption. This is exported to allow other providers (AWS KMS, GCP KMS)
-// to use local AES-GCM streaming with their own envelope encryption.
+// NewEncryptingWriter creates a new encrypting writer for streaming encryption. This is
+// exported to allow other providers (AWS KMS, GCP KMS) to use local AES-GCM streaming
+// with their own envelope encryption.
 //
 // Takes dst (io.Writer) which receives the encrypted output.
 // Takes aead (cipher.AEAD) which is the AES-GCM cipher instance.
@@ -445,9 +440,9 @@ func NewEncryptingWriter(dst io.Writer, aead cipher.AEAD, baseIV []byte, chunkSi
 	}
 }
 
-// NewDecryptingReader creates a new decrypting reader for streaming
-// decryption. This is exported to allow other providers (AWS KMS, GCP KMS)
-// to use local AES-GCM streaming with their own envelope encryption.
+// NewDecryptingReader creates a new decrypting reader for streaming decryption. This is
+// exported to allow other providers (AWS KMS, GCP KMS) to use local AES-GCM streaming
+// with their own envelope encryption.
 //
 // Takes src (io.Reader) which provides the encrypted input stream.
 // Takes aead (cipher.AEAD) which is the AES-GCM cipher instance.
@@ -471,8 +466,8 @@ func NewDecryptingReader(src io.Reader, aead cipher.AEAD, baseIV []byte) io.Read
 	}
 }
 
-// GenerateIV creates a random initialisation vector for AES-GCM encryption.
-// This is exported so other providers can create IVs using the same method.
+// GenerateIV creates a random initialisation vector for AES-GCM encryption. This is
+// exported so other providers can create IVs using the same method.
 //
 // Returns []byte which contains the generated IV of IVSize bytes.
 // Returns error when reading from the random source fails.
@@ -484,8 +479,8 @@ func GenerateIV() ([]byte, error) {
 	return iv, nil
 }
 
-// deriveIV creates a unique IV for a given chunk by combining the base IV
-// with the chunk number. Each chunk needs a unique IV for AES-GCM security.
+// deriveIV creates a unique IV for a given chunk by combining the base IV with the chunk
+// number. Each chunk needs a unique IV for AES-GCM security.
 //
 // Format: baseIV[0:8] || chunkNum (as 4 bytes, big-endian)
 //

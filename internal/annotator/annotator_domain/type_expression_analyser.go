@@ -18,10 +18,10 @@
 
 package annotator_domain
 
-// Analyses template expressions by resolving their types, validating syntax,
-// and annotating the AST with type information. Coordinates expression type
-// checking including literals, identifiers, operators, function calls, and
-// member access for semantic correctness.
+// Analyses template expressions by resolving their types, validating syntax, and
+// annotating the AST with type information. Coordinates expression type checking
+// including literals, identifiers, operators, function calls, and member access for
+// semantic correctness.
 
 import (
 	"context"
@@ -37,17 +37,19 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// analyserPool manages a pool of typeExpressionAnalyser objects to reduce
-// allocation overhead during the recursive AST traversal.
-var analyserPool = sync.Pool{
-	New: func() any {
-		return new(typeExpressionAnalyser)
-	},
-}
+var (
+	// analyserPool manages a pool of typeExpressionAnalyser objects to reduce allocation
+	// overhead during the recursive AST traversal.
+	analyserPool = sync.Pool{
+		New: func() any {
+			return new(typeExpressionAnalyser)
+		},
+	}
+)
 
-// typeExpressionAnalyser encapsulates the logic and state for resolving a
-// single expression node. It is a short-lived object, retrieved from a pool for
-// one analysis step and then returned.
+// typeExpressionAnalyser encapsulates the logic and state for resolving a single
+// expression node. It is a short-lived object, retrieved from a pool for one analysis
+// step and then returned.
 type typeExpressionAnalyser struct {
 	// typeResolver is the type resolver used to find symbol definitions.
 	typeResolver *TypeResolver
@@ -66,8 +68,8 @@ type typeExpressionAnalyser struct {
 //
 // Takes n (*ast_domain.Identifier) which is the identifier to look up.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the type annotation for
-// the symbol, or nil if not found.
+// Returns *ast_domain.GoGeneratorAnnotation which is the type annotation for the symbol,
+// or nil if not found.
 // Returns bool which is true if the symbol was found.
 func (a *typeExpressionAnalyser) resolveIdentifier(n *ast_domain.Identifier) (*ast_domain.GoGeneratorAnnotation, bool) {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIdentifier", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyName, n.Name))
@@ -87,15 +89,14 @@ func (a *typeExpressionAnalyser) resolveIdentifier(n *ast_domain.Identifier) (*a
 	return nil, false
 }
 
-// resolveMemberExpression handles member access expressions (e.g., `a.b`).
-// It contains structured logging to trace its decision-making process,
-// which helps debug complex type resolution issues.
+// resolveMemberExpression handles member access expressions (e.g., `a.b`). It contains
+// structured logging to trace its decision-making process, which helps debug complex type
+// resolution issues.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member
-// expression to analyse.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to analyse.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the resolved type
-// annotation, or nil if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which is the resolved type annotation, or nil
+// if resolution fails.
 func (a *typeExpressionAnalyser) resolveMemberExpression(ctx context.Context, n *ast_domain.MemberExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveMemberExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
@@ -106,14 +107,12 @@ func (a *typeExpressionAnalyser) resolveMemberExpression(ctx context.Context, n 
 	return a.resolveStandardMemberAccess(ctx, n)
 }
 
-// tryResolveAsPackageMember checks if the member expression refers to a
-// package member.
+// tryResolveAsPackageMember checks if the member expression refers to a package member.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member expression
-// to resolve.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to resolve.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the resolved annotation,
-// or nil if the expression is not a package member.
+// Returns *ast_domain.GoGeneratorAnnotation which is the resolved annotation, or nil if
+// the expression is not a package member.
 func (a *typeExpressionAnalyser) tryResolveAsPackageMember(n *ast_domain.MemberExpression) *ast_domain.GoGeneratorAnnotation {
 	baseIdent, ok := n.Base.(*ast_domain.Identifier)
 	if !ok {
@@ -148,19 +147,17 @@ func (a *typeExpressionAnalyser) tryResolveAsPackageMember(n *ast_domain.MemberE
 	return a.resolvePackageMemberAccessWithAlias(n, baseIdent, effectiveAlias)
 }
 
-// resolvePackageMemberAccessWithAlias resolves a member access on a package
-// alias, using an effective alias that may differ from the base identifier's
-// name. This is used for Piko imports where the user writes "card.X" but the
-// actual package alias in the imports is "partials_card_abc123".
+// resolvePackageMemberAccessWithAlias resolves a member access on a package alias, using
+// an effective alias that may differ from the base identifier's name. This is used for
+// Piko imports where the user writes "card.X" but the actual package alias in the imports
+// is "partials_card_abc123".
 //
-// Takes n (*ast_domain.MemberExpression) which is the member
-// expression to resolve.
-// Takes baseIdent (*ast_domain.Identifier) which is the user's base
-// identifier.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to resolve.
+// Takes baseIdent (*ast_domain.Identifier) which is the user's base identifier.
 // Takes effectiveAlias (string) which is the actual package alias to use.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the resolved type, or a
-// fallback if the property is computed or if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which is the resolved type, or a fallback if
+// the property is computed or if resolution fails.
 func (a *typeExpressionAnalyser) resolvePackageMemberAccessWithAlias(n *ast_domain.MemberExpression, baseIdent *ast_domain.Identifier, effectiveAlias string) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("Base IS a package alias. Resolving as package member.", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, effectiveAlias))
 
@@ -182,15 +179,13 @@ func (a *typeExpressionAnalyser) resolvePackageMemberAccessWithAlias(n *ast_doma
 	return finalAnn
 }
 
-// stampBaseAsPackageWithAlias marks the base identifier as a package reference,
-// using an effective alias that may differ from the base identifier's name.
-// This is used for Piko imports where the user writes "card" but the actual
-// package alias in the imports is "partials_card_abc123".
+// stampBaseAsPackageWithAlias marks the base identifier as a package reference, using an
+// effective alias that may differ from the base identifier's name. This is used for Piko
+// imports where the user writes "card" but the actual package alias in the imports is
+// "partials_card_abc123".
 //
-// Takes base (ast_domain.Expression) which is the expression to
-// annotate.
-// Takes effectiveAlias (string) which is the actual package alias
-// to use.
+// Takes base (ast_domain.Expression) which is the expression to annotate.
+// Takes effectiveAlias (string) which is the actual package alias to use.
 func (a *typeExpressionAnalyser) stampBaseAsPackageWithAlias(base ast_domain.Expression, _ *ast_domain.Identifier, effectiveAlias string) {
 	imports := a.typeResolver.inspector.GetImportsForFile(a.ctx.CurrentGoFullPackagePath, a.ctx.CurrentGoSourcePath)
 	canonicalPath := imports[effectiveAlias]
@@ -235,14 +230,13 @@ func (a *typeExpressionAnalyser) stampBaseAsPackageWithAlias(base ast_domain.Exp
 	a.ctx.Logger.Trace("Stamped base as package", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, effectiveAlias))
 }
 
-// resolveStandardMemberAccess resolves a standard member access on a variable
-// or expression.
+// resolveStandardMemberAccess resolves a standard member access on a variable or
+// expression.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member
-// expression to resolve.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to resolve.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// annotation, or a fallback annotation if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type annotation,
+// or a fallback annotation if resolution fails.
 func (a *typeExpressionAnalyser) resolveStandardMemberAccess(ctx context.Context, n *ast_domain.MemberExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("Resolving base expression recursively", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyBase, n.Base.String()))
 	baseAnn := a.typeResolver.resolveRecursive(ctx, a.ctx, n.Base, a.location, a.depth+1)
@@ -271,17 +265,16 @@ func (a *typeExpressionAnalyser) resolveStandardMemberAccess(ctx context.Context
 	return finalAnn
 }
 
-// resolveMemberProperty works out the type of a property on a member
-// expression, such as a field, method, or map access.
+// resolveMemberProperty works out the type of a property on a member expression, such as
+// a field, method, or map access.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member expression
-// to resolve.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base
-// type annotation.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to resolve.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base type
+// annotation.
 // Takes propIdent (*ast_domain.Identifier) which is the name of the property.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// annotation for the property.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type annotation
+// for the property.
 func (a *typeExpressionAnalyser) resolveMemberProperty(
 	ctx context.Context,
 	n *ast_domain.MemberExpression,
@@ -305,8 +298,8 @@ func (a *typeExpressionAnalyser) resolveMemberProperty(
 // applyGenericSubstitution replaces type parameters with their actual types.
 //
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which holds the type to update.
-// Takes substMap (map[string]goast.Expr) which maps type parameter names to
-// their actual types.
+// Takes substMap (map[string]goast.Expr) which maps type parameter names to their actual
+// types.
 func (a *typeExpressionAnalyser) applyGenericSubstitution(
 	ann *ast_domain.GoGeneratorAnnotation,
 	substMap map[string]goast.Expr,
@@ -322,16 +315,15 @@ func (a *typeExpressionAnalyser) applyGenericSubstitution(
 	}
 }
 
-// createMapAccessAnnotation creates an annotation for map[string]interface{}
-// dot-notation access.
+// createMapAccessAnnotation creates an annotation for map[string]interface{} dot-notation
+// access.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member expression being
-// checked.
-// Takes propIdent (*ast_domain.Identifier) which is the property name used as
-// the map key.
+// Takes n (*ast_domain.MemberExpression) which is the member expression being checked.
+// Takes propIdent (*ast_domain.Identifier) which is the property name used as the map
+// key.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which marks the expression as a
-// map access with interface{} as the resolved type.
+// Returns *ast_domain.GoGeneratorAnnotation which marks the expression as a map access
+// with interface{} as the resolved type.
 func (a *typeExpressionAnalyser) createMapAccessAnnotation(n *ast_domain.MemberExpression, propIdent *ast_domain.Identifier) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("Base is map[string]interface{}. Allowing dot-notation access.",
 		logger_domain.Int(logKeyDepth, a.depth),
@@ -351,17 +343,16 @@ func (a *typeExpressionAnalyser) createMapAccessAnnotation(n *ast_domain.MemberE
 	return ann
 }
 
-// tryResolveAsMethod attempts to resolve the property as a method, or treats
-// it as unknown if that fails.
+// tryResolveAsMethod attempts to resolve the property as a method, or treats it as
+// unknown if that fails.
 //
-// Takes n (*ast_domain.MemberExpression) which is the member expression
-// to resolve.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base
-// type annotation.
+// Takes n (*ast_domain.MemberExpression) which is the member expression to resolve.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base type
+// annotation.
 // Takes propIdent (*ast_domain.Identifier) which is the property name to find.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the resolved method
-// annotation, or an unknown member annotation if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which is the resolved method annotation, or
+// an unknown member annotation if resolution fails.
 func (a *typeExpressionAnalyser) tryResolveAsMethod(
 	ctx context.Context,
 	n *ast_domain.MemberExpression,
@@ -378,17 +369,15 @@ func (a *typeExpressionAnalyser) tryResolveAsMethod(
 	return a.typeResolver.handleUnknownMember(ctx, a.ctx, baseAnn, propIdent.Name, n, a.location)
 }
 
-// finaliseMemberAnnotation copies metadata from the base annotation to the
-// final annotation. It also determines if a runtime nil-check is needed based
-// on whether the base expression is a pointer and whether it's known to be
-// non-nil in the current scope (via p-if guard tracking).
+// finaliseMemberAnnotation copies metadata from the base annotation to the final
+// annotation. It also determines if a runtime nil-check is needed based on whether the
+// base expression is a pointer and whether it's known to be non-nil in the current scope
+// (via p-if guard tracking).
 //
-// Takes n (*ast_domain.MemberExpression) which is the member expression being
-// annotated.
-// Takes finalAnn (*ast_domain.GoGeneratorAnnotation) which receives the copied
-// metadata.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the source
-// metadata to copy.
+// Takes n (*ast_domain.MemberExpression) which is the member expression being annotated.
+// Takes finalAnn (*ast_domain.GoGeneratorAnnotation) which receives the copied metadata.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the source metadata to
+// copy.
 func (a *typeExpressionAnalyser) finaliseMemberAnnotation(n *ast_domain.MemberExpression, finalAnn *ast_domain.GoGeneratorAnnotation, baseAnn *ast_domain.GoGeneratorAnnotation) {
 	finalAnn.BaseCodeGenVarName = baseAnn.BaseCodeGenVarName
 	if finalAnn.BaseCodeGenVarName != nil {
@@ -411,14 +400,12 @@ func (a *typeExpressionAnalyser) finaliseMemberAnnotation(n *ast_domain.MemberEx
 	a.checkMemberPointerSafety(n, finalAnn)
 }
 
-// checkMemberPointerSafety evaluates whether a member expression needs runtime
-// safety checks and emits appropriate diagnostics. It handles optional
-// chaining, known non-nil guards, and emits warnings for unguarded pointer
-// access.
+// checkMemberPointerSafety evaluates whether a member expression needs runtime safety
+// checks and emits appropriate diagnostics. It handles optional chaining, known non-nil
+// guards, and emits warnings for unguarded pointer access.
 //
 // Takes n (*ast_domain.MemberExpression) which is the member expression to check.
-// Takes finalAnn (*ast_domain.GoGeneratorAnnotation) which receives safety
-// check flags.
+// Takes finalAnn (*ast_domain.GoGeneratorAnnotation) which receives safety check flags.
 func (a *typeExpressionAnalyser) checkMemberPointerSafety(n *ast_domain.MemberExpression, finalAnn *ast_domain.GoGeneratorAnnotation) {
 	baseExprString := n.Base.String()
 
@@ -443,8 +430,8 @@ func (a *typeExpressionAnalyser) checkMemberPointerSafety(n *ast_domain.MemberEx
 	a.emitNilPointerWarning(n, baseExprString, finalAnn)
 }
 
-// emitNilPointerWarning generates a warning for unguarded pointer access.
-// The warning advises the user to add a p-if nil check.
+// emitNilPointerWarning generates a warning for unguarded pointer access. The warning
+// advises the user to add a p-if nil check.
 //
 // Takes n (*ast_domain.MemberExpression) which triggers the warning.
 // Takes baseExprString (string) which is the base expression text.
@@ -473,8 +460,8 @@ func (a *typeExpressionAnalyser) emitNilPointerWarning(n *ast_domain.MemberExpre
 //
 // Takes n (*ast_domain.IndexExpression) which is the index expression to resolve.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the resolved type of
-// the indexed element, or a fallback annotation if resolution fails.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the resolved type of the indexed
+// element, or a fallback annotation if resolution fails.
 func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *ast_domain.IndexExpression) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveIndexExpression", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
@@ -516,8 +503,8 @@ func (a *typeExpressionAnalyser) resolveIndexExpression(ctx context.Context, n *
 // emitNotIndexableDiagnostic emits a diagnostic when a type is not indexable.
 //
 // Takes n (*ast_domain.IndexExpression) which is the index expression that failed.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the resolved
-// type information for the base expression.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the resolved type
+// information for the base expression.
 func (a *typeExpressionAnalyser) emitNotIndexableDiagnostic(n *ast_domain.IndexExpression, baseAnn *ast_domain.GoGeneratorAnnotation) {
 	baseTypeName := goastutil.ASTToTypeString(baseAnn.ResolvedType.TypeExpression, baseAnn.ResolvedType.PackageAlias)
 	message := fmt.Sprintf("Type '%s' is not indexable", baseTypeName)
@@ -525,14 +512,14 @@ func (a *typeExpressionAnalyser) emitNotIndexableDiagnostic(n *ast_domain.IndexE
 	a.ctx.addDiagnosticForExpression(ast_domain.Error, message, n.Base, a.location.Add(n.Base.GetRelativeLocation()), n.GoAnnotations, annotator_dto.CodeInvalidIndexing)
 }
 
-// validateIndexType checks if the index type is compatible with the base type
-// and emits a diagnostic if not.
+// validateIndexType checks if the index type is compatible with the base type and emits a
+// diagnostic if not.
 //
 // Takes n (*ast_domain.IndexExpression) which is the index expression to validate.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base
-// type annotation.
-// Takes indexAnn (*ast_domain.GoGeneratorAnnotation) which provides the index
-// type annotation.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base type
+// annotation.
+// Takes indexAnn (*ast_domain.GoGeneratorAnnotation) which provides the index type
+// annotation.
 func (a *typeExpressionAnalyser) validateIndexType(n *ast_domain.IndexExpression, baseAnn, indexAnn *ast_domain.GoGeneratorAnnotation) {
 	indexTypeInfo := a.typeResolver.DetermineIterationIndexType(a.ctx, baseAnn.ResolvedType)
 	indexTypeString := goastutil.ASTToTypeString(indexTypeInfo.TypeExpression, indexTypeInfo.PackageAlias)
@@ -547,17 +534,16 @@ func (a *typeExpressionAnalyser) validateIndexType(n *ast_domain.IndexExpression
 	}
 }
 
-// buildIndexExprAnnotation builds the final annotation for an index
-// expression.
+// buildIndexExprAnnotation builds the final annotation for an index expression.
 //
 // Takes n (*ast_domain.IndexExpression) which is the index expression node.
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base
-// annotation to build upon.
-// Takes itemTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the type
-// of the indexed item.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which provides the base annotation to
+// build upon.
+// Takes itemTypeInfo (*ast_domain.ResolvedTypeInfo) which describes the type of the
+// indexed item.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which is the annotation with
-// stringability and safety check flags set.
+// Returns *ast_domain.GoGeneratorAnnotation which is the annotation with stringability
+// and safety check flags set.
 func (a *typeExpressionAnalyser) buildIndexExprAnnotation(
 	n *ast_domain.IndexExpression,
 	baseAnn *ast_domain.GoGeneratorAnnotation,
@@ -611,10 +597,9 @@ func (a *typeExpressionAnalyser) buildIndexExprAnnotation(
 //
 // Takes n (*ast_domain.ArrayLiteral) which is the array literal to check.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the resolved slice
-// type. Empty arrays resolve to []any. Non-empty arrays use the first element
-// to work out the expected type and report errors for elements with different
-// types.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the resolved slice type. Empty
+// arrays resolve to []any. Non-empty arrays use the first element to work out the
+// expected type and report errors for elements with different types.
 func (a *typeExpressionAnalyser) resolveArrayLiteral(ctx context.Context, n *ast_domain.ArrayLiteral) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveArrayLiteral", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
@@ -665,8 +650,7 @@ func (a *typeExpressionAnalyser) resolveArrayLiteral(ctx context.Context, n *ast
 	return ann
 }
 
-// resolveEmptyArrayLiteral resolves the type of an empty array literal to
-// []any.
+// resolveEmptyArrayLiteral resolves the type of an empty array literal to []any.
 //
 // Takes n (*ast_domain.ArrayLiteral) which is the empty array literal node.
 //
@@ -690,18 +674,15 @@ func (a *typeExpressionAnalyser) resolveEmptyArrayLiteral(n *ast_domain.ArrayLit
 	return ann
 }
 
-// reportObjectLiteralTypeMismatch reports a diagnostic when a value in an
-// object literal has a type that does not match what was expected.
+// reportObjectLiteralTypeMismatch reports a diagnostic when a value in an object literal
+// has a type that does not match what was expected.
 //
 // Takes key (string) which identifies the field with the type mismatch.
-// Takes valueExpr (ast_domain.Expression) which is the expression with the
-// wrong type.
-// Takes actualType (*ast_domain.ResolvedTypeInfo) which is the type of the
-// given value.
-// Takes expectedType (*ast_domain.ResolvedTypeInfo) which is the type that
-// was expected based on earlier values.
-// Takes n (*ast_domain.ObjectLiteral) which is the object literal being
-// checked.
+// Takes valueExpr (ast_domain.Expression) which is the expression with the wrong type.
+// Takes actualType (*ast_domain.ResolvedTypeInfo) which is the type of the given value.
+// Takes expectedType (*ast_domain.ResolvedTypeInfo) which is the type that was expected
+// based on earlier values.
+// Takes n (*ast_domain.ObjectLiteral) which is the object literal being checked.
 func (a *typeExpressionAnalyser) reportObjectLiteralTypeMismatch(
 	key string,
 	valueExpr ast_domain.Expression,
@@ -717,11 +698,10 @@ func (a *typeExpressionAnalyser) reportObjectLiteralTypeMismatch(
 	a.ctx.addDiagnosticForExpression(ast_domain.Warning, message, valueExpr, a.location.Add(valueExpr.GetRelativeLocation()), n.GoAnnotations, annotator_dto.CodeTypeMismatch)
 }
 
-// createEmptyObjectLiteralAnnotation creates an annotation for an empty
-// object literal ({}).
+// createEmptyObjectLiteralAnnotation creates an annotation for an empty object literal
+// ({}).
 //
-// Returns *ast_domain.GoGeneratorAnnotation which describes the type as
-// map[string]any.
+// Returns *ast_domain.GoGeneratorAnnotation which describes the type as map[string]any.
 func (a *typeExpressionAnalyser) createEmptyObjectLiteralAnnotation() *ast_domain.GoGeneratorAnnotation {
 	anyTypeInfo := newSimpleTypeInfo(goast.NewIdent(typeAny))
 	finalMapTypeInfo := &ast_domain.ResolvedTypeInfo{
@@ -740,8 +720,8 @@ func (a *typeExpressionAnalyser) createEmptyObjectLiteralAnnotation() *ast_domai
 //
 // Takes n (*ast_domain.ObjectLiteral) which is the object literal to convert.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which holds the map type with its
-// resolved value type.
+// Returns *ast_domain.GoGeneratorAnnotation which holds the map type with its resolved
+// value type.
 func (a *typeExpressionAnalyser) resolveObjectLiteral(ctx context.Context, n *ast_domain.ObjectLiteral) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveObjectLiteral", logger_domain.Int(logKeyDepth, a.depth), logger_domain.String(logKeyExpr, n.String()))
 
@@ -799,14 +779,13 @@ func (a *typeExpressionAnalyser) resolveObjectLiteral(ctx context.Context, n *as
 	return ann
 }
 
-// resolveTemplateLiteral resolves a template literal expression to a string
-// type annotation.
+// resolveTemplateLiteral resolves a template literal expression to a string type
+// annotation.
 //
-// Takes n (*ast_domain.TemplateLiteral) which is the template literal to
-// resolve.
+// Takes n (*ast_domain.TemplateLiteral) which is the template literal to resolve.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved string
-// type information.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved string type
+// information.
 func (a *typeExpressionAnalyser) resolveTemplateLiteral(ctx context.Context, n *ast_domain.TemplateLiteral) *ast_domain.GoGeneratorAnnotation {
 	a.ctx.Logger.Trace("[TR-DEBUG] Enter resolveTemplateLiteral",
 		logger_domain.Int(logKeyDepth, a.depth),
@@ -840,8 +819,8 @@ func (a *typeExpressionAnalyser) resolveTemplateLiteral(ctx context.Context, n *
 //
 // Takes expr (ast_domain.Expression) which is the literal to analyse.
 //
-// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type
-// and stringability information.
+// Returns *ast_domain.GoGeneratorAnnotation which contains the resolved type and
+// stringability information.
 func (a *typeExpressionAnalyser) resolveLiteral(expr ast_domain.Expression) *ast_domain.GoGeneratorAnnotation {
 	stringability := int(inspector_dto.StringablePrimitive)
 	var resolvedType *ast_domain.ResolvedTypeInfo
@@ -872,8 +851,7 @@ func (a *typeExpressionAnalyser) resolveLiteral(expr ast_domain.Expression) *ast
 // Takes location (ast_domain.Location) which specifies the source location.
 // Takes depth (int) which indicates the current recursion depth.
 //
-// Returns *typeExpressionAnalyser which is ready for use with the
-// given parameters.
+// Returns *typeExpressionAnalyser which is ready for use with the given parameters.
 func getAnalyser(tr *TypeResolver, ctx *AnalysisContext, location ast_domain.Location, depth int) *typeExpressionAnalyser {
 	analyser, ok := analyserPool.Get().(*typeExpressionAnalyser)
 	if !ok {
@@ -895,23 +873,18 @@ func putAnalyser(analyser *typeExpressionAnalyser) {
 	analyserPool.Put(analyser)
 }
 
-// requiresPointerSafetyCheck determines if the base type requires nil safety
-// checking.
+// requiresPointerSafetyCheck determines if the base type requires nil safety checking.
 //
-// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation to
-// check.
+// Takes baseAnn (*ast_domain.GoGeneratorAnnotation) which is the annotation to check.
 //
-// Returns bool which is true if the base type is a pointer requiring safety
-// checks.
+// Returns bool which is true if the base type is a pointer requiring safety checks.
 func requiresPointerSafetyCheck(baseAnn *ast_domain.GoGeneratorAnnotation) bool {
 	return baseAnn.ResolvedType != nil && isPointerType(baseAnn.ResolvedType.TypeExpression)
 }
 
-// isFunctionType reports whether the annotation represents a method or
-// function.
+// isFunctionType reports whether the annotation represents a method or function.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to
-// check.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which is the annotation to check.
 //
 // Returns bool which is true if the resolved type is a function.
 func isFunctionType(ann *ast_domain.GoGeneratorAnnotation) bool {
@@ -932,8 +905,8 @@ func isPointerType(typeExpr goast.Expr) bool {
 	return ok
 }
 
-// isMapStringInterface checks if a type expression is map[string]interface{}.
-// Allows dot-notation access on collection data maps.
+// isMapStringInterface checks if a type expression is map[string]interface{}. Allows
+// dot-notation access on collection data maps.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //
@@ -957,8 +930,8 @@ func isMapStringInterface(typeExpr goast.Expr) bool {
 	return ok && valueIdent.Name == "interface{}"
 }
 
-// isNillableIndexable checks whether a type expression represents a type that
-// can be nil and supports indexing, such as a slice or map.
+// isNillableIndexable checks whether a type expression represents a type that can be nil
+// and supports indexing, such as a slice or map.
 //
 // Takes typeExpr (goast.Expr) which is the type expression to check.
 //

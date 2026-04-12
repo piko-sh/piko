@@ -25,15 +25,13 @@ import (
 
 // LayoutBoxTree performs layout on the entire box tree.
 //
-// Takes ctx (context.Context) which carries the
-// cancellation signal through recursive layout.
-// Takes root (*LayoutBox) which is the root box of the
-// tree to lay out.
-// Takes fontMetrics (FontMetricsPort) which provides font
-// measurement capabilities for text layout.
+// Takes ctx (context.Context) which carries the cancellation signal through recursive
+// layout.
+// Takes root (*LayoutBox) which is the root box of the tree to lay out.
+// Takes fontMetrics (FontMetricsPort) which provides font measurement capabilities for
+// text layout.
 //
-// Returns *Fragment which holds the layout results for the
-// entire box tree.
+// Returns *Fragment which holds the layout results for the entire box tree.
 func LayoutBoxTree(ctx context.Context, root *LayoutBox, fontMetrics FontMetricsPort) *Fragment {
 	viewportHeight := root.ContentHeight
 	cache := newLayoutCache()
@@ -52,14 +50,11 @@ func LayoutBoxTree(ctx context.Context, root *LayoutBox, fontMetrics FontMetrics
 	return fragment
 }
 
-// layoutListMarkers walks the box tree and positions
-// outside list markers now that all list items have
-// their final coordinates.
+// layoutListMarkers walks the box tree and positions outside list markers now that all
+// list items have their final coordinates.
 //
-// Takes box (*LayoutBox) which is the root of the tree
-// to walk.
-// Takes fontMetrics (FontMetricsPort) which provides
-// text measurement for marker sizing.
+// Takes box (*LayoutBox) which is the root of the tree to walk.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for marker sizing.
 func layoutListMarkers(box *LayoutBox, fontMetrics FontMetricsPort) {
 	if box.Type == BoxListItem {
 		layoutOutsideListMarker(box, fontMetrics)
@@ -69,8 +64,8 @@ func layoutListMarkers(box *LayoutBox, fontMetrics FontMetricsPort) {
 	}
 }
 
-// boxDimensions holds the resolved edges and content width
-// for a box before formatting context layout.
+// boxDimensions holds the resolved edges and content width for a box before formatting
+// context layout.
 type boxDimensions struct {
 	// edges holds the resolved padding, border, and vertical margin values.
 	edges resolvedEdges
@@ -85,16 +80,14 @@ type boxDimensions struct {
 	marginRight float64
 }
 
-// layoutBox dispatches layout for a single box based on its
-// type and children. Returns a Fragment capturing the layout
-// results with parent-relative offsets.
+// layoutBox dispatches layout for a single box based on its type and children. Returns a
+// Fragment capturing the layout results with parent-relative offsets.
 //
 // Takes box (*LayoutBox) which is the box to lay out.
-// Takes input (layoutInput) which carries the available
-// width and font metrics from the parent context.
+// Takes input (layoutInput) which carries the available width and font metrics from the
+// parent context.
 //
-// Returns *Fragment which captures the layout results for
-// this box and its descendants.
+// Returns *Fragment which captures the layout results for this box and its descendants.
 func layoutBox(ctx context.Context, box *LayoutBox, input layoutInput) *Fragment {
 	if ctx.Err() != nil {
 		return &Fragment{Box: box}
@@ -143,19 +136,18 @@ func layoutBox(ctx context.Context, box *LayoutBox, input layoutInput) *Fragment
 	return fragment
 }
 
-// runFormattingContext resolves which formatting context applies
-// to the box, builds the layout input for it, and runs the
-// layout pass.
+// runFormattingContext resolves which formatting context applies to the box, builds the
+// layout input for it, and runs the layout pass.
 //
 // Takes box (*LayoutBox) which is the box to lay out.
-// Takes dims (boxDimensions) which holds the resolved edges
-// and content width.
-// Takes input (layoutInput) which carries the available width
-// and font metrics from the parent context.
+// Takes dims (boxDimensions) which holds the resolved edges and content width.
+// Takes input (layoutInput) which carries the available width and font metrics from the
+// parent context.
 //
-// Returns formattingContextResult with the layout results
-// and bool which is false when the formatting context cannot
-// be resolved.
+// Returns formattingContextResult which holds the layout results for the resolved
+// formatting context.
+// Returns bool which is true when the formatting context was resolved, or false when
+// it could not be resolved.
 func runFormattingContext(
 	ctx context.Context,
 	box *LayoutBox,
@@ -181,19 +173,16 @@ func runFormattingContext(
 	return formattingContext.Layout(ctx, box, fcInput), true
 }
 
-// resolveBoxContentHeight applies replaced-element fallback,
-// explicit height resolution, and aspect ratio to produce the
-// final content height for the box.
+// resolveBoxContentHeight applies replaced-element fallback, explicit height resolution,
+// and aspect ratio to produce the final content height for the box.
 //
 // Takes box (*LayoutBox) which is the box being resolved.
-// Takes fcHeight (float64) which is the height from the
-// formatting context.
-// Takes style (*ComputedStyle) which carries the height
-// property.
-// Takes contentWidth (float64) which is the resolved content
-// width for aspect ratio computation.
-// Takes availableBlockSize (float64) which is the block size
-// used for percentage resolution.
+// Takes fcHeight (float64) which is the height from the formatting context.
+// Takes style (*ComputedStyle) which carries the height property.
+// Takes contentWidth (float64) which is the resolved content width for aspect ratio
+// computation.
+// Takes availableBlockSize (float64) which is the block size used for percentage
+// resolution.
 //
 // Returns float64 which is the final content height.
 func resolveBoxContentHeight(
@@ -210,12 +199,12 @@ func resolveBoxContentHeight(
 	return applyAspectRatio(contentWidth, contentHeight, style, box)
 }
 
-// resolveBoxDimensions resolves the edges, content width, and
-// horizontal margins for a box from its style and layout input.
+// resolveBoxDimensions resolves the edges, content width, and horizontal margins for a
+// box from its style and layout input.
 //
 // Takes box (*LayoutBox) which is the box to resolve.
-// Takes input (layoutInput) which carries the available width
-// and font metrics from the parent context.
+// Takes input (layoutInput) which carries the available width and font metrics from the
+// parent context.
 //
 // Returns boxDimensions with the resolved values.
 func resolveBoxDimensions(box *LayoutBox, input layoutInput) boxDimensions {
@@ -238,8 +227,8 @@ func resolveBoxDimensions(box *LayoutBox, input layoutInput) boxDimensions {
 	}
 }
 
-// resolvedWidth holds the content width and horizontal
-// margin values computed by resolveWidthFromStyle.
+// resolvedWidth holds the content width and horizontal margin values computed by
+// resolveWidthFromStyle.
 type resolvedWidth struct {
 	// ContentWidth is the resolved content area width.
 	ContentWidth float64
@@ -251,21 +240,16 @@ type resolvedWidth struct {
 	MarginRight float64
 }
 
-// resolveWidthFromStyle computes content width and
-// horizontal margins from a computed style without
-// mutating any box. The box parameter is only used for
-// intrinsic sizing measurement (min-content, max-content).
+// resolveWidthFromStyle computes content width and horizontal margins from a computed
+// style without mutating any box. The box parameter is only used for intrinsic sizing
+// measurement (min-content, max-content).
 //
-// Takes style (*ComputedStyle) which is the style to
-// resolve.
-// Takes edges (resolvedEdges) which are the resolved
-// padding and border values.
-// Takes availableWidth (float64) which is the width
-// available from the containing block.
-// Takes box (*LayoutBox) which is the box used for
-// intrinsic sizing measurement only.
-// Takes fontMetrics (FontMetricsPort) which provides
-// text measurement for intrinsic sizing.
+// Takes style (*ComputedStyle) which is the style to resolve.
+// Takes edges (resolvedEdges) which are the resolved padding and border values.
+// Takes availableWidth (float64) which is the width available from the containing block.
+// Takes box (*LayoutBox) which is the box used for intrinsic sizing measurement only.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for intrinsic
+// sizing.
 //
 // Returns resolvedWidth with the resolved values.
 func resolveWidthFromStyle(
@@ -323,20 +307,16 @@ func resolveWidthFromStyle(
 	return resolveExplicitWidthFromStyle(style, availableWidth, horizontalEdges, containingBlockDirection)
 }
 
-// resolveFitContentWidth resolves width for a box with
-// width: fit-content or fit-content(<arg>). The result is
-// min(max-content, max(min-content, clamp)) where clamp
+// resolveFitContentWidth resolves width for a box with width: fit-content or
+// fit-content(<arg>). The result is min(max-content, max(min-content, clamp)) where clamp
 // is the argument or the available width for bare fit-content.
 //
 // Takes style (*ComputedStyle) which is the style to resolve.
-// Takes availableWidth (float64) which is the width available
-// from the containing block.
-// Takes horizontalEdges (float64) which is the sum of
-// horizontal padding and border.
-// Takes box (*LayoutBox) which is the box used for intrinsic
-// sizing measurement.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement for intrinsic sizing.
+// Takes availableWidth (float64) which is the width available from the containing block.
+// Takes horizontalEdges (float64) which is the sum of horizontal padding and border.
+// Takes box (*LayoutBox) which is the box used for intrinsic sizing measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for intrinsic
+// sizing.
 //
 // Returns resolvedWidth with the resolved values.
 func resolveFitContentWidth(
@@ -361,15 +341,12 @@ func resolveFitContentWidth(
 	}
 }
 
-// resolveAutoWidthFromStyle resolves width for a box
-// with width: auto by filling the available space.
+// resolveAutoWidthFromStyle resolves width for a box with width: auto by filling the
+// available space.
 //
-// Takes style (*ComputedStyle) which is the style to
-// resolve.
-// Takes availableWidth (float64) which is the width
-// available from the containing block.
-// Takes horizontalEdges (float64) which is the sum of
-// horizontal padding and border.
+// Takes style (*ComputedStyle) which is the style to resolve.
+// Takes availableWidth (float64) which is the width available from the containing block.
+// Takes horizontalEdges (float64) which is the sum of horizontal padding and border.
 //
 // Returns resolvedWidth with the resolved values.
 func resolveAutoWidthFromStyle(style *ComputedStyle, availableWidth, horizontalEdges float64) resolvedWidth {
@@ -386,16 +363,12 @@ func resolveAutoWidthFromStyle(style *ComputedStyle, availableWidth, horizontalE
 	}
 }
 
-// resolveExplicitWidthFromStyle resolves width for a box
-// with an explicit width value and distributes remaining
-// space to auto margins.
+// resolveExplicitWidthFromStyle resolves width for a box with an explicit width value and
+// distributes remaining space to auto margins.
 //
-// Takes style (*ComputedStyle) which is the style to
-// resolve.
-// Takes availableWidth (float64) which is the width
-// available from the containing block.
-// Takes horizontalEdges (float64) which is the sum of
-// horizontal padding and border.
+// Takes style (*ComputedStyle) which is the style to resolve.
+// Takes availableWidth (float64) which is the width available from the containing block.
+// Takes horizontalEdges (float64) which is the sum of horizontal padding and border.
 //
 // Returns resolvedWidth with the resolved values.
 func resolveExplicitWidthFromStyle(style *ComputedStyle, availableWidth, horizontalEdges float64, containingBlockDirection DirectionType) resolvedWidth {
@@ -437,19 +410,18 @@ func resolveExplicitWidthFromStyle(style *ComputedStyle, availableWidth, horizon
 	}
 }
 
-// adjustForBoxSizing converts a resolved declared dimension to a content
-// dimension by subtracting padding and border along the relevant axis when
-// box-sizing is border-box. When box-sizing is content-box, the value is
-// returned unchanged.
+// adjustForBoxSizing converts a resolved declared dimension to a content dimension by
+// subtracting padding and border along the relevant axis when box-sizing is border-box.
+// When box-sizing is content-box, the value is returned unchanged.
 //
-// For border-box, the declared value represents the border-box size, so the
-// content size is declared minus padding minus border. The result is floored
-// at zero to prevent negative content dimensions.
+// For border-box, the declared value represents the border-box size, so the content size
+// is declared minus padding minus border. The result is floored at zero to prevent
+// negative content dimensions.
 //
 // Takes declared (float64) which is the resolved dimension value.
 // Takes style (*ComputedStyle) which provides box-sizing and edge values.
-// Takes horizontal (bool) which selects the axis: true for width
-// (left+right edges), false for height (top+bottom edges).
+// Takes horizontal (bool) which selects the axis: true for width (left+right edges),
+// false for height (top+bottom edges).
 //
 // Returns float64 which is the content dimension.
 func adjustForBoxSizing(declared float64, style *ComputedStyle, horizontal bool) float64 {
@@ -470,9 +442,8 @@ func adjustForBoxSizing(declared float64, style *ComputedStyle, horizontal bool)
 	return declared - edges
 }
 
-// resolvedEdges holds the padding, border, and vertical
-// margin values resolved from a ComputedStyle. This is
-// the return type of resolveEdgesFromStyle.
+// resolvedEdges holds the padding, border, and vertical margin values resolved from a
+// ComputedStyle. This is the return type of resolveEdgesFromStyle.
 type resolvedEdges struct {
 	// Padding holds the resolved padding values in points.
 	Padding BoxEdges
@@ -487,16 +458,13 @@ type resolvedEdges struct {
 	MarginBottom float64
 }
 
-// resolveEdgesFromStyle computes padding, border, and
-// vertical margin values from a ComputedStyle without
-// mutating any box. Horizontal margins are not resolved
-// here because they depend on the width resolution
-// algorithm.
+// resolveEdgesFromStyle computes padding, border, and vertical margin values from a
+// ComputedStyle without mutating any box. Horizontal margins are not resolved here
+// because they depend on the width resolution algorithm.
 //
-// Takes style (*ComputedStyle) which is the style to
-// read properties from.
-// Takes marginPercentageBasis (float64) which is the
-// reference size for resolving percentage margins.
+// Takes style (*ComputedStyle) which is the style to read properties from.
+// Takes marginPercentageBasis (float64) which is the reference size for resolving
+// percentage margins.
 //
 // Returns resolvedEdges with the resolved values.
 func resolveEdgesFromStyle(style *ComputedStyle, marginPercentageBasis float64) resolvedEdges {
@@ -518,8 +486,8 @@ func resolveEdgesFromStyle(style *ComputedStyle, marginPercentageBasis float64) 
 	}
 }
 
-// blockLayoutContext holds mutable state while laying out
-// the block-level children of a single box.
+// blockLayoutContext holds mutable state while laying out the block-level children of a
+// single box.
 type blockLayoutContext struct {
 	// box is the parent box being laid out.
 	box *LayoutBox
@@ -527,48 +495,42 @@ type blockLayoutContext struct {
 	// floats tracks active left and right floats.
 	floats floatContext
 
-	// input carries the available width and font metrics
-	// from the parent context.
+	// input carries the available width and font metrics from the parent context.
 	input layoutInput
 
-	// cursorY is the current vertical position for the
-	// next in-flow child, relative to the parent's
-	// ContentY.
+	// cursorY is the current vertical position for the next in-flow child, relative to the
+	// parent's ContentY.
 	cursorY float64
 
-	// previousMarginBottom is the bottom margin of the
-	// most recently laid-out in-flow child.
+	// previousMarginBottom is the bottom margin of the most recently laid-out in-flow child.
 	previousMarginBottom float64
 
-	// childAvailableWidth is the width available to
-	// children within the content area.
+	// childAvailableWidth is the width available to children within the content area.
 	childAvailableWidth float64
 
-	// parentMarginTop tracks the parent's top margin,
-	// updated by parent-child margin collapsing.
+	// parentMarginTop tracks the parent's top margin, updated by parent-child margin
+	// collapsing.
 	parentMarginTop float64
 
-	// parentMarginBottom tracks the parent's bottom
-	// margin, updated by parent-child margin collapsing.
+	// parentMarginBottom tracks the parent's bottom margin, updated by parent-child margin
+	// collapsing.
 	parentMarginBottom float64
 
-	// firstInFlowIndex is the index of the first in-flow
-	// child, or -1 if none has been laid out yet.
+	// firstInFlowIndex is the index of the first in-flow child, or -1 if none has been laid
+	// out yet.
 	firstInFlowIndex int
 }
 
-// layoutBlockChildren lays out children of a block container
-// using the block formatting context algorithm, returning
-// child fragments with parent-relative offsets, the intrinsic
-// content height, and collapsed margin information.
+// layoutBlockChildren lays out children of a block container using the block formatting
+// context algorithm, returning child fragments with parent-relative offsets, the
+// intrinsic content height, and collapsed margin information.
 //
-// Takes box (*LayoutBox) which is the parent block
-// container.
-// Takes input (layoutInput) which carries the available
-// width and font metrics from the parent context.
+// Takes box (*LayoutBox) which is the parent block container.
+// Takes input (layoutInput) which carries the available width and font metrics from the
+// parent context.
 //
-// Returns formattingContextResult with the layout results
-// for this container and its children.
+// Returns formattingContextResult with the layout results for this container and its
+// children.
 func layoutBlockChildren(ctx context.Context, box *LayoutBox, input layoutInput) formattingContextResult {
 	layoutContext := blockLayoutContext{
 		box:                 box,
@@ -609,12 +571,10 @@ func layoutBlockChildren(ctx context.Context, box *LayoutBox, input layoutInput)
 	}
 }
 
-// layoutFloatChild lays out a floated child and positions it
-// using the float placement algorithm. Returns a Fragment
-// with parent-relative offsets.
+// layoutFloatChild lays out a floated child and positions it using the float placement
+// algorithm. Returns a Fragment with parent-relative offsets.
 //
-// Takes child (*LayoutBox) which is the floated child
-// box to lay out and position.
+// Takes child (*LayoutBox) which is the floated child box to lay out and position.
 //
 // Returns *Fragment with the float's layout results.
 func (layoutContext *blockLayoutContext) layoutFloatChild(ctx context.Context, child *LayoutBox) *Fragment {
@@ -647,14 +607,11 @@ func (layoutContext *blockLayoutContext) layoutFloatChild(ctx context.Context, c
 	return childFragment
 }
 
-// layoutInFlowChild lays out a normal-flow child, applying
-// float clearing and margin collapsing. Returns a Fragment
-// with parent-relative offsets.
+// layoutInFlowChild lays out a normal-flow child, applying float clearing and margin
+// collapsing. Returns a Fragment with parent-relative offsets.
 //
-// Takes child (*LayoutBox) which is the in-flow child
-// box to lay out.
-// Takes index (int) which is the child's position in
-// the parent's children slice.
+// Takes child (*LayoutBox) which is the in-flow child box to lay out.
+// Takes index (int) which is the child's position in the parent's children slice.
 //
 // Returns *Fragment with the child's layout results.
 func (layoutContext *blockLayoutContext) layoutInFlowChild(ctx context.Context, child *LayoutBox, index int) *Fragment {
@@ -699,14 +656,11 @@ func (layoutContext *blockLayoutContext) layoutInFlowChild(ctx context.Context, 
 	return childFragment
 }
 
-// collapseChildMarginTop collapses the top margin of a child
-// fragment with the previous sibling's bottom margin or the
-// parent's top margin.
+// collapseChildMarginTop collapses the top margin of a child fragment with the previous
+// sibling's bottom margin or the parent's top margin.
 //
-// Takes childFragment (*Fragment) which is the child
-// whose top margin may be collapsed.
-// Takes index (int) which is the child's position in
-// the parent's children slice.
+// Takes childFragment (*Fragment) which is the child whose top margin may be collapsed.
+// Takes index (int) which is the child's position in the parent's children slice.
 func (layoutContext *blockLayoutContext) collapseChildMarginTop(childFragment *Fragment, index int) {
 	childMarginTop := childFragment.Margin.Top
 
@@ -727,8 +681,8 @@ func (layoutContext *blockLayoutContext) collapseChildMarginTop(childFragment *F
 	childFragment.Margin.Top = 0
 }
 
-// finaliseBlockHeight computes the final content height of
-// the parent box after all children have been laid out.
+// finaliseBlockHeight computes the final content height of the parent box after all
+// children have been laid out.
 //
 // Returns float64 which is the computed content height.
 func (layoutContext *blockLayoutContext) finaliseBlockHeight() float64 {
@@ -757,16 +711,15 @@ func (layoutContext *blockLayoutContext) finaliseBlockHeight() float64 {
 	return contentBottom
 }
 
-// canCollapseParentChildTop reports whether the parent's top
-// margin can collapse with its first child's top margin.
+// canCollapseParentChildTop reports whether the parent's top margin can collapse with its
+// first child's top margin.
 //
-// Takes box (*LayoutBox) which is the parent box to
-// check.
-// Takes edges (resolvedEdges) which are the resolved
-// padding and border values for the parent.
+// Takes box (*LayoutBox) which is the parent box to check.
+// Takes edges (resolvedEdges) which are the resolved padding and border values for the
+// parent.
 //
-// Returns bool which is true when the parent's top
-// margin can collapse with the first child.
+// Returns bool which is true when the parent's top margin can collapse with the first
+// child.
 func canCollapseParentChildTop(box *LayoutBox, edges resolvedEdges) bool {
 	if edges.Padding.Top != 0 || edges.Border.Top != 0 {
 		return false
@@ -774,17 +727,15 @@ func canCollapseParentChildTop(box *LayoutBox, edges resolvedEdges) bool {
 	return !establishesBlockFormattingContext(box)
 }
 
-// canCollapseParentChildBottom reports whether the parent's
-// bottom margin can collapse with its last child's bottom
-// margin.
+// canCollapseParentChildBottom reports whether the parent's bottom margin can collapse
+// with its last child's bottom margin.
 //
-// Takes box (*LayoutBox) which is the parent box to
-// check.
-// Takes edges (resolvedEdges) which are the resolved
-// padding and border values for the parent.
+// Takes box (*LayoutBox) which is the parent box to check.
+// Takes edges (resolvedEdges) which are the resolved padding and border values for the
+// parent.
 //
-// Returns bool which is true when the parent's bottom
-// margin can collapse with the last child.
+// Returns bool which is true when the parent's bottom margin can collapse with the last
+// child.
 func canCollapseParentChildBottom(box *LayoutBox, edges resolvedEdges) bool {
 	if edges.Padding.Bottom != 0 || edges.Border.Bottom != 0 {
 		return false
@@ -798,13 +749,12 @@ func canCollapseParentChildBottom(box *LayoutBox, edges resolvedEdges) bool {
 	return !establishesBlockFormattingContext(box)
 }
 
-// establishesBlockFormattingContext reports whether a box
-// establishes a new block formatting context.
+// establishesBlockFormattingContext reports whether a box establishes a new block
+// formatting context.
 //
 // Takes box (*LayoutBox) which is the box to check.
 //
-// Returns bool which is true when the box establishes
-// a new block formatting context.
+// Returns bool which is true when the box establishes a new block formatting context.
 func establishesBlockFormattingContext(box *LayoutBox) bool {
 	if box.Style.OverflowX != OverflowVisible || box.Style.OverflowY != OverflowVisible {
 		return true
@@ -827,14 +777,12 @@ func establishesBlockFormattingContext(box *LayoutBox) bool {
 	return false
 }
 
-// resolveAvailableBlockSize returns the definite block
-// size for this box if it has an explicit height, or 0
-// (indefinite) when height is auto.
+// resolveAvailableBlockSize returns the definite block size for this box if it has an
+// explicit height, or 0 (indefinite) when height is auto.
 //
-// Takes style (*ComputedStyle) which carries the height
-// property.
-// Takes parentBlockSize (float64) which is the parent
-// block size used for percentage resolution.
+// Takes style (*ComputedStyle) which carries the height property.
+// Takes parentBlockSize (float64) which is the parent block size used for percentage
+// resolution.
 //
 // Returns float64 which is the resolved block size.
 func resolveAvailableBlockSize(style *ComputedStyle, parentBlockSize float64) float64 {
@@ -847,17 +795,14 @@ func resolveAvailableBlockSize(style *ComputedStyle, parentBlockSize float64) fl
 	return 0
 }
 
-// resolveContentHeight returns the effective content
-// height by applying an explicit height from the style
-// if one is specified, otherwise falls back to the
-// intrinsic height from the formatting context.
+// resolveContentHeight returns the effective content height by applying an explicit
+// height from the style if one is specified, otherwise falls back to the intrinsic height
+// from the formatting context.
 //
-// Takes intrinsicHeight (float64) which is the height
-// computed by the formatting context.
-// Takes style (*ComputedStyle) which carries the height
-// property.
-// Takes availableBlockSize (float64) which is the block
-// size used for percentage resolution.
+// Takes intrinsicHeight (float64) which is the height computed by the formatting context.
+// Takes style (*ComputedStyle) which carries the height property.
+// Takes availableBlockSize (float64) which is the block size used for percentage
+// resolution.
 //
 // Returns float64 which is the resolved content height.
 func resolveContentHeight(intrinsicHeight float64, style *ComputedStyle, availableBlockSize float64) float64 {
@@ -870,17 +815,12 @@ func resolveContentHeight(intrinsicHeight float64, style *ComputedStyle, availab
 	)
 }
 
-// applyAspectRatio computes height from width and the CSS
-// aspect-ratio when height is auto. For replaced elements
-// with AspectRatioAuto, intrinsic dimensions take
-// precedence.
+// applyAspectRatio computes height from width and the CSS aspect-ratio when height is
+// auto. For replaced elements with AspectRatioAuto, intrinsic dimensions take precedence.
 //
-// Takes contentWidth (float64) which is the resolved content
-// width.
-// Takes contentHeight (float64) which is the current content
-// height.
-// Takes style (*ComputedStyle) which carries the aspect-ratio
-// property.
+// Takes contentWidth (float64) which is the resolved content width.
+// Takes contentHeight (float64) which is the current content height.
+// Takes style (*ComputedStyle) which carries the aspect-ratio property.
 // Takes box (*LayoutBox) which is the box being resolved.
 //
 // Returns float64 which is the adjusted content height.
@@ -897,18 +837,14 @@ func applyAspectRatio(contentWidth, contentHeight float64, style *ComputedStyle,
 	return contentWidth / style.AspectRatio
 }
 
-// clampDimensions applies min/max width and height
-// constraints from the computed style and returns the
-// clamped values.
+// clampDimensions applies min/max width and height constraints from the computed style
+// and returns the clamped values.
 //
-// Takes contentWidth (float64) which is the resolved
-// content width.
-// Takes contentHeight (float64) which is the resolved
-// content height.
-// Takes style (*ComputedStyle) which carries the min/max
-// properties.
-// Takes box (*LayoutBox) and fontMetrics (FontMetricsPort)
-// for intrinsic measurement when min/max uses fit-content.
+// Takes contentWidth (float64) which is the resolved content width.
+// Takes contentHeight (float64) which is the resolved content height.
+// Takes style (*ComputedStyle) which carries the min/max properties.
+// Takes box (*LayoutBox) and fontMetrics (FontMetricsPort) for intrinsic measurement when
+// min/max uses fit-content.
 //
 // Returns the clamped width and height.
 func clampDimensions(
@@ -931,19 +867,16 @@ func clampDimensions(
 	return contentWidth, contentHeight
 }
 
-// clampMinWidth applies the min-width constraint from the
-// computed style to the given content width.
+// clampMinWidth applies the min-width constraint from the computed style to the given
+// content width.
 //
-// Takes contentWidth (float64) which is the current content
-// width.
-// Takes style (*ComputedStyle) which carries the min-width
-// property.
-// Takes containingBlockWidth (float64) which is the containing
-// block width for percentage resolution.
-// Takes box (*LayoutBox) which is used for intrinsic sizing
-// measurement.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement for intrinsic sizing.
+// Takes contentWidth (float64) which is the current content width.
+// Takes style (*ComputedStyle) which carries the min-width property.
+// Takes containingBlockWidth (float64) which is the containing block width for percentage
+// resolution.
+// Takes box (*LayoutBox) which is used for intrinsic sizing measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for intrinsic
+// sizing.
 //
 // Returns float64 which is the clamped content width.
 func clampMinWidth(contentWidth float64, style *ComputedStyle, containingBlockWidth float64, box *LayoutBox, fontMetrics FontMetricsPort) float64 {
@@ -958,19 +891,16 @@ func clampMinWidth(contentWidth float64, style *ComputedStyle, containingBlockWi
 	return math.Max(contentWidth, minWidth)
 }
 
-// clampMaxWidth applies the max-width constraint from the
-// computed style to the given content width.
+// clampMaxWidth applies the max-width constraint from the computed style to the given
+// content width.
 //
-// Takes contentWidth (float64) which is the current content
-// width.
-// Takes style (*ComputedStyle) which carries the max-width
-// property.
-// Takes containingBlockWidth (float64) which is the containing
-// block width for percentage resolution.
-// Takes box (*LayoutBox) which is used for intrinsic sizing
-// measurement.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement for intrinsic sizing.
+// Takes contentWidth (float64) which is the current content width.
+// Takes style (*ComputedStyle) which carries the max-width property.
+// Takes containingBlockWidth (float64) which is the containing block width for percentage
+// resolution.
+// Takes box (*LayoutBox) which is used for intrinsic sizing measurement.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for intrinsic
+// sizing.
 //
 // Returns float64 which is the clamped content width.
 func clampMaxWidth(contentWidth float64, style *ComputedStyle, containingBlockWidth float64, box *LayoutBox, fontMetrics FontMetricsPort) float64 {
@@ -985,25 +915,21 @@ func clampMaxWidth(contentWidth float64, style *ComputedStyle, containingBlockWi
 	return math.Min(contentWidth, maxWidth)
 }
 
-// resolveFitContentValue computes the fit-content width for
-// use in min-width/max-width constraints. The formula is
-// min(max-content, max(min-content, clamp)) where clamp is
+// resolveFitContentValue computes the fit-content width for use in min-width/max-width
+// constraints. The formula is min(max-content, max(min-content, clamp)) where clamp is
 // the explicit argument or available width for bare fit-content.
 //
-// Children are measured directly rather than through the box,
-// because measureBlockIntrinsicWidth short-circuits to the
-// declared width when the box has an explicit width property.
+// Children are measured directly rather than through the box, because
+// measureBlockIntrinsicWidth short-circuits to the declared width when the box has an
+// explicit width property.
 //
-// Takes dim (Dimension) which is the fit-content dimension
-// to resolve.
-// Takes box (*LayoutBox) which is the box whose children
-// are measured.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement for intrinsic sizing.
-// Takes availableWidth (float64) which is the width available
-// from the containing block.
-// Takes style (*ComputedStyle) which provides edge values for
-// subtracting padding and border.
+// Takes dim (Dimension) which is the fit-content dimension to resolve.
+// Takes box (*LayoutBox) which is the box whose children are measured.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for intrinsic
+// sizing.
+// Takes availableWidth (float64) which is the width available from the containing block.
+// Takes style (*ComputedStyle) which provides edge values for subtracting padding and
+// border.
 //
 // Returns float64 which is the resolved fit-content width.
 func resolveFitContentValue(dim Dimension, box *LayoutBox, fontMetrics FontMetricsPort, availableWidth float64, style *ComputedStyle) float64 {
@@ -1018,13 +944,11 @@ func resolveFitContentValue(dim Dimension, box *LayoutBox, fontMetrics FontMetri
 	return math.Min(maxW, math.Max(minW, math.Max(0, clamp)))
 }
 
-// collapseMargins computes the collapsed margin from two
-// adjacent margins per CSS margin collapsing rules.
+// collapseMargins computes the collapsed margin from two adjacent margins per CSS margin
+// collapsing rules.
 //
-// Takes marginA (float64) which is the first adjacent
-// margin value.
-// Takes marginB (float64) which is the second adjacent
-// margin value.
+// Takes marginA (float64) which is the first adjacent margin value.
+// Takes marginB (float64) which is the second adjacent margin value.
 //
 // Returns float64 which is the collapsed margin.
 func collapseMargins(marginA, marginB float64) float64 {
@@ -1037,12 +961,10 @@ func collapseMargins(marginA, marginB float64) float64 {
 	return marginA + marginB
 }
 
-// computeRelativeOffset stores the relative positioning
-// offset on the box without applying it. The offset is
-// applied later by applyAllRelativeOffsets.
+// computeRelativeOffset stores the relative positioning offset on the box without
+// applying it. The offset is applied later by applyAllRelativeOffsets.
 //
-// Takes box (*LayoutBox) which is the box whose
-// relative offset is computed.
+// Takes box (*LayoutBox) which is the box whose relative offset is computed.
 func computeRelativeOffset(box *LayoutBox) {
 	if box.Style.Position != PositionRelative {
 		return
@@ -1061,12 +983,10 @@ func computeRelativeOffset(box *LayoutBox) {
 	}
 }
 
-// applyAllRelativeOffsets walks the tree, computes relative
-// offsets for each positioned box, and applies them by
-// shifting the box and all its descendants.
+// applyAllRelativeOffsets walks the tree, computes relative offsets for each positioned
+// box, and applies them by shifting the box and all its descendants.
 //
-// Takes box (*LayoutBox) which is the root of the tree
-// to walk.
+// Takes box (*LayoutBox) which is the root of the tree to walk.
 func applyAllRelativeOffsets(box *LayoutBox) {
 	computeRelativeOffset(box)
 	if box.OffsetX != 0 || box.OffsetY != 0 {
@@ -1077,14 +997,12 @@ func applyAllRelativeOffsets(box *LayoutBox) {
 	}
 }
 
-// applyOffsetRecursive translates a box and all its children
-// by the given x and y offsets.
+// applyOffsetRecursive translates a box and all its children by the given x and y
+// offsets.
 //
 // Takes box (*LayoutBox) which is the box to translate.
-// Takes offsetX (float64) which is the horizontal
-// translation in points.
-// Takes offsetY (float64) which is the vertical
-// translation in points.
+// Takes offsetX (float64) which is the horizontal translation in points.
+// Takes offsetY (float64) which is the vertical translation in points.
 func applyOffsetRecursive(box *LayoutBox, offsetX, offsetY float64) {
 	box.ContentX += offsetX
 	box.ContentY += offsetY
@@ -1093,12 +1011,12 @@ func applyOffsetRecursive(box *LayoutBox, offsetX, offsetY float64) {
 	}
 }
 
-// layoutOutsideListMarker finds and positions an outside
-// list marker to the left of the list item content area.
+// layoutOutsideListMarker finds and positions an outside list marker to the left of the
+// list item content area.
 //
 // Takes listItem (*LayoutBox) which is the list item box.
-// Takes fontMetrics (FontMetricsPort) which provides text
-// measurement for sizing the marker.
+// Takes fontMetrics (FontMetricsPort) which provides text measurement for sizing the
+// marker.
 func layoutOutsideListMarker(listItem *LayoutBox, fontMetrics FontMetricsPort) {
 	for _, child := range listItem.Children {
 		if child.Type != BoxListMarker {
@@ -1129,13 +1047,11 @@ func layoutOutsideListMarker(listItem *LayoutBox, fontMetrics FontMetricsPort) {
 	}
 }
 
-// hasOnlyInlineChildren reports whether all children of the
-// box are inline-level.
+// hasOnlyInlineChildren reports whether all children of the box are inline-level.
 //
 // Takes box (*LayoutBox) which is the box to inspect.
 //
-// Returns bool which is true when every child of the
-// box is inline-level.
+// Returns bool which is true when every child of the box is inline-level.
 func hasOnlyInlineChildren(box *LayoutBox) bool {
 	if len(box.Children) == 0 {
 		return false

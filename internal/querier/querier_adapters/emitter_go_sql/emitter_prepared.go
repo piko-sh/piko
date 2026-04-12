@@ -28,8 +28,8 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// EmitPrepared generates the PreparedDBTX wrapper with eager preparation of
-// static queries and lazy caching of dynamic query variants.
+// EmitPrepared generates the PreparedDBTX wrapper with eager preparation of static
+// queries and lazy caching of dynamic query variants.
 //
 // Takes packageName (string) which is the Go package name for the generated file.
 // Takes queries ([]*querier_dto.AnalysedQuery) which are the queries to prepare.
@@ -72,9 +72,9 @@ func (*SQLEmitter) EmitPrepared(packageName string, queries []*querier_dto.Analy
 	}, nil
 }
 
-// isStaticQuery reports whether a query has a fixed SQL string that does not
-// change at runtime. Dynamic queries (sortable ORDER BY, runtime builder)
-// produce different SQL strings and are lazily cached instead.
+// isStaticQuery reports whether a query has a fixed SQL string that does not change at
+// runtime. Dynamic queries (sortable ORDER BY, runtime builder) produce different SQL
+// strings and are lazily cached instead.
 //
 // Takes query (*querier_dto.AnalysedQuery) which is the query to check.
 //
@@ -100,8 +100,8 @@ func preparedReceiver() *ast.FieldList {
 	)
 }
 
-// buildPreparedDBTXStruct generates the PreparedDBTX struct declaration with
-// db, stmts, and mu fields.
+// buildPreparedDBTXStruct generates the PreparedDBTX struct declaration with db, stmts,
+// and mu fields.
 //
 // Returns *ast.GenDecl which is the struct type declaration.
 func buildPreparedDBTXStruct() *ast.GenDecl {
@@ -133,8 +133,8 @@ func buildPrepareFunction(staticConstants []string) *ast.FuncDecl {
 	)
 }
 
-// buildPrepareFunctionBody constructs the statements for the Prepare function
-// body, including static query collection, preparation loop, and return.
+// buildPrepareFunctionBody constructs the statements for the Prepare function body,
+// including static query collection, preparation loop, and return.
 //
 // Takes staticConstants ([]string) which are the constant names of static queries.
 //
@@ -177,8 +177,8 @@ func stmtMapType() *ast.MapType {
 	)
 }
 
-// buildPrepareRangeLoop constructs the range loop that prepares each static
-// query and closes all statements on error.
+// buildPrepareRangeLoop constructs the range loop that prepares each static query and
+// closes all statements on error.
 //
 // Returns *ast.RangeStmt which is the preparation loop.
 func buildPrepareRangeLoop() *ast.RangeStmt {
@@ -225,8 +225,8 @@ func buildPrepareRangeLoop() *ast.RangeStmt {
 	}
 }
 
-// buildCloseStmtsRange generates a for-range that closes all statements in
-// a map[string]*sql.Stmt.
+// buildCloseStmtsRange generates a for-range that closes all statements in a
+// map[string]*sql.Stmt.
 //
 // Takes mapIdent (string) which is the identifier name of the statements map.
 //
@@ -245,9 +245,9 @@ func buildCloseStmtsRange(mapIdent string) *ast.RangeStmt {
 	}
 }
 
-// buildGetOrPrepareMethod generates the getOrPrepare method that checks the
-// cache with a read lock, then falls back to double-check locking with
-// PrepareContext for cache misses.
+// buildGetOrPrepareMethod generates the getOrPrepare method that checks the cache with a
+// read lock, then falls back to double-check locking with PrepareContext for cache
+// misses.
 //
 // Returns *ast.FuncDecl which is the getOrPrepare method declaration.
 func buildGetOrPrepareMethod() *ast.FuncDecl {
@@ -268,8 +268,8 @@ func buildGetOrPrepareMethod() *ast.FuncDecl {
 	}
 }
 
-// buildGetOrPrepareBody constructs the statement list for the getOrPrepare
-// method body, implementing double-check locking for statement caching.
+// buildGetOrPrepareBody constructs the statement list for the getOrPrepare method body,
+// implementing double-check locking for statement caching.
 //
 // Returns []ast.Stmt which contains the method body statements.
 func buildGetOrPrepareBody() []ast.Stmt {
@@ -317,8 +317,8 @@ func muMethodCall(method string) *ast.ExprStmt {
 	)}
 }
 
-// buildStmtsMapLookup constructs the statement, ok := prepared.stmts[query]
-// map lookup assignment.
+// buildStmtsMapLookup constructs the statement, ok := prepared.stmts[query] map lookup
+// assignment.
 //
 // Returns *ast.AssignStmt which is the map lookup statement.
 func buildStmtsMapLookup() *ast.AssignStmt {
@@ -331,8 +331,8 @@ func buildStmtsMapLookup() *ast.AssignStmt {
 	)
 }
 
-// buildDoubleCheckLookup constructs the second map lookup under the write lock
-// for the double-check locking pattern.
+// buildDoubleCheckLookup constructs the second map lookup under the write lock for the
+// double-check locking pattern.
 //
 // Returns *ast.IfStmt which is the double-check if statement.
 func buildDoubleCheckLookup() *ast.IfStmt {
@@ -350,8 +350,8 @@ func buildDoubleCheckLookup() *ast.IfStmt {
 	)
 }
 
-// buildPrepareContextCall constructs the prepared.db.PrepareContext(ctx, query)
-// call assignment for cache misses.
+// buildPrepareContextCall constructs the prepared.db.PrepareContext(ctx, query) call
+// assignment for cache misses.
 //
 // Returns *ast.AssignStmt which is the prepare call assignment.
 func buildPrepareContextCall() *ast.AssignStmt {
@@ -368,8 +368,8 @@ func buildPrepareContextCall() *ast.AssignStmt {
 	)
 }
 
-// buildStmtsMapAssign constructs the prepared.stmts[query] = statement
-// assignment for caching a newly prepared statement.
+// buildStmtsMapAssign constructs the prepared.stmts[query] = statement assignment for
+// caching a newly prepared statement.
 //
 // Returns *ast.AssignStmt which is the map assignment statement.
 func buildStmtsMapAssign() *ast.AssignStmt {
@@ -389,8 +389,8 @@ func returnStatementNil() *ast.ReturnStmt {
 	return goastutil.ReturnStmt(goastutil.CachedIdent(identStatement), goastutil.CachedIdent(emitter_shared.IdentNil))
 }
 
-// buildPreparedExecContext generates the ExecContext method on PreparedDBTX
-// that routes through prepared statements when available.
+// buildPreparedExecContext generates the ExecContext method on PreparedDBTX that routes
+// through prepared statements when available.
 //
 // Returns *ast.FuncDecl which is the ExecContext method declaration.
 func buildPreparedExecContext() *ast.FuncDecl {
@@ -403,8 +403,8 @@ func buildPreparedExecContext() *ast.FuncDecl {
 	)
 }
 
-// buildPreparedQueryContext generates the QueryContext method on PreparedDBTX
-// that routes through prepared statements when available.
+// buildPreparedQueryContext generates the QueryContext method on PreparedDBTX that routes
+// through prepared statements when available.
 //
 // Returns *ast.FuncDecl which is the QueryContext method declaration.
 func buildPreparedQueryContext() *ast.FuncDecl {
@@ -417,8 +417,8 @@ func buildPreparedQueryContext() *ast.FuncDecl {
 	)
 }
 
-// buildPreparedQueryRowContext generates the QueryRowContext method on
-// PreparedDBTX that routes through prepared statements when available.
+// buildPreparedQueryRowContext generates the QueryRowContext method on PreparedDBTX that
+// routes through prepared statements when available.
 //
 // Returns *ast.FuncDecl which is the QueryRowContext method declaration.
 func buildPreparedQueryRowContext() *ast.FuncDecl {
@@ -456,8 +456,8 @@ func buildPreparedDBTXMethod(name string, results *ast.FieldList) *ast.FuncDecl 
 	}
 }
 
-// buildPreparedDBTXMethodBody constructs the body statements for a DBTX method,
-// including the getOrPrepare call and fallback to direct db call on error.
+// buildPreparedDBTXMethodBody constructs the body statements for a DBTX method, including
+// the getOrPrepare call and fallback to direct db call on error.
 //
 // Takes name (string) which is the method name to call on statement or db.
 //
@@ -493,8 +493,8 @@ func buildPreparedDBTXMethodBody(name string) []ast.Stmt {
 	}
 }
 
-// buildVariadicCall constructs a function call expression with the variadic
-// ellipsis marker set on the last argument.
+// buildVariadicCall constructs a function call expression with the variadic ellipsis
+// marker set on the last argument.
 //
 // Takes fun (ast.Expr) which is the function to call.
 // Takes arguments ([]ast.Expr) which are the call arguments.
@@ -504,8 +504,8 @@ func buildVariadicCall(fun ast.Expr, arguments ...ast.Expr) *ast.CallExpr {
 	return &ast.CallExpr{Fun: fun, Args: arguments, Ellipsis: 1}
 }
 
-// buildPreparedBeginTx generates the BeginTx method that delegates to the
-// underlying *sql.DB.
+// buildPreparedBeginTx generates the BeginTx method that delegates to the underlying
+// *sql.DB.
 //
 // Returns *ast.FuncDecl which is the BeginTx method declaration.
 func buildPreparedBeginTx() *ast.FuncDecl {
@@ -554,8 +554,8 @@ func buildPreparedClose() *ast.FuncDecl {
 	}
 }
 
-// buildPreparedCloseBody constructs the body statements for the Close method,
-// including locking, iterating over cached statements, and resetting the map.
+// buildPreparedCloseBody constructs the body statements for the Close method, including
+// locking, iterating over cached statements, and resetting the map.
 //
 // Returns []ast.Stmt which contains the method body statements.
 func buildPreparedCloseBody() []ast.Stmt {
@@ -586,8 +586,8 @@ func buildPreparedCloseBody() []ast.Stmt {
 	}
 }
 
-// buildCloseRangeLoop constructs the range loop that closes each cached
-// statement and captures the first error encountered.
+// buildCloseRangeLoop constructs the range loop that closes each cached statement and
+// captures the first error encountered.
 //
 // Returns *ast.RangeStmt which is the close loop.
 func buildCloseRangeLoop() *ast.RangeStmt {

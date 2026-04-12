@@ -39,7 +39,9 @@ type metadataMockProvider struct {
 func (m *metadataMockProvider) GetProviderType() string             { return m.providerType }
 func (m *metadataMockProvider) GetProviderMetadata() map[string]any { return m.metadata }
 
-var _ provider_domain.ProviderMetadata = (*metadataMockProvider)(nil)
+var (
+	_ provider_domain.ProviderMetadata = (*metadataMockProvider)(nil)
+)
 
 func newLLMService() *service {
 	svc := NewService("")

@@ -30,15 +30,13 @@ import (
 	"piko.sh/piko/internal/video/video_dto"
 )
 
-// VideoThumbnail creates a capability function that extracts thumbnails from
-// video files. It depends on the video domain's Service to perform the
-// extraction operation.
+// VideoThumbnail creates a capability function that extracts thumbnails from video files.
+// It depends on the video domain's Service to perform the extraction operation.
 //
-// Takes videoService (video_domain.Service) which provides the video processing
-// backend.
+// Takes videoService (video_domain.Service) which provides the video processing backend.
 //
-// Returns capabilities_domain.CapabilityFunc which wraps the thumbnail
-// extraction logic for use within the capabilities system.
+// Returns capabilities_domain.CapabilityFunc which wraps the thumbnail extraction logic
+// for use within the capabilities system.
 //
 // Supported Parameters:
 //
@@ -101,8 +99,7 @@ func buildThumbnailSpec(params capabilities_domain.CapabilityParams) (video_dto.
 	return spec, nil
 }
 
-// parseThumbnailTimestamp extracts and parses a timestamp from the given
-// parameters.
+// parseThumbnailTimestamp extracts and parses a timestamp from the given parameters.
 //
 // Takes params (CapabilityParams) which holds the capability settings.
 // Takes spec (*ThumbnailSpec) which receives the parsed timestamp value.
@@ -121,8 +118,8 @@ func parseThumbnailTimestamp(params capabilities_domain.CapabilityParams, spec *
 	return nil
 }
 
-// parseThumbnailDimensions reads width and height values from params and stores
-// them in spec.
+// parseThumbnailDimensions reads width and height values from params and stores them in
+// spec.
 //
 // Takes params (CapabilityParams) which contains the width and height values.
 // Takes spec (*ThumbnailSpec) which receives the parsed dimensions.
@@ -146,8 +143,8 @@ func parseThumbnailDimensions(params capabilities_domain.CapabilityParams, spec 
 	return nil
 }
 
-// parseThumbnailOutputSettings reads format and quality from params and sets
-// them on spec.
+// parseThumbnailOutputSettings reads format and quality from params and sets them on
+// spec.
 //
 // Takes params (CapabilityParams) which holds the capability settings.
 // Takes spec (*ThumbnailSpec) which receives the parsed output settings.

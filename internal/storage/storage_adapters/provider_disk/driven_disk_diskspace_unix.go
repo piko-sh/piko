@@ -27,8 +27,7 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// getDiskSpace returns available and total disk space in megabytes for the
-// given path.
+// getDiskSpace returns available and total disk space in megabytes for the given path.
 //
 // Takes rootPath (string) which specifies the filesystem path to check.
 //

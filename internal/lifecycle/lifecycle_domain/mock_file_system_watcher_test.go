@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,7 +40,7 @@ func TestMockFileSystemWatcher_Watch(t *testing.T) {
 		events, err := m.Watch(context.Background(), []string{"/src"}, []string{"/assets"})
 		assert.NoError(t, err)
 		assert.Nil(t, events)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.WatchCallCount))
+		assert.Equal(t, int64(1), m.WatchCallCount.Load())
 	})
 
 	t.Run("delegates to WatchFunc", func(t *testing.T) {
@@ -59,7 +58,7 @@ func TestMockFileSystemWatcher_Watch(t *testing.T) {
 		events, err := m.Watch(context.Background(), []string{"/src"}, []string{"/assets"})
 		require.NoError(t, err)
 		assert.Equal(t, (<-chan lifecycle_dto.FileEvent)(fileEventChannel), events)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.WatchCallCount))
+		assert.Equal(t, int64(1), m.WatchCallCount.Load())
 	})
 
 	t.Run("propagates error from WatchFunc", func(t *testing.T) {
@@ -75,7 +74,7 @@ func TestMockFileSystemWatcher_Watch(t *testing.T) {
 		events, err := m.Watch(context.Background(), nil, nil)
 		assert.Nil(t, events)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.WatchCallCount))
+		assert.Equal(t, int64(1), m.WatchCallCount.Load())
 	})
 }
 
@@ -89,7 +88,7 @@ func TestMockFileSystemWatcher_UpdateWatchedFiles(t *testing.T) {
 
 		err := m.UpdateWatchedFiles(context.Background(), []string{"/a.txt", "/b.txt"})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpdateWatchedFilesCallCount))
+		assert.Equal(t, int64(1), m.UpdateWatchedFilesCallCount.Load())
 	})
 
 	t.Run("delegates to UpdateWatchedFilesFunc", func(t *testing.T) {
@@ -104,7 +103,7 @@ func TestMockFileSystemWatcher_UpdateWatchedFiles(t *testing.T) {
 
 		err := m.UpdateWatchedFiles(context.Background(), []string{"/a.txt", "/b.txt"})
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpdateWatchedFilesCallCount))
+		assert.Equal(t, int64(1), m.UpdateWatchedFilesCallCount.Load())
 	})
 
 	t.Run("propagates error from UpdateWatchedFilesFunc", func(t *testing.T) {
@@ -119,7 +118,7 @@ func TestMockFileSystemWatcher_UpdateWatchedFiles(t *testing.T) {
 
 		err := m.UpdateWatchedFiles(context.Background(), nil)
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpdateWatchedFilesCallCount))
+		assert.Equal(t, int64(1), m.UpdateWatchedFilesCallCount.Load())
 	})
 }
 
@@ -133,7 +132,7 @@ func TestMockFileSystemWatcher_Close(t *testing.T) {
 
 		err := m.Close()
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 
 	t.Run("delegates to CloseFunc", func(t *testing.T) {
@@ -150,7 +149,7 @@ func TestMockFileSystemWatcher_Close(t *testing.T) {
 		err := m.Close()
 		assert.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 
 	t.Run("propagates error from CloseFunc", func(t *testing.T) {
@@ -165,7 +164,7 @@ func TestMockFileSystemWatcher_Close(t *testing.T) {
 
 		err := m.Close()
 		assert.ErrorIs(t, err, expectedErr)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+		assert.Equal(t, int64(1), m.CloseCallCount.Load())
 	})
 }
 
@@ -184,9 +183,9 @@ func TestMockFileSystemWatcher_ZeroValueIsUsable(t *testing.T) {
 	err = m.Close()
 	assert.NoError(t, err)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.WatchCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.UpdateWatchedFilesCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&m.CloseCallCount))
+	assert.Equal(t, int64(1), m.WatchCallCount.Load())
+	assert.Equal(t, int64(1), m.UpdateWatchedFilesCallCount.Load())
+	assert.Equal(t, int64(1), m.CloseCallCount.Load())
 }
 
 func TestMockFileSystemWatcher_ConcurrentAccess(t *testing.T) {
@@ -226,7 +225,7 @@ func TestMockFileSystemWatcher_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.WatchCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.UpdateWatchedFilesCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&m.CloseCallCount))
+	assert.Equal(t, int64(goroutines), m.WatchCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.UpdateWatchedFilesCallCount.Load())
+	assert.Equal(t, int64(goroutines), m.CloseCallCount.Load())
 }

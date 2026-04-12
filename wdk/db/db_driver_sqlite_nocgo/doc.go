@@ -16,11 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package db_driver_sqlite_nocgo provides a pure-Go SQLite
-// connection opener using the modernc.org/sqlite driver.
+// Package db_driver_sqlite_nocgo provides a pure-Go SQLite connection opener using the
+// modernc.org/sqlite driver.
 //
-// The Open function returns a *sql.DB with production-ready
-// defaults already applied, including WAL mode, foreign keys,
-// and a single-connection pool to match SQLite's single-writer
-// model.
+// The Open function returns a *sql.DB with production-ready defaults already applied,
+// including WAL mode, foreign keys, and a single-connection pool to match SQLite's
+// single-writer model.
 package db_driver_sqlite_nocgo

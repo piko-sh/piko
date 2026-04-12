@@ -26,10 +26,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_dto"
 )
 
-// CaptchaOptions groups the captcha provider's per-deployment settings: site
-// key, secret key, and score threshold. The provider implementation itself is
-// selected via WithDefaultCaptchaProvider and registered via
-// WithCaptchaProvider.
+// CaptchaOptions groups the captcha provider's per-deployment settings: site key, secret
+// key, and score threshold. The provider implementation itself is selected via
+// WithDefaultCaptchaProvider and registered via WithCaptchaProvider.
 type CaptchaOptions struct {
 	// SiteKey is the public site key issued by the captcha provider.
 	SiteKey string
@@ -37,13 +36,13 @@ type CaptchaOptions struct {
 	// SecretKey is the server-side verification secret.
 	SecretKey string
 
-	// ScoreThreshold is the minimum acceptable score for score-based providers
-	// such as reCAPTCHA v3 (range 0.0 to 1.0). Zero means use provider default.
+	// ScoreThreshold is the minimum acceptable score for score-based providers such as
+	// reCAPTCHA v3 (range 0.0 to 1.0). Zero means use provider default.
 	ScoreThreshold float64
 }
 
-// WithPublicDomain sets the public domain used for CORS allowed origins and
-// absolute URLs. Empty string allows all origins.
+// WithPublicDomain sets the public domain used for CORS allowed origins and absolute
+// URLs. Empty string allows all origins.
 //
 // Takes domain (string) which is the value to apply.
 //
@@ -65,8 +64,8 @@ func WithForceHTTPS(enabled bool) Option {
 	}
 }
 
-// WithRequestTimeout sets the maximum duration for dynamic HTTP requests
-// (pages, partials, actions). Zero disables the timeout middleware.
+// WithRequestTimeout sets the maximum duration for dynamic HTTP requests (pages,
+// partials, actions). Zero disables the timeout middleware.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -77,8 +76,8 @@ func WithRequestTimeout(d time.Duration) Option {
 	}
 }
 
-// WithMaxConcurrentRequests sets the maximum number of in-flight requests the
-// server will process simultaneously. Zero disables the concurrency limit.
+// WithMaxConcurrentRequests sets the maximum number of in-flight requests the server will
+// process simultaneously. Zero disables the concurrency limit.
 //
 // Takes n (int) which is the value to apply.
 //
@@ -89,8 +88,7 @@ func WithMaxConcurrentRequests(n int) Option {
 	}
 }
 
-// WithActionMaxBodyBytes sets the maximum size in bytes for action request
-// bodies.
+// WithActionMaxBodyBytes sets the maximum size in bytes for action request bodies.
 //
 // Takes n (int64) which is the value to apply.
 //
@@ -101,8 +99,8 @@ func WithActionMaxBodyBytes(n int64) Option {
 	}
 }
 
-// WithMaxMultipartFormBytes sets the maximum in-memory size for multipart form
-// data. Files exceeding this limit are stored in temporary files on disk.
+// WithMaxMultipartFormBytes sets the maximum in-memory size for multipart form data.
+// Files exceeding this limit are stored in temporary files on disk.
 //
 // Takes n (int64) which is the value to apply.
 //
@@ -113,8 +111,8 @@ func WithMaxMultipartFormBytes(n int64) Option {
 	}
 }
 
-// WithDefaultMaxSSEDuration sets the maximum lifetime for SSE connections
-// that do not specify their own limit. Zero means unlimited.
+// WithDefaultMaxSSEDuration sets the maximum lifetime for SSE connections that do not
+// specify their own limit. Zero means unlimited.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -125,8 +123,8 @@ func WithDefaultMaxSSEDuration(d time.Duration) Option {
 	}
 }
 
-// WithAutoNextPort enables automatic port selection when the configured port
-// is already in use. Applies to the main HTTP server.
+// WithAutoNextPort enables automatic port selection when the configured port is already
+// in use. Applies to the main HTTP server.
 //
 // Takes enabled (bool) which is the value to apply.
 //
@@ -137,9 +135,9 @@ func WithAutoNextPort(enabled bool) Option {
 	}
 }
 
-// WithEncryptionKey sets the base64-encoded 32-byte (256-bit) encryption key
-// used by the default local AES-GCM crypto provider. In production prefer
-// loading this from a secret manager rather than hard-coding.
+// WithEncryptionKey sets the base64-encoded 32-byte (256-bit) encryption key used by the
+// default local AES-GCM crypto provider. In production prefer loading this from a secret
+// manager rather than hard-coding.
 //
 // Takes key (string) which is the value to apply.
 //
@@ -150,8 +148,8 @@ func WithEncryptionKey(key string) Option {
 	}
 }
 
-// WithDataKeyCacheTTL configures how long decrypted data keys are cached
-// for KMS providers. Zero disables caching.
+// WithDataKeyCacheTTL configures how long decrypted data keys are cached for KMS
+// providers. Zero disables caching.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -173,9 +171,8 @@ func WithDataKeyCacheMaxSize(n int) Option {
 	}
 }
 
-// WithSecurityHeaders sets the HTTP security header policy. Pass a fully
-// populated config.SecurityHeadersConfig; unset (nil) fields fall back to
-// secure-by-default values.
+// WithSecurityHeaders sets the HTTP security header policy. Pass a fully populated
+// config.SecurityHeadersConfig; unset (nil) fields fall back to secure-by-default values.
 //
 // Takes headers (config.SecurityHeadersConfig) which is the value to apply.
 //
@@ -186,8 +183,8 @@ func WithSecurityHeaders(headers config.SecurityHeadersConfig) Option {
 	}
 }
 
-// WithCookieSecurity sets the secure cookie defaults applied to all cookies
-// the framework writes.
+// WithCookieSecurity sets the secure cookie defaults applied to all cookies the framework
+// writes.
 //
 // Takes cookies (config.CookieSecurityConfig) which is the value to apply.
 //
@@ -200,9 +197,9 @@ func WithCookieSecurity(cookies config.CookieSecurityConfig) Option {
 
 // WithRateLimit sets the request rate limiting configuration.
 //
-// Disabled by default. Pass Enabled=true to activate. When deployed behind
-// a reverse proxy, set TrustedProxies to extract real client IPs from
-// forwarding headers instead of rate-limiting the proxy itself.
+// Disabled by default. Pass Enabled=true to activate. When deployed behind a reverse
+// proxy, set TrustedProxies to extract real client IPs from forwarding headers instead of
+// rate-limiting the proxy itself.
 //
 // Takes rl (config.RateLimitConfig) which is the value to apply.
 //
@@ -213,8 +210,8 @@ func WithRateLimit(rl config.RateLimitConfig) Option {
 	}
 }
 
-// WithSandbox configures filesystem sandboxing for Piko internals. Sandboxing
-// uses Go 1.24's os.Root for kernel-level path traversal protection.
+// WithSandbox configures filesystem sandboxing for Piko internals. Sandboxing uses Go
+// 1.24's os.Root for kernel-level path traversal protection.
 //
 // Takes s (config.SandboxConfig) which is the value to apply.
 //
@@ -225,8 +222,8 @@ func WithSandbox(s config.SandboxConfig) Option {
 	}
 }
 
-// WithReporting configures the Reporting-Endpoints HTTP header used for CSP
-// violation reports and other reporting APIs. Disabled by default.
+// WithReporting configures the Reporting-Endpoints HTTP header used for CSP violation
+// reports and other reporting APIs. Disabled by default.
 //
 // Takes r (config.ReportingConfig) which is the value to apply.
 //
@@ -237,8 +234,8 @@ func WithReporting(r config.ReportingConfig) Option {
 	}
 }
 
-// WithCaptcha sets the per-deployment captcha settings (site key, secret,
-// score threshold). The provider implementation is selected separately via
+// WithCaptcha sets the per-deployment captcha settings (site key, secret, score
+// threshold). The provider implementation is selected separately via
 // WithDefaultCaptchaProvider.
 //
 // Takes opts (CaptchaOptions) which is the value to apply.
@@ -255,8 +252,8 @@ func WithCaptcha(opts CaptchaOptions) Option {
 	}
 }
 
-// WithAWSKMS configures AWS Key Management Service settings. Used only when
-// the crypto provider is "aws_kms".
+// WithAWSKMS configures AWS Key Management Service settings. Used only when the crypto
+// provider is "aws_kms".
 //
 // Takes k (config.AWSKMSConfig) which is the value to apply.
 //
@@ -267,8 +264,8 @@ func WithAWSKMS(k config.AWSKMSConfig) Option {
 	}
 }
 
-// WithGCPKMS configures Google Cloud KMS settings. Used only when the crypto
-// provider is "gcp_kms".
+// WithGCPKMS configures Google Cloud KMS settings. Used only when the crypto provider is
+// "gcp_kms".
 //
 // Takes k (config.GCPKMSConfig) which is the value to apply.
 //
@@ -279,8 +276,8 @@ func WithGCPKMS(k config.GCPKMSConfig) Option {
 	}
 }
 
-// WithDeprecatedKeyIDs lists key IDs that remain valid for decryption but are
-// not used for new encryption. Supports gradual key rotation.
+// WithDeprecatedKeyIDs lists key IDs that remain valid for decryption but are not used
+// for new encryption. Supports gradual key rotation.
 //
 // Takes ids (...string) which is the value to apply.
 //
@@ -291,11 +288,11 @@ func WithDeprecatedKeyIDs(ids ...string) Option {
 	}
 }
 
-// WithLogLevel sets the application log level. Accepts standard slog level
-// strings: "debug", "info", "warn", "error".
+// WithLogLevel sets the application log level. Accepts standard slog level strings:
+// "debug", "info", "warn", "error".
 //
-// PIKO_LOG_LEVEL environment variable, when set, overrides this option for
-// the bootstrap logger before any options apply.
+// PIKO_LOG_LEVEL environment variable, when set, overrides this option for the bootstrap
+// logger before any options apply.
 //
 // Takes level (string) which is the value to apply.
 //
@@ -317,8 +314,8 @@ func WithLogger(cfg logger_dto.Config) Option {
 	}
 }
 
-// WithDatabaseDriver selects the database backend. Valid values: "sqlite"
-// (default), "postgres", "d1".
+// WithDatabaseDriver selects the database backend. Valid values: "sqlite" (default),
+// "postgres", "d1".
 //
 // Takes driver (string) which is the value to apply.
 //
@@ -329,8 +326,8 @@ func WithDatabaseDriver(driver string) Option {
 	}
 }
 
-// WithPostgresURL sets the PostgreSQL connection URL. Required when the
-// driver is "postgres".
+// WithPostgresURL sets the PostgreSQL connection URL. Required when the driver is
+// "postgres".
 //
 // Takes url (string) which is the value to apply.
 //
@@ -341,8 +338,7 @@ func WithPostgresURL(url string) Option {
 	}
 }
 
-// WithPostgresMaxConns sets the maximum number of connections in the
-// PostgreSQL pool.
+// WithPostgresMaxConns sets the maximum number of connections in the PostgreSQL pool.
 //
 // Takes n (int32) which is the value to apply.
 //
@@ -353,8 +349,8 @@ func WithPostgresMaxConns(n int32) Option {
 	}
 }
 
-// WithPostgresMinConns sets the minimum number of connections held in the
-// PostgreSQL pool.
+// WithPostgresMinConns sets the minimum number of connections held in the PostgreSQL
+// pool.
 //
 // Takes n (int32) which is the value to apply.
 //
@@ -365,8 +361,8 @@ func WithPostgresMinConns(n int32) Option {
 	}
 }
 
-// WithD1APIToken sets the Cloudflare API token used for D1 access. Required
-// when the driver is "d1".
+// WithD1APIToken sets the Cloudflare API token used for D1 access. Required when the
+// driver is "d1".
 //
 // Takes token (string) which is the value to apply.
 //
@@ -399,9 +395,9 @@ func WithD1DatabaseID(id string) Option {
 	}
 }
 
-// WithOTLP replaces the entire OpenTelemetry Protocol exporter configuration.
-// Use this when you want to set multiple OTLP fields at once; otherwise the
-// per-field WithOTLP* options below are more ergonomic.
+// WithOTLP replaces the entire OpenTelemetry Protocol exporter configuration. Use this
+// when you want to set multiple OTLP fields at once; otherwise the per-field WithOTLP*
+// options below are more ergonomic.
 //
 // Takes o (config.OtlpConfig) which is the value to apply.
 //
@@ -423,8 +419,7 @@ func WithOTLPEnabled(enabled bool) Option {
 	}
 }
 
-// WithOTLPEndpoint sets the OTLP collector endpoint
-// (e.g. "localhost:4317").
+// WithOTLPEndpoint sets the OTLP collector endpoint (e.g. "localhost:4317").
 //
 // Takes endpoint (string) which is the value to apply.
 //
@@ -435,8 +430,8 @@ func WithOTLPEndpoint(endpoint string) Option {
 	}
 }
 
-// WithOTLPProtocol sets the OTLP transport protocol. Valid values: "grpc",
-// "http", "https".
+// WithOTLPProtocol sets the OTLP transport protocol. Valid values: "grpc", "http",
+// "https".
 //
 // Takes protocol (string) which is the value to apply.
 //
@@ -447,8 +442,8 @@ func WithOTLPProtocol(protocol string) Option {
 	}
 }
 
-// WithOTLPTraceSampleRate sets the fraction of traces to sample (0.0 to 1.0).
-// Applies regardless of whether OTLP export is enabled.
+// WithOTLPTraceSampleRate sets the fraction of traces to sample (0.0 to 1.0). Applies
+// regardless of whether OTLP export is enabled.
 //
 // Takes rate (float64) which is the value to apply.
 //
@@ -459,8 +454,8 @@ func WithOTLPTraceSampleRate(rate float64) Option {
 	}
 }
 
-// WithOTLPHeaders sets the HTTP headers sent with OTLP requests. Useful for
-// adding authentication headers to managed collectors.
+// WithOTLPHeaders sets the HTTP headers sent with OTLP requests. Useful for adding
+// authentication headers to managed collectors.
 //
 // Takes headers (map[string]string) which is the value to apply.
 //
@@ -471,8 +466,8 @@ func WithOTLPHeaders(headers map[string]string) Option {
 	}
 }
 
-// WithOTLPInsecureTLS controls whether TLS certificate verification is
-// disabled for the OTLP connection.
+// WithOTLPInsecureTLS controls whether TLS certificate verification is disabled for the
+// OTLP connection.
 //
 // Takes insecure (bool) which is the value to apply.
 //
@@ -494,11 +489,10 @@ func WithHealthEnabled(enabled bool) Option {
 	}
 }
 
-// WithHealthBindAddress sets the network address to bind the health probe
-// server to.
+// WithHealthBindAddress sets the network address to bind the health probe server to.
 //
-// Use "0.0.0.0" to expose externally (e.g. for Docker health checks). The
-// default is "127.0.0.1".
+// Use "0.0.0.0" to expose externally (e.g. for Docker health checks). The default is
+// "127.0.0.1".
 //
 // Takes addr (string) which is the value to apply.
 //
@@ -509,8 +503,8 @@ func WithHealthBindAddress(addr string) Option {
 	}
 }
 
-// WithHealthMetricsEnabled controls whether the Prometheus metrics endpoint
-// is exposed on the health probe server.
+// WithHealthMetricsEnabled controls whether the Prometheus metrics endpoint is exposed on
+// the health probe server.
 //
 // Takes enabled (bool) which is the value to apply.
 //
@@ -521,8 +515,7 @@ func WithHealthMetricsEnabled(enabled bool) Option {
 	}
 }
 
-// WithHealthMetricsPath sets the URL path for the Prometheus metrics
-// endpoint.
+// WithHealthMetricsPath sets the URL path for the Prometheus metrics endpoint.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -555,8 +548,7 @@ func WithHealthReadyPath(path string) Option {
 	}
 }
 
-// WithHealthCheckTimeout sets the maximum time for each individual health
-// check.
+// WithHealthCheckTimeout sets the maximum time for each individual health check.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -567,8 +559,8 @@ func WithHealthCheckTimeout(d time.Duration) Option {
 	}
 }
 
-// WithHealthAutoNextPort enables automatic port selection for the health
-// probe server when the configured port is already in use.
+// WithHealthAutoNextPort enables automatic port selection for the health probe server
+// when the configured port is already in use.
 //
 // Takes enabled (bool) which is the value to apply.
 //
@@ -656,8 +648,8 @@ func WithPdfsSourceDir(dir string) Option {
 	}
 }
 
-// WithE2ESourceDir sets the directory for E2E test pages and partials. Only
-// scanned when E2E mode is enabled.
+// WithE2ESourceDir sets the directory for E2E test pages and partials. Only scanned when
+// E2E mode is enabled.
 //
 // Takes dir (string) which is the value to apply.
 //
@@ -679,8 +671,7 @@ func WithAssetsSourceDir(dir string) Option {
 	}
 }
 
-// WithI18nSourceDir sets the directory containing locale and translation
-// JSON files.
+// WithI18nSourceDir sets the directory containing locale and translation JSON files.
 //
 // Takes dir (string) which is the value to apply.
 //
@@ -724,8 +715,7 @@ func WithActionServePath(path string) Option {
 	}
 }
 
-// WithLibServePath sets the URL path prefix for serving internal library
-// files.
+// WithLibServePath sets the URL path prefix for serving internal library files.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -736,8 +726,7 @@ func WithLibServePath(path string) Option {
 	}
 }
 
-// WithDistServePath sets the URL path prefix for serving frontend
-// distribution files.
+// WithDistServePath sets the URL path prefix for serving frontend distribution files.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -748,8 +737,7 @@ func WithDistServePath(path string) Option {
 	}
 }
 
-// WithArtefactServePath sets the URL path prefix for serving compiled
-// assets.
+// WithArtefactServePath sets the URL path prefix for serving compiled assets.
 //
 // Takes path (string) which is the value to apply.
 //
@@ -760,8 +748,8 @@ func WithArtefactServePath(path string) Option {
 	}
 }
 
-// WithDefaultServeMode selects the default page serving mode.
-// Valid values: "preview" (dynamic) or "render" (static).
+// WithDefaultServeMode selects the default page serving mode. Valid values: "preview"
+// (dynamic) or "render" (static).
 //
 // Takes mode (string) which is the value to apply.
 //
@@ -785,8 +773,8 @@ func WithStoragePresign(p config.StoragePresignConfig) Option {
 
 // WithStoragePresignSecret sets the HMAC secret for signing presign tokens.
 //
-// The secret must be at least 32 bytes. For multi-instance deployments,
-// set this so all instances share the same secret.
+// The secret must be at least 32 bytes. For multi-instance deployments, set this so all
+// instances share the same secret.
 //
 // Takes secret (string) which is the value to apply.
 //
@@ -797,8 +785,7 @@ func WithStoragePresignSecret(secret string) Option {
 	}
 }
 
-// WithStoragePresignDefaultExpiry sets the default validity duration for
-// presigned URLs.
+// WithStoragePresignDefaultExpiry sets the default validity duration for presigned URLs.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -809,8 +796,7 @@ func WithStoragePresignDefaultExpiry(d time.Duration) Option {
 	}
 }
 
-// WithStoragePresignMaxExpiry sets the maximum validity duration for
-// presigned URLs.
+// WithStoragePresignMaxExpiry sets the maximum validity duration for presigned URLs.
 //
 // Takes d (time.Duration) which is the value to apply.
 //
@@ -821,8 +807,7 @@ func WithStoragePresignMaxExpiry(d time.Duration) Option {
 	}
 }
 
-// WithStoragePresignDefaultMaxSize sets the default maximum upload size in
-// bytes.
+// WithStoragePresignDefaultMaxSize sets the default maximum upload size in bytes.
 //
 // Takes size (int64) which is the value to apply.
 //
@@ -833,8 +818,7 @@ func WithStoragePresignDefaultMaxSize(size int64) Option {
 	}
 }
 
-// WithStoragePresignMaxMaxSize sets the absolute maximum upload size in
-// bytes.
+// WithStoragePresignMaxMaxSize sets the absolute maximum upload size in bytes.
 //
 // Takes size (int64) which is the value to apply.
 //
@@ -845,8 +829,8 @@ func WithStoragePresignMaxMaxSize(size int64) Option {
 	}
 }
 
-// WithStoragePresignRateLimit sets the per-IP rate limit for presigned upload
-// requests, in requests per minute. Zero disables rate limiting.
+// WithStoragePresignRateLimit sets the per-IP rate limit for presigned upload requests,
+// in requests per minute. Zero disables rate limiting.
 //
 // Takes rpm (int) which is the value to apply.
 //
@@ -857,8 +841,8 @@ func WithStoragePresignRateLimit(rpm int) Option {
 	}
 }
 
-// WithI18nDefaultLocale sets the default locale used for internationalisation
-// when a translation is missing or no locale is selected.
+// WithI18nDefaultLocale sets the default locale used for internationalisation when a
+// translation is missing or no locale is selected.
 //
 // Takes locale (string) which is the value to apply.
 //

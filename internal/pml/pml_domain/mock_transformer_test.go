@@ -21,7 +21,6 @@ package pml_domain
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,10 +40,8 @@ func TestMockTransformer_Transform(t *testing.T) {
 		inputAST := &ast_domain.TemplateAST{}
 
 		mock := &MockTransformer{
-			TransformFunc:              nil,
-			TransformForEmailFunc:      nil,
-			TransformCallCount:         0,
-			TransformForEmailCallCount: 0,
+			TransformFunc:         nil,
+			TransformForEmailFunc: nil,
 		}
 
 		resultAST, css, errs := mock.Transform(context.Background(), inputAST, &pml_dto.Config{})
@@ -52,7 +49,7 @@ func TestMockTransformer_Transform(t *testing.T) {
 		assert.Same(t, inputAST, resultAST)
 		assert.Equal(t, "", css)
 		assert.Nil(t, errs)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformCallCount))
+		assert.Equal(t, int64(1), mock.TransformCallCount.Load())
 	})
 
 	t.Run("delegates to TransformFunc", func(t *testing.T) {
@@ -71,9 +68,7 @@ func TestMockTransformer_Transform(t *testing.T) {
 				capturedConfig = config
 				return outputAST, "body { margin: 0; }", nil
 			},
-			TransformForEmailFunc:      nil,
-			TransformCallCount:         0,
-			TransformForEmailCallCount: 0,
+			TransformForEmailFunc: nil,
 		}
 
 		resultAST, css, errs := mock.Transform(context.Background(), inputAST, inputConfig)
@@ -83,7 +78,7 @@ func TestMockTransformer_Transform(t *testing.T) {
 		assert.Nil(t, errs)
 		assert.Same(t, inputAST, capturedAST)
 		assert.Same(t, inputConfig, capturedConfig)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformCallCount))
+		assert.Equal(t, int64(1), mock.TransformCallCount.Load())
 	})
 
 	t.Run("propagates errors from TransformFunc", func(t *testing.T) {
@@ -98,9 +93,7 @@ func TestMockTransformer_Transform(t *testing.T) {
 			TransformFunc: func(_ *ast_domain.TemplateAST, _ *pml_dto.Config) (*ast_domain.TemplateAST, string, []*Error) {
 				return nil, "", expectedErrors
 			},
-			TransformForEmailFunc:      nil,
-			TransformCallCount:         0,
-			TransformForEmailCallCount: 0,
+			TransformForEmailFunc: nil,
 		}
 
 		resultAST, css, errs := mock.Transform(context.Background(), inputAST, &pml_dto.Config{})
@@ -109,7 +102,7 @@ func TestMockTransformer_Transform(t *testing.T) {
 		assert.Equal(t, "", css)
 		require.Len(t, errs, 1)
 		assert.Equal(t, "invalid tag", errs[0].Message)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformCallCount))
+		assert.Equal(t, int64(1), mock.TransformCallCount.Load())
 	})
 }
 
@@ -122,10 +115,8 @@ func TestMockTransformer_TransformForEmail(t *testing.T) {
 		inputAST := &ast_domain.TemplateAST{}
 
 		mock := &MockTransformer{
-			TransformFunc:              nil,
-			TransformForEmailFunc:      nil,
-			TransformCallCount:         0,
-			TransformForEmailCallCount: 0,
+			TransformFunc:         nil,
+			TransformForEmailFunc: nil,
 		}
 
 		resultAST, css, assets, errs := mock.TransformForEmail(context.Background(), inputAST, &pml_dto.Config{})
@@ -134,7 +125,7 @@ func TestMockTransformer_TransformForEmail(t *testing.T) {
 		assert.Equal(t, "", css)
 		assert.Nil(t, assets)
 		assert.Nil(t, errs)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformForEmailCallCount))
+		assert.Equal(t, int64(1), mock.TransformForEmailCallCount.Load())
 	})
 
 	t.Run("delegates to TransformForEmailFunc", func(t *testing.T) {
@@ -157,8 +148,6 @@ func TestMockTransformer_TransformForEmail(t *testing.T) {
 				capturedConfig = config
 				return outputAST, "img { max-width: 100%; }", expectedAssets, nil
 			},
-			TransformCallCount:         0,
-			TransformForEmailCallCount: 0,
 		}
 
 		resultAST, css, assets, errs := mock.TransformForEmail(context.Background(), inputAST, inputConfig)
@@ -170,7 +159,7 @@ func TestMockTransformer_TransformForEmail(t *testing.T) {
 		assert.Nil(t, errs)
 		assert.Same(t, inputAST, capturedAST)
 		assert.Same(t, inputConfig, capturedConfig)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformForEmailCallCount))
+		assert.Equal(t, int64(1), mock.TransformForEmailCallCount.Load())
 	})
 
 	t.Run("propagates errors from TransformForEmailFunc", func(t *testing.T) {
@@ -186,8 +175,6 @@ func TestMockTransformer_TransformForEmail(t *testing.T) {
 			TransformForEmailFunc: func(_ *ast_domain.TemplateAST, _ *pml_dto.Config) (*ast_domain.TemplateAST, string, []*email_dto.EmailAssetRequest, []*Error) {
 				return nil, "", nil, expectedErrors
 			},
-			TransformCallCount:         0,
-			TransformForEmailCallCount: 0,
 		}
 
 		resultAST, css, assets, errs := mock.TransformForEmail(context.Background(), inputAST, &pml_dto.Config{})
@@ -197,7 +184,7 @@ func TestMockTransformer_TransformForEmail(t *testing.T) {
 		assert.Nil(t, assets)
 		require.Len(t, errs, 1)
 		assert.Equal(t, "missing src attribute", errs[0].Message)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformForEmailCallCount))
+		assert.Equal(t, int64(1), mock.TransformForEmailCallCount.Load())
 	})
 }
 
@@ -220,18 +207,16 @@ func TestMockTransformer_ZeroValueIsUsable(t *testing.T) {
 	assert.Nil(t, assets)
 	assert.Nil(t, errs2)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.TransformForEmailCallCount))
+	assert.Equal(t, int64(1), mock.TransformCallCount.Load())
+	assert.Equal(t, int64(1), mock.TransformForEmailCallCount.Load())
 }
 
 func TestMockTransformer_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockTransformer{
-		TransformFunc:              nil,
-		TransformForEmailFunc:      nil,
-		TransformCallCount:         0,
-		TransformForEmailCallCount: 0,
+		TransformFunc:         nil,
+		TransformForEmailFunc: nil,
 	}
 
 	const goroutines = 50
@@ -254,6 +239,6 @@ func TestMockTransformer_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.TransformCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.TransformForEmailCallCount))
+	assert.Equal(t, int64(goroutines), mock.TransformCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.TransformForEmailCallCount.Load())
 }

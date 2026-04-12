@@ -18,7 +18,9 @@
 
 package typegen_dto
 
-import "time"
+import (
+	"time"
+)
 
 // ActionManifest contains all action metadata for LSP completions.
 type ActionManifest struct {

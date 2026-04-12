@@ -321,7 +321,7 @@ func TestRegistryService_UpsertArtefact(t *testing.T) {
 		require.Len(t, art.ActualVariants, 1)
 		assert.Equal(t, "source", art.ActualVariants[0].VariantID)
 		assert.Equal(t, expectedFinalKey, art.ActualVariants[0].StorageKey)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 
 	t.Run("Update Artefact with Changed Content", func(t *testing.T) {
@@ -355,7 +355,7 @@ func TestRegistryService_UpsertArtefact(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, existingArtefact.CreatedAt, artefact.CreatedAt, "CreatedAt should not change on update")
 		assert.True(t, artefact.UpdatedAt.After(existingArtefact.CreatedAt), "UpdatedAt should be newer")
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 
 	t.Run("Update Artefact with Unchanged Content", func(t *testing.T) {
@@ -394,8 +394,8 @@ func TestRegistryService_UpsertArtefact(t *testing.T) {
 		assert.Equal(t, artefactID, art.ID)
 		require.Len(t, art.DesiredProfiles, 1)
 		assert.Equal(t, "minified", art.DesiredProfiles[0].Name)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.RenameCallCount))
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(0), f.blobStore.RenameCallCount.Load())
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 
 	t.Run("Error during Blob Put", func(t *testing.T) {
@@ -411,7 +411,7 @@ func TestRegistryService_UpsertArtefact(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, putErr)
 		assert.Nil(t, artefact)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
 	})
 }
 
@@ -453,7 +453,7 @@ func TestRegistryService_AddVariant(t *testing.T) {
 		art := capturedActions[0].Artefact
 		assert.Len(t, art.ActualVariants, 2)
 		assert.Equal(t, "minified", art.ActualVariants[1].VariantID)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 
 	t.Run("Replace Existing Variant", func(t *testing.T) {
@@ -528,7 +528,7 @@ func TestRegistryService_DeleteArtefact(t *testing.T) {
 		require.Len(t, capturedActions[1].GCHints, 2)
 		keys := map[string]bool{capturedActions[1].GCHints[0].StorageKey: true, capturedActions[1].GCHints[1].StorageKey: true}
 		assert.True(t, keys["key1"] && keys["key2"])
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 
 	t.Run("Artefact Not Found", func(t *testing.T) {
@@ -540,8 +540,8 @@ func TestRegistryService_DeleteArtefact(t *testing.T) {
 		err := f.service.DeleteArtefact(f.testContext, artefactID)
 
 		require.NoError(t, err, "Deleting a non-existent artefact should not be an error")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
+		assert.Equal(t, int64(0), f.eventBus.PublishCallCount.Load())
 	})
 }
 func TestRegistryService_UpsertArtefact_MetadataOnly(t *testing.T) {
@@ -593,9 +593,9 @@ func TestRegistryService_UpsertArtefact_MetadataOnly(t *testing.T) {
 		assert.Len(t, artefact.ActualVariants, 1, "Should preserve existing variants")
 		assert.Equal(t, "source", artefact.ActualVariants[0].VariantID)
 		assert.Equal(t, desiredProfiles, artefact.DesiredProfiles, "Should update desired profiles")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.PutCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.RenameCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.DeleteCallCount))
+		assert.Equal(t, int64(0), f.blobStore.PutCallCount.Load())
+		assert.Equal(t, int64(0), f.blobStore.RenameCallCount.Load())
+		assert.Equal(t, int64(0), f.blobStore.DeleteCallCount.Load())
 		require.Len(t, capturedActions, 1)
 		action := capturedActions[0]
 		art := action.Artefact
@@ -607,7 +607,7 @@ func TestRegistryService_UpsertArtefact_MetadataOnly(t *testing.T) {
 		assert.Len(t, art.DesiredProfiles, 1)
 		assert.Equal(t, "minified", art.DesiredProfiles[0].Name)
 		assert.Equal(t, "minify", art.DesiredProfiles[0].Profile.CapabilityName)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 
 	t.Run("Metadata-Only Update on Non-Existent Artefact Creates Placeholder", func(t *testing.T) {
@@ -630,10 +630,10 @@ func TestRegistryService_UpsertArtefact_MetadataOnly(t *testing.T) {
 		assert.Equal(t, desiredProfiles, artefact.DesiredProfiles, "Should set desired profiles")
 		assert.WithinDuration(t, time.Now(), artefact.CreatedAt, time.Second)
 		assert.WithinDuration(t, time.Now(), artefact.UpdatedAt, time.Second)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.PutCallCount))
+		assert.Equal(t, int64(0), f.blobStore.PutCallCount.Load())
 		require.Len(t, capturedActions, 1)
 		assert.Equal(t, registry_dto.ActionTypeUpsertArtefact, capturedActions[0].Type)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 }
 
@@ -647,7 +647,7 @@ func TestRegistryService_UpsertArtefact_InputValidation(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, artefact)
 		assert.Contains(t, err.Error(), "artefactID cannot be empty")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.GetArtefactCallCount))
+		assert.Equal(t, int64(0), f.metaStore.GetArtefactCallCount.Load())
 	})
 
 	t.Run("Empty SourcePath Should Error", func(t *testing.T) {
@@ -656,7 +656,7 @@ func TestRegistryService_UpsertArtefact_InputValidation(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, artefact)
 		assert.Contains(t, err.Error(), "sourcePath cannot be empty")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.GetArtefactCallCount))
+		assert.Equal(t, int64(0), f.metaStore.GetArtefactCallCount.Load())
 	})
 }
 
@@ -679,7 +679,7 @@ func TestRegistryService_UpsertArtefact_ErrorHandling(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, artefact)
 		assert.Contains(t, err.Error(), "not configured or found")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.PutCallCount))
+		assert.Equal(t, int64(0), f.blobStore.PutCallCount.Load())
 	})
 
 	t.Run("Blob Rename Failure", func(t *testing.T) {
@@ -700,10 +700,10 @@ func TestRegistryService_UpsertArtefact_ErrorHandling(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, renameErr)
 		assert.Nil(t, artefact)
-		assert.True(t, atomic.LoadInt64(&f.blobStore.DeleteCallCount) > 0)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.True(t, f.blobStore.DeleteCallCount.Load() > 0)
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
+		assert.Equal(t, int64(0), f.metaStore.IncrementBlobRefCountCallCount.Load())
+		assert.Equal(t, int64(0), f.eventBus.PublishCallCount.Load())
 	})
 
 	t.Run("MetaStore GetArtefact Failure", func(t *testing.T) {
@@ -718,7 +718,7 @@ func TestRegistryService_UpsertArtefact_ErrorHandling(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, metaStoreErr)
 		assert.Nil(t, artefact)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.PutCallCount))
+		assert.Equal(t, int64(0), f.blobStore.PutCallCount.Load())
 	})
 
 	t.Run("AtomicUpdate Failure", func(t *testing.T) {
@@ -734,7 +734,7 @@ func TestRegistryService_UpsertArtefact_ErrorHandling(t *testing.T) {
 		require.Error(t, err)
 		assert.ErrorIs(t, err, atomicUpdateErr)
 		assert.Nil(t, artefact)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(0), f.eventBus.PublishCallCount.Load())
 	})
 }
 
@@ -751,7 +751,7 @@ func TestRegistryService_GetArtefact(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expected.ID, result.ID)
 		assert.Equal(t, expected.ActualVariants[0].ContentHash, result.ActualVariants[0].ContentHash)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.GetArtefactCallCount))
+		assert.Equal(t, int64(0), f.metaStore.GetArtefactCallCount.Load())
 	})
 
 	t.Run("Cache Miss Falls Through to Store", func(t *testing.T) {
@@ -786,7 +786,7 @@ func TestRegistryService_GetArtefact(t *testing.T) {
 
 		require.ErrorIs(t, err, registry_domain.ErrArtefactNotFound)
 		assert.Nil(t, result)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.cache.SetCallCount))
+		assert.Equal(t, int64(0), f.cache.SetCallCount.Load())
 	})
 
 	t.Run("No Cache Configured Falls Through to Store", func(t *testing.T) {
@@ -837,7 +837,7 @@ func TestRegistryService_GetMultipleArtefacts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Len(t, results, 3)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.GetMultipleArtefactsCallCount))
+		assert.Equal(t, int64(0), f.metaStore.GetMultipleArtefactsCallCount.Load())
 	})
 
 	t.Run("Partial Cache Hit Fetches Misses from Store", func(t *testing.T) {
@@ -892,8 +892,8 @@ func TestRegistryService_GetMultipleArtefacts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Len(t, results, 0)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.cache.GetMultipleCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.GetMultipleArtefactsCallCount))
+		assert.Equal(t, int64(0), f.cache.GetMultipleCallCount.Load())
+		assert.Equal(t, int64(0), f.metaStore.GetMultipleArtefactsCallCount.Load())
 	})
 
 	t.Run("No Cache Configured Fetches All from Store", func(t *testing.T) {
@@ -965,7 +965,7 @@ func TestRegistryService_SearchArtefacts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Len(t, artefacts, 2)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.cache.SetMultipleCallCount))
+		assert.Equal(t, int64(1), f.cache.SetMultipleCallCount.Load())
 	})
 
 	t.Run("Empty Results Not Cached", func(t *testing.T) {
@@ -979,7 +979,7 @@ func TestRegistryService_SearchArtefacts(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Len(t, artefacts, 0)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.cache.SetMultipleCallCount))
+		assert.Equal(t, int64(0), f.cache.SetMultipleCallCount.Load())
 	})
 }
 
@@ -1008,7 +1008,7 @@ func TestRegistryService_SearchArtefactsByTagValues(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Len(t, artefacts, 0)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.SearchArtefactsByTagValuesCallCount))
+		assert.Equal(t, int64(0), f.metaStore.SearchArtefactsByTagValuesCallCount.Load())
 	})
 }
 
@@ -1025,7 +1025,7 @@ func TestRegistryService_FindArtefactByVariantStorageKey(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, expected.ID, result.ID)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.cache.SetCallCount))
+		assert.Equal(t, int64(1), f.cache.SetCallCount.Load())
 	})
 
 	t.Run("Not Found", func(t *testing.T) {
@@ -1038,7 +1038,7 @@ func TestRegistryService_FindArtefactByVariantStorageKey(t *testing.T) {
 
 		require.ErrorIs(t, err, registry_domain.ErrArtefactNotFound)
 		assert.Nil(t, result)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.cache.SetCallCount))
+		assert.Equal(t, int64(0), f.cache.SetCallCount.Load())
 	})
 }
 
@@ -1066,7 +1066,7 @@ func TestRegistryService_GetVariantData(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, data)
 		assert.Contains(t, err.Error(), "not found")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.GetCallCount))
+		assert.Equal(t, int64(0), f.blobStore.GetCallCount.Load())
 	})
 
 	t.Run("Blob Not Found", func(t *testing.T) {
@@ -1110,7 +1110,7 @@ func TestRegistryService_GetVariantChunk(t *testing.T) {
 
 		require.ErrorIs(t, err, registry_domain.ErrChunkNotFound)
 		assert.Nil(t, data)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.GetCallCount))
+		assert.Equal(t, int64(0), f.blobStore.GetCallCount.Load())
 	})
 
 	t.Run("Chunk Backend Not Found", func(t *testing.T) {
@@ -1127,7 +1127,7 @@ func TestRegistryService_GetVariantChunk(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, data)
 		assert.Contains(t, err.Error(), "not found")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.GetCallCount))
+		assert.Equal(t, int64(0), f.blobStore.GetCallCount.Load())
 	})
 }
 
@@ -1151,7 +1151,7 @@ func TestRegistryService_GetVariantDataRange(t *testing.T) {
 
 		require.ErrorIs(t, err, registry_domain.ErrRangeNotSatisfiable)
 		assert.Nil(t, data)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.RangeGetCallCount))
+		assert.Equal(t, int64(0), f.blobStore.RangeGetCallCount.Load())
 	})
 
 	t.Run("Invalid Length (Zero)", func(t *testing.T) {
@@ -1177,7 +1177,7 @@ func TestRegistryService_GetVariantDataRange(t *testing.T) {
 		require.Error(t, err)
 		assert.Nil(t, data)
 		assert.Contains(t, err.Error(), "not found")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.RangeGetCallCount))
+		assert.Equal(t, int64(0), f.blobStore.RangeGetCallCount.Load())
 	})
 
 	t.Run("Blob Not Found", func(t *testing.T) {
@@ -1675,7 +1675,7 @@ func TestAddVariant_WithChunks(t *testing.T) {
 		assert.Contains(t, incrementedKeys, "video/playlist.m3u8")
 		assert.Contains(t, incrementedKeys, "video/segment-0.ts")
 		assert.Contains(t, incrementedKeys, "video/segment-1.ts")
-		assert.Equal(t, int64(3), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
+		assert.Equal(t, int64(3), f.metaStore.IncrementBlobRefCountCallCount.Load())
 	})
 }
 
@@ -1919,7 +1919,7 @@ func TestDeleteArtefact_WithChunks(t *testing.T) {
 		gcAction := capturedActions[1]
 		assert.Equal(t, registry_dto.ActionTypeAddGCHints, gcAction.Type)
 		assert.Len(t, gcAction.GCHints, 4)
-		assert.Equal(t, int64(4), atomic.LoadInt64(&f.metaStore.DecrementBlobRefCountCallCount))
+		assert.Equal(t, int64(4), f.metaStore.DecrementBlobRefCountCallCount.Load())
 		t.Logf("SUCCESS: All chunk blobs dereferenced during artefact deletion")
 	})
 }
@@ -1956,7 +1956,7 @@ func TestIncrementChunkRefCounts_EdgeCases(t *testing.T) {
 		_, err := f.service.AddVariant(f.testContext, artefactID, &variantWithoutChunks)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
+		assert.Equal(t, int64(1), f.metaStore.IncrementBlobRefCountCallCount.Load())
 		t.Logf("SUCCESS: Empty chunks array handled correctly")
 	})
 
@@ -2034,8 +2034,8 @@ func TestAddVariant_ValidationErrors(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "empty StorageKey")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
+		assert.Equal(t, int64(0), f.metaStore.IncrementBlobRefCountCallCount.Load())
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
 	})
 
 	t.Run("Rejects Variant With Zero SizeBytes", func(t *testing.T) {
@@ -2057,7 +2057,7 @@ func TestAddVariant_ValidationErrors(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid SizeBytes")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
+		assert.Equal(t, int64(0), f.metaStore.IncrementBlobRefCountCallCount.Load())
 	})
 
 	t.Run("Rejects Variant With Empty MimeType", func(t *testing.T) {
@@ -2079,7 +2079,7 @@ func TestAddVariant_ValidationErrors(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "empty MimeType")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
+		assert.Equal(t, int64(0), f.metaStore.IncrementBlobRefCountCallCount.Load())
 	})
 
 	t.Run("Rejects Chunk With Invalid Fields", func(t *testing.T) {
@@ -2119,7 +2119,7 @@ func TestAddVariant_ValidationErrors(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "empty StorageKey")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
 	})
 
 	t.Run("Rejects Variant With Empty StorageBackendID", func(t *testing.T) {
@@ -2141,7 +2141,7 @@ func TestAddVariant_ValidationErrors(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "empty StorageBackendID")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
+		assert.Equal(t, int64(0), f.metaStore.IncrementBlobRefCountCallCount.Load())
 	})
 
 	t.Run("IncrementBlobRefCount Error", func(t *testing.T) {
@@ -2166,7 +2166,7 @@ func TestAddVariant_ValidationErrors(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "ref count")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
 	})
 
 	t.Run("Rejects Chunk With Empty StorageBackendID", func(t *testing.T) {
@@ -2547,8 +2547,8 @@ func TestRegistryService_UpsertArtefact_LifecycleErrors(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.blobStore.RenameCallCount))
-		assert.True(t, atomic.LoadInt64(&f.blobStore.DeleteCallCount) > 0)
+		assert.Equal(t, int64(0), f.blobStore.RenameCallCount.Load())
+		assert.True(t, f.blobStore.DeleteCallCount.Load() > 0)
 	})
 
 	t.Run("Skips upsert when profiles match", func(t *testing.T) {
@@ -2567,8 +2567,8 @@ func TestRegistryService_UpsertArtefact_LifecycleErrors(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, existingArtefact, artefact)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
+		assert.Equal(t, int64(0), f.eventBus.PublishCallCount.Load())
 	})
 }
 
@@ -2611,7 +2611,7 @@ func TestRegistryService_PublishEvent(t *testing.T) {
 
 		require.NoError(t, err)
 		require.NotNil(t, artefact)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.eventBus.PublishCallCount))
+		assert.Equal(t, int64(1), f.eventBus.PublishCallCount.Load())
 	})
 }
 
@@ -2627,7 +2627,7 @@ func TestRegistryService_AddVariant_MoreErrors(t *testing.T) {
 		_, err := f.service.AddVariant(f.testContext, artefactID, new(NewVariantBuilder("compiled").Build()))
 
 		require.Error(t, err)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.IncrementBlobRefCountCallCount))
+		assert.Equal(t, int64(0), f.metaStore.IncrementBlobRefCountCallCount.Load())
 	})
 
 	t.Run("PersistVariantUpdate failure", func(t *testing.T) {
@@ -2674,7 +2674,7 @@ func TestRegistryService_DeleteArtefact_MoreErrors(t *testing.T) {
 		err := f.service.DeleteArtefact(f.testContext, artefactID)
 
 		require.Error(t, err)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount))
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load())
 	})
 
 	t.Run("AtomicUpdate failure", func(t *testing.T) {
@@ -2713,9 +2713,9 @@ func TestRegistryService_DeleteArtefact_MoreErrors(t *testing.T) {
 		f.metaStore.GetArtefactFunc = func(_ context.Context, _ string) (*registry_dto.ArtefactMeta, error) {
 			return existingArtefact, nil
 		}
-		var callNum int64
+		var callNum atomic.Int64
 		f.metaStore.DecrementBlobRefCountFunc = func(_ context.Context, key string) (int, bool, error) {
-			n := atomic.AddInt64(&callNum, 1)
+			n := callNum.Add(1)
 			if n == 1 {
 				return 0, false, errors.New("decrement failed")
 			}
@@ -2727,7 +2727,7 @@ func TestRegistryService_DeleteArtefact_MoreErrors(t *testing.T) {
 
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "decrement failed")
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.metaStore.AtomicUpdateCallCount),
+		assert.Equal(t, int64(0), f.metaStore.AtomicUpdateCallCount.Load(),
 			"AtomicUpdate should not be called when decrement fails")
 	})
 
@@ -2775,7 +2775,7 @@ func TestRegistryService_DeleteArtefact_MoreErrors(t *testing.T) {
 		err := f.service.DeleteArtefact(f.testContext, artefactID)
 
 		require.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&f.cache.DeleteCallCount))
+		assert.Equal(t, int64(1), f.cache.DeleteCallCount.Load())
 	})
 }
 
@@ -3075,7 +3075,7 @@ func TestRegistryService_FindArtefactByVariantStorageKey_StoreError(t *testing.T
 
 		require.Error(t, err)
 		assert.Nil(t, result)
-		assert.Equal(t, int64(0), atomic.LoadInt64(&f.cache.SetCallCount))
+		assert.Equal(t, int64(0), f.cache.SetCallCount.Load())
 	})
 }
 

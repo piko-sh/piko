@@ -1,0 +1,4 @@
+{
+  "description": "Type defined in one file, methods spread across multiple files within same package",
+  "expected": "name=ada age=37 greet=hi-ada label=adult-ada"
+}

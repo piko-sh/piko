@@ -76,7 +76,7 @@ func main() {
 	}
 
 	result := map[string]any{
-		"without_filter":    withoutFilter,
+		"without_filter":      withoutFilter,
 		"with_min_priority_2": withMinPriority2,
 		"with_min_priority_3": withMinPriority3,
 	}

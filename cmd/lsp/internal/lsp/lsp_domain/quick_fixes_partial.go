@@ -24,16 +24,15 @@ import (
 	"go.lsp.dev/protocol"
 )
 
-// generateUndefinedPartialAliasFixes creates fixes for undefined partial aliases.
-// This includes typo corrections and offering to add missing imports.
+// generateUndefinedPartialAliasFixes creates fixes for undefined partial aliases. This
+// includes typo corrections and offering to add missing imports.
 //
-// Takes diagnostic (protocol.Diagnostic) which contains the undefined
-// partial alias error and associated fix data.
+// Takes diagnostic (protocol.Diagnostic) which contains the undefined partial alias error
+// and associated fix data.
 // Takes document (*document) which provides the document URI for text edits.
 //
-// Returns []protocol.CodeAction which contains the available fix
-// actions such as typo corrections and import suggestions, or an
-// empty slice if no fixes apply.
+// Returns []protocol.CodeAction which contains the available fix actions such as typo
+// corrections and import suggestions, or an empty slice if no fixes apply.
 func generateUndefinedPartialAliasFixes(diagnostic protocol.Diagnostic, document *document, _ *workspace) []protocol.CodeAction {
 	actions := []protocol.CodeAction{}
 

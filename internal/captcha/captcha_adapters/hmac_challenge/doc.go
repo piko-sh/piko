@@ -16,30 +16,26 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package hmac_challenge provides a built-in captcha provider using
-// HMAC-SHA256 signed challenge tokens.
+// Package hmac_challenge provides a built-in captcha provider using HMAC-SHA256 signed
+// challenge tokens.
 //
-// This adapter generates tokens without any external service dependency.
-// It is suitable for development, testing, and integration test
-// scenarios where a full captcha pipeline is needed but external
-// provider credentials are unavailable.
+// This adapter generates tokens without any external service dependency. It is suitable
+// for development, testing, and integration test scenarios where a full captcha pipeline
+// is needed but external provider credentials are unavailable.
 //
-// Each token is base64-encoded and contains a challenge ID, Unix
-// timestamp, and action name. The token is signed with HMAC-SHA256.
-// Verification checks the signature, validates the timestamp against a
-// configurable TTL (default 5 minutes), enforces single-use via an
-// in-memory map with automatic eviction, and optionally validates the
+// Each token is base64-encoded and contains a challenge ID, Unix timestamp, and action
+// name. The token is signed with HMAC-SHA256. Verification checks the signature,
+// validates the timestamp against a configurable TTL (default 5 minutes), enforces
+// single-use via an in-memory map with automatic eviction, and optionally validates the
 // action name against the expected binding.
 //
-// The provider also exposes an HTTP endpoint for frontend token
-// generation, allowing the piko:captcha server-side element to work in test
-// scenarios.
+// The provider also exposes an HTTP endpoint for frontend token generation, allowing the
+// piko:captcha server-side element to work in test scenarios.
 //
-// Time operations use [clock.Clock] so that TTL and expiry behaviour
-// can be controlled deterministically in tests.
+// Time operations use [clock.Clock] so that TTL and expiry behaviour can be controlled
+// deterministically in tests.
 //
-// For production use, prefer one of the external provider packages
-// available via the WDK.
+// For production use, prefer one of the external provider packages available via the WDK.
 //
 // # Thread safety
 //

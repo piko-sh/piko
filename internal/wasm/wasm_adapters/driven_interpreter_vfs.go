@@ -41,10 +41,9 @@ const (
 	vfsCurrentDir = "."
 )
 
-// InterpreterVFS implements fs.FS for the interpreter's
-// SetSourcecodeFilesystem. It provides an in-memory virtual
-// filesystem that allows the interpreter to resolve imports from
-// generated code without real filesystem access.
+// InterpreterVFS implements fs.FS for the interpreter's SetSourcecodeFilesystem. It
+// provides an in-memory virtual filesystem that allows the interpreter to resolve imports
+// from generated code without real filesystem access.
 type InterpreterVFS struct {
 	// files maps file paths to their contents.
 	files map[string]string
@@ -56,11 +55,10 @@ var (
 	_ fs.ReadDirFS = (*InterpreterVFS)(nil)
 )
 
-// NewInterpreterVFS creates a new in-memory filesystem for the
-// interpreter.
+// NewInterpreterVFS creates a new in-memory filesystem for the interpreter.
 //
-// Takes files (map[string]string) which maps file paths to their contents.
-// Paths should use forward slashes and be relative to the module root.
+// Takes files (map[string]string) which maps file paths to their contents. Paths should
+// use forward slashes and be relative to the module root.
 //
 // Returns *InterpreterVFS which implements fs.FS for use with the interpreter.
 func NewInterpreterVFS(files map[string]string) *InterpreterVFS {
@@ -73,8 +71,7 @@ func NewInterpreterVFS(files map[string]string) *InterpreterVFS {
 	return &InterpreterVFS{files: normalised}
 }
 
-// Open opens the named file for reading.
-// This implements fs.FS.
+// Open opens the named file for reading. This implements fs.FS.
 //
 // Takes name (string) which is the path to the file to open.
 //
@@ -116,9 +113,8 @@ func (v *InterpreterVFS) Open(name string) (fs.File, error) {
 	return nil, fs.ErrNotExist
 }
 
-// ReadDir reads the named directory and returns a list of directory entries
-// sorted by filename.
-// This implements fs.ReadDirFS.
+// ReadDir reads the named directory and returns a list of directory entries sorted by
+// filename. This implements fs.ReadDirFS.
 //
 // Takes name (string) which is the directory path to read.
 //
@@ -251,8 +247,7 @@ func (d *vfsDir) Stat() (fs.FileInfo, error) {
 // Takes p ([]byte) which is the buffer to read into.
 //
 // Returns int which is always zero as directories cannot be read.
-// Returns error when called, as directories do not support
-// reading.
+// Returns error when called, as directories do not support reading.
 func (d *vfsDir) Read(_ []byte) (int, error) {
 	return 0, &fs.PathError{Op: "read", Path: d.path, Err: fs.ErrInvalid}
 }
@@ -266,8 +261,8 @@ func (*vfsDir) Close() error {
 
 // ReadDir reads the directory contents.
 //
-// Takes n (int) which limits the number of entries returned. If n <= 0, all
-// entries are returned.
+// Takes n (int) which limits the number of entries returned. If n <= 0, all entries are
+// returned.
 //
 // Returns []fs.DirEntry which contains the directory entries.
 // Returns error when reading fails or when n > 0 and no entries remain.

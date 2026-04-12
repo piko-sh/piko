@@ -32,47 +32,46 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// FileResolver resolves placeholders like "file:path/to/your/file".
-// This resolver contains no internal cache, as caching is handled centrally by
-// the Loader.
+// FileResolver resolves placeholders like "file:path/to/your/file". This resolver
+// contains no internal cache, as caching is handled centrally by the Loader.
 //
-// When a sandbox is provided, all paths are relative to the sandbox root and
-// access is restricted to within the sandbox. When no sandbox is provided,
-// the resolver operates with direct filesystem access (less secure).
+// When a sandbox is provided, all paths are relative to the sandbox root and access is
+// restricted to within the sandbox. When no sandbox is provided, the resolver operates
+// with direct filesystem access (less secure).
 type FileResolver struct {
-	// sandboxFactory creates sandboxes when no sandbox is set. When non-nil
-	// and sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
+	// sandboxFactory creates sandboxes when no sandbox is set. When non-nil and sandbox is
+	// nil, this factory is used instead of safedisk.NewNoOpSandbox.
 	sandboxFactory safedisk.Factory
 
 	// sandbox provides restricted file system access; nil uses direct file I/O.
 	sandbox safedisk.Sandbox
 }
 
-var _ BatchResolver = (*FileResolver)(nil)
+var (
+	_ BatchResolver = (*FileResolver)(nil)
+)
 
-// NewFileResolver creates a new file content resolver for loading
-// configuration from files.
+// NewFileResolver creates a new file content resolver for loading configuration from
+// files.
 //
-// When sandbox is nil, the resolver operates with direct filesystem access.
-// For improved security, provide a sandbox to restrict file access.
+// When sandbox is nil, the resolver operates with direct filesystem access. For improved
+// security, provide a sandbox to restrict file access.
 //
-// Takes sandbox (safedisk.Sandbox) which restricts file access to permitted
-// paths, or nil for unrestricted access.
+// Takes sandbox (safedisk.Sandbox) which restricts file access to permitted paths, or nil
+// for unrestricted access.
 //
 // Returns *FileResolver which resolves file paths to their contents.
 func NewFileResolver(sandbox safedisk.Sandbox) *FileResolver {
 	return &FileResolver{sandbox: sandbox}
 }
 
-// NewFileResolverWithFactory creates a new file content resolver with an
-// optional sandbox factory. The factory is used to create sandboxes when no
-// sandbox is directly injected, falling back to safedisk.NewNoOpSandbox when
-// the factory is nil.
+// NewFileResolverWithFactory creates a new file content resolver with an optional sandbox
+// factory. The factory is used to create sandboxes when no sandbox is directly injected,
+// falling back to safedisk.NewNoOpSandbox when the factory is nil.
 //
-// Takes sandbox (safedisk.Sandbox) which restricts file access to permitted
-// paths, or nil for unrestricted access.
-// Takes factory (safedisk.Factory) which creates sandboxes when sandbox is
-// nil.
+// Takes sandbox (safedisk.Sandbox) which restricts file access to permitted paths, or nil
+// for unrestricted access.
+// Takes factory (safedisk.Factory) which creates sandboxes when sandbox is nil.
 //
 // Returns *FileResolver which resolves file paths to their contents.
 func NewFileResolverWithFactory(sandbox safedisk.Sandbox, factory safedisk.Factory) *FileResolver {
@@ -88,9 +87,9 @@ func (*FileResolver) GetPrefix() string {
 
 // Resolve reads the content of a single file from the filesystem.
 //
-// When a sandbox is set, the path is treated as relative to the sandbox root.
-// When no sandbox is set, the path is used directly (absolute or relative to
-// the current working directory).
+// When a sandbox is set, the path is treated as relative to the sandbox root. When no
+// sandbox is set, the path is used directly (absolute or relative to the current working
+// directory).
 //
 // Takes value (string) which specifies the file path to read.
 //
@@ -119,8 +118,8 @@ func (r *FileResolver) Resolve(ctx context.Context, value string) (string, error
 
 // ResolveBatch reads multiple files with bounded parallelism.
 //
-// It uses the single Resolve method, and the central Loader's cache handles
-// deduplication of reads for the same file path.
+// It uses the single Resolve method, and the central Loader's cache handles deduplication
+// of reads for the same file path.
 //
 // Takes values ([]string) which specifies the file paths to resolve.
 //
@@ -144,8 +143,8 @@ func (r *FileResolver) ResolveBatch(ctx context.Context, values []string) (map[s
 	return r.mapResultsToInput(resolved, values), nil
 }
 
-// readFileDirect reads a file directly from the filesystem without sandboxing.
-// This is a fallback when no sandbox is configured.
+// readFileDirect reads a file directly from the filesystem without sandboxing. This is a
+// fallback when no sandbox is configured.
 //
 // Takes filePath (string) which specifies the path to the file to read.
 //
@@ -187,8 +186,8 @@ func (r *FileResolver) readFileDirect(ctx context.Context, filePath string) ([]b
 //
 // Returns map[string]struct{} which contains the unique values that were fed.
 //
-// Spawns numWorkers goroutines that process jobs until the channel closes.
-// Spawns an additional goroutine that closes results when all workers finish.
+// Spawns numWorkers goroutines that process jobs until the channel closes. Spawns an
+// additional goroutine that closes results when all workers finish.
 func (r *FileResolver) startWorkersAndFeedJobs(
 	ctx context.Context,
 	numWorkers int,
@@ -214,8 +213,8 @@ func (r *FileResolver) startWorkersAndFeedJobs(
 	return uniqueValues
 }
 
-// processJobs reads keys from the jobs channel, resolves each one, and
-// sends the result until the channel closes or the context is cancelled.
+// processJobs reads keys from the jobs channel, resolves each one, and sends the result
+// until the channel closes or the context is cancelled.
 //
 // Takes jobs (chan string) which provides the keys to resolve.
 // Takes results (chan fileResolveResult) which receives the resolved values.
@@ -242,8 +241,8 @@ func (r *FileResolver) processJobs(
 	}
 }
 
-// feedUniqueJobs deduplicates values and sends them to the jobs channel,
-// closing it when all values are sent or the context is cancelled.
+// feedUniqueJobs deduplicates values and sends them to the jobs channel, closing it when
+// all values are sent or the context is cancelled.
 //
 // Takes jobs (chan string) which receives the deduplicated values.
 // Takes values ([]string) which contains the raw values to deduplicate and send.
@@ -272,10 +271,10 @@ func (*FileResolver) feedUniqueJobs(
 
 // collectResults reads all results from the channel and collects any errors.
 //
-// Takes results (chan fileResolveResult) which provides the resolution results
-// to collect.
-// Takes uniqueValues (map[string]struct{...}) which sets the expected size for
-// the resolved map.
+// Takes results (chan fileResolveResult) which provides the resolution results to
+// collect.
+// Takes uniqueValues (map[string]struct{...}) which sets the expected size for the
+// resolved map.
 //
 // Returns map[string]string which maps keys to their resolved content.
 // Returns error when any resolution fails, with all errors joined together.
@@ -302,8 +301,8 @@ func (*FileResolver) collectResults(results chan fileResolveResult, uniqueValues
 // Takes resolved (map[string]string) which contains the resolved path mappings.
 // Takes values ([]string) which specifies the original input order to preserve.
 //
-// Returns map[string]string which contains only the values from the original
-// input, preserving their order.
+// Returns map[string]string which contains only the values from the original input,
+// preserving their order.
 func (*FileResolver) mapResultsToInput(resolved map[string]string, values []string) map[string]string {
 	finalResults := make(map[string]string, len(values))
 	for _, v := range values {

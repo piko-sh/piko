@@ -27,38 +27,43 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// baseDecimal is the base value for decimal number formatting.
-const baseDecimal = 10
+const (
 
-// RequestDataFieldMap maps snake_case field names used in templates to their
-// corresponding Go method names on RequestData, so that template expressions
-// like `r.path_params` are converted to `r.PathParams()` in generated code.
-var RequestDataFieldMap = map[string]string{
-	"context":      "Context",
-	"method":       "Method",
-	"host":         "Host",
-	"path_params":  "PathParams",
-	"query_params": "QueryParams",
-	"form_data":    "FormData",
-}
+	// baseDecimal is the base value for decimal number formatting.
+	baseDecimal = 10
+)
+
+var (
+	// RequestDataFieldMap maps snake_case field names used in templates to their
+	// corresponding Go method names on RequestData, so that template expressions like
+	// `r.path_params` are converted to `r.PathParams()` in generated code.
+	RequestDataFieldMap = map[string]string{
+		"context":      "Context",
+		"method":       "Method",
+		"host":         "Host",
+		"path_params":  "PathParams",
+		"query_params": "QueryParams",
+		"form_data":    "FormData",
+	}
+)
 
 // GetContentAST extracts the content AST from collection data.
 //
-// Called at runtime by generated code when rendering <piko:content /> tags in
-// collection page templates. The content AST contains the parsed markdown body
-// that should be rendered as children of the content tag's parent element.
+// Called at runtime by generated code when rendering <piko:content /> tags in collection
+// page templates. The content AST contains the parsed markdown body that should be
+// rendered as children of the content tag's parent element.
 //
 // When collectionData is nil or not a map[string]any, returns nil.
 //
-// Takes collectionData (any) which is the collection data from request data,
-// expected to be a map[string]any containing a "contentAST" key.
+// Takes collectionData (any) which is the collection data from request data, expected to
+// be a map[string]any containing a "contentAST" key.
 //
-// Returns *ast_domain.TemplateAST which is the content AST if found and
-// valid, or nil otherwise.
+// Returns *ast_domain.TemplateAST which is the content AST if found and valid, or nil
+// otherwise.
 //
-// Architecture note: CollectionData is populated by BuildAST via
-// GetStaticCollectionItem. The AST is deserialised on-demand from embedded
-// FlatBuffer bytes with zero-copy access to the binary data.
+// Architecture note: CollectionData is populated by BuildAST via GetStaticCollectionItem.
+// The AST is deserialised on-demand from embedded FlatBuffer bytes with zero-copy access
+// to the binary data.
 func GetContentAST(collectionData any) *ast_domain.TemplateAST {
 	if collectionData == nil {
 		return nil
@@ -84,14 +89,13 @@ func GetContentAST(collectionData any) *ast_domain.TemplateAST {
 
 // ValueToString converts a value to its string form.
 //
-// It handles common Go types such as strings, numbers, and booleans in a fast
-// way. For other types, it uses the Stringer interface if available, or falls
-// back to fmt.Sprintf.
+// It handles common Go types such as strings, numbers, and booleans in a fast way. For
+// other types, it uses the Stringer interface if available, or falls back to fmt.Sprintf.
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns string which is the string form of the value, or an empty string if
-// value is nil.
+// Returns string which is the string form of the value, or an empty string if value is
+// nil.
 func ValueToString(value any) string {
 	if value == nil {
 		return ""
@@ -128,14 +132,13 @@ func ValueToString(value any) string {
 
 // PointerValueToString converts a pointer value to its string representation.
 //
-// It safely dereferences common pointer types and returns an empty string for
-// nil. This is used by the template engine for rendering optional/nullable
-// fields.
+// It safely dereferences common pointer types and returns an empty string for nil. This
+// is used by the template engine for rendering optional/nullable fields.
 //
 // Takes value (any) which is the pointer value to convert.
 //
-// Returns string which is the dereferenced value as a string, or an empty
-// string if value is nil.
+// Returns string which is the dereferenced value as a string, or an empty string if value
+// is nil.
 func PointerValueToString(value any) string {
 	if value == nil {
 		return ""
@@ -171,9 +174,9 @@ func PointerValueToString(value any) string {
 	}
 }
 
-// CheckExpressionForIdentifierUsage recursively checks if an expression uses the
-// given identifier name, either directly or as a prefix (e.g., "item.name" would
-// match identifier "item"). Used to determine variable dependencies.
+// CheckExpressionForIdentifierUsage recursively checks if an expression uses the given
+// identifier name, either directly or as a prefix (e.g., "item.name" would match
+// identifier "item"). Used to determine variable dependencies.
 //
 // Takes expression (ast_domain.Expression) which is the expression to search.
 // Takes identifierName (string) which is the identifier to look for.
@@ -212,15 +215,15 @@ func CheckExpressionForIdentifierUsage(expression ast_domain.Expression, identif
 	return false
 }
 
-// IsLoopVarUsedInNode checks if a loop variable is used anywhere within a template
-// node or its children. Used to optimise code generation by avoiding unnecessary
-// variable bindings when the loop variable is not referenced.
+// IsLoopVarUsedInNode checks if a loop variable is used anywhere within a template node
+// or its children. Used to optimise code generation by avoiding unnecessary variable
+// bindings when the loop variable is not referenced.
 //
 // Takes node (*ast_domain.TemplateNode) which is the root node to search.
 // Takes loopVarName (string) which is the name of the loop variable to find.
 //
-// Returns bool which is true if the loop variable is referenced in the node
-// or any of its descendants.
+// Returns bool which is true if the loop variable is referenced in the node or any of its
+// descendants.
 func IsLoopVarUsedInNode(node *ast_domain.TemplateNode, loopVarName string) bool {
 	if node == nil || loopVarName == "" {
 		return false
@@ -281,8 +284,8 @@ func unsignedIntToString(value any) string {
 	}
 }
 
-// mathsTypeToString converts a maths.Decimal, maths.BigInt, or maths.Money
-// value (or pointer) to its string form.
+// mathsTypeToString converts a maths.Decimal, maths.BigInt, or maths.Money value (or
+// pointer) to its string form.
 //
 // Takes value (any) which is a maths type value or pointer.
 //
@@ -315,8 +318,8 @@ func mathsTypeToString(value any) string {
 	}
 }
 
-// isLoopVarUsedInBuiltInDirectives checks if a loop variable is used in any
-// built-in directive on the node, such as p-if, p-for, or p-text.
+// isLoopVarUsedInBuiltInDirectives checks if a loop variable is used in any built-in
+// directive on the node, such as p-if, p-for, or p-text.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 // Takes loopVarName (string) which is the loop variable name to search for.
@@ -332,14 +335,13 @@ func isLoopVarUsedInBuiltInDirectives(node *ast_domain.TemplateNode, loopVarName
 	return false
 }
 
-// collectDirectiveExpressions gathers all expressions from a node's built-in
-// directives.
+// collectDirectiveExpressions gathers all expressions from a node's built-in directives.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to get
-// expressions from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to get expressions
+// from.
 //
-// Returns []ast_domain.Expression which holds all directive expressions found
-// on the node, including nil values for unset directives.
+// Returns []ast_domain.Expression which holds all directive expressions found on the
+// node, including nil values for unset directives.
 func collectDirectiveExpressions(node *ast_domain.TemplateNode) []ast_domain.Expression {
 	var expressions []ast_domain.Expression
 
@@ -374,8 +376,8 @@ func collectDirectiveExpressions(node *ast_domain.TemplateNode) []ast_domain.Exp
 	return expressions
 }
 
-// isLoopVarUsedInCollections checks if the loop variable is used in any of the
-// node's collection-based fields (DynamicAttributes, Binds, OnEvents, etc.).
+// isLoopVarUsedInCollections checks if the loop variable is used in any of the node's
+// collection-based fields (DynamicAttributes, Binds, OnEvents, etc.).
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to inspect.
 // Takes loopVarName (string) which is the name of the loop variable to find.
@@ -397,15 +399,14 @@ func isLoopVarUsedInCollections(node *ast_domain.TemplateNode, loopVarName strin
 	return checkDirectives(node.Directives, loopVarName)
 }
 
-// checkDynamicAttributes checks whether the loop variable is used in any
-// dynamic attribute.
+// checkDynamicAttributes checks whether the loop variable is used in any dynamic
+// attribute.
 //
-// Takes attrs ([]ast_domain.DynamicAttribute) which is the list of dynamic
-// attributes to search.
+// Takes attrs ([]ast_domain.DynamicAttribute) which is the list of dynamic attributes to
+// search.
 // Takes loopVarName (string) which is the loop variable name to find.
 //
-// Returns bool which is true if the loop variable is found in any attribute
-// expression.
+// Returns bool which is true if the loop variable is found in any attribute expression.
 func checkDynamicAttributes(attrs []ast_domain.DynamicAttribute, loopVarName string) bool {
 	for i := range attrs {
 		if CheckExpressionForIdentifierUsage(attrs[i].Expression, loopVarName) {
@@ -415,11 +416,11 @@ func checkDynamicAttributes(attrs []ast_domain.DynamicAttribute, loopVarName str
 	return false
 }
 
-// checkBindsMap checks whether a loop variable is used in any bind directive
-// within a map of directives.
+// checkBindsMap checks whether a loop variable is used in any bind directive within a map
+// of directives.
 //
-// Takes binds (map[string]*ast_domain.Directive) which contains the bind
-// directives to search.
+// Takes binds (map[string]*ast_domain.Directive) which contains the bind directives to
+// search.
 // Takes loopVarName (string) which is the name of the loop variable to find.
 //
 // Returns bool which is true if the loop variable is used in any directive.
@@ -434,12 +435,11 @@ func checkBindsMap(binds map[string]*ast_domain.Directive, loopVarName string) b
 
 // checkEventMap checks whether the loop variable is used in an event map.
 //
-// Takes eventMap (map[string][]ast_domain.Directive) which holds the event
-// directives to search.
+// Takes eventMap (map[string][]ast_domain.Directive) which holds the event directives to
+// search.
 // Takes loopVarName (string) which is the name of the loop variable to find.
 //
-// Returns bool which is true if the loop variable is used in any directive
-// expression.
+// Returns bool which is true if the loop variable is used in any directive expression.
 func checkEventMap(eventMap map[string][]ast_domain.Directive, loopVarName string) bool {
 	for _, directiveSlice := range eventMap {
 		for i := range directiveSlice {
@@ -453,12 +453,11 @@ func checkEventMap(eventMap map[string][]ast_domain.Directive, loopVarName strin
 
 // checkDirectives checks if the loop variable is used in generic directives.
 //
-// Takes directives ([]ast_domain.Directive) which contains the directives to
-// search through.
+// Takes directives ([]ast_domain.Directive) which contains the directives to search
+// through.
 // Takes loopVarName (string) which specifies the loop variable name to find.
 //
-// Returns bool which is true if the loop variable is used in any directive
-// expression.
+// Returns bool which is true if the loop variable is used in any directive expression.
 func checkDirectives(directives []ast_domain.Directive, loopVarName string) bool {
 	for i := range directives {
 		if CheckExpressionForIdentifierUsage(directives[i].Expression, loopVarName) {

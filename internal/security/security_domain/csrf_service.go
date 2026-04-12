@@ -33,14 +33,14 @@ import (
 )
 
 const (
-	// defaultCSRFTokenMaxAge is the default maximum age for CSRF tokens, set to
-	// 30 days as a generous fallback when using Double Submit Cookie. The primary
-	// expiry mechanism is cookie rotation.
+	// defaultCSRFTokenMaxAge is the default maximum age for CSRF tokens, set to 30 days as a
+	// generous fallback when using Double Submit Cookie. The primary expiry mechanism is
+	// cookie rotation.
 	defaultCSRFTokenMaxAge = 30 * 24 * time.Hour
 )
 
-// csrfTokenService handles CSRF token checks and creation using the double
-// submit cookie pattern. It implements CSRFTokenService and HealthProbe.
+// csrfTokenService handles CSRF token checks and creation using the double submit cookie
+// pattern. It implements CSRFTokenService and HealthProbe.
 type csrfTokenService struct {
 	// cookieSource provides the cookie value used for token binding.
 	cookieSource CSRFCookieSourceAdapter
@@ -52,15 +52,15 @@ type csrfTokenService struct {
 	config SecurityConfig
 }
 
-// GenerateCSRFPair creates a new CSRF token pair for the given request.
-// It uses the Double Submit Cookie pattern where the token is bound to
-// a cookie value rather than a timestamp.
+// GenerateCSRFPair creates a new CSRF token pair for the given request. It uses the
+// Double Submit Cookie pattern where the token is bound to a cookie value rather than a
+// timestamp.
 //
 // Takes w (http.ResponseWriter) which is used to set the CSRF cookie if needed.
 // Takes r (*http.Request) which provides the request context for token binding.
-// Takes buffer (*bytes.Buffer) which is used to build the action token. The caller
-// owns this buffer and must ensure it remains valid for the lifetime of the
-// returned CSRFPair.ActionToken slice.
+// Takes buffer (*bytes.Buffer) which is used to build the action token. The caller owns
+// this buffer and must ensure it remains valid for the lifetime of the returned
+// CSRFPair.ActionToken slice.
 //
 // Returns security_dto.CSRFPair which contains the ephemeral and action tokens.
 // Returns error when token generation or signing fails.
@@ -88,19 +88,19 @@ func (s *csrfTokenService) GenerateCSRFPair(w http.ResponseWriter, r *http.Reque
 	}, nil
 }
 
-// ValidateCSRFPair checks that an ephemeral token and action token form a
-// valid CSRF pair for the given request. It uses the Double Submit Cookie
-// pattern where the primary validation is cookie value matching.
+// ValidateCSRFPair checks that an ephemeral token and action token form a valid CSRF pair
+// for the given request. It uses the Double Submit Cookie pattern where the primary
+// validation is cookie value matching.
 //
 // Takes r (*http.Request) which provides the request context and cookie.
-// Takes rawEphemeralFromRequest (string) which is the ephemeral token from the
-// request body or query parameter.
-// Takes actionToken ([]byte) which is the signed action token from the request
-// header. Use mem.Bytes() for zero-copy conversion from string.
+// Takes rawEphemeralFromRequest (string) which is the ephemeral token from the request
+// body or query parameter.
+// Takes actionToken ([]byte) which is the signed action token from the request header.
+// Use mem.Bytes() for zero-copy conversion from string.
 //
 // Returns bool which is true when the token pair is valid.
-// Returns error when validation fails, as a CSRFValidationError with an error
-// code that enables frontend recovery (e.g., refresh partial on expiry).
+// Returns error when validation fails, as a CSRFValidationError with an error code that
+// enables frontend recovery (e.g., refresh partial on expiry).
 func (s *csrfTokenService) ValidateCSRFPair(r *http.Request, rawEphemeralFromRequest string, actionToken []byte) (bool, error) {
 	if rawEphemeralFromRequest == "" || len(actionToken) == 0 {
 		return false, newCSRFValidationError(CSRFErrorCodeInvalid, "ephemeral or action token is empty", errInvalidCSRFTokenFormat)
@@ -121,8 +121,8 @@ func (*csrfTokenService) Name() string {
 	return "CSRFService"
 }
 
-// Check implements the healthprobe_domain.Probe interface. It tests whether
-// the CSRF service is working correctly by checking if the secret key is set.
+// Check implements the healthprobe_domain.Probe interface. It tests whether the CSRF
+// service is working correctly by checking if the secret key is set.
 //
 // Returns healthprobe_dto.Status which shows the health state of the service.
 func (s *csrfTokenService) Check(_ context.Context, _ healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -146,14 +146,14 @@ func (s *csrfTokenService) Check(_ context.Context, _ healthprobe_dto.CheckType)
 	}
 }
 
-// verifyAndParseActionToken splits the action token, verifies its signature,
-// and parses the payload components.
+// verifyAndParseActionToken splits the action token, verifies its signature, and parses
+// the payload components.
 //
 // Takes actionToken ([]byte) which is the combined payload and signature.
 //
 // Returns csrfPayloadParts which contains the parsed token components.
-// Returns error when the token is too short, the signature is invalid, or the
-// payload format is malformed.
+// Returns error when the token is too short, the signature is invalid, or the payload
+// format is malformed.
 func (s *csrfTokenService) verifyAndParseActionToken(actionToken []byte) (csrfPayloadParts, error) {
 	if len(actionToken) <= signatureLengthBase64 {
 		return csrfPayloadParts{}, newCSRFValidationError(CSRFErrorCodeInvalid, "action token is too short", errInvalidCSRFTokenFormat)
@@ -179,17 +179,17 @@ func (s *csrfTokenService) verifyAndParseActionToken(actionToken []byte) (csrfPa
 	return payload, nil
 }
 
-// validatePayloadAgainstRequest validates the parsed payload components against
-// the current request context.
+// validatePayloadAgainstRequest validates the parsed payload components against the
+// current request context.
 //
 // Takes r (*http.Request) which provides the current request context.
 // Takes payload (csrfPayloadParts) which contains the parsed CSRF token parts.
-// Takes rawEphemeralFromRequest (string) which is the ephemeral token from the
-// request to validate against.
+// Takes rawEphemeralFromRequest (string) which is the ephemeral token from the request to
+// validate against.
 //
 // Returns bool which indicates whether the payload is valid.
-// Returns error when validation fails due to missing cookie, token mismatch,
-// expiry, or binding mismatch.
+// Returns error when validation fails due to missing cookie, token mismatch, expiry, or
+// binding mismatch.
 func (s *csrfTokenService) validatePayloadAgainstRequest(r *http.Request, payload csrfPayloadParts, rawEphemeralFromRequest string) (bool, error) {
 	currentCookie := s.cookieSource.GetToken(r)
 	if currentCookie == "" {
@@ -215,15 +215,15 @@ func (s *csrfTokenService) validatePayloadAgainstRequest(r *http.Request, payloa
 	return true, nil
 }
 
-// NewCSRFTokenService creates a new CSRF token service with the provided
-// configuration and adapters.
+// NewCSRFTokenService creates a new CSRF token service with the provided configuration
+// and adapters.
 //
-// Takes config (SecurityConfig) which specifies the security settings including
-// the HMAC secret key and token max age.
-// Takes binderAdapter (RequestContextBinderAdapter) which provides request
-// context binding for token operations (e.g., IP binding).
-// Takes cookieSource (CSRFCookieSourceAdapter) which provides the cookie value
-// for the Double Submit Cookie pattern.
+// Takes config (SecurityConfig) which specifies the security settings including the HMAC
+// secret key and token max age.
+// Takes binderAdapter (RequestContextBinderAdapter) which provides request context
+// binding for token operations (e.g., IP binding).
+// Takes cookieSource (CSRFCookieSourceAdapter) which provides the cookie value for the
+// Double Submit Cookie pattern.
 //
 // Returns CSRFTokenService which is the configured service ready for use.
 // Returns error when the HMAC secret key is empty or required adapters are nil.

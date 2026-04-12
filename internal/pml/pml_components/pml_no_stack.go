@@ -28,14 +28,16 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// NoStack implements the pml_domain.Component interface for the <pml-no-stack>
-// tag. It stops child columns from stacking on mobile devices by creating a
-// ghost table for Outlook and passing a specific context to its children.
+// NoStack implements the pml_domain.Component interface for the <pml-no-stack> tag. It
+// stops child columns from stacking on mobile devices by creating a ghost table for
+// Outlook and passing a specific context to its children.
 type NoStack struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*NoStack)(nil)
+var (
+	_ pml_domain.Component = (*NoStack)(nil)
+)
 
 const (
 	// defaultGroupWidth is the fallback width for a group when no width is set.
@@ -45,9 +47,8 @@ const (
 	defaultGroupDirection = "ltr"
 )
 
-// NewNoStack creates a new NoStack component instance. A NoStack stops its
-// child columns from stacking on mobile devices by using an Outlook ghost
-// table.
+// NewNoStack creates a new NoStack component instance. A NoStack stops its child columns
+// from stacking on mobile devices by using an Outlook ghost table.
 //
 // Returns *NoStack which is the configured component ready for use.
 func NewNoStack() *NoStack {
@@ -79,8 +80,8 @@ func (*NoStack) DefaultAttributes() map[string]string {
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which maps attribute names
-// to their type definitions and allowed values.
+// Returns map[string]pml_domain.AttributeDefinition which maps attribute names to their
+// type definitions and allowed values.
 func (*NoStack) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return map[string]pml_domain.AttributeDefinition{
 		CSSWidth: {
@@ -104,8 +105,8 @@ func (*NoStack) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 
 // GetStyleTargets returns the list of style targets for this component.
 //
-// Returns []pml_domain.StyleTarget which lists the supported CSS properties
-// and their target elements.
+// Returns []pml_domain.StyleTarget which lists the supported CSS properties and their
+// target elements.
 func (*NoStack) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: CSSWidth, Target: TargetContainer},
@@ -114,17 +115,16 @@ func (*NoStack) GetStyleTargets() []pml_domain.StyleTarget {
 	}
 }
 
-// Transform converts the <pml-no-stack> element into its final HTML output.
-// The main complexity is generating the Outlook-specific table structure
-// within conditional comments that forces columns to remain side-by-side.
+// Transform converts the <pml-no-stack> element into its final HTML output. The main
+// complexity is generating the Outlook-specific table structure within conditional
+// comments that forces columns to remain side-by-side.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides the
-// transformation state and settings.
+// Takes ctx (*pml_domain.TransformationContext) which provides the transformation state
+// and settings.
 //
 // Returns *ast_domain.TemplateNode which is the transformed HTML structure.
-// Returns []*pml_domain.Error which contains any diagnostics from the
-// transformation.
+// Returns []*pml_domain.Error which contains any diagnostics from the transformation.
 func (c *NoStack) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
 	styles := ctx.StyleManager
 	parentContainerWidth := ctx.ContainerWidth
@@ -163,11 +163,9 @@ func (c *NoStack) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Trans
 // renderStructure creates the complete group structure.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style values.
-// Takes children ([]*ast_domain.TemplateNode) which are the child nodes
-// to include.
+// Takes children ([]*ast_domain.TemplateNode) which are the child nodes to include.
 //
-// Returns *ast_domain.TemplateNode which is the rendered group div
-// element.
+// Returns *ast_domain.TemplateNode which is the rendered group div element.
 func (c *NoStack) renderStructure(styles *pml_domain.StyleManager, children []*ast_domain.TemplateNode, _ string, ctx *pml_domain.TransformationContext) *ast_domain.TemplateNode {
 	divStyles := map[string]string{
 		CSSFontSize:   ValueZeroPx,
@@ -199,14 +197,14 @@ func (c *NoStack) renderStructure(styles *pml_domain.StyleManager, children []*a
 	}, wrappedChildren)
 }
 
-// renderOutlookGhostTableStart generates the opening Outlook conditional
-// comment with the table and tr start.
+// renderOutlookGhostTableStart generates the opening Outlook conditional comment with the
+// table and tr start.
 //
-// Takes styles (*pml_domain.StyleManager) which provides CSS styles to apply
-// as table attributes.
+// Takes styles (*pml_domain.StyleManager) which provides CSS styles to apply as table
+// attributes.
 //
-// Returns *ast_domain.TemplateNode which contains the conditional comment
-// wrapped HTML table opening tags.
+// Returns *ast_domain.TemplateNode which contains the conditional comment wrapped HTML
+// table opening tags.
 func (*NoStack) renderOutlookGhostTableStart(styles *pml_domain.StyleManager) *ast_domain.TemplateNode {
 	tableAttrs := map[string]string{
 		AttrRole:        ValuePresentation,

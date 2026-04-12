@@ -27,8 +27,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// DispatcherInspectorService implements the gRPC service for inspecting
-// dispatcher state and dead letter queues.
+// DispatcherInspectorService implements the gRPC service for inspecting dispatcher state
+// and dead letter queues.
 type DispatcherInspectorService struct {
 	pb.UnimplementedDispatcherInspectorServiceServer
 
@@ -41,8 +41,7 @@ type DispatcherInspectorService struct {
 // Takes inspector (DispatcherInspector) which provides dispatcher inspection
 // capabilities.
 //
-// Returns *DispatcherInspectorService which is ready for use as a gRPC
-// service handler.
+// Returns *DispatcherInspectorService which is ready for use as a gRPC service handler.
 func NewDispatcherInspectorService(inspector dispatcher_domain.DispatcherInspector) *DispatcherInspectorService {
 	return &DispatcherInspectorService{
 		UnimplementedDispatcherInspectorServiceServer: pb.UnimplementedDispatcherInspectorServiceServer{},
@@ -52,8 +51,7 @@ func NewDispatcherInspectorService(inspector dispatcher_domain.DispatcherInspect
 
 // GetDispatcherSummary returns statistics for all configured dispatchers.
 //
-// Returns *pb.GetDispatcherSummaryResponse which contains the dispatcher
-// summaries.
+// Returns *pb.GetDispatcherSummaryResponse which contains the dispatcher summaries.
 // Returns error when the summaries cannot be retrieved.
 func (s *DispatcherInspectorService) GetDispatcherSummary(ctx context.Context, _ *pb.GetDispatcherSummaryRequest) (*pb.GetDispatcherSummaryResponse, error) {
 	summaries, err := s.inspector.GetDispatcherSummaries(ctx)
@@ -83,8 +81,8 @@ func (s *DispatcherInspectorService) GetDispatcherSummary(ctx context.Context, _
 
 // ListDLQEntries returns dead letter queue entries for a specific dispatcher.
 //
-// Takes request (*pb.ListDLQEntriesRequest) which specifies the
-// dispatcher type and limit.
+// Takes request (*pb.ListDLQEntriesRequest) which specifies the dispatcher type and
+// limit.
 //
 // Returns *pb.ListDLQEntriesResponse which contains the DLQ entries.
 // Returns error when the entries cannot be retrieved.
@@ -117,8 +115,7 @@ func (s *DispatcherInspectorService) ListDLQEntries(ctx context.Context, request
 	}, nil
 }
 
-// GetDLQCount returns the number of entries in a dispatcher's dead letter
-// queue.
+// GetDLQCount returns the number of entries in a dispatcher's dead letter queue.
 //
 // Takes request (*pb.GetDLQCountRequest) which specifies the dispatcher type.
 //
@@ -138,8 +135,7 @@ func (s *DispatcherInspectorService) GetDLQCount(ctx context.Context, request *p
 
 // ClearDLQ removes all entries from a dispatcher's dead letter queue.
 //
-// Takes request (*pb.ClearDLQRequest) which specifies the
-// dispatcher type to clear.
+// Takes request (*pb.ClearDLQRequest) which specifies the dispatcher type to clear.
 //
 // Returns *pb.ClearDLQResponse which indicates success.
 // Returns error when the queue cannot be cleared.

@@ -64,8 +64,7 @@ var (
 
 // Get returns the contents of a static JavaScript file.
 //
-// Takes name (string) which specifies the filename to read from the embedded
-// filesystem.
+// Takes name (string) which specifies the filename to read from the embedded filesystem.
 //
 // Returns string which contains the file contents.
 //
@@ -78,8 +77,8 @@ func Get(name string) string {
 	return string(data)
 }
 
-// MustGet returns the contents of a static JavaScript file by name.
-// This is an alias for Get for semantic clarity.
+// MustGet returns the contents of a static JavaScript file by name. This is an alias for
+// Get for semantic clarity.
 //
 // Takes name (string) which specifies the JavaScript file to retrieve.
 //
@@ -88,8 +87,7 @@ func MustGet(name string) string {
 	return Get(name)
 }
 
-// Execute runs a named JavaScript template with the given data and returns
-// the result.
+// Execute runs a named JavaScript template with the given data and returns the result.
 //
 // Templates use Go's text/template syntax with the following functions:
 //   - {{jsStr .Value}} - safely quotes a string for JS
@@ -139,8 +137,8 @@ func MustExecute(name string, data any) string {
 // Returns *template.Template which is the parsed template ready for use.
 // Returns error when the file cannot be read or the template fails to parse.
 //
-// Safe for concurrent use. Uses a read-write mutex with double-checked
-// locking to protect the template cache.
+// Safe for concurrent use. Uses a read-write mutex with double-checked locking to protect
+// the template cache.
 func getTemplate(name string) (*template.Template, error) {
 	templateCacheMu.RLock()
 	if cachedTemplate, ok := templateCache[name]; ok {

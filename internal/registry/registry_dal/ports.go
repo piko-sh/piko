@@ -25,17 +25,16 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// MetadataDAL defines the interface for persisting and querying artefact
-// metadata. It implements registry_domain.MetadataStore but is defined in
-// the DAL layer to separate domain ports from data access implementation.
+// MetadataDAL defines the interface for persisting and querying artefact metadata. It
+// implements registry_domain.MetadataStore but is defined in the DAL layer to separate
+// domain ports from data access implementation.
 type MetadataDAL interface {
-	// GetArtefact retrieves a single artefact by ID with all its variants and
-	// profiles.
+	// GetArtefact retrieves a single artefact by ID with all its variants and profiles.
 	//
 	// Takes artefactID (string) which identifies the artefact to retrieve.
 	//
-	// Returns *registry_dto.ArtefactMeta which contains the artefact with all its
-	// variants and profiles.
+	// Returns *registry_dto.ArtefactMeta which contains the artefact with all its variants
+	// and profiles.
 	// Returns error when the artefact cannot be found or retrieval fails.
 	GetArtefact(ctx context.Context, artefactID string) (*registry_dto.ArtefactMeta, error)
 
@@ -61,8 +60,8 @@ type MetadataDAL interface {
 	// Returns error when the search fails.
 	SearchArtefacts(ctx context.Context, query registry_domain.SearchQuery) ([]*registry_dto.ArtefactMeta, error)
 
-	// SearchArtefactsByTagValues searches for artefacts that have a specific tag
-	// key with any of the given values.
+	// SearchArtefactsByTagValues searches for artefacts that have a specific tag key with
+	// any of the given values.
 	//
 	// Takes tagKey (string) which specifies the tag key to match.
 	// Takes tagValues ([]string) which lists the acceptable values for the tag.
@@ -71,8 +70,8 @@ type MetadataDAL interface {
 	// Returns error when the search fails.
 	SearchArtefactsByTagValues(ctx context.Context, tagKey string, tagValues []string) ([]*registry_dto.ArtefactMeta, error)
 
-	// FindArtefactByVariantStorageKey finds an artefact by the storage key of one
-	// of its variants.
+	// FindArtefactByVariantStorageKey finds an artefact by the storage key of one of its
+	// variants.
 	//
 	// Takes storageKey (string) which identifies the variant to search for.
 	//
@@ -90,14 +89,13 @@ type MetadataDAL interface {
 
 	// AtomicUpdate runs a batch of actions within a single transaction.
 	//
-	// Takes actions ([]registry_dto.AtomicAction) which lists the operations to
-	// perform.
+	// Takes actions ([]registry_dto.AtomicAction) which lists the operations to perform.
 	//
 	// Returns error when any action in the batch fails.
 	AtomicUpdate(ctx context.Context, actions []registry_dto.AtomicAction) error
 
-	// IncrementBlobRefCount atomically increments the reference count for a blob.
-	// If the blob does not exist, it creates it with a reference count of one.
+	// IncrementBlobRefCount atomically increments the reference count for a blob. If the
+	// blob does not exist, it creates it with a reference count of one.
 	//
 	// Takes blob (registry_domain.BlobReference) which identifies the blob.
 	//
@@ -119,8 +117,8 @@ type MetadataDAL interface {
 	GetBlobRefCount(ctx context.Context, storageKey string) (int, error)
 }
 
-// RegistryDAL provides the complete data access layer for the artefact registry.
-// It combines MetadataDAL operations with health checks and resource management.
+// RegistryDAL provides the complete data access layer for the artefact registry. It
+// combines MetadataDAL operations with health checks and resource management.
 type RegistryDAL interface {
 	MetadataDAL
 
@@ -141,9 +139,7 @@ type RegistryDALWithTx interface {
 
 	// RunAtomic executes fn within a transaction.
 	//
-	// The provided MetadataStore is scoped to the
-	// transaction; all reads and writes through it are
-	// atomic. If fn returns an error (or panics), all
-	// mutations are rolled back.
+	// The provided MetadataStore is scoped to the transaction; all reads and writes through
+	// it are atomic. If fn returns an error (or panics), all mutations are rolled back.
 	RunAtomic(ctx context.Context, fn func(ctx context.Context, transactionStore registry_domain.MetadataStore) error) error
 }

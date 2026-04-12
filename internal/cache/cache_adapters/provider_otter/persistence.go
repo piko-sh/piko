@@ -18,28 +18,29 @@
 
 package provider_otter
 
-import "piko.sh/piko/internal/wal/wal_domain"
+import (
+	"piko.sh/piko/internal/wal/wal_domain"
+)
 
 // PersistenceConfig configures optional WAL-based persistence for the Otter cache.
 //
-// When enabled, the cache persists all writes to a Write-Ahead Log (WAL)
-// and periodically creates snapshots for fast recovery, letting the cache
-// survive process restarts without losing data.
+// When enabled, the cache persists all writes to a Write-Ahead Log (WAL) and periodically
+// creates snapshots for fast recovery, letting the cache survive process restarts without
+// losing data.
 type PersistenceConfig[K comparable, V any] struct {
-	// KeyCodec handles serialisation of cache keys to bytes.
-	// Required when Enabled is true.
+	// KeyCodec handles serialisation of cache keys to bytes. Required when Enabled is true.
 	KeyCodec wal_domain.KeyCodec[K]
 
-	// ValueCodec handles serialisation of cache values to bytes.
-	// Required when Enabled is true.
+	// ValueCodec handles serialisation of cache values to bytes. Required when Enabled is
+	// true.
 	ValueCodec wal_domain.ValueCodec[V]
 
-	// WALConfig configures the WAL and snapshot behaviour.
-	// See wal_domain.Config for details.
+	// WALConfig configures the WAL and snapshot behaviour. See wal_domain.Config for
+	// details.
 	WALConfig wal_domain.Config
 
-	// Enabled controls whether persistence is active; when false, the cache
-	// operates purely in-memory. Default: false.
+	// Enabled controls whether persistence is active; when false, the cache operates purely
+	// in-memory. Default: false.
 	Enabled bool
 }
 

@@ -29,23 +29,22 @@ import (
 )
 
 const (
-	// maxFieldLength is the upper bound (in runes) for attacker-influenced
-	// string fields (URL, User-Agent, Referer) to prevent oversized events.
+	// maxFieldLength is the upper bound (in runes) for attacker-influenced string fields
+	// (URL, User-Agent, Referer) to prevent oversized events.
 	maxFieldLength = 2048
 )
 
-// AnalyticsMiddleware captures HTTP request/response data and fires
-// page view events to the analytics service.
+// AnalyticsMiddleware captures HTTP request/response data and fires page view events to
+// the analytics service.
 type AnalyticsMiddleware struct {
 	// service distributes tracked events to all registered collectors.
 	service *analytics_domain.Service
 }
 
-// NewAnalyticsMiddleware creates middleware that fires events to the
-// given analytics service.
+// NewAnalyticsMiddleware creates middleware that fires events to the given analytics
+// service.
 //
-// Takes service (*analytics_domain.Service) which receives tracked
-// events.
+// Takes service (*analytics_domain.Service) which receives tracked events.
 //
 // Returns *AnalyticsMiddleware which is the configured middleware.
 func NewAnalyticsMiddleware(
@@ -56,9 +55,9 @@ func NewAnalyticsMiddleware(
 	}
 }
 
-// Handler returns an http.Handler middleware that captures the status
-// code and duration via PikoRequestCtx (zero allocations), then fires
-// a page view event after the downstream handler returns.
+// Handler returns an http.Handler middleware that captures the status code and duration
+// via PikoRequestCtx (zero allocations), then fires a page view event after the
+// downstream handler returns.
 //
 // Takes next (http.Handler) which is the downstream handler.
 //
@@ -113,14 +112,13 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 	})
 }
 
-// truncateField returns s unchanged when it fits within limit runes, or
-// truncates it to the first limit runes. Truncation is rune-aware so the
-// result is always valid UTF-8 even for non-ASCII values such as emoji or
-// internationalised URLs.
+// truncateField returns s unchanged when it fits within limit runes, or truncates it to
+// the first limit runes. Truncation is rune-aware so the result is always valid UTF-8
+// even for non-ASCII values such as emoji or internationalised URLs.
 //
 // Takes s (string) which is the value to truncate.
-// Takes limit (int) which is the maximum number of runes to retain. Values
-// of zero or below produce an empty string.
+// Takes limit (int) which is the maximum number of runes to retain. Values of zero or
+// below produce an empty string.
 //
 // Returns string which is the truncated value.
 func truncateField(s string, limit int) string {

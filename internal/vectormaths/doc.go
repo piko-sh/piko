@@ -16,13 +16,12 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Package vectormaths provides float32 vector similarity and
-// normalisation functions with SIMD acceleration.
+// Package vectormaths provides float32 vector similarity and normalisation functions with
+// SIMD acceleration.
 //
-// It supports cosine, Euclidean, and dot-product similarity via
-// [ComputeSimilarity], plus in-place normalisation with
-// [NormaliseF32]. The low-level kernels use hand-written Plan 9
-// assembly on amd64 and arm64 for SIMD throughput, with a pure Go
-// fallback for other architectures and the safe build tag. This
-// package contains only pure maths with no domain types.
+// It supports cosine, Euclidean, and dot-product similarity via [ComputeSimilarity], plus
+// in-place normalisation with [NormaliseF32]. The low-level kernels use hand-written Plan
+// 9 assembly on amd64 and arm64 for SIMD throughput, with a pure Go fallback for other
+// architectures and the safe build tag. Package vectormaths contains only pure maths with
+// no domain types.
 package vectormaths

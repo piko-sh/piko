@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package cache_provider_redis provides a Redis-backed cache provider
-// for distributed caching.
+// Package cache_provider_redis provides a Redis-backed cache provider for distributed
+// caching.
 //
-// A single shared connection is used across all namespaces, where each
-// namespace becomes a key prefix. The provider supports tag-based
-// invalidation, optimistic-locking compute operations via
-// WATCH/MULTI/EXEC, and full-text search when RediSearch is available.
+// A single shared connection is used across all namespaces, where each namespace becomes
+// a key prefix. The provider supports tag-based invalidation, optimistic-locking compute
+// operations via WATCH/MULTI/EXEC, and full-text search when RediSearch is available.
 // Values are serialised through a configurable [cache.EncodingRegistry].
 //
 // All methods are safe for concurrent use.

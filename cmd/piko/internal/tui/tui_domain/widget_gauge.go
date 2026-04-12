@@ -25,36 +25,32 @@ import (
 )
 
 const (
-	// gaugeDefaultFill is the default filled-cell glyph drawn from the
-	// Unicode block-drawing range.
+	// gaugeDefaultFill is the default filled-cell glyph drawn from the Unicode block-drawing
+	// range.
 	gaugeDefaultFill = '▰'
 
-	// gaugeDefaultEmpty is the default empty-cell glyph drawn from the
-	// Unicode block-drawing range.
+	// gaugeDefaultEmpty is the default empty-cell glyph drawn from the Unicode block-drawing
+	// range.
 	gaugeDefaultEmpty = '▱'
 
-	// gaugeMinTextBarWidth is the minimum bar width before the trailing
-	// "Used / Max P%" text is dropped to keep the meter readable.
+	// gaugeMinTextBarWidth is the minimum bar width before the trailing "Used / Max P%" text
+	// is dropped to keep the meter readable.
 	gaugeMinTextBarWidth = 4
 
-	// gaugeMinReadableWidth is the minimum bar width below which the
-	// label is also dropped, leaving only the meter glyphs.
+	// gaugeMinReadableWidth is the minimum bar width below which the label is also dropped,
+	// leaving only the meter glyphs.
 	gaugeMinReadableWidth = 2
 
-	// gaugeWarningThreshold is the percent above which severity becomes
-	// warning.
+	// gaugeWarningThreshold is the percent above which severity becomes warning.
 	gaugeWarningThreshold = 0.6
 
-	// gaugeCriticalThreshold is the percent above which severity becomes
-	// critical.
+	// gaugeCriticalThreshold is the percent above which severity becomes critical.
 	gaugeCriticalThreshold = 0.8
 
-	// percentageScale converts a 0-1 fraction into a 0-100 integer
-	// percentage for display.
+	// percentageScale converts a 0-1 fraction into a 0-100 integer percentage for display.
 	percentageScale = 100
 
-	// emDashSymbol is the placeholder rendered when a gauge has no
-	// configured maximum.
+	// emDashSymbol is the placeholder rendered when a gauge has no configured maximum.
 	emDashSymbol = "-"
 )
 
@@ -63,35 +59,31 @@ type GaugeConfig struct {
 	// Theme provides the fill colour ramp. Required.
 	Theme *Theme
 
-	// Label is the optional text rendered alongside the bar. Empty
-	// suppresses the leading label.
+	// Label is the optional text rendered alongside the bar. Empty suppresses the leading
+	// label.
 	Label string
 
-	// Width is the total width of the bar in terminal cells. The bar
-	// reserves chars for the label and value text and devotes the
-	// remainder to the meter.
+	// Width is the total width of the bar in terminal cells. The bar reserves chars for the
+	// label and value text and devotes the remainder to the meter.
 	Width int
 
 	// Used is the consumed amount.
 	Used float64
 
-	// Max is the limit. When zero or negative the bar renders as
-	// "--" without a meter.
+	// Max is the limit. When zero or negative the bar renders as "--" without a meter.
 	Max float64
 
-	// Severity overrides the auto-derived severity band when set; pass
-	// the zero value (SeverityHealthy) to use the auto-derived value.
+	// Severity overrides the auto-derived severity band when set; pass the zero value
+	// (SeverityHealthy) to use the auto-derived value.
 	Severity Severity
 
-	// FillChar is the character drawn for filled cells; defaults to a
-	// solid block glyph.
+	// FillChar is the character drawn for filled cells; defaults to a solid block glyph.
 	FillChar rune
 
-	// EmptyChar is the character drawn for empty cells; defaults to a
-	// shaded block glyph.
+	// EmptyChar is the character drawn for empty cells; defaults to a shaded block glyph.
 	EmptyChar rune
 
-	// ShowText toggles the trailing text "Used / Max  P%" segment.
+	// ShowText toggles the trailing text "Used / Max P%" segment.
 	ShowText bool
 }
 
@@ -150,8 +142,8 @@ func Gauge(config GaugeConfig) string {
 	return PadRightANSI(body, config.Width)
 }
 
-// gaugePercent returns the consumed fraction. Caps at 1.0 for rendering
-// purposes; saturated values are still surfaced via Severity.
+// gaugePercent returns the consumed fraction. Caps at 1.0 for rendering purposes;
+// saturated values are still surfaced via Severity.
 //
 // Takes used (float64) and limit (float64) which describe the consumption.
 //
@@ -170,9 +162,9 @@ func gaugePercent(used, limit float64) float64 {
 	return pct
 }
 
-// severityFromPercent classifies a percentage into a Severity band.
-// Mirrors UtilisationGauge.Severity so gauges built from raw used/max
-// values get the same colour treatment as those computed by the provider.
+// severityFromPercent classifies a percentage into a Severity band. Mirrors
+// UtilisationGauge.Severity so gauges built from raw used/max values get the same colour
+// treatment as those computed by the provider.
 //
 // Takes percent (float64) which is the consumption fraction.
 //

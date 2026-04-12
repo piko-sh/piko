@@ -29,11 +29,11 @@ import (
 
 // topologicallySortArtefacts sorts artefacts by their dependencies.
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// artefacts to sort.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the artefacts to
+// sort.
 //
-// Returns []*generator_dto.GeneratedArtefact which contains the artefacts in
-// dependency order.
+// Returns []*generator_dto.GeneratedArtefact which contains the artefacts in dependency
+// order.
 // Returns error when a dependency cycle is found.
 func (o *InterpretedBuildOrchestrator) topologicallySortArtefacts(
 	artefacts []*generator_dto.GeneratedArtefact,
@@ -48,14 +48,13 @@ func (o *InterpretedBuildOrchestrator) topologicallySortArtefacts(
 	return sorter.sort(artefacts)
 }
 
-// topologicalSorter holds the state needed to sort build artefacts by their
-// dependencies using topological sorting.
+// topologicalSorter holds the state needed to sort build artefacts by their dependencies
+// using topological sorting.
 type topologicalSorter struct {
 	// orchestrator holds the parent orchestrator for accessing project root.
 	orchestrator *InterpretedBuildOrchestrator
 
-	// artefactByPackagePath maps canonical Go package paths to their generated
-	// artefacts.
+	// artefactByPackagePath maps canonical Go package paths to their generated artefacts.
 	artefactByPackagePath map[string]*generator_dto.GeneratedArtefact
 
 	// adjacency maps each package path to its list of dependent packages.
@@ -70,11 +69,11 @@ type topologicalSorter struct {
 
 // sort performs the topological sort using Kahn's algorithm.
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the
-// items to sort by their dependencies.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which contains the items to sort
+// by their dependencies.
 //
-// Returns []*generator_dto.GeneratedArtefact which contains the artefacts in
-// dependency order.
+// Returns []*generator_dto.GeneratedArtefact which contains the artefacts in dependency
+// order.
 // Returns error when a dependency cycle is detected or validation fails.
 func (sorter *topologicalSorter) sort(artefacts []*generator_dto.GeneratedArtefact) ([]*generator_dto.GeneratedArtefact, error) {
 	sorter.buildArtefactMap(artefacts)
@@ -85,8 +84,8 @@ func (sorter *topologicalSorter) sort(artefacts []*generator_dto.GeneratedArtefa
 
 // buildArtefactMap creates a map from package paths to artefacts.
 //
-// Takes artefacts ([]*generator_dto.GeneratedArtefact) which provides the
-// generated artefacts to index by their package path.
+// Takes artefacts ([]*generator_dto.GeneratedArtefact) which provides the generated
+// artefacts to index by their package path.
 func (sorter *topologicalSorter) buildArtefactMap(artefacts []*generator_dto.GeneratedArtefact) {
 	for _, artefact := range artefacts {
 		component, _ := generator_domain.GetMainComponent(artefact.Result)
@@ -96,8 +95,7 @@ func (sorter *topologicalSorter) buildArtefactMap(artefacts []*generator_dto.Gen
 	}
 }
 
-// buildDependencyGraph builds the adjacency list and in-degree map for all
-// packages.
+// buildDependencyGraph builds the adjacency list and in-degree map for all packages.
 func (sorter *topologicalSorter) buildDependencyGraph() {
 	for packagePath, artefact := range sorter.artefactByPackagePath {
 		sorter.initialiseGraphNode(packagePath)
@@ -119,8 +117,8 @@ func (sorter *topologicalSorter) initialiseGraphNode(packagePath string) {
 // processArtefactImports processes all piko imports for an artefact.
 //
 // Takes packagePath (string) which identifies the package being processed.
-// Takes artefact (*generator_dto.GeneratedArtefact) which contains the artefact
-// with piko imports to process.
+// Takes artefact (*generator_dto.GeneratedArtefact) which contains the artefact with piko
+// imports to process.
 func (sorter *topologicalSorter) processArtefactImports(packagePath string, artefact *generator_dto.GeneratedArtefact) {
 	component, _ := generator_domain.GetMainComponent(artefact.Result)
 	if component == nil {
@@ -152,8 +150,8 @@ func (sorter *topologicalSorter) processImport(packagePath, importPath string) {
 //
 // Takes importPath (string) which is the full import path to process.
 //
-// Returns string which is the path after the first slash, or the original
-// path if no slash is present.
+// Returns string which is the path after the first slash, or the original path if no
+// slash is present.
 func (*topologicalSorter) extractRelativePath(importPath string) string {
 	parts := strings.SplitN(importPath, "/", 2)
 	if len(parts) > 1 {
@@ -162,14 +160,13 @@ func (*topologicalSorter) extractRelativePath(importPath string) string {
 	return filepath.ToSlash(importPath)
 }
 
-// findDependencyPackagePath finds the package path of an artefact matching the
-// import.
+// findDependencyPackagePath finds the package path of an artefact matching the import.
 //
-// Takes importRelativePath (string) which specifies the relative import path
-// to search for.
+// Takes importRelativePath (string) which specifies the relative import path to search
+// for.
 //
-// Returns string which is the package path of the matching artefact, or an
-// empty string if no match is found.
+// Returns string which is the package path of the matching artefact, or an empty string
+// if no match is found.
 func (sorter *topologicalSorter) findDependencyPackagePath(importRelativePath string) string {
 	for candidatePackagePath, candidateArtefact := range sorter.artefactByPackagePath {
 		if sorter.matchesImport(candidateArtefact, importRelativePath) {
@@ -181,12 +178,11 @@ func (sorter *topologicalSorter) findDependencyPackagePath(importRelativePath st
 
 // matchesImport checks if an artefact matches the given import path.
 //
-// Takes artefact (*generator_dto.GeneratedArtefact) which is the artefact
-// to check.
+// Takes artefact (*generator_dto.GeneratedArtefact) which is the artefact to check.
 // Takes importRelativePath (string) which is the import path to match against.
 //
-// Returns bool which is true if the artefact's relative path matches or ends
-// with the import path.
+// Returns bool which is true if the artefact's relative path matches or ends with the
+// import path.
 func (sorter *topologicalSorter) matchesImport(artefact *generator_dto.GeneratedArtefact, importRelativePath string) bool {
 	candidateComponent, _ := generator_domain.GetMainComponent(artefact.Result)
 	if candidateComponent == nil {
@@ -202,11 +198,10 @@ func (sorter *topologicalSorter) matchesImport(artefact *generator_dto.Generated
 	return candidateRelativePath == importRelativePath || strings.HasSuffix(candidateRelativePath, importRelativePath)
 }
 
-// executeKahnsAlgorithm performs Kahn's algorithm to produce a topologically
-// sorted list.
+// executeKahnsAlgorithm performs Kahn's algorithm to produce a topologically sorted list.
 //
-// Returns []*generator_dto.GeneratedArtefact which contains the artefacts
-// ordered by their dependencies.
+// Returns []*generator_dto.GeneratedArtefact which contains the artefacts ordered by
+// their dependencies.
 func (sorter *topologicalSorter) executeKahnsAlgorithm() []*generator_dto.GeneratedArtefact {
 	queue := sorter.initialiseQueue()
 	sorted := make([]*generator_dto.GeneratedArtefact, 0, len(sorter.artefactByPackagePath))
@@ -221,8 +216,7 @@ func (sorter *topologicalSorter) executeKahnsAlgorithm() []*generator_dto.Genera
 	return sorted
 }
 
-// initialiseQueue creates the starting queue with nodes that have no incoming
-// edges.
+// initialiseQueue creates the starting queue with nodes that have no incoming edges.
 //
 // Returns []string which contains paths that have no dependencies.
 func (sorter *topologicalSorter) initialiseQueue() []string {
@@ -235,11 +229,9 @@ func (sorter *topologicalSorter) initialiseQueue() []string {
 	return queue
 }
 
-// processNodeDependents decrements in-degrees and adds newly ready nodes to the
-// queue.
+// processNodeDependents decrements in-degrees and adds newly ready nodes to the queue.
 //
-// Takes packagePath (string) which identifies the node whose dependents to
-// process.
+// Takes packagePath (string) which identifies the node whose dependents to process.
 // Takes queue ([]string) which holds nodes ready for processing.
 //
 // Returns []string which is the updated queue with any newly ready nodes added.
@@ -255,8 +247,7 @@ func (sorter *topologicalSorter) processNodeDependents(packagePath string, queue
 
 // validateAndReturn checks the sorted result and returns it if valid.
 //
-// Takes sorted ([]*generator_dto.GeneratedArtefact) which is the sorted list
-// to check.
+// Takes sorted ([]*generator_dto.GeneratedArtefact) which is the sorted list to check.
 //
 // Returns []*generator_dto.GeneratedArtefact which is the checked sorted list.
 // Returns error when a circular dependency is found.

@@ -18,10 +18,9 @@
 
 // Package llm_provider_openai provides an OpenAI LLM provider adapter.
 //
-// The provider supports completions, streaming, tool/function
-// calling, and structured output via JSON schema. It can also be
-// pointed at any OpenAI-compatible endpoint (Azure OpenAI,
-// proxies, etc.) by overriding the base URL in [Config].
+// The provider supports completions, streaming, tool/function calling, and structured
+// output via JSON schema. It can also be pointed at any OpenAI-compatible endpoint (Azure
+// OpenAI, proxies, etc.) by overriding the base URL in [Config].
 //
 // # Thread safety
 //

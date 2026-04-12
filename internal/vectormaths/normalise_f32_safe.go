@@ -22,9 +22,9 @@ package vectormaths
 
 import "math"
 
-// normaliseF32 normalises a float32 vector in place using pure Go.
-// This safe-mode implementation is used when the "safe" build tag is
-// active or when compiling for js/wasm.
+// normaliseF32 normalises a float32 vector in place using pure Go. This safe-mode
+// implementation is used when the "safe" build tag is active or when compiling for
+// js/wasm.
 //
 // Takes v ([]float32) which is modified in place to have unit length.
 func normaliseF32(v []float32) {

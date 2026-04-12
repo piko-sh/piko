@@ -24,17 +24,17 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-// BudgetData is the serialisable representation of budget state for a single
-// scope. It is stored as the cache value in the cache-backed budget store.
+// BudgetData is the serialisable representation of budget state for a single scope. It is
+// stored as the cache value in the cache-backed budget store.
 type BudgetData struct {
 	// HourStart is when the current hour window began; resets each hour.
-	HourStart time.Time `json:"hourStart"`
+	HourStart time.Time `json:"hourStart,omitzero"`
 
 	// DayStart is the start of the current day for tracking daily spending.
-	DayStart time.Time `json:"dayStart"`
+	DayStart time.Time `json:"dayStart,omitzero"`
 
 	// LastUpdated is when any budget data was last modified.
-	LastUpdated time.Time `json:"lastUpdated"`
+	LastUpdated time.Time `json:"lastUpdated,omitzero"`
 
 	// TotalSpent is the cumulative amount spent for this scope since tracking began.
 	TotalSpent maths.Money `json:"totalSpent"`

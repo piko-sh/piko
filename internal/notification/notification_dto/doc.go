@@ -16,10 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package notification_dto defines data transfer objects for the
-// notification subsystem.
+// Package notification_dto defines data transfer objects for the notification subsystem.
 //
-// These types carry notification data across hexagonal boundaries,
-// covering message content, delivery configuration, provider
-// identification, and dead-letter tracking.
+// These types carry notification data across hexagonal boundaries, covering message
+// content, delivery configuration, provider identification, and dead-letter tracking.
 package notification_dto

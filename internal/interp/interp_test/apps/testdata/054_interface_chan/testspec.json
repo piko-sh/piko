@@ -1,0 +1,4 @@
+{
+  "description": "Channel of interface declared in fileA, producer of one concrete type in fileB sends to it, consumer in main type-switches",
+  "expected": "got=number=42 got=text=hello got=number=7"
+}

@@ -36,9 +36,8 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// EnsureStandardConstructor checks that a class has a standard constructor and
-// creates one if needed. A standard constructor has super() and this.init()
-// calls.
+// EnsureStandardConstructor checks that a class has a standard constructor and creates
+// one if needed. A standard constructor has super() and this.init() calls.
 //
 // Takes classDecl (*js_ast.Class) which is the class to check.
 // Takes registry (*RegistryContext) which provides the build context.
@@ -72,8 +71,7 @@ func EnsureStandardConstructor(
 	return standardiseExistingConstructor(ctx, span, constructor)
 }
 
-// EnsureConnectedCallback verifies the class has a connectedCallback lifecycle
-// method.
+// EnsureConnectedCallback verifies the class has a connectedCallback lifecycle method.
 //
 // Takes classDecl (*js_ast.Class) which is the class to check.
 // Takes registry (*RegistryContext) which provides the build context.
@@ -102,15 +100,13 @@ func EnsureConnectedCallback(ctx context.Context, classDecl *js_ast.Class, regis
 	return createConnectedCallback(ctx, span, classDecl, registry)
 }
 
-// InjectInitIntoConnectedCallback adds startup logic to the connectedCallback
-// method of a web component. It inserts an init call and a super callback at
-// the start of the method body.
+// InjectInitIntoConnectedCallback adds startup logic to the connectedCallback method of a
+// web component. It inserts an init call and a super callback at the start of the method
+// body.
 //
-// Takes connectedCallback (*js_ast.EFunction) which is the callback method to
-// modify.
+// Takes connectedCallback (*js_ast.EFunction) which is the callback method to modify.
 //
-// Returns error when connectedCallback is nil or when parsing the init
-// statement fails.
+// Returns error when connectedCallback is nil or when parsing the init statement fails.
 func InjectInitIntoConnectedCallback(ctx context.Context, connectedCallback *js_ast.EFunction) error {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "InjectInitIntoConnectedCallback")
@@ -150,12 +146,11 @@ func InjectInitIntoConnectedCallback(ctx context.Context, connectedCallback *js_
 	return nil
 }
 
-// createNewConstructor creates a new constructor function with a super() call
-// for a class that does not have one.
+// createNewConstructor creates a new constructor function with a super() call for a class
+// that does not have one.
 //
 // Takes span (trace.Span) which provides tracing context for error reporting.
-// Takes classDecl (*js_ast.Class) which is the class to receive the new
-// constructor.
+// Takes classDecl (*js_ast.Class) which is the class to receive the new constructor.
 // Takes registry (*RegistryContext) which provides identifier creation.
 //
 // Returns *js_ast.EFunction which is the newly created constructor function.
@@ -188,15 +183,12 @@ func createNewConstructor(ctx context.Context, span trace.Span, classDecl *js_as
 	return constructor, nil
 }
 
-// standardiseExistingConstructor updates an existing constructor to use a
-// standard format. It adds a super() call at the start of the body and keeps
-// the original statements, but removes any existing super() or init instance
-// calls.
+// standardiseExistingConstructor updates an existing constructor to use a standard
+// format. It adds a super() call at the start of the body and keeps the original
+// statements, but removes any existing super() or init instance calls.
 //
-// Takes span (trace.Span) which provides the tracing context for error
-// reporting.
-// Takes constructor (*js_ast.EFunction) which is the constructor
-// function to update.
+// Takes span (trace.Span) which provides the tracing context for error reporting.
+// Takes constructor (*js_ast.EFunction) which is the constructor function to update.
 //
 // Returns *js_ast.EFunction which is the updated constructor.
 // Returns error when the super() statement cannot be parsed.
@@ -224,14 +216,12 @@ func standardiseExistingConstructor(ctx context.Context, span trace.Span, constr
 	return constructor, nil
 }
 
-// findConnectedCallback searches for an existing connectedCallback method in a
-// class.
+// findConnectedCallback searches for an existing connectedCallback method in a class.
 //
 // Takes classDecl (*js_ast.Class) which is the class to search within.
 // Takes registry (*RegistryContext) which provides context for property lookup.
 //
-// Returns *js_ast.EFunction which is the method if found, or nil if not
-// present.
+// Returns *js_ast.EFunction which is the method if found, or nil if not present.
 func findConnectedCallback(classDecl *js_ast.Class, registry *RegistryContext) *js_ast.EFunction {
 	for i := range classDecl.Properties {
 		prop := &classDecl.Properties[i]
@@ -251,13 +241,12 @@ func findConnectedCallback(classDecl *js_ast.Class, registry *RegistryContext) *
 
 // getPropertyKeyName extracts the name from a property key expression.
 //
-// Takes key (js_ast.Expr) which is the property key expression to get the
-// name from.
-// Takes registry (*RegistryContext) which provides lookup for identifiers
-// made by hand. If nil, uses the global registry instead.
+// Takes key (js_ast.Expr) which is the property key expression to get the name from.
+// Takes registry (*RegistryContext) which provides lookup for identifiers made by hand.
+// If nil, uses the global registry instead.
 //
-// Returns string which is the property name, or an empty string if the key
-// type is not supported.
+// Returns string which is the property name, or an empty string if the key type is not
+// supported.
 func getPropertyKeyName(key js_ast.Expr, registry *RegistryContext) string {
 	switch k := key.Data.(type) {
 	case *js_ast.EString:
@@ -308,8 +297,8 @@ func createConnectedCallback(ctx context.Context, span trace.Span, classDecl *js
 // Takes classDecl (*js_ast.Class) which is the class to search.
 // Takes registry (*RegistryContext) which provides context for key lookup.
 //
-// Returns *js_ast.EFunction which is the constructor function, or nil if not
-// found or classDecl is nil.
+// Returns *js_ast.EFunction which is the constructor function, or nil if not found or
+// classDecl is nil.
 func findConstructorMethod(classDecl *js_ast.Class, registry *RegistryContext) *js_ast.EFunction {
 	if classDecl == nil {
 		return nil
@@ -329,15 +318,14 @@ func findConstructorMethod(classDecl *js_ast.Class, registry *RegistryContext) *
 	return nil
 }
 
-// parseSnippetAsStatement parses a code snippet and returns the first
-// statement from the parsed AST.
+// parseSnippetAsStatement parses a code snippet and returns the first statement from the
+// parsed AST.
 //
-// The function wraps the snippet in braces to form a block, then extracts the
-// first statement. It adds a semicolon if the snippet does not end with one,
-// a closing brace, or an opening brace.
+// The function wraps the snippet in braces to form a block, then extracts the first
+// statement. It adds a semicolon if the snippet does not end with one, a closing brace,
+// or an opening brace.
 //
-// Takes snippet (string) which contains the JavaScript or TypeScript code to
-// parse.
+// Takes snippet (string) which contains the JavaScript or TypeScript code to parse.
 //
 // Returns js_ast.Stmt which is the first parsed statement from the snippet.
 // Returns error when parsing fails or the snippet produces no statements.
@@ -380,9 +368,8 @@ func parseSnippetAsStatement(snippet string) (js_ast.Stmt, error) {
 	return statement, nil
 }
 
-// parseSnippetAsBlock parses a TypeScript snippet and returns all statements
-// as a block. Use this when you need every statement from the snippet, not just
-// the first one.
+// parseSnippetAsBlock parses a TypeScript snippet and returns all statements as a block.
+// Use this when you need every statement from the snippet, not just the first one.
 //
 // Takes snippet (string) which contains the TypeScript code to parse.
 //
@@ -415,9 +402,8 @@ func parseSnippetAsBlock(snippet string) (*js_ast.SBlock, error) {
 //
 // Takes snippet (string) which is the raw code to wrap.
 //
-// Returns string which is the snippet wrapped in braces. If the snippet does
-// not end with a semicolon, closing brace, or opening brace, a semicolon is
-// added before wrapping.
+// Returns string which is the snippet wrapped in braces. If the snippet does not end with
+// a semicolon, closing brace, or opening brace, a semicolon is added before wrapping.
 func prepareBlockSnippet(snippet string) string {
 	trimmed := strings.TrimSpace(snippet)
 	if !strings.HasSuffix(trimmed, jsSemicolon) && !strings.HasSuffix(trimmed, jsCloseBrace) && !strings.HasSuffix(trimmed, jsOpenBrace) {
@@ -426,13 +412,13 @@ func prepareBlockSnippet(snippet string) string {
 	return fmt.Sprintf("{ %s }", trimmed)
 }
 
-// findBlockInParts searches through AST parts to find the first block statement
-// that contains statements.
+// findBlockInParts searches through AST parts to find the first block statement that
+// contains statements.
 //
 // Takes parts ([]js_ast.Part) which contains the parsed JavaScript AST parts.
 //
-// Returns *js_ast.SBlock which is the first block with statements, or nil if
-// none is found.
+// Returns *js_ast.SBlock which is the first block with statements, or nil if none is
+// found.
 func findBlockInParts(parts []js_ast.Part) *js_ast.SBlock {
 	for partIndex := range parts {
 		if len(parts[partIndex].Stmts) == 0 {
@@ -446,13 +432,12 @@ func findBlockInParts(parts []js_ast.Part) *js_ast.SBlock {
 	return nil
 }
 
-// parseModuleLevelStatement parses a module-level statement such as import or
-// export. Unlike parseSnippetAsStatement, this does not wrap the snippet in a
-// block, which is needed for import statements that cannot appear inside
-// blocks.
+// parseModuleLevelStatement parses a module-level statement such as import or export.
+// Unlike parseSnippetAsStatement, this does not wrap the snippet in a block, which is
+// needed for import statements that cannot appear inside blocks.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes snippet (string) which contains the TypeScript statement to parse.
 //
 // Returns js_ast.Stmt which is the parsed statement.
@@ -484,10 +469,9 @@ func parseModuleLevelStatement(ctx context.Context, snippet string) (js_ast.Stmt
 
 // findStatementInParts searches through all parts for any statement with data.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
-// Takes parsedAST (*js_ast.AST) which contains the parsed JavaScript AST to
-// search.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes parsedAST (*js_ast.AST) which contains the parsed JavaScript AST to search.
 //
 // Returns js_ast.Stmt which is the first statement found with non-nil data.
 // Returns bool which indicates whether a statement was found.
@@ -510,13 +494,12 @@ func findStatementInParts(ctx context.Context, parsedAST *js_ast.AST) (js_ast.St
 	return js_ast.Stmt{}, false
 }
 
-// buildImportFromRecords builds an import statement from import records when
-// the import is not found in Parts.
+// buildImportFromRecords builds an import statement from import records when the import
+// is not found in Parts.
 //
-// Takes parsedAST (*js_ast.AST) which provides the parsed AST with import
-// records and symbols.
-// Takes trimmedSnippet (string) which is the source snippet used to find
-// default imports.
+// Takes parsedAST (*js_ast.AST) which provides the parsed AST with import records and
+// symbols.
+// Takes trimmedSnippet (string) which is the source snippet used to find default imports.
 //
 // Returns js_ast.Stmt which contains the built import statement.
 // Returns bool which shows whether the import was built with success.
@@ -541,9 +524,8 @@ func buildImportFromRecords(parsedAST *js_ast.AST, trimmedSnippet string) (js_as
 	return js_ast.Stmt{Data: simport}, true
 }
 
-// parseImportAliases extracts alias mappings from an import statement string.
-// For `import { add as addNumbers, foo }`, returns {"addNumbers": "add", "foo":
-// "foo"}.
+// parseImportAliases extracts alias mappings from an import statement string. For `import
+// { add as addNumbers, foo }`, returns {"addNumbers": "add", "foo": "foo"}.
 //
 // Takes snippet (string) which is the import statement to parse.
 //
@@ -579,8 +561,7 @@ func parseImportAliases(snippet string) map[string]string {
 	return aliases
 }
 
-// extractImportSymbols filters symbols and returns only those with the
-// SymbolImport kind.
+// extractImportSymbols filters symbols and returns only those with the SymbolImport kind.
 //
 // Takes symbols ([]ast.Symbol) which contains the symbols to filter.
 //
@@ -595,8 +576,8 @@ func extractImportSymbols(symbols []ast.Symbol) []ast.Symbol {
 	return importSymbols
 }
 
-// isDefaultImportSnippet checks whether the given import snippet is a default
-// import rather than a named import.
+// isDefaultImportSnippet checks whether the given import snippet is a default import
+// rather than a named import.
 //
 // Takes snippet (string) which is the import statement text to check.
 //
@@ -610,8 +591,8 @@ func isDefaultImportSnippet(snippet string) bool {
 	return braceIndex == -1 || (fromIndex != -1 && braceIndex > fromIndex)
 }
 
-// isNamespaceImportSnippet checks whether the given import snippet uses
-// namespace import syntax (import * as X from '...').
+// isNamespaceImportSnippet checks whether the given import snippet uses namespace import
+// syntax (import * as X from '...').
 //
 // Takes snippet (string) which is the import statement text to check.
 //
@@ -620,8 +601,8 @@ func isNamespaceImportSnippet(snippet string) bool {
 	return strings.Contains(snippet, "* as ")
 }
 
-// buildNamespaceImportFromRecords builds an SImport with namespace import
-// fields set (StarNameLoc and NamespaceRef) from the given symbol.
+// buildNamespaceImportFromRecords builds an SImport with namespace import fields set
+// (StarNameLoc and NamespaceRef) from the given symbol.
 //
 // Takes allSymbols ([]ast.Symbol) which holds all symbols for index lookup.
 // Takes namespaceSymbol (ast.Symbol) which is the namespace binding symbol.
@@ -678,13 +659,12 @@ func buildSImportFromSymbols(allSymbols []ast.Symbol, importSymbols []ast.Symbol
 	return simport
 }
 
-// registerNamesFromSnippet extracts and registers names from a parsed
-// statement. It walks the AST to find class names, function names, and other
-// identifiers based on the statement type.
+// registerNamesFromSnippet extracts and registers names from a parsed statement. It walks
+// the AST to find class names, function names, and other identifiers based on the
+// statement type.
 //
 // Takes statement (js_ast.Stmt) which is the statement to extract names from.
-// Takes symbols ([]ast.Symbol) which is the symbol table to register names
-// into.
+// Takes symbols ([]ast.Symbol) which is the symbol table to register names into.
 func registerNamesFromSnippet(statement js_ast.Stmt, symbols []ast.Symbol) {
 	switch s := statement.Data.(type) {
 	case *js_ast.SClass:
@@ -730,8 +710,8 @@ func registerBlockStatement(s *js_ast.SBlock, symbols []ast.Symbol) {
 	}
 }
 
-// registerLocalStatement registers identifiers from a local variable
-// statement (var, let, or const).
+// registerLocalStatement registers identifiers from a local variable statement (var, let,
+// or const).
 //
 // Takes s (*js_ast.SLocal) which is the local statement to process.
 // Takes symbols ([]ast.Symbol) which is the symbol table to add identifiers to.
@@ -773,8 +753,7 @@ func registerForStatement(s *js_ast.SFor, symbols []ast.Symbol) {
 	registerNamesFromSnippet(s.Body, symbols)
 }
 
-// registerClassNames records names from a class statement into the symbol
-// table.
+// registerClassNames records names from a class statement into the symbol table.
 //
 // Takes s (*js_ast.SClass) which provides the class statement to process.
 // Takes symbols ([]ast.Symbol) which holds the symbol table for registration.
@@ -814,8 +793,7 @@ func findSymbolIndex(symbols []ast.Symbol, name string) int {
 	return -1
 }
 
-// registerImportNames records names from an import statement in the symbol
-// table.
+// registerImportNames records names from an import statement in the symbol table.
 //
 // Takes s (*js_ast.SImport) which contains the import statement to process.
 // Takes symbols ([]ast.Symbol) which holds the symbol table to update.
@@ -833,8 +811,8 @@ func registerImportNames(s *js_ast.SImport, symbols []ast.Symbol) {
 	}
 }
 
-// registerLocRefIfValid registers a location reference name if its index is
-// valid within the symbol table.
+// registerLocRefIfValid registers a location reference name if its index is valid within
+// the symbol table.
 //
 // Takes locRef (*ast.LocRef) which is the location reference to register.
 // Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
@@ -845,8 +823,8 @@ func registerLocRefIfValid(locRef *ast.LocRef, symbols []ast.Symbol) {
 	}
 }
 
-// registerRefIfValid registers an identifier from a reference if the index is
-// within bounds of the symbol table.
+// registerRefIfValid registers an identifier from a reference if the index is within
+// bounds of the symbol table.
 //
 // Takes ref (ast.Ref) which contains the index to check.
 // Takes symbols ([]ast.Symbol) which is the symbol table to look up.
@@ -858,12 +836,11 @@ func registerRefIfValid(ref ast.Ref, symbols []ast.Symbol) {
 	}
 }
 
-// registerExprIdentifiers walks a JavaScript expression tree and records all
-// identifiers it finds in the given symbol table.
+// registerExprIdentifiers walks a JavaScript expression tree and records all identifiers
+// it finds in the given symbol table.
 //
 // Takes expression (js_ast.Expr) which is the expression to walk.
-// Takes symbols ([]ast.Symbol) which is the symbol table to
-// record identifiers in.
+// Takes symbols ([]ast.Symbol) which is the symbol table to record identifiers in.
 func registerExprIdentifiers(expression js_ast.Expr, symbols []ast.Symbol) {
 	if expression.Data == nil {
 		return
@@ -893,8 +870,8 @@ func registerExprIdentifiers(expression js_ast.Expr, symbols []ast.Symbol) {
 	}
 }
 
-// registerIdentifierExpr records an identifier expression by looking up its
-// original name in the symbol table.
+// registerIdentifierExpr records an identifier expression by looking up its original name
+// in the symbol table.
 //
 // Takes e (*js_ast.EIdentifier) which is the identifier expression to record.
 // Takes symbols ([]ast.Symbol) which is the symbol table for name lookup.
@@ -944,8 +921,8 @@ func registerArrayExprIdents(e *js_ast.EArray, symbols []ast.Symbol) {
 	}
 }
 
-// registerObjectExprIdents scans an object expression and records any
-// identifiers found within its properties.
+// registerObjectExprIdents scans an object expression and records any identifiers found
+// within its properties.
 //
 // Takes e (*js_ast.EObject) which is the object expression to scan.
 // Takes symbols ([]ast.Symbol) which collects the identifiers found.
@@ -969,8 +946,8 @@ func registerArrowExprIdents(e *js_ast.EArrow, symbols []ast.Symbol) {
 	}
 }
 
-// registerFunctionExprIdents registers identifiers found in a function
-// expression. It scans the function arguments and body statements.
+// registerFunctionExprIdents registers identifiers found in a function expression. It
+// scans the function arguments and body statements.
 //
 // Takes e (*js_ast.EFunction) which is the function expression to scan.
 // Takes symbols ([]ast.Symbol) which collects the found identifiers.
@@ -983,11 +960,10 @@ func registerFunctionExprIdents(e *js_ast.EFunction, symbols []ast.Symbol) {
 	}
 }
 
-// registerBindingIdentifiers walks a binding structure recursively and
-// registers each identifier it finds with its original name.
+// registerBindingIdentifiers walks a binding structure recursively and registers each
+// identifier it finds with its original name.
 //
-// Takes binding (js_ast.Binding) which is the binding to extract identifiers
-// from.
+// Takes binding (js_ast.Binding) which is the binding to extract identifiers from.
 // Takes symbols ([]ast.Symbol) which provides the symbol table for name lookup.
 func registerBindingIdentifiers(binding js_ast.Binding, symbols []ast.Symbol) {
 	if binding.Data == nil {
@@ -1029,14 +1005,11 @@ func isSuperCall(statement js_ast.Stmt) bool {
 	return ok
 }
 
-// getExprData extracts string data from a JavaScript AST
-// expression.
+// getExprData extracts string data from a JavaScript AST expression.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// extract data from.
+// Takes expression (js_ast.Expr) which is the expression to extract data from.
 //
-// Returns []byte which contains the string data, or nil for
-// unsupported expression types.
+// Returns []byte which contains the string data, or nil for unsupported expression types.
 func getExprData(expression js_ast.Expr) []byte {
 	switch e := expression.Data.(type) {
 	case *js_ast.EString:

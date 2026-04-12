@@ -56,8 +56,8 @@ const (
 	// KeyStatusDestroyed indicates that the key has been permanently destroyed.
 	KeyStatusDestroyed = crypto_dto.KeyStatusDestroyed
 
-	// errFmtGettingDefaultService is the format string for wrapping errors when
-	// retrieving the default crypto service.
+	// errFmtGettingDefaultService is the format string for wrapping errors when retrieving
+	// the default crypto service.
 	errFmtGettingDefaultService = "getting default crypto service: %w"
 )
 
@@ -77,12 +77,12 @@ var (
 	// ErrEncryptionFailed is returned when data encryption fails.
 	ErrEncryptionFailed = crypto_dto.ErrEncryptionFailed
 
-	// ErrProviderUnavailable is returned when the requested cryptographic
-	// provider is not available or cannot be initialised.
+	// ErrProviderUnavailable is returned when the requested cryptographic provider is not
+	// available or cannot be initialised.
 	ErrProviderUnavailable = crypto_dto.ErrProviderUnavailable
 
-	// ErrInvalidProvider is returned when an unrecognised or unsupported
-	// cryptographic provider is specified.
+	// ErrInvalidProvider is returned when an unrecognised or unsupported cryptographic
+	// provider is specified.
 	ErrInvalidProvider = crypto_dto.ErrInvalidProvider
 
 	// ErrEmptyPlaintext is returned when encryption is attempted with empty input.
@@ -91,31 +91,30 @@ var (
 	// ErrEmptyCiphertext is returned when the ciphertext to decrypt is empty.
 	ErrEmptyCiphertext = crypto_dto.ErrEmptyCiphertext
 
-	// ErrContextMismatch is returned when the context does not match the expected
-	// encryption context.
+	// ErrContextMismatch is returned when the context does not match the expected encryption
+	// context.
 	ErrContextMismatch = crypto_dto.ErrContextMismatch
 
-	// ErrKeyRotationInProgress is returned when an operation cannot proceed
-	// because a key rotation is already in progress.
+	// ErrKeyRotationInProgress is returned when an operation cannot proceed because a key
+	// rotation is already in progress.
 	ErrKeyRotationInProgress = crypto_dto.ErrKeyRotationInProgress
 )
 
-// ServicePort is the main interface for encryption operations.
-// Application code should depend on this rather than concrete types.
+// ServicePort is the main interface for encryption operations. Application code should
+// depend on this rather than concrete types.
 //
-// The service provides a high-level API that hides provider details and
-// includes automatic key selection, envelope encryption for batch operations,
-// key rotation support, and observability integration.
+// The service provides a high-level API that hides provider details and includes
+// automatic key selection, envelope encryption for batch operations, key rotation
+// support, and observability integration.
 type ServicePort = crypto_domain.CryptoServicePort
 
-// EncryptionProvider is the interface that all encryption adapters must
-// implement. Implementations include local_aes_gcm.Provider (always available),
-// aws_kms.Provider, and gcp_kms.Provider (both require explicit registration).
+// EncryptionProvider is the interface that all encryption adapters must implement.
+// Implementations include local_aes_gcm.Provider (always available), aws_kms.Provider,
+// and gcp_kms.Provider (both require explicit registration).
 type EncryptionProvider = crypto_domain.EncryptionProvider
 
-// LocalProviderFactory creates short-lived encryption providers for envelope
-// encryption. The crypto service uses this to create temporary providers
-// set up with data keys.
+// LocalProviderFactory creates short-lived encryption providers for envelope encryption.
+// The crypto service uses this to create temporary providers set up with data keys.
 type LocalProviderFactory = crypto_domain.LocalProviderFactory
 
 // EncryptBuilder provides a fluent interface for encrypting data.
@@ -189,8 +188,8 @@ func DefaultKeyRotationPolicy() *KeyRotationPolicy {
 	return crypto_dto.DefaultKeyRotationPolicy()
 }
 
-// NewEncryptionError creates a new EncryptionError with context about the
-// failed operation.
+// NewEncryptionError creates a new EncryptionError with context about the failed
+// operation.
 //
 // Takes op (string) which specifies the operation that failed.
 // Takes provider (string) which identifies the encryption provider.
@@ -202,14 +201,14 @@ func NewEncryptionError(op, provider, keyID string, err error) *EncryptionError 
 	return crypto_dto.NewEncryptionError(op, provider, keyID, err)
 }
 
-// WithLocalProviderFactory sets a factory for creating short-lived local
-// providers. This is needed for envelope encryption in batch operations.
+// WithLocalProviderFactory sets a factory for creating short-lived local providers. This
+// is needed for envelope encryption in batch operations.
 //
-// If not set when using batch operations, the service will return an error.
-// The bootstrap layer adds a default factory on its own.
+// If not set when using batch operations, the service will return an error. The bootstrap
+// layer adds a default factory on its own.
 //
-// Takes factory (crypto_domain.LocalProviderFactory) which creates short-lived
-// local providers for batch encryption operations.
+// Takes factory (crypto_domain.LocalProviderFactory) which creates short-lived local
+// providers for batch encryption operations.
 //
 // Returns ServiceOption which sets up the service with the given factory.
 func WithLocalProviderFactory(factory crypto_domain.LocalProviderFactory) ServiceOption {
@@ -218,29 +217,27 @@ func WithLocalProviderFactory(factory crypto_domain.LocalProviderFactory) Servic
 
 // NewService creates a new crypto service with the given settings.
 //
-// This is the low-level constructor. Most applications should use
-// GetDefaultService or set options via piko.New instead.
+// This is the low-level constructor. Most applications should use GetDefaultService or
+// set options via piko.New instead.
 //
-// The cacheService parameter may be nil to turn off data key caching (e.g., for
-// testing or when using the local provider). For production KMS providers,
-// providing a cache service greatly improves performance by caching decrypted
-// data keys for a short TTL.
+// The cacheService parameter may be nil to turn off data key caching (e.g., for testing
+// or when using the local provider). For production KMS providers, providing a cache
+// service greatly improves performance by caching decrypted data keys for a short TTL.
 //
-// For batch operations (EncryptBatch/DecryptBatch), you must provide a local
-// provider factory via WithLocalProviderFactory option.
+// For batch operations (EncryptBatch/DecryptBatch), you must provide a local provider
+// factory via WithLocalProviderFactory option.
 //
 // After creating the service, you must register at least one provider using
 // RegisterProvider() and set a default provider using SetDefaultProvider().
 //
-// Takes cacheService (cache_domain.Service) which caches decrypted data keys, or
-// nil to turn off caching.
-// Takes config (*ServiceConfig) which specifies service settings including the
-// active key ID.
-// Takes opts (...ServiceOption) which provides optional behaviour controls
-// such as WithLocalProviderFactory.
+// Takes cacheService (cache_domain.Service) which caches decrypted data keys, or nil to
+// turn off caching.
+// Takes config (*ServiceConfig) which specifies service settings including the active key
+// ID.
+// Takes opts (...ServiceOption) which provides optional behaviour controls such as
+// WithLocalProviderFactory.
 //
-// Returns ServicePort which is the crypto service ready for provider
-// registration.
+// Returns ServicePort which is the crypto service ready for provider registration.
 // Returns error when the configuration is not valid.
 //
 // Example:
@@ -272,11 +269,10 @@ func NewService(ctx context.Context, cacheService cache_domain.Service, config *
 	return crypto_domain.NewCryptoService(ctx, cacheService, config, opts...)
 }
 
-// GetDefaultService returns the default crypto service configured during
-// bootstrap.
+// GetDefaultService returns the default crypto service configured during bootstrap.
 //
-// This is the recommended way to access the crypto service in most application
-// code. The service is configured via:
+// This is the recommended way to access the crypto service in most application code. The
+// service is configured via:
 //   - piko.New() options (recommended)
 //   - config/server_config.yaml
 //   - Environment variables
@@ -290,8 +286,7 @@ func NewService(ctx context.Context, cacheService cache_domain.Service, config *
 //	encrypted, err := cryptoService.Encrypt(ctx, "sensitive-data")
 //
 // Returns ServicePort which is the configured crypto service.
-// Returns error when the framework is not initialised or the service cannot be
-// created.
+// Returns error when the framework is not initialised or the service cannot be created.
 func GetDefaultService() (ServicePort, error) {
 	service, err := bootstrap.GetCryptoService()
 	if err != nil {
@@ -300,8 +295,7 @@ func GetDefaultService() (ServicePort, error) {
 	return service, nil
 }
 
-// Encrypt encrypts plaintext using the default crypto service set up during
-// bootstrap.
+// Encrypt encrypts plaintext using the default crypto service set up during bootstrap.
 //
 // This is a convenience wrapper around GetCryptoService().Encrypt().
 //
@@ -317,8 +311,7 @@ func Encrypt(ctx context.Context, plaintext string) (string, error) {
 	return service.Encrypt(ctx, plaintext)
 }
 
-// Decrypt decrypts ciphertext using the default crypto service set up during
-// bootstrap.
+// Decrypt decrypts ciphertext using the default crypto service set up during bootstrap.
 //
 // This is a wrapper around GetDefaultService().Decrypt().
 //
@@ -334,8 +327,8 @@ func Decrypt(ctx context.Context, ciphertext string) (string, error) {
 	return service.Decrypt(ctx, ciphertext)
 }
 
-// EncryptBatch encrypts multiple plaintexts using envelope encryption with the
-// default service.
+// EncryptBatch encrypts multiple plaintexts using envelope encryption with the default
+// service.
 //
 // This is a convenience wrapper around GetDefaultService().EncryptBatch().
 //
@@ -346,8 +339,8 @@ func Decrypt(ctx context.Context, ciphertext string) (string, error) {
 //
 // Takes plaintexts ([]string) which contains the values to encrypt.
 //
-// Returns []string which contains the encrypted strings. On error, the
-// returned slice is nil; partial results are never returned.
+// Returns []string which contains the encrypted strings. On error, the returned slice is
+// nil; partial results are never returned.
 // Returns error when encryption fails or the service is not set up.
 func EncryptBatch(ctx context.Context, plaintexts []string) ([]string, error) {
 	service, err := bootstrap.GetCryptoService()
@@ -363,8 +356,8 @@ func EncryptBatch(ctx context.Context, plaintexts []string) ([]string, error) {
 //
 // Takes ciphertexts ([]string) which contains the encrypted strings to decrypt.
 //
-// Returns []string which contains the decrypted plaintext strings. On error,
-// the returned slice is nil; partial results are never returned.
+// Returns []string which contains the decrypted plaintext strings. On error, the returned
+// slice is nil; partial results are never returned.
 // Returns error when decryption fails or the service is not set up.
 func DecryptBatch(ctx context.Context, ciphertexts []string) ([]string, error) {
 	service, err := bootstrap.GetCryptoService()
@@ -378,14 +371,13 @@ func DecryptBatch(ctx context.Context, ciphertexts []string) ([]string, error) {
 //
 // Takes service (ServicePort) which is the crypto service to use.
 //
-// Returns *EncryptBuilder which provides a fluent interface for encrypting
-// data.
+// Returns *EncryptBuilder which provides a fluent interface for encrypting data.
 func NewEncryptBuilder(service ServicePort) *EncryptBuilder {
 	return service.NewEncrypt()
 }
 
-// NewEncryptBuilderFromDefault creates a new encryption builder using the
-// framework's bootstrapped service.
+// NewEncryptBuilderFromDefault creates a new encryption builder using the framework's
+// bootstrapped service.
 //
 // Returns *EncryptBuilder which is the configured builder ready for use.
 // Returns error when the framework has not been bootstrapped.
@@ -409,14 +401,13 @@ func NewEncryptBuilderFromDefault() (*EncryptBuilder, error) {
 //
 // Takes service (ServicePort) which is the crypto service to use.
 //
-// Returns *DecryptBuilder which provides a fluent interface for decrypting
-// data.
+// Returns *DecryptBuilder which provides a fluent interface for decrypting data.
 func NewDecryptBuilder(service ServicePort) *DecryptBuilder {
 	return service.NewDecrypt()
 }
 
-// NewDecryptBuilderFromDefault creates a new decryption builder using the
-// framework's bootstrapped service.
+// NewDecryptBuilderFromDefault creates a new decryption builder using the framework's
+// bootstrapped service.
 //
 // Returns *DecryptBuilder which is the configured builder ready for use.
 // Returns error when the framework has not been bootstrapped.
@@ -436,13 +427,11 @@ func NewDecryptBuilderFromDefault() (*DecryptBuilder, error) {
 	return NewDecryptBuilder(service), nil
 }
 
-// NewBatchEncryptBuilder creates a new batch encryption builder with an
-// explicit service.
+// NewBatchEncryptBuilder creates a new batch encryption builder with an explicit service.
 //
 // Takes service (ServicePort) which is the crypto service to use.
 //
-// Returns *BatchEncryptBuilder which provides a fluent interface for batch
-// encryption.
+// Returns *BatchEncryptBuilder which provides a fluent interface for batch encryption.
 //
 // Example:
 //
@@ -454,8 +443,8 @@ func NewBatchEncryptBuilder(service ServicePort) *BatchEncryptBuilder {
 	return service.NewBatchEncrypt()
 }
 
-// NewBatchEncryptBuilderFromDefault creates a new batch encryption builder
-// using the framework's bootstrapped service.
+// NewBatchEncryptBuilderFromDefault creates a new batch encryption builder using the
+// framework's bootstrapped service.
 //
 // Returns *BatchEncryptBuilder which is the configured builder ready for use.
 // Returns error when the framework has not been bootstrapped.
@@ -475,13 +464,11 @@ func NewBatchEncryptBuilderFromDefault() (*BatchEncryptBuilder, error) {
 	return NewBatchEncryptBuilder(service), nil
 }
 
-// NewBatchDecryptBuilder creates a new batch decryption builder with an
-// explicit service.
+// NewBatchDecryptBuilder creates a new batch decryption builder with an explicit service.
 //
 // Takes service (ServicePort) which is the crypto service to use.
 //
-// Returns *BatchDecryptBuilder which provides a fluent interface for batch
-// decryption.
+// Returns *BatchDecryptBuilder which provides a fluent interface for batch decryption.
 //
 // Example:
 //
@@ -493,8 +480,8 @@ func NewBatchDecryptBuilder(service ServicePort) *BatchDecryptBuilder {
 	return service.NewBatchDecrypt()
 }
 
-// NewBatchDecryptBuilderFromDefault creates a new batch decryption builder
-// using the framework's bootstrapped service.
+// NewBatchDecryptBuilderFromDefault creates a new batch decryption builder using the
+// framework's bootstrapped service.
 //
 // Returns *BatchDecryptBuilder which is the configured builder ready for use.
 // Returns error when the framework has not been bootstrapped.
@@ -518,8 +505,8 @@ func NewBatchDecryptBuilderFromDefault() (*BatchDecryptBuilder, error) {
 //
 // Takes service (ServicePort) which is the crypto service to use.
 //
-// Returns *StreamEncryptBuilder which provides a fluent interface for
-// streaming encryption.
+// Returns *StreamEncryptBuilder which provides a fluent interface for streaming
+// encryption.
 //
 // Example:
 //
@@ -532,8 +519,8 @@ func NewStreamEncryptBuilder(service ServicePort) *StreamEncryptBuilder {
 	return service.NewStreamEncrypt()
 }
 
-// NewStreamEncryptBuilderFromDefault creates a new streaming encryption
-// builder using the framework's bootstrapped service.
+// NewStreamEncryptBuilderFromDefault creates a new streaming encryption builder using the
+// framework's bootstrapped service.
 //
 // Returns *StreamEncryptBuilder which is the configured builder.
 // Returns error when the framework has not been bootstrapped.
@@ -545,13 +532,13 @@ func NewStreamEncryptBuilderFromDefault() (*StreamEncryptBuilder, error) {
 	return NewStreamEncryptBuilder(service), nil
 }
 
-// NewStreamDecryptBuilder creates a streaming decryption builder with the
-// provided service.
+// NewStreamDecryptBuilder creates a streaming decryption builder with the provided
+// service.
 //
 // Takes service (ServicePort) which is the crypto service to use.
 //
-// Returns *StreamDecryptBuilder which provides a fluent interface for
-// streaming decryption.
+// Returns *StreamDecryptBuilder which provides a fluent interface for streaming
+// decryption.
 //
 // Example:
 //
@@ -563,8 +550,8 @@ func NewStreamDecryptBuilder(service ServicePort) *StreamDecryptBuilder {
 	return service.NewStreamDecrypt()
 }
 
-// NewStreamDecryptBuilderFromDefault creates a new streaming decryption
-// builder using the framework's bootstrapped service.
+// NewStreamDecryptBuilderFromDefault creates a new streaming decryption builder using the
+// framework's bootstrapped service.
 //
 // Returns *StreamDecryptBuilder which is the configured builder.
 // Returns error when the framework has not been bootstrapped.
@@ -587,8 +574,7 @@ func IsValidProviderType(pt ProviderType) bool {
 
 // ExampleBasicEncryption shows how to encrypt and decrypt a string.
 //
-// Panics if the crypto service cannot be set up, or if encryption or
-// decryption fails.
+// Panics if the crypto service cannot be set up, or if encryption or decryption fails.
 func ExampleBasicEncryption() {
 	ctx := context.Background()
 	cryptoService, err := GetDefaultService()
@@ -613,8 +599,7 @@ func ExampleBasicEncryption() {
 
 // ExampleBatchOperations shows how to encrypt and decrypt many tokens at once.
 //
-// Panics if the crypto service cannot be set up or if encryption or decryption
-// fails.
+// Panics if the crypto service cannot be set up or if encryption or decryption fails.
 func ExampleBatchOperations() {
 	const exampleBatchSize = 1000
 
@@ -665,8 +650,7 @@ func ExampleKeyRotation() {
 	_ = newEncrypted
 }
 
-// ExampleStreamingEncryption shows how to use streaming encryption for large
-// files.
+// ExampleStreamingEncryption shows how to use streaming encryption for large files.
 //
 // Panics if the crypto service cannot be set up.
 func ExampleStreamingEncryption() {

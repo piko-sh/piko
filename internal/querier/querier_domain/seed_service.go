@@ -38,16 +38,14 @@ type seedService struct {
 	directory string
 }
 
-// NewSeedService creates a seed service for applying database seed files.
-// The service handles executing SQL seed files in version order with
-// idempotency tracking via a history table.
+// NewSeedService creates a seed service for applying database seed files. The service
+// handles executing SQL seed files in version order with idempotency tracking via a
+// history table.
 //
-// Takes executor (SeedExecutorPort) which provides database-specific seed
-// operations.
-// Takes fileReader (FileReaderPort) which provides filesystem access for
-// reading seed SQL files.
-// Takes directory (string) which is the path to the seed files within the
-// filesystem.
+// Takes executor (SeedExecutorPort) which provides database-specific seed operations.
+// Takes fileReader (FileReaderPort) which provides filesystem access for reading seed SQL
+// files.
+// Takes directory (string) which is the path to the seed files within the filesystem.
 //
 // Returns SeedServicePort which is ready to apply seeds.
 func NewSeedService(
@@ -62,14 +60,13 @@ func NewSeedService(
 	}
 }
 
-// Apply executes all pending seed files in version order, skipping those
-// already applied and warning on checksum mismatches.
+// Apply executes all pending seed files in version order, skipping those already applied
+// and warning on checksum mismatches.
 //
-// Apply takes the dialect-specific seed advisory lock for the entire run so
-// concurrent replicas cannot both observe a seed as pending and then race to
-// insert duplicate history rows. The dialect's idempotent INSERT (e.g.
-// "ON CONFLICT (version) DO NOTHING") provides a fallback for dialects
-// without true advisory locking (such as SQLite).
+// Apply takes the dialect-specific seed advisory lock for the entire run so concurrent
+// replicas cannot both observe a seed as pending and then race to insert duplicate
+// history rows. The dialect's idempotent INSERT (e.g. "ON CONFLICT (version) DO NOTHING")
+// provides a fallback for dialects without true advisory locking (such as SQLite).
 //
 // Returns int which is the number of seeds applied.
 // Returns error when a seed fails to execute.
@@ -196,11 +193,10 @@ func (s *seedService) Reseed(ctx context.Context) (int, error) {
 
 // buildAppliedSeedMap creates a lookup map from version to applied seed.
 //
-// Takes applied ([]querier_dto.AppliedSeed) which holds the
-// applied seed records.
+// Takes applied ([]querier_dto.AppliedSeed) which holds the applied seed records.
 //
-// Returns map[int64]querier_dto.AppliedSeed which maps
-// version numbers to their applied seed records.
+// Returns map[int64]querier_dto.AppliedSeed which maps version numbers to their applied
+// seed records.
 func buildAppliedSeedMap(applied []querier_dto.AppliedSeed) map[int64]querier_dto.AppliedSeed {
 	m := make(map[int64]querier_dto.AppliedSeed, len(applied))
 	for _, a := range applied {
@@ -209,18 +205,15 @@ func buildAppliedSeedMap(applied []querier_dto.AppliedSeed) map[int64]querier_dt
 	return m
 }
 
-// filterPendingSeeds returns seed files that have not yet
-// been applied, logging warnings for checksum mismatches.
+// filterPendingSeeds returns seed files that have not yet been applied, logging warnings
+// for checksum mismatches.
 //
-// Takes files ([]querier_dto.SeedFile) which holds all seed
-// files to filter.
-// Takes appliedByVersion (map[int64]querier_dto.AppliedSeed)
-// which holds the already-applied seeds.
-// Takes l (logger_domain.Logger) which receives checksum
-// mismatch warnings.
+// Takes files ([]querier_dto.SeedFile) which holds all seed files to filter.
+// Takes appliedByVersion (map[int64]querier_dto.AppliedSeed) which holds the
+// already-applied seeds.
+// Takes l (logger_domain.Logger) which receives checksum mismatch warnings.
 //
-// Returns []querier_dto.SeedFile which holds only the
-// pending seed files.
+// Returns []querier_dto.SeedFile which holds only the pending seed files.
 func filterPendingSeeds(
 	files []querier_dto.SeedFile,
 	appliedByVersion map[int64]querier_dto.AppliedSeed,

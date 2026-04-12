@@ -30,37 +30,41 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-var _ orchestrator_domain.TaskExecutor = (*gcExecutor)(nil)
-
-// ExecutorNameBlobGC is the executor name for blob garbage collection tasks.
-const ExecutorNameBlobGC = "blob.gc"
+var (
+	_ orchestrator_domain.TaskExecutor = (*gcExecutor)(nil)
+)
 
 const (
-	// gcModeHints processes queued GC hints produced by variant
-	// replacement and artefact deletion.
+	// ExecutorNameBlobGC is the executor name for blob garbage collection tasks.
+	ExecutorNameBlobGC = "blob.gc"
+)
+
+const (
+	// gcModeHints processes queued GC hints produced by variant replacement and artefact
+	// deletion.
 	gcModeHints = "hints"
 
-	// gcModeOrphans scans blob storage for keys not referenced by any
-	// artefact and removes them.
+	// gcModeOrphans scans blob storage for keys not referenced by any artefact and removes
+	// them.
 	gcModeOrphans = "orphans"
 
 	// gcPayloadKeyMode is the payload key for the GC execution mode.
 	gcPayloadKeyMode = "mode"
 
-	// gcPayloadKeyBatchSize is the payload key for the maximum number of items
-	// to process per GC run.
+	// gcPayloadKeyBatchSize is the payload key for the maximum number of items to process
+	// per GC run.
 	gcPayloadKeyBatchSize = "batch_size"
 
-	// gcPayloadKeyRescheduleSeconds is the payload key for the delay in seconds
-	// before the next GC run is scheduled.
+	// gcPayloadKeyRescheduleSeconds is the payload key for the delay in seconds before the
+	// next GC run is scheduled.
 	gcPayloadKeyRescheduleSeconds = "reschedule_seconds"
 
-	// gcDefaultBatchSize is the default maximum number of items to process per
-	// GC run when no batch size is specified in the payload.
+	// gcDefaultBatchSize is the default maximum number of items to process per GC run when
+	// no batch size is specified in the payload.
 	gcDefaultBatchSize = 100
 
-	// gcDefaultRescheduleSeconds is the default delay in seconds before the
-	// next GC run when no reschedule interval is specified in the payload.
+	// gcDefaultRescheduleSeconds is the default delay in seconds before the next GC run when
+	// no reschedule interval is specified in the payload.
 	gcDefaultRescheduleSeconds = 30
 
 	// logKeyBackendID is the logging field for blob store backend identifiers.
@@ -73,11 +77,10 @@ const (
 	logKeyMode = "mode"
 )
 
-// gcExecutor processes blob garbage collection tasks. It supports two modes:
-// hint-based GC (fast, frequent) and orphan scanning (slower, infrequent).
+// gcExecutor processes blob garbage collection tasks. It supports two modes: hint-based
+// GC (fast, frequent) and orphan scanning (slower, infrequent).
 type gcExecutor struct {
-	// registryService provides access to GC hints, artefact metadata, and blob
-	// stores.
+	// registryService provides access to GC hints, artefact metadata, and blob stores.
 	registryService registry_domain.RegistryService
 
 	// orchestratorService is used to self-reschedule the next GC run.
@@ -86,10 +89,10 @@ type gcExecutor struct {
 
 // NewGCExecutor creates a new garbage collection executor.
 //
-// Takes registry (registry_domain.RegistryService) which provides access to
-// GC hints, artefact metadata, and blob stores.
-// Takes orchestrator (orchestrator_domain.OrchestratorService) which is used
-// to self-reschedule the next GC run.
+// Takes registry (registry_domain.RegistryService) which provides access to GC hints,
+// artefact metadata, and blob stores.
+// Takes orchestrator (orchestrator_domain.OrchestratorService) which is used to
+// self-reschedule the next GC run.
 //
 // Returns orchestrator_domain.TaskExecutor which executes GC tasks.
 func NewGCExecutor(
@@ -104,10 +107,9 @@ func NewGCExecutor(
 
 // Execute runs a garbage collection task.
 //
-// Takes payload (map[string]any) which contains:
-//   - "mode": "hints" or "orphans"
-//   - "batch_size": max items to process per run (default 100)
-//   - "reschedule_seconds": delay before next run (default 30)
+// Takes payload (map[string]any) which contains: - "mode": "hints" or "orphans" -
+// "batch_size": max items to process per run (default 100) - "reschedule_seconds": delay
+// before next run (default 30)
 //
 // Returns map[string]any which contains "deleted_count" and "mode" fields.
 // Returns error when the payload is invalid or the GC mode is unknown.
@@ -149,13 +151,12 @@ func (e *gcExecutor) Execute(ctx context.Context, payload map[string]any) (map[s
 	}, nil
 }
 
-// processHints pops GC hints, deletes the corresponding blobs, and
-// reschedules the next run (immediately when a full batch is returned,
-// otherwise after the configured delay).
+// processHints pops GC hints, deletes the corresponding blobs, and reschedules the next
+// run (immediately when a full batch is returned, otherwise after the configured delay).
 //
 // Takes batchSize (int) which is the maximum number of hints to pop.
-// Takes rescheduleSeconds (int) which is the delay before the next run when
-// fewer than batchSize hints are returned.
+// Takes rescheduleSeconds (int) which is the delay before the next run when fewer than
+// batchSize hints are returned.
 // Takes payload (map[string]any) which is forwarded to the rescheduled task.
 //
 // Returns int which is the number of blobs successfully deleted.
@@ -208,11 +209,11 @@ func (e *gcExecutor) processHints(
 	return deletedCount, nil
 }
 
-// processOrphans scans all blob stores for keys not referenced by any artefact
-// and deletes them.
+// processOrphans scans all blob stores for keys not referenced by any artefact and
+// deletes them.
 //
-// Takes rescheduleSeconds (int) which is the delay before the next orphan scan
-// is scheduled.
+// Takes rescheduleSeconds (int) which is the delay before the next orphan scan is
+// scheduled.
 // Takes payload (map[string]any) which is forwarded to the rescheduled task.
 //
 // Returns int which is the total number of orphaned blobs deleted.
@@ -248,8 +249,8 @@ func (e *gcExecutor) processOrphans(
 //
 // Takes l (logger_domain.Logger) which logs warnings and trace messages.
 // Takes backendID (string) which identifies the blob store to scan.
-// Takes referencedKeys (map[string]struct{}) which holds the set of storage
-// keys still referenced by artefact variants.
+// Takes referencedKeys (map[string]struct{}) which holds the set of storage keys still
+// referenced by artefact variants.
 //
 // Returns int which is the number of orphaned blobs deleted from this store.
 func (e *gcExecutor) scanBlobStore(
@@ -298,8 +299,8 @@ func (e *gcExecutor) scanBlobStore(
 	return deletedCount
 }
 
-// collectReferencedKeys builds a set of all storage keys that are currently
-// referenced by artefact variants and their chunks.
+// collectReferencedKeys builds a set of all storage keys that are currently referenced by
+// artefact variants and their chunks.
 //
 // Returns map[string]struct{} which is the set of referenced storage keys.
 // Returns error when listing or fetching artefacts fails.
@@ -325,13 +326,12 @@ func (e *gcExecutor) collectReferencedKeys(ctx context.Context) (map[string]stru
 	return referenced, nil
 }
 
-// collectArtefactKeys adds all storage keys from an artefact's variants and
-// chunks to the referenced set.
+// collectArtefactKeys adds all storage keys from an artefact's variants and chunks to the
+// referenced set.
 //
-// Takes artefact (*registry_dto.ArtefactMeta) which provides the variants and
-// chunks whose storage keys should be collected.
-// Takes referenced (map[string]struct{}) which is the set to add the storage
-// keys to.
+// Takes artefact (*registry_dto.ArtefactMeta) which provides the variants and chunks
+// whose storage keys should be collected.
+// Takes referenced (map[string]struct{}) which is the set to add the storage keys to.
 func collectArtefactKeys(artefact *registry_dto.ArtefactMeta, referenced map[string]struct{}) {
 	for i := range artefact.ActualVariants {
 		v := &artefact.ActualVariants[i]
@@ -348,10 +348,8 @@ func collectArtefactKeys(artefact *registry_dto.ArtefactMeta, referenced map[str
 
 // reschedule creates and schedules the next GC task with the same payload.
 //
-// Takes payload (map[string]any) which is forwarded as the rescheduled task's
-// payload.
-// Takes delay (time.Duration) which is the delay before the rescheduled task
-// executes.
+// Takes payload (map[string]any) which is forwarded as the rescheduled task's payload.
+// Takes delay (time.Duration) which is the delay before the rescheduled task executes.
 func (e *gcExecutor) reschedule(ctx context.Context, payload map[string]any, delay time.Duration) {
 	_, l := logger_domain.From(ctx, log)
 
@@ -373,8 +371,7 @@ func (e *gcExecutor) reschedule(ctx context.Context, payload map[string]any, del
 //
 // Takes payload (map[string]any) which holds the raw task data.
 // Takes key (string) which is the payload key to look up.
-// Takes fallback (string) which is returned when the key is missing or not a
-// string.
+// Takes fallback (string) which is returned when the key is missing or not a string.
 //
 // Returns string which is the extracted value or the fallback.
 func gcPayloadString(payload map[string]any, key string, fallback string) string {
@@ -386,13 +383,13 @@ func gcPayloadString(payload map[string]any, key string, fallback string) string
 	return fallback
 }
 
-// gcPayloadInt extracts an integer value from the payload with a fallback.
-// Handles both int and float64 (JSON deserialisation produces float64).
+// gcPayloadInt extracts an integer value from the payload with a fallback. Handles both
+// int and float64 (JSON deserialisation produces float64).
 //
 // Takes payload (map[string]any) which holds the raw task data.
 // Takes key (string) which is the payload key to look up.
-// Takes fallback (int) which is returned when the key is missing or has an
-// unsupported type.
+// Takes fallback (int) which is returned when the key is missing or has an unsupported
+// type.
 //
 // Returns int which is the extracted value or the fallback.
 func gcPayloadInt(payload map[string]any, key string, fallback int) int {

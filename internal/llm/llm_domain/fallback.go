@@ -46,15 +46,14 @@ func NewFallbackRouter(service *service) *FallbackRouter {
 	}
 }
 
-// Execute runs a completion request with fallback across providers.
-// It tries each provider in the configured order until one succeeds.
+// Execute runs a completion request with fallback across providers. It tries each
+// provider in the configured order until one succeeds.
 //
 // Takes config (*llm_dto.FallbackConfig) which configures fallback behaviour.
 // Takes request (*llm_dto.CompletionRequest) which is the request to execute.
 // Takes budgetScope (string) which is the budget scope for cost tracking.
 // Takes maxCost (maths.Money) which is the per-request cost limit.
-// Takes retryPolicy (*llm_dto.RetryPolicy) which is the retry policy to use
-// (may be nil).
+// Takes retryPolicy (*llm_dto.RetryPolicy) which is the retry policy to use (may be nil).
 //
 // Returns *llm_dto.CompletionResponse from the successful provider.
 // Returns *llm_dto.FallbackResult with details about fallback execution.
@@ -136,8 +135,8 @@ type fallbackParams struct {
 
 // attemptProvider tries a single provider in the fallback chain.
 //
-// Takes ctx (context.Context) which carries request-scoped values, deadlines,
-// and cancellation signals.
+// Takes ctx (context.Context) which carries request-scoped values, deadlines, and
+// cancellation signals.
 // Takes params (*fallbackParams) which contains the request config.
 // Takes providerName (string) which identifies the provider to attempt.
 // Takes result (*llm_dto.FallbackResult) which accumulates attempt results.
@@ -177,12 +176,11 @@ func (r *FallbackRouter) attemptProvider(
 
 // executeWithRetry executes a provider request with optional retry.
 //
-// Takes ctx (context.Context) which carries request-scoped values, deadlines,
-// and cancellation signals.
+// Takes ctx (context.Context) which carries request-scoped values, deadlines, and
+// cancellation signals.
 // Takes params (*fallbackParams) which provides the retry policy and config.
 // Takes providerName (string) which identifies the provider to use.
-// Takes request (*llm_dto.CompletionRequest) which contains the
-// completion request.
+// Takes request (*llm_dto.CompletionRequest) which contains the completion request.
 //
 // Returns *llm_dto.CompletionResponse which contains the completion result.
 // Returns error when the request fails after all retry attempts.
@@ -201,13 +199,11 @@ func (r *FallbackRouter) executeWithRetry(
 	return r.service.completeWithScope(ctx, providerName, request, params.budgetScope, params.maxCost)
 }
 
-// handleProviderSuccess records success metrics and returns the successful
-// response.
+// handleProviderSuccess records success metrics and returns the successful response.
 //
 // Takes providerName (string) which identifies the provider that succeeded.
 // Takes result (*llm_dto.FallbackResult) which tracks the fallback attempt.
-// Takes response (*llm_dto.CompletionResponse) which contains the provider
-// response.
+// Takes response (*llm_dto.CompletionResponse) which contains the provider response.
 //
 // Returns *llm_dto.CompletionResponse which is the successful response.
 // Returns bool which indicates whether to continue the fallback chain.
@@ -231,8 +227,8 @@ func (*FallbackRouter) handleProviderSuccess(
 	return response, false, nil
 }
 
-// handleProviderFailure determines whether to continue to the next provider
-// or return the error.
+// handleProviderFailure determines whether to continue to the next provider or return the
+// error.
 //
 // Takes ctx (context.Context) which carries request-scoped values for logging.
 // Takes params (*fallbackParams) which contains the fallback triggers.
@@ -266,12 +262,10 @@ func (r *FallbackRouter) handleProviderFailure(
 	return nil, true, nil
 }
 
-// shouldFallback checks if an error should trigger fallback to the next
-// provider.
+// shouldFallback checks if an error should trigger fallback to the next provider.
 //
 // Takes err (error) which is the error to check.
-// Takes triggers (llm_dto.FallbackTrigger) which defines the fallback
-// conditions.
+// Takes triggers (llm_dto.FallbackTrigger) which defines the fallback conditions.
 //
 // Returns bool which is true if fallback should be attempted.
 func (*FallbackRouter) shouldFallback(err error, triggers llm_dto.FallbackTrigger) bool {
@@ -300,12 +294,11 @@ func (*FallbackRouter) shouldFallback(err error, triggers llm_dto.FallbackTrigge
 	return false
 }
 
-// deepCopyRequest returns a shallow copy of request with independent
-// copies of all slice and map fields so that mutations during one
-// fallback attempt cannot affect subsequent attempts.
+// deepCopyRequest returns a shallow copy of request with independent copies of all slice
+// and map fields so that mutations during one fallback attempt cannot affect subsequent
+// attempts.
 //
-// Takes request (*llm_dto.CompletionRequest) which is the request to
-// copy.
+// Takes request (*llm_dto.CompletionRequest) which is the request to copy.
 //
 // Returns llm_dto.CompletionRequest which is the independent copy.
 func deepCopyRequest(request *llm_dto.CompletionRequest) llm_dto.CompletionRequest {

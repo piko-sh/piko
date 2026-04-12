@@ -31,77 +31,71 @@ type Config struct {
 	// Registry is the encoding registry for cache values; required.
 	Registry *cache.EncodingRegistry
 
-	// KeyRegistry is an optional encoding registry for complex key types such as
-	// structs. If nil, keys are encoded using fmt.Sprintf, which works for simple
-	// types like strings and integers.
+	// KeyRegistry is an optional encoding registry for complex key types such as structs. If
+	// nil, keys are encoded using fmt.Sprintf, which works for simple types like strings and
+	// integers.
 	KeyRegistry *cache.EncodingRegistry
 
-	// Namespace is a prefix added to all keys (e.g., "myapp:").
-	// Recommended to prevent key collisions with other
-	// applications sharing the cluster.
+	// Namespace is a prefix added to all keys (e.g., "myapp:"). Recommended to prevent key
+	// collisions with other applications sharing the cluster.
 	Namespace string
 
-	// Password is the credential used to connect to Valkey.
-	// Empty string means no password is needed.
+	// Password is the credential used to connect to Valkey. Empty string means no password
+	// is needed.
 	Password string
 
-	// Username is the ACL username for Valkey authentication.
-	// Empty string means default user.
+	// Username is the ACL username for Valkey authentication. Empty string means default
+	// user.
 	Username string
 
 	// ClientName is used with the CLIENT SETNAME command to identify connections.
 	ClientName string
 
-	// TLSConfig configures TLS for the Valkey connection.
-	// Nil means no TLS.
+	// TLSConfig configures TLS for the Valkey connection. Nil means no TLS.
 	TLSConfig *tls.Config
 
 	// IndexPrefix is the prefix for Valkey Search index names; default is "index:".
 	IndexPrefix string
 
-	// InitAddress is the list of seed nodes for the
-	// cluster (e.g., ["localhost:7000", "localhost:7001"]).
-	// REQUIRED: At least one address must be provided.
+	// InitAddress is the list of seed nodes for the cluster (e.g., ["localhost:7000",
+	// "localhost:7001"]). REQUIRED: At least one address must be provided.
 	InitAddress []string
 
-	// AtomicOperationTimeout specifies the timeout for atomic operations such as
-	// Compute. Default is 5 seconds.
+	// AtomicOperationTimeout specifies the timeout for atomic operations such as Compute.
+	// Default is 5 seconds.
 	AtomicOperationTimeout time.Duration
 
 	// OperationTimeout is the maximum time for standard operations. Default is 2s.
 	OperationTimeout time.Duration
 
-	// DefaultTTL specifies how long cache entries are kept before they expire;
-	// defaults to 1 hour.
+	// DefaultTTL specifies how long cache entries are kept before they expire; defaults to 1
+	// hour.
 	DefaultTTL time.Duration
 
-	// BulkOperationTimeout is the maximum time for bulk operations such as
-	// BulkGet and BulkSet. Default is 10 seconds.
+	// BulkOperationTimeout is the maximum time for bulk operations such as BulkGet and
+	// BulkSet. Default is 10 seconds.
 	BulkOperationTimeout time.Duration
 
-	// FlushTimeout is the longest time allowed for flush
-	// operations. Default is 30s.
+	// FlushTimeout is the longest time allowed for flush operations. Default is 30s.
 	FlushTimeout time.Duration
 
-	// SearchTimeout is the time limit for FT.SEARCH
-	// operations; default is 5 seconds.
+	// SearchTimeout is the time limit for FT.SEARCH operations; default is 5 seconds.
 	SearchTimeout time.Duration
 
-	// MaxComputeRetries is the maximum number of retries when an optimistic lock
-	// fails. Default is 10.
+	// MaxComputeRetries is the maximum number of retries when an optimistic lock fails.
+	// Default is 10.
 	MaxComputeRetries int
 
-	// AllowUnsafeFLUSHDB permits InvalidateAll to use FLUSHDB when Namespace is
-	// empty. WARNING: In cluster mode, this clears ALL data on ALL master nodes.
+	// AllowUnsafeFLUSHDB permits InvalidateAll to use FLUSHDB when Namespace is empty.
+	// WARNING: In cluster mode, this clears ALL data on ALL master nodes.
 	AllowUnsafeFLUSHDB bool
 
-	// SendToReplicas enables routing read commands to
-	// replica nodes for read scaling.
+	// SendToReplicas enables routing read commands to replica nodes for read scaling.
 	SendToReplicas bool
 }
 
-// applyConfigDefaults sets sensible defaults for any zero-valued fields in the
-// given Config.
+// applyConfigDefaults sets sensible defaults for any zero-valued fields in the given
+// Config.
 //
 // Takes config (*Config) which is the configuration to populate with defaults.
 func applyConfigDefaults(config *Config) {

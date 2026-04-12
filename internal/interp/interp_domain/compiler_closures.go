@@ -20,10 +20,8 @@ package interp_domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"go/ast"
-	"go/token"
 	"go/types"
 	"reflect"
 	"slices"
@@ -31,347 +29,10 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// compileUnaryExpression compiles a unary expression.
+// compileFuncLit compiles a function literal (closure) and emits opMakeClosure into a
+// fresh general register.
 //
-// Takes expression (*ast.UnaryExpr) which is the unary expression
-// AST node to compile.
-//
-// Returns the compiled variable location and any compilation error.
-func (c *compiler) compileUnaryExpression(ctx context.Context, expression *ast.UnaryExpr) (varLocation, error) {
-	if expression.Op == token.AND {
-		if indexExpr, ok := expression.X.(*ast.IndexExpr); ok {
-			return c.compileAddressOfIndex(ctx, indexExpr)
-		}
-	}
-
-	operand, err := c.compileExpression(ctx, expression.X)
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	switch expression.Op {
-	case token.SUB:
-		return c.compileUnarySub(ctx, operand)
-	case token.ADD:
-		return operand, nil
-	case token.NOT:
-		return c.compileUnaryNot(ctx, operand)
-	case token.XOR:
-		return c.compileUnaryXor(ctx, operand)
-	case token.AND:
-		return c.compileAddressOf(ctx, expression, operand)
-	case token.ARROW:
-		return c.compileUnaryArrow(ctx, expression, operand)
-	default:
-		return varLocation{}, fmt.Errorf("unsupported unary operator: %s at %s", expression.Op, c.positionString(expression.Pos()))
-	}
-}
-
-// compileUnarySub compiles the unary negation operator (-x).
-//
-// Takes operand (varLocation) which is the compiled operand to negate.
-//
-// Returns the negated variable location and any compilation error.
-func (c *compiler) compileUnarySub(_ context.Context, operand varLocation) (varLocation, error) {
-	switch operand.kind {
-	case registerInt:
-		dest := c.scopes.alloc.alloc(registerInt)
-		c.function.emit(opNegInt, dest, operand.register, 0)
-		return varLocation{register: dest, kind: registerInt}, nil
-	case registerFloat:
-		dest := c.scopes.alloc.alloc(registerFloat)
-		c.function.emit(opNegFloat, dest, operand.register, 0)
-		return varLocation{register: dest, kind: registerFloat}, nil
-	case registerUint:
-		zeroReg := c.scopes.alloc.allocTemp(registerUint)
-		c.function.emit(opLoadZero, zeroReg, uint8(registerUint), 0)
-		dest := c.scopes.alloc.alloc(registerUint)
-		c.function.emit(opSubUint, dest, zeroReg, operand.register)
-		c.scopes.alloc.freeTemp(registerUint, zeroReg)
-		return varLocation{register: dest, kind: registerUint}, nil
-	case registerComplex:
-		dest := c.scopes.alloc.alloc(registerComplex)
-		c.function.emit(opNegComplex, dest, operand.register, 0)
-		return varLocation{register: dest, kind: registerComplex}, nil
-	default:
-		return varLocation{}, errors.New("unary - not supported for this type")
-	}
-}
-
-// compileUnaryNot compiles the logical NOT operator (!x).
-//
-// Takes operand (varLocation) which is the compiled operand to logically
-// negate.
-//
-// Returns the negated variable location and any compilation error.
-func (c *compiler) compileUnaryNot(_ context.Context, operand varLocation) (varLocation, error) {
-	if operand.kind == registerBool {
-		intReg := c.scopes.alloc.allocTemp(registerInt)
-		c.function.emit(opBoolToInt, intReg, operand.register, 0)
-		c.function.emit(opNot, intReg, intReg, 0)
-		dest := c.scopes.alloc.alloc(registerBool)
-		c.function.emit(opIntToBool, dest, intReg, 0)
-		c.scopes.alloc.freeTemp(registerInt, intReg)
-		return varLocation{register: dest, kind: registerBool}, nil
-	}
-	if operand.kind == registerGeneral {
-		boolReg := c.scopes.alloc.allocTemp(registerBool)
-		c.function.emit(opUnpackInterface, boolReg, operand.register, uint8(registerBool))
-		intReg := c.scopes.alloc.allocTemp(registerInt)
-		c.function.emit(opBoolToInt, intReg, boolReg, 0)
-		c.function.emit(opNot, intReg, intReg, 0)
-		dest := c.scopes.alloc.alloc(registerBool)
-		c.function.emit(opIntToBool, dest, intReg, 0)
-		c.scopes.alloc.freeTemp(registerInt, intReg)
-		c.scopes.alloc.freeTemp(registerBool, boolReg)
-		return varLocation{register: dest, kind: registerBool}, nil
-	}
-	dest := c.scopes.alloc.alloc(registerInt)
-	c.function.emit(opNot, dest, operand.register, 0)
-	return varLocation{register: dest, kind: registerInt}, nil
-}
-
-// compileUnaryXor compiles the bitwise complement operator (^x).
-//
-// Takes operand (varLocation) which is the compiled operand to complement.
-//
-// Returns the complemented variable location and any compilation error.
-func (c *compiler) compileUnaryXor(_ context.Context, operand varLocation) (varLocation, error) {
-	switch operand.kind {
-	case registerInt:
-		dest := c.scopes.alloc.alloc(registerInt)
-		c.function.emit(opBitNot, dest, operand.register, 0)
-		return varLocation{register: dest, kind: registerInt}, nil
-	case registerUint:
-		dest := c.scopes.alloc.alloc(registerUint)
-		c.function.emit(opBitNotUint, dest, operand.register, 0)
-		return varLocation{register: dest, kind: registerUint}, nil
-	default:
-		return varLocation{}, errors.New("unary ^ requires integer operand")
-	}
-}
-
-// compileUnaryArrow compiles the channel receive operator (<-ch).
-//
-// Takes expression (*ast.UnaryExpr) which is the unary expression
-// AST node containing the channel receive.
-// Takes operand (varLocation) which is the compiled channel
-// operand.
-//
-// Returns the received value location and any compilation error.
-func (c *compiler) compileUnaryArrow(_ context.Context, expression *ast.UnaryExpr, operand varLocation) (varLocation, error) {
-	if err := c.checkFeature(InterpFeatureChannels, expression.OpPos); err != nil {
-		return varLocation{}, err
-	}
-	if operand.kind != registerGeneral {
-		return varLocation{}, errors.New("channel receive requires general register operand")
-	}
-	tv := c.info.Types[expression.X]
-	elemType := tv.Type.Underlying().(*types.Chan).Elem()
-	resultKind := kindForType(elemType)
-	destReg := c.scopes.alloc.alloc(resultKind)
-	okReg := c.scopes.alloc.alloc(registerInt)
-	c.function.emit(opChanRecv, operand.register, okReg, 0)
-	c.function.emit(opExt, destReg, uint8(resultKind), 0)
-	return varLocation{register: destReg, kind: resultKind}, nil
-}
-
-// compileAddressOf compiles the address-of operator (&x),
-// dispatching to specialised handlers for identifiers and
-// selectors.
-//
-// Takes expression (*ast.UnaryExpr) which is the unary expression
-// AST node.
-// Takes operand (varLocation) which is the compiled operand whose
-// address is taken.
-//
-// Returns the pointer variable location and any compilation error.
-func (c *compiler) compileAddressOf(ctx context.Context, expression *ast.UnaryExpr, operand varLocation) (varLocation, error) {
-	if identifier, ok := expression.X.(*ast.Ident); ok && operand.kind != registerGeneral {
-		if location, ok := c.compileAddressOfIdent(ctx, expression, identifier); ok {
-			return location, nil
-		}
-	}
-
-	if selectorExpression, ok := expression.X.(*ast.SelectorExpr); ok {
-		return c.compileAddressOfSelector(ctx, selectorExpression)
-	}
-
-	c.boxToGeneral(ctx, &operand)
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opAddr, dest, operand.register, 0)
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileAddressOfIdent handles &identifier for a local variable
-// that is not already in a general register.
-//
-// Takes expression (*ast.UnaryExpr) which is the unary expression
-// AST node.
-// Takes identifier (*ast.Ident) which is the identifier whose
-// address is taken.
-//
-// Returns (location, true) when the address was resolved, or
-// (_, false) to fall through.
-func (c *compiler) compileAddressOfIdent(ctx context.Context, expression *ast.UnaryExpr, identifier *ast.Ident) (varLocation, bool) {
-	location, found := c.scopes.lookupVar(identifier.Name)
-	if !found {
-		return varLocation{}, false
-	}
-	if location.isIndirect {
-		return location, true
-	}
-
-	srcLocation := location
-	if location.isSpilled {
-		srcLocation = c.materialise(ctx, location)
-	}
-
-	tv := c.info.Types[expression.X]
-	reflectType := c.typeToReflect(ctx, tv.Type)
-	typeIndex := c.function.addTypeRef(reflectType)
-	ptrReg := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opAllocIndirect, ptrReg, srcLocation.register, uint8(srcLocation.kind))
-	c.function.emitExtension(typeIndex, 0)
-
-	if location.isSpilled {
-		c.scopes.alloc.freeTemp(srcLocation.kind, srcLocation.register)
-	}
-	c.scopes.updateVar(identifier.Name, varLocation{
-		register:     ptrReg,
-		kind:         registerGeneral,
-		isIndirect:   true,
-		originalKind: location.kind,
-	})
-	return varLocation{register: ptrReg, kind: registerGeneral}, true
-}
-
-// compileAddressOfSelector handles &recv.Field, promoting the
-// receiver to indirect if needed and taking the address of the field.
-//
-// Takes selectorExpression (*ast.SelectorExpr) which is the
-// selector expression AST node.
-//
-// Returns the field pointer location and any compilation error.
-func (c *compiler) compileAddressOfSelector(ctx context.Context, selectorExpression *ast.SelectorExpr) (varLocation, error) {
-	if recvIdent, ok := selectorExpression.X.(*ast.Ident); ok {
-		if location, ok := c.tryAddressOfKnownSelector(ctx, selectorExpression, recvIdent); ok {
-			return location, nil
-		}
-	}
-
-	recvLocation, err := c.compileExpression(ctx, selectorExpression.X)
-	if err != nil {
-		return varLocation{}, err
-	}
-	c.boxToGeneral(ctx, &recvLocation)
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opAddr, dest, recvLocation.register, 0)
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// tryAddressOfKnownSelector attempts to resolve &identifier.Field when
-// the receiver identifier is a known local variable, promoting it
-// to indirect storage if necessary.
-//
-// Takes selectorExpression (*ast.SelectorExpr) which is the
-// selector expression AST node.
-// Takes recvIdent (*ast.Ident) which is the receiver identifier.
-//
-// Returns (location, true) on success, or (_, false) to fall through to
-// the generic path.
-func (c *compiler) tryAddressOfKnownSelector(ctx context.Context, selectorExpression *ast.SelectorExpr, recvIdent *ast.Ident) (varLocation, bool) {
-	recvLocation, found := c.scopes.lookupVar(recvIdent.Name)
-	if !found {
-		return varLocation{}, false
-	}
-
-	if !recvLocation.isIndirect && recvLocation.kind == registerGeneral {
-		recvLocation = c.promoteToIndirect(ctx, selectorExpression.X, recvIdent.Name, recvLocation)
-	}
-
-	if !recvLocation.isIndirect {
-		return varLocation{}, false
-	}
-
-	derefReg := c.scopes.alloc.allocTemp(registerGeneral)
-	c.function.emit(opDeref, derefReg, recvLocation.register, 0)
-	_, indices, _ := types.LookupFieldOrMethod(c.info.Types[selectorExpression.X].Type, true, nil, selectorExpression.Sel.Name)
-	if len(indices) > 0 {
-		fieldReg := c.scopes.alloc.alloc(registerGeneral)
-		c.function.emit(opGetField, fieldReg, derefReg, safeconv.MustIntToUint8(indices[len(indices)-1]))
-		dest := c.scopes.alloc.alloc(registerGeneral)
-		c.function.emit(opAddr, dest, fieldReg, 0)
-		c.scopes.alloc.freeTemp(registerGeneral, derefReg)
-		return varLocation{register: dest, kind: registerGeneral}, true
-	}
-	c.scopes.alloc.freeTemp(registerGeneral, derefReg)
-	return varLocation{}, false
-}
-
-// promoteToIndirect upgrades a non-indirect general-register
-// variable to indirect storage by emitting opAllocIndirect and
-// updating the scope.
-//
-// Takes xExpr (ast.Expr) which is the expression used to resolve the
-// type.
-// Takes name (string) which is the variable name in scope.
-// Takes recvLocation (varLocation) which is the current variable location.
-//
-// Returns the promoted variable location with indirect storage.
-func (c *compiler) promoteToIndirect(ctx context.Context, xExpr ast.Expr, name string, recvLocation varLocation) varLocation {
-	tv := c.info.Types[xExpr]
-	reflectType := c.typeToReflect(ctx, tv.Type)
-	typeIndex := c.function.addTypeRef(reflectType)
-	c.function.emit(opAllocIndirect, recvLocation.register, recvLocation.register, uint8(registerGeneral))
-	c.function.emitExtension(typeIndex, 0)
-	promoted := varLocation{
-		register:     recvLocation.register,
-		kind:         registerGeneral,
-		isIndirect:   true,
-		originalKind: registerGeneral,
-	}
-	c.scopes.updateVar(name, promoted)
-	return promoted
-}
-
-// compileAddressOfIndex compiles &collection[index], keeping the
-// indexed element as an addressable reflect.Value so the resulting
-// pointer refers to the element within the original backing store
-// rather than to a copy.
-//
-// Takes expression (*ast.IndexExpr) which is the index expression
-// AST node.
-//
-// Returns the element pointer location and any compilation error.
-func (c *compiler) compileAddressOfIndex(ctx context.Context, expression *ast.IndexExpr) (varLocation, error) {
-	collLocation, err := c.compileExpression(ctx, expression.X)
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	idxLocation, err := c.compileExpression(ctx, expression.Index)
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	if idxLocation.kind != registerInt {
-		c.ensureIntRegister(ctx, &idxLocation)
-	}
-
-	c.boxToGeneral(ctx, &collLocation)
-
-	elemReg := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opIndex, elemReg, collLocation.register, idxLocation.register)
-
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opAddr, dest, elemReg, 0)
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileFuncLit compiles a function literal (closure).
-//
-// Takes lit (*ast.FuncLit) which is the function literal AST node to compile.
+// Takes lit (*ast.FuncLit) which is the function literal AST node.
 //
 // Returns the closure variable location and any compilation error.
 func (c *compiler) compileFuncLit(ctx context.Context, lit *ast.FuncLit) (varLocation, error) {
@@ -389,12 +50,12 @@ func (c *compiler) compileFuncLit(ctx context.Context, lit *ast.FuncLit) (varLoc
 	return varLocation{register: dest, kind: registerGeneral}, nil
 }
 
-// compileClosureBody compiles a function literal body and registers
-// it in the root function's Functions table.
+// compileClosureBody compiles a function literal body and registers the resulting
+// CompiledFunction in the root function's nested functions table.
 //
-// Takes lit (*ast.FuncLit) which is the function literal AST node to compile.
+// Takes lit (*ast.FuncLit) which is the function literal AST node.
 //
-// Returns the function index, free variable names, and any compilation error.
+// Returns the function index, the sorted free variable names, and any compilation error.
 func (c *compiler) compileClosureBody(ctx context.Context, lit *ast.FuncLit) (uint16, []string, error) {
 	freeVars := c.findFreeVars(ctx, lit)
 
@@ -407,79 +68,200 @@ func (c *compiler) compileClosureBody(ctx context.Context, lit *ast.FuncLit) (ui
 	}
 	cf.isVariadic = sig.Variadic()
 
-	for p := range sig.Params().Variables() {
-		cf.paramKinds = append(cf.paramKinds, kindForType(p.Type()))
-	}
-	for r := range sig.Results().Variables() {
-		cf.resultKinds = append(cf.resultKinds, kindForType(r.Type()))
-	}
+	c.populateClosureParameterAndResultKinds(cf, lit, sig)
 	upvalueMap := make(map[string]upvalueReference)
 	c.buildFreeVarUpvalues(ctx, cf, freeVars, upvalueMap, 0)
 	funcIndex := safeconv.MustIntToUint16(len(c.rootFunction.functions))
 	c.rootFunction.functions = append(c.rootFunction.functions, cf)
 
-	sub := &compiler{
-		fileSet:            c.fileSet,
-		info:               c.info,
-		function:           cf,
-		scopes:             newScopeStack("<closure>"),
-		funcTable:          c.funcTable,
-		rootFunction:       c.rootFunction,
-		upvalueMap:         upvalueMap,
-		symbols:            c.symbols,
-		globalVars:         c.globalVars,
-		globals:            c.globals,
-		features:           c.features,
-		maxLiteralElements: c.maxLiteralElements,
-	}
-	c.propagateDebugToSubCompiler(ctx, sub)
+	sub := c.newClosureSubCompiler(ctx, cf, upvalueMap)
 	sub.scopes.pushScope()
-	sub.declareClosureParams(lit)
+	sub.heapPromotedNames = collectHeapPromotedNames(sub, lit.Body)
+	sub.closureCapturedNames = collectClosureCapturedNamesAll(lit.Body)
+	sub.writtenLocalNames = collectWrittenLocalNames(lit.Body)
+	sub.typedSliceLocals = classifyTypedSliceLocals(sub, lit.Body)
+	sub.hasRecover = bodyContainsRecoverCall(c.info, lit.Body)
+	sub.declareClosureParams(ctx, lit)
+	sub.declareClosureNamedResults(ctx, lit)
 
 	if _, err := sub.compileStmtList(ctx, lit.Body.List); err != nil {
 		return 0, nil, fmt.Errorf("compiling closure: %w", err)
 	}
 
-	if err := sub.scopes.overflowError(); err != nil {
+	if err := sub.resourceError(); err != nil {
 		return 0, nil, fmt.Errorf("compiling closure: %w", err)
 	}
 	cf.numRegisters = sub.scopes.peakRegisters()
-	cf.optimise()
+	finaliseSimpleDeferClassification(sub, cf)
+	if err := cf.optimise(ctx); err != nil {
+		return 0, nil, fmt.Errorf("compiling closure: %w", err)
+	}
 	sub.scopes.popScope()
 
 	return funcIndex, freeVars, nil
 }
 
-// declareClosureParams declares the closure's parameter variables
-// in the sub-compiler's scope.
+// populateClosureParameterAndResultKinds fills closure kind metadata.
 //
-// Takes lit (*ast.FuncLit) which is the function literal AST node
-// whose parameters are declared.
-func (c *compiler) declareClosureParams(lit *ast.FuncLit) {
+// Fills cf.parameterKinds, cf.parameterIsGeneric, and cf.resultKinds for the closure
+// literal lit using the closure's go/types signature. Closure-specific kind selection
+// applies: heap-promoted captured params, type-parameter-bearing params, and typed-slice
+// survivors each override the default call-slot kind.
+//
+// Takes cf (*CompiledFunction) which receives the kind metadata.
+// Takes lit (*ast.FuncLit) which is the source function literal.
+// Takes sig (*types.Signature) which is the closure's typed signature.
+func (c *compiler) populateClosureParameterAndResultKinds(cf *CompiledFunction, lit *ast.FuncLit, sig *types.Signature) {
+	parameterCount := sig.Params().Len()
+	parameterIndex := 0
+	closureHeapPromoted := collectClosureHeapPromotedParamNames(c, lit)
+	closureTypedSliceParams := classifyTypedSliceClosureParameters(c, lit, sig)
+	for p := range sig.Params().Variables() {
+		kind := c.parameterSlotKind(sig, p.Type(), parameterIndex, parameterCount)
+		if closureHeapPromoted[p.Name()] {
+			kind = c.kindFor(p.Type())
+		}
+		if isTypeParameter(p.Type()) || containsTypeParameter(p.Type()) {
+			kind = c.kindFor(p.Type())
+		}
+		if isTypedSliceKind(kind) {
+			if survivorKind, ok := closureTypedSliceParams[p.Name()]; ok {
+				kind = survivorKind
+			} else {
+				kind = c.kindFor(p.Type())
+			}
+		}
+		cf.parameterKinds = append(cf.parameterKinds, kind)
+		cf.parameterIsGeneric = append(cf.parameterIsGeneric, isTypeParameter(p.Type()))
+		parameterIndex++
+	}
+	for r := range sig.Results().Variables() {
+		cf.resultKinds = append(cf.resultKinds, c.kindForCallSlot(r.Type()))
+	}
+}
+
+// newClosureSubCompiler constructs the sub-compiler used for compiling the body of a
+// function literal, propagating shared state from the enclosing compiler.
+//
+// Takes cf (*CompiledFunction) which is the closure's target body.
+// Takes upvalueMap (map[string]upvalueReference) which records the free-variable bindings
+// the sub-compiler must resolve.
+//
+// Returns a *compiler scoped to the closure body, with the closure scope pushed and the
+// declared parameters already declared.
+func (c *compiler) newClosureSubCompiler(ctx context.Context, cf *CompiledFunction, upvalueMap map[string]upvalueReference) *compiler {
+	if c.reflectTypeCache == nil {
+		c.reflectTypeCache = make(map[types.Type]reflect.Type)
+	}
+	sub := &compiler{
+		fileSet:                c.fileSet,
+		info:                   c.info,
+		function:               cf,
+		scopes:                 newScopeStack("<closure>"),
+		funcTable:              c.funcTable,
+		rootFunction:           c.rootFunction,
+		upvalueMap:             upvalueMap,
+		symbols:                c.symbols,
+		globalVariables:        c.globalVariables,
+		globals:                c.globals,
+		features:               c.features,
+		maxLiteralElements:     c.maxLiteralElements,
+		typeSubstitutions:      c.typeSubstitutions,
+		typeSubstitutionsCache: c.typeSubstitutionsCache,
+		reflectTypeCache:       c.reflectTypeCache,
+	}
+	c.propagateDebugToSubCompiler(ctx, sub)
+	return sub
+}
+
+// declareClosureParams declares the closure's parameter variables in the sub-compiler's
+// scope and applies heap promotion to each.
+//
+// Takes lit (*ast.FuncLit) which is the function literal AST node.
+func (c *compiler) declareClosureParams(ctx context.Context, lit *ast.FuncLit) {
 	if lit.Type.Params == nil {
 		return
 	}
+	parameterPosition := 0
 	for _, field := range lit.Type.Params.List {
 		for _, name := range field.Names {
 			typeObject := c.info.Defs[name]
 			if typeObject == nil {
+				parameterPosition++
 				continue
 			}
-			c.scopes.declareVar(name.Name, kindForType(typeObject.Type()))
+			kind := c.kindFor(typeObject.Type())
+			if c.function != nil && parameterPosition < len(c.function.parameterKinds) {
+				kind = c.function.parameterKinds[parameterPosition]
+			}
+			location := c.scopes.declareVar(name.Name, kind)
+			if c.function != nil {
+				c.function.parameterRegisters = append(c.function.parameterRegisters, location.register)
+			}
+			c.tryHeapPromoteCapturedLocal(ctx, name.Name, name)
+			parameterPosition++
 		}
 	}
 }
 
-// buildFreeVarUpvalues appends upvalue descriptors for the given free
-// variables to cf, populating upvalueMap.
+// declareClosureNamedResults declares named return values for a function literal and
+// zero-initialises them, mirroring compileFuncNamedResults' behaviour for *ast.FuncDecl.
 //
-// Takes cf (*CompiledFunction) which is the compiled function to append
-// descriptors to.
-// Takes freeVars ([]string) which is the names of captured variables.
-// Takes upvalueMap (map[string]upvalueReference) which receives the
-// mapping from variable name to upvalue reference.
-// Takes startIndex (int) which is the first upvalue index to assign
-// (non-zero when earlier upvalues have already been appended).
+// A closure such as
+//
+//	func(v any) (err error) {
+//	    defer handleErr(&err)
+//	    ...
+//	}
+//
+// needs its named result declared so the body's `&err` and bare `err` references resolve
+// to a binding; without it the closure fails to compile.
+//
+// Takes lit (*ast.FuncLit) which is the function literal AST node.
+//
+//nolint:dupl // FuncLit mirror of compileFuncNamedResults.
+func (c *compiler) declareClosureNamedResults(ctx context.Context, lit *ast.FuncLit) {
+	if lit.Type.Results == nil || c.function == nil {
+		return
+	}
+	cf := c.function
+	for _, field := range lit.Type.Results.List {
+		for _, name := range field.Names {
+			if name.Name == "" || name.Name == "_" {
+				continue
+			}
+			typeObject := c.info.Defs[name]
+			if typeObject == nil {
+				continue
+			}
+			kind := c.kindForCallSlot(typeObject.Type())
+			location := c.scopes.declareVar(name.Name, kind)
+			cf.namedResultLocations = append(cf.namedResultLocations, location)
+			cf.namedResultNames = append(cf.namedResultNames, name.Name)
+			if location.isSpilled {
+				scratch := c.scopes.alloc.allocTemp(kind)
+				cf.emit(opDrillTier1, uint8(subOpLoadZero), scratch, uint8(kind))
+				cf.emit(opDrillTier1, uint8(subOpSpill), scratch, uint8(kind))
+				cf.emitExtension(location.spillSlot, 0)
+				c.scopes.alloc.freeTemp(kind, scratch)
+			} else {
+				cf.emit(opDrillTier1, uint8(subOpLoadZero), location.register, uint8(location.kind))
+			}
+			c.tryHeapPromoteCapturedLocal(ctx, name.Name, name)
+		}
+	}
+}
+
+// buildFreeVarUpvalues appends upvalue descriptors for freeVars to cf and populates
+// upvalueMap with the matching references. Sources each free variable from either the
+// enclosing scope (isLocal=true descriptor) or the enclosing function's upvalueMap
+// (isLocal=false).
+//
+// Takes cf (*CompiledFunction) which receives appended descriptors.
+// Takes freeVars ([]string) which are the captured variable names.
+// Takes upvalueMap (map[string]upvalueReference) which receives the per-name upvalue
+// reference.
+// Takes startIndex (int) which is the first upvalue index to assign.
 func (c *compiler) buildFreeVarUpvalues(ctx context.Context, cf *CompiledFunction, freeVars []string, upvalueMap map[string]upvalueReference, startIndex int) {
 	uvIndex := startIndex
 	for _, name := range freeVars {
@@ -487,15 +269,28 @@ func (c *compiler) buildFreeVarUpvalues(ctx context.Context, cf *CompiledFunctio
 		if ok {
 			if outerLocation.isSpilled {
 				scratch := c.materialise(ctx, outerLocation)
-				outerLocation = varLocation{register: scratch.register, kind: outerLocation.kind}
+				outerLocation = varLocation{register: scratch.register, kind: outerLocation.kind, isIndirect: outerLocation.isIndirect, originalKind: outerLocation.originalKind}
 				c.scopes.updateVar(name, outerLocation)
 			}
+			descriptorKind := outerLocation.kind
+			referenceKind := outerLocation.kind
+			if outerLocation.isIndirect {
+				descriptorKind = registerGeneral
+				referenceKind = outerLocation.originalKind
+			}
 			cf.upvalueDescriptors = append(cf.upvalueDescriptors, UpvalueDescriptor{
-				index:   outerLocation.register,
-				kind:    outerLocation.kind,
-				isLocal: true,
+				index:        outerLocation.register,
+				kind:         descriptorKind,
+				isLocal:      true,
+				isIndirect:   outerLocation.isIndirect,
+				originalKind: outerLocation.originalKind,
 			})
-			upvalueMap[name] = upvalueReference{index: uvIndex, kind: outerLocation.kind}
+			upvalueMap[name] = upvalueReference{
+				index:        uvIndex,
+				kind:         referenceKind,
+				isIndirect:   outerLocation.isIndirect,
+				originalKind: outerLocation.originalKind,
+			}
 			uvIndex++
 			c.scopes.markCaptured(name)
 
@@ -503,39 +298,49 @@ func (c *compiler) buildFreeVarUpvalues(ctx context.Context, cf *CompiledFunctio
 		}
 
 		if parentRef, found := c.upvalueMap[name]; found {
+			descriptorKind := parentRef.kind
+			if parentRef.isIndirect {
+				descriptorKind = registerGeneral
+			}
 			cf.upvalueDescriptors = append(cf.upvalueDescriptors, UpvalueDescriptor{
-				index:   safeconv.MustIntToUint8(parentRef.index),
-				kind:    parentRef.kind,
-				isLocal: false,
+				index:        safeconv.MustIntToUint8(parentRef.index),
+				kind:         descriptorKind,
+				isLocal:      false,
+				isIndirect:   parentRef.isIndirect,
+				originalKind: parentRef.originalKind,
 			})
-			upvalueMap[name] = upvalueReference{index: uvIndex, kind: parentRef.kind}
+			upvalueMap[name] = upvalueReference{
+				index:        uvIndex,
+				kind:         parentRef.kind,
+				isIndirect:   parentRef.isIndirect,
+				originalKind: parentRef.originalKind,
+			}
 			uvIndex++
 		}
 	}
 }
 
-// compileIIFE compiles an immediately invoked function expression,
-// using opCallIIFE for captured IIFEs or opCall for capture-free
-// IIFEs.
+// compileIIFE compiles an immediately invoked function expression. Emits opCallIIFE
+// followed by opSyncClosureUpvalues when the literal captures any free variable;
+// otherwise emits a plain opCall.
 //
 // Takes lit (*ast.FuncLit) which is the function literal AST node.
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the arguments.
+// Takes expression (*ast.CallExpr) which is the call expression containing the arguments.
 //
-// Returns the result variable location and any compilation error.
+// Returns the first result location and any compilation error.
 func (c *compiler) compileIIFE(ctx context.Context, lit *ast.FuncLit, expression *ast.CallExpr) (varLocation, error) {
 	funcIndex, freeVars, err := c.compileClosureBody(ctx, lit)
 	if err != nil {
 		return varLocation{}, err
 	}
 
-	argLocs := make([]varLocation, len(expression.Args))
+	argumentLocations := make([]varLocation, len(expression.Args))
 	for i, argument := range expression.Args {
 		location, err := c.compileExpression(ctx, argument)
 		if err != nil {
 			return varLocation{}, err
 		}
-		argLocs[i] = location
+		argumentLocations[i] = location
 	}
 
 	tv := c.info.Types[lit]
@@ -544,23 +349,32 @@ func (c *compiler) compileIIFE(ctx context.Context, lit *ast.FuncLit, expression
 		return varLocation{}, fmt.Errorf("expected *types.Signature, got %T", tv.Type)
 	}
 
-	var returnLocs []varLocation
+	var returnLocations []varLocation
 	var resultLocation varLocation
 	for r := range sig.Results().Variables() {
-		kind := kindForType(r.Type())
+		kind := c.kindFor(r.Type())
 		register := c.scopes.alloc.alloc(kind)
-		returnLocs = append(returnLocs, varLocation{register: register, kind: kind})
+		returnLocations = append(returnLocations, varLocation{register: register, kind: kind})
 	}
-	if len(returnLocs) > 0 {
-		resultLocation = returnLocs[0]
+	if len(returnLocations) > 0 {
+		resultLocation = returnLocations[0]
 	}
 
 	site := callSite{
-		arguments: argLocs,
-		returns:   returnLocs,
+		arguments: argumentLocations,
+		returns:   returnLocations,
 		funcIndex: funcIndex,
 	}
-	siteIndex := c.function.addCallSite(site)
+	if int(funcIndex) < len(c.rootFunction.functions) {
+		site.cachedCallee = c.rootFunction.functions[funcIndex]
+	}
+	if site.cachedCallee != nil {
+		site.argCopyProgram = buildCallArgCopyProgram(site.arguments, site.cachedCallee.parameterKinds, site.cachedCallee.parameterRegisters)
+	}
+	siteIndex, err := c.function.addCallSite(&site)
+	if err != nil {
+		return varLocation{}, err
+	}
 
 	if len(freeVars) > 0 {
 		c.function.emitWide(opCallIIFE, 0, siteIndex)
@@ -572,10 +386,10 @@ func (c *compiler) compileIIFE(ctx context.Context, lit *ast.FuncLit, expression
 	return resultLocation, nil
 }
 
-// findFreeVars identifies variables used in a function literal that
-// are defined in the enclosing scope, including transitive captures.
+// findFreeVars returns the variables referenced inside lit that are declared in an
+// enclosing scope, including transitive captures from nested function literals.
 //
-// Takes lit (*ast.FuncLit) which is the function literal AST node to analyse.
+// Takes lit (*ast.FuncLit) which is the function literal AST node.
 //
 // Returns a sorted list of captured variable names.
 func (c *compiler) findFreeVars(ctx context.Context, lit *ast.FuncLit) []string {
@@ -601,16 +415,14 @@ func (c *compiler) findFreeVars(ctx context.Context, lit *ast.FuncLit) []string 
 	return result
 }
 
-// collectFreeIdents walks a block statement collecting identifiers
-// that refer to variables from the enclosing scope. For nested
-// function literals, it recursively finds transitively captured
-// variables that also need to be captured by the current function.
+// collectFreeIdents walks body collecting identifiers that refer to variables from the
+// enclosing scope. Nested function literals are descended into via
+// collectNestedLitFreeIdents to capture transitively-referenced variables.
 //
 // Takes body (*ast.BlockStmt) which is the block statement to walk.
-// Takes localDefs (map[string]bool) which is the locally defined
-// variable names to exclude.
-// Takes free (map[string]bool) which accumulates the set of free
-// variable names found.
+// Takes localDefs (map[string]bool) which holds the locally-defined variable names to
+// exclude.
+// Takes free (map[string]bool) which accumulates the free variable names.
 func (c *compiler) collectFreeIdents(ctx context.Context, body *ast.BlockStmt, localDefs map[string]bool, free map[string]bool) {
 	ast.Inspect(body, func(n ast.Node) bool {
 		if nestedLit, ok := n.(*ast.FuncLit); ok {
@@ -628,16 +440,14 @@ func (c *compiler) collectFreeIdents(ctx context.Context, body *ast.BlockStmt, l
 	})
 }
 
-// collectNestedLitFreeIdents recursively collects free identifiers
-// from a nested function literal, promoting any transitively
-// captured variables that also need to be captured by the enclosing
+// collectNestedLitFreeIdents recursively collects free identifiers from a nested function
+// literal, promoting transitive captures that also need to be captured by the enclosing
 // function.
 //
 // Takes nestedLit (*ast.FuncLit) which is the nested function literal.
-// Takes localDefs (map[string]bool) which is the locally defined
-// variable names to exclude.
-// Takes free (map[string]bool) which accumulates the set of free
-// variable names found.
+// Takes localDefs (map[string]bool) which holds the enclosing function's local
+// declarations.
+// Takes free (map[string]bool) which accumulates the free variable names.
 func (c *compiler) collectNestedLitFreeIdents(ctx context.Context, nestedLit *ast.FuncLit, localDefs map[string]bool, free map[string]bool) {
 	nestedDefs := make(map[string]bool)
 	if nestedLit.Type.Params != nil {
@@ -660,12 +470,11 @@ func (c *compiler) collectNestedLitFreeIdents(ctx context.Context, nestedLit *as
 	}
 }
 
-// markIdentFreeIfCaptured checks whether an ast.Ident refers to a
-// captured variable (in scope or upvalue map) and marks it as free.
+// markIdentFreeIfCaptured marks id as free when it resolves to a *types.Var defined in
+// the enclosing scope or upvalue map.
 //
 // Takes id (*ast.Ident) which is the identifier to check.
-// Takes free (map[string]bool) which accumulates the set of free
-// variable names.
+// Takes free (map[string]bool) which accumulates the free variable names.
 func (c *compiler) markIdentFreeIfCaptured(ctx context.Context, id *ast.Ident, free map[string]bool) {
 	typeObject, ok := c.info.Uses[id]
 	if !ok {
@@ -677,12 +486,11 @@ func (c *compiler) markIdentFreeIfCaptured(ctx context.Context, id *ast.Ident, f
 	c.markNameFreeIfCaptured(ctx, id.Name, free)
 }
 
-// markNameFreeIfCaptured marks a variable name as free if it is
-// found in the current scope or upvalue map.
+// markNameFreeIfCaptured marks name as free when it resolves to a local in the current
+// scope or to an existing upvalue reference.
 //
 // Takes name (string) which is the variable name to check.
-// Takes free (map[string]bool) which accumulates the set of free
-// variable names.
+// Takes free (map[string]bool) which accumulates the free variable names.
 func (c *compiler) markNameFreeIfCaptured(_ context.Context, name string, free map[string]bool) {
 	if _, found := c.scopes.lookupVar(name); found {
 		free[name] = true
@@ -691,868 +499,314 @@ func (c *compiler) markNameFreeIfCaptured(_ context.Context, name string, free m
 	}
 }
 
-// compileClosureCall compiles a call to a closure stored in a
-// variable.
+// closureCallSignature resolves the *types.Signature of a closure variable referenced by
+// identifier.
 //
-// Takes identifier (*ast.Ident) which is the identifier of the
-// closure variable.
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing arguments.
-// Takes closureLocation (varLocation) which is the register
-// location of the closure value.
+// Takes identifier (*ast.Ident) which names the closure variable.
 //
-// Returns the first result variable location and any compilation
-// error.
-func (c *compiler) compileClosureCall(ctx context.Context, identifier *ast.Ident, expression *ast.CallExpr, closureLocation varLocation) (varLocation, error) {
+// Returns the resolved signature, or an error when the variable is not callable.
+func (c *compiler) closureCallSignature(identifier *ast.Ident) (*types.Signature, error) {
 	typeObject := c.info.Uses[identifier]
-	sig, ok := typeObject.Type().(*types.Signature)
-	if !ok {
-		return varLocation{}, fmt.Errorf("variable %s is not callable", identifier.Name)
-	}
-
-	argLocs := make([]varLocation, len(expression.Args))
-	for i, argument := range expression.Args {
-		location, err := c.compileExpression(ctx, argument)
-		if err != nil {
-			return varLocation{}, err
+	if typeObject != nil && typeObject.Type() != nil {
+		if asSignature, ok := typeObject.Type().Underlying().(*types.Signature); ok {
+			return asSignature, nil
 		}
-		argLocs[i] = location
+	}
+	return nil, fmt.Errorf("variable %s is not callable", identifier.Name)
+}
+
+// compileClosureCall compiles a call through a closure value held in a local variable.
+// Emits opCall followed by opSyncClosureUpvalues so the callee's writes through upvalue
+// cells are mirrored back into the caller's snapshot.
+//
+// Takes identifier (*ast.Ident) which is the identifier of the closure variable.
+// Takes expression (*ast.CallExpr) which is the call expression supplying the arguments.
+// Takes closureLocation (varLocation) which is the register holding the closure value.
+//
+// Returns the first result location and any compilation error.
+func (c *compiler) compileClosureCall(ctx context.Context, identifier *ast.Ident, expression *ast.CallExpr, closureLocation varLocation) (varLocation, error) {
+	sig, err := c.closureCallSignature(identifier)
+	if err != nil {
+		return varLocation{}, err
 	}
 
-	var returnLocs []varLocation
-	var resultLocation varLocation
-	for r := range sig.Results().Variables() {
-		kind := kindForType(r.Type())
-		register := c.scopes.alloc.alloc(kind)
-		returnLocs = append(returnLocs, varLocation{register: register, kind: kind})
+	if closureLocation.isIndirect {
+		dereferenced, derefErr := c.emitIndirectRead(ctx, closureLocation)
+		if derefErr != nil {
+			return varLocation{}, derefErr
+		}
+		closureLocation = dereferenced
 	}
-	if len(returnLocs) > 0 {
-		resultLocation = returnLocs[0]
+
+	argumentLocations := make([]varLocation, len(expression.Args))
+	for i, argument := range expression.Args {
+		location, argErr := c.compileExpression(ctx, argument)
+		if argErr != nil {
+			return varLocation{}, argErr
+		}
+		argumentLocations[i] = location
 	}
+
+	returnLocations, resultLocation := c.allocateNativeReturns(sig)
 
 	site := callSite{
-		arguments:       argLocs,
-		returns:         returnLocs,
-		isClosure:       true,
-		closureRegister: closureLocation.register,
+		arguments:        argumentLocations,
+		returns:          returnLocations,
+		isClosure:        true,
+		closureRegister:  closureLocation.register,
+		isEllipsisSpread: expression.Ellipsis.IsValid(),
 	}
-	siteIndex := c.function.addCallSite(site)
+	if sig.Variadic() && !expression.Ellipsis.IsValid() {
+		lastParameter := sig.Params().At(sig.Params().Len() - 1)
+		site.runtimeVariadicSliceType = c.typeToReflect(ctx, lastParameter.Type())
+		site.runtimeVariadicNumFixed = safeconv.MustIntToUint8(sig.Params().Len() - 1)
+	}
+	siteIndex, err := c.function.addCallSite(&site)
+	if err != nil {
+		return varLocation{}, err
+	}
 	c.function.emitWide(opCall, 0, siteIndex)
 	c.function.emit(opSyncClosureUpvalues, closureLocation.register, 0, 0)
 
 	return resultLocation, nil
 }
 
-// scalarConversionKey identifies a source/destination register kind pair.
+// scalarConversionKey identifies a source/destination register kind pair used to look up
+// cross-bank scalar conversion sub-opcodes.
 type scalarConversionKey struct {
-	// source specifies the source register kind for the conversion.
+	// source is the source register kind for the conversion.
 	source registerKind
 
-	// destination specifies the destination register kind for the conversion.
+	// destination is the destination register kind for the conversion.
 	destination registerKind
 }
 
-// scalarConversionEntry maps a kind pair to the opcode and
-// destination register kind used for the conversion.
+// scalarConversionEntry maps a (source, destination) kind pair to the tier-1 sub-op tag
+// and destination register kind used to perform the conversion. Each cross-bank
+// conversion is emitted as {opDrillTier1, subOp, destination, source}.
 type scalarConversionEntry struct {
-	// opcode specifies the opcode to emit for this conversion.
-	opcode opcode
+	// subOp is the tier-1 sub-opcode emitted for this conversion.
+	subOp subOpcode
 
-	// destinationKind specifies the register kind of the conversion result.
+	// destinationKind is the register kind of the conversion result.
 	destinationKind registerKind
 }
 
-// scalarConversions is a table of specialised cross-bank conversion
-// opcodes looked up by (srcKind, dstKind).
-var scalarConversions = map[scalarConversionKey]scalarConversionEntry{
-	{source: registerInt, destination: registerFloat}:  {opcode: opIntToFloat, destinationKind: registerFloat},
-	{source: registerFloat, destination: registerInt}:  {opcode: opFloatToInt, destinationKind: registerInt},
-	{source: registerInt, destination: registerUint}:   {opcode: opIntToUint, destinationKind: registerUint},
-	{source: registerUint, destination: registerInt}:   {opcode: opUintToInt, destinationKind: registerInt},
-	{source: registerUint, destination: registerFloat}: {opcode: opUintToFloat, destinationKind: registerFloat},
-	{source: registerFloat, destination: registerUint}: {opcode: opFloatToUint, destinationKind: registerUint},
-	{source: registerBool, destination: registerInt}:   {opcode: opBoolToInt, destinationKind: registerInt},
-	{source: registerInt, destination: registerBool}:   {opcode: opIntToBool, destinationKind: registerBool},
-}
+var (
+	// scalarConversions is a table of specialised cross-bank conversion sub-opcodes looked
+	// up by (srcKind, destinationKind).
+	scalarConversions = map[scalarConversionKey]scalarConversionEntry{
+		{source: registerInt, destination: registerFloat}:  {subOp: subOpIntToFloat, destinationKind: registerFloat},
+		{source: registerFloat, destination: registerInt}:  {subOp: subOpFloatToInt, destinationKind: registerInt},
+		{source: registerInt, destination: registerUint}:   {subOp: subOpIntToUint, destinationKind: registerUint},
+		{source: registerUint, destination: registerInt}:   {subOp: subOpUintToInt, destinationKind: registerInt},
+		{source: registerUint, destination: registerFloat}: {subOp: subOpUintToFloat, destinationKind: registerFloat},
+		{source: registerFloat, destination: registerUint}: {subOp: subOpFloatToUint, destinationKind: registerUint},
+		{source: registerBool, destination: registerInt}:   {subOp: subOpBoolToInt, destinationKind: registerInt},
+		{source: registerInt, destination: registerBool}:   {subOp: subOpIntToBool, destinationKind: registerBool},
+	}
+)
 
-// compileTypeConversion compiles a type conversion expression
-// (e.g., int(x), string(x), []byte(s)).
+// compileTypeConversion compiles a type conversion expression such as int(x), string(x),
+// or []byte(s). Dispatches through the scalarConversions table, the byte/string fast
+// path, the same-kind short circuit, or a generic reflect-based fallback.
 //
-// Takes expression (*ast.CallExpr) which is the call expression
-// representing the conversion.
+// Takes expression (*ast.CallExpr) which is the conversion call.
 //
-// Returns the converted variable location and any compilation
-// error.
+// Returns the converted location and any compilation error.
 func (c *compiler) compileTypeConversion(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
 	if len(expression.Args) != 1 {
-		return varLocation{}, errors.New("type conversion requires exactly 1 argument")
+		return varLocation{}, ErrCompileTypeConversionArgCount
 	}
 
-	argLocation, err := c.compileExpression(ctx, expression.Args[0])
+	dstType := c.info.Types[expression].Type
+	if location, handled, nilErr := c.compileTypedNilOrExpression(ctx, expression.Args[0], dstType); handled {
+		return location, nilErr
+	}
+
+	argumentLocation, err := c.compileExpression(ctx, expression.Args[0])
 	if err != nil {
 		return varLocation{}, err
 	}
 
 	srcType := c.info.Types[expression.Args[0]].Type
-	dstType := c.info.Types[expression].Type
-	srcKind := kindForType(srcType)
-	dstKind := kindForType(dstType)
+	srcKind := c.kindFor(srcType)
+	destinationKind := c.kindFor(dstType)
 
-	if argLocation.kind == registerGeneral && srcKind != registerGeneral {
-		unpacked := c.scopes.alloc.allocTemp(srcKind)
-		c.function.emit(opUnpackInterface, unpacked, argLocation.register, uint8(srcKind))
-		argLocation = varLocation{register: unpacked, kind: srcKind}
+	argumentLocation = c.unpackConversionArgument(argumentLocation, srcKind)
+
+	if location, ok, scalarErr := c.compileScalarConversion(ctx, argumentLocation, srcKind, destinationKind, srcType, dstType); ok {
+		return location, scalarErr
 	}
 
-	if entry, ok := scalarConversions[scalarConversionKey{source: srcKind, destination: dstKind}]; ok {
-		dest := c.scopes.alloc.alloc(entry.destinationKind)
-		c.function.emit(entry.opcode, dest, argLocation.register, 0)
-		return varLocation{register: dest, kind: entry.destinationKind}, nil
-	}
-
-	if location, ok := c.compileByteStringConversion(ctx, argLocation, srcKind, dstKind, srcType, dstType); ok {
+	if location, ok := c.compileByteStringConversion(ctx, argumentLocation, srcKind, destinationKind, srcType, dstType); ok {
 		return location, nil
 	}
 
-	if srcKind == dstKind && !needsReflectSameKind(srcKind, srcType, dstType) {
-		return argLocation, nil
+	if location, ok := c.compileInterfaceConversion(ctx, argumentLocation, dstType); ok {
+		return location, nil
 	}
 
-	return c.compileReflectConversion(ctx, argLocation, dstType, dstKind)
+	if location, ok := c.compileSameKindConversion(ctx, argumentLocation, srcKind, destinationKind, srcType, dstType); ok {
+		return location, nil
+	}
+
+	result, err := c.compileReflectConversion(ctx, argumentLocation, dstType, destinationKind)
+	if err != nil {
+		return result, err
+	}
+	c.emitNarrowIntegerTruncation(result, dstType)
+	return result, nil
 }
 
-// compileByteStringConversion handles string<->[]byte and int->string
-// (rune) conversions.
+// unpackConversionArgument unpacks a general-register conversion argument into its typed
+// source register when the source type is a scalar kind.
 //
-// Takes argLocation (varLocation) which is the compiled argument location.
+// Takes argumentLocation (varLocation) which is the compiled argument.
 // Takes srcKind (registerKind) which is the source register kind.
-// Takes dstKind (registerKind) which is the destination register kind.
+//
+// Returns the possibly-unpacked argument location.
+func (c *compiler) unpackConversionArgument(argumentLocation varLocation, srcKind registerKind) varLocation {
+	if argumentLocation.kind != registerGeneral || srcKind == registerGeneral {
+		return argumentLocation
+	}
+	unpacked := c.scopes.alloc.allocTemp(srcKind)
+	c.function.emit(opUnpackInterface, unpacked, argumentLocation.register, uint8(srcKind))
+	return varLocation{register: unpacked, kind: srcKind}
+}
+
+// compileScalarConversion handles cross-bank scalar conversions, including the
+// float-to-narrow-integer reflect path and the scalarConversions sub-opcode table.
+//
+// Takes argumentLocation (varLocation) which is the compiled argument.
+// Takes srcKind (registerKind) which is the source register kind.
+// Takes destinationKind (registerKind) which is the destination kind.
+// Takes dstType (types.Type) which is the destination Go type.
+//
+// Returns (location, true, err) when handled, or (_, false, nil) when not applicable.
+func (c *compiler) compileScalarConversion(ctx context.Context, argumentLocation varLocation, srcKind, destinationKind registerKind, _, dstType types.Type) (varLocation, bool, error) {
+	if srcKind == registerFloat && (destinationKind == registerInt || destinationKind == registerUint) && narrowIntegerBitWidth(dstType) != 0 {
+		result, err := c.compileReflectConversion(ctx, argumentLocation, dstType, destinationKind)
+		if err != nil {
+			return result, true, err
+		}
+		c.emitNarrowIntegerTruncation(result, dstType)
+		return result, true, nil
+	}
+	if entry, ok := scalarConversions[scalarConversionKey{source: srcKind, destination: destinationKind}]; ok {
+		dest := c.scopes.alloc.alloc(entry.destinationKind)
+		c.function.emit(opDrillTier1, uint8(entry.subOp), dest, argumentLocation.register)
+		result := varLocation{register: dest, kind: entry.destinationKind}
+		c.emitNarrowIntegerTruncation(result, dstType)
+		return result, true, nil
+	}
+	return varLocation{}, false, nil
+}
+
+// compileInterfaceConversion boxes a typed argument into a general register when the
+// destination type is an interface.
+//
+// Takes argumentLocation (varLocation) which is the compiled argument.
+// Takes dstType (types.Type) which is the destination Go type.
+//
+// Returns (location, true) when handled, or (_, false) when the destination is not an
+// interface or the argument is already general.
+func (c *compiler) compileInterfaceConversion(ctx context.Context, argumentLocation varLocation, dstType types.Type) (varLocation, bool) {
+	if _, dstIsInterface := dstType.Underlying().(*types.Interface); !dstIsInterface || argumentLocation.kind == registerGeneral {
+		return varLocation{}, false
+	}
+	generalRegister := c.scopes.alloc.alloc(registerGeneral)
+	if c.emitTypedBox(generalRegister, argumentLocation) {
+		return varLocation{register: generalRegister, kind: registerGeneral}, true
+	}
+	c.boxToGeneral(ctx, &argumentLocation)
+	return argumentLocation, true
+}
+
+// compileSameKindConversion handles conversions where source and destination occupy the
+// same register bank, emitting only a narrowing truncation when the integer bit widths
+// differ.
+//
+// Takes argumentLocation (varLocation) which is the compiled argument.
+// Takes srcKind (registerKind) which is the source register kind.
+// Takes destinationKind (registerKind) which is the destination kind.
+// Takes srcType (types.Type) which is the source Go type.
+// Takes dstType (types.Type) which is the destination Go type.
+//
+// Returns (location, true) when handled, or (_, false) when a reflect conversion is still
+// required.
+func (c *compiler) compileSameKindConversion(ctx context.Context, argumentLocation varLocation, srcKind, destinationKind registerKind, srcType, dstType types.Type) (varLocation, bool) {
+	if srcKind != destinationKind || needsReflectSameKind(srcKind, srcType, dstType) {
+		return varLocation{}, false
+	}
+	if narrowIntegerBitWidth(dstType) != 0 && narrowIntegerBitWidth(srcType) != narrowIntegerBitWidth(dstType) {
+		dest := c.scopes.alloc.alloc(destinationKind)
+		result := varLocation{register: dest, kind: destinationKind}
+		c.emitMove(ctx, result, argumentLocation)
+		c.emitNarrowIntegerTruncation(result, dstType)
+		return result, true
+	}
+	return argumentLocation, true
+}
+
+// compileByteStringConversion handles string-to-[]byte, []byte-to-string, and
+// int-to-string (rune) conversions via tier-1 sub-opcodes.
+//
+// Takes argumentLocation (varLocation) which is the compiled argument location.
+// Takes srcKind (registerKind) which is the source register kind.
+// Takes destinationKind (registerKind) which is the destination register kind.
 // Takes srcType (types.Type) which is the source Go type.
 // Takes dstType (types.Type) which is the destination Go type.
 //
 // Returns (location, true) when handled, or (_, false) when not applicable.
-func (c *compiler) compileByteStringConversion(_ context.Context, argLocation varLocation, srcKind, dstKind registerKind, srcType, dstType types.Type) (varLocation, bool) {
+func (c *compiler) compileByteStringConversion(_ context.Context, argumentLocation varLocation, srcKind, destinationKind registerKind, srcType, dstType types.Type) (varLocation, bool) {
 	if srcKind == registerString && isSliceOfByte(dstType) {
 		dest := c.scopes.alloc.alloc(registerGeneral)
-		c.function.emit(opStringToBytes, dest, argLocation.register, 0)
+		c.function.emit(opDrillTier1, uint8(subOpStringToBytes), dest, argumentLocation.register)
 		return varLocation{register: dest, kind: registerGeneral}, true
 	}
 
-	if dstKind == registerString && isSliceOfByte(srcType) {
+	if destinationKind == registerString && isSliceOfByte(srcType) {
 		dest := c.scopes.alloc.alloc(registerString)
-		c.function.emit(opBytesToString, dest, argLocation.register, 0)
+		if argumentLocation.kind == registerSliceByte {
+			c.function.emit(opDrillTier1, uint8(subOpSliceByteToString), dest, argumentLocation.register)
+		} else {
+			c.function.emit(opDrillTier1, uint8(subOpBytesToString), dest, argumentLocation.register)
+		}
 		return varLocation{register: dest, kind: registerString}, true
 	}
 
-	if srcKind == registerInt && dstKind == registerString {
+	if srcKind == registerInt && destinationKind == registerString {
 		dest := c.scopes.alloc.alloc(registerString)
-		c.function.emit(opRuneToString, dest, argLocation.register, 0)
+		c.function.emit(opDrillTier1, uint8(subOpRuneToString), dest, argumentLocation.register)
 		return varLocation{register: dest, kind: registerString}, true
 	}
 
 	return varLocation{}, false
 }
 
-// compileReflectConversion emits a generic reflect-based type
-// conversion, unboxing the result if the destination kind is not
-// general.
+// compileReflectConversion emits a generic reflect-based type conversion via opConvert.
+// Unboxes the result back into a typed bank when destinationKind is not registerGeneral.
 //
-// Takes argLocation (varLocation) which is the compiled argument location.
+// Takes argumentLocation (varLocation) which is the compiled argument location.
 // Takes dstType (types.Type) which is the target Go type.
-// Takes dstKind (registerKind) which is the destination register kind.
+// Takes destinationKind (registerKind) which is the destination register kind.
 //
 // Returns the converted variable location and any compilation error.
-func (c *compiler) compileReflectConversion(ctx context.Context, argLocation varLocation, dstType types.Type, dstKind registerKind) (varLocation, error) {
-	c.boxToGeneral(ctx, &argLocation)
+func (c *compiler) compileReflectConversion(ctx context.Context, argumentLocation varLocation, dstType types.Type, destinationKind registerKind) (varLocation, error) {
+	c.boxToGeneral(ctx, &argumentLocation)
 
 	reflectType := c.typeToReflect(ctx, dstType)
-	typeIndex := c.function.addTypeRef(reflectType)
+	typeIndex, err := c.function.addTypeRef(reflectType)
+	if err != nil {
+		return varLocation{}, err
+	}
 	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opConvert, dest, argLocation.register, 0)
+	c.function.emit(opConvert, dest, argumentLocation.register, 0)
 	c.function.emitExtension(typeIndex, 0)
 
-	if dstKind != registerGeneral {
-		return c.emitUnboxFromGeneral(ctx, dest, dstKind)
+	if destinationKind != registerGeneral {
+		return c.emitUnboxFromGeneral(ctx, dest, destinationKind)
 	}
 	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileSliceExpression compiles a slice expression (a[lo:hi] or
-// a[lo:hi:max]).
-//
-// Takes expression (*ast.SliceExpr) which is the slice expression
-// AST node to compile.
-//
-// Returns the sliced variable location and any compilation error.
-func (c *compiler) compileSliceExpression(ctx context.Context, expression *ast.SliceExpr) (varLocation, error) {
-	collLocation, err := c.compileExpression(ctx, expression.X)
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	collType := c.info.Types[expression.X].Type.Underlying()
-	if basic, ok := collType.(*types.Basic); ok && basic.Info()&types.IsString != 0 && expression.Max == nil {
-		return c.compileStringSlice(ctx, expression, collLocation)
-	}
-
-	return c.compileGeneralSlice(ctx, expression, collLocation)
-}
-
-// compileStringSlice compiles s[lo:hi] for a string operand.
-//
-// Takes expression (*ast.SliceExpr) which is the slice expression
-// AST node.
-// Takes collLocation (varLocation) which is the compiled string
-// operand location.
-//
-// Returns the sliced string location and any compilation error.
-func (c *compiler) compileStringSlice(ctx context.Context, expression *ast.SliceExpr, collLocation varLocation) (varLocation, error) {
-	dest := c.scopes.alloc.alloc(registerString)
-	flags := uint8(0)
-	var lowReg, highReg uint8
-
-	if expression.Low != nil {
-		reg, err := c.compileSliceBound(ctx, expression.Low, true)
-		if err != nil {
-			return varLocation{}, err
-		}
-		lowReg = reg
-		flags |= sliceLowBoundFlag
-	}
-	if expression.High != nil {
-		reg, err := c.compileSliceBound(ctx, expression.High, true)
-		if err != nil {
-			return varLocation{}, err
-		}
-		highReg = reg
-		flags |= sliceHighBoundFlag
-	}
-
-	c.function.emit(opSliceString, dest, collLocation.register, flags)
-	c.function.emit(opExt, lowReg, highReg, 0)
-	return varLocation{register: dest, kind: registerString}, nil
-}
-
-// compileGeneralSlice compiles a[lo:hi] or a[lo:hi:max] for a
-// non-string collection.
-//
-// Takes expression (*ast.SliceExpr) which is the slice expression
-// AST node.
-// Takes collLocation (varLocation) which is the compiled collection
-// operand location.
-//
-// Returns the sliced collection location and any compilation error.
-func (c *compiler) compileGeneralSlice(ctx context.Context, expression *ast.SliceExpr, collLocation varLocation) (varLocation, error) {
-	c.boxToGeneral(ctx, &collLocation)
-
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	flags := uint8(0)
-	var lowReg, highReg, maxReg uint8
-
-	if expression.Low != nil {
-		reg, err := c.compileSliceBound(ctx, expression.Low, false)
-		if err != nil {
-			return varLocation{}, err
-		}
-		lowReg = reg
-		flags |= sliceLowBoundFlag
-	}
-	if expression.High != nil {
-		reg, err := c.compileSliceBound(ctx, expression.High, false)
-		if err != nil {
-			return varLocation{}, err
-		}
-		highReg = reg
-		flags |= sliceHighBoundFlag
-	}
-	if expression.Max != nil {
-		reg, err := c.compileSliceBound(ctx, expression.Max, false)
-		if err != nil {
-			return varLocation{}, err
-		}
-		maxReg = reg
-		flags |= sliceMaxBitFlag
-	}
-
-	c.function.emit(opSliceOp, dest, collLocation.register, 0)
-	c.function.emit(opExt, flags, lowReg, highReg)
-	if expression.Max != nil {
-		c.function.emit(opExt, maxReg, 0, 0)
-	}
-
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileSliceBound compiles a single slice bound expression and
-// returns the register holding the result.
-//
-// Takes boundExpr (ast.Expr) which is the bound expression to compile.
-// Takes ensureInt (bool) which controls whether the result is coerced
-// to an int register (used for string slicing).
-//
-// Returns the register number holding the bound value and any compilation
-// error.
-func (c *compiler) compileSliceBound(ctx context.Context, boundExpr ast.Expr, ensureInt bool) (uint8, error) {
-	location, err := c.compileExpression(ctx, boundExpr)
-	if err != nil {
-		return 0, err
-	}
-	if ensureInt {
-		c.ensureIntRegister(ctx, &location)
-	}
-	return location.register, nil
-}
-
-// compileSelectorExpression compiles a selector expression
-// (s.Field, s.Method, or pkg.Symbol for imported packages).
-//
-// Takes expression (*ast.SelectorExpr) which is the selector
-// expression AST node to compile.
-//
-// Returns the selected value location and any compilation error.
-func (c *compiler) compileSelectorExpression(ctx context.Context, expression *ast.SelectorExpr) (varLocation, error) {
-	if location, ok := c.compilePackageSymbol(ctx, expression); ok {
-		return location, nil
-	}
-
-	selection, ok := c.info.Selections[expression]
-	if !ok {
-		return varLocation{}, fmt.Errorf("unresolved selector: %s", expression.Sel.Name)
-	}
-
-	if selection.Kind() == types.MethodExpr {
-		return c.compileMethodExprValue(ctx, expression, selection)
-	}
-
-	recvLocation, err := c.compileExpression(ctx, expression.X)
-	if err != nil {
-		return varLocation{}, err
-	}
-	c.boxToGeneral(ctx, &recvLocation)
-
-	switch selection.Kind() {
-	case types.FieldVal:
-		return c.compileSelectorFieldVal(ctx, selection, recvLocation)
-	case types.MethodVal:
-		return c.compileSelectorMethodVal(ctx, expression, selection, recvLocation)
-	default:
-		return varLocation{}, fmt.Errorf("unsupported selector kind: %v for %s at %s", selection.Kind(), expression.Sel.Name, c.positionString(expression.Pos()))
-	}
-}
-
-// compilePackageSymbol checks whether a selector expression refers
-// to a package-qualified symbol (e.g., fmt.Println) and loads it
-// as a general constant.
-//
-// Takes expression (*ast.SelectorExpr) which is the selector
-// expression AST node.
-//
-// Returns (location, true) when resolved, or (_, false) otherwise.
-func (c *compiler) compilePackageSymbol(_ context.Context, expression *ast.SelectorExpr) (varLocation, bool) {
-	if _, isSelection := c.info.Selections[expression]; isSelection {
-		return varLocation{}, false
-	}
-	typeObject, ok := c.info.Uses[expression.Sel]
-	if !ok || typeObject.Pkg() == nil || c.symbols == nil {
-		return varLocation{}, false
-	}
-	value, found := c.symbols.Lookup(typeObject.Pkg().Path(), typeObject.Name())
-	if !found {
-		return varLocation{}, false
-	}
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	constIndex := c.function.addGeneralConstant(value, generalConstantDescriptor{
-		kind:        generalConstantPackageSymbol,
-		packagePath: typeObject.Pkg().Path(),
-		symbolName:  typeObject.Name(),
-	})
-	c.function.emitWide(opLoadGeneralConst, dest, constIndex)
-	return varLocation{register: dest, kind: registerGeneral}, true
-}
-
-// compileSelectorFieldVal compiles a struct field access (s.Field),
-// walking embedded field paths as needed.
-//
-// Takes selection (*types.Selection) which is the type selection information.
-// Takes recvLocation (varLocation) which is the compiled receiver location.
-//
-// Returns the field value location and any compilation error.
-func (c *compiler) compileSelectorFieldVal(ctx context.Context, selection *types.Selection, recvLocation varLocation) (varLocation, error) {
-	fieldPath := selection.Index()
-	currentRegister := recvLocation.register
-	resultKind := kindForType(selection.Type())
-
-	_, isNamedType := types.Unalias(selection.Type()).(*types.Named)
-
-	if resultKind == registerInt && len(fieldPath) == 1 && !isNamedType {
-		dest := c.scopes.alloc.alloc(registerInt)
-		c.function.emit(opGetFieldInt, dest, currentRegister, safeconv.MustIntToUint8(fieldPath[0]))
-		return varLocation{register: dest, kind: registerInt}, nil
-	}
-
-	for _, fieldIndex := range fieldPath {
-		dest := c.scopes.alloc.alloc(registerGeneral)
-		c.function.emit(opGetField, dest, currentRegister, safeconv.MustIntToUint8(fieldIndex))
-		currentRegister = dest
-	}
-
-	if resultKind != registerGeneral && !isNamedType {
-		return c.emitUnboxFromGeneral(ctx, currentRegister, resultKind)
-	}
-	return varLocation{register: currentRegister, kind: registerGeneral}, nil
-}
-
-// compileSelectorMethodVal compiles a method value (s.Method),
-// binding the receiver to the method via opBindMethod when the
-// method is in the function table, or falling back to opGetMethod.
-//
-// Takes expression (*ast.SelectorExpr) which is the selector
-// expression AST node.
-// Takes selection (*types.Selection) which is the type selection
-// information.
-// Takes recvLocation (varLocation) which is the compiled receiver
-// location.
-//
-// Returns the bound method location and any compilation error.
-func (c *compiler) compileSelectorMethodVal(ctx context.Context, expression *ast.SelectorExpr, selection *types.Selection, recvLocation varLocation) (varLocation, error) {
-	if tableName, ok := c.resolveMethodTableName(ctx, expression); ok {
-		if funcIndex, found := c.funcTable[tableName]; found {
-			return c.emitBoundMethod(ctx, selection, recvLocation, funcIndex)
-		}
-	}
-
-	methodName := expression.Sel.Name
-	nameIndex := c.function.addStringConstant(methodName)
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opGetMethod, dest, recvLocation.register, 0)
-	c.function.emitExtension(nameIndex, 0)
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// emitBoundMethod walks an embedded field path to reach the true
-// receiver, then emits opBindMethod to bind it.
-//
-// Takes selection (*types.Selection) which is the type selection information.
-// Takes recvLocation (varLocation) which is the compiled receiver location.
-// Takes funcIndex (uint16) which is the function table index of the
-// method.
-//
-// Returns the bound method location and any compilation error.
-func (c *compiler) emitBoundMethod(_ context.Context, selection *types.Selection, recvLocation varLocation, funcIndex uint16) (varLocation, error) {
-	var fieldPath []int
-	if index := selection.Index(); len(index) > 1 {
-		fieldPath = index[:len(index)-1]
-	}
-
-	for _, fieldIndex := range fieldPath {
-		dest := c.scopes.alloc.alloc(registerGeneral)
-		c.function.emit(opGetField, dest, recvLocation.register, safeconv.MustIntToUint8(fieldIndex))
-		recvLocation = varLocation{register: dest, kind: registerGeneral}
-	}
-
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opBindMethod, dest, recvLocation.register, 0)
-	c.function.emitExtension(funcIndex, 0)
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileMethodExprValue compiles a method expression used as a
-// value (e.g., f := Type.Method). The result is a function whose
-// first parameter is the receiver.
-//
-// Takes expression (*ast.SelectorExpr) which is the selector
-// expression AST node.
-// Takes selection (*types.Selection) which is the type selection
-// information.
-//
-// Returns the method expression location and any compilation error.
-func (c *compiler) compileMethodExprValue(ctx context.Context, expression *ast.SelectorExpr, selection *types.Selection) (varLocation, error) {
-	tableName, ok := c.resolveMethodTableName(ctx, expression)
-	if !ok {
-		return varLocation{}, fmt.Errorf("unsupported method expression: %s at %s", expression.Sel.Name, c.positionString(expression.Pos()))
-	}
-	funcIndex, found := c.funcTable[tableName]
-	if !found {
-		return varLocation{}, fmt.Errorf("method not found: %s (receiver type: %v) at %s", tableName, selection.Recv(), c.positionString(expression.Pos()))
-	}
-
-	var fieldPath []int
-	if index := selection.Index(); len(index) > 1 {
-		fieldPath = index[:len(index)-1]
-	}
-
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opMakeMethodExpr, dest, 0, safeconv.MustIntToUint8(len(fieldPath)))
-	c.function.emitExtension(funcIndex, 0)
-	for _, index := range fieldPath {
-		c.function.emit(opExt, safeconv.MustIntToUint8(index), 0, 0)
-	}
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileStarExpression compiles a pointer dereference (*p).
-//
-// Takes expression (*ast.StarExpr) which is the star expression
-// AST node to compile.
-//
-// Returns the dereferenced value location and any compilation
-// error.
-func (c *compiler) compileStarExpression(ctx context.Context, expression *ast.StarExpr) (varLocation, error) {
-	ptrLocation, err := c.compileExpression(ctx, expression.X)
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	if ptrLocation.kind != registerGeneral {
-		return varLocation{}, errors.New("dereference requires pointer in general register")
-	}
-
-	tv := c.info.Types[expression]
-	elemKind := kindForType(tv.Type)
-
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opDeref, dest, ptrLocation.register, 0)
-
-	if elemKind != registerGeneral {
-		return c.emitUnboxFromGeneral(ctx, dest, elemKind)
-	}
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileBuiltinCap compiles cap(x).
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the argument.
-//
-// Returns the capacity value location and any compilation error.
-func (c *compiler) compileBuiltinCap(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
-	if len(expression.Args) != 1 {
-		return varLocation{}, errors.New("cap requires exactly 1 argument")
-	}
-
-	argLocation, err := c.compileExpression(ctx, expression.Args[0])
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	if argLocation.kind != registerGeneral {
-		return varLocation{}, fmt.Errorf("cap not supported for register kind %s", argLocation.kind)
-	}
-
-	dest := c.scopes.alloc.alloc(registerInt)
-	c.function.emit(opCap, dest, argLocation.register, 0)
-	return varLocation{register: dest, kind: registerInt}, nil
-}
-
-// compileBuiltinCopy compiles copy(dst, src).
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the arguments.
-//
-// Returns the number of elements copied as an int location and
-// any compilation error.
-func (c *compiler) compileBuiltinCopy(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
-	if len(expression.Args) != 2 {
-		return varLocation{}, errors.New("copy requires exactly 2 arguments")
-	}
-
-	dstLocation, err := c.compileExpression(ctx, expression.Args[0])
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	srcLocation, err := c.compileExpression(ctx, expression.Args[1])
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	dest := c.scopes.alloc.alloc(registerInt)
-	c.function.emit(opCopy, dest, dstLocation.register, srcLocation.register)
-	return varLocation{register: dest, kind: registerInt}, nil
-}
-
-// compileBuiltinNew compiles new(T) and new(expr) (Go 1.26+).
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the type or expression argument.
-//
-// Returns the pointer variable location and any compilation error.
-func (c *compiler) compileBuiltinNew(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
-	tv := c.info.Types[expression]
-
-	ptrType, ok := tv.Type.(*types.Pointer)
-	if !ok {
-		return varLocation{}, fmt.Errorf("expected *types.Pointer, got %T", tv.Type)
-	}
-	reflectType := c.typeToReflect(ctx, ptrType.Elem())
-	typeIndex := c.function.addTypeRef(reflectType)
-
-	argTV := c.info.Types[expression.Args[0]]
-	if argTV.IsType() {
-		dest := c.scopes.alloc.alloc(registerGeneral)
-		c.function.emit(opConvert, dest, 0, 1)
-		c.function.emitExtension(typeIndex, 0)
-		return varLocation{register: dest, kind: registerGeneral}, nil
-	}
-
-	valLocation, err := c.compileExpression(ctx, expression.Args[0])
-	if err != nil {
-		return varLocation{}, err
-	}
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opAllocIndirect, dest, valLocation.register, uint8(valLocation.kind))
-	c.function.emitExtension(typeIndex, 0)
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileBuiltinPanic compiles panic(v).
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the panic value.
-//
-// Returns an empty variable location and any compilation error.
-func (c *compiler) compileBuiltinPanic(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
-	return c.compileSingleArgGeneral(ctx, expression, opPanic, "panic requires exactly 1 argument")
-}
-
-// compileBuiltinRecover compiles recover().
-//
-// Returns the recovered value location and any compilation error.
-func (c *compiler) compileBuiltinRecover(_ context.Context, _ *ast.CallExpr) (varLocation, error) {
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opRecover, dest, 0, 0)
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileBuiltinClose compiles close(ch).
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the channel.
-//
-// Returns an empty variable location and any compilation error.
-func (c *compiler) compileBuiltinClose(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
-	return c.compileSingleArgGeneral(ctx, expression, opChanClose, "close expects 1 argument")
-}
-
-// compileSingleArgGeneral compiles a builtin that takes one
-// argument, boxes it to general if needed, and emits the opcode.
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the argument.
-// Takes op (opcode) which is the opcode to emit.
-// Takes errMessage (string) which is the error message if the
-// argument count is wrong.
-//
-// Returns an empty variable location and any compilation error.
-func (c *compiler) compileSingleArgGeneral(ctx context.Context, expression *ast.CallExpr, op opcode, errMessage string) (varLocation, error) {
-	if len(expression.Args) != 1 {
-		return varLocation{}, errors.New(errMessage)
-	}
-	argLocation, err := c.compileExpression(ctx, expression.Args[0])
-	if err != nil {
-		return varLocation{}, err
-	}
-	c.boxToGeneral(ctx, &argLocation)
-	c.function.emit(op, argLocation.register, 0, 0)
-	return varLocation{}, nil
-}
-
-// compileStructLiteral compiles a struct literal like Point{X: 1, Y: 2}.
-//
-// Takes lit (*ast.CompositeLit) which is the composite literal AST
-// node.
-// Takes reflectType (reflect.Type) which is the reflect type of the
-// struct.
-//
-// Returns the struct variable location and any compilation error.
-func (c *compiler) compileStructLiteral(ctx context.Context, lit *ast.CompositeLit, reflectType reflect.Type) (varLocation, error) {
-	typeIndex := c.function.addTypeRef(reflectType)
-
-	dest := c.scopes.alloc.alloc(registerGeneral)
-
-	c.function.emit(opMakeMap, dest, 0, 0)
-	c.function.emitExtension(typeIndex, 0)
-
-	for i, elt := range lit.Elts {
-		if err := c.compileStructField(ctx, dest, i, elt, reflectType); err != nil {
-			return varLocation{}, err
-		}
-	}
-
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileStructField compiles a single field initialiser within a
-// struct literal and emits the appropriate set-field opcode.
-//
-// Takes dest (uint8) which is the destination register of the struct.
-// Takes positionalIndex (int) which is the positional index for unkeyed
-// fields.
-// Takes elt (ast.Expr) which is the field element expression.
-// Takes reflectType (reflect.Type) which is the reflect type of the
-// struct.
-//
-// Returns any compilation error.
-func (c *compiler) compileStructField(ctx context.Context, dest uint8, positionalIndex int, elt ast.Expr, reflectType reflect.Type) error {
-	fieldIndex, valExpr, err := resolveStructFieldIndex(positionalIndex, elt, reflectType)
-	if err != nil {
-		return err
-	}
-
-	valLocation, err := c.compileExpression(ctx, valExpr)
-	if err != nil {
-		return err
-	}
-	valLocation = c.coerceEvalBoolResult(ctx, c.info, valExpr, valLocation)
-
-	c.emitStructFieldSet(ctx, dest, safeconv.MustIntToUint8(fieldIndex), valLocation)
-	return nil
-}
-
-// emitStructFieldSet emits the correct set-field opcode for the
-// given value location, using the int fast path when possible.
-//
-// Takes dest (uint8) which is the destination register of the struct.
-// Takes fieldIndex (uint8) which is the target field index.
-// Takes valLocation (varLocation) which is the compiled value location to
-// set.
-func (c *compiler) emitStructFieldSet(ctx context.Context, dest, fieldIndex uint8, valLocation varLocation) {
-	if valLocation.kind == registerInt {
-		c.function.emit(opSetFieldInt, dest, fieldIndex, valLocation.register)
-		return
-	}
-	if valLocation.kind != registerGeneral {
-		genReg := c.scopes.alloc.allocTemp(registerGeneral)
-		c.emitBoxToGeneral(ctx, genReg, valLocation)
-		c.function.emit(opSetField, dest, fieldIndex, genReg)
-		c.scopes.alloc.freeTemp(registerGeneral, genReg)
-		return
-	}
-	c.function.emit(opSetField, dest, fieldIndex, valLocation.register)
-}
-
-// compileTypeAssertExpression compiles a type assertion expression
-// (x.(T)).
-//
-// Takes expression (*ast.TypeAssertExpr) which is the type
-// assertion expression AST node.
-//
-// Returns the asserted value location and any compilation error.
-func (c *compiler) compileTypeAssertExpression(ctx context.Context, expression *ast.TypeAssertExpr) (varLocation, error) {
-	srcLocation, err := c.compileExpression(ctx, expression.X)
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	c.boxToGeneral(ctx, &srcLocation)
-
-	targetType := c.info.Types[expression.Type].Type
-	reflectType := c.typeToReflect(ctx, targetType)
-	typeIndex := c.function.addTypeRef(reflectType)
-
-	dest := c.scopes.alloc.alloc(registerGeneral)
-	okReg := c.scopes.alloc.alloc(registerInt)
-
-	c.function.emit(opTypeAssert, dest, srcLocation.register, okReg)
-	c.function.emitExtension(typeIndex, 1)
-
-	return varLocation{register: dest, kind: registerGeneral}, nil
-}
-
-// compileBuiltinPrint compiles print() or println() to
-// opCallBuiltin.
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing print arguments.
-// Takes builtinID (uint8) which is the builtin identifier for the
-// print variant.
-//
-// Returns an empty variable location and any compilation error.
-func (c *compiler) compileBuiltinPrint(ctx context.Context, expression *ast.CallExpr, builtinID uint8) (varLocation, error) {
-	numArgs := len(expression.Args)
-	argLocs := make([]varLocation, numArgs)
-	for i, argument := range expression.Args {
-		location, err := c.compileExpression(ctx, argument)
-		if err != nil {
-			return varLocation{}, err
-		}
-		argLocs[i] = location
-	}
-
-	c.function.emit(opCallBuiltin, builtinID, safeconv.MustIntToUint8(numArgs), 0)
-	for _, location := range argLocs {
-		c.function.emit(opExt, location.register, uint8(location.kind), 0)
-	}
-
-	return varLocation{}, nil
-}
-
-// compileBuiltinClear compiles clear(x) to opCallBuiltin.
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the argument.
-//
-// Returns an empty variable location and any compilation error.
-func (c *compiler) compileBuiltinClear(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
-	if len(expression.Args) != 1 {
-		return varLocation{}, errors.New("clear requires exactly 1 argument")
-	}
-
-	argLocation, err := c.compileExpression(ctx, expression.Args[0])
-	if err != nil {
-		return varLocation{}, err
-	}
-	c.boxToGeneral(ctx, &argLocation)
-
-	c.function.emit(opCallBuiltin, builtinClear, 1, 0)
-	c.function.emit(opExt, argLocation.register, uint8(argLocation.kind), 0)
-
-	return varLocation{}, nil
-}
-
-// compileBuiltinMinMax compiles min(...) or max(...) using inline
-// comparison chains for int and float operands.
-//
-// Takes expression (*ast.CallExpr) which is the call expression
-// containing the arguments.
-// Takes isMin (bool) which controls whether this compiles min
-// (true) or max (false).
-//
-// Returns the result variable location and any compilation error.
-func (c *compiler) compileBuiltinMinMax(ctx context.Context, expression *ast.CallExpr, isMin bool) (varLocation, error) {
-	if len(expression.Args) < 2 {
-		return varLocation{}, errors.New("min/max requires at least 2 arguments")
-	}
-
-	resultLocation, err := c.compileExpression(ctx, expression.Args[0])
-	if err != nil {
-		return varLocation{}, err
-	}
-
-	dest := c.scopes.alloc.alloc(resultLocation.kind)
-	destLocation := varLocation{register: dest, kind: resultLocation.kind}
-	c.emitMove(ctx, destLocation, resultLocation)
-
-	for _, argument := range expression.Args[1:] {
-		argLocation, err := c.compileExpression(ctx, argument)
-		if err != nil {
-			return varLocation{}, err
-		}
-
-		var cmpLocation varLocation
-		if isMin {
-			cmpLocation, err = c.emitBinaryOp(ctx, token.LSS, argLocation, destLocation)
-		} else {
-			cmpLocation, err = c.emitBinaryOp(ctx, token.GTR, argLocation, destLocation)
-		}
-		if err != nil {
-			return varLocation{}, err
-		}
-
-		skipJump := c.function.emitJump(opJumpIfFalse, cmpLocation.register)
-		c.emitMove(ctx, destLocation, argLocation)
-		c.function.patchJump(skipJump)
-	}
-
-	return destLocation, nil
 }

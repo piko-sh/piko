@@ -34,24 +34,22 @@ var (
 	// eventsTrackedCount is the total number of events sent to Track().
 	eventsTrackedCount metric.Int64Counter
 
-	// eventsDroppedCount is the number of events dropped because a
-	// collector's channel was full.
+	// eventsDroppedCount is the number of events dropped because a collector's channel was
+	// full.
 	eventsDroppedCount metric.Int64Counter
 
-	// eventsCollectedCount is the number of events successfully delivered
-	// to collectors.
+	// eventsCollectedCount is the number of events successfully delivered to collectors.
 	eventsCollectedCount metric.Int64Counter
 
-	// eventsFailedCount is the number of events that a collector's Collect
-	// method rejected with an error.
+	// eventsFailedCount is the number of events that a collector's Collect method rejected
+	// with an error.
 	eventsFailedCount metric.Int64Counter
 
-	// batcherRetriesCount is the number of batch send retries across
-	// all batchers.
+	// batcherRetriesCount is the number of batch send retries across all batchers.
 	batcherRetriesCount metric.Int64Counter
 
-	// batcherCircuitOpenCount is the number of times a batcher's
-	// circuit breaker transitioned to the open state.
+	// batcherCircuitOpenCount is the number of times a batcher's circuit breaker
+	// transitioned to the open state.
 	batcherCircuitOpenCount metric.Int64Counter
 )
 

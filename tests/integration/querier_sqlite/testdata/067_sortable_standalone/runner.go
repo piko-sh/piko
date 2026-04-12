@@ -68,7 +68,7 @@ func main() {
 	}
 
 	result := map[string]any{
-		"sorted_by_name_asc":  sortedByNameAsc,
+		"sorted_by_name_asc":   sortedByNameAsc,
 		"sorted_by_price_desc": sortedByPriceDesc,
 		"unsorted":             unsorted,
 	}

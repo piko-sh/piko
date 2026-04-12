@@ -29,23 +29,23 @@ import (
 type Severity string
 
 const (
-	// SeverityError indicates a fatal problem that should stop the build in
-	// 'strict' mode.
+	// SeverityError indicates a fatal problem that should stop the build in 'strict' mode.
 	SeverityError Severity = "error"
 
-	// SeverityWarning indicates a potential issue or bad practice that does not
-	// stop the build.
+	// SeverityWarning indicates a potential issue or bad practice that does not stop the
+	// build.
 	SeverityWarning Severity = "warning"
 )
 
-// ErrComponentNotFound is returned by ComponentRegistry.Lookup when no
-// component is registered with the requested tag name. Renderers wrap it with
-// %w to surface a clean template error rather than panicking on user typos.
-var ErrComponentNotFound = errors.New("pml: component not found in registry")
+var (
+	// ErrComponentNotFound is returned by ComponentRegistry.Lookup when no component is
+	// registered with the requested tag name. Renderers wrap it with %w to surface a clean
+	// template error rather than panicking on user typos.
+	ErrComponentNotFound = errors.New("pml: component not found in registry")
+)
 
-// Error represents a single diagnostic (error or warning) generated during
-// PikoML validation or transformation. It implements the standard error
-// interface.
+// Error represents a single diagnostic (error or warning) generated during PikoML
+// validation or transformation. It implements the standard error interface.
 type Error struct {
 	// Message is the human-readable description of the error.
 	Message string
@@ -62,8 +62,8 @@ type Error struct {
 
 // Error implements the standard Go error interface.
 //
-// Returns string which contains the formatted error with severity, tag name,
-// line, column, and message.
+// Returns string which contains the formatted error with severity, tag name, line,
+// column, and message.
 func (e *Error) Error() string {
 	return fmt.Sprintf("PikoML %s in <%s> at L%d:C%d: %s",
 		e.Severity, e.TagName, e.Location.Line, e.Location.Column, e.Message)
@@ -74,8 +74,7 @@ func (e *Error) Error() string {
 // Takes message (string) which provides the error description.
 // Takes tagName (string) which identifies the tag that caused the error.
 // Takes severity (Severity) which indicates how serious the error is.
-// Takes location (ast_domain.Location) which specifies where the error
-// occurred.
+// Takes location (ast_domain.Location) which specifies where the error occurred.
 //
 // Returns *Error which is the constructed error ready for use.
 func newError(message, tagName string, severity Severity, location ast_domain.Location) *Error {

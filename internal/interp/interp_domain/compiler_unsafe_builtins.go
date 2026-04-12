@@ -20,19 +20,16 @@ package interp_domain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"go/ast"
 )
 
-// compileUnsafeBuiltinCall compiles a call to an unsafe package
-// built-in function.
+// compileUnsafeBuiltinCall compiles a call to an unsafe package built-in function.
 //
 // Takes name (string) which is the name of the unsafe builtin.
 // Takes expression (*ast.CallExpr) which is the AST call expression.
 //
-// Returns varLocation holding the unsafe operation result and any
-// compilation error.
+// Returns varLocation holding the unsafe operation result and any compilation error.
 func (c *compiler) compileUnsafeBuiltinCall(ctx context.Context, name string, expression *ast.CallExpr) (varLocation, error) {
 	if err := c.checkFeature(InterpFeatureUnsafeOps, expression.Lparen); err != nil {
 		return varLocation{}, err
@@ -63,8 +60,7 @@ func (c *compiler) compileUnsafeBuiltinCall(ctx context.Context, name string, ex
 //
 // Takes expression (*ast.CallExpr) which is the AST call expression.
 //
-// Returns varLocation holding the resulting string and any compilation
-// error.
+// Returns varLocation holding the resulting string and any compilation error.
 func (c *compiler) compileUnsafeString(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
 	return c.compileUnsafeBinaryOp(ctx, expression, opUnsafeString, registerString, "unsafe.String")
 }
@@ -73,11 +69,10 @@ func (c *compiler) compileUnsafeString(ctx context.Context, expression *ast.Call
 //
 // Takes expression (*ast.CallExpr) which is the AST call expression.
 //
-// Returns varLocation holding the underlying data pointer and any
-// compilation error.
+// Returns varLocation holding the underlying data pointer and any compilation error.
 func (c *compiler) compileUnsafeStringData(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
 	if len(expression.Args) != 1 {
-		return varLocation{}, errors.New("unsafe.StringData requires 1 argument")
+		return varLocation{}, ErrCompileUnsafeStringDataArgCount
 	}
 
 	strLocation, err := c.compileExpression(ctx, expression.Args[0])
@@ -86,7 +81,7 @@ func (c *compiler) compileUnsafeStringData(ctx context.Context, expression *ast.
 	}
 
 	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opUnsafeStringData, dest, strLocation.register, 0)
+	c.function.emit(opDrillTier1, uint8(subOpUnsafeStringData), dest, strLocation.register)
 
 	return varLocation{register: dest, kind: registerGeneral}, nil
 }
@@ -95,8 +90,7 @@ func (c *compiler) compileUnsafeStringData(ctx context.Context, expression *ast.
 //
 // Takes expression (*ast.CallExpr) which is the AST call expression.
 //
-// Returns varLocation holding the resulting slice and any compilation
-// error.
+// Returns varLocation holding the resulting slice and any compilation error.
 func (c *compiler) compileUnsafeSlice(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
 	return c.compileUnsafeBinaryOp(ctx, expression, opUnsafeSlice, registerGeneral, "unsafe.Slice")
 }
@@ -105,11 +99,10 @@ func (c *compiler) compileUnsafeSlice(ctx context.Context, expression *ast.CallE
 //
 // Takes expression (*ast.CallExpr) which is the AST call expression.
 //
-// Returns varLocation holding the underlying data pointer and any
-// compilation error.
+// Returns varLocation holding the underlying data pointer and any compilation error.
 func (c *compiler) compileUnsafeSliceData(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
 	if len(expression.Args) != 1 {
-		return varLocation{}, errors.New("unsafe.SliceData requires 1 argument")
+		return varLocation{}, ErrCompileUnsafeSliceDataArgCount
 	}
 
 	sliceLocation, err := c.compileExpression(ctx, expression.Args[0])
@@ -119,7 +112,7 @@ func (c *compiler) compileUnsafeSliceData(ctx context.Context, expression *ast.C
 	c.boxToGeneral(ctx, &sliceLocation)
 
 	dest := c.scopes.alloc.alloc(registerGeneral)
-	c.function.emit(opUnsafeSliceData, dest, sliceLocation.register, 0)
+	c.function.emit(opDrillTier1, uint8(subOpUnsafeSliceData), dest, sliceLocation.register)
 
 	return varLocation{register: dest, kind: registerGeneral}, nil
 }
@@ -128,34 +121,31 @@ func (c *compiler) compileUnsafeSliceData(ctx context.Context, expression *ast.C
 //
 // Takes expression (*ast.CallExpr) which is the AST call expression.
 //
-// Returns varLocation holding the resulting pointer and any compilation
-// error.
+// Returns varLocation holding the resulting pointer and any compilation error.
 func (c *compiler) compileUnsafeAdd(ctx context.Context, expression *ast.CallExpr) (varLocation, error) {
 	return c.compileUnsafeBinaryOp(ctx, expression, opUnsafeAdd, registerGeneral, "unsafe.Add")
 }
 
-// compileUnsafeBinaryOp is the shared implementation for unsafe binary
-// operations such as unsafe.String, unsafe.Slice, and unsafe.Add.
+// compileUnsafeBinaryOp is the shared implementation for unsafe binary operations such as
+// unsafe.String, unsafe.Slice, and unsafe.Add.
 //
-// Takes expression (*ast.CallExpr) which is the AST call expression containing
-// the two arguments.
+// Takes expression (*ast.CallExpr) which is the AST call expression containing the two
+// arguments.
 // Takes op (opcode) which is the opcode to emit.
-// Takes destKind (registerKind) which is the register kind for the
-// destination.
+// Takes destinationKind (registerKind) which is the register kind for the destination.
 // Takes name (string) which is the function name for error messages.
 //
-// Returns varLocation holding the operation result and any compilation
-// error.
-func (c *compiler) compileUnsafeBinaryOp(ctx context.Context, expression *ast.CallExpr, op opcode, destKind registerKind, name string) (varLocation, error) {
+// Returns varLocation holding the operation result and any compilation error.
+func (c *compiler) compileUnsafeBinaryOp(ctx context.Context, expression *ast.CallExpr, op opcode, destinationKind registerKind, name string) (varLocation, error) {
 	if len(expression.Args) != 2 {
 		return varLocation{}, fmt.Errorf("%s requires 2 arguments", name)
 	}
 
-	ptrLocation, err := c.compileExpression(ctx, expression.Args[0])
+	pointerLocation, err := c.compileExpression(ctx, expression.Args[0])
 	if err != nil {
 		return varLocation{}, err
 	}
-	c.boxToGeneral(ctx, &ptrLocation)
+	c.boxToGeneral(ctx, &pointerLocation)
 
 	intLocation, err := c.compileExpression(ctx, expression.Args[1])
 	if err != nil {
@@ -163,8 +153,8 @@ func (c *compiler) compileUnsafeBinaryOp(ctx context.Context, expression *ast.Ca
 	}
 	c.ensureIntRegister(ctx, &intLocation)
 
-	dest := c.scopes.alloc.alloc(destKind)
-	c.function.emit(op, dest, ptrLocation.register, intLocation.register)
+	dest := c.scopes.alloc.alloc(destinationKind)
+	c.function.emit(op, dest, pointerLocation.register, intLocation.register)
 
-	return varLocation{register: dest, kind: destKind}, nil
+	return varLocation{register: dest, kind: destinationKind}, nil
 }

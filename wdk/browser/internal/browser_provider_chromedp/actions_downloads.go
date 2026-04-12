@@ -42,26 +42,25 @@ const (
 	// downloadDirPerm is the permission mode for created download directories.
 	downloadDirPerm = 0750
 
-	// downloadChannelBufferSize is the buffer size for the download notification
-	// channel.
+	// downloadChannelBufferSize is the buffer size for the download notification channel.
 	downloadChannelBufferSize = 10
 
-	// errFmtCreateDownloadDir is the error format for download directory
-	// creation failures.
+	// errFmtCreateDownloadDir is the error format for download directory creation failures.
 	errFmtCreateDownloadDir = "creating download directory: %w"
 
-	// safeFilenameHashLength bounds the prefix of the SHA-256 digest used when
-	// synthesising a replacement for an unsafe suggested filename.
+	// safeFilenameHashLength bounds the prefix of the SHA-256 digest used when synthesising
+	// a replacement for an unsafe suggested filename.
 	safeFilenameHashLength = 16
 )
 
-// ErrUnsafeDownloadPath indicates the suggested filename was rejected because
-// it contained path separators, parent traversal segments, or escaped the
-// download directory.
-var ErrUnsafeDownloadPath = errors.New("download filename rejected as unsafe")
+var (
+	// ErrUnsafeDownloadPath indicates the suggested filename was rejected because it
+	// contained path separators, parent traversal segments, or escaped the download
+	// directory.
+	ErrUnsafeDownloadPath = errors.New("download filename rejected as unsafe")
+)
 
-// DownloadInfo holds details about a file download, including its progress
-// and state.
+// DownloadInfo holds details about a file download, including its progress and state.
 type DownloadInfo struct {
 	// GUID is the unique identifier for this download.
 	GUID string
@@ -103,11 +102,11 @@ type DownloadTracker struct {
 	// safedisk.NewNoOpSandbox is used as a fallback.
 	sandboxFactory safedisk.Factory
 
-	// downloadDir is the directory path for saving downloaded files; empty
-	// means the path is not modified.
+	// downloadDir is the directory path for saving downloaded files; empty means the path is
+	// not modified.
 	downloadDir string
 
-	// mu          sync.RWMutex // mu guards access to the tracker state.
+	// mu sync.RWMutex // mu guards access to the tracker state.
 	mu sync.RWMutex
 
 	// enabled indicates whether download tracking is active.
@@ -123,8 +122,8 @@ type DownloadTrackerOption func(*DownloadTracker)
 // NewDownloadTracker creates a new download tracker.
 //
 // Takes downloadDir (string) which specifies the directory for downloads.
-// Takes opts (...DownloadTrackerOption) which provides optional
-// configuration for the tracker.
+// Takes opts (...DownloadTrackerOption) which provides optional configuration for the
+// tracker.
 //
 // Returns *DownloadTracker which is ready for use but not yet enabled.
 func NewDownloadTracker(downloadDir string, opts ...DownloadTrackerOption) *DownloadTracker {
@@ -160,11 +159,11 @@ func NewDownloadTracker(downloadDir string, opts ...DownloadTrackerOption) *Down
 
 // Enable enables download tracking and sets the download directory.
 //
-// Takes ctx (*ActionContext) which provides the browser context for setting
-// download behaviour and event listeners.
+// Takes ctx (*ActionContext) which provides the browser context for setting download
+// behaviour and event listeners.
 //
-// Returns error when creating the download directory fails or setting the
-// download behaviour fails.
+// Returns error when creating the download directory fails or setting the download
+// behaviour fails.
 //
 // Safe for concurrent use; protected by a mutex.
 func (dt *DownloadTracker) Enable(ctx *ActionContext) error {
@@ -190,8 +189,7 @@ func (dt *DownloadTracker) Enable(ctx *ActionContext) error {
 
 // Disable disables download tracking.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// operation.
+// Takes ctx (*ActionContext) which provides the browser context for the operation.
 //
 // Returns error when the download behaviour cannot be reset.
 //
@@ -223,13 +221,13 @@ func (dt *DownloadTracker) Disable(ctx *ActionContext) error {
 
 // WaitForDownload waits for a download to complete within the timeout.
 //
-// Takes timeout (time.Duration) which specifies the maximum time to wait
-// for a download to complete.
+// Takes timeout (time.Duration) which specifies the maximum time to wait for a download
+// to complete.
 //
 // Returns *DownloadInfo which contains details about the completed download.
-// Returns error when the timeout is reached before a download completes, or
-// when the suggested filename escapes the download directory and a safe
-// replacement could not be derived.
+// Returns error when the timeout is reached before a download completes, or when the
+// suggested filename escapes the download directory and a safe replacement could not be
+// derived.
 func (dt *DownloadTracker) WaitForDownload(timeout time.Duration) (*DownloadInfo, error) {
 	select {
 	case info := <-dt.downloadCh:
@@ -246,17 +244,15 @@ func (dt *DownloadTracker) WaitForDownload(timeout time.Duration) (*DownloadInfo
 	}
 }
 
-// sanitiseSuggestedFilename normalises a remote-supplied filename so it cannot
-// escape its containing directory. Returns the cleaned base name when the
-// input is safe, or a SHA-256 derived replacement when the input contains
-// separators, parent traversal segments, leading dots, or reduces to an empty
-// component.
+// sanitiseSuggestedFilename normalises a remote-supplied filename so it cannot escape its
+// containing directory. Returns the cleaned base name when the input is safe, or a
+// SHA-256 derived replacement when the input contains separators, parent traversal
+// segments, leading dots, or reduces to an empty component.
 //
-// Takes suggested (string) which is the filename hint received from the
-// remote (typically Content-Disposition).
+// Takes suggested (string) which is the filename hint received from the remote (typically
+// Content-Disposition).
 //
-// Returns string which is always a single, safe path component with no
-// separators.
+// Returns string which is always a single, safe path component with no separators.
 func sanitiseSuggestedFilename(suggested string) string {
 	trimmed := strings.TrimSpace(suggested)
 	if trimmed == "" {
@@ -279,11 +275,11 @@ func sanitiseSuggestedFilename(suggested string) string {
 	return base
 }
 
-// synthesiseSafeFilename produces a deterministic safe filename from the
-// rejected input by hashing it and preserving any safe-looking extension.
+// synthesiseSafeFilename produces a deterministic safe filename from the rejected input
+// by hashing it and preserving any safe-looking extension.
 //
-// Takes original (string) which is the rejected filename used to derive the
-// replacement so callers can correlate downloads with their attempts.
+// Takes original (string) which is the rejected filename used to derive the replacement
+// so callers can correlate downloads with their attempts.
 //
 // Returns string which is a deterministic, separator-free filename.
 func synthesiseSafeFilename(original string) string {
@@ -299,12 +295,12 @@ func synthesiseSafeFilename(original string) string {
 	return "download-" + prefix + cleanExt
 }
 
-// safeExtension returns the input extension when it consists solely of an
-// initial '.' followed by alphanumerics or hyphens. Anything else becomes an
-// empty string so a hostile suffix cannot leak through.
+// safeExtension returns the input extension when it consists solely of an initial '.'
+// followed by alphanumerics or hyphens. Anything else becomes an empty string so a
+// hostile suffix cannot leak through.
 //
-// Takes ext (string) which is the candidate extension including the leading
-// dot, or empty when the original had none.
+// Takes ext (string) which is the candidate extension including the leading dot, or empty
+// when the original had none.
 //
 // Returns string which is the extension when safe, or empty otherwise.
 func safeExtension(ext string) string {
@@ -327,21 +323,22 @@ func safeExtension(ext string) string {
 	return ext
 }
 
-// pathComparisonIsCaseInsensitive selects case-insensitive path prefix matching.
-//
-// NTFS and the default macOS filesystem (HFS+/APFS in case-insensitive
-// mode) treat `C:\Foo` and `c:\foo` as the same path, so a case-sensitive
-// prefix check would either falsely reject legitimate downloads or fail
-// to recognise an escape attempt that varies only by letter case. Tests
-// override this to exercise both branches on a single host.
-var pathComparisonIsCaseInsensitive = runtime.GOOS == "windows"
+var (
+	// pathComparisonIsCaseInsensitive selects case-insensitive path prefix matching.
+	//
+	// NTFS and the default macOS filesystem (HFS+/APFS in case-insensitive mode) treat
+	// `C:\Foo` and `c:\foo` as the same path, so a case-sensitive prefix check would either
+	// falsely reject legitimate downloads or fail to recognise an escape attempt that varies
+	// only by letter case. Tests override this to exercise both branches on a single host.
+	pathComparisonIsCaseInsensitive = runtime.GOOS == "windows"
+)
 
 // pathHasPrefix reports whether path begins with prefix.
 //
-// Uses platform-appropriate case sensitivity: on Windows the comparison
-// is case-insensitive to match NTFS semantics; on POSIX systems it is
-// byte-exact. Both inputs are expected to already be cleaned and to share
-// a trailing separator so substring boundaries match directory boundaries.
+// Uses platform-appropriate case sensitivity: on Windows the comparison is
+// case-insensitive to match NTFS semantics; on POSIX systems it is byte-exact. Both
+// inputs are expected to already be cleaned and to share a trailing separator so
+// substring boundaries match directory boundaries.
 //
 // Takes path (string) which is the candidate cleaned absolute path.
 // Takes prefix (string) which is the cleaned download directory plus separator.
@@ -357,15 +354,15 @@ func pathHasPrefix(path, prefix string) bool {
 	return strings.HasPrefix(path, prefix)
 }
 
-// safeDownloadPath joins a sanitised filename onto the download directory and
-// verifies the resulting absolute path remains inside the directory.
+// safeDownloadPath joins a sanitised filename onto the download directory and verifies
+// the resulting absolute path remains inside the directory.
 //
 // Takes downloadDir (string) which is the directory configured for downloads.
 // Takes suggested (string) which is the remote-supplied filename hint.
 //
 // Returns string which is the validated absolute or directory-joined path.
-// Returns error which wraps ErrUnsafeDownloadPath when the resolved path
-// escapes downloadDir or the absolute path cannot be derived.
+// Returns error which wraps ErrUnsafeDownloadPath when the resolved path escapes
+// downloadDir or the absolute path cannot be derived.
 func safeDownloadPath(downloadDir, suggested string) (string, error) {
 	safeName := sanitiseSuggestedFilename(suggested)
 	joined := filepath.Join(downloadDir, safeName)
@@ -393,8 +390,7 @@ func safeDownloadPath(downloadDir, suggested string) (string, error) {
 //
 // Takes guid (string) which identifies the download to retrieve.
 //
-// Returns *DownloadInfo which contains the download details, or nil if not
-// found.
+// Returns *DownloadInfo which contains the download details, or nil if not found.
 //
 // Safe for concurrent use.
 func (dt *DownloadTracker) GetDownload(guid string) *DownloadInfo {
@@ -451,8 +447,7 @@ func (dt *DownloadTracker) createDownloadDir() error {
 
 // setDownloadBehavior configures the browser's download behaviour.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// operation.
+// Takes ctx (*ActionContext) which provides the browser context for the operation.
 //
 // Returns error when the download behaviour cannot be set.
 func (dt *DownloadTracker) setDownloadBehavior(ctx *ActionContext) error {
@@ -472,8 +467,7 @@ func (dt *DownloadTracker) setDownloadBehavior(ctx *ActionContext) error {
 //
 // Takes ctx (*ActionContext) which provides the browser context for listening.
 //
-// Spawns a callback that runs on each download event until the stop channel
-// is closed.
+// Spawns a callback that runs on each download event until the stop channel is closed.
 func (dt *DownloadTracker) setupEventListener(ctx *ActionContext) {
 	chromedp.ListenTarget(ctx.Ctx, func(ev any) {
 		select {
@@ -508,8 +502,8 @@ func (dt *DownloadTracker) handleDownloadEvent(ev any) {
 
 // handleDownloadWillBegin handles the start of a download.
 //
-// Takes e (*browser.EventDownloadWillBegin) which contains the download event
-// details including GUID, URL, and suggested filename.
+// Takes e (*browser.EventDownloadWillBegin) which contains the download event details
+// including GUID, URL, and suggested filename.
 //
 // Safe for concurrent use. Uses mutex to protect access to the downloads map.
 func (dt *DownloadTracker) handleDownloadWillBegin(e *browser.EventDownloadWillBegin) {
@@ -555,25 +549,22 @@ func (dt *DownloadTracker) handleDownloadProgress(e *browser.EventDownloadProgre
 
 // WithDownloadSandbox injects a sandbox for filesystem operations.
 //
-// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem
-// access for download operations.
+// Takes sandbox (safedisk.Sandbox) which provides sandboxed filesystem access for
+// download operations.
 //
-// Returns DownloadTrackerOption which configures the tracker with the
-// given sandbox.
+// Returns DownloadTrackerOption which configures the tracker with the given sandbox.
 func WithDownloadSandbox(sandbox safedisk.Sandbox) DownloadTrackerOption {
 	return func(dt *DownloadTracker) {
 		dt.sandbox = sandbox
 	}
 }
 
-// WithDownloadSandboxFactory sets a factory for creating sandboxes in the
-// download tracker instead of falling back to safedisk.NewNoOpSandbox.
+// WithDownloadSandboxFactory sets a factory for creating sandboxes in the download
+// tracker instead of falling back to safedisk.NewNoOpSandbox.
 //
-// Takes factory (safedisk.Factory) which creates sandboxes for filesystem
-// access.
+// Takes factory (safedisk.Factory) which creates sandboxes for filesystem access.
 //
-// Returns DownloadTrackerOption which configures the tracker with the
-// given factory.
+// Returns DownloadTrackerOption which configures the tracker with the given factory.
 func WithDownloadSandboxFactory(factory safedisk.Factory) DownloadTrackerOption {
 	return func(dt *DownloadTracker) {
 		dt.sandboxFactory = factory
@@ -582,10 +573,8 @@ func WithDownloadSandboxFactory(factory safedisk.Factory) DownloadTrackerOption 
 
 // GetDownloadedFile reads the contents of a downloaded file using a sandbox.
 //
-// Takes sandbox (safedisk.Sandbox) which provides access to the download
-// directory.
-// Takes filename (string) which is the name of the downloaded file, not a
-// full path.
+// Takes sandbox (safedisk.Sandbox) which provides access to the download directory.
+// Takes filename (string) which is the name of the downloaded file, not a full path.
 //
 // Returns []byte which contains the file contents.
 // Returns error when the file cannot be read.
@@ -599,8 +588,8 @@ func GetDownloadedFile(sandbox safedisk.Sandbox, filename string) ([]byte, error
 
 // WaitForDownload waits for a download after triggering an action.
 //
-// It sets up download handling, executes the trigger function, and waits for
-// the download to complete.
+// It sets up download handling, executes the trigger function, and waits for the download
+// to complete.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes downloadDir (string) which specifies the directory for downloaded files.
@@ -608,8 +597,8 @@ func GetDownloadedFile(sandbox safedisk.Sandbox, filename string) ([]byte, error
 // Takes trigger (func(...)) which is the function that initiates the download.
 //
 // Returns *DownloadInfo which contains details about the completed download.
-// Returns error when directory creation fails, download setup fails, the
-// trigger function returns an error, or the download times out.
+// Returns error when directory creation fails, download setup fails, the trigger function
+// returns an error, or the download times out.
 func WaitForDownload(ctx *ActionContext, downloadDir string, timeout time.Duration, trigger func() error) (*DownloadInfo, error) {
 	var sandbox safedisk.Sandbox
 	var sErr error
@@ -662,8 +651,8 @@ func CancelDownload(ctx *ActionContext, guid string) error {
 // Takes ctx (*ActionContext) which provides the browser context.
 // Takes path (string) which specifies the directory path for downloads.
 //
-// Returns error when the directory cannot be created or the browser fails to
-// accept the download path.
+// Returns error when the directory cannot be created or the browser fails to accept the
+// download path.
 func SetDownloadPath(ctx *ActionContext, path string) error {
 	var sandbox safedisk.Sandbox
 	var sErr error
@@ -729,8 +718,8 @@ func CreateBlobDownload(ctx *ActionContext, content, mimeType, filename string) 
 
 // DownloadScreenshot saves a screenshot as a download.
 //
-// Takes ctx (*ActionContext) which provides the browser context for the
-// screenshot capture.
+// Takes ctx (*ActionContext) which provides the browser context for the screenshot
+// capture.
 //
 // Returns error when the screenshot cannot be captured.
 func DownloadScreenshot(ctx *ActionContext) error {
@@ -744,8 +733,7 @@ func DownloadScreenshot(ctx *ActionContext) error {
 	return nil
 }
 
-// setDownloadBehaviorForDir configures download behaviour for a specific
-// directory.
+// setDownloadBehaviorForDir configures download behaviour for a specific directory.
 //
 // Takes ctx (*ActionContext) which provides the browser action context.
 // Takes downloadDir (string) which specifies the target download directory.
@@ -768,8 +756,8 @@ func setDownloadBehaviorForDir(ctx *ActionContext, downloadDir string) error {
 //
 // Takes ctx (*ActionContext) which provides the browser context to listen on.
 // Takes downloadDir (string) which specifies the directory for downloaded files.
-// Takes downloadCh (chan *DownloadInfo) which receives download information when
-// a download begins.
+// Takes downloadCh (chan *DownloadInfo) which receives download information when a
+// download begins.
 func setupDownloadListener(ctx *ActionContext, downloadDir string, downloadCh chan *DownloadInfo) {
 	chromedp.ListenTarget(ctx.Ctx, func(ev any) {
 		if e, ok := ev.(*browser.EventDownloadWillBegin); ok {
@@ -794,8 +782,8 @@ func setupDownloadListener(ctx *ActionContext, downloadDir string, downloadCh ch
 	})
 }
 
-// waitForDownloadCompletion waits for a download to complete and verifies
-// the file exists.
+// waitForDownloadCompletion waits for a download to complete and verifies the file
+// exists.
 //
 // Takes downloadCh (chan *DownloadInfo) which receives download information.
 // Takes timeout (time.Duration) which specifies the maximum wait time.

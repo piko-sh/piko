@@ -33,28 +33,25 @@ const (
 	// defaultPriority is the execution order for the linearise transformer.
 	defaultPriority = 350
 
-	// linearisedVersion is the linearisation parameter dictionary version
-	// value, as defined by PDF spec Annex F.
+	// linearisedVersion is the linearisation parameter dictionary version value, as defined
+	// by PDF spec Annex F.
 	linearisedVersion = 1.0
 
-	// maxPageTreeDepth caps the recursion depth of the page-tree walk.
-	// Genuine documents rarely nest the /Pages tree more than a handful
-	// of levels; this cap defends against malformed trees that would
-	// otherwise exhaust the stack.
+	// maxPageTreeDepth caps the recursion depth of the page-tree walk. Genuine documents
+	// rarely nest the /Pages tree more than a handful of levels; this cap defends against
+	// malformed trees that would otherwise exhaust the stack.
 	maxPageTreeDepth = 256
 )
 
-// LineariseTransformer reorganises a PDF so that the first page's objects
-// appear at the start of the file, enabling progressive rendering.
+// LineariseTransformer reorganises a PDF so that the first page's objects appear at the
+// start of the file, enabling progressive rendering.
 //
-// It parses the PDF, identifies all objects the first page depends on,
-// creates a new writer with objects numbered so that a linearisation
-// parameter dictionary comes first, followed by the first page's
-// dependencies, then the remaining objects. The linearisation parameter
-// dictionary is written as the first object and contains /Linearized,
-// /N (page count), and /O (first page object number) entries. Full hint
-// tables are not generated; the primary benefit is first-page-first
-// object ordering.
+// It parses the PDF, identifies all objects the first page depends on, creates a new
+// writer with objects numbered so that a linearisation parameter dictionary comes first,
+// followed by the first page's dependencies, then the remaining objects. The
+// linearisation parameter dictionary is written as the first object and contains
+// /Linearized, /N (page count), and /O (first page object number) entries. Full hint
+// tables are not generated; the primary benefit is first-page-first object ordering.
 type LineariseTransformer struct {
 	// name is the transformer identifier.
 	name string
@@ -63,7 +60,9 @@ type LineariseTransformer struct {
 	priority int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*LineariseTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*LineariseTransformer)(nil)
+)
 
 // New creates a new linearise transformer with default name and priority.
 //
@@ -82,8 +81,7 @@ func (t *LineariseTransformer) Name() string { return t.name }
 
 // Type returns TransformerDelivery.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a delivery
-// transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a delivery transformer.
 func (*LineariseTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerDelivery
 }
@@ -93,9 +91,8 @@ func (*LineariseTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *LineariseTransformer) Priority() int { return t.priority }
 
-// Transform linearises the PDF by reordering objects so the first page's
-// dependencies appear first. Options must be LineariseOptions or
-// *LineariseOptions.
+// Transform linearises the PDF by reordering objects so the first page's dependencies
+// appear first. Options must be LineariseOptions or *LineariseOptions.
 //
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be LineariseOptions or *LineariseOptions.
@@ -160,8 +157,8 @@ func castOptions(options any) (pdfwriter_dto.LineariseOptions, error) {
 	}
 }
 
-// collectPageRefs walks the page tree and returns object numbers for all
-// leaf Page objects in document order.
+// collectPageRefs walks the page tree and returns object numbers for all leaf Page
+// objects in document order.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 //
@@ -193,13 +190,11 @@ func collectPageRefs(doc *pdfparse.Document) ([]int, error) {
 	return walkPageTree(doc, pagesRef.Number, visited, 0)
 }
 
-// walkPageTree recursively collects leaf Page object numbers from a Pages
-// tree node.
+// walkPageTree recursively collects leaf Page object numbers from a Pages tree node.
 //
-// The visited set records every node already entered so that cyclic
-// /Kids references skip the already-seen branch instead of recursing
-// forever. Skipped branches return no pages and no error so the rest
-// of the tree continues to be walked.
+// The visited set records every node already entered so that cyclic /Kids references skip
+// the already-seen branch instead of recursing forever. Skipped branches return no pages
+// and no error so the rest of the tree continues to be walked.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the current tree node's object number.
@@ -248,8 +243,7 @@ func walkPageTree(doc *pdfparse.Document, objNum int, visited map[int]struct{}, 
 	return pages, nil
 }
 
-// buildPagesTreeSet returns a set of object numbers that belong to the
-// Pages tree.
+// buildPagesTreeSet returns a set of object numbers that belong to the Pages tree.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 //
@@ -281,10 +275,9 @@ func buildPagesTreeSet(doc *pdfparse.Document) map[int]bool {
 	return set
 }
 
-// collectPagesTreeNodes recursively adds intermediate Pages tree node
-// object numbers to the set. The set itself doubles as a visited
-// guard: a node already present is skipped, so cyclic /Kids references
-// cannot trigger unbounded recursion.
+// collectPagesTreeNodes recursively adds intermediate Pages tree node object numbers to
+// the set. The set itself doubles as a visited guard: a node already present is skipped,
+// so cyclic /Kids references cannot trigger unbounded recursion.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the current node's object number.
@@ -321,12 +314,12 @@ func collectPagesTreeNodes(doc *pdfparse.Document, objNum int, set map[int]bool,
 	}
 }
 
-// collectFirstPageDeps walks the first page's dictionary recursively and
-// returns the set of object numbers that the first page depends on.
+// collectFirstPageDeps walks the first page's dictionary recursively and returns the set
+// of object numbers that the first page depends on.
 //
-// This includes the page object itself, its content streams, resources, fonts,
-// and images. The pagesTree set prevents recursion into the Pages tree which
-// would pull in the entire document.
+// This includes the page object itself, its content streams, resources, fonts, and
+// images. The pagesTree set prevents recursion into the Pages tree which would pull in
+// the entire document.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes pageObjNum (int) which is the first page's object number.
@@ -340,8 +333,8 @@ func collectFirstPageDeps(doc *pdfparse.Document, pageObjNum int, pagesTree map[
 	return deps
 }
 
-// collectDepsRecursive adds objNum to deps and recursively follows all
-// references found in the object's value.
+// collectDepsRecursive adds objNum to deps and recursively follows all references found
+// in the object's value.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes objNum (int) which is the object number to process.
@@ -374,8 +367,8 @@ func collectDepsRecursive(
 	collectRefsFromObject(doc, obj, deps, visited, pagesTree)
 }
 
-// collectRefsFromObject extracts all indirect references from a PDF object
-// and recursively collects their dependencies.
+// collectRefsFromObject extracts all indirect references from a PDF object and
+// recursively collects their dependencies.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes obj (pdfparse.Object) which is the object to inspect.
@@ -389,7 +382,7 @@ func collectRefsFromObject(
 	visited map[int]bool,
 	pagesTree map[int]bool,
 ) {
-	switch obj.Type {
+	switch obj.Type { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case pdfparse.ObjectReference:
 		collectRefFromReference(doc, obj, deps, visited, pagesTree)
 	case pdfparse.ObjectArray:
@@ -399,8 +392,8 @@ func collectRefsFromObject(
 	}
 }
 
-// collectRefFromReference follows a single indirect reference and
-// recursively collects its dependencies.
+// collectRefFromReference follows a single indirect reference and recursively collects
+// its dependencies.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes obj (pdfparse.Object) which is the reference object to follow.
@@ -420,8 +413,8 @@ func collectRefFromReference(
 	}
 }
 
-// collectRefsFromArray iterates over array elements and recursively
-// collects their dependencies.
+// collectRefsFromArray iterates over array elements and recursively collects their
+// dependencies.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes obj (pdfparse.Object) which is the array object to inspect.
@@ -444,8 +437,8 @@ func collectRefsFromArray(
 	}
 }
 
-// collectRefsFromDictPairs walks a dictionary's pairs and recursively
-// collects dependencies.
+// collectRefsFromDictPairs walks a dictionary's pairs and recursively collects
+// dependencies.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes obj (pdfparse.Object) which is the dictionary or stream object.
@@ -471,8 +464,8 @@ func collectRefsFromDictPairs(
 	}
 }
 
-// buildLinearisedWriter creates a new Writer with objects renumbered so
-// that the linearisation dictionary is object 1.
+// buildLinearisedWriter creates a new Writer with objects renumbered so that the
+// linearisation dictionary is object 1.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes firstPageDeps (map[int]bool) which holds the first page dependency set.
@@ -502,8 +495,8 @@ func buildLinearisedWriter(
 	return writer, oldToNew, newFirstPageNum, nil
 }
 
-// partitionObjects separates document object numbers into first-page
-// dependencies and remaining objects, both sorted.
+// partitionObjects separates document object numbers into first-page dependencies and
+// remaining objects, both sorted.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes firstPageDeps (map[int]bool) which holds the first page dependency set.
@@ -546,8 +539,8 @@ func buildRenumberMap(firstPageNums, remainingNums []int) map[int]int {
 	return oldToNew
 }
 
-// findNewFirstPageNum looks up the remapped object number for the first
-// page among first-page dependencies.
+// findNewFirstPageNum looks up the remapped object number for the first page among
+// first-page dependencies.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes firstPageDeps (map[int]bool) which holds the first page dependency set.
@@ -574,8 +567,7 @@ func findNewFirstPageNum(doc *pdfparse.Document, firstPageDeps map[int]bool, old
 	return 0
 }
 
-// addLinearisationDict writes the linearisation parameter dictionary as
-// object 1.
+// addLinearisationDict writes the linearisation parameter dictionary as object 1.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer.
 // Takes pageCount (int) which is the total number of pages.
@@ -589,8 +581,8 @@ func addLinearisationDict(writer *pdfparse.Writer, pageCount, firstPageObjNum in
 	writer.SetObject(1, pdfparse.DictObj(linDict))
 }
 
-// copyObjects copies all document objects into the writer using the
-// renumbered object numbers.
+// copyObjects copies all document objects into the writer using the renumbered object
+// numbers.
 //
 // Takes doc (*pdfparse.Document) which is the parsed PDF document.
 // Takes writer (*pdfparse.Writer) which is the target PDF writer.
@@ -619,8 +611,8 @@ func copyObjects(
 	return nil
 }
 
-// rewriteReferences walks all objects in the writer and remaps indirect
-// references from old object numbers to new object numbers.
+// rewriteReferences walks all objects in the writer and remaps indirect references from
+// old object numbers to new object numbers.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer to update.
 // Takes oldToNew (map[int]int) which maps old object numbers to new numbers.
@@ -640,8 +632,8 @@ func rewriteReferences(writer *pdfparse.Writer, oldToNew map[int]int) {
 	}
 }
 
-// remapObjectRefs recursively rewrites all indirect references in an
-// object using the old-to-new mapping.
+// remapObjectRefs recursively rewrites all indirect references in an object using the
+// old-to-new mapping.
 //
 // Takes obj (pdfparse.Object) which is the object to rewrite.
 // Takes oldToNew (map[int]int) which maps old object numbers to new numbers.
@@ -712,8 +704,8 @@ func rewriteTrailerRefs(writer *pdfparse.Writer, oldToNew map[int]int) {
 	writer.SetTrailer(newTrailer)
 }
 
-// updateLinearisationDict updates the /O entry in the linearisation
-// parameter dictionary (object 1) with the final first page object number.
+// updateLinearisationDict updates the /O entry in the linearisation parameter dictionary
+// (object 1) with the final first page object number.
 //
 // Takes writer (*pdfparse.Writer) which is the PDF writer to update.
 // Takes newFirstPageNum (int) which is the renumbered first page object number.

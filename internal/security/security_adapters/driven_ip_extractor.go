@@ -36,33 +36,33 @@ const (
 	ipv6CIDRBits = 128
 )
 
-// trustedProxyIPExtractor implements security_domain.ClientIPExtractor.
-// It extracts the real client IP address from HTTP requests, only trusting
-// forwarding headers (X-Forwarded-For, X-Real-IP, CF-Connecting-IP) when
-// the request comes from a trusted proxy CIDR range.
+// trustedProxyIPExtractor implements security_domain.ClientIPExtractor. It extracts the
+// real client IP address from HTTP requests, only trusting forwarding headers
+// (X-Forwarded-For, X-Real-IP, CF-Connecting-IP) when the request comes from a trusted
+// proxy CIDR range.
 type trustedProxyIPExtractor struct {
-	// trustedCIDRs holds the CIDR ranges that are treated as trusted proxies.
-	// Uses netip.Prefix for zero-allocation IP containment checks.
+	// trustedCIDRs holds the CIDR ranges that are treated as trusted proxies. Uses
+	// netip.Prefix for zero-allocation IP containment checks.
 	trustedCIDRs []netip.Prefix
 
-	// cloudflareEnabled controls whether the CF-Connecting-IP header from
-	// trusted proxies is accepted. When false, the header is ignored to
-	// prevent IP spoofing in non-Cloudflare deployments.
+	// cloudflareEnabled controls whether the CF-Connecting-IP header from trusted proxies is
+	// accepted. When false, the header is ignored to prevent IP spoofing in non-Cloudflare
+	// deployments.
 	cloudflareEnabled bool
 }
 
 // ExtractClientIP returns the real client IP address from the request.
 //
 // The extraction logic follows this priority:
-//  1. If the direct connection IP is NOT from a trusted proxy, return it
-//     directly (do not trust any forwarding headers from untrusted sources).
+//  1. If the direct connection IP is NOT from a trusted proxy, return it directly (do not
+//     trust any forwarding headers from untrusted sources).
 //  2. If the direct connection IS from a trusted proxy, check headers in order:
 //     CF-Connecting-IP (only when cloudflareEnabled), X-Real-IP (nginx default),
 //     X-Forwarded-For (rightmost non-trusted IP).
 //  3. Fall back to the direct connection IP if no headers are present.
 //
-// Takes r (*http.Request) which provides the incoming request to extract the
-// client IP from.
+// Takes r (*http.Request) which provides the incoming request to extract the client IP
+// from.
 //
 // Returns string which is the resolved client IP address.
 func (e *trustedProxyIPExtractor) ExtractClientIP(r *http.Request) string {
@@ -97,8 +97,7 @@ func (e *trustedProxyIPExtractor) ExtractClientIP(r *http.Request) string {
 	return remoteIP
 }
 
-// IsTrustedProxy checks if the given IP address is within any trusted proxy
-// CIDR range.
+// IsTrustedProxy checks if the given IP address is within any trusted proxy CIDR range.
 //
 // Takes ip (string) which is the IP address to check.
 //
@@ -112,18 +111,17 @@ func (e *trustedProxyIPExtractor) IsTrustedProxy(ip string) bool {
 	return e.isTrustedAddr(addr)
 }
 
-// extractFromXFF walks X-Forwarded-For from right to left, skipping IPs that
-// are within trusted proxy CIDR ranges, and returns the first non-trusted IP.
-// This prevents clients from spoofing their IP by prepending entries to XFF
-// when the proxy appends.
+// extractFromXFF walks X-Forwarded-For from right to left, skipping IPs that are within
+// trusted proxy CIDR ranges, and returns the first non-trusted IP. This prevents clients
+// from spoofing their IP by prepending entries to XFF when the proxy appends.
 //
-// The scan uses index arithmetic over the raw header string to avoid
-// allocating a []string slice from strings.Split.
+// The scan uses index arithmetic over the raw header string to avoid allocating a
+// []string slice from strings.Split.
 //
 // Takes xff (string) which is the raw X-Forwarded-For header value.
 //
-// Returns string which is the first non-trusted IP found scanning right to
-// left, or empty string if all IPs are trusted or invalid.
+// Returns string which is the first non-trusted IP found scanning right to left, or empty
+// string if all IPs are trusted or invalid.
 func (e *trustedProxyIPExtractor) extractFromXFF(xff string) string {
 	end := len(xff)
 	for end > 0 {
@@ -145,9 +143,8 @@ func (e *trustedProxyIPExtractor) extractFromXFF(xff string) string {
 	return ""
 }
 
-// parseXFFSegment trims whitespace from a single segment of the
-// X-Forwarded-For header and checks whether it contains a non-trusted IP
-// address.
+// parseXFFSegment trims whitespace from a single segment of the X-Forwarded-For header
+// and checks whether it contains a non-trusted IP address.
 //
 // Takes xff (string) which is the full header value.
 // Takes start (int) which is the inclusive start index of the segment.
@@ -180,9 +177,8 @@ func (e *trustedProxyIPExtractor) parseXFFSegment(xff string, start, end int) (s
 	return candidate, true
 }
 
-// isTrustedAddr checks if a pre-parsed IP is within any trusted proxy
-// CIDR range. Uses netip.Prefix.Contains for zero-allocation containment
-// checks.
+// isTrustedAddr checks if a pre-parsed IP is within any trusted proxy CIDR range. Uses
+// netip.Prefix.Contains for zero-allocation containment checks.
 //
 // Takes addr (netip.Addr) which is the pre-parsed IP address to check.
 //
@@ -201,18 +197,17 @@ func (e *trustedProxyIPExtractor) isTrustedAddr(addr netip.Addr) bool {
 	return false
 }
 
-// NewTrustedProxyIPExtractor creates a new IP extractor with the given trusted
-// proxy CIDR ranges.
+// NewTrustedProxyIPExtractor creates a new IP extractor with the given trusted proxy CIDR
+// ranges.
 //
-// Takes trustedProxies ([]string) which specifies CIDR ranges or IP addresses
-// for proxies that are trusted. Each entry must be a valid CIDR (e.g.
-// "10.0.0.0/8") or a valid IP address (e.g. "10.0.0.1", auto-wrapped to /32
-// or /128).
-// Takes cloudflareEnabled (bool) which controls whether CF-Connecting-IP is
-// trusted from trusted proxies.
+// Takes trustedProxies ([]string) which specifies CIDR ranges or IP addresses for proxies
+// that are trusted. Each entry must be a valid CIDR (e.g. "10.0.0.0/8") or a valid IP
+// address (e.g. "10.0.0.1", auto-wrapped to /32 or /128).
+// Takes cloudflareEnabled (bool) which controls whether CF-Connecting-IP is trusted from
+// trusted proxies.
 //
-// Returns security_domain.ClientIPExtractor which extracts client IPs from
-// requests, taking the trusted proxy settings into account.
+// Returns security_domain.ClientIPExtractor which extracts client IPs from requests,
+// taking the trusted proxy settings into account.
 // Returns error when any trusted proxy entry is not a valid CIDR or IP.
 func NewTrustedProxyIPExtractor(trustedProxies []string, cloudflareEnabled bool) (security_domain.ClientIPExtractor, error) {
 	prefixes := make([]netip.Prefix, 0, len(trustedProxies))
@@ -241,9 +236,8 @@ func NewTrustedProxyIPExtractor(trustedProxies []string, cloudflareEnabled bool)
 	}, nil
 }
 
-// parseRemoteAddrWithIP extracts the IP address from an address string,
-// returning both string and parsed forms to avoid re-parsing for trusted
-// proxy checks.
+// parseRemoteAddrWithIP extracts the IP address from an address string, returning both
+// string and parsed forms to avoid re-parsing for trusted proxy checks.
 //
 // Takes remoteAddr (string) which is the address to parse.
 //

@@ -30,7 +30,9 @@ import (
 	"piko.sh/piko/internal/compiler/compiler_domain"
 )
 
-var update = flag.Bool("update", false, "update golden files")
+var (
+	update = flag.Bool("update", false, "update golden files")
+)
 
 func TestCompiler_GoldenFiles(t *testing.T) {
 	if testing.Short() {

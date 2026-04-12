@@ -26,20 +26,20 @@ import (
 	"piko.sh/piko/internal/ast/ast_domain"
 )
 
-// emitClassAttribute builds code for the class attribute using DirectWriter
-// with *Bytes helpers for zero-allocation rendering.
+// emitClassAttribute builds code for the class attribute using DirectWriter with *Bytes
+// helpers for zero-allocation rendering.
 //
-// Static-only classes still use Attributes slice for simplicity. Dynamic
-// classes use AttributeWriters via DirectWriter.
+// Static-only classes still use Attributes slice for simplicity. Dynamic classes use
+// AttributeWriters via DirectWriter.
 //
 // Takes nodeVar (*goast.Ident) which is the node variable for AttributeWriters.
 // Takes attributeSlice (goast.Expr) which is the slice for static-only classes.
 // Takes node (*ast_domain.TemplateNode) which holds the class attribute data.
 //
-// Returns []goast.Stmt which holds the built statements, or nil if no class
-// attribute exists.
-// Returns []*ast_domain.Diagnostic which holds any diagnostics from parsing
-// dynamic expressions.
+// Returns []goast.Stmt which holds the built statements, or nil if no class attribute
+// exists.
+// Returns []*ast_domain.Diagnostic which holds any diagnostics from parsing dynamic
+// expressions.
 func (ae *attributeEmitter) emitClassAttribute(nodeVar *goast.Ident, attributeSlice goast.Expr, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	staticClass := extractStaticClass(node)
 	dynamicExpr := extractDynamicClassExpression(node)
@@ -76,8 +76,8 @@ func (*attributeEmitter) emitStaticOnlyClass(attributeSlice goast.Expr, staticCl
 	return []goast.Stmt{appendToSlice(attributeSlice, attributeLiteral)}
 }
 
-// emitDynamicOnlyClassWriter creates a class attribute using DirectWriter
-// for rendering without memory allocation.
+// emitDynamicOnlyClassWriter creates a class attribute using DirectWriter for rendering
+// without memory allocation.
 //
 // Takes nodeVar (*goast.Ident) which is the node to append AttributeWriters to.
 // Takes dynamicExpr (ast_domain.Expression) which is the dynamic expression.
@@ -107,8 +107,8 @@ func (ae *attributeEmitter) emitDynamicOnlyClassWriter(nodeVar *goast.Ident, dyn
 	return ae.buildClassWriterStmts(nodeVar, prereqs, helperName, goExpr), diagnostics
 }
 
-// emitMergedClassWriter creates a class attribute that combines static and
-// dynamic values using DirectWriter for zero-allocation rendering.
+// emitMergedClassWriter creates a class attribute that combines static and dynamic values
+// using DirectWriter for zero-allocation rendering.
 //
 // Takes nodeVar (*goast.Ident) which is the node to append AttributeWriters to.
 // Takes staticClass (string) which is the static class value to merge.
@@ -132,11 +132,10 @@ func (ae *attributeEmitter) emitMergedClassWriter(nodeVar *goast.Ident, staticCl
 }
 
 // buildClassWriterStmts builds DirectWriter code for a class attribute using
-// AppendPooledBytes to avoid memory allocation when using *BytesArena helpers.
-// The arena is passed as the first argument to eliminate sync.Pool churn.
+// AppendPooledBytes to avoid memory allocation when using *BytesArena helpers. The arena
+// is passed as the first argument to eliminate sync.Pool churn.
 //
-// Generates:
-// bufferPointerVar := pikoruntime.HelperNameArena(arena, arguments...)
+// Generates: bufferPointerVar := pikoruntime.HelperNameArena(arena, arguments...)
 //
 //	if bufferPointerVar != nil {
 //	    dwVar := arena.GetDirectWriter()
@@ -175,8 +174,8 @@ func (ae *attributeEmitter) buildClassWriterStmts(nodeVar *goast.Ident, prereqs 
 
 // extractStaticClass retrieves the static class attribute value from a node.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to extract
-// the class from.
+// Takes node (*ast_domain.TemplateNode) which is the template node to extract the class
+// from.
 //
 // Returns string which is the class attribute value, or empty if not found.
 func extractStaticClass(node *ast_domain.TemplateNode) string {
@@ -184,13 +183,13 @@ func extractStaticClass(node *ast_domain.TemplateNode) string {
 	return staticClass
 }
 
-// extractDynamicClassExpression returns the dynamic class expression from a
-// template node.
+// extractDynamicClassExpression returns the dynamic class expression from a template
+// node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns *ast_domain.Expression which is the dynamic class expression, or nil
-// if none is found.
+// Returns *ast_domain.Expression which is the dynamic class expression, or nil if none is
+// found.
 func extractDynamicClassExpression(node *ast_domain.TemplateNode) *ast_domain.Expression {
 	if node.DirClass != nil && node.DirClass.Expression != nil {
 		return &node.DirClass.Expression
@@ -205,9 +204,9 @@ func extractDynamicClassExpression(node *ast_domain.TemplateNode) *ast_domain.Ex
 	return nil
 }
 
-// selectBuildClassBytesHelper returns the fixed-arity BuildClassBytesArena
-// function name for the given part count. Uses fixed-arity arena functions
-// to avoid variadic slice heap escape and remove sync.Pool churn.
+// selectBuildClassBytesHelper returns the fixed-arity BuildClassBytesArena function name
+// for the given part count. Uses fixed-arity arena functions to avoid variadic slice heap
+// escape and remove sync.Pool churn.
 //
 // Takes partCount (int) which is the number of string parts.
 //

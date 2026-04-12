@@ -39,7 +39,9 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
-var update = flag.Bool("update", false, "update golden files")
+var (
+	update = flag.Bool("update", false, "update golden files")
+)
 
 func setupTest(t testing.TB) (*render_domain.RenderOrchestrator, *mocks.MockRegistry, *http.Request) {
 	render_domain.ClearSpriteSheetCacheForTesting()

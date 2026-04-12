@@ -18,20 +18,20 @@
 
 package wasm_dto
 
-// AnalyseRequest represents a request to analyse Go source code.
-// This is the primary entry point for type analysis in the WASM REPL.
+// AnalyseRequest represents a request to analyse Go source code. This is the primary
+// entry point for type analysis in the WASM REPL.
 type AnalyseRequest struct {
-	// Sources maps file paths to their Go source code content.
-	// At minimum, include a main.go file.
+	// Sources maps file paths to their Go source code content. At minimum, include a main.go
+	// file.
 	Sources map[string]string `json:"sources"`
 
-	// ModuleName is the Go module name for the user's code.
-	// Defaults to "playground" if not set.
+	// ModuleName is the Go module name for the user's code. Defaults to "playground" if not
+	// set.
 	ModuleName string `json:"moduleName,omitempty"`
 }
 
-// CompletionRequest holds the data needed to request code completions at a
-// cursor position.
+// CompletionRequest holds the data needed to request code completions at a cursor
+// position.
 type CompletionRequest struct {
 	// Source is the Go source code to analyse for completions.
 	Source string `json:"source"`
@@ -49,8 +49,8 @@ type CompletionRequest struct {
 	Column int `json:"column"`
 }
 
-// HoverRequest holds the data needed to get hover information at a position
-// in Go source code.
+// HoverRequest holds the data needed to get hover information at a position in Go source
+// code.
 type HoverRequest struct {
 	// Source is the Go source code to analyse.
 	Source string `json:"source"`
@@ -73,8 +73,7 @@ type ParseTemplateRequest struct {
 	// Template is the PK template content to parse.
 	Template string `json:"template"`
 
-	// Script is the Go script block content. Optional; can be embedded in the
-	// template.
+	// Script is the Go script block content. Optional; can be embedded in the template.
 	Script string `json:"script,omitempty"`
 
 	// ModuleName is the Go module name used for context.

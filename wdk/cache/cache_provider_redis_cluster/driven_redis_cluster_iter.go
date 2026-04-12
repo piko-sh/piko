@@ -44,11 +44,10 @@ func (a *RedisClusterAdapter[K, V]) buildScanPattern() string {
 	return "*"
 }
 
-// collectAllKeys scans all master nodes and returns the combined list of
-// non-tag cache keys matching the configured namespace.
+// collectAllKeys scans all master nodes and returns the combined list of non-tag cache
+// keys matching the configured namespace.
 //
-// Returns []string which contains the discovered cache keys, excluding tag
-// metadata keys.
+// Returns []string which contains the discovered cache keys, excluding tag metadata keys.
 //
 // Safe for concurrent use. ForEachMaster runs callbacks concurrently, so keys are
 // collected per-node then merged under a mutex.
@@ -78,14 +77,14 @@ func (a *RedisClusterAdapter[K, V]) collectAllKeys(ctx context.Context) []string
 	return allKeys
 }
 
-// yieldScannedKeys decodes each scanned key string, retrieves its value, and
-// yields the key-value pair to the iterator consumer.
+// yieldScannedKeys decodes each scanned key string, retrieves its value, and yields the
+// key-value pair to the iterator consumer.
 //
 // Takes keys ([]string) which contains the raw Redis key strings to process.
 // Takes yield (func(K, V) bool) which is the iterator callback.
 //
-// Returns bool which is false if the consumer stopped iteration early, or true
-// if all keys were yielded successfully.
+// Returns bool which is false if the consumer stopped iteration early, or true if all
+// keys were yielded successfully.
 func (a *RedisClusterAdapter[K, V]) yieldScannedKeys(ctx context.Context, keys []string, yield func(K, V) bool) bool {
 	_, l := logger.From(ctx, log)
 
@@ -114,13 +113,13 @@ func (a *RedisClusterAdapter[K, V]) yieldScannedKeys(ctx context.Context, keys [
 	return true
 }
 
-// All returns an iterator over all key-value pairs in the cache namespace,
-// collecting keys from all master nodes via ForEachMaster before yielding
-// them from the calling goroutine because ForEachMaster runs callbacks
-// concurrently and yield must not be called from multiple goroutines.
+// All returns an iterator over all key-value pairs in the cache namespace, collecting
+// keys from all master nodes via ForEachMaster before yielding them from the calling
+// goroutine because ForEachMaster runs callbacks concurrently and yield must not be
+// called from multiple goroutines.
 //
-// Returns iter.Seq2[K, V] which yields each key-value pair found across all
-// master nodes in the namespace.
+// Returns iter.Seq2[K, V] which yields each key-value pair found across all master nodes
+// in the namespace.
 func (a *RedisClusterAdapter[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		ctx := context.Background()
@@ -131,8 +130,8 @@ func (a *RedisClusterAdapter[K, V]) All() iter.Seq2[K, V] {
 
 // Keys returns an iterator over all keys in the cache namespace.
 //
-// Returns iter.Seq[K] which yields each key found in the namespace across
-// all master nodes.
+// Returns iter.Seq[K] which yields each key found in the namespace across all master
+// nodes.
 func (a *RedisClusterAdapter[K, V]) Keys() iter.Seq[K] {
 	return func(yield func(K) bool) {
 		for k := range a.All() {
@@ -145,8 +144,8 @@ func (a *RedisClusterAdapter[K, V]) Keys() iter.Seq[K] {
 
 // Values returns an iterator over all values in the cache namespace.
 //
-// Returns iter.Seq[V] which yields each value found in the namespace across
-// all master nodes.
+// Returns iter.Seq[V] which yields each value found in the namespace across all master
+// nodes.
 func (a *RedisClusterAdapter[K, V]) Values() iter.Seq[V] {
 	return func(yield func(V) bool) {
 		for _, v := range a.All() {
@@ -157,17 +156,15 @@ func (a *RedisClusterAdapter[K, V]) Values() iter.Seq[V] {
 	}
 }
 
-// GetEntry retrieves the full entry metadata for a key including TTL
-// information.
+// GetEntry retrieves the full entry metadata for a key including TTL information.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to retrieve.
 //
-// Returns Entry[K, V] which contains the value and metadata such
-// as expiry time.
+// Returns Entry[K, V] which contains the value and metadata such as expiry time.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 func (a *RedisClusterAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache.Entry[K, V], bool, error) {
@@ -176,14 +173,13 @@ func (a *RedisClusterAdapter[K, V]) GetEntry(ctx context.Context, key K) (cache.
 
 // ProbeEntry retrieves entry metadata without affecting access patterns or TTL.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to probe.
 //
-// Returns Entry[K, V] which contains the value and metadata such
-// as expiry time.
+// Returns Entry[K, V] which contains the value and metadata such as expiry time.
 // Returns bool which indicates whether the key was found.
 // Returns error when the operation fails.
 func (a *RedisClusterAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cache.Entry[K, V], bool, error) {
@@ -212,19 +208,14 @@ func (a *RedisClusterAdapter[K, V]) ProbeEntry(ctx context.Context, key K) (cach
 	return a.buildProbeEntry(key, keyString, getCmd, ttlCmd)
 }
 
-// buildProbeEntry constructs a cache.Entry from the pipeline
-// command results.
+// buildProbeEntry constructs a cache.Entry from the pipeline command results.
 //
 // Takes key (K) which is the typed cache key for the entry.
-// Takes keyString (string) which is the encoded key string used
-// for error messages.
-// Takes getCmd (*redis.StringCmd) which holds the GET result
-// from the pipeline.
-// Takes ttlCmd (*redis.DurationCmd) which holds the TTL result
-// from the pipeline.
+// Takes keyString (string) which is the encoded key string used for error messages.
+// Takes getCmd (*redis.StringCmd) which holds the GET result from the pipeline.
+// Takes ttlCmd (*redis.DurationCmd) which holds the TTL result from the pipeline.
 //
-// Returns cache.Entry[K, V] which contains the decoded value
-// and expiry metadata.
+// Returns cache.Entry[K, V] which contains the decoded value and expiry metadata.
 // Returns bool which indicates whether the key was found.
 // Returns error when decoding or unmarshalling fails.
 func (a *RedisClusterAdapter[K, V]) buildProbeEntry(
@@ -275,8 +266,7 @@ func (a *RedisClusterAdapter[K, V]) buildProbeEntry(
 
 // EstimatedSize returns the approximate total number of keys in the cluster.
 //
-// Returns int which is the sum of keys across all master nodes, or zero on
-// error.
+// Returns int which is the sum of keys across all master nodes, or zero on error.
 //
 // CLUSTER NOTE: This sums DBSIZE across all master nodes.
 func (a *RedisClusterAdapter[K, V]) EstimatedSize() int {
@@ -348,8 +338,8 @@ func (*RedisClusterAdapter[K, V]) parseRedisStatsInfo(ctx context.Context, info 
 
 // Stats returns combined statistics from all cluster nodes.
 //
-// Returns cache.Stats which contains the total hit and miss counts across all
-// master nodes. If any node fails to respond, returns an empty Stats struct.
+// Returns cache.Stats which contains the total hit and miss counts across all master
+// nodes. If any node fails to respond, returns an empty Stats struct.
 func (a *RedisClusterAdapter[K, V]) Stats() cache.Stats {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("redis cluster Stats exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -399,11 +389,11 @@ func (a *RedisClusterAdapter[K, V]) Close(ctx context.Context) error {
 	return nil
 }
 
-// SetExpiresAfter updates the time to live for an existing key using the Redis
-// EXPIRE command.
+// SetExpiresAfter updates the time to live for an existing key using the Redis EXPIRE
+// command.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 // Takes key (K) which identifies the cache entry to update.
@@ -434,8 +424,8 @@ func (a *RedisClusterAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, 
 //
 // Returns uint64 which is the maxmemory value in bytes, or zero if not found.
 //
-// In a correctly configured cluster, all nodes should have the same maxmemory
-// setting. This reads from any master node.
+// In a correctly configured cluster, all nodes should have the same maxmemory setting.
+// This reads from any master node.
 func (a *RedisClusterAdapter[K, V]) GetMaximum() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("redis cluster GetMaximum exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -455,8 +445,8 @@ func (a *RedisClusterAdapter[K, V]) GetMaximum() uint64 {
 	return maxMemory
 }
 
-// SetMaximum is not supported by the Redis Cluster provider as it is a
-// server-level configuration.
+// SetMaximum is not supported by the Redis Cluster provider as it is a server-level
+// configuration.
 func (*RedisClusterAdapter[K, V]) SetMaximum(_ uint64) {
 	_, l := logger.From(context.Background(), log)
 	l.Warn("SetMaximum is not supported by the Redis Cluster provider and will have no effect.")
@@ -464,8 +454,8 @@ func (*RedisClusterAdapter[K, V]) SetMaximum(_ uint64) {
 
 // WeightedSize returns the total memory usage across all cluster nodes.
 //
-// Returns uint64 which is the sum of used_memory from all master nodes, or
-// zero if the cluster cannot be queried.
+// Returns uint64 which is the sum of used_memory from all master nodes, or zero if the
+// cluster cannot be queried.
 func (a *RedisClusterAdapter[K, V]) WeightedSize() uint64 {
 	ctx, cancel := context.WithTimeoutCause(context.Background(), a.operationTimeout, fmt.Errorf("redis cluster WeightedSize exceeded %s timeout", a.operationTimeout))
 	defer cancel()
@@ -502,8 +492,8 @@ func (a *RedisClusterAdapter[K, V]) WeightedSize() uint64 {
 	return totalUsed
 }
 
-// SetRefreshableAfter is a no-op as Redis Cluster does not natively support
-// refresh scheduling.
+// SetRefreshableAfter is a no-op as Redis Cluster does not natively support refresh
+// scheduling.
 //
 // Takes ctx (context.Context) for cancellation and timeout.
 //

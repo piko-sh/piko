@@ -27,8 +27,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// OTelSlogHandler is a slog.Handler that adds OpenTelemetry trace context to
-// log records and sends log events to active spans.
+// OTelSlogHandler is a slog.Handler that adds OpenTelemetry trace context to log records
+// and sends log events to active spans.
 type OTelSlogHandler struct {
 	slog.Handler
 }
@@ -37,15 +37,15 @@ type OTelSlogHandler struct {
 //
 // Takes next (slog.Handler) which is the handler to wrap.
 //
-// Returns *OTelSlogHandler which wraps next and adds OpenTelemetry trace and
-// span IDs to each log record.
+// Returns *OTelSlogHandler which wraps next and adds OpenTelemetry trace and span IDs to
+// each log record.
 func NewOTelSlogHandler(next slog.Handler) *OTelSlogHandler {
 	return &OTelSlogHandler{Handler: next}
 }
 
-// Handle processes a log record by adding OpenTelemetry trace context,
-// recording the log as a span event, and passing it to the wrapped handler.
-// Implements the slog.Handler interface.
+// Handle processes a log record by adding OpenTelemetry trace context, recording the log
+// as a span event, and passing it to the wrapped handler. Implements the slog.Handler
+// interface.
 //
 // Takes r (slog.Record) which contains the log entry to process.
 //
@@ -107,9 +107,8 @@ func (h *OTelSlogHandler) Handle(ctx context.Context, r slog.Record) error {
 	return h.Handler.Handle(ctx, newRecord)
 }
 
-// WithAttrs returns a new OTelSlogHandler with the given attributes added
-// to the underlying handler. This preserves the OTEL wrapper when
-// attributes are added.
+// WithAttrs returns a new OTelSlogHandler with the given attributes added to the
+// underlying handler. This preserves the OTEL wrapper when attributes are added.
 //
 // Takes attrs ([]slog.Attr) which specifies the attributes to add.
 //
@@ -120,9 +119,8 @@ func (h *OTelSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	}
 }
 
-// WithGroup returns a new OTelSlogHandler with the given group added to the
-// underlying handler. This preserves the OTEL wrapper when groups
-// are added.
+// WithGroup returns a new OTelSlogHandler with the given group added to the underlying
+// handler. This preserves the OTEL wrapper when groups are added.
 //
 // Takes name (string) which specifies the group name to add.
 //

@@ -19,6 +19,7 @@
 package registry_schema
 
 import (
+	"slices"
 	"sync"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -27,20 +28,25 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// defaultBuilderSize is the initial byte capacity for new FlatBuffer builders.
-const defaultBuilderSize = 4096
+const (
 
-// builderPool provides reusable FlatBuffer builders to reduce allocations.
-var builderPool = sync.Pool{
-	New: func() any {
-		return flatbuffers.NewBuilder(defaultBuilderSize)
-	},
-}
+	// defaultBuilderSize is the initial byte capacity for new FlatBuffer builders.
+	defaultBuilderSize = 4096
+)
+
+var (
+	// builderPool provides reusable FlatBuffer builders to reduce allocations.
+	builderPool = sync.Pool{
+		New: func() any {
+			return flatbuffers.NewBuilder(defaultBuilderSize)
+		},
+	}
+)
 
 // GetBuilder retrieves a FlatBuffer builder from the pool.
 //
-// Returns *flatbuffers.Builder which is ready for use. If the pool is empty,
-// a new builder is created with an initial size of 4096 bytes.
+// Returns *flatbuffers.Builder which is ready for use. If the pool is empty, a new
+// builder is created with an initial size of 4096 bytes.
 func GetBuilder() *flatbuffers.Builder {
 	b, ok := builderPool.Get().(*flatbuffers.Builder)
 	if !ok {
@@ -57,11 +63,11 @@ func PutBuilder(b *flatbuffers.Builder) {
 	builderPool.Put(b)
 }
 
-// BuildArtefactMeta converts a registry DTO to a FlatBuffer byte slice.
-// The returned bytes are a copy and safe to store.
+// BuildArtefactMeta converts a registry DTO to a FlatBuffer byte slice. The returned
+// bytes are a copy and safe to store.
 //
-// Takes art (*registry_dto.ArtefactMeta) which specifies the artefact metadata
-// to convert.
+// Takes art (*registry_dto.ArtefactMeta) which specifies the artefact metadata to
+// convert.
 //
 // Returns []byte which contains the serialised FlatBuffer data.
 func BuildArtefactMeta(art *registry_dto.ArtefactMeta) []byte {
@@ -77,12 +83,11 @@ func BuildArtefactMeta(art *registry_dto.ArtefactMeta) []byte {
 	return result
 }
 
-// BuildArtefactMetaInto converts a registry DTO to a FlatBuffer using the
-// provided builder.
+// BuildArtefactMetaInto converts a registry DTO to a FlatBuffer using the provided
+// builder.
 //
 // Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to use.
-// Takes art (*registry_dto.ArtefactMeta) which is the artefact metadata to
-// convert.
+// Takes art (*registry_dto.ArtefactMeta) which is the artefact metadata to convert.
 //
 // Returns []byte which contains the finished bytes directly (not a copy).
 func BuildArtefactMetaInto(builder *flatbuffers.Builder, art *registry_dto.ArtefactMeta) []byte {
@@ -94,8 +99,7 @@ func BuildArtefactMetaInto(builder *flatbuffers.Builder, art *registry_dto.Artef
 // buildArtefactMetaFB serialises an ArtefactMeta into a FlatBuffer table.
 //
 // Takes builder (*flatbuffers.Builder) which is the FlatBuffer builder to use.
-// Takes art (*registry_dto.ArtefactMeta) which is the artefact metadata to
-// serialise.
+// Takes art (*registry_dto.ArtefactMeta) which is the artefact metadata to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the built table.
 func buildArtefactMetaFB(builder *flatbuffers.Builder, art *registry_dto.ArtefactMeta) flatbuffers.UOffsetT {
@@ -108,8 +112,8 @@ func buildArtefactMetaFB(builder *flatbuffers.Builder, art *registry_dto.Artefac
 	}
 
 	fbs.ArtefactMetaFBStartVariantsVector(builder, len(variantOffsets))
-	for i := len(variantOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(variantOffsets[i])
+	for _, variantOffset := range slices.Backward(variantOffsets) {
+		builder.PrependUOffsetT(variantOffset)
 	}
 	variantsVectorOffset := builder.EndVector(len(variantOffsets))
 
@@ -119,8 +123,8 @@ func buildArtefactMetaFB(builder *flatbuffers.Builder, art *registry_dto.Artefac
 	}
 
 	fbs.ArtefactMetaFBStartProfilesVector(builder, len(profileOffsets))
-	for i := len(profileOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(profileOffsets[i])
+	for _, profileOffset := range slices.Backward(profileOffsets) {
+		builder.PrependUOffsetT(profileOffset)
 	}
 	profilesVectorOffset := builder.EndVector(len(profileOffsets))
 
@@ -154,8 +158,8 @@ func buildVariantFB(builder *flatbuffers.Builder, v *registry_dto.Variant) flatb
 	}
 
 	fbs.VariantFBStartMetadataTagsVector(builder, len(tagOffsets))
-	for i := len(tagOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(tagOffsets[i])
+	for _, tagOffset := range slices.Backward(tagOffsets) {
+		builder.PrependUOffsetT(tagOffset)
 	}
 	tagsVectorOffset := builder.EndVector(len(tagOffsets))
 
@@ -165,8 +169,8 @@ func buildVariantFB(builder *flatbuffers.Builder, v *registry_dto.Variant) flatb
 	}
 
 	fbs.VariantFBStartChunksVector(builder, len(chunkOffsets))
-	for i := len(chunkOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(chunkOffsets[i])
+	for _, chunkOffset := range slices.Backward(chunkOffsets) {
+		builder.PrependUOffsetT(chunkOffset)
 	}
 	chunksVectorOffset := builder.EndVector(len(chunkOffsets))
 
@@ -187,8 +191,7 @@ func buildVariantFB(builder *flatbuffers.Builder, v *registry_dto.Variant) flatb
 // buildVariantChunkFB serialises a variant chunk to FlatBuffers format.
 //
 // Takes builder (*flatbuffers.Builder) which is the FlatBuffers builder to use.
-// Takes c (*registry_dto.VariantChunk) which contains the chunk data to
-// serialise.
+// Takes c (*registry_dto.VariantChunk) which contains the chunk data to serialise.
 //
 // Returns flatbuffers.UOffsetT which is the offset of the serialised chunk.
 func buildVariantChunkFB(builder *flatbuffers.Builder, c *registry_dto.VariantChunk) flatbuffers.UOffsetT {
@@ -216,16 +219,13 @@ func buildVariantChunkFB(builder *flatbuffers.Builder, c *registry_dto.VariantCh
 	return fbs.VariantChunkFBEnd(builder)
 }
 
-// buildDesiredProfileFB constructs a FlatBuffers representation of a named
-// profile.
+// buildDesiredProfileFB constructs a FlatBuffers representation of a named profile.
 //
 // Takes builder (*flatbuffers.Builder) which is the FlatBuffers builder to use.
-// Takes np (*registry_dto.NamedProfile) which contains the profile data to
-// serialise.
+// Takes np (*registry_dto.NamedProfile) which contains the profile data to serialise.
 //
-// Returns flatbuffers.UOffsetT which is the offset of the built
-// DesiredProfileFB
-// in the buffer.
+// Returns flatbuffers.UOffsetT which is the offset of the built DesiredProfileFB in the
+// buffer.
 func buildDesiredProfileFB(builder *flatbuffers.Builder, np *registry_dto.NamedProfile) flatbuffers.UOffsetT {
 	nameOffset := builder.CreateString(np.Name)
 	priorityOffset := builder.CreateString(string(np.Profile.Priority))
@@ -237,8 +237,8 @@ func buildDesiredProfileFB(builder *flatbuffers.Builder, np *registry_dto.NamedP
 	}
 
 	fbs.DesiredProfileFBStartParamsVector(builder, len(paramOffsets))
-	for i := len(paramOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(paramOffsets[i])
+	for _, paramOffset := range slices.Backward(paramOffsets) {
+		builder.PrependUOffsetT(paramOffset)
 	}
 	paramsVectorOffset := builder.EndVector(len(paramOffsets))
 
@@ -248,8 +248,8 @@ func buildDesiredProfileFB(builder *flatbuffers.Builder, np *registry_dto.NamedP
 	}
 
 	fbs.DesiredProfileFBStartResultingTagsVector(builder, len(tagOffsets))
-	for i := len(tagOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(tagOffsets[i])
+	for _, tagOffset := range slices.Backward(tagOffsets) {
+		builder.PrependUOffsetT(tagOffset)
 	}
 	tagsVectorOffset := builder.EndVector(len(tagOffsets))
 
@@ -259,8 +259,8 @@ func buildDesiredProfileFB(builder *flatbuffers.Builder, np *registry_dto.NamedP
 	}
 
 	fbs.DesiredProfileFBStartDependsOnVector(builder, len(dependsOnOffsets))
-	for i := len(dependsOnOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(dependsOnOffsets[i])
+	for _, dependsOnOffset := range slices.Backward(dependsOnOffsets) {
+		builder.PrependUOffsetT(dependsOnOffset)
 	}
 	dependsOnVectorOffset := builder.EndVector(len(dependsOnOffsets))
 

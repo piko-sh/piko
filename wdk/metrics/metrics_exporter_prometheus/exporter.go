@@ -28,11 +28,12 @@ import (
 	"piko.sh/piko/wdk/metrics"
 )
 
-var _ metrics.Exporter = (*Exporter)(nil)
+var (
+	_ metrics.Exporter = (*Exporter)(nil)
+)
 
-// Exporter wraps the OpenTelemetry Prometheus exporter.
-// It provides a metric reader for the MeterProvider and an HTTP handler for
-// the /metrics endpoint.
+// Exporter wraps the OpenTelemetry Prometheus exporter. It provides a metric reader for
+// the MeterProvider and an HTTP handler for the /metrics endpoint.
 type Exporter struct {
 	// exporter is the Prometheus metrics exporter.
 	exporter *prometheusexporter.Exporter
@@ -41,18 +42,16 @@ type Exporter struct {
 	registry *prometheus.Registry
 }
 
-// Reader returns the OTEL metric reader that should be registered
-// with the MeterProvider. Metrics recorded through OTEL will be
-// exposed via the Handler().
+// Reader returns the OTEL metric reader that should be registered with the MeterProvider.
+// Metrics recorded through OTEL will be exposed via the Handler().
 //
 // Returns monitoring_domain.MetricReader for MeterProvider registration.
 func (e *Exporter) Reader() monitoring_domain.MetricReader {
 	return e.exporter
 }
 
-// Handler returns an HTTP handler that serves Prometheus metrics.
-// This handler should be mounted at the configured metrics path
-// (typically /metrics).
+// Handler returns an HTTP handler that serves Prometheus metrics. This handler should be
+// mounted at the configured metrics path (typically /metrics).
 //
 // Returns http.Handler which serves Prometheus-formatted metrics.
 func (e *Exporter) Handler() http.Handler {

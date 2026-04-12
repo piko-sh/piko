@@ -16,8 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package search_adapters provides adapters for registering and querying
-// full-text search indexes.
+// Package search_adapters provides adapters for registering and querying full-text search
+// indexes.
 //
 // Register an index during initialisation:
 //
@@ -35,6 +35,6 @@
 //
 // # Thread safety
 //
-// The search index registry is safe for concurrent reads after initialisation.
-// Individual reader instances are safe for concurrent use.
+// The search index registry is safe for concurrent reads after initialisation. Individual
+// reader instances are safe for concurrent use.
 package search_adapters

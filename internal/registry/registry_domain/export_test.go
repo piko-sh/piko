@@ -18,7 +18,9 @@
 
 package registry_domain
 
-import "piko.sh/piko/internal/registry/registry_dto"
+import (
+	"piko.sh/piko/internal/registry/registry_dto"
+)
 
 var (
 	ValidateUpsertInput    = validateUpsertInput

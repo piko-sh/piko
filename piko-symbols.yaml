@@ -9,34 +9,156 @@ package: driven_system_symbols
 output: internal/interp/interp_adapters/driven_system_symbols
 
 packages:
+  - bufio
   - bytes
+  - archive/tar
+  - archive/zip
+  - compress/bzip2
+  - compress/flate
+  - compress/gzip
+  - compress/lzw
+  - compress/zlib
+  - container/heap
+  - container/list
+  - container/ring
   - context
+  - crypto/aes
+  - crypto/cipher
+  - crypto/des
+  - crypto/dsa
+  - crypto/ecdh
+  - crypto/ecdsa
+  - crypto/ed25519
+  - crypto/elliptic
+  - crypto/hkdf
+  - crypto/hmac
+  - crypto/pbkdf2
+  - crypto/rc4
+  - crypto/rsa
+  - crypto/sha3
+  - crypto/subtle
+  - crypto/tls
+  - crypto/x509
+  - crypto/x509/pkix
+  - crypto/md5
+  - crypto/rand
+  - crypto/sha1
+  - crypto/sha256
+  - crypto/sha512
+  - database/sql
+  - database/sql/driver
+  - embed
+  - encoding
+  - encoding/ascii85
+  - encoding/asn1
+  - encoding/base32
   - encoding/base64
+  - encoding/binary
+  - encoding/csv
+  - encoding/gob
+  - encoding/hex
   - encoding/json
+  - encoding/pem
+  - encoding/xml
   - errors
+  - flag
   - fmt
+  - hash
+  - hash/adler32
+  - hash/crc32
+  - hash/crc64
+  - hash/fnv
+  - hash/maphash
   - html
+  - html/template
+  - image
+  - image/color
+  - image/color/palette
+  - image/draw
+  - image/gif
+  - image/jpeg
+  - image/png
   - io
+  - io/fs
+  - io/ioutil
+  - iter
+  - log
+  - log/slog
   - math
+  - math/big
+  - math/bits
+  - math/cmplx
+  - math/rand
+  - math/rand/v2
+  - mime
+  - mime/multipart
+  - mime/quotedprintable
+  - net
+  - net/http
+  - net/http/cgi
+  - net/http/cookiejar
+  - net/http/fcgi
+  - net/http/httptest
+  - net/http/httptrace
+  - net/http/httputil
+  - net/mail
+  - net/netip
+  - net/smtp
+  - net/textproto
+  - net/url
   - os
+  - os/exec
+  - os/signal
+  - os/user
   - path
+  - path/filepath
+  - reflect
   - regexp
+  - regexp/syntax
+  - runtime
+  - runtime/debug
+  - runtime/metrics
   - sort
   - strconv
   - strings
-  - sync
+  - structs
+  - sync:
+      generic_functions:
+        OnceValue: [[int]]
+        OnceValues: [[int, error]]
+  - sync/atomic:
+      generic_types:
+        Pointer: ["struct{}"]
+  - testing
+  - testing/fstest
+  - testing/iotest
+  - testing/quick
+  - text/scanner
+  - text/tabwriter
+  - text/template
+  - text/template/parse
   - time
+  - unicode
+  - unicode/utf16
+  - unicode/utf8
+  - unique
+  - weak
+  # slices, maps, cmp: primitive types stay on fast monomorphised
+  # switch-case dispatch; non-enumerated element types fall through to
+  # the hand-written reflective fallbacks in wrapped_generic_fallbacks.go
+  # (reflectSlicesSort, reflectCmpCompare, etc.). Expand element lists
+  # to cover types likely to be hot enough for fast-path inlining.
   - slices:
-      element_types: [string, int, int64, float64, byte, bool]
+      element_types: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, bool]
       functions:
-        BinarySearch: [string, int, int64, float64, byte]
-        Compare: [string, int, int64, float64, byte]
-        IsSorted: [string, int, int64, float64, byte]
-        Max: [string, int, int64, float64, byte]
-        Min: [string, int, int64, float64, byte]
-        Sort: [string, int, int64, float64, byte]
+        BinarySearch: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64]
+        Compare: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64]
+        IsSorted: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64]
+        Max: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64]
+        Min: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64]
+        Sort: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64]
   - maps:
-      key_types: [string, int]
-      value_types: [string, int, float64, bool, any]
+      key_types: [string, int, int32, int64]
+      value_types: [string, int, int32, int64, float64, bool, any]
   - cmp:
-      element_types: [string, int, int64, float64, byte]
+      element_types: [string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64]

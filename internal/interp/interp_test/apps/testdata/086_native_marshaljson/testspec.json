@@ -1,0 +1,5 @@
+{
+  "description": "main calls json.Marshal on a type defined in lib whose MarshalJSON method lives in lib's rootFunction. Exercises cross-package json.Marshaler adapter dispatch.",
+  "modulePath": "testpkg",
+  "expected": "{\"name\":\"alpha\",\"len\":5}"
+}

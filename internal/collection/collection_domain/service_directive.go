@@ -33,11 +33,11 @@ import (
 // expandStaticCollection creates virtual entry points for each content item.
 //
 // Takes provider (CollectionProvider) which supplies the static content.
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies
-// the collection name, base path, and layout settings.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the
+// collection name, base path, and layout settings.
 //
-// Returns []*collection_dto.CollectionEntryPoint which contains one entry
-// point per content item, each with initial props and routing details.
+// Returns []*collection_dto.CollectionEntryPoint which contains one entry point per
+// content item, each with initial props and routing details.
 // Returns error when fetching static content fails.
 func (s *collectionService) expandStaticCollection(
 	ctx context.Context,
@@ -99,11 +99,11 @@ func (s *collectionService) expandStaticCollection(
 // expandDynamicCollection creates a single dynamic route handler.
 //
 // Takes provider (CollectionProvider) which supplies the dynamic content.
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which defines the
-// route settings.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which defines the route
+// settings.
 //
-// Returns []*collection_dto.CollectionEntryPoint which contains a single
-// virtual entry point for a dynamic route.
+// Returns []*collection_dto.CollectionEntryPoint which contains a single virtual entry
+// point for a dynamic route.
 // Returns error when the collection cannot be expanded.
 func (*collectionService) expandDynamicCollection(
 	ctx context.Context,
@@ -133,19 +133,17 @@ func (*collectionService) expandDynamicCollection(
 	return []*collection_dto.CollectionEntryPoint{entryPoint}, nil
 }
 
-// expandHybridCollection creates both static snapshots and dynamic
-// revalidation.
+// expandHybridCollection creates both static snapshots and dynamic revalidation.
 //
-// Hybrid mode (ISR) provides zero-latency initial responses while keeping
-// content fresh. Falls back to static collection expansion when hybrid
-// content cannot be fetched.
+// Hybrid mode (ISR) provides zero-latency initial responses while keeping content fresh.
+// Falls back to static collection expansion when hybrid content cannot be fetched.
 //
 // Takes provider (CollectionProvider) which supplies the collection data.
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies
-// the collection configuration.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the
+// collection configuration.
 //
-// Returns []*collection_dto.CollectionEntryPoint which contains the generated
-// entry points for the hybrid collection.
+// Returns []*collection_dto.CollectionEntryPoint which contains the generated entry
+// points for the hybrid collection.
 // Returns error when content preparation fails and static fallback also fails.
 func (s *collectionService) expandHybridCollection(
 	ctx context.Context,
@@ -173,12 +171,12 @@ func (s *collectionService) expandHybridCollection(
 
 // resolveContentSource builds a ContentSource for a collection directive.
 //
-// If ContentModulePath is set, the source is resolved from an external Go
-// module via GOMODCACHE. Otherwise, the source uses the project's default
-// sandbox with the directive's BasePath.
+// If ContentModulePath is set, the source is resolved from an external Go module via
+// GOMODCACHE. Otherwise, the source uses the project's default sandbox with the
+// directive's BasePath.
 //
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which holds the
-// content source settings.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which holds the content
+// source settings.
 //
 // Returns collection_dto.ContentSource which describes where content lives.
 // Returns error when module resolution fails.
@@ -236,8 +234,8 @@ func (s *collectionService) resolveContentSource(
 	}, nil
 }
 
-// createModuleSandbox creates a read-only sandbox for accessing content from
-// an external Go module.
+// createModuleSandbox creates a read-only sandbox for accessing content from an external
+// Go module.
 //
 // Takes moduleBase (string) which is the Go module path for naming.
 // Takes contentRoot (string) which is the filesystem path to sandbox.
@@ -266,12 +264,11 @@ func createModuleSandbox(moduleBase, contentRoot string) (safedisk.Sandbox, erro
 	return moduleSandbox, nil
 }
 
-// fetchAndPrepareHybridContent fetches content, computes ETag, and encodes
-// to FlatBuffer.
+// fetchAndPrepareHybridContent fetches content, computes ETag, and encodes to FlatBuffer.
 //
 // Takes provider (CollectionProvider) which supplies the static content.
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies
-// the collection to fetch.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the
+// collection to fetch.
 //
 // Returns []collection_dto.ContentItem which contains the fetched items.
 // Returns string which is the computed ETag for cache validation.
@@ -321,14 +318,14 @@ func (s *collectionService) fetchAndPrepareHybridContent(
 
 // registerHybridDirectiveSnapshot saves a snapshot to the hybrid registry.
 //
-// Takes ctx (context.Context) which carries deadlines, cancellation signals,
-// and request-scoped values.
+// Takes ctx (context.Context) which carries deadlines, cancellation signals, and
+// request-scoped values.
 // Takes providerName (string) which identifies the data provider.
 // Takes collectionName (string) which identifies the collection.
 // Takes blob ([]byte) which contains the snapshot data.
 // Takes etag (string) which provides the version tag for the snapshot.
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies
-// the hybrid settings.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the hybrid
+// settings.
 func (s *collectionService) registerHybridDirectiveSnapshot(
 	ctx context.Context,
 	providerName, collectionName string,
@@ -349,14 +346,14 @@ func (s *collectionService) registerHybridDirectiveSnapshot(
 
 // createHybridEntryPoints creates entry points with IsHybrid=true.
 //
-// Takes items ([]collection_dto.ContentItem) which provides the content items
-// to convert into entry points.
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies
-// the collection configuration including layout path.
+// Takes items ([]collection_dto.ContentItem) which provides the content items to convert
+// into entry points.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which specifies the
+// collection configuration including layout path.
 // Takes providerName (string) which identifies the dynamic provider.
 //
-// Returns []*collection_dto.CollectionEntryPoint which contains the created
-// hybrid entry points ready for rendering.
+// Returns []*collection_dto.CollectionEntryPoint which contains the created hybrid entry
+// points ready for rendering.
 // Returns error when entry point creation fails.
 func (*collectionService) createHybridEntryPoints(
 	ctx context.Context,
@@ -396,11 +393,11 @@ func (*collectionService) createHybridEntryPoints(
 
 // buildHybridConfigFromDirective builds a HybridConfig from directive settings.
 //
-// Takes directive (*collection_dto.CollectionDirectiveInfo) which contains the
-// cache settings to apply.
+// Takes directive (*collection_dto.CollectionDirectiveInfo) which contains the cache
+// settings to apply.
 //
-// Returns collection_dto.HybridConfig which has default values replaced by any
-// settings from the directive.
+// Returns collection_dto.HybridConfig which has default values replaced by any settings
+// from the directive.
 func buildHybridConfigFromDirective(directive *collection_dto.CollectionDirectiveInfo) collection_dto.HybridConfig {
 	config := collection_dto.DefaultHybridConfig()
 
@@ -416,14 +413,12 @@ func buildHybridConfigFromDirective(directive *collection_dto.CollectionDirectiv
 	return config
 }
 
-// convertItemMetadata converts a ContentItem into a metadata map for use in
-// templates.
+// convertItemMetadata converts a ContentItem into a metadata map for use in templates.
 //
-// Takes item (*collection_dto.ContentItem) which is the content item to
-// convert.
+// Takes item (*collection_dto.ContentItem) which is the content item to convert.
 //
-// Returns map[string]any which contains the item metadata with standard keys
-// for template use.
+// Returns map[string]any which contains the item metadata with standard keys for template
+// use.
 func convertItemMetadata(item *collection_dto.ContentItem) map[string]any {
 	metadata := make(map[string]any, len(item.Metadata)+9)
 	maps.Copy(metadata, item.Metadata)

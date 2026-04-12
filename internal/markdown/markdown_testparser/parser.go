@@ -45,8 +45,7 @@ const (
 	// maxATXHeadingLevel is the maximum permitted heading depth (h6).
 	maxATXHeadingLevel = 6
 
-	// minHorizontalRuleCharCount is the minimum repeated characters for a
-	// horizontal rule.
+	// minHorizontalRuleCharCount is the minimum repeated characters for a horizontal rule.
 	minHorizontalRuleCharCount = 3
 
 	// carriageReturnNewline is the CRLF line ending sequence.
@@ -56,19 +55,21 @@ const (
 	singleSpace = " "
 )
 
-// Parser is a lightweight markdown parser that converts markdown source into
-// piko-native AST. It satisfies [markdown_domain.MarkdownParserPort].
+// Parser is a lightweight markdown parser that converts markdown source into piko-native
+// AST. It satisfies [markdown_domain.MarkdownParserPort].
 type Parser struct{}
 
-var _ markdown_domain.MarkdownParserPort = (*Parser)(nil)
+var (
+	_ markdown_domain.MarkdownParserPort = (*Parser)(nil)
+)
 
 // NewParser creates a new test parser.
 //
 // Returns *Parser which is the new lightweight markdown parser.
 func NewParser() *Parser { return &Parser{} }
 
-// Parse parses markdown content, extracting YAML frontmatter and building
-// a piko AST document.
+// Parse parses markdown content, extracting YAML frontmatter and building a piko AST
+// document.
 //
 // Takes content ([]byte) which is the raw markdown input.
 //
@@ -82,8 +83,8 @@ func (*Parser) Parse(_ context.Context, content []byte) (*markdown_ast.Document,
 	return doc, frontmatter, nil
 }
 
-// extractFrontmatter splits content into the YAML frontmatter map and the
-// remaining markdown body.
+// extractFrontmatter splits content into the YAML frontmatter map and the remaining
+// markdown body.
 //
 // Takes content ([]byte) which is the full markdown source.
 //
@@ -120,8 +121,8 @@ func extractFrontmatter(content []byte) (body []byte, fm map[string]any) {
 	return content[bodyStart:], fm
 }
 
-// stringifyTimes converts time.Time values in a frontmatter map to strings,
-// matching the behaviour of goldmark-meta which returns dates as strings.
+// stringifyTimes converts time.Time values in a frontmatter map to strings, matching the
+// behaviour of goldmark-meta which returns dates as strings.
 //
 // Takes m (map[string]any) which is the frontmatter map to mutate in place.
 func stringifyTimes(m map[string]any) {
@@ -135,8 +136,7 @@ func stringifyTimes(m map[string]any) {
 	}
 }
 
-// blockLine holds a line of source text with its byte offset in the original
-// content.
+// blockLine holds a line of source text with its byte offset in the original content.
 type blockLine struct {
 	// text is the line content including the trailing newline.
 	text string
@@ -155,13 +155,12 @@ func isBlockquoteLine(trimmed string) bool {
 	return strings.HasPrefix(stripped, "> ") || stripped == ">"
 }
 
-// parseBlocks splits source into block-level constructs and appends them as
-// children of parent.
+// parseBlocks splits source into block-level constructs and appends them as children of
+// parent.
 //
 // Takes parent (markdown_ast.Node) which receives the parsed blocks.
 // Takes source ([]byte) which is the markdown content to parse.
-// Takes baseOffset (int) which is the byte offset of source within the
-// original document.
+// Takes baseOffset (int) which is the byte offset of source within the original document.
 func parseBlocks(parent markdown_ast.Node, source []byte, baseOffset int) {
 	lines := splitLines(source, baseOffset)
 	i := 0
@@ -298,8 +297,8 @@ func parseHeading(parent markdown_ast.Node, line blockLine, level int, _ []byte,
 	parent.AppendChild(h)
 }
 
-// generateHeadingID produces a lowercase kebab-case ID from heading text,
-// matching the goldmark auto-heading-id behaviour.
+// generateHeadingID produces a lowercase kebab-case ID from heading text, matching the
+// goldmark auto-heading-id behaviour.
 //
 // Takes text (string) which is the heading content.
 //
@@ -327,8 +326,10 @@ func generateHeadingID(text string) string {
 	return result
 }
 
-// fencePattern matches fenced code block delimiters with optional language info.
-var fencePattern = regexp.MustCompile(`^(\s{0,3})(` + "```" + `+|~~~+)(.*)$`)
+var (
+	// fencePattern matches fenced code block delimiters with optional language info.
+	fencePattern = regexp.MustCompile(`^(\s{0,3})(` + "```" + `+|~~~+)(.*)$`)
+)
 
 // isFenceLine reports whether line is a fenced code block delimiter.
 //
@@ -339,8 +340,8 @@ func isFenceLine(line string) bool {
 	return fencePattern.MatchString(line)
 }
 
-// isClosingFenceLine reports whether trimmed is a closing fence that matches
-// the opening fence character and length.
+// isClosingFenceLine reports whether trimmed is a closing fence that matches the opening
+// fence character and length.
 //
 // Takes trimmed (string) which is the line with trailing whitespace removed.
 // Takes fenceChar (byte) which is the opening fence character.
@@ -372,8 +373,8 @@ func extractFenceLanguage(info string) string {
 	return info
 }
 
-// parseFencedCodeBlock parses a fenced code block starting at lines[start]
-// and appends the node to parent.
+// parseFencedCodeBlock parses a fenced code block starting at lines[start] and appends
+// the node to parent.
 //
 // Takes parent (markdown_ast.Node) which receives the code block.
 // Takes lines ([]blockLine) which is the full set of source lines.
@@ -410,8 +411,8 @@ func parseFencedCodeBlock(parent markdown_ast.Node, lines []blockLine, start int
 	return i
 }
 
-// extractBlockquoteLine strips the blockquote marker from trimmed and
-// returns the inner content.
+// extractBlockquoteLine strips the blockquote marker from trimmed and returns the inner
+// content.
 //
 // Takes trimmed (string) which is the line with trailing whitespace removed.
 //
@@ -431,8 +432,8 @@ func extractBlockquoteLine(trimmed string) (content []byte, shouldBreak bool) {
 	return []byte(trimmed + "\n"), false
 }
 
-// parseBlockquote parses a blockquote starting at lines[start] and appends
-// the node to parent.
+// parseBlockquote parses a blockquote starting at lines[start] and appends the node to
+// parent.
 //
 // Takes parent (markdown_ast.Node) which receives the blockquote.
 // Takes lines ([]blockLine) which is the full set of source lines.
@@ -459,8 +460,8 @@ func parseBlockquote(parent markdown_ast.Node, lines []blockLine, start int, _ [
 	return i
 }
 
-// isUnorderedListItem reports whether line starts with an unordered list
-// marker (-, *, or +).
+// isUnorderedListItem reports whether line starts with an unordered list marker (-, *, or
+// +).
 //
 // Takes line (string) which is the source line.
 //
@@ -473,8 +474,8 @@ func isUnorderedListItem(line string) bool {
 	return (trimmed[0] == '-' || trimmed[0] == '*' || trimmed[0] == '+') && trimmed[1] == ' '
 }
 
-// isOrderedListItem reports whether line starts with an ordered list marker
-// (digits followed by . or )).
+// isOrderedListItem reports whether line starts with an ordered list marker (digits
+// followed by . or )).
 //
 // Takes line (string) which is the source line.
 //
@@ -493,8 +494,7 @@ func isOrderedListItem(line string) bool {
 	return false
 }
 
-// extractListItemContent strips the list marker from trimmed and returns
-// the item text.
+// extractListItemContent strips the list marker from trimmed and returns the item text.
 //
 // Takes trimmed (string) which is the line with trailing whitespace removed.
 // Takes ordered (bool) which is true for ordered list markers.
@@ -517,8 +517,8 @@ func extractListItemContent(trimmed string, ordered bool) (string, bool) {
 	return "", false
 }
 
-// collectListItemContinuation gathers continuation lines for a list item
-// until a blank line or new item is reached.
+// collectListItemContinuation gathers continuation lines for a list item until a blank
+// line or new item is reached.
 //
 // Takes lines ([]blockLine) which is the full set of source lines.
 // Takes start (int) which is the index of the first continuation line.
@@ -543,8 +543,8 @@ func collectListItemContinuation(lines []blockLine, start int) ([]byte, int) {
 	return content, i
 }
 
-// parseList parses consecutive list items starting at lines[start] and
-// appends the list node to parent.
+// parseList parses consecutive list items starting at lines[start] and appends the list
+// node to parent.
 //
 // Takes parent (markdown_ast.Node) which receives the list.
 // Takes lines ([]blockLine) which is the full set of source lines.
@@ -577,8 +577,8 @@ func parseList(parent markdown_ast.Node, lines []blockLine, start int, ordered b
 	return i
 }
 
-// isHorizontalRule reports whether line is a horizontal rule (three or more
-// -, *, or _ characters).
+// isHorizontalRule reports whether line is a horizontal rule (three or more -, *, or _
+// characters).
 //
 // Takes line (string) which is the source line.
 //
@@ -603,8 +603,8 @@ func isHorizontalRule(line string) bool {
 	return count >= minHorizontalRuleCharCount
 }
 
-// isBlockBoundary reports whether trimmed starts a new block construct,
-// terminating the current paragraph.
+// isBlockBoundary reports whether trimmed starts a new block construct, terminating the
+// current paragraph.
 //
 // Takes trimmed (string) which is the line with trailing whitespace removed.
 //
@@ -631,8 +631,8 @@ func isBlockBoundary(trimmed string) bool {
 	return isOrderedListItem(trimmed)
 }
 
-// parseParagraph collects consecutive non-block lines into a paragraph
-// and appends it to parent.
+// parseParagraph collects consecutive non-block lines into a paragraph and appends it to
+// parent.
 //
 // Takes parent (markdown_ast.Node) which receives the paragraph.
 // Takes lines ([]blockLine) which is the full set of source lines.
@@ -685,8 +685,7 @@ type inlineParser struct {
 	textStart int
 }
 
-// flushText emits any accumulated plain text from textStart up to end as a
-// Text node.
+// flushText emits any accumulated plain text from textStart up to end as a Text node.
 //
 // Takes end (int) which is the exclusive end position of the text run.
 func (p *inlineParser) flushText(end int) {
@@ -769,13 +768,12 @@ func (p *inlineParser) tryImage() bool {
 	return true
 }
 
-// parseInlines scans text for inline constructs (code spans, emphasis,
-// links, images) and appends them as children of parent.
+// parseInlines scans text for inline constructs (code spans, emphasis, links, images) and
+// appends them as children of parent.
 //
 // Takes parent (markdown_ast.Node) which receives the inline nodes.
 // Takes text ([]byte) which is the inline content to parse.
-// Takes baseOffset (int) which is the byte offset of text within the
-// original document.
+// Takes baseOffset (int) which is the byte offset of text within the original document.
 func parseInlines(parent markdown_ast.Node, text []byte, baseOffset int) {
 	p := &inlineParser{
 		parent:     parent,
@@ -812,8 +810,7 @@ func parseInlines(parent markdown_ast.Node, text []byte, baseOffset int) {
 // Takes text ([]byte) which is the inline content.
 // Takes start (int) which is the position of the opening backtick.
 //
-// Returns int which is the index of the closing backtick, or -1 if not
-// found.
+// Returns int which is the index of the closing backtick, or -1 if not found.
 func findClosingBacktick(text []byte, start int) int {
 	for i := start + 1; i < len(text); i++ {
 		if text[i] == '`' {
@@ -823,15 +820,14 @@ func findClosingBacktick(text []byte, start int) int {
 	return -1
 }
 
-// parseEmphasis parses an emphasis or strong span starting at pos and
-// appends the node to parent.
+// parseEmphasis parses an emphasis or strong span starting at pos and appends the node to
+// parent.
 //
 // Takes parent (markdown_ast.Node) which receives the emphasis node.
 // Takes text ([]byte) which is the inline content.
 // Takes pos (int) which is the position of the opening delimiter.
 // Takes baseOffset (int) which is the byte offset of text in the document.
-// Takes flushBefore (func(int)) which flushes accumulated text up to an
-// offset.
+// Takes flushBefore (func(int)) which flushes accumulated text up to an offset.
 //
 // Returns int which is the number of bytes consumed, or 0 on failure.
 func parseEmphasis(parent markdown_ast.Node, text []byte, pos int, baseOffset int, flushBefore func(int)) int {
@@ -859,16 +855,15 @@ func parseEmphasis(parent markdown_ast.Node, text []byte, pos int, baseOffset in
 	return closer + level - pos
 }
 
-// findClosingEmphasis locates the closing emphasis delimiter matching the
-// given character and level.
+// findClosingEmphasis locates the closing emphasis delimiter matching the given character
+// and level.
 //
 // Takes text ([]byte) which is the inline content.
 // Takes start (int) which is the position to begin searching.
 // Takes ch (byte) which is the delimiter character (* or _).
 // Takes level (int) which is the number of consecutive delimiter characters.
 //
-// Returns int which is the index of the closing delimiter, or -1 if not
-// found.
+// Returns int which is the index of the closing delimiter, or -1 if not found.
 func findClosingEmphasis(text []byte, start int, ch byte, level int) int {
 	needle := bytes.Repeat([]byte{ch}, level)
 	idx := bytes.Index(text[start:], needle)
@@ -878,8 +873,8 @@ func findClosingEmphasis(text []byte, start int, ch byte, level int) int {
 	return start + idx
 }
 
-// findMatchingCloseBracket finds the ] that matches the [ at pos, handling
-// nested brackets.
+// findMatchingCloseBracket finds the ] that matches the [ at pos, handling nested
+// brackets.
 //
 // Takes text ([]byte) which is the inline content.
 // Takes pos (int) which is the position of the opening bracket.
@@ -901,15 +896,13 @@ func findMatchingCloseBracket(text []byte, pos int) int {
 	return -1
 }
 
-// parseLink parses an inline link starting at pos and appends the node to
-// parent.
+// parseLink parses an inline link starting at pos and appends the node to parent.
 //
 // Takes parent (markdown_ast.Node) which receives the link node.
 // Takes text ([]byte) which is the inline content.
 // Takes pos (int) which is the position of the opening [.
 // Takes baseOffset (int) which is the byte offset of text in the document.
-// Takes flushBefore (func(int)) which flushes accumulated text up to an
-// offset.
+// Takes flushBefore (func(int)) which flushes accumulated text up to an offset.
 //
 // Returns int which is the number of bytes consumed, or 0 on failure.
 func parseLink(parent markdown_ast.Node, text []byte, pos int, baseOffset int, flushBefore func(int)) int {
@@ -937,15 +930,13 @@ func parseLink(parent markdown_ast.Node, text []byte, pos int, baseOffset int, f
 	return closeParen + 1 - pos
 }
 
-// parseImage parses an inline image starting at pos and appends the node
-// to parent.
+// parseImage parses an inline image starting at pos and appends the node to parent.
 //
 // Takes parent (markdown_ast.Node) which receives the image node.
 // Takes text ([]byte) which is the inline content.
 // Takes pos (int) which is the position of the opening !.
 // Takes baseOffset (int) which is the byte offset of text in the document.
-// Takes flushBefore (func(int)) which flushes accumulated text up to an
-// offset.
+// Takes flushBefore (func(int)) which flushes accumulated text up to an offset.
 //
 // Returns int which is the number of bytes consumed, or 0 on failure.
 func parseImage(parent markdown_ast.Node, text []byte, pos int, baseOffset int, flushBefore func(int)) int {
@@ -985,8 +976,7 @@ func parseImage(parent markdown_ast.Node, text []byte, pos int, baseOffset int, 
 
 // parseURLTitle splits raw into a URL and optional quoted title.
 //
-// Takes raw ([]byte) which is the content between ( and ) in a link or
-// image.
+// Takes raw ([]byte) which is the content between ( and ) in a link or image.
 //
 // Returns url (string) which is the destination URL.
 // Returns title (string) which is the quoted title, or empty if absent.

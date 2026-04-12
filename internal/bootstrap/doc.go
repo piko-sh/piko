@@ -16,19 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package bootstrap assembles the Piko application and acts as its
-// composition root.
+// Package bootstrap assembles the Piko application and acts as its composition root.
 //
-// It uses a lightweight, manual Dependency Injection container and the
-// Strategy pattern to construct the correct set of services for a given
-// run mode (production, development, or interpreted development). Every
-// service is initialised lazily and used as a singleton.
+// It uses a lightweight, manual Dependency Injection container and the Strategy pattern
+// to construct the correct set of services for a given run mode (production, development,
+// or interpreted development). Every service is initialised lazily and used as a
+// singleton.
 //
 // # Run modes
 //
-// The package supports three run modes, each with its own builder:
-// prod (compiled templates with AST caching), dev (file watching
-// with hot reload), and dev-i (development with Go interpretation).
+// The package supports three run modes, each with its own builder: prod (compiled
+// templates with AST caching), dev (file watching with hot reload), and dev-i
+// (development with Go interpretation).
 //
 // # Usage
 //
@@ -45,9 +44,8 @@
 //
 // # Global service access
 //
-// After initialisation, services can be accessed globally via
-// convenience functions. These return errNotInitialised if
-// called before the framework is initialised:
+// After initialisation, services can be accessed globally via convenience functions.
+// These return errNotInitialised if called before the framework is initialised:
 //
 //	emailService, err := bootstrap.GetEmailService()
 //	cacheService, err := bootstrap.GetCacheService()
@@ -55,7 +53,7 @@
 //
 // # Thread safety
 //
-// The Container uses sync.Once guards for lazy initialisation, so each
-// service is created exactly once even under concurrent access. The global
-// service getters are safe for concurrent use from multiple goroutines.
+// The Container uses sync.Once guards for lazy initialisation, so each service is created
+// exactly once even under concurrent access. The global service getters are safe for
+// concurrent use from multiple goroutines.
 package bootstrap

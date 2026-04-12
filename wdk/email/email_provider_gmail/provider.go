@@ -42,8 +42,8 @@ const (
 	// gmailPort is the SMTP port for Gmail with STARTTLS.
 	gmailPort = 587
 
-	// defaultCallsPerSecond is the default rate limit for Gmail SMTP to avoid
-	// hitting sending quotas.
+	// defaultCallsPerSecond is the default rate limit for Gmail SMTP to avoid hitting
+	// sending quotas.
 	defaultCallsPerSecond = 5.0
 
 	// defaultBurst is the most API calls that can happen at once.
@@ -68,8 +68,7 @@ const (
 	metricSendTypeBulk = "bulk"
 )
 
-// GmailProvider sends emails through Gmail SMTP and implements
-// EmailProviderPort.
+// GmailProvider sends emails through Gmail SMTP and implements EmailProviderPort.
 type GmailProvider struct {
 	// rateLimiter controls how often emails are sent to avoid exceeding quotas.
 	rateLimiter *email_domain.ProviderRateLimiter
@@ -84,8 +83,11 @@ type GmailProvider struct {
 	fromEmail string
 }
 
-var _ email_domain.EmailProviderPort = (*GmailProvider)(nil)
-var _ provider_domain.ProviderMetadata = (*GmailProvider)(nil)
+var (
+	_ email_domain.EmailProviderPort = (*GmailProvider)(nil)
+
+	_ provider_domain.ProviderMetadata = (*GmailProvider)(nil)
+)
 
 // GmailProviderArgs holds the credentials needed to set up a Gmail provider.
 type GmailProviderArgs struct {
@@ -101,8 +103,8 @@ type GmailProviderArgs struct {
 
 // NewGmailProvider creates a new Gmail email provider with the given settings.
 //
-// Takes arguments (GmailProviderArgs) which holds the Gmail
-// username, password, and sender details.
+// Takes arguments (GmailProviderArgs) which holds the Gmail username, password, and
+// sender details.
 // Takes opts (...email_domain.ProviderOption) which sets rate limiting options.
 //
 // Returns *GmailProvider which is ready to send emails via Gmail SMTP.
@@ -159,11 +161,11 @@ func (p *GmailProvider) GetProviderMetadata() map[string]any {
 
 // Send constructs and sends an email via Gmail SMTP.
 //
-// Takes params (*email_dto.SendParams) which specifies the email recipients,
-// subject, and body content.
+// Takes params (*email_dto.SendParams) which specifies the email recipients, subject, and
+// body content.
 //
-// Returns error when rate limiting fails, parameters are invalid, the message
-// cannot be built, or sending fails.
+// Returns error when rate limiting fails, parameters are invalid, the message cannot be
+// built, or sending fails.
 func (p *GmailProvider) Send(ctx context.Context, params *email_dto.SendParams) error {
 	ctx, l := logger.From(ctx, log)
 	startTime := time.Now()
@@ -220,13 +222,12 @@ func (*GmailProvider) SupportsBulkSending() bool {
 	return false
 }
 
-// SendBulk sends multiple emails by calling Send individually and collecting
-// any errors.
+// SendBulk sends multiple emails by calling Send individually and collecting any errors.
 //
 // Takes emails ([]*email_dto.SendParams) which contains the emails to send.
 //
-// Returns error when one or more emails fail to send. The error is a
-// MultiError containing details of each failed email.
+// Returns error when one or more emails fail to send. The error is a MultiError
+// containing details of each failed email.
 func (p *GmailProvider) SendBulk(ctx context.Context, emails []*email_dto.SendParams) error {
 	startTime := time.Now()
 
@@ -282,12 +283,11 @@ func (*GmailProvider) Name() string {
 
 // Check performs a health probe and implements healthprobe_domain.Probe.
 //
-// When checkType is liveness, reports healthy since Gmail is a managed
-// service. When checkType is readiness, verifies that credentials are
-// configured.
+// When checkType is liveness, reports healthy since Gmail is a managed service. When
+// checkType is readiness, verifies that credentials are configured.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
 // Returns healthprobe_dto.Status which contains the health state and details.
 func (p *GmailProvider) Check(_ context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
@@ -322,16 +322,12 @@ func (p *GmailProvider) Check(_ context.Context, checkType healthprobe_dto.Check
 	}
 }
 
-// buildMailMessage constructs a new go-mail message from the given
-// parameters.
+// buildMailMessage constructs a new go-mail message from the given parameters.
 //
-// Takes params (*email_dto.SendParams) which provides the email
-// content and recipients.
+// Takes params (*email_dto.SendParams) which provides the email content and recipients.
 //
-// Returns *mail.Msg which is the constructed message ready for
-// sending.
-// Returns error when addresses are invalid or attachments cannot be
-// added.
+// Returns *mail.Msg which is the constructed message ready for sending.
+// Returns error when addresses are invalid or attachments cannot be added.
 func (p *GmailProvider) buildMailMessage(params *email_dto.SendParams) (*mail.Msg, error) {
 	message := mail.NewMsg()
 
@@ -380,8 +376,7 @@ func (p *GmailProvider) setMailAddresses(message *mail.Msg, params *email_dto.Se
 	return nil
 }
 
-// dialAndSend creates a new SMTP client, connects to Gmail, and sends the
-// message.
+// dialAndSend creates a new SMTP client, connects to Gmail, and sends the message.
 //
 // Takes message (*mail.Message) which contains the email to send.
 //
@@ -404,8 +399,8 @@ func (p *GmailProvider) dialAndSend(message *mail.Msg) error {
 
 // setMailBody sets the body content of the email message.
 //
-// When both plain text and HTML bodies are provided, creates a multipart
-// message with both formats. Otherwise uses whichever format is available.
+// When both plain text and HTML bodies are provided, creates a multipart message with
+// both formats. Otherwise uses whichever format is available.
 //
 // Takes message (*mail.Message) which is the email message to set up.
 // Takes params (*email_dto.SendParams) which holds the body content.
@@ -421,8 +416,8 @@ func setMailBody(message *mail.Msg, params *email_dto.SendParams) {
 	}
 }
 
-// addMailAttachments adds attachments to the message, handling CID-embedded
-// images separately.
+// addMailAttachments adds attachments to the message, handling CID-embedded images
+// separately.
 //
 // Takes message (*mail.Message) which is the email message to add attachments to.
 // Takes attachments ([]email_dto.Attachment) which contains the files to add.
@@ -478,11 +473,10 @@ func recordBulkSendMetrics(ctx context.Context, duration float64, count int, sta
 
 // validateSendParams checks that email send parameters are valid.
 //
-// Takes params (*email_dto.SendParams) which contains the email details to
-// check.
+// Takes params (*email_dto.SendParams) which contains the email details to check.
 //
-// Returns error when no recipients are provided or when both BodyHTML and
-// BodyPlain are empty.
+// Returns error when no recipients are provided or when both BodyHTML and BodyPlain are
+// empty.
 func validateSendParams(params *email_dto.SendParams) error {
 	if len(params.To) == 0 {
 		return email_domain.ErrRecipientRequired

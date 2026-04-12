@@ -16,12 +16,10 @@
 // forms of oppression. We built this to empower people, not to
 // enable those who would strip others of their rights and dignity.
 
-// Command asmgen generates Plan 9 assembly (.s) and header (.h)
-// files for the piko bytecode interpreter dispatch loop and
-// vectormaths SIMD functions.
+// Command asmgen generates Plan 9 assembly (.s) and header (.h) files for the piko
+// bytecode interpreter dispatch loop and vectormaths SIMD functions.
 //
-// It produces architecture-specific output for amd64 and arm64
-// from shared, architecture-neutral handler definitions. It can
-// also run in a validation mode that compares generated output
-// against files on disk for CI use.
+// It produces architecture-specific output for amd64 and arm64 from shared,
+// architecture-neutral handler definitions. It can also run in a validation mode that
+// compares generated output against files on disk for CI use.
 package main

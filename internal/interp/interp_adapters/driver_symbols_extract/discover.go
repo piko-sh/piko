@@ -19,16 +19,13 @@
 package driver_symbols_extract
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"go/parser"
 	"go/token"
 	"go/types"
-	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -38,88 +35,89 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/interp/interp_adapters/driven_piko_symbols"
 	"piko.sh/piko/internal/interp/interp_adapters/driven_system_symbols"
+	"piko.sh/piko/wdk/safedisk"
 )
 
-// maxPKFileSizeBytes caps the per-file byte count read during
-// discovery. A single .pk file is typically well under 100 KiB; this
-// cap guards against accidental or adversarial oversized inputs
-// exhausting memory during the initial scan.
-const maxPKFileSizeBytes = 4 * 1024 * 1024
+const (
+	// maxPKFileSizeBytes caps the per-file byte count read during discovery. A single .pk
+	// file is typically well under 100 KiB; this cap guards against accidental or
+	// adversarial oversized inputs exhausting memory during the initial scan.
+	maxPKFileSizeBytes = 4 * 1024 * 1024
 
-// maxDiscoveredImports caps the deduplicated import set collected
-// from .pk script blocks. The real-world limit is far lower; this is
-// a defence-in-depth bound that still leaves generous headroom.
-const maxDiscoveredImports = 10_000
+	// maxDiscoveredImports caps the deduplicated import set collected from .pk script
+	// blocks. The real-world limit is far lower; this is a defence-in-depth bound that still
+	// leaves generous headroom.
+	maxDiscoveredImports = 10_000
 
-// errTooManyImports is returned when the aggregate import set
-// collected from .pk files exceeds maxDiscoveredImports. Real
-// projects never come close; hitting this indicates an abusive or
-// malformed input.
-var errTooManyImports = errors.New("discovery exceeded import limit")
+	// errDiscoverWrap is the format string used to wrap errors surfaced from the discovery
+	// pipeline so callers see a consistent prefix.
+	errDiscoverWrap = "discover: %w"
+)
 
-// errPKFileTooLarge is returned when a .pk file exceeds
-// maxPKFileSizeBytes during discovery.
-var errPKFileTooLarge = errors.New("pk file exceeds size limit")
+var (
+	// errTooManyImports is returned when the aggregate import set collected from .pk files
+	// exceeds maxDiscoveredImports. Real projects never come close; hitting this indicates
+	// an abusive or malformed input.
+	errTooManyImports = errors.New("discovery exceeded import limit")
 
-// DiscoverOptions configures a Discover run. Zero values provide
-// sensible defaults where possible.
+	// errPKFileTooLarge is returned when a .pk file exceeds maxPKFileSizeBytes during
+	// discovery.
+	errPKFileTooLarge = errors.New("pk file exceeds size limit")
+)
+
+// DiscoverOptions configures a Discover run. Zero values provide sensible defaults where
+// possible.
 type DiscoverOptions struct {
 	// Root is the project root.
 	//
-	// Must be a valid Go module root (contain a go.mod file). Defaults
-	// to "." when empty.
+	// Must be a valid Go module root (contain a go.mod file). Defaults to "." when empty.
 	Root string
 
-	// SourceDirs lists directories under Root to scan for .pk files.
-	// When empty, a conservative set of piko defaults is used
-	// (pages, partials, components, emails, pdfs, pk, actions).
+	// SourceDirs lists directories under Root to scan for .pk files. When empty, a
+	// conservative set of piko defaults is used (pages, partials, components, emails, pdfs,
+	// pk, actions).
 	SourceDirs []string
 
-	// ExtraIgnored lists additional import paths to exclude from the
-	// result on top of the stdlib, piko-native, component-reference,
-	// and project-self filters.
+	// ExtraIgnored lists additional import paths to exclude from the result on top of the
+	// stdlib, piko-native, component-reference, and project-self filters.
 	ExtraIgnored []string
 
-	// BuildTags are forwarded to the downstream packages.Load call so
-	// build-constrained files in the discovered packages are resolved
-	// consistently with the caller's environment. Discovery itself
-	// does not consult build tags.
+	// BuildTags are forwarded to the downstream packages.Load call so build-constrained
+	// files in the discovered packages are resolved consistently with the caller's
+	// environment. Discovery itself does not consult build tags.
 	BuildTags []string
 }
 
-// DiscoverResult captures the output of a Discover run. Values are
-// deterministic: slices are sorted and deduplicated.
+// DiscoverResult captures the output of a Discover run. Values are deterministic: slices
+// are sorted and deduplicated.
 type DiscoverResult struct {
-	// RequiredImports lists third-party import paths referenced by
-	// .pk script blocks or the project's Go sources, excluding
-	// stdlib, piko-native, and explicitly ignored packages. This is
-	// the set that belongs in piko-symbols.yaml.
+	// RequiredImports lists third-party import paths referenced by .pk script blocks or the
+	// project's Go sources, excluding stdlib, piko-native, and explicitly ignored packages.
+	// This is the set that belongs in piko-symbols.yaml.
 	RequiredImports []string
 
-	// SkippedCgo lists discovered packages that use cgo and therefore
-	// cannot be interpreted. These are reported so the user knows not
-	// to attempt registering them.
+	// SkippedCgo lists discovered packages that use cgo and therefore cannot be interpreted.
+	// These are reported so the user knows not to attempt registering them.
 	SkippedCgo []string
 
-	// GenericCandidates lists discovered packages that export generic
-	// types. These need a manual generic: block in the manifest and
-	// are flagged so the user can address them.
+	// GenericCandidates lists discovered packages that export generic types. These need a
+	// manual generic: block in the manifest and are flagged so the user can address them.
 	GenericCandidates []string
 }
 
-// Discover walks a project, collects every Go import required by its
-// .pk script blocks and Go sources, filters out stdlib and piko-native
-// packages, and returns the remaining set as DiscoverResult.
+// Discover walks a project, collects every Go import required by its .pk script blocks
+// and Go sources, filters out stdlib and piko-native packages, and returns the remaining
+// set as DiscoverResult.
 //
 // Takes ctx (context.Context) which carries cancellation and logging.
 // Takes opts (DiscoverOptions) which configures the run.
 //
-// Returns DiscoverResult which holds the deduplicated, sorted lists
-// of discovered imports.
+// Returns DiscoverResult which holds the deduplicated, sorted lists of discovered
+// imports.
 // Returns error when the project cannot be walked or loaded.
 func Discover(ctx context.Context, opts DiscoverOptions) (DiscoverResult, error) {
 	if err := ctx.Err(); err != nil {
-		return DiscoverResult{}, fmt.Errorf("discover: %w", err)
+		return DiscoverResult{}, fmt.Errorf(errDiscoverWrap, err)
 	}
 
 	root := opts.Root
@@ -149,10 +147,13 @@ func Discover(ctx context.Context, opts DiscoverOptions) (DiscoverResult, error)
 	}
 
 	if err := ctx.Err(); err != nil {
-		return DiscoverResult{}, fmt.Errorf("discover: %w", err)
+		return DiscoverResult{}, fmt.Errorf(errDiscoverWrap, err)
 	}
 
-	resolved, cgo, generic := inspectDirectPackages(root, opts.BuildTags, candidates)
+	resolved, cgo, generic, err := inspectDirectPackages(ctx, root, opts.BuildTags, candidates)
+	if err != nil {
+		return DiscoverResult{}, err
+	}
 
 	return DiscoverResult{
 		RequiredImports:   resolved,
@@ -161,24 +162,23 @@ func Discover(ctx context.Context, opts DiscoverOptions) (DiscoverResult, error)
 	}, nil
 }
 
-// filterImports applies the component-reference and already-registered
-// filters to the raw set of imports collected from .pk script blocks.
+// filterImports applies the component-reference and already-registered filters to the raw
+// set of imports collected from .pk script blocks.
 // Returns a sorted slice of candidate paths.
 //
-// Discover only filters paths piko already provides symbols for.
-// Unregistered stdlib packages (for example os/exec, net/http) and
-// unregistered piko packages (anything outside driven_piko_symbols)
-// intentionally surface so the user can add them to the manifest -
-// silently assuming "stdlib means registered" would hide real gaps
-// that only materialise at dev-i runtime.
+// Discover only filters paths piko already provides symbols for. Unregistered stdlib
+// packages (for example os/exec, net/http) and unregistered piko packages (anything
+// outside driven_piko_symbols) intentionally surface so the user can add them to the
+// manifest - silently assuming "stdlib means registered" would hide real gaps that only
+// materialise at dev-i runtime.
 //
-// Project-local imports are not filtered here: user code under the
-// project module is consumed by the interpreter the same way as any
-// third-party dependency and therefore needs symbol registration.
+// Project-local imports are not filtered here: user code under the project module is
+// consumed by the interpreter the same way as any third-party dependency and therefore
+// needs symbol registration.
 //
 // Takes pkImports (map[string]struct{}) which is the raw import set.
-// Takes ignored (map[string]struct{}) which holds the already-
-// registered stdlib and piko paths, plus user-supplied exclusions.
+// Takes ignored (map[string]struct{}) which holds the already- registered stdlib and piko
+// paths, plus user-supplied exclusions.
 //
 // Returns []string of sorted, deduplicated candidate imports.
 func filterImports(pkImports, ignored map[string]struct{}) []string {
@@ -195,10 +195,9 @@ func filterImports(pkImports, ignored map[string]struct{}) []string {
 	return sortedKeys(result)
 }
 
-// isComponentReference reports whether an import path is a piko
-// component reference (ending in .pk) rather than a real Go package.
-// .pk imports inside script blocks resolve at compile time to the
-// compiled partial, not to a registered Go package.
+// isComponentReference reports whether an import path is a piko component reference
+// (ending in .pk) rather than a real Go package. .pk imports inside script blocks resolve
+// at compile time to the compiled partial, not to a registered Go package.
 //
 // Takes path (string) which is the import path to classify.
 //
@@ -207,32 +206,36 @@ func isComponentReference(path string) bool {
 	return strings.HasSuffix(path, ".pk")
 }
 
-// inspectDirectPackages runs packages.Load on exactly the direct
-// imports collected from .pk files and classifies each result.
-// No dependency walking - just the seam itself.
+// inspectDirectPackages runs packages.Load on exactly the direct imports collected from
+// .pk files and classifies each result. No dependency walking - just the seam itself.
 //
-// Candidates that resolve to a real Go package with at least one .go
-// file are kept. Candidates that don't resolve (virtual piko paths,
-// missing modules) are silently dropped. Cgo and generic-exporting
-// packages are surfaced alongside the resolved set so callers can
-// warn users.
+// Candidates that resolve to a real Go package with at least one .go file are kept.
+// Candidates that don't resolve (virtual piko paths, missing modules) are silently
+// dropped. A package that loads with type errors is treated as unresolved so a
+// populated-but-broken type scope cannot nil-deref downstream. Cgo and generic-exporting
+// packages are surfaced alongside the resolved set so callers can warn users.
 //
-// Takes root (string) which is the absolute project root, used as
-// packages.Config.Dir so go/packages resolves imports against the
-// project module.
+// Takes ctx (context.Context) which carries cancellation; it is forwarded to
+// packages.Load and checked before classification.
+// Takes root (string) which is the absolute project root, used as packages.Config.Dir so
+// go/packages resolves imports against the project module.
 // Takes buildTags ([]string) which is forwarded to packages.Load.
 // Takes candidates ([]string) which is the filtered candidate list.
 //
-// Returns three sorted slices: resolved Go packages, cgo packages,
-// and generic-exporting packages. When packages.Load fails outright
-// the candidates are returned as-is to avoid hiding real user
-// inputs; callers can still validate via subsequent tooling.
-func inspectDirectPackages(root string, buildTags, candidates []string) (resolved, cgo, generic []string) {
+// Returns three sorted slices: resolved Go packages, cgo packages, and generic-exporting
+// packages. When packages.Load fails outright the candidates are returned as-is to avoid
+// hiding real user inputs; callers can still validate via subsequent tooling.
+// Returns an error only when the context is cancelled.
+func inspectDirectPackages(ctx context.Context, root string, buildTags, candidates []string) (resolved, cgo, generic []string, err error) {
 	if len(candidates) == 0 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, nil, fmt.Errorf(errDiscoverWrap, err)
 	}
 
 	config := &packages.Config{
+		Context: ctx,
 		Mode: packages.NeedName |
 			packages.NeedFiles |
 			packages.NeedImports |
@@ -243,9 +246,15 @@ func inspectDirectPackages(root string, buildTags, candidates []string) (resolve
 		config.BuildFlags = []string{"-tags=" + strings.Join(buildTags, ",")}
 	}
 
-	loaded, err := packages.Load(config, candidates...)
-	if err != nil {
-		return candidates, nil, nil
+	loaded, loadErr := packages.Load(config, candidates...)
+	if loadErr != nil {
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, nil, nil, fmt.Errorf(errDiscoverWrap, ctxErr)
+		}
+		return candidates, nil, nil, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, nil, nil, fmt.Errorf(errDiscoverWrap, err)
 	}
 
 	loadedByPath := indexPackagesByPath(loaded)
@@ -256,7 +265,7 @@ func inspectDirectPackages(root string, buildTags, candidates []string) (resolve
 
 	for _, path := range candidates {
 		pkg, ok := loadedByPath[path]
-		if !ok || !packageHasGoSource(pkg) {
+		if !ok || !packageHasGoSource(pkg) || len(pkg.Errors) > 0 {
 			continue
 		}
 		resolvedSet[path] = struct{}{}
@@ -268,18 +277,16 @@ func inspectDirectPackages(root string, buildTags, candidates []string) (resolve
 			genericSet[path] = struct{}{}
 		}
 	}
-	return sortedKeys(resolvedSet), sortedKeys(cgoSet), sortedKeys(genericSet)
+	return sortedKeys(resolvedSet), sortedKeys(cgoSet), sortedKeys(genericSet), nil
 }
 
-// indexPackagesByPath returns a lookup table of loaded packages keyed
-// by PkgPath so inspectDirectPackages can honour the caller's original
-// ordering and detect missing entries deterministically.
+// indexPackagesByPath returns a lookup table of loaded packages keyed by PkgPath so
+// inspectDirectPackages can honour the caller's original ordering and detect missing
+// entries deterministically.
 //
-// Takes loaded ([]*packages.Package) which is the packages.Load
-// output.
+// Takes loaded ([]*packages.Package) which is the packages.Load output.
 //
-// Returns a map keyed by PkgPath; nil entries and empty paths are
-// skipped.
+// Returns a map keyed by PkgPath; nil entries and empty paths are skipped.
 func indexPackagesByPath(loaded []*packages.Package) map[string]*packages.Package {
 	result := make(map[string]*packages.Package, len(loaded))
 	for _, pkg := range loaded {
@@ -291,10 +298,10 @@ func indexPackagesByPath(loaded []*packages.Package) map[string]*packages.Packag
 	return result
 }
 
-// packageHasGoSource reports whether a loaded package contains any
-// Go source files. Virtual paths such as piko.sh/piko/docs (a docs
-// directory with no Go code) surface in packages.Load output with an
-// empty GoFiles list; they must be excluded from the registered set.
+// packageHasGoSource reports whether a loaded package contains any Go source files.
+// Virtual paths such as piko.sh/piko/docs (a docs directory with no Go code) surface in
+// packages.Load output with an empty GoFiles list; they must be excluded from the
+// registered set.
 //
 // Takes pkg (*packages.Package) which is the loaded package.
 //
@@ -306,24 +313,33 @@ func packageHasGoSource(pkg *packages.Package) bool {
 	return len(pkg.GoFiles) > 0 || len(pkg.CompiledGoFiles) > 0
 }
 
-// collectPkImports walks the given source directories under root,
-// parses every .pk file via the annotator, extracts each script block
-// as Go, and returns the union of import paths discovered.
+// collectPkImports walks the given source directories under root, parses every .pk file
+// via the annotator, extracts each script block as Go, and returns the union of import
+// paths discovered.
+//
+// All filesystem reads are confined to root by a read-only safedisk sandbox built on
+// os.Root, so symlinks under a source directory cannot escape the project root during
+// discovery.
 //
 // Takes ctx (context.Context) which carries cancellation and logging.
 // Takes root (string) which is the absolute project root.
-// Takes sourceDirs ([]string) which are directory names under root to
-// scan (relative, not absolute).
+// Takes sourceDirs ([]string) which are directory names under root to scan (relative, not
+// absolute).
 //
-// Returns map[string]struct{} which is a set keyed by import path,
-// holding every import referenced by .pk script blocks.
-// Returns error when file I/O or parsing fails.
+// Returns map[string]struct{} which is a set keyed by import path, holding every import
+// referenced by .pk script blocks.
+// Returns error when the sandbox cannot be created or file I/O or parsing fails.
 func collectPkImports(ctx context.Context, root string, sourceDirs []string) (map[string]struct{}, error) {
+	sandbox, err := safedisk.NewSandbox(root, safedisk.ModeReadOnly)
+	if err != nil {
+		return nil, fmt.Errorf("opening read-only sandbox at %s: %w", root, err)
+	}
+	defer func() { _ = sandbox.Close() }()
+
 	imports := make(map[string]struct{})
 
 	for _, directoryName := range sourceDirs {
-		directoryPath := filepath.Join(root, directoryName)
-		if err := walkPkDirectory(ctx, directoryPath, imports); err != nil {
+		if err := walkPkDirectory(ctx, sandbox, directoryName, imports); err != nil {
 			return nil, err
 		}
 	}
@@ -331,31 +347,33 @@ func collectPkImports(ctx context.Context, root string, sourceDirs []string) (ma
 	return imports, nil
 }
 
-// walkPkDirectory walks a single source directory under the project
-// root and appends every script block's imports to the shared set.
-// Missing or non-directory paths are treated as no-ops so callers can
-// pass every conventional source dir without checking existence.
+// walkPkDirectory walks a single source directory under the project root and appends
+// every script block's imports to the shared set. Missing or non-directory paths are
+// treated as no-ops so callers can pass every conventional source dir without checking
+// existence.
+//
+// The walk is performed through the sandbox, so every visited path stays within the
+// sandbox root and symlinks cannot redirect the walk outside it.
 //
 // Takes ctx (context.Context) which carries cancellation.
-// Takes directoryPath (string) which is the absolute path to the
-// directory to walk.
+// Takes sandbox (safedisk.Sandbox) which confines reads to the project root.
+// Takes directoryName (string) which is the root-relative directory to walk.
 // Takes imports (map[string]struct{}) which accumulates the results.
 //
-// Returns error when I/O or parsing fails, or when discovery limits
-// are exceeded.
-func walkPkDirectory(ctx context.Context, directoryPath string, imports map[string]struct{}) error {
-	info, err := os.Stat(directoryPath)
+// Returns error when I/O or parsing fails, or when discovery limits are exceeded.
+func walkPkDirectory(ctx context.Context, sandbox safedisk.Sandbox, directoryName string, imports map[string]struct{}) error {
+	info, err := sandbox.Stat(directoryName)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
-		return fmt.Errorf("stat %s: %w", directoryPath, err)
+		return fmt.Errorf("stat %s: %w", directoryName, err)
 	}
 	if !info.IsDir() {
 		return nil
 	}
 
-	walkErr := filepath.WalkDir(directoryPath, func(path string, entry fs.DirEntry, walkErr error) error {
+	walkErr := sandbox.WalkDir(directoryName, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
@@ -368,17 +386,17 @@ func walkPkDirectory(ctx context.Context, directoryPath string, imports map[stri
 		if len(imports) >= maxDiscoveredImports {
 			return fmt.Errorf("%w: %d", errTooManyImports, len(imports))
 		}
-		return appendScriptImports(ctx, path, imports)
+		return appendScriptImports(ctx, sandbox, path, imports)
 	})
 	if walkErr != nil {
-		return fmt.Errorf("walking %s: %w", directoryPath, walkErr)
+		return fmt.Errorf("walking %s: %w", directoryName, walkErr)
 	}
 	return nil
 }
 
-// isCandidatePKFile reports whether a WalkDir entry is a .pk file that
-// should participate in discovery. Directories, non-.pk files, and
-// files whose name starts with "_" are excluded.
+// isCandidatePKFile reports whether a WalkDir entry is a .pk file that should participate
+// in discovery. Directories, non-.pk files, and files whose name starts with "_" are
+// excluded.
 //
 // Takes entry (fs.DirEntry) which is the current walk entry.
 //
@@ -394,18 +412,17 @@ func isCandidatePKFile(entry fs.DirEntry) bool {
 	return strings.HasSuffix(name, ".pk")
 }
 
-// appendScriptImports parses a single .pk file, extracts its Go script
-// block, parses that as Go, and adds every import spec it contains to
-// the provided set.
+// appendScriptImports parses a single .pk file, extracts its Go script block, parses that
+// as Go, and adds every import spec it contains to the provided set.
 //
 // Takes ctx (context.Context) which carries cancellation and logging.
-// Takes path (string) which is the absolute path to the .pk file.
-// Takes imports (map[string]struct{}) which receives the discovered
-// paths.
+// Takes sandbox (safedisk.Sandbox) which confines the read to the project root.
+// Takes path (string) which is the root-relative path to the .pk file.
+// Takes imports (map[string]struct{}) which receives the discovered paths.
 //
 // Returns error when the file cannot be read or parsed.
-func appendScriptImports(ctx context.Context, path string, imports map[string]struct{}) error {
-	data, err := readBoundedFile(path, maxPKFileSizeBytes)
+func appendScriptImports(ctx context.Context, sandbox safedisk.Sandbox, path string, imports map[string]struct{}) error {
+	data, err := readBoundedFile(sandbox, path, maxPKFileSizeBytes)
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", path, err)
 	}
@@ -438,40 +455,34 @@ func appendScriptImports(ctx context.Context, path string, imports map[string]st
 	return nil
 }
 
-// readBoundedFile reads a file up to limit bytes and returns an error
-// that wraps errPKFileTooLarge when the file would exceed the cap.
-// io.LimitReader silently truncates; we explicitly surface the
-// truncation so callers avoid acting on a partial file.
+// readBoundedFile reads a sandbox file up to limit bytes.
 //
-// Takes path (string) which is the file to read.
+// The sandbox stat-checks the size before allocating, so an oversized file is rejected
+// without being loaded into memory, and the read stays confined to the sandbox root.
+//
+// Takes sandbox (safedisk.Sandbox) which confines the read to its root.
+// Takes name (string) which is the sandbox-relative path to read.
 // Takes limit (int64) which is the maximum acceptable byte count.
 //
-// Returns the file bytes or an error when I/O fails or the file is
-// too large.
-func readBoundedFile(path string, limit int64) ([]byte, error) {
-	file, err := os.Open(path) //nolint:gosec // path is constrained by WalkDir under a caller-supplied project root
+// Returns []byte which is the file content.
+// Returns error which wraps errPKFileTooLarge when the file exceeds the cap, or any
+// underlying I/O failure.
+func readBoundedFile(sandbox safedisk.Sandbox, name string, limit int64) ([]byte, error) {
+	data, _, err := sandbox.ReadFileLimit(name, limit)
 	if err != nil {
+		if errors.Is(err, safedisk.ErrFileExceedsLimit) {
+			return nil, fmt.Errorf("%w: %s (>%d bytes)", errPKFileTooLarge, name, limit)
+		}
 		return nil, err
 	}
-	defer func() { _ = file.Close() }()
-
-	var buffer bytes.Buffer
-	reader := io.LimitReader(file, limit+1)
-	if _, err := io.Copy(&buffer, reader); err != nil {
-		return nil, err
-	}
-	if int64(buffer.Len()) > limit {
-		return nil, fmt.Errorf("%w: %s (>%d bytes)", errPKFileTooLarge, path, limit)
-	}
-	return buffer.Bytes(), nil
+	return data, nil
 }
 
-// isAnnotatorSoftError reports whether an error from ParsePK should
-// be tolerated during discovery.
+// isAnnotatorSoftError reports whether an error from ParsePK should be tolerated during
+// discovery.
 //
-// Delegates to annotator_domain.IsParseSoftError so the classification
-// is driven by error-type matching rather than substring search on
-// English error messages.
+// Delegates to annotator_domain.IsParseSoftError so the classification is driven by
+// error-type matching rather than substring search on English error messages.
 //
 // Takes err (error) which is the annotator error to classify.
 //
@@ -480,10 +491,10 @@ func isAnnotatorSoftError(err error) bool {
 	return annotator_domain.IsParseSoftError(err)
 }
 
-// buildIgnoreSet assembles the complete set of import paths that must
-// be excluded from the discovered list. This includes the Go standard
-// library (registered via driven_system_symbols), piko-native
-// packages (driven_piko_symbols), and any user-provided extras.
+// buildIgnoreSet assembles the complete set of import paths that must be excluded from
+// the discovered list. This includes the Go standard library (registered via
+// driven_system_symbols), piko-native packages (driven_piko_symbols), and any
+// user-provided extras.
 //
 // Takes extras ([]string) which are caller-supplied ignores.
 //
@@ -502,9 +513,9 @@ func buildIgnoreSet(extras []string) map[string]struct{} {
 	return ignored
 }
 
-// packageUsesCgo reports whether any file in the loaded package
-// imports the pseudo-package "C", which indicates cgo usage and
-// therefore incompatibility with the interpreter.
+// packageUsesCgo reports whether any file in the loaded package imports the
+// pseudo-package "C", which indicates cgo usage and therefore incompatibility with the
+// interpreter.
 //
 // Takes pkg (*packages.Package) which is the loaded package.
 //
@@ -523,9 +534,8 @@ func packageUsesCgo(pkg *packages.Package) bool {
 	return false
 }
 
-// packageExportsGenericType reports whether the package has any
-// exported type declaration with type parameters. Such packages need
-// manual generic: configuration in the manifest.
+// packageExportsGenericType reports whether the package has any exported type declaration
+// with type parameters. Such packages need manual generic: configuration in the manifest.
 //
 // Takes pkg (*packages.Package) which is the loaded package.
 //
@@ -552,8 +562,8 @@ func packageExportsGenericType(pkg *packages.Package) bool {
 	return false
 }
 
-// sortedKeys returns the keys of a set as a sorted slice so callers
-// receive deterministic output.
+// sortedKeys returns the keys of a set as a sorted slice so callers receive deterministic
+// output.
 //
 // Takes set (map[string]struct{}) which is the source set.
 //
@@ -567,9 +577,9 @@ func sortedKeys(set map[string]struct{}) []string {
 	return keys
 }
 
-// defaultPkSourceDirs returns the set of project-relative directories
-// that conventionally hold .pk files. The conservative default matches
-// piko's path defaults so Discover works without explicit configuration.
+// defaultPkSourceDirs returns the set of project-relative directories that conventionally
+// hold .pk files. The conservative default matches piko's path defaults so Discover works
+// without explicit configuration.
 //
 // Returns []string which is the default directory list.
 func defaultPkSourceDirs() []string {

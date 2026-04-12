@@ -16,10 +16,8 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package compiler_dto defines data transfer objects for the compiler
-// module.
+// Package compiler_dto defines data transfer objects for the compiler module.
 //
-// It carries the output of single-file component (SFC) compilation,
-// including generated files, scaffold HTML, and resolved JavaScript
-// dependency metadata.
+// It carries the output of single-file component (SFC) compilation, including generated
+// files, scaffold HTML, and resolved JavaScript dependency metadata.
 package compiler_dto

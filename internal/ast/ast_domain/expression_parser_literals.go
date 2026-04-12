@@ -18,10 +18,10 @@
 
 package ast_domain
 
-// Provides parsing methods for all literal types including numbers, strings,
-// booleans, dates, times, and composite literals. Implements parser methods for
-// identifiers, numeric literals, temporal types, template literals, arrays, and
-// objects with validation and error reporting.
+// Provides parsing methods for all literal types including numbers, strings, booleans,
+// dates, times, and composite literals. Implements parser methods for identifiers,
+// numeric literals, temporal types, template literals, arrays, and objects with
+// validation and error reporting.
 
 import (
 	"context"
@@ -143,12 +143,10 @@ func (p *ExpressionParser) parseRuneLiteral(_ context.Context) (Expression, []*D
 	}, nil
 }
 
-// parseDateTimeLiteral parses an RFC3339 datetime literal from the token
-// stream.
+// parseDateTimeLiteral parses an RFC3339 datetime literal from the token stream.
 //
 // Returns Expression which is the parsed DateTimeLiteral on success.
-// Returns []*Diagnostic which contains an error when the datetime format is
-// invalid.
+// Returns []*Diagnostic which contains an error when the datetime format is invalid.
 func (p *ExpressionParser) parseDateTimeLiteral(_ context.Context) (Expression, []*Diagnostic) {
 	token := p.currentToken
 	value := p.tokenValue()
@@ -313,9 +311,9 @@ func (p *ExpressionParser) parseNilLiteral(_ context.Context) (Expression, []*Di
 	}, nil
 }
 
-// parseLinkedMessage parses a linked message reference such as
-// @common.greeting. The @ symbol is followed by a path expression, which is an
-// identifier with optional member access using dot notation.
+// parseLinkedMessage parses a linked message reference such as @common.greeting. The @
+// symbol is followed by a path expression, which is an identifier with optional member
+// access using dot notation.
 //
 // Returns Expression which is the parsed linked message expression.
 // Returns []*Diagnostic which contains any parse errors found.
@@ -374,8 +372,7 @@ func (p *ExpressionParser) parseLinkedMessage(ctx context.Context) (Expression, 
 	}, nil
 }
 
-// parseTemplateLiteralExpression parses a template literal token into an
-// expression.
+// parseTemplateLiteralExpression parses a template literal token into an expression.
 //
 // Returns Expression which is the parsed template literal.
 // Returns []*Diagnostic which contains any parsing errors.
@@ -390,8 +387,7 @@ func (p *ExpressionParser) parseTemplateLiteralExpression(ctx context.Context) (
 	return tl, nil
 }
 
-// templateLiteralParser encapsulates the state for parsing within a `${...}`
-// block.
+// templateLiteralParser encapsulates the state for parsing within a `${...}` block.
 type templateLiteralParser struct {
 	// content holds the raw text of the template literal being parsed.
 	content string
@@ -408,16 +404,14 @@ type templateLiteralParser struct {
 	// diagnostics holds errors or warnings found during template parsing.
 	diagnostics []*Diagnostic
 
-	// parentLocation is the source location of the parent node, used to work out
-	// offsets.
+	// parentLocation is the source location of the parent node, used to work out offsets.
 	parentLocation Location
 
 	// position is the current position in the template string.
 	position int
 }
 
-// parse reads the template content and finds both literal parts and
-// interpolations.
+// parse reads the template content and finds both literal parts and interpolations.
 //
 // Returns *TemplateLiteral which contains the parsed template structure.
 // Returns []*Diagnostic which holds any errors found during parsing.
@@ -438,8 +432,8 @@ func (p *templateLiteralParser) parse(ctx context.Context) (*TemplateLiteral, []
 	return &TemplateLiteral{GoAnnotations: nil, Parts: p.parts, RelativeLocation: p.parentLocation, SourceLength: len(p.content) + 2}, p.diagnostics
 }
 
-// finaliseCurrentLiteral adds any text in the buffer as a literal part and
-// clears the buffer.
+// finaliseCurrentLiteral adds any text in the buffer as a literal part and clears the
+// buffer.
 func (p *templateLiteralParser) finaliseCurrentLiteral() {
 	if p.buffer.Len() > 0 {
 		startOffset := p.position - p.buffer.Len()
@@ -519,12 +513,12 @@ func (p *templateLiteralParser) findMatchingBrace(startOffset int) (endOffset in
 	return -1, false
 }
 
-// adjustAndAddDiags updates diagnostic positions to match their location within
-// the template literal and adds them to the parser's list.
+// adjustAndAddDiags updates diagnostic positions to match their location within the
+// template literal and adds them to the parser's list.
 //
 // Takes diagnostics ([]*Diagnostic) which are the diagnostics to adjust and add.
-// Takes expressionStartOffset (int) which is the byte offset where the expression
-// starts within the template.
+// Takes expressionStartOffset (int) which is the byte offset where the expression starts
+// within the template.
 func (p *templateLiteralParser) adjustAndAddDiags(diagnostics []*Diagnostic, expressionStartOffset int) {
 	for _, d := range diagnostics {
 		expressionBaseLocation := p.calculateLocation(expressionStartOffset)
@@ -557,14 +551,13 @@ func (p *templateLiteralParser) handleEscapeSequence() {
 //
 // Takes s (string) which is the prefix to check for.
 //
-// Returns bool which is true if the content at the current position starts
-// with s.
+// Returns bool which is true if the content at the current position starts with s.
 func (p *templateLiteralParser) isAt(s string) bool {
 	return strings.HasPrefix(p.content[p.position:], s)
 }
 
-// advance moves the parser position forward by n characters, copying the
-// skipped content to the output buffer.
+// advance moves the parser position forward by n characters, copying the skipped content
+// to the output buffer.
 //
 // Takes n (int) which specifies the number of characters to advance.
 func (p *templateLiteralParser) advance(n int) {
@@ -572,8 +565,8 @@ func (p *templateLiteralParser) advance(n int) {
 	p.position += n
 }
 
-// calculateLocation works out the line and column position for a given byte
-// offset within the template literal content.
+// calculateLocation works out the line and column position for a given byte offset within
+// the template literal content.
 //
 // Takes offset (int) which is the byte position within the content.
 //
@@ -592,12 +585,10 @@ func (p *templateLiteralParser) calculateLocation(offset int) Location {
 	return Location{Line: line, Column: column, Offset: 0}
 }
 
-// parseTemplateLiteral parses a raw template literal string that includes its
-// backticks.
+// parseTemplateLiteral parses a raw template literal string that includes its backticks.
 //
 // Takes raw (string) which is the template literal with backticks.
-// Takes parentLocation (Location) which is the parent location for
-// error reporting.
+// Takes parentLocation (Location) which is the parent location for error reporting.
 // Takes sourcePath (string) which is the path to the source file.
 //
 // Returns *TemplateLiteral which is the parsed template structure.
@@ -623,8 +614,8 @@ func parseTemplateLiteral(ctx context.Context, raw string, parentLocation Locati
 //
 // Takes value (any) which is the value to convert.
 //
-// Returns string which is the string form of the value, or an empty string if
-// value is nil.
+// Returns string which is the string form of the value, or an empty string if value is
+// nil.
 func toString(value any) string {
 	if value == nil {
 		return ""

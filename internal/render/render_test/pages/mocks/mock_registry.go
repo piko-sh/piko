@@ -42,18 +42,17 @@ type TestingTB interface {
 	// Takes arguments (...any) which provides the values for format placeholders.
 	Errorf(format string, arguments ...any)
 
-	// Fatalf logs a formatted message and marks the test as failed, then stops
-	// execution.
+	// Fatalf logs a formatted message and marks the test as failed, then stops execution.
 	//
 	// Takes format (string) which is the format string for the message.
 	// Takes arguments (...any) which are the values to format into the message.
 	Fatalf(format string, arguments ...any)
 }
 
-// MockRegistry is a convenience wrapper around render_domain.MockRegistryPort
-// for integration tests. It provides OnGetComponent, OnGetSVG, and
-// AssertComponentCalled helpers that configure the underlying function-pointer
-// mock. Thread-safe via mutex for map access.
+// MockRegistry is a convenience wrapper around render_domain.MockRegistryPort for
+// integration tests. It provides OnGetComponent, OnGetSVG, and AssertComponentCalled
+// helpers that configure the underlying function-pointer mock. Thread-safe via mutex for
+// map access.
 type MockRegistry struct {
 	t TestingTB
 
@@ -133,8 +132,8 @@ func NewMockRegistry(t TestingTB) *MockRegistry {
 	return m
 }
 
-// AssertComponentCalled verifies a component type was requested a specific
-// number of times.
+// AssertComponentCalled verifies a component type was requested a specific number of
+// times.
 //
 // Takes componentType (string) which identifies the component to check.
 // Takes times (int) which specifies the expected request count.
@@ -151,8 +150,7 @@ func (m *MockRegistry) AssertComponentCalled(componentType string, times int) {
 	}
 }
 
-// OnGetComponent registers a mock result to return for the given component
-// type.
+// OnGetComponent registers a mock result to return for the given component type.
 //
 // Takes componentType (string) which identifies the component to mock.
 // Takes result (*render_dto.ComponentMetadata) which is the value to return.
@@ -164,14 +162,12 @@ func (m *MockRegistry) OnGetComponent(componentType string, result *render_dto.C
 	m.componentResults[componentType] = result
 }
 
-// OnGetSVG registers a mock result for GetAssetRawSVG calls with the given
-// asset ID.
+// OnGetSVG registers a mock result for GetAssetRawSVG calls with the given asset ID.
 //
 // Takes assetID (string) which identifies the SVG asset.
 // Takes result (*render_domain.ParsedSvgData) which is the mock data to return.
 //
-// Safe for concurrent use. Pre-computes CachedSymbol to match production
-// behaviour.
+// Safe for concurrent use. Pre-computes CachedSymbol to match production behaviour.
 func (m *MockRegistry) OnGetSVG(assetID string, result *render_domain.ParsedSvgData) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -181,12 +177,11 @@ func (m *MockRegistry) OnGetSVG(assetID string, result *render_domain.ParsedSvgD
 	m.svgResults[assetID] = result
 }
 
-// NewMockCSRF creates a pre-configured security_domain.MockCSRFTokenService
-// that returns fixed mock token values matching the legacy MockCSRFService
-// behaviour.
+// NewMockCSRF creates a pre-configured security_domain.MockCSRFTokenService that returns
+// fixed mock token values matching the legacy MockCSRFService behaviour.
 //
-// Returns *security_domain.MockCSRFTokenService with GenerateCSRFPairFunc
-// returning fixed ephemeral and action tokens.
+// Returns *security_domain.MockCSRFTokenService with GenerateCSRFPairFunc returning fixed
+// ephemeral and action tokens.
 func NewMockCSRF() *security_domain.MockCSRFTokenService {
 	return &security_domain.MockCSRFTokenService{
 		GenerateCSRFPairFunc: func(_ http.ResponseWriter, _ *http.Request, buffer *bytes.Buffer) (security_dto.CSRFPair, error) {

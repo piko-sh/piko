@@ -34,13 +34,12 @@ const (
 	defaultPriority = 900
 )
 
-// CompressTransformer compresses the final PDF output using a
-// configurable algorithm. The encoder is created once during
-// construction and reused across calls; EncodeAll is safe for
-// concurrent use.
+// CompressTransformer compresses the final PDF output using a configurable algorithm. The
+// encoder is created once during construction and reused across calls; EncodeAll is safe
+// for concurrent use.
 //
-// Because the output is compressed bytes (not a valid PDF), this
-// transformer should be the last step in any transform chain.
+// Because the output is compressed bytes (not a valid PDF), this transformer should be
+// the last step in any transform chain.
 type CompressTransformer struct {
 	// encoder is the reusable zstd encoder.
 	encoder *zstd.Encoder
@@ -52,10 +51,12 @@ type CompressTransformer struct {
 	priority int
 }
 
-var _ pdfwriter_domain.PdfTransformerPort = (*CompressTransformer)(nil)
+var (
+	_ pdfwriter_domain.PdfTransformerPort = (*CompressTransformer)(nil)
+)
 
-// New creates a new compression transformer with a zstd encoder
-// initialised at the default compression level.
+// New creates a new compression transformer with a zstd encoder initialised at the
+// default compression level.
 //
 // Returns *CompressTransformer which is ready for use.
 // Returns error when the zstd encoder cannot be created.
@@ -78,8 +79,8 @@ func (t *CompressTransformer) Name() string { return t.name }
 
 // Type returns TransformerCompression.
 //
-// Returns pdfwriter_dto.TransformerType which categorises this as a
-// compression transformer.
+// Returns pdfwriter_dto.TransformerType which categorises this as a compression
+// transformer.
 func (*CompressTransformer) Type() pdfwriter_dto.TransformerType {
 	return pdfwriter_dto.TransformerCompression
 }
@@ -89,15 +90,14 @@ func (*CompressTransformer) Type() pdfwriter_dto.TransformerType {
 // Returns int which is the transformer's position in the processing order.
 func (t *CompressTransformer) Priority() int { return t.priority }
 
-// Transform compresses the PDF bytes using the algorithm specified in
-// options. Defaults to zstd when the algorithm is empty.
+// Transform compresses the PDF bytes using the algorithm specified in options. Defaults
+// to zstd when the algorithm is empty.
 //
 // Takes pdf ([]byte) which is the input PDF document.
 // Takes options (any) which must be CompressOptions or *CompressOptions.
 //
 // Returns []byte which is the compressed output.
-// Returns error when the options are invalid or the algorithm is
-// unsupported.
+// Returns error when the options are invalid or the algorithm is unsupported.
 func (t *CompressTransformer) Transform(_ context.Context, pdf []byte, options any) ([]byte, error) {
 	opts, err := castOptions(options)
 	if err != nil {
@@ -141,8 +141,7 @@ func castOptions(options any) (pdfwriter_dto.CompressOptions, error) {
 
 // applyDefaults fills zero-value fields with sensible defaults.
 //
-// Takes opts (*pdfwriter_dto.CompressOptions) which is the options struct
-// to populate.
+// Takes opts (*pdfwriter_dto.CompressOptions) which is the options struct to populate.
 func applyDefaults(opts *pdfwriter_dto.CompressOptions) {
 	if opts.Algorithm == "" {
 		opts.Algorithm = pdfwriter_dto.CompressZstd

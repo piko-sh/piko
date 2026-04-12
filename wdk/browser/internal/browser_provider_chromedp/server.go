@@ -29,8 +29,7 @@ import (
 // FindAvailablePort finds an available TCP port on localhost.
 //
 // Returns int which is the port number that was found to be available.
-// Returns error when the TCP address cannot be resolved or the port cannot
-// be opened.
+// Returns error when the TCP address cannot be resolved or the port cannot be opened.
 func FindAvailablePort() (int, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
@@ -46,8 +45,7 @@ func FindAvailablePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
-// WaitForServerReady waits for a server to become ready by attempting TCP
-// connections.
+// WaitForServerReady waits for a server to become ready by attempting TCP connections.
 //
 // Takes port (int) which specifies the TCP port to connect to.
 // Takes timeout (time.Duration) which sets the maximum time to wait.

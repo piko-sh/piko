@@ -26,17 +26,17 @@ import (
 )
 
 var (
-	// ErrLockNotAcquired is returned when a non-blocking lock attempt fails
-	// because another process already holds the migration lock.
+	// ErrLockNotAcquired is returned when a non-blocking lock attempt fails because another
+	// process already holds the migration lock.
 	ErrLockNotAcquired = errors.New("migration lock is already held")
 
-	// ErrNoDownMigration is returned when a rollback is requested for a
-	// migration version that has no corresponding .down.sql file.
+	// ErrNoDownMigration is returned when a rollback is requested for a migration version
+	// that has no corresponding .down.sql file.
 	ErrNoDownMigration = errors.New("no down migration file")
 )
 
-// ChecksumMismatchError is returned when an applied migration's recorded
-// checksum does not match the current file on disk.
+// ChecksumMismatchError is returned when an applied migration's recorded checksum does
+// not match the current file on disk.
 type ChecksumMismatchError struct {
 	// AppliedChecksum holds the checksum recorded when the migration was applied.
 	AppliedChecksum string
@@ -53,8 +53,7 @@ type ChecksumMismatchError struct {
 
 // Error returns a human-readable message describing the checksum mismatch.
 //
-// Returns string which contains the version, name, applied checksum, and file
-// checksum.
+// Returns string which contains the version, name, applied checksum, and file checksum.
 func (e *ChecksumMismatchError) Error() string {
 	return fmt.Sprintf(
 		"checksum mismatch for migration %d (%s): applied=%s file=%s",
@@ -62,15 +61,13 @@ func (e *ChecksumMismatchError) Error() string {
 	)
 }
 
-// DownChecksumMismatchError is returned when a down migration file's checksum
-// does not match the checksum recorded when the up migration was applied.
+// DownChecksumMismatchError is returned when a down migration file's checksum does not
+// match the checksum recorded when the up migration was applied.
 type DownChecksumMismatchError struct {
-	// RecordedChecksum holds the down checksum recorded when the up migration
-	// was applied.
+	// RecordedChecksum holds the down checksum recorded when the up migration was applied.
 	RecordedChecksum string
 
-	// FileChecksum holds the current checksum of the down migration file on
-	// disk.
+	// FileChecksum holds the current checksum of the down migration file on disk.
 	FileChecksum string
 
 	// Name holds the human-readable name of the migration.
@@ -80,11 +77,9 @@ type DownChecksumMismatchError struct {
 	Version int64
 }
 
-// Error returns a human-readable message describing the down checksum
-// mismatch.
+// Error returns a human-readable message describing the down checksum mismatch.
 //
-// Returns string which contains the version, name, recorded checksum, and file
-// checksum.
+// Returns string which contains the version, name, recorded checksum, and file checksum.
 func (e *DownChecksumMismatchError) Error() string {
 	return fmt.Sprintf(
 		"down checksum mismatch for migration %d (%s): recorded=%s file=%s",
@@ -92,8 +87,8 @@ func (e *DownChecksumMismatchError) Error() string {
 	)
 }
 
-// MigrationExecutionError wraps an error from executing a migration's SQL
-// content, carrying the migration identity and direction.
+// MigrationExecutionError wraps an error from executing a migration's SQL content,
+// carrying the migration identity and direction.
 type MigrationExecutionError struct {
 	// Cause holds the underlying error from migration execution.
 	Cause error
@@ -110,8 +105,7 @@ type MigrationExecutionError struct {
 
 // Error returns a human-readable message describing the execution failure.
 //
-// Returns string which contains the direction label, version, name, and
-// underlying cause.
+// Returns string which contains the direction label, version, name, and underlying cause.
 func (e *MigrationExecutionError) Error() string {
 	label := "migration"
 	if e.Direction == querier_dto.MigrationDirectionDown {
@@ -147,8 +141,8 @@ func (e *LockAcquisitionError) Unwrap() error {
 	return e.Cause
 }
 
-// MissingMigrationFileError is returned when the database records an applied
-// migration but no corresponding file exists on disk.
+// MissingMigrationFileError is returned when the database records an applied migration
+// but no corresponding file exists on disk.
 type MissingMigrationFileError struct {
 	// Name holds the human-readable name of the missing migration.
 	Name string
@@ -167,8 +161,8 @@ func (e *MissingMigrationFileError) Error() string {
 	)
 }
 
-// NoDownMigrationError is returned when a rollback is requested for a specific
-// version that has no .down.sql file.
+// NoDownMigrationError is returned when a rollback is requested for a specific version
+// that has no .down.sql file.
 type NoDownMigrationError struct {
 	// Version holds the numeric version of the migration missing a down file.
 	Version int64
@@ -190,16 +184,15 @@ func (*NoDownMigrationError) Is(target error) bool {
 	return target == ErrNoDownMigration
 }
 
-// DirtyMigrationError is returned when a dirty (partially-applied) migration
-// blocks further progress. If the dirty migration matches the next pending
-// version it can be retried automatically; otherwise manual intervention is
-// required.
+// DirtyMigrationError is returned when a dirty (partially-applied) migration blocks
+// further progress. If the dirty migration matches the next pending version it can be
+// retried automatically; otherwise manual intervention is required.
 type DirtyMigrationError struct {
 	// Version holds the numeric version of the dirty migration.
 	Version int64
 
-	// LastStatement holds the 0-based index of the last successfully applied
-	// statement, or -1 if no statements completed.
+	// LastStatement holds the 0-based index of the last successfully applied statement, or
+	// -1 if no statements completed.
 	LastStatement int
 }
 

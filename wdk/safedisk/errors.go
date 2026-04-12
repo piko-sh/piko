@@ -24,40 +24,38 @@ import (
 )
 
 var (
-	// errReadOnly is returned when attempting a write operation on a read-only
-	// sandbox.
+	// errReadOnly is returned when attempting a write operation on a read-only sandbox.
 	errReadOnly = errors.New("safedisk: sandbox is read-only")
 
 	// errClosed is returned when an operation is attempted on a closed sandbox.
 	errClosed = errors.New("safedisk: sandbox is closed")
 
-	// errPathNotAllowed is returned when attempting to create a sandbox for a path
-	// that is not in the allowed paths list.
+	// errPathNotAllowed is returned when attempting to create a sandbox for a path that is
+	// not in the allowed paths list.
 	errPathNotAllowed = errors.New("safedisk: path is not in allowed paths")
 
 	// errEmptyPath is returned when an empty path is given.
 	errEmptyPath = errors.New("safedisk: path cannot be empty")
 
-	// errTempFileExhausted is returned when CreateTemp fails to find a unique
-	// filename after the maximum number of attempts.
+	// errTempFileExhausted is returned when CreateTemp fails to find a unique filename after
+	// the maximum number of attempts.
 	errTempFileExhausted = errors.New("safedisk: failed to create temp file after maximum attempts")
 
-	// ErrFileExceedsLimit is returned by ReadFileLimit when the target file is
-	// larger than the supplied byte cap. Surfaced as an exported sentinel so
-	// callers can use errors.Is to distinguish "file too large" from
-	// "missing", "permission denied", and other underlying I/O failures.
+	// ErrFileExceedsLimit is returned by ReadFileLimit when the target file is larger than
+	// the supplied byte cap. Surfaced as an exported sentinel so callers can use errors.Is
+	// to distinguish "file too large" from "missing", "permission denied", and other
+	// underlying I/O failures.
 	ErrFileExceedsLimit = errors.New("safedisk: file exceeds size limit")
 
-	// ErrInvalidLimit is returned by ReadFileLimit when the supplied byte cap
-	// is non-positive.
+	// ErrInvalidLimit is returned by ReadFileLimit when the supplied byte cap is
+	// non-positive.
 	ErrInvalidLimit = errors.New("safedisk: limit must be positive")
 )
 
-// IsNotExist reports whether the error shows that a file or directory does
-// not exist.
+// IsNotExist reports whether the error shows that a file or directory does not exist.
 //
-// This is a wrapper around os.IsNotExist to avoid needing to import the os
-// package separately.
+// This is a wrapper around os.IsNotExist to avoid needing to import the os package
+// separately.
 //
 // Takes err (error) which is the error to check.
 //
@@ -66,11 +64,9 @@ func IsNotExist(err error) bool {
 	return os.IsNotExist(err)
 }
 
-// isExist reports whether the error shows that a file or directory already
-// exists.
+// isExist reports whether the error shows that a file or directory already exists.
 //
-// This is a wrapper around os.IsExist so callers do not need to import the os
-// package.
+// This is a wrapper around os.IsExist so callers do not need to import the os package.
 //
 // Takes err (error) which is the error to check.
 //
@@ -81,8 +77,8 @@ func isExist(err error) bool {
 
 // isPermission reports whether the error shows a permission problem.
 //
-// This is a wrapper around os.IsPermission so callers do not need to import
-// the os package.
+// This is a wrapper around os.IsPermission so callers do not need to import the os
+// package.
 //
 // Takes err (error) which is the error to check.
 //

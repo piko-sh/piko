@@ -22,23 +22,28 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this provider.
-const Language = "spanish"
+const (
 
-// stopWords contains common Spanish stop words.
-var stopWords = map[string]bool{
-	"el": true, "la": true, "los": true, "las": true, "un": true, "una": true, "unos": true, "unas": true,
-	"yo": true, "tú": true, "él": true, "ella": true, "nosotros": true, "vosotros": true, "ellos": true, "ellas": true,
-	"me": true, "te": true, "se": true, "nos": true, "os": true,
-	"de": true, "en": true, "a": true, "por": true, "para": true, "con": true, "sin": true, "sobre": true,
-	"y": true, "o": true, "pero": true, "porque": true, "que": true, "si": true,
-	"es": true, "son": true, "ser": true, "estar": true, "ha": true, "hay": true, "fue": true, "sido": true,
-	"este": true, "esta": true, "estos": true, "estas": true, "ese": true, "esa": true, "esos": true, "esas": true,
-	"como": true, "más": true, "su": true, "sus": true, "del": true, "al": true,
-}
+	// Language is the language code for this provider.
+	Language = "spanish"
+)
 
-// Provider provides Spanish stop words for text analysis.
-// It implements the linguistics_domain.StopWordsProviderPort interface.
+var (
+	// stopWords contains common Spanish stop words.
+	stopWords = map[string]bool{
+		"el": true, "la": true, "los": true, "las": true, "un": true, "una": true, "unos": true, "unas": true,
+		"yo": true, "tú": true, "él": true, "ella": true, "nosotros": true, "vosotros": true, "ellos": true, "ellas": true,
+		"me": true, "te": true, "se": true, "nos": true, "os": true,
+		"de": true, "en": true, "a": true, "por": true, "para": true, "con": true, "sin": true, "sobre": true,
+		"y": true, "o": true, "pero": true, "porque": true, "que": true, "si": true,
+		"es": true, "son": true, "ser": true, "estar": true, "ha": true, "hay": true, "fue": true, "sido": true,
+		"este": true, "esta": true, "estos": true, "estas": true, "ese": true, "esa": true, "esos": true, "esas": true,
+		"como": true, "más": true, "su": true, "sus": true, "del": true, "al": true,
+	}
+)
+
+// Provider provides Spanish stop words for text analysis. It implements the
+// linguistics_domain.StopWordsProviderPort interface.
 type Provider struct{}
 
 // GetStopWords returns the Spanish stop words.
@@ -57,15 +62,17 @@ func (*Provider) SupportedLanguages() []string {
 	return []string{Language}
 }
 
-var _ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+var (
+	_ linguistics_domain.StopWordsProviderPort = (*Provider)(nil)
+)
 
 // Factory creates a new Spanish stop words provider instance.
 //
-// Use this with linguistics_domain.RegisterStopWordsProviderFactory for
-// explicit registration.
+// Use this with linguistics_domain.RegisterStopWordsProviderFactory for explicit
+// registration.
 //
-// Returns linguistics_domain.StopWordsProviderPort which provides the Spanish
-// stop words provider.
+// Returns linguistics_domain.StopWordsProviderPort which provides the Spanish stop words
+// provider.
 // Returns error when the provider cannot be created.
 func Factory() (linguistics_domain.StopWordsProviderPort, error) {
 	return New()

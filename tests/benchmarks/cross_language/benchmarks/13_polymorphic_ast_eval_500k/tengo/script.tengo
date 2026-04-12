@@ -1,0 +1,189 @@
+fmt := import("fmt")
+os := import("os")
+times := import("times")
+
+LCG_MASK := 0xFFFFFFFF
+RESULT_MASK := 0xFFFFFFFF
+TREE_DEPTH_BUDGET := 12
+WALKS_PER_EVAL := 100
+ENV_SLOT_COUNT := 8
+TREE_SEED := 12345678
+ENV_SEED := 0x517cc1b7
+
+int_to_decimal := func(value) {
+	if value == 0 {
+		return "0"
+	}
+	negative := value < 0
+	if negative {
+		value = -value
+	}
+	digits := []
+	for value > 0 {
+		digits = append(digits, char(int('0') + value % 10))
+		value = value / 10
+	}
+	out := ""
+	for i := len(digits) - 1; i >= 0; i-- {
+		out += digits[i]
+	}
+	if negative {
+		return "-" + out
+	}
+	return out
+}
+
+build_tree := undefined
+build_tree = func(state, depth_budget) {
+	state = (state * 1664525 + 1013904223) & LCG_MASK
+	if depth_budget <= 0 || (state & 0x7) == 0 {
+		state = (state * 1664525 + 1013904223) & LCG_MASK
+		if (state & 0x1) == 0 {
+			return [{kind: "const", value: (state >> 1) & 0xFF}, state]
+		}
+		return [{kind: "var", slot: (state >> 1) & 0x7}, state]
+	}
+	kind := state & 0x7
+	if kind == 7 {
+		r1 := build_tree(state, depth_budget - 1)
+		condition := r1[0]
+		state = r1[1]
+		r2 := build_tree(state, depth_budget - 1)
+		then_branch := r2[0]
+		state = r2[1]
+		r3 := build_tree(state, depth_budget - 1)
+		else_branch := r3[0]
+		state = r3[1]
+		return [{kind: "ifpos", condition: condition, then_branch: then_branch, else_branch: else_branch}, state]
+	}
+	r1 := build_tree(state, depth_budget - 1)
+	left := r1[0]
+	state = r1[1]
+	r2 := build_tree(state, depth_budget - 1)
+	right := r2[0]
+	state = r2[1]
+	if kind == 0 {
+		return [{kind: "add", left: left, right: right}, state]
+	}
+	if kind == 1 {
+		return [{kind: "sub", left: left, right: right}, state]
+	}
+	if kind == 2 {
+		return [{kind: "mul", left: left, right: right}, state]
+	}
+	if kind == 3 {
+		return [{kind: "mod", left: left, right: right}, state]
+	}
+	if kind == 4 {
+		return [{kind: "min", left: left, right: right}, state]
+	}
+	if kind == 5 {
+		return [{kind: "max", left: left, right: right}, state]
+	}
+	return [{kind: "add", left: left, right: right}, state]
+}
+
+eval_node := undefined
+eval_node = func(node, env) {
+	kind := node.kind
+	if kind == "const" {
+		return node.value
+	}
+	if kind == "var" {
+		return env[node.slot]
+	}
+	if kind == "add" {
+		return (eval_node(node.left, env) + eval_node(node.right, env)) & RESULT_MASK
+	}
+	if kind == "sub" {
+		return (eval_node(node.left, env) - eval_node(node.right, env)) & RESULT_MASK
+	}
+	if kind == "mul" {
+		return (eval_node(node.left, env) * eval_node(node.right, env)) & RESULT_MASK
+	}
+	if kind == "mod" {
+		right_value := eval_node(node.right, env)
+		if right_value == 0 {
+			return 0
+		}
+		return eval_node(node.left, env) % right_value
+	}
+	if kind == "min" {
+		left_value := eval_node(node.left, env)
+		right_value := eval_node(node.right, env)
+		if left_value < right_value {
+			return left_value
+		}
+		return right_value
+	}
+	if kind == "max" {
+		left_value := eval_node(node.left, env)
+		right_value := eval_node(node.right, env)
+		if left_value > right_value {
+			return left_value
+		}
+		return right_value
+	}
+	if kind == "ifpos" {
+		if eval_node(node.condition, env) != 0 {
+			return eval_node(node.then_branch, env)
+		}
+		return eval_node(node.else_branch, env)
+	}
+	return 0
+}
+
+do_ast_eval := func() {
+	r := build_tree(TREE_SEED, TREE_DEPTH_BUDGET)
+	tree := r[0]
+	env_state := ENV_SEED
+	env := []
+	for i := 0; i < ENV_SLOT_COUNT; i++ {
+		env = append(env, 0)
+	}
+	accumulator := 0
+	for walk := 0; walk < WALKS_PER_EVAL; walk++ {
+		for slot := 0; slot < ENV_SLOT_COUNT; slot++ {
+			env_state = (env_state * 1664525 + 1013904223) & LCG_MASK
+			env[slot] = env_state
+		}
+		accumulator = (accumulator + eval_node(tree, env)) & RESULT_MASK
+	}
+	return int_to_decimal(accumulator)
+}
+
+run := func() {
+	return do_ast_eval()
+}
+
+run_inner := func(k) {
+	start_nanos := times.time_unix_nano(times.now())
+	last := ""
+	for index := 0; index < k; index++ {
+		last = do_ast_eval()
+	}
+	elapsed_nanos := times.time_unix_nano(times.now()) - start_nanos
+	return [last, elapsed_nanos]
+}
+
+args := os.args()
+mode := "endtoend"
+k := 0
+for i := 0; i < len(args); i++ {
+	if args[i] == "--mode" && i+1 < len(args) {
+		mode = args[i+1]
+	}
+	if args[i] == "--k" && i+1 < len(args) {
+		k = int(args[i+1])
+	}
+}
+
+if mode == "inner" {
+	result := run_inner(k)
+	fmt.println(result[0])
+	stderr := os.create("/dev/stderr")
+	stderr.write_string(fmt.sprintf("INNER_ELAPSED_NS=%d\n", result[1]))
+	stderr.close()
+} else {
+	fmt.println(run())
+}

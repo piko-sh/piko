@@ -27,11 +27,11 @@ import (
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_domain"
 )
 
-// createTokenBucketCache creates an Otter-backed cache for token
-// bucket rate limiter state.
+// createTokenBucketCache creates an Otter-backed cache for token bucket rate limiter
+// state.
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *ratelimiter_domain.TokenBucketState].
+// Takes options (any) which must be cache_dto.Options[string,
+// *ratelimiter_domain.TokenBucketState].
 //
 // Returns any which is the constructed cache provider.
 // Returns error when the options type is wrong or cache creation fails.
@@ -56,11 +56,10 @@ func createTokenBucketCache(
 	return cache, nil
 }
 
-// createCounterCache creates an Otter-backed cache for counter-based
-// rate limiter entries.
+// createCounterCache creates an Otter-backed cache for counter-based rate limiter
+// entries.
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *counterEntry].
+// Takes options (any) which must be cache_dto.Options[string, *counterEntry].
 //
 // Returns any which is the constructed cache provider.
 // Returns error when the options type is wrong or cache creation fails.

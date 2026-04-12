@@ -37,28 +37,25 @@ type fuzzyMatchResult struct {
 	Distance int
 }
 
-// findSimilarTermsJaroWinkler finds vocabulary terms similar to the query term
-// using the Jaro-Winkler algorithm.
+// findSimilarTermsJaroWinkler finds vocabulary terms similar to the query term using the
+// Jaro-Winkler algorithm.
 //
-// Jaro-Winkler is designed for detecting typos in short strings (like names,
-// search terms). It handles:
+// Jaro-Winkler is designed for detecting typos in short strings (like names, search
+// terms). It handles:
 //   - Missing characters: "configurtion" -> "configuration"
 //   - Transposed characters: "ocnfiguration" -> "configuration"
 //   - Character substitutions: "konfig" -> "config"
 //
-// The algorithm gives bonus scores to strings that match at the beginning
-// (prefix boost), well suited for search-as-you-type and autocomplete
-// scenarios.
+// The algorithm gives bonus scores to strings that match at the beginning (prefix boost),
+// well suited for search-as-you-type and autocomplete scenarios.
 //
 // Takes queryTerm (string) which is the search term (possibly with typos).
 // Takes vocabulary ([]string) which is the list of valid terms from the index.
-// Takes minSimilarity (float64) which is the minimum similarity threshold
-// (0.0-1.0, typically 0.85).
-// Takes maxResults (int) which is the maximum number of results to return
-// (0 = no limit).
+// Takes minSimilarity (float64) which is the minimum similarity threshold (0.0-1.0,
+// typically 0.85).
+// Takes maxResults (int) which is the maximum number of results to return (0 = no limit).
 //
-// Returns []fuzzyMatchResult which contains matches sorted by similarity
-// (descending).
+// Returns []fuzzyMatchResult which contains matches sorted by similarity (descending).
 //
 // Performance:
 //   - O(V) where V = vocabulary size
@@ -110,21 +107,21 @@ func findSimilarTermsJaroWinkler(
 	return results
 }
 
-// findTermsWithinEditDistance finds vocabulary terms within a specified edit
-// distance using the Wagner-Fischer algorithm.
+// findTermsWithinEditDistance finds vocabulary terms within a specified edit distance
+// using the Wagner-Fischer algorithm.
 //
-// Wagner-Fischer calculates Levenshtein edit distance using an optimised
-// two-row approach instead of a full matrix, reducing memory usage to O(n).
+// Wagner-Fischer calculates Levenshtein edit distance using an optimised two-row approach
+// instead of a full matrix, reducing memory usage to O(n).
 //
-// Use cases include strict typo correction (maxDistance=1 or 2), "did you
-// mean?" suggestions, and query expansion for fuzzy search.
+// Use cases include strict typo correction (maxDistance=1 or 2), "did you mean?"
+// suggestions, and query expansion for fuzzy search.
 //
 // Takes queryTerm (string) which is the search term, possibly with typos.
 // Takes vocabulary ([]string) which is the list of valid terms from the index.
 // Takes maxDistance (int) which is the maximum edit distance (typically 1 or 2).
 //
-// Returns []fuzzyMatchResult which contains matches sorted by distance in
-// ascending order (closest first).
+// Returns []fuzzyMatchResult which contains matches sorted by distance in ascending order
+// (closest first).
 func findTermsWithinEditDistance(
 	queryTerm string,
 	vocabulary []string,
@@ -172,9 +169,8 @@ func findTermsWithinEditDistance(
 //   - Edit distance for close matches (good for small spelling errors)
 //   - Jaro-Winkler for similarity scoring (good for typos and swapped letters)
 //
-// Picks the result from whichever method gives the better match. When
-// queryTerm is empty or vocabulary is empty, an empty string with a score of
-// zero is produced.
+// Picks the result from whichever method gives the better match. When queryTerm is empty
+// or vocabulary is empty, an empty string with a score of zero is produced.
 //
 // Takes queryTerm (string) which is the term to search for.
 // Takes vocabulary ([]string) which is the list of valid terms to match against.
@@ -208,8 +204,8 @@ func findBestFuzzyMatch(
 
 // rankTermsBySimilarity ranks vocabulary terms by similarity to a query term.
 //
-// Uses Jaro-Winkler for ranking, which is better for short strings and handles
-// prefix matching, transpositions, and common typos.
+// Uses Jaro-Winkler for ranking, which is better for short strings and handles prefix
+// matching, transpositions, and common typos.
 //
 // Useful for:
 //   - Autocomplete suggestions
@@ -220,8 +216,8 @@ func findBestFuzzyMatch(
 // Takes vocabulary ([]string) which is the list of candidate terms.
 // Takes limit (int) which is the maximum number of results to return.
 //
-// Returns []fuzzyMatchResult which contains the top N terms sorted by
-// similarity, best first.
+// Returns []fuzzyMatchResult which contains the top N terms sorted by similarity, best
+// first.
 func rankTermsBySimilarity(
 	queryTerm string,
 	vocabulary []string,

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -39,8 +38,7 @@ func TestMockCounterStore_IncrementAndGet(t *testing.T) {
 		t.Parallel()
 
 		mock := &MockCounterStore{
-			IncrementAndGetFunc:      nil,
-			IncrementAndGetCallCount: 0,
+			IncrementAndGetFunc: nil,
 		}
 
 		ctx := context.Background()
@@ -48,7 +46,7 @@ func TestMockCounterStore_IncrementAndGet(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, ratelimiter_dto.CounterResult{}, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.IncrementAndGetCallCount))
+		assert.Equal(t, int64(1), mock.IncrementAndGetCallCount.Load())
 	})
 
 	t.Run("delegates to IncrementAndGetFunc", func(t *testing.T) {
@@ -64,7 +62,6 @@ func TestMockCounterStore_IncrementAndGet(t *testing.T) {
 			IncrementAndGetFunc: func(_ context.Context, _ string, _ int64, _ time.Duration) (ratelimiter_dto.CounterResult, error) {
 				return expected, nil
 			},
-			IncrementAndGetCallCount: 0,
 		}
 
 		ctx := context.Background()
@@ -72,7 +69,7 @@ func TestMockCounterStore_IncrementAndGet(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, expected, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.IncrementAndGetCallCount))
+		assert.Equal(t, int64(1), mock.IncrementAndGetCallCount.Load())
 	})
 
 	t.Run("propagates error from IncrementAndGetFunc", func(t *testing.T) {
@@ -82,7 +79,6 @@ func TestMockCounterStore_IncrementAndGet(t *testing.T) {
 			IncrementAndGetFunc: func(_ context.Context, _ string, _ int64, _ time.Duration) (ratelimiter_dto.CounterResult, error) {
 				return ratelimiter_dto.CounterResult{}, errors.New("storage unavailable")
 			},
-			IncrementAndGetCallCount: 0,
 		}
 
 		ctx := context.Background()
@@ -91,7 +87,7 @@ func TestMockCounterStore_IncrementAndGet(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "storage unavailable", err.Error())
 		assert.Equal(t, ratelimiter_dto.CounterResult{}, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.IncrementAndGetCallCount))
+		assert.Equal(t, int64(1), mock.IncrementAndGetCallCount.Load())
 	})
 }
 
@@ -113,7 +109,6 @@ func TestMockCounterStore_IncrementAndGet_PassesArguments(t *testing.T) {
 			capturedWindow = window
 			return ratelimiter_dto.CounterResult{}, nil
 		},
-		IncrementAndGetCallCount: 0,
 	}
 
 	type ctxKey struct{}
@@ -132,8 +127,7 @@ func TestMockCounterStore_IncrementAndGet_MultipleCalls(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockCounterStore{
-		IncrementAndGetFunc:      nil,
-		IncrementAndGetCallCount: 0,
+		IncrementAndGetFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -143,7 +137,7 @@ func TestMockCounterStore_IncrementAndGet_MultipleCalls(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	assert.Equal(t, int64(5), atomic.LoadInt64(&mock.IncrementAndGetCallCount))
+	assert.Equal(t, int64(5), mock.IncrementAndGetCallCount.Load())
 }
 
 func TestMockCounterStore_ZeroValueIsUsable(t *testing.T) {
@@ -156,15 +150,14 @@ func TestMockCounterStore_ZeroValueIsUsable(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, ratelimiter_dto.CounterResult{}, result)
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.IncrementAndGetCallCount))
+	assert.Equal(t, int64(1), mock.IncrementAndGetCallCount.Load())
 }
 
 func TestMockCounterStore_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockCounterStore{
-		IncrementAndGetFunc:      nil,
-		IncrementAndGetCallCount: 0,
+		IncrementAndGetFunc: nil,
 	}
 
 	ctx := context.Background()
@@ -182,15 +175,14 @@ func TestMockCounterStore_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.IncrementAndGetCallCount))
+	assert.Equal(t, int64(goroutines), mock.IncrementAndGetCallCount.Load())
 }
 
 func TestMockCounterStore_ImplementsCounterStorePort(t *testing.T) {
 	t.Parallel()
 
 	mock := &MockCounterStore{
-		IncrementAndGetFunc:      nil,
-		IncrementAndGetCallCount: 0,
+		IncrementAndGetFunc: nil,
 	}
 
 	var _ CounterStorePort = mock

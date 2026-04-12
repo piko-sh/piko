@@ -18,8 +18,8 @@
 
 package search_dto
 
-// JSONSearchIndex represents the full search index stored as JSON.
-// This format is easy to read and helpful for debugging, unlike FlatBuffers.
+// JSONSearchIndex represents the full search index stored as JSON. This format is easy to
+// read and helpful for debugging, unlike FlatBuffers.
 type JSONSearchIndex struct {
 	// CollectionName is the name of the collection used for search indexing.
 	CollectionName string `json:"collection_name"`

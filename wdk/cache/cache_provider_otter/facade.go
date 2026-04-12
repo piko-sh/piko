@@ -24,29 +24,27 @@ import (
 	"piko.sh/piko/wdk/cache"
 )
 
-// PersistenceConfig configures disk-based persistence for an Otter cache,
-// enabling durable writes and automatic recovery on restart. Both KeyCodec
-// and ValueCodec must be set when persistence is enabled.
+// PersistenceConfig configures disk-based persistence for an Otter cache, enabling
+// durable writes and automatic recovery on restart. Both KeyCodec and ValueCodec must be
+// set when persistence is enabled.
 type PersistenceConfig[K comparable, V any] = provider_otter.PersistenceConfig[K, V]
 
-// PersistConfig configures persistence behaviour including the storage
-// directory, sync mode, snapshot thresholds, and compression settings.
+// PersistConfig configures persistence behaviour including the storage directory, sync
+// mode, snapshot thresholds, and compression settings.
 type PersistConfig = wal_domain.Config
 
-// KeyCodec handles serialisation of cache keys to and from bytes for
-// persistence.
+// KeyCodec handles serialisation of cache keys to and from bytes for persistence.
 type KeyCodec[K comparable] interface {
 	wal_domain.KeyCodec[K]
 }
 
-// ValueCodec handles serialisation of cache values to and from bytes for
-// persistence.
+// ValueCodec handles serialisation of cache values to and from bytes for persistence.
 type ValueCodec[V any] interface {
 	wal_domain.ValueCodec[V]
 }
 
-// DefaultPersistConfig returns a PersistConfig with sensible defaults for
-// the given directory.
+// DefaultPersistConfig returns a PersistConfig with sensible defaults for the given
+// directory.
 //
 // Takes directory (string) which specifies the directory path for persistence.
 //
@@ -55,8 +53,8 @@ func DefaultPersistConfig(directory string) PersistConfig {
 	return wal_domain.DefaultConfig(directory)
 }
 
-// DefaultPersistConfigNamed returns a PersistConfig using the default
-// .piko/wal/{name} directory.
+// DefaultPersistConfigNamed returns a PersistConfig using the default .piko/wal/{name}
+// directory.
 //
 // Takes name (string) which specifies the subdirectory name within the WAL path.
 //
@@ -65,11 +63,11 @@ func DefaultPersistConfigNamed(name string) PersistConfig {
 	return wal_domain.DefaultConfigNamed(name)
 }
 
-// NewOtterProvider creates a new Otter provider using the namespace pattern.
-// This is the RECOMMENDED way to use Otter caches.
+// NewOtterProvider creates a new Otter provider using the namespace pattern. This is the
+// RECOMMENDED way to use Otter caches.
 //
-// The provider can be registered with a cache service and then used to create
-// multiple namespaced cache instances with different types.
+// The provider can be registered with a cache service and then used to create multiple
+// namespaced cache instances with different types.
 //
 // Returns cache.Provider which is the Otter provider ready for registration.
 //
@@ -93,9 +91,8 @@ func NewOtterProvider() cache.Provider {
 	return provider_otter.NewOtterProvider()
 }
 
-// OtterProviderFactory creates a typed Otter cache instance from the given
-// options. It is intended for use inside a [cache.RegisterProviderFactory]
-// callback.
+// OtterProviderFactory creates a typed Otter cache instance from the given options. It is
+// intended for use inside a cache.RegisterProviderFactory callback.
 //
 // Takes opts (cache.Options[K, V]) which configures the cache instance.
 //

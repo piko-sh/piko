@@ -40,21 +40,20 @@ import (
 )
 
 const (
-	// defaultDeletionWorkers is the default number of goroutines dedicated to
-	// deleting expired cache files.
+	// defaultDeletionWorkers is the default number of goroutines dedicated to deleting
+	// expired cache files.
 	defaultDeletionWorkers = 4
 
-	// defaultDeleteChanSize is the buffer size for the background deletion
-	// channel. A buffer helps prevent the Get method from blocking under high load
-	// if workers are busy.
+	// defaultDeleteChanSize is the buffer size for the background deletion channel. A buffer
+	// helps prevent the Get method from blocking under high load if workers are busy.
 	defaultDeleteChanSize = 128
 
-	// cacheDirectoryPermissions is the file mode for cache directories (owner:
-	// rwx, group: rx, other: none).
+	// cacheDirectoryPermissions is the file mode for cache directories (owner: rwx, group:
+	// rx, other: none).
 	cacheDirectoryPermissions = 0750
 
-	// cacheFilePermissions is the file mode for cache files (owner: rw, group:
-	// none, other: none).
+	// cacheFilePermissions is the file mode for cache files (owner: rw, group: none, other:
+	// none).
 	cacheFilePermissions = 0600
 )
 
@@ -74,29 +73,29 @@ type fbsFileCacheConfig struct {
 	// Clock provides time functions; nil uses the real system clock.
 	Clock clock.Clock
 
-	// Sandbox is an optional sandbox for testing filesystem operations.
-	// When nil, one is created for BaseDir; callers must close injected sandboxes.
+	// Sandbox is an optional sandbox for testing filesystem operations. When nil, one is
+	// created for BaseDir; callers must close injected sandboxes.
 	Sandbox safedisk.Sandbox
 
-	// SandboxFactory creates sandboxes when Sandbox is nil. When non-nil and
-	// Sandbox is nil, this factory is used instead of safedisk.NewNoOpSandbox.
+	// SandboxFactory creates sandboxes when Sandbox is nil. When non-nil and Sandbox is nil,
+	// this factory is used instead of safedisk.NewNoOpSandbox.
 	SandboxFactory safedisk.Factory
 
 	// BaseDir is the folder path where cache files are stored.
 	BaseDir string
 
-	// NumDeletionWorkers sets how many workers run for background file deletion.
-	// A value of 0 or less uses the default.
+	// NumDeletionWorkers sets how many workers run for background file deletion. A value of
+	// 0 or less uses the default.
 	NumDeletionWorkers int
 
-	// DeletionQueueSize is the buffer size for the deletion channel.
-	// Zero or negative uses the default.
+	// DeletionQueueSize is the buffer size for the deletion channel. Zero or negative uses
+	// the default.
 	DeletionQueueSize int
 }
 
-// fbsFileCache implements ASTCache as a persistent, disk-based L2 cache with
-// TTL support. It encodes ASTs to FlatBuffers and stores them on the local
-// filesystem, using lazy eviction to purge expired items on next access.
+// fbsFileCache implements ASTCache as a persistent, disk-based L2 cache with TTL support.
+// It encodes ASTs to FlatBuffers and stores them on the local filesystem, using lazy
+// eviction to purge expired items on next access.
 type fbsFileCache struct {
 	// ctx is the parent context used for background worker goroutines.
 	ctx context.Context
@@ -117,9 +116,8 @@ type fbsFileCache struct {
 	wg sync.WaitGroup
 }
 
-// Shutdown gracefully stops the background deletion workers and waits for them
-// to finish. This should be called during a graceful shutdown of the
-// application.
+// Shutdown gracefully stops the background deletion workers and waits for them to finish.
+// This should be called during a graceful shutdown of the application.
 func (c *fbsFileCache) Shutdown(_ context.Context) {
 	close(c.shutdownCh)
 	close(c.deleteChan)
@@ -127,16 +125,14 @@ func (c *fbsFileCache) Shutdown(_ context.Context) {
 	_ = c.sandbox.Close()
 }
 
-// Get reads a file, decodes it, checks for expiration, and returns the
-// AST. If the entry is found but has expired, it queues the file for
-// background deletion, and ErrCacheMiss is returned, triggering a fresh load
-// from the original source.
+// Get reads a file, decodes it, checks for expiration, and returns the AST. If the entry
+// is found but has expired, it queues the file for background deletion, and ErrCacheMiss
+// is returned, triggering a fresh load from the original source.
 //
 // Takes key (string) which identifies the cached template to retrieve.
 //
 // Returns *ast_domain.TemplateAST which is the decoded template AST.
-// Returns error when the cache file does not exist, is corrupt, or has
-// expired.
+// Returns error when the cache file does not exist, is corrupt, or has expired.
 func (c *fbsFileCache) Get(ctx context.Context, key string) (*ast_domain.TemplateAST, error) {
 	ctx, l := logger_domain.From(ctx, log)
 	startTime := time.Now()
@@ -237,24 +233,19 @@ func (c *fbsFileCache) Delete(ctx context.Context, key string) error {
 	return err
 }
 
-// startDeletionWorkers launches the worker pool for deleting expired files.
+// startDeletionWorkers launches numWorkers background goroutines that process deletion
+// requests from the deletion channel until the cache is closed.
 //
 // Takes numWorkers (int) which specifies how many workers to start.
-//
-// Spawns numWorkers goroutines that process deletion requests
-// from the deletion channel. The spawned goroutines run until the cache is
-// closed.
 func (c *fbsFileCache) startDeletionWorkers(numWorkers int) {
-	c.wg.Add(numWorkers)
 	for range numWorkers {
-		go c.runDeletionWorker()
+		c.wg.Go(c.runDeletionWorker)
 	}
 }
 
-// runDeletionWorker is the main loop for a background deletion worker.
-// It handles deletion requests from the channel until shutdown is signalled.
+// runDeletionWorker is the main loop for a background deletion worker. It handles
+// deletion requests from the channel until shutdown is signalled.
 func (c *fbsFileCache) runDeletionWorker() {
-	defer c.wg.Done()
 	defer func() {
 		if r := recover(); r != nil {
 			_, l := logger_domain.From(context.WithoutCancel(c.ctx), log)
@@ -271,8 +262,8 @@ func (c *fbsFileCache) runDeletionWorker() {
 
 // processDeletionTask waits for and handles a single deletion task.
 //
-// Returns bool which is true if the worker should exit because the channel is
-// closed or shutdown is signalled, or false to continue processing.
+// Returns bool which is true if the worker should exit because the channel is closed or
+// shutdown is signalled, or false to continue processing.
 func (c *fbsFileCache) processDeletionTask() bool {
 	select {
 	case key, ok := <-c.deleteChan:
@@ -296,9 +287,8 @@ func (c *fbsFileCache) executeBackgroundDeletion(key string) {
 	}
 }
 
-// enqueueDeletion sends a key to the deletion channel without blocking. If the
-// channel is full, it logs a warning and drops the task to prioritise read
-// performance.
+// enqueueDeletion sends a key to the deletion channel without blocking. If the channel is
+// full, it logs a warning and drops the task to prioritise read performance.
 //
 // Takes ctx (context.Context) which carries the request-scoped logger.
 // Takes key (string) which identifies the cache entry to delete.
@@ -363,8 +353,7 @@ func (c *fbsFileCache) setInternal(ctx context.Context, key string, ast *ast_dom
 //
 // Takes key (string) which is the cache key to convert into a file path.
 //
-// Returns string which is a path like "ab/cd1234...fbs.bin" for use with the
-// sandbox.
+// Returns string which is a path like "ab/cd1234...fbs.bin" for use with the sandbox.
 func (*fbsFileCache) getFilePath(key string) string {
 	hasher := xxhash.New()
 	_, _ = hasher.WriteString(key)
@@ -372,13 +361,15 @@ func (*fbsFileCache) getFilePath(key string) string {
 	return filepath.Join(hash[:2], hash[2:]) + ".fbs.bin"
 }
 
-var _ ast_domain.ASTCache = (*fbsFileCache)(nil)
+var (
+	_ ast_domain.ASTCache = (*fbsFileCache)(nil)
+)
 
-// newFbsFileCache creates a new file-based cache and starts its background
-// worker pool. It creates the base folder if it does not already exist.
+// newFbsFileCache creates a new file-based cache and starts its background worker pool.
+// It creates the base folder if it does not already exist.
 //
-// Takes config (fbsFileCacheConfig) which specifies the cache settings
-// including base folder, worker count, queue size, and optional sandbox.
+// Takes config (fbsFileCacheConfig) which specifies the cache settings including base
+// folder, worker count, queue size, and optional sandbox.
 //
 // Returns *fbsFileCache which is the configured cache ready for use.
 // Returns error when BaseDir is empty or the folder cannot be created.

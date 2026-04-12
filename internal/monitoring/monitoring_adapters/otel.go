@@ -29,8 +29,7 @@ var (
 	// Int is a field constructor for integer values in structured log entries.
 	Int = logger.Int
 
-	// Int64 is an alias for logger.Int64 that creates a log field from an int64
-	// value.
+	// Int64 is an alias for logger.Int64 that creates a log field from an int64 value.
 	Int64 = logger.Int64
 
 	// Error logs a message at error level using the default logger.

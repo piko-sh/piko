@@ -551,7 +551,9 @@ func (c *customTextType) UnmarshalText(text []byte) error {
 	return nil
 }
 
-var _ encoding.TextUnmarshaler = (*customTextType)(nil)
+var (
+	_ encoding.TextUnmarshaler = (*customTextType)(nil)
+)
 
 func TestSetFieldTextUnmarshaler(t *testing.T) {
 	var c customTextType

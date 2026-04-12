@@ -28,13 +28,15 @@ import (
 	"piko.sh/piko/internal/esbuild/css_lexer"
 )
 
-// maxResolveDepth is the maximum number of iterations for resolving CSS
-// variables. This limit prevents infinite loops from circular references
-// where variables refer to each other.
-const maxResolveDepth = 20
+const (
+	// maxResolveDepth is the maximum number of iterations for resolving CSS variables. This
+	// limit prevents infinite loops from circular references where variables refer to each
+	// other.
+	maxResolveDepth = 20
+)
 
-// resolverContext holds state needed during CSS variable resolution.
-// It groups related data together to reduce parameter counts.
+// resolverContext holds state needed during CSS variable resolution. It groups related
+// data together to reduce parameter counts.
 type resolverContext struct {
 	// theme maps CSS variable names to their resolved values.
 	theme map[string]string
@@ -52,9 +54,9 @@ type resolverContext struct {
 	symbolMap ast.SymbolMap
 }
 
-// resolveCSSVariables resolves all var() functions in CSS tokens to their
-// final static values using the theme map. This is critical for email
-// compatibility as email clients cannot evaluate CSS variables at runtime.
+// resolveCSSVariables resolves all var() functions in CSS tokens to their final static
+// values using the theme map. This is critical for email compatibility as email clients
+// cannot evaluate CSS variables at runtime.
 //
 // Resolution algorithm:
 //  1. Scan tokens to find TFunction tokens with name "var"
@@ -62,9 +64,8 @@ type resolverContext struct {
 //  3. Look up variable in theme map and substitute
 //  4. Repeat until no more var() functions remain or max depth reached
 //
-// This iterative approach naturally handles nested variables because each
-// substitution may introduce new var() calls to be resolved in the next
-// iteration.
+// This iterative approach naturally handles nested variables because each substitution
+// may introduce new var() calls that the subsequent pass resolves.
 //
 // Takes tokens ([]css_ast.Token) which are the esbuild CSS tokens to process.
 // Takes symbols ([]ast.Symbol) which provides symbol information for lookups.
@@ -73,8 +74,8 @@ type resolverContext struct {
 // Takes diagnostics (*[]*ast_domain.Diagnostic) which collects any diagnostics.
 // Takes sourcePath (string) which identifies the source file for errors.
 //
-// Returns []css_ast.Token which are the tokens with all var() functions
-// resolved to static values.
+// Returns []css_ast.Token which are the tokens with all var() functions resolved to
+// static values.
 func resolveCSSVariables(
 	tokens []css_ast.Token,
 	symbols []ast.Symbol,
@@ -96,9 +97,8 @@ func resolveCSSVariables(
 
 // revive:enable:argument-limit
 
-// resolveCSSVariablesWithContext resolves CSS variables using a
-// declarationContext. This is a helper for internal callers that already have
-// a declarationContext.
+// resolveCSSVariablesWithContext resolves CSS variables using a declarationContext. This
+// is a helper for internal callers that already have a declarationContext.
 //
 // Takes tokens ([]css_ast.Token) which contains the CSS tokens to process.
 // Takes ctx (*declarationContext) which provides the context for resolution.
@@ -116,14 +116,14 @@ func resolveCSSVariablesWithContext(tokens []css_ast.Token, ctx *declarationCont
 	return resolveCSSVariablesWithResolverContext(tokens, &resolverCtx)
 }
 
-// resolveCSSVariablesWithResolverContext replaces CSS variables with their
-// values in a list of tokens.
+// resolveCSSVariablesWithResolverContext replaces CSS variables with their values in a
+// list of tokens.
 //
 // Takes tokens ([]css_ast.Token) which contains the CSS tokens to process.
 // Takes ctx (*resolverContext) which provides variable definitions and state.
 //
-// Returns []css_ast.Token which contains the tokens with all variables
-// replaced by their values.
+// Returns []css_ast.Token which contains the tokens with all variables replaced by their
+// values.
 func resolveCSSVariablesWithResolverContext(tokens []css_ast.Token, ctx *resolverContext) []css_ast.Token {
 	if !shouldResolveVariables(tokens, ctx) {
 		return tokens
@@ -137,8 +137,8 @@ func resolveCSSVariablesWithResolverContext(tokens []css_ast.Token, ctx *resolve
 // Takes tokens ([]css_ast.Token) which contains the CSS tokens to check.
 // Takes ctx (*resolverContext) which provides the theme variables.
 //
-// Returns bool which is true if the tokens contain var() functions and the
-// theme has variables to resolve.
+// Returns bool which is true if the tokens contain var() functions and the theme has
+// variables to resolve.
 func shouldResolveVariables(tokens []css_ast.Token, ctx *resolverContext) bool {
 	if len(ctx.theme) == 0 {
 		return false
@@ -152,8 +152,8 @@ func shouldResolveVariables(tokens []css_ast.Token, ctx *resolverContext) bool {
 	return false
 }
 
-// resolveVariablesIteratively replaces CSS variables in a loop until no more
-// changes happen or the maximum depth is reached.
+// resolveVariablesIteratively replaces CSS variables in a loop until no more changes
+// happen or the maximum depth is reached.
 //
 // Takes tokens ([]css_ast.Token) which contains the CSS tokens to process.
 // Takes ctx (*resolverContext) which provides the resolution context.
@@ -174,18 +174,18 @@ func resolveVariablesIteratively(tokens []css_ast.Token, ctx *resolverContext) [
 	return resolvedTokens
 }
 
-// reportMaxDepthExceeded creates a diagnostic when variable resolution
-// exceeds the maximum depth limit.
+// reportMaxDepthExceeded creates a diagnostic when variable resolution exceeds the
+// maximum depth limit.
 //
-// This is kept separate from the main resolution logic to make the code
-// easier to maintain.
+// This is kept separate from the main resolution logic to make the code easier to
+// maintain.
 //
-// Takes originalTokens ([]css_ast.Token) which contains the original CSS
-// tokens before resolution.
-// Takes partialTokens ([]css_ast.Token) which contains the tokens after
-// partial resolution was tried.
-// Takes ctx (*resolverContext) which provides the resolution context and
-// collects diagnostics.
+// Takes originalTokens ([]css_ast.Token) which contains the original CSS tokens before
+// resolution.
+// Takes partialTokens ([]css_ast.Token) which contains the tokens after partial
+// resolution was tried.
+// Takes ctx (*resolverContext) which provides the resolution context and collects
+// diagnostics.
 func reportMaxDepthExceeded(originalTokens, partialTokens []css_ast.Token, ctx *resolverContext) {
 	originalValue := tokensToString(originalTokens, ctx.symbols, ctx.symbolMap)
 	partialValue := tokensToString(partialTokens, ctx.symbols, ctx.symbolMap)
@@ -202,14 +202,13 @@ func reportMaxDepthExceeded(originalTokens, partialTokens []css_ast.Token, ctx *
 	))
 }
 
-// resolveVarFunctionsOnce makes a single pass over the token stream to replace
-// any var() functions it finds with their values.
+// resolveVarFunctionsOnce makes a single pass over the token stream to replace any var()
+// functions it finds with their values.
 //
 // Takes tokens ([]css_ast.Token) which is the token stream to process.
 // Takes ctx (*resolverContext) which holds variable values and state.
 //
-// Returns []css_ast.Token which is the token stream with var() functions
-// replaced.
+// Returns []css_ast.Token which is the token stream with var() functions replaced.
 // Returns bool which is true if any changes were made.
 func resolveVarFunctionsOnce(tokens []css_ast.Token, ctx *resolverContext) ([]css_ast.Token, bool) {
 	var result []css_ast.Token
@@ -240,15 +239,12 @@ func isVarFunction(token css_ast.Token) bool {
 
 // processVarFunction resolves a single var() function token.
 //
-// Takes token (css_ast.Token) which is the var() function token to
-// resolve.
-// Takes ctx (*resolverContext) which provides theme data and symbol
-// mappings.
-// Takes changed (*bool) which is set to true when any value is
-// resolved.
+// Takes token (css_ast.Token) which is the var() function token to resolve.
+// Takes ctx (*resolverContext) which provides theme data and symbol mappings.
+// Takes changed (*bool) which is set to true when any value is resolved.
 //
-// Returns []css_ast.Token which contains the resolved token values,
-// or nil if the variable is not defined and has no fallback.
+// Returns []css_ast.Token which contains the resolved token values, or nil if the
+// variable is not defined and has no fallback.
 func processVarFunction(token css_ast.Token, ctx *resolverContext, changed *bool) []css_ast.Token {
 	var argTokens []css_ast.Token
 	if token.Children != nil {
@@ -272,12 +268,11 @@ func processVarFunction(token css_ast.Token, ctx *resolverContext, changed *bool
 	return nil
 }
 
-// reportUndefinedVariable creates a warning for a CSS variable that is not
-// defined. This keeps diagnostic creation separate from CSS variable handling.
+// reportUndefinedVariable creates a warning for a CSS variable that is not defined. This
+// keeps diagnostic creation separate from CSS variable handling.
 //
 // Takes varName (string) which is the CSS variable name without the -- prefix.
-// Takes ctx (*resolverContext) which provides the diagnostics list and source
-// path.
+// Takes ctx (*resolverContext) which provides the diagnostics list and source path.
 func reportUndefinedVariable(varName string, ctx *resolverContext) {
 	*ctx.diagnostics = append(*ctx.diagnostics, ast_domain.NewDiagnostic(
 		ast_domain.Warning,
@@ -288,19 +283,18 @@ func reportUndefinedVariable(varName string, ctx *resolverContext) {
 	))
 }
 
-// parseVarArguments extracts the variable name and optional
-// fallback value from a var() function call.
+// parseVarArguments extracts the variable name and optional fallback value from a var()
+// function call.
 //
-// Arguments are in the form: --variable-name or
-// --variable-name, fallback-value.
+// Arguments are in the form: --variable-name or --variable-name, fallback-value.
 //
-// Takes argTokens ([]css_ast.Token) which contains the tokens inside the
-// var() function call.
+// Takes argTokens ([]css_ast.Token) which contains the tokens inside the var() function
+// call.
 //
-// Returns varName (string) which is the extracted CSS variable name
-// without the leading dashes.
-// Returns fallback ([]css_ast.Token) which contains the fallback value
-// tokens, or nil when no fallback is provided.
+// Returns varName (string) which is the extracted CSS variable name without the leading
+// dashes.
+// Returns fallback ([]css_ast.Token) which contains the fallback value tokens, or nil
+// when no fallback is provided.
 func parseVarArguments(argTokens []css_ast.Token, _ []ast.Symbol, _ ast.SymbolMap) (varName string, fallback []css_ast.Token) {
 	if len(argTokens) == 0 {
 		return "", nil
@@ -319,8 +313,8 @@ func parseVarArguments(argTokens []css_ast.Token, _ []ast.Symbol, _ ast.SymbolMa
 // Takes tokens ([]css_ast.Token) which is the slice of CSS tokens to scan.
 // Takes startIndex (int) which is the position to start scanning from.
 //
-// Returns int which is the index of the first non-whitespace token, or the
-// length of the slice if all remaining tokens are whitespace.
+// Returns int which is the index of the first non-whitespace token, or the length of the
+// slice if all remaining tokens are whitespace.
 func skipWhitespace(tokens []css_ast.Token, startIndex int) int {
 	i := startIndex
 	for i < len(tokens) && tokens[i].Kind == css_lexer.TWhitespace {
@@ -329,15 +323,15 @@ func skipWhitespace(tokens []css_ast.Token, startIndex int) int {
 	return i
 }
 
-// parseVariableName extracts the CSS variable name from tokens. It handles two
-// formats: separate dashes (TDelim("-") TDelim("-") TIdent("name")) and combined
-// dashes (TIdent("--name")).
+// parseVariableName extracts the CSS variable name from tokens. It handles two formats:
+// separate dashes (TDelim("-") TDelim("-") TIdent("name")) and combined dashes
+// (TIdent("--name")).
 //
 // Takes tokens ([]css_ast.Token) which contains the CSS tokens to parse.
 // Takes startIndex (int) which specifies where to begin parsing.
 //
-// Returns varName (string) which is the variable name without leading dashes,
-// or empty if no valid name is found.
+// Returns varName (string) which is the variable name without leading dashes, or empty if
+// no valid name is found.
 // Returns nextIndex (int) which is the position after the parsed variable name.
 func parseVariableName(tokens []css_ast.Token, startIndex int) (varName string, nextIndex int) {
 	i := startIndex
@@ -367,14 +361,14 @@ func parseVariableName(tokens []css_ast.Token, startIndex int) (varName string, 
 	return "", i
 }
 
-// hasSeparateDoubleDashPrefix checks if the tokens at the given position start
-// with two separate dash tokens that form a "--" prefix.
+// hasSeparateDoubleDashPrefix checks if the tokens at the given position start with two
+// separate dash tokens that form a "--" prefix.
 //
 // Takes tokens ([]css_ast.Token) which is the token slice to check.
 // Takes startIndex (int) which is the position to start checking from.
 //
-// Returns bool which is true if two separate delimiter tokens at startIndex
-// form a "--" prefix.
+// Returns bool which is true if two separate delimiter tokens at startIndex form a "--"
+// prefix.
 func hasSeparateDoubleDashPrefix(tokens []css_ast.Token, startIndex int) bool {
 	if startIndex+2 >= len(tokens) {
 		return false
@@ -391,8 +385,8 @@ func hasSeparateDoubleDashPrefix(tokens []css_ast.Token, startIndex int) bool {
 // Takes tokens ([]css_ast.Token) which contains the CSS tokens to parse.
 // Takes startIndex (int) which specifies where to begin searching.
 //
-// Returns []css_ast.Token which contains the fallback tokens, or nil if no
-// comma is found.
+// Returns []css_ast.Token which contains the fallback tokens, or nil if no comma is
+// found.
 func parseFallbackValue(tokens []css_ast.Token, startIndex int) []css_ast.Token {
 	i := skipWhitespace(tokens, startIndex)
 
@@ -410,16 +404,16 @@ func parseFallbackValue(tokens []css_ast.Token, startIndex int) []css_ast.Token 
 	return nil
 }
 
-// parseThemeValue parses a theme value string into CSS tokens.
-// This is a simplified parser that creates tokens from a string value.
+// parseThemeValue parses a theme value string into CSS tokens. This is a simplified
+// parser that creates tokens from a string value.
 //
-// When the value contains a var() function call, it parses the nested
-// variable. Otherwise, it parses the value as regular CSS tokens.
+// When the value contains a var() function call, it parses the nested variable.
+// Otherwise, it parses the value as regular CSS tokens.
 //
 // Takes value (string) which is the theme value to parse.
 //
-// Returns []css_ast.Token which contains the parsed CSS tokens, or nil if
-// the value is empty.
+// Returns []css_ast.Token which contains the parsed CSS tokens, or nil if the value is
+// empty.
 func parseThemeValue(value string) []css_ast.Token {
 	value = strings.TrimSpace(value)
 	if value == "" {
@@ -437,8 +431,8 @@ func parseThemeValue(value string) []css_ast.Token {
 //
 // Takes value (string) which contains the var() function string to parse.
 //
-// Returns []css_ast.Token which contains a single TFunction token with the
-// parsed var() call and its arguments as children.
+// Returns []css_ast.Token which contains a single TFunction token with the parsed var()
+// call and its arguments as children.
 func parseNestedVarFunction(value string) []css_ast.Token {
 	inner := value[varFunctionPrefix : len(value)-1]
 
@@ -455,8 +449,7 @@ func parseNestedVarFunction(value string) []css_ast.Token {
 
 // buildVarFunctionChildren builds the child tokens for a var() function.
 //
-// Takes parts ([]string) which contains the variable name and an optional
-// fallback value.
+// Takes parts ([]string) which contains the variable name and an optional fallback value.
 //
 // Returns []css_ast.Token which contains the tokens for the var() function.
 func buildVarFunctionChildren(parts []string) []css_ast.Token {
@@ -482,13 +475,12 @@ func buildVarFunctionChildren(parts []string) []css_ast.Token {
 	return children
 }
 
-// parseRegularThemeValue parses a standard CSS value (not a var reference) into
-// tokens.
+// parseRegularThemeValue parses a standard CSS value (not a var reference) into tokens.
 //
 // Takes value (string) which contains the CSS value to parse.
 //
-// Returns []css_ast.Token which contains the parsed tokens with whitespace
-// kept between words.
+// Returns []css_ast.Token which contains the parsed tokens with whitespace kept between
+// words.
 func parseRegularThemeValue(value string) []css_ast.Token {
 	var tokens []css_ast.Token
 

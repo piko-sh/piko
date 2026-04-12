@@ -34,13 +34,11 @@ import (
 	"piko.sh/piko/internal/wasm/wasm_dto"
 )
 
-// InterpreterAdapter implements InterpreterPort to execute generated
-// Go code inside WASM.
+// InterpreterAdapter implements InterpreterPort to execute generated Go code inside WASM.
 //
-// It supports both incremental Eval and Piko's internal bytecode
-// interpreter (via batch compilation). It uses interface-based
-// dependencies to avoid importing interpreter implementations
-// directly, keeping them isolated to the wdk package and cmd/wasm.
+// It supports both incremental Eval and Piko's internal bytecode interpreter (via batch
+// compilation). It uses interface-based dependencies to avoid importing interpreter
+// implementations directly, keeping them isolated to the wdk package and cmd/wasm.
 type InterpreterAdapter struct {
 	// symbolLoader loads symbols into interpreters.
 	symbolLoader wasm_domain.SymbolLoaderPort
@@ -66,8 +64,7 @@ type interpreterInstance struct {
 // Takes code (string) which is the Go source code to evaluate.
 //
 // Returns any which is the result of evaluating the code.
-// Returns error when the interpreter does not support evaluation or the code
-// is invalid.
+// Returns error when the interpreter does not support evaluation or the code is invalid.
 func (w *interpreterInstance) Eval(ctx context.Context, code string) (any, error) {
 	if evaluator, ok := w.interp.(interface {
 		Eval(string) (reflect.Value, error)
@@ -129,8 +126,8 @@ func (w *interpreterInstance) Reset() {
 
 // Clone creates a copy of the interpreter.
 //
-// Returns templater_domain.InterpreterPort which is a copy of the interpreter,
-// or nil if the underlying interpreter does not support cloning.
+// Returns templater_domain.InterpreterPort which is a copy of the interpreter, or nil if
+// the underlying interpreter does not support cloning.
 func (w *interpreterInstance) Clone() templater_domain.InterpreterPort {
 	if cloner, ok := w.interp.(interface{ Clone() any }); ok {
 		return &interpreterInstance{interp: cloner.Clone()}
@@ -145,26 +142,25 @@ func (w *interpreterInstance) Unwrap() any {
 	return w.interp
 }
 
-// batchCompiler is an optional interface that interpreter instances may
-// implement to support batch compilation of multiple packages at once.
-// The Piko bytecode interpreter implements this via wasmServiceWrapper.
+// batchCompiler is an optional interface that interpreter instances may implement to
+// support batch compilation of multiple packages at once. The Piko bytecode interpreter
+// implements this via wasmServiceWrapper.
 type batchCompiler interface {
-	// CompileAndExecuteWASM compiles and executes all packages
-	// at once within the WASM environment.
+	// CompileAndExecuteWASM compiles and executes all packages at once within the WASM
+	// environment.
 	CompileAndExecuteWASM(ctx context.Context, mainCode, packagePath string, dependencies map[string]string) error
 }
 
 // Interpret executes generated Go code and returns the template AST.
 //
-// When the interpreter supports batch compilation (batchCompiler),
-// it uses CompileAndExecuteWASM to compile all packages at once.
-// Otherwise it falls back to the incremental Eval-based path.
+// When the interpreter supports batch compilation (batchCompiler), it uses
+// CompileAndExecuteWASM to compile all packages at once. Otherwise it falls back to the
+// incremental Eval-based path.
 //
-// Takes request (*wasm_dto.InterpretRequest) which contains the generated code
-// and configuration.
+// Takes request (*wasm_dto.InterpretRequest) which contains the generated code and
+// configuration.
 //
-// Returns *wasm_dto.InterpretResponse which contains the template AST and
-// metadata.
+// Returns *wasm_dto.InterpretResponse which contains the template AST and metadata.
 // Returns error when interpretation fails.
 func (a *InterpreterAdapter) Interpret(ctx context.Context, request *wasm_dto.InterpretRequest) (*wasm_dto.InterpretResponse, error) {
 	if a.interpreterFactory == nil {
@@ -219,18 +215,16 @@ func (a *InterpreterAdapter) Interpret(ctx context.Context, request *wasm_dto.In
 	return a.buildASTResponse(ctx, request)
 }
 
-// buildASTResponse retrieves the registered AST function and produces
-// an InterpretResponse. This is shared between the batch compilation
-// and Eval code paths.
+// buildASTResponse retrieves the registered AST function and produces an
+// InterpretResponse. This is shared between the batch compilation and Eval code paths.
 //
 // Takes ctx (context.Context) for the request context.
-// Takes request (*wasm_dto.InterpretRequest) which contains the package
-// path, request URL, and props.
+// Takes request (*wasm_dto.InterpretRequest) which contains the package path, request
+// URL, and props.
 //
-// Returns *wasm_dto.InterpretResponse which contains the template AST
-// and metadata.
-// Returns error which is always nil because errors are reported
-// inside the response struct.
+// Returns *wasm_dto.InterpretResponse which contains the template AST and metadata.
+// Returns error which is always nil because errors are reported inside the response
+// struct.
 func (a *InterpreterAdapter) buildASTResponse(ctx context.Context, request *wasm_dto.InterpretRequest) (*wasm_dto.InterpretResponse, error) {
 	astFunc, found := templater_domain.GetASTFunc(request.PackagePath)
 	if !found {
@@ -265,8 +259,7 @@ func (a *InterpreterAdapter) buildASTResponse(ctx context.Context, request *wasm
 
 // WithSymbolLoader sets the symbol loader for the interpreter adapter.
 //
-// Takes loader (wasm_domain.SymbolLoaderPort) which loads symbols into
-// the interpreter.
+// Takes loader (wasm_domain.SymbolLoaderPort) which loads symbols into the interpreter.
 //
 // Returns InterpreterAdapterOption which configures the adapter.
 func WithSymbolLoader(loader wasm_domain.SymbolLoaderPort) InterpreterAdapterOption {
@@ -277,8 +270,8 @@ func WithSymbolLoader(loader wasm_domain.SymbolLoaderPort) InterpreterAdapterOpt
 
 // WithInterpreterFactory sets the interpreter factory for the adapter.
 //
-// Takes factory (wasm_domain.InterpreterFactoryPort) which creates new
-// interpreter instances.
+// Takes factory (wasm_domain.InterpreterFactoryPort) which creates new interpreter
+// instances.
 //
 // Returns InterpreterAdapterOption which configures the adapter.
 func WithInterpreterFactory(factory wasm_domain.InterpreterFactoryPort) InterpreterAdapterOption {
@@ -327,8 +320,8 @@ func buildMockRequestData(ctx context.Context, requestURL string) *templater_dto
 
 // convertRuntimeDiagnostics converts generator runtime diagnostics to wasm DTOs.
 //
-// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which are the diagnostics
-// from BuildAST execution.
+// Takes diagnostics ([]*generator_dto.RuntimeDiagnostic) which are the diagnostics from
+// BuildAST execution.
 //
 // Returns []wasm_dto.Diagnostic which contains the converted diagnostics.
 func convertRuntimeDiagnostics(diagnostics []*generator_dto.RuntimeDiagnostic) []wasm_dto.Diagnostic {

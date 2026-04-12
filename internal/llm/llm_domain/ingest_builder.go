@@ -29,8 +29,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// TransformFunc defines a document transformation applied before splitting and
-// embedding. It can strip frontmatter, clean markup, or apply pre-processing.
+// TransformFunc defines a document transformation applied before splitting and embedding.
+// It can strip frontmatter, clean markup, or apply pre-processing.
 type TransformFunc func(document Document) Document
 
 // IngestBuilder provides a fluent API for document ingestion.
@@ -67,9 +67,8 @@ func NewIngestBuilder(service *service, namespace string) *IngestBuilder {
 	}
 }
 
-// FromFS sets a file system loader using the given glob patterns. Patterns
-// prefixed with "**/" match recursively, while plain patterns match a single
-// level.
+// FromFS sets a file system loader using the given glob patterns. Patterns prefixed with
+// "**/" match recursively, while plain patterns match a single level.
 //
 // Takes fsys (fs.FS) which provides the file system to read from.
 // Takes patterns (...string) which specify the glob patterns to match.
@@ -84,9 +83,8 @@ func (b *IngestBuilder) FromFS(fsys fs.FS, patterns ...string) *IngestBuilder {
 	return b
 }
 
-// FromDirectory configures file loading from a local directory using glob
-// patterns. Patterns with "**/" prefix walk recursively; plain patterns match
-// a single level.
+// FromDirectory configures file loading from a local directory using glob patterns.
+// Patterns with "**/" prefix walk recursively; plain patterns match a single level.
 //
 // Takes path (string) which specifies the directory to load files from.
 // Takes patterns (...string) which specifies the glob patterns to match.
@@ -96,9 +94,8 @@ func (b *IngestBuilder) FromDirectory(path string, patterns ...string) *IngestBu
 	return b.FromFS(os.DirFS(path), patterns...)
 }
 
-// Transform appends a transformation function to the pipeline. Transforms are
-// applied in order to each document after loading but before splitting and
-// embedding.
+// Transform appends a transformation function to the pipeline. Transforms are applied in
+// order to each document after loading but before splitting and embedding.
 //
 // Takes transformFunction (TransformFunc) which transforms each document.
 //
@@ -108,12 +105,11 @@ func (b *IngestBuilder) Transform(transformFunction TransformFunc) *IngestBuilde
 	return b
 }
 
-// PostSplitTransform appends a transformation function that runs after
-// splitting, useful for enriching chunks with metadata or filtering them out.
-// Multiple calls chain additional transforms.
+// PostSplitTransform appends a transformation function that runs after splitting, useful
+// for enriching chunks with metadata or filtering them out. Multiple calls chain
+// additional transforms.
 //
-// Takes transformFunction (TransformFunc) which transforms each chunk
-// after splitting.
+// Takes transformFunction (TransformFunc) which transforms each chunk after splitting.
 //
 // Returns *IngestBuilder which allows method chaining.
 func (b *IngestBuilder) PostSplitTransform(transformFunction TransformFunc) *IngestBuilder {
@@ -143,11 +139,11 @@ func (b *IngestBuilder) Splitter(splitter SplitterPort) *IngestBuilder {
 
 // Do executes the ingestion process.
 //
-// When the context is already cancelled or has exceeded its deadline, returns
-// the context's error without performing any work.
+// When the context is already cancelled or has exceeded its deadline, returns the
+// context's error without performing any work.
 //
-// Returns error when the loader is not set, documents fail to load, or adding
-// documents to the vector store fails.
+// Returns error when the loader is not set, documents fail to load, or adding documents
+// to the vector store fails.
 func (b *IngestBuilder) Do(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("context cancelled before ingestion: %w", err)
@@ -164,8 +160,7 @@ func (b *IngestBuilder) Do(ctx context.Context) error {
 	)
 }
 
-// executeIngestion runs the load-transform-split-store pipeline within a
-// tracing span.
+// executeIngestion runs the load-transform-split-store pipeline within a tracing span.
 //
 // Takes spanCtx (context.Context) which carries the span and cancellation.
 // Takes spanLog (logger_domain.Logger) which provides structured logging.
@@ -224,8 +219,8 @@ func (b *IngestBuilder) splitDocuments(docs []Document, spanLog logger_domain.Lo
 	return finalDocuments
 }
 
-// applyPostSplitTransforms applies post-split transforms and filters out
-// chunks with empty content.
+// applyPostSplitTransforms applies post-split transforms and filters out chunks with
+// empty content.
 //
 // Takes docs ([]Document) which contains the chunks to transform.
 // Takes spanLog (logger_domain.Logger) which provides structured logging.
@@ -271,8 +266,8 @@ func hasRecursivePattern(patterns []string) bool {
 	return false
 }
 
-// stripRecursivePrefix removes the "**/" prefix from patterns, converting
-// "**/*.md" to "*.md" for use with RecursiveFSLoader which matches file names.
+// stripRecursivePrefix removes the "**/" prefix from patterns, converting "**/*.md" to
+// "*.md" for use with RecursiveFSLoader which matches file names.
 //
 // Takes patterns ([]string) which contains the glob patterns to process.
 //

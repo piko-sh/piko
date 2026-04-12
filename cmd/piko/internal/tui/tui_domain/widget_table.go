@@ -29,8 +29,7 @@ const (
 	tableMinColumnWidth = 5
 )
 
-// Column defines a table column with its display style, title, width, and
-// text alignment.
+// Column defines a table column with its display style, title, width, and text alignment.
 type Column struct {
 	// Style sets the column styling; if empty, the base style is used.
 	Style lipgloss.Style
@@ -62,8 +61,8 @@ type TableConfig struct {
 	// BorderStyle sets the look of table borders.
 	BorderStyle lipgloss.Style
 
-	// AlternateRowStyle is the style applied to odd-numbered rows; nil disables
-	// alternate row styling.
+	// AlternateRowStyle is the style applied to odd-numbered rows; nil disables alternate
+	// row styling.
 	AlternateRowStyle *lipgloss.Style
 
 	// Columns defines the column headers and their display settings.
@@ -102,10 +101,9 @@ func DefaultTableConfig(columns []Column) TableConfig {
 // Table renders a data table with optional header and row selection.
 //
 // Takes rows ([]Row) which contains the data to display in the table.
-// Takes selectedIndex (int) which specifies which row to highlight, or -1 for
-// no selection.
-// Takes config (*TableConfig) which defines columns, styles, and display
-// options.
+// Takes selectedIndex (int) which specifies which row to highlight, or -1 for no
+// selection.
+// Takes config (*TableConfig) which defines columns, styles, and display options.
 // Takes width (int) which sets the total available width for the table.
 //
 // Returns string which contains the rendered table ready for display.
@@ -154,8 +152,7 @@ func Table(rows []Row, selectedIndex int, config *TableConfig, width int) string
 //
 // Takes cells (Row) which holds the cell values for this row.
 // Takes widths ([]int) which sets the width of each column.
-// Takes columns ([]Column) which gives column settings for styling and
-// alignment.
+// Takes columns ([]Column) which gives column settings for styling and alignment.
 // Takes baseStyle (*lipgloss.Style) which is the default style to use.
 //
 // Returns string which is the formatted row with cells joined by spaces.
@@ -238,8 +235,8 @@ func columnsToRow(columns []Column) Row {
 // Takes s (string) which is the input string to adjust.
 // Takes width (int) which specifies the target visible width in terminal cells.
 //
-// Returns string which is the adjusted string, cut short with an ellipsis if
-// too long or padded with spaces if too short.
+// Returns string which is the adjusted string, cut short with an ellipsis if too long or
+// padded with spaces if too short.
 func truncateOrPad(s string, width int) string {
 	visible := TextWidth(s)
 	if visible > width {

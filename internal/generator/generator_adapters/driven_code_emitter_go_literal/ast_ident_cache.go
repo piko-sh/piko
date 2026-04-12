@@ -24,9 +24,8 @@ import (
 	"piko.sh/piko/internal/goastutil"
 )
 
-// cachedIdent returns a cached identifier node for the given name.
-// This is a thin wrapper around goastutil.CachedIdent for use within this
-// package.
+// cachedIdent returns a cached identifier node for the given name. A thin wrapper
+// around goastutil.CachedIdent for local callers.
 //
 // Takes name (string) which specifies the identifier name to look up or cache.
 //

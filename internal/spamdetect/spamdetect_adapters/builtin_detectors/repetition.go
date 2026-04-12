@@ -34,15 +34,14 @@ import (
 )
 
 const (
-	// defaultRepetitionTTL is the default time window for tracking repeated
-	// submissions.
+	// defaultRepetitionTTL is the default time window for tracking repeated submissions.
 	defaultRepetitionTTL = 10 * time.Minute
 
 	// repetitionCachePrefix is the key prefix for exact content hashes.
 	repetitionCachePrefix = "sd:rep:"
 
-	// repetitionHashLength is the number of hex characters to use from the
-	// SHA-256 hash. 16 hex chars = 64 bits of collision resistance.
+	// repetitionHashLength is the number of hex characters to use from the SHA-256 hash. 16
+	// hex chars = 64 bits of collision resistance.
 	repetitionHashLength = 16
 )
 
@@ -55,8 +54,8 @@ type RepetitionEntry struct {
 	Count int
 }
 
-// RepetitionDetector checks for repeated submission content using a
-// distributed cache. When no cache is injected, the detector is a no-op.
+// RepetitionDetector checks for repeated submission content using a distributed cache.
+// When no cache is injected, the detector is a no-op.
 type RepetitionDetector struct {
 	// cache stores content hashes with hit counts.
 	cache cache_domain.Cache[string, RepetitionEntry]
@@ -74,8 +73,8 @@ type RepetitionDetector struct {
 // RepetitionOption configures a RepetitionDetector.
 type RepetitionOption func(*RepetitionDetector)
 
-// WithRepetitionClock sets the clock source used for FirstSeen
-// timestamps. Tests inject a mock clock for deterministic behaviour.
+// WithRepetitionClock sets the clock source used for FirstSeen timestamps. Tests inject a
+// mock clock for deterministic behaviour.
 //
 // Takes c (clock.Clock) which provides the time source.
 //
@@ -90,13 +89,13 @@ func WithRepetitionClock(c clock.Clock) RepetitionOption {
 
 // NewRepetitionDetector creates a repetition detector.
 //
-// Takes cache (cache_domain.Cache[string, RepetitionEntry]) which stores
-// content hashes. Pass nil to disable repetition detection.
-// Takes ttl (time.Duration) which is the tracking window. Zero uses the
-// default of 10 minutes.
+// Takes cache (cache_domain.Cache[string, RepetitionEntry]) which stores content hashes.
+// Pass nil to disable repetition detection.
+// Takes ttl (time.Duration) which is the tracking window. Zero uses the default of 10
+// minutes.
 // Takes ipScoped (bool) which scopes tracking per client IP when true.
-// Takes opts (...RepetitionOption) which override the detector defaults
-// (notably the clock source for tests).
+// Takes opts (...RepetitionOption) which override the detector defaults (notably the
+// clock source for tests).
 //
 // Returns *RepetitionDetector which is the configured detector.
 func NewRepetitionDetector(
@@ -132,8 +131,8 @@ func (*RepetitionDetector) Signals() []spamdetect_dto.Signal {
 	return []spamdetect_dto.Signal{spamdetect_dto.SignalRepetition}
 }
 
-// Priority returns the execution tier. Repetition detection is a cache
-// lookup, cheaper than third-party APIs but not free.
+// Priority returns the execution tier. Repetition detection is a cache lookup, cheaper
+// than third-party APIs but not free.
 //
 // Returns spamdetect_dto.DetectorPriority which is PriorityHigh.
 func (*RepetitionDetector) Priority() spamdetect_dto.DetectorPriority {
@@ -211,8 +210,8 @@ func (d *RepetitionDetector) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-// hashFieldContent returns a truncated SHA-256 hex digest of the
-// sorted field key-value pairs.
+// hashFieldContent returns a truncated SHA-256 hex digest of the sorted field key-value
+// pairs.
 //
 // Takes submission (*spamdetect_dto.Submission) which provides values.
 // Takes fields ([]spamdetect_dto.Field) which lists the fields to hash.
@@ -242,8 +241,8 @@ func (*RepetitionDetector) hashFieldContent(submission *spamdetect_dto.Submissio
 	return fullHash
 }
 
-// buildCacheKey assembles the cache key from the prefix, optional IP
-// scope, and content hash.
+// buildCacheKey assembles the cache key from the prefix, optional IP scope, and content
+// hash.
 //
 // Takes contentHash (string) which is the content digest.
 // Takes remoteIP (string) which is the client IP for scoping.
@@ -260,8 +259,8 @@ func (d *RepetitionDetector) buildCacheKey(contentHash string, remoteIP string) 
 	return builder.String()
 }
 
-// recordAndCount atomically increments the hit count for cacheKey and
-// returns the new total.
+// recordAndCount atomically increments the hit count for cacheKey and returns the new
+// total.
 //
 // Takes cacheKey (string) which is the cache key to increment.
 //
@@ -291,8 +290,7 @@ func (d *RepetitionDetector) recordAndCount(ctx context.Context, cacheKey string
 	return newEntry.Count, nil
 }
 
-// scoreFromCount maps a hit count to a spam score and optional
-// human-readable reason.
+// scoreFromCount maps a hit count to a spam score and optional human-readable reason.
 //
 // Takes count (int) which is the number of times the content was seen.
 //

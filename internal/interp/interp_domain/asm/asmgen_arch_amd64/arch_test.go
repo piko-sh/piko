@@ -330,7 +330,7 @@ func TestExitWithReason(t *testing.T) {
 	e := asmgen.NewEmitter()
 	arch.ExitWithReason(e, "EXIT_TIER2")
 
-	assertContainsAll(t, e.String(), "EXIT_TIER2", "96(R15)")
+	assertContainsAll(t, e.String(), "EXIT_TIER2", "CTX_EXIT_REASON(R15)")
 }
 
 func TestLoadFromBank_Integer(t *testing.T) {

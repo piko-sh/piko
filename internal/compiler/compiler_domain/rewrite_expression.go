@@ -26,8 +26,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// RewriteContext holds the state needed when rewriting AST nodes during
-// compilation.
+// RewriteContext holds the state needed when rewriting AST nodes during compilation.
 type RewriteContext struct {
 	// builtInNames maps built-in type and function names to true for quick lookup.
 	builtInNames map[string]bool
@@ -38,19 +37,18 @@ type RewriteContext struct {
 	// scopes is a stack of variable scopes for tracking declared names.
 	scopes []map[string]bool
 
-	// isInsideInstance indicates whether the current position is inside a class
-	// instance method or function declaration during rewriting.
+	// isInsideInstance indicates whether the current position is inside a class instance
+	// method or function declaration during rewriting.
 	isInsideInstance bool
 }
 
-// NewRewriteContext creates a new rewrite context with the given instance
-// properties.
+// NewRewriteContext creates a new rewrite context with the given instance properties.
 //
-// Takes instanceProps ([]string) which specifies the property names that belong
-// to the component instance.
+// Takes instanceProps ([]string) which specifies the property names that belong to the
+// component instance.
 //
-// Returns *RewriteContext which is ready for use with built-in names and the
-// provided instance properties.
+// Returns *RewriteContext which is ready for use with built-in names and the provided
+// instance properties.
 func NewRewriteContext(instanceProps []string) *RewriteContext {
 	propsMap := make(map[string]bool)
 	for _, prop := range instanceProps {
@@ -72,13 +70,12 @@ func NewRewriteContext(instanceProps []string) *RewriteContext {
 	}
 }
 
-// RewriteAST changes a syntax tree to add 'this' references for instance
-// properties.
+// RewriteAST changes a syntax tree to add 'this' references for instance properties.
 //
 // When the syntax tree is nil or has no statements, returns without changes.
 //
-// Takes ctx (context.Context) which carries logging context for trace/request
-// ID propagation.
+// Takes ctx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes syntaxTree (*js_ast.AST) which is the syntax tree to change.
 // Takes instanceProps ([]string) which lists property names that need 'this'.
 func RewriteAST(ctx context.Context, syntaxTree *js_ast.AST, instanceProps []string) {
@@ -92,11 +89,10 @@ func RewriteAST(ctx context.Context, syntaxTree *js_ast.AST, instanceProps []str
 	}
 }
 
-// rewriteStatement rewrites a single JavaScript statement during AST
-// transformation.
+// rewriteStatement rewrites a single JavaScript statement during AST transformation.
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes statement (js_ast.Stmt) which is the statement to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
 func rewriteStatement(goCtx context.Context, statement js_ast.Stmt, ctx *RewriteContext) {
@@ -115,16 +111,15 @@ func rewriteStatement(goCtx context.Context, statement js_ast.Stmt, ctx *Rewrite
 	rewriteExpressionStmt(goCtx, statement, ctx)
 }
 
-// tryRewriteDeclStmt handles declaration statements (block, local, function,
-// class).
+// tryRewriteDeclStmt handles declaration statements (block, local, function, class).
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes statement (js_ast.Stmt) which is the statement to attempt to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
 //
-// Returns bool which is true if the statement was a declaration and was
-// rewritten, false otherwise.
+// Returns bool which is true if the statement was a declaration and was rewritten, false
+// otherwise.
 func tryRewriteDeclStmt(goCtx context.Context, statement js_ast.Stmt, ctx *RewriteContext) bool {
 	switch node := statement.Data.(type) {
 	case *js_ast.SBlock:
@@ -147,11 +142,11 @@ func tryRewriteDeclStmt(goCtx context.Context, statement js_ast.Stmt, ctx *Rewri
 	}
 }
 
-// tryRewriteControlFlowStmt rewrites a control flow statement if it matches a
-// known type such as if, while, for, switch, or try.
+// tryRewriteControlFlowStmt rewrites a control flow statement if it matches a known type
+// such as if, while, for, switch, or try.
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes statement (js_ast.Stmt) which is the statement to check and rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
 //
@@ -198,11 +193,11 @@ func tryRewriteControlFlowStmt(goCtx context.Context, statement js_ast.Stmt, ctx
 	}
 }
 
-// rewriteExpressionStmt rewrites statements that wrap expressions, such as
-// return, throw, and standalone expressions.
+// rewriteExpressionStmt rewrites statements that wrap expressions, such as return, throw,
+// and standalone expressions.
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
 // Takes statement (js_ast.Stmt) which is the statement to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
 func rewriteExpressionStmt(goCtx context.Context, statement js_ast.Stmt, ctx *RewriteContext) {
@@ -231,8 +226,8 @@ func rewriteBlockStmt(goCtx context.Context, node *js_ast.SBlock, ctx *RewriteCo
 	popScope(ctx)
 }
 
-// rewriteIfStmt rewrites an if statement by processing its test expression
-// and its then and else branches.
+// rewriteIfStmt rewrites an if statement by processing its test expression and its then
+// and else branches.
 //
 // Takes node (*js_ast.SIf) which is the if statement to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -244,8 +239,8 @@ func rewriteIfStmt(goCtx context.Context, node *js_ast.SIf, ctx *RewriteContext)
 	}
 }
 
-// rewriteDoWhileStmt rewrites a do-while statement by processing its body and
-// test expression.
+// rewriteDoWhileStmt rewrites a do-while statement by processing its body and test
+// expression.
 //
 // Takes node (*js_ast.SDoWhile) which is the do-while statement to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -280,8 +275,8 @@ func rewriteForStmt(goCtx context.Context, node *js_ast.SFor, ctx *RewriteContex
 	rewriteStatement(goCtx, node.Body, ctx)
 }
 
-// rewriteForInStmt rewrites a for-in statement by processing its initialiser,
-// value expression, and body.
+// rewriteForInStmt rewrites a for-in statement by processing its initialiser, value
+// expression, and body.
 //
 // Takes node (*js_ast.SForIn) which is the for-in statement to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -301,8 +296,8 @@ func rewriteForOfStmt(goCtx context.Context, node *js_ast.SForOf, ctx *RewriteCo
 	rewriteStatement(goCtx, node.Body, ctx)
 }
 
-// rewriteSwitchStmt handles a switch statement by rewriting its test
-// expression and all case clauses within a new scope.
+// rewriteSwitchStmt handles a switch statement by rewriting its test expression and all
+// case clauses within a new scope.
 //
 // Takes node (*js_ast.SSwitch) which is the switch statement to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -331,8 +326,8 @@ func rewriteReturnStmt(goCtx context.Context, node *js_ast.SReturn, ctx *Rewrite
 	}
 }
 
-// rewriteTryStmt rewrites a try-catch-finally statement, processing each block
-// within its own scope.
+// rewriteTryStmt rewrites a try-catch-finally statement, processing each block within its
+// own scope.
 //
 // Takes node (*js_ast.STry) which is the try statement to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -371,8 +366,8 @@ func rewriteCatchBlock(goCtx context.Context, catch *js_ast.Catch, ctx *RewriteC
 	popScope(ctx)
 }
 
-// rewriteVarDecl handles a variable declaration during the rewrite pass.
-// It binds all declared variables and rewrites their initialiser expressions.
+// rewriteVarDecl handles a variable declaration during the rewrite pass. It binds all
+// declared variables and rewrites their initialiser expressions.
 //
 // Takes declaration (*js_ast.SLocal) which is the variable declaration to process.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -387,11 +382,10 @@ func rewriteVarDecl(goCtx context.Context, declaration *js_ast.SLocal, ctx *Rewr
 	}
 }
 
-// rewriteFuncDecl rewrites a function declaration by processing its arguments
-// and body within a new scope.
+// rewriteFuncDecl rewrites a function declaration by processing its arguments and body
+// within a new scope.
 //
-// Takes jsFunction (*js_ast.SFunction) which is the function
-// declaration to rewrite.
+// Takes jsFunction (*js_ast.SFunction) which is the function declaration to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context and state.
 func rewriteFuncDecl(goCtx context.Context, jsFunction *js_ast.SFunction, ctx *RewriteContext) {
 	pushScope(ctx)
@@ -411,8 +405,8 @@ func rewriteFuncDecl(goCtx context.Context, jsFunction *js_ast.SFunction, ctx *R
 	popScope(ctx)
 }
 
-// rewriteClassDecl rewrites a class declaration by processing its extends
-// clause and property values.
+// rewriteClassDecl rewrites a class declaration by processing its extends clause and
+// property values.
 //
 // Takes cd (*js_ast.SClass) which is the class declaration to rewrite.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -433,9 +427,9 @@ func rewriteClassDecl(goCtx context.Context, cd *js_ast.SClass, ctx *RewriteCont
 	}
 }
 
-// rewriteMethod handles a class method during domain rewriting. It binds
-// parameter declarations and rewrites all statements in the method body inside
-// a new scope with instance context enabled.
+// rewriteMethod handles a class method during domain rewriting. It binds parameter
+// declarations and rewrites all statements in the method body inside a new scope with
+// instance context enabled.
 //
 // Takes method (*js_ast.EFunction) which is the method function to rewrite.
 // Takes ctx (*RewriteContext) which holds the current rewriting state.
@@ -475,17 +469,14 @@ func rewriteForInitialiserStmt(goCtx context.Context, statement js_ast.Stmt, ctx
 	}
 }
 
-// rewriteExpression transforms a JavaScript AST expression for
-// domain context.
+// rewriteExpression transforms a JavaScript AST expression for domain context.
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
-// Takes expression (js_ast.Expr) which is the expression node to
-// transform.
-// Takes isLeft (bool) which indicates if the expression is on the
-// left side of an assignment.
-// Takes ctx (*RewriteContext) which provides the rewriting state
-// and options.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes expression (js_ast.Expr) which is the expression node to transform.
+// Takes isLeft (bool) which indicates if the expression is on the left side of an
+// assignment.
+// Takes ctx (*RewriteContext) which provides the rewriting state and options.
 func rewriteExpression(goCtx context.Context, expression js_ast.Expr, isLeft bool, ctx *RewriteContext) {
 	if expression.Data == nil || ctx.isInsideInstance {
 		return
@@ -511,11 +502,9 @@ func rewriteExpression(goCtx context.Context, expression js_ast.Expr, isLeft boo
 	rewriteCollectionOrFunctionExpr(goCtx, expression, ctx)
 }
 
-// isLiteralExpr checks if the expression is a literal that does
-// not need rewriting.
+// isLiteralExpr checks if the expression is a literal that does not need rewriting.
 //
-// Takes expression (js_ast.Expr) which is the expression to
-// check.
+// Takes expression (js_ast.Expr) which is the expression to check.
 //
 // Returns bool which is true if the expression is a literal type.
 func isLiteralExpr(expression js_ast.Expr) bool {
@@ -531,18 +520,15 @@ func isLiteralExpr(expression js_ast.Expr) bool {
 	}
 }
 
-// tryRewriteOperatorExpr handles operator expressions such as
-// unary, binary, and conditional types.
+// tryRewriteOperatorExpr handles operator expressions such as unary, binary, and
+// conditional types.
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
-// Takes expression (js_ast.Expr) which is the expression to check
-// and rewrite.
-// Takes ctx (*RewriteContext) which provides the rewriting
-// context.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes expression (js_ast.Expr) which is the expression to check and rewrite.
+// Takes ctx (*RewriteContext) which provides the rewriting context.
 //
-// Returns bool which is true if the expression was an operator
-// type and was rewritten.
+// Returns bool which is true if the expression was an operator type and was rewritten.
 func tryRewriteOperatorExpr(goCtx context.Context, expression js_ast.Expr, ctx *RewriteContext) bool {
 	switch node := expression.Data.(type) {
 	case *js_ast.EUnary:
@@ -559,15 +545,12 @@ func tryRewriteOperatorExpr(goCtx context.Context, expression js_ast.Expr, ctx *
 	}
 }
 
-// tryRewriteMemberCallExpr handles member access and call
-// expressions.
+// tryRewriteMemberCallExpr handles member access and call expressions.
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
-// Takes expression (js_ast.Expr) which is the expression to check
-// and rewrite.
-// Takes ctx (*RewriteContext) which provides the rewriting
-// context.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes expression (js_ast.Expr) which is the expression to check and rewrite.
+// Takes ctx (*RewriteContext) which provides the rewriting context.
 //
 // Returns bool which is true if the expression was handled.
 func tryRewriteMemberCallExpr(goCtx context.Context, expression js_ast.Expr, ctx *RewriteContext) bool {
@@ -589,16 +572,13 @@ func tryRewriteMemberCallExpr(goCtx context.Context, expression js_ast.Expr, ctx
 	}
 }
 
-// rewriteCollectionOrFunctionExpr rewrites collection literals and
-// function expressions by passing them to the correct
-// type-specific rewriter.
+// rewriteCollectionOrFunctionExpr rewrites collection literals and function expressions
+// by passing them to the correct type-specific rewriter.
 //
-// Takes goCtx (context.Context) which carries logging context for
-// trace/request ID propagation.
-// Takes expression (js_ast.Expr) which is the expression to
-// process.
-// Takes ctx (*RewriteContext) which provides the rewriting
-// context.
+// Takes goCtx (context.Context) which carries logging context for trace/request ID
+// propagation.
+// Takes expression (js_ast.Expr) which is the expression to process.
+// Takes ctx (*RewriteContext) which provides the rewriting context.
 func rewriteCollectionOrFunctionExpr(goCtx context.Context, expression js_ast.Expr, ctx *RewriteContext) {
 	switch node := expression.Data.(type) {
 	case *js_ast.EObject:
@@ -660,8 +640,8 @@ func rewriteCallExpr(goCtx context.Context, node *js_ast.ECall, ctx *RewriteCont
 	}
 }
 
-// rewriteNewExpr rewrites a JavaScript new expression by processing its target
-// and arguments.
+// rewriteNewExpr rewrites a JavaScript new expression by processing its target and
+// arguments.
 //
 // Takes node (*js_ast.ENew) which is the new expression to process.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -714,8 +694,8 @@ func rewriteTemplateExpr(goCtx context.Context, node *js_ast.ETemplate, ctx *Rew
 	}
 }
 
-// rewriteArrowExpr rewrites an arrow function expression by binding its
-// parameters and rewriting its body statements within a new scope.
+// rewriteArrowExpr rewrites an arrow function expression by binding its parameters and
+// rewriting its body statements within a new scope.
 //
 // Takes node (*js_ast.EArrow) which is the arrow function to rewrite.
 // Takes ctx (*RewriteContext) which holds the rewriting state.
@@ -743,8 +723,8 @@ func rewriteYieldExpr(goCtx context.Context, node *js_ast.EYield, ctx *RewriteCo
 	}
 }
 
-// rewriteIdentifier does nothing and is a placeholder for identifier
-// expression rewriting.
+// rewriteIdentifier does nothing and is a placeholder for identifier expression
+// rewriting.
 func rewriteIdentifier(_ *js_ast.EIdentifier, _ bool, _ *RewriteContext) {
 }
 
@@ -766,8 +746,8 @@ func bindDeclaration(goCtx context.Context, binding js_ast.Binding, ctx *Rewrite
 	}
 }
 
-// bindArrayBinding handles array destructuring bindings by walking through
-// each element in the pattern recursively.
+// bindArrayBinding handles array destructuring bindings by walking through each element
+// in the pattern recursively.
 //
 // Takes arr (*js_ast.BArray) which is the array binding pattern to process.
 // Takes ctx (*RewriteContext) which provides the rewriting context.
@@ -782,11 +762,9 @@ func bindArrayBinding(goCtx context.Context, arr *js_ast.BArray, ctx *RewriteCon
 	}
 }
 
-// bindObjectBinding processes an object destructuring pattern to bind its
-// properties.
+// bindObjectBinding processes an object destructuring pattern to bind its properties.
 //
-// Takes objectBinding (*js_ast.BObject) which is the object binding
-// pattern to process.
+// Takes objectBinding (*js_ast.BObject) which is the object binding pattern to process.
 // Takes ctx (*RewriteContext) which provides the rewrite context.
 func bindObjectBinding(goCtx context.Context, objectBinding *js_ast.BObject, ctx *RewriteContext) {
 	for i := range objectBinding.Properties {
@@ -856,8 +834,7 @@ func addNameToScope(identifier string, ctx *RewriteContext) {
 	ctx.scopes[len(ctx.scopes)-1][identifier] = true
 }
 
-// isAssignmentOperator checks whether the given operator is an assignment
-// operator.
+// isAssignmentOperator checks whether the given operator is an assignment operator.
 //
 // Takes op (js_ast.OpCode) which is the binary operator to check.
 //

@@ -25,8 +25,8 @@ import (
 	"sync"
 )
 
-// capabilityService implements the CapabilityService interface to manage and
-// run registered capabilities.
+// capabilityService implements the CapabilityService interface to manage and run
+// registered capabilities.
 type capabilityService struct {
 	// capabilities maps capability names to their handler functions.
 	capabilities map[string]CapabilityFunc
@@ -84,9 +84,8 @@ func (s *capabilityService) Execute(
 
 // NewCapabilityService creates a new instance of the CapabilityService.
 //
-// Takes initialCapacity (int) which is a hint to pre-allocate the underlying
-// map, reducing memory re-allocations when registering a known number of
-// capabilities.
+// Takes initialCapacity (int) which is a hint to pre-allocate the underlying map,
+// reducing memory re-allocations when registering a known number of capabilities.
 //
 // Returns CapabilityService which is ready to have capabilities registered.
 func NewCapabilityService(initialCapacity int) CapabilityService {

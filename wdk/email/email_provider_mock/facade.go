@@ -23,21 +23,20 @@ import (
 	"piko.sh/piko/wdk/email"
 )
 
-// MockEmailProvider is the mock email provider type used for testing.
-// It is re-exported to give tests direct access to assertion methods.
+// MockEmailProvider is the mock email provider type used for testing. It is re-exported
+// to give tests direct access to assertion methods.
 type MockEmailProvider = provider_mock.MockEmailProvider
 
 // NewMockEmailProvider creates a new mock email provider for testing.
 //
-// The mock provider is thread-safe and records all send operations.
-// It provides methods for:
+// The mock provider is thread-safe and records all send operations. It provides methods
+// for:
 //   - Recording sent emails (GetSendCalls, GetBulkSendCalls)
 //   - Simulating errors (SetSendError, SetBulkSendError)
 //   - Configuring capabilities (SetSupportsBulk)
 //   - Resetting state (Reset)
 //
-// Returns email.ProviderPort which is a mock provider ready for use in
-// tests.
+// Returns email.ProviderPort which is a mock provider ready for use in tests.
 //
 // Example:
 //

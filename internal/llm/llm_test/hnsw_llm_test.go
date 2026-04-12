@@ -35,7 +35,9 @@ import (
 	"piko.sh/piko/internal/llm/llm_dto"
 )
 
-var registerVectorDocBlueprint sync.Once
+var (
+	registerVectorDocBlueprint sync.Once
+)
 
 func TestLLM_Vertical_HNSW_RAG_Flow(t *testing.T) {
 	h := newTestHarness(t)

@@ -26,13 +26,15 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// Button represents a clickable button element for email templates.
-// It implements the pml_domain.Component interface for the <pml-button> tag.
+// Button represents a clickable button element for email templates. It implements the
+// pml_domain.Component interface for the <pml-button> tag.
 type Button struct {
 	BaseComponent
 }
 
-var _ pml_domain.Component = (*Button)(nil)
+var (
+	_ pml_domain.Component = (*Button)(nil)
+)
 
 const (
 	// defaultButtonAlign is the default horizontal alignment for buttons.
@@ -86,8 +88,8 @@ const (
 
 // NewButton creates a new Button component instance.
 //
-// A Button renders a button that works across different email clients, with
-// VML fallback for Outlook.
+// A Button renders a button that works across different email clients, with VML fallback
+// for Outlook.
 //
 // Returns *Button which is the configured button ready for use.
 func NewButton() *Button {
@@ -103,8 +105,7 @@ func (*Button) TagName() string {
 	return "pml-button"
 }
 
-// IsEndingTag returns true because Button treats its children as raw HTML
-// content.
+// IsEndingTag returns true because Button treats its children as raw HTML content.
 //
 // Returns bool which is always true for this element type.
 func (*Button) IsEndingTag() bool {
@@ -118,41 +119,42 @@ func (*Button) AllowedParents() []string {
 	return []string{"pml-col", "pml-hero"}
 }
 
-// buttonAllowedAttributes defines the valid attributes for buttons.
-var buttonAllowedAttributes = map[string]pml_domain.AttributeDefinition{
-	AttrHref:                     NewAttributeDefinition(pml_domain.TypeString),
-	AttrAlign:                    NewEnumAttributeDefinition([]string{ValueLeft, ValueCentre, ValueRight}),
-	CSSBackgroundColor:           NewAttributeDefinition(pml_domain.TypeColor),
-	AttrBorderRadius:             NewAttributeDefinition(pml_domain.TypeUnit),
-	AttrBorder:                   NewAttributeDefinition(pml_domain.TypeString),
-	AttrColour:                   NewAttributeDefinition(pml_domain.TypeColor),
-	CSSFontFamily:                NewAttributeDefinition(pml_domain.TypeString),
-	CSSFontSize:                  NewAttributeDefinition(pml_domain.TypeUnit),
-	CSSFontWeight:                NewAttributeDefinition(pml_domain.TypeString),
-	AttrHeight:                   NewAttributeDefinition(pml_domain.TypeUnit),
-	AttrInnerPadding:             NewAttributeDefinition(pml_domain.TypeUnit),
-	CSSLineHeight:                NewAttributeDefinition(pml_domain.TypeUnit),
-	AttrPadding:                  NewAttributeDefinition(pml_domain.TypeUnit),
-	AttrTarget:                   NewAttributeDefinition(pml_domain.TypeString),
-	CSSTextDecoration:            NewAttributeDefinition(pml_domain.TypeString),
-	CSSTextTransform:             NewAttributeDefinition(pml_domain.TypeString),
-	CSSVerticalAlign:             NewEnumAttributeDefinition([]string{ValueTop, ValueMiddle, ValueBottom}),
-	AttrWidth:                    NewAttributeDefinition(pml_domain.TypeUnit),
-	AttrContainerBackgroundColor: NewAttributeDefinition(pml_domain.TypeColor),
-	AttrTitle:                    NewAttributeDefinition(pml_domain.TypeString),
-	AttrRel:                      NewAttributeDefinition(pml_domain.TypeString),
-}
+var (
+	// buttonAllowedAttributes defines the valid attributes for buttons.
+	buttonAllowedAttributes = map[string]pml_domain.AttributeDefinition{
+		AttrHref:                     NewAttributeDefinition(pml_domain.TypeString),
+		AttrAlign:                    NewEnumAttributeDefinition([]string{ValueLeft, ValueCentre, ValueRight}),
+		CSSBackgroundColor:           NewAttributeDefinition(pml_domain.TypeColor),
+		AttrBorderRadius:             NewAttributeDefinition(pml_domain.TypeUnit),
+		AttrBorder:                   NewAttributeDefinition(pml_domain.TypeString),
+		AttrColour:                   NewAttributeDefinition(pml_domain.TypeColor),
+		CSSFontFamily:                NewAttributeDefinition(pml_domain.TypeString),
+		CSSFontSize:                  NewAttributeDefinition(pml_domain.TypeUnit),
+		CSSFontWeight:                NewAttributeDefinition(pml_domain.TypeString),
+		AttrHeight:                   NewAttributeDefinition(pml_domain.TypeUnit),
+		AttrInnerPadding:             NewAttributeDefinition(pml_domain.TypeUnit),
+		CSSLineHeight:                NewAttributeDefinition(pml_domain.TypeUnit),
+		AttrPadding:                  NewAttributeDefinition(pml_domain.TypeUnit),
+		AttrTarget:                   NewAttributeDefinition(pml_domain.TypeString),
+		CSSTextDecoration:            NewAttributeDefinition(pml_domain.TypeString),
+		CSSTextTransform:             NewAttributeDefinition(pml_domain.TypeString),
+		CSSVerticalAlign:             NewEnumAttributeDefinition([]string{ValueTop, ValueMiddle, ValueBottom}),
+		AttrWidth:                    NewAttributeDefinition(pml_domain.TypeUnit),
+		AttrContainerBackgroundColor: NewAttributeDefinition(pml_domain.TypeColor),
+		AttrTitle:                    NewAttributeDefinition(pml_domain.TypeString),
+		AttrRel:                      NewAttributeDefinition(pml_domain.TypeString),
+	}
+)
 
 // AllowedAttributes returns the map of valid attributes for this component.
 //
-// Returns map[string]pml_domain.AttributeDefinition which maps attribute names
-// to their definitions.
+// Returns map[string]pml_domain.AttributeDefinition which maps attribute names to their
+// definitions.
 func (*Button) AllowedAttributes() map[string]pml_domain.AttributeDefinition {
 	return buttonAllowedAttributes
 }
 
-// DefaultAttributes returns the default attribute values for the pml-button
-// element.
+// DefaultAttributes returns the default attribute values for the pml-button element.
 //
 // Returns map[string]string which contains the default styling attributes.
 func (*Button) DefaultAttributes() map[string]string {
@@ -177,8 +179,8 @@ func (*Button) DefaultAttributes() map[string]string {
 
 // GetStyleTargets returns the list of style targets for this component.
 //
-// Returns []pml_domain.StyleTarget which maps CSS properties to their
-// rendering targets (container, cell, or link).
+// Returns []pml_domain.StyleTarget which maps CSS properties to their rendering targets
+// (container, cell, or link).
 func (*Button) GetStyleTargets() []pml_domain.StyleTarget {
 	return []pml_domain.StyleTarget{
 		{Property: AttrAlign, Target: TargetContainer},
@@ -200,21 +202,18 @@ func (*Button) GetStyleTargets() []pml_domain.StyleTarget {
 	}
 }
 
-// Transform converts a pml-button element into either a linked or non-linked
-// HTML button.
+// Transform converts a pml-button element into either a linked or non-linked HTML button.
 //
-// pml-button does NOT apply its padding, align, or container-background-colour
-// to itself. These attributes are stored as data-pml-* attributes so the
-// parent pml-col can read them and apply them to the wrapper <td> element.
+// pml-button does NOT apply its padding, align, or container-background-colour to itself.
+// These attributes are stored as data-pml-* attributes so the parent pml-col can read
+// them and apply them to the wrapper <td> element.
 //
-// Takes node (*ast_domain.TemplateNode) which is the button element to
-// transform.
-// Takes ctx (*pml_domain.TransformationContext) which provides style and
-// diagnostic management.
+// Takes node (*ast_domain.TemplateNode) which is the button element to transform.
+// Takes ctx (*pml_domain.TransformationContext) which provides style and diagnostic
+// management.
 //
 // Returns *ast_domain.TemplateNode which is the transformed HTML element.
-// Returns []*pml_domain.Error which contains any diagnostics from the
-// transformation.
+// Returns []*pml_domain.Error which contains any diagnostics from the transformation.
 func (c *Button) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.TransformationContext) (*ast_domain.TemplateNode, []*pml_domain.Error) {
 	styles := ctx.StyleManager
 
@@ -236,16 +235,14 @@ func (c *Button) Transform(node *ast_domain.TemplateNode, ctx *pml_domain.Transf
 	return buttonNode, ctx.Diagnostics()
 }
 
-// renderLinkedButton creates the structure for a button with a link, using an
-// anchor tag and VML fallback for older email clients.
+// renderLinkedButton creates the structure for a button with a link, using an anchor tag
+// and VML fallback for older email clients.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the button styling.
-// Takes contentNodes ([]*ast_domain.TemplateNode) which contains the button
-// content.
+// Takes contentNodes ([]*ast_domain.TemplateNode) which contains the button content.
 // Takes href (string) which specifies the link destination.
 //
-// Returns *ast_domain.TemplateNode which is the button fragment with VML
-// fallback.
+// Returns *ast_domain.TemplateNode which is the button fragment with VML fallback.
 func (c *Button) renderLinkedButton(styles *pml_domain.StyleManager, contentNodes []*ast_domain.TemplateNode, href string) *ast_domain.TemplateNode {
 	linkStyles := buildLinkStyles(styles)
 	cellStyles := buildCellStyles(styles)
@@ -261,15 +258,14 @@ func (c *Button) renderLinkedButton(styles *pml_domain.StyleManager, contentNode
 	return buildButtonFragment(vmlButton, tableNode)
 }
 
-// renderNonLinkedButton creates a table with a paragraph element for buttons
-// that do not have links.
+// renderNonLinkedButton creates a table with a paragraph element for buttons that do not
+// have links.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style settings.
-// Takes contentNodes ([]*ast_domain.TemplateNode) which contains the button
-// content.
+// Takes contentNodes ([]*ast_domain.TemplateNode) which contains the button content.
 //
-// Returns *ast_domain.TemplateNode which is the table structure with the
-// styled paragraph.
+// Returns *ast_domain.TemplateNode which is the table structure with the styled
+// paragraph.
 func (*Button) renderNonLinkedButton(styles *pml_domain.StyleManager, contentNodes []*ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	pStyles := buildParagraphStyles(styles)
 	cellStyles := buildCellStyles(styles)
@@ -332,8 +328,8 @@ func (*Button) renderNonLinkedButton(styles *pml_domain.StyleManager, contentNod
 // Takes content (string) which is the button label text.
 // Takes href (string) which is the button link URL.
 //
-// Returns *ast_domain.TemplateNode which contains the VML markup wrapped in
-// conditional comments.
+// Returns *ast_domain.TemplateNode which contains the VML markup wrapped in conditional
+// comments.
 func (*Button) renderVML(styles *pml_domain.StyleManager, content, href string) *ast_domain.TemplateNode {
 	width := mustGetStyle(styles, AttrWidth)
 	height := mustGetStyle(styles, AttrHeight)
@@ -355,8 +351,8 @@ func (*Button) renderVML(styles *pml_domain.StyleManager, content, href string) 
 	return NewRawHTMLNode(fmt.Sprintf("%s%s%s", ConditionalCommentStart, vmlHTML, ConditionalCommentEnd))
 }
 
-// buildVMLInset constructs the v:textbox inset attribute value from the
-// button's inner-padding. The VML inset format is "left,top,right,bottom".
+// buildVMLInset constructs the v:textbox inset attribute value from the button's
+// inner-padding. The VML inset format is "left,top,right,bottom".
 //
 // Takes styles (*pml_domain.StyleManager) which provides the padding values.
 //
@@ -372,15 +368,14 @@ func buildVMLInset(styles *pml_domain.StyleManager) string {
 	)
 }
 
-// extractTextContent walks through AST nodes and collects all text content.
-// This is used for VML rendering, which cannot handle rich HTML like <span>
-// tags.
+// extractTextContent walks through AST nodes and collects all text content. This is used
+// for VML rendering, which cannot handle rich HTML like <span> tags.
 //
-// Takes nodes ([]*ast_domain.TemplateNode) which contains the AST nodes to
-// extract text from.
+// Takes nodes ([]*ast_domain.TemplateNode) which contains the AST nodes to extract text
+// from.
 //
-// Returns string which contains the combined text content, trimmed of
-// surrounding whitespace.
+// Returns string which contains the combined text content, trimmed of surrounding
+// whitespace.
 func extractTextContent(nodes []*ast_domain.TemplateNode) string {
 	var result strings.Builder
 	for _, node := range nodes {
@@ -400,13 +395,13 @@ func extractTextContent(nodes []*ast_domain.TemplateNode) string {
 
 // buildLinkAttributes builds the HTML attributes for the button link.
 //
-// Takes styles (*pml_domain.StyleManager) which provides style values for
-// target, rel, and title attributes.
+// Takes styles (*pml_domain.StyleManager) which provides style values for target, rel,
+// and title attributes.
 // Takes linkStyles (map[string]string) which contains the inline CSS styles.
 // Takes href (string) which specifies the link destination URL.
 //
-// Returns []ast_domain.HTMLAttribute which contains the sorted link attributes
-// including href, target, style, and optionally rel and title.
+// Returns []ast_domain.HTMLAttribute which contains the sorted link attributes including
+// href, target, style, and optionally rel and title.
 func buildLinkAttributes(styles *pml_domain.StyleManager, linkStyles map[string]string, href string) []ast_domain.HTMLAttribute {
 	target := getStyleWithDefault(styles, AttrTarget, defaultButtonTarget)
 
@@ -426,16 +421,15 @@ func buildLinkAttributes(styles *pml_domain.StyleManager, linkStyles map[string]
 	return sortHTMLAttributes(linkAttrs)
 }
 
-// buildButtonFragment creates a fragment node containing VML and the modern
-// button table.
+// buildButtonFragment creates a fragment node containing VML and the modern button table.
 //
-// Takes vmlButton (*ast_domain.TemplateNode) which provides the VML button
-// markup for Outlook compatibility.
-// Takes tableNode (*ast_domain.TemplateNode) which provides the modern HTML
-// table button for other email clients.
+// Takes vmlButton (*ast_domain.TemplateNode) which provides the VML button markup for
+// Outlook compatibility.
+// Takes tableNode (*ast_domain.TemplateNode) which provides the modern HTML table button
+// for other email clients.
 //
-// Returns *ast_domain.TemplateNode which contains both button variants wrapped
-// in conditional comments.
+// Returns *ast_domain.TemplateNode which contains both button variants wrapped in
+// conditional comments.
 func buildButtonFragment(vmlButton, tableNode *ast_domain.TemplateNode) *ast_domain.TemplateNode {
 	return NewFragmentNode([]*ast_domain.TemplateNode{
 		vmlButton,
@@ -445,8 +439,8 @@ func buildButtonFragment(vmlButton, tableNode *ast_domain.TemplateNode) *ast_dom
 	})
 }
 
-// getStyleWithDefault retrieves a style value from the manager or returns a
-// default value if the key is missing or empty.
+// getStyleWithDefault retrieves a style value from the manager or returns a default value
+// if the key is missing or empty.
 //
 // Takes sm (*pml_domain.StyleManager) which provides access to style values.
 // Takes key (string) which identifies the style to retrieve.
@@ -462,12 +456,10 @@ func getStyleWithDefault(sm *pml_domain.StyleManager, key, defaultValue string) 
 
 // getButtonPadding returns the inner padding value for a button element.
 //
-// It checks styles in order: inner-padding, then padding, then the default
-// value. This handles the rule where padding on a button refers to its inner
-// padding.
+// It checks styles in order: inner-padding, then padding, then the default value. This
+// handles the rule where padding on a button refers to its inner padding.
 //
-// Takes styles (*pml_domain.StyleManager) which provides access to style
-// attributes.
+// Takes styles (*pml_domain.StyleManager) which provides access to style attributes.
 //
 // Returns string which is the padding value to use.
 func getButtonPadding(styles *pml_domain.StyleManager) string {
@@ -484,8 +476,8 @@ func getButtonPadding(styles *pml_domain.StyleManager) string {
 //
 // Takes styles (*pml_domain.StyleManager) which provides style overrides.
 //
-// Returns map[string]string which contains CSS property-value pairs with
-// default values used for any missing styles.
+// Returns map[string]string which contains CSS property-value pairs with default values
+// used for any missing styles.
 func buildLinkStyles(styles *pml_domain.StyleManager) map[string]string {
 	return map[string]string{
 		CSSBackground:     getStyleWithDefault(styles, CSSBackgroundColor, defaultButtonBgColor),
@@ -507,8 +499,8 @@ func buildLinkStyles(styles *pml_domain.StyleManager) map[string]string {
 //
 // Takes styles (*pml_domain.StyleManager) which provides the style settings.
 //
-// Returns map[string]string which contains the paragraph styles, including link
-// styles and Outlook padding reset.
+// Returns map[string]string which contains the paragraph styles, including link styles
+// and Outlook padding reset.
 func buildParagraphStyles(styles *pml_domain.StyleManager) map[string]string {
 	pStyles := buildLinkStyles(styles)
 	pStyles[CSSMsoPaddingAlt] = ValueZeroPx
@@ -517,8 +509,7 @@ func buildParagraphStyles(styles *pml_domain.StyleManager) map[string]string {
 
 // buildCellStyles creates CSS style mappings for table cell elements.
 //
-// Takes styles (*pml_domain.StyleManager) which provides the style values to
-// apply.
+// Takes styles (*pml_domain.StyleManager) which provides the style values to apply.
 //
 // Returns map[string]string which contains the CSS properties for the cell.
 func buildCellStyles(styles *pml_domain.StyleManager) map[string]string {
@@ -557,11 +548,10 @@ func buildTableStyles(styles *pml_domain.StyleManager) map[string]string {
 	return tableStyles
 }
 
-// createButtonTable creates the button's table structure with data-pml-*
-// attributes.
+// createButtonTable creates the button's table structure with data-pml-* attributes.
 //
-// The table itself does not have padding or alignment applied. These are stored
-// as data-pml-* attributes so the parent pml-col can apply them.
+// The table itself does not have padding or alignment applied. These are stored as
+// data-pml-* attributes so the parent pml-col can apply them.
 //
 // Takes styles (*pml_domain.StyleManager) which provides style management.
 // Takes tableStyles (map[string]string) which specifies the table styling.
@@ -580,13 +570,12 @@ func createButtonTable(styles *pml_domain.StyleManager, tableStyles, cellStyles 
 
 // buildButtonTableAttributes builds the HTML attributes for a button table.
 //
-// Takes styles (*pml_domain.StyleManager) which provides style values for
-// padding and alignment.
-// Takes tableStyles (map[string]string) which contains the inline CSS styles
-// to apply.
+// Takes styles (*pml_domain.StyleManager) which provides style values for padding and
+// alignment.
+// Takes tableStyles (map[string]string) which contains the inline CSS styles to apply.
 //
-// Returns []ast_domain.HTMLAttribute which contains the sorted attributes
-// including the presentation role, styling, and directional padding data.
+// Returns []ast_domain.HTMLAttribute which contains the sorted attributes including the
+// presentation role, styling, and directional padding data.
 func buildButtonTableAttributes(styles *pml_domain.StyleManager, tableStyles map[string]string) []ast_domain.HTMLAttribute {
 	tableAttrs := []ast_domain.HTMLAttribute{
 		NewHTMLAttribute(AttrBorder, ValueZero),
@@ -604,11 +593,10 @@ func buildButtonTableAttributes(styles *pml_domain.StyleManager, tableStyles map
 	return sortHTMLAttributes(tableAttrs)
 }
 
-// addDirectionalPaddingAttributes adds directional padding data attributes
-// when they exist in the style manager.
+// addDirectionalPaddingAttributes adds directional padding data attributes when they
+// exist in the style manager.
 //
-// Takes tableAttrs (*[]ast_domain.HTMLAttribute) which receives the padding
-// attributes.
+// Takes tableAttrs (*[]ast_domain.HTMLAttribute) which receives the padding attributes.
 // Takes styles (*pml_domain.StyleManager) which provides the style values.
 func addDirectionalPaddingAttributes(tableAttrs *[]ast_domain.HTMLAttribute, styles *pml_domain.StyleManager) {
 	paddingAttrs := map[string]string{
@@ -625,13 +613,12 @@ func addDirectionalPaddingAttributes(tableAttrs *[]ast_domain.HTMLAttribute, sty
 	}
 }
 
-// addContainerBgAttribute adds a container background colour attribute to the
-// table attributes if the style is set.
+// addContainerBgAttribute adds a container background colour attribute to the table
+// attributes if the style is set.
 //
-// Takes tableAttrs (*[]ast_domain.HTMLAttribute) which receives the new
-// attribute if the background colour style is set.
-// Takes styles (*pml_domain.StyleManager) which provides the style values to
-// check.
+// Takes tableAttrs (*[]ast_domain.HTMLAttribute) which receives the new attribute if the
+// background colour style is set.
+// Takes styles (*pml_domain.StyleManager) which provides the style values to check.
 func addContainerBgAttribute(tableAttrs *[]ast_domain.HTMLAttribute, styles *pml_domain.StyleManager) {
 	if containerBg := mustGetStyle(styles, AttrContainerBackgroundColor); containerBg != "" {
 		*tableAttrs = append(*tableAttrs, NewHTMLAttribute("data-pml-container-background-color", containerBg))
@@ -640,11 +627,10 @@ func addContainerBgAttribute(tableAttrs *[]ast_domain.HTMLAttribute, styles *pml
 
 // buildButtonTDNode creates the TD element that wraps the button content.
 //
-// Takes styles (*pml_domain.StyleManager) which provides style values for the
-// cell attributes.
+// Takes styles (*pml_domain.StyleManager) which provides style values for the cell
+// attributes.
 // Takes cellStyles (map[string]string) which contains CSS styles for the cell.
-// Takes contentNode (*ast_domain.TemplateNode) which is the button content to
-// wrap.
+// Takes contentNode (*ast_domain.TemplateNode) which is the button content to wrap.
 //
 // Returns *ast_domain.TemplateNode which is the configured TD element.
 func buildButtonTDNode(styles *pml_domain.StyleManager, cellStyles map[string]string, contentNode *ast_domain.TemplateNode) *ast_domain.TemplateNode {
@@ -665,8 +651,8 @@ func buildButtonTDNode(styles *pml_domain.StyleManager, cellStyles map[string]st
 // Takes width (string) which specifies the button width.
 // Takes height (string) which specifies the button height.
 //
-// Returns string which contains the formatted VML style attributes, defaulting
-// to "height:40px;width:200px;" when both parameters are empty.
+// Returns string which contains the formatted VML style attributes, defaulting to
+// "height:40px;width:200px;" when both parameters are empty.
 func buildButtonVMLRectStyle(width, height string) string {
 	var vRectStyle strings.Builder
 	if height != "" {
@@ -681,8 +667,7 @@ func buildButtonVMLRectStyle(width, height string) string {
 	return vRectStyle.String()
 }
 
-// parseVMLStroke extracts stroke properties from a border string for VML
-// rendering.
+// parseVMLStroke extracts stroke properties from a border string for VML rendering.
 //
 // Takes border (string) which contains the border definition to parse.
 // Takes bgColor (string) which provides the fallback stroke colour.
@@ -708,8 +693,8 @@ func parseVMLStroke(border, bgColor string) (strokeColor, strokeWeight string, h
 
 // buildVMLCentreStyles builds the VML centre element style string.
 //
-// Takes styles (*pml_domain.StyleManager) which provides style values with
-// defaults for colour, font family, size, and weight.
+// Takes styles (*pml_domain.StyleManager) which provides style values with defaults for
+// colour, font family, size, and weight.
 //
 // Returns string which contains the formatted CSS style declarations.
 func buildVMLCentreStyles(styles *pml_domain.StyleManager) string {
@@ -728,14 +713,12 @@ func buildVMLCentreStyles(styles *pml_domain.StyleManager) string {
 // Takes vRectStyle (string) which defines the VML rectangle CSS style.
 // Takes arcsize (string) which specifies the corner rounding percentage.
 // Takes hasStroke (bool) which controls whether a border stroke is applied.
-// Takes strokeColor (string) which sets the border colour when hasStroke is
-// true.
-// Takes strokeWeight (string) which sets the border thickness when hasStroke
-// is true.
+// Takes strokeColor (string) which sets the border colour when hasStroke is true.
+// Takes strokeWeight (string) which sets the border thickness when hasStroke is true.
 // Takes bgColor (string) which specifies the fill colour.
 //
-// Returns string which contains the formatted VML attribute string for use in
-// a roundrect element.
+// Returns string which contains the formatted VML attribute string for use in a roundrect
+// element.
 func buildVMLAttributes(href, vRectStyle, arcsize string, hasStroke bool, strokeColor, strokeWeight, bgColor string) string {
 	var vmlAttrs strings.Builder
 	_, _ = fmt.Fprintf(&vmlAttrs, `xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href=%q style=%q arcsize=%q`, href, vRectStyle, arcsize)
@@ -750,8 +733,8 @@ func buildVMLAttributes(href, vRectStyle, arcsize string, hasStroke bool, stroke
 	return vmlAttrs.String()
 }
 
-// calculateArcsize computes the VML arcsize percentage from border radius and
-// height values.
+// calculateArcsize computes the VML arcsize percentage from border radius and height
+// values.
 //
 // Takes borderRadius (string) which specifies the corner radius in pixels.
 // Takes height (string) which specifies the element height in pixels.

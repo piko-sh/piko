@@ -32,12 +32,13 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// defaultMaxDotenvBytes is the default upper bound on the size of a dotenv
-// file that the parser will accept. The cap is intentionally generous for
-// legitimate operator workflows yet small enough to defend against a hostile
-// or accidentally truncated stream that would otherwise allocate without
-// bound.
-const defaultMaxDotenvBytes int64 = 1 * 1024 * 1024
+const (
+	// defaultMaxDotenvBytes is the default upper bound on the size of a dotenv file that the
+	// parser will accept. The cap is intentionally generous for legitimate operator
+	// workflows yet small enough to defend against a hostile or accidentally truncated
+	// stream that would otherwise allocate without bound.
+	defaultMaxDotenvBytes int64 = 1 * 1024 * 1024
+)
 
 const (
 	// tokenIllegal marks a character that the lexer does not recognise.
@@ -90,8 +91,8 @@ const (
 	// quoteDouble is the double quote character used to mark quoted values.
 	quoteDouble = '"'
 
-	// defaultDotEnvFilename is the default filename for loading environment
-	// variables from a dotenv file.
+	// defaultDotEnvFilename is the default filename for loading environment variables from a
+	// dotenv file.
 	defaultDotEnvFilename = ".env"
 
 	// escapeNewline is the character used to mark a newline escape sequence.
@@ -106,31 +107,33 @@ const (
 	// escapeBackslash is the backslash escape sequence character.
 	escapeBackslash = '\\'
 
-	// defaultExpansionDepthHint preallocates the cycle-detection set used
-	// during variable expansion. It does not bound recursion; it just
-	// avoids a tiny initial allocation for typical workflows.
+	// defaultExpansionDepthHint preallocates the cycle-detection set used during variable
+	// expansion. It does not bound recursion; it just avoids a tiny initial allocation for
+	// typical workflows.
 	defaultExpansionDepthHint = 4
 )
 
 // tokenType identifies the kind of token in a configuration value.
 type tokenType int
 
-// ErrDotenvFileTooLarge is returned when a dotenv stream exceeds the
-// configured maximum size. Callers should wrap or compare with errors.Is.
-var ErrDotenvFileTooLarge = errors.New("dotenv file exceeds maximum size")
+var (
+	// ErrDotenvFileTooLarge is returned when a dotenv stream exceeds the configured maximum
+	// size. Callers should wrap or compare with errors.Is.
+	ErrDotenvFileTooLarge = errors.New("dotenv file exceeds maximum size")
 
-// maxDotenvBytes holds the active maximum dotenv stream size in bytes.
-// It is initialised at package load to defaultMaxDotenvBytes and may be
-// overridden by SetMaxDotenvBytes for tests or operator-controlled tuning.
-var maxDotenvBytes atomic.Int64
+	// maxDotenvBytes holds the active maximum dotenv stream size in bytes. It is initialised
+	// at package load to defaultMaxDotenvBytes and may be overridden by SetMaxDotenvBytes
+	// for tests or operator-controlled tuning.
+	maxDotenvBytes atomic.Int64
+)
 
 func init() {
 	maxDotenvBytes.Store(defaultMaxDotenvBytes)
 }
 
-// SetMaxDotenvBytes overrides the maximum byte size accepted when reading a
-// dotenv stream. A value of zero or below disables the cap, which is not
-// recommended for attacker-influenced input.
+// SetMaxDotenvBytes overrides the maximum byte size accepted when reading a dotenv
+// stream. A value of zero or below disables the cap, which is not recommended for
+// attacker-influenced input.
 //
 // Takes maxBytes (int64) which is the new cap in bytes.
 func SetMaxDotenvBytes(maxBytes int64) {
@@ -140,11 +143,9 @@ func SetMaxDotenvBytes(maxBytes int64) {
 	maxDotenvBytes.Store(maxBytes)
 }
 
-// MaxDotenvBytes returns the active byte-size cap enforced when reading a
-// dotenv stream.
+// MaxDotenvBytes returns the active byte-size cap enforced when reading a dotenv stream.
 //
-// Returns int64 which is the current cap; a value of zero indicates no cap
-// is enforced.
+// Returns int64 which is the current cap; a value of zero indicates no cap is enforced.
 func MaxDotenvBytes() int64 {
 	return maxDotenvBytes.Load()
 }
@@ -215,8 +216,8 @@ func (l *lexer) readChar() {
 	l.readPosition++
 }
 
-// skipWhitespace moves the lexer forward past any space, tab, or carriage
-// return characters.
+// skipWhitespace moves the lexer forward past any space, tab, or carriage return
+// characters.
 func (l *lexer) skipWhitespace() {
 	for l.character == charSpace || l.character == charTab || l.character == charCR {
 		l.readChar()
@@ -225,8 +226,7 @@ func (l *lexer) skipWhitespace() {
 
 // readIdentifier reads a sequence of key characters from the input.
 //
-// Returns string which is the identifier from the start position to the
-// current position.
+// Returns string which is the identifier from the start position to the current position.
 func (l *lexer) readIdentifier() string {
 	startPosition := l.position
 	for isKeyCharacter(l.character) {
@@ -287,8 +287,8 @@ func (*lexer) handleUnterminatedString(value string, isSingleQuoted bool) token 
 //
 // Takes quoteType (rune) which specifies the quote character being processed.
 //
-// Returns bool which is true when the current character is a backslash and
-// the quote type is a double quote.
+// Returns bool which is true when the current character is a backslash and the quote type
+// is a double quote.
 func (l *lexer) shouldProcessEscapeSequence(quoteType rune) bool {
 	return l.character == '\\' && quoteType == quoteDouble
 }
@@ -314,8 +314,8 @@ type parseResult struct {
 	// value holds the raw string content before variable expansion.
 	value string
 
-	// isSingleQuoted indicates the value was in single quotes and should not have
-	// variable expansion.
+	// isSingleQuoted indicates the value was in single quotes and should not have variable
+	// expansion.
 	isSingleQuoted bool
 }
 
@@ -382,8 +382,8 @@ func (p *parser) parseAssignment(key string) {
 
 // isAtLineEnd checks if the parser has reached the end of the current line.
 //
-// Returns bool which is true when the current character is a newline, comment
-// start, or end of file.
+// Returns bool which is true when the current character is a newline, comment start, or
+// end of file.
 func (p *parser) isAtLineEnd() bool {
 	return p.l.character == charNewline || p.l.character == charComment || p.l.character == charEOF
 }
@@ -421,15 +421,14 @@ func (p *parser) expandVariables() map[string]string {
 	return expandedMap
 }
 
-// customExpand handles variable expansion for double-quoted strings.
-// It expands variables in ${VAR} and $VAR formats, preserving literal $
-// characters.
+// customExpand handles variable expansion for double-quoted strings. It expands variables
+// in ${VAR} and $VAR formats, preserving literal $ characters.
 //
 // Takes value (string) which is the string containing variables to expand.
 // Takes currentKey (string) which identifies the key being processed.
 // Takes expandedMap (map[string]string) which caches already expanded values.
-// Takes visiting (map[string]struct{}) which records the active expansion
-// chain so that mutual references can be detected and short-circuited.
+// Takes visiting (map[string]struct{}) which records the active expansion chain so that
+// mutual references can be detected and short-circuited.
 //
 // Returns string which is the input with all variables expanded.
 func (p *parser) customExpand(value string, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) string {
@@ -459,25 +458,25 @@ func (p *parser) customExpand(value string, currentKey string, expandedMap map[s
 // Takes value (string) which is the string to examine.
 // Takes i (int) which is the position to check.
 //
-// Returns bool which is true if a dollar sign exists at position i and there
-// is at least one more character after it.
+// Returns bool which is true if a dollar sign exists at position i and there is at least
+// one more character after it.
 func (*parser) isVariableStart(value string, i int) bool {
 	return value[i] == '$' && i+1 < len(value)
 }
 
-// tryExpandVariable expands a variable at position i in the value string.
-// It tries the ${VAR} format first, then falls back to the $VAR format.
+// tryExpandVariable expands a variable at position i in the value string. It tries the
+// ${VAR} format first, then falls back to the $VAR format.
 //
 // Takes value (string) which contains the text with variables to expand.
 // Takes i (int) which specifies the position of the dollar sign.
 // Takes currentKey (string) which identifies the key being expanded.
 // Takes expandedMap (map[string]string) which stores already expanded values.
-// Takes visiting (map[string]struct{}) which records the active expansion
-// chain to detect mutual reference cycles.
+// Takes visiting (map[string]struct{}) which records the active expansion chain to detect
+// mutual reference cycles.
 //
 // Returns string which contains the expanded variable value, or empty if none.
-// Returns int which indicates the number of characters used, or 0 if no valid
-// variable pattern is found.
+// Returns int which indicates the number of characters used, or 0 if no valid variable
+// pattern is found.
 func (p *parser) tryExpandVariable(value string, i int, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) (string, int) {
 	if expanded, consumed := p.tryExpandBracedVariable(value, i, currentKey, expandedMap, visiting); consumed > 0 {
 		return expanded, consumed
@@ -494,17 +493,17 @@ func (p *parser) tryExpandVariable(value string, i int, currentKey string, expan
 //
 // Takes value (string) which is the string containing the variable reference.
 // Takes i (int) which is the position of the dollar sign in value.
-// Takes currentKey (string) which is the key being expanded, used to detect
-// direct self-references.
-// Takes expandedMap (map[string]string) which holds variables that have already
-// been expanded.
-// Takes visiting (map[string]struct{}) which records the active expansion
-// chain so mutual references between variables are detected.
+// Takes currentKey (string) which is the key being expanded, used to detect direct
+// self-references.
+// Takes expandedMap (map[string]string) which holds variables that have already been
+// expanded.
+// Takes visiting (map[string]struct{}) which records the active expansion chain so mutual
+// references between variables are detected.
 //
-// Returns string which is the expanded variable value, or empty if this is not
-// a braced variable.
-// Returns int which is the number of characters consumed, or zero if this is
-// not a braced variable.
+// Returns string which is the expanded variable value, or empty if this is not a braced
+// variable.
+// Returns int which is the number of characters consumed, or zero if this is not a braced
+// variable.
 func (p *parser) tryExpandBracedVariable(value string, i int, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) (string, int) {
 	if value[i+1] != '{' {
 		return "", 0
@@ -542,8 +541,8 @@ func (*parser) findClosingBrace(value string, position int) int {
 // Takes i (int) which is the position of the dollar sign in value.
 // Takes currentKey (string) which identifies the variable being expanded.
 // Takes expandedMap (map[string]string) which tracks already expanded values.
-// Takes visiting (map[string]struct{}) which records the active expansion
-// chain so mutual references between variables are detected.
+// Takes visiting (map[string]struct{}) which records the active expansion chain so mutual
+// references between variables are detected.
 //
 // Returns string which is the expanded variable value, or empty if not valid.
 // Returns int which is the number of characters used, or zero if not valid.
@@ -567,33 +566,31 @@ func (p *parser) tryExpandBareVariable(value string, i int, currentKey string, e
 	return expanded, consumed
 }
 
-// shouldExpandBareVariable determines if a bare variable name should be
-// expanded.
+// shouldExpandBareVariable determines if a bare variable name should be expanded.
 //
 // Takes varName (string) which is the variable name to check.
 //
-// Returns bool which is true if the variable name is longer than one character
-// or is a common single-letter variable.
+// Returns bool which is true if the variable name is longer than one character or is a
+// common single-letter variable.
 func (*parser) shouldExpandBareVariable(varName string) bool {
 	return len(varName) > 1 || isCommonSingleLetterVar(varName)
 }
 
 // expandVariable finds and expands a variable by name.
 //
-// The method first checks the parser's raw values, then falls back to the
-// shell environment. It handles direct self-references and mutual reference
-// cycles (for example A=$B, B=$A) by returning an empty string, and returns
-// the literal "${}" for empty variable names. Cycle detection relies on the
-// visiting set, which records every variable currently being expanded along
-// the active call chain.
+// The method first checks the parser's raw values, then falls back to the shell
+// environment. It handles direct self-references and mutual reference cycles (for example
+// A=$B, B=$A) by returning an empty string, and returns the literal "${}" for empty
+// variable names. Cycle detection relies on the visiting set, which records every
+// variable currently being expanded along the active call chain.
 //
 // Takes varName (string) which is the name of the variable to expand.
-// Takes currentKey (string) which is the key being processed, used to detect
-// direct self-references.
-// Takes expandedMap (map[string]string) which caches expanded values to avoid
-// repeated work.
-// Takes visiting (map[string]struct{}) which records the active expansion
-// chain so that mutual references between variables are detected and broken.
+// Takes currentKey (string) which is the key being processed, used to detect direct
+// self-references.
+// Takes expandedMap (map[string]string) which caches expanded values to avoid repeated
+// work.
+// Takes visiting (map[string]struct{}) which records the active expansion chain so that
+// mutual references between variables are detected and broken.
 //
 // Returns string which is the expanded value.
 func (p *parser) expandVariable(varName string, currentKey string, expandedMap map[string]string, visiting map[string]struct{}) string {
@@ -696,17 +693,17 @@ func (l *Loader) applyDotEnv(ptr any, ctx *LoadContext) error {
 	return l.walk(reflect.ValueOf(ptr), state)
 }
 
-// SetDotEnvSandbox configures a sandbox for reading the .env file, causing
-// the Lookup method to use it instead of os.Open.
+// SetDotEnvSandbox configures a sandbox for reading the .env file, causing the Lookup
+// method to use it instead of os.Open.
 //
-// Takes sandbox (safedisk.Sandbox) which provides the file system sandbox
-// for .env file access. Primarily useful for testing with MockSandbox.
+// Takes sandbox (safedisk.Sandbox) which provides the file system sandbox for .env file
+// access. Primarily useful for testing with MockSandbox.
 func SetDotEnvSandbox(sandbox safedisk.Sandbox) {
 	dotenvSandbox = sandbox
 }
 
-// ResetDotEnvCache clears the cached .env file data and sandbox.
-// This is mainly for testing to ensure tests do not affect each other.
+// ResetDotEnvCache clears the cached .env file data and sandbox. This is mainly for
+// testing to ensure tests do not affect each other.
 func ResetDotEnvCache() {
 	dotenvOnce = sync.Once{}
 	dotenvMap = nil
@@ -714,8 +711,7 @@ func ResetDotEnvCache() {
 	dotenvSandbox = nil
 }
 
-// newLexer creates a new lexer for splitting the given input string into
-// tokens.
+// newLexer creates a new lexer for splitting the given input string into tokens.
 //
 // Takes input (string) which contains the text to be tokenised.
 //
@@ -771,8 +767,8 @@ func isValidVarChar(character byte) bool {
 	return isValidVarStart(character) || (character >= '0' && character <= '9')
 }
 
-// isCommonSingleLetterVar checks if a variable name is a common environment
-// variable that should be expanded rather than treated as a literal string.
+// isCommonSingleLetterVar checks if a variable name is a common environment variable that
+// should be expanded rather than treated as a literal string.
 //
 // Takes varName (string) which is the variable name to check.
 //
@@ -786,17 +782,15 @@ func isCommonSingleLetterVar(varName string) bool {
 	}
 }
 
-// parseDotEnvStream parses environment variables from a stream and returns
-// the expanded key-value pairs. The stream is read up to the cap configured
-// by SetMaxDotenvBytes; oversized streams are rejected with
-// ErrDotenvFileTooLarge to bound memory consumption from hostile or
-// accidentally truncated inputs.
+// parseDotEnvStream parses environment variables from a stream and returns the expanded
+// key-value pairs. The stream is read up to the cap configured by SetMaxDotenvBytes;
+// oversized streams are rejected with ErrDotenvFileTooLarge to bound memory consumption
+// from hostile or accidentally truncated inputs.
 //
 // Takes r (io.Reader) which provides the .env file content to parse.
 //
 // Returns map[string]string which contains the parsed and expanded variables.
-// Returns error when the stream cannot be read or exceeds the configured
-// maximum size.
+// Returns error when the stream cannot be read or exceeds the configured maximum size.
 func parseDotEnvStream(r io.Reader) (map[string]string, error) {
 	maxBytes := maxDotenvBytes.Load()
 	reader := r

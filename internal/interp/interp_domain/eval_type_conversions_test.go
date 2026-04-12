@@ -40,6 +40,16 @@ func TestEvalTypeConversions(t *testing.T) {
 		{name: "int to float var", code: `x := 10; float64(x)`, expect: float64(10)},
 		{name: "float to int var", code: `x := 3.99; int(x)`, expect: int64(3)},
 		{name: "float to int negative", code: `x := -2.7; int(x)`, expect: int64(-2)},
+
+		{name: "bool to int true", code: `b := true; v := 0; if b { v = 1 }; v`, expect: int64(1)},
+		{name: "int to uint", code: `x := 42; uint64(x)`, expect: uint64(42)},
+		{name: "int to uint negative reinterprets", code: `x := -1; uint64(x)`, expect: uint64(0xFFFFFFFFFFFFFFFF)},
+		{name: "uint to int", code: `var x uint64 = 100; int64(x)`, expect: int64(100)},
+		{name: "uint to int top bit reinterprets", code: `var x uint64 = 0xFFFFFFFFFFFFFFFF; int64(x)`, expect: int64(-1)},
+		{name: "uint to float small", code: `var x uint64 = 42; float64(x)`, expect: float64(42)},
+		{name: "uint to float top bit", code: `var x uint64 = 1 << 63; float64(x)`, expect: float64(1 << 63)},
+		{name: "float to uint positive", code: `f := 3.7; uint64(f)`, expect: uint64(3)},
+		{name: "bitwise not uint", code: `var x uint64 = 0xFF; ^x`, expect: uint64(0xFFFFFFFFFFFFFF00)},
 	}
 
 	for _, tt := range tests {

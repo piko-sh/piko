@@ -23,9 +23,9 @@ import (
 	"fmt"
 )
 
-// RedirectRequired signals that a redirect should happen instead of rendering.
-// It implements the error interface but is not a failure; the HTTP handler
-// should issue a redirect rather than return HTML.
+// RedirectRequired signals that a redirect should happen instead of rendering. It
+// implements the error interface but is not a failure; the HTTP handler should issue a
+// redirect rather than return HTML.
 type RedirectRequired struct {
 	// Metadata holds the redirect URLs used to build the error message.
 	Metadata InternalMetadata
@@ -44,13 +44,13 @@ func (r *RedirectRequired) Error() string {
 	return "redirect required"
 }
 
-// IsRedirect checks whether an error is a RedirectRequired type.
-// It uses errors.As to handle wrapped errors correctly.
+// IsRedirect checks whether an error is a RedirectRequired type. It uses errors.As to
+// handle wrapped errors correctly.
 //
 // Takes err (error) which is the error to check.
 //
-// Returns *RedirectRequired which holds the redirect details if err is a
-// redirect, or nil if it is not.
+// Returns *RedirectRequired which holds the redirect details if err is a redirect, or nil
+// if it is not.
 // Returns bool which is true if err is a redirect, false otherwise.
 func IsRedirect(err error) (*RedirectRequired, bool) {
 	if rr, ok := errors.AsType[*RedirectRequired](err); ok {

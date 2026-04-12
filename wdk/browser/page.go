@@ -34,15 +34,14 @@ import (
 	"piko.sh/piko/wdk/safedisk"
 )
 
-// Page wraps a browser page with a fluent testing API and implements
-// io.Closer. Each test should create its own Page using New and call Close
-// when done.
+// Page wraps a browser page with a fluent testing API and implements io.Closer. Each test
+// should create its own Page using New and call Close when done.
 type Page struct {
 	// t is the test context used to report failures and log messages.
 	t testing.TB
 
-	// interactiveRunner controls step-by-step test execution; nil when not in
-	// interactive mode.
+	// interactiveRunner controls step-by-step test execution; nil when not in interactive
+	// mode.
 	interactiveRunner InteractiveRunner
 
 	// incognitoPage holds the browser context for running tests in isolation.
@@ -57,8 +56,8 @@ type Page struct {
 	// dialogHandler tracks the active dialog auto-handler for automatic cleanup.
 	dialogHandler *browser_provider_chromedp.DialogAutoHandler
 
-	// outputSandbox controls where screenshots, PDFs, and other test output files
-	// are saved. Paths given to Save* methods are relative to this sandbox.
+	// outputSandbox controls where screenshots, PDFs, and other test output files are saved.
+	// Paths given to Save* methods are relative to this sandbox.
 	outputSandbox safedisk.Sandbox
 
 	// baseURL is the server URL used for test actions.
@@ -69,42 +68,40 @@ type Page struct {
 }
 
 const (
-	// displayTextMaxLen is the maximum length of text to display before it is
-	// truncated.
+	// displayTextMaxLen is the maximum length of text to display before it is truncated.
 	displayTextMaxLen = 30
 
 	// fmtKeyValue is the format string for logging key-value pairs in actions.
 	fmtKeyValue = "%s = %q"
 
-	// fmtTruncatedText is the suffix added to text that has been shortened
-	// for display purposes.
+	// fmtTruncatedText is the suffix added to text that has been shortened for display
+	// purposes.
 	fmtTruncatedText = "..."
 
-	// outputFilePermissions is the permission mode for output files such as
-	// screenshots and PDFs.
+	// outputFilePermissions is the permission mode for output files such as screenshots and
+	// PDFs.
 	outputFilePermissions = 0600
 
-	// maxNavigateRetries is the number of times to retry navigation with page
-	// recreation when the page becomes unresponsive.
+	// maxNavigateRetries is the number of times to retry navigation with page recreation
+	// when the page becomes unresponsive.
 	maxNavigateRetries = 2
 
-	// maxWaitForRetries is the number of retry attempts when waiting for a selector
-	// with page recreation.
+	// maxWaitForRetries is the number of retry attempts when waiting for a selector with
+	// page recreation.
 	maxWaitForRetries = 2
 )
 
-// truncateRunes shortens s to at most maxRunes runes, appending "..." when the
-// original string was longer. The function is rune-aware so it never cuts
-// through a multi-byte UTF-8 sequence, which keeps display text valid for
-// CJK, accented, and other non-ASCII content.
+// truncateRunes shortens s to at most maxRunes runes, appending "..." when the original
+// string was longer. The function is rune-aware so it never cuts through a multi-byte
+// UTF-8 sequence, which keeps display text valid for CJK, accented, and other non-ASCII
+// content.
 //
 // Takes s (string) which is the input to truncate.
-// Takes maxRunes (int) which is the maximum number of runes the result may
-// contain before the suffix is appended. Values of zero or below produce an
-// empty string.
+// Takes maxRunes (int) which is the maximum number of runes the result may contain before
+// the suffix is appended. Values of zero or below produce an empty string.
 //
-// Returns string which is at most maxRunes runes long when s already fits,
-// otherwise the first maxRunes runes followed by "...".
+// Returns string which is at most maxRunes runes long when s already fits, otherwise the
+// first maxRunes runes followed by "...".
 func truncateRunes(s string, maxRunes int) string {
 	if maxRunes <= 0 {
 		return ""
@@ -142,7 +139,7 @@ func (p *Page) Navigate(path string) *Page {
 
 		if attempt < maxNavigateRetries-1 {
 			if recreateErr := p.recreatePage(); recreateErr != nil {
-				lastErr = fmt.Errorf("navigate failed and page recreation failed: %w (original: %w)", recreateErr, err)
+				lastErr = errors.Join(recreateErr, err)
 				break
 			}
 			continue
@@ -283,12 +280,12 @@ func (p *Page) WaitFor(selector string) *Page {
 		}
 
 		if recreateErr := p.recreatePage(); recreateErr != nil {
-			lastErr = fmt.Errorf("wait failed and page recreation failed: %w (original: %w)", recreateErr, err)
+			lastErr = errors.Join(recreateErr, err)
 			break
 		}
 
 		if navErr := browser_provider_chromedp.Navigate(p.actionCtx(), p.currentPath); navErr != nil {
-			lastErr = fmt.Errorf("wait failed and re-navigation failed: %w (original: %w)", navErr, err)
+			lastErr = errors.Join(navErr, err)
 			break
 		}
 
@@ -457,8 +454,7 @@ func (p *Page) Assert(selector string) *Assertion {
 	}
 }
 
-// AssertNoConsoleErrors checks that no errors have appeared in the browser
-// console.
+// AssertNoConsoleErrors checks that no errors have appeared in the browser console.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) AssertNoConsoleErrors() *Page {
@@ -482,23 +478,21 @@ func (p *Page) AssertNoConsoleWarnings() *Page {
 
 // ConsoleLogs returns the captured console logs.
 //
-// Returns []string which contains the console log messages captured during
-// page execution.
+// Returns []string which contains the console log messages captured during page
+// execution.
 func (p *Page) ConsoleLogs() []string {
 	return p.pageHelper.ConsoleLogs()
 }
 
 // ConsoleLogsWithLevel returns the captured console logs with their levels.
 //
-// Returns []browser_provider_chromedp.ConsoleLog which contains the log
-// messages and their
-// severity levels.
+// Returns []browser_provider_chromedp.ConsoleLog which contains the log messages and
+// their severity levels.
 func (p *Page) ConsoleLogsWithLevel() []browser_provider_chromedp.ConsoleLog {
 	return p.pageHelper.ConsoleLogsWithLevel()
 }
 
-// HasConsoleErrors reports whether any error-level console messages were
-// logged.
+// HasConsoleErrors reports whether any error-level console messages were logged.
 //
 // Returns bool which is true if console errors exist.
 func (p *Page) HasConsoleErrors() bool {
@@ -507,8 +501,8 @@ func (p *Page) HasConsoleErrors() bool {
 
 // ConsoleErrors returns all error-level console messages.
 //
-// Returns []browser_provider_chromedp.ConsoleLog which contains the collected
-// error messages.
+// Returns []browser_provider_chromedp.ConsoleLog which contains the collected error
+// messages.
 func (p *Page) ConsoleErrors() []browser_provider_chromedp.ConsoleLog {
 	return p.pageHelper.ConsoleErrors()
 }
@@ -523,8 +517,7 @@ func (p *Page) ClearConsole() *Page {
 
 // AssertConsole returns a console assertion builder.
 //
-// Returns *ConsoleAssertion which provides methods for asserting console
-// output.
+// Returns *ConsoleAssertion which provides methods for asserting console output.
 func (p *Page) AssertConsole() *ConsoleAssertion {
 	return &ConsoleAssertion{
 		t:    p.t,
@@ -541,11 +534,10 @@ type ConsoleAssertion struct {
 	page *Page
 }
 
-// HasMessage asserts that a console message containing the substring was
-// logged.
+// HasMessage asserts that a console message containing the substring was logged.
 //
-// Takes contains (string) which specifies the substring to search for in
-// console messages.
+// Takes contains (string) which specifies the substring to search for in console
+// messages.
 //
 // Returns *ConsoleAssertion which allows chaining further assertions.
 func (c *ConsoleAssertion) HasMessage(contains string) *ConsoleAssertion {
@@ -556,8 +548,7 @@ func (c *ConsoleAssertion) HasMessage(contains string) *ConsoleAssertion {
 	return c
 }
 
-// HasError asserts that an error-level message containing the substring was
-// logged.
+// HasError asserts that an error-level message containing the substring was logged.
 //
 // Takes contains (string) which is the substring to search for in the message.
 //
@@ -570,11 +561,10 @@ func (c *ConsoleAssertion) HasError(contains string) *ConsoleAssertion {
 	return c
 }
 
-// HasWarning checks that a warning message containing the given text was
-// logged to the console.
+// HasWarning checks that a warning message containing the given text was logged to the
+// console.
 //
-// Takes contains (string) which specifies the text to search for in warning
-// messages.
+// Takes contains (string) which specifies the text to search for in warning messages.
 //
 // Returns *ConsoleAssertion which allows chaining further assertions.
 func (c *ConsoleAssertion) HasWarning(contains string) *ConsoleAssertion {
@@ -589,8 +579,7 @@ func (c *ConsoleAssertion) HasWarning(contains string) *ConsoleAssertion {
 //
 // Takes contains (string) which is the substring to search for in log messages.
 //
-// Returns *ConsoleAssertion which allows method chaining for further
-// assertions.
+// Returns *ConsoleAssertion which allows method chaining for further assertions.
 func (c *ConsoleAssertion) HasLog(contains string) *ConsoleAssertion {
 	err := browser_provider_chromedp.CheckConsoleMessage(c.page.actionCtx(), "log", contains)
 	if err != nil {
@@ -636,8 +625,8 @@ func (p *Page) CaptureDOM(selector string) string {
 
 // MatchGolden compares the normalised HTML of an element against a golden file.
 //
-// Golden files are stored at testdata/golden/<name>.html relative to the test
-// working directory. Set PIKO_UPDATE_GOLDEN=1 to create or update golden files.
+// Golden files are stored at testdata/golden/<name>.html relative to the test working
+// directory. Set PIKO_UPDATE_GOLDEN=1 to create or update golden files.
 //
 // Takes selector (string) which specifies the CSS selector of the element.
 // Takes name (string) which specifies the golden file name (without extension).
@@ -678,8 +667,8 @@ func (p *Page) ScrollIntoView(selector string) *Page {
 // Takes selector (string) which identifies the element to query.
 // Takes name (string) which specifies the attribute to retrieve.
 //
-// Returns string which contains the attribute value, or an empty string if
-// the attribute does not exist.
+// Returns string which contains the attribute value, or an empty string if the attribute
+// does not exist.
 func (p *Page) GetAttribute(selector, name string) string {
 	value, err := browser_provider_chromedp.GetElementAttribute(p.actionCtx().Ctx, selector, name)
 	if err != nil {
@@ -810,8 +799,8 @@ func (p *Page) EvalReturn(js string) any {
 	return result
 }
 
-// Pause stops test running and waits for the user to press Enter.
-// Useful for quick debugging without enabling full interactive mode.
+// Pause stops test running and waits for the user to press Enter. Useful for quick
+// debugging without enabling full interactive mode.
 //
 // Returns *Page which allows method chaining.
 func (p *Page) Pause() *Page {
@@ -905,8 +894,7 @@ func (p *Page) DragByOffset(selector string, offsetX, offsetY float64) *Page {
 	return p
 }
 
-// DragAndDropHTML5 performs an HTML5 drag and drop operation using
-// dataTransfer.
+// DragAndDropHTML5 performs an HTML5 drag and drop operation using dataTransfer.
 //
 // Takes sourceSelector (string) which identifies the element to drag.
 // Takes targetSelector (string) which identifies the drop target element.
@@ -926,8 +914,7 @@ func (p *Page) DragAndDropHTML5(sourceSelector, targetSelector string) *Page {
 
 // enableInteractive enables interactive mode for this page.
 //
-// Takes useTUI (bool) which selects TUI mode when true, or simple mode when
-// false.
+// Takes useTUI (bool) which selects TUI mode when true, or simple mode when false.
 func (p *Page) enableInteractive(useTUI bool) {
 	if useTUI {
 		p.interactiveRunner = NewTUIRunner()
@@ -964,8 +951,7 @@ func (p *Page) afterAction(action, detail string, failed bool, duration time.Dur
 
 // actionCtx creates an ActionContext for end-to-end core actions.
 //
-// Returns *browser_provider_chromedp.ActionContext which holds the context for
-// running
+// Returns *browser_provider_chromedp.ActionContext which holds the context for running
 // actions.
 func (p *Page) actionCtx() *browser_provider_chromedp.ActionContext {
 	return &browser_provider_chromedp.ActionContext{
@@ -977,8 +963,8 @@ func (p *Page) actionCtx() *browser_provider_chromedp.ActionContext {
 	}
 }
 
-// recreatePage closes the current page and creates a fresh one.
-// Recovers from unresponsive CDP connections.
+// recreatePage closes the current page and creates a fresh one. Recovers from
+// unresponsive CDP connections.
 //
 // Returns error when the browser fails to create a new incognito page.
 func (p *Page) recreatePage() error {
@@ -1007,8 +993,7 @@ func (p *Page) recreatePage() error {
 //
 // Takes err (error) which is the error to check.
 //
-// Returns bool which is true when the error matches known unresponsive
-// patterns.
+// Returns bool which is true when the error matches known unresponsive patterns.
 func isUnresponsivePageError(err error) bool {
 	if err == nil {
 		return false

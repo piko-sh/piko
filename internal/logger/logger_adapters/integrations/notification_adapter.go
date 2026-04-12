@@ -30,20 +30,22 @@ import (
 	"piko.sh/piko/internal/notification/notification_dto"
 )
 
-// NotificationServiceAdapter implements logger_domain.NotificationPort by
-// wrapping the notification service. It converts grouped errors from the
-// logger into notification send parameters.
+// NotificationServiceAdapter implements logger_domain.NotificationPort by wrapping the
+// notification service. It converts grouped errors from the logger into notification send
+// parameters.
 type NotificationServiceAdapter struct {
 	// service handles sending notifications.
 	service notification_domain.Service
 }
 
-var _ logger_domain.NotificationPort = (*NotificationServiceAdapter)(nil)
+var (
+	_ logger_domain.NotificationPort = (*NotificationServiceAdapter)(nil)
+)
 
 // SendGroupedErrors converts grouped errors to notifications and sends them.
 //
-// Takes batch (map[string]*logger_domain.GroupedError) which contains the
-// grouped errors to send.
+// Takes batch (map[string]*logger_domain.GroupedError) which contains the grouped errors
+// to send.
 //
 // Returns error when the notification service fails to send.
 func (a *NotificationServiceAdapter) SendGroupedErrors(ctx context.Context, batch map[string]*logger_domain.GroupedError) error {
@@ -61,14 +63,13 @@ func (a *NotificationServiceAdapter) SendGroupedErrors(ctx context.Context, batc
 	return a.service.SendBulk(ctx, notifications)
 }
 
-// convertGroupedErrorToNotification converts a grouped error to notification
-// parameters.
+// convertGroupedErrorToNotification converts a grouped error to notification parameters.
 //
-// Takes errInfo (*logger_domain.GroupedError) which contains the error details
-// and occurrence count.
+// Takes errInfo (*logger_domain.GroupedError) which contains the error details and
+// occurrence count.
 //
-// Returns *notification_dto.SendParams which contains the formatted
-// notification ready for sending.
+// Returns *notification_dto.SendParams which contains the formatted notification ready
+// for sending.
 func (*NotificationServiceAdapter) convertGroupedErrorToNotification(errInfo *logger_domain.GroupedError) *notification_dto.SendParams {
 	r := errInfo.LogRecord
 
@@ -114,11 +115,10 @@ func (*NotificationServiceAdapter) convertGroupedErrorToNotification(errInfo *lo
 	}
 }
 
-// NewNotificationServiceAdapter creates an adapter that bridges the
-// logger to the notification service.
+// NewNotificationServiceAdapter creates an adapter that bridges the logger to the
+// notification service.
 //
-// Takes service (notification_domain.Service) which is the notification
-// service to wrap.
+// Takes service (notification_domain.Service) which is the notification service to wrap.
 //
 // Returns logger_domain.NotificationPort which can be used by the logger.
 func NewNotificationServiceAdapter(service notification_domain.Service) logger_domain.NotificationPort {
@@ -131,9 +131,8 @@ func NewNotificationServiceAdapter(service notification_domain.Service) logger_d
 //
 // Takes level (slog.Level) which is the log level to convert.
 //
-// Returns notification_dto.NotificationPriority which is the matching
-// priority, ranging from PriorityLow for debug levels to PriorityCritical
-// for error levels and above.
+// Returns notification_dto.NotificationPriority which is the matching priority, ranging
+// from PriorityLow for debug levels to PriorityCritical for error levels and above.
 func mapLogLevelToPriority(level slog.Level) notification_dto.NotificationPriority {
 	switch {
 	case level >= slog.LevelError:

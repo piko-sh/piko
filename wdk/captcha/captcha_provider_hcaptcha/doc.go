@@ -16,16 +16,13 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package captcha_provider_hcaptcha provides an hCaptcha captcha
-// provider.
+// Package captcha_provider_hcaptcha provides an hCaptcha captcha provider.
 //
-// This provider delegates verification to hCaptcha, a privacy-focused
-// captcha service. The free tier returns a pass/fail outcome. The
-// Enterprise tier returns risk scores on an inverted scale (0.0 =
-// safe, 1.0 = threat); this provider normalises those scores to the
-// standard convention used across Piko (0.0 = bot, 1.0 = human) so
-// that callers can apply a single threshold regardless of the
-// upstream tier.
+// This provider delegates verification to hCaptcha, a privacy-focused captcha service.
+// The free tier returns a pass/fail outcome. The Enterprise tier returns risk scores on
+// an inverted scale (0.0 = safe, 1.0 = threat); this provider normalises those scores to
+// the standard convention used across Piko (0.0 = bot, 1.0 = human) so that callers can
+// apply a single threshold regardless of the upstream tier.
 //
 // Tokens are valid for 2 minutes and are single-use.
 //

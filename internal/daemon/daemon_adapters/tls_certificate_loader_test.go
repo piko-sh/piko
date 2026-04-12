@@ -19,6 +19,7 @@
 package daemon_adapters
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -28,7 +29,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"context"
 	"testing"
 	"time"
 

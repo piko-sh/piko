@@ -18,7 +18,9 @@
 
 package collection
 
-import "piko.sh/piko/internal/collection/collection_schema"
+import (
+	"piko.sh/piko/internal/collection/collection_schema"
+)
 
 var (
 	// SchemaHash is the SHA-256 hash of collection.fbs.

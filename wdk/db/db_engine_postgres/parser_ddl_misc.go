@@ -22,6 +22,10 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// parseDropTable parses a DROP TABLE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the schema-qualified name fails to parse.
 func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword(keywordTABLE)
@@ -43,6 +47,14 @@ func (p *parser) parseDropTable() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseAlterTable parses an ALTER TABLE statement and dispatches to the matching action
+// handler.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+//
+// Returns *querier_dto.CatalogueMutation which describes the mutation, or nil when no
+// recognised action follows.
+// Returns error when a sub-clause fails to parse.
 func (p *parser) parseAlterTable(engine *PostgresEngine) (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword("ALTER")
 	p.mustKeyword(keywordTABLE)
@@ -74,6 +86,14 @@ func (p *parser) parseAlterTable(engine *PostgresEngine) (*querier_dto.Catalogue
 	return nil, nil
 }
 
+// parseAlterTableAdd parses an ALTER TABLE ... ADD action.
+//
+// Takes engine (*PostgresEngine) which supplies type-resolution context.
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the add mutation.
+// Returns error when the added column or constraint fails to parse.
 func (p *parser) parseAlterTableAdd(
 	engine *PostgresEngine, schema, tableName string,
 ) (*querier_dto.CatalogueMutation, error) {
@@ -107,6 +127,13 @@ func (p *parser) parseAlterTableAdd(
 	}, nil
 }
 
+// parseAlterTableDrop parses an ALTER TABLE ... DROP action.
+//
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the dropped item name fails to parse.
 func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword(keywordCONSTRAINT) {
 		p.skipIfExists()
@@ -137,6 +164,13 @@ func (p *parser) parseAlterTableDrop(schema, tableName string) (*querier_dto.Cat
 	}, nil
 }
 
+// parseAlterTableAlterColumn parses an ALTER TABLE ... ALTER COLUMN action.
+//
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the alter mutation.
+// Returns error when the column name fails to parse.
 func (p *parser) parseAlterTableAlterColumn(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	p.matchKeyword(keywordCOLUMN)
 	columnName, nameError := p.parseIdentifierOrKeyword()
@@ -151,6 +185,13 @@ func (p *parser) parseAlterTableAlterColumn(schema, tableName string) (*querier_
 	}, nil
 }
 
+// parseAlterTableRename parses an ALTER TABLE ... RENAME action.
+//
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the rename mutation.
+// Returns error when a renamed name fails to parse.
 func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword("TO") {
 		newName, nameError := p.parseIdentifierOrKeyword()
@@ -184,6 +225,14 @@ func (p *parser) parseAlterTableRename(schema, tableName string) (*querier_dto.C
 	}, nil
 }
 
+// parseAlterTableSet parses an ALTER TABLE ... SET action.
+//
+// Takes schema (string) which is the schema name of the target table.
+// Takes tableName (string) which is the target table name.
+//
+// Returns *querier_dto.CatalogueMutation which describes the set mutation, or nil when no
+// recognised SET sub-clause is present.
+// Returns error when the new schema name fails to parse.
 func (p *parser) parseAlterTableSet(schema, tableName string) (*querier_dto.CatalogueMutation, error) {
 	if p.matchKeyword(keywordSCHEMA) {
 		newSchema, schemaError := p.parseIdentifierOrKeyword()
@@ -200,6 +249,10 @@ func (p *parser) parseAlterTableSet(schema, tableName string) (*querier_dto.Cata
 	return nil, nil
 }
 
+// parseCreateView parses a CREATE VIEW statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the view mutation.
+// Returns error when the view name or column list fails to parse.
 func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 
@@ -244,12 +297,19 @@ func (p *parser) parseCreateView() (*querier_dto.CatalogueMutation, error) {
 	return mutation, nil
 }
 
+// skipOrReplace consumes an optional OR REPLACE clause.
 func (p *parser) skipOrReplace() {
 	if p.matchKeyword("OR") {
 		p.matchKeyword("REPLACE")
 	}
 }
 
+// analyseViewBody analyses the SELECT body following a CREATE VIEW AS clause.
+//
+// Takes columnNames ([]string) which optionally overrides inferred output column names.
+//
+// Returns *querier_dto.RawQueryAnalysis which is the analysed view body, or nil when the
+// body fails to parse.
 func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnalysis {
 	remainingTokens := p.tokens[p.position:]
 	if len(remainingTokens) == 0 {
@@ -269,6 +329,10 @@ func (p *parser) analyseViewBody(columnNames []string) *querier_dto.RawQueryAnal
 	return viewAnalysis
 }
 
+// overlayViewColumnNames rewrites the output column names using columnNames.
+//
+// Takes analysis (*querier_dto.RawQueryAnalysis) which holds the columns to rewrite.
+// Takes columnNames ([]string) which provides the replacement names.
 func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames []string) {
 	for columnIndex, name := range columnNames {
 		column := querier_dto.RawOutputColumn{Name: name}
@@ -282,6 +346,11 @@ func overlayViewColumnNames(analysis *querier_dto.RawQueryAnalysis, columnNames 
 	analysis.OutputColumns = analysis.OutputColumns[:len(columnNames)]
 }
 
+// columnsFromNames builds placeholder column metadata for a list of names.
+//
+// Takes names ([]string) which are the column names to materialise.
+//
+// Returns []querier_dto.Column which holds nullable unknown-typed columns.
 func columnsFromNames(names []string) []querier_dto.Column {
 	if len(names) == 0 {
 		return nil
@@ -298,6 +367,10 @@ func columnsFromNames(names []string) []querier_dto.Column {
 	return columns
 }
 
+// parseDropView parses a DROP VIEW statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the view name fails to parse.
 func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 
@@ -319,6 +392,10 @@ func (p *parser) parseDropView() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateIndex parses a CREATE INDEX statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the index mutation.
+// Returns error when the index or table name fails to parse.
 func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 
@@ -360,6 +437,10 @@ func (p *parser) parseCreateIndex() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseDropIndex parses a DROP INDEX statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the index name fails to parse.
 func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("INDEX")
@@ -380,6 +461,12 @@ func (p *parser) parseDropIndex() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateOrDropTrigger dispatches to the create or drop trigger parser.
+//
+// Takes kind (statementKind) which selects the create or drop branch.
+//
+// Returns *querier_dto.CatalogueMutation which describes the trigger mutation.
+// Returns error when the chosen parser fails.
 func (p *parser) parseCreateOrDropTrigger(kind statementKind) (*querier_dto.CatalogueMutation, error) {
 	if kind == statementKindCreateTrigger {
 		return p.parseCreateTrigger()
@@ -387,6 +474,10 @@ func (p *parser) parseCreateOrDropTrigger(kind statementKind) (*querier_dto.Cata
 	return p.parseDropTrigger()
 }
 
+// parseCreateTrigger parses a CREATE TRIGGER statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the trigger mutation.
+// Returns error when the trigger name fails to parse.
 func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.mustKeyword("TRIGGER")
@@ -415,6 +506,10 @@ func (p *parser) parseCreateTrigger() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseDropTrigger parses a DROP TRIGGER statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the trigger name fails to parse.
 func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("TRIGGER")
@@ -441,6 +536,10 @@ func (p *parser) parseDropTrigger() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseCreateSequence parses a CREATE SEQUENCE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the sequence mutation.
+// Returns error when the sequence name or options fail to parse.
 func (p *parser) parseCreateSequence() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordCREATE)
 	p.mustKeyword("SEQUENCE")
@@ -466,6 +565,11 @@ func (p *parser) parseCreateSequence() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseSequenceOptions parses CREATE SEQUENCE options up to the terminator.
+//
+// Returns ownedTable (string) which is the OWNED BY table when present.
+// Returns ownedColumn (string) which is the OWNED BY column when present.
+// Returns err (error) when the owned-by target fails to parse.
 func (p *parser) parseSequenceOptions() (ownedTable string, ownedColumn string, err error) {
 	var ownedByTable, ownedByColumn string
 	for !p.atEnd() && p.current().kind != tokenSemicolon && p.current().kind != tokenEOF {
@@ -487,6 +591,11 @@ func (p *parser) parseSequenceOptions() (ownedTable string, ownedColumn string, 
 	return ownedByTable, ownedByColumn, nil
 }
 
+// parseOwnedByTarget parses an OWNED BY target of table[.column].
+//
+// Returns tableName (string) which is the owning table name.
+// Returns columnName (string) which is the owning column name when present.
+// Returns err (error) when an identifier fails to parse.
 func (p *parser) parseOwnedByTarget() (tableName string, columnName string, err error) {
 	tableName, nameError := p.parseIdentifierOrKeyword()
 	if nameError != nil {
@@ -503,6 +612,10 @@ func (p *parser) parseOwnedByTarget() (tableName string, columnName string, err 
 	return tableName, columnName, nil
 }
 
+// parseDropSequence parses a DROP SEQUENCE statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the drop mutation.
+// Returns error when the sequence name fails to parse.
 func (p *parser) parseDropSequence() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword(keywordDROP)
 	p.mustKeyword("SEQUENCE")
@@ -524,6 +637,10 @@ func (p *parser) parseDropSequence() (*querier_dto.CatalogueMutation, error) {
 	}, nil
 }
 
+// parseComment parses a COMMENT ON statement.
+//
+// Returns *querier_dto.CatalogueMutation which describes the comment mutation.
+// Returns error when the target identifier fails to parse.
 func (p *parser) parseComment() (*querier_dto.CatalogueMutation, error) {
 	p.mustKeyword("COMMENT")
 	p.mustKeyword(keywordON)
@@ -541,6 +658,12 @@ func (p *parser) parseComment() (*querier_dto.CatalogueMutation, error) {
 	return mutation, nil
 }
 
+// parseCommentTarget dispatches to the parser for the target object type.
+//
+// Takes mutation (*querier_dto.CatalogueMutation) which is populated with the parsed
+// target.
+//
+// Returns error when the target name fails to parse.
 func (p *parser) parseCommentTarget(mutation *querier_dto.CatalogueMutation) error {
 	if p.matchKeyword(keywordTABLE) {
 		return p.parseCommentOnTable(mutation)
@@ -563,6 +686,12 @@ func (p *parser) parseCommentTarget(mutation *querier_dto.CatalogueMutation) err
 	return nil
 }
 
+// parseCommentOnTable parses COMMENT ON TABLE target metadata.
+//
+// Takes mutation (*querier_dto.CatalogueMutation) which is populated with the schema and
+// table names.
+//
+// Returns error when the schema-qualified name fails to parse.
 func (p *parser) parseCommentOnTable(mutation *querier_dto.CatalogueMutation) error {
 	schema, tableName, nameError := p.parseSchemaQualifiedName()
 	if nameError != nil {
@@ -573,6 +702,12 @@ func (p *parser) parseCommentOnTable(mutation *querier_dto.CatalogueMutation) er
 	return nil
 }
 
+// parseCommentOnColumn parses COMMENT ON COLUMN target metadata.
+//
+// Takes mutation (*querier_dto.CatalogueMutation) which is populated with the schema,
+// table, and column names.
+//
+// Returns error when an identifier fails to parse.
 func (p *parser) parseCommentOnColumn(mutation *querier_dto.CatalogueMutation) error {
 	schema, tableName, nameError := p.parseSchemaQualifiedName()
 	if nameError != nil {
@@ -594,6 +729,12 @@ func (p *parser) parseCommentOnColumn(mutation *querier_dto.CatalogueMutation) e
 	return nil
 }
 
+// parseCommentOnType parses COMMENT ON TYPE target metadata.
+//
+// Takes mutation (*querier_dto.CatalogueMutation) which is populated with the schema and
+// type names.
+//
+// Returns error when the schema-qualified name fails to parse.
 func (p *parser) parseCommentOnType(mutation *querier_dto.CatalogueMutation) error {
 	schema, typeName, nameError := p.parseSchemaQualifiedName()
 	if nameError != nil {
@@ -604,6 +745,12 @@ func (p *parser) parseCommentOnType(mutation *querier_dto.CatalogueMutation) err
 	return nil
 }
 
+// parseCommentOnFunction parses COMMENT ON FUNCTION target metadata.
+//
+// Takes mutation (*querier_dto.CatalogueMutation) which is populated with the function
+// signature and schema.
+//
+// Returns error when the schema-qualified name fails to parse.
 func (p *parser) parseCommentOnFunction(mutation *querier_dto.CatalogueMutation) error {
 	schema, functionName, nameError := p.parseSchemaQualifiedName()
 	if nameError != nil {
@@ -620,6 +767,12 @@ func (p *parser) parseCommentOnFunction(mutation *querier_dto.CatalogueMutation)
 	return nil
 }
 
+// parseCommentOnSchema parses COMMENT ON SCHEMA target metadata.
+//
+// Takes mutation (*querier_dto.CatalogueMutation) which is populated with the schema
+// name.
+//
+// Returns error when the schema identifier fails to parse.
 func (p *parser) parseCommentOnSchema(mutation *querier_dto.CatalogueMutation) error {
 	schemaName, nameError := p.parseIdentifierOrKeyword()
 	if nameError != nil {
@@ -629,6 +782,7 @@ func (p *parser) parseCommentOnSchema(mutation *querier_dto.CatalogueMutation) e
 	return nil
 }
 
+// parseCommentValue consumes the IS '...' or IS NULL trailing value clause.
 func (p *parser) parseCommentValue() {
 	if !p.matchKeyword("IS") {
 		return

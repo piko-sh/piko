@@ -18,8 +18,10 @@
 
 package annotator_domain
 
-// Implements the per-component annotation pipeline that processes individual components through expansion, analysis, and linking.
-// Executes the annotation phase for each component including partial expansion, semantic analysis, CSS processing, and prop linking.
+// Implements the per-component annotation pipeline that processes individual components
+// through expansion, analysis, and linking. Executes the annotation phase for each
+// component including partial expansion, semantic analysis, CSS processing, and prop
+// linking.
 
 import (
 	"context"
@@ -30,8 +32,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// componentAnnotationPipeline coordinates the annotation process for a single
-// virtual component through the annotator service.
+// componentAnnotationPipeline coordinates the annotation process for a single virtual
+// component through the annotator service.
 type componentAnnotationPipeline struct {
 	// componentRegistry provides lookup of registered PKC components.
 	componentRegistry ComponentRegistryPort
@@ -54,8 +56,8 @@ type componentAnnotationPipeline struct {
 	// actions maps action names to their information providers.
 	actions map[string]ActionInfoProvider
 
-	// options holds settings that control annotation behaviour, such as fault
-	// tolerance for pipeline stages.
+	// options holds settings that control annotation behaviour, such as fault tolerance for
+	// pipeline stages.
 	options *annotationOptions
 
 	// diagnostics collects issues found during pipeline processing.
@@ -64,8 +66,8 @@ type componentAnnotationPipeline struct {
 
 // run executes the full annotation pipeline through all stages.
 //
-// Takes ctx (context.Context) which controls cancellation and timeout for
-// pipeline stages.
+// Takes ctx (context.Context) which controls cancellation and timeout for pipeline
+// stages.
 //
 // Returns *annotator_dto.AnnotationResult which contains the processed AST.
 // Returns []*ast_domain.Diagnostic which contains any warnings or errors.
@@ -108,8 +110,8 @@ func (p *componentAnnotationPipeline) run(ctx context.Context) (*annotator_dto.A
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
 //
-// Returns *annotator_dto.ExpansionResult which contains the expanded component
-// tree with a flat AST structure.
+// Returns *annotator_dto.ExpansionResult which contains the expanded component tree with
+// a flat AST structure.
 // Returns error when the partial expander fails to process the component graph.
 func (p *componentAnnotationPipeline) runExpansionStage(ctx context.Context) (*annotator_dto.ExpansionResult, error) {
 	effectiveResolver := p.service.getEffectiveResolver(p.options)
@@ -129,8 +131,8 @@ func (p *componentAnnotationPipeline) runExpansionStage(ctx context.Context) (*a
 // runLinkingStage resolves symbol references and links the expanded AST.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes expansionResult (*annotator_dto.ExpansionResult) which contains the
-// expanded AST to link.
+// Takes expansionResult (*annotator_dto.ExpansionResult) which contains the expanded AST
+// to link.
 //
 // Returns *annotator_dto.LinkingResult which contains the linked AST.
 // Returns error when linking fails.
@@ -150,8 +152,8 @@ func (p *componentAnnotationPipeline) runLinkingStage(ctx context.Context, expan
 // runAnnotationStage processes the linked AST to produce annotations.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes linkingResult (*annotator_dto.LinkingResult) which contains the linked
-// AST to annotate.
+// Takes linkingResult (*annotator_dto.LinkingResult) which contains the linked AST to
+// annotate.
 //
 // Returns *annotator_dto.AnnotationResult which contains the annotated AST.
 // Returns error when annotation fails.
@@ -170,8 +172,8 @@ func (p *componentAnnotationPipeline) runAnnotationStage(ctx context.Context, li
 // runPropDataSourceLinking links prop references to their data sources.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes analysisResult (*annotator_dto.AnnotationResult) which contains the
-// annotated AST to process.
+// Takes analysisResult (*annotator_dto.AnnotationResult) which contains the annotated AST
+// to process.
 func (p *componentAnnotationPipeline) runPropDataSourceLinking(ctx context.Context, analysisResult *annotator_dto.AnnotationResult) {
 	diagnostics := LinkAllPropDataSources(ctx, analysisResult.AnnotatedAST, p.virtualModule, p.typeResolver)
 	p.diagnostics = append(p.diagnostics, diagnostics...)
@@ -183,9 +185,8 @@ func (p *componentAnnotationPipeline) runPropDataSourceLinking(ctx context.Conte
 // runFinalTransformations applies final changes to the annotated AST.
 //
 // Takes ctx (context.Context) which controls cancellation and timeout.
-// Takes analysisResult (*annotator_dto.AnnotationResult) which holds the
-// annotated AST to transform and receives the computed asset dependencies
-// and custom tags.
+// Takes analysisResult (*annotator_dto.AnnotationResult) which holds the annotated AST to
+// transform and receives the computed asset dependencies and custom tags.
 func (p *componentAnnotationPipeline) runFinalTransformations(ctx context.Context, analysisResult *annotator_dto.AnnotationResult) {
 	resolver := p.service.getEffectiveResolver(p.options)
 	assetDeps, customTags, usesCaptcha, diagnostics := performFinalTransformations(
@@ -200,16 +201,15 @@ func (p *componentAnnotationPipeline) runFinalTransformations(ctx context.Contex
 	}
 }
 
-// handleStageError handles an error from a pipeline stage, wrapping
-// it in strict mode or logging and returning nil in fault-tolerant
-// mode so the pipeline can continue with partial results.
+// handleStageError handles an error from a pipeline stage, wrapping it in strict mode or
+// logging and returning nil in fault-tolerant mode so the pipeline can continue with
+// partial results.
 //
 // Takes ctx (context.Context) which carries the logger.
 // Takes err (error) which is the stage error to handle.
 // Takes stage (string) which identifies the pipeline stage that failed.
 //
-// Returns error which is the wrapped error in strict mode, or nil in
-// fault-tolerant mode.
+// Returns error which is the wrapped error in strict mode, or nil in fault-tolerant mode.
 func (p *componentAnnotationPipeline) handleStageError(ctx context.Context, err error, stage string, _ *ast_domain.TemplateAST) error {
 	if !p.options.faultTolerant {
 		return fmt.Errorf("annotator stage %q failed: %w", stage, err)
@@ -227,11 +227,10 @@ func (p *componentAnnotationPipeline) handleStageError(ctx context.Context, err 
 
 // earlyResult builds an annotation result from an expansion result.
 //
-// Takes expansionResult (*annotator_dto.ExpansionResult) which provides the
-// flattened AST, or nil for an empty result.
+// Takes expansionResult (*annotator_dto.ExpansionResult) which provides the flattened
+// AST, or nil for an empty result.
 //
-// Returns *annotator_dto.AnnotationResult which contains the AST and virtual
-// module.
+// Returns *annotator_dto.AnnotationResult which contains the AST and virtual module.
 func (p *componentAnnotationPipeline) earlyResult(expansionResult *annotator_dto.ExpansionResult) *annotator_dto.AnnotationResult {
 	var ast *ast_domain.TemplateAST
 	if expansionResult != nil {
@@ -253,13 +252,13 @@ func (p *componentAnnotationPipeline) earlyResult(expansionResult *annotator_dto
 
 // earlyResultFromLink builds an annotation result from early pipeline stages.
 //
-// Takes expansionResult (*annotator_dto.ExpansionResult) which provides the
-// flattened AST.
-// Takes linkingResult (*annotator_dto.LinkingResult) which may provide a
-// linked AST that is used instead if present.
+// Takes expansionResult (*annotator_dto.ExpansionResult) which provides the flattened
+// AST.
+// Takes linkingResult (*annotator_dto.LinkingResult) which may provide a linked AST that
+// is used instead if present.
 //
-// Returns *annotator_dto.AnnotationResult which contains the best available
-// AST and the virtual module.
+// Returns *annotator_dto.AnnotationResult which contains the best available AST and the
+// virtual module.
 func (p *componentAnnotationPipeline) earlyResultFromLink(expansionResult *annotator_dto.ExpansionResult, linkingResult *annotator_dto.LinkingResult) *annotator_dto.AnnotationResult {
 	ast := expansionResult.FlattenedAST
 	if linkingResult != nil && linkingResult.LinkedAST != nil {
@@ -279,16 +278,16 @@ func (p *componentAnnotationPipeline) earlyResultFromLink(expansionResult *annot
 	}
 }
 
-// earlyResultFromAnnotation returns the analysis result if present, or builds
-// a default result from the linking result.
+// earlyResultFromAnnotation returns the analysis result if present, or builds a default
+// result from the linking result.
 //
-// Takes linkingResult (*annotator_dto.LinkingResult) which provides the linked
-// AST used to build a default result.
-// Takes analysisResult (*annotator_dto.AnnotationResult) which is returned
-// directly if not nil.
+// Takes linkingResult (*annotator_dto.LinkingResult) which provides the linked AST used
+// to build a default result.
+// Takes analysisResult (*annotator_dto.AnnotationResult) which is returned directly if
+// not nil.
 //
-// Returns *annotator_dto.AnnotationResult which is either the given analysis
-// result or a new result built from the linking result.
+// Returns *annotator_dto.AnnotationResult which is either the given analysis result or a
+// new result built from the linking result.
 func (p *componentAnnotationPipeline) earlyResultFromAnnotation(linkingResult *annotator_dto.LinkingResult, analysisResult *annotator_dto.AnnotationResult) *annotator_dto.AnnotationResult {
 	if analysisResult != nil {
 		return analysisResult

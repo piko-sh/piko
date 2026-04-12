@@ -30,9 +30,8 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// Limiter enforces rate limits using strategy-specific methods and
-// cache-backed storage. It supports both token bucket and fixed window
-// algorithms via separate method families.
+// Limiter enforces rate limits using strategy-specific methods and cache-backed storage.
+// It supports both token bucket and fixed window algorithms via separate method families.
 //
 // All methods are safe for concurrent use.
 type Limiter struct {
@@ -48,12 +47,12 @@ type Limiter struct {
 	// keyPrefix is prepended to all rate limit keys.
 	keyPrefix string
 
-	// tokenStoreName is the human-readable name of the token bucket store
-	// (e.g. "cache", "inmemory", "noop").
+	// tokenStoreName is the human-readable name of the token bucket store (e.g. "cache",
+	// "inmemory", "noop").
 	tokenStoreName string
 
-	// counterStoreName is the human-readable name of the counter store
-	// (e.g. "cache", "noop").
+	// counterStoreName is the human-readable name of the counter store (e.g. "cache",
+	// "noop").
 	counterStoreName string
 
 	// failPolicy determines behaviour when the store is unavailable.
@@ -72,14 +71,16 @@ type Limiter struct {
 	totalErrors atomic.Int64
 }
 
-var _ RateLimiterInspector = (*Limiter)(nil)
+var (
+	_ RateLimiterInspector = (*Limiter)(nil)
+)
 
 // NewLimiter creates a new rate limiter with the given stores.
 //
-// Takes tokenStore (TokenBucketStorePort) for token bucket operations. May be
-// nil if only fixed window is used.
-// Takes counterStore (CounterStorePort) for fixed window operations. May be
-// nil if only token bucket is used.
+// Takes tokenStore (TokenBucketStorePort) for token bucket operations. May be nil if only
+// fixed window is used.
+// Takes counterStore (CounterStorePort) for fixed window operations. May be nil if only
+// token bucket is used.
 // Takes opts (...Option) which are optional configuration functions.
 //
 // Returns *Limiter ready for use.
@@ -96,19 +97,18 @@ func NewLimiter(tokenStore TokenBucketStorePort, counterStore CounterStorePort, 
 	return l
 }
 
-// AllowTokenBucket checks whether n tokens can be taken from the bucket
-// identified by key. It returns nil if the request is allowed, or
-// ErrRateLimited if the rate limit is exceeded.
+// AllowTokenBucket checks whether n tokens can be taken from the bucket identified by
+// key. It returns nil if the request is allowed, or ErrRateLimited if the rate limit is
+// exceeded.
 //
 // This is a non-blocking check. For a blocking variant, use WaitTokenBucket.
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens to consume.
-// Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket
-// parameters.
+// Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket parameters.
 //
-// Returns error which is nil if allowed, ErrRateLimited if denied, or a
-// wrapped error on store failure (subject to FailPolicy).
+// Returns error which is nil if allowed, ErrRateLimited if denied, or a wrapped error on
+// store failure (subject to FailPolicy).
 func (l *Limiter) AllowTokenBucket(ctx context.Context, key string, n float64, config ratelimiter_dto.TokenBucketConfig) error {
 	start := l.clock.Now()
 	fullKey := l.buildKey(key)
@@ -134,13 +134,12 @@ func (l *Limiter) AllowTokenBucket(ctx context.Context, key string, n float64, c
 	return nil
 }
 
-// WaitTokenBucket blocks until n tokens are available in the bucket
-// identified by key, or until the context is cancelled.
+// WaitTokenBucket blocks until n tokens are available in the bucket identified by key, or
+// until the context is cancelled.
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which is the number of tokens to consume.
-// Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket
-// parameters.
+// Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket parameters.
 //
 // Returns error which is nil on success, or a context error if cancelled.
 func (l *Limiter) WaitTokenBucket(ctx context.Context, key string, n float64, config ratelimiter_dto.TokenBucketConfig) error {
@@ -167,17 +166,14 @@ func (l *Limiter) WaitTokenBucket(ctx context.Context, key string, n float64, co
 	}
 }
 
-// CheckFixedWindow performs a fixed window rate limit check and returns a
-// detailed Result. Unlike the token bucket methods, this returns a Result
-// with remaining quota and reset information, suitable for HTTP rate limit
-// headers.
+// CheckFixedWindow performs a fixed window rate limit check and returns a detailed
+// Result. Unlike the token bucket methods, this returns a Result with remaining quota and
+// reset information, suitable for HTTP rate limit headers.
 //
 // Takes key (string) which identifies the rate limit counter.
-// Takes config (ratelimiter_dto.FixedWindowConfig) which defines the window
-// parameters.
+// Takes config (ratelimiter_dto.FixedWindowConfig) which defines the window parameters.
 //
-// Returns ratelimiter_dto.Result which contains the rate limit decision and
-// metadata.
+// Returns ratelimiter_dto.Result which contains the rate limit decision and metadata.
 // Returns error when the store operation fails (subject to FailPolicy).
 func (l *Limiter) CheckFixedWindow(ctx context.Context, key string, config ratelimiter_dto.FixedWindowConfig) (ratelimiter_dto.Result, error) {
 	start := l.clock.Now()
@@ -241,8 +237,8 @@ func (l *Limiter) DeleteBucket(ctx context.Context, key string) error {
 
 // GetStatus returns the current inspectable state of the rate limiter.
 //
-// Returns ratelimiter_dto.Status which contains store names, fail policy,
-// and aggregate counters.
+// Returns ratelimiter_dto.Status which contains store names, fail policy, and aggregate
+// counters.
 // Returns error (always nil for the in-process limiter).
 func (l *Limiter) GetStatus(_ context.Context) (ratelimiter_dto.Status, error) {
 	return ratelimiter_dto.Status{
@@ -261,8 +257,8 @@ func (l *Limiter) GetStatus(_ context.Context) (ratelimiter_dto.Status, error) {
 //
 // Takes key (string) which is the base key to prefix.
 //
-// Returns string which is the full key with prefix, or the original key if
-// no prefix is set.
+// Returns string which is the full key with prefix, or the original key if no prefix is
+// set.
 func (l *Limiter) buildKey(key string) string {
 	if l.keyPrefix == "" {
 		return key
@@ -270,15 +266,15 @@ func (l *Limiter) buildKey(key string) string {
 	return l.keyPrefix + ":" + key
 }
 
-// estimateWaitDuration queries the store for the estimated wait time until
-// tokens become available.
+// estimateWaitDuration queries the store for the estimated wait time until tokens become
+// available.
 //
 // Takes key (string) which identifies the rate limit bucket.
 // Takes n (float64) which specifies the number of tokens requested.
 // Takes config (ratelimiter_dto.TokenBucketConfig) which defines the bucket rules.
 //
-// Returns time.Duration which is the estimated wait time, or one millisecond
-// if unavailable.
+// Returns time.Duration which is the estimated wait time, or one millisecond if
+// unavailable.
 func (l *Limiter) estimateWaitDuration(ctx context.Context, key string, n float64, config ratelimiter_dto.TokenBucketConfig) time.Duration {
 	fullKey := l.buildKey(key)
 	wait, err := l.tokenStore.WaitDuration(ctx, fullKey, n, &config)
@@ -288,17 +284,17 @@ func (l *Limiter) estimateWaitDuration(ctx context.Context, key string, n float6
 	return wait
 }
 
-// waitOrCancel waits for the specified duration or until the context is
-// cancelled. Returns (cancelled=true, err) if the context was cancelled, or
-// (cancelled=false, nil) when the timer fires.
+// waitOrCancel waits for the specified duration or until the context is cancelled.
+// Returns (cancelled=true, err) if the context was cancelled, or (cancelled=false, nil)
+// when the timer fires.
 //
 // Takes ctx (context.Context) which may cancel the wait early.
 // Takes d (time.Duration) which is how long to wait before proceeding.
 //
-// Returns cancelled (bool) which is true when the context was cancelled
-// before the timer fired.
-// Returns err (error) which is the context cancellation error, or nil
-// when the timer fired normally.
+// Returns cancelled (bool) which is true when the context was cancelled before the timer
+// fired.
+// Returns err (error) which is the context cancellation error, or nil when the timer
+// fired normally.
 func (l *Limiter) waitOrCancel(ctx context.Context, d time.Duration) (cancelled bool, err error) {
 	timer := l.clock.NewTimer(d)
 	defer timer.Stop()
@@ -311,8 +307,8 @@ func (l *Limiter) waitOrCancel(ctx context.Context, d time.Duration) (cancelled 
 	}
 }
 
-// handleStoreError processes a store error according to the fail policy.
-// It records metrics and logs the error.
+// handleStoreError processes a store error according to the fail policy. It records
+// metrics and logs the error.
 //
 // Takes start (time.Time) which marks when the operation began for latency.
 // Takes err (error) which is the store error to handle.

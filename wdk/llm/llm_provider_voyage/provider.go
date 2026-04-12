@@ -43,15 +43,16 @@ const (
 	// providerName is the provider identifier used in model listings.
 	providerName = "voyage"
 
-	// maxLLMResponseBytes bounds the size of a third-party HTTP response body
-	// to prevent unbounded memory consumption from a hostile or malfunctioning
-	// peer.
+	// maxLLMResponseBytes bounds the size of a third-party HTTP response body to prevent
+	// unbounded memory consumption from a hostile or malfunctioning peer.
 	maxLLMResponseBytes = 16 * 1024 * 1024
 )
 
-// errResponseTruncated indicates a provider response exceeded the configured
-// size cap and was truncated.
-var errResponseTruncated = errors.New("voyage response exceeded maximum size")
+var (
+	// errResponseTruncated indicates a provider response exceeded the configured size cap
+	// and was truncated.
+	errResponseTruncated = errors.New("voyage response exceeded maximum size")
+)
 
 // readBoundedBody reads up to maxLLMResponseBytes+1 bytes from body and reports
 // truncation when the cap is exceeded.
@@ -72,8 +73,8 @@ func readBoundedBody(body io.Reader) ([]byte, error) {
 	return data, nil
 }
 
-// decodeBoundedJSON decodes JSON from body with a size cap to prevent
-// unbounded memory consumption.
+// decodeBoundedJSON decodes JSON from body with a size cap to prevent unbounded memory
+// consumption.
 //
 // Takes body (io.Reader) which is the response body to decode.
 // Takes target (any) which receives the decoded value.
@@ -87,53 +88,53 @@ func decodeBoundedJSON(body io.Reader, target any) error {
 	return json.Unmarshal(data, target)
 }
 
-// drainAndClose drains any remaining bytes from response.Body before closing
-// so that the underlying TCP connection can be reused by the HTTP client.
+// drainAndClose drains any remaining bytes from response.Body before closing so that the
+// underlying TCP connection can be reused by the HTTP client.
 //
-// Takes response (*http.Response) which is the response whose body should be
-// drained and closed.
+// Takes response (*http.Response) which is the response whose body should be drained and
+// closed.
 func drainAndClose(response *http.Response) {
 	_, _ = io.Copy(io.Discard, response.Body)
 	_ = response.Body.Close()
 }
 
-// voyageProvider implements llm_domain.EmbeddingProviderPort for the Voyage AI
-// embedding service.
+// voyageProvider implements llm_domain.EmbeddingProviderPort for the Voyage AI embedding
+// service.
 type voyageProvider struct {
 	// client is the HTTP client used for API requests.
 	client *http.Client
 
-	// defaultModel is the embedding model name to use when not specified in a
-	// request.
+	// defaultModel is the embedding model name to use when not specified in a request.
 	defaultModel string
 
 	// config holds the provider configuration settings.
 	config Config
 
-	// embeddingDimensions is the default vector dimension for the configured
-	// embedding model.
+	// embeddingDimensions is the default vector dimension for the configured embedding
+	// model.
 	embeddingDimensions int
 
 	// closeOnce guards Close so it is idempotent.
 	closeOnce sync.Once
 }
 
-var _ llm_domain.EmbeddingProviderPort = (*voyageProvider)(nil)
+var (
+	_ llm_domain.EmbeddingProviderPort = (*voyageProvider)(nil)
+)
 
 // voyageEmbedRequest holds the data sent to the Voyage embeddings API.
 type voyageEmbedRequest struct {
 	// OutputDimension optionally overrides the output vector dimension.
 	OutputDimension *int `json:"output_dimension,omitempty"`
 
-	// Truncation controls whether long inputs are truncated. Defaults to true
-	// server-side.
+	// Truncation controls whether long inputs are truncated. Defaults to true server-side.
 	Truncation *bool `json:"truncation,omitempty"`
 
 	// Model specifies the Voyage embedding model.
 	Model string `json:"model"`
 
-	// InputType optionally specifies the type of input for retrieval
-	// optimisation ("query" or "document").
+	// InputType optionally specifies the type of input for retrieval optimisation ("query"
+	// or "document").
 	InputType string `json:"input_type,omitempty"`
 
 	// Input is the list of texts to embed.
@@ -167,15 +168,12 @@ type voyageUsage struct {
 	TotalTokens int `json:"total_tokens"`
 }
 
-// Embed generates embeddings for the given input texts via the Voyage AI
-// embeddings API.
+// Embed generates embeddings for the given input texts via the Voyage AI embeddings API.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
-// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding
-// parameters.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding parameters.
 //
-// Returns *llm_dto.EmbeddingResponse which contains the generated
-// embeddings.
+// Returns *llm_dto.EmbeddingResponse which contains the generated embeddings.
 // Returns error when the request fails.
 func (p *voyageProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRequest) (*llm_dto.EmbeddingResponse, error) {
 	defer goroutine.RecoverPanic(ctx, "llm.voyageProvider.Embed")
@@ -209,9 +207,8 @@ func (p *voyageProvider) Embed(ctx context.Context, request *llm_dto.EmbeddingRe
 	return convertVoyageResponse(apiResp), nil
 }
 
-// ListEmbeddingModels returns the known Voyage AI embedding models.
-// Voyage does not provide a model listing API, so this returns a static list of
-// known models.
+// ListEmbeddingModels returns the known Voyage AI embedding models. Voyage does not
+// provide a model listing API, so this returns a static list of known models.
 //
 // Returns []llm_dto.ModelInfo which contains model metadata.
 // Returns error (always nil for Voyage).
@@ -230,8 +227,8 @@ func (*voyageProvider) ListEmbeddingModels(_ context.Context) ([]llm_dto.ModelIn
 	return models, nil
 }
 
-// EmbeddingDimensions returns the default vector dimension for the configured
-// embedding model.
+// EmbeddingDimensions returns the default vector dimension for the configured embedding
+// model.
 //
 // Returns int which is the vector dimension.
 func (p *voyageProvider) EmbeddingDimensions() int {
@@ -240,9 +237,8 @@ func (p *voyageProvider) EmbeddingDimensions() int {
 
 // Close releases resources held by the Voyage provider.
 //
-// The Voyage provider performs only synchronous request/response calls driven
-// by the caller and does not spawn background goroutines, so Close has no
-// goroutines to drain.
+// The Voyage provider performs only synchronous request/response calls driven by the
+// caller and does not spawn background goroutines, so Close has no goroutines to drain.
 //
 // Returns error which is always nil.
 func (p *voyageProvider) Close(_ context.Context) error {
@@ -252,8 +248,8 @@ func (p *voyageProvider) Close(_ context.Context) error {
 	return nil
 }
 
-// executeEmbedRequest serialises the request, sends it to the Voyage API, and
-// decodes the response.
+// executeEmbedRequest serialises the request, sends it to the Voyage API, and decodes the
+// response.
 //
 // Takes ctx (context.Context) which controls cancellation and timeouts.
 // Takes apiReq (*voyageEmbedRequest) which is the request to send.
@@ -311,8 +307,8 @@ func (p *voyageProvider) executeEmbedRequest(ctx context.Context, apiReq *voyage
 // parameters.
 //
 // Takes model (string) which is the resolved model name.
-// Takes request (*llm_dto.EmbeddingRequest) which contains the
-// embedding inputs and options.
+// Takes request (*llm_dto.EmbeddingRequest) which contains the embedding inputs and
+// options.
 //
 // Returns *voyageEmbedRequest which is ready to be serialised and sent.
 func buildVoyageEmbedRequest(model string, request *llm_dto.EmbeddingRequest) *voyageEmbedRequest {
@@ -334,13 +330,13 @@ func buildVoyageEmbedRequest(model string, request *llm_dto.EmbeddingRequest) *v
 	return apiReq
 }
 
-// convertVoyageResponse transforms the Voyage API response into the standard
-// embedding response format.
+// convertVoyageResponse transforms the Voyage API response into the standard embedding
+// response format.
 //
 // Takes apiResp (*voyageEmbedResponse) which contains the raw API embeddings.
 //
-// Returns *llm_dto.EmbeddingResponse which contains the converted embeddings
-// with float32 vectors.
+// Returns *llm_dto.EmbeddingResponse which contains the converted embeddings with float32
+// vectors.
 func convertVoyageResponse(apiResp *voyageEmbedResponse) *llm_dto.EmbeddingResponse {
 	embeddings := make([]llm_dto.Embedding, len(apiResp.Data))
 	for i := range apiResp.Data {

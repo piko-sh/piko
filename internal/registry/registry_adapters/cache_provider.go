@@ -27,17 +27,16 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// createArtefactMetadataCache is the factory function for creating typed
-// artefact metadata caches. It type-asserts the options and delegates to the
-// Otter provider factory.
+// createArtefactMetadataCache is the factory function for creating typed artefact
+// metadata caches. It type-asserts the options and delegates to the Otter provider
+// factory.
 //
-// This pattern enables: 1. Full type safety - Cache[string, *ArtefactMeta] with
-// no runtime assertions 2. Resource sharing - Uses namespace pattern on the
-// shared provider 3. Zero circular dependencies - Registry adapters import
-// cache_domain, not vice versa
+// This pattern enables: 1. Full type safety - Cache[string, *ArtefactMeta] with no
+// runtime assertions 2. Resource sharing - Uses namespace pattern on the shared provider
+// 3. Zero circular dependencies - Registry adapters import cache_domain, not vice versa
 //
-// Takes options (any) which must be
-// cache_dto.Options[string, *registry_dto.ArtefactMeta].
+// Takes options (any) which must be cache_dto.Options[string,
+// *registry_dto.ArtefactMeta].
 //
 // Returns any which is the created cache instance.
 // Returns error when the options type is wrong or cache creation fails.

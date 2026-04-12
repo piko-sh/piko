@@ -38,11 +38,11 @@ const (
 	LimitTypeTokens LimitType = "tokens"
 )
 
-// BudgetConfig defines spending limits for a scope.
-// A zero value in any limit field means no limit is set.
+// BudgetConfig defines spending limits for a scope. A zero value in any limit field means
+// no limit is set.
 type BudgetConfig struct {
-	// OnAlert is called when the alert threshold is reached.
-	// This callback runs in a separate goroutine.
+	// OnAlert is called when the alert threshold is reached. This callback runs in a
+	// separate goroutine.
 	OnAlert func(status BudgetStatus)
 
 	// MaxTotalSpend is the maximum total spend. Zero means unlimited.
@@ -54,12 +54,11 @@ type BudgetConfig struct {
 	// MaxHourlySpend is the maximum hourly spend. Zero means unlimited.
 	MaxHourlySpend maths.Money
 
-	// MaxCostPerRequest is the maximum cost for a single
-	// request. Zero means unlimited.
+	// MaxCostPerRequest is the maximum cost for a single request. Zero means unlimited.
 	MaxCostPerRequest maths.Money
 
-	// AlertThreshold is the budget fraction at which to trigger an alert.
-	// For example, 0.8 triggers at 80% of budget; zero disables alerts.
+	// AlertThreshold is the budget fraction at which to trigger an alert. For example, 0.8
+	// triggers at 80% of budget; zero disables alerts.
 	AlertThreshold float64
 }
 
@@ -93,8 +92,7 @@ func (c *BudgetConfig) HasPerRequestLimit() bool {
 
 // HasAlertThreshold reports whether an alert threshold is configured.
 //
-// Returns bool which is true when the threshold is positive and a handler is
-// set.
+// Returns bool which is true when the threshold is positive and a handler is set.
 func (c *BudgetConfig) HasAlertThreshold() bool {
 	return c.AlertThreshold > 0 && c.OnAlert != nil
 }
@@ -113,12 +111,11 @@ type BudgetStatus struct {
 	// HourlySpent is the total amount spent in the current hour.
 	HourlySpent maths.Money
 
-	// RemainingBudget is the amount of budget left for the day.
-	// Zero if unlimited.
+	// RemainingBudget is the amount of budget left for the day. Zero if unlimited.
 	RemainingBudget maths.Money
 
-	// Scope identifies the budget scope, e.g., "global",
-	// "provider:openai", "group:user:123".
+	// Scope identifies the budget scope, e.g., "global", "provider:openai",
+	// "group:user:123".
 	Scope string
 
 	// RequestCount is the total number of requests made.
@@ -131,8 +128,8 @@ type BudgetStatus struct {
 	ThresholdReached bool
 }
 
-// BudgetLimits carries the spend limits for an atomic check-and-reserve
-// operation. Zero values mean no limit is configured for that window.
+// BudgetLimits carries the spend limits for an atomic check-and-reserve operation. Zero
+// values mean no limit is configured for that window.
 type BudgetLimits struct {
 	// MaxTotalSpend is the cumulative spend limit.
 	MaxTotalSpend maths.Money

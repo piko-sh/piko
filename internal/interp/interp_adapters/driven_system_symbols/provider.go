@@ -24,15 +24,16 @@ import (
 	"piko.sh/piko/internal/interp/interp_domain"
 )
 
-// SystemSymbolsProvider provides vendored stdlib symbols to the
-// bytecode interpreter.
+// SystemSymbolsProvider provides vendored stdlib symbols to the bytecode interpreter.
 type SystemSymbolsProvider struct{}
 
-var _ interp_domain.SymbolProviderPort = (*SystemSymbolsProvider)(nil)
-var _ interp_domain.TypesPackageProviderPort = (*SystemSymbolsProvider)(nil)
+var (
+	_ interp_domain.SymbolProviderPort = (*SystemSymbolsProvider)(nil)
 
-// NewProvider creates a new provider backed by the vendored symbol
-// tables.
+	_ interp_domain.TypesPackageProviderPort = (*SystemSymbolsProvider)(nil)
+)
+
+// NewProvider creates a new provider backed by the vendored symbol tables.
 //
 // Returns a pointer to a newly allocated SystemSymbolsProvider.
 func NewProvider() *SystemSymbolsProvider {
@@ -46,8 +47,8 @@ func (*SystemSymbolsProvider) Exports() interp_domain.SymbolExports {
 	return Symbols
 }
 
-// TypesPackages returns pre-loaded *types.Package objects for generic
-// packages. These provide real generic signatures to the type checker.
+// TypesPackages returns pre-loaded *types.Package objects for generic packages. These
+// provide real generic signatures to the type checker.
 //
 // Returns the TypesPackages map keyed by import path.
 func (*SystemSymbolsProvider) TypesPackages() map[string]*types.Package {

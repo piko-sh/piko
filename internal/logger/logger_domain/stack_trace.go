@@ -25,16 +25,16 @@ import (
 )
 
 var (
-	// pcPool reuses caller.PCs slices to reduce allocation pressure during stack
-	// trace capture.
+	// pcPool reuses caller.PCs slices to reduce allocation pressure during stack trace
+	// capture.
 	pcPool = sync.Pool{
 		New: func() any {
 			return new(make(caller.PCs, 32))
 		},
 	}
 
-	// frameSlicePool reuses string slices to reduce allocation pressure during
-	// stack frame formatting.
+	// frameSlicePool reuses string slices to reduce allocation pressure during stack frame
+	// formatting.
 	frameSlicePool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, 32))
@@ -42,11 +42,11 @@ var (
 	}
 )
 
-// stackTraceProvider abstracts the mechanism for capturing stack traces,
-// enabling mock implementations to be injected for deterministic testing.
+// stackTraceProvider abstracts the mechanism for capturing stack traces, enabling mock
+// implementations to be injected for deterministic testing.
 type stackTraceProvider interface {
-	// CaptureStackTrace captures a stack trace starting from the specified number
-	// of frames to skip.
+	// CaptureStackTrace captures a stack trace starting from the specified number of frames
+	// to skip.
 	//
 	// Takes skip (int) which is the number of stack frames to skip.
 	// Takes maxFrames (int) which is the maximum number of frames to capture.
@@ -56,22 +56,21 @@ type stackTraceProvider interface {
 	CaptureStackTrace(skip int, maxFrames int) (pc uintptr, trace StackTrace)
 }
 
-// callerStackTraceProvider captures stack traces using the internal caller
-// package. It implements stackTraceProvider for production use.
+// callerStackTraceProvider captures stack traces using the internal caller package. It
+// implements stackTraceProvider for production use.
 type callerStackTraceProvider struct{}
 
-// CaptureStackTrace implements stackTraceProvider using caller.CallersFill
-// with pooled buffers to avoid allocation after warmup.
+// CaptureStackTrace implements stackTraceProvider using caller.CallersFill with pooled
+// buffers to avoid allocation after warmup.
 //
-// Takes skip (int) which is the number of stack frames to skip before
-// capturing.
+// Takes skip (int) which is the number of stack frames to skip before capturing.
 // Takes maxFrames (int) which limits the number of frames to capture.
 //
 // Returns uintptr which is the program counter of the first frame.
 // Returns StackTrace which contains the formatted file:line entries.
 //
-// The returned StackTrace should have Release() called after use to return
-// the backing slice to the pool.
+// The returned StackTrace should have Release() called after use to return the backing
+// slice to the pool.
 func (*callerStackTraceProvider) CaptureStackTrace(skip int, maxFrames int) (uintptr, StackTrace) {
 	bufferPointer, ok := pcPool.Get().(*caller.PCs)
 	if !ok {
@@ -135,8 +134,8 @@ func newRuntimeStackTraceProvider() stackTraceProvider {
 	return &callerStackTraceProvider{}
 }
 
-// newMockStackTraceProvider creates a new mock stack trace provider with
-// predefined values.
+// newMockStackTraceProvider creates a new mock stack trace provider with predefined
+// values.
 //
 // Takes pc (uintptr) which specifies the program counter value.
 // Takes trace (StackTrace) which provides the predefined stack trace.
@@ -149,8 +148,8 @@ func newMockStackTraceProvider(pc uintptr, trace StackTrace) stackTraceProvider 
 	}
 }
 
-// newStackTraceFromFrames creates a StackTrace from a slice of frame strings.
-// This is intended for testing; the returned StackTrace does not use pooling.
+// newStackTraceFromFrames creates a StackTrace from a slice of frame strings. This is
+// intended for testing; the returned StackTrace does not use pooling.
 //
 // Takes frames ([]string) which contains the stack frame strings.
 //

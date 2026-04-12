@@ -70,8 +70,8 @@ const (
 	// valueThresholdMilli is the smallest value shown in milli-scale format.
 	valueThresholdMilli = 0.001
 
-	// metricsHistorySize is the number of samples to keep per metric.
-	// At 2 second refresh intervals, 1800 samples = 1 hour of history.
+	// metricsHistorySize is the number of samples to keep per metric. At 2 second refresh
+	// intervals, 1800 samples = 1 hour of history.
 	metricsHistorySize = 1800
 )
 
@@ -81,8 +81,8 @@ var (
 	_ ItemRenderer[metricDisplay] = (*metricsRenderer)(nil)
 )
 
-// MetricsPanel displays OpenTelemetry metrics with sparklines.
-// It implements the Panel interface.
+// MetricsPanel displays OpenTelemetry metrics with sparklines. It implements the Panel
+// interface.
 type MetricsPanel struct {
 	*AssetViewer[metricDisplay]
 
@@ -153,8 +153,7 @@ type MetricsRefreshMessage struct {
 // NewMetricsPanel creates a new metrics panel.
 //
 // Takes provider (MetricsProvider) which supplies the metrics data.
-// Takes c (clock.Clock) which provides time functions. If nil, uses the real
-// clock.
+// Takes c (clock.Clock) which provides time functions. If nil, uses the real clock.
 //
 // Returns *MetricsPanel which is the configured panel ready for use.
 func NewMetricsPanel(provider MetricsProvider, c clock.Clock) *MetricsPanel {
@@ -279,8 +278,7 @@ func (p *MetricsPanel) handleKey(message tea.KeyPressMsg) (Panel, tea.Cmd) {
 	return p, nil
 }
 
-// renderMetricsHeader renders the search box, filter status, and error
-// message.
+// renderMetricsHeader renders the search box, filter status, and error message.
 //
 // Takes content (*strings.Builder) which receives the rendered header output.
 //
@@ -399,8 +397,8 @@ func (*MetricsPanel) renderExpandedDetails(ctx *ScrollContext, m metricDisplay) 
 	}
 }
 
-// calculateColumnWidths works out the widths for the name and sparkline
-// columns based on the space available.
+// calculateColumnWidths works out the widths for the name and sparkline columns based on
+// the space available.
 //
 // Returns nameWidth (int) which is the width for the name column.
 // Returns sparkWidth (int) which is the width for the sparkline column.
@@ -464,8 +462,7 @@ func (p *MetricsPanel) updateMetricHistory(m metricDisplay) {
 	}
 }
 
-// buildDisplayMetricsFromHistory builds display metrics using accumulated
-// history.
+// buildDisplayMetricsFromHistory builds display metrics using accumulated history.
 //
 // Takes newMetrics ([]metricDisplay) which provides the current metric values.
 //
@@ -495,8 +492,8 @@ func (p *MetricsPanel) buildDisplayMetricsFromHistory(newMetrics []metricDisplay
 
 // refresh fetches new metrics data from the provider.
 //
-// Returns tea.Cmd which queries the provider and sends a MetricsRefreshMessage
-// with the results.
+// Returns tea.Cmd which queries the provider and sends a MetricsRefreshMessage with the
+// results.
 func (p *MetricsPanel) refresh() tea.Cmd {
 	return func() tea.Msg {
 		if p.provider == nil {
@@ -567,8 +564,7 @@ func (r *metricsRenderer) RenderRow(m metricDisplay, _ int, selected, _ bool, _ 
 // Takes m (metricDisplay) which holds the metric data to expand.
 // Takes _ (int) which is the unused content width.
 //
-// Returns []string which contains the description and statistics
-// lines.
+// Returns []string which contains the description and statistics lines.
 func (*metricsRenderer) RenderExpanded(m metricDisplay, _ int) []string {
 	var lines []string
 	indent := "     "
@@ -604,8 +600,7 @@ func (*metricsRenderer) GetID(m metricDisplay) string {
 // Takes m (metricDisplay) which is the metric to check.
 // Takes query (string) which is the lowercase search term to match.
 //
-// Returns bool which is true when the query matches the metric name or
-// description.
+// Returns bool which is true when the query matches the metric name or description.
 func (*metricsRenderer) MatchesFilter(m metricDisplay, query string) bool {
 	return strings.Contains(strings.ToLower(m.name), query) ||
 		strings.Contains(strings.ToLower(m.description), query)
@@ -636,8 +631,8 @@ func (*metricsRenderer) ExpandedLineCount(m metricDisplay) int {
 	return lines
 }
 
-// calculateMetricStats works out the smallest, largest, and average values
-// from a slice of numbers.
+// calculateMetricStats works out the smallest, largest, and average values from a slice
+// of numbers.
 //
 // Takes values ([]float64) which contains the numbers to analyse.
 //
@@ -668,8 +663,8 @@ func calculateMetricStats(values []float64) (minVal, maxVal, avg float64) {
 // Takes v (float64) which is the value to format.
 // Takes unit (string) which is the unit to add after the value.
 //
-// Returns string which contains the formatted value with a scale suffix
-// (G, M, K) when needed, followed by the unit if given.
+// Returns string which contains the formatted value with a scale suffix (G, M, K) when
+// needed, followed by the unit if given.
 func formatMetricValue(v float64, unit string) string {
 	var formatted string
 	absV := v

@@ -30,15 +30,17 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// otterComponentCache is a driven adapter that implements ComponentCachePort
-// using the high-performance Otter v2 in-memory cache. It uses Otter's loading
-// mechanism to provide atomic, stampede-proof parsing of component files.
+// otterComponentCache is a driven adapter that implements ComponentCachePort using the
+// high-performance Otter v2 in-memory cache. It uses Otter's loading mechanism to provide
+// atomic, stampede-proof parsing of component files.
 type otterComponentCache struct {
 	// cache stores parsed components, keyed by their identifier string.
 	cache *otter.Cache[string, *annotator_dto.ParsedComponent]
 }
 
-var _ annotator_domain.ComponentCachePort = (*otterComponentCache)(nil)
+var (
+	_ annotator_domain.ComponentCachePort = (*otterComponentCache)(nil)
+)
 
 // GetOrSet retrieves a parsed component from the Otter cache.
 //

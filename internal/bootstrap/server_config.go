@@ -23,24 +23,21 @@ import (
 	"piko.sh/piko/internal/logger/logger_dto"
 )
 
-// ServerConfig is the bootstrap-owned aggregate of resolved framework
-// values.
+// ServerConfig is the bootstrap-owned aggregate of resolved framework values.
 //
-// The With* options each write to a single sub-field, then the
-// config_domain loader applies defaults, resolves placeholders, and
-// validates the result. Only the bootstrap pipeline constructs and
-// consumes ServerConfig. Users configure piko exclusively through With*
-// options.
+// The With* options each write to a single sub-field, then the config_domain loader
+// applies defaults, resolves placeholders, and validates the result. Only the bootstrap
+// pipeline constructs and consumes ServerConfig. Users configure piko exclusively through
+// With* options.
 type ServerConfig struct {
 	// Security holds settings for security headers, rate limiting, and reporting.
 	Security config.SecurityConfig
 
-	// Paths specifies directory paths for pages, emails, partials, and other
-	// source locations.
+	// Paths specifies directory paths for pages, emails, partials, and other source
+	// locations.
 	Paths config.PathsConfig
 
-	// HealthProbe configures the health check endpoint for liveness and readiness
-	// probes.
+	// HealthProbe configures the health check endpoint for liveness and readiness probes.
 	HealthProbe config.HealthProbeConfig
 
 	// Network holds the network configuration for the server.
@@ -52,19 +49,19 @@ type ServerConfig struct {
 	// Database specifies the database connection settings.
 	Database config.DatabaseConfig
 
-	// Otlp holds the settings for the OpenTelemetry Protocol exporter used for
-	// tracing and metrics.
+	// Otlp holds the settings for the OpenTelemetry Protocol exporter used for tracing and
+	// metrics.
 	Otlp config.OtlpConfig
 
 	// Build sets build options such as watch mode and asset pre-rendering.
 	Build config.BuildModeConfig
 
-	// I18nDefaultLocale specifies the default locale for internationalisation;
-	// defaults to "en" if not set.
+	// I18nDefaultLocale specifies the default locale for internationalisation; defaults to
+	// "en" if not set.
 	I18nDefaultLocale *string `default:"en"`
 
-	// CSRFSecret is the secret for CSRF token generation. If not set, a random
-	// secret is generated and persisted to a temp file.
+	// CSRFSecret is the secret for CSRF token generation. If not set, a random secret is
+	// generated and persisted to a temp file.
 	CSRFSecret *string
 
 	// Logger configures the application logging behaviour.

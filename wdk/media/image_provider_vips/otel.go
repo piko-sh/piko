@@ -20,7 +20,9 @@
 
 package image_provider_vips
 
-import "piko.sh/piko/wdk/logger"
+import (
+	"piko.sh/piko/wdk/logger"
+)
 
 var (
 	// log is the package-level logger for the image_provider_vips package.

@@ -16,20 +16,18 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package captcha_provider_recaptcha_v3 provides a Google reCAPTCHA v3
-// captcha provider.
+// Package captcha_provider_recaptcha_v3 provides a Google reCAPTCHA v3 captcha provider.
 //
-// This provider delegates verification to Google's reCAPTCHA v3
-// service, which uses invisible, score-based bot detection that runs
-// in the background without requiring user interaction. Each
-// verification returns a score between 0.0 (likely bot) and 1.0
-// (likely human), allowing applications to take adaptive action based
-// on the risk level. Google recommends a default threshold of 0.5.
+// This provider delegates verification to Google's reCAPTCHA v3 service, which uses
+// invisible, score-based bot detection that runs in the background without requiring user
+// interaction. Each verification returns a score between 0.0 (likely bot) and 1.0 (likely
+// human), allowing applications to take adaptive action based on the risk level. Google
+// recommends a default threshold of 0.5.
 //
 // Tokens are valid for 2 minutes and are single-use.
 //
-// Obtain a site key and secret key from the Google reCAPTCHA admin
-// console (https://www.google.com/recaptcha/admin):
+// Obtain a site key and secret key from the Google reCAPTCHA admin console
+// (https://www.google.com/recaptcha/admin):
 //
 //	provider, err := captcha_provider_recaptcha_v3.NewProvider(captcha_provider_recaptcha_v3.Config{
 //	    SiteKey:   "6Lc...",

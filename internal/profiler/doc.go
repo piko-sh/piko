@@ -18,7 +18,7 @@
 
 // Package profiler provides runtime profiling for Piko.
 //
-// [StartCapture] writes profiles to disk for offline analysis.
-// [StartServer] runs a pprof HTTP server with an optional rolling
-// execution trace buffer. [Config] holds settings for both modes.
+// [StartCapture] writes profiles to disk for offline analysis. [StartServer] runs a pprof
+// HTTP server with an optional rolling execution trace buffer. [Config] holds settings
+// for both modes.
 package profiler

@@ -29,12 +29,11 @@ import (
 )
 
 var (
-	// errProviderNameEmpty is returned when a crypto provider is registered
-	// with an empty name.
+	// errProviderNameEmpty is returned when a crypto provider is registered with an empty
+	// name.
 	errProviderNameEmpty = errors.New("provider name cannot be empty")
 
-	// errProviderNil is returned when a nil crypto provider is supplied during
-	// registration.
+	// errProviderNil is returned when a nil crypto provider is supplied during registration.
 	errProviderNil = errors.New("provider cannot be nil")
 )
 
@@ -44,8 +43,8 @@ var (
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (EncryptionProvider) which is the crypto backend to register.
 //
-// Returns error when the name is empty, the provider is nil, or a provider
-// with the same name is already registered.
+// Returns error when the name is empty, the provider is nil, or a provider with the same
+// name is already registered.
 func (s *cryptoService) RegisterProvider(ctx context.Context, name string, provider EncryptionProvider) error {
 	if name == "" {
 		return errProviderNameEmpty
@@ -66,8 +65,8 @@ func (s *cryptoService) RegisterProvider(ctx context.Context, name string, provi
 	return nil
 }
 
-// SetDefaultProvider sets the provider to use when no specific provider is
-// named in a call.
+// SetDefaultProvider sets the provider to use when no specific provider is named in a
+// call.
 //
 // Takes name (string) which identifies the provider to set as default.
 //
@@ -102,8 +101,8 @@ func (s *cryptoService) HasProvider(name string) bool {
 
 // ListProviders returns detailed information about all registered providers.
 //
-// Returns []provider_domain.ProviderInfo which contains provider metadata,
-// health status, and capabilities.
+// Returns []provider_domain.ProviderInfo which contains provider metadata, health status,
+// and capabilities.
 func (s *cryptoService) ListProviders(ctx context.Context) []provider_domain.ProviderInfo {
 	return s.registry.ListProviders(ctx)
 }

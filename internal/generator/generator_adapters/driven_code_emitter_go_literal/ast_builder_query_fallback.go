@@ -29,25 +29,22 @@ import (
 )
 
 const (
-	// goTypeInt is the Go type name for int, used in switch cases
-	// and safeconv dispatch.
+	// goTypeInt is the Go type name for int, used in switch cases and safeconv dispatch.
 	goTypeInt = "int"
 
-	// goTypeInt64 is the Go type name for int64, used in switch
-	// cases and safeconv dispatch.
+	// goTypeInt64 is the Go type name for int64, used in switch cases and safeconv dispatch.
 	goTypeInt64 = "int64"
 
-	// goTypeUint is the Go type name for uint, used in switch
-	// cases and safeconv dispatch.
+	// goTypeUint is the Go type name for uint, used in switch cases and safeconv dispatch.
 	goTypeUint = "uint"
 
-	// goTypeFloat32 is the Go type name for float32, used in
-	// switch cases and safeconv dispatch.
+	// goTypeFloat32 is the Go type name for float32, used in switch cases and safeconv
+	// dispatch.
 	goTypeFloat32 = "float32"
 )
 
-// queryPropInfo holds details about a struct field that binds to a URL query
-// parameter. Fields are ordered for memory alignment.
+// queryPropInfo holds details about a struct field that binds to a URL query parameter.
+// Fields are ordered for memory alignment.
 type queryPropInfo struct {
 	// TypeExpr is the Go AST expression for the field type.
 	TypeExpr goast.Expr
@@ -65,14 +62,14 @@ type queryPropInfo struct {
 	ShouldCoerce bool
 }
 
-// buildQueryParamFallbacks creates statements that set props from query
-// parameters when the parent component has not set them.
+// buildQueryParamFallbacks creates statements that set props from query parameters when
+// the parent component has not set them.
 //
-// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the
-// component's AST for reading props metadata.
+// Takes mainComponent (*annotator_dto.VirtualComponent) which provides the component's
+// AST for reading props metadata.
 //
-// Returns []goast.Stmt which contains the fallback statements to add after
-// props type assertion.
+// Returns []goast.Stmt which contains the fallback statements to add after props type
+// assertion.
 func buildQueryParamFallbacks(mainComponent *annotator_dto.VirtualComponent) []goast.Stmt {
 	if mainComponent == nil || mainComponent.RewrittenScriptAST == nil {
 		return nil
@@ -93,8 +90,8 @@ func buildQueryParamFallbacks(mainComponent *annotator_dto.VirtualComponent) []g
 	return statements
 }
 
-// extractQueryPropsFromAST finds properties with query tags from parsed Go
-// source code of a component script.
+// extractQueryPropsFromAST finds properties with query tags from parsed Go source code of
+// a component script.
 //
 // Takes file (*goast.File) which contains the parsed Go source to search.
 //
@@ -111,8 +108,7 @@ func extractQueryPropsFromAST(file *goast.File) []queryPropInfo {
 //
 // Takes file (*goast.File) which is the parsed Go source to search.
 //
-// Returns *goast.StructType which is the Props struct if found, or nil if not
-// present.
+// Returns *goast.StructType which is the Props struct if found, or nil if not present.
 func findPropsStruct(file *goast.File) *goast.StructType {
 	return findStructByName(file, "Props")
 }
@@ -139,8 +135,8 @@ func extractQueryPropsFromStruct(structType *goast.StructType) []queryPropInfo {
 //
 // Takes field (*goast.Field) which is the struct field to check for query tags.
 //
-// Returns *queryPropInfo which holds the query parameter name, type, and
-// options. Returns nil if the field has no query tag.
+// Returns *queryPropInfo which holds the query parameter name, type, and options.
+// Returns nil if the field has no query tag.
 func parseFieldForQuery(field *goast.Field) *queryPropInfo {
 	if field.Tag == nil {
 		return nil
@@ -171,8 +167,8 @@ func parseFieldForQuery(field *goast.Field) *queryPropInfo {
 	}
 }
 
-// buildQueryFallbackStatement creates a fallback statement for a single query
-// parameter property.
+// buildQueryFallbackStatement creates a fallback statement for a single query parameter
+// property.
 //
 // For string types:
 //
@@ -198,11 +194,11 @@ func parseFieldForQuery(field *goast.Field) *queryPropInfo {
 //	    }
 //	}
 //
-// Takes prop (queryPropInfo) which describes the query parameter to create a
-// fallback for.
+// Takes prop (queryPropInfo) which describes the query parameter to create a fallback
+// for.
 //
-// Returns goast.Stmt which is the fallback statement, or nil if the property
-// type does not support fallback creation.
+// Returns goast.Stmt which is the fallback statement, or nil if the property type does
+// not support fallback creation.
 func buildQueryFallbackStatement(prop queryPropInfo) goast.Stmt {
 	fieldAccess := &goast.SelectorExpr{
 		X:   cachedIdent("props"),
@@ -251,8 +247,8 @@ func buildQueryFallbackStatement(prop queryPropInfo) goast.Stmt {
 //
 // Takes typeExpr (goast.Expr) which is the type expression to extract from.
 //
-// Returns string which is the base type name, or an empty string if the type
-// is not a simple identifier.
+// Returns string which is the base type name, or an empty string if the type is not a
+// simple identifier.
 func getBaseTypeName(typeExpr goast.Expr) string {
 	if star, ok := typeExpr.(*goast.StarExpr); ok {
 		typeExpr = star.X
@@ -264,16 +260,15 @@ func getBaseTypeName(typeExpr goast.Expr) string {
 	return ""
 }
 
-// buildStringQueryFallback builds an if statement that assigns a query
-// parameter value when the field is empty.
+// buildStringQueryFallback builds an if statement that assigns a query parameter value
+// when the field is empty.
 //
-// Takes fieldAccess (*goast.SelectorExpr) which is the field to check and
-// assign to.
-// Takes queryCall (*goast.CallExpr) which is the query parameter call to use
-// as the fallback value.
+// Takes fieldAccess (*goast.SelectorExpr) which is the field to check and assign to.
+// Takes queryCall (*goast.CallExpr) which is the query parameter call to use as the
+// fallback value.
 //
-// Returns goast.Stmt which is an if statement of the form:
-// if props.Field == "" { props.Field = r.QueryParam("name") }.
+// Returns goast.Stmt which is an if statement of the form: if props.Field == "" {
+// props.Field = r.QueryParam("name") }.
 func buildStringQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.CallExpr) goast.Stmt {
 	return &goast.IfStmt{
 		Cond: &goast.BinaryExpr{
@@ -307,8 +302,8 @@ func buildStringQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.
 // Takes fieldAccess (*goast.SelectorExpr) which is the field selector.
 // Takes queryCall (*goast.CallExpr) which gets the query parameter value.
 //
-// Returns goast.Stmt which is the fallback statement, or nil if the type is
-// not supported or coercion is not enabled.
+// Returns goast.Stmt which is the fallback statement, or nil if the type is not supported
+// or coercion is not enabled.
 func buildPointerQueryFallback(prop queryPropInfo, fieldAccess *goast.SelectorExpr, queryCall *goast.CallExpr) goast.Stmt {
 	innerBody := buildPointerInnerBody(prop, fieldAccess)
 	if innerBody == nil {
@@ -344,14 +339,12 @@ func buildPointerInnerBody(prop queryPropInfo, fieldAccess *goast.SelectorExpr) 
 	}
 }
 
-// buildPointerStringAssignment creates an assignment statement for pointer
-// string types.
+// buildPointerStringAssignment creates an assignment statement for pointer string types.
 //
-// Takes fieldAccess (*goast.SelectorExpr) which specifies the struct field to
-// assign to.
+// Takes fieldAccess (*goast.SelectorExpr) which specifies the struct field to assign to.
 //
-// Returns []goast.Stmt which contains the assignment statement that takes the
-// address of the cached query parameter variable.
+// Returns []goast.Stmt which contains the assignment statement that takes the address of
+// the cached query parameter variable.
 func buildPointerStringAssignment(fieldAccess *goast.SelectorExpr) []goast.Stmt {
 	return []goast.Stmt{
 		&goast.AssignStmt{
@@ -362,17 +355,15 @@ func buildPointerStringAssignment(fieldAccess *goast.SelectorExpr) []goast.Stmt 
 	}
 }
 
-// buildPointerIntParseAssignment creates AST statements that parse a string to
-// an integer and assign the result to a pointer field. For narrowing types
-// (int8, int16, int32), the value is converted via safeconv before taking its
-// address.
+// buildPointerIntParseAssignment creates AST statements that parse a string to an integer
+// and assign the result to a pointer field. For narrowing types (int8, int16, int32), the
+// value is converted via safeconv before taking its address.
 //
-// Takes fieldAccess (*goast.SelectorExpr) which specifies the struct field to
-// receive the parsed integer value.
+// Takes fieldAccess (*goast.SelectorExpr) which specifies the struct field to receive the
+// parsed integer value.
 // Takes baseType (string) which is the target integer type (e.g. "int32").
 //
-// Returns []goast.Stmt which contains the AST statements for parsing and
-// assignment.
+// Returns []goast.Stmt which contains the AST statements for parsing and assignment.
 func buildPointerIntParseAssignment(fieldAccess *goast.SelectorExpr, baseType string) []goast.Stmt {
 	parseCall := &goast.CallExpr{
 		Fun:  &goast.SelectorExpr{X: cachedIdent(pkgStrconv), Sel: cachedIdent("Atoi")},
@@ -389,8 +380,8 @@ func buildPointerIntParseAssignment(fieldAccess *goast.SelectorExpr, baseType st
 	}
 }
 
-// buildParseConvertAndAssignPointer creates an if statement that parses a
-// value, converts it, and assigns its address to a pointer field.
+// buildParseConvertAndAssignPointer creates an if statement that parses a value, converts
+// it, and assigns its address to a pointer field.
 //
 // Generated code:
 //
@@ -400,8 +391,7 @@ func buildPointerIntParseAssignment(fieldAccess *goast.SelectorExpr, baseType st
 //	}
 //
 // Takes parseCall (*goast.CallExpr) which is the parse function call.
-// Takes convertExpr (goast.Expr) which is the conversion expression applied
-// to v.
+// Takes convertExpr (goast.Expr) which is the conversion expression applied to v.
 // Takes fieldAccess (*goast.SelectorExpr) which is the pointer field to set.
 //
 // Returns *goast.IfStmt which wraps the parse, convert, and assign.
@@ -435,14 +425,13 @@ func buildParseConvertAndAssignPointer(parseCall *goast.CallExpr, convertExpr go
 	}
 }
 
-// buildPointerBoolParseAssignment creates statements that parse a string to a
-// bool and assign the result to a pointer field.
+// buildPointerBoolParseAssignment creates statements that parse a string to a bool and
+// assign the result to a pointer field.
 //
-// Takes fieldAccess (*goast.SelectorExpr) which specifies the target field for
-// the parsed bool value.
+// Takes fieldAccess (*goast.SelectorExpr) which specifies the target field for the parsed
+// bool value.
 //
-// Returns []goast.Stmt which contains the AST statements for parsing and
-// assignment.
+// Returns []goast.Stmt which contains the AST statements for parsing and assignment.
 func buildPointerBoolParseAssignment(fieldAccess *goast.SelectorExpr) []goast.Stmt {
 	return []goast.Stmt{
 		buildParseAndAssignPointer(
@@ -455,14 +444,14 @@ func buildPointerBoolParseAssignment(fieldAccess *goast.SelectorExpr) []goast.St
 	}
 }
 
-// buildParseAndAssignPointer creates an if statement that parses a value and
-// assigns its address to a pointer field.
+// buildParseAndAssignPointer creates an if statement that parses a value and assigns its
+// address to a pointer field.
 //
 // Takes parseCall (*goast.CallExpr) which is the parse function call to run.
 // Takes fieldAccess (*goast.SelectorExpr) which is the pointer field to set.
 //
-// Returns *goast.IfStmt which assigns the address of the parsed value to the
-// field when parsing succeeds.
+// Returns *goast.IfStmt which assigns the address of the parsed value to the field when
+// parsing succeeds.
 func buildParseAndAssignPointer(parseCall *goast.CallExpr, fieldAccess *goast.SelectorExpr) *goast.IfStmt {
 	return &goast.IfStmt{
 		Init: &goast.AssignStmt{
@@ -487,17 +476,16 @@ func buildParseAndAssignPointer(parseCall *goast.CallExpr, fieldAccess *goast.Se
 	}
 }
 
-// wrapInNilCheckWithQueryInit wraps the inner body in a nil check and query
-// parameter setup.
+// wrapInNilCheckWithQueryInit wraps the inner body in a nil check and query parameter
+// setup.
 //
 // Takes fieldAccess (*goast.SelectorExpr) which is the field to check for nil.
 // Takes queryCall (*goast.CallExpr) which sets up the query parameter.
-// Takes innerBody ([]goast.Stmt) which contains the statements to run when the
-// query parameter is not empty.
-//
-// Returns *goast.IfStmt which is an if statement that first checks if the field
-// is nil, then sets up the query parameter and runs the inner body if the
+// Takes innerBody ([]goast.Stmt) which contains the statements to run when the query
 // parameter is not empty.
+//
+// Returns *goast.IfStmt which is an if statement that first checks if the field is nil,
+// then sets up the query parameter and runs the inner body if the parameter is not empty.
 func wrapInNilCheckWithQueryInit(fieldAccess *goast.SelectorExpr, queryCall *goast.CallExpr, innerBody []goast.Stmt) *goast.IfStmt {
 	innerIf := &goast.IfStmt{
 		Init: &goast.AssignStmt{
@@ -523,9 +511,9 @@ func wrapInNilCheckWithQueryInit(fieldAccess *goast.SelectorExpr, queryCall *goa
 	}
 }
 
-// buildIntQueryFallback builds a fallback AST for int types that converts
-// query parameters. For narrowing conversions (int8, int16, int32), the
-// generated code uses safeconv to clamp the value to the target range.
+// buildIntQueryFallback builds a fallback AST for int types that converts query
+// parameters. For narrowing conversions (int8, int16, int32), the generated code uses
+// safeconv to clamp the value to the target range.
 //
 // For int and int64 (no narrowing):
 //
@@ -547,8 +535,7 @@ func wrapInNilCheckWithQueryInit(fieldAccess *goast.SelectorExpr, queryCall *goa
 //	    }
 //	}
 //
-// Takes fieldAccess (*goast.SelectorExpr) which is the struct field to check
-// and assign.
+// Takes fieldAccess (*goast.SelectorExpr) which is the struct field to check and assign.
 // Takes queryCall (*goast.CallExpr) which gets the query parameter value.
 // Takes baseType (string) which is the target integer type name.
 //
@@ -562,13 +549,12 @@ func buildIntQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.Cal
 	return buildZeroCheckWithParseFallback(fieldAccess, queryCall, parseCall, assignExpr, intLit(0))
 }
 
-// safeconvIntExpr returns the assignment expression for converting
-// the parsed int value (v) to the target integer type.
+// safeconvIntExpr returns the assignment expression for converting the parsed int value
+// (v) to the target integer type.
 //
 // Takes baseType (string) which is the target type name.
 //
-// Returns goast.Expr which is either the bare identifier v or a
-// safeconv call.
+// Returns goast.Expr which is either the bare identifier v or a safeconv call.
 func safeconvIntExpr(baseType string) goast.Expr {
 	switch baseType {
 	case goTypeInt:
@@ -588,14 +574,11 @@ func safeconvIntExpr(baseType string) goast.Expr {
 	}
 }
 
-// safeconvFuncName returns the safeconv function name for converting from a
-// source type prefix to the target type. For example, ("Int", "int32")
-// returns "IntToInt32".
+// safeconvFuncName returns the safeconv function name for converting from a source type
+// prefix to the target type. For example, ("Int", "int32") returns "IntToInt32".
 //
-// Takes sourcePrefix (string) which is the source type prefix (e.g. "Int",
-// "Uint64").
-// Takes targetType (string) which is the target Go type name (e.g. "int32",
-// "uint16").
+// Takes sourcePrefix (string) which is the source type prefix (e.g. "Int", "Uint64").
+// Takes targetType (string) which is the target Go type name (e.g. "int32", "uint16").
 //
 // Returns string which is the safeconv function name.
 func safeconvFuncName(sourcePrefix, targetType string) string {
@@ -603,17 +586,15 @@ func safeconvFuncName(sourcePrefix, targetType string) string {
 	return sourcePrefix + "To" + suffix
 }
 
-// buildUintQueryFallback creates fallback logic for uint types. For narrowing
-// conversions (uint8, uint16, uint32), the generated code uses safeconv to
-// clamp the value.
+// buildUintQueryFallback creates fallback logic for uint types. For narrowing conversions
+// (uint8, uint16, uint32), the generated code uses safeconv to clamp the value.
 //
-// Takes fieldAccess (*goast.SelectorExpr) which identifies the struct field to
-// set.
+// Takes fieldAccess (*goast.SelectorExpr) which identifies the struct field to set.
 // Takes queryCall (*goast.CallExpr) which gets the query parameter value.
 // Takes baseType (string) which is the target unsigned integer type name.
 //
-// Returns goast.Stmt which is an if statement that parses and sets the uint
-// value when the field is zero.
+// Returns goast.Stmt which is an if statement that parses and sets the uint value when
+// the field is zero.
 func buildUintQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.CallExpr, baseType string) goast.Stmt {
 	parseCall := &goast.CallExpr{
 		Fun: &goast.SelectorExpr{X: cachedIdent(pkgStrconv), Sel: cachedIdent("ParseUint")},
@@ -627,13 +608,12 @@ func buildUintQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.Ca
 	return buildZeroCheckWithParseFallback(fieldAccess, queryCall, parseCall, assignExpr, intLit(0))
 }
 
-// safeconvUintExpr returns the assignment expression for converting
-// the parsed uint64 value (v) to the target unsigned integer type.
+// safeconvUintExpr returns the assignment expression for converting the parsed uint64
+// value (v) to the target unsigned integer type.
 //
 // Takes baseType (string) which is the target type name.
 //
-// Returns goast.Expr which is either a simple cast or a safeconv
-// call.
+// Returns goast.Expr which is either a simple cast or a safeconv call.
 func safeconvUintExpr(baseType string) goast.Expr {
 	switch baseType {
 	case "uint64":
@@ -653,16 +633,15 @@ func safeconvUintExpr(baseType string) goast.Expr {
 	}
 }
 
-// buildFloatQueryFallback builds a fallback AST statement for float types
-// parsed from query parameters.
+// buildFloatQueryFallback builds a fallback AST statement for float types parsed from
+// query parameters.
 //
-// Takes fieldAccess (*goast.SelectorExpr) which identifies the struct field
-// to assign.
+// Takes fieldAccess (*goast.SelectorExpr) which identifies the struct field to assign.
 // Takes queryCall (*goast.CallExpr) which retrieves the query parameter value.
 // Takes baseType (string) which specifies the float type (float32 or float64).
 //
-// Returns goast.Stmt which is an if statement that parses and assigns the
-// query parameter when the field is zero.
+// Returns goast.Stmt which is an if statement that parses and assigns the query parameter
+// when the field is zero.
 func buildFloatQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.CallExpr, baseType string) goast.Stmt {
 	bitSize := bitSize64
 	if baseType == goTypeFloat32 {
@@ -689,8 +668,8 @@ func buildFloatQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.C
 	return buildZeroCheckWithParseFallback(fieldAccess, queryCall, parseCall, assignExpr, zeroLit)
 }
 
-// buildZeroCheckWithParseFallback builds a fallback statement that checks if a
-// field is zero, gets a query parameter, parses it, and assigns the result.
+// buildZeroCheckWithParseFallback builds a fallback statement that checks if a field is
+// zero, gets a query parameter, parses it, and assigns the result.
 //
 // Takes fieldAccess (*goast.SelectorExpr) which is the field to check.
 // Takes queryCall (*goast.CallExpr) which gets the query parameter value.
@@ -715,8 +694,8 @@ func buildZeroCheckWithParseFallback(
 	}
 }
 
-// buildParseAndAssignValue creates an if statement that parses a value and
-// assigns it only when there is no error.
+// buildParseAndAssignValue creates an if statement that parses a value and assigns it
+// only when there is no error.
 //
 // Takes parseCall (*goast.CallExpr) which is the call to the parsing function.
 // Takes fieldAccess (*goast.SelectorExpr) which is the field to assign to.
@@ -747,16 +726,15 @@ func buildParseAndAssignValue(parseCall *goast.CallExpr, fieldAccess *goast.Sele
 	}
 }
 
-// buildQueryParamCheck creates an if statement that fetches and checks a query
-// parameter.
+// buildQueryParamCheck creates an if statement that fetches and checks a query parameter.
 //
-// Takes queryCall (*goast.CallExpr) which is the call expression that gets the
-// query parameter value.
-// Takes innerBody ([]goast.Stmt) which contains the statements to run when the
-// parameter is present.
+// Takes queryCall (*goast.CallExpr) which is the call expression that gets the query
+// parameter value.
+// Takes innerBody ([]goast.Stmt) which contains the statements to run when the parameter
+// is present.
 //
-// Returns *goast.IfStmt which assigns the query result to a variable and runs
-// innerBody when the value is not empty.
+// Returns *goast.IfStmt which assigns the query result to a variable and runs innerBody
+// when the value is not empty.
 func buildQueryParamCheck(queryCall *goast.CallExpr, innerBody []goast.Stmt) *goast.IfStmt {
 	return &goast.IfStmt{
 		Init: &goast.AssignStmt{
@@ -773,15 +751,15 @@ func buildQueryParamCheck(queryCall *goast.CallExpr, innerBody []goast.Stmt) *go
 	}
 }
 
-// buildBoolQueryFallback builds a fallback statement for boolean type fields.
-// It converts query parameters into boolean values.
+// buildBoolQueryFallback builds a fallback statement for boolean type fields. It converts
+// query parameters into boolean values.
 //
-// Takes fieldAccess (*goast.SelectorExpr) which specifies the target field to
-// assign the parsed boolean value.
+// Takes fieldAccess (*goast.SelectorExpr) which specifies the target field to assign the
+// parsed boolean value.
 // Takes queryCall (*goast.CallExpr) which gets the query parameter value.
 //
-// Returns goast.Stmt which is an if statement that parses the query parameter
-// as a boolean and assigns it to the field when valid.
+// Returns goast.Stmt which is an if statement that parses the query parameter as a
+// boolean and assigns it to the field when valid.
 func buildBoolQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.CallExpr) goast.Stmt {
 	return &goast.IfStmt{
 		Init: &goast.AssignStmt{
@@ -831,8 +809,8 @@ func buildBoolQueryFallback(fieldAccess *goast.SelectorExpr, queryCall *goast.Ca
 //
 // Takes expression (*goast.SelectorExpr) which is the selector expression to copy.
 //
-// Returns *goast.SelectorExpr which is a new node with the same X and Sel
-// values as the original.
+// Returns *goast.SelectorExpr which is a new node with the same X and Sel values as the
+// original.
 func cloneSelectorExpr(expression *goast.SelectorExpr) *goast.SelectorExpr {
 	return &goast.SelectorExpr{
 		X:   expression.X,
@@ -840,8 +818,8 @@ func cloneSelectorExpr(expression *goast.SelectorExpr) *goast.SelectorExpr {
 	}
 }
 
-// isPrimitiveQueryType checks whether a base type name is a primitive that can
-// be serialised to a query parameter string.
+// isPrimitiveQueryType checks whether a base type name is a primitive that can be
+// serialised to a query parameter string.
 //
 // Takes baseType (string) which is the Go type name to check.
 //
@@ -859,15 +837,15 @@ func isPrimitiveQueryType(baseType string) bool {
 }
 
 // extractPrimitiveQueryPropsFromComponent returns query-tagged props from a
-// VirtualComponent's script AST that have primitive, non-pointer types. Used to
-// determine whether a public partial needs a partial_props attribute and which
-// fields to include in the query string.
+// VirtualComponent's script AST that have primitive, non-pointer types. Used to determine
+// whether a public partial needs a partial_props attribute and which fields to include in
+// the query string.
 //
-// Takes component (*annotator_dto.VirtualComponent) which provides the
-// rewritten script AST containing the Props struct.
+// Takes component (*annotator_dto.VirtualComponent) which provides the rewritten script
+// AST containing the Props struct.
 //
-// Returns []queryPropInfo which contains the primitive query-bound props, or
-// nil when none exist.
+// Returns []queryPropInfo which contains the primitive query-bound props, or nil when
+// none exist.
 func extractPrimitiveQueryPropsFromComponent(component *annotator_dto.VirtualComponent) []queryPropInfo {
 	if component == nil || component.RewrittenScriptAST == nil {
 		return nil

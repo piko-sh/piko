@@ -53,198 +53,200 @@ type pikoDirectiveDocumentation struct {
 	Modifiers []string
 }
 
-// pikoDirectiveDocumentations is the registry of all documented Piko directives.
-var pikoDirectiveDocumentations = map[string]pikoDirectiveDocumentation{
-	"p-if": {
-		Name:         "p-if",
-		Description:  "Conditional rendering - element is excluded from output when expression is false",
-		Syntax:       `p-if="expression"`,
-		Accepts:      "Boolean expression",
-		Example:      `<div p-if="state.isLoggedIn">Welcome back!</div>`,
-		DocumentsURL: "/docs/api/directives/p-if",
-	},
-	"p-else-if": {
-		Name:        "p-else-if",
-		Description: "Alternative condition in if-else chain - evaluated when preceding p-if is false",
-		Syntax:      `p-else-if="expression"`,
-		Accepts:     "Boolean expression",
-		Example: `<div p-if="state.role == 'admin'">Admin</div>
-<div p-else-if="state.role == 'user'">User</div>`,
-		Note:         "Must immediately follow a p-if or another p-else-if element.",
-		DocumentsURL: "/docs/api/directives/p-else-if",
-	},
-	"p-else": {
-		Name:        "p-else",
-		Description: "Fallback branch - rendered when all preceding p-if/p-else-if conditions are false",
-		Syntax:      `p-else`,
-		Accepts:     "No value (presence only)",
-		Example: `<div p-if="state.items.length > 0">Items found</div>
-<div p-else>No items</div>`,
-		Note:         "Must immediately follow a p-if or p-else-if element.",
-		DocumentsURL: "/docs/api/directives/p-else",
-	},
-	"p-for": {
-		Name:        "p-for",
-		Description: "Loop iteration - repeats element for each item in a collection",
-		Syntax:      `p-for="item in items"` + " or " + `p-for="(index, item) in items"`,
-		Accepts:     "ForIn expression",
-		Example: `<li p-for="user in state.users" p-key="user.id">
-  <span p-text="user.name"></span>
-</li>`,
-		Note:         "Always use p-key with p-for for proper DOM reconciliation.",
-		DocumentsURL: "/docs/api/directives/p-for",
-	},
-	"p-show": {
-		Name:         "p-show",
-		Description:  "Toggle visibility via CSS display property - element always remains in DOM",
-		Syntax:       `p-show="expression"`,
-		Accepts:      "Boolean expression",
-		Example:      `<div p-show="state.isVisible">This toggles visibility</div>`,
-		Note:         "Unlike p-if, the element is always rendered but hidden with display:none when false.",
-		DocumentsURL: "/docs/api/directives/p-show",
-	},
+var (
+	// pikoDirectiveDocumentations is the registry of all documented Piko directives.
+	pikoDirectiveDocumentations = map[string]pikoDirectiveDocumentation{
+		"p-if": {
+			Name:         "p-if",
+			Description:  "Conditional rendering - element is excluded from output when expression is false",
+			Syntax:       `p-if="expression"`,
+			Accepts:      "Boolean expression",
+			Example:      `<div p-if="state.isLoggedIn">Welcome back!</div>`,
+			DocumentsURL: "/docs/api/directives/p-if",
+		},
+		"p-else-if": {
+			Name:        "p-else-if",
+			Description: "Alternative condition in if-else chain - evaluated when preceding p-if is false",
+			Syntax:      `p-else-if="expression"`,
+			Accepts:     "Boolean expression",
+			Example: `<div p-if="state.role == 'admin'">Admin</div>
+	<div p-else-if="state.role == 'user'">User</div>`,
+			Note:         "Must immediately follow a p-if or another p-else-if element.",
+			DocumentsURL: "/docs/api/directives/p-else-if",
+		},
+		"p-else": {
+			Name:        "p-else",
+			Description: "Fallback branch - rendered when all preceding p-if/p-else-if conditions are false",
+			Syntax:      `p-else`,
+			Accepts:     "No value (presence only)",
+			Example: `<div p-if="state.items.length > 0">Items found</div>
+	<div p-else>No items</div>`,
+			Note:         "Must immediately follow a p-if or p-else-if element.",
+			DocumentsURL: "/docs/api/directives/p-else",
+		},
+		"p-for": {
+			Name:        "p-for",
+			Description: "Loop iteration - repeats element for each item in a collection",
+			Syntax:      `p-for="item in items"` + " or " + `p-for="(index, item) in items"`,
+			Accepts:     "ForIn expression",
+			Example: `<li p-for="user in state.users" p-key="user.id">
+	  <span p-text="user.name"></span>
+	</li>`,
+			Note:         "Always use p-key with p-for for proper DOM reconciliation.",
+			DocumentsURL: "/docs/api/directives/p-for",
+		},
+		"p-show": {
+			Name:         "p-show",
+			Description:  "Toggle visibility via CSS display property - element always remains in DOM",
+			Syntax:       `p-show="expression"`,
+			Accepts:      "Boolean expression",
+			Example:      `<div p-show="state.isVisible">This toggles visibility</div>`,
+			Note:         "Unlike p-if, the element is always rendered but hidden with display:none when false.",
+			DocumentsURL: "/docs/api/directives/p-show",
+		},
 
-	"p-bind": {
-		Name:        "p-bind",
-		Description: "Dynamic attribute binding - binds an expression to any HTML attribute",
-		Syntax:      `p-bind:attributeName="expression"`,
-		Accepts:     "Expression that evaluates to an attribute value",
-		Example: `<a p-bind:href="state.linkUrl">Dynamic link</a>
-<img p-bind:src="state.imageUrl" p-bind:alt="state.imageAlt" />`,
-		Note:         "Shorthand: :attributeName (e.g., :href instead of p-bind:href)",
-		DocumentsURL: "/docs/api/directives/p-bind",
-	},
-	"p-text": {
-		Name:         "p-text",
-		Description:  "Set element text content from expression - output is HTML-escaped",
-		Syntax:       `p-text="expression"`,
-		Accepts:      "Expression that evaluates to a string",
-		Example:      `<span p-text="state.userName">Placeholder</span>`,
-		Note:         "Content is automatically HTML-escaped for security.",
-		DocumentsURL: "/docs/api/directives/p-text",
-	},
-	"p-html": {
-		Name:         "p-html",
-		Description:  "Inject raw HTML content - bypasses HTML escaping",
-		Syntax:       `p-html="expression"`,
-		Accepts:      "Expression that evaluates to an HTML string",
-		Example:      `<div p-html="state.richContent"></div>`,
-		Note:         "Only use with trusted content to avoid XSS vulnerabilities.",
-		DocumentsURL: "/docs/api/directives/p-html",
-	},
-	"p-model": {
-		Name:        "p-model",
-		Description: "Two-way data binding for form elements",
-		Syntax:      `p-model="dataPath"`,
-		Accepts:     "Data property path",
-		Example: `<input p-model="state.form.email" type="email" />
-<textarea p-model="state.form.message"></textarea>`,
-		Note:         "Works with input, textarea, and select elements.",
-		DocumentsURL: "/docs/api/directives/p-model",
-	},
+		"p-bind": {
+			Name:        "p-bind",
+			Description: "Dynamic attribute binding - binds an expression to any HTML attribute",
+			Syntax:      `p-bind:attributeName="expression"`,
+			Accepts:     "Expression that evaluates to an attribute value",
+			Example: `<a p-bind:href="state.linkUrl">Dynamic link</a>
+	<img p-bind:src="state.imageUrl" p-bind:alt="state.imageAlt" />`,
+			Note:         "Shorthand: :attributeName (e.g., :href instead of p-bind:href)",
+			DocumentsURL: "/docs/api/directives/p-bind",
+		},
+		"p-text": {
+			Name:         "p-text",
+			Description:  "Set element text content from expression - output is HTML-escaped",
+			Syntax:       `p-text="expression"`,
+			Accepts:      "Expression that evaluates to a string",
+			Example:      `<span p-text="state.userName">Placeholder</span>`,
+			Note:         "Content is automatically HTML-escaped for security.",
+			DocumentsURL: "/docs/api/directives/p-text",
+		},
+		"p-html": {
+			Name:         "p-html",
+			Description:  "Inject raw HTML content - bypasses HTML escaping",
+			Syntax:       `p-html="expression"`,
+			Accepts:      "Expression that evaluates to an HTML string",
+			Example:      `<div p-html="state.richContent"></div>`,
+			Note:         "Only use with trusted content to avoid XSS vulnerabilities.",
+			DocumentsURL: "/docs/api/directives/p-html",
+		},
+		"p-model": {
+			Name:        "p-model",
+			Description: "Two-way data binding for form elements",
+			Syntax:      `p-model="dataPath"`,
+			Accepts:     "Data property path",
+			Example: `<input p-model="state.form.email" type="email" />
+	<textarea p-model="state.form.message"></textarea>`,
+			Note:         "Works with input, textarea, and select elements.",
+			DocumentsURL: "/docs/api/directives/p-model",
+		},
 
-	"p-on": {
-		Name:        "p-on",
-		Description: "DOM event handler binding",
-		Syntax:      `p-on:event[.modifier...]="handler"`,
-		Accepts:     "Handler function name or expression",
-		Example: `<button p-on:click="handleClick">Click me</button>
-<form p-on:submit.prevent="action.contact.Send($form)">...</form>`,
-		Modifiers:    []string{".prevent", ".stop", ".once", ".self"},
-		Note:         "Modifiers are composable: p-on:submit.prevent.once",
-		DocumentsURL: "/docs/api/directives/p-on",
-	},
-	"p-event": {
-		Name:         "p-event",
-		Description:  "Custom component event handler binding",
-		Syntax:       `p-event:eventName[.modifier...]="handler"`,
-		Accepts:      "Handler function name or expression",
-		Example:      `<my-component p-event:update="handleUpdate"></my-component>`,
-		Modifiers:    []string{".prevent", ".stop", ".once", ".self"},
-		Note:         "Use for component-specific events, not standard DOM events. Modifiers are composable.",
-		DocumentsURL: "/docs/api/directives/p-event",
-	},
+		"p-on": {
+			Name:        "p-on",
+			Description: "DOM event handler binding",
+			Syntax:      `p-on:event[.modifier...]="handler"`,
+			Accepts:     "Handler function name or expression",
+			Example: `<button p-on:click="handleClick">Click me</button>
+	<form p-on:submit.prevent="action.contact.Send($form)">...</form>`,
+			Modifiers:    []string{".prevent", ".stop", ".once", ".self"},
+			Note:         "Modifiers are composable: p-on:submit.prevent.once",
+			DocumentsURL: "/docs/api/directives/p-on",
+		},
+		"p-event": {
+			Name:         "p-event",
+			Description:  "Custom component event handler binding",
+			Syntax:       `p-event:eventName[.modifier...]="handler"`,
+			Accepts:      "Handler function name or expression",
+			Example:      `<my-component p-event:update="handleUpdate"></my-component>`,
+			Modifiers:    []string{".prevent", ".stop", ".once", ".self"},
+			Note:         "Use for component-specific events, not standard DOM events. Modifiers are composable.",
+			DocumentsURL: "/docs/api/directives/p-event",
+		},
 
-	"p-class": {
-		Name:         "p-class",
-		Description:  "Dynamic CSS class binding",
-		Syntax:       `p-class="expression"`,
-		Accepts:      "Object, string, or array of class names",
-		Example:      `<div p-class="{ active: state.isActive, disabled: state.isDisabled }">...</div>`,
-		Note:         "Merged with static class attribute if present.",
-		DocumentsURL: "/docs/api/directives/p-class",
-	},
-	"p-style": {
-		Name:         "p-style",
-		Description:  "Dynamic inline style binding",
-		Syntax:       `p-style="expression"`,
-		Accepts:      "Style object with CSS properties",
-		Example:      `<div p-style="{ color: state.textColor, fontSize: state.fontSize + 'px' }">...</div>`,
-		DocumentsURL: "/docs/api/directives/p-style",
-	},
+		"p-class": {
+			Name:         "p-class",
+			Description:  "Dynamic CSS class binding",
+			Syntax:       `p-class="expression"`,
+			Accepts:      "Object, string, or array of class names",
+			Example:      `<div p-class="{ active: state.isActive, disabled: state.isDisabled }">...</div>`,
+			Note:         "Merged with static class attribute if present.",
+			DocumentsURL: "/docs/api/directives/p-class",
+		},
+		"p-style": {
+			Name:         "p-style",
+			Description:  "Dynamic inline style binding",
+			Syntax:       `p-style="expression"`,
+			Accepts:      "Style object with CSS properties",
+			Example:      `<div p-style="{ color: state.textColor, fontSize: state.fontSize + 'px' }">...</div>`,
+			DocumentsURL: "/docs/api/directives/p-style",
+		},
 
-	"p-ref": {
-		Name:        "p-ref",
-		Description: "Create a named reference to access the DOM element from scripts",
-		Syntax:      `p-ref="refName"`,
-		Accepts:     "Valid JavaScript identifier",
-		Example: `<canvas p-ref="myCanvas"></canvas>
-<!-- Access via refs.myCanvas in client script -->`,
-		Note:         "Value must be a simple identifier (no expressions).",
-		DocumentsURL: "/docs/api/directives/p-ref",
-	},
-	"p-slot": {
-		Name:        "p-slot",
-		Description: "Assign element content to a named slot in the parent partial",
-		Syntax:      `p-slot="slotName"`,
-		Accepts:     "Slot name string",
-		Example: `<div p-slot="header">
-  <h1>Page Title</h1>
-</div>`,
-		Note:         "Used when invoking partials to target specific slot locations.",
-		DocumentsURL: "/docs/api/directives/p-slot",
-	},
-	"p-key": {
-		Name:         "p-key",
-		Description:  "Set unique key for DOM reconciliation in loops",
-		Syntax:       `p-key="expression"`,
-		Accepts:      "Expression that evaluates to a unique identifier",
-		Example:      `<li p-for="item in state.items" p-key="item.id">...</li>`,
-		Note:         "Essential for efficient updates when list items change.",
-		DocumentsURL: "/docs/api/directives/p-key",
-	},
-	"p-context": {
-		Name:         "p-context",
-		Description:  "Set scoping prefix for automatic key generation within subtree",
-		Syntax:       `p-context="expression"`,
-		Accepts:      "Expression for key prefix",
-		Example:      `<div p-context="'section-' + state.sectionId">...</div>`,
-		Note:         "Framework-internal directive for key scoping.",
-		DocumentsURL: "/docs/api/directives/p-context",
-	},
+		"p-ref": {
+			Name:        "p-ref",
+			Description: "Create a named reference to access the DOM element from scripts",
+			Syntax:      `p-ref="refName"`,
+			Accepts:     "Valid JavaScript identifier",
+			Example: `<canvas p-ref="myCanvas"></canvas>
+	<!-- Access via refs.myCanvas in client script -->`,
+			Note:         "Value must be a simple identifier (no expressions).",
+			DocumentsURL: "/docs/api/directives/p-ref",
+		},
+		"p-slot": {
+			Name:        "p-slot",
+			Description: "Assign element content to a named slot in the parent partial",
+			Syntax:      `p-slot="slotName"`,
+			Accepts:     "Slot name string",
+			Example: `<div p-slot="header">
+	  <h1>Page Title</h1>
+	</div>`,
+			Note:         "Used when invoking partials to target specific slot locations.",
+			DocumentsURL: "/docs/api/directives/p-slot",
+		},
+		"p-key": {
+			Name:         "p-key",
+			Description:  "Set unique key for DOM reconciliation in loops",
+			Syntax:       `p-key="expression"`,
+			Accepts:      "Expression that evaluates to a unique identifier",
+			Example:      `<li p-for="item in state.items" p-key="item.id">...</li>`,
+			Note:         "Essential for efficient updates when list items change.",
+			DocumentsURL: "/docs/api/directives/p-key",
+		},
+		"p-context": {
+			Name:         "p-context",
+			Description:  "Set scoping prefix for automatic key generation within subtree",
+			Syntax:       `p-context="expression"`,
+			Accepts:      "Expression for key prefix",
+			Example:      `<div p-context="'section-' + state.sectionId">...</div>`,
+			Note:         "Framework-internal directive for key scoping.",
+			DocumentsURL: "/docs/api/directives/p-context",
+		},
 
-	"p-scaffold": {
-		Name:         "p-scaffold",
-		Description:  "Component structure generation marker (framework-internal)",
-		Syntax:       `p-scaffold` + " or " + `p-scaffold="true"`,
-		Accepts:      "Boolean flag (presence means true)",
-		Example:      `<div p-scaffold>...</div>`,
-		Note:         "Used internally during component compilation.",
-		DocumentsURL: "/docs/api/directives/p-scaffold",
-	},
+		"p-scaffold": {
+			Name:         "p-scaffold",
+			Description:  "Component structure generation marker (framework-internal)",
+			Syntax:       `p-scaffold` + " or " + `p-scaffold="true"`,
+			Accepts:      "Boolean flag (presence means true)",
+			Example:      `<div p-scaffold>...</div>`,
+			Note:         "Used internally during component compilation.",
+			DocumentsURL: "/docs/api/directives/p-scaffold",
+		},
 
-	"p-timeline": {
-		Name:         "p-timeline",
-		Description:  "Animation timeline directive - controls element visibility during timeline playback (PKC only)",
-		Syntax:       `p-timeline:hidden`,
-		Accepts:      "No value (presence only)",
-		Example:      `<h1 p-ref="title" p-timeline:hidden>Hello, Piko</h1>`,
-		DocumentsURL: "/docs/api/directives/p-timeline",
-		Note: "Elements with p-timeline:hidden are hidden via CSS until the animation timeline's show action reveals them. " +
-			"The compiler transforms the attribute to p-timeline-hidden in the output. " +
-			"Only supported in PKC files with enable=\"animation\".",
-	},
-}
+		"p-timeline": {
+			Name:         "p-timeline",
+			Description:  "Animation timeline directive - controls element visibility during timeline playback (PKC only)",
+			Syntax:       `p-timeline:hidden`,
+			Accepts:      "No value (presence only)",
+			Example:      `<h1 p-ref="title" p-timeline:hidden>Hello, Piko</h1>`,
+			DocumentsURL: "/docs/api/directives/p-timeline",
+			Note: "Elements with p-timeline:hidden are hidden via CSS until the animation timeline's show action reveals them. " +
+				"The compiler transforms the attribute to p-timeline-hidden in the output. " +
+				"Only supported in PKC files with enable=\"animation\".",
+		},
+	}
+)
 
 // checkDirectiveHoverContext checks if the cursor is on a p-* directive.
 //
@@ -252,8 +254,8 @@ var pikoDirectiveDocumentations = map[string]pikoDirectiveDocumentation{
 // Takes cursor (int) which is the cursor position within the line.
 // Takes position (protocol.Position) which is the LSP position in the document.
 //
-// Returns *PKHoverContext which provides hover context when the cursor is on
-// a directive, or nil when no match is found.
+// Returns *PKHoverContext which provides hover context when the cursor is on a directive,
+// or nil when no match is found.
 func (*document) checkDirectiveHoverContext(line string, cursor int, position protocol.Position) *PKHoverContext {
 	directiveName, startPosition, endPosition := findDirectiveAtCursor(line, cursor)
 	if directiveName == "" {
@@ -281,8 +283,8 @@ func (*document) checkDirectiveHoverContext(line string, cursor int, position pr
 //
 // Takes ctx (*PKHoverContext) which provides the hover request context.
 //
-// Returns *protocol.Hover which contains the hover information to display,
-// or nil if the directive is not found.
+// Returns *protocol.Hover which contains the hover information to display, or nil if the
+// directive is not found.
 // Returns error which is always nil here.
 func (*document) getDirectiveHover(ctx *PKHoverContext) (*protocol.Hover, error) {
 	directiveDocumentation, exists := pikoDirectiveDocumentations[ctx.Name]
@@ -328,16 +330,16 @@ func findDirectiveAtCursor(line string, cursor int) (directiveName string, start
 	return line[lastIndex:endIndex], lastIndex, endIndex
 }
 
-// findDirectiveStartPosition finds the starting position of a p- directive near
-// the cursor.
+// findDirectiveStartPosition finds the starting position of a p- directive near the
+// cursor.
 //
 // Takes line (string) which contains the text to search.
 // Takes searchStart (int) which specifies the start index of the search range.
 // Takes searchEnd (int) which specifies the end index of the search range.
 // Takes cursor (int) which is the cursor position to search near.
 //
-// Returns int which is the index of the last valid directive prefix at or
-// before the cursor, or -1 if none is found.
+// Returns int which is the index of the last valid directive prefix at or before the
+// cursor, or -1 if none is found.
 func findDirectiveStartPosition(line string, searchStart, searchEnd, cursor int) int {
 	lastIndex := -1
 	for i := searchStart; i < searchEnd; i++ {
@@ -361,14 +363,14 @@ func isDirectivePrefix(line string, i int) bool {
 	return i+2 <= len(line) && line[i] == 'p' && line[i+1] == '-'
 }
 
-// isPrecededByValidChar checks if the character before position i is valid
-// (whitespace, quote, or start of line).
+// isPrecededByValidChar checks if the character before position i is valid (whitespace,
+// quote, or start of line).
 //
 // Takes line (string) which is the text to check.
 // Takes i (int) which is the position to check before.
 //
-// Returns bool which is true if the preceding character is whitespace, a quote,
-// or if i is at the start of the line.
+// Returns bool which is true if the preceding character is whitespace, a quote, or if i
+// is at the start of the line.
 func isPrecededByValidChar(line string, i int) bool {
 	if i == 0 {
 		return true
@@ -377,8 +379,7 @@ func isPrecededByValidChar(line string, i int) bool {
 	return previous == ' ' || previous == '\t' || previous == '"' || previous == '\''
 }
 
-// findDirectiveEndPosition finds the end position of a
-// directive starting at lastIndex.
+// findDirectiveEndPosition finds the end position of a directive starting at lastIndex.
 //
 // Takes line (string) which contains the text to scan.
 // Takes lastIndex (int) which is the starting position within the line.
@@ -399,15 +400,14 @@ func findDirectiveEndPosition(line string, lastIndex int) int {
 //
 // Takes character (byte) which is the character to check.
 //
-// Returns bool which is true if the character is a letter, digit, hyphen,
-// colon, or full stop.
+// Returns bool which is true if the character is a letter, digit, hyphen, colon, or full
+// stop.
 func isDirectiveChar(character byte) bool {
 	return (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
 		(character >= '0' && character <= '9') || character == '-' || character == ':' || character == '.'
 }
 
-// normaliseDirectiveName extracts the base directive name for documentation
-// lookup.
+// normaliseDirectiveName extracts the base directive name for documentation lookup.
 //
 // Takes fullName (string) which may contain arguments or modifiers.
 //
@@ -432,8 +432,8 @@ func normaliseDirectiveName(fullName string) string {
 
 // formatDirectiveDocumentation formats directive documentation as markdown.
 //
-// Takes directiveDocumentation (pikoDirectiveDocumentation)
-// which holds the directive details to format.
+// Takes directiveDocumentation (pikoDirectiveDocumentation) which holds the directive
+// details to format.
 //
 // Returns string which is the formatted markdown text.
 func formatDirectiveDocumentation(directiveDocumentation pikoDirectiveDocumentation) string {

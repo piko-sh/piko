@@ -16,13 +16,12 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package encoder_gob implements the cache encoder port using Go's
-// native Gob binary encoding format.
+// Package encoder_gob implements the cache encoder port using Go's native Gob binary
+// encoding format.
 //
-// Gob provides better performance than JSON for complex Go types and
-// supports nested structs and registered unexported fields. It is
-// Go-specific and not human-readable, so it is best suited for internal
-// caching where interoperability is not required.
+// Gob provides better performance than JSON for complex Go types and supports nested
+// structs and registered unexported fields. It is Go-specific and not human-readable, so
+// it is best suited for internal caching where interoperability is not required.
 //
 // # Usage
 //
@@ -31,6 +30,6 @@
 //
 // # Thread safety
 //
-// Each encoder is stateless and safe for concurrent use. Gob encoders
-// and decoders are created per operation.
+// Each encoder is stateless and safe for concurrent use. Gob encoders and decoders are
+// created per operation.
 package encoder_gob

@@ -25,18 +25,17 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// parameterCountPass checks that all declared parameters are referenced in the
-// SQL query body. Unreferenced parameters (except piko.sortable which is used
-// for dynamic ORDER BY) produce a Q009 warning.
+// parameterCountPass checks that all declared parameters are referenced in the SQL query
+// body. Unreferenced parameters (except piko.sortable which is used for dynamic ORDER BY)
+// produce a Q009 warning.
 type parameterCountPass struct{}
 
 // Analyse checks for unreferenced parameters.
 //
-// Takes context (*diagnosticContext) which holds the query
-// and analysis state.
+// Takes context (*diagnosticContext) which holds the query and analysis state.
 //
-// Returns []querier_dto.SourceError which holds any Q009
-// diagnostics for unreferenced parameters.
+// Returns []querier_dto.SourceError which holds any Q009 diagnostics for unreferenced
+// parameters.
 func (*parameterCountPass) Analyse(context *diagnosticContext) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 
@@ -89,22 +88,21 @@ func (*parameterCountPass) Analyse(context *diagnosticContext) []querier_dto.Sou
 	return diagnostics
 }
 
-// commandOutputPass validates that the query command is consistent with the
-// output columns. SELECT-style commands (one, many, stream) must produce
-// columns; exec-style commands must not.
+// commandOutputPass validates that the query command is consistent with the output
+// columns. SELECT-style commands (one, many, stream) must produce columns; exec-style
+// commands must not.
 type commandOutputPass struct{}
 
 // Analyse checks command and output column consistency.
 //
-// Takes context (*diagnosticContext) which holds the query
-// and analysis state.
+// Takes context (*diagnosticContext) which holds the query and analysis state.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostics for command/output mismatches.
+// Returns []querier_dto.SourceError which holds any diagnostics for command/output
+// mismatches.
 func (*commandOutputPass) Analyse(context *diagnosticContext) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 
-	switch context.Query.Command {
+	switch context.Query.Command { //nolint:exhaustive // exhaustive case-set intentionally partial; missing entries are no-ops
 	case querier_dto.QueryCommandOne, querier_dto.QueryCommandMany, querier_dto.QueryCommandStream:
 		if len(context.Query.OutputColumns) == 0 {
 			diagnostics = append(diagnostics, querier_dto.SourceError{
@@ -139,18 +137,17 @@ func (*commandOutputPass) Analyse(context *diagnosticContext) []querier_dto.Sour
 	return diagnostics
 }
 
-// dynamicSafetyPass validates that piko.sortable parameters only reference
-// columns that appear in the query output. Referencing non-existent columns
-// could allow SQL injection via ORDER BY.
+// dynamicSafetyPass validates that piko.sortable parameters only reference columns that
+// appear in the query output. Referencing non-existent columns could allow SQL injection
+// via ORDER BY.
 type dynamicSafetyPass struct{}
 
 // Analyse validates sortable parameter column references.
 //
-// Takes context (*diagnosticContext) which holds the query
-// and analysis state.
+// Takes context (*diagnosticContext) which holds the query and analysis state.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostics for invalid sortable column references.
+// Returns []querier_dto.SourceError which holds any diagnostics for invalid sortable
+// column references.
 func (*dynamicSafetyPass) Analyse(context *diagnosticContext) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 
@@ -184,9 +181,8 @@ func (*dynamicSafetyPass) Analyse(context *diagnosticContext) []querier_dto.Sour
 	return diagnostics
 }
 
-// generatedColumnPass detects INSERT/UPDATE statements that attempt to write
-// to generated (computed) columns. SQLite rejects these at runtime, so we
-// report them at compile time.
+// generatedColumnPass detects INSERT/UPDATE statements that attempt to write to generated
+// (computed) columns. SQLite rejects these at runtime, so we report them at compile time.
 type generatedColumnPass struct {
 	// catalogue holds the schema state for column lookups.
 	catalogue *querier_dto.Catalogue
@@ -194,11 +190,10 @@ type generatedColumnPass struct {
 
 // Analyse detects writes to generated columns.
 //
-// Takes context (*diagnosticContext) which holds the query
-// and analysis state.
+// Takes context (*diagnosticContext) which holds the query and analysis state.
 //
-// Returns []querier_dto.SourceError which holds any
-// diagnostics for generated column writes.
+// Returns []querier_dto.SourceError which holds any diagnostics for generated column
+// writes.
 func (p *generatedColumnPass) Analyse(context *diagnosticContext) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 
@@ -247,11 +242,9 @@ type groupByValidationPass struct{}
 
 // Analyse validates group_by directive constraints.
 //
-// Takes context (*diagnosticContext) which holds the query
-// and analysis state.
+// Takes context (*diagnosticContext) which holds the query and analysis state.
 //
-// Returns []querier_dto.SourceError which holds any Q014,
-// Q015, or Q016 diagnostics.
+// Returns []querier_dto.SourceError which holds any Q014, Q015, or Q016 diagnostics.
 func (*groupByValidationPass) Analyse(context *diagnosticContext) []querier_dto.SourceError {
 	if len(context.Query.GroupByKey) == 0 {
 		return nil
@@ -284,16 +277,14 @@ func (*groupByValidationPass) Analyse(context *diagnosticContext) []querier_dto.
 	return diagnostics
 }
 
-// validateGroupByColumnReferences checks that each
-// group_by column exists in the query output.
+// validateGroupByColumnReferences checks that each group_by column exists in the query
+// output.
 //
-// Takes context (*diagnosticContext) which holds the query
-// state.
-// Takes outputColumnNames (map[string]struct{}) which holds
-// the lowercase output column names.
+// Takes context (*diagnosticContext) which holds the query state.
+// Takes outputColumnNames (map[string]struct{}) which holds the lowercase output column
+// names.
 //
-// Returns []querier_dto.SourceError which holds any Q014
-// diagnostics for missing columns.
+// Returns []querier_dto.SourceError which holds any Q014 diagnostics for missing columns.
 func validateGroupByColumnReferences(context *diagnosticContext, outputColumnNames map[string]struct{}) []querier_dto.SourceError {
 	var diagnostics []querier_dto.SourceError
 	for _, groupByColumn := range context.Query.GroupByKey {
@@ -316,14 +307,13 @@ func validateGroupByColumnReferences(context *diagnosticContext, outputColumnNam
 	return diagnostics
 }
 
-// validateGroupByRequiresEmbed checks that at least one
-// piko.embed directive exists when group_by is used.
+// validateGroupByRequiresEmbed checks that at least one piko.embed directive exists when
+// group_by is used.
 //
-// Takes context (*diagnosticContext) which holds the query
-// state.
+// Takes context (*diagnosticContext) which holds the query state.
 //
-// Returns []querier_dto.SourceError which holds a Q015
-// diagnostic if no embed directive is found.
+// Returns []querier_dto.SourceError which holds a Q015 diagnostic if no embed directive
+// is found.
 func validateGroupByRequiresEmbed(context *diagnosticContext) []querier_dto.SourceError {
 	hasEmbed := false
 	for i := range context.Query.OutputColumns {
@@ -350,14 +340,12 @@ func validateGroupByRequiresEmbed(context *diagnosticContext) []querier_dto.Sour
 	return nil
 }
 
-// findColumn looks up a column in the catalogue by its
-// table alias and column name.
+// findColumn looks up a column in the catalogue by its table alias and column name.
 //
-// Takes reference (*querier_dto.ColumnReference) which
-// identifies the table and column to find.
+// Takes reference (*querier_dto.ColumnReference) which identifies the table and column to
+// find.
 //
-// Returns *querier_dto.Column which is the matching column,
-// or nil if not found.
+// Returns *querier_dto.Column which is the matching column, or nil if not found.
 func (p *generatedColumnPass) findColumn(reference *querier_dto.ColumnReference) *querier_dto.Column {
 	for _, schema := range p.catalogue.Schemas {
 		for _, table := range schema.Tables {
@@ -374,8 +362,8 @@ func (p *generatedColumnPass) findColumn(reference *querier_dto.ColumnReference)
 	return nil
 }
 
-// sliceCommandValidationPass rejects piko.slice parameters in command and
-// directive contexts where they cannot be safely expanded.
+// sliceCommandValidationPass rejects piko.slice parameters in command and directive
+// contexts where they cannot be safely expanded.
 type sliceCommandValidationPass struct{}
 
 // Analyse checks for invalid piko.slice usage.

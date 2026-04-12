@@ -20,7 +20,12 @@
 
 package colour
 
-import "golang.org/x/sys/unix"
+import (
+	"golang.org/x/sys/unix"
+)
 
-// ioctlGetTermios holds the ioctl request code for retrieving terminal attributes on Linux.
-const ioctlGetTermios = unix.TCGETS
+const (
+	// ioctlGetTermios holds the ioctl request code for retrieving terminal attributes on
+	// Linux.
+	ioctlGetTermios = unix.TCGETS
+)

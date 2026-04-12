@@ -31,8 +31,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// EncryptBatch encrypts multiple values using either envelope encryption or
-// direct KMS mode.
+// EncryptBatch encrypts multiple values using either envelope encryption or direct KMS
+// mode.
 //
 // When EnableEnvelopeEncryption is true (default):
 //   - 1 KMS call (GenerateDataKey) + fast local encryption
@@ -42,8 +42,7 @@ import (
 // When EnableEnvelopeEncryption is false:
 //   - N parallel KMS calls (one per item, limited by DirectModeMaxConcurrency)
 //   - Encryption keys NEVER enter application memory
-//   - Best for: Maximum security, compliance-heavy scenarios (HIPAA, PCI-DSS,
-//     SOC2)
+//   - Best for: Maximum security, compliance-heavy scenarios (HIPAA, PCI-DSS, SOC2)
 //
 // Takes plaintexts ([]string) which contains the values to encrypt.
 //
@@ -61,8 +60,8 @@ func (s *cryptoService) EncryptBatch(ctx context.Context, plaintexts []string) (
 	return s.encryptBatchEnvelope(ctx, plaintexts)
 }
 
-// encryptBatchEnvelope encrypts multiple items using envelope encryption with
-// a single data key.
+// encryptBatchEnvelope encrypts multiple items using envelope encryption with a single
+// data key.
 //
 // Takes plaintexts ([]string) which contains the items to encrypt.
 //
@@ -136,8 +135,7 @@ type directBatchConfig struct {
 	providerType crypto_dto.ProviderType
 }
 
-// runBatchDirect executes a batch operation directly via KMS with parallel
-// goroutines.
+// runBatchDirect executes a batch operation directly via KMS with parallel goroutines.
 //
 // Takes inputs ([]string) which contains the data to process.
 // Takes config (directBatchConfig) which specifies the batch operation settings.
@@ -214,18 +212,15 @@ func (*cryptoService) runWithSemaphore(ctx context.Context, input string, semaph
 	return op(ctx, input)
 }
 
-// setupBatchEncryption generates a data key and creates an ephemeral provider
-// for batch encryption.
+// setupBatchEncryption generates a data key and creates an ephemeral provider for batch
+// encryption.
 //
-// Returns EncryptionProvider which is the ephemeral provider for encrypting
-// batch items.
-// Returns *crypto_dto.DataKey which contains the encrypted data key for
-// storage.
-// Returns error when key generation fails or the local provider factory is
-// not configured.
+// Returns EncryptionProvider which is the ephemeral provider for encrypting batch items.
+// Returns *crypto_dto.DataKey which contains the encrypted data key for storage.
+// Returns error when key generation fails or the local provider factory is not
+// configured.
 //
-// Safe for concurrent use. Uses a read lock to access the local provider
-// factory.
+// Safe for concurrent use. Uses a read lock to access the local provider factory.
 func (s *cryptoService) setupBatchEncryption(ctx context.Context) (EncryptionProvider, *crypto_dto.DataKey, error) {
 	provider, err := s.getProvider(ctx)
 	if err != nil {
@@ -288,8 +283,8 @@ func (*cryptoService) encryptBatchItems(ctx context.Context, provider Encryption
 	return ciphertexts, encryptionErrors
 }
 
-// DecryptBatch decrypts multiple values using either envelope decryption or
-// direct KMS mode.
+// DecryptBatch decrypts multiple values using either envelope decryption or direct KMS
+// mode.
 //
 // When EnableEnvelopeEncryption is true (default):
 //   - Detects envelope format and uses single data key decryption
@@ -315,8 +310,8 @@ func (s *cryptoService) DecryptBatch(ctx context.Context, ciphertexts []string) 
 	return s.decryptBatchEnvelope(ctx, ciphertexts)
 }
 
-// decryptBatchEnvelope tries envelope decryption first, then falls back to
-// direct decryption for non-envelope ciphertexts.
+// decryptBatchEnvelope tries envelope decryption first, then falls back to direct
+// decryption for non-envelope ciphertexts.
 //
 // Takes ciphertexts ([]string) which contains the encrypted data to decrypt.
 //
@@ -356,9 +351,8 @@ func (s *cryptoService) decryptBatchEnvelope(ctx context.Context, ciphertexts []
 	return plaintexts, nil
 }
 
-// decryptBatchDirect calls KMS directly for each item without storing keys
-// in memory. Uses parallel goroutines with a semaphore to limit how many run
-// at once.
+// decryptBatchDirect calls KMS directly for each item without storing keys in memory.
+// Uses parallel goroutines with a semaphore to limit how many run at once.
 //
 // Takes ciphertexts ([]string) which contains the encrypted values to decrypt.
 //
@@ -377,19 +371,16 @@ func (s *cryptoService) decryptBatchDirect(ctx context.Context, ciphertexts []st
 	})
 }
 
-// setupEnvelopeDecryption prepares the ephemeral provider for batch
-// decryption. The provider is nil when the ciphertexts do not use
-// envelope encryption.
+// setupEnvelopeDecryption prepares the ephemeral provider for batch decryption. The
+// provider is nil when the ciphertexts do not use envelope encryption.
 //
-// Takes firstCiphertext (string) which is the first ciphertext in
-// the batch, used to detect envelope format and extract the
-// encrypted data key.
+// Takes firstCiphertext (string) which is the first ciphertext in the batch, used to
+// detect envelope format and extract the encrypted data key.
 //
-// Returns EncryptionProvider which is the ephemeral provider for
-// decrypting envelope-encrypted items, or nil when the ciphertexts
-// do not use envelope encryption.
-// Returns func() which is a cleanup callback that releases the data key
-// resources; always non-nil on success.
+// Returns EncryptionProvider which is the ephemeral provider for decrypting
+// envelope-encrypted items, or nil when the ciphertexts do not use envelope encryption.
+// Returns func() which is a cleanup callback that releases the data key resources; always
+// non-nil on success.
 // Returns error when data key decryption or provider creation fails.
 func (s *cryptoService) setupEnvelopeDecryption(ctx context.Context, firstCiphertext string) (EncryptionProvider, func(), error) {
 	metadata, err := extractCiphertextMetadata(firstCiphertext)
@@ -417,15 +408,15 @@ func (s *cryptoService) setupEnvelopeDecryption(ctx context.Context, firstCipher
 	return ephemeralProvider, cleanup, nil
 }
 
-// decryptBatchItems decrypts each ciphertext using either envelope or
-// standard decryption.
+// decryptBatchItems decrypts each ciphertext using either envelope or standard
+// decryption.
 //
 // Takes ephemeralProvider (EncryptionProvider) which provides the key for
 // envelope-encrypted items.
 // Takes ciphertexts ([]string) which contains the encrypted values to decrypt.
 //
-// Returns []string which contains the decrypted plaintext values in the same
-// order as the input.
+// Returns []string which contains the decrypted plaintext values in the same order as the
+// input.
 // Returns []error which contains any decryption errors with their indices.
 func (s *cryptoService) decryptBatchItems(ctx context.Context, ephemeralProvider EncryptionProvider, ciphertexts []string) ([]string, []error) {
 	plaintexts := make([]string, len(ciphertexts))
@@ -443,11 +434,10 @@ func (s *cryptoService) decryptBatchItems(ctx context.Context, ephemeralProvider
 	return plaintexts, decryptionErrors
 }
 
-// decryptSingleBatchItem decrypts a single item using envelope or standard
-// decryption.
+// decryptSingleBatchItem decrypts a single item using envelope or standard decryption.
 //
-// Takes ephemeralProvider (EncryptionProvider) which handles envelope
-// decryption when set. Falls back to standard decryption when nil.
+// Takes ephemeralProvider (EncryptionProvider) which handles envelope decryption when
+// set. Falls back to standard decryption when nil.
 // Takes ciphertext (string) which is the encrypted data to decrypt.
 //
 // Returns string which is the decrypted plaintext.
@@ -459,8 +449,8 @@ func (s *cryptoService) decryptSingleBatchItem(ctx context.Context, ephemeralPro
 	return s.Decrypt(ctx, ciphertext)
 }
 
-// decryptDataKeyWithCache decrypts an encrypted data key using the provider,
-// with caching to reduce KMS API calls for frequently-used keys.
+// decryptDataKeyWithCache decrypts an encrypted data key using the provider, with caching
+// to reduce KMS API calls for frequently-used keys.
 //
 // Takes encryptedKey (string) which is the encrypted data key to decrypt.
 //
@@ -469,8 +459,8 @@ func (s *cryptoService) decryptSingleBatchItem(ctx context.Context, ephemeralPro
 //
 // Safe for concurrent use. Uses a read lock when accessing the cache.
 //
-// Critical for performance in high-throughput scenarios where many small
-// operations share the same encrypted data key.
+// Critical for performance in high-throughput scenarios where many small operations share
+// the same encrypted data key.
 //
 // Security considerations:
 //   - Cache stores SecureBytes (locked memory, prevents swap)
@@ -532,8 +522,8 @@ func (s *cryptoService) decryptDataKeyWithCache(ctx context.Context, encryptedKe
 	return secureKey, nil
 }
 
-// encryptBatchItem encrypts a single item using the given provider and wraps
-// it in an envelope.
+// encryptBatchItem encrypts a single item using the given provider and wraps it in an
+// envelope.
 //
 // Takes provider (EncryptionProvider) which handles the encryption.
 // Takes plaintext (string) which is the data to encrypt.
@@ -556,14 +546,13 @@ func encryptBatchItem(ctx context.Context, provider EncryptionProvider, plaintex
 	return createEnvelopedCiphertext(dataKey.KeyID, string(dataKey.Provider), encryptResp.Ciphertext, dataKey.EncryptedKey)
 }
 
-// countErrors counts the errors in a slice and returns the total with the
-// first error found.
+// countErrors counts the errors in a slice and returns the total with the first error
+// found.
 //
 // Takes errs ([]error) which contains the errors to count.
 //
 // Returns int which is the number of non-nil errors in the slice.
-// Returns error which is the first non-nil error found, or nil if there are
-// none.
+// Returns error which is the first non-nil error found, or nil if there are none.
 func countErrors(errs []error) (int, error) {
 	var firstErr error
 	errorCount := 0

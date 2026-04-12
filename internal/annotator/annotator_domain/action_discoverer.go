@@ -34,15 +34,17 @@ import (
 	"piko.sh/piko/internal/resolver/resolver_domain"
 )
 
-// dotSeparator is the dot character used to separate parts in action names.
-const dotSeparator = "."
+const (
+	// dotSeparator is the dot character used to separate parts in action names.
+	dotSeparator = "."
+)
 
-// ActionDiscoverer scans the actions/ directory and extracts preliminary action
-// metadata. It runs during Stage 1.6 of the annotator pipeline, using lightweight
-// AST parsing to identify action structs without full type checking.
+// ActionDiscoverer scans the actions/ directory and extracts initial action metadata. It
+// runs during Stage 1.6 of the annotator pipeline, using lightweight AST parsing to
+// identify action structs without full type checking.
 //
-// Full type resolution (input/output types, capabilities) happens later in
-// Stage 3.5 after packages.Load() has run.
+// Full type resolution (input/output types, capabilities) happens later in Stage 3.5
+// after packages.Load() has run.
 type ActionDiscoverer struct {
 	// resolver provides path resolution and module name lookup.
 	resolver resolver_domain.ResolverPort
@@ -85,9 +87,9 @@ func NewActionDiscoverer(
 	return ad
 }
 
-// Discover scans the actions/ directory and returns preliminary action
-// metadata. It uses lightweight AST parsing to identify structs embedding
-// piko.ActionMetadata, deferring full type resolution to Stage 3.5.
+// Discover scans the actions/ directory and returns initial action metadata. It uses
+// lightweight AST parsing to identify structs embedding piko.ActionMetadata, deferring
+// full type resolution to Stage 3.5.
 //
 // Returns *annotator_dto.ActionManifest containing discovered action candidates.
 // Returns []*ast_domain.Diagnostic with any warnings or errors encountered.
@@ -133,12 +135,11 @@ func (ad *ActionDiscoverer) Discover(
 
 // scanActionsDirectory finds all Go files in the actions directory.
 //
-// Takes actionsDir (string) which is the path to the actions directory
-// to scan.
+// Takes actionsDir (string) which is the path to the actions directory to scan.
 //
 // Returns []string which contains the paths to all found Go files.
-// Returns *ast_domain.Diagnostic which reports an error when the
-// directory cannot be scanned.
+// Returns *ast_domain.Diagnostic which reports an error when the directory cannot be
+// scanned.
 func (ad *ActionDiscoverer) scanActionsDirectory(actionsDir string) ([]string, *ast_domain.Diagnostic) {
 	goFiles, err := ad.findGoFiles(actionsDir)
 	if err != nil {
@@ -151,17 +152,14 @@ func (ad *ActionDiscoverer) scanActionsDirectory(actionsDir string) ([]string, *
 	return goFiles, nil
 }
 
-// processActionFiles parses Go files and adds discovered actions to the
-// manifest.
+// processActionFiles parses Go files and adds discovered actions to the manifest.
 //
 // Takes goFiles ([]string) which lists the Go file paths to parse.
 // Takes baseDir (string) which specifies the base directory for resolution.
 // Takes actionsDir (string) which specifies the actions directory path.
-// Takes manifest (*annotator_dto.ActionManifest) which receives discovered
-// actions.
+// Takes manifest (*annotator_dto.ActionManifest) which receives discovered actions.
 //
-// Returns []*ast_domain.Diagnostic which contains any issues found during
-// parsing.
+// Returns []*ast_domain.Diagnostic which contains any issues found during parsing.
 func (ad *ActionDiscoverer) processActionFiles(
 	ctx context.Context,
 	goFiles []string,
@@ -225,13 +223,11 @@ func (*ActionDiscoverer) findGoFiles(directory string) ([]string, error) {
 // parseFile parses a single Go file and extracts action candidates.
 //
 // Takes filePath (string) which is the path to the Go file to parse.
-// Takes baseDir (string) which is the base directory for computing
-// relative paths.
-// Takes moduleName (string) which is the Go module name for building
-// package paths.
+// Takes baseDir (string) which is the base directory for computing relative paths.
+// Takes moduleName (string) which is the Go module name for building package paths.
 //
-// Returns []*annotator_dto.ActionCandidate which contains action
-// candidates found in the file.
+// Returns []*annotator_dto.ActionCandidate which contains action candidates found in the
+// file.
 // Returns []*ast_domain.Diagnostic which contains any parse errors.
 func (*ActionDiscoverer) parseFile(
 	_ context.Context,
@@ -281,11 +277,11 @@ func WithActionDiscovererInMemoryMode() ActionDiscovererOption {
 
 // candidateToDefinition converts an ActionCandidate to an ActionDefinition.
 //
-// Takes candidate (*annotator_dto.ActionCandidate) which provides the source
-// data for the conversion.
+// Takes candidate (*annotator_dto.ActionCandidate) which provides the source data for the
+// conversion.
 //
-// Returns annotator_dto.ActionDefinition which contains the converted action
-// with HTTPMethod set to POST.
+// Returns annotator_dto.ActionDefinition which contains the converted action with
+// HTTPMethod set to POST.
 func candidateToDefinition(candidate *annotator_dto.ActionCandidate) annotator_dto.ActionDefinition {
 	return annotator_dto.ActionDefinition{
 		Name:           candidate.ActionName,
@@ -306,8 +302,7 @@ func candidateToDefinition(candidate *annotator_dto.ActionCandidate) annotator_d
 // Takes baseDir (string) which is the base directory for relative paths.
 // Takes moduleName (string) which is the Go module name for package paths.
 //
-// Returns filePathInfo which contains the file path, relative path, and
-// package path.
+// Returns filePathInfo which contains the file path, relative path, and package path.
 func buildFilePathInfo(filePath, baseDir, moduleName string) filePathInfo {
 	relPath, _ := filepath.Rel(baseDir, filePath)
 	relPath = filepath.ToSlash(relPath)
@@ -330,8 +325,8 @@ func buildFilePathInfo(filePath, baseDir, moduleName string) filePathInfo {
 // Takes file (*ast.File) which is the parsed Go source file to search.
 // Takes info (filePathInfo) which provides file path details for candidates.
 //
-// Returns []*annotator_dto.ActionCandidate which contains the found action
-// struct candidates, or nil if none are found.
+// Returns []*annotator_dto.ActionCandidate which contains the found action struct
+// candidates, or nil if none are found.
 func extractActionCandidates(fset *token.FileSet, file *ast.File, info filePathInfo) []*annotator_dto.ActionCandidate {
 	var candidates []*annotator_dto.ActionCandidate
 
@@ -352,8 +347,7 @@ func extractActionCandidates(fset *token.FileSet, file *ast.File, info filePathI
 	return candidates
 }
 
-// tryExtractActionCandidate attempts to extract an action candidate from a
-// type spec.
+// tryExtractActionCandidate attempts to extract an action candidate from a type spec.
 //
 // Takes fset (*token.FileSet) which maps AST positions to source locations.
 // Takes file (*ast.File) which provides the parsed Go source file.
@@ -361,8 +355,8 @@ func extractActionCandidates(fset *token.FileSet, file *ast.File, info filePathI
 // Takes spec (ast.Spec) which is the specification to examine.
 // Takes info (filePathInfo) which provides file path details.
 //
-// Returns *annotator_dto.ActionCandidate which is the extracted candidate, or
-// nil if the spec is not a struct type embedding ActionMetadata.
+// Returns *annotator_dto.ActionCandidate which is the extracted candidate, or nil if the
+// spec is not a struct type embedding ActionMetadata.
 func tryExtractActionCandidate(
 	fset *token.FileSet,
 	file *ast.File,
@@ -426,9 +420,8 @@ func embedsActionMetadata(structType *ast.StructType) bool {
 
 // structNameToActionName converts a struct name to an action name.
 //
-// The action name is derived from the struct type, not the file path, giving
-// developers explicit control over naming. Multiple actions per file are
-// supported.
+// The action name is derived from the struct type, not the file path, giving developers
+// explicit control over naming. Multiple actions per file are supported.
 //
 // Takes structName (string) which is the struct type name to convert.
 // Takes packageName (string) which is the package to prefix the action with.
@@ -439,8 +432,8 @@ func structNameToActionName(structName string, packageName string) string {
 	return packageName + dotSeparator + name
 }
 
-// actionNameToTSFunction converts a dot-separated action name to a camelCase
-// TypeScript function name.
+// actionNameToTSFunction converts a dot-separated action name to a camelCase TypeScript
+// function name.
 //
 // Takes actionName (string) which is the dot-separated action name to convert.
 //
@@ -464,8 +457,7 @@ func actionNameToTSFunction(actionName string) string {
 	return result.String()
 }
 
-// kebabToCamelInSegments converts kebab-case to camelCase within
-// dot-separated segments.
+// kebabToCamelInSegments converts kebab-case to camelCase within dot-separated segments.
 //
 // Takes name (string) which is the dot-separated string to convert.
 //
@@ -502,13 +494,12 @@ func kebabToCamel(s string) string {
 
 // extractStructDocComment extracts the doc comment for a type declaration.
 //
-// Takes genDecl (*ast.GenDecl) which is the generic declaration that
-// may hold a doc comment when it contains a single spec.
-// Takes typeSpec (*ast.TypeSpec) which is the type specification whose
-// own doc comment takes priority.
+// Takes genDecl (*ast.GenDecl) which is the generic declaration that may hold a doc
+// comment when it contains a single spec.
+// Takes typeSpec (*ast.TypeSpec) which is the type specification whose own doc comment
+// takes priority.
 //
-// Returns string which is the trimmed doc comment text, or empty if no
-// comment is found.
+// Returns string which is the trimmed doc comment text, or empty if no comment is found.
 func extractStructDocComment(_ *ast.File, genDecl *ast.GenDecl, typeSpec *ast.TypeSpec) string {
 	if typeSpec.Doc != nil && typeSpec.Doc.Text() != "" {
 		return strings.TrimSpace(typeSpec.Doc.Text())

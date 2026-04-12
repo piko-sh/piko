@@ -40,20 +40,19 @@ import (
 )
 
 const (
-	// alignment is the 4KB sector size for SSD-optimised writes. Every physical
-	// write is padded to a multiple of this size when aligned writes are enabled.
+	// alignment is the 4KB sector size for SSD-optimised writes. Every physical write is
+	// padded to a multiple of this size when aligned writes are enabled.
 	alignment = 4096
 
-	// readBufferSize is the buffer size for reading during recovery (64KB).
-	// Recovery reads through the file in order, and larger reads are more
-	// efficient for sequential access.
+	// readBufferSize is the buffer size for reading during recovery (64KB). Recovery reads
+	// through the file in order, and larger reads are more efficient for sequential access.
 	readBufferSize = 64 * 1024
 
 	// recoverLogKey is the logger key for file position fields during recovery.
 	recoverLogKey = "position"
 
-	// defaultMaxBatchSize is the largest number of pending writes to collect
-	// before writing to disk.
+	// defaultMaxBatchSize is the largest number of pending writes to collect before writing
+	// to disk.
 	defaultMaxBatchSize = 256
 
 	// defaultMaxBatchWait is the longest time to wait for a batch to fill.
@@ -62,19 +61,21 @@ const (
 	// defaultChannelSize is the buffer size for the pending write channel.
 	defaultChannelSize = 4096
 
-	// alignedBufMaxRetainedCapacity caps the alignedBuf backing array
-	// between flushes. Buffers larger than this are reallocated so
-	// memory tracks recent traffic rather than all-time peaks.
+	// alignedBufMaxRetainedCapacity caps the alignedBuf backing array between flushes.
+	// Buffers larger than this are reallocated so memory tracks recent traffic rather than
+	// all-time peaks.
 	alignedBufMaxRetainedCapacity = 16 << 20
 )
 
-// resultChanPool is a pool for result channels to reduce allocations.
-// Each channel has capacity 1 for a single error result.
-var resultChanPool = sync.Pool{
-	New: func() any {
-		return make(chan error, 1)
-	},
-}
+var (
+	// resultChanPool is a pool for result channels to reduce allocations. Each channel has
+	// capacity 1 for a single error result.
+	resultChanPool = sync.Pool{
+		New: func() any {
+			return make(chan error, 1)
+		},
+	}
+)
 
 // pendingWrite represents a write operation waiting to be committed.
 type pendingWrite struct {
@@ -90,13 +91,12 @@ type pendingWrite struct {
 
 // DiskWAL implements the WAL interface using disk-based storage.
 //
-// The file format is a sequence of entries, each with:
-// [Length:4][CRC32:4][Payload:var]
+// The file format is a sequence of entries, each with: [Length:4][CRC32:4][Payload:var]
 // Where Length is the size of CRC32+Payload (i.e., everything after Length).
 //
-// DiskWAL uses a group commit pattern for high-concurrency performance.
-// Writers submit entries to a channel, and a single commit goroutine batches
-// writes and syncs, reducing lock contention and fsync overhead.
+// DiskWAL uses a group commit pattern for high-concurrency performance. Writers submit
+// entries to a channel, and a single commit goroutine batches writes and syncs, reducing
+// lock contention and fsync overhead.
 //
 // All file operations go through a safedisk sandbox for security.
 type DiskWAL[K comparable, V any] struct {
@@ -106,10 +106,9 @@ type DiskWAL[K comparable, V any] struct {
 	// file is the open WAL file handle.
 	file safedisk.FileHandle
 
-	// closeCtx is a non-cancellable context derived from the constructor
-	// context. It preserves context values (trace IDs, logger fields) for
-	// use in Close and other cleanup paths that lack a caller-provided
-	// context.
+	// closeCtx is a non-cancellable context derived from the constructor context. It
+	// preserves context values (trace IDs, logger fields) for use in Close and other cleanup
+	// paths that lack a caller-provided context.
 	closeCtx context.Context
 
 	// clock provides time functions; replaced during testing.
@@ -133,20 +132,18 @@ type DiskWAL[K comparable, V any] struct {
 	// fatalErr holds a permanent I/O error; once set, all writes are rejected.
 	fatalErr atomic.Pointer[error]
 
-	// tailBuf holds the partial 4KB sector from the previous
-	// flush.
+	// tailBuf holds the partial 4KB sector from the previous flush.
 	//
-	// Reused between flushes to avoid allocation. Only used
-	// when alignWrites is true.
+	// Reused between flushes to avoid allocation. Only used when alignWrites is true.
 	tailBuf []byte
 
-	// alignedBuf is a scratch buffer for building write batches. Reused
-	// between flushes to avoid allocation.
+	// alignedBuf is a scratch buffer for building write batches. Reused between flushes to
+	// avoid allocation.
 	alignedBuf []byte
 
-	// config holds the WAL configuration settings. Placed last among
-	// pointer-containing fields because its non-pointer tail (ints, bools)
-	// would extend the GC scan range if pointer fields followed it.
+	// config holds the WAL configuration settings. Placed last among pointer-containing
+	// fields because its non-pointer tail (ints, bools) would extend the GC scan range if
+	// pointer fields followed it.
 	config wal_domain.Config
 
 	// entryCount tracks the number of entries written.
@@ -155,8 +152,8 @@ type DiskWAL[K comparable, V any] struct {
 	// fileSize tracks the current size of the WAL file in bytes.
 	fileSize atomic.Int64
 
-	// nextOffset is the logical end of WAL data (total bytes of actual entries
-	// written). Used as the write position for WriteAt calls.
+	// nextOffset is the logical end of WAL data (total bytes of actual entries written).
+	// Used as the write position for WriteAt calls.
 	nextOffset int64
 
 	// pendingSyncs tracks the number of writes since the last sync in batched mode.
@@ -175,8 +172,8 @@ type DiskWAL[K comparable, V any] struct {
 // WALOption configures a DiskWAL instance.
 type WALOption[K comparable, V any] func(*DiskWAL[K, V])
 
-// initialiseFileState reads the file size, initialises offset tracking and aligned
-// write buffers. Must be called before the commit loop starts.
+// initialiseFileState reads the file size, initialises offset tracking and aligned write
+// buffers. Must be called before the commit loop starts.
 //
 // Takes config (wal_domain.Config) which provides the alignment setting.
 //
@@ -207,8 +204,8 @@ func (w *DiskWAL[K, V]) initialiseFileState(config wal_domain.Config) error {
 	return nil
 }
 
-// closeOnInitFailure closes the file and sandbox during constructor failure,
-// logging warnings for any close errors.
+// closeOnInitFailure closes the file and sandbox during constructor failure, logging
+// warnings for any close errors.
 //
 // Takes ctx (context.Context) which provides logging context.
 func (w *DiskWAL[K, V]) closeOnInitFailure(ctx context.Context) {
@@ -221,12 +218,12 @@ func (w *DiskWAL[K, V]) closeOnInitFailure(ctx context.Context) {
 	}
 }
 
-// commitLoop batches writes and syncs to reduce lock contention and fsync
-// overhead when many writes happen at the same time. Exits when the WAL is
-// closed or a fatal I/O error occurs.
+// commitLoop batches writes and syncs to reduce lock contention and fsync overhead when
+// many writes happen at the same time. Exits when the WAL is closed or a fatal I/O error
+// occurs.
 //
-// Takes ctx (context.Context) which provides logging and metrics context for
-// background operations.
+// Takes ctx (context.Context) which provides logging and metrics context for background
+// operations.
 func (w *DiskWAL[K, V]) commitLoop(ctx context.Context) {
 	batch := make([]pendingWrite, 0, defaultMaxBatchSize)
 	timer := w.clock.NewTimer(defaultMaxBatchWait)
@@ -319,8 +316,8 @@ func (w *DiskWAL[K, V]) drainPending(batch *[]pendingWrite) {
 // Takes ctx (context.Context) which provides logging and metrics context.
 // Takes batch ([]pendingWrite) which contains the entries to write.
 //
-// Safe for concurrent use. Holds the write lock for the full
-// flush operation. On I/O failure, sets a permanent fatal error.
+// Safe for concurrent use. Holds the write lock for the full flush operation. On I/O
+// failure, sets a permanent fatal error.
 func (w *DiskWAL[K, V]) flushBatch(ctx context.Context, batch []pendingWrite) {
 	if len(batch) == 0 {
 		return
@@ -355,12 +352,10 @@ func (w *DiskWAL[K, V]) flushBatch(ctx context.Context, batch []pendingWrite) {
 	notifyBatchWaiters(batch, writeErr)
 }
 
-// flushAlignedLocked writes batch data with 4KB sector
-// alignment for SSD optimisation.
+// flushAlignedLocked writes batch data with 4KB sector alignment for SSD optimisation.
 //
-// It prepends the partial tail sector from the previous flush,
-// pads to the next 4KB boundary, and uses WriteAt at an aligned
-// offset. Must be called with w.mu held.
+// It prepends the partial tail sector from the previous flush, pads to the next 4KB
+// boundary, and uses WriteAt at an aligned offset. Must be called with w.mu held.
 //
 // Takes batch ([]pendingWrite) which contains the entries to write.
 // Takes totalBytes (int64) which is the sum of all entry data sizes.
@@ -396,8 +391,8 @@ func (w *DiskWAL[K, V]) flushAlignedLocked(batch []pendingWrite, totalBytes int6
 	return nil
 }
 
-// flushUnalignedLocked writes batch data directly without alignment padding.
-// Must be called with w.mu held.
+// flushUnalignedLocked writes batch data directly without alignment padding. Must be
+// called with w.mu held.
 //
 // Takes batch ([]pendingWrite) which contains the entries to write.
 // Takes totalBytes (int64) which is the sum of all entry data sizes.
@@ -438,8 +433,8 @@ func (w *DiskWAL[K, V]) updateBatchStats(ctx context.Context, startTime time.Tim
 	wal_domain.AppendDuration.Record(metricsCtx, float64(w.clock.Now().Sub(startTime).Milliseconds()))
 }
 
-// handleSyncLocked performs a sync based on the configured sync mode.
-// Must be called with w.mu held.
+// handleSyncLocked performs a sync based on the configured sync mode. Must be called with
+// w.mu held.
 //
 // Takes ctx (context.Context) which provides metrics context.
 //
@@ -460,8 +455,7 @@ func (w *DiskWAL[K, V]) handleSyncLocked(ctx context.Context) error {
 	return nil
 }
 
-// syncLocked performs fsync on the WAL file.
-// Must be called with w.mu held.
+// syncLocked performs fsync on the WAL file. Must be called with w.mu held.
 //
 // Takes ctx (context.Context) which provides metrics context.
 //
@@ -483,14 +477,13 @@ func (w *DiskWAL[K, V]) syncLocked(ctx context.Context) error {
 	return nil
 }
 
-// Append writes an entry to the log using group commit.
-// Multiple concurrent appenders submit to a channel, and the commit goroutine
-// batches writes and syncs for improved throughput.
+// Append writes an entry to the log using group commit. Multiple concurrent appenders
+// submit to a channel, and the commit goroutine batches writes and syncs for improved
+// throughput.
 //
 // Takes entry (wal_domain.Entry) which is the log entry to append.
 //
-// Returns error when the WAL is closed, encoding fails, or context is
-// cancelled.
+// Returns error when the WAL is closed, encoding fails, or context is cancelled.
 func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]) error {
 	if w.closed.Load() {
 		return wal_domain.ErrWALClosed
@@ -554,22 +547,19 @@ func (w *DiskWAL[K, V]) Append(ctx context.Context, entry wal_domain.Entry[K, V]
 	}
 }
 
-// Recover returns an iterator over valid entries without loading
-// all into memory.
+// Recover returns an iterator over valid entries without loading all into memory.
 //
-// The iterator yields entries one at a time and handles corruption
-// by stopping. When corruption is detected, the WAL is truncated
-// at that point after iteration completes.
+// The iterator yields entries one at a time and handles corruption by stopping. When
+// corruption is detected, the WAL is truncated at that point after iteration completes.
 //
-// Returns iter.Seq2[wal_domain.Entry[K, V], error] which yields
-// each recovered entry and any error encountered during iteration.
+// Returns iter.Seq2[wal_domain.Entry[K, V], error] which yields each recovered entry and
+// any error encountered during iteration.
 //
-// Safe for concurrent use. Access is serialised by an internal
-// mutex held for the duration of iteration.
+// Safe for concurrent use. Access is serialised by an internal mutex held for the
+// duration of iteration.
 //
-// IMPORTANT: The iterator holds the WAL lock during iteration.
-// Callers should consume all entries promptly or break out of the
-// loop to release the lock.
+// IMPORTANT: The iterator holds the WAL lock during iteration. Callers should consume all
+// entries promptly or break out of the loop to release the lock.
 func (w *DiskWAL[K, V]) Recover(ctx context.Context) iter.Seq2[wal_domain.Entry[K, V], error] {
 	return func(yield func(wal_domain.Entry[K, V], error) bool) {
 		if w.closed.Load() {
@@ -592,8 +582,8 @@ func (w *DiskWAL[K, V]) Recover(ctx context.Context) iter.Seq2[wal_domain.Entry[
 	}
 }
 
-// prepareForRecovery seeks to the start of the WAL file for reading.
-// Must be called with w.mu held.
+// prepareForRecovery seeks to the start of the WAL file for reading. Must be called with
+// w.mu held.
 //
 // Returns *bufio.Reader which wraps the file for buffered reading.
 // Returns error when seeking fails.
@@ -605,15 +595,15 @@ func (w *DiskWAL[K, V]) prepareForRecovery() (*bufio.Reader, error) {
 	return bufio.NewReaderSize(w.file, readBufferSize), nil
 }
 
-// yieldRecoveryEntries streams WAL entries to the yield function during
-// recovery. Must be called with w.mu held.
+// yieldRecoveryEntries streams WAL entries to the yield function during recovery. Must be
+// called with w.mu held.
 //
 // Takes reader (*bufio.Reader) which provides the buffered input stream.
-// Takes yield (func(...)) which receives each entry or error and returns
-// whether to continue.
+// Takes yield (func(...)) which receives each entry or error and returns whether to
+// continue.
 //
-// Returns truncatePosition (int64) which is the position to truncate from, or -1
-// if no truncation is needed.
+// Returns truncatePosition (int64) which is the position to truncate from, or -1 if no
+// truncation is needed.
 // Returns entryCount (int) which is the number of entries read successfully.
 func (w *DiskWAL[K, V]) yieldRecoveryEntries(
 	ctx context.Context,
@@ -651,12 +641,12 @@ func (w *DiskWAL[K, V]) yieldRecoveryEntries(
 	}
 }
 
-// handleRecoveryCleanup performs cleanup after recovery iteration completes.
-// Must be called with w.mu held.
+// handleRecoveryCleanup performs cleanup after recovery iteration completes. Must be
+// called with w.mu held.
 //
 // Takes startTime (time.Time) which records when recovery began for metrics.
-// Takes truncatePosition (int64) which specifies the position to truncate if
-// corruption was found.
+// Takes truncatePosition (int64) which specifies the position to truncate if corruption
+// was found.
 // Takes entryCount (int) which is the number of valid entries recovered.
 func (w *DiskWAL[K, V]) handleRecoveryCleanup(ctx context.Context, startTime time.Time, truncatePosition int64, entryCount int) {
 	w.handleTruncation(ctx, truncatePosition)
@@ -673,11 +663,9 @@ func (w *DiskWAL[K, V]) handleRecoveryCleanup(ctx context.Context, startTime tim
 // Takes reader (io.Reader) which provides the input data stream.
 // Takes entryStart (int64) which is the byte offset of this entry.
 //
-// Returns *wal_domain.Entry[K, V] which is the decoded entry, or nil on
-// EOF.
+// Returns *wal_domain.Entry[K, V] which is the decoded entry, or nil on EOF.
 // Returns int64 which is the number of bytes consumed.
-// Returns bool which is true when the WAL should be truncated at this
-// position.
+// Returns bool which is true when the WAL should be truncated at this position.
 // Returns error when a non-recoverable read or decode error occurs.
 func (w *DiskWAL[K, V]) readNextEntry(ctx context.Context, reader io.Reader, entryStart int64) (*wal_domain.Entry[K, V], int64, bool, error) {
 	var lenBuf [lengthSize]byte
@@ -727,10 +715,8 @@ func (w *DiskWAL[K, V]) readNextEntry(ctx context.Context, reader io.Reader, ent
 // handleLengthReadError handles errors when reading the length prefix.
 //
 // Takes err (error) which is the read error to handle.
-// Takes bytesRead (int) which is the number of bytes read before the
-// error.
-// Takes entryStart (int64) which is the byte offset where the entry
-// starts.
+// Takes bytesRead (int) which is the number of bytes read before the error.
+// Takes entryStart (int64) which is the byte offset where the entry starts.
 //
 // Returns *wal_domain.Entry[K, V] which is always nil.
 // Returns int64 which is always zero.
@@ -752,8 +738,7 @@ func (*DiskWAL[K, V]) handleLengthReadError(ctx context.Context, err error, byte
 // handleDataReadError handles errors when reading entry data.
 //
 // Takes err (error) which is the read error to handle.
-// Takes entryStart (int64) which is the byte offset where the entry
-// starts.
+// Takes entryStart (int64) which is the byte offset where the entry starts.
 //
 // Returns *wal_domain.Entry[K, V] which is always nil.
 // Returns int64 which is always zero.
@@ -809,8 +794,8 @@ func (w *DiskWAL[K, V]) recordRecoveryMetrics(ctx context.Context, startTime tim
 		logger_domain.Int64("truncate_position", truncatePosition))
 }
 
-// truncateAtLocked truncates the WAL file at the given position.
-// Must be called with w.mu held.
+// truncateAtLocked truncates the WAL file at the given position. Must be called with w.mu
+// held.
 //
 // Takes position (int64) which specifies the byte position to truncate to.
 //
@@ -876,8 +861,8 @@ func (w *DiskWAL[K, V]) Sync(ctx context.Context) error {
 //
 // Returns error when the WAL file or sandbox cannot be closed.
 //
-// Safe for concurrent use. Signals the commit goroutine to stop and waits
-// for it to finish before releasing resources.
+// Safe for concurrent use. Signals the commit goroutine to stop and waits for it to
+// finish before releasing resources.
 func (w *DiskWAL[K, V]) Close() error {
 	_, l := logger_domain.From(w.closeCtx, log)
 	if w.closed.Swap(true) {
@@ -937,8 +922,8 @@ func (w *DiskWAL[K, V]) Path() string {
 	return filepath.Join(w.config.Dir, w.config.WALFileName)
 }
 
-// readTailSector reads the partial 4KB sector at the end of the file into
-// tailBuf. Called during initialisation when the file size is not 4KB-aligned.
+// readTailSector reads the partial 4KB sector at the end of the file into tailBuf. Called
+// during initialisation when the file size is not 4KB-aligned.
 //
 // Takes fileSize (int64) which is the total file size.
 // Takes rem (int64) which is the number of bytes past the last 4KB boundary.
@@ -955,11 +940,9 @@ func (w *DiskWAL[K, V]) readTailSector(fileSize, rem int64) error {
 	return nil
 }
 
-// rebuildTailBuf re-reads the partial 4KB sector from disk
-// after recovery or truncation.
+// rebuildTailBuf re-reads the partial 4KB sector from disk after recovery or truncation.
 //
-// Only applicable when alignWrites is enabled. Must be called
-// with w.mu held.
+// Only applicable when alignWrites is enabled. Must be called with w.mu held.
 func (w *DiskWAL[K, V]) rebuildTailBuf(ctx context.Context) {
 	if !w.alignWrites {
 		return
@@ -982,19 +965,19 @@ func (w *DiskWAL[K, V]) rebuildTailBuf(ctx context.Context) {
 
 // setFatalErr stores a permanent I/O error.
 //
-// Once set, all subsequent writes are rejected with
-// ErrWriterInBadState. Only the first error is stored.
+// Once set, all subsequent writes are rejected with ErrWriterInBadState. Only the first
+// error is stored.
 //
 // Takes err (error) which is the I/O error that caused the fatal state.
 func (w *DiskWAL[K, V]) setFatalErr(err error) {
 	w.fatalErr.CompareAndSwap(nil, &err)
 }
 
-// checkFatalErr returns ErrWriterInBadState if a fatal I/O error has been
-// recorded, or nil otherwise.
+// checkFatalErr returns ErrWriterInBadState if a fatal I/O error has been recorded, or
+// nil otherwise.
 //
-// Returns error which is ErrWriterInBadState when the WAL is in a fatal
-// state, or nil when healthy.
+// Returns error which is ErrWriterInBadState when the WAL is in a fatal state, or nil
+// when healthy.
 func (w *DiskWAL[K, V]) checkFatalErr() error {
 	if w.fatalErr.Load() != nil {
 		return wal_domain.ErrWriterInBadState
@@ -1015,7 +998,9 @@ func (w *DiskWAL[K, V]) drainAndFailAll(batch *[]pendingWrite) {
 	*batch = (*batch)[:0]
 }
 
-var _ wal_domain.WAL[string, any] = (*DiskWAL[string, any])(nil)
+var (
+	_ wal_domain.WAL[string, any] = (*DiskWAL[string, any])(nil)
+)
 
 // WithWALClock sets the clock for the WAL (for testing).
 //
@@ -1028,18 +1013,17 @@ func WithWALClock[K comparable, V any](clk clock.Clock) WALOption[K, V] {
 	}
 }
 
-// WithSandbox sets a custom sandbox for the WAL (for testing), causing
-// NewDiskWAL to use the provided sandbox and file instead of creating its
-// own and enabling error injection testing.
+// WithSandbox sets a custom sandbox for the WAL (for testing), causing NewDiskWAL to use
+// the provided sandbox and file instead of creating its own and enabling error injection
+// testing.
 //
 // Takes sandbox (safedisk.Sandbox) which provides filesystem operations.
 // Takes file (safedisk.FileHandle) which is the opened WAL file.
 //
-// Returns WALOption[K, V] which configures the WAL to use the provided
-// sandbox and file.
+// Returns WALOption[K, V] which configures the WAL to use the provided sandbox and file.
 //
-// Note: The caller is responsible for ensuring the sandbox and file are
-// properly initialised and compatible with the WAL's requirements.
+// Note: The caller is responsible for ensuring the sandbox and file are properly
+// initialised and compatible with the WAL's requirements.
 func WithSandbox[K comparable, V any](sandbox safedisk.Sandbox, file safedisk.FileHandle) WALOption[K, V] {
 	return func(w *DiskWAL[K, V]) {
 		w.sandbox = sandbox
@@ -1049,25 +1033,23 @@ func WithSandbox[K comparable, V any](sandbox safedisk.Sandbox, file safedisk.Fi
 
 // NewDiskWAL creates a new disk-based WAL.
 //
-// The WAL file is created in config.Dir with the name specified in
-// config.WALFileName (default: "data.wal").
+// The WAL file is created in config.Dir with the name specified in config.WALFileName
+// (default: "data.wal").
 //
-// All file operations are sandboxed to the WAL directory for security.
-// For testing, use WithSandbox to provide a mock sandbox.
+// All file operations are sandboxed to the WAL directory for security. For testing, use
+// WithSandbox to provide a mock sandbox.
 //
-// Takes ctx (context.Context) which is threaded to background goroutines
-// for logging and metrics.
-// Takes config (wal_domain.Config) which specifies the WAL directory and
-// file settings.
+// Takes ctx (context.Context) which is threaded to background goroutines for logging and
+// metrics.
+// Takes config (wal_domain.Config) which specifies the WAL directory and file settings.
 // Takes codec (*BinaryCodec[K, V]) which encodes and decodes entries.
 // Takes opts (...WALOption[K, V]) which provide optional configuration.
 //
 // Returns *DiskWAL[K, V] which is the initialised WAL ready for use.
-// Returns error when the codec is nil, configuration is invalid, or
-// the file cannot be opened.
+// Returns error when the codec is nil, configuration is invalid, or the file cannot be
+// opened.
 //
-// Safe for concurrent use. The spawned commit goroutine runs until
-// Close is called.
+// Safe for concurrent use. The spawned commit goroutine runs until Close is called.
 func NewDiskWAL[K comparable, V any](
 	ctx context.Context,
 	config wal_domain.Config,
@@ -1134,11 +1116,10 @@ func getResultChan() chan error {
 	return resultChannel
 }
 
-// putResultChan returns a result channel to the pool after draining it.
-// Safe to call even if the channel still has a value (it will be drained).
+// putResultChan returns a result channel to the pool after draining it. Safe to call even
+// if the channel still has a value (it will be drained).
 //
-// Takes resultChannel (chan error) which is the result channel to
-// return to the pool.
+// Takes resultChannel (chan error) which is the result channel to return to the pool.
 func putResultChan(resultChannel chan error) {
 	select {
 	case <-resultChannel:
@@ -1150,13 +1131,12 @@ func putResultChan(resultChannel chan error) {
 // openWALFile creates the sandbox and opens the WAL file.
 //
 // Takes ctx (context.Context) which provides the context for logging.
-// Takes config (wal_domain.Config) which specifies the WAL directory and file
-// name settings.
+// Takes config (wal_domain.Config) which specifies the WAL directory and file name
+// settings.
 //
 // Returns safedisk.Sandbox which is the created sandbox for safe file access.
 // Returns safedisk.FileHandle which is the opened WAL file ready for use.
-// Returns error when the sandbox cannot be created or the file cannot be
-// opened.
+// Returns error when the sandbox cannot be created or the file cannot be opened.
 func openWALFile(ctx context.Context, config wal_domain.Config) (safedisk.Sandbox, safedisk.FileHandle, error) {
 	sandbox, err := createWALSandbox(config.Dir)
 	if err != nil {
@@ -1175,8 +1155,8 @@ func openWALFile(ctx context.Context, config wal_domain.Config) (safedisk.Sandbo
 	return sandbox, file, nil
 }
 
-// createWALSandbox creates a sandboxed filesystem for the WAL directory.
-// The directory is created by safedisk when using ModeReadWrite.
+// createWALSandbox creates a sandboxed filesystem for the WAL directory. The directory is
+// created by safedisk when using ModeReadWrite.
 //
 // Takes directory (string) which specifies the path to the WAL directory.
 //
@@ -1199,8 +1179,8 @@ func createWALSandbox(directory string) (safedisk.Sandbox, error) {
 	return sandbox, nil
 }
 
-// notifyBatchWaiters sends the result to all waiters in a batch.
-// The channels are not closed because they may be pooled and reused.
+// notifyBatchWaiters sends the result to all waiters in a batch. The channels are not
+// closed because they may be pooled and reused.
 //
 // Takes batch ([]pendingWrite) which contains the entries to write.
 // Takes err (error) which is the result to send to each waiter.

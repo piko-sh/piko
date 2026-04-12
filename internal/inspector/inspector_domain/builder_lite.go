@@ -18,24 +18,15 @@
 
 package inspector_domain
 
-// This file implements the "lite" builder that creates TypeData from AST
-// without using go/packages. It is designed for REPL/WASM scenarios where
-// go/packages is not available.
+// This file implements the "lite" builder that creates TypeData from AST without using
+// go/packages. It is designed for REPL/WASM scenarios where go/packages is not available.
 //
-// The lite path:
-// 1. Uses pre-bundled stdlib TypeData (loaded from FBS)
-// 2. Parses user code with go/parser only (no type-checking)
-// 3. Resolves type references against the stdlib registry
-// 4. Creates DTOs with references to stdlib types
+// The lite path: 1. Uses pre-bundled stdlib TypeData (loaded from FBS) 2. Parses user
+// code with go/parser only (no type-checking) 3. Resolves type references against the
+// stdlib registry 4. Creates DTOs with references to stdlib types
 //
-// Limitations (not supported in lite mode):
-// - Generics
-// - Embedded fields
-// - Interface definitions
-// - Methods on types
-// - Type aliases
-// - Channel types
-// - Function types
+// Limitations (not supported in lite mode): - Generics - Embedded fields - Interface
+// definitions - Methods on types - Type aliases - Channel types - Function types
 
 import (
 	"context"
@@ -52,8 +43,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// LiteBuilder creates TypeData from AST without using go/packages.
-// It uses pre-bundled stdlib TypeData and parses user code directly.
+// LiteBuilder creates TypeData from AST without using go/packages. It uses pre-bundled
+// stdlib TypeData and parses user code directly.
 type LiteBuilder struct {
 	// stdlibData holds preloaded standard library type data for merging.
 	stdlibData *inspector_dto.TypeData
@@ -77,8 +68,8 @@ type LiteBuilder struct {
 	isBuilt bool
 }
 
-// typeRegistry provides fast lookup for type resolution.
-// It holds both pre-bundled standard library types and user-defined types.
+// typeRegistry provides fast lookup for type resolution. It holds both pre-bundled
+// standard library types and user-defined types.
 type typeRegistry struct {
 	// packages maps import paths to their package metadata.
 	packages map[string]*inspector_dto.Package
@@ -127,8 +118,8 @@ func (r *typeRegistry) RegisterPackage(pkg *inspector_dto.Package) {
 
 // NewLiteBuilder creates a new lite builder with pre-bundled stdlib types.
 //
-// Takes stdlibData (*inspector_dto.TypeData) which provides the pre-bundled
-// standard library type information.
+// Takes stdlibData (*inspector_dto.TypeData) which provides the pre-bundled standard
+// library type information.
 // Takes config (inspector_dto.Config) which specifies the analysis settings.
 //
 // Returns *LiteBuilder which is the configured builder ready for use.
@@ -155,8 +146,8 @@ func NewLiteBuilder(stdlibData *inspector_dto.TypeData, config inspector_dto.Con
 //
 // The sources map is keyed by virtual file path with Go source as values.
 //
-// Takes sources (map[string][]byte) which maps virtual file paths to Go source
-// code content.
+// Takes sources (map[string][]byte) which maps virtual file paths to Go source code
+// content.
 //
 // Returns error when parsing fails or type extraction encounters an error.
 func (b *LiteBuilder) Build(ctx context.Context, sources map[string][]byte) error {
@@ -259,11 +250,11 @@ func (b *LiteBuilder) parseAllSources(ctx context.Context, sources map[string][]
 
 // mergeTypeData combines standard library type data with user-defined packages.
 //
-// Takes userPackages (map[string]*inspector_dto.Package) which contains the
-// parsed user package data to merge with the standard library data.
+// Takes userPackages (map[string]*inspector_dto.Package) which contains the parsed user
+// package data to merge with the standard library data.
 //
-// Returns *inspector_dto.TypeData which contains the merged standard library
-// and user package data with a complete file-to-package reverse index.
+// Returns *inspector_dto.TypeData which contains the merged standard library and user
+// package data with a complete file-to-package reverse index.
 func (b *LiteBuilder) mergeTypeData(userPackages map[string]*inspector_dto.Package) *inspector_dto.TypeData {
 	merged := &inspector_dto.TypeData{
 		Packages:      make(map[string]*inspector_dto.Package, len(b.stdlibData.Packages)+len(userPackages)),
@@ -286,11 +277,11 @@ func (b *LiteBuilder) mergeTypeData(userPackages map[string]*inspector_dto.Packa
 	return merged
 }
 
-// liteBuildError represents an error from lite building. It implements error
-// and gives context about which construct was not supported.
+// liteBuildError represents an error from lite building. It implements error and gives
+// context about which construct was not supported.
 type liteBuildError struct {
-	// Construct names the unsupported Go language construct, such as
-	// "embedded field" or "generic type".
+	// Construct names the unsupported Go language construct, such as "embedded field" or
+	// "generic type".
 	Construct string
 
 	// TypeName is the type where the error occurred; empty if not applicable.
@@ -308,8 +299,8 @@ type liteBuildError struct {
 
 // Error implements the error interface.
 //
-// Returns string which contains the construct name, optional type name, file
-// path with line number, and an optional message.
+// Returns string which contains the construct name, optional type name, file path with
+// line number, and an optional message.
 func (e *liteBuildError) Error() string {
 	var builder strings.Builder
 	builder.WriteString("lite mode: ")
@@ -337,11 +328,10 @@ func (e *liteBuildError) Error() string {
 
 // newTypeRegistry creates a type registry from the given type data.
 //
-// Takes data (*inspector_dto.TypeData) which contains the package and type
-// information to index.
+// Takes data (*inspector_dto.TypeData) which contains the package and type information to
+// index.
 //
-// Returns *typeRegistry which provides fast lookups by package path and type
-// name.
+// Returns *typeRegistry which provides fast lookups by package path and type name.
 func newTypeRegistry(data *inspector_dto.TypeData) *typeRegistry {
 	r := &typeRegistry{
 		packages:       make(map[string]*inspector_dto.Package, len(data.Packages)),

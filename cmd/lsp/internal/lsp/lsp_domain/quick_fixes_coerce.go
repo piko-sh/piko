@@ -30,18 +30,17 @@ import (
 	"piko.sh/piko/internal/sfcparser"
 )
 
-// generateCoerceFix creates a quick fix to add coerce:"true" tag for type
-// mismatches. This fix modifies the Props struct in the partial component's
-// file to add the coerce tag.
+// generateCoerceFix creates a quick fix to add coerce:"true" tag for type mismatches.
+// This fix modifies the Props struct in the partial component's file to add the coerce
+// tag.
 //
-// Takes diagnostic (protocol.Diagnostic) which contains the type
-// mismatch error and associated fix data.
-// Takes ws (*workspace) which provides access to workspace files for
-// reading the target component.
+// Takes diagnostic (protocol.Diagnostic) which contains the type mismatch error and
+// associated fix data.
+// Takes ws (*workspace) which provides access to workspace files for reading the target
+// component.
 //
-// Returns *protocol.CodeAction which is the coerce tag fix action, or
-// nil if the diagnostic lacks the required data or the modification
-// cannot be prepared.
+// Returns *protocol.CodeAction which is the coerce tag fix action, or nil if the
+// diagnostic lacks the required data or the modification cannot be prepared.
 func generateCoerceFix(ctx context.Context, diagnostic protocol.Diagnostic, _ *document, ws *workspace) *protocol.CodeAction {
 	_, l := logger_domain.From(ctx, log)
 
@@ -73,19 +72,16 @@ func generateCoerceFix(ctx context.Context, diagnostic protocol.Diagnostic, _ *d
 	}
 }
 
-// prepareCoerceTagModification handles all parsing and AST modification for
-// adding a coerce tag.
+// prepareCoerceTagModification handles all parsing and AST modification for adding a
+// coerce tag.
 //
 // Takes ws (*workspace) which provides access to workspace resources.
-// Takes targetURI (protocol.DocumentURI) which specifies the document to
-// modify.
-// Takes propName (string) which identifies the property to add the coerce tag
-// to.
+// Takes targetURI (protocol.DocumentURI) which specifies the document to modify.
+// Takes propName (string) which identifies the property to add the coerce tag to.
 //
 // Returns string which contains the formatted Go code after modification.
 // Returns *sfcparser.Script which is the parsed script for further processing.
-// Returns error when parsing fails, the property is not found, or formatting
-// fails.
+// Returns error when parsing fails, the property is not found, or formatting fails.
 func prepareCoerceTagModification(ws *workspace, targetURI protocol.DocumentURI, propName string) (string, *sfcparser.Script, error) {
 	goScript, goFile, fset, err := parsePropsFromURI(ws, targetURI)
 	if err != nil {
@@ -115,8 +111,8 @@ func prepareCoerceTagModification(ws *workspace, targetURI protocol.DocumentURI,
 // Returns *sfcparser.Script which is the parsed Go script block from the SFC.
 // Returns *goast.File which is the parsed Go AST.
 // Returns *token.FileSet which is the file set for position information.
-// Returns error when the file cannot be read, the SFC cannot be parsed, no Go
-// script block is found, or the Go script cannot be parsed.
+// Returns error when the file cannot be read, the SFC cannot be parsed, no Go script
+// block is found, or the Go script cannot be parsed.
 func parsePropsFromURI(ws *workspace, targetURI protocol.DocumentURI) (*sfcparser.Script, *goast.File, *token.FileSet, error) {
 	targetContent, err := readFileContent(ws, targetURI)
 	if err != nil {
@@ -147,8 +143,7 @@ func parsePropsFromURI(ws *workspace, targetURI protocol.DocumentURI) (*sfcparse
 // Takes propName (string) which is the name of the field to find.
 //
 // Returns *goast.Field which is the matching field from the Props struct.
-// Returns error when the Props struct cannot be found or the field does not
-// exist.
+// Returns error when the Props struct cannot be found or the field does not exist.
 func findPropsField(goFile *goast.File, propName string) (*goast.Field, error) {
 	_, propsStruct, found := findPropsStruct(goFile)
 	if !found {

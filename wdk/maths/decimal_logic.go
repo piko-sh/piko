@@ -245,8 +245,7 @@ func (d Decimal) GreaterThanOrEqual(d2 Decimal) (bool, error) {
 	return d.value.Cmp(&d2.value) >= 0, nil
 }
 
-// IsBetween returns true if the decimal's value is between minVal and maxVal,
-// inclusive.
+// IsBetween returns true if the decimal's value is between minVal and maxVal, inclusive.
 //
 // Takes minVal (Decimal) which specifies the lower bound of the range.
 // Takes maxVal (Decimal) which specifies the upper bound of the range.
@@ -273,8 +272,7 @@ func (d Decimal) IsBetween(minVal, maxVal Decimal) (bool, error) {
 	return dIsGTEmin && dIsLTEmax, nil
 }
 
-// IsCloseTo checks whether the decimal is within a given tolerance of the
-// target value.
+// IsCloseTo checks whether the decimal is within a given tolerance of the target value.
 //
 // Takes target (Decimal) which specifies the value to compare against.
 // Takes tolerance (Decimal) which specifies the largest allowed difference.
@@ -351,8 +349,8 @@ func (d Decimal) IsOdd() (bool, error) {
 	return !isEven, nil
 }
 
-// IsMultipleOf reports whether the decimal is a multiple of another decimal.
-// For example, 10 is a multiple of 2, and 5.5 is a multiple of 1.1.
+// IsMultipleOf reports whether the decimal is a multiple of another decimal. For example,
+// 10 is a multiple of 2, and 5.5 is a multiple of 1.1.
 //
 // Takes other (Decimal) which is the divisor to check against.
 //
@@ -386,8 +384,7 @@ func (d Decimal) CheckIsPositive() bool {
 	return err == nil && is
 }
 
-// CheckIsNegative returns true only if the decimal is valid and its value
-// is negative.
+// CheckIsNegative returns true only if the decimal is valid and its value is negative.
 //
 // Returns bool which is true when the decimal is valid and negative.
 func (d Decimal) CheckIsNegative() bool {
@@ -395,8 +392,7 @@ func (d Decimal) CheckIsNegative() bool {
 	return err == nil && is
 }
 
-// CheckIsInteger returns true only if the decimal is valid and has no
-// fractional part.
+// CheckIsInteger returns true only if the decimal is valid and has no fractional part.
 //
 // Returns bool which is true when the decimal is a valid integer value.
 func (d Decimal) CheckIsInteger() bool {
@@ -404,8 +400,7 @@ func (d Decimal) CheckIsInteger() bool {
 	return err == nil && is
 }
 
-// CheckEquals returns true only if both decimals are valid and their values
-// are equal.
+// CheckEquals returns true only if both decimals are valid and their values are equal.
 //
 // Takes d2 (Decimal) which is the decimal to compare against.
 //
@@ -415,32 +410,30 @@ func (d Decimal) CheckEquals(d2 Decimal) bool {
 	return err == nil && eq
 }
 
-// CheckLessThan returns true only if both decimals are valid and the first
-// is less than the second.
+// CheckLessThan returns true only if both decimals are valid and the first is less than
+// the second.
 //
 // Takes d2 (Decimal) which is the value to compare against.
 //
-// Returns bool which is true when both decimals are valid and d is less
-// than d2.
+// Returns bool which is true when both decimals are valid and d is less than d2.
 func (d Decimal) CheckLessThan(d2 Decimal) bool {
 	lt, err := d.LessThan(d2)
 	return err == nil && lt
 }
 
-// CheckGreaterThan returns true only if both decimals are valid and the
-// first is greater than the second.
+// CheckGreaterThan returns true only if both decimals are valid and the first is greater
+// than the second.
 //
 // Takes d2 (Decimal) which is the value to compare against.
 //
-// Returns bool which is true when both decimals are valid and d is greater
-// than d2.
+// Returns bool which is true when both decimals are valid and d is greater than d2.
 func (d Decimal) CheckGreaterThan(d2 Decimal) bool {
 	gt, err := d.GreaterThan(d2)
 	return err == nil && gt
 }
 
-// CheckIsBetween returns true only if the decimal is valid and falls between
-// minVal and maxVal.
+// CheckIsBetween returns true only if the decimal is valid and falls between minVal and
+// maxVal.
 //
 // Takes minVal (Decimal) which specifies the lower bound of the range.
 // Takes maxVal (Decimal) which specifies the upper bound of the range.
@@ -451,14 +444,14 @@ func (d Decimal) CheckIsBetween(minVal, maxVal Decimal) bool {
 	return err == nil && is
 }
 
-// CheckIsCloseTo returns true when the decimal is valid and within tolerance
-// of the target.
+// CheckIsCloseTo returns true when the decimal is valid and within tolerance of the
+// target.
 //
 // Takes target (Decimal) which specifies the value to compare against.
 // Takes tolerance (Decimal) which specifies the maximum allowed difference.
 //
-// Returns bool which is true when the decimal is valid and within tolerance
-// of the target, or false otherwise.
+// Returns bool which is true when the decimal is valid and within tolerance of the
+// target, or false otherwise.
 func (d Decimal) CheckIsCloseTo(target, tolerance Decimal) bool {
 	is, err := d.IsCloseTo(target, tolerance)
 	return err == nil && is
@@ -466,8 +459,7 @@ func (d Decimal) CheckIsCloseTo(target, tolerance Decimal) bool {
 
 // CheckIsEven returns true only if the decimal is a valid, even integer.
 //
-// Returns bool which is true when the decimal is valid and even, false
-// otherwise.
+// Returns bool which is true when the decimal is valid and even, false otherwise.
 func (d Decimal) CheckIsEven() bool {
 	is, err := d.IsEven()
 	return err == nil && is
@@ -475,20 +467,19 @@ func (d Decimal) CheckIsEven() bool {
 
 // CheckIsOdd reports whether the decimal is a valid, odd integer.
 //
-// Returns bool which is true when the decimal is an odd integer with no error,
-// false otherwise.
+// Returns bool which is true when the decimal is an odd integer with no error, false
+// otherwise.
 func (d Decimal) CheckIsOdd() bool {
 	is, err := d.IsOdd()
 	return err == nil && is
 }
 
-// CheckIsMultipleOf returns true only if the decimal is a valid multiple of
-// the other.
+// CheckIsMultipleOf returns true only if the decimal is a valid multiple of the other.
 //
 // Takes other (Decimal) which is the divisor to check against.
 //
-// Returns bool which is true when the receiver is a multiple of other and no
-// error occurred during the check.
+// Returns bool which is true when the receiver is a multiple of other and no error
+// occurred during the check.
 func (d Decimal) CheckIsMultipleOf(other Decimal) bool {
 	is, err := d.IsMultipleOf(other)
 	return err == nil && is
@@ -636,8 +627,7 @@ func (d Decimal) MustIsEven() bool {
 	return is
 }
 
-// MustIsOdd returns true if the decimal is an odd integer, or panics if an
-// error occurs.
+// MustIsOdd returns true if the decimal is an odd integer, or panics if an error occurs.
 //
 // Returns bool which indicates whether the decimal is an odd integer.
 //

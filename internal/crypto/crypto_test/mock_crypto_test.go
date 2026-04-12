@@ -25,7 +25,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -58,7 +57,7 @@ func TestMockCryptoService_Encrypt(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptCallCount))
+		assert.Equal(t, int64(1), mock.EncryptCallCount.Load())
 	})
 
 	t.Run("delegates to EncryptFunc", func(t *testing.T) {
@@ -78,7 +77,7 @@ func TestMockCryptoService_Encrypt(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "encrypted:sensitive-data", result)
 		assert.Equal(t, "sensitive-data", capturedPlaintext)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptCallCount))
+		assert.Equal(t, int64(1), mock.EncryptCallCount.Load())
 	})
 
 	t.Run("propagates error from EncryptFunc", func(t *testing.T) {
@@ -96,7 +95,7 @@ func TestMockCryptoService_Encrypt(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptCallCount))
+		assert.Equal(t, int64(1), mock.EncryptCallCount.Load())
 	})
 }
 
@@ -112,7 +111,7 @@ func TestMockCryptoService_Decrypt(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptCallCount))
+		assert.Equal(t, int64(1), mock.DecryptCallCount.Load())
 	})
 
 	t.Run("delegates to DecryptFunc", func(t *testing.T) {
@@ -132,7 +131,7 @@ func TestMockCryptoService_Decrypt(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "decrypted:enc-data", result)
 		assert.Equal(t, "enc-data", capturedCiphertext)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptCallCount))
+		assert.Equal(t, int64(1), mock.DecryptCallCount.Load())
 	})
 
 	t.Run("propagates error from DecryptFunc", func(t *testing.T) {
@@ -150,7 +149,7 @@ func TestMockCryptoService_Decrypt(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptCallCount))
+		assert.Equal(t, int64(1), mock.DecryptCallCount.Load())
 	})
 }
 
@@ -166,7 +165,7 @@ func TestMockCryptoService_EncryptWithKey(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptWithKeyCallCount))
+		assert.Equal(t, int64(1), mock.EncryptWithKeyCallCount.Load())
 	})
 
 	t.Run("delegates to EncryptWithKeyFunc", func(t *testing.T) {
@@ -188,7 +187,7 @@ func TestMockCryptoService_EncryptWithKey(t *testing.T) {
 		assert.Equal(t, "enc:key-42:data", result)
 		assert.Equal(t, "data", capturedPlaintext)
 		assert.Equal(t, "key-42", capturedKeyID)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptWithKeyCallCount))
+		assert.Equal(t, int64(1), mock.EncryptWithKeyCallCount.Load())
 	})
 
 	t.Run("propagates error from EncryptWithKeyFunc", func(t *testing.T) {
@@ -206,7 +205,7 @@ func TestMockCryptoService_EncryptWithKey(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptWithKeyCallCount))
+		assert.Equal(t, int64(1), mock.EncryptWithKeyCallCount.Load())
 	})
 }
 
@@ -222,7 +221,7 @@ func TestMockCryptoService_EncryptBatch(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptBatchCallCount))
+		assert.Equal(t, int64(1), mock.EncryptBatchCallCount.Load())
 	})
 
 	t.Run("delegates to EncryptBatchFunc", func(t *testing.T) {
@@ -246,7 +245,7 @@ func TestMockCryptoService_EncryptBatch(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, []string{"enc:token1", "enc:token2"}, result)
 		assert.Equal(t, []string{"token1", "token2"}, capturedPlaintexts)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptBatchCallCount))
+		assert.Equal(t, int64(1), mock.EncryptBatchCallCount.Load())
 	})
 
 	t.Run("propagates error from EncryptBatchFunc", func(t *testing.T) {
@@ -264,7 +263,7 @@ func TestMockCryptoService_EncryptBatch(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptBatchCallCount))
+		assert.Equal(t, int64(1), mock.EncryptBatchCallCount.Load())
 	})
 }
 
@@ -280,7 +279,7 @@ func TestMockCryptoService_DecryptBatch(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptBatchCallCount))
+		assert.Equal(t, int64(1), mock.DecryptBatchCallCount.Load())
 	})
 
 	t.Run("delegates to DecryptBatchFunc", func(t *testing.T) {
@@ -304,7 +303,7 @@ func TestMockCryptoService_DecryptBatch(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, []string{"dec:enc1", "dec:enc2"}, result)
 		assert.Equal(t, []string{"enc1", "enc2"}, capturedCiphertexts)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptBatchCallCount))
+		assert.Equal(t, int64(1), mock.DecryptBatchCallCount.Load())
 	})
 
 	t.Run("propagates error from DecryptBatchFunc", func(t *testing.T) {
@@ -322,7 +321,7 @@ func TestMockCryptoService_DecryptBatch(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptBatchCallCount))
+		assert.Equal(t, int64(1), mock.DecryptBatchCallCount.Load())
 	})
 }
 
@@ -337,7 +336,7 @@ func TestMockCryptoService_RotateKey(t *testing.T) {
 		err := mock.RotateKey(context.Background(), "old-key", "new-key")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RotateKeyCallCount))
+		assert.Equal(t, int64(1), mock.RotateKeyCallCount.Load())
 	})
 
 	t.Run("delegates to RotateKeyFunc", func(t *testing.T) {
@@ -358,7 +357,7 @@ func TestMockCryptoService_RotateKey(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "key-v1", capturedOld)
 		assert.Equal(t, "key-v2", capturedNew)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RotateKeyCallCount))
+		assert.Equal(t, int64(1), mock.RotateKeyCallCount.Load())
 	})
 
 	t.Run("propagates error from RotateKeyFunc", func(t *testing.T) {
@@ -375,7 +374,7 @@ func TestMockCryptoService_RotateKey(t *testing.T) {
 		err := mock.RotateKey(context.Background(), "old", "new")
 
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RotateKeyCallCount))
+		assert.Equal(t, int64(1), mock.RotateKeyCallCount.Load())
 	})
 }
 
@@ -391,7 +390,7 @@ func TestMockCryptoService_GetActiveKeyID(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetActiveKeyIDCallCount))
+		assert.Equal(t, int64(1), mock.GetActiveKeyIDCallCount.Load())
 	})
 
 	t.Run("delegates to GetActiveKeyIDFunc", func(t *testing.T) {
@@ -407,7 +406,7 @@ func TestMockCryptoService_GetActiveKeyID(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, "active-key-42", result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetActiveKeyIDCallCount))
+		assert.Equal(t, int64(1), mock.GetActiveKeyIDCallCount.Load())
 	})
 
 	t.Run("propagates error from GetActiveKeyIDFunc", func(t *testing.T) {
@@ -425,7 +424,7 @@ func TestMockCryptoService_GetActiveKeyID(t *testing.T) {
 
 		assert.Empty(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetActiveKeyIDCallCount))
+		assert.Equal(t, int64(1), mock.GetActiveKeyIDCallCount.Load())
 	})
 }
 
@@ -443,7 +442,7 @@ func TestMockCryptoService_DecryptAndReEncrypt(t *testing.T) {
 		assert.Empty(t, newCiphertext)
 		assert.False(t, wasReEncrypted)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptAndReEncryptCallCount))
+		assert.Equal(t, int64(1), mock.DecryptAndReEncryptCallCount.Load())
 	})
 
 	t.Run("delegates to DecryptAndReEncryptFunc", func(t *testing.T) {
@@ -465,7 +464,7 @@ func TestMockCryptoService_DecryptAndReEncrypt(t *testing.T) {
 		assert.Equal(t, "new-cipher", newCiphertext)
 		assert.True(t, wasReEncrypted)
 		assert.Equal(t, "old-cipher", capturedCiphertext)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptAndReEncryptCallCount))
+		assert.Equal(t, int64(1), mock.DecryptAndReEncryptCallCount.Load())
 	})
 
 	t.Run("propagates error from DecryptAndReEncryptFunc", func(t *testing.T) {
@@ -485,7 +484,7 @@ func TestMockCryptoService_DecryptAndReEncrypt(t *testing.T) {
 		assert.Empty(t, newCiphertext)
 		assert.False(t, wasReEncrypted)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptAndReEncryptCallCount))
+		assert.Equal(t, int64(1), mock.DecryptAndReEncryptCallCount.Load())
 	})
 }
 
@@ -500,7 +499,7 @@ func TestMockCryptoService_HealthCheck(t *testing.T) {
 		err := mock.HealthCheck(context.Background())
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.HealthCheckCallCount))
+		assert.Equal(t, int64(1), mock.HealthCheckCallCount.Load())
 	})
 
 	t.Run("delegates to HealthCheckFunc", func(t *testing.T) {
@@ -519,7 +518,7 @@ func TestMockCryptoService_HealthCheck(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.HealthCheckCallCount))
+		assert.Equal(t, int64(1), mock.HealthCheckCallCount.Load())
 	})
 
 	t.Run("propagates error from HealthCheckFunc", func(t *testing.T) {
@@ -536,7 +535,7 @@ func TestMockCryptoService_HealthCheck(t *testing.T) {
 		err := mock.HealthCheck(context.Background())
 
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.HealthCheckCallCount))
+		assert.Equal(t, int64(1), mock.HealthCheckCallCount.Load())
 	})
 }
 
@@ -552,7 +551,7 @@ func TestMockCryptoService_EncryptStream(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptStreamCallCount))
+		assert.Equal(t, int64(1), mock.EncryptStreamCallCount.Load())
 	})
 
 	t.Run("delegates to EncryptStreamFunc", func(t *testing.T) {
@@ -573,7 +572,7 @@ func TestMockCryptoService_EncryptStream(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, "stream-key", capturedKeyID)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptStreamCallCount))
+		assert.Equal(t, int64(1), mock.EncryptStreamCallCount.Load())
 
 		_ = expectedWriter
 	})
@@ -593,7 +592,7 @@ func TestMockCryptoService_EncryptStream(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptStreamCallCount))
+		assert.Equal(t, int64(1), mock.EncryptStreamCallCount.Load())
 	})
 }
 
@@ -609,7 +608,7 @@ func TestMockCryptoService_DecryptStream(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptStreamCallCount))
+		assert.Equal(t, int64(1), mock.DecryptStreamCallCount.Load())
 	})
 
 	t.Run("delegates to DecryptStreamFunc", func(t *testing.T) {
@@ -627,7 +626,7 @@ func TestMockCryptoService_DecryptStream(t *testing.T) {
 
 		require.NoError(t, err)
 		assert.Equal(t, expectedReader, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptStreamCallCount))
+		assert.Equal(t, int64(1), mock.DecryptStreamCallCount.Load())
 	})
 
 	t.Run("propagates error from DecryptStreamFunc", func(t *testing.T) {
@@ -645,7 +644,7 @@ func TestMockCryptoService_DecryptStream(t *testing.T) {
 
 		assert.Nil(t, result)
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptStreamCallCount))
+		assert.Equal(t, int64(1), mock.DecryptStreamCallCount.Load())
 	})
 }
 
@@ -660,7 +659,7 @@ func TestMockCryptoService_NewEncrypt(t *testing.T) {
 		result := mock.NewEncrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewEncryptCallCount))
+		assert.Equal(t, int64(1), mock.NewEncryptCallCount.Load())
 	})
 
 	t.Run("delegates to NewEncryptFunc", func(t *testing.T) {
@@ -676,7 +675,7 @@ func TestMockCryptoService_NewEncrypt(t *testing.T) {
 		result := mock.NewEncrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewEncryptCallCount))
+		assert.Equal(t, int64(1), mock.NewEncryptCallCount.Load())
 	})
 }
 
@@ -691,7 +690,7 @@ func TestMockCryptoService_NewDecrypt(t *testing.T) {
 		result := mock.NewDecrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewDecryptCallCount))
+		assert.Equal(t, int64(1), mock.NewDecryptCallCount.Load())
 	})
 
 	t.Run("delegates to NewDecryptFunc", func(t *testing.T) {
@@ -706,7 +705,7 @@ func TestMockCryptoService_NewDecrypt(t *testing.T) {
 		result := mock.NewDecrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewDecryptCallCount))
+		assert.Equal(t, int64(1), mock.NewDecryptCallCount.Load())
 	})
 }
 
@@ -721,7 +720,7 @@ func TestMockCryptoService_NewBatchEncrypt(t *testing.T) {
 		result := mock.NewBatchEncrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewBatchEncryptCallCount))
+		assert.Equal(t, int64(1), mock.NewBatchEncryptCallCount.Load())
 	})
 
 	t.Run("delegates to NewBatchEncryptFunc", func(t *testing.T) {
@@ -736,7 +735,7 @@ func TestMockCryptoService_NewBatchEncrypt(t *testing.T) {
 		result := mock.NewBatchEncrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewBatchEncryptCallCount))
+		assert.Equal(t, int64(1), mock.NewBatchEncryptCallCount.Load())
 	})
 }
 
@@ -751,7 +750,7 @@ func TestMockCryptoService_NewBatchDecrypt(t *testing.T) {
 		result := mock.NewBatchDecrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewBatchDecryptCallCount))
+		assert.Equal(t, int64(1), mock.NewBatchDecryptCallCount.Load())
 	})
 
 	t.Run("delegates to NewBatchDecryptFunc", func(t *testing.T) {
@@ -766,7 +765,7 @@ func TestMockCryptoService_NewBatchDecrypt(t *testing.T) {
 		result := mock.NewBatchDecrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewBatchDecryptCallCount))
+		assert.Equal(t, int64(1), mock.NewBatchDecryptCallCount.Load())
 	})
 }
 
@@ -781,7 +780,7 @@ func TestMockCryptoService_NewStreamEncrypt(t *testing.T) {
 		result := mock.NewStreamEncrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewStreamEncryptCallCount))
+		assert.Equal(t, int64(1), mock.NewStreamEncryptCallCount.Load())
 	})
 
 	t.Run("delegates to NewStreamEncryptFunc", func(t *testing.T) {
@@ -796,7 +795,7 @@ func TestMockCryptoService_NewStreamEncrypt(t *testing.T) {
 		result := mock.NewStreamEncrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewStreamEncryptCallCount))
+		assert.Equal(t, int64(1), mock.NewStreamEncryptCallCount.Load())
 	})
 }
 
@@ -811,7 +810,7 @@ func TestMockCryptoService_NewStreamDecrypt(t *testing.T) {
 		result := mock.NewStreamDecrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewStreamDecryptCallCount))
+		assert.Equal(t, int64(1), mock.NewStreamDecryptCallCount.Load())
 	})
 
 	t.Run("delegates to NewStreamDecryptFunc", func(t *testing.T) {
@@ -826,7 +825,7 @@ func TestMockCryptoService_NewStreamDecrypt(t *testing.T) {
 		result := mock.NewStreamDecrypt()
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewStreamDecryptCallCount))
+		assert.Equal(t, int64(1), mock.NewStreamDecryptCallCount.Load())
 	})
 }
 
@@ -841,7 +840,7 @@ func TestMockCryptoService_RegisterProvider(t *testing.T) {
 		err := mock.RegisterProvider(context.Background(), "local-aes", nil)
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterProviderCallCount))
+		assert.Equal(t, int64(1), mock.RegisterProviderCallCount.Load())
 	})
 
 	t.Run("delegates to RegisterProviderFunc", func(t *testing.T) {
@@ -860,7 +859,7 @@ func TestMockCryptoService_RegisterProvider(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "aws-kms", capturedName)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterProviderCallCount))
+		assert.Equal(t, int64(1), mock.RegisterProviderCallCount.Load())
 	})
 
 	t.Run("propagates error from RegisterProviderFunc", func(t *testing.T) {
@@ -877,7 +876,7 @@ func TestMockCryptoService_RegisterProvider(t *testing.T) {
 		err := mock.RegisterProvider(context.Background(), "dupe", nil)
 
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterProviderCallCount))
+		assert.Equal(t, int64(1), mock.RegisterProviderCallCount.Load())
 	})
 }
 
@@ -892,7 +891,7 @@ func TestMockCryptoService_SetDefaultProvider(t *testing.T) {
 		err := mock.SetDefaultProvider("local")
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.SetDefaultProviderCallCount))
+		assert.Equal(t, int64(1), mock.SetDefaultProviderCallCount.Load())
 	})
 
 	t.Run("delegates to SetDefaultProviderFunc", func(t *testing.T) {
@@ -911,7 +910,7 @@ func TestMockCryptoService_SetDefaultProvider(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, "aws-kms", capturedName)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.SetDefaultProviderCallCount))
+		assert.Equal(t, int64(1), mock.SetDefaultProviderCallCount.Load())
 	})
 
 	t.Run("propagates error from SetDefaultProviderFunc", func(t *testing.T) {
@@ -928,7 +927,7 @@ func TestMockCryptoService_SetDefaultProvider(t *testing.T) {
 		err := mock.SetDefaultProvider("nonexistent")
 
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.SetDefaultProviderCallCount))
+		assert.Equal(t, int64(1), mock.SetDefaultProviderCallCount.Load())
 	})
 }
 
@@ -943,7 +942,7 @@ func TestMockCryptoService_GetProviders(t *testing.T) {
 		result := mock.GetProviders(context.Background())
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetProvidersCallCount))
+		assert.Equal(t, int64(1), mock.GetProvidersCallCount.Load())
 	})
 
 	t.Run("delegates to GetProvidersFunc", func(t *testing.T) {
@@ -960,7 +959,7 @@ func TestMockCryptoService_GetProviders(t *testing.T) {
 		result := mock.GetProviders(context.Background())
 
 		assert.Equal(t, expected, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetProvidersCallCount))
+		assert.Equal(t, int64(1), mock.GetProvidersCallCount.Load())
 	})
 }
 
@@ -975,7 +974,7 @@ func TestMockCryptoService_HasProvider(t *testing.T) {
 		result := mock.HasProvider("any")
 
 		assert.False(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.HasProviderCallCount))
+		assert.Equal(t, int64(1), mock.HasProviderCallCount.Load())
 	})
 
 	t.Run("delegates to HasProviderFunc", func(t *testing.T) {
@@ -993,7 +992,7 @@ func TestMockCryptoService_HasProvider(t *testing.T) {
 		assert.True(t, mock.HasProvider("mock"))
 		assert.Equal(t, "mock", capturedName)
 		assert.False(t, mock.HasProvider("nonexistent"))
-		assert.Equal(t, int64(2), atomic.LoadInt64(&mock.HasProviderCallCount))
+		assert.Equal(t, int64(2), mock.HasProviderCallCount.Load())
 	})
 }
 
@@ -1008,7 +1007,7 @@ func TestMockCryptoService_ListProviders(t *testing.T) {
 		result := mock.ListProviders(context.Background())
 
 		assert.Nil(t, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ListProvidersCallCount))
+		assert.Equal(t, int64(1), mock.ListProvidersCallCount.Load())
 	})
 
 	t.Run("delegates to ListProvidersFunc", func(t *testing.T) {
@@ -1032,7 +1031,7 @@ func TestMockCryptoService_ListProviders(t *testing.T) {
 
 		require.Len(t, result, 1)
 		assert.Equal(t, expected, result)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ListProvidersCallCount))
+		assert.Equal(t, int64(1), mock.ListProvidersCallCount.Load())
 	})
 }
 
@@ -1047,7 +1046,7 @@ func TestMockCryptoService_Close(t *testing.T) {
 		err := mock.Close(context.Background())
 
 		assert.NoError(t, err)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CloseCallCount))
+		assert.Equal(t, int64(1), mock.CloseCallCount.Load())
 	})
 
 	t.Run("delegates to CloseFunc", func(t *testing.T) {
@@ -1066,7 +1065,7 @@ func TestMockCryptoService_Close(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.True(t, called)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CloseCallCount))
+		assert.Equal(t, int64(1), mock.CloseCallCount.Load())
 	})
 
 	t.Run("propagates error from CloseFunc", func(t *testing.T) {
@@ -1083,7 +1082,7 @@ func TestMockCryptoService_Close(t *testing.T) {
 		err := mock.Close(context.Background())
 
 		assert.ErrorIs(t, err, expected)
-		assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CloseCallCount))
+		assert.Equal(t, int64(1), mock.CloseCallCount.Load())
 	})
 }
 
@@ -1157,29 +1156,29 @@ func TestMockCryptoService_ZeroValueIsUsable(t *testing.T) {
 	clErr := mock.Close(ctx)
 	assert.NoError(t, clErr)
 
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptWithKeyCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptBatchCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptBatchCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RotateKeyCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetActiveKeyIDCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptAndReEncryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.HealthCheckCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.EncryptStreamCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.DecryptStreamCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewEncryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewDecryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewBatchEncryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewBatchDecryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewStreamEncryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.NewStreamDecryptCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.RegisterProviderCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.SetDefaultProviderCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.GetProvidersCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.HasProviderCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.ListProvidersCallCount))
-	assert.Equal(t, int64(1), atomic.LoadInt64(&mock.CloseCallCount))
+	assert.Equal(t, int64(1), mock.EncryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.DecryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.EncryptWithKeyCallCount.Load())
+	assert.Equal(t, int64(1), mock.EncryptBatchCallCount.Load())
+	assert.Equal(t, int64(1), mock.DecryptBatchCallCount.Load())
+	assert.Equal(t, int64(1), mock.RotateKeyCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetActiveKeyIDCallCount.Load())
+	assert.Equal(t, int64(1), mock.DecryptAndReEncryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.HealthCheckCallCount.Load())
+	assert.Equal(t, int64(1), mock.EncryptStreamCallCount.Load())
+	assert.Equal(t, int64(1), mock.DecryptStreamCallCount.Load())
+	assert.Equal(t, int64(1), mock.NewEncryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.NewDecryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.NewBatchEncryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.NewBatchDecryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.NewStreamEncryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.NewStreamDecryptCallCount.Load())
+	assert.Equal(t, int64(1), mock.RegisterProviderCallCount.Load())
+	assert.Equal(t, int64(1), mock.SetDefaultProviderCallCount.Load())
+	assert.Equal(t, int64(1), mock.GetProvidersCallCount.Load())
+	assert.Equal(t, int64(1), mock.HasProviderCallCount.Load())
+	assert.Equal(t, int64(1), mock.ListProvidersCallCount.Load())
+	assert.Equal(t, int64(1), mock.CloseCallCount.Load())
 }
 
 func TestMockCryptoService_ConcurrentAccess(t *testing.T) {
@@ -1295,29 +1294,29 @@ func TestMockCryptoService_ConcurrentAccess(t *testing.T) {
 
 	wg.Wait()
 
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.EncryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.DecryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.EncryptWithKeyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.EncryptBatchCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.DecryptBatchCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.RotateKeyCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetActiveKeyIDCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.DecryptAndReEncryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.HealthCheckCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.EncryptStreamCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.DecryptStreamCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NewEncryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NewDecryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NewBatchEncryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NewBatchDecryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NewStreamEncryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.NewStreamDecryptCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.RegisterProviderCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.SetDefaultProviderCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.GetProvidersCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.HasProviderCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.ListProvidersCallCount))
-	assert.Equal(t, int64(goroutines), atomic.LoadInt64(&mock.CloseCallCount))
+	assert.Equal(t, int64(goroutines), mock.EncryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.DecryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.EncryptWithKeyCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.EncryptBatchCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.DecryptBatchCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.RotateKeyCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetActiveKeyIDCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.DecryptAndReEncryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.HealthCheckCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.EncryptStreamCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.DecryptStreamCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.NewEncryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.NewDecryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.NewBatchEncryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.NewBatchDecryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.NewStreamEncryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.NewStreamDecryptCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.RegisterProviderCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.SetDefaultProviderCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.GetProvidersCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.HasProviderCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.ListProvidersCallCount.Load())
+	assert.Equal(t, int64(goroutines), mock.CloseCallCount.Load())
 }
 
 func TestMockCryptoService_ImplementsInterface(t *testing.T) {

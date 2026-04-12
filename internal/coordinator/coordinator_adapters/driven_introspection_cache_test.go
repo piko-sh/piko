@@ -35,7 +35,9 @@ import (
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 )
 
-var errInjectedCache = errors.New("injected cache failure")
+var (
+	errInjectedCache = errors.New("injected cache failure")
+)
 
 type failingCache struct {
 	getIfPresentValue *coordinator_domain.IntrospectionCacheEntry
@@ -254,4 +256,6 @@ func TestIntrospectionCache_CloseSwallowsBackingError(t *testing.T) {
 		"Close must absorb backing cache errors without panicking")
 }
 
-var _ cache_domain.Cache[string, *coordinator_domain.IntrospectionCacheEntry] = (*failingCache)(nil)
+var (
+	_ cache_domain.Cache[string, *coordinator_domain.IntrospectionCacheEntry] = (*failingCache)(nil)
+)

@@ -34,73 +34,71 @@ import (
 )
 
 const (
-	// devSSEClientBuffer is the per-client channel buffer size. Messages are
-	// silently dropped when a client's buffer is full (the client is likely
-	// dead and will be cleaned up when its context is cancelled).
+	// devSSEClientBuffer is the per-client channel buffer size. Messages are silently
+	// dropped when a client's buffer is full (the client is likely dead and will be cleaned
+	// up when its context is cancelled).
 	devSSEClientBuffer = 16
 
-	// devSSEKeepaliveInterval is the interval between keepalive pings sent
-	// to each SSE client to prevent proxy/load-balancer timeouts.
+	// devSSEKeepaliveInterval is the interval between keepalive pings sent to each SSE
+	// client to prevent proxy/load-balancer timeouts.
 	devSSEKeepaliveInterval = 15 * time.Second
 
-	// devSSEStatsInterval is how often system-stats events are pushed to
-	// connected dev tools clients.
+	// devSSEStatsInterval is how often system-stats events are pushed to connected dev tools
+	// clients.
 	devSSEStatsInterval = 5 * time.Second
 
-	// devSSEFullStateInterval is how often health, resources, providers, and
-	// memory-detail events are pushed. These change less frequently than
-	// system-stats so a longer interval avoids unnecessary traffic.
+	// devSSEFullStateInterval is how often health, resources, providers, and memory-detail
+	// events are pushed. These change less frequently than system-stats so a longer interval
+	// avoids unnecessary traffic.
 	devSSEFullStateInterval = 10 * time.Second
 
-	// devSSERecentTaskLimit is the maximum number of recent tasks to include in
-	// build update events.
+	// devSSERecentTaskLimit is the maximum number of recent tasks to include in build update
+	// events.
 	devSSERecentTaskLimit = 10
 
-	// devSSEWorkflowSummaryLimit is the maximum number of workflow summaries to
-	// include in build update events.
+	// devSSEWorkflowSummaryLimit is the maximum number of workflow summaries to include in
+	// build update events.
 	devSSEWorkflowSummaryLimit = 5
 
-	// devBroadcasterShutdownTimeout bounds how long Close waits for the
-	// periodic stats goroutine to exit during shutdown.
+	// devBroadcasterShutdownTimeout bounds how long Close waits for the periodic stats
+	// goroutine to exit during shutdown.
 	devBroadcasterShutdownTimeout = 5 * time.Second
 
-	// devSSEWriteTimeout bounds how long any single SSE write to a dev
-	// tools client may block. The deadline is reset before every write so
-	// slow-loris peers are dropped without truncating long-lived streams
-	// for healthy clients.
+	// devSSEWriteTimeout bounds how long any single SSE write to a dev tools client may
+	// block. The deadline is reset before every write so slow-loris peers are dropped
+	// without truncating long-lived streams for healthy clients.
 	devSSEWriteTimeout = 5 * time.Second
 )
 
-// errDevBroadcasterShutdown is the cause attached to the periodic-stats
-// context when Close is called.
-var errDevBroadcasterShutdown = errors.New("dev broadcaster shutdown")
+var (
+	// errDevBroadcasterShutdown is the cause attached to the periodic-stats context when
+	// Close is called.
+	errDevBroadcasterShutdown = errors.New("dev broadcaster shutdown")
 
-// errDevBroadcasterCloseTimeout is returned when Close cannot drain the
-// periodic stats goroutine within devBroadcasterShutdownTimeout.
-var errDevBroadcasterCloseTimeout = errors.New("dev broadcaster close timed out waiting for stats goroutine")
+	// errDevBroadcasterCloseTimeout is returned when Close cannot drain the periodic stats
+	// goroutine within devBroadcasterShutdownTimeout.
+	errDevBroadcasterCloseTimeout = errors.New("dev broadcaster close timed out waiting for stats goroutine")
+)
 
-// DevBuildEvent is the payload sent to connected browsers when a dev build
-// completes.
+// DevBuildEvent is the payload sent to connected browsers when a dev build completes.
 type DevBuildEvent struct {
 	// Type is the event type, e.g. "rebuild-complete".
 	Type string `json:"type"`
 
-	// AffectedRoutes holds the URL route patterns that were
-	// rebuilt, such as "/login" or "/dashboard"; an entry of
-	// "*" means all routes.
+	// AffectedRoutes holds the URL route patterns that were rebuilt, such as "/login" or
+	// "/dashboard"; an entry of "*" means all routes.
 	AffectedRoutes []string `json:"affectedRoutes"`
 
-	// TimestampMs is the Unix timestamp in milliseconds when the event was
-	// created.
+	// TimestampMs is the Unix timestamp in milliseconds when the event was created.
 	TimestampMs int64 `json:"timestampMs"`
 }
 
-// DevEventBroadcaster manages SSE connections for dev-mode build events.
-// It implements http.Handler (for the /_piko/dev/events endpoint) and
-// lifecycle_domain.DevEventNotifier (for receiving build-complete signals).
+// DevEventBroadcaster manages SSE connections for dev-mode build events. It implements
+// http.Handler (for the /_piko/dev/events endpoint) and lifecycle_domain.DevEventNotifier
+// (for receiving build-complete signals).
 type DevEventBroadcaster struct {
-	// systemStats provides system metrics for periodic SSE push. Nil disables
-	// the system-stats event.
+	// systemStats provides system metrics for periodic SSE push. Nil disables the
+	// system-stats event.
 	systemStats monitoring_domain.SystemStatsProvider
 
 	// healthProbe provides liveness/readiness probe results for SSE push.
@@ -115,8 +113,8 @@ type DevEventBroadcaster struct {
 	// orchestrator provides build pipeline state for SSE push.
 	orchestrator orchestrator_domain.OrchestratorInspector
 
-	// statsCancel stops the periodic system stats goroutine. Always paired
-	// with WithCancelCause so the cause is observable on shutdown.
+	// statsCancel stops the periodic system stats goroutine. Always paired with
+	// WithCancelCause so the cause is observable on shutdown.
 	statsCancel context.CancelCauseFunc
 
 	// clients holds the set of connected SSE client channels.
@@ -138,8 +136,7 @@ type DevEventBroadcaster struct {
 	statsRunning bool
 }
 
-// NewDevEventBroadcaster creates a new broadcaster ready to accept SSE
-// clients.
+// NewDevEventBroadcaster creates a new broadcaster ready to accept SSE clients.
 //
 // Returns *DevEventBroadcaster which is the initialised broadcaster.
 func NewDevEventBroadcaster() *DevEventBroadcaster {
@@ -148,8 +145,8 @@ func NewDevEventBroadcaster() *DevEventBroadcaster {
 	}
 }
 
-// SetSystemStatsProvider configures the provider used to push periodic
-// system-stats SSE events. Must be called before the first client connects.
+// SetSystemStatsProvider configures the provider used to push periodic system-stats SSE
+// events. Must be called before the first client connects.
 //
 // Takes p (monitoring_domain.SystemStatsProvider) which supplies system metrics.
 //
@@ -162,8 +159,8 @@ func (b *DevEventBroadcaster) SetSystemStatsProvider(p monitoring_domain.SystemS
 
 // SetHealthProbeService configures the health probe provider for SSE push.
 //
-// Takes p (monitoring_domain.HealthProbeService) which
-// supplies liveness and readiness probes.
+// Takes p (monitoring_domain.HealthProbeService) which supplies liveness and readiness
+// probes.
 //
 // Safe for concurrent use; guarded by mu.
 func (b *DevEventBroadcaster) SetHealthProbeService(p monitoring_domain.HealthProbeService) {
@@ -174,8 +171,8 @@ func (b *DevEventBroadcaster) SetHealthProbeService(p monitoring_domain.HealthPr
 
 // SetResourceProvider configures the resource/FD provider for SSE push.
 //
-// Takes p (monitoring_domain.ResourceProvider) which supplies
-// file descriptor and resource data.
+// Takes p (monitoring_domain.ResourceProvider) which supplies file descriptor and
+// resource data.
 //
 // Safe for concurrent use; guarded by mu.
 func (b *DevEventBroadcaster) SetResourceProvider(p monitoring_domain.ResourceProvider) {
@@ -186,8 +183,8 @@ func (b *DevEventBroadcaster) SetResourceProvider(p monitoring_domain.ResourcePr
 
 // SetProviderInfoInspector configures the provider info inspector for SSE push.
 //
-// Takes p (monitoring_domain.ProviderInfoInspector) which
-// supplies resource type and provider discovery.
+// Takes p (monitoring_domain.ProviderInfoInspector) which supplies resource type and
+// provider discovery.
 //
 // Safe for concurrent use; guarded by mu.
 func (b *DevEventBroadcaster) SetProviderInfoInspector(p monitoring_domain.ProviderInfoInspector) {
@@ -198,8 +195,8 @@ func (b *DevEventBroadcaster) SetProviderInfoInspector(p monitoring_domain.Provi
 
 // SetOrchestratorInspector configures the orchestrator inspector for SSE push.
 //
-// Takes p (orchestrator_domain.OrchestratorInspector)
-// which supplies build pipeline state.
+// Takes p (orchestrator_domain.OrchestratorInspector) which supplies build pipeline
+// state.
 //
 // Safe for concurrent use; guarded by mu.
 func (b *DevEventBroadcaster) SetOrchestratorInspector(p orchestrator_domain.OrchestratorInspector) {
@@ -208,9 +205,9 @@ func (b *DevEventBroadcaster) SetOrchestratorInspector(p orchestrator_domain.Orc
 	b.orchestrator = p
 }
 
-// ServeHTTP implements http.Handler. It upgrades the connection to an SSE
-// stream, sends an initial heartbeat, and blocks until the client disconnects
-// or the broadcaster is closed.
+// ServeHTTP implements http.Handler. It upgrades the connection to an SSE stream, sends
+// an initial heartbeat, and blocks until the client disconnects or the broadcaster is
+// closed.
 //
 // Takes w (http.ResponseWriter) which is the response writer for the SSE stream.
 // Takes r (*http.Request) which is the incoming HTTP request.
@@ -264,13 +261,13 @@ func (b *DevEventBroadcaster) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// resolveSSEFlusher returns the http.Flusher for the SSE stream, preferring
-// the deadline writer's flusher when available so writes go through the
-// timeout-aware path. The fallback is the underlying ResponseWriter, which the
-// caller has already type-asserted to http.Flusher.
+// resolveSSEFlusher returns the http.Flusher for the SSE stream, preferring the deadline
+// writer's flusher when available so writes go through the timeout-aware path. The
+// fallback is the underlying ResponseWriter, which the caller has already type-asserted
+// to http.Flusher.
 //
-// Takes deadlineWriter (io.Writer) which wraps the response writer with a
-// per-write deadline.
+// Takes deadlineWriter (io.Writer) which wraps the response writer with a per-write
+// deadline.
 // Takes fallback (http.Flusher) which is the unwrapped ResponseWriter flusher.
 //
 // Returns http.Flusher which is the flusher to drive the SSE stream.
@@ -281,8 +278,8 @@ func resolveSSEFlusher(deadlineWriter io.Writer, fallback http.Flusher) http.Flu
 	return fallback
 }
 
-// Broadcast sends an event to all connected SSE clients. Clients whose
-// buffers are full have the message silently dropped.
+// Broadcast sends an event to all connected SSE clients. Clients whose buffers are full
+// have the message silently dropped.
 //
 // Takes event (DevBuildEvent) which holds the event payload to broadcast.
 //
@@ -310,9 +307,9 @@ func (b *DevEventBroadcaster) Broadcast(event DevBuildEvent) {
 	}
 }
 
-// NotifyRebuildComplete implements lifecycle_domain.DevEventNotifier. It
-// converts component-relative paths to URL route patterns and broadcasts
-// a "rebuild-complete" event to all connected browsers.
+// NotifyRebuildComplete implements lifecycle_domain.DevEventNotifier. It converts
+// component-relative paths to URL route patterns and broadcasts a "rebuild-complete"
+// event to all connected browsers.
 //
 // Takes affectedPaths ([]string) which lists the component-relative paths that changed.
 func (b *DevEventBroadcaster) NotifyRebuildComplete(_ context.Context, affectedPaths []string) {
@@ -339,19 +336,19 @@ func (b *DevEventBroadcaster) NotifyRebuildComplete(_ context.Context, affectedP
 	})
 }
 
-// DevTemplateChangedEvent is broadcast alongside rebuild-complete to notify
-// preview tabs about non-page template changes (emails, PDFs, partials).
+// DevTemplateChangedEvent is broadcast alongside rebuild-complete to notify preview tabs
+// about non-page template changes (emails, PDFs, partials).
 type DevTemplateChangedEvent struct {
-	// AffectedPaths lists the raw source paths that changed (e.g.,
-	// "emails/welcome.pk", "pdfs/invoice.pk").
+	// AffectedPaths lists the raw source paths that changed (e.g., "emails/welcome.pk",
+	// "pdfs/invoice.pk").
 	AffectedPaths []string `json:"affectedPaths"`
 
 	// TimestampMs is when the rebuild completed.
 	TimestampMs int64 `json:"timestampMs"`
 }
 
-// DevBuildSummary is pushed via SSE after each build completes, alongside
-// the existing rebuild-complete event.
+// DevBuildSummary is pushed via SSE after each build completes, alongside the existing
+// rebuild-complete event.
 type DevBuildSummary struct {
 	// ComponentCount is the number of components built.
 	ComponentCount int `json:"componentCount"`
@@ -366,8 +363,7 @@ type DevBuildSummary struct {
 	TimestampMs int64 `json:"timestampMs"`
 }
 
-// BroadcastBuildSummary sends a build-summary event to all connected SSE
-// clients.
+// BroadcastBuildSummary sends a build-summary event to all connected SSE clients.
 //
 // Takes summary (DevBuildSummary) which holds the build summary payload.
 //
@@ -394,12 +390,11 @@ func (b *DevEventBroadcaster) BroadcastBuildSummary(summary DevBuildSummary) {
 	}
 }
 
-// Close shuts down the broadcaster, cancels the periodic stats goroutine,
-// waits for it to exit (bounded by devBroadcasterShutdownTimeout), and closes
-// all client channels.
+// Close shuts down the broadcaster, cancels the periodic stats goroutine, waits for it to
+// exit (bounded by devBroadcasterShutdownTimeout), and closes all client channels.
 //
-// Returns error which joins a timeout error (if the stats goroutine did not
-// exit in time) with the context cause; nil on a clean shutdown.
+// Returns error which joins a timeout error (if the stats goroutine did not exit in time)
+// with the context cause; nil on a clean shutdown.
 //
 // Safe for concurrent use; idempotent via sync.Once.
 func (b *DevEventBroadcaster) Close() error {
@@ -435,8 +430,8 @@ func (b *DevEventBroadcaster) Close() error {
 	return closeErr
 }
 
-// ClientCount returns the number of currently connected SSE clients.
-// Primarily useful for testing.
+// ClientCount returns the number of currently connected SSE clients. Primarily useful for
+// testing.
 //
 // Returns int which is the number of active client connections.
 //
@@ -447,8 +442,8 @@ func (b *DevEventBroadcaster) ClientCount() int {
 	return len(b.clients)
 }
 
-// addClient registers a new SSE client channel and starts the periodic
-// stats goroutine if this is the first client.
+// addClient registers a new SSE client channel and starts the periodic stats goroutine if
+// this is the first client.
 //
 // Takes ch (chan []byte) which is the client's message channel.
 //
@@ -464,8 +459,8 @@ func (b *DevEventBroadcaster) addClient(ch chan []byte) {
 	b.mu.Unlock()
 }
 
-// removeClient unregisters an SSE client channel and stops the periodic
-// stats goroutine when no clients remain.
+// removeClient unregisters an SSE client channel and stops the periodic stats goroutine
+// when no clients remain.
 //
 // Takes ch (chan []byte) which is the client's message channel to remove.
 //
@@ -479,9 +474,9 @@ func (b *DevEventBroadcaster) removeClient(ch chan []byte) {
 	b.mu.Unlock()
 }
 
-// startPeriodicStatsLocked launches a goroutine that pushes system-stats
-// events every 5 seconds and full-state events (health, resources, providers,
-// memory) every 10 seconds while clients are connected.
+// startPeriodicStatsLocked launches a goroutine that pushes system-stats events every 5
+// seconds and full-state events (health, resources, providers, memory) every 10 seconds
+// while clients are connected.
 //
 // Must be called with b.mu held.
 func (b *DevEventBroadcaster) startPeriodicStatsLocked() {
@@ -527,11 +522,10 @@ func (b *DevEventBroadcaster) stopPeriodicStatsLocked() {
 
 // broadcastSystemStats sends a system-stats SSE event with current metrics.
 //
-// Takes provider (monitoring_domain.SystemStatsProvider)
-// which supplies the current system metrics.
+// Takes provider (monitoring_domain.SystemStatsProvider) which supplies the current
+// system metrics.
 //
-// Safe for concurrent use; reads the client set under
-// mu.RLock.
+// Safe for concurrent use; reads the client set under mu.RLock.
 func (b *DevEventBroadcaster) broadcastSystemStats(provider monitoring_domain.SystemStatsProvider) {
 	stats := provider.GetStats()
 
@@ -561,12 +555,12 @@ func (b *DevEventBroadcaster) broadcastSystemStats(provider monitoring_domain.Sy
 	}
 }
 
-// broadcastFullState pushes build, health, resources, providers, and memory-detail
-// SSE events to all connected clients. Each event is independent so a nil provider
-// skips that event.
+// broadcastFullState pushes build, health, resources, providers, and memory-detail SSE
+// events to all connected clients. Each event is independent so a nil provider skips that
+// event.
 //
-// Takes statsProvider (monitoring_domain.SystemStatsProvider) which supplies
-// system metrics for memory-detail events.
+// Takes statsProvider (monitoring_domain.SystemStatsProvider) which supplies system
+// metrics for memory-detail events.
 //
 // Safe for concurrent use; reads provider fields under mu.RLock.
 func (b *DevEventBroadcaster) broadcastFullState(ctx context.Context, statsProvider monitoring_domain.SystemStatsProvider) {
@@ -594,8 +588,8 @@ func (b *DevEventBroadcaster) broadcastFullState(ctx context.Context, statsProvi
 	}
 }
 
-// writeInitialState sends the current full state directly to a newly connected
-// client's response writer so all tabs are populated immediately.
+// writeInitialState sends the current full state directly to a newly connected client's
+// response writer so all tabs are populated immediately.
 //
 // Takes w (http.ResponseWriter) which is the client's response writer.
 // Takes flusher (http.Flusher) which flushes buffered data to the client.
@@ -639,12 +633,12 @@ func (b *DevEventBroadcaster) writeInitialState(w http.ResponseWriter, flusher h
 	flusher.Flush()
 }
 
-// writeInitialSystemStats writes system-stats and memory-detail SSE messages
-// to the response writer for a newly connected client.
+// writeInitialSystemStats writes system-stats and memory-detail SSE messages to the
+// response writer for a newly connected client.
 //
 // Takes w (http.ResponseWriter) which is the client's response writer.
-// Takes provider (monitoring_domain.SystemStatsProvider)
-// which supplies the current system metrics.
+// Takes provider (monitoring_domain.SystemStatsProvider) which supplies the current
+// system metrics.
 func writeInitialSystemStats(w http.ResponseWriter, provider monitoring_domain.SystemStatsProvider) {
 	if provider == nil {
 		return
@@ -677,12 +671,12 @@ func writeInitialSystemStats(w http.ResponseWriter, provider monitoring_domain.S
 	}
 }
 
-// writeInitialBuildUpdate writes a build-update SSE message to the response
-// writer for a newly connected client.
+// writeInitialBuildUpdate writes a build-update SSE message to the response writer for a
+// newly connected client.
 //
 // Takes w (http.ResponseWriter) which is the client's response writer.
-// Takes orch (orchestrator_domain.OrchestratorInspector)
-// which supplies build pipeline state.
+// Takes orch (orchestrator_domain.OrchestratorInspector) which supplies build pipeline
+// state.
 func writeInitialBuildUpdate(ctx context.Context, w http.ResponseWriter, orch orchestrator_domain.OrchestratorInspector) {
 	if orch == nil {
 		return
@@ -704,11 +698,11 @@ func writeInitialBuildUpdate(ctx context.Context, w http.ResponseWriter, orch or
 	}
 }
 
-// broadcastBuildUpdate pushes a build-update SSE event with task summary,
-// recent tasks, and workflow summary from the orchestrator.
+// broadcastBuildUpdate pushes a build-update SSE event with task summary, recent tasks,
+// and workflow summary from the orchestrator.
 //
-// Takes orch (orchestrator_domain.OrchestratorInspector)
-// which supplies build pipeline state.
+// Takes orch (orchestrator_domain.OrchestratorInspector) which supplies build pipeline
+// state.
 func (b *DevEventBroadcaster) broadcastBuildUpdate(ctx context.Context, orch orchestrator_domain.OrchestratorInspector) {
 	payload := map[string]any{}
 
@@ -729,8 +723,8 @@ func (b *DevEventBroadcaster) broadcastBuildUpdate(ctx context.Context, orch orc
 
 // broadcastHealthUpdate pushes a health-update SSE event.
 //
-// Takes hp (monitoring_domain.HealthProbeService) which
-// supplies liveness and readiness probe results.
+// Takes hp (monitoring_domain.HealthProbeService) which supplies liveness and readiness
+// probe results.
 func (b *DevEventBroadcaster) broadcastHealthUpdate(ctx context.Context, hp monitoring_domain.HealthProbeService) {
 	payload := map[string]any{
 		"liveness":  hp.CheckLiveness(ctx),
@@ -741,30 +735,29 @@ func (b *DevEventBroadcaster) broadcastHealthUpdate(ctx context.Context, hp moni
 
 // broadcastResourcesUpdate pushes a resources-update SSE event.
 //
-// Takes rp (monitoring_domain.ResourceProvider) which
-// supplies resource and file descriptor data.
+// Takes rp (monitoring_domain.ResourceProvider) which supplies resource and file
+// descriptor data.
 func (b *DevEventBroadcaster) broadcastResourcesUpdate(rp monitoring_domain.ResourceProvider) {
 	b.broadcastEvent("resources-update", rp.GetResources())
 }
 
-// broadcastProvidersUpdate pushes a providers-update SSE event. For each
-// resource type, the payload includes the provider list, per-provider detail
-// sections (from DescribeProvider), and sub-resources where available.
+// broadcastProvidersUpdate pushes a providers-update SSE event. For each resource type,
+// the payload includes the provider list, per-provider detail sections (from
+// DescribeProvider), and sub-resources where available.
 //
-// Takes pi (monitoring_domain.ProviderInfoInspector) which
-// supplies provider discovery data.
+// Takes pi (monitoring_domain.ProviderInfoInspector) which supplies provider discovery
+// data.
 func (b *DevEventBroadcaster) broadcastProvidersUpdate(ctx context.Context, pi monitoring_domain.ProviderInfoInspector) {
 	b.broadcastEvent("providers-update", gatherProviderPayload(ctx, pi))
 }
 
-// gatherProviderPayload collects provider details and sub-resources for all
-// resource types into a payload map suitable for SSE serialisation.
+// gatherProviderPayload collects provider details and sub-resources for all resource
+// types into a payload map suitable for SSE serialisation.
 //
-// Takes pi (monitoring_domain.ProviderInfoInspector) which
-// supplies provider discovery data.
+// Takes pi (monitoring_domain.ProviderInfoInspector) which supplies provider discovery
+// data.
 //
-// Returns map[string]any which holds the aggregated provider
-// payload.
+// Returns map[string]any which holds the aggregated provider payload.
 func gatherProviderPayload(ctx context.Context, pi monitoring_domain.ProviderInfoInspector) map[string]any {
 	types := pi.ListResourceTypes(ctx)
 	providers := make(map[string]any, len(types))
@@ -798,13 +791,13 @@ func gatherProviderPayload(ctx context.Context, pi monitoring_domain.ProviderInf
 	}
 }
 
-// broadcastMemoryDetail pushes a memory-detail SSE event with full memory,
-// GC, process, runtime, and build info. Top-level SystemStats fields that
-// live outside the nested structs (goroutines, CPU, NumCPU, GOMAXPROCS) are
-// included explicitly so the widget can display them.
+// broadcastMemoryDetail pushes a memory-detail SSE event with full memory, GC, process,
+// runtime, and build info. Top-level SystemStats fields that live outside the nested
+// structs (goroutines, CPU, NumCPU, GOMAXPROCS) are included explicitly so the widget can
+// display them.
 //
-// Takes provider (monitoring_domain.SystemStatsProvider)
-// which supplies the current system metrics.
+// Takes provider (monitoring_domain.SystemStatsProvider) which supplies the current
+// system metrics.
 func (b *DevEventBroadcaster) broadcastMemoryDetail(provider monitoring_domain.SystemStatsProvider) {
 	stats := provider.GetStats()
 	b.broadcastEvent("memory-detail", map[string]any{
@@ -820,8 +813,8 @@ func (b *DevEventBroadcaster) broadcastMemoryDetail(provider monitoring_domain.S
 	})
 }
 
-// broadcastEvent marshals a payload and sends it as a named SSE event to all
-// connected clients.
+// broadcastEvent marshals a payload and sends it as a named SSE event to all connected
+// clients.
 //
 // Takes eventName (string) which identifies the SSE event type.
 // Takes payload (any) which is the data to marshal and broadcast.
@@ -857,8 +850,8 @@ func formatSSEMessage(eventName string, payload any) []byte {
 	return fmt.Appendf(nil, "event: %s\ndata: %s\n\n", eventName, data)
 }
 
-// pathToRoute converts a component-relative path to a URL route pattern.
-// Only page paths are converted; partials, emails, and other paths return false.
+// pathToRoute converts a component-relative path to a URL route pattern. Only page paths
+// are converted; partials, emails, and other paths return false.
 //
 // Takes relPath (string) which is the component-relative path, e.g. "pages/login.pk".
 //

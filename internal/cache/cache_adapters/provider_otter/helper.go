@@ -27,9 +27,9 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
-// createOtterCacheGeneric uses type assertions to call the Otter cache factory
-// with the correct types, making it possible to work with type-erased
-// Options[K, V] and still create properly typed caches.
+// createOtterCacheGeneric uses type assertions to call the Otter cache factory with the
+// correct types, making it possible to work with type-erased Options[K, V] and still
+// create properly typed caches.
 //
 // Takes namespace (string) which identifies the cache namespace.
 // Takes optionsAny (any) which provides type-erased cache options.
@@ -49,11 +49,10 @@ func createOtterCacheGeneric(ctx context.Context, namespace string, optionsAny a
 	return cache, nil
 }
 
-// callOtterFactory calls OtterProviderFactory using type assertion on the
-// options parameter. It falls back to reflection for unsupported type pairs.
+// callOtterFactory calls OtterProviderFactory using type assertion on the options
+// parameter. It falls back to reflection for unsupported type pairs.
 //
-// Takes optionsAny (any) which contains cache options with generic type
-// parameters.
+// Takes optionsAny (any) which contains cache options with generic type parameters.
 //
 // Returns any which is the created cache provider.
 // Returns error when the factory fails to create the provider.
@@ -80,21 +79,20 @@ func callOtterFactory(optionsAny any) (any, error) {
 
 // callFactoryViaReflection returns an error for unsupported cache types.
 //
-// Go's type system makes it hard to create generic functions using reflection.
-// For custom domain types, there are two suggested approaches:
+// Go's type system makes it hard to create generic functions using reflection. For custom
+// domain types, there are two suggested approaches:
 //
-// 1. Use Cache[string, any] with type assertions in the adapter layer.
-// The current approach for ArtefactMeta. It allows resource sharing,
-// avoids circular dependencies, and is simple. The trade-off is that type
-// safety happens at runtime rather than compile time.
+// 1. Use Cache[string, any] with type assertions in the adapter layer. The current
+// approach for ArtefactMeta. It allows resource sharing, avoids circular dependencies,
+// and is simple. The trade-off is that type safety happens at runtime rather than compile
+// time.
 //
-// 2. Register a ProviderFactoryBlueprint using
-// cache_domain.RegisterProviderFactory. This gives full compile-time type
-// safety and works with CacheBuilder, but needs init() registration.
+// 2. Register a ProviderFactoryBlueprint using cache_domain.RegisterProviderFactory. This
+// gives full compile-time type safety and works with CacheBuilder, but needs init()
+// registration.
 //
-// For most cases, approach one is best. The type assertions stay in a single
-// adapter layer, and users of that adapter still get full compile-time type
-// safety.
+// For most cases, approach one is best. The type assertions stay in a single adapter
+// layer, and users of that adapter still get full compile-time type safety.
 //
 // Takes optionsAny (any) which is the cache options to check.
 //

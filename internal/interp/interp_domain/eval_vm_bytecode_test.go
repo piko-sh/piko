@@ -29,9 +29,9 @@ func TestVMSyntheticBytecode(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name      string
-		build     func() *CompiledFunction
 		expect    any
+		build     func() *CompiledFunction
+		name      string
 		expectErr bool
 	}{
 		{
@@ -41,7 +41,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				index := b.addIntConst(42)
 				b.intRegisters(1).returnInt()
 				b.emit(opLoadIntConst, 0, index, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -51,8 +51,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 			build: func() *CompiledFunction {
 				b := newBytecodeBuilder()
 				b.intRegisters(1).returnInt()
-				b.emit(opLoadIntConstSmall, 0, 99, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadIntConstSmall), 0, 99)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(99),
@@ -67,7 +67,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opAddInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -82,7 +82,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opSubInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -97,7 +97,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opMulInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -112,7 +112,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opDivInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -127,7 +127,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opRemInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(2),
@@ -142,7 +142,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opDivInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expectErr: true,
@@ -157,7 +157,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opRemInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expectErr: true,
@@ -169,8 +169,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(42)
 				b.intRegisters(2).returnInt()
 				b.emit(opLoadIntConst, 1, 0, 0)
-				b.emit(opNegInt, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpNegInt), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(-42),
@@ -185,7 +185,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadFloatConst, 1, 0, 0)
 				b.emit(opLoadFloatConst, 2, 1, 0)
 				b.emit(opAddFloat, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: float64(4.0),
@@ -200,7 +200,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadFloatConst, 1, 0, 0)
 				b.emit(opLoadFloatConst, 2, 1, 0)
 				b.emit(opSubFloat, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: float64(2.5),
@@ -215,7 +215,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadFloatConst, 1, 0, 0)
 				b.emit(opLoadFloatConst, 2, 1, 0)
 				b.emit(opMulFloat, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: float64(42.0),
@@ -230,7 +230,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadFloatConst, 1, 0, 0)
 				b.emit(opLoadFloatConst, 2, 1, 0)
 				b.emit(opDivFloat, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: float64(42.0),
@@ -242,8 +242,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addFloatConst(42.0)
 				b.floatRegisters(2).returnFloat()
 				b.emit(opLoadFloatConst, 1, 0, 0)
-				b.emit(opNegFloat, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpNegFloat), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: float64(-42.0),
@@ -253,8 +253,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 			build: func() *CompiledFunction {
 				b := newBytecodeBuilder()
 				b.intRegisters(1).returnInt()
-				b.emit(opLoadBool, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -264,8 +264,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 			build: func() *CompiledFunction {
 				b := newBytecodeBuilder()
 				b.intRegisters(1).returnInt()
-				b.emit(opLoadBool, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(0),
@@ -275,9 +275,9 @@ func TestVMSyntheticBytecode(t *testing.T) {
 			build: func() *CompiledFunction {
 				b := newBytecodeBuilder()
 				b.intRegisters(2).returnInt()
-				b.emit(opLoadBool, 1, 1, 0)
-				b.emit(opNot, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 1)
+				b.emit(opDrillTier1, uint8(subOpNot), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(0),
@@ -287,9 +287,9 @@ func TestVMSyntheticBytecode(t *testing.T) {
 			build: func() *CompiledFunction {
 				b := newBytecodeBuilder()
 				b.intRegisters(2).returnInt()
-				b.emit(opLoadBool, 1, 0, 0)
-				b.emit(opNot, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 0)
+				b.emit(opDrillTier1, uint8(subOpNot), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -303,7 +303,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 0, 0)
 				b.emit(opEqInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -318,7 +318,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opEqInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(0),
@@ -333,7 +333,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opNeInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -348,7 +348,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opLtInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -362,7 +362,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 0, 0)
 				b.emit(opLeInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -377,7 +377,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opGtInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -391,7 +391,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 0, 0)
 				b.emit(opGeInt, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -403,8 +403,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(42)
 				b.intRegisters(2).returnInt()
 				b.emit(opLoadIntConst, 1, 0, 0)
-				b.emit(opMoveInt, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpMoveInt), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -416,8 +416,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addFloatConst(42.0)
 				b.floatRegisters(2).returnFloat()
 				b.emit(opLoadFloatConst, 1, 0, 0)
-				b.emit(opMoveFloat, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpMoveFloat), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: float64(42.0),
@@ -430,7 +430,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.intRegisters(1).returnInt()
 				b.emit(opLoadIntConst, 0, 0, 0)
 				b.emit(opNop, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -439,7 +439,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 			name: "return_void",
 			build: func() *CompiledFunction {
 				b := newBytecodeBuilder()
-				b.emit(opReturnVoid, 0, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DrillTier3), uint8(subOpTier3ReturnVoid))
 				return b.build()
 			},
 			expect: nil,
@@ -452,9 +452,9 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(99)
 				b.intRegisters(1).returnInt()
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emitJump(opJump, 0, 1)
+				b.emitJump(opDrillTier1, uint8(subOpJump), 1)
 				b.emit(opLoadIntConst, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -466,11 +466,11 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(42)
 				b.addIntConst(99)
 				b.intRegisters(2).returnInt()
-				b.emit(opLoadBool, 1, 1, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 1)
 				b.emitJump(opJumpIfTrue, 1, 1)
 				b.emit(opLoadIntConst, 0, 1, 0)
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -481,10 +481,10 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b := newBytecodeBuilder()
 				b.addIntConst(42)
 				b.intRegisters(2).returnInt()
-				b.emit(opLoadBool, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 0)
 				b.emitJump(opJumpIfTrue, 1, 1)
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -496,11 +496,11 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(42)
 				b.addIntConst(99)
 				b.intRegisters(2).returnInt()
-				b.emit(opLoadBool, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 0)
 				b.emitJump(opJumpIfFalse, 1, 1)
 				b.emit(opLoadIntConst, 0, 1, 0)
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -511,10 +511,10 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b := newBytecodeBuilder()
 				b.addIntConst(42)
 				b.intRegisters(2).returnInt()
-				b.emit(opLoadBool, 1, 1, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadBool), 1, 1)
 				b.emitJump(opJumpIfFalse, 1, 1)
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -529,7 +529,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opBitAnd, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(0x0F),
@@ -544,7 +544,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opBitOr, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(0xFF),
@@ -559,7 +559,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opBitXor, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(0xF0),
@@ -574,7 +574,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opBitAndNot, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(0xF0),
@@ -584,9 +584,9 @@ func TestVMSyntheticBytecode(t *testing.T) {
 			build: func() *CompiledFunction {
 				b := newBytecodeBuilder()
 				b.intRegisters(2).returnInt()
-				b.emit(opLoadIntConstSmall, 1, 0, 0)
-				b.emit(opBitNot, 0, 1, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpLoadIntConstSmall), 1, 0)
+				b.emit(opDrillTier1, uint8(subOpBitNot), 0, 1)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(-1),
@@ -601,7 +601,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opShiftLeft, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(16),
@@ -616,7 +616,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opLoadIntConst, 2, 1, 0)
 				b.emit(opShiftRight, 0, 1, 2)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(4),
@@ -628,8 +628,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(42)
 				b.intRegisters(1).floatRegisters(1).returnFloat()
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emit(opIntToFloat, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpIntToFloat), 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: float64(42.0),
@@ -641,8 +641,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addFloatConst(42.7)
 				b.intRegisters(1).floatRegisters(1).returnInt()
 				b.emit(opLoadFloatConst, 0, 0, 0)
-				b.emit(opFloatToInt, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpFloatToInt), 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -654,8 +654,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(41)
 				b.intRegisters(1).returnInt()
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emit(opIncInt, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2IncInt), 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -667,8 +667,8 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.addIntConst(43)
 				b.intRegisters(1).returnInt()
 				b.emit(opLoadIntConst, 0, 0, 0)
-				b.emit(opDecInt, 0, 0, 0)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2DecInt), 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -682,7 +682,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.intRegisters(2).returnInt()
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opAddIntConst, 0, 1, 1)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -696,7 +696,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.intRegisters(2).returnInt()
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opSubIntConst, 0, 1, 1)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -710,7 +710,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.intRegisters(2).returnInt()
 				b.emit(opLoadIntConst, 1, 0, 0)
 				b.emit(opMulIntConst, 0, 1, 1)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(42),
@@ -724,7 +724,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadFloatConst, 0, 0, 0)
 				b.emit(opLoadFloatConst, 1, 0, 0)
 				b.emit(opEqFloat, 0, 0, 1)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -739,7 +739,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadFloatConst, 0, 0, 0)
 				b.emit(opLoadFloatConst, 1, 1, 0)
 				b.emit(opNeFloat, 0, 0, 1)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),
@@ -754,7 +754,7 @@ func TestVMSyntheticBytecode(t *testing.T) {
 				b.emit(opLoadFloatConst, 0, 0, 0)
 				b.emit(opLoadFloatConst, 1, 1, 0)
 				b.emit(opLtFloat, 0, 0, 1)
-				b.emit(opReturn, 1, 0, 0)
+				b.emit(opDrillTier1, uint8(subOpDrillTier2), uint8(subOpTier2Return), 1)
 				return b.build()
 			},
 			expect: int64(1),

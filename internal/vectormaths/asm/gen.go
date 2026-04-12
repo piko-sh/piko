@@ -18,24 +18,29 @@
 
 package asm
 
-import "piko.sh/piko/wdk/asmgen"
+import (
+	"piko.sh/piko/wdk/asmgen"
+)
 
-// vectormathsBuildConstraint is the build constraint applied
-// to generated vectormaths assembly files.
-const vectormathsBuildConstraint = "!safe && !(js && wasm)"
+const (
+	// vectormathsBuildConstraint is the build constraint applied to generated vectormaths
+	// assembly files.
+	vectormathsBuildConstraint = "!safe && !(js && wasm)"
 
-// vectormathsOutputDir is the output directory for generated vectormaths assembly files.
-const vectormathsOutputDir = "internal/vectormaths"
+	// vectormathsOutputDir is the output directory for generated vectormaths assembly files.
+	vectormathsOutputDir = "internal/vectormaths"
+)
 
-// vectormathsIncludes lists the assembly include files required by generated SIMD functions.
-var vectormathsIncludes = []string{"textflag.h"}
+var (
+	// vectormathsIncludes lists the assembly include files required by generated SIMD
+	// functions.
+	vectormathsIncludes = []string{"textflag.h"}
+)
 
-// FileGroups returns all FileGroup definitions for the vectormaths
-// SIMD functions.
+// FileGroups returns all FileGroup definitions for the vectormaths SIMD functions.
 //
-// Returns []asmgen.FileGroup[VectormathsArchitecturePort]
-// containing the dot product, Euclidean distance, and
-// normalise file groups.
+// Returns []asmgen.FileGroup[VectormathsArchitecturePort] containing the dot product,
+// squared Euclidean distance, and normalise file groups.
 func FileGroups() []asmgen.FileGroup[VectormathsArchitecturePort] {
 	return []asmgen.FileGroup[VectormathsArchitecturePort]{
 		{
@@ -58,6 +63,34 @@ func FileGroups() []asmgen.FileGroup[VectormathsArchitecturePort] {
 			BuildConstraint: vectormathsBuildConstraint,
 			Includes:        vectormathsIncludes,
 			Handlers:        normaliseHandlers(),
+		},
+		{
+			BaseName:        "asm_sum_f64",
+			OutputDir:       vectormathsOutputDir,
+			BuildConstraint: vectormathsBuildConstraint,
+			Includes:        vectormathsIncludes,
+			Handlers:        sumF64Handlers(),
+		},
+		{
+			BaseName:        "asm_add_f64",
+			OutputDir:       vectormathsOutputDir,
+			BuildConstraint: vectormathsBuildConstraint,
+			Includes:        vectormathsIncludes,
+			Handlers:        addF64Handlers(),
+		},
+		{
+			BaseName:        "asm_dot_f64",
+			OutputDir:       vectormathsOutputDir,
+			BuildConstraint: vectormathsBuildConstraint,
+			Includes:        vectormathsIncludes,
+			Handlers:        dotF64Handlers(),
+		},
+		{
+			BaseName:        "asm_scale_f64",
+			OutputDir:       vectormathsOutputDir,
+			BuildConstraint: vectormathsBuildConstraint,
+			Includes:        vectormathsIncludes,
+			Handlers:        scaleF64Handlers(),
 		},
 	}
 }

@@ -100,9 +100,9 @@ func TestEvalMethodCalls(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 		skip   string
 	}{
 		{
@@ -163,9 +163,9 @@ func TestEvalInterfaces(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect any
 		name   string
 		code   string
-		expect any
 		skip   string
 	}{
 		{
@@ -198,10 +198,10 @@ func TestPromotedMethodCall(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
+		expect     any
 		name       string
 		source     string
 		entrypoint string
-		expect     any
 	}{
 		{
 			name: "promoted_method_one_level",

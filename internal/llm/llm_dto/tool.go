@@ -29,15 +29,15 @@ type ToolDefinition struct {
 
 // FunctionDefinition describes a function that the model can call.
 type FunctionDefinition struct {
-	// Description explains what the function does. The model uses this to
-	// decide when to call the function.
+	// Description explains what the function does. The model uses this to decide when to
+	// call the function.
 	Description *string
 
 	// Parameters is a JSON Schema that describes the function's input values.
 	Parameters *JSONSchema
 
-	// Strict enables strict schema adherence when true. The model will follow
-	// the schema exactly, which is needed for structured outputs.
+	// Strict enables strict schema adherence when true. The model will follow the schema
+	// exactly, which is needed for structured outputs.
 	Strict *bool
 
 	// Name is the function name. Must contain only a-z, A-Z, 0-9, or underscores.
@@ -112,8 +112,7 @@ func NewFunctionTool(name, description string, parameters *JSONSchema) ToolDefin
 	}
 }
 
-// NewStrictFunctionTool creates a new function tool with strict schema
-// enforcement.
+// NewStrictFunctionTool creates a new function tool with strict schema enforcement.
 //
 // Takes name (string) which is the function name.
 // Takes description (string) which explains what the function does.
@@ -132,8 +131,8 @@ func NewStrictFunctionTool(name, description string, parameters *JSONSchema) Too
 	}
 }
 
-// DeepCopy returns an independent copy of the tool definition with all nested
-// pointers duplicated.
+// DeepCopy returns an independent copy of the tool definition with all nested pointers
+// duplicated.
 //
 // Returns ToolDefinition which is a deep copy of the receiver.
 func (t ToolDefinition) DeepCopy() ToolDefinition {
@@ -143,8 +142,8 @@ func (t ToolDefinition) DeepCopy() ToolDefinition {
 	}
 }
 
-// DeepCopy returns an independent copy of the function definition with all
-// nested pointers duplicated.
+// DeepCopy returns an independent copy of the function definition with all nested
+// pointers duplicated.
 //
 // Returns FunctionDefinition which is a deep copy of the receiver.
 func (f FunctionDefinition) DeepCopy() FunctionDefinition {
@@ -159,8 +158,7 @@ func (f FunctionDefinition) DeepCopy() FunctionDefinition {
 	return cp
 }
 
-// ToolChoiceAuto returns a ToolChoice that lets the model decide when to use
-// tools.
+// ToolChoiceAuto returns a ToolChoice that lets the model decide when to use tools.
 //
 // Returns *ToolChoice set up for automatic tool selection.
 func ToolChoiceAuto() *ToolChoice {

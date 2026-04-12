@@ -49,27 +49,26 @@ const (
 	// defaultMaxDelay is the maximum delay between retry attempts (300 seconds).
 	defaultMaxDelay = 300_000_000_000
 
-	// defaultBackoffFactor is the multiplier applied to the delay between
-	// retries.
+	// defaultBackoffFactor is the multiplier applied to the delay between retries.
 	defaultBackoffFactor = 2.0
 
-	// defaultCircuitBreakerThreshold is the number of consecutive failures
-	// before the circuit breaker opens.
+	// defaultCircuitBreakerThreshold is the number of consecutive failures before the
+	// circuit breaker opens.
 	defaultCircuitBreakerThreshold = 5
 
-	// defaultCircuitBreakerTimeout is the duration in nanoseconds before a tripped
-	// circuit breaker attempts recovery.
+	// defaultCircuitBreakerTimeout is the duration in nanoseconds before a tripped circuit
+	// breaker attempts recovery.
 	defaultCircuitBreakerTimeout = 30_000_000_000
 
-	// defaultCircuitBreakerInterval is the interval in nanoseconds between circuit
-	// breaker state checks.
+	// defaultCircuitBreakerInterval is the interval in nanoseconds between circuit breaker
+	// state checks.
 	defaultCircuitBreakerInterval = 60_000_000_000
 )
 
 // AddNotificationProvider registers a named notification provider.
 //
-// If the provider implements a shutdown interface (Close, Shutdown, or Stop),
-// it will be automatically registered for graceful shutdown.
+// If the provider implements a shutdown interface (Close, Shutdown, or Stop), it will be
+// automatically registered for graceful shutdown.
 //
 // Takes name (string) which identifies the provider for later retrieval.
 // Takes provider (NotificationProviderPort) which handles notification delivery.
@@ -99,8 +98,7 @@ var (
 	notificationInitOnce sync.Once
 )
 
-// GetNotificationService returns the notification service, initialising it if
-// needed.
+// GetNotificationService returns the notification service, initialising it if needed.
 //
 // Returns notification_domain.Service which is the notification service.
 // Returns error when initialisation fails.
@@ -113,10 +111,9 @@ func (c *Container) GetNotificationService() (notification_domain.Service, error
 
 // createNotificationService creates and sets up the notification service.
 //
-// Returns notification_domain.Service which is the configured notification
-// service ready for use.
-// Returns error when provider registration fails or the default provider
-// cannot be set.
+// Returns notification_domain.Service which is the configured notification service ready
+// for use.
+// Returns error when provider registration fails or the default provider cannot be set.
 func (c *Container) createNotificationService() (notification_domain.Service, error) {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 
@@ -158,11 +155,10 @@ func (c *Container) createNotificationService() (notification_domain.Service, er
 	return service, nil
 }
 
-// createAndRegisterNotificationDispatcher creates and registers the
-// notification dispatcher.
+// createAndRegisterNotificationDispatcher creates and registers the notification
+// dispatcher.
 //
-// Takes service (notification_domain.Service) which handles sending
-// notifications.
+// Takes service (notification_domain.Service) which handles sending notifications.
 //
 // Returns error when dispatcher registration fails.
 func (c *Container) createAndRegisterNotificationDispatcher(service notification_domain.Service) error {

@@ -25,41 +25,36 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 )
 
-// MockOnDemandVariantGenerator is a test double for
-// OnDemandVariantGenerator where nil function fields return zero values
-// and call counts are tracked atomically.
+// MockOnDemandVariantGenerator is a test double for OnDemandVariantGenerator where nil
+// function fields return zero values and call counts are tracked atomically.
 type MockOnDemandVariantGenerator struct {
-	// GenerateVariantFunc is the function called by
-	// GenerateVariant.
+	// GenerateVariantFunc is the function called by GenerateVariant.
 	GenerateVariantFunc func(ctx context.Context, artefact *registry_dto.ArtefactMeta, profileName string) (*registry_dto.Variant, error)
 
-	// ParseProfileNameFunc is the function called by
-	// ParseProfileName.
+	// ParseProfileNameFunc is the function called by ParseProfileName.
 	ParseProfileNameFunc func(profileName string) *ParsedImageProfile
 
-	// GenerateVariantCallCount tracks how many times
-	// GenerateVariant was called.
-	GenerateVariantCallCount int64
+	// GenerateVariantCallCount tracks how many times GenerateVariant was called.
+	GenerateVariantCallCount atomic.Int64
 
-	// ParseProfileNameCallCount tracks how many times
-	// ParseProfileName was called.
-	ParseProfileNameCallCount int64
+	// ParseProfileNameCallCount tracks how many times ParseProfileName was called.
+	ParseProfileNameCallCount atomic.Int64
 }
 
-var _ OnDemandVariantGenerator = (*MockOnDemandVariantGenerator)(nil)
+var (
+	_ OnDemandVariantGenerator = (*MockOnDemandVariantGenerator)(nil)
+)
 
 // GenerateVariant generates a variant for an artefact based on the profile.
 //
-// Takes ctx (context.Context) which carries deadlines and
-// cancellation signals.
-// Takes artefact (*registry_dto.ArtefactMeta) which is the
-// artefact to generate a variant for.
-// Takes profileName (string) which identifies the image
-// profile to apply.
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes artefact (*registry_dto.ArtefactMeta) which is the artefact to generate a variant
+// for.
+// Takes profileName (string) which identifies the image profile to apply.
 //
 // Returns (*Variant, error), or (nil, nil) if GenerateVariantFunc is nil.
 func (m *MockOnDemandVariantGenerator) GenerateVariant(ctx context.Context, artefact *registry_dto.ArtefactMeta, profileName string) (*registry_dto.Variant, error) {
-	atomic.AddInt64(&m.GenerateVariantCallCount, 1)
+	m.GenerateVariantCallCount.Add(1)
 	if m.GenerateVariantFunc != nil {
 		return m.GenerateVariantFunc(ctx, artefact, profileName)
 	}
@@ -72,7 +67,7 @@ func (m *MockOnDemandVariantGenerator) GenerateVariant(ctx context.Context, arte
 //
 // Returns *ParsedImageProfile, or nil if ParseProfileNameFunc is nil.
 func (m *MockOnDemandVariantGenerator) ParseProfileName(profileName string) *ParsedImageProfile {
-	atomic.AddInt64(&m.ParseProfileNameCallCount, 1)
+	m.ParseProfileNameCallCount.Add(1)
 	if m.ParseProfileNameFunc != nil {
 		return m.ParseProfileNameFunc(profileName)
 	}

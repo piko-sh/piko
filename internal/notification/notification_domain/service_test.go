@@ -70,7 +70,9 @@ func (m *mockProvider) Close(ctx context.Context) error {
 	return nil
 }
 
-var _ NotificationProviderPort = (*mockProvider)(nil)
+var (
+	_ NotificationProviderPort = (*mockProvider)(nil)
+)
 
 type mockDispatcher struct {
 	StartFunc              func(ctx context.Context) error
@@ -176,7 +178,9 @@ func (m *mockDispatcher) GetProcessingStats(ctx context.Context) (DispatcherStat
 	return DispatcherStats{}, nil
 }
 
-var _ NotificationDispatcherPort = (*mockDispatcher)(nil)
+var (
+	_ NotificationDispatcherPort = (*mockDispatcher)(nil)
+)
 
 func testParams(title string) *notification_dto.SendParams {
 	return &notification_dto.SendParams{

@@ -18,9 +18,8 @@
 
 // Package llm_provider_gemini provides a Google Gemini LLM provider.
 //
-// The provider supports completions, streaming, tool/function
-// calling, and structured output via response schemas, using the
-// official go-genai client library.
+// The provider supports completions, streaming, tool/function calling, and structured
+// output via response schemas, using the official go-genai client library.
 //
 // # Thread safety
 //

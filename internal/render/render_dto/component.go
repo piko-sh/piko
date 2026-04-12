@@ -18,8 +18,8 @@
 
 package render_dto
 
-// ComponentMetadata holds static information about a component type,
-// including its JavaScript and CSS dependencies.
+// ComponentMetadata holds static information about a component type, including its
+// JavaScript and CSS dependencies.
 type ComponentMetadata struct {
 	// TagName is the HTML tag name used to reference this component.
 	TagName string
@@ -30,8 +30,8 @@ type ComponentMetadata struct {
 	// DefaultCSS is the default CSS styling for the component.
 	DefaultCSS string
 
-	// SRIHash is the Subresource Integrity hash for the component's JS module.
-	// Empty when SRI is disabled or the hash has not been computed.
+	// SRIHash is the Subresource Integrity hash for the component's JS module. Empty when
+	// SRI is disabled or the hash has not been computed.
 	SRIHash string
 
 	// RequiredModules lists the module paths this component needs.

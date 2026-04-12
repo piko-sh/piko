@@ -26,20 +26,18 @@ import (
 
 // ContentItem represents a single piece of content from any provider.
 //
-// Acts as the common format for content in the collection system. Provides a
-// standard way to represent content from markdown files, CMS entries, database
-// records, and other data sources. The design supports multiple providers
-// through the Metadata map, stores both raw content and parsed AST forms, and
-// includes built-in support for translations via the Locale and TranslationKey
-// fields.
+// Acts as the common format for content in the collection system. Provides a standard way
+// to represent content from markdown files, CMS entries, database records, and other data
+// sources. The design supports multiple providers through the Metadata map, stores both
+// raw content and parsed AST forms, and includes built-in support for translations via
+// the Locale and TranslationKey fields.
 type ContentItem struct {
-	// Metadata holds key-value pairs from frontmatter, CMS fields, or database
-	// columns. This map lets providers store extra data without changing the
-	// ContentItem structure.
+	// Metadata holds key-value pairs from frontmatter, CMS fields, or database columns. This
+	// map lets providers store extra data without changing the ContentItem structure.
 	Metadata map[string]any
 
-	// ExcerptAST is the parsed AST of a short content summary; nil if no
-	// excerpt is available.
+	// ExcerptAST is the parsed AST of a short content summary; nil if no excerpt is
+	// available.
 	ExcerptAST *ast_domain.TemplateAST
 
 	// ContentAST holds the parsed content as a Piko AST for rendering.
@@ -51,8 +49,7 @@ type ContentItem struct {
 	// TranslationKey groups related translations together (e.g. "blog/post-1").
 	TranslationKey string
 
-	// RawContent is the original content before processing, such as markdown,
-	// HTML, or JSON.
+	// RawContent is the original content before processing, such as markdown, HTML, or JSON.
 	RawContent string
 
 	// ID is the unique identifier for this item within its collection.
@@ -73,8 +70,8 @@ type ContentItem struct {
 	// UpdatedAt is the time the content was last changed (ISO 8601 format).
 	UpdatedAt string
 
-	// PublishedAt is when the content was published in ISO 8601 format.
-	// May differ from CreatedAt; empty means unpublished.
+	// PublishedAt is when the content was published in ISO 8601 format. May differ from
+	// CreatedAt; empty means unpublished.
 	PublishedAt string
 
 	// ReadingTime is the estimated reading time in minutes.
@@ -86,8 +83,7 @@ type ContentItem struct {
 // This helper simplifies accessing common string fields from the metadata map.
 //
 // Takes key (string) which specifies the metadata field to retrieve.
-// Takes defaultValue (string) which is returned if the key is missing or not a
-// string.
+// Takes defaultValue (string) which is returned if the key is missing or not a string.
 //
 // Returns string which is the metadata value or the default.
 func (c *ContentItem) GetMetadataString(key, defaultValue string) string {
@@ -102,8 +98,7 @@ func (c *ContentItem) GetMetadataString(key, defaultValue string) string {
 // GetMetadataInt retrieves an integer value from metadata with a fallback.
 //
 // Takes key (string) which specifies the metadata field to retrieve.
-// Takes defaultValue (int) which is returned when the key is missing or not
-// numeric.
+// Takes defaultValue (int) which is returned when the key is missing or not numeric.
 //
 // Returns int which is the metadata value or the default if not found.
 func (c *ContentItem) GetMetadataInt(key string, defaultValue int) int {
@@ -123,8 +118,7 @@ func (c *ContentItem) GetMetadataInt(key string, defaultValue int) int {
 // GetMetadataBool retrieves a boolean value from metadata with a fallback.
 //
 // Takes key (string) which specifies the metadata key to look up.
-// Takes defaultValue (bool) which is returned if the key is missing or not a
-// boolean.
+// Takes defaultValue (bool) which is returned if the key is missing or not a boolean.
 //
 // Returns bool which is the metadata value if found, or defaultValue otherwise.
 func (c *ContentItem) GetMetadataBool(key string, defaultValue bool) bool {
@@ -181,9 +175,8 @@ func (c *ContentItem) IsPublished() bool {
 
 // IsDraft checks if the content is a draft.
 //
-// Content is a draft if either:
-// - It has no PublishedAt timestamp, OR
-// - It explicitly has draft: true in metadata
+// Content is a draft if either: - It has no PublishedAt timestamp, OR - It explicitly has
+// draft: true in metadata
 //
 // Returns bool which is true when the content is a draft.
 func (c *ContentItem) IsDraft() bool {
@@ -192,8 +185,8 @@ func (c *ContentItem) IsDraft() bool {
 
 // Clone creates a deep copy of the ContentItem.
 //
-// Use it when a provider needs to change content without affecting the
-// original. The metadata map is copied, but AST pointers are shallow-copied.
+// Use it when a provider needs to change content without affecting the original. The
+// metadata map is copied, but AST pointers are shallow-copied.
 //
 // Returns *ContentItem which is the copied item.
 func (c *ContentItem) Clone() *ContentItem {

@@ -19,7 +19,8 @@
 package annotator_domain
 
 // Parses JavaScript and TypeScript client scripts to extract exported function metadata.
-// Enables compile-time validation of event handlers by identifying available functions and their async status.
+// Enables compile-time validation of event handlers by identifying available functions
+// and their async status.
 
 import (
 	"piko.sh/piko/internal/esbuild/ast"
@@ -29,8 +30,8 @@ import (
 	"piko.sh/piko/internal/esbuild/logger"
 )
 
-// ClientScriptExports holds information about exported functions from a client
-// script. It is used for compile-time validation of PK event handlers.
+// ClientScriptExports holds information about exported functions from a client script. It
+// is used for compile-time validation of PK event handlers.
 type ClientScriptExports struct {
 	// ExportedFunctions maps function names to their export details.
 	ExportedFunctions map[string]ExportedFunction
@@ -42,18 +43,17 @@ type ClientScriptExports struct {
 	SourcePath string
 }
 
-// ExportedFunction holds details about a function that is made available to
-// client scripts.
+// ExportedFunction holds details about a function that is made available to client
+// scripts.
 type ExportedFunction struct {
 	// Name is the exported name of the function.
 	Name string
 
-	// Params holds parameter type information extracted from TypeScript
-	// annotations. Empty when no type annotations are present.
+	// Params holds parameter type information extracted from TypeScript annotations. Empty
+	// when no type annotations are present.
 	Params []ParamInfo
 
-	// IsAsync indicates whether the function is declared with the
-	// async keyword.
+	// IsAsync indicates whether the function is declared with the async keyword.
 	IsAsync bool
 }
 
@@ -62,12 +62,12 @@ type ParamInfo struct {
 	// Name is the parameter name (e.g. "age").
 	Name string
 
-	// TypeName is the raw TypeScript type annotation (e.g. "number",
-	// "string[]", "SomeInterface").
+	// TypeName is the raw TypeScript type annotation (e.g. "number", "string[]",
+	// "SomeInterface").
 	TypeName string
 
-	// Category is the simplified type category: "string", "number",
-	// "boolean", "object", or "any".
+	// Category is the simplified type category: "string", "number", "boolean", "object", or
+	// "any".
 	Category string
 
 	// Optional is true when the parameter has a ? marker.
@@ -92,8 +92,8 @@ func (c *ClientScriptExports) HasExport(name string) bool {
 
 // ExportNames returns a slice of all exported function names.
 //
-// Returns []string which contains the names of all exported functions, or nil
-// if the receiver or its ExportedFunctions map is nil.
+// Returns []string which contains the names of all exported functions, or nil if the
+// receiver or its ExportedFunctions map is nil.
 func (c *ClientScriptExports) ExportNames() []string {
 	if c == nil || c.ExportedFunctions == nil {
 		return nil
@@ -105,9 +105,9 @@ func (c *ClientScriptExports) ExportNames() []string {
 	return names
 }
 
-// AnalyseClientScript parses a TypeScript or JavaScript client script and
-// extracts information about exported functions, enabling the system to check
-// p-on event handlers at compile time.
+// AnalyseClientScript parses a TypeScript or JavaScript client script and extracts
+// information about exported functions, enabling the system to check p-on event handlers
+// at compile time.
 //
 // Takes content (string) which is the script source code to parse.
 // Takes sourcePath (string) which is the file path used for error messages.
@@ -180,8 +180,8 @@ func extractExportsFromClientScript(tree *js_ast.AST, exports *ClientScriptExpor
 	}
 }
 
-// extractExportFromStatement extracts export details from a single JavaScript
-// AST statement.
+// extractExportFromStatement extracts export details from a single JavaScript AST
+// statement.
 //
 // Takes statement (js_ast.Stmt) which is the statement to check for exports.
 // Takes symbols ([]ast.Symbol) which provides symbol names for lookups.
@@ -201,9 +201,9 @@ func extractExportFromStatement(statement js_ast.Stmt, symbols []ast.Symbol, exp
 
 // extractFunctionExport handles top-level function declarations.
 //
-// Both exported and non-exported functions are captured because the PK
-// transformer makes all top-level functions available as event handlers.
-// The export keyword is optional in PK client scripts.
+// Both exported and non-exported functions are captured because the PK transformer makes
+// all top-level functions available as event handlers. The export keyword is optional in
+// PK client scripts.
 //
 // Takes s (*js_ast.SFunction) which is the function statement to analyse.
 // Takes symbols ([]ast.Symbol) which provides symbol lookup for names.
@@ -239,8 +239,7 @@ func extractClauseExport(s *js_ast.SExportClause, exports *ClientScriptExports) 
 
 // extractDefaultExport handles `export default function` declarations.
 //
-// Takes s (*js_ast.SExportDefault) which is the default export statement to
-// process.
+// Takes s (*js_ast.SExportDefault) which is the default export statement to process.
 // Takes symbols ([]ast.Symbol) which provides symbol data for name lookup.
 // Takes exports (*ClientScriptExports) which stores the found function exports.
 func extractDefaultExport(s *js_ast.SExportDefault, symbols []ast.Symbol, exports *ClientScriptExports) {
@@ -260,10 +259,10 @@ func extractDefaultExport(s *js_ast.SExportDefault, symbols []ast.Symbol, export
 
 // extractLocalExport finds functions in const, let, or var declarations.
 //
-// It checks each declaration to see if it is an arrow function or function
-// expression. Both exported and non-exported declarations are captured because
-// the PK transformer makes all top-level functions available as event handlers.
-// The export keyword is not required in PK client scripts.
+// It checks each declaration to see if it is an arrow function or function expression.
+// Both exported and non-exported declarations are captured because the PK transformer
+// makes all top-level functions available as event handlers. The export keyword is not
+// required in PK client scripts.
 //
 // Takes s (*js_ast.SLocal) which is the local statement to check.
 // Takes symbols ([]ast.Symbol) which provides symbol data for binding names.
@@ -285,14 +284,12 @@ func extractLocalExport(s *js_ast.SLocal, symbols []ast.Symbol, exports *ClientS
 	}
 }
 
-// getClientScriptSymbolName finds the original name of a symbol by its
-// reference.
+// getClientScriptSymbolName finds the original name of a symbol by its reference.
 //
 // Takes ref (ast.Ref) which identifies the symbol to look up.
 // Takes symbols ([]ast.Symbol) which contains the symbols to search.
 //
-// Returns string which is the original name, or empty if the reference is
-// out of bounds.
+// Returns string which is the original name, or empty if the reference is out of bounds.
 func getClientScriptSymbolName(ref ast.Ref, symbols []ast.Symbol) string {
 	if int(ref.InnerIndex) < len(symbols) {
 		return symbols[ref.InnerIndex].OriginalName
@@ -302,13 +299,10 @@ func getClientScriptSymbolName(ref ast.Ref, symbols []ast.Symbol) string {
 
 // extractClientScriptBindingName gets the name from a binding pattern.
 //
-// Takes binding (js_ast.Binding) which is the binding pattern to extract a
-// name from.
-// Takes symbols ([]ast.Symbol) which provides the symbol table for looking up
-// names.
+// Takes binding (js_ast.Binding) which is the binding pattern to extract a name from.
+// Takes symbols ([]ast.Symbol) which provides the symbol table for looking up names.
 //
-// Returns string which is the name found, or empty if the binding is not an
-// identifier.
+// Returns string which is the name found, or empty if the binding is not an identifier.
 func extractClientScriptBindingName(binding js_ast.Binding, symbols []ast.Symbol) string {
 	if id, ok := binding.Data.(*js_ast.BIdentifier); ok {
 		return getClientScriptSymbolName(id.Ref, symbols)
@@ -316,13 +310,13 @@ func extractClientScriptBindingName(binding js_ast.Binding, symbols []ast.Symbol
 	return ""
 }
 
-// isArrowOrFunctionExpr checks whether an expression is an arrow function or
-// a function expression.
+// isArrowOrFunctionExpr checks whether an expression is an arrow function or a function
+// expression.
 //
 // Takes expression (js_ast.Expr) which is the expression to check.
 //
-// Returns bool which is true if the expression is an arrow function or
-// function expression, false otherwise.
+// Returns bool which is true if the expression is an arrow function or function
+// expression, false otherwise.
 func isArrowOrFunctionExpr(expression js_ast.Expr) bool {
 	switch expression.Data.(type) {
 	case *js_ast.EArrow, *js_ast.EFunction:
@@ -331,8 +325,8 @@ func isArrowOrFunctionExpr(expression js_ast.Expr) bool {
 	return false
 }
 
-// isAsyncArrowOrFunction checks whether an expression is an async arrow or
-// async function.
+// isAsyncArrowOrFunction checks whether an expression is an async arrow or async
+// function.
 //
 // Takes expression (js_ast.Expr) which is the expression to check.
 //

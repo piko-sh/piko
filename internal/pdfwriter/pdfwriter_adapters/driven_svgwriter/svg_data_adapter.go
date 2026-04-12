@@ -26,15 +26,16 @@ import (
 	"piko.sh/piko/internal/pdfwriter/pdfwriter_domain"
 )
 
-// DataURISVGDataAdapter implements SVGDataPort by extracting SVG markup
-// from inline data URIs (data:image/svg+xml;base64,...). Non-SVG sources
-// or non-data-URI sources return false.
+// DataURISVGDataAdapter implements SVGDataPort by extracting SVG markup from inline data
+// URIs (data:image/svg+xml;base64,...). Non-SVG sources or non-data-URI sources return
+// false.
 type DataURISVGDataAdapter struct{}
 
-var _ pdfwriter_domain.SVGDataPort = (*DataURISVGDataAdapter)(nil)
+var (
+	_ pdfwriter_domain.SVGDataPort = (*DataURISVGDataAdapter)(nil)
+)
 
-// NewDataURISVGDataAdapter creates an adapter that extracts SVG data
-// from data URIs.
+// NewDataURISVGDataAdapter creates an adapter that extracts SVG data from data URIs.
 //
 // Returns *DataURISVGDataAdapter which implements SVGDataPort.
 func NewDataURISVGDataAdapter() *DataURISVGDataAdapter {

@@ -51,16 +51,18 @@ const (
 	TopicArtefactDeleted = "artefact.deleted"
 )
 
-// ArtefactTopics contains all artefact event topics. Use this when
-// subscribing to all artefact events at once.
-var ArtefactTopics = []string{
-	TopicArtefactCreated,
-	TopicArtefactUpdated,
-	TopicArtefactDeleted,
-}
+var (
+	// ArtefactTopics contains all artefact event topics. Use this when subscribing to all
+	// artefact events at once.
+	ArtefactTopics = []string{
+		TopicArtefactCreated,
+		TopicArtefactUpdated,
+		TopicArtefactDeleted,
+	}
+)
 
-// registryService implements RegistryService and provides artefact management
-// with metadata storage, blob stores, and event publishing.
+// registryService implements RegistryService and provides artefact management with
+// metadata storage, blob stores, and event publishing.
 type registryService struct {
 	// metaStore stores artefact metadata.
 	metaStore MetadataStore
@@ -77,21 +79,24 @@ type registryService struct {
 	// loader deduplicates concurrent artefact load requests.
 	loader singleflight.Group
 
-	// artefactEventsPublished tracks the number of artefact events published.
-	// Used for pipeline flush detection: the daemon waits until the bridge
-	// has handled all published events before checking if idle.
+	// artefactEventsPublished tracks the number of artefact events published. Used for
+	// pipeline flush detection: the daemon waits until the bridge has handled all published
+	// events before checking if idle.
 	artefactEventsPublished atomic.Int64
 }
 
 // All service methods are implemented in separate files for better organisation:
-// - artefact_lifecycle.go: UpsertArtefact, AddVariant, DeleteArtefact, processBlobUpdate, publishEvent, helper functions
-// - artefact_retrieval.go: GetArtefact, GetMultipleArtefacts, ListAllArtefactIDs, SearchArtefacts, SearchArtefactsByTagValues, FindArtefactByVariantStorageKey
-// - blob_operations.go: GetVariantData, GetBlobStore, PopGCHints
+//   - artefact_lifecycle.go: UpsertArtefact, AddVariant, DeleteArtefact,
+//     processBlobUpdate, publishEvent, helper functions
+//   - artefact_retrieval.go: GetArtefact, GetMultipleArtefacts, ListAllArtefactIDs,
+//     SearchArtefacts, SearchArtefactsByTagValues, FindArtefactByVariantStorageKey
+//   - blob_operations.go: GetVariantData, GetBlobStore, PopGCHints
+var (
+	_ RegistryService = (*registryService)(nil)
+)
 
-var _ RegistryService = (*registryService)(nil)
-
-// Name returns the service identifier for health probe reporting.
-// Implements the healthprobe_domain.Probe interface.
+// Name returns the service identifier for health probe reporting. Implements the
+// healthprobe_domain.Probe interface.
 //
 // Returns string which is the constant "RegistryService".
 func (*registryService) Name() string {
@@ -100,14 +105,12 @@ func (*registryService) Name() string {
 
 // Check implements the healthprobe_domain.Probe interface.
 //
-// It verifies that the metadata store and blob stores are accessible
-// and responsive.
+// It verifies that the metadata store and blob stores are accessible and responsive.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies whether to
-// perform a liveness or readiness check.
+// Takes checkType (healthprobe_dto.CheckType) which specifies whether to perform a
+// liveness or readiness check.
 //
-// Returns healthprobe_dto.Status which indicates the health state of the
-// service.
+// Returns healthprobe_dto.Status which indicates the health state of the service.
 func (s *registryService) Check(ctx context.Context, checkType healthprobe_dto.CheckType) healthprobe_dto.Status {
 	startTime := time.Now()
 
@@ -118,20 +121,18 @@ func (s *registryService) Check(ctx context.Context, checkType healthprobe_dto.C
 	return s.checkReadiness(ctx, checkType, startTime)
 }
 
-// ArtefactEventsPublished returns the number of artefact events published.
-// Used for pipeline flush detection - the daemon waits until the bridge
-// has processed this many events before checking if the dispatcher is idle.
+// ArtefactEventsPublished returns the number of artefact events published. Used for
+// pipeline flush detection - the daemon waits until the bridge has processed this many
+// events before checking if the dispatcher is idle.
 //
 // Returns int64 which is the count of artefact events published so far.
 func (s *registryService) ArtefactEventsPublished() int64 {
 	return s.artefactEventsPublished.Load()
 }
 
-// checkLiveness performs a basic liveness check verifying the service is
-// initialised.
+// checkLiveness performs a basic liveness check verifying the service is initialised.
 //
-// Takes startTime (time.Time) which marks when the check began for duration
-// calculation.
+// Takes startTime (time.Time) which marks when the check began for duration calculation.
 //
 // Returns healthprobe_dto.Status which contains the health state and message.
 func (s *registryService) checkLiveness(startTime time.Time) healthprobe_dto.Status {
@@ -153,16 +154,15 @@ func (s *registryService) checkLiveness(startTime time.Time) healthprobe_dto.Sta
 	}
 }
 
-// checkReadiness performs a full readiness check on the metadata store and all
-// blob stores.
+// checkReadiness performs a full readiness check on the metadata store and all blob
+// stores.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
-// Takes startTime (time.Time) which marks when the check began for duration
-// calculation.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
+// Takes startTime (time.Time) which marks when the check began for duration calculation.
 //
-// Returns healthprobe_dto.Status which contains the overall readiness state
-// and status of all dependencies.
+// Returns healthprobe_dto.Status which contains the overall readiness state and status of
+// all dependencies.
 func (s *registryService) checkReadiness(
 	ctx context.Context,
 	checkType healthprobe_dto.CheckType,
@@ -236,8 +236,8 @@ func (s *registryService) checkMetadataStore(ctx context.Context, startTime time
 
 // checkBlobStore verifies a single blob store is accessible.
 //
-// Takes checkType (healthprobe_dto.CheckType) which specifies the type of
-// health check to perform.
+// Takes checkType (healthprobe_dto.CheckType) which specifies the type of health check to
+// perform.
 // Takes backendID (string) which identifies the blob store backend.
 // Takes blobStore (BlobStore) which is the store to check.
 //
@@ -268,14 +268,14 @@ func (*registryService) checkBlobStore(
 	return status, status.State
 }
 
-// NewRegistryService creates a new registry service with the given dependencies.
-// The service manages artefact lifecycle, blob storage, and event publishing.
+// NewRegistryService creates a new registry service with the given dependencies. The
+// service manages artefact lifecycle, blob storage, and event publishing.
 //
 // Takes metaStore (MetadataStore) which provides access to artefact metadata.
-// Takes blobStores (map[string]BlobStore) which maps storage names to blob
-// stores for artefact data.
-// Takes eventBus (orchestrator_domain.EventBus) which publishes artefact
-// lifecycle events.
+// Takes blobStores (map[string]BlobStore) which maps storage names to blob stores for
+// artefact data.
+// Takes eventBus (orchestrator_domain.EventBus) which publishes artefact lifecycle
+// events.
 // Takes cache (MetadataCache) which caches metadata lookups for performance.
 //
 // Returns RegistryService which is ready to manage registry operations.
@@ -300,8 +300,8 @@ func NewRegistryService(
 // Takes current (healthprobe_dto.State) which is the existing aggregate state.
 // Takes incoming (healthprobe_dto.State) which is the new state to merge.
 //
-// Returns healthprobe_dto.State which is the combined state, where unhealthy
-// takes precedence over degraded, which takes precedence over healthy.
+// Returns healthprobe_dto.State which is the combined state, where unhealthy takes
+// precedence over degraded, which takes precedence over healthy.
 func aggregateState(current, incoming healthprobe_dto.State) healthprobe_dto.State {
 	if incoming == healthprobe_dto.StateUnhealthy {
 		return healthprobe_dto.StateUnhealthy

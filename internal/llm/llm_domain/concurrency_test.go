@@ -68,7 +68,7 @@ func TestService_ConcurrentComplete(t *testing.T) {
 		assert.NoError(t, e, "goroutine %d returned an error", i)
 	}
 
-	callCount := atomic.LoadInt64(&provider.CompleteCallCount)
+	callCount := provider.CompleteCallCount.Load()
 	assert.Equal(t, int64(goroutines), callCount)
 }
 
@@ -111,7 +111,7 @@ func TestService_ConcurrentStream(t *testing.T) {
 		assert.NoError(t, e, "goroutine %d returned an error", i)
 	}
 
-	callCount := atomic.LoadInt64(&provider.StreamCallCount)
+	callCount := provider.StreamCallCount.Load()
 	assert.Equal(t, int64(goroutines), callCount)
 }
 

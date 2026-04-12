@@ -23,6 +23,7 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 
@@ -32,13 +33,12 @@ import (
 )
 
 const (
-	// maxLocaleFallbackDepth is the maximum number of locales to check during
-	// fallback resolution. This covers: current locale, language-only fallback,
-	// default locale, and default language-only.
+	// maxLocaleFallbackDepth is the maximum number of locales to check during fallback
+	// resolution. This covers: current locale, language-only fallback, default locale, and
+	// default language-only.
 	maxLocaleFallbackDepth = 4
 
-	// defaultPathParamsCapacity is the starting slice capacity for path
-	// parameters.
+	// defaultPathParamsCapacity is the starting slice capacity for path parameters.
 	defaultPathParamsCapacity = 8
 
 	// defaultQueryParamsCapacity is the initial size for query parameter maps.
@@ -51,9 +51,9 @@ const (
 	defaultCookiesCapacity = 4
 )
 
-// KVPair holds a key and value pair for storing parameters without memory
-// allocation. A slice of KVPair is used instead of a map to avoid the extra
-// memory costs of map buckets and string copying.
+// KVPair holds a key and value pair for storing parameters without memory allocation. A
+// slice of KVPair is used instead of a map to avoid the extra memory costs of map buckets
+// and string copying.
 type KVPair struct {
 	// Key is the parameter name used for lookup.
 	Key string
@@ -102,15 +102,13 @@ var (
 	}
 )
 
-// RequestData encapsulates all information about an incoming HTTP request.
-// It implements ActionInfoProvider and uses a builder pattern for immutable
-// construction.
+// RequestData encapsulates all information about an incoming HTTP request. It implements
+// ActionInfoProvider and uses a builder pattern for immutable construction.
 type RequestData struct {
 	// collectionData holds extra data for collection pages; nil for regular pages.
 	collectionData any
 
-	// ctx holds the request context. It cannot be changed after the struct is
-	// created.
+	// ctx holds the request context. It cannot be changed after the struct is created.
 	ctx context.Context
 
 	// globalStore holds the shared translation store for i18n lookups.
@@ -119,8 +117,8 @@ type RequestData struct {
 	// formData holds parsed form data from the request body.
 	formData map[string][]string
 
-	// pathParams holds URL path parameters as key-value pairs.
-	// Uses a slice instead of a map to avoid memory allocation during lookups.
+	// pathParams holds URL path parameters as key-value pairs. Uses a slice instead of a map
+	// to avoid memory allocation during lookups.
 	pathParams []KVPair
 
 	// cookies holds HTTP cookies from the incoming request.
@@ -150,12 +148,12 @@ type RequestData struct {
 	// defaultLocale is the locale to use when no specific locale is set.
 	defaultLocale string
 
-	// localeFallbackOrder caches the computed locale fallback order.
-	// It is computed once per request and returned to the pool on reset.
+	// localeFallbackOrder caches the computed locale fallback order. It is computed once per
+	// request and returned to the pool on reset.
 	localeFallbackOrder []string
 
-	// localeFallbackComputed indicates whether localeFallbackOrder has been
-	// computed and stored.
+	// localeFallbackComputed indicates whether localeFallbackOrder has been computed and
+	// stored.
 	localeFallbackComputed bool
 }
 
@@ -164,9 +162,8 @@ type RequestData struct {
 // Returns context.Context which is the context for this request.
 func (r *RequestData) Context() context.Context { return r.ctx }
 
-// ClientIP returns the real client IP address resolved by the trusted
-// proxy chain. Returns empty string if the RealIP middleware has not
-// run.
+// ClientIP returns the real client IP address resolved by the trusted proxy chain.
+// Returns empty string if the RealIP middleware has not run.
 //
 // Returns string which is the resolved client IP address.
 func (r *RequestData) ClientIP() string {
@@ -176,8 +173,8 @@ func (r *RequestData) ClientIP() string {
 	return ""
 }
 
-// RequestID returns the unique request identifier. Returns empty
-// string if the RealIP middleware has not run.
+// RequestID returns the unique request identifier. Returns empty string if the RealIP
+// middleware has not run.
 //
 // Returns string which is the formatted or forwarded request ID.
 func (r *RequestData) RequestID() string {
@@ -187,12 +184,10 @@ func (r *RequestData) RequestID() string {
 	return ""
 }
 
-// Auth returns the authentication context for this request, or nil
-// if no auth provider is configured or the request is
-// unauthenticated.
+// Auth returns the authentication context for this request, or nil if no auth provider is
+// configured or the request is unauthenticated.
 //
-// Returns daemon_dto.AuthContext which provides access to
-// authentication state.
+// Returns daemon_dto.AuthContext which provides access to authentication state.
 func (r *RequestData) Auth() daemon_dto.AuthContext {
 	if pctx := daemon_dto.PikoRequestCtxFromContext(r.ctx); pctx != nil {
 		if auth, ok := pctx.CachedAuth.(daemon_dto.AuthContext); ok {
@@ -202,17 +197,17 @@ func (r *RequestData) Auth() daemon_dto.AuthContext {
 	return nil
 }
 
-// CSPTokenAttr returns the CSP token attribute for inline scripts and styles.
-// Retrieves the per-request token from the context and returns it formatted as
-// an HTML attribute that can be used directly in templates.
+// CSPTokenAttr returns the CSP token attribute for inline scripts and styles. Retrieves
+// the per-request token from the context and returns it formatted as an HTML attribute
+// that can be used directly in templates.
 //
-// When using CSPRequestToken in your CSP policy (via piko.WithCSP), add this
-// attribute to inline script and style elements:
-// <script {{ .CSPTokenAttr }}>console.log("Hello");</script>
-// <style {{ .CSPTokenAttr }}>.my-class { color: red; }</style>
+// When using CSPRequestToken in your CSP policy (via piko.WithCSP), add this attribute to
+// inline script and style elements: <script {{ .CSPTokenAttr
+// }}>console.log("Hello");</script> <style {{ .CSPTokenAttr }}>.my-class { color: red;
+// }</style>
 //
-// Returns template.HTMLAttr which is safe for use in HTML templates, or an
-// empty attribute if no token was generated for this request.
+// Returns template.HTMLAttr which is safe for use in HTML templates, or an empty
+// attribute if no token was generated for this request.
 func (r *RequestData) CSPTokenAttr() template.HTMLAttr {
 	if r.ctx == nil {
 		return ""
@@ -245,17 +240,15 @@ func (r *RequestData) Locale() string { return r.locale }
 // Returns string which is the locale to use when no specific locale is set.
 func (r *RequestData) DefaultLocale() string { return r.defaultLocale }
 
-// CollectionData returns the pre-fetched collection data for p-collection
-// pages.
+// CollectionData returns the pre-fetched collection data for p-collection pages.
 //
 // Returns any which is the collection data, or nil for regular pages.
 func (r *RequestData) CollectionData() any { return r.collectionData }
 
-// URL returns a defensive copy of the request URL.
-// The copy prevents mutation of the original URL.
+// URL returns a defensive copy of the request URL. The copy prevents mutation of the
+// original URL.
 //
-// Returns *url.URL which is a deep copy of the request URL, or nil if no URL
-// is set.
+// Returns *url.URL which is a deep copy of the request URL, or nil if no URL is set.
 func (r *RequestData) URL() *url.URL {
 	if r.url == nil {
 		return nil
@@ -267,13 +260,12 @@ func (r *RequestData) URL() *url.URL {
 	return &urlCopy
 }
 
-// PathParam returns the value of a path parameter by key.
-// Uses linear search which is optimal for typical path param counts (1-4).
+// PathParam returns the value of a path parameter by key. Uses linear search which is
+// optimal for typical path param counts (1-4).
 //
 // Takes key (string) which specifies the parameter name to look up.
 //
-// Returns string which is the parameter value, or empty if the key does not
-// exist.
+// Returns string which is the parameter value, or empty if the key does not exist.
 func (r *RequestData) PathParam(key string) string {
 	for i := range r.pathParams {
 		if r.pathParams[i].Key == key {
@@ -287,8 +279,7 @@ func (r *RequestData) PathParam(key string) string {
 //
 // Takes key (string) which specifies the query parameter name to look up.
 //
-// Returns string which is the parameter value, or empty string if the key
-// does not exist.
+// Returns string which is the parameter value, or empty string if the key does not exist.
 func (r *RequestData) QueryParam(key string) string {
 	if vals := r.queryParams[key]; len(vals) > 0 {
 		return vals[0]
@@ -300,8 +291,8 @@ func (r *RequestData) QueryParam(key string) string {
 //
 // Takes key (string) which specifies the query parameter name to look up.
 //
-// Returns []string which contains all values for the key, or nil if the key
-// does not exist.
+// Returns []string which contains all values for the key, or nil if the key does not
+// exist.
 func (r *RequestData) QueryParamValues(key string) []string {
 	return r.queryParams[key]
 }
@@ -322,14 +313,14 @@ func (r *RequestData) FormValue(key string) string {
 //
 // Takes key (string) which specifies the form field name.
 //
-// Returns []string which contains all values for the key, or nil if the key
-// does not exist.
+// Returns []string which contains all values for the key, or nil if the key does not
+// exist.
 func (r *RequestData) FormValues(key string) []string {
 	return r.formData[key]
 }
 
-// Cookie returns the named cookie from the request. Returns
-// http.ErrNoCookie if the cookie is not found.
+// Cookie returns the named cookie from the request. Returns http.ErrNoCookie if the
+// cookie is not found.
 //
 // Takes name (string) which specifies the cookie name to look up.
 //
@@ -355,20 +346,19 @@ func (r *RequestData) Cookies() []*http.Cookie {
 
 // SetCookie adds a cookie to the HTTP response.
 //
-// Works in both pages and partials. Use piko.Cookie(),
-// piko.SessionCookie(), or piko.ClearCookie() to create cookies
-// with secure defaults. No-op if called outside a render context.
+// Works in both pages and partials. Use piko.Cookie(), piko.SessionCookie(), or
+// piko.ClearCookie() to create cookies with secure defaults. No-op if called outside a
+// render context.
 //
-// Takes cookie (*http.Cookie) which specifies the cookie to set on the
-// response.
+// Takes cookie (*http.Cookie) which specifies the cookie to set on the response.
 func (r *RequestData) SetCookie(cookie *http.Cookie) {
 	if acc := CookieAccumulatorFromContext(r.ctx); acc != nil {
 		acc.Add(cookie)
 	}
 }
 
-// PathParams returns a defensive copy of all path parameters.
-// Prefer PathParam for single key lookup.
+// PathParams returns a defensive copy of all path parameters. Prefer PathParam for single
+// key lookup.
 //
 // Returns map[string]string which contains all path parameters.
 func (r *RequestData) PathParams() map[string]string {
@@ -379,34 +369,33 @@ func (r *RequestData) PathParams() map[string]string {
 	return result
 }
 
-// QueryParams returns a defensive copy of all query parameters.
-// Prefer QueryParam(key) or QueryParamValues(key) for single key lookup.
+// QueryParams returns a defensive copy of all query parameters. Prefer QueryParam(key) or
+// QueryParamValues(key) for single key lookup.
 //
 // Returns map[string][]string which contains all query parameters.
 func (r *RequestData) QueryParams() map[string][]string {
 	result := make(map[string][]string, len(r.queryParams))
 	for k, v := range r.queryParams {
-		result[k] = append([]string(nil), v...)
+		result[k] = slices.Clone(v)
 	}
 	return result
 }
 
-// FormData returns a defensive copy of all form data.
-// Prefer FormValue(key) or FormValues(key) for single key lookup.
+// FormData returns a defensive copy of all form data. Prefer FormValue(key) or
+// FormValues(key) for single key lookup.
 //
 // Returns map[string][]string which contains all form key-value pairs.
 func (r *RequestData) FormData() map[string][]string {
 	result := make(map[string][]string, len(r.formData))
 	for k, v := range r.formData {
-		result[k] = append([]string(nil), v...)
+		result[k] = slices.Clone(v)
 	}
 	return result
 }
 
 // RangePathParams iterates over all path parameters.
 //
-// Takes callback (func(key, value string) bool) which receives
-// each key-value pair.
+// Takes callback (func(key, value string) bool) which receives each key-value pair.
 // Return false from the callback to stop iteration.
 func (r *RequestData) RangePathParams(callback func(key, value string) bool) {
 	for i := range r.pathParams {
@@ -416,11 +405,11 @@ func (r *RequestData) RangePathParams(callback func(key, value string) bool) {
 	}
 }
 
-// RangeQueryParams iterates over all query parameters, calling the callback
-// for each key and its values. Return false from the callback to stop early.
+// RangeQueryParams iterates over all query parameters, calling the callback for each key
+// and its values. Return false from the callback to stop early.
 //
-// Takes callback (func(key string, values []string) bool) which receives each
-// parameter key and its values, returning false to stop iteration.
+// Takes callback (func(key string, values []string) bool) which receives each parameter
+// key and its values, returning false to stop iteration.
 func (r *RequestData) RangeQueryParams(callback func(key string, values []string) bool) {
 	for k, v := range r.queryParams {
 		if !callback(k, v) {
@@ -429,12 +418,11 @@ func (r *RequestData) RangeQueryParams(callback func(key string, values []string
 	}
 }
 
-// RangeFormData iterates over all form data fields, calling the callback for
-// each key and its values. Return false from the callback to stop iteration.
+// RangeFormData iterates over all form data fields, calling the callback for each key and
+// its values. Return false from the callback to stop iteration.
 //
-// Takes callback (func(key string, values []string) bool) which
-// receives each field's
-// key and values, returning false to stop iteration early.
+// Takes callback (func(key string, values []string) bool) which receives each field's key
+// and values, returning false to stop iteration early.
 func (r *RequestData) RangeFormData(callback func(key string, values []string) bool) {
 	for k, v := range r.formData {
 		if !callback(k, v) {
@@ -443,13 +431,12 @@ func (r *RequestData) RangeFormData(callback func(key string, values []string) b
 	}
 }
 
-// WithCollectionData returns a new RequestData with the collection data
-// set. This is used by generated code for collection pages.
+// WithCollectionData returns a new RequestData with the collection data set. This is used
+// by generated code for collection pages.
 //
 // Takes data (any) which is the collection data to set.
 //
-// Returns *RequestData which is a shallow copy with the collection data
-// applied.
+// Returns *RequestData which is a shallow copy with the collection data applied.
 func (r *RequestData) WithCollectionData(data any) *RequestData {
 	return &RequestData{
 		ctx:            r.ctx,
@@ -469,13 +456,12 @@ func (r *RequestData) WithCollectionData(data any) *RequestData {
 	}
 }
 
-// WithDefaultLocale returns a new RequestData with the default locale set.
-// This is used by adapters to configure the fallback locale.
+// WithDefaultLocale returns a new RequestData with the default locale set. This is used
+// by adapters to configure the fallback locale.
 //
 // Takes locale (string) which specifies the fallback locale to use.
 //
-// Returns *RequestData which is a shallow copy with the default locale
-// applied.
+// Returns *RequestData which is a shallow copy with the default locale applied.
 func (r *RequestData) WithDefaultLocale(locale string) *RequestData {
 	return &RequestData{
 		ctx:            r.ctx,
@@ -495,8 +481,8 @@ func (r *RequestData) WithDefaultLocale(locale string) *RequestData {
 	}
 }
 
-// RequestDataBuilder builds RequestData instances using a fluent interface.
-// Field ordering is optimised for memory alignment.
+// RequestDataBuilder builds RequestData instances using a fluent interface. Field
+// ordering is optimised for memory alignment.
 type RequestDataBuilder struct {
 	// ctx holds the request context for cancellation and timeout control.
 	ctx context.Context
@@ -522,21 +508,19 @@ type RequestDataBuilder struct {
 	// locale is the request locale; empty means defaultLocale is used.
 	locale string
 
-	// defaultLocale is the fallback locale used when no locale is set; defaults
-	// to "en_GB".
+	// defaultLocale is the fallback locale used when no locale is set; defaults to "en_GB".
 	defaultLocale string
 
-	// pathParams holds URL path parameters that replace placeholders in the
-	// request URL. Uses a slice instead of a map to avoid memory allocation.
+	// pathParams holds URL path parameters that replace placeholders in the request URL.
+	// Uses a slice instead of a map to avoid memory allocation.
 	pathParams []KVPair
 
 	// cookies holds HTTP cookies from the incoming request.
 	cookies []*http.Cookie
 }
 
-// NewRequestDataBuilder creates a new builder from the pool with default
-// values. The builder's slices and maps are reused from the pool to avoid
-// allocations.
+// NewRequestDataBuilder creates a new builder from the pool with default values. The
+// builder's slices and maps are reused from the pool to avoid allocations.
 //
 // Returns *RequestDataBuilder which is ready for use.
 func NewRequestDataBuilder() *RequestDataBuilder {
@@ -643,8 +627,8 @@ func (b *RequestDataBuilder) WithCookies(cookies []*http.Cookie) *RequestDataBui
 	return b
 }
 
-// AddPathParam adds a path parameter.
-// Uses append which is zero-allocation when the slice has capacity.
+// AddPathParam adds a path parameter. Uses append which is zero-allocation when the slice
+// has capacity.
 //
 // Takes k (string) which specifies the parameter name.
 // Takes v (string) which specifies the parameter value.
@@ -701,9 +685,8 @@ func (b *RequestDataBuilder) AddFormDataValue(k, v string) *RequestDataBuilder {
 
 // Build constructs the final RequestData instance from the pool.
 //
-// The builder's slices and maps are swapped with the RequestData's to avoid
-// copying. After Build is called, the builder is returned to its pool and
-// must not be used.
+// The builder's slices and maps are swapped with the RequestData's to avoid copying.
+// After Build is called, the builder is returned to its pool and must not be used.
 //
 // Returns *RequestData which is the constructed request data ready for use.
 func (b *RequestDataBuilder) Build() *RequestData {
@@ -757,25 +740,22 @@ func (b *RequestDataBuilder) resetBuilder() {
 	b.defaultLocale = "en_GB"
 }
 
-// T returns a Translation object for the given key from global translations.
-// The Translation implements fmt.Stringer for automatic string conversion in
-// templates.
+// T returns a Translation object for the given key from global translations. The
+// Translation implements fmt.Stringer for automatic string conversion in templates.
 //
-// Usage in templates:
-// {{ T("greeting") }}                             // Simple lookup
-// {{ T("greeting", "Hello") }}                    // With fallback
-// {{ T("welcome").StringVar("name", user.Name) }} // With variable substitution
-// The returned Translation supports a fluent API for variable binding:
+// Usage in templates: {{ T("greeting") }} // Simple lookup {{ T("greeting", "Hello") }}
+// // With fallback {{ T("welcome").StringVar("name", user.Name) }} // With variable
+// substitution The returned Translation supports a fluent API for variable binding:
 //   - StringVar(name, value) - bind a string variable
 //   - IntVar(name, value) - bind an integer variable
 //   - FloatVar(name, value) - bind a float variable
 //   - Count(n) - set the count for pluralisation
 //
-// Takes keyAndFallbacks (...string) which contains the translation key and
-// optional fallback values.
+// Takes keyAndFallbacks (...string) which contains the translation key and optional
+// fallback values.
 //
-// Returns *i18n_domain.Translation which provides the resolved translation
-// with support for variable substitution and pluralisation.
+// Returns *i18n_domain.Translation which provides the resolved translation with support
+// for variable substitution and pluralisation.
 func (r *RequestData) T(keyAndFallbacks ...string) *i18n_domain.Translation {
 	key, fallback := r.parseKeyAndFallback(keyAndFallbacks)
 	if key == "" {
@@ -792,20 +772,17 @@ func (r *RequestData) T(keyAndFallbacks ...string) *i18n_domain.Translation {
 	return i18n_domain.NewTranslationFromString(key, fallback, r.strBufPool)
 }
 
-// LT returns a Translation object for the given key from local
-// (component-scoped) translations. Local translations are defined in the
-// component's <i18n> block.
+// LT returns a Translation object for the given key from local (component-scoped)
+// translations. Local translations are defined in the component's <i18n> block.
 //
-// Takes keyAndFallbacks (...string) which provides the translation key and
-// optional fallback value.
+// Takes keyAndFallbacks (...string) which provides the translation key and optional
+// fallback value.
 //
-// Returns *i18n_domain.Translation which contains the resolved translation
-// or the fallback as a literal translation if not found.
+// Returns *i18n_domain.Translation which contains the resolved translation or the
+// fallback as a literal translation if not found.
 //
-// Usage in templates:
-// {{ LT("button.save") }}                        // Simple lookup
-// {{ LT("button.save", "Save") }}                // With fallback
-// {{ LT("items").Count(count) }}                 // With pluralisation
+// Usage in templates: {{ LT("button.save") }} // Simple lookup {{ LT("button.save",
+// "Save") }} // With fallback {{ LT("items").Count(count) }} // With pluralisation
 func (r *RequestData) LT(keyAndFallbacks ...string) *i18n_domain.Translation {
 	key, fallback := r.parseKeyAndFallback(keyAndFallbacks)
 	if key == "" {
@@ -819,19 +796,18 @@ func (r *RequestData) LT(keyAndFallbacks ...string) *i18n_domain.Translation {
 	return i18n_domain.NewTranslationFromString(key, fallback, r.strBufPool)
 }
 
-// LF returns a FormatBuilder with the current request locale pre-applied.
-// Use this in templates for locale-aware formatting of numeric and temporal
-// values with optional method chaining.
+// LF returns a FormatBuilder with the current request locale pre-applied. Use this in
+// templates for locale-aware formatting of numeric and temporal values with optional
+// method chaining.
 //
 // Takes value (any) which is the value to format.
 //
-// Returns *i18n_domain.FormatBuilder which implements fmt.Stringer and
-// supports fluent method chaining (Precision, Short, Long, DateOnly, etc.).
+// Returns *i18n_domain.FormatBuilder which implements fmt.Stringer and supports fluent
+// method chaining (Precision, Short, Long, DateOnly, etc.).
 //
-// Usage in templates:
-// {{ LF(state.Price) }}                  // Locale-formatted number
-// {{ LF(state.Price).Precision(2) }}     // With 2 decimal places
-// {{ LF(state.Date).Short().DateOnly() }} // Short date only
+// Usage in templates: {{ LF(state.Price) }} // Locale-formatted number {{
+// LF(state.Price).Precision(2) }} // With 2 decimal places {{
+// LF(state.Date).Short().DateOnly() }} // Short date only
 func (r *RequestData) LF(value any) *i18n_domain.FormatBuilder {
 	return i18n_domain.NewLF(value, r.locale)
 }
@@ -845,18 +821,17 @@ func (r *RequestData) SetGlobalStore(store *i18n_domain.Store) {
 
 // SetLocalStore sets the v2 local (component-scoped) translation store.
 //
-// Takes store (*i18n_domain.Store) which provides the translations for this
-// component.
+// Takes store (*i18n_domain.Store) which provides the translations for this component.
 func (r *RequestData) SetLocalStore(store *i18n_domain.Store) {
 	r.localStore = store
 }
 
-// SetLocalStoreFromMap builds a local translation Store from a raw map and
-// sets it on this request. This is used by generated BuildAST code where the
-// internal i18n_domain package cannot be imported directly.
+// SetLocalStoreFromMap builds a local translation Store from a raw map and sets it on
+// this request. This is used by generated BuildAST code where the internal i18n_domain
+// package cannot be imported directly.
 //
-// Takes translations (map[string]map[string]string) which provides the
-// translation strings keyed by locale and then by translation key.
+// Takes translations (map[string]map[string]string) which provides the translation
+// strings keyed by locale and then by translation key.
 func (r *RequestData) SetLocalStoreFromMap(translations map[string]map[string]string) {
 	if len(translations) == 0 {
 		return
@@ -866,8 +841,8 @@ func (r *RequestData) SetLocalStoreFromMap(translations map[string]map[string]st
 
 // SetStrBufPool sets the string buffer pool for zero-allocation rendering.
 //
-// Takes pool (*i18n_domain.StrBufPool) which provides pooled buffers for
-// string operations.
+// Takes pool (*i18n_domain.StrBufPool) which provides pooled buffers for string
+// operations.
 func (r *RequestData) SetStrBufPool(pool *i18n_domain.StrBufPool) {
 	r.strBufPool = pool
 }
@@ -883,8 +858,8 @@ func (r *RequestData) SetI18n(globalStore, localStore *i18n_domain.Store, pool *
 	r.strBufPool = pool
 }
 
-// Release returns the RequestData to the pool for reuse, reducing GC
-// pressure. The RequestData must not be used after this call.
+// Release returns the RequestData to the pool for reuse, reducing GC pressure. The
+// RequestData must not be used after this call.
 func (r *RequestData) Release() {
 	if r == nil {
 		return
@@ -893,8 +868,8 @@ func (r *RequestData) Release() {
 	requestDataPool.Put(r)
 }
 
-// reset clears all fields and returns the object to a clean state for reuse
-// from the pool.
+// reset clears all fields and returns the object to a clean state for reuse from the
+// pool.
 func (r *RequestData) reset() {
 	r.ctx = nil
 	r.url = nil
@@ -920,13 +895,11 @@ func (r *RequestData) reset() {
 
 // parseKeyAndFallback extracts the key and fallback from variadic arguments.
 //
-// Takes keyAndFallbacks ([]string) which contains the key and optional fallback
-// value.
+// Takes keyAndFallbacks ([]string) which contains the key and optional fallback value.
 //
-// Returns key (string) which is the first element, or empty if the slice is
-// empty.
-// Returns fallback (string) which is the second element if present, otherwise
-// defaults to the key value.
+// Returns key (string) which is the first element, or empty if the slice is empty.
+// Returns fallback (string) which is the second element if present, otherwise defaults to
+// the key value.
 func (*RequestData) parseKeyAndFallback(keyAndFallbacks []string) (key, fallback string) {
 	if len(keyAndFallbacks) == 0 {
 		return "", ""
@@ -944,8 +917,8 @@ func (*RequestData) parseKeyAndFallback(keyAndFallbacks []string) (key, fallback
 // Takes store (*i18n_domain.Store) which is the translation store to search.
 // Takes key (string) which is the translation key to find.
 //
-// Returns *i18n_domain.Translation which is the found translation, or nil if
-// the store is nil or the key is not found in any fallback locale.
+// Returns *i18n_domain.Translation which is the found translation, or nil if the store is
+// nil or the key is not found in any fallback locale.
 func (r *RequestData) lookupInStore(store *i18n_domain.Store, key string) *i18n_domain.Translation {
 	if store == nil {
 		return nil
@@ -960,8 +933,8 @@ func (r *RequestData) lookupInStore(store *i18n_domain.Store, key string) *i18n_
 
 // getLocaleFallbackOrder returns the list of locales to try in order.
 //
-// Returns []string which contains locales from most specific to least
-// specific. The result is cached after the first call.
+// Returns []string which contains locales from most specific to least specific. The
+// result is cached after the first call.
 func (r *RequestData) getLocaleFallbackOrder() []string {
 	if r.localeFallbackComputed {
 		return r.localeFallbackOrder
@@ -993,13 +966,13 @@ func (r *RequestData) getLocaleFallbackOrder() []string {
 	}
 
 	add(r.locale)
-	if index := strings.IndexByte(r.locale, '-'); index != -1 {
-		add(r.locale[:index])
+	if base, _, ok := strings.Cut(r.locale, "-"); ok {
+		add(base)
 	}
 
 	add(r.defaultLocale)
-	if index := strings.IndexByte(r.defaultLocale, '-'); index != -1 {
-		add(r.defaultLocale[:index])
+	if base, _, ok := strings.Cut(r.defaultLocale, "-"); ok {
+		add(base)
 	}
 
 	localeSeenPool.Put(seen)

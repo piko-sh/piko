@@ -24,13 +24,11 @@ import (
 	"piko.sh/piko/cmd/piko/internal/cli"
 )
 
-// RunCommandWithIO dispatches a CLI subcommand with explicit IO writers.
-// This is a thin wrapper around the internal implementation, exposed solely
-// for integration testing.
+// RunCommandWithIO dispatches a CLI subcommand with explicit IO writers. This is a thin
+// wrapper around the internal implementation, exposed solely for integration testing.
 //
 // Takes subcommand (string) which identifies the command to run.
-// Takes arguments ([]string) which contains the remaining arguments after the
-// subcommand.
+// Takes arguments ([]string) which contains the remaining arguments after the subcommand.
 // Takes stdout (io.Writer) which receives standard output.
 // Takes stderr (io.Writer) which receives error output.
 //

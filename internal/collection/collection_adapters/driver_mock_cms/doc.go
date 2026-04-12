@@ -16,15 +16,15 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package driver_mock_cms simulates a headless CMS collection provider
-// for testing and demonstration.
+// Package driver_mock_cms simulates a headless CMS collection provider for testing and
+// demonstration.
 //
-// It supplies both build-time and runtime provider implementations,
-// doubling as a reference for building dynamic collection providers
-// and enabling testing without external CMS dependencies.
+// It supplies both build-time and runtime provider implementations, doubling as a
+// reference for building dynamic collection providers and enabling testing without
+// external CMS dependencies.
 //
-// The build-time provider generates Go AST for runtime fetcher functions,
-// while the runtime provider serves in-memory mock data.
+// The build-time provider generates Go AST for runtime fetcher functions, while the
+// runtime provider serves in-memory mock data.
 //
 // # Thread safety
 //

@@ -18,22 +18,21 @@
 
 package annotator_domain
 
-// Implements the AST visitor pattern for the linking phase, walking the
-// template tree with stateful context management. Handles context switches
-// between components, manages scope transitions for partials and loops, and
-// coordinates invocation processing.
+// Implements the AST visitor pattern for the linking phase, walking the template tree
+// with stateful context management. Handles context switches between components, manages
+// scope transitions for partials and loops, and coordinates invocation processing.
 
 import (
 	"context"
 	"fmt"
-	"strings"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/ast/ast_domain"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"strings"
 )
 
-// linkingSharedState tracks unique invocations and the order in which they
-// were added during the linking phase.
+// linkingSharedState tracks unique invocations and the order in which they were added
+// during the linking phase.
 type linkingSharedState struct {
 	// uniqueInvocations maps canonical keys to their partial invocation data.
 	uniqueInvocations map[string]*annotator_dto.PartialInvocation
@@ -42,15 +41,15 @@ type linkingSharedState struct {
 	invocationOrder []string
 }
 
-// linkingVisitor implements the ast.Visitor interface to perform stateful
-// traversal. It manages the current AnalysisContext as it descends the AST,
-// ensuring props are validated within the correct invoker's scope.
+// linkingVisitor implements the ast.Visitor interface to perform stateful traversal. It
+// manages the current AnalysisContext as it descends the AST, ensuring props are
+// validated within the correct invoker's scope.
 type linkingVisitor struct {
 	// typeResolver resolves type information for expressions during linking.
 	typeResolver *TypeResolver
 
-	// virtualModule holds the virtual module being processed. It provides
-	// lookup maps to find components by their Go package path or hash.
+	// virtualModule holds the virtual module being processed. It provides lookup maps to
+	// find components by their Go package path or hash.
 	virtualModule *annotator_dto.VirtualModule
 
 	// diagnostics collects lint issues found while walking the AST.
@@ -62,17 +61,17 @@ type linkingVisitor struct {
 	// state holds shared data that all child visitors can read and change.
 	state *linkingSharedState
 
-	// currentInvocationKey tracks the canonical key of the current partial; empty
-	// at page level. Used to differentiate nested invocations with identical
-	// expressions but different parent instances.
+	// currentInvocationKey tracks the canonical key of the current partial; empty at page
+	// level. Used to differentiate nested invocations with identical expressions but
+	// different parent instances.
 	currentInvocationKey string
 
 	// depth tracks how deep the current node is in the AST tree.
 	depth int
 }
 
-// Enter visits a node before its children are visited. It is the core of the
-// stateful analysis, responsible for context switching and scope management.
+// Enter visits a node before its children are visited. It is the core of the stateful
+// analysis, responsible for context switching and scope management.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to visit.
 //
@@ -117,19 +116,19 @@ func (*linkingVisitor) Exit(_ context.Context, _ *ast_domain.TemplateNode) error
 	return nil
 }
 
-// handleSlottedContentContextSwitch checks if a node is slotted content and
-// switches context if needed.
+// handleSlottedContentContextSwitch checks if a node is slotted content and switches
+// context if needed.
 //
 // For partial invocation nodes, the context is determined by
 // PartialInfo.InvokerPackageAlias (the component that invoked the partial), not
 // OriginalPackageAlias (the partial's template). This means prop bindings like
 // :prop="state.Field" resolve against the invoker's state.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to check
-// for slotted content annotations.
+// Takes node (*ast_domain.TemplateNode) which is the template node to check for slotted
+// content annotations.
 //
-// Returns *AnalysisContext which is either a new context for the appropriate
-// package, or the current context if no switch is needed.
+// Returns *AnalysisContext which is either a new context for the appropriate package, or
+// the current context if no switch is needed.
 func (v *linkingVisitor) handleSlottedContentContextSwitch(ctx context.Context, node *ast_domain.TemplateNode) *AnalysisContext {
 	if node.GoAnnotations == nil {
 		return v.ctx
@@ -146,14 +145,14 @@ func (v *linkingVisitor) handleSlottedContentContextSwitch(ctx context.Context, 
 	return v.switchToOriginContext(ctx, node, *node.GoAnnotations.OriginalPackageAlias)
 }
 
-// switchToInvokerContext switches to the context of the component that called
-// this partial, based on the invoker package alias in PartialInfo.
+// switchToInvokerContext switches to the context of the component that called this
+// partial, based on the invoker package alias in PartialInfo.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the partial call details
-// including the invoker package alias.
+// Takes node (*ast_domain.TemplateNode) which provides the partial call details including
+// the invoker package alias.
 //
-// Returns *AnalysisContext which is either a new context for the invoker
-// component or the current context if no switch is needed.
+// Returns *AnalysisContext which is either a new context for the invoker component or the
+// current context if no switch is needed.
 func (v *linkingVisitor) switchToInvokerContext(ctx context.Context, node *ast_domain.TemplateNode) *AnalysisContext {
 	invokerHash := node.GoAnnotations.PartialInfo.InvokerPackageAlias
 	currentComp, ok := v.virtualModule.ComponentsByGoPath[v.ctx.CurrentGoFullPackagePath]
@@ -196,15 +195,14 @@ func (v *linkingVisitor) switchToInvokerContext(ctx context.Context, node *ast_d
 	return ctxForThisNode
 }
 
-// switchToOriginContext switches to the context of the original source
-// component for slotted content, based on OriginalPackageAlias.
+// switchToOriginContext switches to the context of the original source component for
+// slotted content, based on OriginalPackageAlias.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node being
-// processed.
+// Takes node (*ast_domain.TemplateNode) which is the template node being processed.
 // Takes nodeOriginHash (string) which identifies the original component.
 //
-// Returns *AnalysisContext which is the switched context, or the current
-// context if no switch is needed.
+// Returns *AnalysisContext which is the switched context, or the current context if no
+// switch is needed.
 func (v *linkingVisitor) switchToOriginContext(ctx context.Context, node *ast_domain.TemplateNode, nodeOriginHash string) *AnalysisContext {
 	currentComp, ok := v.virtualModule.ComponentsByGoPath[v.ctx.CurrentGoFullPackagePath]
 	if !ok {
@@ -250,14 +248,13 @@ func (*linkingVisitor) isPartialInvocation(node *ast_domain.TemplateNode) bool {
 	return node.GoAnnotations != nil && node.GoAnnotations.PartialInfo != nil
 }
 
-// handlePartialInvocation processes a partial invocation node and returns the
-// context for its children. It also returns the canonical invocation key for
-// this partial so it can be passed to nested partials.
+// handlePartialInvocation processes a partial invocation node and returns the context for
+// its children. It also returns the canonical invocation key for this partial so it can
+// be passed to nested partials.
 //
-// Takes node (*ast_domain.TemplateNode) which is the partial invocation node
-// to process.
-// Takes ctxForThisNode (*AnalysisContext) which provides the analysis context
-// for the current node.
+// Takes node (*ast_domain.TemplateNode) which is the partial invocation node to process.
+// Takes ctxForThisNode (*AnalysisContext) which provides the analysis context for the
+// current node.
 // Takes indent (string) which specifies the indentation for logging output.
 //
 // Returns *AnalysisContext which is the context for the partial's children.
@@ -295,25 +292,22 @@ func (v *linkingVisitor) handlePartialInvocation(
 	return ctxForChildren, finalised.canonicalKey, nil
 }
 
-// prepareLinkerContext creates the appropriate context for partial
-// linking using ctxForThisNode, which has already been processed by
-// handleSlottedContentContextSwitch.
+// prepareLinkerContext creates the appropriate context for partial linking using
+// ctxForThisNode, which has already been processed by handleSlottedContentContextSwitch.
 //
-// CRITICAL: For slotted content, ctxForThisNode is switched to the
-// origin component's context. For non-slotted content, ctxForThisNode
-// is the current traversal context (the invoker's context). This means
-// prop bindings like :prop="state.Foo" are resolved against the
-// invoker's context, not the current wrapper component's context (e.g.,
-// a layout with NoResponse).
+// CRITICAL: For slotted content, ctxForThisNode is switched to the origin component's
+// context. For non-slotted content, ctxForThisNode is the current traversal context (the
+// invoker's context). This means prop bindings like :prop="state.Foo" are resolved
+// against the invoker's context, not the current wrapper component's context (e.g., a
+// layout with NoResponse).
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node being
-// linked, checked for a p-for directive on the same element.
-// Takes ctxForThisNode (*AnalysisContext) which is the already-switched
-// context for the current node.
+// Takes node (*ast_domain.TemplateNode) which is the template node being linked, checked
+// for a p-for directive on the same element.
+// Takes ctxForThisNode (*AnalysisContext) which is the already-switched context for the
+// current node.
 //
-// Returns *AnalysisContext which is the context to use for linking,
-// possibly augmented with loop variables if a p-for directive is
-// present on the same node.
+// Returns *AnalysisContext which is the context to use for linking, possibly augmented
+// with loop variables if a p-for directive is present on the same node.
 func (v *linkingVisitor) prepareLinkerContext(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -374,14 +368,14 @@ func (v *linkingVisitor) processPartialLinking(
 	return finalised, nil
 }
 
-// storeUniqueInvocation saves a new invocation if one with the same key does
-// not already exist.
+// storeUniqueInvocation saves a new invocation if one with the same key does not already
+// exist.
 //
 // Takes node (*ast_domain.TemplateNode) which provides the location data.
 // Takes partialInfo (*ast_domain.PartialInvocationInfo) which receives the key and
 // provides partial metadata.
-// Takes finalised (*finalisedInvocationData) which contains the resolved
-// invocation details to store.
+// Takes finalised (*finalisedInvocationData) which contains the resolved invocation
+// details to store.
 func (v *linkingVisitor) storeUniqueInvocation(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -413,18 +407,17 @@ func (v *linkingVisitor) storeUniqueInvocation(
 	v.state.invocationOrder = append(v.state.invocationOrder, finalised.canonicalKey)
 }
 
-// handleForDirective processes a p-for directive and creates a nested scope
-// for child nodes.
+// handleForDirective processes a p-for directive and creates a nested scope for child
+// nodes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to process.
-// Takes ctxForThisNode (*AnalysisContext) which provides the context for
-// resolving the collection expression.
-// Takes ctxForChildren (*AnalysisContext) which is the base context for child
-// nodes.
+// Takes ctxForThisNode (*AnalysisContext) which provides the context for resolving the
+// collection expression.
+// Takes ctxForChildren (*AnalysisContext) which is the base context for child nodes.
 // Takes indent (string) which sets the logging indent level.
 //
-// Returns *AnalysisContext which is a nested scope with loop variables defined,
-// or the original child context if no p-for directive is present.
+// Returns *AnalysisContext which is a nested scope with loop variables defined, or the
+// original child context if no p-for directive is present.
 func (v *linkingVisitor) handleForDirective(
 	ctx context.Context,
 	node *ast_domain.TemplateNode,
@@ -459,13 +452,13 @@ func (v *linkingVisitor) handleForDirective(
 	return nestedCtx
 }
 
-// newVisitorForChild creates a new visitor for a child scope, inheriting depth
-// for logging.
+// newVisitorForChild creates a new visitor for a child scope, inheriting depth for
+// logging.
 //
-// Takes newCtx (*AnalysisContext) which provides the analysis context for the
-// child scope.
-// Takes invocationKey (string) which is the canonical key of the current
-// partial invocation, or empty if not inside one.
+// Takes newCtx (*AnalysisContext) which provides the analysis context for the child
+// scope.
+// Takes invocationKey (string) which is the canonical key of the current partial
+// invocation, or empty if not inside one.
 //
 // Returns ast_domain.Visitor which is the child visitor ready for traversal.
 func (v *linkingVisitor) newVisitorForChild(newCtx *AnalysisContext, invocationKey string) ast_domain.Visitor {
@@ -480,14 +473,13 @@ func (v *linkingVisitor) newVisitorForChild(newCtx *AnalysisContext, invocationK
 	}
 }
 
-// createContextForNode builds the correct AnalysisContext for a given node
-// based on its origin stamp from the expander.
+// createContextForNode builds the correct AnalysisContext for a given node based on its
+// origin stamp from the expander.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to create
-// context for.
+// Takes node (*ast_domain.TemplateNode) which is the template node to create context for.
 // Takes partialInfo (*ast_domain.PartialInvocationInfo) which provides invocation
-// specific variable names for SSR inlining, or nil for generic names used in
-// the partial's own generated code.
+// specific variable names for SSR inlining, or nil for generic names used in the
+// partial's own generated code.
 //
 // Returns *AnalysisContext which is the configured context for the node.
 // Returns error when the virtual component for the node's hash cannot be found.

@@ -16,21 +16,19 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package logger_state provides shared state management for the
-// logger facade.
+// Package logger_state provides shared state management for the logger facade.
 //
-// Centralises the global logging configuration, including handler
-// registration, handler composition, shutdown lifecycle, and shared HTTP
-// client management. Used by logger sub-packages (output providers,
-// notification integrations) to register themselves into a unified handler
-// chain without circular dependencies.
+// Centralises the global logging configuration, including handler registration, handler
+// composition, shutdown lifecycle, and shared HTTP client management. Used by logger
+// sub-packages (output providers, notification integrations) to register themselves into
+// a unified handler chain without circular dependencies.
 //
-// Handlers and wrappers are composed into a chain that feeds into the global
-// [log/slog] default logger. Destination handlers receive log records directly,
-// whilst wrapper factories decorate the composed handler to add cross-cutting
-// behaviour. When multiple destination handlers are registered, they are
-// combined into a multi-handler that fans out records to all destinations.
+// Handlers and wrappers are composed into a chain that feeds into the global [log/slog]
+// default logger. Destination handlers receive log records directly, whilst wrapper
+// factories decorate the composed handler to add cross-cutting behaviour. When multiple
+// destination handlers are registered, they are combined into a multi-handler that fans
+// out records to all destinations.
 //
-// On package init, a default pretty-print handler writing to stdout is
-// configured automatically. All exported functions are safe for concurrent use.
+// On package init, a default pretty-print handler writing to stdout is configured
+// automatically. All exported functions are safe for concurrent use.
 package logger_state

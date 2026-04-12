@@ -28,21 +28,21 @@ import (
 )
 
 var (
-	// errFontInstancerMaxpMissing is returned when the maxp table is missing
-	// or too short for font instancing.
+	// errFontInstancerMaxpMissing is returned when the maxp table is missing or too short
+	// for font instancing.
 	errFontInstancerMaxpMissing = errors.New("font_instancer: missing or too short maxp table")
 
-	// errFontInstancerHeadMissing is returned when the head table is missing
-	// or too short for font instancing.
+	// errFontInstancerHeadMissing is returned when the head table is missing or too short
+	// for font instancing.
 	errFontInstancerHeadMissing = errors.New("font_instancer: missing or too short head table")
 
-	// errFontInstancerHheaMissing is returned when the hhea table is missing
-	// or too short for font instancing.
+	// errFontInstancerHheaMissing is returned when the hhea table is missing or too short
+	// for font instancing.
 	errFontInstancerHheaMissing = errors.New("font_instancer: missing or too short hhea table")
 )
 
-// GlyphOutlinePoint is a point in a TrueType glyph contour, expressed
-// in font design units.
+// GlyphOutlinePoint is a point in a TrueType glyph contour, expressed in font design
+// units.
 type GlyphOutlinePoint struct {
 	// X holds the horizontal coordinate in font design units.
 	X float32
@@ -50,34 +50,33 @@ type GlyphOutlinePoint struct {
 	// Y holds the vertical coordinate in font design units.
 	Y float32
 
-	// OnCurve indicates whether this is an on-curve point (true) or an
-	// off-curve control point (false).
+	// OnCurve indicates whether this is an on-curve point (true) or an off-curve control
+	// point (false).
 	OnCurve bool
 }
 
-// InstancedGlyphData holds the variation-instanced outline and metrics
-// for a single glyph.
+// InstancedGlyphData holds the variation-instanced outline and metrics for a single
+// glyph.
 type InstancedGlyphData struct {
-	// Contours holds the glyph outline as a list of contours, where each
-	// contour is a closed list of on-curve and off-curve points.
+	// Contours holds the glyph outline as a list of contours, where each contour is a closed
+	// list of on-curve and off-curve points.
 	Contours [][]GlyphOutlinePoint
 
 	// AdvanceWidth is the horizontal advance in font design units.
 	AdvanceWidth uint16
 }
 
-// InstanceVariableFont builds a static TrueType font from a variable
-// font by baking variation-instanced glyph outlines and metrics.
+// InstanceVariableFont builds a static TrueType font from a variable font by baking
+// variation-instanced glyph outlines and metrics.
 //
-// The glyf, loca, and hmtx tables are rebuilt from the callback data;
-// variation tables (fvar, gvar, avar, HVAR, MVAR, STAT, cvar) are stripped.
-// All remaining tables are copied from the source font. This produces a font
-// suitable for PDF embedding where viewers do not support OpenType variation
-// coordinates.
+// The glyf, loca, and hmtx tables are rebuilt from the callback data; variation tables
+// (fvar, gvar, avar, HVAR, MVAR, STAT, cvar) are stripped. All remaining tables are
+// copied from the source font. This produces a font suitable for PDF embedding where
+// viewers do not support OpenType variation coordinates.
 //
 // Takes rawFont ([]byte) which is the raw variable TTF bytes.
-// Takes glyphDataFunc (func(gid uint16) InstancedGlyphData) which provides
-// the instanced glyph outline and advance width for each glyph ID.
+// Takes glyphDataFunc (func(gid uint16) InstancedGlyphData) which provides the instanced
+// glyph outline and advance width for each glyph ID.
 //
 // Returns []byte which is the static TTF bytes.
 // Returns error when required tables are missing.
@@ -141,8 +140,7 @@ func validateHeadTable(tables map[string][]byte) error {
 	return nil
 }
 
-// validateHheaTable checks that the hhea table exists, is long enough,
-// and returns it.
+// validateHheaTable checks that the hhea table exists, is long enough, and returns it.
 //
 // Takes tables (map[string][]byte) which holds the parsed font tables.
 //
@@ -156,12 +154,12 @@ func validateHheaTable(tables map[string][]byte) ([]byte, error) {
 	return hheaData, nil
 }
 
-// buildInstancedTables constructs new glyf, loca, and hmtx tables from the
-// instanced glyph data callback.
+// buildInstancedTables constructs new glyf, loca, and hmtx tables from the instanced
+// glyph data callback.
 //
 // Takes numberOfGlyphs (int) which is the total glyph count from maxp.
-// Takes glyphDataFunc (func(gid uint16) InstancedGlyphData) which provides
-// the instanced outline and advance width per glyph.
+// Takes glyphDataFunc (func(gid uint16) InstancedGlyphData) which provides the instanced
+// outline and advance width per glyph.
 //
 // Returns glyfData ([]byte) which is the rebuilt glyf table.
 // Returns locaData ([]byte) which is the rebuilt loca table (long format).
@@ -206,13 +204,12 @@ func buildInstancedTables(
 //
 // Takes tables (map[string][]byte) which holds the original font tables.
 // Takes hheaData ([]byte) which is the validated hhea table data.
-// Takes numberOfGlyphs (int) which is the glyph count for the
-// numHMetrics field.
+// Takes numberOfGlyphs (int) which is the glyph count for the numHMetrics field.
 //
-// Returns newHeadData ([]byte) which is the updated head table with long
-// loca format and zeroed checksum.
-// Returns newHheaData ([]byte) which is the updated hhea table with the
-// correct numHMetrics.
+// Returns newHeadData ([]byte) which is the updated head table with long loca format and
+// zeroed checksum.
+// Returns newHheaData ([]byte) which is the updated hhea table with the correct
+// numHMetrics.
 func buildUpdatedHeaders(
 	tables map[string][]byte,
 	hheaData []byte,
@@ -232,8 +229,7 @@ func buildUpdatedHeaders(
 	return newHeadData, newHheaData
 }
 
-// assembleInstancedOutput builds the final output table map, excluding
-// variation tables.
+// assembleInstancedOutput builds the final output table map, excluding variation tables.
 //
 // Takes tables (map[string][]byte) which holds the original font tables.
 // Takes newHeadData ([]byte) which is the updated head table.
@@ -242,8 +238,8 @@ func buildUpdatedHeaders(
 // Takes newLocaData ([]byte) which is the rebuilt loca table.
 // Takes newHmtxData ([]byte) which is the rebuilt hmtx table.
 //
-// Returns map[string][]byte which holds the final set of tables for
-// assembly into a TTF file.
+// Returns map[string][]byte which holds the final set of tables for assembly into a TTF
+// file.
 func assembleInstancedOutput(
 	tables map[string][]byte,
 	newHeadData, newHheaData, newGlyfData, newLocaData, newHmtxData []byte,
@@ -276,15 +272,15 @@ func assembleInstancedOutput(
 	return outputTables
 }
 
-// encodeSimpleGlyph converts a list of contours into TrueType glyf binary
-// data for a simple glyph.
+// encodeSimpleGlyph converts a list of contours into TrueType glyf binary data for a
+// simple glyph.
 //
-// The output uses delta-encoded coordinates with short/long encoding
-// selected per-point for compact representation. No hinting instructions
-// are emitted (instructionLength = 0).
+// The output uses delta-encoded coordinates with short/long encoding selected per-point
+// for compact representation. No hinting instructions are emitted (instructionLength =
+// 0).
 //
-// Takes contours ([][]GlyphOutlinePoint) which holds the glyph outline
-// contours to encode.
+// Takes contours ([][]GlyphOutlinePoint) which holds the glyph outline contours to
+// encode.
 //
 // Returns []byte which is the glyf binary data, or nil for empty contours.
 func encodeSimpleGlyph(contours [][]GlyphOutlinePoint) []byte {
@@ -350,11 +346,10 @@ func collectGlyphPoints(contours [][]GlyphOutlinePoint) ([]GlyphOutlinePoint, []
 	return allPoints, endPts
 }
 
-// convertToIntPoints converts float32 points to int16, computing the bounding
-// box at the same time.
+// convertToIntPoints converts float32 points to int16, computing the bounding box at the
+// same time.
 //
-// Takes allPoints ([]GlyphOutlinePoint) which holds the float32 points
-// to convert.
+// Takes allPoints ([]GlyphOutlinePoint) which holds the float32 points to convert.
 //
 // Returns []intGlyphPoint which holds the rounded integer points.
 // Returns glyphBBox which is the computed bounding box.
@@ -380,8 +375,8 @@ func convertToIntPoints(allPoints []GlyphOutlinePoint) ([]intGlyphPoint, glyphBB
 	return points, bbox
 }
 
-// encodeDeltaCoordinates builds flags and delta-encoded coordinate byte
-// streams for the given integer points.
+// encodeDeltaCoordinates builds flags and delta-encoded coordinate byte streams for the
+// given integer points.
 //
 // Takes points ([]intGlyphPoint) which holds the integer glyph points.
 //
@@ -408,8 +403,8 @@ func encodeDeltaCoordinates(points []intGlyphPoint) (flags, xCoords, yCoords []b
 	return flags, xCoords, yCoords
 }
 
-// encodeSingleAxis encodes one axis delta into the coords slice and updates
-// the flag byte accordingly.
+// encodeSingleAxis encodes one axis delta into the coords slice and updates the flag byte
+// accordingly.
 //
 // Takes delta (int16) which is the coordinate delta to encode.
 // Takes flag (byte) which is the current flag byte to update.
@@ -440,8 +435,8 @@ func encodeSingleAxis(
 	return coords, flag
 }
 
-// assembleGlyfData packs the glyph header, end-points, flags, and
-// coordinates into the final glyf binary slice.
+// assembleGlyfData packs the glyph header, end-points, flags, and coordinates into the
+// final glyf binary slice.
 //
 // Takes endPts ([]uint16) which holds the end-of-contour point indices.
 // Takes bbox (glyphBBox) which holds the glyph bounding box.

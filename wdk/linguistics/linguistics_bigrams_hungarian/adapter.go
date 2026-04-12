@@ -25,23 +25,26 @@ import (
 	"piko.sh/piko/internal/linguistics/linguistics_domain"
 )
 
-// Language is the language code for this bigram analyser.
-const Language = "hungarian"
+const (
+	// Language is the language code for this bigram analyser.
+	Language = "hungarian"
 
-// minFieldLength is the minimum letter count for bigram analysis.
-const minFieldLength = 4
+	// minFieldLength is the minimum letter count for bigram analysis.
+	minFieldLength = 4
 
-// maxAnalyseLength is the maximum text byte length processed during analysis.
-const maxAnalyseLength = 4096
+	// maxAnalyseLength is the maximum text byte length processed during analysis.
+	maxAnalyseLength = 4096
+)
 
-var _ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+var (
+	_ linguistics_domain.BigramAnalyserPort = (*BigramAnalyser)(nil)
+)
 
-// BigramAnalyser provides Hungarian character bigram frequency analysis
-// for detecting gibberish or random text.
+// BigramAnalyser provides Hungarian character bigram frequency analysis for detecting
+// gibberish or random text.
 type BigramAnalyser struct{}
 
-// BigramFrequencyRatio returns the ratio of uncommon character bigrams
-// to total bigrams.
+// BigramFrequencyRatio returns the ratio of uncommon character bigrams to total bigrams.
 //
 // Takes text (string) which is the text to analyse.
 //
@@ -100,50 +103,52 @@ func init() {
 	linguistics_domain.RegisterBigramAnalyserFactory(Language, Factory)
 }
 
-// hungarianBigrams contains the most frequent Hungarian letter bigrams.
-var hungarianBigrams = map[string]struct{}{
-	"el": {}, "et": {}, "sz": {}, "er": {}, "en": {},
-	"te": {}, "me": {}, "ek": {}, "ak": {}, "eg": {},
-	"gy": {}, "le": {}, "es": {}, "be": {}, "ne": {},
-	"an": {}, "re": {}, "ra": {}, "on": {}, "al": {},
-	"ar": {}, "as": {}, "eb": {}, "at": {}, "nd": {},
-	"nt": {}, "or": {}, "nk": {}, "ol": {}, "ta": {},
-	"to": {}, "ke": {}, "ve": {}, "ze": {}, "de": {},
-	"ha": {}, "ba": {}, "ly": {}, "ge": {}, "gi": {},
-	"he": {}, "il": {}, "is": {}, "it": {}, "ja": {},
-	"je": {}, "ka": {}, "ko": {}, "la": {}, "li": {},
-	"lo": {}, "lu": {}, "ma": {}, "mi": {}, "mo": {},
-	"mu": {}, "na": {}, "ni": {}, "no": {}, "od": {},
-	"ok": {}, "om": {}, "os": {}, "ot": {}, "pe": {},
-	"po": {}, "ro": {}, "ru": {}, "se": {}, "si": {},
-	"so": {}, "su": {}, "sa": {}, "ti": {}, "tu": {},
-	"tt": {}, "ud": {}, "ug": {}, "ul": {}, "un": {},
-	"ur": {}, "us": {}, "ut": {}, "va": {}, "vi": {},
-	"vo": {}, "za": {}, "zi": {}, "zo": {}, "ce": {},
-	"ci": {}, "cs": {}, "ny": {}, "ty": {}, "zs": {},
-	"rt": {}, "rs": {}, "rn": {}, "rm": {}, "rl": {},
-	"rk": {}, "rd": {}, "rc": {}, "rb": {}, "nn": {},
-	"mm": {}, "ll": {}, "kk": {}, "ss": {}, "pp": {},
-	"bb": {}, "gg": {}, "dd": {}, "cc": {}, "ff": {},
-	"nc": {}, "nb": {}, "nf": {}, "ng": {}, "nh": {},
-	"nj": {}, "nl": {}, "nm": {}, "np": {}, "nr": {},
-	"ns": {}, "nv": {}, "nz": {}, "mb": {}, "mp": {},
-	"mf": {}, "mv": {}, "mk": {}, "lm": {}, "ln": {},
-	"lp": {}, "lr": {}, "ls": {}, "lt": {}, "lv": {},
-	"lz": {}, "ld": {}, "lf": {}, "lg": {}, "lh": {},
-	"lk": {}, "tr": {}, "tk": {}, "tn": {}, "tm": {},
-	"ts": {}, "tv": {}, "tz": {}, "tl": {}, "kr": {},
-	"kl": {}, "kn": {}, "km": {}, "ks": {}, "kt": {},
-	"kv": {}, "kz": {}, "br": {}, "bl": {}, "bn": {},
-	"dr": {}, "dl": {}, "dn": {}, "dm": {}, "ds": {},
-	"dt": {}, "fr": {}, "fl": {}, "gr": {}, "gl": {},
-	"gn": {}, "gm": {}, "hr": {}, "hl": {}, "pr": {},
-	"pl": {}, "sp": {}, "st": {}, "sk": {}, "sm": {},
-	"sn": {}, "sl": {}, "zt": {}, "zd": {}, "zm": {},
-	"zn": {}, "zp": {}, "zv": {}, "öl": {}, "ől": {},
-	"ör": {}, "őr": {}, "ős": {}, "és": {}, "ét": {},
-	"ém": {}, "én": {}, "ér": {}, "ék": {}, "él": {},
-	"ép": {}, "án": {}, "ág": {}, "áb": {}, "ád": {},
-	"ít": {}, "ós": {}, "ól": {}, "ód": {}, "ór": {},
-	"ón": {}, "út": {}, "úl": {}, "úr": {}, "ús": {},
-}
+var (
+	// hungarianBigrams contains the most frequent Hungarian letter bigrams.
+	hungarianBigrams = map[string]struct{}{
+		"el": {}, "et": {}, "sz": {}, "er": {}, "en": {},
+		"te": {}, "me": {}, "ek": {}, "ak": {}, "eg": {},
+		"gy": {}, "le": {}, "es": {}, "be": {}, "ne": {},
+		"an": {}, "re": {}, "ra": {}, "on": {}, "al": {},
+		"ar": {}, "as": {}, "eb": {}, "at": {}, "nd": {},
+		"nt": {}, "or": {}, "nk": {}, "ol": {}, "ta": {},
+		"to": {}, "ke": {}, "ve": {}, "ze": {}, "de": {},
+		"ha": {}, "ba": {}, "ly": {}, "ge": {}, "gi": {},
+		"he": {}, "il": {}, "is": {}, "it": {}, "ja": {},
+		"je": {}, "ka": {}, "ko": {}, "la": {}, "li": {},
+		"lo": {}, "lu": {}, "ma": {}, "mi": {}, "mo": {},
+		"mu": {}, "na": {}, "ni": {}, "no": {}, "od": {},
+		"ok": {}, "om": {}, "os": {}, "ot": {}, "pe": {},
+		"po": {}, "ro": {}, "ru": {}, "se": {}, "si": {},
+		"so": {}, "su": {}, "sa": {}, "ti": {}, "tu": {},
+		"tt": {}, "ud": {}, "ug": {}, "ul": {}, "un": {},
+		"ur": {}, "us": {}, "ut": {}, "va": {}, "vi": {},
+		"vo": {}, "za": {}, "zi": {}, "zo": {}, "ce": {},
+		"ci": {}, "cs": {}, "ny": {}, "ty": {}, "zs": {},
+		"rt": {}, "rs": {}, "rn": {}, "rm": {}, "rl": {},
+		"rk": {}, "rd": {}, "rc": {}, "rb": {}, "nn": {},
+		"mm": {}, "ll": {}, "kk": {}, "ss": {}, "pp": {},
+		"bb": {}, "gg": {}, "dd": {}, "cc": {}, "ff": {},
+		"nc": {}, "nb": {}, "nf": {}, "ng": {}, "nh": {},
+		"nj": {}, "nl": {}, "nm": {}, "np": {}, "nr": {},
+		"ns": {}, "nv": {}, "nz": {}, "mb": {}, "mp": {},
+		"mf": {}, "mv": {}, "mk": {}, "lm": {}, "ln": {},
+		"lp": {}, "lr": {}, "ls": {}, "lt": {}, "lv": {},
+		"lz": {}, "ld": {}, "lf": {}, "lg": {}, "lh": {},
+		"lk": {}, "tr": {}, "tk": {}, "tn": {}, "tm": {},
+		"ts": {}, "tv": {}, "tz": {}, "tl": {}, "kr": {},
+		"kl": {}, "kn": {}, "km": {}, "ks": {}, "kt": {},
+		"kv": {}, "kz": {}, "br": {}, "bl": {}, "bn": {},
+		"dr": {}, "dl": {}, "dn": {}, "dm": {}, "ds": {},
+		"dt": {}, "fr": {}, "fl": {}, "gr": {}, "gl": {},
+		"gn": {}, "gm": {}, "hr": {}, "hl": {}, "pr": {},
+		"pl": {}, "sp": {}, "st": {}, "sk": {}, "sm": {},
+		"sn": {}, "sl": {}, "zt": {}, "zd": {}, "zm": {},
+		"zn": {}, "zp": {}, "zv": {}, "öl": {}, "ől": {},
+		"ör": {}, "őr": {}, "ős": {}, "és": {}, "ét": {},
+		"ém": {}, "én": {}, "ér": {}, "ék": {}, "él": {},
+		"ép": {}, "án": {}, "ág": {}, "áb": {}, "ád": {},
+		"ít": {}, "ós": {}, "ól": {}, "ód": {}, "ór": {},
+		"ón": {}, "út": {}, "úl": {}, "úr": {}, "ús": {},
+	}
+)

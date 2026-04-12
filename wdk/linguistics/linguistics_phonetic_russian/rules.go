@@ -247,8 +247,8 @@ func isVoicedConsonant(character rune) bool {
 //
 // Takes character (rune) which is the character to convert.
 //
-// Returns rune which is the voiceless counterpart, or the original character
-// if no mapping exists.
+// Returns rune which is the voiceless counterpart, or the original character if no
+// mapping exists.
 func devoice(character rune) rune {
 	switch character {
 	case CyrB:

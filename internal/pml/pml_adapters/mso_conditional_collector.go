@@ -27,14 +27,13 @@ import (
 	"piko.sh/piko/internal/pml/pml_domain"
 )
 
-// msoConditionalCollector implements the pml_domain.MSOConditionalCollector
-// interface. It tracks CSS rules that need to be wrapped in MSO (Microsoft
-// Outlook) conditional comments and generates the final conditional block.
+// msoConditionalCollector implements the pml_domain.MSOConditionalCollector interface. It
+// tracks CSS rules that need to be wrapped in MSO (Microsoft Outlook) conditional
+// comments and generates the final conditional block.
 //
-// The collector is thread-safe to support potential concurrent transformations
-// in the future. It automatically deduplicates rules, so multiple
-// registrations of the same selector and styles combination only generate one
-// CSS rule.
+// The collector is thread-safe to support concurrent transformations. It automatically
+// deduplicates rules, so multiple registrations of the same selector and styles
+// combination only generate one CSS rule.
 type msoConditionalCollector struct {
 	// rules maps CSS selectors to their style values.
 	rules map[string]string
@@ -43,12 +42,14 @@ type msoConditionalCollector struct {
 	mu sync.RWMutex
 }
 
-var _ pml_domain.MSOConditionalCollector = (*msoConditionalCollector)(nil)
+var (
+	_ pml_domain.MSOConditionalCollector = (*msoConditionalCollector)(nil)
+)
 
 // RegisterStyle adds a CSS rule to be wrapped in an MSO conditional comment.
 //
-// If the same selector is registered multiple times, the last registration
-// wins. Components should register consistent styles for each selector.
+// If the same selector is registered multiple times, the last registration wins.
+// Components should register consistent styles for each selector.
 //
 // Takes selector (string) which specifies the CSS selector for the rule.
 // Takes styles (string) which contains the CSS properties to apply.
@@ -65,25 +66,21 @@ func (m *msoConditionalCollector) RegisterStyle(selector string, styles string) 
 	m.rules[selector] = styles
 }
 
-// GenerateConditionalBlock produces the final MSO conditional comment block
-// with all collected styles. The output follows the standard MSO conditional
-// comment format used in email templates.
+// GenerateConditionalBlock produces the final MSO conditional comment block with all
+// collected styles. The output follows the standard MSO conditional comment format used
+// in email templates.
 //
-// The generated block follows the structure below:
-// <!--[if mso]>
-// <style type="text/css">
+// The generated block follows the structure below: <!--[if mso]> <style type="text/css">
 //
 //	ul {margin: 0 !important;}
 //	li {margin-left: 40px !important;}
 //	li.firstListItem {margin-top: 20px !important;}
 //	li.lastListItem {margin-bottom: 20px !important;}
 //
-// </style>
-// <![endif]-->
-// Selectors are sorted alphabetically for deterministic output.
+// </style> <![endif]--> Selectors are sorted alphabetically for deterministic output.
 //
-// Returns string which contains the MSO conditional block, or an empty string
-// if no rules have been registered.
+// Returns string which contains the MSO conditional block, or an empty string if no rules
+// have been registered.
 //
 // Thread-safe: Safe to call concurrently with RegisterStyle.
 func (m *msoConditionalCollector) GenerateConditionalBlock() string {
@@ -117,8 +114,8 @@ func (m *msoConditionalCollector) GenerateConditionalBlock() string {
 	return builder.String()
 }
 
-// NewMSOConditionalCollector creates a new, empty MSOConditionalCollector.
-// This should be called once at the start of a transformation pass.
+// NewMSOConditionalCollector creates a new, empty MSOConditionalCollector. This should be
+// called once at the start of a transformation pass.
 //
 // Returns pml_domain.MSOConditionalCollector which is ready for use.
 func NewMSOConditionalCollector() pml_domain.MSOConditionalCollector {

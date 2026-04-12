@@ -22,7 +22,7 @@
 
 #include "textflag.h"
 
-// func normaliseF32(v []float32)
+// normaliseF32 rescales f32 vector in place so the L2 norm is 1 using NEON.
 TEXT ·normaliseF32(SB), NOSPLIT, $0-24
 	MOVD v_base+0(FP), R0
 	MOVD v_len+8(FP), R2

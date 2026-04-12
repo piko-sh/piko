@@ -41,23 +41,19 @@ const (
 	// fieldTextContent is the AST field name for a node's text content.
 	fieldTextContent = "TextContent"
 
-	// fieldTextContentWriter is the struct field name for the
-	// text content writer.
+	// fieldTextContentWriter is the struct field name for the text content writer.
 	fieldTextContentWriter = "TextContentWriter"
 
-	// fieldInnerHTML is the field name for setting a node's
-	// inner HTML content.
+	// fieldInnerHTML is the field name for setting a node's inner HTML content.
 	fieldInnerHTML = "InnerHTML"
 
 	// fieldAttributes is the field name for accessing node attributes.
 	fieldAttributes = "Attributes"
 
-	// fieldAttributeWriters is the field name for the attribute
-	// writers slice.
+	// fieldAttributeWriters is the field name for the attribute writers slice.
 	fieldAttributeWriters = "AttributeWriters"
 
-	// fieldChildren is the field name for accessing child
-	// elements of a node.
+	// fieldChildren is the field name for accessing child elements of a node.
 	fieldChildren = "Children"
 
 	// attributeNameClass is the HTML attribute name for CSS classes.
@@ -69,16 +65,14 @@ const (
 	// fieldDirModel is the field name for the model directive.
 	fieldDirModel = "DirModel"
 
-	// fieldDirScaffold is the field name for accessing the
-	// scaffold directive.
+	// fieldDirScaffold is the field name for accessing the scaffold directive.
 	fieldDirScaffold = "DirScaffold"
 
-	// runtimePackageName is the package name used when building AST
-	// references to the generated runtime code.
+	// runtimePackageName is the package name used when building AST references to the
+	// generated runtime code.
 	runtimePackageName = "pikoruntime"
 
-	// arenaVarName is the variable name for the RenderArena used for pooled
-	// allocations.
+	// arenaVarName is the variable name for the RenderArena used for pooled allocations.
 	arenaVarName = "arena"
 
 	// facadePackageName is the package name for the Piko facade in generated code.
@@ -87,66 +81,59 @@ const (
 	// pkeyAttributeName is the HTML attribute name for Piko component keys.
 	pkeyAttributeName = "p-key"
 
-	// prefAttributeName is the HTML attribute name for preload
-	// reference hints.
+	// prefAttributeName is the HTML attribute name for preload reference hints.
 	prefAttributeName = "p-ref"
 
-	// partialAttrName is the HTML attribute name for partial
-	// scope identification.
+	// partialAttrName is the HTML attribute name for partial scope identification.
 	partialAttrName = "partial"
 
-	// maxCollectionInitStmts is the pre-allocation capacity for
-	// collection initialiser statements (Attributes,
-	// AttributeWriters, Children).
+	// maxCollectionInitStmts is the pre-allocation capacity for collection initialiser
+	// statements (Attributes, AttributeWriters, Children).
 	maxCollectionInitStmts = 3
 )
 
-// NodeEmitter defines how to convert template nodes into code output.
-// It allows for mocking and testing of the node output logic.
+// NodeEmitter defines how to convert template nodes into code output. It allows for
+// mocking and testing of the node output logic.
 type NodeEmitter interface {
 	// emit generates output for the given template node.
 	//
-	// Takes node (*ast_domain.TemplateNode) which is the
-	// template node to process.
-	// Takes partialScopeID (string) which is the current
-	// partial's HashedName for CSS scoping.
+	// Takes node (*ast_domain.TemplateNode) which is the template node to process.
+	// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+	// scoping.
 	//
 	// Returns string which is the generated output text.
-	// Returns []goast.Stmt which contains any Go statements
-	// produced.
-	// Returns []*ast_domain.Diagnostic which reports any
-	// issues found during emission.
+	// Returns []goast.Stmt which contains any Go statements produced.
+	// Returns []*ast_domain.Diagnostic which reports any issues found during emission.
 	emit(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (string, []goast.Stmt, []*ast_domain.Diagnostic)
 }
 
 // nodeEmitter generates Go AST statements to build a single dynamic
-// ast_domain.TemplateNode at runtime. It implements NodeEmitter, delegating
-// to attributeEmitter for attributes and astBuilder for child nodes.
+// ast_domain.TemplateNode at runtime. It implements NodeEmitter, delegating to
+// attributeEmitter for attributes and astBuilder for child nodes.
 type nodeEmitter struct {
 	// emitter holds shared state and helper methods for code generation.
 	emitter *emitter
 
-	// expressionEmitter converts template expressions into Go AST
-	// expressions.
+	// expressionEmitter converts template expressions into Go AST expressions.
 	expressionEmitter ExpressionEmitter
 
-	// attributeEmitter creates attribute code for template
-	// nodes.
+	// attributeEmitter creates attribute code for template nodes.
 	attributeEmitter AttributeEmitter
 
-	// astBuilder provides access to the AST builder for
-	// emitting child nodes. Uses an interface to break a
-	// circular dependency between types.
+	// astBuilder provides access to the AST builder for emitting child nodes. Uses an
+	// interface to break a circular dependency between types.
 	astBuilder AstBuilder
 }
 
-var _ NodeEmitter = (*nodeEmitter)(nil)
+var (
+	_ NodeEmitter = (*nodeEmitter)(nil)
+)
 
-// getPartialScopeID returns the HashedName of the current component for CSS
-// scoping. Works for both pages and partials.
+// getPartialScopeID returns the HashedName of the current component for CSS scoping.
+// Works for both pages and partials.
 //
-// Returns string which is the hashed name, or empty if the main component
-// cannot be found.
+// Returns string which is the hashed name, or empty if the main component cannot be
+// found.
 func (ne *nodeEmitter) getPartialScopeID() string {
 	mainComp, err := generator_domain.GetMainComponent(ne.emitter.AnnotationResult)
 	if err != nil {
@@ -157,18 +144,14 @@ func (ne *nodeEmitter) getPartialScopeID() string {
 
 // getChildScopeID determines the CSS scope ID for a node's children.
 //
-// If the node is a partial invocation (has PartialInfo), children get a
-// combined scope ID (child + parent) to enable cross-partial CSS styling. The
-// child scope comes first for CSS specificity. Otherwise, children inherit the
-// parent's scope ID.
+// If the node is a partial invocation (has PartialInfo), children get a combined scope ID
+// (child + parent) to enable cross-partial CSS styling. The child scope comes first for
+// CSS specificity. Otherwise, children inherit the parent's scope ID.
 //
-// Takes node (*ast_domain.TemplateNode) which is the current node being
-// emitted.
-// Takes parentScopeID (string) which is the scope ID from the
-// parent context.
+// Takes node (*ast_domain.TemplateNode) which is the current node being emitted.
+// Takes parentScopeID (string) which is the scope ID from the parent context.
 //
-// Returns string which is the scope ID to use for this node's
-// children.
+// Returns string which is the scope ID to use for this node's children.
 func (ne *nodeEmitter) getChildScopeID(node *ast_domain.TemplateNode, parentScopeID string) string {
 	if node.GoAnnotations == nil || node.GoAnnotations.PartialInfo == nil {
 		return parentScopeID
@@ -187,19 +170,16 @@ func (ne *nodeEmitter) getChildScopeID(node *ast_domain.TemplateNode, parentScop
 	return childScope
 }
 
-// emit generates Go code for a template node and is the main entry point for
-// this emitter.
+// emit generates Go code for a template node and is the main entry point for this
+// emitter.
 //
-// Takes node (*ast_domain.TemplateNode) which specifies the template node to
-// process.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping. If non-empty, a `partial` attribute will be emitted.
+// Takes node (*ast_domain.TemplateNode) which specifies the template node to process.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping. If non-empty, a `partial` attribute will be emitted.
 //
-// Returns string which is the temporary variable name for the
-// emitted node.
+// Returns string which is the temporary variable name for the emitted node.
 // Returns []goast.Stmt which contains the generated Go statements.
-// Returns []*ast_domain.Diagnostic which contains any
-// diagnostics found.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics found.
 func (ne *nodeEmitter) emit(ctx context.Context, node *ast_domain.TemplateNode, partialScopeID string) (string, []goast.Stmt, []*ast_domain.Diagnostic) {
 	statements := make([]goast.Stmt, 0, StatementSliceCapacity)
 	var allDiags []*ast_domain.Diagnostic
@@ -241,24 +221,19 @@ func (ne *nodeEmitter) emit(ctx context.Context, node *ast_domain.TemplateNode, 
 	return tempVarName, statements, allDiags
 }
 
-// emitElementSpecificCode handles all element and fragment-specific code
-// generation.
+// emitElementSpecificCode handles all element and fragment-specific code generation.
 //
-// Takes tempVarIdent (*goast.Ident) which is the identifier for the temporary
-// variable holding the element.
-// Takes node (*ast_domain.TemplateNode) which is the template node to generate
-// code for.
-// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which contains pre-extracted
-// loop iterable info for p-for children, enabling accurate child slice
-// capacity calculation.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping.
+// Takes tempVarIdent (*goast.Ident) which is the identifier for the temporary variable
+// holding the element.
+// Takes node (*ast_domain.TemplateNode) which is the template node to generate code for.
+// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which contains pre-extracted loop
+// iterable info for p-for children, enabling accurate child slice capacity calculation.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping.
 //
 // Returns []goast.Stmt which contains the generated statements.
-// Returns []*ast_domain.Diagnostic which contains any
-// diagnostics encountered.
-// Returns bool which indicates whether the node has a content
-// directive.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics encountered.
+// Returns bool which indicates whether the node has a content directive.
 func (ne *nodeEmitter) emitElementSpecificCode(
 	tempVarIdent *goast.Ident,
 	node *ast_domain.TemplateNode,
@@ -311,18 +286,15 @@ func (ne *nodeEmitter) emitElementSpecificCode(
 	return statements, allDiags, hasContentDirective
 }
 
-// emitPartialInfoAttributes creates metadata attributes for public partials.
-// Skips if partial attributes already exist, such as those added by
-// addPartialMetadataToNode for root nodes that gather both outer and inner
-// partial IDs.
+// emitPartialInfoAttributes creates metadata attributes for public partials. Skips if
+// partial attributes already exist, such as those added by addPartialMetadataToNode for
+// root nodes that gather both outer and inner partial IDs.
 //
-// Takes tempVarIdent (*goast.Ident) which is the temporary variable holding
-// the node.
-// Takes node (*ast_domain.TemplateNode) which is the template node to add
-// attributes to.
+// Takes tempVarIdent (*goast.Ident) which is the temporary variable holding the node.
+// Takes node (*ast_domain.TemplateNode) which is the template node to add attributes to.
 //
-// Returns []goast.Stmt which contains the attribute assignment statements, or
-// nil if no attributes are needed.
+// Returns []goast.Stmt which contains the attribute assignment statements, or nil if no
+// attributes are needed.
 func (ne *nodeEmitter) emitPartialInfoAttributes(tempVarIdent *goast.Ident, node *ast_domain.TemplateNode) []goast.Stmt {
 	if node.GoAnnotations == nil || node.GoAnnotations.PartialInfo == nil {
 		return nil
@@ -375,20 +347,19 @@ func (ne *nodeEmitter) emitPartialInfoAttributes(tempVarIdent *goast.Ident, node
 	return statements
 }
 
-// emitPartialPropsAttribute creates a "partial_props" attribute for public
-// partials that have query-bound primitive props. The attribute value is
-// computed at render time by calling pikoruntime.BuildPartialPropsQuery with
-// the resolved prop values converted to strings.
+// emitPartialPropsAttribute creates a "partial_props" attribute for public partials that
+// have query-bound primitive props. The attribute value is computed at render time by
+// calling pikoruntime.BuildPartialPropsQuery with the resolved prop values converted to
+// strings.
 //
 // Runs after both the static and dynamic attribute paths so that the dynamic
 // partial_props value is always emitted regardless of which path the node took.
 //
-// Takes tempVarIdent (*goast.Ident) which is the temporary variable holding
-// the node.
+// Takes tempVarIdent (*goast.Ident) which is the temporary variable holding the node.
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns []goast.Stmt which contains the attribute append statement, or nil
-// when the partial has no query-bound primitive props.
+// Returns []goast.Stmt which contains the attribute append statement, or nil when the
+// partial has no query-bound primitive props.
 func (ne *nodeEmitter) emitPartialPropsAttribute(tempVarIdent *goast.Ident, node *ast_domain.TemplateNode) []goast.Stmt {
 	if node.GoAnnotations == nil || node.GoAnnotations.PartialInfo == nil {
 		return nil
@@ -434,16 +405,15 @@ func (ne *nodeEmitter) emitPartialPropsAttribute(tempVarIdent *goast.Ident, node
 	return []goast.Stmt{appendToSlice(attributeSliceExpression, partialPropsAttr)}
 }
 
-// emitPartialScopeAttribute creates a partial scope attribute for CSS scoping
-// on non-root elements. It adds only the scope ID to elements that did not
-// receive partial attributes from emitPartialInfoAttributes.
+// emitPartialScopeAttribute creates a partial scope attribute for CSS scoping on non-root
+// elements. It adds only the scope ID to elements that did not receive partial attributes
+// from emitPartialInfoAttributes.
 //
-// Takes tempVarIdent (*goast.Ident) which is the temporary variable that holds
-// the node.
+// Takes tempVarIdent (*goast.Ident) which is the temporary variable that holds the node.
 // Takes partialScopeID (string) which is the HashedName of the current partial.
 //
-// Returns goast.Stmt which is the statement to append the partial attribute,
-// or nil if no scope ID is given.
+// Returns goast.Stmt which is the statement to append the partial attribute, or nil if no
+// scope ID is given.
 func (*nodeEmitter) emitPartialScopeAttribute(tempVarIdent *goast.Ident, partialScopeID string) goast.Stmt {
 	if partialScopeID == "" {
 		return nil
@@ -464,18 +434,16 @@ func (*nodeEmitter) emitPartialScopeAttribute(tempVarIdent *goast.Ident, partial
 
 // emitChildren creates Go statements to emit all child nodes.
 //
-// Takes tempVarIdent (*goast.Ident) which is the temporary variable for the
-// parent node.
-// Takes node (*ast_domain.TemplateNode) which is the parent node whose
-// children will be emitted.
-// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which holds loop data for
-// p-for children. This is used by the node emission context in for_emitter.
-// Takes partialScopeID (string) which is the current partial's hashed name
-// for CSS scoping.
+// Takes tempVarIdent (*goast.Ident) which is the temporary variable for the parent node.
+// Takes node (*ast_domain.TemplateNode) which is the parent node whose children will be
+// emitted.
+// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which holds loop data for p-for
+// children. This is used by the node emission context in for_emitter.
+// Takes partialScopeID (string) which is the current partial's hashed name for CSS
+// scoping.
 //
 // Returns []goast.Stmt which holds the generated statements for all children.
-// Returns []*ast_domain.Diagnostic which holds any problems found during
-// emission.
+// Returns []*ast_domain.Diagnostic which holds any problems found during emission.
 func (ne *nodeEmitter) emitChildren(
 	ctx context.Context,
 	tempVarIdent *goast.Ident,
@@ -522,15 +490,15 @@ func (ne *nodeEmitter) emitChildren(
 	return statements, allDiags
 }
 
-// emitBasicProperties generates code to set simple fields like NodeType and
-// TagName, and handles the logic for simple TextContent or complex RichText.
+// emitBasicProperties generates code to set simple fields like NodeType and TagName, and
+// handles the logic for simple TextContent or complex RichText.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable in the AST.
 // Takes node (*ast_domain.TemplateNode) which provides the template node data.
 //
 // Returns []goast.Stmt which contains the generated assignment statements.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from text
-// content emission.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from text content
+// emission.
 func (ne *nodeEmitter) emitBasicProperties(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	statements := []goast.Stmt{emitNodeType(nodeVar, node)}
 
@@ -552,9 +520,8 @@ func (ne *nodeEmitter) emitBasicProperties(nodeVar *goast.Ident, node *ast_domai
 	return statements, textDiags
 }
 
-// emitPikoElementTagName compiles the dynamic :is expression on a
-// <piko:element> node and emits a validated TagName assignment with runtime
-// diagnostics for invalid targets.
+// emitPikoElementTagName compiles the dynamic :is expression on a <piko:element> node and
+// emits a validated TagName assignment with runtime diagnostics for invalid targets.
 //
 // Takes nodeVar (*goast.Ident) which is the node variable to assign to.
 // Takes node (*ast_domain.TemplateNode) which is the piko:element node.
@@ -620,10 +587,10 @@ func (ne *nodeEmitter) emitPikoElementTagName(nodeVar *goast.Ident, node *ast_do
 // Takes nodeVar (*goast.Ident) which is the node variable to assign to.
 // Takes node (*ast_domain.TemplateNode) which holds the template node data.
 //
-// Returns []goast.Stmt which contains the generated statements, or nil if
-// there is no text content.
-// Returns []*ast_domain.Diagnostic which contains any issues found during
-// rich text processing.
+// Returns []goast.Stmt which contains the generated statements, or nil if there is no
+// text content.
+// Returns []*ast_domain.Diagnostic which contains any issues found during rich text
+// processing.
 func (ne *nodeEmitter) emitTextContent(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	if len(node.RichText) > 0 {
 		return ne.emitRichText(nodeVar, node)
@@ -636,18 +603,16 @@ func (ne *nodeEmitter) emitTextContent(nodeVar *goast.Ident, node *ast_domain.Te
 	return []goast.Stmt{emitStaticTextContent(nodeVar, node.TextContent)}, nil
 }
 
-// emitRichText generates code to render RichText with mixed expressions.
-// It uses DirectWriter for efficient rendering with HTML escaping at render
-// time.
+// emitRichText generates code to render RichText with mixed expressions. It uses
+// DirectWriter for efficient rendering with HTML escaping at render time.
 //
-// Takes nodeVar (*goast.Ident) which identifies the node variable to assign
-// the writer to.
-// Takes node (*ast_domain.TemplateNode) which contains the RichText parts to
-// process.
+// Takes nodeVar (*goast.Ident) which identifies the node variable to assign the writer
+// to.
+// Takes node (*ast_domain.TemplateNode) which contains the RichText parts to process.
 //
 // Returns []goast.Stmt which contains the generated statements for rendering.
-// Returns []*ast_domain.Diagnostic which contains any errors found while
-// processing the RichText parts.
+// Returns []*ast_domain.Diagnostic which contains any errors found while processing the
+// RichText parts.
 func (ne *nodeEmitter) emitRichText(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	dwVar := ne.emitter.nextTempName()
 	dwIdent := cachedIdent(dwVar)
@@ -673,20 +638,16 @@ func (ne *nodeEmitter) emitRichText(nodeVar *goast.Ident, node *ast_domain.Templ
 	return statements, allDiags
 }
 
-// emitRichTextPartToWriter emits a single RichText part to a
-// DirectWriter.
+// emitRichTextPartToWriter emits a single RichText part to a DirectWriter.
 //
-// Literal parts use AppendString (trusted developer content, no
-// escaping needed). Expression parts use AppendEscapeString for
-// safety unless known to be safe types.
+// Literal parts use AppendString (trusted developer content, no escaping needed).
+// Expression parts use AppendEscapeString for safety unless known to be safe types.
 //
 // Takes dwIdent (*goast.Ident) which identifies the DirectWriter variable.
 // Takes part (ast_domain.TextPart) which is the text part to emit.
 //
-// Returns []goast.Stmt which contains the append statements for the
-// text part.
-// Returns []*ast_domain.Diagnostic which contains any issues found
-// during emission.
+// Returns []goast.Stmt which contains the append statements for the text part.
+// Returns []*ast_domain.Diagnostic which contains any issues found during emission.
 func (ne *nodeEmitter) emitRichTextPartToWriter(dwIdent *goast.Ident, part ast_domain.TextPart) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	if part.IsLiteral {
 		return []goast.Stmt{&goast.ExprStmt{X: &goast.CallExpr{
@@ -719,43 +680,40 @@ func (ne *nodeEmitter) emitRichTextPartToWriter(dwIdent *goast.Ident, part ast_d
 	return statements, diagnostics
 }
 
-// emitCollectionInitialisers generates pooled slice retrieval calls for slices
-// on the node.
+// emitCollectionInitialisers generates pooled slice retrieval calls for slices on the
+// node.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable to assign to.
 // Takes node (*ast_domain.TemplateNode) which provides the template structure.
-// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which maps loop indices to
-// their iterable information for dynamic capacity calculation.
-// Takes partialScopeID (string) which identifies the partial scope for static
-// attribute registration.
+// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which maps loop indices to their
+// iterable information for dynamic capacity calculation.
+// Takes partialScopeID (string) which identifies the partial scope for static attribute
+// registration.
 //
 // Returns []goast.Stmt which contains the slice initialisation statements.
 // Returns bool which indicates whether static attributes were used.
 //
 // Performance optimisations:
 //
-// OnEvents and CustomEvents maps are NOT allocated - they are never written to
-// in generated code (events are converted to attributes during code
-// generation). The renderer handles nil maps gracefully via range over nil
-// (which is a no-op in Go).
+// OnEvents and CustomEvents maps are NOT allocated - they are never written to in
+// generated code (events are converted to attributes during code generation). The
+// renderer handles nil maps gracefully via range over nil (which is a no-op in Go).
 //
 // Slices with capacity 0 are NOT allocated - pooled nodes already have properly
-// initialised slices from Reset. Avoids allocating slice headers (24 bytes
-// each) for empty slices.
+// initialised slices from Reset. Avoids allocating slice headers (24 bytes each) for
+// empty slices.
 //
-// Accurate capacity calculation prevents append reallocations - includes
-// partial info attrs, srcset attrs, etc. that are added after the initial
-// make call.
+// Accurate capacity calculation prevents append reallocations - includes partial info
+// attrs, srcset attrs, etc. that are added after the initial make call.
 //
-// Slice pooling eliminates allocations after warmup - GetAttrSlice and
-// GetChildSlice retrieve from size-class pools (buckets: 2, 4, 6, 8, 10, 12,
-// 16, 24, 32). Only first render allocates.
+// Slice pooling eliminates allocations after warmup - GetAttrSlice and GetChildSlice
+// retrieve from size-class pools (buckets: 2, 4, 6, 8, 10, 12, 16, 24, 32). Only first
+// render allocates.
 //
-// Dynamic child capacity for p-for loops - uses len(loopIter_N) to calculate
-// actual size, preventing reallocation during loop iterations.
+// Dynamic child capacity for p-for loops - uses len(loopIter_N) to calculate actual size,
+// preventing reallocation during loop iterations.
 //
-// Combined, these optimisations eliminate ~250+ allocations per page render
-// after warmup.
+// Combined, these optimisations eliminate ~250+ allocations per page render after warmup.
 func (ne *nodeEmitter) emitCollectionInitialisers(
 	nodeVar *goast.Ident,
 	node *ast_domain.TemplateNode,
@@ -793,17 +751,15 @@ func (ne *nodeEmitter) emitCollectionInitialisers(
 	return statements, usedStaticAttrs
 }
 
-// calculateChildCapacityExpr builds the capacity expression for a children
-// slice. Returns nil if there are no children, a static integer literal if all
-// children are static, or a dynamic expression that sums the static count with
-// len calls for each loop iterable.
+// calculateChildCapacityExpr builds the capacity expression for a children slice. Returns
+// nil if there are no children, a static integer literal if all children are static, or a
+// dynamic expression that sums the static count with len calls for each loop iterable.
 //
 // Takes node (*ast_domain.TemplateNode) which contains the children to count.
-// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which maps child indices to
-// their loop iterable information.
+// Takes loopInfoByIndex (map[int]*LoopIterableInfo) which maps child indices to their
+// loop iterable information.
 //
-// Returns goast.Expr which is the capacity expression, or nil if there are no
-// children.
+// Returns goast.Expr which is the capacity expression, or nil if there are no children.
 func (*nodeEmitter) calculateChildCapacityExpr(
 	node *ast_domain.TemplateNode,
 	loopInfoByIndex map[int]*LoopIterableInfo,
@@ -856,23 +812,22 @@ func (*nodeEmitter) calculateChildCapacityExpr(
 	return expression
 }
 
-// calculateAttributeCapacity calculates the required capacity for the
-// Attributes slice.
+// calculateAttributeCapacity calculates the required capacity for the Attributes slice.
 //
-// This counts items that go to node.Attributes (HTMLAttribute structs):
-// static attributes, boolean dynamic attributes, class directive result,
-// static key attribute, partial info attributes for public partials,
-// srcset/sizes attributes for piko:img elements, and event handler attributes.
+// This counts items that go to node.Attributes (HTMLAttribute structs): static
+// attributes, boolean dynamic attributes, class directive result, static key attribute,
+// partial info attributes for public partials, srcset/sizes attributes for piko:img
+// elements, and event handler attributes.
 //
 // Non-boolean dynamic attributes, dynamic keys, and style directive go to
 // AttributeWriters instead (see calculateAttributeWriterCapacity).
 //
 // Accurate capacity prevents costly append() reallocations.
 //
-// Takes node (*ast_domain.TemplateNode) which is the template node to
-// analyse for attribute capacity.
-// Takes partialScopeID (string) which is the current partial's HashedName for
-// CSS scoping.
+// Takes node (*ast_domain.TemplateNode) which is the template node to analyse for
+// attribute capacity.
+// Takes partialScopeID (string) which is the current partial's HashedName for CSS
+// scoping.
 //
 // Returns int which is the total capacity needed for the Attributes slice.
 func (ne *nodeEmitter) calculateAttributeCapacity(node *ast_domain.TemplateNode, partialScopeID string) int {
@@ -913,13 +868,13 @@ func (ne *nodeEmitter) calculateAttributeCapacity(node *ast_domain.TemplateNode,
 	return numAttrs
 }
 
-// calculateAttributeWriterCapacity counts how many DirectWriter slots are
-// needed for a template node.
+// calculateAttributeWriterCapacity counts how many DirectWriter slots are needed for a
+// template node.
 //
-// This counts items that use DirectWriter for zero-allocation rendering:
-// non-boolean dynamic attributes, asset src attributes, dynamic key
-// expressions, style directives with dynamic content, and event handlers.
-// Getting the right capacity avoids costly slice reallocations from append().
+// This counts items that use DirectWriter for zero-allocation rendering: non-boolean
+// dynamic attributes, asset src attributes, dynamic key expressions, style directives
+// with dynamic content, and event handlers. Getting the right capacity avoids costly
+// slice reallocations from append().
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
@@ -950,9 +905,9 @@ func (ne *nodeEmitter) calculateAttributeWriterCapacity(node *ast_domain.Templat
 	return numWriters
 }
 
-// hasAllStaticAttributes checks if all attributes on a node are static.
-// When true, the attribute slice can be moved to package level, which
-// removes pool allocations at runtime.
+// hasAllStaticAttributes checks if all attributes on a node are static. When true, the
+// attribute slice can be moved to package level, which removes pool allocations at
+// runtime.
 //
 // All of these must be true for the node to qualify:
 //   - No boolean dynamic attributes (`:disabled="expr"` bindings)
@@ -966,9 +921,9 @@ func (ne *nodeEmitter) calculateAttributeWriterCapacity(node *ast_domain.Templat
 //
 // Returns bool which is true if all attributes are static.
 //
-// Note: Dynamic class and style directives (p-class, p-style) are not checked
-// because they now go to AttributeWriters instead of Attributes, so static
-// moving works even when the node has dynamic class or style bindings.
+// Note: Dynamic class and style directives (p-class, p-style) are not checked because
+// they now go to AttributeWriters instead of Attributes, so static moving works even when
+// the node has dynamic class or style bindings.
 func (ne *nodeEmitter) hasAllStaticAttributes(node *ast_domain.TemplateNode) bool {
 	if node.NodeType != ast_domain.NodeElement {
 		return false
@@ -1002,13 +957,12 @@ func (ne *nodeEmitter) hasAllStaticAttributes(node *ast_domain.TemplateNode) boo
 	return true
 }
 
-// countEmittedEventAttributes counts event directives that will become HTML
-// attributes.
+// countEmittedEventAttributes counts event directives that will become HTML attributes.
 //
-// Takes events (map[string][]ast_domain.Directive) which maps event names to
-// their directives.
-// Takes node (*ast_domain.TemplateNode) which provides source path for
-// HasClientScript lookup.
+// Takes events (map[string][]ast_domain.Directive) which maps event names to their
+// directives.
+// Takes node (*ast_domain.TemplateNode) which provides source path for HasClientScript
+// lookup.
 //
 // Returns int which is the count of directives that will become attributes.
 func (ne *nodeEmitter) countEmittedEventAttributes(events map[string][]ast_domain.Directive, node *ast_domain.TemplateNode) int {
@@ -1029,8 +983,8 @@ func (ne *nodeEmitter) countEmittedEventAttributes(events map[string][]ast_domai
 	return count
 }
 
-// directiveHasClientScript checks whether a directive's source file has a
-// linked client script.
+// directiveHasClientScript checks whether a directive's source file has a linked client
+// script.
 //
 // Takes d (*ast_domain.Directive) which is the directive to check.
 // Takes node (*ast_domain.TemplateNode) which provides a fallback source path.
@@ -1058,11 +1012,11 @@ func (ne *nodeEmitter) directiveHasClientScript(d *ast_domain.Directive, node *a
 	return false
 }
 
-// willEmitPartialInfoAttributes checks whether partial info attributes will be
-// added for the given node.
+// willEmitPartialInfoAttributes checks whether partial info attributes will be added for
+// the given node.
 //
-// This mirrors the logic in emitPartialInfoAttributes to ensure accurate
-// capacity calculation.
+// This mirrors the logic in emitPartialInfoAttributes to ensure accurate capacity
+// calculation.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -1084,8 +1038,8 @@ func (ne *nodeEmitter) willEmitPartialInfoAttributes(node *ast_domain.TemplateNo
 	return ok
 }
 
-// willEmitPartialPropsAttribute checks whether a partial_props attribute will
-// be emitted for the given node.
+// willEmitPartialPropsAttribute checks whether a partial_props attribute will be emitted
+// for the given node.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -1105,20 +1059,19 @@ func (ne *nodeEmitter) willEmitPartialPropsAttribute(node *ast_domain.TemplateNo
 	return len(extractPrimitiveQueryPropsFromComponent(partialVC)) > 0
 }
 
-// extractLoopIterables scans children for p-for directives and extracts their
-// collection expressions to variables. This enables accurate child slice
-// capacity calculation and guarantees collection expressions (which may be
-// method calls) are only evaluated once.
+// extractLoopIterables scans children for p-for directives and extracts their collection
+// expressions to variables. This enables accurate child slice capacity calculation and
+// guarantees collection expressions (which may be method calls) are only evaluated once.
 //
-// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes
-// to scan for p-for directives.
+// Takes children ([]*ast_domain.TemplateNode) which contains the child nodes to scan for
+// p-for directives.
 //
-// Returns extractStmts ([]goast.Stmt) which contains assignment statements
-// like `loopIter_1 := pageData.Items`.
+// Returns extractStmts ([]goast.Stmt) which contains assignment statements like
+// `loopIter_1 := pageData.Items`.
 // Returns loopInfoByIndex (map[int]*LoopIterableInfo) which maps child index to
 // LoopIterableInfo for children with p-for directives.
-// Returns diagnostics ([]*ast_domain.Diagnostic) which contains any
-// diagnostics from expression emission.
+// Returns diagnostics ([]*ast_domain.Diagnostic) which contains any diagnostics from
+// expression emission.
 func (ne *nodeEmitter) extractLoopIterables(
 	children []*ast_domain.TemplateNode,
 ) (extractStmts []goast.Stmt, loopInfoByIndex map[int]*LoopIterableInfo, diagnostics []*ast_domain.Diagnostic) {
@@ -1156,11 +1109,10 @@ func (ne *nodeEmitter) extractLoopIterables(
 	return extractStmts, loopInfoByIndex, diagnostics
 }
 
-// isCollectionNillable checks if a collection type can be nil and needs a nil
-// check.
+// isCollectionNillable checks if a collection type can be nil and needs a nil check.
 //
-// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type
-// information to check.
+// Takes ann (*ast_domain.GoGeneratorAnnotation) which provides the type information to
+// check.
 //
 // Returns bool which is true if the type can be nil.
 func (*nodeEmitter) isCollectionNillable(ann *ast_domain.GoGeneratorAnnotation) bool {
@@ -1179,12 +1131,11 @@ func (*nodeEmitter) isCollectionNillable(ann *ast_domain.GoGeneratorAnnotation) 
 	return true
 }
 
-// createPooledSliceStmts creates statements that retrieve a slice from the
-// arena and assign it to a node field.
+// createPooledSliceStmts creates statements that retrieve a slice from the arena and
+// assign it to a node field.
 //
-// Generates code like:
-// _, sliceVar := arena.GetAttrSlice(capacity)
-// nodeVar.Attributes = sliceVar
+// Generates code like: _, sliceVar := arena.GetAttrSlice(capacity) nodeVar.Attributes =
+// sliceVar
 //
 // Takes nodeVar (*goast.Ident) which is the variable to assign the slice to.
 // Takes fieldName (string) which is the field name on the node variable.
@@ -1196,14 +1147,12 @@ func (ne *nodeEmitter) createPooledSliceStmts(nodeVar *goast.Ident, fieldName st
 	return ne.createPooledSliceStmtsDynamic(nodeVar, fieldName, poolFunc, intLit(capacity))
 }
 
-// createPooledSliceStmtsDynamic creates assignment statements that get a
-// pooled slice with a dynamic capacity from the arena.
+// createPooledSliceStmtsDynamic creates assignment statements that get a pooled slice
+// with a dynamic capacity from the arena.
 //
-// Generates code like:
-// _, sliceVar := arena.GetChildSlice(staticCount + len(loopIter_1))
-// nodeVar.Children = sliceVar
-// The arena handles all slice lifecycle management internally - no pool pointer
-// tracking is needed on the node.
+// Generates code like: _, sliceVar := arena.GetChildSlice(staticCount + len(loopIter_1))
+// nodeVar.Children = sliceVar The arena handles all slice lifecycle management internally
+// - no pool pointer tracking is needed on the node.
 //
 // Takes nodeVar (*goast.Ident) which is the variable to assign the slice to.
 // Takes fieldName (string) which is the field name on the node variable.
@@ -1236,12 +1185,11 @@ func (ne *nodeEmitter) createPooledSliceStmtsDynamic(nodeVar *goast.Ident, field
 	return []goast.Stmt{defineStmt, assignSliceStmt}
 }
 
-// emitContentDirectives handles p-text and p-html directives, which overwrite
-// child content.
+// emitContentDirectives handles p-text and p-html directives, which overwrite child
+// content.
 //
-// p-text uses TextContentWriter for zero-allocation rendering with HTML
-// escaping at render time. p-html uses InnerHTML directly (no escaping -
-// intentionally raw HTML).
+// p-text uses TextContentWriter for zero-allocation rendering with HTML escaping at
+// render time. p-html uses InnerHTML directly (no escaping - intentionally raw HTML).
 //
 // Takes nodeVar (*goast.Ident) which is the variable referencing the DOM node.
 // Takes node (*ast_domain.TemplateNode) which contains the directive to emit.
@@ -1259,17 +1207,15 @@ func (ne *nodeEmitter) emitContentDirectives(nodeVar *goast.Ident, node *ast_dom
 	return false, nil, nil
 }
 
-// emitPTextDirective handles the p-text directive using TextContentWriter for
-// rendering without memory allocation.
+// emitPTextDirective handles the p-text directive using TextContentWriter for rendering
+// without memory allocation.
 //
 // Takes nodeVar (*goast.Ident) which identifies the target node variable.
-// Takes directive (*ast_domain.Directive) which specifies the text directive
-// to emit.
+// Takes directive (*ast_domain.Directive) which specifies the text directive to emit.
 //
 // Returns bool which indicates whether the directive was processed.
 // Returns []goast.Stmt which contains the generated Go statements.
-// Returns []*ast_domain.Diagnostic which holds any issues found during
-// emission.
+// Returns []*ast_domain.Diagnostic which holds any issues found during emission.
 func (ne *nodeEmitter) emitPTextDirective(nodeVar *goast.Ident, directive *ast_domain.Directive) (bool, []goast.Stmt, []*ast_domain.Diagnostic) {
 	valGoExpr, prereqs, expressionDiagnostics := ne.expressionEmitter.emit(directive.Expression)
 
@@ -1286,15 +1232,15 @@ func (ne *nodeEmitter) emitPTextDirective(nodeVar *goast.Ident, directive *ast_d
 	return true, append(prereqs, dwStmts...), expressionDiagnostics
 }
 
-// buildTextContentWriterStmts creates statements that set up a DirectWriter
-// for plain text content.
+// buildTextContentWriterStmts creates statements that set up a DirectWriter for plain
+// text content.
 //
 // Takes nodeVar (*goast.Ident) which is the AST node to assign the writer to.
 // Takes valGoExpr (goast.Expr) which is the value to write.
 // Takes ann (*ast_domain.GoGeneratorAnnotation) which controls escaping.
 //
-// Returns []goast.Stmt which gets a DirectWriter from the pool, adds the value,
-// and assigns it to the node.
+// Returns []goast.Stmt which gets a DirectWriter from the pool, adds the value, and
+// assigns it to the node.
 func (ne *nodeEmitter) buildTextContentWriterStmts(
 	nodeVar *goast.Ident,
 	valGoExpr goast.Expr,
@@ -1326,16 +1272,16 @@ func (ne *nodeEmitter) buildTextContentWriterStmts(
 	}
 }
 
-// emitPHTMLDirective handles the p-html directive by setting InnerHTML with no
-// escaping, for use when raw HTML output is intended.
+// emitPHTMLDirective handles the p-html directive by setting InnerHTML with no escaping,
+// for use when raw HTML output is intended.
 //
 // Takes nodeVar (*goast.Ident) which identifies the DOM node variable.
 // Takes directive (*ast_domain.Directive) which contains the p-html directive.
 //
 // Returns bool which indicates whether the directive was handled.
 // Returns []goast.Stmt which contains the generated assignment statements.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from
-// expression processing.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from expression
+// processing.
 func (ne *nodeEmitter) emitPHTMLDirective(nodeVar *goast.Ident, directive *ast_domain.Directive) (bool, []goast.Stmt, []*ast_domain.Diagnostic) {
 	valGoExpr, prereqStmts, expressionDiagnostics := ne.expressionEmitter.emit(directive.Expression)
 	stringValExpr := ne.expressionEmitter.valueToString(valGoExpr, directive.GoAnnotations)
@@ -1360,16 +1306,15 @@ func (ne *nodeEmitter) emitPHTMLDirective(nodeVar *goast.Ident, directive *ast_d
 // emitMiscDirectives handles simple directives and flags attached to the node.
 //
 // DirRef is not included here as it is handled separately in
-// attribute_emitter.emitRefAttribute because p-ref is always a static string
-// literal (per validation) and emits as an HTML attribute.
+// attribute_emitter.emitRefAttribute because p-ref is always a static string literal (per
+// validation) and emits as an HTML attribute.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable to assign to.
-// Takes node (*ast_domain.TemplateNode) which provides the template node with
-// directives.
+// Takes node (*ast_domain.TemplateNode) which provides the template node with directives.
 //
 // Returns []goast.Stmt which contains the generated assignment statements.
-// Returns []*ast_domain.Diagnostic which contains any diagnostics from
-// expression emission.
+// Returns []*ast_domain.Diagnostic which contains any diagnostics from expression
+// emission.
 func (ne *nodeEmitter) emitMiscDirectives(nodeVar *goast.Ident, node *ast_domain.TemplateNode) ([]goast.Stmt, []*ast_domain.Diagnostic) {
 	statements := make([]goast.Stmt, 0, MiscDirectiveCapacity)
 	var allDiags []*ast_domain.Diagnostic
@@ -1414,8 +1359,7 @@ func (ne *nodeEmitter) emitMiscDirectives(nodeVar *goast.Ident, node *ast_domain
 	return statements, allDiags
 }
 
-// emitSrcsetAttributes builds srcset and sizes attributes for responsive
-// piko:img tags.
+// emitSrcsetAttributes builds srcset and sizes attributes for responsive piko:img tags.
 //
 // Takes nodeVar (*goast.Ident) which identifies the node variable in the AST.
 // Takes node (*ast_domain.TemplateNode) which holds the template node data.
@@ -1441,10 +1385,8 @@ func (*nodeEmitter) emitSrcsetAttributes(nodeVar *goast.Ident, node *ast_domain.
 // newNodeEmitter creates a node emitter with the given parts.
 //
 // Takes emitter (*emitter) which handles writing output.
-// Takes expressionEmitter (ExpressionEmitter) which writes
-// expressions.
-// Takes attributeEmitter (AttributeEmitter) which writes
-// attributes.
+// Takes expressionEmitter (ExpressionEmitter) which writes expressions.
+// Takes attributeEmitter (AttributeEmitter) which writes attributes.
 // Takes astBuilder (AstBuilder) which builds AST nodes.
 //
 // Returns *nodeEmitter which is ready to emit nodes.
@@ -1457,9 +1399,9 @@ func newNodeEmitter(emitter *emitter, expressionEmitter ExpressionEmitter, attri
 	}
 }
 
-// nodeHasPartialAttribute checks if a node already has a partial attribute.
-// This prevents adding partial metadata twice when prepareNodeForEmission
-// has already added it to root nodes.
+// nodeHasPartialAttribute checks if a node already has a partial attribute. This prevents
+// adding partial metadata twice when prepareNodeForEmission has already added it to root
+// nodes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the node to check.
 //
@@ -1473,8 +1415,7 @@ func nodeHasPartialAttribute(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// emitNodeType creates an assignment statement that sets the type field of a
-// node.
+// emitNodeType creates an assignment statement that sets the type field of a node.
 //
 // Takes nodeVar (*goast.Ident) which is the node variable to assign to.
 // Takes node (*ast_domain.TemplateNode) which provides the node type value.
@@ -1505,8 +1446,8 @@ func emitTagName(nodeVar *goast.Ident, tagName string) goast.Stmt {
 // emitStaticTextContent creates an assignment statement for static text.
 //
 // Takes nodeVar (*goast.Ident) which is the variable for the node.
-// Takes textContent (string) which is the text to assign. The text is escaped
-// for HTML before being assigned.
+// Takes textContent (string) which is the text to assign. The text is escaped for HTML
+// before being assigned.
 //
 // Returns goast.Stmt which is the assignment statement for the text content.
 func emitStaticTextContent(nodeVar *goast.Ident, textContent string) goast.Stmt {
@@ -1517,13 +1458,13 @@ func emitStaticTextContent(nodeVar *goast.Ident, textContent string) goast.Stmt 
 	}
 }
 
-// hasDynamicClassContent checks if a node has dynamic class content that gets
-// passed to Attributes.
+// hasDynamicClassContent checks if a node has dynamic class content that gets passed to
+// Attributes.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node has a DirClass directive or a dynamic
-// class attribute such as `:class="..."`.
+// Returns bool which is true if the node has a DirClass directive or a dynamic class
+// attribute such as `:class="..."`.
 func hasDynamicClassContent(node *ast_domain.TemplateNode) bool {
 	if node.DirClass != nil {
 		return true
@@ -1536,13 +1477,13 @@ func hasDynamicClassContent(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// hasDynamicStyleContent checks whether a template node has dynamic style
-// content that needs a DirectWriter.
+// hasDynamicStyleContent checks whether a template node has dynamic style content that
+// needs a DirectWriter.
 //
 // Takes node (*ast_domain.TemplateNode) which is the template node to check.
 //
-// Returns bool which is true if the node has a DirStyle directive or a dynamic
-// style attribute.
+// Returns bool which is true if the node has a DirStyle directive or a dynamic style
+// attribute.
 func hasDynamicStyleContent(node *ast_domain.TemplateNode) bool {
 	if node.DirStyle != nil {
 		return true
@@ -1555,12 +1496,12 @@ func hasDynamicStyleContent(node *ast_domain.TemplateNode) bool {
 	return false
 }
 
-// countBooleanDynamicAttributes counts how many dynamic attributes have a
-// boolean type. Boolean attributes are added to the Attributes collection and
-// are only shown when their value is true.
+// countBooleanDynamicAttributes counts how many dynamic attributes have a boolean type.
+// Boolean attributes are added to the Attributes collection and are only shown when their
+// value is true.
 //
-// Takes dynAttrs ([]ast_domain.DynamicAttribute) which contains the dynamic
-// attributes to check.
+// Takes dynAttrs ([]ast_domain.DynamicAttribute) which contains the dynamic attributes to
+// check.
 //
 // Returns int which is the number of boolean-typed dynamic attributes.
 func countBooleanDynamicAttributes(dynAttrs []ast_domain.DynamicAttribute) int {
@@ -1573,15 +1514,14 @@ func countBooleanDynamicAttributes(dynAttrs []ast_domain.DynamicAttribute) int {
 	return count
 }
 
-// countNonBooleanDynamicAttributes counts dynamic attributes with
-// non-boolean type that go to AttributeWriters, excluding class and
-// style attributes which are handled separately.
+// countNonBooleanDynamicAttributes counts dynamic attributes with non-boolean type that
+// go to AttributeWriters, excluding class and style attributes which are handled
+// separately.
 //
-// Takes dynAttrs ([]ast_domain.DynamicAttribute) which contains the
-// attributes to inspect.
+// Takes dynAttrs ([]ast_domain.DynamicAttribute) which contains the attributes to
+// inspect.
 //
-// Returns int which is the number of non-boolean dynamic attributes
-// found.
+// Returns int which is the number of non-boolean dynamic attributes found.
 func countNonBooleanDynamicAttributes(dynAttrs []ast_domain.DynamicAttribute, tagName string) int {
 	count := 0
 	for i := range dynAttrs {
@@ -1601,8 +1541,8 @@ func countNonBooleanDynamicAttributes(dynAttrs []ast_domain.DynamicAttribute, ta
 
 // countBooleanBinds counts the bind directives that have a boolean type.
 //
-// Takes binds (map[string]*ast_domain.Directive) which contains the bind
-// directives to check.
+// Takes binds (map[string]*ast_domain.Directive) which contains the bind directives to
+// check.
 //
 // Returns int which is the count of boolean bind directives found.
 func countBooleanBinds(binds map[string]*ast_domain.Directive) int {
@@ -1617,8 +1557,8 @@ func countBooleanBinds(binds map[string]*ast_domain.Directive) int {
 
 // countNonBooleanBinds counts bind directives that are not boolean.
 //
-// Takes binds (map[string]*ast_domain.Directive) which maps directive names to
-// their definitions.
+// Takes binds (map[string]*ast_domain.Directive) which maps directive names to their
+// definitions.
 //
 // Returns int which is the number of non-boolean bind directives.
 func countNonBooleanBinds(binds map[string]*ast_domain.Directive) int {
@@ -1631,8 +1571,7 @@ func countNonBooleanBinds(binds map[string]*ast_domain.Directive) int {
 	return count
 }
 
-// isDynamicAttributeBoolean reports whether a dynamic attribute has a boolean
-// type.
+// isDynamicAttributeBoolean reports whether a dynamic attribute has a boolean type.
 //
 // Takes da (*ast_domain.DynamicAttribute) which is the attribute to check.
 //
@@ -1661,14 +1600,14 @@ func isBindDirectiveBoolean(directive *ast_domain.Directive) bool {
 	return ann != nil && ann.ResolvedType != nil && isBoolType(ann.ResolvedType.TypeExpression)
 }
 
-// hasWidthDescriptors checks whether all srcset variants have width values
-// set for use as width descriptors.
+// hasWidthDescriptors checks whether all srcset variants have width values set for use as
+// width descriptors.
 //
-// Takes srcset ([]ast_domain.ResponsiveVariantMetadata) which contains the
-// image variants to check.
+// Takes srcset ([]ast_domain.ResponsiveVariantMetadata) which contains the image variants
+// to check.
 //
-// Returns bool which is true if all variants have a width value greater than
-// zero, or false if any variant has a width of zero.
+// Returns bool which is true if all variants have a width value greater than zero, or
+// false if any variant has a width of zero.
 func hasWidthDescriptors(srcset []ast_domain.ResponsiveVariantMetadata) bool {
 	for _, variant := range srcset {
 		if variant.Width == 0 {
@@ -1678,9 +1617,9 @@ func hasWidthDescriptors(srcset []ast_domain.ResponsiveVariantMetadata) bool {
 	return true
 }
 
-// createStaticSliceAssignment creates an assignment statement that sets a
-// field to a package-level static slice variable.
-// Produces code like: nodeVar.fieldName = staticVarName.
+// createStaticSliceAssignment creates an assignment statement that sets a field to a
+// package-level static slice variable. Produces code like: nodeVar.fieldName =
+// staticVarName.
 //
 // Takes nodeVar (*goast.Ident) which is the variable to assign to.
 // Takes fieldName (string) which is the field name on the node variable.
@@ -1695,14 +1634,14 @@ func createStaticSliceAssignment(nodeVar *goast.Ident, fieldName string, staticV
 	}
 }
 
-// shouldUseWidthDescriptors checks whether to use width (w) or density (x)
-// descriptors in a srcset attribute.
+// shouldUseWidthDescriptors checks whether to use width (w) or density (x) descriptors in
+// a srcset attribute.
 //
-// Takes srcset ([]ast_domain.ResponsiveVariantMetadata) which contains the
-// image variants to check.
+// Takes srcset ([]ast_domain.ResponsiveVariantMetadata) which contains the image variants
+// to check.
 //
-// Returns bool which is true if all variants have a width set, or false if any
-// variant has no width set.
+// Returns bool which is true if all variants have a width set, or false if any variant
+// has no width set.
 func shouldUseWidthDescriptors(srcset []ast_domain.ResponsiveVariantMetadata) bool {
 	for _, variant := range srcset {
 		if variant.Width == 0 {
@@ -1712,14 +1651,14 @@ func shouldUseWidthDescriptors(srcset []ast_domain.ResponsiveVariantMetadata) bo
 	return true
 }
 
-// buildSrcsetValue builds the srcset attribute value string from
-// variants, where useWidthDescriptors is a computed property of
-// the srcset data (whether all variants have width values).
+// buildSrcsetValue builds the srcset attribute value string from variants, where
+// useWidthDescriptors is a computed property of the srcset data (whether all variants
+// have width values).
 //
-// Takes srcset ([]ast_domain.ResponsiveVariantMetadata) which contains
-// the image variants to format.
-// Takes useWidthDescriptors (bool) which selects width descriptors
-// when true, density descriptors when false.
+// Takes srcset ([]ast_domain.ResponsiveVariantMetadata) which contains the image variants
+// to format.
+// Takes useWidthDescriptors (bool) which selects width descriptors when true, density
+// descriptors when false.
 //
 // Returns string which is the formatted srcset attribute value.
 //
@@ -1736,19 +1675,18 @@ func buildSrcsetValue(srcset []ast_domain.ResponsiveVariantMetadata, useWidthDes
 	return strings.Join(srcsetParts, ", ")
 }
 
-// buildSizesAttributeIfNeeded adds a sizes attribute when present
-// and width descriptors are in use, where useWidthDescriptors is
-// a computed property determining descriptor type.
+// buildSizesAttributeIfNeeded adds a sizes attribute when present and width descriptors
+// are in use, where useWidthDescriptors is a computed property determining descriptor
+// type.
 //
-// Takes node (*ast_domain.TemplateNode) which provides the attribute
-// list to search for a sizes value.
-// Takes attributeSliceExpression (goast.Expr) which is the slice to append the
-// sizes attribute to.
-// Takes useWidthDescriptors (bool) which gates whether the sizes
-// attribute is needed.
+// Takes node (*ast_domain.TemplateNode) which provides the attribute list to search for a
+// sizes value.
+// Takes attributeSliceExpression (goast.Expr) which is the slice to append the sizes
+// attribute to.
+// Takes useWidthDescriptors (bool) which gates whether the sizes attribute is needed.
 //
-// Returns goast.Stmt which appends the sizes attribute, or nil when
-// width descriptors are not used or no sizes value exists.
+// Returns goast.Stmt which appends the sizes attribute, or nil when width descriptors are
+// not used or no sizes value exists.
 //
 // represents data property, not control flag.
 func buildSizesAttributeIfNeeded(node *ast_domain.TemplateNode, attributeSliceExpression goast.Expr, useWidthDescriptors bool) goast.Stmt {
