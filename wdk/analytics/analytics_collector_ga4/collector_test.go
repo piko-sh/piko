@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package analytics_adapters
+package analytics_collector_ga4
 
 import (
 	"context"
@@ -35,9 +35,9 @@ import (
 	"piko.sh/piko/wdk/maths"
 )
 
-func TestGA4Collector_BatchFlush(t *testing.T) {
+func TestCollector_BatchFlush(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -45,20 +45,20 @@ func TestGA4Collector_BatchFlush(t *testing.T) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		var payload ga4Payload
-		if err := json.Unmarshal(body, &payload); err != nil {
+		var p payload
+		if err := json.Unmarshal(body, &p); err != nil {
 			t.Errorf("unmarshalling GA4 body: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(3))
+	collector := newTestCollector(srv.URL, WithBatchSize(3))
 
 	for range 3 {
 		event := &analytics_dto.Event{
@@ -70,15 +70,15 @@ func TestGA4Collector_BatchFlush(t *testing.T) {
 			ClientIP:   "1.2.3.4",
 			UserAgent:  "TestBot",
 		}
-		if err := gc.Collect(context.Background(), event); err != nil {
+		if err := collector.Collect(context.Background(), event); err != nil {
 			t.Fatalf("Collect returned error: %v", err)
 		}
 	}
 
-	if err := gc.Flush(context.Background()); err != nil {
+	if err := collector.Flush(context.Background()); err != nil {
 		t.Fatalf("Flush returned error: %v", err)
 	}
-	if err := gc.Close(context.Background()); err != nil {
+	if err := collector.Close(context.Background()); err != nil {
 		t.Fatalf("Close returned error: %v", err)
 	}
 
@@ -95,22 +95,22 @@ func TestGA4Collector_BatchFlush(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_PageViewMapping(t *testing.T) {
+func TestCollector_PageViewMapping(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Hostname:   "example.com",
@@ -125,46 +125,46 @@ func TestGA4Collector_PageViewMapping(t *testing.T) {
 		ClientIP:   "10.0.0.1",
 		UserAgent:  "Mozilla/5.0",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
 	if len(received) != 1 || len(received[0].Events) != 1 {
 		t.Fatalf("expected 1 payload with 1 event")
 	}
-	ga4Event := received[0].Events[0]
-	if ga4Event.Name != "page_view" {
-		t.Errorf("name = %q, want page_view", ga4Event.Name)
+	ev := received[0].Events[0]
+	if ev.Name != "page_view" {
+		t.Errorf("name = %q, want page_view", ev.Name)
 	}
-	if ga4Event.Params["page_location"] != "https://example.com/products?cat=shoes" {
-		t.Errorf("page_location = %v, want full URL", ga4Event.Params["page_location"])
+	if ev.Params["page_location"] != "https://example.com/products?cat=shoes" {
+		t.Errorf("page_location = %v, want full URL", ev.Params["page_location"])
 	}
-	if ga4Event.Params["page_referrer"] != "https://google.com" {
-		t.Errorf("page_referrer = %v", ga4Event.Params["page_referrer"])
+	if ev.Params["page_referrer"] != "https://google.com" {
+		t.Errorf("page_referrer = %v", ev.Params["page_referrer"])
 	}
-	if ga4Event.Params["language"] != "en-GB" {
-		t.Errorf("language = %v, want en-GB", ga4Event.Params["language"])
+	if ev.Params["language"] != "en-GB" {
+		t.Errorf("language = %v, want en-GB", ev.Params["language"])
 	}
 }
 
-func TestGA4Collector_CustomEventName(t *testing.T) {
+func TestCollector_CustomEventName(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		EventName:  "purchase",
@@ -174,9 +174,9 @@ func TestGA4Collector_CustomEventName(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -185,22 +185,22 @@ func TestGA4Collector_CustomEventName(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_ActionNameMapping(t *testing.T) {
+func TestCollector_ActionNameMapping(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		ActionName: "cart.Purchase",
@@ -210,9 +210,9 @@ func TestGA4Collector_ActionNameMapping(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -224,22 +224,22 @@ func TestGA4Collector_ActionNameMapping(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_RevenueMapping(t *testing.T) {
+func TestCollector_RevenueMapping(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	revenue := maths.NewMoneyFromString("49.99", "GBP")
 	event := &analytics_dto.Event{
@@ -251,9 +251,9 @@ func TestGA4Collector_RevenueMapping(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -261,7 +261,7 @@ func TestGA4Collector_RevenueMapping(t *testing.T) {
 	if params["currency"] != "GBP" {
 		t.Errorf("currency = %v, want GBP", params["currency"])
 	}
-	value, ok := params["value"].(float64)
+	value, ok := params["value"].(float64) //nolint:revive // test-only assertion
 	if !ok {
 		t.Fatalf("value is not float64: %T", params["value"])
 	}
@@ -270,22 +270,22 @@ func TestGA4Collector_RevenueMapping(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_PropertiesMerge(t *testing.T) {
+func TestCollector_PropertiesMerge(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/signup",
@@ -295,9 +295,9 @@ func TestGA4Collector_PropertiesMerge(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -310,22 +310,22 @@ func TestGA4Collector_PropertiesMerge(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_ClientIDFromIPAndUA(t *testing.T) {
+func TestCollector_ClientIDFromIPAndUA(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/test",
@@ -334,9 +334,9 @@ func TestGA4Collector_ClientIDFromIPAndUA(t *testing.T) {
 		ClientIP:   "192.168.1.1",
 		UserAgent:  "TestBrowser/1.0",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	expectedHash := sha256.New()
 	expectedHash.Write([]byte("192.168.1.1"))
@@ -351,24 +351,24 @@ func TestGA4Collector_ClientIDFromIPAndUA(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_CustomClientIDFunc(t *testing.T) {
+func TestCollector_CustomClientIDFunc(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL,
-		WithGA4BatchSize(1),
-		WithGA4ClientIDFunc(func(_, _ string) string { return "custom-client-123" }),
+	collector := newTestCollector(srv.URL,
+		WithBatchSize(1),
+		WithClientIDFunc(func(_, _ string) string { return "custom-client-123" }),
 	)
 
 	event := &analytics_dto.Event{
@@ -377,9 +377,9 @@ func TestGA4Collector_CustomClientIDFunc(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -388,22 +388,22 @@ func TestGA4Collector_CustomClientIDFunc(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_UserIDMapping(t *testing.T) {
+func TestCollector_UserIDMapping(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/account",
@@ -412,9 +412,9 @@ func TestGA4Collector_UserIDMapping(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -423,22 +423,22 @@ func TestGA4Collector_UserIDMapping(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_TimestampMicros(t *testing.T) {
+func TestCollector_TimestampMicros(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	eventTime := time.Date(2026, 4, 10, 12, 0, 0, 0, time.UTC)
 	event := &analytics_dto.Event{
@@ -447,9 +447,9 @@ func TestGA4Collector_TimestampMicros(t *testing.T) {
 		Timestamp:  eventTime,
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -458,7 +458,7 @@ func TestGA4Collector_TimestampMicros(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_DebugEndpoint(t *testing.T) {
+func TestCollector_DebugEndpoint(t *testing.T) {
 	var receivedURL string
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -467,68 +467,68 @@ func TestGA4Collector_DebugEndpoint(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	gc := NewGA4Collector("G-TEST", "secret", WithGA4Debug(true))
-	if !strings.Contains(gc.endpoint, "/debug/mp/collect") {
-		t.Errorf("endpoint = %q, want /debug/mp/collect", gc.endpoint)
+	collector := NewCollector("G-TEST", "secret", WithDebug(true)).(*Collector) //nolint:revive // test-only assertion
+	if !strings.Contains(collector.endpoint, "/debug/mp/collect") {
+		t.Errorf("endpoint = %q, want /debug/mp/collect", collector.endpoint)
 	}
-	_ = gc.Close(context.Background())
+	_ = collector.Close(context.Background())
 
-	gcProd := NewGA4Collector("G-TEST", "secret")
-	if !strings.Contains(gcProd.endpoint, "/mp/collect") {
-		t.Errorf("endpoint = %q, want /mp/collect", gcProd.endpoint)
+	collectorProd := NewCollector("G-TEST", "secret").(*Collector) //nolint:revive // test-only assertion
+	if !strings.Contains(collectorProd.endpoint, "/mp/collect") {
+		t.Errorf("endpoint = %q, want /mp/collect", collectorProd.endpoint)
 	}
-	if strings.Contains(gcProd.endpoint, "/debug/") {
+	if strings.Contains(collectorProd.endpoint, "/debug/") {
 		t.Errorf("production endpoint should not contain /debug/")
 	}
-	_ = gcProd.Close(context.Background())
+	_ = collectorProd.Close(context.Background())
 
 	_ = receivedURL
 }
 
-func TestGA4Collector_FlushEmptyBuffer(t *testing.T) {
+func TestCollector_FlushEmptyBuffer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		t.Error("unexpected POST to GA4 with empty buffer")
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL)
+	collector := newTestCollector(srv.URL)
 
-	if err := gc.Flush(context.Background()); err != nil {
+	if err := collector.Flush(context.Background()); err != nil {
 		t.Fatalf("Flush returned error: %v", err)
 	}
-	if err := gc.Close(context.Background()); err != nil {
+	if err := collector.Close(context.Background()); err != nil {
 		t.Fatalf("Close returned error: %v", err)
 	}
 }
 
-func TestGA4Collector_Name(t *testing.T) {
-	gc := NewGA4Collector("G-TEST", "secret")
-	defer gc.Close(context.Background())
+func TestCollector_Name(t *testing.T) {
+	collector := NewCollector("G-TEST", "secret").(*Collector) //nolint:revive // test-only assertion
+	defer collector.Close(context.Background())
 
-	if gc.Name() != "ga4" {
-		t.Errorf("Name() = %q, want ga4", gc.Name())
+	if collector.Name() != "ga4" {
+		t.Errorf("Name() = %q, want ga4", collector.Name())
 	}
 }
 
-func TestGA4Collector_DoubleClose(t *testing.T) {
-	gc := NewGA4Collector("G-TEST", "secret")
+func TestCollector_DoubleClose(t *testing.T) {
+	collector := NewCollector("G-TEST", "secret").(*Collector) //nolint:revive // test-only assertion
 
-	if err := gc.Close(context.Background()); err != nil {
+	if err := collector.Close(context.Background()); err != nil {
 		t.Fatalf("first Close returned error: %v", err)
 	}
-	if err := gc.Close(context.Background()); err != nil {
+	if err := collector.Close(context.Background()); err != nil {
 		t.Fatalf("second Close returned error: %v", err)
 	}
 }
 
-func TestGA4Collector_ErrorStatusCode(t *testing.T) {
+func TestCollector_ErrorStatusCode(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL, WithGA4BatchSize(1))
+	collector := newTestCollector(srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/error",
@@ -536,33 +536,33 @@ func TestGA4Collector_ErrorStatusCode(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	err := gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	err := collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	if err == nil {
 		t.Error("expected error from Flush when server returns 500")
 	}
 }
 
-func TestGA4Collector_TimerFlush(t *testing.T) {
+func TestCollector_TimerFlush(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL,
-		WithGA4BatchSize(100),
-		WithGA4FlushInterval(50*time.Millisecond),
+	collector := newTestCollector(srv.URL,
+		WithBatchSize(100),
+		WithFlushInterval(50*time.Millisecond),
 	)
 
 	event := &analytics_dto.Event{
@@ -571,7 +571,7 @@ func TestGA4Collector_TimerFlush(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
+	_ = collector.Collect(context.Background(), event)
 
 	time.Sleep(200 * time.Millisecond)
 
@@ -582,36 +582,36 @@ func TestGA4Collector_TimerFlush(t *testing.T) {
 	if count == 0 {
 		t.Error("expected timer-based flush to send events")
 	}
-	_ = gc.Close(context.Background())
+	_ = collector.Close(context.Background())
 }
 
-func TestGA4Collector_MaxBatchClamped(t *testing.T) {
-	gc := NewGA4Collector("G-TEST", "secret", WithGA4BatchSize(50))
-	defer gc.Close(context.Background())
+func TestCollector_MaxBatchClamped(t *testing.T) {
+	collector := NewCollector("G-TEST", "secret", WithBatchSize(50)).(*Collector) //nolint:revive // test-only assertion
+	defer collector.Close(context.Background())
 
-	if gc.batchSize != maxGA4EventsPerRequest {
-		t.Errorf("batchSize = %d, want %d (clamped)", gc.batchSize, maxGA4EventsPerRequest)
+	if collector.batchSize != maxEventsPerRequest {
+		t.Errorf("batchSize = %d, want %d (clamped)", collector.batchSize, maxEventsPerRequest)
 	}
 }
 
-func TestGA4Collector_ClientIDPartitioning(t *testing.T) {
+func TestCollector_ClientIDPartitioning(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL,
-		WithGA4BatchSize(10),
-		WithGA4FlushInterval(1*time.Hour),
+	collector := newTestCollector(srv.URL,
+		WithBatchSize(10),
+		WithFlushInterval(1*time.Hour),
 	)
 
 	event1 := &analytics_dto.Event{
@@ -624,10 +624,10 @@ func TestGA4Collector_ClientIDPartitioning(t *testing.T) {
 		ClientIP: "2.2.2.2", UserAgent: "Bot",
 		Type: analytics_dto.EventPageView,
 	}
-	_ = gc.Collect(context.Background(), event1)
-	_ = gc.Collect(context.Background(), event2)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event1)
+	_ = collector.Collect(context.Background(), event2)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -640,31 +640,31 @@ func TestGA4Collector_ClientIDPartitioning(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_AnonymousClientID(t *testing.T) {
-	clientID := defaultGA4ClientID("", "")
+func TestCollector_AnonymousClientID(t *testing.T) {
+	clientID := defaultClientID("", "")
 	if clientID != "anonymous" {
-		t.Errorf("defaultGA4ClientID('', '') = %q, want anonymous", clientID)
+		t.Errorf("defaultClientID('', '') = %q, want anonymous", clientID)
 	}
 }
 
-func TestGA4Collector_FlushOnShutdown(t *testing.T) {
+func TestCollector_FlushOnShutdown(t *testing.T) {
 	var mu sync.Mutex
-	var received []ga4Payload
+	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		var payload ga4Payload
-		_ = json.Unmarshal(body, &payload)
+		var p payload
+		_ = json.Unmarshal(body, &p)
 		mu.Lock()
-		received = append(received, payload)
+		received = append(received, p)
 		mu.Unlock()
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer srv.Close()
 
-	gc := newTestGA4Collector(srv.URL,
-		WithGA4BatchSize(100),
-		WithGA4FlushInterval(1*time.Hour),
+	collector := newTestCollector(srv.URL,
+		WithBatchSize(100),
+		WithFlushInterval(1*time.Hour),
 	)
 
 	event := &analytics_dto.Event{
@@ -673,9 +673,9 @@ func TestGA4Collector_FlushOnShutdown(t *testing.T) {
 		Timestamp:  time.Now(),
 		ClientIP:   "10.0.0.1",
 	}
-	_ = gc.Collect(context.Background(), event)
-	_ = gc.Flush(context.Background())
-	_ = gc.Close(context.Background())
+	_ = collector.Collect(context.Background(), event)
+	_ = collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()
@@ -684,22 +684,40 @@ func TestGA4Collector_FlushOnShutdown(t *testing.T) {
 	}
 }
 
-func TestGA4Collector_EndpointQueryParams(t *testing.T) {
-	gc := NewGA4Collector("G-ABCDEF", "my-secret-key")
-	defer gc.Close(context.Background())
+func TestCollector_EndpointQueryParams(t *testing.T) {
+	collector := NewCollector("G-ABCDEF", "my-secret-key").(*Collector) //nolint:revive // test-only assertion
+	defer collector.Close(context.Background())
 
-	if !strings.Contains(gc.endpoint, "measurement_id=G-ABCDEF") {
-		t.Errorf("endpoint missing measurement_id: %s", gc.endpoint)
+	if !strings.Contains(collector.endpoint, "measurement_id=G-ABCDEF") {
+		t.Errorf("endpoint missing measurement_id: %s", collector.endpoint)
 	}
-	if !strings.Contains(gc.endpoint, "api_secret=my-secret-key") {
-		t.Errorf("endpoint missing api_secret: %s", gc.endpoint)
+	if !strings.Contains(collector.endpoint, "api_secret=my-secret-key") {
+		t.Errorf("endpoint missing api_secret: %s", collector.endpoint)
 	}
 }
 
-func newTestGA4Collector(testURL string, opts ...GA4Option) *GA4Collector {
-	allOpts := append([]GA4Option{WithGA4FlushInterval(1 * time.Hour)}, opts...)
-	gc := NewGA4Collector("G-TEST", "test-secret", allOpts...)
-	gc.endpoint = testURL
-	gc.Start(context.Background())
-	return gc
+func TestCollector_EmptyMeasurementIDPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic on empty measurementID")
+		}
+	}()
+	NewCollector("", "secret")
+}
+
+func TestCollector_EmptyAPISecretPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic on empty apiSecret")
+		}
+	}()
+	NewCollector("G-TEST", "")
+}
+
+func newTestCollector(testURL string, opts ...Option) *Collector {
+	allOpts := append([]Option{WithFlushInterval(1 * time.Hour)}, opts...)
+	collector := NewCollector("G-TEST", "test-secret", allOpts...).(*Collector) //nolint:revive // test-only assertion
+	collector.endpoint = testURL
+	collector.Start(context.Background())
+	return collector
 }

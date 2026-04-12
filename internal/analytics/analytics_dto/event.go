@@ -71,8 +71,7 @@ type Event struct {
 	Timestamp time.Time
 
 	// Request is the raw HTTP request. Adapters may need the full
-	// request for Accept-Language and Client Hints headers. This is a
-	// reference only — do not read the body.
+	// request for Accept-Language and Client Hints headers.
 	Request *http.Request
 
 	// Revenue holds optional monetary data for e-commerce analytics

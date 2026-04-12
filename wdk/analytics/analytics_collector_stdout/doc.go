@@ -16,20 +16,19 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package analytics_adapters
-
-import (
-	"reflect"
-
-	"piko.sh/piko/internal/json"
-)
-
-func init() {
-	pretouchTypes := []reflect.Type{
-		reflect.TypeFor[eventSnapshot](),
-	}
-
-	for _, t := range pretouchTypes {
-		_ = json.Pretouch(t)
-	}
-}
+// Package analytics_collector_stdout provides an analytics collector
+// that prints events to the structured logger.
+//
+// This collector is intended for development and debugging. Events
+// are logged at INFO level with all fields visible, making it easy
+// to verify that analytics events fire correctly without requiring
+// an external service.
+//
+// # Usage
+//
+//	server := piko.New(
+//	    piko.WithBackendAnalytics(
+//	        analytics_collector_stdout.NewCollector(),
+//	    ),
+//	)
+package analytics_collector_stdout

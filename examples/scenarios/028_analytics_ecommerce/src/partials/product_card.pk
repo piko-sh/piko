@@ -28,9 +28,9 @@
                 <span class="product-price" p-text="props.Price"></span>
                 <button
                     class="add-to-cart-btn"
-                    p-data:product-id="props.ProductID"
-                    p-data:product-name="props.Name"
-                    p-data:product-price="props.PriceValue"
+                    :data-product-id="props.ProductID"
+                    :data-product-name="props.Name"
+                    :data-product-price="props.PriceValue"
                 >
                     Add to Cart
                 </button>

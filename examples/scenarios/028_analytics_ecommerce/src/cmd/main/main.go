@@ -25,7 +25,7 @@ import (
 
 	"piko.sh/piko"
 	ga4 "piko.sh/piko/wdk/analytics/analytics_collector_ga4"
-	webhook "piko.sh/piko/wdk/analytics/analytics_collector_webhook"
+	"piko.sh/piko/wdk/analytics/analytics_collector_stdout"
 	"piko.sh/piko/wdk/logger"
 )
 
@@ -37,25 +37,29 @@ func main() {
 
 	logger.AddPrettyOutput()
 
-	webhookCollector := webhook.NewCollector(
-		"http://localhost:9090/analytics/ingest",
-		webhook.WithBatchSize(5),
-	)
-
-	ga4Collector := ga4.NewCollector(
-		"G-DEBUGDEMO1",
-		"demo-api-secret",
-		ga4.WithDebug(true),
-	)
-
 	ssr := piko.New(
 		piko.WithCSSReset(piko.WithCSSResetComplete()),
+
+		// CSP: extend Piko defaults to allow GA4 scripts and connect endpoints.
+		piko.WithCSP(func(b *piko.CSPBuilder) {
+			b.WithPikoDefaults().
+				ScriptSrc(piko.CSPSelf, piko.CSPHost("https://www.googletagmanager.com")).
+				ConnectSrc(piko.CSPSelf,
+					piko.CSPHost("https://www.google-analytics.com"),
+					piko.CSPHost("https://*.google-analytics.com"),
+					piko.CSPHost("https://*.analytics.google.com"),
+					piko.CSPHost("https://*.googletagmanager.com"),
+				)
+		}),
+
 		piko.WithFrontendModule(piko.ModuleAnalytics, piko.AnalyticsConfig{
 			TrackingIDs: []string{"G-DEBUGDEMO1"},
 			DebugMode:   true,
 		}),
-		piko.WithBackendAnalytics(webhookCollector, ga4Collector),
-
+		piko.WithBackendAnalytics(
+			analytics_collector_stdout.NewCollector(),
+			ga4.NewCollector("G-DEBUGDEMO1", "demo-api-secret", ga4.WithDebug(true)),
+		),
 		piko.WithDevWidget(),
 		piko.WithDevHotreload(),
 		piko.WithMonitoring(),

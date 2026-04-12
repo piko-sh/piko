@@ -27,6 +27,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"piko.sh/piko/internal/analytics/analytics_dto"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
@@ -226,14 +227,19 @@ func (s *Service) Close(ctx context.Context) error {
 
 	for i := range s.workers {
 		w := &s.workers[i]
-		if err := w.collector.Flush(ctx); err != nil {
+		collectorName := w.collector.Name()
+		if err := goroutine.SafeCall(ctx, "analytics."+collectorName+".Flush", func() error {
+			return w.collector.Flush(ctx)
+		}); err != nil {
 			l.Warn("Analytics collector flush failed",
-				logger_domain.String(logKeyCollector, w.collector.Name()),
+				logger_domain.String(logKeyCollector, collectorName),
 				logger_domain.Error(err))
 		}
-		if err := w.collector.Close(ctx); err != nil {
+		if err := goroutine.SafeCall(ctx, "analytics."+collectorName+".Close", func() error {
+			return w.collector.Close(ctx)
+		}); err != nil {
 			l.Warn("Analytics collector close failed",
-				logger_domain.String(logKeyCollector, w.collector.Name()),
+				logger_domain.String(logKeyCollector, collectorName),
 				logger_domain.Error(err))
 		}
 	}
@@ -278,7 +284,7 @@ func startWorkerDrains(ctx context.Context, w *collectorWorker, count int) {
 		go func() {
 			defer w.wg.Done()
 			for ev := range w.eventCh {
-				if err := w.collector.Collect(ctx, ev); err != nil {
+				if err := collectWithRecovery(ctx, w.collector, ev); err != nil {
 					eventsFailedCount.Add(ctx, 1, collectorAttr)
 				} else {
 					eventsCollectedCount.Add(ctx, 1, collectorAttr)
@@ -287,6 +293,24 @@ func startWorkerDrains(ctx context.Context, w *collectorWorker, count int) {
 			}
 		}()
 	}
+}
+
+// collectWithRecovery calls Collect and recovers from panics without
+// allocating a closure. All parameters are passed by value so the
+// compiler can stack-allocate the deferred recovery.
+//
+// Takes c (Collector) which is the analytics backend.
+// Takes ev (*analytics_dto.Event) which is the event to collect.
+//
+// Returns error which wraps the panic as a *goroutine.PanicError if
+// the collector panicked, or the Collect error otherwise.
+func collectWithRecovery(ctx context.Context, c Collector, ev *analytics_dto.Event) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = goroutine.HandlePanicRecovery(ctx, "analytics."+c.Name()+".Collect", r)
+		}
+	}()
+	return c.Collect(ctx, ev)
 }
 
 // sendToWorker attempts a non-blocking send to the worker's channel.

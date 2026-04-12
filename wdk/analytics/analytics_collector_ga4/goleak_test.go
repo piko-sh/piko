@@ -16,20 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package analytics_adapters
+package analytics_collector_ga4
 
 import (
-	"reflect"
+	"testing"
 
-	"piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/testutil/leakcheck"
 )
 
-func init() {
-	pretouchTypes := []reflect.Type{
-		reflect.TypeFor[eventSnapshot](),
-	}
-
-	for _, t := range pretouchTypes {
-		_ = json.Pretouch(t)
-	}
+func TestMain(m *testing.M) {
+	leakcheck.VerifyTestMain(m)
 }

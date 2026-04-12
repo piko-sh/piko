@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package analytics_adapters
+package analytics_collector_ga4
 
 import (
 	"reflect"
@@ -26,7 +26,8 @@ import (
 
 func init() {
 	pretouchTypes := []reflect.Type{
-		reflect.TypeFor[eventSnapshot](),
+		reflect.TypeFor[payload](),
+		reflect.TypeFor[ga4Event](),
 	}
 
 	for _, t := range pretouchTypes {

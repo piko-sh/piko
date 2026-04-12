@@ -59,7 +59,7 @@
 
         <div class="analytics-log">
             <h3 class="log-title">Analytics Events</h3>
-            <div class="log-empty" p-if="state.events.length === 0">
+            <div class="log-empty" p-if="state.events.length == 0">
                 No events yet. Add items and purchase to see analytics.
             </div>
             <div class="log-entry" p-for="(index, event) in state.events" p-key="index">
