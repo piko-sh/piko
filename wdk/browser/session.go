@@ -140,9 +140,7 @@ func (s *Session) EvalReturn(js string) (any, error) {
 }
 
 // ScreenshotViewport captures a PNG screenshot of the current viewport with
-// speed-optimised encoding. Uses the provider's ScreenshotWithFormat with
-// OptimiseForSpeed enabled, which trades encoding efficiency for faster
-// capture — suitable for high-volume frame capture.
+// speed-optimised encoding.
 //
 // Returns []byte which contains the PNG image data.
 // Returns error when the screenshot cannot be captured.

@@ -39,7 +39,8 @@ export type HookEventType =
     | 'form:clean'
     | 'network:online'
     | 'network:offline'
-    | 'error';
+    | 'error'
+    | 'analytics:track';
 
 /** Payload emitted when the framework finishes initialisation. */
 export interface FrameworkReadyPayload {
@@ -168,6 +169,16 @@ export interface ErrorPayload {
     url?: string;
     /** Stack trace, when available. */
     stack?: string;
+}
+
+/** Payload emitted when custom analytics tracking is requested via piko.analytics.track(). */
+export interface AnalyticsTrackPayload {
+    /** The custom event name (e.g. "purchase", "sign_up"). */
+    eventName: string;
+    /** Key-value parameters for the event. */
+    params: Record<string, string | number | boolean>;
+    /** Unix timestamp in milliseconds. */
+    timestamp: number;
 }
 
 /** Callback invoked when a hook event fires. */
@@ -304,6 +315,20 @@ export interface PikoNamespace {
          * @param event - Hook event to clear. Omit to clear all events.
          */
         clear(event?: HookEventType): void;
+
+    };
+
+    /** Custom analytics event tracking. */
+    readonly analytics: {
+        /**
+         * Sends a custom analytics event to GA4 and/or GTM.
+         *
+         * If the analytics extension is not loaded, the call is silently ignored.
+         *
+         * @param eventName - The event name (e.g. "purchase", "sign_up").
+         * @param params - Optional parameters to include with the event.
+         */
+        track(eventName: string, params?: Record<string, string | number | boolean>): void;
     };
 
     /**

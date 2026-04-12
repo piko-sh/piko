@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -125,6 +126,10 @@ type RouterDependencies struct {
 	// AuthGuardConfig controls route-level authentication enforcement.
 	// Nil means no route protection middleware is installed.
 	AuthGuardConfig *daemon_dto.AuthGuardConfig
+
+	// AnalyticsService distributes analytics events to registered
+	// collectors. Nil means no analytics middleware is installed.
+	AnalyticsService *analytics_domain.Service
 
 	// CSPConfig provides the computed CSP settings for security headers
 	// middleware.

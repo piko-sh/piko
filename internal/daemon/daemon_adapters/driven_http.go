@@ -37,6 +37,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/sync/singleflight"
+	"piko.sh/piko/internal/analytics/analytics_adapters"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
@@ -231,6 +232,11 @@ func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 		if deps.AuthProvider != nil {
 			authMiddleware := security_adapters.NewAuthMiddleware(deps.AuthProvider, log)
 			r.Use(authMiddleware.Handler)
+		}
+
+		if deps.AnalyticsService != nil {
+			analyticsMw := analytics_adapters.NewAnalyticsMiddleware(deps.AnalyticsService, log)
+			r.Use(analyticsMw.Handler)
 		}
 
 		builder.setupRateLimiting(r, routerConfig, deps.RateLimitService)

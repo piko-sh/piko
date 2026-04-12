@@ -195,6 +195,9 @@ interface PPFrameworkInstance {
     /** Hooks API for analytics integrations. */
     hooks: HooksAPI;
 
+    /** Internal hook emitter for framework-level event dispatch. */
+    emitHook: HookManager['emit'];
+
     /** Registers a helper function for extensions. */
     registerHelper(name: string, helper: PPHelper): void;
 
@@ -600,6 +603,7 @@ function buildFrameworkInstance(services: FrameworkServices): PPFrameworkInstanc
             services.router?.setConfig({beforeNavigate: value.beforeNavigate, afterNavigate: value.afterNavigate});
         },
         hooks: services.hookManager.api,
+        emitHook: services.hookManager.emit,
         registerHelper: services.helperRegistry.register.bind(services.helperRegistry),
         /** Gets whether the browser is currently online. */
         get isOnline() { return services.networkStatus?.isOnline ?? navigator.onLine; },

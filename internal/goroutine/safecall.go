@@ -98,7 +98,7 @@ func (e *ProviderTimeoutError) Unwrap() error {
 func SafeCall(ctx context.Context, component string, operation func() error) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = handlePanicRecovery(ctx, component, r)
+			err = HandlePanicRecovery(ctx, component, r)
 		}
 	}()
 
@@ -121,7 +121,7 @@ func SafeCall(ctx context.Context, component string, operation func() error) (er
 func SafeCall1[T any](ctx context.Context, component string, operation func() (T, error)) (result T, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = handlePanicRecovery(ctx, component, r)
+			err = HandlePanicRecovery(ctx, component, r)
 		}
 	}()
 
@@ -145,7 +145,7 @@ func SafeCall1[T any](ctx context.Context, component string, operation func() (T
 func SafeCall2[T1, T2 any](ctx context.Context, component string, operation func() (T1, T2, error)) (r1 T1, r2 T2, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = handlePanicRecovery(ctx, component, r)
+			err = HandlePanicRecovery(ctx, component, r)
 		}
 	}()
 
@@ -170,7 +170,7 @@ func SafeCall2[T1, T2 any](ctx context.Context, component string, operation func
 func SafeCallValue[T any](ctx context.Context, component string, operation func() T) (result T) {
 	defer func() {
 		if r := recover(); r != nil {
-			_ = handlePanicRecovery(ctx, component, r)
+			_ = HandlePanicRecovery(ctx, component, r)
 		}
 	}()
 
@@ -203,7 +203,7 @@ func enrichProviderTimeout(ctx context.Context, component string, err error) err
 	return fmt.Errorf("provider %s: %w", component, err)
 }
 
-// handlePanicRecovery logs the panic, increments the OTel counter,
+// HandlePanicRecovery logs the panic, increments the OTel counter,
 // and returns a PanicError. This is shared by all SafeCall variants
 // and by RecoverPanic.
 //
@@ -211,7 +211,7 @@ func enrichProviderTimeout(ctx context.Context, component string, err error) err
 // Takes r (any) which is the recovered panic value.
 //
 // Returns *PanicError which wraps the panic details.
-func handlePanicRecovery(ctx context.Context, component string, r any) *PanicError {
+func HandlePanicRecovery(ctx context.Context, component string, r any) *PanicError {
 	ctx, l := logger_domain.From(ctx, log)
 	stack := string(debug.Stack())
 

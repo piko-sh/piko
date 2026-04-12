@@ -19,14 +19,12 @@
 package maths
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"math"
 	"strconv"
 
 	"github.com/cockroachdb/apd/v3"
-	"piko.sh/piko/wdk/logger"
 )
 
 var decimalContext = apd.Context{
@@ -77,10 +75,9 @@ func NewDecimalFromString(s string) Decimal {
 //
 // Returns Decimal which is the reduced canonical form of the input value.
 func NewDecimalFromApd(value apd.Decimal) Decimal {
-	_, l := logger.From(context.Background(), log)
 	var reduced apd.Decimal
 	if _, _, err := decimalContext.Reduce(&reduced, &value); err != nil {
-		l.Warn("Failed to reduce decimal value", logger.Error(err))
+		return Decimal{err: fmt.Errorf("maths: reducing decimal value: %w", err)}
 	}
 	return Decimal{value: reduced}
 }

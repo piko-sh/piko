@@ -257,6 +257,36 @@ function registerAnalyticsHooks(pk: PikoInstance, config: AnalyticsConfig, mode:
             { error_description: description },
         );
     });
+
+    pk.hooks.on('analytics:track', (payload) => {
+        handleAnalyticsTrack(payload, mode);
+    });
+}
+
+/**
+ * Handles custom analytics tracking events dispatched via the
+ * `analytics:track` hook.
+ *
+ * @param payload - The raw hook payload.
+ * @param mode - Which analytics modes are active.
+ */
+function handleAnalyticsTrack(payload: unknown, mode: AnalyticsMode): void {
+    const p = payload as import('@piko/shared-types').AnalyticsTrackPayload;
+    if (!p.eventName) {
+        return;
+    }
+
+    dispatchEvent(
+        mode,
+        p.eventName,
+        { ...p.params },
+        `piko_${p.eventName}`,
+        { ...p.params },
+    );
+
+    if (mode.debugMode) {
+        console.warn(`[piko/analytics] Custom track: ${p.eventName}`, p.params);
+    }
 }
 
 /**
@@ -287,7 +317,7 @@ waitForPiko('analytics')
 
         window.dataLayer = (window as Omit<Window, 'dataLayer'> & { dataLayer?: DataLayerItem[] }).dataLayer ?? [];
 
-        if (hasGTM) {
+        if (hasGTM && config.gtmContainerId) {
             initGTM(config.gtmContainerId);
         }
 

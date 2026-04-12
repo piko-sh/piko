@@ -1,0 +1,128 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template>
+    <div class="product-card">
+        <div class="product-image" p-text="props.Emoji"></div>
+        <div class="product-info">
+            <h3 class="product-name" p-text="props.Name"></h3>
+            <p class="product-description" p-text="props.Description"></p>
+            <div class="product-footer">
+                <span class="product-price" p-text="props.Price"></span>
+                <button
+                    class="add-to-cart-btn"
+                    :data-product-id="props.ProductID"
+                    :data-product-name="props.Name"
+                    :data-product-price="props.PriceValue"
+                >
+                    Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Props struct {
+    ProductID   string `prop:"product-id"`
+    Name        string `prop:"name"`
+    Description string `prop:"description"`
+    Price       string `prop:"price"`
+    PriceValue  string `prop:"price-value"`
+    Emoji       string `prop:"emoji"`
+}
+
+func Render(r *piko.RequestData, props Props) (piko.NoResponse, piko.Metadata, error) {
+    return piko.NoResponse{}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+.product-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.product-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.product-image {
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8ecff 100%);
+}
+
+.product-info {
+    padding: 16px;
+}
+
+.product-name {
+    margin: 0 0 4px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.product-description {
+    margin: 0 0 12px;
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+}
+
+.product-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.product-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.add-to-cart-btn {
+    padding: 8px 16px;
+    background: var(--color-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.add-to-cart-btn:hover {
+    background: var(--color-primary-hover);
+}
+</style>

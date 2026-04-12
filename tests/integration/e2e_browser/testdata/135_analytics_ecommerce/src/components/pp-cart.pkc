@@ -1,0 +1,159 @@
+<!--
+  Copyright 2026 PolitePixels Limited
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  This project stands against fascism, authoritarianism, and all forms of
+  oppression. We built this to empower people, not to enable those who would
+  strip others of their rights and dignity.
+-->
+
+<template name="pp-cart">
+    <div id="cart-panel">
+        <h2>Cart (<span id="cart-count" p-text="state.items.length"></span>)</h2>
+
+        <div id="cart-empty" p-if="state.items.length == 0">
+            Your cart is empty.
+        </div>
+
+        <div id="cart-items" p-if="state.items.length != 0">
+            <div class="cart-item" p-for="(index, item) in state.items" p-key="item.productId">
+                <span class="cart-item-name" p-text="item.name"></span>
+                <span class="cart-item-qty" p-text="'x' + item.quantity"></span>
+                <span class="cart-item-price" p-text="'$' + (item.price * item.quantity).toFixed(2)"></span>
+                <button class="remove-btn" p-on:click="removeItem(item.productId)">Remove</button>
+            </div>
+
+            <div id="cart-total">
+                Total: $<span id="total-amount" p-text="state.total.toFixed(2)"></span>
+            </div>
+
+            <button id="purchase-btn" p-on:click="checkout()">Purchase</button>
+        </div>
+
+        <div id="purchase-result" p-if="state.lastResult != ''">
+            <span id="result-message" p-text="state.lastResult"></span>
+        </div>
+
+        <div id="event-log">
+            <div class="event-entry" p-for="(index, event) in state.events" p-key="index">
+                <span class="event-source" p-text="event.source"></span>
+                <span class="event-name" p-text="event.name"></span>
+                <span class="event-detail" p-text="event.detail"></span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script lang="ts">
+    interface CartItem {
+        productId: string;
+        name: string;
+        price: number;
+        quantity: number;
+    }
+
+    interface AnalyticsLogEntry {
+        source: string;
+        name: string;
+        detail: string;
+    }
+
+    const state = {
+        items: [] as CartItem[],
+        total: 0 as number,
+        lastResult: '' as string,
+        events: [] as AnalyticsLogEntry[],
+    };
+
+    function logEvent(source: string, name: string, detail: string): void {
+        state.events.unshift({ source, name, detail });
+        if (state.events.length > 20) {
+            state.events.pop();
+        }
+    }
+
+    function recalculateTotal(): void {
+        state.total = state.items.reduce(
+            (sum, item) => sum + item.price * item.quantity,
+            0,
+        );
+    }
+
+    function addItem(productId: string, name: string, price: number): void {
+        const existing = state.items.find((item) => item.productId === productId);
+        if (existing) {
+            existing.quantity++;
+        } else {
+            state.items.push({ productId, name, price, quantity: 1 });
+        }
+        recalculateTotal();
+        logEvent('frontend', 'add_to_cart', `${name} - $${price.toFixed(2)}`);
+    }
+
+    function removeItem(productId: string): void {
+        const item = state.items.find((i) => i.productId === productId);
+        if (item) {
+            logEvent('frontend', 'remove_from_cart', item.name);
+        }
+        state.items = state.items.filter((item) => item.productId !== productId);
+        recalculateTotal();
+    }
+
+    async function checkout(): Promise<void> {
+        if (state.items.length === 0) return;
+
+        const cartItems = state.items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+        }));
+
+        const totalAmount = state.total;
+
+        logEvent('frontend', 'begin_checkout', `$${totalAmount.toFixed(2)}`);
+
+        try {
+            const response = await action.cart.Purchase({
+                items: cartItems,
+                totalAmount: totalAmount.toFixed(2),
+                currency: 'USD',
+            }).call();
+
+            state.lastResult = `Order ${response.orderId} confirmed! $${response.chargedAmount} charged.`;
+            logEvent('backend', 'purchase', `Order ${response.orderId} - $${response.chargedAmount}`);
+
+            state.items = [];
+            state.total = 0;
+        } catch (error: any) {
+            state.lastResult = `Error: ${error.message}`;
+            logEvent('backend', 'purchase_error', error.message);
+        }
+    }
+
+    document.addEventListener('click', (event: MouseEvent) => {
+        const button = (event.target as HTMLElement).closest('.add-to-cart-btn');
+        if (!button) return;
+
+        const product = (button as HTMLElement).closest('.product');
+        if (!product) return;
+
+        const productId = (product as HTMLElement).dataset.productId ?? '';
+        const productName = (product as HTMLElement).dataset.productName ?? '';
+        const priceStr = (product as HTMLElement).dataset.productPrice ?? '0';
+        const price = parseFloat(priceStr);
+
+        addItem(productId, productName, price);
+    });
+</script>

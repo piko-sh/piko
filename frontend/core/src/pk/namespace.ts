@@ -526,6 +526,38 @@ export namespace piko {
         export const events = _HookEvent;
     }
 
+    /** Analytics tracking utilities for custom event reporting. */
+    export namespace analytics {
+        /**
+         * Sends a custom analytics event to GA4 and/or GTM.
+         *
+         * This fires an `analytics:track` hook event. If the analytics
+         * extension is loaded, it dispatches the event to the configured
+         * providers. If analytics is not loaded, the call is silently
+         * ignored (graceful degradation).
+         *
+         * @param eventName - The event name (e.g. "purchase", "sign_up").
+         *   For GA4, use recommended event names where possible.
+         * @param params - Optional key-value parameters for the event.
+         *
+         * @example
+         * ```ts
+         * piko.analytics.track('purchase', {
+         *     transaction_id: 'T12345',
+         *     value: 99.99,
+         *     currency: 'GBP',
+         * });
+         * ```
+         */
+        export function track(eventName: string, params?: Record<string, string | number | boolean>): void {
+            _PPFramework.emitHook(_HookEvent.ANALYTICS_TRACK, {
+                eventName,
+                params: params ?? {},
+                timestamp: Date.now(),
+            });
+        }
+    }
+
     /**
      * Registers a helper function for use in templates.
      *

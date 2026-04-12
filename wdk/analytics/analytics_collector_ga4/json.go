@@ -16,16 +16,21 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package maths
+package analytics_collector_ga4
 
 import (
-	"go.opentelemetry.io/otel"
-	"piko.sh/piko/wdk/logger"
+	"reflect"
+
+	"piko.sh/piko/internal/json"
 )
 
-var (
-	log = logger.GetLogger("piko/maths")
+func init() {
+	pretouchTypes := []reflect.Type{
+		reflect.TypeFor[payload](),
+		reflect.TypeFor[ga4Event](),
+	}
 
-	// Meter is the OpenTelemetry meter for maths instrumentation.
-	Meter = otel.Meter("piko/maths")
-)
+	for _, t := range pretouchTypes {
+		_ = json.Pretouch(t)
+	}
+}

@@ -2278,7 +2278,9 @@ const HookEvent = {
   /** Fired when network connection is lost. */
   NETWORK_OFFLINE: "network:offline",
   /** Fired when an error occurs. */
-  ERROR: "error"
+  ERROR: "error",
+  /** Fired when user code requests a custom analytics event via piko.analytics.track(). */
+  ANALYTICS_TRACK: "analytics:track"
 };
 function buildHooksAPI(registerHook, removeHook, clearHooks, getIsReady, hookEventRef) {
   return {
@@ -2500,6 +2502,16 @@ var piko;
     hooks2.clear = clear;
     hooks2.events = HookEvent;
   })(piko2.hooks || (piko2.hooks = {}));
+  ((analytics2) => {
+    function track(eventName, params) {
+      PPFramework.emitHook(HookEvent.ANALYTICS_TRACK, {
+        eventName,
+        params: params ?? {},
+        timestamp: Date.now()
+      });
+    }
+    analytics2.track = track;
+  })(piko2.analytics || (piko2.analytics = {}));
   function registerHelper(name, helper) {
     PPFramework.registerHelper(name, helper);
   }
@@ -6391,6 +6403,7 @@ function buildFrameworkInstance(services) {
       services.router?.setConfig({ beforeNavigate: value.beforeNavigate, afterNavigate: value.afterNavigate });
     },
     hooks: services.hookManager.api,
+    emitHook: services.hookManager.emit,
     registerHelper: services.helperRegistry.register.bind(services.helperRegistry),
     /** Gets whether the browser is currently online. */
     get isOnline() {
