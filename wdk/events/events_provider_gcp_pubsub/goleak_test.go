@@ -16,22 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-//go:build safe || (js && wasm)
+package events_provider_gcp_pubsub
 
-package provider_otter
+import (
+	"testing"
 
-import "fmt"
+	"go.uber.org/goleak"
+)
 
-// keyTiebreak provides a deterministic ordering for B-tree items when values
-// and typed keys compare equal. It uses string representation as a stable
-// tiebreaker.
-//
-// This is the safe (allocating) version used when building with -tags safe.
-//
-// Takes a (*K) which is the first key to compare.
-// Takes b (*K) which is the second key to compare.
-//
-// Returns bool which is true if a should come before b.
-func keyTiebreak[K comparable](a, b *K) bool {
-	return fmt.Sprint(*a) < fmt.Sprint(*b)
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
 }
