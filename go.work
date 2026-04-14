@@ -35,6 +35,8 @@ use (
 	./tests/testutil
 	./wdk/browser
 	./wdk/cache/cache_linguistics
+	./wdk/cache/cache_provider_dynamodb
+	./wdk/cache/cache_provider_firestore
 	./wdk/cache/cache_provider_redis
 	./wdk/cache/cache_provider_redis_cluster
 	./wdk/cache/cache_provider_valkey
@@ -174,6 +176,8 @@ replace (
 	piko.sh/piko/tests/testutil v0.0.0 => ./tests/testutil
 	piko.sh/piko/wdk/browser v0.0.0 => ./wdk/browser
 	piko.sh/piko/wdk/cache/cache_linguistics v0.0.0 => ./wdk/cache/cache_linguistics
+	piko.sh/piko/wdk/cache/cache_provider_dynamodb v0.0.0 => ./wdk/cache/cache_provider_dynamodb
+	piko.sh/piko/wdk/cache/cache_provider_firestore v0.0.0 => ./wdk/cache/cache_provider_firestore
 	piko.sh/piko/wdk/cache/cache_provider_redis v0.0.0 => ./wdk/cache/cache_provider_redis
 	piko.sh/piko/wdk/cache/cache_provider_redis_cluster v0.0.0 => ./wdk/cache/cache_provider_redis_cluster
 	piko.sh/piko/wdk/cache/cache_provider_valkey v0.0.0 => ./wdk/cache/cache_provider_valkey

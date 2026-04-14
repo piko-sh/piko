@@ -40,6 +40,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
+	orchestrator_otter "piko.sh/piko/internal/orchestrator/orchestrator_dal/otter"
 	orchestrator_querier_adapter "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_adapter"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
@@ -412,21 +413,22 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 	return dal, nil
 }
 
-// createProviderOrchestratorDAL creates an orchestrator DAL from the default
-// otter in-memory backend with WAL persistence.
+// createProviderOrchestratorDAL creates an orchestrator DAL from either a
+// user-provided cache provider or the default otter in-memory backend with WAL
+// persistence.
 //
-// Returns orchestrator_domain.TaskStore which is the otter-backed task store.
-// Returns error when the otter DAL cannot be created or does not implement
+// Returns orchestrator_domain.TaskStore which is the cache-backed task store.
+// Returns error when the DAL cannot be created or does not implement
 // TaskStore.
 func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskStore, error) {
-	dalAny, err := c.createOtterOrchestratorDAL()
+	dalAny, err := c.createOrchestratorDALInstance()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create otter orchestrator DAL: %w", err)
+		return nil, fmt.Errorf("failed to create orchestrator DAL: %w", err)
 	}
 
 	dal, ok := dalAny.(orchestrator_domain.TaskStore)
 	if !ok {
-		return nil, errors.New("otter orchestrator DAL does not implement TaskStore")
+		return nil, errors.New("orchestrator DAL does not implement TaskStore")
 	}
 
 	if inspector, ok := dalAny.(orchestrator_domain.OrchestratorInspector); ok {
@@ -434,4 +436,16 @@ func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskSto
 	}
 
 	return dal, nil
+}
+
+// createOrchestratorDALInstance returns the orchestrator DAL from either the
+// cache override or the default otter backend.
+func (c *Container) createOrchestratorDALInstance() (any, error) {
+	if c.orchestratorCacheOverride != nil {
+		return orchestrator_otter.NewOtterDAL(
+			orchestrator_otter.Config{},
+			orchestrator_otter.WithCache(c.orchestratorCacheOverride),
+		)
+	}
+	return c.createOtterOrchestratorDAL()
 }

@@ -1,0 +1,85 @@
+<!-- Service Status Partial
+     Shows which AWS services are configured for this deployment. -->
+
+<template>
+  <div class="services-status">
+    <h2>Connected Services</h2>
+    <ul>
+      <li p-for="(i, svc) in state.Services" p-key="svc.Name" p-class="svc.StatusClass">
+        <span class="svc-name">{{ svc.Name }}</span>
+        <span class="svc-detail">{{ svc.Detail }}</span>
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import (
+    "piko.sh/piko"
+)
+
+// ServiceInfo describes a connected AWS service.
+type ServiceInfo struct {
+    Name        string
+    Detail      string
+    StatusClass string
+}
+
+// Response is the data available as state.* in the template.
+type Response struct {
+    Services []ServiceInfo
+}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    services := []ServiceInfo{
+        {Name: "DynamoDB", Detail: "Registry + Orchestrator + Cache", StatusClass: "active"},
+        {Name: "S3", Detail: "Content file storage", StatusClass: "active"},
+        {Name: "SES", Detail: "Email sending", StatusClass: "active"},
+        {Name: "KMS", Detail: "Encryption via LocalStack", StatusClass: "active"},
+    }
+    return Response{Services: services}, piko.Metadata{}, nil
+}
+</script>
+
+<style>
+  .services-status {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: #fafafa;
+
+    h2 {
+      color: #374151;
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 0.9rem;
+
+      &:last-child { border-bottom: none; }
+    }
+
+    .svc-name { font-weight: 600; }
+    .svc-detail { color: #6b7280; }
+
+    .active .svc-name { color: #065f46; }
+    .active .svc-name::before { content: "\2713 "; color: #10b981; }
+
+    .inactive .svc-name { color: #92400e; }
+    .inactive .svc-name::before { content: "\2717 "; color: #ef4444; }
+  }
+</style>

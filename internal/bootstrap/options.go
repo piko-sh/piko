@@ -45,6 +45,7 @@ import (
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/profiler"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/wdk/safedisk"
@@ -1676,5 +1677,43 @@ func WithBackendAnalytics(collectors ...analytics_domain.Collector) Option {
 func WithAuthGuard(authGuardConfig daemon_dto.AuthGuardConfig) Option {
 	return func(c *Container) {
 		c.authGuardConfig = &authGuardConfig
+	}
+}
+
+// WithRegistryCache overrides the default otter in-memory backend for the
+// registry DAL with a custom cache provider. This enables serverless
+// deployments where the registry is backed by DynamoDB, Firestore, or any
+// other cache_domain.ProviderPort implementation.
+//
+// The provided cache must be typed as ProviderPort[string, *ArtefactMeta].
+// The registry DAL calls GetIfPresent, Set, Invalidate, Keys, and All on
+// this provider; Search and Query are not used.
+//
+// Takes registryCache (cache_domain.ProviderPort) which is the cache provider
+// for registry artefact storage.
+//
+// Returns Option which configures the container to use the custom cache.
+func WithRegistryCache(registryCache cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta]) Option {
+	return func(c *Container) {
+		c.registryCacheOverride = registryCache
+	}
+}
+
+// WithOrchestratorCache overrides the default otter in-memory backend for the
+// orchestrator DAL with a custom cache provider. This enables serverless
+// deployments where the orchestrator is backed by DynamoDB, Firestore, or any
+// other cache_domain.ProviderPort implementation.
+//
+// The provided cache must be typed as ProviderPort[string, *Task].
+// The orchestrator DAL calls GetIfPresent, Set, All, and Keys on this
+// provider; Search and Query are not used.
+//
+// Takes orchestratorCache (cache_domain.ProviderPort) which is the cache
+// provider for orchestrator task storage.
+//
+// Returns Option which configures the container to use the custom cache.
+func WithOrchestratorCache(orchestratorCache cache_domain.ProviderPort[string, *orchestrator_domain.Task]) Option {
+	return func(c *Container) {
+		c.orchestratorCacheOverride = orchestratorCache
 	}
 }

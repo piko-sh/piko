@@ -1,0 +1,5 @@
+{
+  "description": "AWS serverless stack with DynamoDB, S3, SES, KMS via LocalStack",
+  "requestURL": "/",
+  "expectedStatus": 200
+}

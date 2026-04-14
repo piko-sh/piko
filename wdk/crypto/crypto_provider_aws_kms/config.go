@@ -43,6 +43,14 @@ type Config struct {
 	// "eu-west-1"). REQUIRED.
 	Region string
 
+	// EndpointURL overrides the KMS endpoint, useful for LocalStack or other
+	// local testing environments.
+	EndpointURL string
+
+	// UseStaticCredentials injects static dummy credentials ("test"/"test")
+	// so the SDK does not attempt to resolve real AWS credentials.
+	UseStaticCredentials bool
+
 	// MaxRetries is the maximum number of retry attempts for short-lived failures.
 	// Default is 3; must be zero or greater.
 	MaxRetries int

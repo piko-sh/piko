@@ -27,6 +27,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"piko.sh/piko/internal/crypto/crypto_dto"
@@ -305,15 +306,30 @@ func NewProvider(ctx context.Context, kmsConfig Config) (crypto.EncryptionProvid
 		return nil, fmt.Errorf("invalid AWS KMS config: %w", err)
 	}
 
-	awsConfig, err := config.LoadDefaultConfig(ctx,
+	loadOpts := []func(*config.LoadOptions) error{
 		config.WithRegion(kmsConfig.Region),
 		config.WithRetryMaxAttempts(kmsConfig.MaxRetries),
-	)
+	}
+
+	if kmsConfig.EndpointURL != "" && kmsConfig.UseStaticCredentials {
+		loadOpts = append(loadOpts, config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider("test", "test", ""),
+		))
+	}
+
+	awsConfig, err := config.LoadDefaultConfig(ctx, loadOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS SDK config: %w", err)
 	}
 
-	kmsClient := kms.NewFromConfig(awsConfig)
+	var clientOpts []func(*kms.Options)
+	if kmsConfig.EndpointURL != "" {
+		clientOpts = append(clientOpts, func(o *kms.Options) {
+			o.BaseEndpoint = aws.String(kmsConfig.EndpointURL)
+		})
+	}
+
+	kmsClient := kms.NewFromConfig(awsConfig, clientOpts...)
 
 	if _, err := kmsClient.DescribeKey(ctx, &kms.DescribeKeyInput{
 		KeyId: aws.String(kmsConfig.KeyID),

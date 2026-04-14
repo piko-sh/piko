@@ -378,12 +378,14 @@ func (a *DynamoDBAdapter[K, V]) Set(ctx context.Context, key K, value V, tags ..
 		return fmt.Errorf("dynamodb upsert failed: %w", err)
 	}
 
-	if err := removeKeyFromTags(timeoutCtx, a.client, a.tableName, a.namespace, keyString); err != nil {
-		l.Warn("Failed to clean old tags on key overwrite", logger.String(logKeyField, keyString), logger.Error(err))
-	}
+	if len(tags) > 0 {
+		if err := removeKeyFromTags(timeoutCtx, a.client, a.tableName, a.namespace, keyString); err != nil {
+			l.Warn("Failed to clean old tags on key overwrite", logger.String(logKeyField, keyString), logger.Error(err))
+		}
 
-	if err := addTagsToKey(timeoutCtx, a.client, a.tableName, a.namespace, keyString, tags, ttlUnix); err != nil {
-		l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		if err := addTagsToKey(timeoutCtx, a.client, a.tableName, a.namespace, keyString, tags, ttlUnix); err != nil {
+			l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		}
 	}
 
 	return nil
@@ -420,12 +422,14 @@ func (a *DynamoDBAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V, 
 		return fmt.Errorf("dynamodb upsert failed: %w", err)
 	}
 
-	if err := removeKeyFromTags(timeoutCtx, a.client, a.tableName, a.namespace, keyString); err != nil {
-		l.Warn("Failed to clean old tags on key overwrite", logger.String(logKeyField, keyString), logger.Error(err))
-	}
+	if len(tags) > 0 {
+		if err := removeKeyFromTags(timeoutCtx, a.client, a.tableName, a.namespace, keyString); err != nil {
+			l.Warn("Failed to clean old tags on key overwrite", logger.String(logKeyField, keyString), logger.Error(err))
+		}
 
-	if err := addTagsToKey(timeoutCtx, a.client, a.tableName, a.namespace, keyString, tags, ttlUnix); err != nil {
-		l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		if err := addTagsToKey(timeoutCtx, a.client, a.tableName, a.namespace, keyString, tags, ttlUnix); err != nil {
+			l.Warn("Failed to add tags to key", logger.String(logKeyField, keyString), logger.Error(err))
+		}
 	}
 
 	return nil

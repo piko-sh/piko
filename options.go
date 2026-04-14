@@ -42,6 +42,7 @@ import (
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 	"piko.sh/piko/internal/pml/pml_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
@@ -302,6 +303,14 @@ type ReportingEndpoint = config.ReportingEndpoint
 
 // TLSOption configures TLS settings for the main server. Use with WithTLS.
 type TLSOption = bootstrap.TLSOption
+
+// RegistryArtefactMeta is the metadata type stored in the registry cache.
+// Use this when creating a typed cache provider for [WithRegistryCache].
+type RegistryArtefactMeta = registry_dto.ArtefactMeta
+
+// OrchestratorTask is the task type stored in the orchestrator cache.
+// Use this when creating a typed cache provider for [WithOrchestratorCache].
+type OrchestratorTask = orchestrator_domain.Task
 
 // HealthTLSOption configures TLS settings for the health probe server. Use
 // with WithHealthTLS.
@@ -2998,4 +3007,47 @@ func IsAuthenticated(r *RequestData) bool {
 // Returns Option which registers the collectors.
 func WithBackendAnalytics(collectors ...AnalyticsCollector) Option {
 	return bootstrap.WithBackendAnalytics(collectors...)
+}
+
+// WithRegistryCache overrides the default otter in-memory backend for the
+// registry with a custom cache provider. This enables serverless deployments
+// where the registry is backed by DynamoDB, Firestore, or any other
+// [cache_domain.ProviderPort] implementation.
+//
+// The provider must implement ProviderPort[string, *RegistryArtefactMeta].
+// Only basic cache operations are used (GetIfPresent, Set, Invalidate, Keys,
+// All); Search and Query are not required.
+//
+// Example using DynamoDB:
+//
+//	dynamoProvider, _ := cache_provider_dynamodb.NewDynamoDBProvider(dynamoConfig)
+//	dynamoCache, _ := cache_provider_dynamodb.DynamoDBProviderFactory(
+//	    dynamoProvider, "registry",
+//	    cache.Options[string, *piko.RegistryArtefactMeta]{},
+//	)
+//	app := piko.New(piko.WithRegistryCache(dynamoCache))
+//
+// Takes registryCache which is the cache provider for registry artefact
+// storage.
+//
+// Returns Option which configures the container to use the custom cache.
+func WithRegistryCache(registryCache cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta]) Option {
+	return bootstrap.WithRegistryCache(registryCache)
+}
+
+// WithOrchestratorCache overrides the default otter in-memory backend for the
+// orchestrator with a custom cache provider. This enables serverless
+// deployments where the orchestrator is backed by DynamoDB, Firestore, or any
+// other [cache_domain.ProviderPort] implementation.
+//
+// The provider must implement ProviderPort[string, *OrchestratorTask].
+// Only basic cache operations are used (GetIfPresent, Set, All); Search and
+// Query are not required.
+//
+// Takes orchestratorCache which is the cache provider for orchestrator task
+// storage.
+//
+// Returns Option which configures the container to use the custom cache.
+func WithOrchestratorCache(orchestratorCache cache_domain.ProviderPort[string, *orchestrator_domain.Task]) Option {
+	return bootstrap.WithOrchestratorCache(orchestratorCache)
 }

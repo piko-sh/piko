@@ -31,6 +31,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_adapters"
 	"piko.sh/piko/internal/registry/registry_dal"
+	registry_otter "piko.sh/piko/internal/registry/registry_dal/otter"
 	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -131,21 +132,21 @@ func (c *Container) createQuerierRegistryDAL() (registry_domain.MetadataStore, e
 	return dal, nil
 }
 
-// createProviderRegistryDAL creates a registry DAL from the default otter
-// in-memory backend with WAL persistence.
+// createProviderRegistryDAL creates a registry DAL from either a user-provided
+// cache provider or the default otter in-memory backend with WAL persistence.
 //
-// Returns registry_domain.MetadataStore which is the otter-backed metadata store.
-// Returns error when the otter DAL cannot be created or does not implement
+// Returns registry_domain.MetadataStore which is the cache-backed metadata store.
+// Returns error when the DAL cannot be created or does not implement
 // RegistryDALWithTx.
 func (c *Container) createProviderRegistryDAL() (registry_domain.MetadataStore, error) {
-	dalAny, err := c.createOtterRegistryDAL()
+	dalAny, err := c.createRegistryDALInstance()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create otter registry DAL: %w", err)
+		return nil, fmt.Errorf("failed to create registry DAL: %w", err)
 	}
 
 	dal, ok := dalAny.(registry_dal.RegistryDALWithTx)
 	if !ok {
-		return nil, errors.New("otter registry DAL does not implement RegistryDALWithTx")
+		return nil, errors.New("registry DAL does not implement RegistryDALWithTx")
 	}
 
 	if inspector, ok := dalAny.(registry_domain.RegistryInspector); ok {
@@ -153,6 +154,18 @@ func (c *Container) createProviderRegistryDAL() (registry_domain.MetadataStore, 
 	}
 
 	return dal, nil
+}
+
+// createRegistryDALInstance returns the registry DAL from either the cache
+// override or the default otter backend.
+func (c *Container) createRegistryDALInstance() (any, error) {
+	if c.registryCacheOverride != nil {
+		return registry_otter.NewOtterDAL(
+			registry_otter.Config{},
+			registry_otter.WithCache(c.registryCacheOverride),
+		)
+	}
+	return c.createOtterRegistryDAL()
 }
 
 // createRegistryBlobStores creates the blob stores for the registry service.

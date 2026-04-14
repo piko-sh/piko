@@ -116,11 +116,11 @@ type DAL struct {
 
 	// scheduledIndex maps task IDs to their scheduled execution times.
 	// Supports range queries to find tasks ready to run.
-	scheduledIndex *provider_otter.SortedIndex[string]
+	scheduledIndex *cache_domain.SortedIndex[string]
 
 	// executeIndex stores pending and retrying tasks sorted by their ExecuteAt
 	// time. Used for efficient time-based range queries to find tasks ready to run.
-	executeIndex *provider_otter.SortedIndex[string]
+	executeIndex *cache_domain.SortedIndex[string]
 
 	// workflowIndex maps workflow IDs to their task IDs. Uses the cache
 	// hexagon's TagIndex for set membership operations.
@@ -693,8 +693,8 @@ func (d *DAL) RebuildIndexes(ctx context.Context) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.scheduledIndex = provider_otter.NewSortedIndex[string]()
-	d.executeIndex = provider_otter.NewSortedIndex[string]()
+	d.scheduledIndex = cache_domain.NewSortedIndex[string]()
+	d.executeIndex = cache_domain.NewSortedIndex[string]()
 	d.workflowIndex = provider_otter.NewTagIndex[string]()
 	d.dedupIndex = make(map[string]string)
 	d.recoveryLeases = make(map[string]*recoveryLease)
@@ -760,8 +760,8 @@ func (d *DAL) restoreFromSnapshot(snap *transactionSnapshot) {
 	d.recoveryLeases = snap.recoveryLeases
 	d.receipts = snap.receipts
 
-	d.scheduledIndex = provider_otter.NewSortedIndex[string]()
-	d.executeIndex = provider_otter.NewSortedIndex[string]()
+	d.scheduledIndex = cache_domain.NewSortedIndex[string]()
+	d.executeIndex = cache_domain.NewSortedIndex[string]()
 	d.workflowIndex = provider_otter.NewTagIndex[string]()
 	d.dedupIndex = make(map[string]string)
 	for _, task := range d.tasks.All() {
@@ -1478,8 +1478,8 @@ func WithCache(cache cache_domain.ProviderPort[string, *orchestrator_domain.Task
 // Returns error when the cache cannot be created.
 func NewOtterDAL(config Config, opts ...Option) (orchestrator_dal.OrchestratorDALWithTx, error) {
 	dal := &DAL{
-		scheduledIndex:     provider_otter.NewSortedIndex[string](),
-		executeIndex:       provider_otter.NewSortedIndex[string](),
+		scheduledIndex:     cache_domain.NewSortedIndex[string](),
+		executeIndex:       cache_domain.NewSortedIndex[string](),
 		workflowIndex:      provider_otter.NewTagIndex[string](),
 		dedupIndex:         make(map[string]string),
 		recoveryLeases:     make(map[string]*recoveryLease),

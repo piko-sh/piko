@@ -82,6 +82,7 @@ import (
 	"piko.sh/piko/internal/profiler"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
+	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/security/security_domain"
@@ -495,6 +496,17 @@ type Container struct {
 	// in-memory backend. Only used when no SQL database is registered via
 	// AddDatabase.
 	dbProvider *persistence.Provider
+
+	// registryCacheOverride is an optional cache provider for the registry
+	// DAL. When set, the registry uses this provider instead of the default
+	// otter in-memory backend. This enables serverless deployments where the
+	// registry is backed by DynamoDB, Firestore, or another cache provider.
+	registryCacheOverride cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta]
+
+	// orchestratorCacheOverride is an optional cache provider for the
+	// orchestrator DAL. When set, the orchestrator uses this provider instead
+	// of the default otter in-memory backend.
+	orchestratorCacheOverride cache_domain.ProviderPort[string, *orchestrator_domain.Task]
 
 	// profilingConfig holds pprof server settings; nil when profiling is
 	// disabled.
