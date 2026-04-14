@@ -24,7 +24,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"piko.sh/piko/internal/cache/cache_search"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/wdk/cache"
 )
 
@@ -173,8 +173,8 @@ func TestApplyFilterToQuery_AllOperations(t *testing.T) {
 func TestResolveLimit(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, cache_search.DefaultSearchLimit, resolveLimit(0), "Zero limit should resolve to default")
-	assert.Equal(t, cache_search.DefaultSearchLimit, resolveLimit(-1), "Negative limit should resolve to default")
+	assert.Equal(t, cache_domain.DefaultSearchLimit, resolveLimit(0), "Zero limit should resolve to default")
+	assert.Equal(t, cache_domain.DefaultSearchLimit, resolveLimit(-1), "Negative limit should resolve to default")
 	assert.Equal(t, 25, resolveLimit(25), "Positive limit should be returned as-is")
 }
 

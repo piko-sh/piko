@@ -54,7 +54,9 @@ func batchTags(tags []string) [][]string {
 // Tags are processed in groups of maxArrayContainsAny (30) to respect the
 // Firestore array-contains-any limit.
 //
-// Returns []string containing the unique document IDs to delete.
+// Takes tags ([]string) which specifies the tags to query for.
+//
+// Returns []string which contains the unique document IDs to delete.
 // Returns error when a Firestore query fails.
 func (a *FirestoreAdapter[K, V]) collectDocIDsByTags(ctx context.Context, tags []string) ([]string, error) {
 	seen := make(map[string]bool)
@@ -113,7 +115,7 @@ func (a *FirestoreAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...s
 
 	deleteRefs, err := a.collectDocIDsByTags(timeoutCtx, tags)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("collecting documents by tags: %w", err)
 	}
 	if len(deleteRefs) == 0 {
 		return 0, nil
@@ -140,7 +142,7 @@ func (a *FirestoreAdapter[K, V]) InvalidateByTags(ctx context.Context, tags ...s
 	bulkWriter.Flush()
 
 	if err := checkBulkWriterJobs(jobs); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("tag invalidation bulk delete failed: %w", err)
 	}
 
 	return deletedCount, nil

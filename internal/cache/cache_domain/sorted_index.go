@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package provider_otter
+package cache_domain
 
 import (
 	"cmp"
@@ -58,7 +58,7 @@ func (a *treeItem[K]) Less(b btree.Item) bool {
 		return false
 	}
 
-	valueCmp := compareValues(a.value, bItem.value)
+	valueCmp := CompareValues(a.value, bItem.value)
 	if valueCmp != 0 {
 		return valueCmp < 0
 	}
@@ -111,15 +111,15 @@ func (idx *SortedIndex[K]) Add(key K, value any) {
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
 
-	idx.addUnsafe(key, value)
+	idx.AddUnsafe(key, value)
 }
 
-// addUnsafe inserts or updates without acquiring the lock. Caller must hold
+// AddUnsafe inserts or updates without acquiring the lock. Caller must hold
 // the write lock.
 //
 // Takes key (K) which identifies the entry to insert or update.
 // Takes value (any) which is the data to store for the key.
-func (idx *SortedIndex[K]) addUnsafe(key K, value any) {
+func (idx *SortedIndex[K]) AddUnsafe(key K, value any) {
 	if existingItem, exists := idx.keyToItem[key]; exists {
 		idx.tree.Delete(existingItem)
 	}
@@ -145,6 +145,20 @@ func (idx *SortedIndex[K]) Remove(key K) {
 		idx.tree.Delete(item)
 		delete(idx.keyToItem, key)
 	}
+}
+
+// Lock acquires the write lock on the sorted index.
+//
+// Concurrency: acquires the write lock.
+func (idx *SortedIndex[K]) Lock() {
+	idx.mu.Lock()
+}
+
+// Unlock releases the write lock on the sorted index.
+//
+// Concurrency: releases the write lock.
+func (idx *SortedIndex[K]) Unlock() {
+	idx.mu.Unlock()
 }
 
 // Keys returns all keys in sorted order.
@@ -257,7 +271,7 @@ func (idx *SortedIndex[K]) KeysFilteredSlice(filter []K, ascending bool) []K {
 	slices.SortFunc(result, func(a, b K) int {
 		aItem := idx.keyToItem[a]
 		bItem := idx.keyToItem[b]
-		comparison := compareValues(aItem.value, bItem.value)
+		comparison := CompareValues(aItem.value, bItem.value)
 		if !ascending {
 			comparison = -comparison
 		}
@@ -311,7 +325,7 @@ func (idx *SortedIndex[K]) KeysGreaterThan(threshold any, ascending bool) []K {
 			if !ok {
 				return true
 			}
-			if compareValues(item.value, threshold) > 0 {
+			if CompareValues(item.value, threshold) > 0 {
 				result = append(result, item.key)
 			}
 			return true
@@ -323,7 +337,7 @@ func (idx *SortedIndex[K]) KeysGreaterThan(threshold any, ascending bool) []K {
 			if !ok {
 				return true
 			}
-			if compareValues(item.value, threshold) > 0 {
+			if CompareValues(item.value, threshold) > 0 {
 				temp = append(temp, item.key)
 			}
 			return true
@@ -401,7 +415,7 @@ func (idx *SortedIndex[K]) KeysLessThan(threshold any, ascending bool) []K {
 			if !ok {
 				return true
 			}
-			if compareValues(item.value, threshold) < 0 {
+			if CompareValues(item.value, threshold) < 0 {
 				result = append(result, item.key)
 			}
 			return true
@@ -412,7 +426,7 @@ func (idx *SortedIndex[K]) KeysLessThan(threshold any, ascending bool) []K {
 			if !ok {
 				return true
 			}
-			if compareValues(item.value, threshold) < 0 {
+			if CompareValues(item.value, threshold) < 0 {
 				result = append(result, item.key)
 			}
 			return true
@@ -454,10 +468,10 @@ func (idx *SortedIndex[K]) KeysLessThanOrEqual(threshold any, ascending bool) []
 			if !ok {
 				return true
 			}
-			if compareValues(item.value, threshold) == 0 {
+			if CompareValues(item.value, threshold) == 0 {
 				result = append(result, item.key)
 			}
-			return compareValues(item.value, threshold) == 0
+			return CompareValues(item.value, threshold) == 0
 		})
 	} else {
 		idx.tree.DescendLessOrEqual(pivot, func(i btree.Item) bool {
@@ -522,7 +536,7 @@ func (idx *SortedIndex[K]) collectRangeAscending(minValue, maxValue any) []K {
 // The caller must hold the read lock.
 func (idx *SortedIndex[K]) collectRangeDescending(minValue, maxValue any) []K {
 	temp := idx.collectRangeAscending(minValue, maxValue)
-	return reverseSlice(temp)
+	return ReverseSlice(temp)
 }
 
 // appendIfInRange checks if an item falls within a range and adds its key to
@@ -535,8 +549,8 @@ func (idx *SortedIndex[K]) collectRangeDescending(minValue, maxValue any) []K {
 //
 // Returns bool which is true to continue iteration, false to stop.
 func (*SortedIndex[K]) appendIfInRange(item *treeItem[K], minValue, maxValue any, result *[]K) bool {
-	cmpMin := compareValues(item.value, minValue)
-	cmpMax := compareValues(item.value, maxValue)
+	cmpMin := CompareValues(item.value, minValue)
+	cmpMax := CompareValues(item.value, maxValue)
 
 	if cmpMin < 0 {
 		return true
@@ -560,12 +574,12 @@ func NewSortedIndex[K comparable]() *SortedIndex[K] {
 	}
 }
 
-// reverseSlice returns a new slice with elements in reverse order.
+// ReverseSlice returns a new slice with elements in reverse order.
 //
 // Takes s ([]K) which is the slice to reverse.
 //
 // Returns []K which contains the elements in reverse order.
-func reverseSlice[K any](s []K) []K {
+func ReverseSlice[K any](s []K) []K {
 	result := make([]K, len(s))
 	for i := range s {
 		result[i] = s[len(s)-1-i]
@@ -573,7 +587,7 @@ func reverseSlice[K any](s []K) []K {
 	return result
 }
 
-// compareValues compares two values for ordering.
+// CompareValues compares two values for ordering.
 // Supports int, int64, float64, string, and falls back to string comparison.
 //
 // Takes a (any) which is the first value to compare.
@@ -581,7 +595,7 @@ func reverseSlice[K any](s []K) []K {
 //
 // Returns int which is negative if a < b, zero if a == b, or positive if
 // a > b.
-func compareValues(a, b any) int {
+func CompareValues(a, b any) int {
 	switch av := a.(type) {
 	case int:
 		if bv, ok := b.(int); ok {
@@ -601,5 +615,5 @@ func compareValues(a, b any) int {
 		}
 	}
 
-	return cmp.Compare(toString(a), toString(b))
+	return cmp.Compare(ToString(a), ToString(b))
 }

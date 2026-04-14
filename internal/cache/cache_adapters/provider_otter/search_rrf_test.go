@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
 )
 
@@ -58,11 +59,11 @@ func TestRRFFusion_BothListsCombine(t *testing.T) {
 	_ = adapter.Set(ctx, "doc2", Product{ID: "2", Name: "Basic Gadget", Description: "Simple gadget"})
 	_ = adapter.Set(ctx, "doc3", Product{ID: "3", Name: "Premium Device", Description: "Professional"})
 
-	vectorHits := []VectorHit[string]{
+	vectorHits := []cache_domain.VectorHit[string]{
 		{Key: "doc1", Score: 0.95},
 		{Key: "doc2", Score: 0.85},
 	}
-	textScored := []ScoredResult[string]{
+	textScored := []cache_domain.ScoredResult[string]{
 		{Key: "doc1", Score: 2.5},
 		{Key: "doc3", Score: 1.8},
 	}
@@ -89,11 +90,11 @@ func TestRRFFusion_ItemInBothListsScoresHigher(t *testing.T) {
 	_ = adapter.Set(ctx, "vec_only", Product{ID: "vec_only", Name: "vector only"})
 	_ = adapter.Set(ctx, "text_only", Product{ID: "text_only", Name: "text only"})
 
-	vectorHits := []VectorHit[string]{
+	vectorHits := []cache_domain.VectorHit[string]{
 		{Key: "both", Score: 0.9},
 		{Key: "vec_only", Score: 0.8},
 	}
-	textScored := []ScoredResult[string]{
+	textScored := []cache_domain.ScoredResult[string]{
 		{Key: "both", Score: 2.0},
 		{Key: "text_only", Score: 1.5},
 	}
@@ -121,11 +122,11 @@ func TestRRFFusion_PureVectorNoText(t *testing.T) {
 	_ = adapter.Set(ctx, "doc1", Product{ID: "1", Name: "Widget"})
 	_ = adapter.Set(ctx, "doc2", Product{ID: "2", Name: "Gadget"})
 
-	vectorHits := []VectorHit[string]{
+	vectorHits := []cache_domain.VectorHit[string]{
 		{Key: "doc1", Score: 0.95},
 		{Key: "doc2", Score: 0.85},
 	}
-	var textScored []ScoredResult[string]
+	var textScored []cache_domain.ScoredResult[string]
 
 	result, err := adapter.rrfFusion(vectorHits, textScored, nil, 0, 10)
 	require.NoError(t, err)
@@ -141,8 +142,8 @@ func TestRRFFusion_PureTextNoVector(t *testing.T) {
 	_ = adapter.Set(ctx, "doc1", Product{ID: "1", Name: "Widget"})
 	_ = adapter.Set(ctx, "doc2", Product{ID: "2", Name: "Gadget"})
 
-	var vectorHits []VectorHit[string]
-	textScored := []ScoredResult[string]{
+	var vectorHits []cache_domain.VectorHit[string]
+	textScored := []cache_domain.ScoredResult[string]{
 		{Key: "doc1", Score: 2.5},
 		{Key: "doc2", Score: 1.8},
 	}
@@ -163,7 +164,7 @@ func TestRRFFusion_Pagination(t *testing.T) {
 		_ = adapter.Set(ctx, key, Product{ID: key, Name: "Item " + key})
 	}
 
-	vectorHits := []VectorHit[string]{
+	vectorHits := []cache_domain.VectorHit[string]{
 		{Key: "a", Score: 0.9},
 		{Key: "b", Score: 0.8},
 		{Key: "c", Score: 0.7},
@@ -199,7 +200,7 @@ func TestRRFFusion_WithFilters(t *testing.T) {
 	_ = otter.Set(ctx, "doc2", Product{ID: "2", Name: "Gadget", Category: "toys"})
 	_ = otter.Set(ctx, "doc3", Product{ID: "3", Name: "Device", Category: "electronics"})
 
-	vectorHits := []VectorHit[string]{
+	vectorHits := []cache_domain.VectorHit[string]{
 		{Key: "doc1", Score: 0.9},
 		{Key: "doc2", Score: 0.8},
 		{Key: "doc3", Score: 0.7},
@@ -225,10 +226,10 @@ func TestRRFFusion_ScoreCalculation(t *testing.T) {
 
 	_ = adapter.Set(ctx, "doc1", Product{ID: "1", Name: "First"})
 
-	vectorHits := []VectorHit[string]{
+	vectorHits := []cache_domain.VectorHit[string]{
 		{Key: "doc1", Score: 0.9},
 	}
-	textScored := []ScoredResult[string]{
+	textScored := []cache_domain.ScoredResult[string]{
 		{Key: "doc1", Score: 2.0},
 	}
 
@@ -237,7 +238,7 @@ func TestRRFFusion_ScoreCalculation(t *testing.T) {
 
 	require.Len(t, result.Items, 1)
 
-	expectedScore := 2.0 / float64(rrfK+1)
+	expectedScore := 2.0 / float64(cache_domain.RRFK+1)
 	assert.InDelta(t, expectedScore, result.Items[0].Score, 0.0001,
 		"RRF score should be the sum of reciprocal ranks from both lists")
 }

@@ -96,8 +96,7 @@ type Config struct {
 	BatchSize int
 
 	// EnableTTLClientCheck controls whether the adapter checks the __ttl field
-	// client-side on reads and treats expired documents as misses. This provides
-	// consistent behaviour even before Firestore's server-side TTL policy
-	// removes the document. Defaults to true.
+	// client-side on reads and treats expired documents as misses, defaulting to
+	// true.
 	EnableTTLClientCheck bool
 }

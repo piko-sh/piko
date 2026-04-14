@@ -35,6 +35,8 @@ type testEnv struct {
 	redisAddr         string
 	redisClusterAddrs []string
 	valkeyAddr        string
+	dynamoDBEndpoint  string
+	firestoreAddr     string
 	rawClient         *redis.Client
 	rawClusterClient  *redis.ClusterClient
 	cleanup           func()
@@ -60,8 +62,10 @@ func TestMain(m *testing.M) {
 
 	if code == 0 {
 		if err := leakcheck.FindLeaks(
-
 			goleak.IgnoreAnyFunction("github.com/valkey-io/valkey-go.(*call).LazyDo.func1"),
+			goleak.IgnoreAnyFunction("google.golang.org/grpc.(*ccBalancerWrapper).watcher"),
+			goleak.IgnoreAnyFunction("google.golang.org/grpc.(*addrConn).resetTransport"),
+			goleak.IgnoreAnyFunction("google.golang.org/grpc/internal/transport.(*controlBuffer).get"),
 		); err != nil {
 			_, _ = fmt.Fprintf(os.Stderr, "goleak: %v\n", err)
 			os.Exit(1)

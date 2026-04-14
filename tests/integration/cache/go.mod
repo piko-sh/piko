@@ -10,6 +10,8 @@ require (
 	github.com/testcontainers/testcontainers-go v0.40.0
 	go.uber.org/goleak v1.3.0
 	piko.sh/piko v0.0.0
+	piko.sh/piko/wdk/cache/cache_provider_dynamodb v0.0.0
+	piko.sh/piko/wdk/cache/cache_provider_firestore v0.0.0
 	piko.sh/piko/wdk/cache/cache_provider_redis v0.0.0
 	piko.sh/piko/wdk/cache/cache_provider_redis_cluster v0.0.0
 	piko.sh/piko/wdk/cache/cache_provider_valkey v0.0.0

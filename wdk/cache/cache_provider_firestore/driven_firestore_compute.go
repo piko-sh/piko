@@ -149,6 +149,9 @@ func (a *FirestoreAdapter[K, V]) Compute(ctx context.Context, key K, computeFunc
 // tryGetExistingValue attempts to read a non-expired value from a transaction
 // snapshot.
 //
+// Takes tx (*firestore.Transaction) which provides the transaction context.
+// Takes ref (*firestore.DocumentRef) which is the document to read.
+//
 // Returns V which is the existing value if found and not expired.
 // Returns bool which is true if a valid value was found.
 // Returns error when the get or decode fails.
@@ -226,6 +229,11 @@ func (a *FirestoreAdapter[K, V]) ComputeIfAbsent(ctx context.Context, key K, com
 
 // applyComputeActionInTransaction applies a compute action within a Firestore
 // transaction and returns the resulting value and presence flag.
+//
+// Takes tx (*firestore.Transaction) which is the transaction to execute in.
+// Takes ref (*firestore.DocumentRef) which is the document to operate on.
+// Takes newValue (V) which is the value to set when the action is Set.
+// Takes action (cache.ComputeAction) which specifies the operation to perform.
 //
 // Returns V which is the value after the action is applied.
 // Returns bool which is true if a value is present after the action.
@@ -376,7 +384,11 @@ func (a *FirestoreAdapter[K, V]) ComputeWithTTL(ctx context.Context, key K, comp
 // buildDocRefs builds document references for the given keys and returns a
 // reverse map from document ID to original key.
 //
-// Returns the document references and the ID-to-key mapping.
+// Takes keys ([]K) which specifies the cache keys to resolve.
+//
+// Returns []*firestore.DocumentRef which contains the resolved document
+// references.
+// Returns map[string]K which maps document IDs back to original keys.
 func (a *FirestoreAdapter[K, V]) buildDocRefs(keys []K, l logger.Logger) ([]*firestore.DocumentRef, map[string]K) {
 	refs := make([]*firestore.DocumentRef, 0, len(keys))
 	refKeyMap := make(map[string]K, len(keys))
@@ -392,10 +404,15 @@ func (a *FirestoreAdapter[K, V]) buildDocRefs(keys []K, l logger.Logger) ([]*fir
 	return refs, refKeyMap
 }
 
-// classifySnapshot classifies a document snapshot as a hit or a miss.
-// When the snapshot contains a valid, non-expired value the key-value pair is
-// added to results and true is returned. Otherwise the original key is returned
-// as a miss with false.
+// classifySnapshot classifies a document snapshot as a hit or a miss, adding
+// valid entries to results and returning misses.
+//
+// Takes snap (*firestore.DocumentSnapshot) which is the document to classify.
+// Takes refKeyMap (map[string]K) which maps document IDs to original keys.
+// Takes results (map[K]V) which receives hit entries.
+//
+// Returns K which is the original key when the snapshot is a miss.
+// Returns bool which is true when the snapshot is a miss.
 func (a *FirestoreAdapter[K, V]) classifySnapshot(
 	snap *firestore.DocumentSnapshot,
 	refKeyMap map[string]K,
@@ -425,7 +442,11 @@ func (a *FirestoreAdapter[K, V]) classifySnapshot(
 // fetchChunkedSnapshots retrieves documents in chunks and classifies each as a
 // hit (added to results) or miss (appended to misses).
 //
-// Returns []K containing keys that were not found or expired.
+// Takes refs ([]*firestore.DocumentRef) which are the documents to fetch.
+// Takes refKeyMap (map[string]K) which maps document IDs to original keys.
+// Takes results (map[K]V) which receives hit entries.
+//
+// Returns []K which contains keys that were not found or expired.
 // Returns error when a Firestore GetAll call fails.
 func (a *FirestoreAdapter[K, V]) fetchChunkedSnapshots(
 	ctx context.Context,
@@ -476,7 +497,7 @@ func (a *FirestoreAdapter[K, V]) BulkGet(ctx context.Context, keys []K, bulkLoad
 
 	misses, err := a.fetchChunkedSnapshots(timeoutCtx, refs, refKeyMap, results, l)
 	if err != nil {
-		return results, err
+		return results, fmt.Errorf("fetching bulk get snapshots: %w", err)
 	}
 
 	if len(misses) > 0 {
@@ -646,7 +667,7 @@ func (a *FirestoreAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 	bulkWriter.Flush()
 
 	if err := checkBulkWriterJobs(jobs); err != nil {
-		return err
+		return fmt.Errorf("InvalidateAll bulk delete failed: %w", err)
 	}
 
 	l.Internal("InvalidateAll completed",
@@ -657,7 +678,12 @@ func (a *FirestoreAdapter[K, V]) InvalidateAll(ctx context.Context) error {
 }
 
 // checkBulkWriterJobs inspects the results of all enqueued BulkWriter
-// operations after Flush. Returns the first error encountered, if any.
+// operations after Flush.
+//
+// Takes jobs ([]*firestore.BulkWriterJob) which are the enqueued write
+// operations to inspect.
+//
+// Returns error when any bulk write operation failed.
 func checkBulkWriterJobs(jobs []*firestore.BulkWriterJob) error {
 	for _, job := range jobs {
 		if _, err := job.Results(); err != nil {

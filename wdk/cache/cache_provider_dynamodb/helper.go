@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package cache_provider_firestore
+package cache_provider_dynamodb
 
 import (
 	"cmp"
@@ -30,28 +30,16 @@ import (
 	"piko.sh/piko/wdk/logger"
 )
 
-// collectionPath returns the Firestore collection path used for cache entries
-// in the given namespace. The format is
-// "{collectionPrefix}/{namespace}/entries".
-//
-// Takes collectionPrefix (string) which is the top-level Firestore collection.
-// Takes namespace (string) which identifies the cache namespace.
-//
-// Returns string which is the full collection path.
-func collectionPath(collectionPrefix string, namespace string) string {
-	return collectionPrefix + "/" + namespace + "/entries"
-}
-
-// createFirestoreCache creates a Firestore cache for the given namespace using
+// createDynamoDBCache creates a DynamoDB cache for the given namespace using
 // type assertions.
 //
-// Takes p (*FirestoreProvider) which provides the Firestore connection.
+// Takes p (*DynamoDBProvider) which provides the DynamoDB connection.
 // Takes namespace (string) which identifies the cache namespace.
 // Takes optionsAny (any) which specifies the cache options with type info.
 //
 // Returns any which is the created cache instance.
 // Returns error when the options type is not supported.
-func createFirestoreCache(p *FirestoreProvider, namespace string, optionsAny any) (any, error) {
+func createDynamoDBCache(p *DynamoDBProvider, namespace string, optionsAny any) (any, error) {
 	switch opts := optionsAny.(type) {
 	case cache.Options[string, []byte]:
 		return createNamespaceGeneric[string, []byte](p, namespace, opts)
@@ -77,10 +65,10 @@ func createFirestoreCache(p *FirestoreProvider, namespace string, optionsAny any
 	}
 }
 
-// createNamespaceGeneric is a helper that handles the type-specific Firestore
+// createNamespaceGeneric is a helper that handles the type-specific DynamoDB
 // cache creation.
 //
-// Takes p (*FirestoreProvider) which supplies the Firestore client and
+// Takes p (*DynamoDBProvider) which supplies the DynamoDB client and
 // configuration.
 // Takes namespace (string) which identifies the cache namespace to create or
 // reuse.
@@ -91,7 +79,7 @@ func createFirestoreCache(p *FirestoreProvider, namespace string, optionsAny any
 // already exists with incompatible types.
 //
 // Safe for concurrent use. Access is serialised by the provider mutex.
-func createNamespaceGeneric[K comparable, V any](p *FirestoreProvider, namespace string, options cache.Options[K, V]) (cache.Cache[K, V], error) {
+func createNamespaceGeneric[K comparable, V any](p *DynamoDBProvider, namespace string, options cache.Options[K, V]) (cache.Cache[K, V], error) {
 	_, l := logger.From(context.Background(), log)
 
 	namespace = cmp.Or(namespace, "default")
@@ -101,24 +89,27 @@ func createNamespaceGeneric[K comparable, V any](p *FirestoreProvider, namespace
 
 	if existing, exists := p.caches[namespace]; exists {
 		if c, ok := existing.(cache.Cache[K, V]); ok {
-			l.Internal("Reusing existing Firestore namespace",
+			l.Internal("Reusing existing DynamoDB namespace",
 				logger.String("namespace", namespace))
 			return c, nil
 		}
 		return nil, fmt.Errorf("namespace '%s' already exists with different key/value types", namespace)
 	}
 
-	collection := p.client.Collection(p.config.CollectionPrefix).Doc(namespace).Collection("entries")
+	formattedNamespace := namespace
+	if formattedNamespace[len(formattedNamespace)-1] != ':' {
+		formattedNamespace = formattedNamespace + ":"
+	}
 
-	adapter := &FirestoreAdapter[K, V]{
+	adapter := &DynamoDBAdapter[K, V]{
 		expiryCalculator:       options.ExpiryCalculator,
 		refreshCalculator:      options.RefreshCalculator,
 		sf:                     singleflight.Group{},
 		registry:               p.config.Registry,
 		client:                 p.client,
 		keyRegistry:            p.config.KeyRegistry,
-		collection:             collection,
-		namespace:              namespace,
+		namespace:              formattedNamespace,
+		tableName:              p.config.TableName,
 		ttl:                    p.config.DefaultTTL,
 		operationTimeout:       p.config.OperationTimeout,
 		atomicOperationTimeout: p.config.AtomicOperationTimeout,
@@ -126,30 +117,61 @@ func createNamespaceGeneric[K comparable, V any](p *FirestoreProvider, namespace
 		flushTimeout:           p.config.FlushTimeout,
 		searchTimeout:          p.config.SearchTimeout,
 		maxComputeRetries:      p.config.MaxComputeRetries,
-		batchSize:              p.config.BatchSize,
-		enableTTLClientCheck:   p.config.EnableTTLClientCheck,
+		consistentReads:        p.config.ConsistentReads,
 		schema:                 options.SearchSchema,
 	}
 
 	if options.SearchSchema != nil {
 		configureSearchSchema(adapter, options.SearchSchema)
+		configureFieldGSIs(p, adapter, l, options.SearchSchema)
 	}
 
 	p.caches[namespace] = adapter
 
-	l.Internal("Created new Firestore namespace",
+	l.Internal("Created new DynamoDB namespace",
 		logger.String("namespace", namespace),
-		logger.String("collection", collection.Path))
+		logger.String("prefix", formattedNamespace),
+		logger.String(logTableField, p.config.TableName))
 
 	return adapter, nil
 }
 
 // configureSearchSchema sets up the field extractor on the adapter from the
-// provided search schema. The field extractor is used to populate sf_ document
-// fields on Set for native Firestore Where/OrderBy queries.
+// provided search schema.
 //
-// Takes adapter (*FirestoreAdapter[K, V]) which is the adapter to configure.
-// Takes schema (*cache.SearchSchema) which defines the searchable fields.
-func configureSearchSchema[K comparable, V any](adapter *FirestoreAdapter[K, V], schema *cache.SearchSchema) {
+// Takes adapter (*DynamoDBAdapter[K, V]) which is the adapter to configure.
+// Takes schema (*cache.SearchSchema) which defines the field configuration.
+func configureSearchSchema[K comparable, V any](adapter *DynamoDBAdapter[K, V], schema *cache.SearchSchema) {
 	adapter.fieldExtractor = cache_domain.NewFieldExtractor[V](schema)
+}
+
+// configureFieldGSIs creates DynamoDB GSIs for searchable fields when
+// CreateFieldGSIs is enabled on the provider config.
+//
+// Takes p (*DynamoDBProvider) which supplies the configuration and client.
+// Takes adapter (*DynamoDBAdapter[K, V]) which receives the GSI field mapping.
+// Takes l (logger.Logger) which logs warnings when GSI creation fails.
+// Takes schema (*cache.SearchSchema) which defines the searchable fields.
+func configureFieldGSIs[K comparable, V any](
+	p *DynamoDBProvider,
+	adapter *DynamoDBAdapter[K, V],
+	l logger.Logger,
+	schema *cache.SearchSchema,
+) {
+	if !p.config.CreateFieldGSIs {
+		return
+	}
+
+	gsiFields, err := ensureFieldGSIs(
+		context.Background(), p.client, p.config.TableName,
+		p.config.BillingMode, p.config.ReadCapacityUnits, p.config.WriteCapacityUnits,
+		schema,
+	)
+	if err != nil {
+		l.Warn("Failed to create field GSIs, queries will use Scan fallback",
+			logger.Error(err))
+		return
+	}
+
+	adapter.gsiFields = gsiFields
 }

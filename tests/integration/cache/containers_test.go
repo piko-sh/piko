@@ -87,6 +87,34 @@ func setupTestEnvironment(ctx context.Context) (*testEnv, error) {
 		env.rawClusterClient = redis.NewClusterClient(&redis.ClusterOptions{Addrs: env.redisClusterAddrs})
 	}
 
+	if endpoint := os.Getenv("DYNAMODB_ENDPOINT"); endpoint != "" {
+		env.dynamoDBEndpoint = endpoint
+	} else {
+		localstackContainer, endpoint, err := startLocalStackContainer(ctx)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "WARN: could not start localstack container (dynamodb tests will be skipped): %v\n", err)
+		} else {
+			env.dynamoDBEndpoint = endpoint
+			if localstackContainer != nil {
+				cleanups = append(cleanups, func() { _ = localstackContainer.Terminate(context.Background()) })
+			}
+		}
+	}
+
+	if addr := os.Getenv("FIRESTORE_EMULATOR_HOST"); addr != "" {
+		env.firestoreAddr = addr
+	} else {
+		firestoreContainer, addr, err := startFirestoreEmulatorContainer(ctx)
+		if err != nil {
+			_, _ = fmt.Fprintf(os.Stderr, "WARN: could not start firestore emulator (firestore tests will be skipped): %v\n", err)
+		} else {
+			env.firestoreAddr = addr
+			if firestoreContainer != nil {
+				cleanups = append(cleanups, func() { _ = firestoreContainer.Terminate(context.Background()) })
+			}
+		}
+	}
+
 	env.cleanup = func() {
 		if env.rawClient != nil {
 			_ = env.rawClient.Close()
@@ -217,4 +245,75 @@ func startRedisClusterContainer(ctx context.Context) (testcontainers.Container, 
 	time.Sleep(2 * time.Second)
 
 	return ctr, addrs, nil
+}
+
+func startLocalStackContainer(ctx context.Context) (testcontainers.Container, string, error) {
+	request := testcontainers.ContainerRequest{
+		Image:        "localstack/localstack:latest",
+		ExposedPorts: []string{"4566/tcp"},
+		Env: map[string]string{
+			"SERVICES":              "dynamodb",
+			"EAGER_SERVICE_LOADING": "1",
+		},
+		WaitingFor: wait.ForHTTP("/_localstack/health").
+			WithPort("4566/tcp").
+			WithStatusCodeMatcher(func(status int) bool { return status == 200 }).
+			WithStartupTimeout(120 * time.Second),
+	}
+
+	genericContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: request,
+		Started:          true,
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("creating localstack container: %w", err)
+	}
+
+	host, err := genericContainer.Host(ctx)
+	if err != nil {
+		_ = genericContainer.Terminate(ctx)
+		return nil, "", fmt.Errorf("getting host: %w", err)
+	}
+
+	port, err := genericContainer.MappedPort(ctx, "4566/tcp")
+	if err != nil {
+		_ = genericContainer.Terminate(ctx)
+		return nil, "", fmt.Errorf("getting port: %w", err)
+	}
+
+	endpoint := fmt.Sprintf("http://%s:%s", host, port.Port())
+	return genericContainer, endpoint, nil
+}
+
+func startFirestoreEmulatorContainer(ctx context.Context) (testcontainers.Container, string, error) {
+	request := testcontainers.ContainerRequest{
+		Image:        "gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators",
+		ExposedPorts: []string{"8080/tcp"},
+		Cmd:          []string{"gcloud", "beta", "emulators", "firestore", "start", "--host-port=0.0.0.0:8080"},
+		WaitingFor: wait.ForLog("Dev App Server is now running").
+			WithStartupTimeout(120 * time.Second),
+	}
+
+	genericContainer, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: request,
+		Started:          true,
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("creating firestore emulator container: %w", err)
+	}
+
+	host, err := genericContainer.Host(ctx)
+	if err != nil {
+		_ = genericContainer.Terminate(ctx)
+		return nil, "", fmt.Errorf("getting host: %w", err)
+	}
+
+	port, err := genericContainer.MappedPort(ctx, "8080/tcp")
+	if err != nil {
+		_ = genericContainer.Terminate(ctx)
+		return nil, "", fmt.Errorf("getting port: %w", err)
+	}
+
+	addr := fmt.Sprintf("%s:%s", host, port.Port())
+	return genericContainer, addr, nil
 }

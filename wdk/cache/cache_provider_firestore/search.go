@@ -25,7 +25,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
-	"piko.sh/piko/internal/cache/cache_search"
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/wdk/cache"
 )
 
@@ -79,7 +79,7 @@ func (a *FirestoreAdapter[K, V]) Query(ctx context.Context, opts *cache.QueryOpt
 
 	items, total, err := a.executeQuery(timeoutCtx, &query)
 	if err != nil {
-		return cache.SearchResult[K, V]{}, err
+		return cache.SearchResult[K, V]{}, fmt.Errorf("executing Firestore query: %w", err)
 	}
 
 	return cache.SearchResult[K, V]{
@@ -90,9 +90,9 @@ func (a *FirestoreAdapter[K, V]) Query(ctx context.Context, opts *cache.QueryOpt
 	}, nil
 }
 
-// Search returns ErrSearchNotSupported. The Firestore provider delegates
+// Search returns ErrSearchNotSupported because the Firestore provider delegates
 // structured queries to Query and does not support client-side full-text or
-// vector search. Callers that need filtered results should use Query instead.
+// vector search.
 //
 // Takes query (string) which is the search query text (unused).
 // Takes opts (*cache.SearchOptions) which configures the search (unused).
@@ -180,7 +180,7 @@ func applyFilterToQuery(query *firestore.Query, fieldName string, filter cache.F
 		lower := query.Where(fieldName, ">=", filter.Values[0])
 		result = lower.Where(fieldName, "<=", filter.Values[1])
 	case cache.FilterOpPrefix:
-		prefix := cache_search.ToString(filter.Value)
+		prefix := cache_domain.ToString(filter.Value)
 		lower := query.Where(fieldName, ">=", prefix)
 		result = lower.Where(fieldName, "<", prefix+"\uffff")
 	default:
@@ -234,7 +234,7 @@ func (a *FirestoreAdapter[K, V]) executeQuery(ctx context.Context, query *firest
 // Returns int which is the resolved limit.
 func resolveLimit(limit int) int {
 	if limit <= 0 {
-		return cache_search.DefaultSearchLimit
+		return cache_domain.DefaultSearchLimit
 	}
 	return limit
 }

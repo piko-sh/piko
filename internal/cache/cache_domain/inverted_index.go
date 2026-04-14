@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package provider_otter
+package cache_domain
 
 import (
 	"cmp"
@@ -134,6 +134,14 @@ func (idx *InvertedIndex[K]) SetAnalyseFunction(analyseFunction cache_dto.TextAn
 	idx.analyseFunc = analyseFunction
 }
 
+// SetMaxTokens sets the maximum number of unique terms in the vocabulary.
+// Zero means unlimited.
+//
+// Takes maxTokens (int) which specifies the vocabulary limit.
+func (idx *InvertedIndex[K]) SetMaxTokens(maxTokens int) {
+	idx.maxTokens = maxTokens
+}
+
 // Add indexes text content for a key. If the key already exists,
 // it removes old terms first before adding new ones.
 //
@@ -150,21 +158,21 @@ func (idx *InvertedIndex[K]) Add(key K, texts []string) {
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
 
-	idx.addUnsafe(key, texts)
+	idx.AddUnsafe(key, texts)
 }
 
-// addUnsafe indexes text without holding the lock. The caller must hold the
+// AddUnsafe indexes text without holding the lock. The caller must hold the
 // write lock.
 //
 // Takes key (K) which identifies the entry to index.
 // Takes texts ([]string) which contains the text content to tokenise.
-func (idx *InvertedIndex[K]) addUnsafe(key K, texts []string) {
+func (idx *InvertedIndex[K]) AddUnsafe(key K, texts []string) {
 	terms := idx.tokeniseAll(texts)
 	if len(terms) == 0 {
 		return
 	}
 
-	idx.removeKeyUnsafe(key)
+	idx.RemoveKeyUnsafe(key)
 
 	termSet := make(map[string]struct{}, len(terms))
 	for _, term := range terms {
@@ -192,14 +200,14 @@ func (idx *InvertedIndex[K]) addUnsafe(key K, texts []string) {
 func (idx *InvertedIndex[K]) Remove(key K) {
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
-	idx.removeKeyUnsafe(key)
+	idx.RemoveKeyUnsafe(key)
 }
 
-// removeKeyUnsafe removes a key from the index without holding the lock.
+// RemoveKeyUnsafe removes a key from the index without holding the lock.
 // The caller must hold the write lock.
 //
 // Takes key (K) which is the key to remove.
-func (idx *InvertedIndex[K]) removeKeyUnsafe(key K) {
+func (idx *InvertedIndex[K]) RemoveKeyUnsafe(key K) {
 	terms, ok := idx.keyTerms[key]
 	if !ok {
 		return
@@ -221,6 +229,20 @@ func (idx *InvertedIndex[K]) removeKeyUnsafe(key K) {
 	}
 
 	delete(idx.keyTerms, key)
+}
+
+// Lock acquires the write lock on the inverted index.
+//
+// Concurrency: acquires the write lock.
+func (idx *InvertedIndex[K]) Lock() {
+	idx.mu.Lock()
+}
+
+// Unlock releases the write lock on the inverted index.
+//
+// Concurrency: releases the write lock.
+func (idx *InvertedIndex[K]) Unlock() {
+	idx.mu.Unlock()
 }
 
 // Search finds all keys whose indexed text contains all query terms.

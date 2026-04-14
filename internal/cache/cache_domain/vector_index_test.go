@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package provider_otter
+package cache_domain
 
 import (
 	"testing"
@@ -210,7 +210,7 @@ func TestDistanceToSimilarity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := distanceToSimilarity(tt.distance, tt.metric)
+			result := DistanceToSimilarity(tt.distance, tt.metric)
 			assert.InDelta(t, tt.expected, result, 0.001)
 		})
 	}

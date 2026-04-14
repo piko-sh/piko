@@ -33,7 +33,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/cache/cache_search"
 	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/logger"
@@ -104,7 +103,7 @@ type FirestoreAdapter[K comparable, V any] struct {
 	schema *cache.SearchSchema
 
 	// fieldExtractor extracts field values from cached values for search indexing.
-	fieldExtractor *cache_search.FieldExtractor[V]
+	fieldExtractor *cache_domain.FieldExtractor[V]
 
 	// sf deduplicates concurrent loads for the same key.
 	sf singleflight.Group
@@ -150,7 +149,6 @@ type FirestoreAdapter[K comparable, V any] struct {
 	misses atomic.Uint64
 }
 
-// _ checks that FirestoreAdapter implements the ProviderPort interface.
 var _ cache.ProviderPort[any, any] = (*FirestoreAdapter[any, any])(nil)
 
 // docRef returns a DocumentRef for the given key by encoding it to a document
@@ -231,7 +229,7 @@ func (a *FirestoreAdapter[K, V]) decodeValue(valBytes []byte) (V, error) {
 // Takes tags ([]string) which are the tags to associate with the entry.
 // Takes ttl (time.Duration) which is the time-to-live for this entry.
 //
-// Returns map[string]any containing the document data.
+// Returns map[string]any which contains the document fields for storage.
 // Returns error when value encoding fails.
 func (a *FirestoreAdapter[K, V]) buildDocumentData(value V, tags []string, ttl time.Duration) (map[string]any, error) {
 	valBytes, err := a.encodeValue(value)
@@ -267,7 +265,7 @@ func (a *FirestoreAdapter[K, V]) addSearchFields(data map[string]any, value V) {
 		switch field.Type {
 		case cache.FieldTypeTag:
 			if v, ok := a.fieldExtractor.ExtractAny(value, field.Name); ok {
-				data[searchFieldPrefix+field.Name] = cache_search.ToString(v)
+				data[searchFieldPrefix+field.Name] = cache_domain.ToString(v)
 			}
 		case cache.FieldTypeNumeric:
 			if v, ok := a.fieldExtractor.ExtractNumericValue(value, field.Name); ok {
@@ -464,7 +462,7 @@ func (a *FirestoreAdapter[K, V]) Set(ctx context.Context, key K, value V, tags .
 
 	docData, err := a.buildDocumentData(value, tags, ttl)
 	if err != nil {
-		return err
+		return fmt.Errorf("building document data: %w", err)
 	}
 
 	if _, err := ref.Set(timeoutCtx, docData); err != nil {
@@ -493,7 +491,7 @@ func (a *FirestoreAdapter[K, V]) SetWithTTL(ctx context.Context, key K, value V,
 
 	docData, err := a.buildDocumentData(value, tags, ttl)
 	if err != nil {
-		return err
+		return fmt.Errorf("building document data: %w", err)
 	}
 
 	if _, err := ref.Set(timeoutCtx, docData); err != nil {
@@ -560,6 +558,8 @@ func (a *FirestoreAdapter[K, V]) SetExpiresAfter(ctx context.Context, key K, exp
 
 // decodeDocument extracts and decodes both the key and value from a Firestore
 // document snapshot.
+//
+// Takes snap (*firestore.DocumentSnapshot) which is the document to decode.
 //
 // Returns K which is the decoded key.
 // Returns V which is the decoded value.

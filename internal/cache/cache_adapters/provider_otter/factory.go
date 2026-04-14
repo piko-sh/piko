@@ -93,17 +93,17 @@ func configureSearchSchema[K comparable, V any](adapter *OtterAdapter[K, V], sch
 	}
 
 	adapter.schema = schema
-	adapter.fieldExtractor = NewFieldExtractor[V](schema)
-	adapter.invertedIndex = NewInvertedIndex[K]()
+	adapter.fieldExtractor = cache_domain.NewFieldExtractor[V](schema)
+	adapter.invertedIndex = cache_domain.NewInvertedIndex[K]()
 	if schema.MaxInvertedIndexTokens > 0 {
-		adapter.invertedIndex.maxTokens = schema.MaxInvertedIndexTokens
+		adapter.invertedIndex.SetMaxTokens(schema.MaxInvertedIndexTokens)
 	}
 	if schema.TextAnalyser != nil {
 		adapter.invertedIndex.SetAnalyseFunction(schema.TextAnalyser)
 	}
 
-	adapter.sortedIndexes = make(map[string]*SortedIndex[K])
-	adapter.vectorIndexes = make(map[string]*VectorIndex[K])
+	adapter.sortedIndexes = make(map[string]*cache_domain.SortedIndex[K])
+	adapter.vectorIndexes = make(map[string]*cache_domain.VectorIndex[K])
 	configureFieldIndexes(adapter, schema)
 }
 
@@ -116,16 +116,16 @@ func configureSearchSchema[K comparable, V any](adapter *OtterAdapter[K, V], sch
 func configureFieldIndexes[K comparable, V any](adapter *OtterAdapter[K, V], schema *cache_dto.SearchSchema) {
 	for _, field := range schema.Fields {
 		if field.Sortable {
-			adapter.sortedIndexes[field.Name] = NewSortedIndex[K]()
+			adapter.sortedIndexes[field.Name] = cache_domain.NewSortedIndex[K]()
 		}
 		if field.Type == cache_dto.FieldTypeVector {
 			metric := vectormaths.Cosine
 			if field.DistanceMetric != "" {
 				metric = vectormaths.Metric(field.DistanceMetric)
 			}
-			vi := NewVectorIndex[K](field.Dimension, metric)
+			vi := cache_domain.NewVectorIndex[K](field.Dimension, metric)
 			if schema.MaxVectors > 0 {
-				vi.maxVectors = schema.MaxVectors
+				vi.SetMaxVectors(schema.MaxVectors)
 			}
 			adapter.vectorIndexes[field.Name] = vi
 		}

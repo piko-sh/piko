@@ -99,7 +99,7 @@ func NewFirestoreProvider(config Config) (*FirestoreProvider, error) {
 
 	client, err := buildFirestoreClient(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating Firestore client: %w", err)
 	}
 
 	provider := &FirestoreProvider{
@@ -119,6 +119,11 @@ func NewFirestoreProvider(config Config) (*FirestoreProvider, error) {
 }
 
 // buildFirestoreClient creates a Firestore client from the provided config.
+//
+// Takes config (Config) which supplies the project, database, and credentials.
+//
+// Returns *firestore.Client which is the connected Firestore client.
+// Returns error when the client cannot be created.
 func buildFirestoreClient(config Config) (*firestore.Client, error) {
 	ctx, cancel := context.WithTimeoutCause(
 		context.Background(),
@@ -154,6 +159,8 @@ func buildFirestoreClient(config Config) (*firestore.Client, error) {
 
 // applyConfigDefaults fills zero-valued configuration fields with sensible
 // defaults.
+//
+// Takes config (*Config) which is the configuration to populate.
 func applyConfigDefaults(config *Config) {
 	if config.DatabaseID == "" {
 		config.DatabaseID = defaultDatabaseID

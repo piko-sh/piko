@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package provider_otter
+package cache_domain
 
 import (
 	"math"
@@ -59,6 +59,14 @@ type VectorIndex[K comparable] struct {
 
 	// mu guards lazy graph initialisation when dimension is 0.
 	mu sync.Mutex
+}
+
+// SetMaxVectors sets the maximum number of vectors in the index.
+// Zero means unlimited.
+//
+// Takes maxVectors (int) which specifies the vector limit.
+func (idx *VectorIndex[K]) SetMaxVectors(maxVectors int) {
+	idx.maxVectors = maxVectors
 }
 
 // Add indexes a vector for the given key. If the key already exists, its
@@ -131,7 +139,7 @@ func (idx *VectorIndex[K]) Search(query []float32, topK int, minScore *float32) 
 
 	hits := make([]VectorHit[K], 0, len(results))
 	for _, r := range results {
-		score := distanceToSimilarity(r.Distance, idx.metric)
+		score := DistanceToSimilarity(r.Distance, idx.metric)
 		if minScore != nil && score < *minScore {
 			continue
 		}
@@ -170,7 +178,7 @@ func NewVectorIndex[K comparable](dimension int, metric vectormaths.Metric) *Vec
 	return index
 }
 
-// distanceToSimilarity converts HNSW distance values back to similarity scores.
+// DistanceToSimilarity converts HNSW distance values back to similarity scores.
 //
 // The conversion depends on the metric:
 //   - Cosine: distance = 1 - similarity, so similarity = 1 - distance
@@ -181,7 +189,7 @@ func NewVectorIndex[K comparable](dimension int, metric vectormaths.Metric) *Vec
 // Takes metric (vectormaths.Metric) which specifies the distance metric used.
 //
 // Returns float32 which is the similarity score in the range [0, 1].
-func distanceToSimilarity(distance float32, metric vectormaths.Metric) float32 {
+func DistanceToSimilarity(distance float32, metric vectormaths.Metric) float32 {
 	switch metric {
 	case vectormaths.Euclidean:
 		return float32(1.0 / (1.0 + math.Sqrt(float64(distance))))

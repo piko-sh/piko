@@ -16,7 +16,7 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package provider_otter
+package cache_domain
 
 import (
 	"fmt"
@@ -162,7 +162,7 @@ func (fe *FieldExtractor[V]) ExtractSortableValue(value V, fieldName string) (an
 	if fe == nil || !fe.sortableFields[fieldName] {
 		return nil, false
 	}
-	return fe.extractAny(value, fieldName)
+	return fe.ExtractAny(value, fieldName)
 }
 
 // ExtractVectorValue returns the value of a VECTOR field as []float32.
@@ -176,7 +176,7 @@ func (fe *FieldExtractor[V]) ExtractVectorValue(value V, fieldName string) ([]fl
 	if fe == nil {
 		return nil, false
 	}
-	extracted, ok := fe.extractAny(value, fieldName)
+	extracted, ok := fe.ExtractAny(value, fieldName)
 	if !ok {
 		return nil, false
 	}
@@ -229,11 +229,11 @@ func (fe *FieldExtractor[V]) GetSortableFields() []string {
 //
 // Returns string which is the extracted value, or an empty string if not found.
 func (fe *FieldExtractor[V]) extractString(value V, fieldPath string) string {
-	extracted, ok := fe.extractAny(value, fieldPath)
+	extracted, ok := fe.ExtractAny(value, fieldPath)
 	if !ok {
 		return ""
 	}
-	return toString(extracted)
+	return ToString(extracted)
 }
 
 // extractNumeric extracts a numeric value from a field.
@@ -244,14 +244,14 @@ func (fe *FieldExtractor[V]) extractString(value V, fieldPath string) string {
 // Returns float64 which is the extracted numeric value.
 // Returns bool which indicates whether extraction succeeded.
 func (fe *FieldExtractor[V]) extractNumeric(value V, fieldPath string) (float64, bool) {
-	extracted, ok := fe.extractAny(value, fieldPath)
+	extracted, ok := fe.ExtractAny(value, fieldPath)
 	if !ok {
 		return 0, false
 	}
-	return toFloat64(extracted)
+	return ToFloat64(extracted)
 }
 
-// extractAny extracts any value from a field using zero-allocation unsafe
+// ExtractAny extracts any value from a field using zero-allocation unsafe
 // access. Supports dot notation for nested fields (e.g., "address.city") and
 // uses binder-style reflection caching to eliminate reflect.ValueOf
 // allocations.
@@ -264,7 +264,7 @@ func (fe *FieldExtractor[V]) extractNumeric(value V, fieldPath string) (float64,
 //
 // Safe for concurrent use. Uses a read lock when checking the invalid field
 // path cache.
-func (fe *FieldExtractor[V]) extractAny(value V, fieldPath string) (any, bool) {
+func (fe *FieldExtractor[V]) ExtractAny(value V, fieldPath string) (any, bool) {
 	fe.cacheMu.RLock()
 	_, isInvalid := fe.fieldPathInvalid[fieldPath]
 	fe.cacheMu.RUnlock()
@@ -467,6 +467,21 @@ func NewFieldExtractor[V any](schema *cache_dto.SearchSchema) *FieldExtractor[V]
 	return fe
 }
 
+// CompareFieldDirect performs field comparison using the appropriate strategy
+// for the current build (safe or unsafe).
+//
+// Takes value (V) which is the struct value to extract the field from.
+// Takes fieldPath (string) which specifies the dot-separated path to the field.
+// Takes operator (any) which is the comparison operator to apply.
+// Takes targetValue (any) which is the value to compare against.
+// Takes targetValues ([]any) which provides multiple values for set operations.
+//
+// Returns matched (bool) which is the comparison result.
+// Returns ok (bool) which indicates whether the operation succeeded.
+func (fe *FieldExtractor[V]) CompareFieldDirect(value V, fieldPath string, operator any, targetValue any, targetValues []any) (matched bool, ok bool) {
+	return fe.compareFieldDirect(value, fieldPath, operator, targetValue, targetValues)
+}
+
 // findFieldByNameInType finds a field by name in a struct type using
 // case-insensitive matching.
 //
@@ -519,13 +534,13 @@ func dereferencePointers(v reflect.Value) reflect.Value {
 	return v
 }
 
-// toString converts a value of any type to its string form.
+// ToString converts a value of any type to its string form.
 // Uses strconv for number types for better speed.
 //
 // Takes value (any) which is the value to convert.
 //
 // Returns string which is the string form of the value.
-func toString(value any) string {
+func ToString(value any) string {
 	if value == nil {
 		return ""
 	}
@@ -570,13 +585,13 @@ func toString(value any) string {
 	}
 }
 
-// toFloat64 converts any numeric value to float64.
+// ToFloat64 converts any numeric value to float64.
 //
 // Takes value (any) which is the value to convert.
 //
 // Returns float64 which is the converted value, or zero if conversion fails.
 // Returns bool which indicates whether the conversion succeeded.
-func toFloat64(value any) (float64, bool) {
+func ToFloat64(value any) (float64, bool) {
 	if value == nil {
 		return 0, false
 	}

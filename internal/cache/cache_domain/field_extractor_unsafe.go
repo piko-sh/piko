@@ -18,7 +18,7 @@
 
 //go:build !safe && !(js && wasm)
 
-package provider_otter
+package cache_domain
 
 import (
 	"reflect"

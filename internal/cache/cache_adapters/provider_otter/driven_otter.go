@@ -267,16 +267,16 @@ type OtterAdapter[K comparable, V any] struct {
 	schema *cache_dto.SearchSchema
 
 	// invertedIndex maps search terms to keys for full-text search.
-	invertedIndex *InvertedIndex[K]
+	invertedIndex *cache_domain.InvertedIndex[K]
 
 	// sortedIndexes holds sorted indexes for fields that support ordering.
-	sortedIndexes map[string]*SortedIndex[K]
+	sortedIndexes map[string]*cache_domain.SortedIndex[K]
 
 	// vectorIndexes holds HNSW indexes for vector similarity search.
-	vectorIndexes map[string]*VectorIndex[K]
+	vectorIndexes map[string]*cache_domain.VectorIndex[K]
 
 	// fieldExtractor extracts field values from cached items.
-	fieldExtractor *FieldExtractor[V]
+	fieldExtractor *cache_domain.FieldExtractor[V]
 
 	// wal is the write-ahead log for persistence. Nil if persistence is disabled.
 	wal wal_domain.WAL[K, V]

@@ -18,7 +18,7 @@
 
 //go:build safe || (js && wasm)
 
-package provider_otter
+package cache_domain
 
 import (
 	"reflect"
@@ -66,7 +66,7 @@ func (*FieldExtractor[V]) extractWithAccessor(value V, accessor *fieldAccessor) 
 
 // compareFieldDirect performs field comparison using reflection.
 //
-// This is the safe version that extracts the field value via extractAny
+// This is the safe version that extracts the field value via ExtractAny
 // (reflection-based) and then compares using type assertions.
 //
 // Takes value (V) which is the struct value to extract the field from.
@@ -78,7 +78,7 @@ func (*FieldExtractor[V]) extractWithAccessor(value V, accessor *fieldAccessor) 
 // Returns matched (bool) which is the comparison result.
 // Returns ok (bool) which indicates whether the operation succeeded.
 func (fe *FieldExtractor[V]) compareFieldDirect(value V, fieldPath string, operator any, targetValue any, targetValues []any) (matched bool, ok bool) {
-	extracted, extractOK := fe.extractAny(value, fieldPath)
+	extracted, extractOK := fe.ExtractAny(value, fieldPath)
 	if !extractOK {
 		return false, false
 	}

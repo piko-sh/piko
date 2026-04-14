@@ -31,6 +31,8 @@ import (
 	"piko.sh/piko/internal/cache/cache_test/conformance"
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/cache/cache_encoder_json"
+	"piko.sh/piko/wdk/cache/cache_provider_dynamodb"
+	"piko.sh/piko/wdk/cache/cache_provider_firestore"
 	"piko.sh/piko/wdk/cache/cache_provider_redis"
 	"piko.sh/piko/wdk/cache/cache_provider_redis_cluster"
 	"piko.sh/piko/wdk/cache/cache_provider_valkey"
@@ -267,6 +269,127 @@ func newValkeyClusterConformanceCache(t *testing.T, _ cache_dto.Options[string, 
 
 	c, ok := cacheAny.(*cache_provider_valkey_cluster.ValkeyClusterAdapter[string, string])
 	require.True(t, ok, "expected *ValkeyClusterAdapter[string, string], got %T", cacheAny)
+
+	t.Cleanup(func() {
+		_ = c.Close(context.Background())
+		_ = provider.Close()
+	})
+
+	return c
+}
+
+func TestDynamoDBConformance(t *testing.T) {
+	skipIfNoDynamoDB(t)
+	t.Parallel()
+
+	config := conformance.StringConfig{
+		ProviderFactory: func(t *testing.T, opts cache_dto.Options[string, string]) cache_domain.Cache[string, string] {
+			t.Helper()
+			return newDynamoDBConformanceCache(t, opts)
+		},
+		SupportsSearch:             false,
+		SupportsTTL:                true,
+		SupportsIteration:          true,
+		SupportsCompute:            true,
+		SupportsMaximum:            false,
+		SupportsWeightedSize:       false,
+		SupportsRefresh:            false,
+		HonoursContextCancellation: true,
+		AdvanceTime:                nil,
+	}
+
+	conformance.RunStringSuite(t, config)
+}
+
+func newDynamoDBConformanceCache(t *testing.T, _ cache_dto.Options[string, string]) cache_domain.Cache[string, string] {
+	t.Helper()
+
+	if globalEnv == nil {
+		t.Fatal("test environment not initialised")
+	}
+
+	namespace := t.Name() + ":"
+	valueEncoder := cache_encoder_json.New[string]()
+	registry := cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder))
+
+	config := cache_provider_dynamodb.Config{
+		EndpointURL:     globalEnv.dynamoDBEndpoint,
+		Region:          "us-east-1",
+		TableName:       "piko_cache_conformance",
+		DefaultTTL:      1 * time.Hour,
+		Registry:        registry,
+		Namespace:       namespace,
+		AutoCreateTable: true,
+	}
+
+	provider, err := cache_provider_dynamodb.NewDynamoDBProvider(config)
+	require.NoError(t, err, "creating dynamodb provider")
+
+	cacheAny, err := provider.CreateNamespaceTyped(namespace, cache.Options[string, string]{})
+	require.NoError(t, err, "creating dynamodb cache")
+
+	c, ok := cacheAny.(*cache_provider_dynamodb.DynamoDBAdapter[string, string])
+	require.True(t, ok, "expected *DynamoDBAdapter[string, string], got %T", cacheAny)
+
+	t.Cleanup(func() {
+		_ = c.Close(context.Background())
+		_ = provider.Close()
+	})
+
+	return c
+}
+
+func TestFirestoreConformance(t *testing.T) {
+	skipIfNoFirestore(t)
+	t.Parallel()
+
+	config := conformance.StringConfig{
+		ProviderFactory: func(t *testing.T, opts cache_dto.Options[string, string]) cache_domain.Cache[string, string] {
+			t.Helper()
+			return newFirestoreConformanceCache(t, opts)
+		},
+		SupportsSearch:             false,
+		SupportsTTL:                true,
+		SupportsIteration:          true,
+		SupportsCompute:            true,
+		SupportsMaximum:            false,
+		SupportsWeightedSize:       false,
+		SupportsRefresh:            false,
+		HonoursContextCancellation: true,
+		AdvanceTime:                nil,
+	}
+
+	conformance.RunStringSuite(t, config)
+}
+
+func newFirestoreConformanceCache(t *testing.T, _ cache_dto.Options[string, string]) cache_domain.Cache[string, string] {
+	t.Helper()
+
+	if globalEnv == nil {
+		t.Fatal("test environment not initialised")
+	}
+
+	namespace := t.Name() + ":"
+	valueEncoder := cache_encoder_json.New[string]()
+	registry := cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder))
+
+	config := cache_provider_firestore.Config{
+		ProjectID:        "piko-test-project",
+		CollectionPrefix: "piko_cache_conformance",
+		EmulatorHost:     globalEnv.firestoreAddr,
+		DefaultTTL:       1 * time.Hour,
+		Registry:         registry,
+		Namespace:        namespace,
+	}
+
+	provider, err := cache_provider_firestore.NewFirestoreProvider(config)
+	require.NoError(t, err, "creating firestore provider")
+
+	cacheAny, err := provider.CreateNamespaceTyped(namespace, cache.Options[string, string]{})
+	require.NoError(t, err, "creating firestore cache")
+
+	c, ok := cacheAny.(*cache_provider_firestore.FirestoreAdapter[string, string])
+	require.True(t, ok, "expected *FirestoreAdapter[string, string], got %T", cacheAny)
 
 	t.Cleanup(func() {
 		_ = c.Close(context.Background())

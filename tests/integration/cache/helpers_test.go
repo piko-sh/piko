@@ -39,6 +39,8 @@ import (
 
 	"piko.sh/piko/wdk/cache"
 	"piko.sh/piko/wdk/cache/cache_encoder_json"
+	"piko.sh/piko/wdk/cache/cache_provider_dynamodb"
+	"piko.sh/piko/wdk/cache/cache_provider_firestore"
 	"piko.sh/piko/wdk/cache/cache_provider_redis"
 	"piko.sh/piko/wdk/cache/cache_provider_valkey"
 )
@@ -214,6 +216,89 @@ func skipIfNoValkey(t *testing.T) {
 	if globalEnv.valkeyAddr == "" {
 		t.Skip("valkey not available")
 	}
+}
+
+func skipIfNoDynamoDB(t *testing.T) {
+	t.Helper()
+	if globalEnv.dynamoDBEndpoint == "" {
+		t.Skip("DynamoDB (LocalStack) not available")
+	}
+}
+
+func skipIfNoFirestore(t *testing.T) {
+	t.Helper()
+	if globalEnv.firestoreAddr == "" {
+		t.Skip("Firestore emulator not available")
+	}
+}
+
+func createDynamoDBStringCache(t *testing.T, namespace string) cache_domain.Cache[string, string] {
+	t.Helper()
+	skipIfNoDynamoDB(t)
+	require.NotNil(t, globalEnv, "test environment not initialised")
+
+	valueEncoder := cache_encoder_json.New[string]()
+	registry := cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder))
+
+	config := cache_provider_dynamodb.Config{
+		EndpointURL:     globalEnv.dynamoDBEndpoint,
+		Region:          "us-east-1",
+		TableName:       "piko_cache_test",
+		DefaultTTL:      1 * time.Hour,
+		Registry:        registry,
+		Namespace:       namespace,
+		AutoCreateTable: true,
+	}
+
+	provider, err := cache_provider_dynamodb.NewDynamoDBProvider(config)
+	require.NoError(t, err, "creating dynamodb provider")
+
+	cacheAny, err := provider.CreateNamespaceTyped(namespace, cache.Options[string, string]{})
+	require.NoError(t, err, "creating dynamodb cache namespace")
+
+	c, ok := cacheAny.(*cache_provider_dynamodb.DynamoDBAdapter[string, string])
+	require.True(t, ok, "expected *DynamoDBAdapter[string, string], got %T", cacheAny)
+
+	t.Cleanup(func() {
+		_ = c.Close(context.Background())
+		_ = provider.Close()
+	})
+
+	return c
+}
+
+func createFirestoreStringCache(t *testing.T, namespace string) cache_domain.Cache[string, string] {
+	t.Helper()
+	skipIfNoFirestore(t)
+	require.NotNil(t, globalEnv, "test environment not initialised")
+
+	valueEncoder := cache_encoder_json.New[string]()
+	registry := cache.NewEncodingRegistry(valueEncoder.(cache.AnyEncoder))
+
+	config := cache_provider_firestore.Config{
+		ProjectID:        "piko-test-project",
+		CollectionPrefix: "piko_cache_test",
+		EmulatorHost:     globalEnv.firestoreAddr,
+		DefaultTTL:       1 * time.Hour,
+		Registry:         registry,
+		Namespace:        namespace,
+	}
+
+	provider, err := cache_provider_firestore.NewFirestoreProvider(config)
+	require.NoError(t, err, "creating firestore provider")
+
+	cacheAny, err := provider.CreateNamespaceTyped(namespace, cache.Options[string, string]{})
+	require.NoError(t, err, "creating firestore cache namespace")
+
+	c, ok := cacheAny.(*cache_provider_firestore.FirestoreAdapter[string, string])
+	require.True(t, ok, "expected *FirestoreAdapter[string, string], got %T", cacheAny)
+
+	t.Cleanup(func() {
+		_ = c.Close(context.Background())
+		_ = provider.Close()
+	})
+
+	return c
 }
 
 func testContext(t *testing.T) context.Context {

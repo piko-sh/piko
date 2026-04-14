@@ -19,27 +19,18 @@
 package provider_otter
 
 import (
-	"cmp"
-	"slices"
-
+	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/cache/cache_dto"
-)
-
-const (
-	// rrfK is the Reciprocal Rank Fusion constant from Cormack, Clarke,
-	// Buettcher (2009), where higher values reduce the influence of
-	// high-ranked items.
-	rrfK = 60
 )
 
 // rrfFusion combines vector similarity results with text relevance results
 // using Reciprocal Rank Fusion. Items appearing in both lists receive scores
 // from both, producing a union rather than an intersection.
 //
-// Takes vectorHits ([]VectorHit[K]) which are vector search results sorted by
-// similarity descending.
-// Takes textScored ([]ScoredResult[K]) which are text search results sorted by
-// BM25 score descending.
+// Takes vectorHits ([]cache_domain.VectorHit[K]) which are vector search
+// results sorted by similarity descending.
+// Takes textScored ([]cache_domain.ScoredResult[K]) which are text search
+// results sorted by BM25 score descending.
 // Takes filters ([]cache_dto.Filter) which are additional metadata filters to
 // apply.
 // Takes offset (int) which is the pagination offset.
@@ -47,38 +38,16 @@ const (
 //
 // Returns SearchResult with items scored by RRF and sorted descending.
 func (a *OtterAdapter[K, V]) rrfFusion(
-	vectorHits []VectorHit[K],
-	textScored []ScoredResult[K],
+	vectorHits []cache_domain.VectorHit[K],
+	textScored []cache_domain.ScoredResult[K],
 	filters []cache_dto.Filter,
 	offset, limit int,
 ) (cache_dto.SearchResult[K, V], error) {
-	rrfScores := make(map[K]float64, len(vectorHits)+len(textScored))
-
-	for rank, hit := range vectorHits {
-		rrfScores[hit.Key] += 1.0 / float64(rrfK+rank+1)
-	}
-
-	for rank, scored := range textScored {
-		rrfScores[scored.Key] += 1.0 / float64(rrfK+rank+1)
-	}
-
-	type rrfEntry struct {
-		key   K
-		score float64
-	}
-
-	entries := make([]rrfEntry, 0, len(rrfScores))
-	for k, s := range rrfScores {
-		entries = append(entries, rrfEntry{key: k, score: s})
-	}
-
-	slices.SortFunc(entries, func(a, b rrfEntry) int {
-		return cmp.Compare(b.score, a.score)
-	})
+	entries := cache_domain.ComputeRRFScores(vectorHits, textScored)
 
 	items := make([]cache_dto.SearchHit[K, V], 0, len(entries))
 	for _, entry := range entries {
-		value, ok := a.client.GetIfPresent(entry.key)
+		value, ok := a.client.GetIfPresent(entry.Key)
 		if !ok {
 			continue
 		}
@@ -88,14 +57,14 @@ func (a *OtterAdapter[K, V]) rrfFusion(
 		}
 
 		items = append(items, cache_dto.SearchHit[K, V]{
-			Key:   entry.key,
+			Key:   entry.Key,
 			Value: value,
-			Score: entry.score,
+			Score: entry.Score,
 		})
 	}
 
 	total := int64(len(items))
-	items, limit = applyPagination(items, offset, limit)
+	items, limit = cache_domain.ApplyPagination(items, offset, limit)
 
 	return cache_dto.SearchResult[K, V]{
 		Items:  items,

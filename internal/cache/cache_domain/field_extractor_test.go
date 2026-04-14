@@ -16,13 +16,24 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-package provider_otter
+package cache_domain
 
 import (
 	"testing"
 
 	"piko.sh/piko/internal/cache/cache_dto"
 )
+
+type Product struct {
+	ID          string
+	Name        string
+	Description string
+	Category    string
+	Tags        []string
+	Price       float64
+	Stock       int
+	Rating      float64
+}
 
 func TestFieldExtractor_ExtractTextFields(t *testing.T) {
 	schema := cache_dto.NewSearchSchema(

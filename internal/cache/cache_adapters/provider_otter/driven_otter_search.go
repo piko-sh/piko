@@ -28,10 +28,6 @@ import (
 )
 
 const (
-	// defaultSearchLimit is the default number of results to return when no limit
-	// is specified.
-	defaultSearchLimit = 10
-
 	// keyWithValuePoolMaxCap is the maximum capacity for pooled slices. Slices
 	// larger than this won't be returned to the pool to prevent memory bloat.
 	keyWithValuePoolMaxCap = 10000
@@ -160,13 +156,13 @@ func (a *OtterAdapter[K, V]) batchIndexTextFields(items map[K]V) {
 		return
 	}
 
-	a.invertedIndex.mu.Lock()
-	defer a.invertedIndex.mu.Unlock()
+	a.invertedIndex.Lock()
+	defer a.invertedIndex.Unlock()
 
 	for key, value := range items {
 		texts := a.fieldExtractor.ExtractTextFields(value)
 		if len(texts) > 0 {
-			a.invertedIndex.addUnsafe(key, texts)
+			a.invertedIndex.AddUnsafe(key, texts)
 		}
 	}
 }
@@ -183,13 +179,13 @@ func (a *OtterAdapter[K, V]) batchIndexSortableFields(items map[K]V) {
 	}
 
 	for fieldName, index := range a.sortedIndexes {
-		index.mu.Lock()
+		index.Lock()
 		for key, value := range items {
 			if sortableValue, ok := a.fieldExtractor.ExtractSortableValue(value, fieldName); ok {
-				index.addUnsafe(key, sortableValue)
+				index.AddUnsafe(key, sortableValue)
 			}
 		}
-		index.mu.Unlock()
+		index.Unlock()
 	}
 }
 
@@ -442,133 +438,7 @@ func (a *OtterAdapter[K, V]) tryRangeQueryFilter(filter cache_dto.Filter) []K {
 //
 // Returns bool which is true if the value matches all filters.
 func (a *OtterAdapter[K, V]) matchesAllFilters(value V, filters []cache_dto.Filter) bool {
-	for _, filter := range filters {
-		if !a.matchesFilter(value, filter) {
-			return false
-		}
-	}
-	return true
-}
-
-// matchesFilter checks if a value matches a single filter condition. Uses
-// zero-alloc direct comparison when possible (avoids boxing).
-//
-// Takes value (V) which is the value to check against the filter.
-// Takes filter (cache_dto.Filter) which specifies the filter condition to
-// apply.
-//
-// Returns bool which is true if the value matches the filter condition.
-func (a *OtterAdapter[K, V]) matchesFilter(value V, filter cache_dto.Filter) bool {
-	if matched, ok := a.fieldExtractor.compareFieldDirect(value, filter.Field, filter.Operation, filter.Value, filter.Values); ok {
-		return matched
-	}
-
-	fieldVal, ok := a.fieldExtractor.extractAny(value, filter.Field)
-	if !ok {
-		return false
-	}
-
-	switch filter.Operation {
-	case cache_dto.FilterOpEq:
-		return a.compareEqual(fieldVal, filter.Value)
-	case cache_dto.FilterOpNe:
-		return !a.compareEqual(fieldVal, filter.Value)
-	case cache_dto.FilterOpGt:
-		return a.compareNumeric(fieldVal, filter.Value) > 0
-	case cache_dto.FilterOpGe:
-		return a.compareNumeric(fieldVal, filter.Value) >= 0
-	case cache_dto.FilterOpLt:
-		return a.compareNumeric(fieldVal, filter.Value) < 0
-	case cache_dto.FilterOpLe:
-		return a.compareNumeric(fieldVal, filter.Value) <= 0
-	case cache_dto.FilterOpIn:
-		return a.matchesIn(fieldVal, filter.Values)
-	case cache_dto.FilterOpBetween:
-		if len(filter.Values) != 2 {
-			return false
-		}
-		cmpMin := a.compareNumeric(fieldVal, filter.Values[0])
-		cmpMax := a.compareNumeric(fieldVal, filter.Values[1])
-		return cmpMin >= 0 && cmpMax <= 0
-	case cache_dto.FilterOpPrefix:
-		return a.matchesPrefix(fieldVal, filter.Value)
-	default:
-		return false
-	}
-}
-
-// compareEqual checks if two values are equal.
-//
-// Takes a (any) which is the first value to compare.
-// Takes b (any) which is the second value to compare.
-//
-// Returns bool which is true if the values are equal by direct comparison or
-// by their string form.
-func (*OtterAdapter[K, V]) compareEqual(a, b any) bool {
-	if a == b {
-		return true
-	}
-	return toString(a) == toString(b)
-}
-
-// compareNumeric compares two values as numbers.
-//
-// Takes a (any) which is the first value to compare.
-// Takes b (any) which is the second value to compare.
-//
-// Returns int which is -1, 0, or 1 showing whether a is less than, equal to,
-// or greater than b. Falls back to string comparison if values cannot be
-// converted to numbers.
-func (*OtterAdapter[K, V]) compareNumeric(a, b any) int {
-	aNum, aOk := toFloat64(a)
-	bNum, bOk := toFloat64(b)
-	if aOk && bOk {
-		switch {
-		case aNum < bNum:
-			return -1
-		case aNum > bNum:
-			return 1
-		default:
-			return 0
-		}
-	}
-	aString := toString(a)
-	bString := toString(b)
-	switch {
-	case aString < bString:
-		return -1
-	case aString > bString:
-		return 1
-	default:
-		return 0
-	}
-}
-
-// matchesIn checks if fieldVal matches any value in the set.
-//
-// Takes fieldVal (any) which is the value to search for.
-// Takes values ([]any) which is the set of values to match against.
-//
-// Returns bool which is true if fieldVal equals any value in the set.
-func (a *OtterAdapter[K, V]) matchesIn(fieldVal any, values []any) bool {
-	for _, v := range values {
-		if a.compareEqual(fieldVal, v) {
-			return true
-		}
-	}
-	return false
-}
-
-// matchesPrefix checks if fieldVal starts with the prefix.
-//
-// Takes fieldVal (any) which is the value to check.
-// Takes prefix (any) which is the prefix to match against.
-//
-// Returns bool which is true if fieldVal starts with prefix.
-func (*OtterAdapter[K, V]) matchesPrefix(fieldVal, prefix any) bool {
-	fieldString := toString(fieldVal)
-	prefixString := toString(prefix)
-	return len(fieldString) >= len(prefixString) && fieldString[:len(prefixString)] == prefixString
+	return cache_domain.MatchesAllFilters(a.fieldExtractor, value, filters)
 }
 
 // sortKeys sorts keys by the specified field and order.
@@ -620,16 +490,16 @@ func (a *OtterAdapter[K, V]) sortKeysByField(keys []K, fieldName string, ascendi
 		if !ok {
 			continue
 		}
-		fieldValue, _ := a.fieldExtractor.extractAny(value, fieldName)
+		fieldValue, _ := a.fieldExtractor.ExtractAny(value, fieldName)
 		items = append(items, keyWithValue[any]{key: key, value: fieldValue})
 	}
 
 	slices.SortFunc(items, func(itemA, itemB keyWithValue[any]) int {
-		cmp := a.compareNumeric(itemA.value, itemB.value)
+		comparison := cache_domain.CompareNumeric(itemA.value, itemB.value)
 		if !ascending {
-			cmp = -cmp
+			comparison = -comparison
 		}
-		return cmp
+		return comparison
 	})
 
 	result := make([]K, 0, len(items))
@@ -675,7 +545,7 @@ func (a *OtterAdapter[K, V]) buildSearchResult(keys []K, offset, limit int) (cac
 // Returns SearchResult with scored items.
 func (a *OtterAdapter[K, V]) buildSearchResultWithScores(keys []K, scores map[K]float64, offset, limit int) (cache_dto.SearchResult[K, V], error) {
 	total := int64(len(keys))
-	keys, limit = applyPagination(keys, offset, limit)
+	keys, limit = cache_domain.ApplyPagination(keys, offset, limit)
 
 	items := make([]cache_dto.SearchHit[K, V], 0, len(keys))
 	for _, key := range keys {
@@ -730,13 +600,13 @@ func (a *OtterAdapter[K, V]) vectorSearch(query string, opts *cache_dto.SearchOp
 		topK = opts.Limit
 	}
 	if topK <= 0 {
-		topK = defaultSearchLimit
+		topK = cache_domain.DefaultSearchLimit
 	}
 
 	hits := index.Search(opts.Vector, topK, opts.MinScore)
 
 	if a.invertedIndex != nil && query != "" {
-		textScored := a.invertedIndex.SearchScored(query, WithTermMatch(TermMatchAny))
+		textScored := a.invertedIndex.SearchScored(query, cache_domain.WithTermMatch(cache_domain.TermMatchAny))
 		if len(textScored) > 0 {
 			return a.rrfFusion(hits, textScored, opts.Filters, opts.Offset, opts.Limit)
 		}
@@ -767,7 +637,7 @@ func (a *OtterAdapter[K, V]) vectorQuery(opts *cache_dto.QueryOptions) (cache_dt
 		topK = opts.Limit
 	}
 	if topK <= 0 {
-		topK = defaultSearchLimit
+		topK = cache_domain.DefaultSearchLimit
 	}
 
 	hits := index.Search(opts.Vector, topK, opts.MinScore)
@@ -796,7 +666,7 @@ func (a *OtterAdapter[K, V]) resolveVectorField(explicit string) string {
 // buildVectorSearchResult constructs a SearchResult from vector hits, applying
 // optional text key intersection, metadata filters, and pagination.
 //
-// Takes hits ([]VectorHit[K]) which are the vector search results sorted by
+// Takes hits ([]cache_domain.VectorHit[K]) which are the vector search results sorted by
 // score descending.
 // Takes textKeys (map[K]struct{}) which limits results to text-matched keys.
 // Nil means no text filtering.
@@ -806,7 +676,7 @@ func (a *OtterAdapter[K, V]) resolveVectorField(explicit string) string {
 //
 // Returns SearchResult with scored items.
 func (a *OtterAdapter[K, V]) buildVectorSearchResult(
-	hits []VectorHit[K],
+	hits []cache_domain.VectorHit[K],
 	textKeys map[K]struct{},
 	filters []cache_dto.Filter,
 	offset, limit int,
@@ -837,7 +707,7 @@ func (a *OtterAdapter[K, V]) buildVectorSearchResult(
 	}
 
 	total := int64(len(items))
-	items, limit = applyPagination(items, offset, limit)
+	items, limit = cache_domain.ApplyPagination(items, offset, limit)
 
 	return cache_dto.SearchResult[K, V]{
 		Items:  items,
@@ -845,33 +715,4 @@ func (a *OtterAdapter[K, V]) buildVectorSearchResult(
 		Offset: offset,
 		Limit:  limit,
 	}, nil
-}
-
-// applyPagination applies offset and limit to a slice, returning the paginated
-// slice and the resolved limit.
-//
-// Takes items ([]T) which is the slice to paginate.
-// Takes offset (int) which specifies the number of items to skip.
-// Takes limit (int) which specifies the maximum number of items to return.
-//
-// Returns []T which is the paginated slice.
-// Returns int which is the resolved limit after applying constraints.
-func applyPagination[T any](items []T, offset, limit int) ([]T, int) {
-	if offset > 0 {
-		if offset >= len(items) {
-			items = nil
-		} else {
-			items = items[offset:]
-		}
-	}
-
-	if limit <= 0 {
-		limit = defaultSearchLimit
-	}
-	if limit > len(items) {
-		limit = len(items)
-	}
-	items = items[:limit]
-
-	return items, limit
 }
