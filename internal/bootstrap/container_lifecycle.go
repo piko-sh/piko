@@ -99,7 +99,6 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 
 	renderRegistry := c.GetRenderRegistry()
 	renderer := c.GetRenderer()
-
 	clk := config.Clock
 	if clk == nil {
 		clk = clock.RealClock()
@@ -124,6 +123,12 @@ func (c *Container) createLifecycleService(config *lifecycleServiceConfig) (life
 		ExternalComponents:      c.externalComponents,
 		AssetPipeline:           nil,
 		FileSystem:              nil,
+	}
+
+	if captchaService, captchaErr := c.GetCaptchaService(); captchaErr == nil {
+		deps.CaptchaService = captchaService
+	} else {
+		l.Internal("Captcha service not available for lifecycle", logger_domain.Error(captchaErr))
 	}
 
 	service := lifecycle_domain.NewLifecycleService(deps)

@@ -148,6 +148,10 @@ type ManifestPageEntry struct {
 	// HasPreview is true if the component script defines a Preview function
 	// for dev-mode component previewing.
 	HasPreview bool `json:"hasPreview,omitempty"`
+
+	// UsesCaptcha indicates the template contains a piko:captcha element
+	// and needs captcha provider scripts loaded at runtime.
+	UsesCaptcha bool `json:"usesCaptcha,omitempty"`
 }
 
 // ManifestPartialEntry contains pre-compiled, static metadata for a single

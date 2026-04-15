@@ -32,17 +32,18 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/otel"
-	"piko.sh/piko/internal/cache/cache_domain"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
+	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/render/render_dto"
+	"piko.sh/piko/internal/safeerror"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/templater/templater_domain"
@@ -97,8 +98,8 @@ type MountRoutesConfig struct {
 	// response caching.
 	ActionResponseCache cache_domain.Cache[string, []byte]
 
-	// Deps holds shared dependencies used by HTTP route handlers.
-	Deps *daemon_domain.HTTPHandlerDependencies
+	// CaptchaService verifies captcha tokens. Nil when captcha is disabled.
+	CaptchaService captcha_domain.CaptchaServicePort
 
 	// SiteSettings holds the website settings used by route handlers.
 	SiteSettings *config.WebsiteConfig
@@ -112,6 +113,9 @@ type MountRoutesConfig struct {
 
 	// Actions maps action names to their handler entries for route registration.
 	Actions map[string]ActionHandlerEntry
+
+	// Deps holds shared dependencies used by HTTP route handlers.
+	Deps *daemon_domain.HTTPHandlerDependencies
 
 	// RouteSettings holds the server settings used when setting up routes.
 	RouteSettings RouteSettings
@@ -293,11 +297,7 @@ func MountRoutesFromManifest(ctx context.Context, mountConfig *MountRoutesConfig
 
 	registerCollectionFallbackRoutes(ctx, mountConfig.Router, mountConfig.Deps, mountConfig.Store, mountConfig.SiteSettings)
 
-	mountActionRoutes(
-		mountConfig.Router, mountConfig.CSRFService, mountConfig.RouteSettings,
-		mountConfig.Actions, mountConfig.RateLimitService, mountConfig.RateLimitConfig,
-		mountConfig.ActionResponseCache,
-	)
+	mountActionRoutes(mountConfig)
 
 	mountConfig.Router.NotFound(func(w http.ResponseWriter, request *http.Request) {
 		if renderErrorPage(request.Context(), w, request, pageErrorContext{
@@ -1215,60 +1215,54 @@ func handlePartialRenderError(
 
 // mountActionRoutes mounts actions onto the router using ActionHandler.
 //
-// Takes r (chi.Router) which receives the action routes.
-// Takes csrfService (security_domain.CSRFTokenService) which validates CSRF
-// tokens.
-// Takes routeSettings (RouteSettings) which provides the action serve path.
-// Takes actions (map[string]ActionHandlerEntry) which maps names to handlers.
-// Takes rateLimitService (security_domain.RateLimitService) for per-action rate
-// limiting.
-// Takes rateLimitConfig (security_dto.RateLimitValues) which configures rate limit
-// behaviour.
-func mountActionRoutes(
-	r chi.Router,
-	csrfService security_domain.CSRFTokenService,
-	routeSettings RouteSettings,
-	actions map[string]ActionHandlerEntry,
-	rateLimitService security_domain.RateLimitService,
-	rateLimitConfig security_dto.RateLimitValues,
-	responseCache cache_domain.Cache[string, []byte],
-) {
+// Takes cfg (*MountRoutesConfig) which provides the router, services, and
+// settings needed to register action routes.
+func mountActionRoutes(cfg *MountRoutesConfig) {
 	_, span, l := log.Span(context.Background(), "mountActionRoutes",
-		logger_domain.Int(logFieldActionCount, len(actions)),
+		logger_domain.Int(logFieldActionCount, len(cfg.Actions)),
 	)
 	defer span.End()
 
-	if len(actions) == 0 {
+	if len(cfg.Actions) == 0 {
 		l.Internal("No actions to register")
 		span.SetStatus(codes.Ok, "No actions to register")
 		return
 	}
 
-	l.Internal("Starting action registration", logger_domain.Int(logFieldActionCount, len(actions)))
+	l.Internal("Starting action registration", logger_domain.Int(logFieldActionCount, len(cfg.Actions)))
 
 	maxBodyBytes := int64(10 * 1024 * 1024)
-	if routeSettings.ActionMaxBodyBytes > 0 {
-		maxBodyBytes = routeSettings.ActionMaxBodyBytes
+	if cfg.RouteSettings.ActionMaxBodyBytes > 0 {
+		maxBodyBytes = cfg.RouteSettings.ActionMaxBodyBytes
 	}
 
-	handler := NewActionHandler(csrfService, maxBodyBytes, rateLimitService, rateLimitConfig, routeSettings.CSRFSecFetchSiteEnforcement, responseCache)
-	if routeSettings.DefaultMaxSSEDurationSeconds > 0 {
-		handler.defaultMaxSSEDuration = time.Duration(routeSettings.DefaultMaxSSEDurationSeconds) * time.Second
+	handler := NewActionHandler(cfg.CSRFService, maxBodyBytes, cfg.RateLimitService, cfg.RateLimitConfig, cfg.RouteSettings.CSRFSecFetchSiteEnforcement, cfg.ActionResponseCache, cfg.CaptchaService)
+	if cfg.RouteSettings.DefaultMaxSSEDurationSeconds > 0 {
+		handler.defaultMaxSSEDuration = time.Duration(cfg.RouteSettings.DefaultMaxSSEDurationSeconds) * time.Second
 	}
-	if routeSettings.MaxMultipartFormBytes > 0 {
-		handler.maxMultipartFormBytes = routeSettings.MaxMultipartFormBytes
+	if cfg.RouteSettings.MaxMultipartFormBytes > 0 {
+		handler.maxMultipartFormBytes = cfg.RouteSettings.MaxMultipartFormBytes
 	}
-	handler.RegisterAll(actions)
+	handler.RegisterAll(cfg.Actions)
 
 	basePath := "/_piko/actions"
-	if routeSettings.ActionServePath != "" {
-		basePath = routeSettings.ActionServePath
+	if cfg.RouteSettings.ActionServePath != "" {
+		basePath = cfg.RouteSettings.ActionServePath
 	}
 
-	handler.Mount(r, basePath)
+	handler.Mount(cfg.Router, basePath)
+
+	if challengeProvider, ok := cfg.CaptchaService.(interface {
+		ChallengeHandler() http.Handler
+	}); ok {
+		if challengeHandler := challengeProvider.ChallengeHandler(); challengeHandler != nil {
+			cfg.Router.Get("/_piko/captcha/challenge", challengeHandler.ServeHTTP)
+			l.Internal("HMAC captcha challenge endpoint mounted at /_piko/captcha/challenge")
+		}
+	}
 
 	span.SetStatus(codes.Ok, "Actions registered successfully")
-	l.Internal("Action registration complete", logger_domain.Int(logFieldActionCount, len(actions)))
+	l.Internal("Action registration complete", logger_domain.Int(logFieldActionCount, len(cfg.Actions)))
 }
 
 // extractOTelContext extracts OpenTelemetry context from request headers.

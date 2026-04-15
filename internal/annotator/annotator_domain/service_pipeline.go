@@ -188,10 +188,11 @@ func (p *componentAnnotationPipeline) runPropDataSourceLinking(ctx context.Conte
 // and custom tags.
 func (p *componentAnnotationPipeline) runFinalTransformations(ctx context.Context, analysisResult *annotator_dto.AnnotationResult) {
 	resolver := p.service.getEffectiveResolver(p.options)
-	assetDeps, customTags, diagnostics := performFinalTransformations(
+	assetDeps, customTags, usesCaptcha, diagnostics := performFinalTransformations(
 		ctx, analysisResult.AnnotatedAST, resolver, p.service.pathsConfig, &p.service.assetsConfig, p.service.fsReader, p.componentRegistry)
 	analysisResult.AssetDependencies = assetDeps
 	analysisResult.CustomTags = customTags
+	analysisResult.UsesCaptcha = usesCaptcha
 	p.diagnostics = append(p.diagnostics, diagnostics...)
 	if analysisResult.AnnotatedAST != nil {
 		p.diagnostics = append(p.diagnostics, analysisResult.AnnotatedAST.Diagnostics...)

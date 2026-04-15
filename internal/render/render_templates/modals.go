@@ -111,6 +111,11 @@ type BasePageData struct {
 	// partials. Each script is loaded as an ES module to enable p-on:* handlers.
 	// Each entry includes the URL and optional partial name for function scoping.
 	PKScriptMetas []templater_dto.JSScriptMeta
+
+	// WidgetScripts lists classic (non-module) script URLs that need loading
+	// during soft navigation. Emitted as meta[name="pk-widget-script"] tags in
+	// the footer so the framework can discover and load them dynamically.
+	WidgetScripts []string
 }
 
 // FragmentPageData holds the data needed to render partial page fragments.
@@ -157,6 +162,11 @@ type FragmentPageData struct {
 	// partials. Each script is loaded as an ES module to enable p-on:* handlers.
 	// Each entry includes the URL and optional partial name for function scoping.
 	PKScriptMetas []templater_dto.JSScriptMeta
+
+	// WidgetScripts lists classic (non-module) script URLs that need loading
+	// during soft navigation. Emitted as meta[name="pk-widget-script"] tags in
+	// the footer so the framework can discover and load them dynamically.
+	WidgetScripts []string
 
 	// AlternateLinks contains alternate link metadata for the page.
 	AlternateLinks []map[string]string

@@ -76,4 +76,8 @@ type AnnotationResult struct {
 
 	// AssetDependencies lists the static assets that this component needs.
 	AssetDependencies []*StaticAssetDependency
+
+	// UsesCaptcha indicates the template contains a piko:captcha element
+	// and needs captcha provider scripts loaded at runtime.
+	UsesCaptcha bool
 }

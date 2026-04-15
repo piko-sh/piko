@@ -42,6 +42,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
+	"piko.sh/piko/internal/captcha/captcha_domain"
+	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
@@ -132,6 +134,9 @@ type routerOperation struct {
 	// csrfService creates and validates CSRF tokens.
 	csrfService security_domain.CSRFTokenService
 
+	// captchaService verifies captcha tokens; nil when captcha is disabled.
+	captchaService captcha_domain.CaptchaServicePort
+
 	// rateLimitService controls request rate limits for router middleware.
 	rateLimitService security_domain.RateLimitService
 
@@ -212,6 +217,12 @@ func (op *routerOperation) resolveServices(ctx context.Context) error {
 
 	op.renderRegistry = op.container.GetRenderRegistry()
 	op.csrfService = op.container.GetCSRFService()
+	captchaService, captchaErr := op.container.GetCaptchaService()
+	if captchaErr != nil {
+		l.Warn("Captcha service unavailable; captcha-protected actions will be rejected with 403",
+			logger_domain.Error(captchaErr))
+	}
+	op.captchaService = captchaService
 
 	op.rateLimitService, err = op.container.GetRateLimitService()
 	if err != nil {
@@ -331,6 +342,7 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 		RateLimitConfig:     NewRateLimitValues(&op.deps.ConfigProvider.ServerConfig.Security.RateLimit),
 		AuthGuardConfig:     op.container.authGuardConfig,
 		ActionResponseCache: actionResponseCache,
+		CaptchaService:      op.captchaService,
 	})
 	l.Internal("All dynamic application routes from manifest have been mounted.")
 }
@@ -486,9 +498,11 @@ func buildRouter(
 // Returns security_dto.CSPRuntimeConfig which contains the computed CSP
 // settings.
 func buildCSPRuntimeConfig(c *Container, deps *Dependencies) security_dto.CSPRuntimeConfig {
-	_, l := logger_domain.From(c.GetAppContext(), log)
+	ctx := c.GetAppContext()
+	_, l := logger_domain.From(ctx, log)
 
 	if builder := c.GetCSPConfig(); builder != nil {
+		mergeCaptchaCSPDomains(ctx, c, builder)
 		l.Internal("Building CSP runtime config from builder",
 			logger_domain.Bool("report_only", builder.IsReportOnly()),
 			logger_domain.Bool("uses_request_tokens", builder.UsesRequestTokens()))
@@ -513,8 +527,71 @@ func buildCSPRuntimeConfig(c *Container, deps *Dependencies) security_dto.CSPRun
 		}
 	}
 
+	builder := security_domain.NewCSPBuilder().WithPikoDefaults()
+	mergeCaptchaCSPDomains(ctx, c, builder)
 	l.Internal("Using Piko default CSP policy")
-	return security_domain.NewCSPBuilder().WithPikoDefaults().RuntimeConfig()
+	return builder.RuntimeConfig()
+}
+
+// mergeCaptchaCSPDomains adds CSP domains from all registered captcha
+// providers to the CSP builder. This allows captcha provider SDKs to load
+// without manual CSP configuration.
+//
+// Takes c (*Container) which provides access to the captcha service and
+// application context.
+// Takes builder (*security_domain.CSPBuilder) which is the CSP builder to
+// merge provider domains into.
+func mergeCaptchaCSPDomains(ctx context.Context, c *Container, builder *security_domain.CSPBuilder) {
+	ctx, l := logger_domain.From(ctx, log)
+
+	captchaService, err := c.GetCaptchaService()
+	if err != nil || !captchaService.IsEnabled() {
+		return
+	}
+
+	for _, providerInfo := range captchaService.ListProviders(ctx) {
+		provider, providerErr := captchaService.GetProviderByName(ctx, providerInfo.Name)
+		if providerErr != nil {
+			continue
+		}
+
+		requirements := provider.RenderRequirements()
+		if requirements.ServerSideToken {
+			continue
+		}
+
+		mergeProviderCSPDomains(builder, requirements)
+
+		l.Internal("Merged captcha CSP domains",
+			logger_domain.String("provider", providerInfo.Name))
+	}
+}
+
+// mergeProviderCSPDomains adds the CSP domains from a single captcha provider's
+// render requirements to the CSP builder.
+//
+// Takes builder (*security_domain.CSPBuilder) which is the CSP builder to add
+// directive sources to.
+// Takes requirements (*captcha_dto.RenderRequirements) which contains the
+// script, frame, and connect domains the provider needs.
+func mergeProviderCSPDomains(builder *security_domain.CSPBuilder, requirements *captcha_dto.RenderRequirements) {
+	if len(requirements.CSPScriptDomains) > 0 {
+		scriptSources := []security_domain.Source{security_domain.Self}
+		for _, domain := range requirements.CSPScriptDomains {
+			scriptSources = append(scriptSources, security_domain.Source(domain))
+		}
+		builder.ScriptSrc(scriptSources...)
+	}
+	if len(requirements.CSPFrameDomains) > 0 {
+		frameSources := []security_domain.Source{security_domain.Self}
+		for _, domain := range requirements.CSPFrameDomains {
+			frameSources = append(frameSources, security_domain.Source(domain))
+		}
+		builder.FrameSrc(frameSources...)
+	}
+	for _, domain := range requirements.CSPConnectDomains {
+		builder.ConnectSrc(security_domain.Source(domain))
+	}
 }
 
 // createManifestProvider selects the correct manifest loading adapter based

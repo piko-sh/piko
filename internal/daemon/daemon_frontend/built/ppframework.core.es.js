@@ -5107,22 +5107,37 @@ function createA11yAnnouncer() {
 const NO_TRACK_ATTR = "pk-no-track";
 const TRACKED_ATTR = "data-pk-tracked";
 const DEFERRED_SNAPSHOT_TIMEOUT_MS = 5e3;
+function isInsideNoTrackContainer(el) {
+  return el.closest(`[${NO_TRACK_ATTR}]`) !== null;
+}
 function getFormSnapshot(form) {
+  const excludedNames = collectNoTrackFieldNames(form);
   const data = new FormData(form);
   const entries = [];
   for (const [key, value] of data.entries()) {
-    if (typeof value === "string") {
+    if (typeof value === "string" && !excludedNames.has(key)) {
       entries.push([key, value]);
     }
   }
   const checkboxes = form.querySelectorAll('input[type="checkbox"], input[type="radio"]');
   for (const checkbox of checkboxes) {
-    if (checkbox.name) {
+    if (checkbox.name && !excludedNames.has(checkbox.name)) {
       entries.push([`__checked_${checkbox.name}_${checkbox.value}`, String(checkbox.checked)]);
     }
   }
   entries.sort((a, b) => a[0].localeCompare(b[0]));
   return JSON.stringify(entries);
+}
+function collectNoTrackFieldNames(form) {
+  const excluded = /* @__PURE__ */ new Set();
+  const elements = form.elements;
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements[i];
+    if (el.name && isInsideNoTrackContainer(el)) {
+      excluded.add(el.name);
+    }
+  }
+  return excluded;
 }
 function getFormId(form) {
   if (form.id) {
@@ -6197,6 +6212,38 @@ function loadPageScripts(doc2) {
     }
   }
 }
+const loadedWidgetScripts = /* @__PURE__ */ new Set();
+function loadWidgetScripts(doc2) {
+  const metas = doc2.querySelectorAll('meta[name="pk-widget-script"]');
+  if (metas.length === 0) {
+    return;
+  }
+  let pendingCount = 0;
+  function onScriptReady() {
+    pendingCount--;
+    if (pendingCount <= 0) {
+      document.dispatchEvent(new Event("piko:widgetinit"));
+    }
+  }
+  for (const meta of metas) {
+    const src = meta.getAttribute("content");
+    if (!src || loadedWidgetScripts.has(src)) {
+      continue;
+    }
+    loadedWidgetScripts.add(src);
+    pendingCount++;
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.defer = true;
+    script.onload = onScriptReady;
+    script.onerror = onScriptReady;
+    document.head.appendChild(script);
+  }
+  if (pendingCount === 0) {
+    document.dispatchEvent(new Event("piko:widgetinit"));
+  }
+}
 function scrollToAnchor(hash) {
   if (!hash || hash === "#") {
     return;
@@ -6226,6 +6273,7 @@ function performDOMUpdate(deps, parsedDocument, oldAppRoot, newAppRoot, scrollOp
   loadPageScripts(parsedDocument);
   registerPartialInstancesFromDOM(parsedDocument);
   _executeConnectedForPartials(oldAppRoot);
+  loadWidgetScripts(parsedDocument);
   const newPageStyle = parsedDocument.querySelector("style[pk-page]");
   const oldPageStyle = document.head.querySelector("style[pk-page]");
   if (oldPageStyle) {
@@ -6321,6 +6369,7 @@ function initFrameworkDOM(services) {
   services.spriteSheetManager.ensureExists();
   initModuleLoaderFromPage(services.moduleLoader);
   loadPageScripts(document);
+  loadWidgetScripts(document);
   registerPartialInstancesFromDOM(document);
   _executeConnectedForPartials(document);
   const appRoot = document.querySelector("#app");

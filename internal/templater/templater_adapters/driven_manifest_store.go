@@ -732,6 +732,7 @@ func (pe *PageEntry) initialiseCachedStaticMetadata() {
 		AssetRefs:        pe.AssetRefs,
 		CustomTags:       pe.CustomTags,
 		SupportedLocales: pe.supportedLocalesFunc(),
+		UsesCaptcha:      pe.UsesCaptcha,
 	}
 }
 

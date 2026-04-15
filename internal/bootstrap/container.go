@@ -38,6 +38,7 @@ package bootstrap
 //   - container_email.go: Email service
 //   - container_storage.go: Storage service
 //   - container_cache.go: Cache service
+//   - container_captcha.go: Captcha service
 //   - container_crypto.go: Crypto service
 //   - container_querier_db.go: Named SQL database connections and migrations
 //   - container_ratelimiter.go: Centralised rate limiter
@@ -59,6 +60,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/component/component_adapters"
 	"piko.sh/piko/internal/component/component_domain"
@@ -197,6 +199,9 @@ type Container struct {
 	// cryptoErr holds any error from creating the crypto service.
 	cryptoErr error
 
+	// captchaErr holds any error from creating the captcha service.
+	captchaErr error
+
 	// cacheErr holds any error that occurred when setting up the cache service.
 	cacheErr error
 
@@ -278,6 +283,9 @@ type Container struct {
 
 	// cryptoService handles encryption and decryption; nil means not yet created.
 	cryptoService crypto_domain.CryptoServicePort
+
+	// captchaService handles captcha verification; nil means not yet created.
+	captchaService captcha_domain.CaptchaServicePort
 
 	// collectionService handles collection operations.
 	collectionService collection_domain.CollectionService
@@ -568,6 +576,9 @@ type Container struct {
 	// cryptoProviders maps provider names to their encryption handlers.
 	cryptoProviders map[string]crypto_domain.EncryptionProvider
 
+	// captchaProviders maps provider names to their captcha handlers.
+	captchaProviders map[string]captcha_domain.CaptchaProvider
+
 	// notificationProviders maps provider names to their notification handlers.
 	notificationProviders map[string]notification_domain.NotificationProviderPort
 
@@ -663,6 +674,9 @@ type Container struct {
 
 	// cryptoDefaultProvider is the name of the default encryption provider.
 	cryptoDefaultProvider string
+
+	// captchaDefaultProvider is the name of the default captcha provider.
+	captchaDefaultProvider string
 
 	// notificationDefaultProvider is the name of the provider to use by default.
 	notificationDefaultProvider string
@@ -809,6 +823,9 @@ type Container struct {
 
 	// cryptoOnce guards single initialisation of the crypto service.
 	cryptoOnce sync.Once
+
+	// captchaOnce guards single initialisation of the captcha service.
+	captchaOnce sync.Once
 
 	// validatorOnce guards single initialisation of the validator.
 	validatorOnce sync.Once

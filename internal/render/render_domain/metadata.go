@@ -162,17 +162,82 @@ func (ro *RenderOrchestrator) CollectMetadata(
 		processFontConfigurations(siteConfig.Fonts, tempRenderCtx)
 	}
 
+	var captchaScripts map[string]*render_dto.CaptchaScriptProbeData
+	if metadata.UsesCaptcha {
+		captchaScripts = ro.resolveCaptchaScriptPaths(ctx)
+	}
+
 	var probeData *render_dto.ProbeData
-	if tempRenderCtx.componentMetadata != nil {
+	if tempRenderCtx.componentMetadata != nil || len(captchaScripts) > 0 {
 		probeData = render_dto.AcquireProbeData()
-		probeData.ComponentMetadata = tempRenderCtx.componentMetadata
-		tempRenderCtx.componentMetadata = nil
+		if tempRenderCtx.componentMetadata != nil {
+			probeData.ComponentMetadata = tempRenderCtx.componentMetadata
+			tempRenderCtx.componentMetadata = nil
+		}
+		probeData.CaptchaScripts = captchaScripts
 	}
 
 	headers := tempRenderCtx.collectedLinkHeaders
 	ro.putRenderContext(tempRenderCtx)
 
 	return headers, probeData, nil
+}
+
+// resolveCaptchaScriptPaths resolves the registry serve paths for all
+// client-side captcha provider init scripts. Called once during the probe phase
+// so the render phase can emit correct URLs without repeating registry lookups.
+//
+// Returns map[string]*render_dto.CaptchaScriptProbeData mapping provider names
+// to their resolved paths, or nil when no client-side providers are registered.
+func (ro *RenderOrchestrator) resolveCaptchaScriptPaths(
+	ctx context.Context,
+) map[string]*render_dto.CaptchaScriptProbeData {
+	if ro.captchaService == nil || !ro.captchaService.IsEnabled() || ro.registry == nil {
+		return nil
+	}
+
+	providers := ro.captchaService.ListProviders(ctx)
+	if len(providers) == 0 {
+		return nil
+	}
+
+	_, l := logger_domain.From(ctx, log)
+	result := make(map[string]*render_dto.CaptchaScriptProbeData, len(providers))
+
+	for _, providerInfo := range providers {
+		provider, err := ro.captchaService.GetProviderByName(ctx, providerInfo.Name)
+		if err != nil {
+			l.Warn("Failed to resolve captcha provider for probe",
+				logger_domain.String("provider", providerInfo.Name),
+				logger_domain.Error(err))
+			continue
+		}
+
+		requirements := provider.RenderRequirements()
+		if requirements == nil || requirements.InitScript == nil || requirements.ServerSideToken {
+			continue
+		}
+
+		artefactID := fmt.Sprintf("captcha/init-%s.js", providerInfo.Name)
+		servePath := ro.registry.GetArtefactServePath(ctx, artefactID)
+
+		if servePath == "" {
+			l.Warn("Captcha init script artefact not found in registry",
+				logger_domain.String("provider", providerInfo.Name),
+				logger_domain.String("artefactID", artefactID))
+		}
+
+		result[providerInfo.Name] = &render_dto.CaptchaScriptProbeData{
+			InitScriptServePath: servePath,
+			SDKScriptURLs:       requirements.ScriptURLs,
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
 }
 
 // preloadAssetsAndComponentsForTags fetches component metadata in bulk and

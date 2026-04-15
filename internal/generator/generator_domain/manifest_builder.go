@@ -246,6 +246,7 @@ func (mb *ManifestBuilder) addPageEntry(
 		LocalTranslations:        vc.Source.LocalTranslations,
 		IsE2EOnly:                vc.IsE2EOnly,
 		HasPreview:               vc.Source.Script.HasPreview,
+		UsesCaptcha:              artefact.Result.UsesCaptcha,
 	}
 	manifest.Pages[manifestKey] = pageEntry
 }

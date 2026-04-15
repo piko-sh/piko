@@ -34,6 +34,9 @@ use (
 	./tests/integration/wasm_runner
 	./tests/testutil
 	./wdk/browser
+	./wdk/captcha/captcha_provider_hcaptcha
+	./wdk/captcha/captcha_provider_recaptcha_v3
+	./wdk/captcha/captcha_provider_turnstile
 	./wdk/cache/cache_linguistics
 	./wdk/cache/cache_provider_redis
 	./wdk/cache/cache_provider_redis_cluster
@@ -169,6 +172,9 @@ replace (
 	piko.sh/piko/tests/integration/wasm_runner v0.0.0 => ./tests/integration/wasm_runner
 	piko.sh/piko/tests/testutil v0.0.0 => ./tests/testutil
 	piko.sh/piko/wdk/browser v0.0.0 => ./wdk/browser
+	piko.sh/piko/wdk/captcha/captcha_provider_hcaptcha v0.0.0 => ./wdk/captcha/captcha_provider_hcaptcha
+	piko.sh/piko/wdk/captcha/captcha_provider_recaptcha_v3 v0.0.0 => ./wdk/captcha/captcha_provider_recaptcha_v3
+	piko.sh/piko/wdk/captcha/captcha_provider_turnstile v0.0.0 => ./wdk/captcha/captcha_provider_turnstile
 	piko.sh/piko/wdk/cache/cache_linguistics v0.0.0 => ./wdk/cache/cache_linguistics
 	piko.sh/piko/wdk/cache/cache_provider_redis v0.0.0 => ./wdk/cache/cache_provider_redis
 	piko.sh/piko/wdk/cache/cache_provider_redis_cluster v0.0.0 => ./wdk/cache/cache_provider_redis_cluster

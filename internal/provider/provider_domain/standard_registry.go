@@ -19,9 +19,11 @@
 package provider_domain
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -207,6 +209,10 @@ func (r *StandardRegistry[T]) ListProviders(_ context.Context) []ProviderInfo {
 
 		result = append(result, providerInfo)
 	}
+
+	slices.SortFunc(result, func(a, b ProviderInfo) int {
+		return cmp.Compare(a.Name, b.Name)
+	})
 
 	return result
 }

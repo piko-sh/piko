@@ -274,10 +274,6 @@ type OtlpTLSConfig struct {
 // encryption, HTTP security headers, rate limiting, and cookie security
 // defaults.
 type SecurityConfig struct {
-	// RateLimit sets up request rate limiting with trusted proxy support. Disabled
-	// by default to stop users from rate-limiting their own reverse proxy.
-	RateLimit RateLimitConfig `json:"rateLimit" yaml:"rateLimit"`
-
 	// Headers configures HTTP security headers such as X-Frame-Options, CSP,
 	// and HSTS. Enabled by default for secure-by-default behaviour.
 	Headers SecurityHeadersConfig `json:"headers" yaml:"headers"`
@@ -286,32 +282,22 @@ type SecurityConfig struct {
 	// set to "gcp_kms".
 	GCPKMS GCPKMSConfig `json:"gcpKms" yaml:"gcpKms"`
 
-	// Sandbox configures filesystem sandboxing for Piko internals using Go 1.24's
-	// os.Root. Disabled by default; when enabled, restricts file access to
-	// configured directories.
-	Sandbox SandboxConfig `json:"sandbox" yaml:"sandbox"`
-
 	// AWSKMS holds AWS KMS settings; only used when CryptoProvider is "aws_kms".
 	AWSKMS AWSKMSConfig `json:"awsKms" yaml:"awsKms"`
-
-	// Reporting configures the Reporting-Endpoints HTTP header used by CSP
-	// report-to directive and other reporting APIs. Disabled by default; when
-	// enabled, allows configuring violation report destinations.
-	Reporting ReportingConfig `json:"reporting" yaml:"reporting"`
 
 	// Cookies configures secure defaults for HTTP cookies, including
 	// HttpOnly, Secure, and SameSite attributes. Enabled by default
 	// for secure-by-default behaviour.
 	Cookies CookieSecurityConfig `json:"cookies" yaml:"cookies"`
 
-	// CSRF configures CSRF token enforcement. Defaults provide
-	// defence-in-depth by requiring tokens on browser requests.
-	CSRF CSRFConfig `json:"csrf" yaml:"csrf"`
-
 	// EncryptionKey is the base64-encoded 32-byte (256-bit) encryption key
 	// for the default local AES-GCM provider, preferably loaded from the
 	// PIKO_ENCRYPTION_KEY environment variable in production.
 	EncryptionKey *string `json:"encryptionKey" yaml:"encryptionKey" default:"" env:"PIKO_ENCRYPTION_KEY" flag:"encryptionKey" usage:"Base64-encoded encryption key for local AES-GCM provider." summary:"hide"`
+
+	// CSRF configures CSRF token enforcement. Defaults provide
+	// defence-in-depth by requiring tokens on browser requests.
+	CSRF CSRFConfig `json:"csrf" yaml:"csrf"`
 
 	// CryptoProvider specifies which encryption provider to use.
 	// Options: "local_aes_gcm" (default, always available), "aws_kms", "gcp_kms"
@@ -326,6 +312,36 @@ type SecurityConfig struct {
 	// DataKeyCacheMaxSize is the maximum number of data keys to cache.
 	// Each key is typically 32 bytes for AES-256; default is 100 keys.
 	DataKeyCacheMaxSize *int `json:"dataKeyCacheMaxSize" yaml:"dataKeyCacheMaxSize" default:"100" env:"PIKO_DATA_KEY_CACHE_MAX_SIZE" flag:"dataKeyCacheMaxSize" usage:"Maximum number of data keys to cache."`
+
+	// CaptchaProvider specifies which captcha provider to use.
+	// Options: "hmac_challenge" (built-in test provider), "turnstile",
+	// "recaptcha_v3", "hcaptcha" (require explicit adapter registration).
+	CaptchaProvider *string `json:"captchaProvider" yaml:"captchaProvider" default:"" env:"PIKO_CAPTCHA_PROVIDER" flag:"captchaProvider" usage:"Captcha provider to use (hmac_challenge, turnstile, recaptcha_v3, hcaptcha)." validate:"omitempty,oneof=hmac_challenge turnstile recaptcha_v3 hcaptcha"`
+
+	// CaptchaSiteKey is the site key / widget key for the configured captcha
+	// provider. Required for Turnstile, reCAPTCHA, and hCaptcha.
+	CaptchaSiteKey *string `json:"captchaSiteKey" yaml:"captchaSiteKey" default:"" env:"PIKO_CAPTCHA_SITE_KEY" flag:"captchaSiteKey" usage:"Site key for the captcha provider."`
+
+	// CaptchaSecretKey is the secret key for server-side captcha verification.
+	CaptchaSecretKey *string `json:"captchaSecretKey" yaml:"captchaSecretKey" default:"" env:"PIKO_CAPTCHA_SECRET_KEY" flag:"captchaSecretKey" usage:"Secret key for captcha verification." summary:"hide"`
+
+	// CaptchaScoreThreshold is the minimum score (0.0-1.0) for score-based
+	// providers like reCAPTCHA v3. Default 0.5.
+	CaptchaScoreThreshold *float64 `json:"captchaScoreThreshold" yaml:"captchaScoreThreshold" default:"0.5" env:"PIKO_CAPTCHA_SCORE_THRESHOLD" flag:"captchaScoreThreshold" usage:"Minimum captcha score threshold (0.0-1.0)." validate:"omitempty,gte=0,lte=1"`
+
+	// RateLimit sets up request rate limiting with trusted proxy support. Disabled
+	// by default to stop users from rate-limiting their own reverse proxy.
+	RateLimit RateLimitConfig `json:"rateLimit" yaml:"rateLimit"`
+
+	// Sandbox configures filesystem sandboxing for Piko internals using Go 1.24's
+	// os.Root. Disabled by default; when enabled, restricts file access to
+	// configured directories.
+	Sandbox SandboxConfig `json:"sandbox" yaml:"sandbox"`
+
+	// Reporting configures the Reporting-Endpoints HTTP header used by CSP
+	// report-to directive and other reporting APIs. Disabled by default; when
+	// enabled, allows configuring violation report destinations.
+	Reporting ReportingConfig `json:"reporting" yaml:"reporting"`
 
 	// DeprecatedKeyIDs lists key IDs that are still valid for decryption but
 	// should not be used for new encryption. This supports gradual key rotation.

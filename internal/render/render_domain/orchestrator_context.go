@@ -81,6 +81,9 @@ func (rctx *renderContext) clearCaches() {
 	for k := range rctx.srcsetCache {
 		delete(rctx.srcsetCache, k)
 	}
+	for k := range rctx.collectedCaptchaScripts {
+		delete(rctx.collectedCaptchaScripts, k)
+	}
 }
 
 // resetDiagnosticsAndCSRF clears all warnings, errors, and CSRF state to

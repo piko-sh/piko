@@ -1173,4 +1173,111 @@ describe('FormStateManager', () => {
             expect(formStateManager.hasDirtyForms()).toBe(false);
         });
     });
+
+    describe('pk-no-track on child elements', () => {
+        it('should exclude fields inside a pk-no-track container from dirty tracking', () => {
+            formStateManager = createFormStateManager({hookManager});
+            const form = document.createElement('form');
+            form.id = 'captcha-form';
+
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.name = 'username';
+            textInput.value = 'alice';
+            form.appendChild(textInput);
+
+            const noTrackDiv = document.createElement('div');
+            noTrackDiv.setAttribute('pk-no-track', '');
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = '_captcha_token';
+            hiddenInput.value = '';
+            noTrackDiv.appendChild(hiddenInput);
+            form.appendChild(noTrackDiv);
+
+            testContainer.appendChild(form);
+
+            formStateManager.trackForm(form);
+            expect(formStateManager.hasDirtyForms()).toBe(false);
+
+            hiddenInput.value = 'generated-captcha-token';
+            expect(formStateManager.hasDirtyForms()).toBe(false);
+        });
+
+        it('should still track fields outside pk-no-track containers', () => {
+            formStateManager = createFormStateManager({hookManager});
+            const form = document.createElement('form');
+            form.id = 'mixed-form';
+
+            const emailInput = document.createElement('input');
+            emailInput.type = 'text';
+            emailInput.name = 'email';
+            emailInput.value = 'original@test.com';
+            form.appendChild(emailInput);
+
+            const noTrackDiv = document.createElement('div');
+            noTrackDiv.setAttribute('pk-no-track', '');
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '_csrf_token';
+            tokenInput.value = 'token123';
+            noTrackDiv.appendChild(tokenInput);
+            form.appendChild(noTrackDiv);
+
+            testContainer.appendChild(form);
+
+            formStateManager.trackForm(form);
+            expect(formStateManager.hasDirtyForms()).toBe(false);
+
+            emailInput.value = 'changed@test.com';
+            expect(formStateManager.hasDirtyForms()).toBe(true);
+        });
+
+        it('should exclude fields with pk-no-track directly on the input', () => {
+            formStateManager = createFormStateManager({hookManager});
+            const form = document.createElement('form');
+            form.id = 'direct-no-track-form';
+
+            const trackedInput = document.createElement('input');
+            trackedInput.type = 'text';
+            trackedInput.name = 'name';
+            trackedInput.value = 'original';
+            form.appendChild(trackedInput);
+
+            const untrackedInput = document.createElement('input');
+            untrackedInput.type = 'hidden';
+            untrackedInput.name = '_token';
+            untrackedInput.value = '';
+            untrackedInput.setAttribute('pk-no-track', '');
+            form.appendChild(untrackedInput);
+
+            testContainer.appendChild(form);
+
+            formStateManager.trackForm(form);
+            expect(formStateManager.hasDirtyForms()).toBe(false);
+
+            untrackedInput.value = 'new-token-value';
+            expect(formStateManager.hasDirtyForms()).toBe(false);
+        });
+
+        it('should not exclude visually hidden checkboxes without pk-no-track', () => {
+            formStateManager = createFormStateManager({hookManager});
+            const form = document.createElement('form');
+            form.id = 'styled-checkbox-form';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'agree';
+            checkbox.style.display = 'none';
+            form.appendChild(checkbox);
+
+            testContainer.appendChild(form);
+
+            formStateManager.trackForm(form);
+            expect(formStateManager.hasDirtyForms()).toBe(false);
+
+            checkbox.checked = true;
+            expect(formStateManager.hasDirtyForms()).toBe(true);
+        });
+    });
 });

@@ -76,6 +76,8 @@ table ManifestPageEntryFB {
   is_e2e_only:bool;
 
   has_preview:bool;
+
+  uses_captcha:bool;
 }
 
 table ManifestPartialEntryFB {

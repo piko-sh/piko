@@ -57,6 +57,10 @@ type MockRegistryPort struct {
 	// ClearSvgCache.
 	ClearSvgCacheFunc func(ctx context.Context, svgID string)
 
+	// GetArtefactServePathFunc is the function called by
+	// GetArtefactServePath.
+	GetArtefactServePathFunc func(ctx context.Context, artefactID string) string
+
 	// UpsertArtefactFunc is the function called by
 	// UpsertArtefact.
 	UpsertArtefactFunc func(
@@ -91,6 +95,10 @@ type MockRegistryPort struct {
 	// ClearSvgCacheCallCount tracks how many times
 	// ClearSvgCache was called.
 	ClearSvgCacheCallCount int64
+
+	// GetArtefactServePathCallCount tracks how many times
+	// GetArtefactServePath was called.
+	GetArtefactServePathCallCount int64
 
 	// UpsertArtefactCallCount tracks how many times
 	// UpsertArtefact was called.
@@ -191,6 +199,20 @@ func (m *MockRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
 	if m.ClearSvgCacheFunc != nil {
 		m.ClearSvgCacheFunc(ctx, svgID)
 	}
+}
+
+// GetArtefactServePath delegates to GetArtefactServePathFunc if set.
+//
+// Takes ctx (context.Context) which carries deadlines and cancellation signals.
+// Takes artefactID (string) which identifies the artefact.
+//
+// Returns empty string if GetArtefactServePathFunc is nil.
+func (m *MockRegistryPort) GetArtefactServePath(ctx context.Context, artefactID string) string {
+	atomic.AddInt64(&m.GetArtefactServePathCallCount, 1)
+	if m.GetArtefactServePathFunc != nil {
+		return m.GetArtefactServePathFunc(ctx, artefactID)
+	}
+	return ""
 }
 
 // UpsertArtefact delegates to UpsertArtefactFunc if set.

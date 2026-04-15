@@ -24,10 +24,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"piko.sh/piko/internal/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/monitoring/monitoring_domain"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
 )
@@ -41,12 +41,12 @@ func (m *mockSystemStatsProvider) GetStats() monitoring_domain.SystemStats {
 }
 
 type mockOrchestratorInspector struct {
-	taskSummary     []orchestrator_domain.TaskSummary
 	taskSummaryErr  error
-	recentTasks     []orchestrator_domain.TaskListItem
 	recentTasksErr  error
-	workflowSummary []orchestrator_domain.WorkflowSummary
 	workflowErr     error
+	taskSummary     []orchestrator_domain.TaskSummary
+	recentTasks     []orchestrator_domain.TaskListItem
+	workflowSummary []orchestrator_domain.WorkflowSummary
 }
 
 func (m *mockOrchestratorInspector) ListTaskSummary(_ context.Context) ([]orchestrator_domain.TaskSummary, error) {

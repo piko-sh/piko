@@ -1,0 +1,6 @@
+{
+  "description": "Verifies that a page containing a piko:captcha element sets UsesCaptcha to true.",
+  "expectedDiagnostics": 0,
+  "diagnostics": [],
+  "expectUsesCaptcha": true
+}

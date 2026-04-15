@@ -159,5 +159,29 @@ var (
 	}
 )
 
+// CaptchaProtected is an interface that actions can implement to require
+// captcha verification before execution.
+type CaptchaProtected interface {
+	// CaptchaConfig returns the captcha verification configuration for this
+	// action.
+	CaptchaConfig() *CaptchaConfig
+}
+
+// CaptchaConfig defines captcha verification behaviour for an action.
+type CaptchaConfig struct {
+	// Provider overrides the default captcha provider for this action, falling
+	// back to the service's default when empty and requiring that the named
+	// provider has been registered via piko.WithCaptchaProvider.
+	Provider string
+
+	// Action is an optional action name sent to the captcha provider for
+	// analytics. If empty, the Piko action name is used.
+	Action string
+
+	// ScoreThreshold overrides the default score threshold for score-based
+	// providers. A value of 0 uses the service default.
+	ScoreThreshold float64
+}
+
 // Transport represents a supported transport mechanism for actions.
 type Transport string

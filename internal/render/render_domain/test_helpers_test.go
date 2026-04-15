@@ -27,6 +27,7 @@ import (
 	"sync"
 
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/pml/pml_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_dto"
@@ -137,6 +138,7 @@ func (b *TestRenderContextBuilder) Build() *TestRenderContext {
 type TestOrchestratorBuilder struct {
 	registry          RegistryPort
 	csrfService       security_domain.CSRFTokenService
+	captchaService    captcha_domain.CaptchaServicePort
 	pmlEngine         pml_domain.Transformer
 	cssResetCSS       string
 	transforms        []TransformationPort
@@ -181,10 +183,16 @@ func (b *TestOrchestratorBuilder) WithCSSResetCSS(css string) *TestOrchestratorB
 	return b
 }
 
+func (b *TestOrchestratorBuilder) WithCaptchaService(s captcha_domain.CaptchaServicePort) *TestOrchestratorBuilder {
+	b.captchaService = s
+	return b
+}
+
 func (b *TestOrchestratorBuilder) Build() *RenderOrchestrator {
 	return &RenderOrchestrator{
 		registry:          b.registry,
 		csrfService:       b.csrfService,
+		captchaService:    b.captchaService,
 		transformSteps:    b.transforms,
 		pmlEngine:         b.pmlEngine,
 		stripHTMLComments: b.stripHTMLComments,

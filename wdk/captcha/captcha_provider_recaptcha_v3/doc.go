@@ -1,0 +1,42 @@
+// Copyright 2026 PolitePixels Limited
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This project stands against fascism, authoritarianism, and all forms of
+// oppression. We built this to empower people, not to enable those who would
+// strip others of their rights and dignity.
+
+// Package captcha_provider_recaptcha_v3 provides a Google reCAPTCHA v3
+// captcha provider.
+//
+// This provider delegates verification to Google's reCAPTCHA v3
+// service, which uses invisible, score-based bot detection that runs
+// in the background without requiring user interaction. Each
+// verification returns a score between 0.0 (likely bot) and 1.0
+// (likely human), allowing applications to take adaptive action based
+// on the risk level. Google recommends a default threshold of 0.5.
+//
+// Tokens are valid for 2 minutes and are single-use.
+//
+// Obtain a site key and secret key from the Google reCAPTCHA admin
+// console (https://www.google.com/recaptcha/admin):
+//
+//	provider, err := captcha_provider_recaptcha_v3.NewProvider(captcha_provider_recaptcha_v3.Config{
+//	    SiteKey:   "6Lc...",
+//	    SecretKey: "6Lc...",
+//	})
+//
+// # Thread safety
+//
+// All methods on the provider returned by [NewProvider] are safe for concurrent use.
+package captcha_provider_recaptcha_v3

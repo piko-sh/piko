@@ -118,6 +118,12 @@ type DataLoaderRegistryAdapter struct {
 
 	// svgCache stores parsed SVG data with the asset ID as the key.
 	svgCache *otter.Cache[string, *render_domain.ParsedSvgData]
+
+	// artefactServePath is the base URL path for serving artefacts.
+	artefactServePath string
+
+	// artefactServePathCache caches resolved serve paths for artefacts.
+	artefactServePathCache sync.Map
 }
 
 // cacheMetrics groups the three metric counters used by the cache fast path.
@@ -281,6 +287,70 @@ func (r *DataLoaderRegistryAdapter) ClearSvgCache(_ context.Context, svgID strin
 	}
 }
 
+// GetArtefactServePath returns the cache-busted URL serve path for an artefact,
+// preferring the minified variant and caching results in a sync.Map to avoid
+// repeated registry lookups.
+//
+// Takes artefactID (string) which identifies the artefact to look up.
+//
+// Returns string which is the serve path, or empty if not found.
+func (r *DataLoaderRegistryAdapter) GetArtefactServePath(ctx context.Context, artefactID string) string {
+	if cached, ok := r.artefactServePathCache.Load(artefactID); ok {
+		if s, isString := cached.(string); isString {
+			return s
+		}
+	}
+
+	ctx, l := logger_domain.From(ctx, log)
+
+	artefact, err := r.registryService.GetArtefact(ctx, artefactID)
+	if err != nil {
+		l.Warn("Failed to resolve artefact serve path",
+			logger_domain.String("artefactID", artefactID),
+			logger_domain.Error(err))
+		return ""
+	}
+	if artefact == nil {
+		return ""
+	}
+
+	variant := findServableVariant(artefact)
+	if variant == nil {
+		l.Warn("Artefact has no servable variant",
+			logger_domain.String("artefactID", artefactID))
+		return ""
+	}
+
+	servePath := path.Join(r.artefactServePath, variant.StorageKey)
+	r.artefactServePathCache.Store(artefactID, servePath)
+
+	return servePath
+}
+
+// findServableVariant returns the best variant to serve for an artefact.
+// Prefers the minified variant (VariantID "minified") over the source variant,
+// since browsers should load the processed output while the server handles
+// content-encoding negotiation for brotli/gzip.
+//
+// Takes artefact (*registry_dto.ArtefactMeta) which contains the variants to
+// search.
+//
+// Returns *registry_dto.Variant which is the servable variant, or nil if none
+// exists.
+func findServableVariant(artefact *registry_dto.ArtefactMeta) *registry_dto.Variant {
+	var sourceVariant *registry_dto.Variant
+	for i := range artefact.ActualVariants {
+		v := &artefact.ActualVariants[i]
+		if v.VariantID == "minified" {
+			return v
+		}
+		if v.MetadataTags.Get(registry_dto.TagType) == "source" {
+			sourceVariant = v
+		}
+	}
+	return sourceVariant
+}
+
 // UpsertArtefact registers a dynamic asset with metadata-only profiles.
 // This delegates to the underlying registry service for metadata-only
 // registration.
@@ -327,11 +397,8 @@ func NewDataLoaderRegistryAdapter(
 	config = applyConfigDefaults(config)
 
 	adapter := &DataLoaderRegistryAdapter{
-		registryService:     registryService,
-		componentBulkLoader: nil,
-		svgBulkLoader:       nil,
-		componentCache:      nil,
-		svgCache:            nil,
+		registryService:   registryService,
+		artefactServePath: artefactServePath,
 	}
 
 	adapter.componentBulkLoader = createComponentBulkLoader(registryService, artefactServePath)

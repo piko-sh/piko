@@ -175,6 +175,12 @@ type Cacheable = daemon_domain.Cacheable
 // CacheConfig defines caching behaviour for action responses.
 type CacheConfig = daemon_domain.CacheConfig
 
+// CaptchaProtected is an interface for requiring captcha verification.
+type CaptchaProtected = daemon_domain.CaptchaProtected
+
+// CaptchaConfig defines captcha verification configuration.
+type CaptchaConfig = daemon_domain.CaptchaConfig
+
 // RateLimitable is an interface for configuring rate limiting.
 type RateLimitable = daemon_domain.RateLimitable
 

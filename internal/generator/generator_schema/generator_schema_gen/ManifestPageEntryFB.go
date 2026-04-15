@@ -302,8 +302,20 @@ func (rcv *ManifestPageEntryFB) MutateHasPreview(n bool) bool {
 	return rcv._tab.MutateBoolSlot(36, n)
 }
 
+func (rcv *ManifestPageEntryFB) UsesCaptcha() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *ManifestPageEntryFB) MutateUsesCaptcha(n bool) bool {
+	return rcv._tab.MutateBoolSlot(38, n)
+}
+
 func ManifestPageEntryFBStart(builder *flatbuffers.Builder) {
-	builder.StartObject(17)
+	builder.StartObject(18)
 }
 func ManifestPageEntryFBAddPackagePath(builder *flatbuffers.Builder, packagePath flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(packagePath), 0)
@@ -370,6 +382,9 @@ func ManifestPageEntryFBAddIsE2eOnly(builder *flatbuffers.Builder, isE2eOnly boo
 }
 func ManifestPageEntryFBAddHasPreview(builder *flatbuffers.Builder, hasPreview bool) {
 	builder.PrependBoolSlot(16, hasPreview, false)
+}
+func ManifestPageEntryFBAddUsesCaptcha(builder *flatbuffers.Builder, usesCaptcha bool) {
+	builder.PrependBoolSlot(17, usesCaptcha, false)
 }
 func ManifestPageEntryFBEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

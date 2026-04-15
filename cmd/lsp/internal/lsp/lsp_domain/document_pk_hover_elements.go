@@ -166,6 +166,21 @@ var (
 			Example:       `<piko:partial is="card" :title="state.Title" />`,
 			DocumentsURL:  "/docs/api/tags/piko-partial",
 		},
+		"piko:captcha": {
+			Name: "piko:captcha",
+			Description: "Renders a captcha widget using the configured provider. Replaced at render time with " +
+				"provider-specific HTML including the widget container, script tags, and a hidden input for the verification token.",
+			RequiredAttrs: []pikoAttrDoc{},
+			OptionalAttrs: []pikoAttrDoc{
+				{Name: "provider", Type: attributeTypeString, Description: "Registered provider name. Uses the default provider when omitted."},
+				{Name: "name", Type: attributeTypeString, Description: "Hidden input field name for the captcha token. Defaults to \"_captcha_token\"."},
+				{Name: "theme", Type: attributeTypeString, Description: "Widget theme: \"light\" (default) or \"dark\"."},
+				{Name: "size", Type: attributeTypeString, Description: "Widget size: \"normal\" (default) or \"compact\"."},
+				{Name: "action", Type: attributeTypeString, Description: "Action name bound to the token for server-side providers. Prevents cross-form token reuse."},
+			},
+			Example:      "<piko:captcha />\n<piko:captcha provider=\"turnstile\" theme=\"dark\" />",
+			DocumentsURL: "/docs/api/tags/piko-captcha",
+		},
 	}
 
 	// pikoTimelineElementDocuments contains hover documentation for timeline

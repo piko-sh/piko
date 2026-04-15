@@ -51,6 +51,7 @@
     <script type="module" src="/_piko/assets/pk-js/pk/actions.gen.js"{%- if p.ActionsJSSRIHash != "" -%}{% space %}integrity="{%s= p.ActionsJSSRIHash -%}" crossorigin="anonymous"{%- endif -%}></script>
     {%- if p.ModuleScripts != "" -%}{%s= p.ModuleScripts -%}{%- endif -%}
     {%- for _, meta := range p.PKScriptMetas -%}<script type="module" src="{%s= meta.URL -%}"{%- if meta.SRIHash != "" -%}{% space %}integrity="{%s= meta.SRIHash -%}" crossorigin="anonymous"{%- endif -%}></script><meta name="pk-script" content="{%s= meta.URL -%}"{%- if meta.PartialName != "" -%}{% space %}data-partial-name="{%s= meta.PartialName -%}"{%- endif -%}>{%- endfor -%}
+    {%- for _, url := range p.WidgetScripts -%}<meta name="pk-widget-script" content="{%s= url -%}">{%- endfor -%}
     {%- if p.DevWidgetHTML != "" -%}{%s= p.DevWidgetHTML -%}{%- endif -%}
 </body>
 </html>

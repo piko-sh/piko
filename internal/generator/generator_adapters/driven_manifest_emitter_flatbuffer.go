@@ -209,6 +209,7 @@ func packPageEntry(b *flatbuffers.Builder, entry *generator_dto.ManifestPageEntr
 	gen_fb.ManifestPageEntryFBAddLocalTranslations(b, localTranslationsOff)
 	gen_fb.ManifestPageEntryFBAddIsE2eOnly(b, entry.IsE2EOnly)
 	gen_fb.ManifestPageEntryFBAddHasPreview(b, entry.HasPreview)
+	gen_fb.ManifestPageEntryFBAddUsesCaptcha(b, entry.UsesCaptcha)
 	return gen_fb.ManifestPageEntryFBEnd(b)
 }
 

@@ -1,0 +1,63 @@
+{
+  "description": "Tests captcha-protected form submission with HMAC challenge provider",
+  "requestURL": "/contact",
+  "expectedStatus": 200,
+  "browserSteps": [
+    {
+      "action": "waitForSelector",
+      "selector": "h1"
+    },
+    {
+      "action": "checkText",
+      "selector": "h1",
+      "expected": "Contact Us (Captcha Protected)"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": "input[name='_captcha_token']"
+    },
+    {
+      "action": "wait",
+      "value": "500"
+    },
+    {
+      "action": "fill",
+      "selector": "#name",
+      "value": "Jane Doe"
+    },
+    {
+      "action": "fill",
+      "selector": "#email",
+      "value": "jane@example.com"
+    },
+    {
+      "action": "fill",
+      "selector": "#message",
+      "value": "Hello from the captcha test"
+    },
+    {
+      "action": "click",
+      "selector": "button[type='submit']"
+    },
+    {
+      "action": "waitForVisible",
+      "selector": ".result-container",
+      "timeout": 5000
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='result_name']",
+      "expected": "Jane Doe"
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='result_email']",
+      "expected": "jane@example.com"
+    },
+    {
+      "action": "checkText",
+      "selector": "[p-ref='result_message']",
+      "expected": "Hello from the captcha test"
+    }
+  ]
+}

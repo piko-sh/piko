@@ -231,6 +231,54 @@ function loadPageScripts(doc: Document | DocumentFragment): void {
     }
 }
 
+/** Tracks widget script URLs that have already been loaded. */
+const loadedWidgetScripts = new Set<string>();
+
+/**
+ * Loads classic (non-module) widget scripts declared via
+ * meta[name="pk-widget-script"] tags. Scripts already loaded are skipped.
+ * After all scripts finish loading, dispatches a piko:widgetinit event so
+ * init scripts can re-scan the DOM for new widget instances.
+ *
+ * @param doc - The document to scan for widget script meta tags.
+ */
+function loadWidgetScripts(doc: Document | DocumentFragment): void {
+    const metas = doc.querySelectorAll('meta[name="pk-widget-script"]');
+    if (metas.length === 0) {
+        return;
+    }
+
+    let pendingCount = 0;
+
+    function onScriptReady(): void {
+        pendingCount--;
+        if (pendingCount <= 0) {
+            document.dispatchEvent(new Event('piko:widgetinit'));
+        }
+    }
+
+    for (const meta of metas) {
+        const src = meta.getAttribute('content');
+        if (!src || loadedWidgetScripts.has(src)) {
+            continue;
+        }
+        loadedWidgetScripts.add(src);
+        pendingCount++;
+
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.defer = true;
+        script.onload = onScriptReady;
+        script.onerror = onScriptReady;
+        document.head.appendChild(script);
+    }
+
+    if (pendingCount === 0) {
+        document.dispatchEvent(new Event('piko:widgetinit'));
+    }
+}
+
 /**
  * Bundles all services used by the framework, including both eagerly and
  * lazily initialised dependencies.
@@ -350,6 +398,8 @@ function performDOMUpdate(
     registerPartialInstancesFromDOM(parsedDocument);
 
     _executeConnectedForPartials(oldAppRoot);
+
+    loadWidgetScripts(parsedDocument);
 
     const newPageStyle = parsedDocument.querySelector('style[pk-page]');
     const oldPageStyle = document.head.querySelector('style[pk-page]');
@@ -512,6 +562,8 @@ function initFrameworkDOM(services: FrameworkServices): void {
     initModuleLoaderFromPage(services.moduleLoader);
 
     loadPageScripts(document);
+
+    loadWidgetScripts(document);
 
     registerPartialInstancesFromDOM(document);
 

@@ -93,6 +93,8 @@ InternalMetadata: |- # Kind: Struct
       CachePolicy templater_dto.CachePolicy
       // Field
       Metadata templater_dto.Metadata
+      // Field
+      UsesCaptcha bool
   }
 MergeClasses: func(...interface {}) string # Kind: Func
 MergeStyles: func(...interface {}) string # Kind: Func

@@ -26,8 +26,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/ast/ast_domain"
+	"piko.sh/piko/internal/json"
+	"piko.sh/piko/internal/logger/logger_domain"
 )
 
 const (
@@ -53,6 +54,9 @@ const (
 	// Small since most binds succeed; grows if needed.
 	initialMultiErrorCapacity = 4
 )
+
+// log is the package-level logger for the binder package.
+var log = logger_domain.GetLogger("piko/internal/binder")
 
 var (
 	// defaultBinder holds the lazily initialised singleton ASTBinder instance.
@@ -426,7 +430,10 @@ func (b *ASTBinder) bindSingleField(ctx context.Context, v reflect.Value, path, 
 
 	pathAST, err := b.getOrParseAST(ctx, path)
 	if err != nil {
-		return fmt.Errorf("parsing AST for path %q: %w", path, err)
+		log.Trace("Skipping unbindable form field",
+			logger_domain.String("field", path),
+			logger_domain.Error(err))
+		return nil
 	}
 	return b.setByAST(v, pathAST, value, path, limits)
 }
