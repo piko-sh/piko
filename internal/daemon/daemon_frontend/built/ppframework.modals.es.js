@@ -91,14 +91,14 @@ function createModalManager(deps = {}) {
     }
   };
 }
-function registerHelpers(pk) {
-  const hookManager = {
+function createPikoHookManager(pk) {
+  return {
     emit(event, payload) {
-      pk.hooks.on(event, () => {
-      });
+      pk._emitHook(event, payload);
     }
   };
-  const modalManager = createModalManager({ hookManager });
+}
+function registerPkOpenModalListener(modalManager) {
   document.addEventListener("pk-open-modal", (event) => {
     const detail = event.detail;
     const triggerElement = event.target;
@@ -113,85 +113,92 @@ function registerHelpers(pk) {
       triggerElement
     });
   });
-  pk.registerHelper("showModal", (element, _event) => {
-    const selector = element.dataset.modalSelector;
-    if (!selector) {
-      console.warn('helpers.showModal() requires a "data-modal-selector" attribute.', element);
-      return;
+}
+function showModalHelper(element, modalManager) {
+  const selector = element.dataset.modalSelector;
+  if (!selector) {
+    console.warn('helpers.showModal() requires a "data-modal-selector" attribute.', element);
+    return;
+  }
+  void modalManager.openIfAvailable({
+    selector,
+    params: /* @__PURE__ */ new Map(),
+    title: element.dataset.modalTitle ?? "",
+    message: element.dataset.modalMessage ?? "",
+    cancelLabel: element.dataset.modalCancelMessage ?? "",
+    triggerElement: element
+  });
+}
+function resolveTargetModal(triggerElement, modalName, helperName) {
+  if (typeof modalName === "string" && modalName) {
+    const selector = `[modal="${modalName}"]`;
+    const found = document.querySelector(selector);
+    if (!found) {
+      console.warn(`${helperName}: Could not find any modal with selector: ${selector}`);
     }
-    void modalManager.openIfAvailable({
-      selector,
-      params: /* @__PURE__ */ new Map(),
-      title: element.dataset.modalTitle ?? "",
-      message: element.dataset.modalMessage ?? "",
-      cancelLabel: element.dataset.modalCancelMessage ?? "",
-      triggerElement: element
-    });
+    return found;
+  }
+  const ancestor = triggerElement.closest("[modal]");
+  if (!ancestor) {
+    console.warn(`${helperName}: The triggering element is not inside a [modal].`, { triggerElement });
+  }
+  return ancestor;
+}
+function closeModalHelper(triggerElement, modalName) {
+  const modalToClose = resolveTargetModal(triggerElement, modalName, "closeModal");
+  if (!modalToClose) {
+    return;
+  }
+  if (typeof modalToClose.close === "function") {
+    modalToClose.close();
+  } else {
+    console.error(`The found modal does not have a public 'close()' method.`, { modalToClose });
+  }
+}
+function updateModalHelper(triggerElement, modalName) {
+  const modalToUpdate = resolveTargetModal(triggerElement, modalName, "updateModal");
+  if (!modalToUpdate) {
+    return;
+  }
+  if (typeof modalToUpdate.update === "function") {
+    modalToUpdate.update();
+  } else {
+    console.error(`The found modal does not have a public 'update()' method.`, { modalToUpdate });
+  }
+}
+function reloadPartialHelper(selector) {
+  if (!selector || typeof selector !== "string") {
+    console.error("reloadPartial helper requires a CSS selector string as its first argument.");
+    return;
+  }
+  const partialToReload = document.querySelector(selector);
+  if (!partialToReload) {
+    console.warn(`reloadPartial: Could not find an element with the selector "${selector}".`);
+    return;
+  }
+  if (typeof partialToReload.reload === "function") {
+    partialToReload.reload();
+  } else if (partialToReload.hasAttribute("partial") && partialToReload.hasAttribute("src")) {
+    partialToReload.dispatchEvent(new CustomEvent("pk-reload-partial", { bubbles: true }));
+  } else {
+    console.error(`The element matching "${selector}" does not have a public 'reload()' method.`);
+  }
+}
+function registerHelpers(pk) {
+  const hookManager = createPikoHookManager(pk);
+  const modalManager = createModalManager({ hookManager });
+  registerPkOpenModalListener(modalManager);
+  pk.registerHelper("showModal", (element) => {
+    showModalHelper(element, modalManager);
   });
   pk.registerHelper("closeModal", (triggerElement, _event, ...args) => {
-    const modalName = args[0];
-    let modalToClose = null;
-    if (typeof modalName === "string" && modalName) {
-      const selector = `[modal="${modalName}"]`;
-      modalToClose = document.querySelector(selector);
-      if (!modalToClose) {
-        console.warn(`closeModal: Could not find any modal with selector: ${selector}`);
-        return;
-      }
-    } else {
-      modalToClose = triggerElement.closest("[modal]");
-      if (!modalToClose) {
-        console.warn(`closeModal: The triggering element is not inside a [modal].`, { triggerElement });
-        return;
-      }
-    }
-    if (typeof modalToClose.close === "function") {
-      modalToClose.close();
-    } else {
-      console.error(`The found modal does not have a public 'close()' method.`, { modalToClose });
-    }
+    closeModalHelper(triggerElement, args[0]);
   });
   pk.registerHelper("updateModal", (triggerElement, _event, ...args) => {
-    const modalName = args[0];
-    let modalToUpdate = null;
-    if (typeof modalName === "string" && modalName) {
-      const selector = `[modal="${modalName}"]`;
-      modalToUpdate = document.querySelector(selector);
-      if (!modalToUpdate) {
-        console.warn(`updateModal: Could not find any modal with selector: ${selector}`);
-        return;
-      }
-    } else {
-      modalToUpdate = triggerElement.closest("[modal]");
-      if (!modalToUpdate) {
-        console.warn(`updateModal: The triggering element is not inside a [modal].`, { triggerElement });
-        return;
-      }
-    }
-    if (typeof modalToUpdate.update === "function") {
-      modalToUpdate.update();
-    } else {
-      console.error(`The found modal does not have a public 'update()' method.`, { modalToUpdate });
-    }
+    updateModalHelper(triggerElement, args[0]);
   });
   pk.registerHelper("reloadPartial", (_triggerElement, _event, ...args) => {
-    const selector = args[0];
-    if (!selector || typeof selector !== "string") {
-      console.error("reloadPartial helper requires a CSS selector string as its first argument.");
-      return;
-    }
-    const partialToReload = document.querySelector(selector);
-    if (!partialToReload) {
-      console.warn(`reloadPartial: Could not find an element with the selector "${selector}".`);
-      return;
-    }
-    if (typeof partialToReload.reload === "function") {
-      partialToReload.reload();
-    } else if (partialToReload.hasAttribute("partial") && partialToReload.hasAttribute("src")) {
-      partialToReload.dispatchEvent(new CustomEvent("pk-reload-partial", { bubbles: true }));
-    } else {
-      console.error(`The element matching "${selector}" does not have a public 'reload()' method.`);
-    }
+    reloadPartialHelper(args[0]);
   });
 }
 waitForPiko("modals").then(registerHelpers).catch((err) => console.error(err.message));

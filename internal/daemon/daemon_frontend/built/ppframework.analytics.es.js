@@ -149,19 +149,24 @@ function registerAnalyticsHooks(pk, config, mode) {
     );
   });
   pk.hooks.on("analytics:track", (payload) => {
-    const p = payload;
-    if (!p?.eventName) return;
-    dispatchEvent(
-      mode,
-      p.eventName,
-      { ...p.params },
-      `piko_${p.eventName}`,
-      { ...p.params }
-    );
-    if (mode.debugMode) {
-      console.warn(`[piko/analytics] Custom track: ${p.eventName}`, p.params);
-    }
+    handleAnalyticsTrack(payload, mode);
   });
+}
+function handleAnalyticsTrack(payload, mode) {
+  const p = payload;
+  if (!p.eventName) {
+    return;
+  }
+  dispatchEvent(
+    mode,
+    p.eventName,
+    { ...p.params },
+    `piko_${p.eventName}`,
+    { ...p.params }
+  );
+  if (mode.debugMode) {
+    console.warn(`[piko/analytics] Custom track: ${p.eventName}`, p.params);
+  }
 }
 waitForPiko("analytics").then((pk) => {
   const config = pk.getModuleConfig("analytics");
@@ -178,7 +183,7 @@ waitForPiko("analytics").then((pk) => {
     return;
   }
   window.dataLayer = window.dataLayer ?? [];
-  if (hasGTM) {
+  if (hasGTM && config.gtmContainerId) {
     initGTM(config.gtmContainerId);
   }
   if (hasGA4) {
@@ -186,6 +191,13 @@ waitForPiko("analytics").then((pk) => {
   }
   const mode = { hasGTM, hasGA4, debugMode: !!config.debugMode };
   registerAnalyticsHooks(pk, config, mode);
+  pk.analytics.track = (eventName, params) => {
+    pk._emitHook("analytics:track", {
+      eventName,
+      params: params ?? {},
+      timestamp: Date.now()
+    });
+  };
   if (!config.disablePageView) {
     const pageData = getPageData();
     dispatchEvent(

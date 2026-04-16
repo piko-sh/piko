@@ -329,6 +329,14 @@ waitForPiko('analytics')
 
         registerAnalyticsHooks(pk, config, mode);
 
+        pk.analytics.track = (eventName: string, params?: Record<string, string | number | boolean>): void => {
+            pk._emitHook('analytics:track', {
+                eventName,
+                params: params ?? {},
+                timestamp: Date.now(),
+            });
+        };
+
         if (!config.disablePageView) {
             const pageData = getPageData();
             dispatchEvent(
