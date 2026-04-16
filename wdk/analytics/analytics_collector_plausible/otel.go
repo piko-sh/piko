@@ -25,13 +25,17 @@ import (
 )
 
 var (
-	log   = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_plausible")
+	log = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_plausible")
+
 	meter = otel.Meter("piko/wdk/analytics/analytics_collector_plausible")
 
-	sendCount    metric.Int64Counter
+	sendCount metric.Int64Counter
+
 	sendDuration metric.Float64Histogram
-	errorCount   metric.Int64Counter
-	batchSize    metric.Int64Histogram
+
+	errorCount metric.Int64Counter
+
+	batchSize metric.Int64Histogram
 )
 
 func init() {

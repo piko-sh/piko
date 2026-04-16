@@ -16,28 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_collector_webhook provides an analytics collector
-// that batches events and POSTs them as JSON to a configurable
-// webhook endpoint.
-//
-// This collector is suitable for forwarding analytics events to
-// custom ingest endpoints, data warehouses, or third-party services
-// that accept JSON payloads.
-//
-// # Usage
-//
-//	collector, err := analytics_collector_webhook.NewCollector(
-//	    "https://ingest.example.com/events",
-//	    analytics_collector_webhook.WithBatchSize(25),
-//	    analytics_collector_webhook.WithRetry(analytics.RetryConfig{
-//	        MaxRetries:    3,
-//	        InitialDelay:  time.Second,
-//	        MaxDelay:      30 * time.Second,
-//	        BackoffFactor: 2.0,
-//	    }),
-//	)
-//
-//	server := piko.New(
-//	    piko.WithBackendAnalytics(collector),
-//	)
 package analytics_collector_webhook
+
+import (
+	"testing"
+
+	"piko.sh/piko/internal/testutil/leakcheck"
+)
+
+func TestMain(m *testing.M) {
+	leakcheck.VerifyTestMain(m)
+}

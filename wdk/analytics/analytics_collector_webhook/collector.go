@@ -33,7 +33,9 @@ type Option = analytics_adapters.WebhookOption
 // Takes opts (...Option) which configure the collector.
 //
 // Returns analytics.Collector which posts JSON batches to the URL.
-func NewCollector(url string, opts ...Option) analytics.Collector {
+// Returns error when the URL is empty or the batcher cannot be
+// created.
+func NewCollector(url string, opts ...Option) (analytics.Collector, error) {
 	return analytics_adapters.NewWebhookCollector(url, opts...)
 }
 

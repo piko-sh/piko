@@ -40,6 +40,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/retry"
 	"piko.sh/piko/wdk/analytics"
+	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/maths"
 )
 
@@ -84,7 +85,22 @@ const (
 	// httpStatusErrorThreshold is the lowest HTTP status code
 	// treated as an error.
 	httpStatusErrorThreshold = 400
+
+	// maxResponseDiscardSize is the upper bound when draining an
+	// HTTP response body to enable connection reuse (64 KiB).
+	maxResponseDiscardSize = 64 << 10
+
+	// maxPooledBufferCapacity is the largest buffer capacity kept in
+	// the pool; buffers that grew beyond this during a spike are
+	// discarded to avoid lasting memory bloat.
+	maxPooledBufferCapacity = 256 << 10
 )
+
+// jsonBufferPool provides reusable bytes.Buffer instances for JSON
+// encoding, avoiding allocation on every chunk send.
+var jsonBufferPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
+}
 
 // eventSnapshot is a pre-computed copy of an analytics event in
 // GA4-ready form. Created in Collect to avoid retaining the pooled
@@ -143,9 +159,12 @@ type Option func(*Collector)
 // Returns Option which configures the batch size.
 func WithBatchSize(size int) Option {
 	return func(c *Collector) {
-		if size > 0 {
-			c.batchSize = min(size, maxEventsPerRequest)
+		if size <= 0 {
+			log.Warn("WithBatchSize ignored non-positive value",
+				logger_domain.Int("size", size))
+			return
 		}
+		c.batchSize = min(size, maxEventsPerRequest)
 	}
 }
 
@@ -157,9 +176,12 @@ func WithBatchSize(size int) Option {
 // Returns Option which configures the interval.
 func WithFlushInterval(d time.Duration) Option {
 	return func(c *Collector) {
-		if d > 0 {
-			c.flushInterval = d
+		if d <= 0 {
+			log.Warn("WithFlushInterval ignored non-positive value",
+				logger_domain.String("duration", d.String()))
+			return
 		}
+		c.flushInterval = d
 	}
 }
 
@@ -171,9 +193,12 @@ func WithFlushInterval(d time.Duration) Option {
 // Returns Option which configures the timeout.
 func WithTimeout(d time.Duration) Option {
 	return func(c *Collector) {
-		if d > 0 {
-			c.client.Timeout = d
+		if d <= 0 {
+			log.Warn("WithTimeout ignored non-positive value",
+				logger_domain.String("duration", d.String()))
+			return
 		}
+		c.client.Timeout = d
 	}
 }
 
@@ -233,6 +258,18 @@ func WithDebug(debug bool) Option {
 	}
 }
 
+// withClock sets the clock used by the batcher for timer-based
+// flushes.
+//
+// Takes c (clock.Clock) which provides time operations.
+//
+// Returns Option which configures the clock.
+func withClock(c clock.Clock) Option {
+	return func(collector *Collector) {
+		collector.clock = c
+	}
+}
+
 // Collector sends analytics events to the Google Analytics 4
 // Measurement Protocol. Events are buffered internally and flushed
 // when the batch reaches batchSize or the flushInterval expires.
@@ -257,12 +294,13 @@ type Collector struct {
 	// Nil disables the circuit breaker.
 	circuitBreakerConfig *analytics_domain.CircuitBreakerConfig
 
+	// clock provides time operations for the batcher. Nil defaults
+	// to clock.RealClock() in the batcher.
+	clock clock.Clock
+
 	// endpoint is the full GA4 Measurement Protocol URL including
 	// measurement_id and api_secret query parameters.
 	endpoint string
-
-	// jsonBuffer is a reusable buffer for JSON encoding.
-	jsonBuffer bytes.Buffer
 
 	// flushInterval is the time between automatic timer-based flushes.
 	flushInterval time.Duration
@@ -285,12 +323,14 @@ type Collector struct {
 // Takes opts (...Option) which configure the collector.
 //
 // Returns analytics.Collector which sends events to GA4.
-func NewCollector(measurementID, apiSecret string, opts ...Option) analytics.Collector {
+// Returns error when measurementID or apiSecret is empty, or when the
+// batcher cannot be created.
+func NewCollector(measurementID, apiSecret string, opts ...Option) (analytics.Collector, error) {
 	if measurementID == "" {
-		panic("analytics: GA4 measurementID must not be empty")
+		return nil, errors.New("analytics: GA4 measurementID must not be empty")
 	}
 	if apiSecret == "" {
-		panic("analytics: GA4 apiSecret must not be empty")
+		return nil, errors.New("analytics: GA4 apiSecret must not be empty")
 	}
 
 	c := &Collector{
@@ -312,17 +352,23 @@ func NewCollector(measurementID, apiSecret string, opts ...Option) analytics.Col
 	params.Set("api_secret", apiSecret)
 	c.endpoint = baseURL + "?" + params.Encode()
 
-	c.batcher = analytics_domain.NewBatcher[eventSnapshot](
+	batcher, err := analytics_domain.NewBatcher[eventSnapshot](
 		analytics_domain.BatcherConfig{
 			Name:           collectorName,
 			BatchSize:      c.batchSize,
 			FlushInterval:  c.flushInterval,
+			Clock:          c.clock,
 			Retry:          c.retryConfig,
 			CircuitBreaker: c.circuitBreakerConfig,
 		},
 		c.sendBatch,
 	)
-	return c
+	if err != nil {
+		return nil, fmt.Errorf("analytics: creating GA4 batcher: %w", err)
+	}
+	c.batcher = batcher
+
+	return c, nil
 }
 
 // Start launches the background flush loop. Called by the analytics
@@ -331,9 +377,10 @@ func (c *Collector) Start(ctx context.Context) {
 	c.batcher.Start(ctx)
 }
 
-// Collect copies the event data into the internal buffer. When the
-// buffer reaches batchSize, the flush goroutine is signalled to send
-// the batch asynchronously. Collect itself never performs I/O.
+// Collect copies the event data into the internal buffer.
+//
+// When the buffer reaches batchSize the flush goroutine is signalled
+// to send the batch asynchronously; Collect itself never performs I/O.
 //
 // Takes event (*analytics_dto.Event) which carries the event data.
 //
@@ -427,11 +474,20 @@ func mapRevenue(params map[string]any, revenue *maths.Money) {
 	revenueValue := *revenue
 	if currencyCode, currencyError := revenueValue.CurrencyCode(); currencyError == nil {
 		params["currency"] = currencyCode
+	} else {
+		log.Warn("Analytics GA4 revenue currency code extraction failed",
+			logger_domain.Error(currencyError))
 	}
 	if amount, amountError := revenueValue.Amount(); amountError == nil {
 		if floatValue, floatError := amount.Float64(); floatError == nil {
 			params["value"] = floatValue
+		} else {
+			log.Warn("Analytics GA4 revenue float conversion failed",
+				logger_domain.Error(floatError))
 		}
+	} else {
+		log.Warn("Analytics GA4 revenue amount extraction failed",
+			logger_domain.Error(amountError))
 	}
 }
 
@@ -442,9 +498,10 @@ func (c *Collector) Flush(ctx context.Context) error {
 	return c.batcher.Flush(ctx)
 }
 
-// Close stops the flush timer and releases resources. Any remaining
-// buffered events should be flushed via Flush before calling Close.
-// Safe to call multiple times.
+// Close stops the flush timer and releases resources.
+//
+// Any remaining buffered events should be flushed via Flush before
+// calling Close. Safe to call multiple times.
 //
 // Returns error which is always nil.
 func (c *Collector) Close(_ context.Context) error {
@@ -466,7 +523,6 @@ func (*Collector) Name() string {
 //
 // Returns error which aggregates failures from all chunk sends.
 func (c *Collector) sendBatch(ctx context.Context, batch []eventSnapshot) error {
-	ctx, _ = logger_domain.From(ctx, log)
 	defer c.releaseSnapshotParams(batch)
 
 	type groupKey struct{ clientID, userID string }
@@ -518,13 +574,24 @@ func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chun
 	ctx, l := logger_domain.From(ctx, log)
 	batchSize.Record(ctx, int64(len(chunk)))
 
-	if err := c.encodeChunk(clientID, userID, chunk); err != nil {
+	buf, ok := jsonBufferPool.Get().(*bytes.Buffer)
+	if !ok {
+		buf = new(bytes.Buffer)
+	}
+	buf.Reset()
+	defer func() {
+		if buf.Cap() <= maxPooledBufferCapacity {
+			jsonBufferPool.Put(buf)
+		}
+	}()
+
+	if err := c.encodeChunk(buf, clientID, userID, chunk); err != nil {
 		errorCount.Add(ctx, 1)
 		l.Warn("Analytics GA4 JSON encoding failed", logger_domain.Error(err))
 		return fmt.Errorf("encoding analytics GA4 batch: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(c.jsonBuffer.Bytes()))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		errorCount.Add(ctx, 1)
 		return fmt.Errorf("creating analytics GA4 request: %w", err)
@@ -541,7 +608,7 @@ func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chun
 		return fmt.Errorf("posting analytics GA4 batch: %w", err)
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, response.Body)
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, maxResponseDiscardSize))
 		_ = response.Body.Close()
 	}()
 
@@ -566,7 +633,7 @@ func (c *Collector) sendChunk(ctx context.Context, clientID, userID string, chun
 // Takes chunk ([]eventSnapshot) which holds the events to encode.
 //
 // Returns error when JSON encoding fails.
-func (c *Collector) encodeChunk(clientID, userID string, chunk []eventSnapshot) error {
+func (c *Collector) encodeChunk(buf *bytes.Buffer, clientID, userID string, chunk []eventSnapshot) error {
 	events := make([]ga4Event, len(chunk))
 	for index, snap := range chunk {
 		events[index] = ga4Event{
@@ -582,8 +649,8 @@ func (c *Collector) encodeChunk(clientID, userID string, chunk []eventSnapshot) 
 		Events:          events,
 	}
 
-	c.jsonBuffer.Reset()
-	return json.NewEncoder(&c.jsonBuffer).Encode(p)
+	buf.Reset()
+	return json.NewEncoder(buf).Encode(p)
 }
 
 // releaseSnapshotParams returns all pooled params maps from a batch

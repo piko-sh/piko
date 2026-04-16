@@ -27,8 +27,10 @@ import (
 	"time"
 
 	"github.com/sony/gobreaker/v2"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/retry"
+	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/safeconv"
 )
 
@@ -36,6 +38,9 @@ const (
 	// circuitBreakerBucketPeriod is the measurement bucket duration,
 	// matching the standard used across the project.
 	circuitBreakerBucketPeriod = 10 * time.Second
+
+	// logFieldBatcher is the logging field name for batcher identification.
+	logFieldBatcher = "batcher"
 )
 
 // analyticsErrorClassifier determines whether a batch send error is
@@ -48,9 +53,10 @@ var analyticsErrorClassifier = retry.NewErrorClassifier(
 )
 
 // BatchSendFunc is called by the Batcher when a batch is ready to be
-// sent. The implementation owns encoding and I/O. The batch slice is
-// only valid for the duration of the call; the caller must not retain
-// it.
+// sent.
+//
+// The implementation owns encoding and I/O. The batch slice is only
+// valid for the duration of the call; the caller must not retain it.
 type BatchSendFunc[T any] func(ctx context.Context, batch []T) error
 
 // BatcherConfig provides the settings for a Batcher.
@@ -62,6 +68,11 @@ type BatcherConfig struct {
 	// CircuitBreaker configures the circuit breaker that protects
 	// the send path. A nil value disables the circuit breaker.
 	CircuitBreaker *CircuitBreakerConfig
+
+	// Clock provides time operations for tickers and timers.
+	// Defaults to clock.RealClock() when nil, enabling
+	// deterministic testing with clock.MockClock.
+	Clock clock.Clock
 
 	// Name identifies this batcher in logs and circuit breaker
 	// metrics (e.g. "analytics-webhook", "analytics-ga4").
@@ -117,6 +128,10 @@ type Batcher[T any] struct {
 	// in Start to create the circuit breaker with the detached ctx.
 	circuitBreakerConfig *CircuitBreakerConfig
 
+	// clock provides time operations (tickers, timers). Injected
+	// via BatcherConfig for testability; defaults to RealClock.
+	clock clock.Clock
+
 	// batchPool recycles batch slices to avoid allocating on every
 	// flush cycle under high throughput.
 	batchPool sync.Pool
@@ -153,6 +168,10 @@ type Batcher[T any] struct {
 	// calls.
 	mu sync.Mutex
 
+	// stopped is set during Close before closing stopCh. Checked by
+	// Add to prevent silent buffer leaks after shutdown.
+	stopped atomic.Bool
+
 	// started tracks whether Start has been called. Close is a
 	// no-op if the flush loop was never started.
 	started atomic.Bool
@@ -166,7 +185,15 @@ type Batcher[T any] struct {
 // Takes sendFunc (BatchSendFunc[T]) which is called with each batch.
 //
 // Returns *Batcher[T] which must be started via Start.
-func NewBatcher[T any](config BatcherConfig, sendFunc BatchSendFunc[T]) *Batcher[T] {
+// Returns error when the configuration is invalid.
+func NewBatcher[T any](config BatcherConfig, sendFunc BatchSendFunc[T]) (*Batcher[T], error) {
+	if config.BatchSize <= 0 {
+		return nil, errors.New("analytics: BatchSize must be > 0")
+	}
+	if config.FlushInterval <= 0 {
+		return nil, errors.New("analytics: FlushInterval must be > 0")
+	}
+
 	batchSize := config.BatchSize
 	b := &Batcher[T]{
 		sendFunc:      sendFunc,
@@ -186,15 +213,15 @@ func NewBatcher[T any](config BatcherConfig, sendFunc BatchSendFunc[T]) *Batcher
 	}
 	b.buffer = make([]T, 0, b.batchSize)
 	b.circuitBreakerConfig = config.CircuitBreaker
+	b.clock = config.Clock
+	if b.clock == nil {
+		b.clock = clock.RealClock()
+	}
 
-	return b
+	return b, nil
 }
 
-// Start launches the background flush loop goroutine. The provided
-// ctx is detached from cancellation (via context.WithoutCancel) so
-// that background flushes inherit context values (logger, trace
-// spans) without being cancelled by the caller. Must be called
-// exactly once.
+// Start launches the background flush loop goroutine.
 func (b *Batcher[T]) Start(ctx context.Context) {
 	b.started.Store(true)
 	backgroundCtx := context.WithoutCancel(ctx)
@@ -206,12 +233,17 @@ func (b *Batcher[T]) Start(ctx context.Context) {
 	go b.flushLoop(backgroundCtx)
 }
 
-// Add appends an item to the buffer. When the buffer reaches
-// batchSize, the flush goroutine is signalled to send the batch
-// asynchronously. Add itself never performs I/O.
+// Add appends an item to the buffer.
+//
+// When the buffer reaches batchSize the flush goroutine is signalled
+// to send the batch asynchronously; Add itself never performs I/O.
 //
 // Takes item (T) which is the item to buffer.
 func (b *Batcher[T]) Add(item T) {
+	if b.stopped.Load() {
+		return
+	}
+
 	b.mu.Lock()
 	b.buffer = append(b.buffer, item)
 	full := len(b.buffer) >= b.batchSize
@@ -241,14 +273,17 @@ func (b *Batcher[T]) Flush(ctx context.Context) error {
 }
 
 // Close stops the flush timer and waits for the flush goroutine to
-// exit. Any remaining buffered items should be flushed via Flush
-// before calling Close. Safe to call multiple times.
+// exit.
+//
+// Any remaining buffered items should be flushed via Flush before
+// calling Close. Safe to call multiple times.
 //
 // Returns error which is always nil.
 func (b *Batcher[T]) Close() error {
 	if !b.started.Load() {
 		return nil
 	}
+	b.stopped.Store(true)
 	b.closeOnce.Do(func() {
 		close(b.stopCh)
 	})
@@ -256,21 +291,32 @@ func (b *Batcher[T]) Close() error {
 	return nil
 }
 
-// flushLoop runs a periodic timer that flushes buffered items. It
-// also listens for immediate flush signals when the buffer reaches
-// batchSize. The backgroundCtx carries context values (logger,
-// trace spans) without cancellation.
+// flushLoop runs a periodic timer that flushes buffered items.
+//
+// It also listens for immediate flush signals when the buffer reaches
+// batchSize. The backgroundCtx carries context values (logger, trace
+// spans) without cancellation.
 func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 	defer close(b.doneCh)
-	ticker := time.NewTicker(b.flushInterval)
+	defer goroutine.RecoverPanic(backgroundCtx, "analytics.batcher."+b.name+".flushLoop")
+	backgroundCtx, l := logger_domain.From(backgroundCtx, log)
+	ticker := b.clock.NewTicker(b.flushInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case <-ticker.C:
-			_ = b.Flush(backgroundCtx)
+		case <-ticker.C():
+			if err := b.Flush(backgroundCtx); err != nil {
+				l.Warn("Analytics batcher periodic flush failed",
+					logger_domain.String(logFieldBatcher, b.name),
+					logger_domain.Error(err))
+			}
 		case <-b.flushCh:
-			_ = b.Flush(backgroundCtx)
+			if err := b.Flush(backgroundCtx); err != nil {
+				l.Warn("Analytics batcher signal flush failed",
+					logger_domain.String(logFieldBatcher, b.name),
+					logger_domain.Error(err))
+			}
 		case <-b.stopCh:
 			return
 		}
@@ -278,8 +324,10 @@ func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 }
 
 // drainBuffer copies the buffered items into a pooled slice and
-// clears the buffer. The lock is only held for the copy, not for
-// any subsequent I/O.
+// clears the buffer.
+//
+// Concurrency: acquires b.mu for the duration of the copy. The lock
+// is released before any subsequent I/O.
 //
 // Returns *[]T which is the pooled batch, or nil when the buffer
 // is empty.
@@ -364,7 +412,7 @@ func (b *Batcher[T]) executeWithRetry(ctx context.Context, operation func() erro
 			batcherRetriesCount.Add(ctx, 1)
 
 			l.Warn("Analytics batch send failed, retrying",
-				logger_domain.String("batcher", b.name),
+				logger_domain.String(logFieldBatcher, b.name),
 				logger_domain.Int("attempt", attempt+1),
 				logger_domain.Int("max_retries", b.retryConfig.MaxRetries),
 				logger_domain.Error(lastError))
@@ -372,11 +420,14 @@ func (b *Batcher[T]) executeWithRetry(ctx context.Context, operation func() erro
 			nextRetry := b.retryConfig.CalculateNextRetry(attempt, time.Now())
 			delay := time.Until(nextRetry)
 
+			retryTimer := time.NewTimer(delay)
 			select {
-			case <-time.After(delay):
+			case <-retryTimer.C:
 			case <-ctx.Done():
+				retryTimer.Stop()
 				return fmt.Errorf("retry cancelled: %w", ctx.Err())
 			case <-b.stopCh:
+				retryTimer.Stop()
 				return errors.New("retry aborted: batcher closing")
 			}
 		}
@@ -408,7 +459,7 @@ func newBatcherCircuitBreaker(ctx context.Context, name string, config *CircuitB
 		},
 		OnStateChange: func(breakerName string, from gobreaker.State, to gobreaker.State) {
 			l.Warn("Analytics batcher circuit breaker state changed",
-				logger_domain.String("batcher", breakerName),
+				logger_domain.String(logFieldBatcher, breakerName),
 				logger_domain.String("from_state", from.String()),
 				logger_domain.String("to_state", to.String()))
 

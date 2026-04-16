@@ -36,19 +36,53 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/retry"
 	"piko.sh/piko/wdk/analytics"
+	"piko.sh/piko/wdk/clock"
 )
 
 const (
-	defaultBatchSize         = 10
-	defaultFlushInterval     = 5 * time.Second
-	defaultTimeout           = 10 * time.Second
-	collectorName            = "plausible"
-	defaultEndpoint          = "https://plausible.io"
-	eventPath                = "/api/event"
-	maxProps                 = 30
-	maxURLLength             = 2000
+	// defaultBatchSize is the number of events per batch.
+	defaultBatchSize = 10
+
+	// defaultFlushInterval is the time between automatic flushes.
+	defaultFlushInterval = 5 * time.Second
+
+	// defaultTimeout is the HTTP client timeout.
+	defaultTimeout = 10 * time.Second
+
+	// collectorName identifies this collector in logs and metrics.
+	collectorName = "plausible"
+
+	// defaultEndpoint is the Plausible API base URL.
+	defaultEndpoint = "https://plausible.io"
+
+	// eventPath is the Plausible Events API path.
+	eventPath = "/api/event"
+
+	// maxProps is the maximum number of custom properties per event.
+	maxProps = 30
+
+	// maxURLLength is the maximum URL length before truncation.
+	maxURLLength = 2000
+
+	// httpStatusErrorThreshold is the lowest HTTP status code
+	// treated as an error.
 	httpStatusErrorThreshold = 400
+
+	// maxResponseDiscardSize is the upper bound when draining an
+	// HTTP response body to enable connection reuse (64 KiB).
+	maxResponseDiscardSize = 64 << 10
+
+	// maxPooledBufferCapacity is the largest buffer capacity kept in
+	// the pool; buffers that grew beyond this during a spike are
+	// discarded to avoid lasting memory bloat.
+	maxPooledBufferCapacity = 256 << 10
 )
+
+// jsonBufferPool provides reusable bytes.Buffer instances for JSON
+// encoding, avoiding allocation on every event send.
+var jsonBufferPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
+}
 
 // eventPayload is the JSON body sent to the Plausible Events API.
 type eventPayload struct {
@@ -57,6 +91,11 @@ type eventPayload struct {
 
 	// Props holds custom event properties (max 30 key-value pairs).
 	Props map[string]string `json:"props,omitempty"`
+
+	// Interactive controls whether the event affects bounce rate.
+	// Plausible defaults to true; set to false for background
+	// actions that should not count as user engagement.
+	Interactive *bool `json:"interactive,omitempty"`
 
 	// Domain is the site domain registered in Plausible.
 	Domain string `json:"domain"`
@@ -69,11 +108,6 @@ type eventPayload struct {
 
 	// Referrer is the referring page URL.
 	Referrer string `json:"referrer,omitempty"`
-
-	// Interactive controls whether the event affects bounce rate.
-	// Plausible defaults to true; set to false for background
-	// actions that should not count as user engagement.
-	Interactive *bool `json:"interactive,omitempty"`
 }
 
 // revenuePayload is the Plausible revenue tracking structure.
@@ -125,9 +159,12 @@ func WithEndpoint(url string) Option {
 // Returns Option which configures the batch size.
 func WithBatchSize(size int) Option {
 	return func(c *Collector) {
-		if size > 0 {
-			c.batchSize = size
+		if size <= 0 {
+			log.Warn("WithBatchSize ignored non-positive value",
+				logger_domain.Int("size", size))
+			return
 		}
+		c.batchSize = size
 	}
 }
 
@@ -139,9 +176,12 @@ func WithBatchSize(size int) Option {
 // Returns Option which configures the interval.
 func WithFlushInterval(d time.Duration) Option {
 	return func(c *Collector) {
-		if d > 0 {
-			c.flushInterval = d
+		if d <= 0 {
+			log.Warn("WithFlushInterval ignored non-positive value",
+				logger_domain.String("duration", d.String()))
+			return
 		}
+		c.flushInterval = d
 	}
 }
 
@@ -153,9 +193,12 @@ func WithFlushInterval(d time.Duration) Option {
 // Returns Option which configures the timeout.
 func WithTimeout(d time.Duration) Option {
 	return func(c *Collector) {
-		if d > 0 {
-			c.client.Timeout = d
+		if d <= 0 {
+			log.Warn("WithTimeout ignored non-positive value",
+				logger_domain.String("duration", d.String()))
+			return
 		}
+		c.client.Timeout = d
 	}
 }
 
@@ -187,10 +230,24 @@ func WithCircuitBreaker(config analytics.CircuitBreakerConfig) Option {
 	}
 }
 
+// withClock sets the clock used by the batcher for timer-based
+// flushes.
+//
+// Takes c (clock.Clock) which provides time operations.
+//
+// Returns Option which configures the clock.
+func withClock(c clock.Clock) Option {
+	return func(collector *Collector) {
+		collector.clock = c
+	}
+}
+
 // Collector sends analytics events to the Plausible Analytics Events
-// API. Events are buffered internally and flushed when the batch
-// reaches batchSize or the flushInterval expires. Each event is sent
-// as a separate HTTP POST (Plausible has no batch endpoint).
+// API.
+//
+// Events are buffered internally and flushed when the batch reaches
+// batchSize or the flushInterval expires. Each event is sent as a
+// separate HTTP POST (Plausible has no batch endpoint).
 type Collector struct {
 	// batcher manages the buffer, flush loop, and lifecycle.
 	batcher *analytics_domain.Batcher[snapshot]
@@ -214,8 +271,9 @@ type Collector struct {
 	// endpoint is the Plausible API base URL.
 	endpoint string
 
-	// jsonBuffer is a reusable buffer for JSON encoding.
-	jsonBuffer bytes.Buffer
+	// clock provides time operations for the batcher. Nil defaults
+	// to clock.RealClock() in the batcher.
+	clock clock.Clock
 
 	// flushInterval is the time between automatic flushes.
 	flushInterval time.Duration
@@ -232,9 +290,10 @@ type Collector struct {
 // Takes opts (...Option) which configure the collector.
 //
 // Returns analytics.Collector which sends events to Plausible.
-func NewCollector(domain string, opts ...Option) analytics.Collector {
+// Returns error when the domain or configuration is invalid.
+func NewCollector(domain string, opts ...Option) (analytics.Collector, error) {
 	if domain == "" {
-		panic("analytics: Plausible domain must not be empty")
+		return nil, errors.New("analytics: Plausible domain must not be empty")
 	}
 
 	c := &Collector{
@@ -248,17 +307,22 @@ func NewCollector(domain string, opts ...Option) analytics.Collector {
 		opt(c)
 	}
 
-	c.batcher = analytics_domain.NewBatcher[snapshot](
+	batcher, err := analytics_domain.NewBatcher[snapshot](
 		analytics_domain.BatcherConfig{
 			Name:           collectorName,
 			BatchSize:      c.batchSize,
 			FlushInterval:  c.flushInterval,
+			Clock:          c.clock,
 			Retry:          c.retryConfig,
 			CircuitBreaker: c.circuitBreakerConfig,
 		},
 		c.sendBatch,
 	)
-	return c
+	if err != nil {
+		return nil, fmt.Errorf("analytics: creating Plausible batcher: %w", err)
+	}
+	c.batcher = batcher
+	return c, nil
 }
 
 // Start launches the background flush loop.
@@ -299,7 +363,13 @@ func (c *Collector) Collect(_ context.Context, event *analytics_dto.Event) error
 					Currency: currencyCode,
 					Amount:   number,
 				}
+			} else {
+				log.Warn("Analytics Plausible revenue number extraction failed",
+					logger_domain.Error(numberError))
 			}
+		} else {
+			log.Warn("Analytics Plausible revenue currency code extraction failed",
+				logger_domain.Error(currencyError))
 		}
 	}
 
@@ -411,7 +481,6 @@ func resolveURL(event *analytics_dto.Event) string {
 //
 // Returns error which aggregates failures from all event sends.
 func (c *Collector) sendBatch(ctx context.Context, batch []snapshot) error {
-	ctx, _ = logger_domain.From(ctx, log)
 	batchSize.Record(ctx, int64(len(batch)))
 
 	defer c.releaseSnapshotProps(batch)
@@ -443,8 +512,18 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 	}()
 
 	ctx, l := logger_domain.From(ctx, log)
-	c.jsonBuffer.Reset()
-	encoder := json.NewEncoder(&c.jsonBuffer)
+	buf, ok := jsonBufferPool.Get().(*bytes.Buffer)
+	if !ok {
+		buf = new(bytes.Buffer)
+	}
+	buf.Reset()
+	defer func() {
+		if buf.Cap() <= maxPooledBufferCapacity {
+			jsonBufferPool.Put(buf)
+		}
+	}()
+
+	encoder := json.NewEncoder(buf)
 	if err := encoder.Encode(snap.payload); err != nil {
 		errorCount.Add(ctx, 1)
 		l.Warn("Analytics Plausible JSON encoding failed", logger_domain.Error(err))
@@ -452,7 +531,7 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 	}
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		c.endpoint+eventPath, bytes.NewReader(c.jsonBuffer.Bytes()))
+		c.endpoint+eventPath, bytes.NewReader(buf.Bytes()))
 	if err != nil {
 		errorCount.Add(ctx, 1)
 		return fmt.Errorf("creating analytics Plausible request: %w", err)
@@ -473,7 +552,7 @@ func (c *Collector) sendEvent(ctx context.Context, snap *snapshot) (returnErr er
 		return fmt.Errorf("posting analytics Plausible event: %w", err)
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, response.Body)
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, maxResponseDiscardSize))
 		_ = response.Body.Close()
 	}()
 

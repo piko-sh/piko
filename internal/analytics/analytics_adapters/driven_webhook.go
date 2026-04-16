@@ -21,17 +21,22 @@ package analytics_adapters
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
 	"net/http"
+	"net/url"
+	"sync"
 	"time"
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
-	"piko.sh/piko/internal/retry"
+	"piko.sh/piko/internal/goroutine"
 	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/retry"
+	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/maths"
 )
 
@@ -51,7 +56,22 @@ const (
 	// httpStatusErrorThreshold is the lowest HTTP status code treated as
 	// an error response from the webhook endpoint.
 	httpStatusErrorThreshold = 400
+
+	// maxResponseDiscardSize is the upper bound when draining an HTTP
+	// response body to enable connection reuse (64 KiB).
+	maxResponseDiscardSize = 64 << 10
+
+	// maxPooledBufferCapacity is the largest buffer capacity kept in
+	// the pool. Buffers that grew beyond this threshold during a
+	// spike are discarded to avoid lasting memory bloat.
+	maxPooledBufferCapacity = 256 << 10
 )
+
+// jsonBufferPool provides reusable bytes.Buffer instances for JSON
+// encoding, avoiding allocation on every batch send.
+var jsonBufferPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
+}
 
 // eventSnapshot is a serialisable copy of event data. The raw
 // *http.Request is not retained.
@@ -135,9 +155,12 @@ func WithWebhookHeaders(headers http.Header) WebhookOption {
 // Returns WebhookOption which configures the batch size.
 func WithWebhookBatchSize(size int) WebhookOption {
 	return func(wc *WebhookCollector) {
-		if size > 0 {
-			wc.batchSize = size
+		if size <= 0 {
+			log.Warn("WithWebhookBatchSize ignored non-positive value",
+				logger_domain.Int("size", size))
+			return
 		}
+		wc.batchSize = size
 	}
 }
 
@@ -149,9 +172,12 @@ func WithWebhookBatchSize(size int) WebhookOption {
 // Returns WebhookOption which configures the interval.
 func WithWebhookFlushInterval(d time.Duration) WebhookOption {
 	return func(wc *WebhookCollector) {
-		if d > 0 {
-			wc.flushInterval = d
+		if d <= 0 {
+			log.Warn("WithWebhookFlushInterval ignored non-positive value",
+				logger_domain.String("duration", d.String()))
+			return
 		}
+		wc.flushInterval = d
 	}
 }
 
@@ -163,9 +189,12 @@ func WithWebhookFlushInterval(d time.Duration) WebhookOption {
 // Returns WebhookOption which configures the timeout.
 func WithWebhookTimeout(d time.Duration) WebhookOption {
 	return func(wc *WebhookCollector) {
-		if d > 0 {
-			wc.client.Timeout = d
+		if d <= 0 {
+			log.Warn("WithWebhookTimeout ignored non-positive value",
+				logger_domain.String("duration", d.String()))
+			return
 		}
+		wc.client.Timeout = d
 	}
 }
 
@@ -196,6 +225,18 @@ func WithWebhookCircuitBreaker(config analytics_domain.CircuitBreakerConfig) Web
 	}
 }
 
+// withWebhookClock sets the clock used by the batcher for
+// timer-based flushes.
+//
+// Takes c (clock.Clock) which provides time operations.
+//
+// Returns WebhookOption which configures the clock.
+func withWebhookClock(c clock.Clock) WebhookOption {
+	return func(wc *WebhookCollector) {
+		wc.clock = c
+	}
+}
+
 // WebhookCollector posts analytics events as JSON batches to a
 // configurable URL. Events are buffered internally and flushed when
 // the batch reaches batchSize or the flushInterval expires.
@@ -217,12 +258,12 @@ type WebhookCollector struct {
 	// Nil disables the circuit breaker.
 	circuitBreakerConfig *analytics_domain.CircuitBreakerConfig
 
+	// clock provides time operations for the batcher. Nil defaults
+	// to clock.RealClock() in the batcher.
+	clock clock.Clock
+
 	// url is the webhook endpoint that receives JSON event batches.
 	url string
-
-	// jsonBuffer is a reusable buffer for JSON encoding, avoiding a
-	// byte slice allocation per flush cycle.
-	jsonBuffer bytes.Buffer
 
 	// flushInterval is the time between automatic timer-based flushes.
 	flushInterval time.Duration
@@ -235,14 +276,26 @@ type WebhookCollector struct {
 // NewWebhookCollector creates a collector that POSTs JSON batches to
 // the given URL.
 //
-// Takes url (string) which is the webhook endpoint.
+// Takes endpoint (string) which is the webhook endpoint.
 // Takes opts (...WebhookOption) which configure the collector.
 //
 // Returns *WebhookCollector which is the configured collector.
-func NewWebhookCollector(url string, opts ...WebhookOption) *WebhookCollector {
+// Returns error when the endpoint or configuration is invalid.
+func NewWebhookCollector(endpoint string, opts ...WebhookOption) (*WebhookCollector, error) {
+	if endpoint == "" {
+		return nil, errors.New("analytics: webhook URL must not be empty")
+	}
+	parsed, err := url.Parse(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("analytics: invalid webhook URL %q: %w", endpoint, err)
+	}
+	if parsed.Scheme == "" || parsed.Host == "" {
+		return nil, fmt.Errorf("analytics: webhook URL %q must be an absolute URL with scheme and host", endpoint)
+	}
+
 	wc := &WebhookCollector{
 		client:        &http.Client{Timeout: defaultWebhookTimeout},
-		url:           url,
+		url:           endpoint,
 		batchSize:     defaultWebhookBatchSize,
 		flushInterval: defaultWebhookFlushInterval,
 	}
@@ -250,17 +303,22 @@ func NewWebhookCollector(url string, opts ...WebhookOption) *WebhookCollector {
 		opt(wc)
 	}
 
-	wc.batcher = analytics_domain.NewBatcher[eventSnapshot](
+	batcher, err := analytics_domain.NewBatcher[eventSnapshot](
 		analytics_domain.BatcherConfig{
 			Name:           webhookCollectorName,
 			BatchSize:      wc.batchSize,
 			FlushInterval:  wc.flushInterval,
+			Clock:          wc.clock,
 			Retry:          wc.retryConfig,
 			CircuitBreaker: wc.circuitBreakerConfig,
 		},
 		wc.sendBatch,
 	)
-	return wc
+	if err != nil {
+		return nil, fmt.Errorf("analytics: creating webhook batcher: %w", err)
+	}
+	wc.batcher = batcher
+	return wc, nil
 }
 
 // Start launches the background flush loop. Called by the analytics
@@ -269,9 +327,10 @@ func (wc *WebhookCollector) Start(ctx context.Context) {
 	wc.batcher.Start(ctx)
 }
 
-// Collect copies the event data into the internal buffer. When the
-// buffer reaches batchSize, the flush goroutine is signalled to send
-// the batch asynchronously. Collect itself never performs I/O.
+// Collect copies the event data into the internal buffer.
+//
+// When the buffer reaches batchSize the flush goroutine is signalled
+// to send the batch asynchronously; Collect itself never performs I/O.
 //
 // Takes event (*analytics_dto.Event) which carries the event data.
 //
@@ -314,9 +373,10 @@ func (wc *WebhookCollector) Flush(ctx context.Context) error {
 	return wc.batcher.Flush(ctx)
 }
 
-// Close stops the flush timer and releases resources. Any remaining
-// buffered events should be flushed via Flush before calling Close.
-// Safe to call multiple times.
+// Close stops the flush timer and releases resources.
+//
+// Any remaining buffered events should be flushed via Flush before
+// calling Close. Safe to call multiple times.
 //
 // Returns error which is always nil.
 func (wc *WebhookCollector) Close(_ context.Context) error {
@@ -336,19 +396,59 @@ func (*WebhookCollector) Name() string {
 // Takes batch ([]eventSnapshot) which holds the events to send.
 //
 // Returns error when encoding or the HTTP request fails.
-func (wc *WebhookCollector) sendBatch(ctx context.Context, batch []eventSnapshot) error {
+func (wc *WebhookCollector) sendBatch(ctx context.Context, batch []eventSnapshot) (returnErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			returnErr = goroutine.HandlePanicRecovery(ctx, "analytics_adapters.webhook.sendBatch", r)
+		}
+	}()
+
 	ctx, l := logger_domain.From(ctx, log)
 	webhookBatchSize.Record(ctx, int64(len(batch)))
 
-	wc.jsonBuffer.Reset()
-	encoder := json.NewEncoder(&wc.jsonBuffer)
-	if err := encoder.Encode(batch); err != nil {
+	body, err := encodeBatch(batch)
+	if err != nil {
 		webhookErrorCount.Add(ctx, 1)
 		l.Warn("Analytics webhook JSON encoding failed", logger_domain.Error(err))
-		return fmt.Errorf("encoding analytics batch: %w", err)
+		return err
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, wc.url, bytes.NewReader(wc.jsonBuffer.Bytes()))
+	return wc.postBatch(ctx, body)
+}
+
+// encodeBatch serialises the batch into a pooled buffer.
+//
+// Takes batch ([]eventSnapshot) which holds the events to encode.
+//
+// Returns []byte which is the encoded JSON payload.
+// Returns error when encoding fails.
+func encodeBatch(batch []eventSnapshot) ([]byte, error) {
+	buf, ok := jsonBufferPool.Get().(*bytes.Buffer)
+	if !ok {
+		buf = new(bytes.Buffer)
+	}
+	buf.Reset()
+	defer func() {
+		if buf.Cap() <= maxPooledBufferCapacity {
+			jsonBufferPool.Put(buf)
+		}
+	}()
+
+	if err := json.NewEncoder(buf).Encode(batch); err != nil {
+		return nil, fmt.Errorf("encoding analytics batch: %w", err)
+	}
+	return bytes.Clone(buf.Bytes()), nil
+}
+
+// postBatch sends the encoded payload to the webhook endpoint.
+//
+// Takes body ([]byte) which is the JSON payload.
+//
+// Returns error when the HTTP request fails or returns an error
+// status.
+func (wc *WebhookCollector) postBatch(ctx context.Context, body []byte) error {
+	ctx, l := logger_domain.From(ctx, log)
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, wc.url, bytes.NewReader(body))
 	if err != nil {
 		webhookErrorCount.Add(ctx, 1)
 		return fmt.Errorf("creating analytics webhook request: %w", err)
@@ -370,7 +470,7 @@ func (wc *WebhookCollector) sendBatch(ctx context.Context, batch []eventSnapshot
 		return fmt.Errorf("posting analytics batch: %w", err)
 	}
 	defer func() {
-		_, _ = io.Copy(io.Discard, response.Body)
+		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, maxResponseDiscardSize))
 		_ = response.Body.Close()
 	}()
 

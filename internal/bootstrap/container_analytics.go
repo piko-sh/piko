@@ -43,6 +43,11 @@ var (
 // Takes collector (analytics_domain.Collector) which handles event
 // delivery.
 func (c *Container) AddAnalyticsCollector(collector analytics_domain.Collector) {
+	if collector == nil {
+		_, l := logger_domain.From(c.GetAppContext(), log)
+		l.Warn("Nil analytics collector ignored")
+		return
+	}
 	c.analyticsCollectors = append(c.analyticsCollectors, collector)
 	registerCloseableForShutdown(c.GetAppContext(), "AnalyticsCollector-"+collector.Name(), collector)
 }
@@ -59,12 +64,12 @@ func (c *Container) GetAnalyticsService() *analytics_domain.Service {
 			return
 		}
 
-		_, l := logger_domain.From(c.GetAppContext(), log)
+		ctx, l := logger_domain.From(c.GetAppContext(), log)
 
 		analyticsService = analytics_domain.NewService(c.analyticsCollectors)
-		analyticsService.Start(c.GetAppContext())
+		analyticsService.Start(ctx)
 
-		shutdown.Register(c.GetAppContext(), "analytics-service", func(ctx context.Context) error {
+		shutdown.Register(ctx, "analytics-service", func(ctx context.Context) error {
 			return analyticsService.Close(ctx)
 		})
 

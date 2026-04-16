@@ -25,7 +25,12 @@ import (
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/logger/logger_domain"
+)
+
+const (
+	// maxFieldLength is the upper bound for attacker-influenced string
+	// fields (URL, User-Agent, Referer) to prevent oversized events.
+	maxFieldLength = 2048
 )
 
 // AnalyticsMiddleware captures HTTP request/response data and fires
@@ -33,9 +38,6 @@ import (
 type AnalyticsMiddleware struct {
 	// service distributes tracked events to all registered collectors.
 	service *analytics_domain.Service
-
-	// logger is used for diagnostic messages during event capture.
-	logger logger_domain.Logger
 }
 
 // NewAnalyticsMiddleware creates middleware that fires events to the
@@ -43,16 +45,13 @@ type AnalyticsMiddleware struct {
 //
 // Takes service (*analytics_domain.Service) which receives tracked
 // events.
-// Takes logger (logger_domain.Logger) which is used for diagnostics.
 //
 // Returns *AnalyticsMiddleware which is the configured middleware.
 func NewAnalyticsMiddleware(
 	service *analytics_domain.Service,
-	logger logger_domain.Logger,
 ) *AnalyticsMiddleware {
 	return &AnalyticsMiddleware{
 		service: service,
-		logger:  logger,
 	}
 }
 
@@ -85,11 +84,11 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 		ev := analytics_dto.AcquireEvent()
 		ev.Request = r
 		ev.Hostname = r.Host
-		ev.URL = r.RequestURI
+		ev.URL = truncateField(r.RequestURI, maxFieldLength)
 		ev.Path = r.URL.Path
 		ev.Method = r.Method
-		ev.UserAgent = r.UserAgent()
-		ev.Referrer = r.Referer()
+		ev.UserAgent = truncateField(r.UserAgent(), maxFieldLength)
+		ev.Referrer = truncateField(r.Referer(), maxFieldLength)
 		ev.Timestamp = start
 		ev.Duration = time.Since(start)
 		ev.StatusCode = statusCode
@@ -111,4 +110,18 @@ func (m *AnalyticsMiddleware) Handler(next http.Handler) http.Handler {
 
 		m.service.Track(r.Context(), ev)
 	})
+}
+
+// truncateField returns s unchanged when it fits within limit, or
+// truncates it to limit bytes.
+//
+// Takes s (string) which is the value to truncate.
+// Takes limit (int) which is the maximum byte length.
+//
+// Returns string which is the truncated value.
+func truncateField(s string, limit int) string {
+	if len(s) <= limit {
+		return s
+	}
+	return s[:limit]
 }

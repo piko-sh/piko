@@ -48,6 +48,10 @@ const (
 	// EventCustom is a user-defined event fired manually from action
 	// handlers.
 	EventCustom = analytics_dto.EventCustom
+
+	// maxAnalyticsProperties is the maximum number of custom
+	// properties per event to prevent unbounded map growth.
+	maxAnalyticsProperties = 64
 )
 
 // TrackAnalyticsEvent sends a custom analytics event to all registered
@@ -58,6 +62,10 @@ const (
 //
 // Takes event (*AnalyticsEvent) which is the event to send.
 func TrackAnalyticsEvent(ctx context.Context, event *AnalyticsEvent) {
+	if event == nil {
+		return
+	}
+
 	svc := bootstrap.GetGlobalAnalyticsService()
 	if svc == nil {
 		return
@@ -71,12 +79,10 @@ func TrackAnalyticsEvent(ctx context.Context, event *AnalyticsEvent) {
 }
 
 // SetAnalyticsRevenue attaches revenue data to the automatic
-// analytics event for the current request. Call this from an action
-// handler to record that the request generated revenue (e.g. a
-// purchase). The middleware copies the value into the pageview event
-// after the handler returns.
+// analytics event for the current request.
 //
-// No-op when called outside a request context.
+// The middleware copies the value into the pageview event after the
+// handler returns. No-op when called outside a request context.
 //
 // Takes revenue (maths.Money) which is the monetary value to record.
 func SetAnalyticsRevenue(ctx context.Context, revenue maths.Money) {
@@ -86,12 +92,10 @@ func SetAnalyticsRevenue(ctx context.Context, revenue maths.Money) {
 }
 
 // AddAnalyticsProperty attaches a key-value property to the automatic
-// analytics event for the current request. Call this from an action
-// handler to annotate the pageview with metadata (e.g. A/B test
-// variant, page category). The middleware merges all properties into
-// the event after the handler returns.
+// analytics event for the current request.
 //
-// No-op when called outside a request context.
+// The middleware merges all properties into the event after the
+// handler returns. No-op when called outside a request context.
 //
 // Takes key (string) which is the property name.
 // Takes value (string) which is the property value.
@@ -103,15 +107,17 @@ func AddAnalyticsProperty(ctx context.Context, key, value string) {
 	if pctx.AnalyticsProperties == nil {
 		pctx.AnalyticsProperties = make(map[string]string)
 	}
+	if len(pctx.AnalyticsProperties) >= maxAnalyticsProperties {
+		return
+	}
 	pctx.AnalyticsProperties[key] = value
 }
 
 // SetAnalyticsEventName changes the automatic analytics event from a
-// page view to a named custom event. Call this from an action handler
-// when the request represents a specific business event (e.g.
-// "signup", "purchase") rather than a plain page view.
+// page view to a named custom event.
 //
-// No-op when called outside a request context.
+// When set, the middleware promotes the event type from pageview to
+// custom. No-op when called outside a request context.
 //
 // Takes name (string) which is the event name.
 func SetAnalyticsEventName(ctx context.Context, name string) {
@@ -121,8 +127,12 @@ func SetAnalyticsEventName(ctx context.Context, name string) {
 }
 
 // enrichEventFromRequestCtx fills in empty event fields from the
-// per-request carrier so that custom events fired from action handlers
-// inherit request-level context automatically.
+// per-request carrier so that custom events fired from action
+// handlers inherit request-level context automatically.
+//
+// Takes event (*AnalyticsEvent) which is the event to enrich.
+// Takes pctx (*daemon_dto.PikoRequestCtx) which provides the
+// request-level values.
 func enrichEventFromRequestCtx(event *AnalyticsEvent, pctx *daemon_dto.PikoRequestCtx) {
 	if event.ClientIP == "" {
 		event.ClientIP = pctx.ClientIP

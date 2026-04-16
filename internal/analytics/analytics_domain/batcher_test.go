@@ -317,8 +317,93 @@ func TestBatcher_DoubleClose(t *testing.T) {
 	}
 }
 
+func TestNewBatcher_ErrorOnZeroBatchSize(t *testing.T) {
+	_, err := NewBatcher[string](BatcherConfig{
+		Name:          "error-test",
+		BatchSize:     0,
+		FlushInterval: time.Second,
+	}, func(_ context.Context, _ []string) error { return nil })
+	if err == nil {
+		t.Fatal("expected error for zero BatchSize")
+	}
+}
+
+func TestNewBatcher_ErrorOnZeroFlushInterval(t *testing.T) {
+	_, err := NewBatcher[string](BatcherConfig{
+		Name:          "error-test",
+		BatchSize:     10,
+		FlushInterval: 0,
+	}, func(_ context.Context, _ []string) error { return nil })
+	if err == nil {
+		t.Fatal("expected error for zero FlushInterval")
+	}
+}
+
+func TestBatcher_FlushRespectsContextCancellation(t *testing.T) {
+
+	blockCh := make(chan struct{})
+
+	batcher := newTestBatcher[string](
+		BatcherConfig{
+			Name:          "ctx-cancel-test",
+			BatchSize:     10,
+			FlushInterval: 1 * time.Hour,
+		},
+		func(ctx context.Context, _ []string) error {
+			select {
+			case <-blockCh:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		},
+	)
+
+	batcher.Add("item")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	err := batcher.Flush(ctx)
+	if err == nil {
+		t.Fatal("expected Flush to return an error when context is cancelled")
+	}
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("expected context.DeadlineExceeded, got: %v", err)
+	}
+
+	close(blockCh)
+	_ = batcher.Close()
+}
+
+func TestBatcher_AddAfterClose(t *testing.T) {
+	batcher := newTestBatcher[string](
+		BatcherConfig{
+			Name:          "add-after-close",
+			BatchSize:     10,
+			FlushInterval: 1 * time.Hour,
+		},
+		func(_ context.Context, _ []string) error { return nil },
+	)
+
+	_ = batcher.Close()
+
+	batcher.Add("late-item")
+
+	batcher.mu.Lock()
+	bufferLength := len(batcher.buffer)
+	batcher.mu.Unlock()
+
+	if bufferLength != 0 {
+		t.Errorf("expected empty buffer after Close, got %d items", bufferLength)
+	}
+}
+
 func newTestBatcher[T any](config BatcherConfig, sendFunc BatchSendFunc[T]) *Batcher[T] {
-	b := NewBatcher[T](config, sendFunc)
+	b, err := NewBatcher[T](config, sendFunc)
+	if err != nil {
+		panic(fmt.Sprintf("newTestBatcher: %v", err))
+	}
 	b.Start(context.Background())
 	return b
 }

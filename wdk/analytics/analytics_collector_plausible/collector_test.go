@@ -32,6 +32,8 @@ import (
 
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/json"
+	"piko.sh/piko/wdk/analytics"
+	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/maths"
 )
 
@@ -42,7 +44,7 @@ func TestCollector_PageView(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		Hostname:  "example.com",
@@ -91,7 +93,7 @@ func TestCollector_CustomEvent(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		Hostname:  "example.com",
@@ -119,7 +121,7 @@ func TestCollector_ActionEvent(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		Hostname:   "example.com",
@@ -147,7 +149,7 @@ func TestCollector_Revenue(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	revenue := maths.NewMoneyFromString("29.99", "GBP")
 	event := &analytics_dto.Event{
@@ -183,7 +185,7 @@ func TestCollector_Properties(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		Hostname:   "example.com",
@@ -214,7 +216,7 @@ func TestCollector_PropsLimitedTo30(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	props := make(map[string]string, 35)
 	for i := range 35 {
@@ -247,7 +249,7 @@ func TestCollector_URLTruncation(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	longPath := "/" + strings.Repeat("a", maxURLLength+100)
 	event := &analytics_dto.Event{
@@ -277,7 +279,7 @@ func TestCollector_SelfHostedEndpoint(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		Hostname:  "example.com",
@@ -295,13 +297,14 @@ func TestCollector_SelfHostedEndpoint(t *testing.T) {
 	}
 }
 
-func TestCollector_EmptyDomainPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic on empty domain")
-		}
-	}()
-	NewCollector("")
+func TestCollector_EmptyDomainReturnsError(t *testing.T) {
+	_, err := NewCollector("")
+	if err == nil {
+		t.Fatal("expected error on empty domain")
+	}
+	if !strings.Contains(err.Error(), "domain must not be empty") {
+		t.Errorf("unexpected error message: %v", err)
+	}
 }
 
 func TestCollector_FlushEmpty(t *testing.T) {
@@ -311,7 +314,7 @@ func TestCollector_FlushEmpty(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 	_ = collector.Flush(context.Background())
 	_ = collector.Close(context.Background())
 }
@@ -322,7 +325,7 @@ func TestCollector_ErrorStatusCode(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		Hostname:  "example.com",
@@ -341,7 +344,11 @@ func TestCollector_ErrorStatusCode(t *testing.T) {
 }
 
 func TestCollector_Name(t *testing.T) {
-	collector := NewCollector("example.com").(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("example.com")
+	if err != nil {
+		t.Fatalf("NewCollector: %v", err)
+	}
+	collector := result.(*Collector)
 	defer collector.Close(context.Background())
 
 	if collector.Name() != "plausible" {
@@ -350,7 +357,11 @@ func TestCollector_Name(t *testing.T) {
 }
 
 func TestCollector_DoubleClose(t *testing.T) {
-	collector := NewCollector("example.com").(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("example.com")
+	if err != nil {
+		t.Fatalf("NewCollector: %v", err)
+	}
+	collector := result.(*Collector)
 
 	if err := collector.Close(context.Background()); err != nil {
 		t.Fatalf("first Close: %v", err)
@@ -369,7 +380,7 @@ func TestCollector_MultipleEvents(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	for range 3 {
 		event := &analytics_dto.Event{
@@ -396,7 +407,7 @@ func TestCollector_NoClientIP(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		Hostname:  "example.com",
@@ -424,7 +435,7 @@ func TestCollector_FallbackDomain(t *testing.T) {
 	srv := newTestServer(&mu, &received)
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	event := &analytics_dto.Event{
 		URL:       "/test",
@@ -443,15 +454,183 @@ func TestCollector_FallbackDomain(t *testing.T) {
 	}
 }
 
-// receivedEvent captures the HTTP request details for assertions.
+func TestResolveEventName(t *testing.T) {
+	tests := []struct {
+		name     string
+		event    *analytics_dto.Event
+		expected string
+	}{
+		{
+			name:     "explicit event name takes priority",
+			event:    &analytics_dto.Event{EventName: "signup"},
+			expected: "signup",
+		},
+		{
+			name:     "page view type returns pageview",
+			event:    &analytics_dto.Event{Type: analytics_dto.EventPageView},
+			expected: "pageview",
+		},
+		{
+			name: "action type with action name",
+			event: &analytics_dto.Event{
+				Type:       analytics_dto.EventAction,
+				ActionName: "cart.Purchase",
+			},
+			expected: "cart.Purchase",
+		},
+		{
+			name:     "action type without action name falls back",
+			event:    &analytics_dto.Event{Type: analytics_dto.EventAction},
+			expected: "action",
+		},
+		{
+			name:     "custom type returns custom",
+			event:    &analytics_dto.Event{Type: analytics_dto.EventCustom},
+			expected: "custom",
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := resolveEventName(testCase.event)
+			if got != testCase.expected {
+				t.Errorf("resolveEventName() = %q, want %q", got, testCase.expected)
+			}
+		})
+	}
+}
+
+func TestResolveURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		event    *analytics_dto.Event
+		expected string
+	}{
+		{
+			name:     "absolute URL used as-is",
+			event:    &analytics_dto.Event{URL: "https://example.com/page"},
+			expected: "https://example.com/page",
+		},
+		{
+			name: "hostname plus URL constructs absolute URL",
+			event: &analytics_dto.Event{
+				Hostname: "example.com",
+				URL:      "/products?page=2",
+			},
+			expected: "https://example.com/products?page=2",
+		},
+		{
+			name: "hostname plus path constructs absolute URL",
+			event: &analytics_dto.Event{
+				Hostname: "example.com",
+				Path:     "/about",
+			},
+			expected: "https://example.com/about",
+		},
+		{
+			name:     "relative URL without hostname used as-is",
+			event:    &analytics_dto.Event{URL: "/local-path"},
+			expected: "/local-path",
+		},
+		{
+			name:     "all empty returns root",
+			event:    &analytics_dto.Event{},
+			expected: "/",
+		},
+		{
+			name: "truncation to maxURLLength",
+			event: &analytics_dto.Event{
+				URL: "https://example.com/" + strings.Repeat("x", maxURLLength),
+			},
+			expected: ("https://example.com/" + strings.Repeat("x", maxURLLength))[:maxURLLength],
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := resolveURL(testCase.event)
+			if got != testCase.expected {
+				t.Errorf("resolveURL() = %q, want %q", got, testCase.expected)
+			}
+		})
+	}
+}
+
+func TestWithTimeout(t *testing.T) {
+	result, err := NewCollector("example.com",
+		WithTimeout(42*time.Second),
+	)
+	if err != nil {
+		t.Fatalf("NewCollector: %v", err)
+	}
+	collector := result.(*Collector)
+	defer collector.Close(context.Background())
+
+	if collector.client.Timeout != 42*time.Second {
+		t.Errorf("client timeout = %v, want 42s", collector.client.Timeout)
+	}
+}
+
+func TestWithRetry(t *testing.T) {
+	var attempts atomic.Int32
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		count := attempts.Add(1)
+		if count <= 2 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	defer srv.Close()
+
+	collector := newTestCollector(t, srv.URL, WithRetry(analytics.RetryConfig{
+		MaxRetries:    3,
+		InitialDelay:  1 * time.Millisecond,
+		MaxDelay:      5 * time.Millisecond,
+		BackoffFactor: 2.0,
+		JitterFunc:    func(d time.Duration) time.Duration { return 0 },
+	}))
+
+	event := &analytics_dto.Event{
+		Hostname:  "example.com",
+		URL:       "/retry-test",
+		UserAgent: "Bot",
+		Type:      analytics_dto.EventPageView,
+		Timestamp: time.Now(),
+	}
+	_ = collector.Collect(context.Background(), event)
+	err := collector.Flush(context.Background())
+	_ = collector.Close(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected successful retry, got error: %v", err)
+	}
+	if attempts.Load() < 3 {
+		t.Errorf("expected at least 3 attempts (2 failures + 1 success), got %d", attempts.Load())
+	}
+}
+
+func TestWithClock(t *testing.T) {
+	mockClock := clock.NewMockClock(time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC))
+	result, err := NewCollector("example.com",
+		withClock(mockClock),
+	)
+	if err != nil {
+		t.Fatalf("NewCollector: %v", err)
+	}
+	collector := result.(*Collector)
+	defer collector.Close(context.Background())
+
+	if collector.clock != mockClock {
+		t.Error("expected collector clock to be the injected mock clock")
+	}
+}
+
 type receivedEvent struct {
 	payload      eventPayload
 	userAgent    string
 	forwardedFor string
 }
 
-// newTestServer creates a mock Plausible API server that captures
-// received events.
 func newTestServer(mu *sync.Mutex, received *[]receivedEvent) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -475,11 +654,15 @@ func newTestServer(mu *sync.Mutex, received *[]receivedEvent) *httptest.Server {
 	}))
 }
 
-// newTestCollector creates a Plausible collector pointing at a test
-// server URL.
-func newTestCollector(testURL string, opts ...Option) *Collector {
+func newTestCollector(t *testing.T, testURL string, opts ...Option) *Collector {
+	t.Helper()
+
 	allOpts := append([]Option{WithFlushInterval(1 * time.Hour)}, opts...)
-	collector := NewCollector("test.example.com", allOpts...).(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("test.example.com", allOpts...)
+	if err != nil {
+		t.Fatalf("newTestCollector: %v", err)
+	}
+	collector := result.(*Collector)
 	collector.endpoint = testURL
 	collector.Start(context.Background())
 	return collector

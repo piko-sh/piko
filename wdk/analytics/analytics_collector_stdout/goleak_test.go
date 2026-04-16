@@ -16,23 +16,14 @@
 // oppression. We built this to empower people, not to enable those who would
 // strip others of their rights and dignity.
 
-// Package analytics_collector_ga4 provides an analytics collector
-// that sends events to the Google Analytics 4 Measurement Protocol.
-//
-// This collector is ideal for server-side conversion tracking,
-// purchase events, and enriching GA4 with backend-only data.
-// Events are batched (up to 25 per request per the GA4 protocol
-// limit) and POSTed as JSON.
-//
-// # Usage
-//
-//	collector, err := analytics_collector_ga4.NewCollector(
-//	    "G-XXXXXXXXXX",
-//	    "api-secret",
-//	    analytics_collector_ga4.WithDebug(true),
-//	)
-//
-//	server := piko.New(
-//	    piko.WithBackendAnalytics(collector),
-//	)
-package analytics_collector_ga4
+package analytics_collector_stdout
+
+import (
+	"testing"
+
+	"piko.sh/piko/internal/testutil/leakcheck"
+)
+
+func TestMain(m *testing.M) {
+	leakcheck.VerifyTestMain(m)
+}

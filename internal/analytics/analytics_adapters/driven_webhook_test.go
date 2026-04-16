@@ -29,6 +29,7 @@ import (
 
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/json"
+	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/maths"
 )
 
@@ -56,10 +57,13 @@ func TestWebhookCollector_BatchFlush(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL,
+	wc, err := NewWebhookCollector(srv.URL,
 		WithWebhookBatchSize(3),
 		WithWebhookFlushInterval(1*time.Hour),
 	)
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	for i := range 3 {
@@ -126,10 +130,13 @@ func TestWebhookCollector_FlushOnShutdown(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL,
+	wc, err := NewWebhookCollector(srv.URL,
 		WithWebhookBatchSize(100),
 		WithWebhookFlushInterval(1*time.Hour),
 	)
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
@@ -175,10 +182,13 @@ func TestWebhookCollector_CustomHeaders(t *testing.T) {
 	headers := http.Header{}
 	headers.Set("Authorization", "Bearer test-token")
 
-	wc := NewWebhookCollector(srv.URL,
+	wc, err := NewWebhookCollector(srv.URL,
 		WithWebhookBatchSize(1),
 		WithWebhookHeaders(headers),
 	)
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
@@ -224,7 +234,10 @@ func TestWebhookCollector_Properties(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	wc, err := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
@@ -268,10 +281,13 @@ func TestWebhookCollector_WithTimeout(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL,
+	wc, err := NewWebhookCollector(srv.URL,
 		WithWebhookBatchSize(1),
 		WithWebhookTimeout(30*time.Second),
 	)
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
@@ -297,7 +313,10 @@ func TestWebhookCollector_ErrorStatusCode(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	wc, err := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
@@ -337,10 +356,15 @@ func TestWebhookCollector_TimerFlush(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL,
+	mockClock := clock.NewMockClock(time.Now())
+	wc, err := NewWebhookCollector(srv.URL,
 		WithWebhookBatchSize(100),
-		WithWebhookFlushInterval(50*time.Millisecond),
+		WithWebhookFlushInterval(5*time.Second),
+		withWebhookClock(mockClock),
 	)
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	ev := &analytics_dto.Event{
@@ -352,7 +376,11 @@ func TestWebhookCollector_TimerFlush(t *testing.T) {
 		t.Fatalf("Collect returned error: %v", err)
 	}
 
-	time.Sleep(200 * time.Millisecond)
+	mockClock.Advance(6 * time.Second)
+
+	if err := wc.Flush(context.Background()); err != nil {
+		t.Fatalf("Flush returned error: %v", err)
+	}
 
 	mu.Lock()
 	count := len(received)
@@ -374,7 +402,10 @@ func TestWebhookCollector_FlushEmptyBuffer(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL)
+	wc, err := NewWebhookCollector(srv.URL)
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	if err := wc.Flush(context.Background()); err != nil {
@@ -386,7 +417,10 @@ func TestWebhookCollector_FlushEmptyBuffer(t *testing.T) {
 }
 
 func TestWebhookCollector_Name(t *testing.T) {
-	wc := NewWebhookCollector("http://localhost")
+	wc, err := NewWebhookCollector("http://localhost")
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	defer wc.Close(context.Background())
 
 	if wc.Name() != "webhook" {
@@ -395,7 +429,10 @@ func TestWebhookCollector_Name(t *testing.T) {
 }
 
 func TestWebhookCollector_DoubleClose(t *testing.T) {
-	wc := NewWebhookCollector("http://localhost")
+	wc, err := NewWebhookCollector("http://localhost")
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 
 	if err := wc.Close(context.Background()); err != nil {
 		t.Fatalf("first Close returned error: %v", err)
@@ -428,7 +465,10 @@ func TestWebhookCollector_RevenueAndNewFields(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	wc := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	wc, err := NewWebhookCollector(srv.URL, WithWebhookBatchSize(1))
+	if err != nil {
+		t.Fatalf("NewWebhookCollector: %v", err)
+	}
 	wc.Start(context.Background())
 
 	rev := maths.NewMoneyFromString("49.99", "GBP")
@@ -483,5 +523,12 @@ func TestWebhookCollector_RevenueAndNewFields(t *testing.T) {
 	}
 	if snap.Type != "custom" {
 		t.Errorf("Type = %q, want custom", snap.Type)
+	}
+}
+
+func TestNewWebhookCollector_ErrorOnEmptyURL(t *testing.T) {
+	_, err := NewWebhookCollector("")
+	if err == nil {
+		t.Fatal("expected error for empty URL")
 	}
 }

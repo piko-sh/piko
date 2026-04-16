@@ -25,7 +25,7 @@
 //
 // # Usage
 //
-//	collector := analytics_collector_plausible.NewCollector("example.com")
+//	collector, err := analytics_collector_plausible.NewCollector("example.com")
 //
 //	server := piko.New(
 //	    piko.WithBackendAnalytics(collector),
@@ -33,7 +33,7 @@
 //
 // # Self-hosted
 //
-//	collector := analytics_collector_plausible.NewCollector("example.com",
+//	collector, err := analytics_collector_plausible.NewCollector("example.com",
 //	    analytics_collector_plausible.WithEndpoint("https://analytics.example.com"),
 //	)
 //

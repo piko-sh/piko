@@ -235,7 +235,7 @@ func (builder *HTTPRouterBuilder) setupDynamicRoutes(
 		}
 
 		if deps.AnalyticsService != nil {
-			analyticsMw := analytics_adapters.NewAnalyticsMiddleware(deps.AnalyticsService, log)
+			analyticsMw := analytics_adapters.NewAnalyticsMiddleware(deps.AnalyticsService)
 			r.Use(analyticsMw.Handler)
 		}
 

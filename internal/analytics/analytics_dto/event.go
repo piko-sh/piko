@@ -54,7 +54,7 @@ var eventTypeNames = [eventTypeCount]string{
 //
 // Returns string which is the event type name.
 func (t EventType) String() string {
-	if int(t) < len(eventTypeNames) {
+	if t >= 0 && int(t) < len(eventTypeNames) {
 		return eventTypeNames[t]
 	}
 	return "unknown"
@@ -75,8 +75,8 @@ type Event struct {
 	Request *http.Request
 
 	// Revenue holds optional monetary data for e-commerce analytics
-	// events (e.g. purchases, refunds). Nil when the event does not
-	// carry revenue information.
+	// events such as purchases or refunds; nil when the event does
+	// not carry revenue information.
 	Revenue *maths.Money
 
 	// Properties holds arbitrary key-value metadata. Adapters that
@@ -86,13 +86,12 @@ type Event struct {
 	// MatchedPattern is the route pattern that matched (e.g. "/blog/{slug}").
 	MatchedPattern string
 
-	// Hostname is the request host (e.g. "example.com"). Required by
+	// Hostname is the request host (e.g. "example.com"), required by
 	// backends like Plausible that associate events with a site domain.
 	Hostname string
 
-	// URL is the full request URL including query parameters (e.g.
-	// "/blog/my-post?utm_source=twitter"). Useful for UTM attribution
-	// and campaign tracking.
+	// URL is the full request URL including query parameters, useful
+	// for UTM attribution and campaign tracking.
 	URL string
 
 	// ClientIP is the real client IP as resolved by the RealIP middleware.
@@ -119,10 +118,9 @@ type Event struct {
 	// ActionName is the name of the server action, empty for page views.
 	ActionName string
 
-	// EventName is an explicit name for custom analytics events (e.g.
-	// "signup", "purchase"). Separate from ActionName which is specific
-	// to Piko server actions. Used by adapters that track named goals
-	// or conversions.
+	// EventName is an explicit name for custom analytics events,
+	// separate from ActionName which is specific to Piko server
+	// actions.
 	EventName string
 
 	// Duration is the time taken to handle the request.

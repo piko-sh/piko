@@ -71,21 +71,17 @@ type PikoRequestCtx struct {
 	MatchedPattern string
 
 	// AnalyticsRevenue holds optional revenue data stashed by action
-	// handlers during request processing. The analytics middleware
-	// copies this into the automatic pageview event after the handler
-	// returns. Nil when no revenue is associated with the request.
+	// handlers during request processing; nil when no revenue is
+	// associated with the request.
 	AnalyticsRevenue *maths.Money
 
 	// AnalyticsProperties holds key-value metadata stashed by action
-	// handlers during request processing. The analytics middleware
-	// merges these into the automatic pageview event. Nil when no
-	// properties have been set; the map is allocated lazily on first
-	// use to avoid overhead for requests that don't need it.
+	// handlers during request processing; nil when no properties have
+	// been set (the map is allocated lazily on first use).
 	AnalyticsProperties map[string]string
 
-	// Hostname is the request host (e.g. "example.com"). Set by the
-	// analytics middleware from r.Host. Used to enrich custom analytics
-	// events fired from action handlers.
+	// Hostname is the request host (e.g. "example.com"), set by the
+	// analytics middleware from r.Host for enriching custom events.
 	Hostname string
 
 	// AnalyticsEventName is an explicit event name stashed by action
@@ -103,8 +99,8 @@ type PikoRequestCtx struct {
 	RequestIDCounter uint64
 
 	// ResponseStatusCode is the HTTP status code written by downstream
-	// handlers. Set by WriteHeader when ResponseWriter is non-nil.
-	// Zero means WriteHeader was not called explicitly.
+	// handlers, set by WriteHeader when ResponseWriter is non-nil
+	// (zero means WriteHeader was not called explicitly).
 	ResponseStatusCode int
 
 	// FromTrustedProxy indicates whether the connection originated from a

@@ -39,7 +39,7 @@ const (
 var log = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_stdout")
 
 // Collector logs analytics events to the structured logger. It does
-// not buffer or batch — each event is logged immediately in Collect.
+// not buffer or batch; each event is logged immediately in Collect.
 type Collector struct{}
 
 // NewCollector creates an analytics collector that prints events to

@@ -36,6 +36,7 @@ func TestEventType_String(t *testing.T) {
 		{name: "action", input: EventAction, expected: "action"},
 		{name: "custom", input: EventCustom, expected: "custom"},
 		{name: "out of range", input: EventType(99), expected: "unknown"},
+		{name: "negative value", input: EventType(-1), expected: "unknown"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

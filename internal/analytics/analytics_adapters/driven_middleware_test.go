@@ -28,7 +28,6 @@ import (
 	"piko.sh/piko/internal/analytics/analytics_domain"
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/daemon/daemon_dto"
-	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/wdk/maths"
 )
 
@@ -67,7 +66,7 @@ func TestMiddleware_FiresPageViewEvent(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -124,7 +123,7 @@ func TestMiddleware_EnrichesFromPikoRequestCtx(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -171,7 +170,7 @@ func TestMiddleware_CapturesNon200StatusCode(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
@@ -199,7 +198,7 @@ func TestMiddleware_UnauthenticatedUserID(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -229,7 +228,7 @@ func TestMiddleware_DefaultStatusCode(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("hello"))
 	}))
@@ -257,7 +256,7 @@ func TestMiddleware_NilPikoRequestCtx(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -279,7 +278,7 @@ func TestMiddleware_StashedRevenuePropertiesAndEventName(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pctx := daemon_dto.PikoRequestCtxFromContext(r.Context())
 		revenue := maths.NewMoneyFromString("49.99", "GBP")
@@ -337,7 +336,7 @@ func TestMiddleware_EventNameChangesTypeToCustom(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		pctx := daemon_dto.PikoRequestCtxFromContext(r.Context())
 		pctx.AnalyticsEventName = "signup"
@@ -372,7 +371,7 @@ func TestMiddleware_NoEventNameKeepsPageView(t *testing.T) {
 	svc := analytics_domain.NewService([]analytics_domain.Collector{tc})
 	svc.Start(context.Background())
 
-	mw := NewAnalyticsMiddleware(svc, logger_domain.GetLogger("test"))
+	mw := NewAnalyticsMiddleware(svc)
 	handler := mw.Handler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))

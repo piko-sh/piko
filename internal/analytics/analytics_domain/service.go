@@ -60,24 +60,29 @@ type serviceConfig struct {
 }
 
 // WithChannelBufferSize sets the capacity of each collector's event
-// channel. Events are dropped when the channel is full. Defaults to
-// 4096.
+// channel.
+//
+// Events are dropped when the channel is full. Defaults to 4096.
 //
 // Takes size (int) which is the channel buffer capacity.
 //
 // Returns ServiceOption which configures the buffer size.
 func WithChannelBufferSize(size int) ServiceOption {
 	return func(cfg *serviceConfig) {
-		if size > 0 {
-			cfg.channelBufferSize = size
+		if size <= 0 {
+			log.Warn("WithChannelBufferSize ignored non-positive value",
+				logger_domain.Int("size", size))
+			return
 		}
+		cfg.channelBufferSize = size
 	}
 }
 
 // WithWorkerCount sets the number of goroutines draining each
-// collector's event channel. Increase this when a collector's Collect
-// method performs I/O and a single worker cannot keep up with the
-// event rate. Defaults to 1.
+// collector's event channel.
+//
+// Increase this when a collector's Collect method performs I/O and
+// a single worker cannot keep up with the event rate. Defaults to 1.
 //
 // Takes count (int) which is the number of worker goroutines per
 // collector.
@@ -85,9 +90,12 @@ func WithChannelBufferSize(size int) ServiceOption {
 // Returns ServiceOption which configures the worker count.
 func WithWorkerCount(count int) ServiceOption {
 	return func(cfg *serviceConfig) {
-		if count > 0 {
-			cfg.workerCount = count
+		if count <= 0 {
+			log.Warn("WithWorkerCount ignored non-positive value",
+				logger_domain.Int("count", count))
+			return
 		}
+		cfg.workerCount = count
 	}
 }
 
@@ -106,6 +114,7 @@ type collectorWorker struct {
 }
 
 // Service distributes analytics events to all registered collectors.
+//
 // Each collector receives events on its own buffered channel, drained
 // by one or more dedicated goroutines. Events are dropped (never
 // blocked) when a channel is full.
@@ -116,6 +125,10 @@ type Service struct {
 
 	// workerCount is the number of drain goroutines per collector.
 	workerCount int
+
+	// closeOnce ensures Close is idempotent and safe for concurrent
+	// callers.
+	closeOnce sync.Once
 
 	// stopped is set to true during Close to reject new events.
 	stopped atomic.Bool
@@ -154,7 +167,7 @@ func NewService(collectors []Collector, opts ...ServiceOption) *Service {
 // Start launches background goroutines for each collector to drain
 // their event channels. Must be called exactly once.
 func (s *Service) Start(ctx context.Context) {
-	_, l := logger_domain.From(ctx, log)
+	ctx, l := logger_domain.From(ctx, log)
 
 	detachedCtx := context.WithoutCancel(ctx)
 
@@ -179,6 +192,11 @@ func (s *Service) Track(ctx context.Context, event *analytics_dto.Event) {
 		return
 	}
 
+	if len(s.workers) == 0 {
+		analytics_dto.ReleaseEvent(event)
+		return
+	}
+
 	eventsTrackedCount.Add(ctx, 1)
 
 	if len(s.workers) == 1 {
@@ -191,25 +209,38 @@ func (s *Service) Track(ctx context.Context, event *analytics_dto.Event) {
 		if i == len(s.workers)-1 {
 			ev = event
 		} else {
-			ev = AcquireEventCopy(event)
+			ev = acquireEventCopy(event)
 		}
 		sendToWorker(ctx, &s.workers[i], ev)
 	}
 }
 
 // Close signals all workers to drain their channels, flushes each
-// collector, then closes them. Must be called exactly once.
+// collector, then closes them.
+//
+// Concurrency: closes event channels, waits for worker goroutines
+// to finish draining, then calls Flush and Close on each collector.
 //
 // Returns error which is nil on success (individual collector errors
 // are logged, not returned).
 func (s *Service) Close(ctx context.Context) error {
 	s.stopped.Store(true)
-	_, l := logger_domain.From(ctx, log)
+	s.closeOnce.Do(func() {
+		s.closeWorkers(ctx)
+	})
+	return nil
+}
+
+// closeWorkers shuts down all collector workers, flushes drained
+// collectors, and closes every collector.
+func (s *Service) closeWorkers(ctx context.Context) {
+	ctx, l := logger_domain.From(ctx, log)
 
 	for i := range s.workers {
 		close(s.workers[i].eventCh)
 	}
 
+	drained := make([]bool, len(s.workers))
 	for i := range s.workers {
 		w := &s.workers[i]
 		done := make(chan struct{})
@@ -219,6 +250,7 @@ func (s *Service) Close(ctx context.Context) error {
 		}()
 		select {
 		case <-done:
+			drained[i] = true
 		case <-ctx.Done():
 			l.Warn("Analytics collector worker shutdown timed out",
 				logger_domain.String(logKeyCollector, w.collector.Name()))
@@ -228,12 +260,14 @@ func (s *Service) Close(ctx context.Context) error {
 	for i := range s.workers {
 		w := &s.workers[i]
 		collectorName := w.collector.Name()
-		if err := goroutine.SafeCall(ctx, "analytics."+collectorName+".Flush", func() error {
-			return w.collector.Flush(ctx)
-		}); err != nil {
-			l.Warn("Analytics collector flush failed",
-				logger_domain.String(logKeyCollector, collectorName),
-				logger_domain.Error(err))
+		if drained[i] {
+			if err := goroutine.SafeCall(ctx, "analytics."+collectorName+".Flush", func() error {
+				return w.collector.Flush(ctx)
+			}); err != nil {
+				l.Warn("Analytics collector flush failed",
+					logger_domain.String(logKeyCollector, collectorName),
+					logger_domain.Error(err))
+			}
 		}
 		if err := goroutine.SafeCall(ctx, "analytics."+collectorName+".Close", func() error {
 			return w.collector.Close(ctx)
@@ -245,16 +279,15 @@ func (s *Service) Close(ctx context.Context) error {
 	}
 
 	l.Internal("Analytics service stopped")
-	return nil
 }
 
-// AcquireEventCopy returns a shallow copy of the source event from
+// acquireEventCopy returns a shallow copy of the source event from
 // the pool. The Properties map is copied (not shared).
 //
 // Takes src (*analytics_dto.Event) which is the event to copy.
 //
 // Returns *analytics_dto.Event which is the copy.
-func AcquireEventCopy(src *analytics_dto.Event) *analytics_dto.Event {
+func acquireEventCopy(src *analytics_dto.Event) *analytics_dto.Event {
 	ev := analytics_dto.AcquireEvent()
 	*ev = *src
 	if src.Revenue != nil {
@@ -268,9 +301,10 @@ func AcquireEventCopy(src *analytics_dto.Event) *analytics_dto.Event {
 }
 
 // startWorkerDrains launches count drain goroutines for a single
-// collector worker. Multiple goroutines share the same channel,
-// enabling parallel event delivery when a collector's Collect method
-// performs I/O.
+// collector worker.
+//
+// Concurrency: each goroutine reads from w.eventCh and calls
+// w.wg.Done when the channel is closed.
 //
 // Takes w (*collectorWorker) which is the worker to drain.
 // Takes count (int) which is the number of goroutines to launch.
@@ -279,10 +313,8 @@ func startWorkerDrains(ctx context.Context, w *collectorWorker, count int) {
 		attribute.String(logKeyCollector, w.collector.Name()),
 	)
 
-	w.wg.Add(count)
 	for range count {
-		go func() {
-			defer w.wg.Done()
+		w.wg.Go(func() {
 			for ev := range w.eventCh {
 				if err := collectWithRecovery(ctx, w.collector, ev); err != nil {
 					eventsFailedCount.Add(ctx, 1, collectorAttr)
@@ -291,7 +323,7 @@ func startWorkerDrains(ctx context.Context, w *collectorWorker, count int) {
 				}
 				analytics_dto.ReleaseEvent(ev)
 			}
-		}()
+		})
 	}
 }
 

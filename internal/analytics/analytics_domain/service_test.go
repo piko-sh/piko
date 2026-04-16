@@ -181,7 +181,7 @@ func TestService_ZeroCollectors(t *testing.T) {
 	}
 }
 
-func TestAcquireEventCopy(t *testing.T) {
+func Test_acquireEventCopy(t *testing.T) {
 	rev := maths.NewMoneyFromString("29.99", "GBP")
 	src := analytics_dto.AcquireEvent()
 	src.Path = "/original"
@@ -192,7 +192,7 @@ func TestAcquireEventCopy(t *testing.T) {
 	src.Revenue = &rev
 	src.Properties = map[string]string{"key": "value"}
 
-	cp := AcquireEventCopy(src)
+	cp := acquireEventCopy(src)
 
 	if cp.Path != src.Path {
 		t.Errorf("copy Path = %q, want %q", cp.Path, src.Path)
@@ -228,11 +228,46 @@ func TestAcquireEventCopy(t *testing.T) {
 	analytics_dto.ReleaseEvent(cp)
 }
 
-func TestAcquireEventCopy_NilRevenue(t *testing.T) {
+func TestService_ConcurrentTrack(t *testing.T) {
+	mc := newMockCollector("concurrent")
+	svc := NewService([]Collector{mc}, WithChannelBufferSize(defaultChannelBufferSize))
+	svc.Start(context.Background())
+
+	const goroutineCount = 100
+	const eventsPerGoroutine = 100
+
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(goroutineCount)
+
+	for range goroutineCount {
+		go func() {
+			defer waitGroup.Done()
+			for range eventsPerGoroutine {
+				event := analytics_dto.AcquireEvent()
+				event.Path = "/concurrent"
+				event.Type = analytics_dto.EventPageView
+				svc.Track(context.Background(), event)
+			}
+		}()
+	}
+
+	waitGroup.Wait()
+
+	if err := svc.Close(context.Background()); err != nil {
+		t.Fatalf("Close returned error: %v", err)
+	}
+
+	events := mc.collected()
+	if len(events) == 0 {
+		t.Fatal("expected at least some events to be collected")
+	}
+}
+
+func Test_acquireEventCopy_NilRevenue(t *testing.T) {
 	src := analytics_dto.AcquireEvent()
 	src.Path = "/no-revenue"
 
-	cp := AcquireEventCopy(src)
+	cp := acquireEventCopy(src)
 
 	if cp.Revenue != nil {
 		t.Error("copy Revenue should be nil when source Revenue is nil")

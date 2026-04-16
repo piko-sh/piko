@@ -1181,9 +1181,10 @@ func WithAuthProvider(provider daemon_dto.AuthProvider) Option {
 }
 
 // WithBackendAnalytics registers one or more backend analytics
-// collectors. Events are fired automatically for page views via
-// middleware. Multiple collectors can be registered; each receives
-// every event.
+// collectors.
+//
+// Events are fired automatically for page views via middleware.
+// Multiple collectors can be registered; each receives every event.
 //
 // Takes collectors (...analytics_domain.Collector) which handle event
 // delivery.

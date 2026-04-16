@@ -32,6 +32,7 @@ import (
 
 	"piko.sh/piko/internal/analytics/analytics_dto"
 	"piko.sh/piko/internal/json"
+	"piko.sh/piko/wdk/clock"
 	"piko.sh/piko/wdk/maths"
 )
 
@@ -58,7 +59,7 @@ func TestCollector_BatchFlush(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(3))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(3))
 
 	for range 3 {
 		event := &analytics_dto.Event{
@@ -100,9 +101,18 @@ func TestCollector_PageViewMapping(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -110,7 +120,7 @@ func TestCollector_PageViewMapping(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Hostname:   "example.com",
@@ -154,9 +164,18 @@ func TestCollector_CustomEventName(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -164,7 +183,7 @@ func TestCollector_CustomEventName(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		EventName:  "purchase",
@@ -190,9 +209,18 @@ func TestCollector_ActionNameMapping(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -200,7 +228,7 @@ func TestCollector_ActionNameMapping(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		ActionName: "cart.Purchase",
@@ -229,9 +257,18 @@ func TestCollector_RevenueMapping(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -239,7 +276,7 @@ func TestCollector_RevenueMapping(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	revenue := maths.NewMoneyFromString("49.99", "GBP")
 	event := &analytics_dto.Event{
@@ -261,7 +298,7 @@ func TestCollector_RevenueMapping(t *testing.T) {
 	if params["currency"] != "GBP" {
 		t.Errorf("currency = %v, want GBP", params["currency"])
 	}
-	value, ok := params["value"].(float64) //nolint:revive // test-only assertion
+	value, ok := params["value"].(float64)
 	if !ok {
 		t.Fatalf("value is not float64: %T", params["value"])
 	}
@@ -275,9 +312,18 @@ func TestCollector_PropertiesMerge(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -285,7 +331,7 @@ func TestCollector_PropertiesMerge(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/signup",
@@ -315,9 +361,18 @@ func TestCollector_ClientIDFromIPAndUA(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -325,7 +380,7 @@ func TestCollector_ClientIDFromIPAndUA(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/test",
@@ -356,9 +411,18 @@ func TestCollector_CustomClientIDFunc(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -366,7 +430,7 @@ func TestCollector_CustomClientIDFunc(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL,
+	collector := newTestCollector(t, srv.URL,
 		WithBatchSize(1),
 		WithClientIDFunc(func(_, _ string) string { return "custom-client-123" }),
 	)
@@ -393,9 +457,18 @@ func TestCollector_UserIDMapping(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -403,7 +476,7 @@ func TestCollector_UserIDMapping(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/account",
@@ -428,9 +501,18 @@ func TestCollector_TimestampMicros(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -438,7 +520,7 @@ func TestCollector_TimestampMicros(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	eventTime := time.Date(2026, 4, 10, 12, 0, 0, 0, time.UTC)
 	event := &analytics_dto.Event{
@@ -467,13 +549,21 @@ func TestCollector_DebugEndpoint(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := NewCollector("G-TEST", "secret", WithDebug(true)).(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("G-TEST", "secret", WithDebug(true))
+	if err != nil {
+		t.Fatalf("NewCollector returned unexpected error: %v", err)
+	}
+	collector := result.(*Collector)
 	if !strings.Contains(collector.endpoint, "/debug/mp/collect") {
 		t.Errorf("endpoint = %q, want /debug/mp/collect", collector.endpoint)
 	}
 	_ = collector.Close(context.Background())
 
-	collectorProd := NewCollector("G-TEST", "secret").(*Collector) //nolint:revive // test-only assertion
+	resultProd, err := NewCollector("G-TEST", "secret")
+	if err != nil {
+		t.Fatalf("NewCollector returned unexpected error: %v", err)
+	}
+	collectorProd := resultProd.(*Collector)
 	if !strings.Contains(collectorProd.endpoint, "/mp/collect") {
 		t.Errorf("endpoint = %q, want /mp/collect", collectorProd.endpoint)
 	}
@@ -492,7 +582,7 @@ func TestCollector_FlushEmptyBuffer(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL)
+	collector := newTestCollector(t, srv.URL)
 
 	if err := collector.Flush(context.Background()); err != nil {
 		t.Fatalf("Flush returned error: %v", err)
@@ -503,7 +593,11 @@ func TestCollector_FlushEmptyBuffer(t *testing.T) {
 }
 
 func TestCollector_Name(t *testing.T) {
-	collector := NewCollector("G-TEST", "secret").(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("G-TEST", "secret")
+	if err != nil {
+		t.Fatalf("NewCollector returned unexpected error: %v", err)
+	}
+	collector := result.(*Collector)
 	defer collector.Close(context.Background())
 
 	if collector.Name() != "ga4" {
@@ -512,7 +606,11 @@ func TestCollector_Name(t *testing.T) {
 }
 
 func TestCollector_DoubleClose(t *testing.T) {
-	collector := NewCollector("G-TEST", "secret").(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("G-TEST", "secret")
+	if err != nil {
+		t.Fatalf("NewCollector returned unexpected error: %v", err)
+	}
+	collector := result.(*Collector)
 
 	if err := collector.Close(context.Background()); err != nil {
 		t.Fatalf("first Close returned error: %v", err)
@@ -528,7 +626,7 @@ func TestCollector_ErrorStatusCode(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL, WithBatchSize(1))
+	collector := newTestCollector(t, srv.URL, WithBatchSize(1))
 
 	event := &analytics_dto.Event{
 		Path:       "/error",
@@ -550,9 +648,18 @@ func TestCollector_TimerFlush(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -560,9 +667,11 @@ func TestCollector_TimerFlush(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL,
+	mockClock := clock.NewMockClock(time.Now())
+	collector := newTestCollector(t, srv.URL,
 		WithBatchSize(100),
-		WithFlushInterval(50*time.Millisecond),
+		WithFlushInterval(5*time.Second),
+		withClock(mockClock),
 	)
 
 	event := &analytics_dto.Event{
@@ -573,7 +682,11 @@ func TestCollector_TimerFlush(t *testing.T) {
 	}
 	_ = collector.Collect(context.Background(), event)
 
-	time.Sleep(200 * time.Millisecond)
+	mockClock.Advance(6 * time.Second)
+
+	if err := collector.Flush(context.Background()); err != nil {
+		t.Fatalf("Flush returned error: %v", err)
+	}
 
 	mu.Lock()
 	count := len(received)
@@ -586,7 +699,11 @@ func TestCollector_TimerFlush(t *testing.T) {
 }
 
 func TestCollector_MaxBatchClamped(t *testing.T) {
-	collector := NewCollector("G-TEST", "secret", WithBatchSize(50)).(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("G-TEST", "secret", WithBatchSize(50))
+	if err != nil {
+		t.Fatalf("NewCollector returned unexpected error: %v", err)
+	}
+	collector := result.(*Collector)
 	defer collector.Close(context.Background())
 
 	if collector.batchSize != maxEventsPerRequest {
@@ -599,9 +716,18 @@ func TestCollector_ClientIDPartitioning(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -609,7 +735,7 @@ func TestCollector_ClientIDPartitioning(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL,
+	collector := newTestCollector(t, srv.URL,
 		WithBatchSize(10),
 		WithFlushInterval(1*time.Hour),
 	)
@@ -652,9 +778,18 @@ func TestCollector_FlushOnShutdown(t *testing.T) {
 	var received []payload
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, _ := io.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("reading request body: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 		var p payload
-		_ = json.Unmarshal(body, &p)
+		if err := json.Unmarshal(body, &p); err != nil {
+			t.Errorf("unmarshalling GA4 body: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		mu.Lock()
 		received = append(received, p)
 		mu.Unlock()
@@ -662,7 +797,7 @@ func TestCollector_FlushOnShutdown(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	collector := newTestCollector(srv.URL,
+	collector := newTestCollector(t, srv.URL,
 		WithBatchSize(100),
 		WithFlushInterval(1*time.Hour),
 	)
@@ -685,7 +820,11 @@ func TestCollector_FlushOnShutdown(t *testing.T) {
 }
 
 func TestCollector_EndpointQueryParams(t *testing.T) {
-	collector := NewCollector("G-ABCDEF", "my-secret-key").(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("G-ABCDEF", "my-secret-key")
+	if err != nil {
+		t.Fatalf("NewCollector returned unexpected error: %v", err)
+	}
+	collector := result.(*Collector)
 	defer collector.Close(context.Background())
 
 	if !strings.Contains(collector.endpoint, "measurement_id=G-ABCDEF") {
@@ -696,27 +835,34 @@ func TestCollector_EndpointQueryParams(t *testing.T) {
 	}
 }
 
-func TestCollector_EmptyMeasurementIDPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic on empty measurementID")
-		}
-	}()
-	NewCollector("", "secret")
+func TestCollector_EmptyMeasurementIDReturnsError(t *testing.T) {
+	_, err := NewCollector("", "secret")
+	if err == nil {
+		t.Fatal("expected error on empty measurementID")
+	}
+	if !strings.Contains(err.Error(), "measurementID") {
+		t.Errorf("error = %q, want mention of measurementID", err)
+	}
 }
 
-func TestCollector_EmptyAPISecretPanics(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic on empty apiSecret")
-		}
-	}()
-	NewCollector("G-TEST", "")
+func TestCollector_EmptyAPISecretReturnsError(t *testing.T) {
+	_, err := NewCollector("G-TEST", "")
+	if err == nil {
+		t.Fatal("expected error on empty apiSecret")
+	}
+	if !strings.Contains(err.Error(), "apiSecret") {
+		t.Errorf("error = %q, want mention of apiSecret", err)
+	}
 }
 
-func newTestCollector(testURL string, opts ...Option) *Collector {
+func newTestCollector(t *testing.T, testURL string, opts ...Option) *Collector {
+	t.Helper()
 	allOpts := append([]Option{WithFlushInterval(1 * time.Hour)}, opts...)
-	collector := NewCollector("G-TEST", "test-secret", allOpts...).(*Collector) //nolint:revive // test-only assertion
+	result, err := NewCollector("G-TEST", "test-secret", allOpts...)
+	if err != nil {
+		t.Fatalf("NewCollector returned unexpected error: %v", err)
+	}
+	collector := result.(*Collector)
 	collector.endpoint = testURL
 	collector.Start(context.Background())
 	return collector
