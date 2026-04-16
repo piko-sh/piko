@@ -35,6 +35,7 @@ import (
 const logKeyFieldPath = "field_path"
 
 var (
+	// secretLog holds the logger instance for the secret subsystem.
 	secretLog = logger_domain.GetLogger("piko/internal/config/config_domain/secret")
 
 	// ErrSecretNotSet is returned when trying to acquire a secret that was never

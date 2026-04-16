@@ -80,9 +80,7 @@ type DaemonServiceDeps struct {
 	SEOService SEOServicePort
 
 	// OnServerBound is an optional callback invoked after the main HTTP server
-	// successfully binds to a port. The callback receives the resolved listen
-	// address (e.g. ":8081"). Used by the startup banner to display the actual
-	// port when auto-next-port is enabled.
+	// successfully binds to a port, receiving the resolved listen address.
 	OnServerBound func(address string)
 
 	// WatchMode points to the build config's WatchMode flag, allowing RunProd
@@ -90,8 +88,7 @@ type DaemonServiceDeps struct {
 	WatchMode *bool
 
 	// OnHealthBound is an optional callback invoked after the health server
-	// successfully binds to a port. The callback receives the resolved listen
-	// address (e.g. "127.0.0.1:9092").
+	// successfully binds to a port, receiving the resolved listen address.
 	OnHealthBound func(address string)
 
 	// DaemonConfig holds the resolved network and health probe values needed

@@ -96,6 +96,7 @@ const (
 	suffix = "m"
 )
 
+// resetSequence holds the pre-computed ANSI escape bytes that clear all active attributes.
 var resetSequence = []byte(escape + "0" + suffix)
 
 // Style holds pre-computed ANSI escape sequences for zero-allocation colour

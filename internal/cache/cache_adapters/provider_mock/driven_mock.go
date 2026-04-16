@@ -29,7 +29,6 @@ import (
 	"piko.sh/piko/wdk/clock"
 )
 
-// _ is a compile-time check that MockAdapter implements ProviderPort.
 var _ cache_domain.ProviderPort[any, any] = (*MockAdapter[any, any])(nil)
 
 // mockEntry holds an item in the mock cache's memory, including metadata.

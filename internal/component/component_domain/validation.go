@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// errTagNameEmpty is returned when a component tag name is empty.
 	errTagNameEmpty = errors.New("component tag name cannot be empty")
 
 	// htmlElements contains all standard HTML element names that cannot be used

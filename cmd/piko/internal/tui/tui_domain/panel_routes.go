@@ -84,7 +84,6 @@ const (
 var (
 	_ Panel = (*RoutesPanel)(nil)
 
-	// _ verifies that routesRenderer implements ItemRenderer[RouteStats].
 	_ ItemRenderer[RouteStats] = (*routesRenderer)(nil)
 )
 

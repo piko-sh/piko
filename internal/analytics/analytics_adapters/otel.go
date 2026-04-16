@@ -25,8 +25,10 @@ import (
 )
 
 var (
+	// log is the package-level logger for the analytics_adapters package.
 	log = logger_domain.GetLogger("piko/internal/analytics/analytics_adapters")
 
+	// meter is the OpenTelemetry meter for the analytics_adapters package.
 	meter = otel.Meter("piko/internal/analytics/analytics_adapters")
 
 	// webhookSendCount is the total number of webhook batch POSTs.

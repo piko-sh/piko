@@ -42,6 +42,7 @@ const (
 	certExpiryWarningDays = 30
 )
 
+// log is the package-level logger for the tlscert package.
 var log = logger_domain.GetLogger("piko/internal/tlscert")
 
 // LoaderOption configures the CertificateLoader.

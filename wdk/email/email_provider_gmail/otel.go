@@ -25,8 +25,10 @@ import (
 )
 
 var (
+	// log is the package-level logger for the email_provider_gmail package.
 	log = logger.GetLogger("piko/email/email_provider_gmail")
 
+	// meter is the OpenTelemetry meter for the email_provider_gmail package.
 	meter = otel.Meter("piko/email/email_provider_gmail")
 
 	// sendTotal is the counter metric tracking the total number of sends.

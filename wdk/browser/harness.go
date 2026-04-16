@@ -34,8 +34,10 @@ import (
 )
 
 var (
+	// globalHarness holds the shared browser test harness singleton.
 	globalHarness *Harness
 
+	// globalMu guards concurrent access to globalHarness.
 	globalMu sync.RWMutex
 )
 
@@ -167,10 +169,10 @@ func (h *Harness) IsInteractive() bool {
 // testing.TB. Unlike Page, Session methods return errors instead of calling
 // Fatalf, making it suitable for CLI tools and standalone programs.
 //
-// Safe for concurrent use. Uses a mutex to protect access to the browser.
-//
 // Returns *Session which is a browser tab ready for interaction.
 // Returns error when the harness has not been set up or page creation fails.
+//
+// Concurrency: safe for concurrent use; acquires the harness mutex.
 func (h *Harness) NewSession() (*Session, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

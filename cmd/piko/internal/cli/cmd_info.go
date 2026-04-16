@@ -75,6 +75,7 @@ var (
 		{Header: "VALUE"},
 	}
 
+	// systemOverviewColumns defines the table column layout for the system overview section.
 	systemOverviewColumns = []Column{
 		{Header: "UPTIME"},
 		{Header: "CPU"},
@@ -82,6 +83,7 @@ var (
 		{Header: "CGO CALLS"},
 	}
 
+	// buildOverviewColumns defines the table column layout for the build overview section.
 	buildOverviewColumns = []Column{
 		{Header: "VERSION"},
 		{Header: "COMMIT"},
@@ -89,12 +91,14 @@ var (
 		{Header: "OS/ARCH"},
 	}
 
+	// runtimeOverviewColumns defines the table column layout for the runtime overview section.
 	runtimeOverviewColumns = []Column{
 		{Header: "GOGC"},
 		{Header: "GOMEMLIMIT"},
 		{Header: "COMPILER"},
 	}
 
+	// memoryOverviewColumns defines the table column layout for the memory overview section.
 	memoryOverviewColumns = []Column{
 		{Header: "HEAP ALLOC"},
 		{Header: "SYS TOTAL"},
@@ -102,6 +106,8 @@ var (
 		{Header: "HEAP OBJECTS"},
 	}
 
+	// gcOverviewColumns defines the table column layout for the
+	// garbage collection overview section.
 	gcOverviewColumns = []Column{
 		{Header: "CYCLES"},
 		{Header: "LAST PAUSE"},
@@ -109,6 +115,7 @@ var (
 		{Header: "NEXT GC"},
 	}
 
+	// processOverviewColumns defines the table column layout for the process overview section.
 	processOverviewColumns = []Column{
 		{Header: "PID"},
 		{Header: "THREADS"},

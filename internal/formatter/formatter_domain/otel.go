@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the formatter_domain package.
 	log = logger_domain.GetLogger("piko/internal/formatter/formatter_domain")
 
 	// meter provides OpenTelemetry metrics for the formatter domain package.

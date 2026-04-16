@@ -27,7 +27,6 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
-// Database/sql-specific constants.
 const (
 	// identDBTX is the identifier for the DBTX interface type.
 	identDBTX = "DBTX"
@@ -255,10 +254,20 @@ func (*sqlStrategy) RuntimeBuilderImports(tracker *emitter_shared.ImportTracker)
 	tracker.AddImport("database/sql")
 }
 
+// NeedsSliceExpansion reports whether slice parameters require runtime SQL
+// rewriting.
+//
+// Returns bool which is always true for the database/sql emitter.
 func (*sqlStrategy) NeedsSliceExpansion() bool { return true }
 
+// MaxBindVariables returns the maximum number of bind variables per statement.
+//
+// Returns int which is 999 for SQLite.
 func (*sqlStrategy) MaxBindVariables() int { return maxSQLiteBindVariables }
 
+// UsesNumberedParams reports whether the emitter uses numbered placeholders.
+//
+// Returns bool which is false for database/sql (uses positional ?).
 func (*sqlStrategy) UsesNumberedParams() bool { return false }
 
 // queriesReceiver returns the standard *Queries receiver field list. This is a

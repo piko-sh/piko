@@ -118,7 +118,6 @@ type RedisAdapter[K comparable, V any] struct {
 	indexCreated bool
 }
 
-// _ checks that RedisAdapter implements the ProviderPort interface.
 var _ cache.ProviderPort[any, any] = (*RedisAdapter[any, any])(nil)
 
 // encodeKey converts a key of type K to a Redis key string.

@@ -21,5 +21,6 @@ package cli
 import "piko.sh/piko/wdk/logger"
 
 var (
+	// log is the package-level logger for the cli package.
 	log = logger.GetLogger("piko/cmd/piko/cli")
 )

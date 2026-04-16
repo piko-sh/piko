@@ -89,10 +89,13 @@ func (c *Container) SetNotificationDefaultProvider(name string) {
 }
 
 var (
+	// notificationService holds the lazily initialised notification service singleton.
 	notificationService notification_domain.Service
 
+	// notificationErr holds any error encountered during notification service creation.
 	notificationErr error
 
+	// notificationInitOnce guards one-time initialisation of the notification service.
 	notificationInitOnce sync.Once
 )
 

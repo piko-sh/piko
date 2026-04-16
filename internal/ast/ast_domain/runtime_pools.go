@@ -41,32 +41,46 @@ var (
 		New: func() any { return new(TemplateAST) },
 	}
 
+	// rootNodesPool1 reuses []*TemplateNode slices (cap 1) to reduce allocation pressure.
 	rootNodesPool1 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 1) }}
 
+	// rootNodesPool2 reuses []*TemplateNode slices (cap 2) to reduce allocation pressure.
 	rootNodesPool2 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 2) }}
 
+	// rootNodesPool4 reuses []*TemplateNode slices (cap 4) to reduce allocation pressure.
 	rootNodesPool4 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 4) }}
 
+	// rootNodesPool6 reuses []*TemplateNode slices (cap 6) to reduce allocation pressure.
 	rootNodesPool6 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 6) }}
 
+	// rootNodesPool8 reuses []*TemplateNode slices (cap 8) to reduce allocation pressure.
 	rootNodesPool8 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 8) }}
 
+	// rootNodesPool10 reuses []*TemplateNode slices (cap 10) to reduce allocation pressure.
 	rootNodesPool10 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 10) }}
 
+	// rootNodesPool12 reuses []*TemplateNode slices (cap 12) to reduce allocation pressure.
 	rootNodesPool12 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 12) }}
 
+	// rootNodesPool16 reuses []*TemplateNode slices (cap 16) to reduce allocation pressure.
 	rootNodesPool16 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 16) }}
 
+	// rootNodesPool24 reuses []*TemplateNode slices (cap 24) to reduce allocation pressure.
 	rootNodesPool24 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 24) }}
 
+	// rootNodesPool32 reuses []*TemplateNode slices (cap 32) to reduce allocation pressure.
 	rootNodesPool32 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 32) }}
 
+	// rootNodesPool48 reuses []*TemplateNode slices (cap 48) to reduce allocation pressure.
 	rootNodesPool48 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 48) }}
 
+	// rootNodesPool64 reuses []*TemplateNode slices (cap 64) to reduce allocation pressure.
 	rootNodesPool64 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 64) }}
 
+	// rootNodesPool96 reuses []*TemplateNode slices (cap 96) to reduce allocation pressure.
 	rootNodesPool96 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 96) }}
 
+	// rootNodesPool128 reuses []*TemplateNode slices (cap 128) to reduce allocation pressure.
 	rootNodesPool128 = sync.Pool{New: func() any { return make([]*TemplateNode, 0, 128) }}
 )
 

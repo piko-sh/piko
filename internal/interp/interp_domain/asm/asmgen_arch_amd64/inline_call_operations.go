@@ -90,7 +90,6 @@ const (
 // or return operation.
 type amd64InlineCallOps struct{}
 
-// Ensure amd64InlineCallOps implements InlineCallOperationsPort at compile time.
 var _ asmgen.InlineCallOperationsPort = (*amd64InlineCallOps)(nil)
 
 // EmitCallInline emits the body of handlerCallInline. This is the

@@ -284,9 +284,6 @@ func (b *devDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain.
 // Returns *daemon_domain.DaemonServiceDeps which contains all dependencies
 // needed by the daemon service.
 // Returns error when the health probe server fails to initialise.
-//
-// Spawns a goroutine to run initial tasks in the background. The goroutine
-// runs until the app context is cancelled.
 func (b *devDaemonBuilder) buildFinalDaemonDeps(ctx context.Context, fsWatcher lifecycle_domain.FileSystemWatcher) (*daemon_domain.DaemonServiceDeps, error) {
 	_, l := logger_domain.From(ctx, log)
 	seoService, err := b.c.GetSEOService()

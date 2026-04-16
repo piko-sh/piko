@@ -71,7 +71,7 @@ var charHandlers = [latinAlphabetSize]charHandler{
 	25: handleZ,
 }
 
-// Encoder provides phonetic encoding using the Cologne Phonetic (Kölner
+// Encoder provides phonetic encoding using the Cologne Phonetic (Koelner
 // Phonetik) algorithm. It implements the linguistics_domain.PhoneticEncoderPort
 // interface.
 //
@@ -101,7 +101,7 @@ func NewWithMaxLength(maxLength int) (*Encoder, error) {
 // Encode returns the Cologne phonetic code for a German word.
 //
 // Takes word (string) which is the word to encode phonetically. The word should
-// be normalised (umlauts expanded: ä->ae, ö->oe, ü->ue) for best results.
+// be normalised (umlauts expanded: ae, oe, ue) for best results.
 //
 // Returns string which is the phonetic code consisting of digits 0-8.
 func (e *Encoder) Encode(word string) string {

@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the llm_provider_mistral package.
 	log = logger.GetLogger("piko/llm/llm_provider_mistral")
 
 	// meter is the OpenTelemetry meter for the Mistral provider.

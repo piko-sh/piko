@@ -59,8 +59,10 @@ const (
 )
 
 var (
+	// metricCacheLevelL2 is a pre-built metric attribute identifying the L2 cache level.
 	metricCacheLevelL2 = metric.WithAttributes(attribute.String("cache.level", "l2"))
 
+	// slogCacheLevelL2 is a pre-built log attribute identifying the L2 cache level.
 	slogCacheLevelL2 = logger_domain.String("cache.level", "l2")
 )
 

@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the inspector_domain package.
 	log = logger_domain.GetLogger("piko/internal/inspector/inspector_domain")
 
 	// Meter is the OpenTelemetry meter instance for the inspector_domain package.

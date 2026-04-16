@@ -48,9 +48,7 @@ type TransformationPort interface {
 }
 
 // CSSPreProcessorPort resolves CSS @import statements before CSS is embedded
-// into compiled component output. When provided to the compiler orchestrator,
-// raw style block content is pre-processed to inline external CSS references
-// (e.g. @import url('./theme.css') or @import url('@/styles/base.css')).
+// into compiled component output by inlining external CSS references.
 type CSSPreProcessorPort interface {
 	// InlineImports resolves @import statements in the given CSS content,
 	// reads the imported files, and returns a single merged CSS string.

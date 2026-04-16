@@ -38,7 +38,6 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// Image format byte signatures and constants.
 const (
 	// maxAlpha holds the maximum alpha channel value for a fully opaque pixel.
 	maxAlpha = 255

@@ -25,22 +25,31 @@ import (
 )
 
 var (
+	// log is the package-level logger for the querier_domain package.
 	log = logger_domain.GetLogger("piko/internal/querier/querier_domain")
 
+	// meter is the OpenTelemetry meter for the querier_domain package.
 	meter = otel.Meter("piko/internal/querier/querier_domain")
 
+	// catalogueBuildCount tracks the number of catalogue build operations.
 	catalogueBuildCount metric.Int64Counter
 
+	// catalogueBuildDuration records the duration of catalogue build operations.
 	catalogueBuildDuration metric.Float64Histogram
 
+	// queryAnalysisCount tracks the number of query analysis operations.
 	queryAnalysisCount metric.Int64Counter
 
+	// queryAnalysisDuration records the duration of query analysis operations.
 	queryAnalysisDuration metric.Float64Histogram
 
+	// generationCount tracks the number of full generation pipeline operations.
 	generationCount metric.Int64Counter
 
+	// generationDuration records the duration of full generation pipeline operations.
 	generationDuration metric.Float64Histogram
 
+	// generationErrorCount tracks the number of errors during generation operations.
 	generationErrorCount metric.Int64Counter
 )
 

@@ -25,8 +25,10 @@ import (
 )
 
 var (
+	// log is the package-level logger for the analytics_domain package.
 	log = logger_domain.GetLogger("piko/internal/analytics/analytics_domain")
 
+	// meter is the OpenTelemetry meter for the analytics_domain package.
 	meter = otel.Meter("piko/internal/analytics/analytics_domain")
 
 	// eventsTrackedCount is the total number of events sent to Track().

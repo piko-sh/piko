@@ -239,6 +239,8 @@ func (b *Batcher[T]) Start(ctx context.Context) {
 // to send the batch asynchronously; Add itself never performs I/O.
 //
 // Takes item (T) which is the item to buffer.
+//
+// Concurrency: acquires b.mu briefly to append the item.
 func (b *Batcher[T]) Add(item T) {
 	if b.stopped.Load() {
 		return
@@ -326,11 +328,11 @@ func (b *Batcher[T]) flushLoop(backgroundCtx context.Context) {
 // drainBuffer copies the buffered items into a pooled slice and
 // clears the buffer.
 //
-// Concurrency: acquires b.mu for the duration of the copy. The lock
-// is released before any subsequent I/O.
-//
 // Returns *[]T which is the pooled batch, or nil when the buffer
 // is empty.
+//
+// Concurrency: acquires b.mu for the duration of the copy. The lock
+// is released before any subsequent I/O.
 func (b *Batcher[T]) drainBuffer() *[]T {
 	b.mu.Lock()
 	defer b.mu.Unlock()

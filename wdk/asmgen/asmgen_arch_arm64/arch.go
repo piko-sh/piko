@@ -35,7 +35,6 @@ type ARM64Arch struct{}
 // scratchRegisters holds the general-purpose scratch registers for arm64.
 var scratchRegisters = []string{"R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10"}
 
-// Ensure ARM64Arch implements ArchitecturePort at compile time.
 var _ asmgen.ArchitecturePort = (*ARM64Arch)(nil)
 
 // New creates a new ARM64 architecture adapter.

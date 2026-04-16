@@ -22,6 +22,8 @@ package vectormaths
 
 import "golang.org/x/sys/cpu"
 
+// hasAVX2 holds whether the CPU supports AVX2 instructions
+// for SIMD dot product acceleration.
 var hasAVX2 = cpu.X86.HasAVX2
 
 // dotF32SSE computes the dot product using SSE (4 float32s per iteration).

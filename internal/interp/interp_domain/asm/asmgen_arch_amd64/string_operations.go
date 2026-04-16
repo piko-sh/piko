@@ -77,7 +77,6 @@ const (
 // each method emits the complete handler body for a string operation.
 type amd64StringOps struct{}
 
-// Ensure amd64StringOps implements StringOperationsPort at compile time.
 var _ asmgen.StringOperationsPort = (*amd64StringOps)(nil)
 
 // EmitLenString emits the body for handlerLenString.

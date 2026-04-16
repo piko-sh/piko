@@ -65,6 +65,8 @@ var (
 		return getMarshalerInterface("MarshalJSON")
 	})
 
+	// encoderPool reuses encoder instances to reduce allocation pressure during
+	// type information serialisation.
 	encoderPool = sync.Pool{
 		New: func() any {
 			return &encoder{

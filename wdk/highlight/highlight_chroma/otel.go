@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the highlight_chroma package.
 	log = logger.GetLogger("piko/highlight/highlight_chroma")
 )

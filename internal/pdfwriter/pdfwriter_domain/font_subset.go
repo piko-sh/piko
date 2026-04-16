@@ -27,20 +27,36 @@ import (
 )
 
 var (
+	// errFontSubsetMaxpMissing is returned when the maxp table is missing or
+	// too short for font subsetting.
 	errFontSubsetMaxpMissing = errors.New("font_subset: missing or too short maxp table")
 
+	// errFontSubsetHeadMissing is returned when the head table is missing or
+	// too short for font subsetting.
 	errFontSubsetHeadMissing = errors.New("font_subset: missing or too short head table")
 
+	// errFontSubsetLocaMissing is returned when the loca table is missing from
+	// the font being subsetted.
 	errFontSubsetLocaMissing = errors.New("font_subset: missing loca table")
 
+	// errFontSubsetGlyfMissing is returned when the glyf table is missing from
+	// the font being subsetted.
 	errFontSubsetGlyfMissing = errors.New("font_subset: missing glyf table")
 
+	// errFontSubsetHheaMissing is returned when the hhea table is missing or
+	// too short for font subsetting.
 	errFontSubsetHheaMissing = errors.New("font_subset: missing or too short hhea table")
 
+	// errFontSubsetHmtxMissing is returned when the hmtx table is missing from
+	// the font being subsetted.
 	errFontSubsetHmtxMissing = errors.New("font_subset: missing hmtx table")
 
+	// errFontSubsetLocaTooShort is returned when the loca table in short
+	// format does not contain enough entries for all glyphs.
 	errFontSubsetLocaTooShort = errors.New("font_subset: loca table too short (short format)")
 
+	// errFontSubsetLocaLongTooShort is returned when the loca table in long
+	// format does not contain enough entries for all glyphs.
 	errFontSubsetLocaLongTooShort = errors.New("font_subset: loca table too short (long format)")
 )
 

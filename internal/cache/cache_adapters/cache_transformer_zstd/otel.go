@@ -21,5 +21,6 @@ package cache_transformer_zstd
 import "piko.sh/piko/internal/logger/logger_domain"
 
 var (
+	// log is the package-level logger for the cache_transformer_zstd package.
 	log = logger_domain.GetLogger("piko/internal/cache/cache_adapters/cache_transformer_zstd")
 )

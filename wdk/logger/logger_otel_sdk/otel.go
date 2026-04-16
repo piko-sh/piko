@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the logger_otel_sdk package.
 	log = logger_domain.GetLogger("piko/wdk/logger/logger_otel_sdk")
 )

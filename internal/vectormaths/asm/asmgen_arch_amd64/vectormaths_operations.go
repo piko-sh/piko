@@ -189,7 +189,6 @@ const (
 // directive) for a SIMD vectormaths kernel in the requested variant.
 type amd64VectormathsOps struct{}
 
-// Ensure amd64VectormathsOps implements VectormathsOperationsPort at compile time.
 var _ asmgen.VectormathsOperationsPort = (*amd64VectormathsOps)(nil)
 
 // EmitDotProduct emits the dot product function body for the given SIMD variant.

@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the resolver_adapters package.
 	log = logger_domain.GetLogger("piko/internal/resolver/resolver_adapters")
 
 	// meter is the OpenTelemetry meter for resolver adapter instrumentation.

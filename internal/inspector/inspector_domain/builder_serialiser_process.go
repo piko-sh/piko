@@ -35,6 +35,8 @@ import (
 	"piko.sh/piko/internal/inspector/inspector_dto"
 )
 
+// cleaningContextPool reuses cleaningContext instances to reduce allocation
+// pressure during type encoding.
 var cleaningContextPool = sync.Pool{
 	New: func() any {
 		return &cleaningContext{}

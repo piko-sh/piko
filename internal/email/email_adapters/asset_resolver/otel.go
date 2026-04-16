@@ -21,5 +21,6 @@ package asset_resolver
 import "piko.sh/piko/internal/logger/logger_domain"
 
 var (
+	// log is the package-level logger for the asset_resolver package.
 	log = logger_domain.GetLogger("piko/internal/email/email_adapters/asset_resolver")
 )

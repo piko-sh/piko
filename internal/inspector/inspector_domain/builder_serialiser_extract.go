@@ -84,8 +84,10 @@ var (
 	// the same pattern.
 	paramRoles [maxPregenRoles]string
 
+	// resultRoles holds pre-generated role strings like "result_0" for function return values.
 	resultRoles [maxPregenRoles]string
 
+	// genericArgRoles holds pre-generated role strings like "generic_arg_0" for type parameters.
 	genericArgRoles [maxPregenRoles]string
 )
 

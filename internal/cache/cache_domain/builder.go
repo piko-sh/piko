@@ -45,12 +45,17 @@ const (
 )
 
 var (
+	// transformerBlueprints holds the registered transformer blueprint factories keyed by name.
 	transformerBlueprints = make(map[string]TransformerBlueprintFactory)
 
+	// transformerBlueprintsMutex guards concurrent access to transformerBlueprints.
 	transformerBlueprintsMutex sync.RWMutex
 
+	// multiLevelAdapterConstructor holds the registered constructor for creating
+	// multi-level cache adapters.
 	multiLevelAdapterConstructor MultiLevelAdapterConstructor
 
+	// multiLevelAdapterMutex guards concurrent access to multiLevelAdapterConstructor.
 	multiLevelAdapterMutex sync.RWMutex
 )
 

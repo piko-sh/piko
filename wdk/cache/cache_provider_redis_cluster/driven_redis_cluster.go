@@ -117,7 +117,6 @@ type RedisClusterAdapter[K comparable, V any] struct {
 	indexCreated bool
 }
 
-// _ is a compile-time check that RedisClusterAdapter implements ProviderPort.
 var _ cache.ProviderPort[any, any] = (*RedisClusterAdapter[any, any])(nil)
 
 // encodeKey converts a key of type K to a Redis key string.

@@ -27,48 +27,56 @@ import (
 )
 
 var (
+	// astBuilderPool reuses astBuilder instances to reduce allocation pressure.
 	astBuilderPool = sync.Pool{
 		New: func() any {
 			return &astBuilder{}
 		},
 	}
 
+	// staticEmitterPool reuses staticEmitter instances to reduce allocation pressure.
 	staticEmitterPool = sync.Pool{
 		New: func() any {
 			return &staticEmitter{}
 		},
 	}
 
+	// nodeEmitterPool reuses nodeEmitter instances to reduce allocation pressure.
 	nodeEmitterPool = sync.Pool{
 		New: func() any {
 			return &nodeEmitter{}
 		},
 	}
 
+	// expressionEmitterPool reuses expressionEmitter instances to reduce allocation pressure.
 	expressionEmitterPool = sync.Pool{
 		New: func() any {
 			return &expressionEmitter{}
 		},
 	}
 
+	// binaryOpEmitterPool reuses binaryOpEmitter instances to reduce allocation pressure.
 	binaryOpEmitterPool = sync.Pool{
 		New: func() any {
 			return &binaryOpEmitter{}
 		},
 	}
 
+	// attributeEmitterPool reuses attributeEmitter instances to reduce allocation pressure.
 	attributeEmitterPool = sync.Pool{
 		New: func() any {
 			return &attributeEmitter{}
 		},
 	}
 
+	// ifEmitterPool reuses ifEmitter instances to reduce allocation pressure.
 	ifEmitterPool = sync.Pool{
 		New: func() any {
 			return &ifEmitter{}
 		},
 	}
 
+	// forEmitterPool reuses forEmitter instances to reduce allocation pressure.
 	forEmitterPool = sync.Pool{
 		New: func() any {
 			return &forEmitter{}

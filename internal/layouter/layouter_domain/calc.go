@@ -118,6 +118,7 @@ func (expression *calcExpression) resolveCalc(context ResolutionContext, contain
 	}
 }
 
+// viewportUnitResolvers maps CSS viewport unit suffixes to their resolution functions.
 var viewportUnitResolvers = map[string]func(ResolutionContext) float64{
 	"vw": func(context ResolutionContext) float64 {
 		return context.ViewportWidth / percentageDivisor

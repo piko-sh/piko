@@ -80,6 +80,7 @@ const (
 )
 
 var (
+	// log is the package-level logger for the compiler_domain package.
 	log = logger_domain.GetLogger("piko/internal/compiler/compiler_domain")
 
 	// Meter is the OpenTelemetry meter for the compiler domain package.

@@ -33,6 +33,7 @@ const (
 )
 
 var (
+	// log is the package-level logger for the pdfwriter_domain package.
 	log = logger_domain.GetLogger("piko/internal/pdfwriter/pdfwriter_domain")
 
 	// meter is the OpenTelemetry meter for PDF writer domain metrics.

@@ -609,12 +609,16 @@ func (pe *PageEntry) GetHasSupportedLocales() bool {
 }
 
 // GetHasPreview reports whether this component defines a Preview function.
+//
+// Returns bool which is true when a Preview function is registered.
 func (pe *PageEntry) GetHasPreview() bool {
 	return pe.HasPreview
 }
 
 // GetPreviewScenarios returns the preview scenarios for this component.
-// Returns nil if the component has no Preview function.
+//
+// Returns []templater_dto.PreviewScenario which contains the scenarios, or nil
+// if no Preview function is defined.
 func (pe *PageEntry) GetPreviewScenarios() []templater_dto.PreviewScenario {
 	if pe.previewFunc == nil {
 		return nil
@@ -923,9 +927,10 @@ func processPdfs(store *ManifestStore, pdfs map[string]generator_dto.ManifestPdf
 }
 
 // ListPreviewEntries returns all manifest entries that have a Preview function
-// defined. Iterates all four component maps (pages, partials, emails, PDFs),
-// filters by HasPreview with a non-nil previewFunc, and returns entries sorted
-// by OriginalSourcePath.
+// defined, sorted by source path.
+//
+// Returns []templater_domain.PreviewCatalogueEntry which contains the filtered
+// and sorted preview entries.
 func (s *ManifestStore) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
 	var entries []templater_domain.PreviewCatalogueEntry
 

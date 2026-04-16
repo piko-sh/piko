@@ -176,7 +176,6 @@ const (
 	CompressZstd = pdfwriter_dto.CompressZstd
 )
 
-// Standard page sizes.
 var (
 	// PageA4 is the ISO A4 page size (210mm x 297mm).
 	PageA4 = layouter_dto.PageA4

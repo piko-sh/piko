@@ -79,7 +79,6 @@ const (
 	FormFlagMultiSelect FormFieldFlags = 1 << 21
 )
 
-// AcroForm appearance/layout constants.
 const (
 	// defaultFontSize is the default font size in points for form field appearance strings.
 	defaultFontSize = 12.0

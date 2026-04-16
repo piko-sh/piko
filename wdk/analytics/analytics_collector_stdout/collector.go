@@ -36,6 +36,7 @@ const (
 	maxFields = 30
 )
 
+// log is the package-level logger for the analytics_collector_stdout package.
 var log = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_stdout")
 
 // Collector logs analytics events to the structured logger. It does

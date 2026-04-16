@@ -224,8 +224,12 @@ func (d *Decimal) Scan(source any) error {
 
 // stringerFromReflect attempts to call a String() string method on source,
 // including pointer-receiver methods that a type switch cannot reach when
-// the value is stored in an interface (for example duckdb.Decimal, whose
-// String method has a pointer receiver).
+// the value is stored in an interface.
+//
+// Takes source (any) which is the value to try calling String() on.
+//
+// Returns string which is the result of the String() call.
+// Returns bool which is true when the method was found and called successfully.
 func stringerFromReflect(source any) (string, bool) {
 	v := reflect.ValueOf(source)
 	if !v.IsValid() {

@@ -20,9 +20,6 @@ package lsp_domain
 
 import "piko.sh/piko/internal/annotator/annotator_dto"
 
-// LSP quick fix dispatch codes. These reference the stable T-series constants
-// from annotator_dto so the quick fix system matches codes the annotator
-// actually emits.
 const (
 	// DiagCodeTypeMismatch is the diagnostic code for prop type mismatch errors.
 	DiagCodeTypeMismatch = annotator_dto.CodePropTypeMismatch

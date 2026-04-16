@@ -24,6 +24,7 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 )
 
+// minifierSVG holds the pre-configured SVG minifier instance.
 var minifierSVG *minify.M
 
 // MinifySVG returns a capability function that minifies SVG content using

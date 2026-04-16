@@ -33,7 +33,6 @@ const filePermission = 0o600
 // filesystem.
 type DiskWriter struct{}
 
-// Ensure DiskWriter implements FileSystemWriterPort at compile time.
 var _ FileSystemWriterPort = (*DiskWriter)(nil)
 
 // NewDiskWriter creates a new filesystem writer.

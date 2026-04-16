@@ -59,8 +59,8 @@ type ScreenshotOptions struct {
 	// CaptureBeyondViewport captures content outside the visible browser window.
 	CaptureBeyondViewport bool
 
-	// OptimiseForSpeed trades encoding efficiency for faster capture. Useful
-	// when taking many screenshots in a tight loop (e.g. video frame capture).
+	// OptimiseForSpeed trades encoding efficiency for faster capture during
+	// high-frequency screenshot sequences.
 	OptimiseForSpeed bool
 }
 

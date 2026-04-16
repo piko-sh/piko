@@ -42,8 +42,12 @@ const (
 )
 
 var (
+	// errProviderNameEmpty is returned when a storage provider is registered
+	// with an empty name.
 	errProviderNameEmpty = errors.New("provider name cannot be empty")
 
+	// errProviderNil is returned when a nil storage provider is supplied
+	// during registration.
 	errProviderNil = errors.New("provider cannot be nil")
 )
 

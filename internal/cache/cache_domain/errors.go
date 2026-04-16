@@ -53,11 +53,19 @@ var (
 	// journalled at the key level.
 	ErrInvalidateAllUnsupported = errors.New("InvalidateAll is not supported within a transaction")
 
+	// errTransformerNil is returned when a nil transformer is provided during
+	// registration.
 	errTransformerNil = errors.New("transformer cannot be nil")
 
+	// errTransformerNameEmpty is returned when a transformer is registered with
+	// an empty name.
 	errTransformerNameEmpty = errors.New("transformer name cannot be empty")
 
+	// errEncoderNil is returned when a nil encoder is provided during
+	// registration.
 	errEncoderNil = errors.New("encoder cannot be nil")
 
+	// errEncoderNoType is returned when an encoder does not declare a concrete
+	// type to handle.
 	errEncoderNoType = errors.New("encoder must handle a concrete type")
 )

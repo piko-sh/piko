@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the ratelimiter_domain package.
 	log = logger_domain.GetLogger("piko/internal/ratelimiter/ratelimiter_domain")
 
 	// meter is the OpenTelemetry meter for the rate limiter domain package.

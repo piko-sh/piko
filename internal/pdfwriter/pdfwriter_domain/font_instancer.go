@@ -28,10 +28,16 @@ import (
 )
 
 var (
+	// errFontInstancerMaxpMissing is returned when the maxp table is missing
+	// or too short for font instancing.
 	errFontInstancerMaxpMissing = errors.New("font_instancer: missing or too short maxp table")
 
+	// errFontInstancerHeadMissing is returned when the head table is missing
+	// or too short for font instancing.
 	errFontInstancerHeadMissing = errors.New("font_instancer: missing or too short head table")
 
+	// errFontInstancerHheaMissing is returned when the hhea table is missing
+	// or too short for font instancing.
 	errFontInstancerHheaMissing = errors.New("font_instancer: missing or too short hhea table")
 )
 

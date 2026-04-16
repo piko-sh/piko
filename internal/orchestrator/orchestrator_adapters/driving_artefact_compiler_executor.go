@@ -47,8 +47,10 @@ const payloadKeyArtefactID = "artefactID"
 var (
 	_ orchestrator_domain.TaskExecutor = (*compilerExecutor)(nil)
 
+	// compilerSHA256Pool reuses SHA-256 hash.Hash instances to reduce allocation pressure.
 	compilerSHA256Pool = sync.Pool{New: func() any { return sha256.New() }}
 
+	// compilerSHA384Pool reuses SHA-384 hash.Hash instances to reduce allocation pressure.
 	compilerSHA384Pool = sync.Pool{New: func() any { return sha512.New384() }}
 )
 

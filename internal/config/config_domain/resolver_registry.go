@@ -24,8 +24,12 @@ import (
 )
 
 var (
+	// errResolverNil is returned when a nil resolver is provided during
+	// registration.
 	errResolverNil = errors.New("resolver cannot be nil")
 
+	// errResolverPrefixEmpty is returned when a resolver with an empty prefix
+	// is registered.
 	errResolverPrefixEmpty = errors.New("resolver prefix cannot be empty")
 )
 
@@ -40,8 +44,10 @@ type ResolverRegistry struct {
 }
 
 var (
+	// globalRegistry holds the lazily initialised singleton ResolverRegistry.
 	globalRegistry *ResolverRegistry
 
+	// globalRegistryOnce guards one-time initialisation of globalRegistry.
 	globalRegistryOnce sync.Once
 )
 

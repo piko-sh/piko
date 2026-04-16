@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the annotator_adapters package.
 	log = logger_domain.GetLogger("piko/internal/annotator/annotator_adapters")
 )

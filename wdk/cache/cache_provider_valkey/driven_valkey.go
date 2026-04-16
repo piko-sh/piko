@@ -119,7 +119,6 @@ type ValkeyAdapter[K comparable, V any] struct {
 	indexCreated bool
 }
 
-// _ checks that ValkeyAdapter implements the ProviderPort interface.
 var _ cache.ProviderPort[any, any] = (*ValkeyAdapter[any, any])(nil)
 
 // encodeKey converts a key of type K to a namespace-prefixed Valkey key string

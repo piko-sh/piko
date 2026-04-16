@@ -254,7 +254,6 @@ const (
 // or exit operation.
 type amd64InitOps struct{}
 
-// Ensure amd64InitOps implements InitialisationOperationsPort at compile time.
 var _ asmgen.InitialisationOperationsPort = (*amd64InitOps)(nil)
 
 // initJumpTableEntry emits a LEAQ/MOVQ pair that patches one entry

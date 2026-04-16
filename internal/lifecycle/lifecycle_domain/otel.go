@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the lifecycle_domain package.
 	log = logger_domain.GetLogger("piko/internal/lifecycle/lifecycle_domain")
 )

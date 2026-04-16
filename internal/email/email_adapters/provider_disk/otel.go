@@ -25,8 +25,10 @@ import (
 )
 
 var (
+	// log is the package-level logger for the provider_disk package.
 	log = logger_domain.GetLogger("piko/internal/email/email_adapters/provider_disk")
 
+	// meter is the OpenTelemetry meter for the provider_disk package.
 	meter = otel.Meter("piko/internal/email/email_adapters/provider_disk")
 
 	// sendTotal tracks the total number of email send attempts.

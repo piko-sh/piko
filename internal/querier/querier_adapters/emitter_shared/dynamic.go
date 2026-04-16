@@ -320,9 +320,8 @@ func BuildSortableQueryInit(query *querier_dto.AnalysedQuery, sortParameter quer
 	)
 }
 
-// BuildSortableQueryAppend appends ORDER BY to an existing query variable.
-// Unlike BuildSortableQueryInit, this does NOT define the query variable - it
-// assumes one already exists (e.g. from slice expansion).
+// BuildSortableQueryAppend appends ORDER BY to an existing query variable,
+// assuming the variable already exists from a prior definition.
 //
 // Takes sortParameter (querier_dto.QueryParameter) which is the sortable
 // parameter providing column and direction.
@@ -334,6 +333,11 @@ func BuildSortableQueryAppend(sortParameter querier_dto.QueryParameter) []ast.St
 
 // buildSortableOrderByAppend constructs the conditional ORDER BY append
 // statements that operate on an existing "query" local variable.
+//
+// Takes sortParameter (querier_dto.QueryParameter) which provides the
+// column and direction for sorting.
+//
+// Returns []ast.Stmt which contains the conditional ORDER BY append.
 func buildSortableOrderByAppend(sortParameter querier_dto.QueryParameter) []ast.Stmt {
 	sortField := SnakeToPascalCase(sortParameter.Name)
 	directionField := sortField + "Direction"

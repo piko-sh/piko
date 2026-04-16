@@ -100,6 +100,8 @@ const (
 )
 
 var (
+	// byteBufferPool reuses byte-slice buffers to reduce allocation pressure
+	// during rendering.
 	byteBufferPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, 0, byteBufferInitialCapacity))
@@ -125,6 +127,8 @@ var (
 		},
 	}
 
+	// selfClosingSVGElements holds the set of SVG element names that are rendered
+	// as self-closing tags.
 	selfClosingSVGElements = map[string]bool{
 		"circle": true, "ellipse": true, "feBlend": true, "feColorMatrix": true, "feComponentTransfer": true,
 		"feComposite": true, "feConvolveMatrix": true, "feDiffuseLighting": true, "feDisplacementMap": true,
@@ -135,32 +139,51 @@ var (
 		"polyline": true, "rect": true, "stop": true, "use": true, "view": true,
 	}
 
+	// openBracket is the pre-computed byte representation of "<".
 	openBracket = []byte{'<'}
 
+	// closeBracket is the pre-computed byte representation of ">".
 	closeBracket = []byte{'>'}
 
+	// space is the pre-computed byte representation of " ".
 	space = []byte{' '}
 
+	// quote is the pre-computed byte representation of a double-quote character.
 	quote = []byte{'"'}
 
+	// equalsQuote is the pre-computed byte representation of `="`.
 	equalsQuote = []byte{'=', '"'}
 
+	// selfClose is the pre-computed byte representation of " />".
 	selfClose = []byte{' ', '/', '>'}
 
+	// closeTagPrefix is the pre-computed byte representation of "</".
 	closeTagPrefix = []byte{'<', '/'}
 
+	// dot is the pre-computed byte representation of ".".
 	dot = []byte{'.'}
 
+	// pOnPrefix is the pre-computed byte representation of the p-on: attribute prefix.
 	pOnPrefix = []byte(` p-on:`)
 
+	// pEventPrefix is the pre-computed byte representation of the p-event: attribute prefix.
 	pEventPrefix = []byte(` p-event:`)
 
-	pRefPrefix            = []byte(` p-ref="`)
-	commentOpen           = []byte("<!--")
-	commentClose          = []byte("-->")
+	// pRefPrefix is the pre-computed byte representation of the p-ref attribute opening.
+	pRefPrefix = []byte(` p-ref="`)
+	// commentOpen is the pre-computed byte representation of "<!--".
+	commentOpen = []byte("<!--")
+	// commentClose is the pre-computed byte representation of "-->".
+	commentClose = []byte("-->")
+	// csrfEphemeralAttrName is the pre-computed byte representation of the CSRF
+	// ephemeral token attribute name.
 	csrfEphemeralAttrName = []byte("data-csrf-ephemeral-token")
-	csrfActionAttrName    = []byte("data-csrf-action-token")
-	renderContextPool     = sync.Pool{
+	// csrfActionAttrName is the pre-computed byte representation of the CSRF
+	// action token attribute name.
+	csrfActionAttrName = []byte("data-csrf-action-token")
+	// renderContextPool reuses renderContext instances to reduce allocation
+	// pressure during page rendering.
+	renderContextPool = sync.Pool{
 		New: func() any {
 			return new(newRenderContextFields())
 		},

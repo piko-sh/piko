@@ -25,16 +25,22 @@ import (
 )
 
 var (
+	// log is the package-level logger for the analytics_collector_plausible package.
 	log = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_plausible")
 
+	// meter is the OpenTelemetry meter for the analytics_collector_plausible package.
 	meter = otel.Meter("piko/wdk/analytics/analytics_collector_plausible")
 
+	// sendCount tracks the total number of Plausible event POST requests.
 	sendCount metric.Int64Counter
 
+	// sendDuration records the duration of Plausible POST requests.
 	sendDuration metric.Float64Histogram
 
+	// errorCount tracks the number of failed Plausible POST requests.
 	errorCount metric.Int64Counter
 
+	// batchSize records the number of events per Plausible flush.
 	batchSize metric.Int64Histogram
 )
 

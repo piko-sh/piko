@@ -199,6 +199,15 @@ func buildStreamIteratorBody(
 	return buildStreamIteratorBodyFromCall(rowTypeName, dbCall, scanArguments, query)
 }
 
+// buildStreamIteratorBodyFromCall constructs the full body of a :stream method
+// from a database call expression.
+//
+// Takes rowTypeName (string) which is the row struct name.
+// Takes dbCall (*ast.CallExpr) which is the database call expression.
+// Takes scanArguments ([]ast.Expr) which are the Scan call arguments.
+// Takes query (*querier_dto.AnalysedQuery) which defines embed handling.
+//
+// Returns []ast.Stmt which contains the method body statements.
 func buildStreamIteratorBodyFromCall(
 	rowTypeName string,
 	dbCall *ast.CallExpr,

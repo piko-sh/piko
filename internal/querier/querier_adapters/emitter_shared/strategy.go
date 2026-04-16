@@ -79,15 +79,11 @@ type MethodStrategy interface {
 	RuntimeBuilderImports(tracker *ImportTracker)
 
 	// NeedsSliceExpansion reports whether this emitter requires runtime SQL
-	// rewriting for piko.slice parameters. The database/sql emitter returns
-	// true because SQLite uses IN (?) which must be expanded to IN (?, ?, ...)
-	// at runtime. The pgx emitter returns false because PostgreSQL uses
-	// ANY($1) which natively accepts array parameters.
+	// rewriting for piko.slice parameters.
 	NeedsSliceExpansion() bool
 
 	// MaxBindVariables returns the maximum number of bind variables a single
-	// SQL statement supports. Used by batch insert to chunk multi-row VALUES.
-	// SQLite: 999, MySQL: 65535, PostgreSQL/DuckDB: 32767.
+	// SQL statement supports, used by batch insert to chunk multi-row VALUES.
 	MaxBindVariables() int
 
 	// UsesNumberedParams reports whether the emitter uses numbered
@@ -120,8 +116,6 @@ type BatchCopyFromHandler interface {
 	BuildCopyFromParamsStruct(query *querier_dto.AnalysedQuery, mappings *querier_dto.TypeMappingTable, tracker *ImportTracker) ast.Decl
 
 	// EmitHelperFile returns an optional helper file needed by the batch
-	// implementation. Returns nil if no helper is needed (e.g. pgx uses its
-	// own library functions). The database/sql handler returns
-	// batch_helpers.go with pikoBatchExpandValues.
+	// implementation, or nil if no helper is needed.
 	EmitHelperFile(packageName string) *querier_dto.GeneratedFile
 }

@@ -49,8 +49,11 @@ const (
 )
 
 var (
+	// errProviderNotConnected is returned when an operation is attempted on an
+	// otter persistence provider that has not been connected.
 	errProviderNotConnected = errors.New("otter provider not connected")
 
+	// log is the package-level logger for the persistence package.
 	log = logger_domain.GetLogger("piko/internal/persistence")
 )
 

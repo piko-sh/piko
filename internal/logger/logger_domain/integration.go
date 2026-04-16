@@ -92,8 +92,10 @@ type OtelIntegration interface {
 }
 
 var (
+	// integrationsMu guards concurrent access to integrations.
 	integrationsMu sync.RWMutex
 
+	// integrations holds the registered logger integrations keyed by type name.
 	integrations = make(map[string]Integration)
 )
 

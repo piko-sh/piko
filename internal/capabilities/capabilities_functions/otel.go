@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the capabilities_functions package.
 	log = logger_domain.GetLogger("piko/internal/capabilities/capabilities_functions")
 
 	// meter is the OpenTelemetry meter for this package's metrics.

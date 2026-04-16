@@ -78,6 +78,8 @@ type astEvent struct {
 	isVoid bool
 }
 
+// astEventPool reuses astEvent instances to reduce allocation pressure during
+// AST streaming.
 var astEventPool = sync.Pool{
 	New: func() any {
 		return new(astEvent)

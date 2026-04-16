@@ -67,6 +67,8 @@ type Symbol struct {
 	SourceInvocationKey string
 }
 
+// reservedSystemSymbols maps identifier names reserved by the
+// template runtime that trigger a warning when shadowed.
 var reservedSystemSymbols = map[string]struct{}{
 	"request": {},
 	"req":     {},

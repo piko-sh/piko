@@ -43,17 +43,21 @@ const (
 )
 
 var (
+	// builderPool reuses strings.Builder instances to reduce allocation pressure
+	// during log line formatting.
 	builderPool = sync.Pool{
 		New: func() any {
 			return &strings.Builder{}
 		},
 	}
 
+	// fieldOrder holds the display order for structured log fields.
 	fieldOrder = []string{
 		logger_domain.KeyTime, logger_domain.KeyLevel, logger_domain.KeyPID, logger_domain.KeyHost,
 		logger_domain.KeyContext, logger_domain.KeyMethod, logger_domain.KeyMessage,
 	}
 
+	// fieldPaddings holds the column-width padding for each log field.
 	fieldPaddings = map[string]int{
 		logger_domain.KeyLevel:     6,
 		logger_domain.KeyContext:   28,
@@ -61,6 +65,7 @@ var (
 		logger_domain.KeyMethod:    39,
 	}
 
+	// fieldColours holds the terminal colour style for each log field name.
 	fieldColours = map[string]colour.Style{
 		logger_domain.KeyTime:      colour.New(colour.FgBlue),
 		logger_domain.KeyMessage:   colour.New(colour.FgHiWhite),
@@ -77,6 +82,7 @@ var (
 		logger_domain.KeyError:     colour.New(colour.FgRed),
 	}
 
+	// levelColours holds the terminal colour style for each log level.
 	levelColours = map[slog.Level]colour.Style{
 		logger_domain.LevelTrace:    colour.New(colour.FgHiBlack),
 		logger_domain.LevelInternal: colour.New(colour.FgHiBlack, colour.Italic),
@@ -87,10 +93,13 @@ var (
 		slog.LevelError:             colour.New(colour.FgRed),
 	}
 
+	// sourceColour holds the terminal colour style for source file references.
 	sourceColour = colour.New(colour.FgHiBlack)
 
+	// keyColour holds the terminal colour style for attribute key names.
 	keyColour = colour.New(colour.FgCyan)
 
+	// whiteColour holds the terminal colour style for general white text.
 	whiteColour = colour.New(colour.FgWhite)
 )
 

@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the cache_provider_redis package.
 	log = logger.GetLogger("piko/cache/cache_provider_redis")
 )

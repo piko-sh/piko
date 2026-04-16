@@ -87,8 +87,7 @@ type Config struct {
 	// should apply, such as stacked columns. Default is "480px".
 	Breakpoint string `yaml:"breakpoint"`
 
-	// AssetServePath is the URL path prefix for serving assets in preview mode
-	// (e.g. "/_piko/assets"). Only used when PreviewMode is true.
+	// AssetServePath is the URL path prefix for serving assets in preview mode.
 	AssetServePath string `yaml:"-"`
 
 	// ClearDefaultAttributes disables the built-in default attributes

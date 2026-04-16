@@ -23,6 +23,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the monitoring_domain package.
 	log = logger.GetLogger("piko/internal/monitoring/monitoring_domain")
 
 	// String is a logger field constructor for string values.

@@ -44,7 +44,6 @@ const (
 	tsaMaxResponseSize = 1 << 20
 )
 
-// Sentinel errors for TSA failures.
 var (
 	// ErrTSAHTTPFailure indicates the TSA server returned a non-200
 	// HTTP status code.

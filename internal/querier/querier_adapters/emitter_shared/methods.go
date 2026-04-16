@@ -266,13 +266,28 @@ func BuildRowsIterationBody(rowTypeName string, queryArguments []ast.Expr, scanA
 	return buildRowsIterationBodyFromCall(rowTypeName, dbCall, scanArguments, query)
 }
 
-// BuildRowsIterationBodyFromSliceCall is like BuildRowsIterationBody but takes
-// a pre-built *ast.CallExpr (with ellipsis) for use with slice-expanded
-// queries.
+// BuildRowsIterationBodyFromSliceCall constructs the body of a :many method
+// from a pre-built call expression with ellipsis for slice-expanded queries.
+//
+// Takes rowTypeName (string) which is the row struct name.
+// Takes dbCall (*ast.CallExpr) which is the pre-built database call.
+// Takes scanArguments ([]ast.Expr) which are the Scan call arguments.
+// Takes query (*querier_dto.AnalysedQuery) which defines embed handling.
+//
+// Returns []ast.Stmt which contains the method body statements.
 func BuildRowsIterationBodyFromSliceCall(rowTypeName string, dbCall *ast.CallExpr, scanArguments []ast.Expr, query *querier_dto.AnalysedQuery) []ast.Stmt {
 	return buildRowsIterationBodyFromCall(rowTypeName, dbCall, scanArguments, query)
 }
 
+// buildRowsIterationBodyFromCall constructs the full body of a :many method
+// from a database call expression.
+//
+// Takes rowTypeName (string) which is the row struct name.
+// Takes dbCall (*ast.CallExpr) which is the database call expression.
+// Takes scanArguments ([]ast.Expr) which are the Scan call arguments.
+// Takes query (*querier_dto.AnalysedQuery) which defines embed handling.
+//
+// Returns []ast.Stmt which contains the method body statements.
 func buildRowsIterationBodyFromCall(rowTypeName string, dbCall *ast.CallExpr, scanArguments []ast.Expr, query *querier_dto.AnalysedQuery) []ast.Stmt {
 	return []ast.Stmt{
 		goastutil.DefineStmtMulti(

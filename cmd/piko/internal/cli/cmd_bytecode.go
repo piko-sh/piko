@@ -297,6 +297,8 @@ func inspectCompiledFileSet(compiledFileSet *interp_domain.CompiledFileSet) *int
 	return inspection
 }
 
+// registerBankNames maps register bank indices to their
+// human-readable names for bytecode inspection.
 var registerBankNames = [...]string{
 	"int", "float", "string", "general", "bool", "uint", "complex",
 }

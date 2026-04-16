@@ -28,7 +28,7 @@ const (
 	// PhoneticJ represents the LY sound, like the English letter "y".
 	PhoneticJ = "J"
 
-	// PhoneticNJ represents the NY sound (palatalized N, like Spanish ñ).
+	// PhoneticNJ represents the NY sound (palatalised N, like Spanish n-tilde).
 	PhoneticNJ = "NJ"
 
 	// PhoneticS represents the SZ sound, like the English letter "s".

@@ -31,6 +31,8 @@ import (
 // maxUTF8RuneBytes is the maximum number of bytes a single UTF-8 rune can occupy.
 const maxUTF8RuneBytes = 4
 
+// stringSliceType holds the reflect.Type for []string, used
+// to construct string slices via reflection in string intrinsics.
 var stringSliceType = reflect.TypeFor[[]string]()
 
 // handleStrContainsRune handles the opStrContainsRune instruction by

@@ -31,9 +31,6 @@ import (
 // cssKeywordCounter is the CSS "counter" keyword string.
 const cssKeywordCounter = "counter"
 
-// Default intrinsic dimensions for form elements in points
-// (matching typical browser defaults, converted from px at
-// 0.75 pt/px).
 const (
 	// formTextWidth holds the default width for text input elements.
 	formTextWidth = 127.5

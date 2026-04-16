@@ -25,7 +25,6 @@ import (
 	"unicode/utf8"
 )
 
-// Byte literal constants used throughout the lexer to avoid magic values.
 const (
 	// angleBracketOpen holds the '<' byte used to detect tag openings.
 	angleBracketOpen byte = '<'
@@ -66,8 +65,6 @@ const (
 	utf8ContinuationValue byte = 0x80
 )
 
-// Markup sequence length constants used to avoid magic numbers in cursor
-// advancement and peek offset calculations.
 const (
 	// commentOpenLength holds the byte length of the "<!--" opening sequence.
 	commentOpenLength = 4

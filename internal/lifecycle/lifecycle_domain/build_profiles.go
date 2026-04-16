@@ -241,9 +241,7 @@ func buildCSSProfiles(_ profileContext) []registry_dto.NamedProfile {
 }
 
 // isPreMinified reports whether a file name indicates the asset has already
-// been minified (e.g. "foo.min.js", "bar.min.es.js"). Double-minifying
-// breaks variable scoping in the output, so these files must skip the
-// minification step.
+// been minified, such as "foo.min.js" or "bar.min.es.js".
 //
 // Takes name (string) which is the artefact ID or file path to check.
 //

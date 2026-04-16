@@ -956,17 +956,27 @@ func (c *Container) IsDevWidgetEnabled() bool { return c.devWidgetEnabled }
 func (c *Container) IsDevHotreloadEnabled() bool { return c.devHotreloadEnabled }
 
 // SetOnServerBound stores a callback to invoke when the main HTTP server
-// binds to a port. The callback receives the resolved listen address.
+// binds to a port.
+//
+// Takes fn (func(address string)) which is the callback receiving the resolved
+// listen address.
 func (c *Container) SetOnServerBound(fn func(address string)) { c.onServerBound = fn }
 
 // OnServerBound returns the stored server-bound callback, or nil.
+//
+// Returns func(address string) which is the callback, or nil if not set.
 func (c *Container) OnServerBound() func(address string) { return c.onServerBound }
 
 // SetOnHealthBound stores a callback to invoke when the health server
-// binds to a port. The callback receives the resolved listen address.
+// binds to a port.
+//
+// Takes fn (func(address string)) which is the callback receiving the resolved
+// listen address.
 func (c *Container) SetOnHealthBound(fn func(address string)) { c.onHealthBound = fn }
 
 // OnHealthBound returns the stored health-bound callback, or nil.
+//
+// Returns func(address string) which is the callback, or nil if not set.
 func (c *Container) OnHealthBound() func(address string) { return c.onHealthBound }
 
 // IsSRIEnabled reports whether Subresource Integrity hashes should be added

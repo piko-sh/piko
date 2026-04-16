@@ -34,6 +34,7 @@ const (
 )
 
 var (
+	// log is the package-level logger for the monitoring_transport_grpc package.
 	log = logger.GetLogger("piko/wdk/monitoring/monitoring_transport_grpc")
 
 	// String is an alias for logger.String that creates a string field for logging.

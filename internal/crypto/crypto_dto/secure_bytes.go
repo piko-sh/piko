@@ -30,6 +30,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the crypto_dto package.
 	log = logger_domain.GetLogger("piko/internal/crypto/crypto_dto")
 
 	// errSecureBytesClosed is returned when attempting to access a closed

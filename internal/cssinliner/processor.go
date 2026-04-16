@@ -189,10 +189,8 @@ func (p *Processor) Process(
 	return result, inlinerDiags, nil
 }
 
-// InlineToAST takes a raw CSS string, resolves all @import rules, cleans the
-// AST, and returns the resulting syntax tree for further manipulation. This is
-// the AST-level API used when additional transformations (e.g. scoping) are
-// needed before printing.
+// InlineToAST resolves all @import rules in a raw CSS string and returns the
+// cleaned syntax tree for further manipulation.
 //
 // Takes cssBlock (string) which contains the raw CSS to process.
 // Takes sourcePath (string) which identifies the source file for diagnostics.

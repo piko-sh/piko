@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the email_provider_sendgrid package.
 	log = logger.GetLogger("piko/email/email_provider_sendgrid")
 
 	// Meter is the package-level meter for SendGrid provider metrics.

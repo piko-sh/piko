@@ -54,6 +54,7 @@ const (
 )
 
 var (
+	// log is the package-level logger for the otter package.
 	log = logger_domain.GetLogger("piko/internal/orchestrator/orchestrator_dal/otter")
 
 	_ orchestrator_dal.OrchestratorDALWithTx = (*DAL)(nil)

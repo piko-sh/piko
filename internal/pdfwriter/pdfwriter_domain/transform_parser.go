@@ -29,7 +29,6 @@ import (
 	"strings"
 )
 
-// Transform parser constants.
 const (
 	// matrixArgCount is the number of arguments in a CSS matrix() function.
 	matrixArgCount = 6

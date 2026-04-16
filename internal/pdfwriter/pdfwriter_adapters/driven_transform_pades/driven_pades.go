@@ -100,18 +100,23 @@ const (
 	asn1TagImplicitConstructed1 = 0xa1
 )
 
-// ASN.1 object identifiers used in CMS SignedData construction.
 var (
+	// oidData is the ASN.1 OID for PKCS#7 id-data content type.
 	oidData = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 1}
 
+	// oidSignedData is the ASN.1 OID for PKCS#7 id-signedData content type.
 	oidSignedData = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 7, 2}
 
+	// oidSHA256 is the ASN.1 OID for the SHA-256 hash algorithm.
 	oidSHA256 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 1}
 
+	// oidContentType is the ASN.1 OID for the CMS content-type signed attribute.
 	oidContentType = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 3}
 
+	// oidMessageDigest is the ASN.1 OID for the CMS message-digest signed attribute.
 	oidMessageDigest = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 4}
 
+	// oidSigningTime is the ASN.1 OID for the CMS signing-time signed attribute.
 	oidSigningTime = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 5}
 
 	// oidECDSAWithSHA256 is the OID for ecdsa-with-SHA256.
@@ -127,10 +132,16 @@ var (
 )
 
 var (
+	// errSignatureDictNotFound is returned when the signature dictionary
+	// object cannot be located in the serialised PDF.
 	errSignatureDictNotFound = errors.New("signature dictionary object not found")
 
+	// errContentsPlaceholderNotFound is returned when the /Contents hex
+	// placeholder cannot be found in the signature dictionary.
 	errContentsPlaceholderNotFound = errors.New("/Contents placeholder not found in signature dictionary")
 
+	// errContentsHexNotTerminated is returned when the /Contents hex string
+	// is missing its closing angle bracket.
 	errContentsHexNotTerminated = errors.New("/Contents hex string not terminated")
 )
 

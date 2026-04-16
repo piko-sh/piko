@@ -52,10 +52,15 @@ const (
 )
 
 var (
+	// log is the package-level logger for the querier_adapter package.
 	log = logger.GetLogger("piko/internal/registry/registry_dal/querier_adapter")
 
+	// errDALNotInitialised is returned when a transaction is attempted but the
+	// DAL has not been initialised with a sql.DB connection.
 	errDALNotInitialised = errors.New("cannot create transaction: DAL not initialised with a sql.DB connection")
 
+	// errSearchQueryEmpty is returned when a search operation is attempted
+	// with an empty query string.
 	errSearchQueryEmpty = errors.New("search query is empty")
 )
 

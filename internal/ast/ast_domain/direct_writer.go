@@ -195,12 +195,16 @@ var (
 		},
 	}
 
+	// stringBufPool reuses byte-slice buffers to reduce allocation pressure during
+	// DirectWriter string rendering.
 	stringBufPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, 0, defaultStringBufCapacity))
 		},
 	}
 
+	// byteBufPool reuses byte-slice buffers to reduce allocation pressure for
+	// general-purpose byte output.
 	byteBufPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, 0, defaultByteBufCapacity))

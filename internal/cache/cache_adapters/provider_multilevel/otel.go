@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the provider_multilevel package.
 	log = logger_domain.GetLogger("piko/internal/cache/cache_adapters/provider_multilevel")
 
 	// meter is the OpenTelemetry meter for the multi-level cache provider metrics.

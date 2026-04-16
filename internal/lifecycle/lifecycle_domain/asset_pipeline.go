@@ -118,8 +118,6 @@ var (
 		"2xl": 1536,
 	}
 
-	// _ references defaultScreens to satisfy staticcheck, as it is reserved for
-	// future use.
 	_ = defaultScreens
 
 	// fallbackVideoQualities defines the fallback quality levels when not

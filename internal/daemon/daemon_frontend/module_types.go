@@ -239,10 +239,13 @@ func (m *CustomFrontendModule) AssetPath() string {
 }
 
 var (
+	// cachedModulePreloadHTML holds the pre-built HTML for module preload link elements.
 	cachedModulePreloadHTML string
 
+	// cachedModuleScriptHTML holds the pre-built HTML for module script elements.
 	cachedModuleScriptHTML string
 
+	// cachedModuleConfigHTML holds the pre-built HTML for module configuration script elements.
 	cachedModuleConfigHTML string
 
 	// cachedDevWidgetHTML holds the HTML element for the dev tools overlay

@@ -37,10 +37,15 @@ import (
 )
 
 var (
+	// errTaskIDRequired is returned when a task is submitted without an ID.
 	errTaskIDRequired = errors.New("task ID is required")
 
+	// errTaskWorkflowIDRequired is returned when a task is submitted without
+	// a workflow ID.
 	errTaskWorkflowIDRequired = errors.New("task workflowID is required")
 
+	// errTaskExecutorRequired is returned when a task is submitted without an
+	// executor name.
 	errTaskExecutorRequired = errors.New("task executor is required")
 )
 

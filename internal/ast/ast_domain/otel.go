@@ -27,6 +27,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the ast_domain package.
 	log = logger_domain.GetLogger("piko/internal/ast/ast_domain")
 
 	// Meter provides OpenTelemetry metrics for the ast_domain package.

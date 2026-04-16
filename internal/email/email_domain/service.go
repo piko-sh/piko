@@ -47,8 +47,12 @@ const (
 )
 
 var (
+	// errProviderNameEmpty is returned when an email provider is registered
+	// with an empty name.
 	errProviderNameEmpty = errors.New("provider name cannot be empty")
 
+	// errProviderNil is returned when a nil email provider is supplied during
+	// registration.
 	errProviderNil = errors.New("provider cannot be nil")
 )
 

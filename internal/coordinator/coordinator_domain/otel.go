@@ -28,6 +28,7 @@ import (
 // coordinator domain.
 
 var (
+	// log is the package-level logger for the coordinator_domain package.
 	log = logger_domain.GetLogger("piko/internal/coordinator/coordinator_domain")
 
 	// meter is the OpenTelemetry metric.Meter for the coordinator domain.

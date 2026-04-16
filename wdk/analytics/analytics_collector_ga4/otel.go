@@ -25,16 +25,22 @@ import (
 )
 
 var (
+	// log is the package-level logger for the analytics_collector_ga4 package.
 	log = logger_domain.GetLogger("piko/wdk/analytics/analytics_collector_ga4")
 
+	// meter is the OpenTelemetry meter for the analytics_collector_ga4 package.
 	meter = otel.Meter("piko/wdk/analytics/analytics_collector_ga4")
 
+	// sendCount tracks the total number of GA4 batch POST requests.
 	sendCount metric.Int64Counter
 
+	// sendDuration records the duration of GA4 POST requests.
 	sendDuration metric.Float64Histogram
 
+	// errorCount tracks the number of failed GA4 POST requests.
 	errorCount metric.Int64Counter
 
+	// batchSize records the number of events per GA4 batch.
 	batchSize metric.Int64Histogram
 )
 

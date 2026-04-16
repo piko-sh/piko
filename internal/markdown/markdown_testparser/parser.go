@@ -327,6 +327,7 @@ func generateHeadingID(text string) string {
 	return result
 }
 
+// fencePattern matches fenced code block delimiters with optional language info.
 var fencePattern = regexp.MustCompile(`^(\s{0,3})(` + "```" + `+|~~~+)(.*)$`)
 
 // isFenceLine reports whether line is a fenced code block delimiter.

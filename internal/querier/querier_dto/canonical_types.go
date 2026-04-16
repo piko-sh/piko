@@ -18,15 +18,6 @@
 
 package querier_dto
 
-// Canonical type names used by the domain layer for type promotion, mapping,
-// and default type construction. Engine adapters normalise dialect-specific
-// type names (e.g. SQLite's "integer", "real") via NormaliseTypeName; the
-// canonical names here are used in promoteWithinCategory rank maps and
-// defaultMappings lookups.
-//
-// These are PostgreSQL-aligned because PostgreSQL has the richest built-in
-// type system. Adapters for simpler engines (SQLite, MySQL) normalise to a
-// subset of these names.
 const (
 	// CanonicalInt2 represents a 16-bit integer (smallint).
 	CanonicalInt2 = "int2"

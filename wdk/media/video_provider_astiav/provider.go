@@ -60,6 +60,7 @@ type Provider struct {
 var _ media.VideoTranscoderPort = (*Provider)(nil)
 var _ media.StreamingTranscoderPort = (*Provider)(nil)
 
+// errNoFramesInVideo is returned when a video contains no decodable frames.
 var errNoFramesInVideo = errors.New("no frames in video")
 
 // NewProvider creates a new FFmpeg-based video transcoding provider.

@@ -25,30 +25,43 @@ import (
 )
 
 var (
+	// log is the package-level logger for the render_adapters package.
 	log = logger_domain.GetLogger("piko/internal/render/render_adapters")
 
+	// meter is the OpenTelemetry meter for the render_adapters package.
 	meter = otel.Meter("piko/internal/render/render_adapters")
 
+	// componentLoaderBatchCount tracks the number of component loader batch operations.
 	componentLoaderBatchCount metric.Int64Counter
 
+	// componentLoaderCacheHitCount tracks the number of component loader cache hits.
 	componentLoaderCacheHitCount metric.Int64Counter
 
+	// componentLoaderCacheMissCount tracks the number of component loader cache misses.
 	componentLoaderCacheMissCount metric.Int64Counter
 
+	// componentLoaderErrorCount tracks the number of component loader errors.
 	componentLoaderErrorCount metric.Int64Counter
 
+	// svgLoaderBatchCount tracks the number of SVG loader batch operations.
 	svgLoaderBatchCount metric.Int64Counter
 
+	// svgLoaderCacheHitCount tracks the number of SVG loader cache hits.
 	svgLoaderCacheHitCount metric.Int64Counter
 
+	// svgLoaderCacheMissCount tracks the number of SVG loader cache misses.
 	svgLoaderCacheMissCount metric.Int64Counter
 
+	// svgLoaderErrorCount tracks the number of SVG loader errors.
 	svgLoaderErrorCount metric.Int64Counter
 
+	// svgLoaderItemFailureCount tracks the number of individual SVG items that failed to load.
 	svgLoaderItemFailureCount metric.Int64Counter
 
+	// componentLoadDuration records the duration of component load operations.
 	componentLoadDuration metric.Float64Histogram
 
+	// svgLoadDuration records the duration of SVG load operations.
 	svgLoadDuration metric.Float64Histogram
 )
 

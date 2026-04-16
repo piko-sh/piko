@@ -79,10 +79,13 @@ var (
 	// comparisons during Reset. These values match those used in newRenderArena.
 	initialChildCounts = [13]int{128, 96, 64, 48, 32, 32, 16, 16, 8, 8, 4, 4, 4}
 
+	// initialAttrCounts holds the initial bucket counts for attribute slab allocation.
 	initialAttrCounts = [7]int{192, 128, 64, 32, 16, 16, 8}
 
+	// initialWriterCounts holds the initial bucket counts for attribute writer slab allocation.
 	initialWriterCounts = [6]int{128, 64, 32, 16, 16, 8}
 
+	// initialRootNodesCounts holds the initial bucket counts for root node slab allocation.
 	initialRootNodesCounts = [14]int{8, 8, 8, 4, 4, 4, 4, 4, 2, 2, 2, 2, 2, 2}
 
 	// arenaPool is the single sync.Pool for arena instances.

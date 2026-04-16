@@ -38,6 +38,7 @@ const (
 	SizingModeMaxContent
 )
 
+// sizingModeNames maps SizingMode values to their CSS keyword strings.
 var sizingModeNames = [...]string{
 	SizingModeNormal:     "normal",
 	SizingModeMinContent: "min-content",

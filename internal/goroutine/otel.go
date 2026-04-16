@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the goroutine package.
 	log = logger_domain.GetLogger("piko/internal/goroutine")
 
 	// meter is the OpenTelemetry meter for goroutine panic tracking.

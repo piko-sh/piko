@@ -28,16 +28,22 @@ import (
 )
 
 var (
+	// errorColour is the ANSI colour used for runtime error severity labels.
 	errorColour = colour.New(colour.FgRed, colour.Bold)
 
+	// warningColour is the ANSI colour used for runtime warning severity labels.
 	warningColour = colour.New(colour.FgYellow, colour.Bold)
 
+	// infoColour is the ANSI colour used for runtime informational severity labels.
 	infoColour = colour.New(colour.FgBlue, colour.Bold)
 
+	// pathColour is the ANSI colour used for source file paths in runtime diagnostics.
 	pathColour = colour.New(colour.FgCyan)
 
+	// gutterColour is the ANSI colour used for line number gutters in runtime diagnostics.
 	gutterColour = colour.New(colour.FgBlue, colour.Bold)
 
+	// messageColour is the ANSI colour used for runtime diagnostic message text.
 	messageColour = colour.New(colour.Bold)
 
 	// rejectedPikoElementTags lists tag names that cannot be used as the resolved

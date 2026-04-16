@@ -57,6 +57,7 @@ var (
 	// same selectors.
 	selectorCache sync.Map
 
+	// combinatorHandlers maps CSS combinator symbols to their query handler functions.
 	combinatorHandlers = map[string]combinatorHandler{
 		" ": handleDescendantCombinator,
 		">": handleChildCombinator,
@@ -64,6 +65,7 @@ var (
 		"~": handleGeneralSiblingCombinator,
 	}
 
+	// pseudoClassHandlers maps CSS pseudo-class names to their matching functions.
 	pseudoClassHandlers map[string]pseudoClassHandler
 )
 

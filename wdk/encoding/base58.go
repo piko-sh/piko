@@ -22,6 +22,8 @@ package encoding
 import "fmt"
 
 var (
+	// base58Alphabet holds the Bitcoin Base58 character set, excluding visually
+	// ambiguous characters (0, O, I, l).
 	base58Alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
 
 	// Base58Encoding is a pre-initialised encoding using

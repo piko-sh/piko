@@ -578,6 +578,7 @@ func (*transformer) renderPlainCodeBlock(code, language string, location ast_dom
 	return pikoNode
 }
 
+// pikoShortcodeRegex matches piko shortcode names and arguments in fenced code blocks.
 var pikoShortcodeRegex = regexp.MustCompile(`piko\s+([a-zA-Z0-9_-]+)\s*(.*)`)
 
 // transformPikoShortcode handles ` ```piko ` blocks by parsing the shortcode

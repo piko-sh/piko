@@ -91,6 +91,8 @@ const (
 )
 
 var (
+	// otelAttrPool reuses OpenTelemetry attribute slices to reduce allocation
+	// pressure during span attribute propagation.
 	otelAttrPool = sync.Pool{
 		New: func() any {
 			return new(make([]attribute.KeyValue, 0, 8))

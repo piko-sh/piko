@@ -116,9 +116,8 @@ type MailgunProviderArgs struct {
 	// FromEmail is the default sender email address; must not be empty.
 	FromEmail string
 
-	// APIBase is an optional override for the Mailgun API base URL. Leave
-	// empty to use the default US endpoint. Set to
-	// "https://api.eu.mailgun.net/v3" for the EU region.
+	// APIBase is an optional override for the Mailgun API base URL, empty
+	// for the default US endpoint.
 	APIBase string
 }
 

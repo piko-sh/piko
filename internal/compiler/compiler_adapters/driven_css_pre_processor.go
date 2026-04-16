@@ -120,8 +120,7 @@ func (p *cssPreProcessor) InlineImports(ctx context.Context, cssContent string, 
 }
 
 // resolveToFilesystemPath converts a module-qualified source path to an
-// absolute filesystem path. If the path is not module-qualified (e.g.
-// already a filesystem path), it is returned unchanged.
+// absolute filesystem path, returning non-module paths unchanged.
 //
 // Takes sourcePath (string) which is the path to resolve, potentially
 // prefixed with the Go module name.

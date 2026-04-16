@@ -31,6 +31,8 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+// msPool reuses methodSearcher instances to reduce allocation pressure during
+// method resolution.
 var msPool = &methodSearcherPool{
 	p: sync.Pool{
 		New: func() any {

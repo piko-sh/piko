@@ -24,6 +24,8 @@ import (
 	"go.uber.org/goleak"
 )
 
+// baseOptions holds the default goroutine leak detection
+// ignore rules shared across all tests.
 var baseOptions = []goleak.Option{
 	goleak.IgnoreTopFunction("internal/poll.runtime_pollWait"),
 }

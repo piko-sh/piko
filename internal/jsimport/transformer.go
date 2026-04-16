@@ -39,9 +39,7 @@ const (
 )
 
 // NormaliseExtension ensures an import path has a .js extension when it refers
-// to a JavaScript or TypeScript source file. If the path has no extension, .js
-// is appended. If it ends with .ts, the extension is replaced with .js. All
-// other extensions (e.g. .css, .svg) are left unchanged.
+// to a JavaScript or TypeScript source file, leaving other extensions unchanged.
 //
 // Takes importPath (string) which is the import path to normalise.
 //
@@ -104,13 +102,8 @@ func ResolveModulePath(importPath, moduleName string) string {
 }
 
 // RewriteImportRecords rewrites import paths in parsed esbuild AST import
-// records in place. It handles three transforms:
-//   - @/ alias resolution: when moduleName is non-empty, @/lib/foo becomes
-//     /_piko/assets/{moduleName}/lib/foo.js
-//   - .ts -> .js: any import ending in .ts is rewritten to .js so the browser
-//     requests the transpiled output rather than the TypeScript source
-//   - extensionless relative imports: relative paths (./ or ../) without a
-//     file extension receive a .js suffix so the browser can resolve them
+// records in place, handling alias resolution, .ts-to-.js conversion, and
+// extensionless relative import normalisation.
 //
 // Takes records ([]ast.ImportRecord) which are the parsed import records to
 // modify in place.

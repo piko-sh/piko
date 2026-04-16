@@ -29,8 +29,12 @@ import (
 )
 
 var (
+	// errProviderNameEmpty is returned when a crypto provider is registered
+	// with an empty name.
 	errProviderNameEmpty = errors.New("provider name cannot be empty")
 
+	// errProviderNil is returned when a nil crypto provider is supplied during
+	// registration.
 	errProviderNil = errors.New("provider cannot be nil")
 )
 

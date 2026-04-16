@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the config_domain package.
 	log = logger_domain.GetLogger("piko/internal/config/config_domain")
 )

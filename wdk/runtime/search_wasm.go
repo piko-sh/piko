@@ -26,6 +26,8 @@ import (
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
+// errSearchNotAvailable is returned when search is called in a WASM build
+// where search functionality is not supported.
 var errSearchNotAvailable = errors.New("search functionality is not available in WASM")
 
 // SearchCollection is not available in WASM builds.

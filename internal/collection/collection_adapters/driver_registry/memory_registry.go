@@ -26,6 +26,8 @@ import (
 	"piko.sh/piko/internal/collection/collection_domain"
 )
 
+// errProviderNameEmpty is returned when a provider is registered with an
+// empty name.
 var errProviderNameEmpty = errors.New("provider name cannot be empty")
 
 // MemoryRegistry is an in-memory implementation of ProviderRegistryPort.

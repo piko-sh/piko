@@ -21,5 +21,6 @@ package logger_output_file
 import "piko.sh/piko/internal/logger/logger_domain"
 
 var (
+	// log is the package-level logger for the logger_output_file package.
 	log = logger_domain.GetLogger("piko/wdk/logger/logger_output_file")
 )

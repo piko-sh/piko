@@ -37,8 +37,10 @@ type SecretManager struct {
 }
 
 var (
+	// globalSecretManager holds the lazily initialised singleton SecretManager.
 	globalSecretManager *SecretManager
 
+	// globalSecretManagerOnce guards one-time initialisation of globalSecretManager.
 	globalSecretManagerOnce sync.Once
 )
 

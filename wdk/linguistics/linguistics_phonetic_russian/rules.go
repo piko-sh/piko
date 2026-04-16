@@ -22,16 +22,16 @@ const (
 	// CyrA is the Cyrillic capital letter A.
 	CyrA = 'А'
 
-	// CyrE is the Cyrillic capital letter Ie (Е).
+	// CyrE is the Cyrillic capital letter Ie (U+0415).
 	CyrE = 'Е'
 
-	// CyrYO is the Cyrillic capital letter IO (Ё).
+	// CyrYO is the Cyrillic capital letter IO (U+0401).
 	CyrYO = 'Ё'
 
-	// CyrI is the Cyrillic capital letter I (И).
+	// CyrI is the Cyrillic capital letter I (U+0418).
 	CyrI = 'И'
 
-	// CyrY is the Cyrillic capital letter short I (Й).
+	// CyrY is the Cyrillic capital letter short I (U+0419).
 	CyrY = 'Й'
 
 	// CyrO is the Cyrillic capital letter O.
@@ -40,16 +40,16 @@ const (
 	// CyrU is the Cyrillic capital letter U.
 	CyrU = 'У'
 
-	// CyrYI is the Cyrillic capital letter Yeru (Ы).
+	// CyrYI is the Cyrillic capital letter Yeru (U+042B).
 	CyrYI = 'Ы'
 
-	// CyrEE is the Cyrillic capital letter E with descender (Э).
+	// CyrEE is the Cyrillic capital letter E reversed (U+042D).
 	CyrEE = 'Э'
 
-	// CyrYU is the Cyrillic capital letter Yu (Ю).
+	// CyrYU is the Cyrillic capital letter Yu (U+042E).
 	CyrYU = 'Ю'
 
-	// CyrYA is the Cyrillic capital letter Ya (Я).
+	// CyrYA is the Cyrillic capital letter Ya (U+042F).
 	CyrYA = 'Я'
 
 	// CyrB is the Cyrillic capital letter Be, a consonant.
@@ -67,25 +67,25 @@ const (
 	// CyrZH is the Cyrillic capital letter Zhe.
 	CyrZH = 'Ж'
 
-	// CyrZ is the Cyrillic capital letter Ze (З).
+	// CyrZ is the Cyrillic capital letter Ze (U+0417).
 	CyrZ = 'З'
 
 	// CyrK is the Cyrillic capital letter Ka (U+041A).
 	CyrK = 'К'
 
-	// CyrL is the Cyrillic capital letter El (Л).
+	// CyrL is the Cyrillic capital letter El (U+041B).
 	CyrL = 'Л'
 
 	// CyrM is the Cyrillic capital letter Em (U+041C).
 	CyrM = 'М'
 
-	// CyrN is the Cyrillic capital letter En (Н).
+	// CyrN is the Cyrillic capital letter En (U+041D).
 	CyrN = 'Н'
 
 	// CyrP is the Cyrillic capital letter Pe.
 	CyrP = 'П'
 
-	// CyrR is the Cyrillic capital letter Er (Р).
+	// CyrR is the Cyrillic capital letter Er (U+0420).
 	CyrR = 'Р'
 
 	// CyrS is the Cyrillic capital letter Es (U+0421).
@@ -94,19 +94,19 @@ const (
 	// CyrT is the Cyrillic capital letter Te.
 	CyrT = 'Т'
 
-	// CyrF is the Cyrillic capital letter Ef (Ф).
+	// CyrF is the Cyrillic capital letter Ef (U+0424).
 	CyrF = 'Ф'
 
-	// CyrKH is the Cyrillic capital letter Kha (Х).
+	// CyrKH is the Cyrillic capital letter Kha (U+0425).
 	CyrKH = 'Х'
 
 	// CyrTS is the Cyrillic capital letter Tse.
 	CyrTS = 'Ц'
 
-	// CyrCH is the Cyrillic capital letter Che (Ч).
+	// CyrCH is the Cyrillic capital letter Che (U+0427).
 	CyrCH = 'Ч'
 
-	// CyrSH is the Cyrillic capital letter sha (Ш).
+	// CyrSH is the Cyrillic capital letter Sha (U+0428).
 	CyrSH = 'Ш'
 
 	// CyrSCH is the Cyrillic capital letter Shcha.
@@ -199,10 +199,10 @@ const (
 	// PhoneticYA is the phonetic alphabet representation for the letter Y.
 	PhoneticYA = "JA"
 
-	// PhoneticYU is the phonetic representation of the Cyrillic letter Ю.
+	// PhoneticYU is the phonetic representation of the Cyrillic letter Yu.
 	PhoneticYU = "JU"
 
-	// PhoneticYO is the phonetic representation of the Cyrillic letter Ё.
+	// PhoneticYO is the phonetic representation of the Cyrillic letter Io.
 	PhoneticYO = "JO"
 
 	// PhoneticYE is the phonetic alphabet code for the Cyrillic letter Ye.

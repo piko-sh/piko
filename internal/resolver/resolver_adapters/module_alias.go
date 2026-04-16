@@ -35,8 +35,10 @@ import (
 const ModuleAliasPrefix = "@/"
 
 var (
+	// moduleNameCache holds the cached directory-to-module-name mappings.
 	moduleNameCache = make(map[string]string)
 
+	// moduleNameCacheMutex guards concurrent access to moduleNameCache.
 	moduleNameCacheMutex sync.RWMutex
 )
 

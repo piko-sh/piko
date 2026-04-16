@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the email_domain package.
 	log = logger_domain.GetLogger("piko/internal/email/email_domain")
 
 	// meter is the OpenTelemetry meter for the email domain package.

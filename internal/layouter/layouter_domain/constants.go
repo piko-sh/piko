@@ -18,8 +18,6 @@
 
 package layouter_domain
 
-// Unit conversion constants. All conversions target points (1 point = 1/72
-// inch).
 const (
 	// PixelsToPoints converts CSS pixels to points. CSS defines 1px =
 	// 1/96 inch, and 1pt = 1/72 inch, so 1px = 72/96 = 0.75pt.

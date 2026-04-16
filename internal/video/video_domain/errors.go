@@ -86,7 +86,11 @@ var (
 	// support HLS transcoding.
 	ErrHLSNotSupported = errors.New("default provider does not support HLS transcoding")
 
+	// errNoTranscoders is returned when the video service is started without
+	// any registered transcoders.
 	errNoTranscoders = errors.New("at least one video transcoder must be provided")
 
+	// errDefaultProviderEmpty is returned when the default video provider name
+	// is set to an empty string.
 	errDefaultProviderEmpty = errors.New("default video provider cannot be empty")
 )

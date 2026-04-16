@@ -46,10 +46,13 @@ var (
 	// strLitCache is a dynamic cache for string literals that appear multiple times.
 	strLitCache sync.Map
 
+	// litIntZero is a shared AST literal node for the integer value 0.
 	litIntZero = &ast.BasicLit{Kind: token.INT, Value: "0"}
 
+	// litIntOne is a shared AST literal node for the integer value 1.
 	litIntOne = &ast.BasicLit{Kind: token.INT, Value: "1"}
 
+	// litEmptyString is a shared AST literal node for an empty string.
 	litEmptyString = &ast.BasicLit{Kind: token.STRING, Value: `""`}
 )
 

@@ -401,6 +401,10 @@ func algorithm2B(input, password, userKey []byte) []byte {
 }
 
 // sha256Hash returns the SHA-256 digest of data.
+//
+// Takes data ([]byte) which is the input to hash.
+//
+// Returns []byte which is the 32-byte SHA-256 digest.
 func sha256Hash(data []byte) []byte {
 	h := sha256.Sum256(data)
 	return h[:]

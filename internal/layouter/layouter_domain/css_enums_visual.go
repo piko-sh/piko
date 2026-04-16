@@ -250,6 +250,7 @@ type TabStop struct {
 	Leader rune
 }
 
+// objectFitTypeNames maps ObjectFitType values to their CSS keyword strings.
 var objectFitTypeNames = [...]string{
 	ObjectFitFill:      "Fill",
 	ObjectFitContain:   "Contain",
@@ -258,6 +259,7 @@ var objectFitTypeNames = [...]string{
 	ObjectFitScaleDown: "ScaleDown",
 }
 
+// backgroundImageTypeNames maps BackgroundImageType values to their CSS keyword strings.
 var backgroundImageTypeNames = [...]string{
 	BackgroundImageNone:                    cssKeywordNone,
 	BackgroundImageURL:                     "url",
@@ -267,11 +269,13 @@ var backgroundImageTypeNames = [...]string{
 	BackgroundImageRepeatingRadialGradient: "repeating-radial-gradient",
 }
 
+// radialGradientShapeNames maps RadialGradientShape values to their CSS keyword strings.
 var radialGradientShapeNames = [...]string{
 	RadialShapeEllipse: "ellipse",
 	RadialShapeCircle:  "circle",
 }
 
+// borderImageRepeatTypeNames maps BorderImageRepeatType values to their CSS keyword strings.
 var borderImageRepeatTypeNames = [...]string{
 	BorderImageRepeatStretch: "stretch",
 	BorderImageRepeatRepeat:  "repeat",
@@ -279,6 +283,7 @@ var borderImageRepeatTypeNames = [...]string{
 	BorderImageRepeatSpace:   "space",
 }
 
+// blendModeTypeNames maps BlendModeType values to their CSS keyword strings.
 var blendModeTypeNames = [...]string{
 	BlendModeNormal:     "Normal",
 	BlendModeMultiply:   "Multiply",

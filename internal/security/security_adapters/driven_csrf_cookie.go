@@ -41,12 +41,16 @@ const (
 )
 
 var (
+	// cookieRandomBytesPool reuses byte slices to reduce allocation pressure
+	// during CSRF cookie token generation.
 	cookieRandomBytesPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, csrfCookieTokenBytes))
 		},
 	}
 
+	// b64CookieBufPool reuses byte slices to reduce allocation pressure during
+	// base64 encoding of CSRF cookie tokens.
 	b64CookieBufPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, 24))

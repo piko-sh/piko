@@ -35,7 +35,6 @@ const (
 )
 
 var (
-	// _ is a compile-time check that StoragePanel implements Panel.
 	_ Panel = (*StoragePanel)(nil)
 
 	_ ItemRenderer[Resource] = (*storageRenderer)(nil)

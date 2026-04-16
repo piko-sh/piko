@@ -28,7 +28,6 @@ import (
 	"piko.sh/piko/internal/cache/cache_dto"
 )
 
-// Compile-time check that transactionJournal implements TransactionCache.
 var _ TransactionCache[string, any] = (*transactionJournal[string, any])(nil)
 
 // journalEntry records the pre-mutation state of a single cache key so

@@ -40,11 +40,14 @@ const (
 
 // githubRelease holds the fields we need from the GitHub releases API.
 type githubRelease struct {
-	TagName    string `json:"tag_name"`
+	// TagName is the Git tag for the release (e.g. "v0.1.0").
+	TagName string `json:"tag_name"`
 
-	Draft      bool   `json:"draft"`
+	// Draft indicates whether the release is still a draft.
+	Draft bool `json:"draft"`
 
-	Prerelease bool   `json:"prerelease"`
+	// Prerelease indicates whether the release is marked as a prerelease.
+	Prerelease bool `json:"prerelease"`
 }
 
 // resolveLatestVersion queries the GitHub releases API to find the latest

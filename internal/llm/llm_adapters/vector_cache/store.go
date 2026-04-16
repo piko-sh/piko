@@ -35,8 +35,12 @@ import (
 const DefaultVectorSearchTopK = 10
 
 var (
+	// errDocumentNil is returned when a nil document is passed to the vector
+	// store.
 	errDocumentNil = errors.New("document cannot be nil")
 
+	// errDocumentIDEmpty is returned when a document with an empty ID is
+	// passed to the vector store.
 	errDocumentIDEmpty = errors.New("document ID cannot be empty")
 )
 

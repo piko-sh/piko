@@ -86,8 +86,10 @@ const (
 )
 
 var (
+	// log is the package-level logger for the crypto_domain package.
 	log = logger_domain.GetLogger("piko/internal/crypto/crypto_domain")
 
+	// meter is the OpenTelemetry meter for the crypto_domain package.
 	meter = otel.Meter("piko/internal/crypto/crypto_domain")
 
 	// cryptoOperationCount counts the number of cryptographic operations performed.

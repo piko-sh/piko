@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the email_provider_postmark package.
 	log = logger.GetLogger("piko/email/email_provider_postmark")
 
 	// Meter is the package-level meter for Postmark provider metrics.

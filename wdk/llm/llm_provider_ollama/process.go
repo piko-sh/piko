@@ -45,6 +45,8 @@ const (
 	stopGracePeriod = 5 * time.Second
 )
 
+// managedOllamaEnvKeys holds the set of environment variable names that are
+// forwarded to the managed Ollama process.
 var managedOllamaEnvKeys = map[string]struct{}{
 	"APPDATA":           {},
 	"COMSPEC":           {},

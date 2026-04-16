@@ -174,6 +174,7 @@ var (
 		'@': tokenAt,
 	}
 
+	// keywords maps reserved word strings to their corresponding token types.
 	keywords = map[string]tokenType{
 		"in":    tokenKeywordIn,
 		"true":  tokenKeywordTrue,

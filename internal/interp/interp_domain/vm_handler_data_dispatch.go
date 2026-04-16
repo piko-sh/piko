@@ -92,6 +92,8 @@ func (b *boundMethodVM) invoke(receiver reflect.Value, arguments []reflect.Value
 	return reflectResults(result, b.callee.resultKinds)
 }
 
+// unsafePointerType holds the reflect.Type for unsafe.Pointer,
+// used to detect pointer conversions.
 var unsafePointerType = reflect.TypeFor[unsafe.Pointer]()
 
 // rangeNextContext bundles the decoded extension-word parameters needed

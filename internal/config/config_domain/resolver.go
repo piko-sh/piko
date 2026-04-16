@@ -107,10 +107,14 @@ func (r *resolutionResult) Reset() {
 }
 
 var (
+	// jobPool reuses resolutionJob instances to reduce allocation pressure during
+	// placeholder resolution.
 	jobPool = sync.Pool{
 		New: func() any { return new(resolutionJob) },
 	}
 
+	// resultPool reuses resolutionResult instances to reduce allocation pressure
+	// during placeholder resolution.
 	resultPool = sync.Pool{
 		New: func() any { return new(resolutionResult) },
 	}

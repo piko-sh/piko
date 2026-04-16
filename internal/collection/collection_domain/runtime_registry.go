@@ -30,6 +30,7 @@ var (
 	// runtimeProviders is the registry of runtime providers.
 	runtimeProviders = make(map[string]RuntimeProvider)
 
+	// runtimeProvidersMutex guards concurrent access to runtimeProviders.
 	runtimeProvidersMutex sync.RWMutex
 )
 

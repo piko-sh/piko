@@ -84,6 +84,8 @@ func appendDevWidgetTag(tags []string) []string {
 }
 
 var (
+	// svgIDSlicePool reuses string slices to reduce allocation pressure during
+	// SVG sprite-sheet key computation.
 	svgIDSlicePool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, defaultSVGIDSliceCapacity))

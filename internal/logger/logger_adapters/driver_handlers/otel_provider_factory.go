@@ -52,8 +52,10 @@ type OtelProviderFactory func(
 ) (OtelProviderResult, error)
 
 var (
+	// providerFactoryMu guards concurrent access to providerFactory.
 	providerFactoryMu sync.RWMutex
 
+	// providerFactory holds the registered factory for creating OTEL SDK providers.
 	providerFactory OtelProviderFactory
 )
 

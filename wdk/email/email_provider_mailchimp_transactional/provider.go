@@ -151,82 +151,113 @@ type ProviderOption = email_domain.ProviderOption
 
 // mandrillSendRequest is the JSON body for the /messages/send endpoint.
 type mandrillSendRequest struct {
+	// Key is the Mailchimp Transactional API key for authentication.
 	Key string `json:"key"`
 
+	// Message holds the email content, recipients, and sending options.
 	Message mandrillMessage `json:"message"`
 
+	// Async requests asynchronous delivery when true.
 	Async bool `json:"async,omitempty"`
 }
 
 // mandrillMessage represents the message object in the Mandrill API request.
 type mandrillMessage struct {
+	// FromEmail is the sender email address for this message.
 	FromEmail string `json:"from_email"`
 
+	// Subject is the email subject line.
 	Subject string `json:"subject"`
 
+	// HTML is the HTML body content of the email.
 	HTML string `json:"html,omitempty"`
 
+	// Text is the plain-text body content of the email.
 	Text string `json:"text,omitempty"`
 
+	// To holds the list of recipients for this message.
 	To []mandrillRecipient `json:"to"`
 
+	// Headers holds custom email headers to include in the message.
 	Headers map[string]string `json:"headers,omitempty"`
 
+	// Metadata holds key-value pairs attached to the message for tracking.
 	Metadata map[string]string `json:"metadata,omitempty"`
 
+	// Tags holds message tags used for filtering and reporting.
 	Tags []string `json:"tags,omitempty"`
 
+	// TrackOpens enables or disables open tracking for this message.
 	TrackOpens *bool `json:"track_opens,omitempty"`
 
+	// TrackClicks enables or disables click tracking for this message.
 	TrackClicks *bool `json:"track_clicks,omitempty"`
 
+	// Important marks the message as important in the recipient's inbox.
 	Important *bool `json:"important,omitempty"`
 
+	// AutoText enables automatic plain-text generation from the HTML body.
 	AutoText *bool `json:"auto_text,omitempty"`
 
+	// InlineCSS enables automatic inlining of CSS styles into the HTML body.
 	InlineCSS *bool `json:"inline_css,omitempty"`
 
+	// Attachments holds file attachments to include with the message.
 	Attachments []mandrillAttachment `json:"attachments,omitempty"`
 
+	// Images holds inline images referenced by Content-ID in the HTML body.
 	Images []mandrillAttachment `json:"images,omitempty"`
 }
 
 // mandrillRecipient represents a single recipient in the Mandrill API.
 type mandrillRecipient struct {
+	// Email is the recipient's email address.
 	Email string `json:"email"`
 
+	// Name is the optional display name for the recipient.
 	Name string `json:"name,omitempty"`
 
+	// Type is the recipient type: "to", "cc", or "bcc".
 	Type string `json:"type"`
 }
 
 // mandrillAttachment represents an attachment or inline image in the Mandrill
 // API.
 type mandrillAttachment struct {
+	// Type is the MIME type of the attachment (e.g. "application/pdf").
 	Type string `json:"type"`
 
+	// Name is the filename or Content-ID for inline images.
 	Name string `json:"name"`
 
+	// Content is the base64-encoded attachment data.
 	Content string `json:"content"`
 }
 
 // mandrillSendResponse represents a single recipient's send result.
 type mandrillSendResponse struct {
+	// Email is the recipient email address this result pertains to.
 	Email string `json:"email"`
 
+	// Status is the delivery status (e.g. "sent", "queued", "rejected").
 	Status string `json:"status"`
 
+	// ID is the Mailchimp Transactional message identifier.
 	ID string `json:"_id"`
 }
 
 // mandrillErrorResponse represents an API error from Mandrill.
 type mandrillErrorResponse struct {
+	// Name is the error type identifier returned by the API.
 	Name string `json:"name"`
 
+	// Message is the human-readable error description.
 	Message string `json:"message"`
 
+	// Status is the error status string (e.g. "error").
 	Status string `json:"status"`
 
+	// Code is the numeric error code returned by the API.
 	Code int `json:"code"`
 }
 

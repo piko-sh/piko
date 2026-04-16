@@ -32,7 +32,6 @@ const mnemonicColumnWidth = 8
 // All methods are stateless text mappers.
 type AMD64Arch struct{}
 
-// Ensure AMD64Arch implements ArchitecturePort at compile time.
 var _ asmgen.ArchitecturePort = (*AMD64Arch)(nil)
 
 // New creates a new AMD64 architecture adapter.

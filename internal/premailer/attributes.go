@@ -70,6 +70,7 @@ var (
 	// pxAndImportantRemover strips px units and !important from CSS values.
 	pxAndImportantRemover = regexp.MustCompile(`px\s*(!important)?$`)
 
+	// importantRemover matches and strips the !important suffix from CSS property values.
 	importantRemover = regexp.MustCompile(`\s*!important\s*$`)
 )
 

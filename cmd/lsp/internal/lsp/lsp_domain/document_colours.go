@@ -215,6 +215,7 @@ type colorFuncMatcher struct {
 }
 
 var (
+	// rgbMatcher matches rgb() and rgba() CSS colour functions in style blocks.
 	rgbMatcher = colorFuncMatcher{basePrefix: "rgb(", alphaPrefix: "rgba("}
 
 	// hslMatcher matches hsl/hsla colour functions.

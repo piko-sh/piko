@@ -60,6 +60,8 @@ var (
 		},
 	}
 
+	// queryArgsPool reuses query argument slices to reduce allocation pressure
+	// during database query building.
 	queryArgsPool = sync.Pool{
 		New: func() any {
 			return new(make([]any, 0, defaultQueryArgsCapacity))
@@ -89,6 +91,8 @@ var (
 		},
 	}
 
+	// stringSlicePool reuses string slices to reduce allocation pressure during
+	// registry operations.
 	stringSlicePool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, defaultSliceCapacity))

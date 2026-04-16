@@ -24,6 +24,7 @@ import (
 	"piko.sh/piko/internal/capabilities/capabilities_domain"
 )
 
+// minifierJS holds the pre-configured JavaScript minifier instance.
 var minifierJS *minify.M
 
 // MinifyJavascript returns a capability function that minifies JavaScript

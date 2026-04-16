@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the provider_otter package.
 	log = logger_domain.GetLogger("piko/internal/cache/cache_adapters/provider_otter")
 
 	// meter is the OpenTelemetry meter for otter cache provider metrics.

@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the cache_domain package.
 	log = logger_domain.GetLogger("piko/internal/cache/cache_domain")
 )

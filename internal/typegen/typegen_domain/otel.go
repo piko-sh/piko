@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the typegen_domain package.
 	log = logger_domain.GetLogger("piko/internal/typegen/typegen_domain")
 
 	// meter is the OpenTelemetry meter for the typegen_domain package.

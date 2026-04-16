@@ -34,30 +34,44 @@ import (
 const defaultTagCapacity = 16
 
 var (
+	// bufPool64 reuses byte slices (cap 64) to reduce allocation pressure.
 	bufPool64 = sync.Pool{New: func() any { return new(make([]byte, 0, 64)) }}
 
+	// bufPool128 reuses byte slices (cap 128) to reduce allocation pressure.
 	bufPool128 = sync.Pool{New: func() any { return new(make([]byte, 0, 128)) }}
 
+	// bufPool256 reuses byte slices (cap 256) to reduce allocation pressure.
 	bufPool256 = sync.Pool{New: func() any { return new(make([]byte, 0, 256)) }}
 
+	// bufPool512 reuses byte slices (cap 512) to reduce allocation pressure.
 	bufPool512 = sync.Pool{New: func() any { return new(make([]byte, 0, 512)) }}
 
+	// bufPool1K reuses byte slices (cap 1K) to reduce allocation pressure.
 	bufPool1K = sync.Pool{New: func() any { return new(make([]byte, 0, 1024)) }}
 
+	// bufPool2K reuses byte slices (cap 2K) to reduce allocation pressure.
 	bufPool2K = sync.Pool{New: func() any { return new(make([]byte, 0, 2048)) }}
 
+	// bufPool4K reuses byte slices (cap 4K) to reduce allocation pressure.
 	bufPool4K = sync.Pool{New: func() any { return new(make([]byte, 0, 4096)) }}
 
+	// bufPool8K reuses byte slices (cap 8K) to reduce allocation pressure.
 	bufPool8K = sync.Pool{New: func() any { return new(make([]byte, 0, 8192)) }}
 
+	// bufPool16K reuses byte slices (cap 16K) to reduce allocation pressure.
 	bufPool16K = sync.Pool{New: func() any { return new(make([]byte, 0, 16384)) }}
 
+	// bufPool32K reuses byte slices (cap 32K) to reduce allocation pressure.
 	bufPool32K = sync.Pool{New: func() any { return new(make([]byte, 0, 32768)) }}
 
+	// bufPool64K reuses byte slices (cap 64K) to reduce allocation pressure.
 	bufPool64K = sync.Pool{New: func() any { return new(make([]byte, 0, 65536)) }}
 
+	// bufPool128K reuses byte slices (cap 128K) to reduce allocation pressure.
 	bufPool128K = sync.Pool{New: func() any { return new(make([]byte, 0, 131072)) }}
 
+	// tagSlicePool reuses string slices to reduce allocation pressure during WAL
+	// tag encoding and decoding.
 	tagSlicePool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, defaultTagCapacity))

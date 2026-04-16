@@ -54,6 +54,8 @@ const (
 	flatbufferVectorAlignment = 4
 )
 
+// builderPool reuses FlatBuffer Builder instances to reduce allocation pressure
+// during type data serialisation.
 var builderPool = sync.Pool{
 	New: func() any {
 		return flatbuffers.NewBuilder(initialBuilderSize)

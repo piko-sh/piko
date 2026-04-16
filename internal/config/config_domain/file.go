@@ -33,6 +33,8 @@ import (
 // unmarshalerFunc is a function type that converts bytes into a value.
 type unmarshalerFunc func([]byte, any) error
 
+// unmarshalerMap holds the file-extension-to-unmarshaler mappings for supported
+// configuration file formats.
 var unmarshalerMap = map[string]unmarshalerFunc{
 	".json": json.Unmarshal,
 	".yaml": yaml.Unmarshal,

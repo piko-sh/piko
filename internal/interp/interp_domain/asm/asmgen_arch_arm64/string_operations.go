@@ -65,7 +65,6 @@ const (
 // DISPATCH_NEXT and any labels or fallback exits.
 type arm64StringOps struct{}
 
-// Ensure arm64StringOps implements StringOperationsPort at compile time.
 var _ asmgen.StringOperationsPort = (*arm64StringOps)(nil)
 
 // EmitLenString emits the LEN_STRING handler body, loading the string

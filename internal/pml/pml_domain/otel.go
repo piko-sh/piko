@@ -21,5 +21,6 @@ package pml_domain
 import "piko.sh/piko/internal/logger/logger_domain"
 
 var (
+	// log is the package-level logger for the pml_domain package.
 	log = logger_domain.GetLogger("piko/internal/pml/pml_domain")
 )

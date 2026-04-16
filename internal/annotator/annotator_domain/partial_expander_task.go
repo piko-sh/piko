@@ -37,6 +37,8 @@ import (
 	"piko.sh/piko/internal/sfcparser"
 )
 
+// partialExpansionTaskPool reuses partialExpansionTask instances
+// to reduce allocation pressure.
 var partialExpansionTaskPool = sync.Pool{
 	New: func() any {
 		return &partialExpansionTask{}

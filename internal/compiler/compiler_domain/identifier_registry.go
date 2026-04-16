@@ -40,16 +40,22 @@ type identifierRegistry struct {
 }
 
 var (
+	// globalIdentifierRegistry holds the process-wide registry mapping EIdentifier
+	// pointers to their original names.
 	globalIdentifierRegistry = &identifierRegistry{
 		names: make(map[*js_ast.EIdentifier]string),
 		mu:    sync.RWMutex{},
 	}
 
+	// globalBindingRegistry holds the process-wide registry mapping BIdentifier
+	// pointers to their original names.
 	globalBindingRegistry = &bindingRegistry{
 		names: make(map[*js_ast.BIdentifier]string),
 		mu:    sync.RWMutex{},
 	}
 
+	// globalLocRefRegistry holds the process-wide registry mapping LocRef pointers
+	// to their original names.
 	globalLocRefRegistry = &locRefRegistry{
 		names: make(map[*ast.LocRef]string),
 		mu:    sync.RWMutex{},

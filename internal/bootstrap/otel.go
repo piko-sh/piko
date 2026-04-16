@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the bootstrap package.
 	log = logger_domain.GetLogger("bootstrap")
 )

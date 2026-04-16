@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the apitest package.
 	log = logger_domain.GetLogger("piko/internal/apitest")
 )

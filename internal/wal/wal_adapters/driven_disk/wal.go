@@ -1006,7 +1006,6 @@ func (w *DiskWAL[K, V]) drainAndFailAll(batch *[]pendingWrite) {
 	*batch = (*batch)[:0]
 }
 
-// Compile-time check: DiskWAL satisfies WAL.
 var _ wal_domain.WAL[string, any] = (*DiskWAL[string, any])(nil)
 
 // WithWALClock sets the clock for the WAL (for testing).

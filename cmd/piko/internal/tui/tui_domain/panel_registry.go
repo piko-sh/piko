@@ -66,8 +66,6 @@ const (
 var (
 	_ Panel = (*RegistryPanel)(nil)
 
-	// _ is a compile-time check that registryRenderer implements
-	// ItemRenderer[registryDisplayItem].
 	_ ItemRenderer[registryDisplayItem] = (*registryRenderer)(nil)
 )
 

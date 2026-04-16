@@ -557,12 +557,16 @@ func (p *parser) expandVariable(varName string, currentKey string, expandedMap m
 }
 
 var (
+	// dotenvMap holds the parsed key-value pairs from the .env file.
 	dotenvMap map[string]string
 
+	// dotenvOnce guards one-time initialisation of dotenv file parsing.
 	dotenvOnce sync.Once
 
+	// dotenvParseErr holds any error encountered while parsing the .env file.
 	dotenvParseErr error
 
+	// dotenvSandbox holds the optional sandbox used for reading the .env file.
 	dotenvSandbox safedisk.Sandbox
 )
 

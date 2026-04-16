@@ -39,6 +39,7 @@ const (
 )
 
 var (
+	// log is the package-level logger for the llm_domain package.
 	log = logger_domain.GetLogger("piko/internal/llm/llm_domain")
 
 	// meter is the OpenTelemetry meter for the LLM domain package.

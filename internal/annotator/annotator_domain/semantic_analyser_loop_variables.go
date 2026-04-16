@@ -33,6 +33,8 @@ import (
 // unique loop variable name.
 const maxLoopVarSearchIterations = 100
 
+// loopVariableManagerPool reuses LoopVariableManager instances
+// to reduce allocation pressure.
 var loopVariableManagerPool = sync.Pool{
 	New: func() any {
 		return &LoopVariableManager{}

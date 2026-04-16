@@ -56,7 +56,6 @@ var (
 	_ FileHandle = (*File)(nil)
 )
 
-// _ verifies that fileInfo implements the fs.FileInfo interface.
 var _ fs.FileInfo = fileInfo{}
 
 // String returns the string representation of the mode.

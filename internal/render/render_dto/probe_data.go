@@ -36,6 +36,8 @@ func (p *ProbeData) Reset() {
 	p.ComponentMetadata = nil
 }
 
+// probeDataPool reuses ProbeData instances to reduce allocation pressure
+// between probe and render phases.
 var probeDataPool = sync.Pool{
 	New: func() any {
 		return &ProbeData{}

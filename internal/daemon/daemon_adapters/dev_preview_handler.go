@@ -64,24 +64,36 @@ type DevPreviewHandler struct {
 
 // previewListResponse is the JSON response for the preview listing endpoint.
 type previewListResponse struct {
+	// Groups holds the preview templates organised by component type.
 	Groups []previewGroup `json:"groups"`
 }
 
+// previewGroup represents a collection of templates sharing the same component
+// type (e.g. page, email, pdf).
 type previewGroup struct {
+	// Type is the component type for this group (e.g. "page", "email", "pdf").
 	Type string `json:"type"`
 
+	// Templates holds the previewable templates within this group.
 	Templates []previewTemplate `json:"templates"`
 }
 
+// previewTemplate describes a single template that has preview scenarios.
 type previewTemplate struct {
+	// SourcePath is the original .pk source file path for this template.
 	SourcePath string `json:"sourcePath"`
 
+	// Scenarios lists the available preview scenarios for this template.
 	Scenarios []previewScenario `json:"scenarios"`
 }
 
+// previewScenario describes a single named preview scenario with optional
+// description text.
 type previewScenario struct {
+	// Name is the identifier for this preview scenario.
 	Name string `json:"name"`
 
+	// Description is an optional human-readable explanation of the scenario.
 	Description string `json:"description,omitempty"`
 }
 
@@ -147,9 +159,13 @@ func init() {
 // Takes store (templater_domain.ManifestStoreView) which provides manifest
 // access.
 // Takes runner (templater_domain.ManifestRunnerPort) which executes templates.
+// Takes renderer (templater_domain.RendererPort) which converts template ASTs
+// to HTML output.
 // Takes emailService (templater_domain.EmailTemplateService) which renders
 // emails.
 // Takes pdfService (pdfwriter_domain.PdfWriterService) which renders PDFs.
+// Takes registry (render_domain.RegistryPort) which provides component metadata
+// lookups.
 //
 // Returns *DevPreviewHandler which is the initialised handler.
 func NewDevPreviewHandler(
@@ -171,6 +187,9 @@ func NewDevPreviewHandler(
 }
 
 // Mount registers the preview API and render routes on the router.
+//
+// Takes r (chi.Router) which is the router to register
+// preview routes on.
 func (h *DevPreviewHandler) Mount(r chi.Router) {
 	r.Get("/_piko/dev/api/previews", h.handleListPreviews)
 	r.Get("/_piko/dev/preview/{type}/*", h.handleRenderPreview)
@@ -178,6 +197,9 @@ func (h *DevPreviewHandler) Mount(r chi.Router) {
 
 // handleListPreviews returns a JSON listing of all templates that have
 // Preview functions, grouped by component type.
+//
+// Takes w (http.ResponseWriter) which receives the JSON
+// response.
 func (h *DevPreviewHandler) handleListPreviews(w http.ResponseWriter, _ *http.Request) {
 	entries := h.store.ListPreviewEntries()
 
@@ -214,6 +236,11 @@ func (h *DevPreviewHandler) handleListPreviews(w http.ResponseWriter, _ *http.Re
 // URL format: /_piko/dev/preview/{type}/{path...}?scenario={name}
 // For PDFs, /_piko/dev/preview/pdf/{path...}/render returns raw PDF bytes
 // with X-Frame-Options relaxed to SAMEORIGIN so the wrapper page can embed it.
+//
+// Takes w (http.ResponseWriter) which receives the rendered
+// preview output.
+// Takes r (*http.Request) which carries the URL parameters
+// and query string.
 func (h *DevPreviewHandler) handleRenderPreview(w http.ResponseWriter, r *http.Request) {
 	componentType := chi.URLParam(r, "type")
 	rawPath := chi.URLParam(r, "*")
@@ -250,6 +277,15 @@ func (h *DevPreviewHandler) handleRenderPreview(w http.ResponseWriter, r *http.R
 }
 
 // findScenario looks up a preview scenario by source path and scenario name.
+//
+// Takes sourcePath (string) which is the .pk source file path
+// to look up.
+// Takes scenarioName (string) which is the name of the
+// scenario to find, or empty for the first available.
+//
+// Returns *templater_dto.PreviewScenario which is the matched
+// scenario.
+// Returns error when the template or scenario is not found.
 func (h *DevPreviewHandler) findScenario(sourcePath, scenarioName string) (*templater_dto.PreviewScenario, error) {
 	entry, ok := h.store.GetPageEntry(sourcePath)
 	if !ok {
@@ -276,6 +312,13 @@ func (h *DevPreviewHandler) findScenario(sourcePath, scenarioName string) (*temp
 
 // buildSourcePath converts a component type and URL path back to a source path.
 // For example, ("email", "welcome") becomes "emails/welcome.pk".
+//
+// Takes componentType (string) which is the component type
+// (e.g. "email", "pdf", "page").
+// Takes path (string) which is the URL path segment to
+// convert.
+//
+// Returns string which is the resolved source file path.
 func buildSourcePath(componentType, path string) string {
 	path = strings.TrimPrefix(path, "/")
 
@@ -295,6 +338,14 @@ func buildSourcePath(componentType, path string) string {
 
 // renderEmailPreview renders an email template with the scenario's props and
 // returns the CSS-inlined HTML with the dev widget injected.
+//
+// Takes w (http.ResponseWriter) which receives the rendered
+// email HTML.
+// Takes r (*http.Request) which provides the request context.
+// Takes sourcePath (string) which is the .pk source file path
+// to render.
+// Takes scenario (*templater_dto.PreviewScenario) which holds
+// the props for the preview.
 func (h *DevPreviewHandler) renderEmailPreview(w http.ResponseWriter, r *http.Request, sourcePath string, scenario *templater_dto.PreviewScenario) {
 	if h.emailService == nil {
 		http.Error(w, "email service not available", http.StatusServiceUnavailable)
@@ -323,6 +374,14 @@ func (h *DevPreviewHandler) renderEmailPreview(w http.ResponseWriter, r *http.Re
 
 // renderPdfPreview serves an HTML wrapper page with an embedded PDF viewer
 // and the dev widget.
+//
+// Takes w (http.ResponseWriter) which receives the HTML
+// wrapper page.
+// Takes r (*http.Request) which provides the request context.
+// Takes sourcePath (string) which is the .pk source file path
+// for the PDF template.
+// Takes scenarioName (string) which is the scenario name for
+// the render URL query parameter.
 func (h *DevPreviewHandler) renderPdfPreview(w http.ResponseWriter, r *http.Request, sourcePath string, _ *templater_dto.PreviewScenario, scenarioName string) {
 	rawPath := strings.TrimPrefix(sourcePath, "pdfs/")
 	rawPath = strings.TrimSuffix(rawPath, sourceExtension)
@@ -346,6 +405,14 @@ func (h *DevPreviewHandler) renderPdfPreview(w http.ResponseWriter, r *http.Requ
 }
 
 // renderPdfRaw renders a PDF template and returns the raw PDF bytes.
+//
+// Takes w (http.ResponseWriter) which receives the raw PDF
+// byte output.
+// Takes r (*http.Request) which provides the request context.
+// Takes sourcePath (string) which is the .pk source file path
+// to render.
+// Takes scenario (*templater_dto.PreviewScenario) which holds
+// the props for the preview.
 func (h *DevPreviewHandler) renderPdfRaw(w http.ResponseWriter, r *http.Request, sourcePath string, scenario *templater_dto.PreviewScenario) {
 	if h.pdfService == nil {
 		http.Error(w, "PDF service not available", http.StatusServiceUnavailable)
@@ -366,6 +433,16 @@ func (h *DevPreviewHandler) renderPdfRaw(w http.ResponseWriter, r *http.Request,
 
 // renderComponentPreview renders a page or partial with the scenario's props
 // and returns the HTML.
+//
+// Takes w (http.ResponseWriter) which receives the rendered
+// HTML output.
+// Takes r (*http.Request) which provides the request context.
+// Takes sourcePath (string) which is the .pk source file path
+// to render.
+// Takes scenario (*templater_dto.PreviewScenario) which holds
+// the props for the preview.
+// Takes componentType (string) which indicates "page" or
+// "partial", where "partial" enables fragment rendering.
 func (h *DevPreviewHandler) renderComponentPreview(w http.ResponseWriter, r *http.Request, sourcePath string, scenario *templater_dto.PreviewScenario, componentType string) {
 	if h.runner == nil || h.renderer == nil {
 		http.Error(w, "template runner or renderer not available", http.StatusServiceUnavailable)
@@ -410,6 +487,9 @@ func (h *DevPreviewHandler) renderComponentPreview(w http.ResponseWriter, r *htt
 // devWidgetSnippet returns an HTML snippet that injects the full dev widget
 // (including its PKC component definition) and hot-reload scripts into a
 // preview page.
+//
+// Returns string which is the combined HTML snippet for the
+// dev widget and associated module scripts.
 func (h *DevPreviewHandler) devWidgetSnippet(ctx context.Context) string {
 	widgetHTML := daemon_frontend.GetDevWidgetHTML()
 	if widgetHTML == "" {

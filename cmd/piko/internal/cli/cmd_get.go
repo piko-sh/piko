@@ -79,6 +79,7 @@ var (
 		{Header: "TIMESTAMP", WideOnly: true},
 	}
 
+	// taskColumns defines the table column layout for task list output.
 	taskColumns = []Column{
 		{Header: "ID"},
 		{Header: "WORKFLOW"},
@@ -91,6 +92,7 @@ var (
 		{Header: "CREATED", WideOnly: true},
 	}
 
+	// workflowColumns defines the table column layout for workflow list output.
 	workflowColumns = []Column{
 		{Header: "WORKFLOW ID"},
 		{Header: "TASKS"},
@@ -101,6 +103,7 @@ var (
 		{Header: "CREATED", WideOnly: true},
 	}
 
+	// artefactColumns defines the table column layout for artefact list output.
 	artefactColumns = []Column{
 		{Header: "ID"},
 		{Header: "SOURCE PATH"},
@@ -111,11 +114,13 @@ var (
 		{Header: "CREATED", WideOnly: true},
 	}
 
+	// variantColumns defines the table column layout for variant summary output.
 	variantColumns = []Column{
 		{Header: "STATUS"},
 		{Header: "COUNT"},
 	}
 
+	// metricColumns defines the table column layout for metrics output.
 	metricColumns = []Column{
 		{Header: "NAME"},
 		{Header: "TYPE"},
@@ -124,6 +129,7 @@ var (
 		{Header: "DESCRIPTION", WideOnly: true},
 	}
 
+	// traceColumns defines the table column layout for trace span output.
 	traceColumns = []Column{
 		{Header: "TRACE ID"},
 		{Header: "SPAN ID"},
@@ -136,11 +142,13 @@ var (
 		{Header: "STATUS MESSAGE", WideOnly: true},
 	}
 
+	// resourceColumns defines the table column layout for open resource counts.
 	resourceColumns = []Column{
 		{Header: "CATEGORY"},
 		{Header: "COUNT"},
 	}
 
+	// dlqSummaryColumns defines the table column layout for dead-letter queue summary output.
 	dlqSummaryColumns = []Column{
 		{Header: "TYPE"},
 		{Header: "QUEUED"},
@@ -153,6 +161,7 @@ var (
 		{Header: "UPTIME", WideOnly: true},
 	}
 
+	// dlqEntryColumns defines the table column layout for individual dead-letter queue entries.
 	dlqEntryColumns = []Column{
 		{Header: "ID"},
 		{Header: "TYPE"},
@@ -163,6 +172,7 @@ var (
 		{Header: "LAST ATTEMPT", WideOnly: true},
 	}
 
+	// rateLimiterColumns defines the table column layout for rate limiter status output.
 	rateLimiterColumns = []Column{
 		{Header: "TOKEN BUCKET"},
 		{Header: "COUNTER"},

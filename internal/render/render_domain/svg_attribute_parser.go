@@ -39,6 +39,8 @@ type svgAttribute struct {
 // Most SVG elements have 3 to 8 attributes, so 8 is a sensible default.
 const svgAttrSliceInitialCap = 8
 
+// svgAttrSlicePool reuses svgAttribute slices to reduce allocation pressure
+// during SVG attribute parsing.
 var svgAttrSlicePool = sync.Pool{
 	New: func() any {
 		return new(make([]svgAttribute, 0, svgAttrSliceInitialCap))

@@ -295,11 +295,9 @@ func renderOutlookParagraphHeightWrapper(height string, contentNode *ast_domain.
 	return NewFragmentNode([]*ast_domain.TemplateNode{startComment, contentNode, endComment})
 }
 
-// copyBorderStyle copies a border shorthand property to the destination map.
-// Because the premailer expands border shorthands (e.g. "border-left") into
-// longhands (border-left-width, border-left-style, border-left-color), this
-// function first tries the shorthand and falls back to reassembling from the
-// longhand properties.
+// copyBorderStyle copies a border shorthand property to the destination map,
+// falling back to reassembling from longhand properties when the shorthand is
+// not present.
 //
 // Takes styles (*pml_domain.StyleManager) which provides the source values.
 // Takes dest (map[string]string) which receives the border style.

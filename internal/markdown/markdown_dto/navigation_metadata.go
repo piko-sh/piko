@@ -50,7 +50,7 @@ type NavGroupMetadata struct {
 	// Icon is an optional icon name for display in the UI.
 	//
 	// The format depends on your icon system, for example: "download",
-	// "🚀", or "fas fa-book".
+	// "rocket", or "fas fa-book".
 	Icon string
 
 	// Parent allows explicit override of the parent node.

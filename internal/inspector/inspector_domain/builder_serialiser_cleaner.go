@@ -43,6 +43,8 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+// astResolverPool reuses astResolver instances to reduce allocation pressure
+// during generic type cleaning.
 var astResolverPool = sync.Pool{
 	New: func() any {
 		return &astResolver{}

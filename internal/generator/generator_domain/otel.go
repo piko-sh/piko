@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the generator_domain package.
 	log = logger_domain.GetLogger("piko/internal/generator/generator_domain")
 
 	// meter is the OpenTelemetry meter for the generator domain.

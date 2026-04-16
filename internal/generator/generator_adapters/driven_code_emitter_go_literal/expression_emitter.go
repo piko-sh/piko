@@ -55,6 +55,7 @@ const (
 )
 
 var (
+	// builtInFunctionNames maps Go built-in function names that are emitted as direct calls.
 	builtInFunctionNames = map[string]bool{
 		"len":    true,
 		"append": true,

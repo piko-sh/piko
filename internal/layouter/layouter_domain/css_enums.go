@@ -406,6 +406,7 @@ const (
 	HyphensAuto
 )
 
+// displayTypeNames maps DisplayType values to their CSS keyword strings.
 var displayTypeNames = [...]string{
 	DisplayBlock:            "block",
 	DisplayInline:           "inline",
@@ -426,6 +427,7 @@ var displayTypeNames = [...]string{
 	DisplayContents:         "contents",
 }
 
+// positionTypeNames maps PositionType values to their CSS keyword strings.
 var positionTypeNames = [...]string{
 	PositionStatic:   "static",
 	PositionRelative: "relative",
@@ -433,12 +435,14 @@ var positionTypeNames = [...]string{
 	PositionFixed:    "fixed",
 }
 
+// floatTypeNames maps FloatType values to their CSS keyword strings.
 var floatTypeNames = [...]string{
 	FloatNone:  cssKeywordNone,
 	FloatLeft:  cssKeywordLeft,
 	FloatRight: cssKeywordRight,
 }
 
+// clearTypeNames maps ClearType values to their CSS keyword strings.
 var clearTypeNames = [...]string{
 	ClearNone:  cssKeywordNone,
 	ClearLeft:  cssKeywordLeft,
@@ -446,6 +450,7 @@ var clearTypeNames = [...]string{
 	ClearBoth:  "both",
 }
 
+// textAlignTypeNames maps TextAlignType values to their CSS keyword strings.
 var textAlignTypeNames = [...]string{
 	TextAlignLeft:    cssKeywordLeft,
 	TextAlignCentre:  cssKeywordCentre,
@@ -455,6 +460,8 @@ var textAlignTypeNames = [...]string{
 	TextAlignEnd:     "end",
 }
 
+// textDecorationStyleTypeNames maps TextDecorationStyleType
+// values to their CSS keyword strings.
 var textDecorationStyleTypeNames = [...]string{
 	TextDecorationStyleSolid:  "solid",
 	TextDecorationStyleDashed: "dashed",
@@ -463,6 +470,7 @@ var textDecorationStyleTypeNames = [...]string{
 	TextDecorationStyleWavy:   "wavy",
 }
 
+// textTransformTypeNames maps TextTransformType values to their CSS keyword strings.
 var textTransformTypeNames = [...]string{
 	TextTransformNone:       cssKeywordNone,
 	TextTransformUppercase:  "uppercase",
@@ -470,6 +478,7 @@ var textTransformTypeNames = [...]string{
 	TextTransformCapitalise: "capitalise",
 }
 
+// whiteSpaceTypeNames maps WhiteSpaceType values to their CSS keyword strings.
 var whiteSpaceTypeNames = [...]string{
 	WhiteSpaceNormal:  "normal",
 	WhiteSpacePre:     "pre",
@@ -478,18 +487,21 @@ var whiteSpaceTypeNames = [...]string{
 	WhiteSpacePreLine: "pre-line",
 }
 
+// wordBreakTypeNames maps WordBreakType values to their CSS keyword strings.
 var wordBreakTypeNames = [...]string{
 	WordBreakNormal:   "normal",
 	WordBreakBreakAll: "break-all",
 	WordBreakKeepAll:  "keep-all",
 }
 
+// overflowWrapTypeNames maps OverflowWrapType values to their CSS keyword strings.
 var overflowWrapTypeNames = [...]string{
 	OverflowWrapNormal:    "Normal",
 	OverflowWrapBreakWord: "BreakWord",
 	OverflowWrapAnywhere:  "Anywhere",
 }
 
+// overflowTypeNames maps OverflowType values to their CSS keyword strings.
 var overflowTypeNames = [...]string{
 	OverflowVisible: "visible",
 	OverflowHidden:  "hidden",
@@ -497,12 +509,14 @@ var overflowTypeNames = [...]string{
 	OverflowAuto:    cssKeywordAuto,
 }
 
+// visibilityTypeNames maps VisibilityType values to their CSS keyword strings.
 var visibilityTypeNames = [...]string{
 	VisibilityVisible:  "visible",
 	VisibilityHidden:   "hidden",
 	VisibilityCollapse: "collapse",
 }
 
+// borderStyleTypeNames maps BorderStyleType values to their CSS keyword strings.
 var borderStyleTypeNames = [...]string{
 	BorderStyleNone:   cssKeywordNone,
 	BorderStyleSolid:  "solid",
@@ -515,16 +529,19 @@ var borderStyleTypeNames = [...]string{
 	BorderStyleOutset: "outset",
 }
 
+// boxSizingTypeNames maps BoxSizingType values to their CSS keyword strings.
 var boxSizingTypeNames = [...]string{
 	BoxSizingContentBox: "content-box",
 	BoxSizingBorderBox:  "border-box",
 }
 
+// directionTypeNames maps DirectionType values to their CSS keyword strings.
 var directionTypeNames = [...]string{
 	DirectionLTR: "ltr",
 	DirectionRTL: "rtl",
 }
 
+// unicodeBidiTypeNames maps UnicodeBidiType values to their CSS keyword strings.
 var unicodeBidiTypeNames = [...]string{
 	UnicodeBidiNormal:          "normal",
 	UnicodeBidiEmbed:           "embed",
@@ -534,6 +551,7 @@ var unicodeBidiTypeNames = [...]string{
 	UnicodeBidiPlaintext:       "plaintext",
 }
 
+// hyphensTypeNames maps HyphensType values to their CSS keyword strings.
 var hyphensTypeNames = [...]string{
 	HyphensNone:   cssKeywordNone,
 	HyphensManual: "manual",

@@ -41,6 +41,7 @@ var (
 
 	_ logger_domain.OtelIntegration = (*sentryIntegration)(nil)
 
+	// sentryInitOnce guards one-time initialisation of the Sentry SDK.
 	sentryInitOnce sync.Once
 )
 

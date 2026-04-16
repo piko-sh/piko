@@ -64,8 +64,7 @@ type driverHTTPServerAdapter struct {
 	tlsConfig *TLSAdapterConfig
 
 	// onBound is an optional callback invoked after the server successfully
-	// binds to a port, before it starts serving. The callback receives the
-	// resolved listen address (e.g. ":8081").
+	// binds to a port, receiving the resolved listen address.
 	onBound func(address string)
 
 	// purpose indicates whether this server handles health probes or main traffic.
@@ -168,6 +167,9 @@ func (a *driverHTTPServerAdapter) Shutdown(ctx context.Context) error {
 }
 
 // SetOnBound registers a callback invoked after the server binds successfully.
+//
+// Takes fn (func(address string)) which is the callback receiving the resolved
+// listen address.
 func (a *driverHTTPServerAdapter) SetOnBound(fn func(address string)) {
 	a.onBound = fn
 }

@@ -57,11 +57,13 @@ type SearchBox struct {
 }
 
 var (
+	// searchBoxStyle defines the Lip Gloss style for the search input container.
 	searchBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("39")).
 			Padding(0, 1)
 
+	// searchLabelStyle defines the Lip Gloss style for the search prompt label.
 	searchLabelStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("39")).
 				Bold(true)

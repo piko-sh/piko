@@ -412,6 +412,8 @@ type iteratorFrame struct {
 	parent *TemplateNode
 }
 
+// iteratorFramePool reuses iteratorFrame instances to reduce allocation pressure
+// during AST traversal.
 var iteratorFramePool = sync.Pool{
 	New: func() any {
 		return new(iteratorFrame)

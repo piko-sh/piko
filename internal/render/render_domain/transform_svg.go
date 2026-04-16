@@ -91,6 +91,8 @@ var (
 		},
 	}
 
+	// sortedKeysPool reuses string slices to reduce allocation pressure during
+	// SVG attribute key sorting.
 	sortedKeysPool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 16))

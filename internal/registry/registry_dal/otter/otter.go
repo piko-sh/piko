@@ -48,6 +48,7 @@ const (
 )
 
 var (
+	// log is the package-level logger for the otter package.
 	log = logger_domain.GetLogger("piko/internal/registry/registry_dal/otter")
 
 	_ registry_dal.RegistryDALWithTx = (*DAL)(nil)

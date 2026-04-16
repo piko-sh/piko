@@ -111,8 +111,6 @@ type MarkdownProvider struct {
 // Takes renderService (render_domain.RenderService) which extracts plain text
 // from AST for search indexing. Can be nil if plain text extraction is not
 // needed.
-// Takes opts (...MarkdownProviderOption) which provides optional functional
-// options for configuring features like module resolution.
 //
 // Returns *MarkdownProvider which is fully initialised and ready for use.
 func NewMarkdownProvider(
@@ -774,6 +772,8 @@ func (*MarkdownProvider) extractNavigationMetadata(
 //
 // Uses the basePath field if set (via SetBasePath), otherwise falls back
 // to the sandbox root directory.
+//
+// Takes basePath (string) which overrides the sandbox root when non-empty.
 //
 // Returns collection_dto.ProviderConfig which contains sensible defaults
 // including common locales and English as the default locale.

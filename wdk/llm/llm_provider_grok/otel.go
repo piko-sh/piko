@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the llm_provider_grok package.
 	log = logger.GetLogger("piko/llm/llm_provider_grok")
 
 	// meter is the OpenTelemetry meter for the Grok provider.

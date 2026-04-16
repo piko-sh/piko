@@ -27,6 +27,7 @@ const vectormathsBuildConstraint = "!safe && !(js && wasm)"
 // vectormathsOutputDir is the output directory for generated vectormaths assembly files.
 const vectormathsOutputDir = "internal/vectormaths"
 
+// vectormathsIncludes lists the assembly include files required by generated SIMD functions.
 var vectormathsIncludes = []string{"textflag.h"}
 
 // FileGroups returns all FileGroup definitions for the vectormaths

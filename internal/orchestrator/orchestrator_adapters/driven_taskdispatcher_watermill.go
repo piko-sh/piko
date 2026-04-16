@@ -53,6 +53,8 @@ const (
 
 var _ orchestrator_domain.TaskDispatcher = (*watermillTaskDispatcher)(nil)
 
+// errDispatcherAlreadyStarted is returned when Start is called on a
+// dispatcher that has already been started.
 var errDispatcherAlreadyStarted = errors.New("dispatcher already started")
 
 // watermillTaskDispatcher implements TaskDispatcher using Watermill for

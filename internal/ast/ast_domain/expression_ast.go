@@ -96,7 +96,6 @@ const (
 )
 
 const (
-	// _ starts the iota sequence and is not used elsewhere.
 	_ int = iota
 
 	// precLowest is the lowest operator precedence level.
@@ -137,6 +136,7 @@ const (
 	precPostfix
 )
 
+// precedences maps operator symbols to their binding power for expression parsing.
 var precedences = map[string]int{
 	"?":   precTernary,
 	"??":  precCoalesce,

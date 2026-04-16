@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the registry_adapters package.
 	log = logger_domain.GetLogger("piko/internal/registry/registry_adapters")
 )

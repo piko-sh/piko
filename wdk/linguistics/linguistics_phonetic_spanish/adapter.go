@@ -75,7 +75,7 @@ var charHandlers = [latinAlphabetSize]charHandler{
 // Encoder provides phonetic encoding using Spanish phonetic rules.
 // It implements the linguistics_domain.PhoneticEncoderPort interface.
 //
-// The encoder handles Spanish-specific patterns including yeísmo (LL->Y),
+// The encoder handles Spanish-specific patterns including yeismo (LL->Y),
 // seseo (Z/C before E,I -> S), and B/V merger.
 type Encoder struct {
 	// maxLength is the maximum number of characters in the output code.
@@ -329,7 +329,7 @@ func handleK(word string, position int, result *strings.Builder) int {
 	return handleDoubleConsonant(word, position, 'K', PhoneticK, result)
 }
 
-// handleL processes the letter L, converting LL to J for yeísmo.
+// handleL processes the letter L, converting LL to J for yeismo.
 //
 // Takes word (string) which is the word being processed.
 // Takes position (int) which is the current position in the word.
@@ -499,7 +499,7 @@ func handleX(_ string, position int, result *strings.Builder) int {
 //
 // When Y appears at the end of a word or is followed by a consonant, it is
 // converted to I. Otherwise, Y followed by a vowel becomes J, following the
-// yeísmo pattern where Y sounds like LL.
+// yeismo pattern where Y sounds like LL.
 //
 // Takes word (string) which is the word being processed.
 // Takes position (int) which is the current position of Y in the word.

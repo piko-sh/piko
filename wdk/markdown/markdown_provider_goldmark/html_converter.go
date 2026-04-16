@@ -30,6 +30,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+// log is the package-level logger for the markdown_provider_goldmark package.
 var log = logger_domain.GetLogger("piko/wdk/markdown/markdown_provider_goldmark")
 
 // HTMLConverterOptions holds configuration for HTML conversion.

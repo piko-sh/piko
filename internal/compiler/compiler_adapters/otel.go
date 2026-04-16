@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the compiler_adapters package.
 	log = logger_domain.GetLogger("piko/internal/compiler/compiler_adapters")
 
 	// meter is the OpenTelemetry meter for compiler adapter metrics.

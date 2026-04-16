@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the markdown_domain package.
 	log = logger_domain.GetLogger("piko/internal/markdown/markdown_domain")
 )

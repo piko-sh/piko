@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the render_domain package.
 	log = logger_domain.GetLogger("piko/internal/render/render_domain")
 
 	// meter is the OpenTelemetry meter for the render domain package.

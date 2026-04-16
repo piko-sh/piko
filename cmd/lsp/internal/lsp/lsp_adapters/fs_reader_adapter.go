@@ -44,11 +44,8 @@ type lspFSReader struct {
 }
 
 var (
-	// Compile-time check: lspFSReader satisfies FSReaderPort.
 	_ annotator_domain.FSReaderPort = (*lspFSReader)(nil)
 
-	// _ is a compile-time assertion that osFSReader implements the
-	// FSReaderPort interface.
 	_ annotator_domain.FSReaderPort = (*osFSReader)(nil)
 )
 

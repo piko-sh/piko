@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the seo_domain package.
 	log = logger_domain.GetLogger("piko/internal/seo/seo_domain")
 
 	// meter is the package-level meter for OpenTelemetry metrics.

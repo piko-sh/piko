@@ -126,6 +126,7 @@ type TUI struct {
 	service *tui_domain.Service
 }
 
+// log is the package-level logger for the tui package.
 var log = logger.GetLogger("tui")
 
 // Run starts the TUI and blocks until the user exits or an error occurs.

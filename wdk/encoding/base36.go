@@ -22,6 +22,7 @@ package encoding
 import "fmt"
 
 var (
+	// base36Alphabet holds the character set for Base36 encoding (digits 0-9, uppercase A-Z).
 	base36Alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 	// Base36Encoding is a ready-to-use encoding using the standard Base36 alphabet

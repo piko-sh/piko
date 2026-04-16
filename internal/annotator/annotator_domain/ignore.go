@@ -183,21 +183,21 @@ func parseIgnoreFile(path string, injectedSandbox safedisk.Sandbox, factory safe
 	return patterns, nil
 }
 
-// resolveIgnoreSandbox returns the sandbox to use for reading the ignore file,
-// preferring an injected sandbox and falling back to a factory or no-op sandbox.
+// resolveIgnoreSandbox returns the sandbox to use for reading
+// the ignore file, preferring an injected sandbox and falling
+// back to a factory or no-op sandbox.
 //
-// Returns (nil, false) when sandbox creation fails, signalling the caller to
-// skip the file silently.
+// Takes cleanPath (string) which is the cleaned path used to
+// derive the parent directory.
+// Takes injectedSandbox (safedisk.Sandbox) which is an
+// optional pre-built sandbox.
+// Takes factory (safedisk.Factory) which creates sandboxes
+// when injectedSandbox is nil.
 //
-// Takes cleanPath (string) which is the cleaned path used to derive the parent
-// directory.
-// Takes injectedSandbox (safedisk.Sandbox) which is an optional pre-built
-// sandbox.
-// Takes factory (safedisk.Factory) which creates sandboxes when
-// injectedSandbox is nil.
-//
-// Returns safedisk.Sandbox which provides filesystem access, or nil on failure.
-// Returns bool which is true when the caller owns (and must close) the sandbox.
+// Returns safedisk.Sandbox which provides filesystem access,
+// or nil on failure.
+// Returns bool which indicates whether the caller owns (and
+// must close) the sandbox.
 func resolveIgnoreSandbox(cleanPath string, injectedSandbox safedisk.Sandbox, factory safedisk.Factory) (safedisk.Sandbox, bool) {
 	if injectedSandbox != nil {
 		return injectedSandbox, false

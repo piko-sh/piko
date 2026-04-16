@@ -48,8 +48,10 @@ type OtlpProtocol struct {
 }
 
 var (
+	// protocolsMu guards concurrent access to protocols.
 	protocolsMu sync.RWMutex
 
+	// protocols holds the registered OTLP protocol factories keyed by name.
 	protocols = map[string]OtlpProtocol{}
 )
 

@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the orchestrator_adapters package.
 	log = logger_domain.GetLogger("piko/internal/orchestrator/orchestrator_adapters")
 
 	// meter is the OpenTelemetry meter for the orchestrator adapters package.

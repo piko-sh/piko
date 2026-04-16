@@ -25,12 +25,16 @@ import (
 )
 
 var (
+	// pcPool reuses caller.PCs slices to reduce allocation pressure during stack
+	// trace capture.
 	pcPool = sync.Pool{
 		New: func() any {
 			return new(make(caller.PCs, 32))
 		},
 	}
 
+	// frameSlicePool reuses string slices to reduce allocation pressure during
+	// stack frame formatting.
 	frameSlicePool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, 32))

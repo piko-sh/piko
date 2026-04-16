@@ -27,6 +27,8 @@ import (
 	"github.com/cockroachdb/apd/v3"
 )
 
+// decimalContext holds the default arbitrary-precision decimal arithmetic context
+// used by all Decimal operations.
 var decimalContext = apd.Context{
 	Precision:   34,
 	MaxExponent: apd.MaxExponent,

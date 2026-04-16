@@ -208,9 +208,6 @@ func (b *prodDaemonBuilder) buildRouter(ctx context.Context) error {
 //
 // Returns daemon_domain.DaemonService which is the configured production daemon.
 // Returns error when health probe setup or lifecycle service creation fails.
-//
-// Spawns a goroutine that runs initial tasks (theme seeding,
-// config, assets) in the background until the app context is cancelled.
 func (b *prodDaemonBuilder) buildFinalDaemon(ctx context.Context) (daemon_domain.DaemonService, error) {
 	_, l := logger_domain.From(ctx, log)
 	seoService, err := b.c.GetSEOService()

@@ -28,7 +28,6 @@ import "fmt"
 // This follows the same pattern as ast_domain.ExpressionFeature.
 type SQLExpressionFeature uint64
 
-// SQL expression feature flags.
 const (
 	// SQLFeatureBinaryArithmetic allows arithmetic operators (+, -, *, /, %).
 	SQLFeatureBinaryArithmetic SQLExpressionFeature = 1 << iota
@@ -85,8 +84,6 @@ const (
 	SQLFeatureStructFieldAccess
 )
 
-// Composite feature sets. Engine adapters combine individual feature flags to
-// declare their capabilities via EnginePort.SupportedExpressions().
 const (
 	// SQLFeaturesBase is the set of expression features supported by most
 	// SQL dialects: arithmetic, comparisons, string concat, CASE, IS NULL,

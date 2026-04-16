@@ -37,6 +37,7 @@ var (
 	//go:embed built/*
 	EmbeddedFrontendTemplates embed.FS
 
+	// assetStore holds the in-memory cache of embedded frontend assets keyed by path.
 	assetStore map[string]*EmbeddedAsset
 )
 

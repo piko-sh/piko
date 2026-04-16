@@ -48,10 +48,8 @@ type QueryFileEmitState struct {
 }
 
 // sliceHelperSourceTemplate holds the raw Go source template for the slice
-// expansion helper file. It is emitted as raw source text rather than AST
-// nodes because the renumbering algorithm is complex enough that AST
-// construction would be excessively verbose. The single %s verb is replaced
-// with the package name.
+// expansion helper file, emitted as text because the renumbering algorithm
+// would be excessively verbose as AST nodes.
 const sliceHelperSourceTemplate = `package %s
 
 import (
@@ -222,6 +220,12 @@ func EmitQueries(
 
 // emitBatchHelperIfNeeded returns the batch/copyfrom helper file when any query
 // uses :batch or :copyfrom and the handler provides one; otherwise nil.
+//
+// Takes packageName (string) which is the Go package name for the generated file.
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the queries to check.
+// Takes batchHandler (BatchCopyFromHandler) which provides the helper, or nil.
+//
+// Returns *querier_dto.GeneratedFile which is the helper file, or nil.
 func emitBatchHelperIfNeeded(
 	packageName string,
 	queries []*querier_dto.AnalysedQuery,
@@ -240,6 +244,11 @@ func emitBatchHelperIfNeeded(
 
 // anyQueryNeedsSliceExpansion reports whether any query in the list requires
 // runtime slice expansion.
+//
+// Takes queries ([]*querier_dto.AnalysedQuery) which are the queries to check.
+// Takes strategy (MethodStrategy) which provides expansion support info.
+//
+// Returns bool which is true when at least one query needs slice expansion.
 func anyQueryNeedsSliceExpansion(queries []*querier_dto.AnalysedQuery, strategy MethodStrategy) bool {
 	for _, q := range queries {
 		if NeedsSliceExpansion(q, strategy) {

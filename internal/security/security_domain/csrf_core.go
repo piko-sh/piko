@@ -89,12 +89,16 @@ type csrfPayloadParts struct {
 }
 
 var (
+	// b64BufPool reuses byte slices to reduce allocation pressure during base64
+	// encoding of CSRF tokens.
 	b64BufPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, 24))
 		},
 	}
 
+	// randomBytesPool reuses byte slices to reduce allocation pressure during
+	// CSRF ephemeral token generation.
 	randomBytesPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, csrfEphemeralTokenBytes))

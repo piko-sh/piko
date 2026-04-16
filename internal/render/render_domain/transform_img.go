@@ -73,6 +73,8 @@ type srcsetCacheKey struct {
 }
 
 var (
+	// sortedProfileKeysPool reuses string slices to reduce allocation pressure
+	// during image profile key sorting.
 	sortedProfileKeysPool = sync.Pool{
 		New: func() any {
 			return new(make([]string, 0, 16))
@@ -85,6 +87,8 @@ var (
 		New: func() any { return new(pikoImgAttrs) },
 	}
 
+	// assetProfilePool reuses assetProfile instances to reduce allocation pressure
+	// during responsive image transformation.
 	assetProfilePool = sync.Pool{
 		New: func() any {
 			return &assetProfile{

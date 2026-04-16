@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the driven_disk package.
 	log = logger_domain.GetLogger("piko/internal/wal/wal_adapters/driven_disk")
 )

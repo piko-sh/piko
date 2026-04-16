@@ -21,5 +21,6 @@ package logger_integration_sentry
 import "piko.sh/piko/internal/logger/logger_domain"
 
 var (
+	// log is the package-level logger for the logger_integration_sentry package.
 	log = logger_domain.GetLogger("piko/wdk/logger/logger_integration_sentry")
 )

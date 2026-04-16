@@ -199,20 +199,29 @@ type stepUpdateMessage Step
 type tuiTickMessage time.Time
 
 var (
+	// tuiTitleStyle defines the Lip Gloss style for the test name heading.
 	tuiTitleStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
 
+	// tuiPassedStyle defines the Lip Gloss style for passed step indicators.
 	tuiPassedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 
+	// tuiFailedStyle defines the Lip Gloss style for failed step indicators.
 	tuiFailedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 
+	// tuiRunningStyle defines the Lip Gloss style for currently running step indicators.
 	tuiRunningStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 
+	// tuiPendingStyle defines the Lip Gloss style for pending
+	// step indicators and secondary text.
 	tuiPendingStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
+	// tuiHelpStyle defines the Lip Gloss style for help text at the bottom of the TUI.
 	tuiHelpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
+	// tuiModeStyle defines the Lip Gloss style for the playback mode label.
 	tuiModeStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("14"))
 
+	// tuiBoxStyle defines the Lip Gloss style for the outer border of the TUI display.
 	tuiBoxStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(0, 1)
 )
 

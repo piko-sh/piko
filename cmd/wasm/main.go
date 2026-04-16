@@ -47,6 +47,8 @@ const (
 	invalidRequestFmt = "invalid request: %v"
 )
 
+// orchestrator holds the global WASM orchestrator that manages
+// analysis, generation, and rendering.
 var orchestrator *wasm_domain.Orchestrator
 
 // main sets up the Piko WASM module and registers JavaScript bindings.

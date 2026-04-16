@@ -28,8 +28,10 @@ import (
 )
 
 var (
+	// log is the package-level logger for the daemon_adapters package.
 	log = logger_domain.GetLogger("piko/internal/daemon/daemon_adapters")
 
+	// tracer is the OpenTelemetry tracer for the daemon_adapters package.
 	tracer = otel.Tracer("piko/internal/daemon/daemon_adapters")
 
 	// meter provides OpenTelemetry metrics for the daemon adapters package.
@@ -121,6 +123,8 @@ var (
 	// never needs eviction.
 	metricAttrMu sync.RWMutex
 
+	// metricAttrCache stores pre-built metric measurement options keyed by
+	// path and method to avoid repeated attribute allocations.
 	metricAttrCache = make(map[string]map[string]metric.MeasurementOption)
 )
 

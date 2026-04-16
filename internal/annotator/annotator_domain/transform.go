@@ -72,6 +72,8 @@ var (
 	// defaultResponsiveBreakpoints defines standard responsive image widths.
 	defaultResponsiveBreakpoints = []int{320, 640, 768, 1024, 1280}
 
+	// staticAssetTags maps tag names that reference static
+	// asset files for dependency collection.
 	staticAssetTags = map[string]bool{
 		"piko:svg":     true,
 		"piko:img":     true,
@@ -80,6 +82,7 @@ var (
 		"piko:video":   true,
 	}
 
+	// runtimeProcessingTags maps tag names that require runtime attribute processing.
 	runtimeProcessingTags = map[string]bool{
 		"piko:svg":     true,
 		"piko:a":       true,

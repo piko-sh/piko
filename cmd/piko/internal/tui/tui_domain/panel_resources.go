@@ -56,7 +56,6 @@ const (
 )
 
 var (
-	// _ is a compile-time check that ResourcesPanel implements Panel.
 	_ Panel = (*ResourcesPanel)(nil)
 
 	_ ItemRenderer[FDCategory] = (*resourcesRenderer)(nil)

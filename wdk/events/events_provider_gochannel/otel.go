@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	// meter is the OpenTelemetry meter for the events_provider_gochannel package.
 	meter = otel.Meter("piko/wdk/events/events_provider_gochannel")
 
 	// providerStartDuration records the time taken for provider lifecycle startup.

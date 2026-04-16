@@ -123,7 +123,6 @@ type ValkeyClusterAdapter[K comparable, V any] struct {
 	indexCreated bool
 }
 
-// _ is a compile-time check that ValkeyClusterAdapter implements ProviderPort.
 var _ cache.ProviderPort[any, any] = (*ValkeyClusterAdapter[any, any])(nil)
 
 // encodeKey converts a key of type K to a namespace-prefixed Valkey key string

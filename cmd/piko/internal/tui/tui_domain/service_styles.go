@@ -79,6 +79,7 @@ var (
 )
 
 var (
+	// titleStyle defines the Lip Gloss style for the main title text.
 	titleStyle = lipgloss.NewStyle().
 
 			Foreground(colorPrimary).
@@ -87,6 +88,7 @@ var (
 
 			Padding(0, 1)
 
+	// statusBarStyle defines the Lip Gloss style for the bottom status bar.
 	statusBarStyle = lipgloss.NewStyle().
 
 			Foreground(colorForegroundDim).
@@ -95,6 +97,7 @@ var (
 
 			Padding(0, 1)
 
+	// panelStyle defines the Lip Gloss style for unfocused panel borders.
 	panelStyle = lipgloss.NewStyle().
 
 			Border(lipgloss.RoundedBorder()).
@@ -103,6 +106,7 @@ var (
 
 			Padding(0, 1)
 
+	// panelFocusedStyle defines the Lip Gloss style for focused panel borders.
 	panelFocusedStyle = lipgloss.NewStyle().
 
 				Border(lipgloss.RoundedBorder()).
@@ -111,6 +115,7 @@ var (
 
 				Padding(0, 1)
 
+	// panelTitleStyle defines the Lip Gloss style for panel heading text.
 	panelTitleStyle = lipgloss.NewStyle().
 
 			Foreground(colorPrimary).
@@ -119,12 +124,14 @@ var (
 
 			Padding(0, 1)
 
+	// navItemStyle defines the Lip Gloss style for inactive navigation items.
 	navItemStyle = lipgloss.NewStyle().
 
 			Foreground(colorForegroundDim).
 
 			Padding(0, 1)
 
+	// navItemActiveStyle defines the Lip Gloss style for the selected navigation item.
 	navItemActiveStyle = lipgloss.NewStyle().
 
 				Foreground(colorPrimary).
@@ -133,32 +140,39 @@ var (
 
 				Padding(0, 1)
 
+	// navItemHotkeyStyle defines the Lip Gloss style for hotkey characters in navigation labels.
 	navItemHotkeyStyle = lipgloss.NewStyle().
 
 				Foreground(colorAccent).
 
 				Bold(true)
 
+	// statusHealthyStyle defines the Lip Gloss style for healthy status indicators.
 	statusHealthyStyle = lipgloss.NewStyle().
 
 				Foreground(colorSuccess)
 
+	// statusDegradedStyle defines the Lip Gloss style for degraded status indicators.
 	statusDegradedStyle = lipgloss.NewStyle().
 
 				Foreground(colorWarning)
 
+	// statusUnhealthyStyle defines the Lip Gloss style for unhealthy status indicators.
 	statusUnhealthyStyle = lipgloss.NewStyle().
 
 				Foreground(colorError)
 
+	// statusUnknownStyle defines the Lip Gloss style for unknown status indicators.
 	statusUnknownStyle = lipgloss.NewStyle().
 
 				Foreground(colorForegroundDim)
 
+	// statusPendingStyle defines the Lip Gloss style for pending status indicators.
 	statusPendingStyle = lipgloss.NewStyle().
 
 				Foreground(colorInfo)
 
+	// helpSeparatorStyle defines the Lip Gloss style for separators in the help bar.
 	helpSeparatorStyle = lipgloss.NewStyle().
 
 				Foreground(colorBorder)

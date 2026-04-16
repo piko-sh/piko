@@ -18,9 +18,6 @@
 
 package ast_domain
 
-// Parser diagnostic codes (T001-T099). Used by the expression parser,
-// template validator, and AST transformations. Codes are stable, arbitrary,
-// and append-only - never reuse a retired number.
 const (
 	// CodeInvalidNumberLiteral indicates a malformed numeric literal.
 	CodeInvalidNumberLiteral = "T001"

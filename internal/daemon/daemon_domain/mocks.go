@@ -51,7 +51,6 @@ type MockSignalNotifier struct {
 	notifyContextOnce sync.Once
 }
 
-// Compile-time interface check.
 var _ SignalNotifier = (*MockSignalNotifier)(nil)
 
 // NewMockSignalNotifier creates a new MockSignalNotifier for testing.
@@ -109,6 +108,9 @@ func (n *MockSignalNotifier) WasTriggered() bool {
 // NotifyContextCalled, eliminating wall-clock timing dependencies.
 //
 // Returns <-chan struct{} which is closed once NotifyContext has been called.
+//
+// Concurrency: may spawn a fallback goroutine when the channel was not
+// pre-allocated.
 func (n *MockSignalNotifier) AwaitNotifyContext() <-chan struct{} {
 	if n.notifyContextCalled == nil {
 		ch := make(chan struct{})

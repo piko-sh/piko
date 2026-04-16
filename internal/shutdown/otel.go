@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the shutdown package.
 	log = logger_domain.GetLogger("piko/internal/shutdown")
 
 	// Meter is the OpenTelemetry meter for shutdown tracking.

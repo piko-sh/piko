@@ -46,7 +46,7 @@ const (
 	// PhoneticJ is the J or G sound used before the letters E or I.
 	PhoneticJ = "J"
 
-	// PhoneticN represents the GN sound, as in the Spanish letter ñ.
+	// PhoneticN represents the GN sound, as in the Spanish letter n-tilde.
 	PhoneticN = "N"
 
 	// PhoneticWA represents the OI vowel combination.
@@ -58,7 +58,7 @@ const (
 	// PhoneticO represents the AU/EAU vowel sound combination.
 	PhoneticO = "O"
 
-	// PhoneticEU represents the EU/ŒU vowel sound.
+	// PhoneticEU represents the EU/OEU (OE ligature + U) vowel sound.
 	PhoneticEU = "E"
 
 	// DigraphLength is the length of a digraph, a two-character sequence.

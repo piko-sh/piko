@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the tui_domain package.
 	log = logger.GetLogger("piko/internal/tui/tui_domain")
 
 	// Meter is the OpenTelemetry meter for TUI domain metrics.

@@ -22,6 +22,8 @@ package linguistics_domain
 // Each language adapter registers its own factory under the language name.
 type StopWordsProviderFactory = factoryFunc[StopWordsProviderPort]
 
+// stopWordsProviderRegistry holds the registered stop words provider factories
+// keyed by language.
 var stopWordsProviderRegistry = newRegistry[StopWordsProviderPort]("stop words provider")
 
 // RegisterStopWordsProviderFactory registers a stop words provider factory for

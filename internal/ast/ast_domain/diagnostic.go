@@ -374,18 +374,25 @@ func (d *Diagnostic) Error() string {
 }
 
 var (
+	// errorColour is the ANSI colour used for error severity labels and highlights.
 	errorColour = colour.New(colour.FgRed, colour.Bold)
 
+	// warningColour is the ANSI colour used for warning severity labels and highlights.
 	warningColour = colour.New(colour.FgYellow, colour.Bold)
 
+	// infoColour is the ANSI colour used for informational severity labels.
 	infoColour = colour.New(colour.FgBlue, colour.Bold)
 
+	// debugColour is the ANSI colour used for debug severity labels.
 	debugColour = colour.New(colour.FgHiBlack, colour.Bold)
 
+	// pathColour is the ANSI colour used for source file paths in diagnostic output.
 	pathColour = colour.New(colour.FgCyan)
 
+	// gutterColour is the ANSI colour used for line number gutters in diagnostic output.
 	gutterColour = colour.New(colour.FgBlue, colour.Bold)
 
+	// messageColour is the ANSI colour used for diagnostic message text.
 	messageColour = colour.New(colour.Bold)
 )
 

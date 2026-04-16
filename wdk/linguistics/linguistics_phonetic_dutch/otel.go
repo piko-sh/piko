@@ -21,6 +21,7 @@ package linguistics_phonetic_dutch
 import "piko.sh/piko/wdk/logger"
 
 var (
+	// log is the package-level logger for the linguistics_phonetic_dutch package.
 	log = logger.GetLogger("piko/linguistics/linguistics_phonetic_dutch")
 )
 

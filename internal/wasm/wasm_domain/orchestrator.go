@@ -95,10 +95,16 @@ var (
 	// version holds the current Piko version. This is set at build time.
 	version = "dev"
 
+	// errOrchestratorNotInitialised is returned when an operation is attempted
+	// on the WASM orchestrator before it has been initialised.
 	errOrchestratorNotInitialised = errors.New("orchestrator not initialised")
 
+	// errStdlibLoaderNotConfigured is returned when a stdlib import is
+	// requested but the stdlib loader has not been configured.
 	errStdlibLoaderNotConfigured = errors.New("stdlib loader not configured")
 
+	// errRendererNotConfigured is returned when a render operation is
+	// requested but the renderer has not been configured.
 	errRendererNotConfigured = errors.New("renderer not configured")
 
 	// errorPosRegex matches Go error format: "file:line:col: message" or

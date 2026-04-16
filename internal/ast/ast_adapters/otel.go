@@ -25,11 +25,13 @@ import (
 )
 
 var (
+	// log is the package-level logger for the ast_adapters package.
 	log = logger_domain.GetLogger("piko/internal/ast/ast_adapters")
 
 	// meter is the OpenTelemetry meter for the ast_adapters package.
 	meter = otel.Meter("piko/internal/ast/ast_adapters")
 
+	// l2CacheMetrics holds the OpenTelemetry metrics for L2 cache operations.
 	l2CacheMetrics cacheMetrics
 )
 

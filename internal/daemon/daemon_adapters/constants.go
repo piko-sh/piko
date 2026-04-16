@@ -247,22 +247,34 @@ var (
 	// so sharing across concurrent requests is safe.
 	headerValContentTypeHTML = []string{contentTypeHTML}
 
+	// headerValContentTypeMPEGURL is a pre-allocated header value
+	// slice for HLS playlist content type.
 	headerValContentTypeMPEGURL = []string{contentTypeMPEGURL}
 
+	// headerValContentTypeText is a pre-allocated header value
+	// slice for plain text content type.
 	headerValContentTypeText = []string{contentTypeTextPlain}
 
+	// headerValEncodingBrotli is a pre-allocated header value slice for Brotli content encoding.
 	headerValEncodingBrotli = []string{encodingBrotli}
 
+	// headerValEncodingGzip is a pre-allocated header value slice for gzip content encoding.
 	headerValEncodingGzip = []string{encodingGzip}
 
+	// headerValCacheImmutable is a pre-allocated header value slice for immutable cache control.
 	headerValCacheImmutable = []string{cacheControlImmutable}
 
+	// headerValFragmentPatch is a pre-allocated header value
+	// slice for fragment-patch response support.
 	headerValFragmentPatch = []string{"fragment-patch"}
 
+	// headerValCacheStatusMiss is a pre-allocated header value slice for a cache miss status.
 	headerValCacheStatusMiss = []string{"MISS"}
 
+	// headerValCacheStatusHit is a pre-allocated header value slice for a cache hit status.
 	headerValCacheStatusHit = []string{"HIT"}
 
+	// headerValCacheStatusStale is a pre-allocated header value slice for a stale cache status.
 	headerValCacheStatusStale = []string{"STALE"}
 
 	// headerValVaryCachePage is the Vary header for cached page responses

@@ -48,14 +48,20 @@ var (
 	// ansiRegex matches ANSI escape sequences for stripping.
 	ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
+	// colourCyan is the ANSI colour used for prominent headings in the startup banner.
 	colourCyan = colour.New(colour.FgCyan, colour.Bold).SprintFunc()
 
+	// colourGreen is the ANSI colour used for server URLs in the startup banner.
 	colourGreen = colour.New(colour.FgGreen).SprintFunc()
 
+	// colourYellow is the ANSI colour used for warnings and
+	// exposed-port markers in the startup banner.
 	colourYellow = colour.New(colour.FgYellow).SprintFunc()
 
+	// colourDim is the ANSI colour used for secondary text in the startup banner.
 	colourDim = colour.New(colour.Faint).SprintFunc()
 
+	// colourDimItalic is the ANSI colour used for decorative phrases in the startup banner.
 	colourDimItalic = colour.New(colour.Faint, colour.Italic).SprintFunc()
 
 	// startupPhrases contains fun phrases shown randomly in the startup banner.

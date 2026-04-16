@@ -302,10 +302,11 @@ func (m *Model) pushDataToPanels() {
 	}
 }
 
-// pushDataToPanel sends the stored data to a single panel. Acquires a read
-// lock on resourceDataMutex.
+// pushDataToPanel sends the stored data to a single panel.
 //
 // Takes panel (Panel) which is the target panel to receive the cached data.
+//
+// Concurrency: acquires a read lock on resourceDataMutex.
 func (m *Model) pushDataToPanel(panel Panel) {
 	m.resourceDataMutex.RLock()
 	defer m.resourceDataMutex.RUnlock()

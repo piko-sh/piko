@@ -34,7 +34,6 @@ import (
 	"piko.sh/piko/internal/wal/wal_domain"
 )
 
-// _ is a compile-time assertion that OtterAdapter implements ProviderPort.
 var _ cache_domain.ProviderPort[any, any] = (*OtterAdapter[any, any])(nil)
 
 // TagIndex maps tags to cache keys for the in-memory Otter cache. It keeps a

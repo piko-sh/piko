@@ -55,8 +55,10 @@ const (
 )
 
 var (
+	// defaultBinder holds the lazily initialised singleton ASTBinder instance.
 	defaultBinder *ASTBinder
 
+	// binderOnce guards one-time initialisation of defaultBinder.
 	binderOnce sync.Once
 
 	// identifierLUT is a lookup table for valid Go identifier characters.

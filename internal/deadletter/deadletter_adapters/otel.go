@@ -21,5 +21,6 @@ package deadletter_adapters
 import "piko.sh/piko/internal/logger/logger_domain"
 
 var (
+	// log is the package-level logger for the deadletter_adapters package.
 	log = logger_domain.GetLogger("piko/internal/deadletter/deadletter_adapters")
 )

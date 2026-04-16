@@ -34,5 +34,6 @@ const (
 )
 
 var (
+	// log is the package-level logger for the coordinator_adapters package.
 	log = logger_domain.GetLogger("piko/internal/coordinator/coordinator_adapters")
 )

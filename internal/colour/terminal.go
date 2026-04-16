@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 )
 
+// colourEnabled holds the global flag that controls whether ANSI colour output is active.
 var colourEnabled atomic.Bool
 
 func init() {

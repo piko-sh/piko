@@ -18,8 +18,6 @@
 
 package querier_dto
 
-// Querier diagnostic codes (Q-series). Codes are stable, arbitrary, and
-// append-only - never reuse a retired number.
 const (
 	// CodeUnknownColumn indicates a column reference that could not be resolved
 	// in any table or alias in scope.

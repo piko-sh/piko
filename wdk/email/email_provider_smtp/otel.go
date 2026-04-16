@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the email_provider_smtp package.
 	log = logger.GetLogger("piko/email/email_provider_smtp")
 
 	// meter is the package-level meter for SMTP provider metrics.

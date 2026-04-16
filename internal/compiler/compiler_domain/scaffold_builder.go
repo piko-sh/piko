@@ -40,11 +40,14 @@ import (
 var (
 	_ ScaffoldBuilder = (*scaffoldBuilder)(nil)
 
+	// selfClosingTags maps HTML void element tag names that must not have a closing tag.
 	selfClosingTags = map[string]bool{
 		"area": true, "base": true, "br": true, "col": true, "embed": true, "hr": true, "img": true,
 		"input": true, "link": true, "meta": true, "param": true, "source": true, "track": true, "wbr": true,
 	}
 
+	// interactivePseudoClasses maps CSS pseudo-classes that
+	// require user interaction and are stripped during compilation.
 	interactivePseudoClasses = map[string]bool{
 		"hover":         true,
 		"focus":         true,

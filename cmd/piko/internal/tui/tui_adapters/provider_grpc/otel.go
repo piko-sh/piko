@@ -30,6 +30,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the provider_grpc package.
 	log = logger.GetLogger("tui.provider_grpc")
 
 	// Meter is the package-level OpenTelemetry meter for gRPC provider metrics.

@@ -25,8 +25,6 @@ import (
 	vectormaths_arm64 "piko.sh/piko/internal/vectormaths/asm/asmgen_arch_arm64"
 )
 
-// Compile-time assertions that the architecture adapters satisfy
-// VectormathsArchitecturePort.
 var _ VectormathsArchitecturePort = (*vectormaths_amd64.VectormathsAMD64Arch)(nil)
 var _ VectormathsArchitecturePort = (*vectormaths_arm64.VectormathsARM64Arch)(nil)
 

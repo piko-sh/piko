@@ -23,6 +23,8 @@ package linguistics_domain
 // Each language adapter registers its own factory under the language name.
 type PhoneticEncoderFactory = factoryFunc[PhoneticEncoderPort]
 
+// phoneticEncoderRegistry holds the registered phonetic encoder factories keyed
+// by language.
 var phoneticEncoderRegistry = newRegistry[PhoneticEncoderPort]("phonetic encoder")
 
 // RegisterPhoneticEncoderFactory registers a phonetic encoder factory for a

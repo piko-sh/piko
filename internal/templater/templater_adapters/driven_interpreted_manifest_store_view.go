@@ -84,6 +84,11 @@ func (*interpretedManifestStoreView) GetCollectionFallbackRoutes() []templater_d
 
 // ListPreviewEntries returns all entries with a Preview function from the
 // interpreted runner's in-memory cache.
+//
+// Returns []templater_domain.PreviewCatalogueEntry which contains preview
+// entries sorted by source path.
+//
+// Concurrency: acquires a read lock on the runner's cache.
 func (v *interpretedManifestStoreView) ListPreviewEntries() []templater_domain.PreviewCatalogueEntry {
 	v.r.cacheLock.RLock()
 	defer v.r.cacheLock.RUnlock()
@@ -111,6 +116,11 @@ func (v *interpretedManifestStoreView) ListPreviewEntries() []templater_domain.P
 
 // classifyComponentType determines the component type from its source path
 // prefix.
+//
+// Takes sourcePath (string) which is the source path to classify.
+//
+// Returns string which is the component type ("page", "partial", "email",
+// "pdf", or "component").
 func classifyComponentType(sourcePath string) string {
 	switch {
 	case strings.HasPrefix(sourcePath, "pages/") || strings.HasPrefix(sourcePath, "e2e/pages/"):

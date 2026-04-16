@@ -27,6 +27,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the video_provider_astiav package.
 	log = logger.GetLogger("piko/media/video_provider_astiav")
 
 	// Meter is the OpenTelemetry meter for the video_provider_astiav package.

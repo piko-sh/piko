@@ -311,20 +311,28 @@ func prepareLocalisableEntry(
 // single table type, allowing email and PDF entries (which share an identical
 // field layout) to be packed by the same generic helper.
 type localisableEntryPacker struct {
+	// start begins a new FlatBuffer table for this entry type.
 	start func(*flatbuffers.Builder)
 
+	// addPackagePath writes the Go package path field to the table.
 	addPackagePath func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
+	// addSourcePath writes the original source file path field to the table.
 	addSourcePath func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
+	// addStyleBlock writes the scoped CSS content field to the table.
 	addStyleBlock func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
+	// addHasSupportedLocales writes the supported-locales flag to the table.
 	addHasSupportedLocales func(*flatbuffers.Builder, bool)
 
+	// addLocalTranslations writes the locale translations vector to the table.
 	addLocalTranslations func(*flatbuffers.Builder, flatbuffers.UOffsetT)
 
+	// addHasPreview writes the preview-available flag to the table.
 	addHasPreview func(*flatbuffers.Builder, bool)
 
+	// end finishes the FlatBuffer table and returns its offset.
 	end func(*flatbuffers.Builder) flatbuffers.UOffsetT
 }
 
@@ -356,7 +364,7 @@ var pdfEntryPacker = localisableEntryPacker{
 // table using the callbacks in p to target the correct generated type.
 //
 // Takes b (*flatbuffers.Builder) which is the builder to write to.
-// Takes entry (*localisableEntryFields) which holds the pre-created offsets.
+// Takes f (localisableEntryFields) which holds the pre-created offsets.
 // Takes hasPreview (bool) which indicates whether a preview is available.
 // Takes p (localisableEntryPacker) which provides the type-specific FlatBuffer
 // callbacks.

@@ -184,6 +184,7 @@ func (b *catalogueBuilder) applyStatements(
 	return diagnostics
 }
 
+// mutationHandlers maps DDL mutation kinds to their catalogue builder handler functions.
 var mutationHandlers [querier_dto.MutationKindCount]func(*catalogueBuilder, *querier_dto.CatalogueMutation) error
 
 func init() {

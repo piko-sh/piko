@@ -107,8 +107,11 @@ const (
 )
 
 var (
+	// lastV7timeAt holds the last combined timestamp-plus-sequence value used for
+	// UUIDv7 generation, ensuring monotonic ordering.
 	lastV7timeAt int64
 
+	// timeAtMu guards concurrent access to lastV7timeAt.
 	timeAtMu sync.Mutex
 )
 

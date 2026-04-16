@@ -41,10 +41,16 @@ const (
 )
 
 var (
+	// log is the package-level logger for the dispatcher_adapters package.
 	log = logger.GetLogger("piko/internal/dispatcher/dispatcher_adapters")
 
+	// errEmailDispatcherNotConfigured is returned when an email dispatcher
+	// operation is attempted but no email dispatcher has been configured.
 	errEmailDispatcherNotConfigured = errors.New("email dispatcher not configured")
 
+	// errNotificationDispatcherNotConfigured is returned when a notification
+	// dispatcher operation is attempted but no notification dispatcher has been
+	// configured.
 	errNotificationDispatcherNotConfigured = errors.New("notification dispatcher not configured")
 )
 

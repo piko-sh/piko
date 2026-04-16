@@ -289,6 +289,8 @@ type HyphenationRegistry struct {
 	mu sync.Mutex
 }
 
+// defaultHyphenationRegistry holds the package-level registry
+// of language-specific hyphenators.
 var defaultHyphenationRegistry = &HyphenationRegistry{
 	hyphenators: make(map[string]*Hyphenator),
 }

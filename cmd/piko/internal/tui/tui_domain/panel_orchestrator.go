@@ -60,7 +60,6 @@ const (
 )
 
 var (
-	// _ is a compile-time assertion that OrchestratorPanel implements Panel.
 	_ Panel = (*OrchestratorPanel)(nil)
 
 	_ ItemRenderer[Resource] = (*orchestratorRenderer)(nil)

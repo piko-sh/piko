@@ -33,7 +33,7 @@ const (
 	DefaultMaxLength = 6
 
 	// cyrillicAlphabetSize is the number of letters in the main Cyrillic block
-	// (А-Я).
+	// (A through Ya, Cyrillic).
 	cyrillicAlphabetSize = 32
 
 	// cyrillicBaseRune is the first letter of the Cyrillic uppercase block.
@@ -45,8 +45,8 @@ const (
 type runeHandler func(runes []rune, position int, result *strings.Builder) int
 
 // cyrillicHandlers is a dispatch table for Cyrillic character processing.
-// Index is calculated as character - 'А' for uppercase Cyrillic letters
-// (А=0, Б=1, ..., Я=31).
+// Index is calculated as character - cyrillicBaseRune for uppercase Cyrillic
+// letters (A=0, Be=1, ..., Ya=31).
 var cyrillicHandlers = [cyrillicAlphabetSize]runeHandler{
 	0:  handleA,
 	1:  handleB,
@@ -201,7 +201,7 @@ func handleA(_ []rune, position int, result *strings.Builder) int {
 	return position + 1
 }
 
-// handleB processes a Cyrillic 'Б' character and returns the new position.
+// handleB processes a Cyrillic Be character and returns the new position.
 //
 // Takes runes ([]rune) which is the input slice of characters.
 // Takes position (int) which is the current position in the slice.
@@ -245,7 +245,7 @@ func handleD(runes []rune, position int, result *strings.Builder) int {
 	return handleDoubleConsonant(runes, position, CyrD, PhoneticD, result)
 }
 
-// handleE processes the Cyrillic letter Е and writes its phonetic output.
+// handleE processes the Cyrillic letter Ie and writes its phonetic output.
 //
 // When the letter appears at word start or after a vowel, writes PhoneticYE.
 // Otherwise, writes PhoneticE.
@@ -385,7 +385,7 @@ func handleR(runes []rune, position int, result *strings.Builder) int {
 	return handleDoubleConsonant(runes, position, CyrR, PhoneticR, result)
 }
 
-// handleS processes the Cyrillic letter С in transliteration.
+// handleS processes the Cyrillic letter Es in transliteration.
 //
 // Takes runes ([]rune) which is the input text as a slice of runes.
 // Takes position (int) which is the current position in the rune slice.

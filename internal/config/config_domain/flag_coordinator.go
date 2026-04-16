@@ -62,8 +62,10 @@ type flagRegistration struct {
 }
 
 var (
+	// globalCoordinator holds the lazily initialised singleton FlagCoordinator.
 	globalCoordinator *FlagCoordinator
 
+	// globalCoordinatorOnce guards one-time initialisation of globalCoordinator.
 	globalCoordinatorOnce sync.Once
 )
 

@@ -25,8 +25,10 @@ import (
 )
 
 var (
+	// sriEnabled holds the flag that controls whether SRI integrity attributes are emitted.
 	sriEnabled bool
 
+	// sriHashes holds the cached SRI hashes keyed by asset path.
 	sriHashes sync.Map
 )
 

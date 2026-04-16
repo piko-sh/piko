@@ -30,6 +30,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the annotator_domain package.
 	log = logger_domain.GetLogger("piko/internal/annotator/annotator_domain")
 
 	// Meter is the OpenTelemetry meter for the annotator domain package.

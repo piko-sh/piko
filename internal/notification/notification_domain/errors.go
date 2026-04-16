@@ -78,6 +78,8 @@ var (
 	// nor a message.
 	ErrNotificationEmpty = errors.New("notification must have either a title or message")
 
+	// errDispatcherNil is returned when a nil dispatcher is provided during
+	// registration.
 	errDispatcherNil = errors.New("dispatcher cannot be nil")
 )
 

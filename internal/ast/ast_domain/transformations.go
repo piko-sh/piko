@@ -40,12 +40,16 @@ import (
 const parallelWalkThresholdBytes = 32 * 1024
 
 var (
+	// expressionParserPool reuses ExpressionParser instances to reduce allocation
+	// pressure during template parsing.
 	expressionParserPool = sync.Pool{
 		New: func() any {
 			return NewExpressionParser(context.Background(), "", "")
 		},
 	}
 
+	// forceSequentialProcessing overrides parallel processing when set, forcing
+	// all AST transformations to run sequentially.
 	forceSequentialProcessing atomic.Bool
 
 	// rawStringDirectives defines directives whose values are raw strings, not

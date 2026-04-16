@@ -46,16 +46,24 @@ const (
 )
 
 var (
+	// errImageArtefactNotFound is returned when the registry does not contain
+	// an artefact for the requested image source.
 	errImageArtefactNotFound = errors.New("artefact not found for image")
 
+	// errImageNoVariants is returned when an image artefact has no available
+	// variants to read data from.
 	errImageNoVariants = errors.New("no variants available for image")
 
+	// errImageUnsupportedFormat is returned when the image data cannot be
+	// identified as a supported format (JPEG or PNG).
 	errImageUnsupportedFormat = errors.New("unsupported image format")
 )
 
 var (
+	// jpegMagicBytes holds the file signature bytes used to identify JPEG images.
 	jpegMagicBytes = []byte{0xFF, 0xD8, 0xFF}
 
+	// pngMagicBytes holds the file signature bytes used to identify PNG images.
 	pngMagicBytes = []byte{0x89, 0x50, 0x4E, 0x47}
 )
 

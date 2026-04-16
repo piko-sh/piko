@@ -37,6 +37,7 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 )
 
+// invocationLinkerPool reuses invocationLinker instances to reduce allocation pressure.
 var invocationLinkerPool = sync.Pool{
 	New: func() any {
 		return &invocationLinker{}

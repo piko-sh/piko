@@ -218,9 +218,6 @@ func (s *Service) Track(ctx context.Context, event *analytics_dto.Event) {
 // Close signals all workers to drain their channels, flushes each
 // collector, then closes them.
 //
-// Concurrency: closes event channels, waits for worker goroutines
-// to finish draining, then calls Flush and Close on each collector.
-//
 // Returns error which is nil on success (individual collector errors
 // are logged, not returned).
 func (s *Service) Close(ctx context.Context) error {
@@ -233,6 +230,9 @@ func (s *Service) Close(ctx context.Context) error {
 
 // closeWorkers shuts down all collector workers, flushes drained
 // collectors, and closes every collector.
+//
+// Concurrency: closes event channels and waits for worker goroutines
+// to finish draining before calling Flush and Close on each collector.
 func (s *Service) closeWorkers(ctx context.Context) {
 	ctx, l := logger_domain.From(ctx, log)
 
@@ -300,14 +300,12 @@ func acquireEventCopy(src *analytics_dto.Event) *analytics_dto.Event {
 	return ev
 }
 
-// startWorkerDrains launches count drain goroutines for a single
-// collector worker.
-//
-// Concurrency: each goroutine reads from w.eventCh and calls
-// w.wg.Done when the channel is closed.
+// startWorkerDrains launches count drain goroutines for a
+// single collector worker.
 //
 // Takes w (*collectorWorker) which is the worker to drain.
-// Takes count (int) which is the number of goroutines to launch.
+// Takes count (int) which is the number of goroutines to
+// launch.
 func startWorkerDrains(ctx context.Context, w *collectorWorker, count int) {
 	collectorAttr := metric.WithAttributes(
 		attribute.String(logKeyCollector, w.collector.Name()),

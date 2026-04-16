@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the llm_provider_ollama package.
 	log = logger.GetLogger("piko/llm/llm_provider_ollama")
 
 	// meter is the OpenTelemetry meter for the Ollama provider.

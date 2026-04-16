@@ -98,6 +98,7 @@ var (
 	// time using: go build -ldflags "-X piko.sh/piko.Version=1.0.0".
 	Version = "0.1.0-alpha"
 
+	// log is the package-level logger for the piko package.
 	log = logger_domain.GetLogger("piko")
 
 	// WithComponents registers external PKC components with the Piko framework,

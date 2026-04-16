@@ -56,16 +56,23 @@ const (
 )
 
 var (
+	// summaryHeaderColour is the ANSI colour used for build summary section headings.
 	summaryHeaderColour = colour.New(colour.Bold)
 
+	// summarySuccessColour is the ANSI colour used for success indicators in build summaries.
 	summarySuccessColour = colour.New(colour.FgGreen, colour.Bold)
 
+	// summaryFailureColour is the ANSI colour used for failure indicators in build summaries.
 	summaryFailureColour = colour.New(colour.FgRed, colour.Bold)
 
+	// summaryPathColour is the ANSI colour used for file paths in build failure output.
 	summaryPathColour = colour.New(colour.FgCyan)
 
+	// summaryDimColour is the ANSI colour used for secondary text in build summaries.
 	summaryDimColour = colour.New(colour.FgHiBlack)
 
+	// summaryGutterColour is the ANSI colour used for line number
+	// gutters in build error snippets.
 	summaryGutterColour = colour.New(colour.FgBlue, colour.Bold)
 
 	// locationPattern matches esbuild-style location suffixes: (line N, col M).

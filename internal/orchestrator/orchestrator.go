@@ -61,8 +61,12 @@ const (
 )
 
 var (
+	// errTaskStoreNil is returned when the orchestrator configuration has a
+	// nil TaskStore.
 	errTaskStoreNil = errors.New("config: TaskStore cannot be nil")
 
+	// errEventBusNil is returned when the orchestrator configuration has a
+	// nil EventBus.
 	errEventBusNil = errors.New("config: EventBus cannot be nil (required for event-driven orchestration)")
 )
 

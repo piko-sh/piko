@@ -39,6 +39,7 @@ var (
 	// so domain-specific typed caches can be created on demand.
 	providerFactoryBlueprints = make(map[string]ProviderFactoryBlueprint)
 
+	// providerFactoryBlueprintsMutex guards concurrent access to providerFactoryBlueprints.
 	providerFactoryBlueprintsMutex sync.RWMutex
 )
 

@@ -131,11 +131,8 @@ type TransformationContext struct {
 	// Config holds the PML settings used when creating style managers.
 	Config *pml_dto.Config
 
-	// InheritedTextAlign holds the text-align value from a parent row when
-	// it was explicitly set by the user. Columns use this to propagate the
-	// row's text-align to their content instead of defaulting to "left".
-	// An empty string means the row's text-align was just the default and
-	// should not override the column's own default.
+	// InheritedTextAlign holds the explicit text-align value from a parent
+	// row for propagation to child columns.
 	InheritedTextAlign string
 
 	// SourceFilePath is the path of the source .pk file being transformed.

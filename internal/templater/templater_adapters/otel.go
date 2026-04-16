@@ -33,6 +33,7 @@ const (
 )
 
 var (
+	// log is the package-level logger for the templater_adapters package.
 	log = logger_domain.GetLogger("piko/internal/templater/templater_adapters")
 
 	// meter is the OpenTelemetry meter for templater adapters metrics.

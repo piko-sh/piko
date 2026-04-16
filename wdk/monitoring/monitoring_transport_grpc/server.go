@@ -37,7 +37,6 @@ import (
 	"piko.sh/piko/internal/netutil"
 )
 
-// Verify that Server implements the TransportServer interface.
 var _ monitoring_domain.TransportServer = (*Server)(nil)
 
 // maxPortRetries is the maximum number of port increments to try when

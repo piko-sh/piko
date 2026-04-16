@@ -26,6 +26,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the registry domain package.
 	log = logger_domain.GetLogger("piko/internal/registry/registry_domain")
 
 	// meter is the OpenTelemetry meter for registry domain metrics.

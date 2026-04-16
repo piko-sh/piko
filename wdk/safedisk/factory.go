@@ -200,8 +200,10 @@ var (
 	// It must be set up before use by calling initialiseGlobalFactory.
 	globalFactory Factory
 
+	// globalFactoryInit indicates whether the global factory has been initialised.
 	globalFactoryInit bool
 
+	// globalFactoryMu guards concurrent access to globalFactory and globalFactoryInit.
 	globalFactoryMu sync.RWMutex
 )
 

@@ -26,8 +26,6 @@ import (
 // StructTag is a standard PDF structure type (ISO 32000, clause 14.8.4).
 type StructTag string
 
-// PDF structure tags for the document structure tree. These correspond
-// to the standard structure types defined in ISO 32000, clause 14.8.4.
 const (
 	// TagDocument represents the root-level document structure element.
 	TagDocument StructTag = "Document"

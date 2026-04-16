@@ -22,6 +22,7 @@ package linguistics_domain //nolint:dupl // parallel typed API per registry
 // Each language adapter registers its own factory under the language name.
 type StemmerFactory = factoryFunc[StemmerPort]
 
+// stemmerRegistry holds the registered stemmer factories keyed by language.
 var stemmerRegistry = newRegistry[StemmerPort]("stemmer")
 
 // RegisterStemmerFactory registers a stemmer factory for a language.

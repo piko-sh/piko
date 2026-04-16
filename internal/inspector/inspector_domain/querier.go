@@ -42,6 +42,8 @@ const (
 	logKeyImporterFile = "importer_file"
 )
 
+// aliasResolverPool reuses aliasResolver instances to reduce allocation pressure
+// during type alias resolution.
 var aliasResolverPool = sync.Pool{
 	New: func() any {
 		return &aliasResolver{}

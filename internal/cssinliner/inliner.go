@@ -67,6 +67,8 @@ type Inliner struct {
 	diagnostics []*ast.Diagnostic
 }
 
+// inlinerPool reuses Inliner instances to reduce allocation pressure during CSS
+// import resolution.
 var inlinerPool = sync.Pool{
 	New: func() any {
 		return &Inliner{}
@@ -363,6 +365,11 @@ func MergeASTs(parent *css_ast.AST, child *css_ast.AST) {
 }
 
 // reIndexRule adjusts index values in a CSS rule and its child rules.
+//
+// Takes rule (*css_ast.Rule) which is the rule to update.
+// Takes symbolOffset (uint32) which is the offset to add to symbol indices.
+// Takes importRecordOffset (uint32) which is the offset to add to import
+// record indices.
 func reIndexRule(rule *css_ast.Rule, symbolOffset, importRecordOffset uint32) {
 	switch r := rule.Data.(type) {
 	case *css_ast.RSelector:
@@ -819,10 +826,8 @@ func WrapImportedASTWithConditions(importedAST *css_ast.AST, conditions *css_ast
 	return wrapped
 }
 
-// extractLayerNamesFromTokens parses layer names from CSS import tokens.
-// It looks for a "layer" function token and delegates to
-// parseLayerNameFromChildren for extraction. Returns an empty layer name
-// when no layer function is found.
+// extractLayerNamesFromTokens parses layer names from CSS import tokens by
+// finding a "layer" function token and extracting its children.
 //
 // Takes tokens ([]css_ast.Token) which contains the import condition tokens.
 //
@@ -844,8 +849,7 @@ func extractLayerNamesFromTokens(tokens []css_ast.Token) [][]string {
 }
 
 // parseLayerNameFromChildren extracts layer names from the child tokens of a
-// CSS layer() function. Identifier tokens are collected as name parts.
-// Returns an empty layer name when no identifiers are found.
+// CSS layer() function, collecting identifier tokens as name parts.
 //
 // Takes children ([]css_ast.Token) which contains the function's child tokens.
 //

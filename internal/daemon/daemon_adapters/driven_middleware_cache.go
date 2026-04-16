@@ -112,6 +112,7 @@ var (
 		},
 	}
 
+	// htmlBufferPool is a sync.Pool of pre-grown byte buffers for HTML page rendering.
 	htmlBufferPool = sync.Pool{
 		New: func() any {
 			b := &bytes.Buffer{}
@@ -153,6 +154,7 @@ var (
 	// separation. Avoids allocation per-separator in generateCacheArtefactID.
 	nullSeparator = []byte{0}
 
+	// hexTable holds the lowercase hexadecimal digit lookup table for cache key encoding.
 	hexTable = []byte("0123456789abcdef")
 
 	// pageCacheProfiles is pre-built at init time to avoid per-request allocations.
@@ -204,6 +206,7 @@ var (
 		},
 	}
 
+	// pipeResponseWriterPool is a sync.Pool of pipe response writers for cache middleware.
 	pipeResponseWriterPool = sync.Pool{
 		New: func() any {
 			return &pipeResponseWriter{

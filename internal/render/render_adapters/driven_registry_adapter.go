@@ -73,6 +73,8 @@ const (
 	sequentialSVGThreshold = 5
 )
 
+// svgBufferPool reuses byte-slice buffers to reduce allocation pressure during
+// SVG content assembly.
 var svgBufferPool = sync.Pool{
 	New: func() any {
 		return new(make([]byte, 0, defaultSVGBufferCapacity))

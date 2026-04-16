@@ -34,7 +34,6 @@ import (
 	"piko.sh/piko/wdk/safeconv"
 )
 
-// ICC profile layout constants.
 const (
 	// iccHeaderSize holds the byte length of the ICC profile header.
 	iccHeaderSize = 128
@@ -70,7 +69,6 @@ const (
 	iccProfileYear = 2024
 )
 
-// sRGB colourant XYZ values (D50-adapted, s15Fixed16Number).
 const (
 	// srgbRedX holds the X component of the sRGB red colourant.
 	srgbRedX int32 = 0x00006FA2
@@ -109,7 +107,6 @@ const (
 	srgbWhiteZ int32 = 0x0000D32D
 )
 
-// sRGB TRC (transfer response curve) parameters.
 const (
 	// srgbGamma holds the gamma exponent for the sRGB transfer function.
 	srgbGamma = 2.4
@@ -118,7 +115,6 @@ const (
 	srgbLinearCutoff = 0.04045
 )
 
-// ICC tag indices for TRC deduplication.
 const (
 	// iccTagIndexRTRC holds the index of the red TRC tag in the tag array.
 	iccTagIndexRTRC = 5

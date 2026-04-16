@@ -41,8 +41,12 @@ const (
 )
 
 var (
+	// errDALNotInitialised is returned when a transaction is attempted but the
+	// DAL has not been initialised with a sql.DB connection.
 	errDALNotInitialised = errors.New("cannot create transaction: DAL not initialised with a sql.DB connection")
 
+	// errTaskPoolAssertFailed is returned when a value from the task pool
+	// cannot be asserted to *Task.
 	errTaskPoolAssertFailed = errors.New("failed to get task from pool: type assertion failed")
 
 	_ orchestrator_dal.OrchestratorDALWithTx = (*Adapter)(nil)

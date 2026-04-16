@@ -437,9 +437,13 @@ func (bs *buildService) waitForDispatcherIdle(
 	}
 }
 
-// isBuildIdle checks if the dispatcher has finished all build work.
-// Unlike dispatcher.IsIdle(), this ignores delayed tasks (e.g. GC tasks
-// scheduled for the future) which should not block build completion.
+// isBuildIdle checks if the dispatcher has finished all build work, ignoring
+// delayed tasks that should not block build completion.
+//
+// Takes dispatcher (orchestrator_domain.TaskDispatcher) which provides the
+// current task statistics.
+//
+// Returns bool which is true when all dispatched tasks have completed or failed.
 func isBuildIdle(dispatcher orchestrator_domain.TaskDispatcher) bool {
 	stats := dispatcher.Stats()
 	allDone := stats.TasksDispatched <= stats.TasksCompleted+stats.TasksFailed+stats.TasksRetried

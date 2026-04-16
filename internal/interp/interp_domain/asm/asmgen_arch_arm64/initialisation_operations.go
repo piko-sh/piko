@@ -28,7 +28,6 @@ const itoaBufCap = 4
 // itoaBase is the numeric base used for itoa conversion.
 const itoaBase = 10
 
-// Jump table byte offsets for each opcode, computed as opcodeIndex * 8.
 const (
 	// jtOffsetNop is the jump table byte offset for the Nop opcode.
 	jtOffsetNop = 0
@@ -261,7 +260,6 @@ const (
 // dispatch loop initialisation, jump table setup, and exit handlers.
 type arm64InitOps struct{}
 
-// Ensure arm64InitOps implements InitialisationOperationsPort at compile time.
 var _ asmgen.InitialisationOperationsPort = (*arm64InitOps)(nil)
 
 // initArm64JumpTableEntry emits a MOVD pair that patches one entry in

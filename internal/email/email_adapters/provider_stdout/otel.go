@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the provider_stdout package.
 	log = logger_domain.GetLogger("piko/internal/email/email_adapters/provider_stdout")
 
 	// meter is the package-level OpenTelemetry meter for stdout provider metrics.

@@ -39,14 +39,24 @@ var (
 	// ErrBodyRequired is returned when an email has neither HTML nor plain text body.
 	ErrBodyRequired = errors.New("either BodyHTML or BodyPlain must be provided")
 
+	// errDispatcherNil is returned when a nil dispatcher is provided during
+	// registration.
 	errDispatcherNil = errors.New("dispatcher cannot be nil")
 
+	// errNoDispatcher is returned when a dispatcher operation is attempted but
+	// no dispatcher has been registered.
 	errNoDispatcher = errors.New("no dispatcher registered")
 
+	// errDispatcherRunning is returned when attempting to start a dispatcher
+	// that is already running.
 	errDispatcherRunning = errors.New("dispatcher already running")
 
+	// errNoDLQ is returned when a dead letter queue operation is attempted but
+	// no dead letter queue has been configured.
 	errNoDLQ = errors.New("no dead letter queue configured")
 
+	// errTemplaterNotConfigured is returned when a templated email is
+	// requested but the templating service has not been set up.
 	errTemplaterNotConfigured = errors.New("the templating service has not been configured for the email service")
 )
 

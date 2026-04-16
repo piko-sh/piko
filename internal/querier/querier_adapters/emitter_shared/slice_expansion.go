@@ -29,22 +29,35 @@ import (
 )
 
 const (
+	// identArgs is the Go identifier for the flattened arguments variable.
 	identArgs = "args"
 
+	// identPikoExpandSlicePlaceholders is the name of the generated helper
+	// function that rewrites SQL placeholders for slice expansion.
 	identPikoExpandSlicePlaceholders = "pikoExpandSlicePlaceholders"
 
+	// identPikoSliceExpansionSpec is the name of the generated struct type
+	// that describes how each placeholder expands at runtime.
 	identPikoSliceExpansionSpec = "pikoSliceExpansionSpec"
 )
 
 // NeedsSliceExpansion reports whether the given query requires runtime SQL
 // rewriting for slice parameters. This is determined by checking both the
-// emitter strategy and the actual SQL text: expansion is only needed when the
-// SQL contains parenthesised ?-style placeholders like (?1) that must be
-// expanded to (?, ?, ...) at runtime.
+// emitter strategy and the actual SQL text: expansion is only needed when
+// the SQL contains parenthesised ?-style placeholders like (?1) that must
+// be expanded to (?, ?, ...) at runtime.
 //
-// PostgreSQL queries use ANY($1) which accepts native array parameters and
-// never need expansion, even when emitted through the database/sql emitter.
-// SQLite and MySQL queries use IN (?1) which requires expansion.
+// PostgreSQL queries use ANY($1) which accepts native array parameters
+// and never need expansion, even when emitted through the database/sql
+// emitter. SQLite and MySQL queries use IN (?1) which requires expansion.
+//
+// Takes query (*querier_dto.AnalysedQuery) which is the analysed query
+// to inspect for slice parameters.
+// Takes strategy (MethodStrategy) which provides the emitter behaviour
+// that determines whether expansion is supported.
+//
+// Returns bool which is true when the query requires runtime slice
+// expansion.
 func NeedsSliceExpansion(query *querier_dto.AnalysedQuery, strategy MethodStrategy) bool {
 	if !strategy.NeedsSliceExpansion() || !HasSliceParameter(query) {
 		return false
@@ -62,9 +75,9 @@ func NeedsSliceExpansion(query *querier_dto.AnalysedQuery, strategy MethodStrate
 	return false
 }
 
-// BuildSliceExpansionPreamble constructs the AST statements that rewrite the
-// SQL string with renumbered placeholders and flatten slice arguments at
-// runtime.
+// BuildSliceExpansionPreamble constructs the AST statements that rewrite
+// the SQL string with renumbered placeholders and flatten slice arguments
+// at runtime.
 //
 // The generated code looks like:
 //
@@ -78,6 +91,12 @@ func NeedsSliceExpansion(query *querier_dto.AnalysedQuery, strategy MethodStrate
 //	    args = append(args, v)
 //	}
 //	args = append(args, params.P2, params.P3)
+//
+// Takes query (*querier_dto.AnalysedQuery) which provides the parameter
+// metadata used to build the preamble statements.
+//
+// Returns []ast.Stmt which contains the variable definitions and
+// flattening loops.
 func BuildSliceExpansionPreamble(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	sqlConstName := SnakeToCamelCase(query.Name)
 
@@ -120,9 +139,15 @@ func BuildSliceExpansionPreamble(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	return statements
 }
 
-// buildParameterFlatteningStatements builds the AST statements that iterate
-// over each query parameter and either range-flatten slices into args or append
-// scalar values directly.
+// buildParameterFlatteningStatements builds the AST statements that
+// iterate over each query parameter and either range-flatten slices
+// into args or append scalar values directly.
+//
+// Takes query (*querier_dto.AnalysedQuery) which provides the
+// parameter list to generate flattening code for.
+//
+// Returns []ast.Stmt which contains the range loops and append
+// statements for all parameters.
 func buildParameterFlatteningStatements(query *querier_dto.AnalysedQuery) []ast.Stmt {
 	var stmts []ast.Stmt
 
@@ -163,9 +188,12 @@ func buildParameterFlatteningStatements(query *querier_dto.AnalysedQuery) []ast.
 	return stmts
 }
 
-// BuildSliceDBCallArgs returns the DB call arguments [ctx, query, args...] for
-// use in a method that has been rewritten with slice expansion. The returned
-// CallExpr must have Ellipsis set on the call site.
+// BuildSliceDBCallArgs returns the DB call arguments
+// [ctx, query, args...] for use in a method that has been rewritten
+// with slice expansion. The returned CallExpr must have Ellipsis set
+// on the call site.
+//
+// Returns []ast.Expr which contains the three argument expressions.
 func BuildSliceDBCallArgs() []ast.Expr {
 	return []ast.Expr{
 		goastutil.CachedIdent(IdentCtx),
@@ -174,10 +202,14 @@ func BuildSliceDBCallArgs() []ast.Expr {
 	}
 }
 
-// SliceDBCall constructs a database call with ellipsis on the args parameter,
-// for use with slice-expanded queries:
+// SliceDBCall constructs a database call with ellipsis on the args parameter
+// for use with slice-expanded queries.
 //
-//	queries.{field}.{method}(ctx, query, args...)
+// Takes strategy (MethodStrategy) which provides the connection field accessor.
+// Takes query (*querier_dto.AnalysedQuery) which identifies the target query.
+// Takes method (string) which is the database method name to call.
+//
+// Returns *ast.CallExpr which is the constructed call expression.
 func SliceDBCall(strategy MethodStrategy, query *querier_dto.AnalysedQuery, method string) *ast.CallExpr {
 	field := strategy.ConnectionField(query)
 	return &ast.CallExpr{
@@ -190,8 +222,14 @@ func SliceDBCall(strategy MethodStrategy, query *querier_dto.AnalysedQuery, meth
 	}
 }
 
-// buildArgsMakeCall constructs make([]any, 0, <capacity>) where capacity is the
-// sum of scalar parameter count plus len() calls for each slice parameter.
+// buildArgsMakeCall constructs make([]any, 0, <capacity>) where
+// capacity is the sum of scalar parameter count plus len() calls for
+// each slice parameter.
+//
+// Takes query (*querier_dto.AnalysedQuery) which provides the
+// parameter metadata used to compute the capacity expression.
+//
+// Returns *ast.CallExpr which is the make call expression.
 func buildArgsMakeCall(query *querier_dto.AnalysedQuery) *ast.CallExpr {
 	var scalarCount int
 	var sliceLens []ast.Expr
@@ -228,9 +266,17 @@ func buildArgsMakeCall(query *querier_dto.AnalysedQuery) *ast.CallExpr {
 	)
 }
 
-// paramAccessExpr returns the AST expression to access a query parameter. For
-// queries with a single non-slice parameter, the access is via the local
-// variable name; for multi-parameter queries, it is via params.FieldName.
+// paramAccessExpr returns the AST expression to access a query
+// parameter. For queries with a single non-slice parameter, the access
+// is via the local variable name; for multi-parameter queries, it is
+// via params.FieldName.
+//
+// Takes query (*querier_dto.AnalysedQuery) which provides the
+// parameter list and slice metadata.
+// Takes index (int) which is the zero-based position of the parameter
+// to access.
+//
+// Returns ast.Expr which is the field or identifier access expression.
 func paramAccessExpr(query *querier_dto.AnalysedQuery, index int) ast.Expr {
 	if len(query.Parameters) == 1 && !HasSliceParameter(query) {
 		return goastutil.CachedIdent(SnakeToCamelCase(query.Parameters[0].Name))

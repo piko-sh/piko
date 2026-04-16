@@ -78,14 +78,20 @@ const (
 )
 
 var (
+	// sha256Pool reuses SHA-256 hash.Hash instances to reduce allocation pressure.
 	sha256Pool = sync.Pool{New: func() any { return sha256.New() }}
 
+	// sha384Pool reuses SHA-384 hash.Hash instances to reduce allocation pressure.
 	sha384Pool = sync.Pool{New: func() any { return sha512.New384() }}
 )
 
 var (
+	// errArtefactIDEmpty is returned when an artefact operation is attempted
+	// with an empty artefact ID.
 	errArtefactIDEmpty = errors.New("artefactID cannot be empty")
 
+	// errSourcePathEmpty is returned when an artefact is ingested with an
+	// empty source path.
 	errSourcePathEmpty = errors.New("sourcePath cannot be empty")
 )
 

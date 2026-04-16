@@ -18,11 +18,6 @@
 
 package annotator_dto
 
-// Annotator diagnostic codes (T100+). Used by the semantic analyser,
-// component linker, type system, and related passes. Codes are stable,
-// arbitrary, and append-only - never reuse a retired number.
-//
-// Parser codes (T001-T099) live in ast_domain/diagnostic_codes.go.
 const (
 	// CodeUndefinedVariable indicates a referenced variable or symbol is not
 	// defined in the current scope.

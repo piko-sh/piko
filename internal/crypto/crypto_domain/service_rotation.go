@@ -28,8 +28,12 @@ import (
 )
 
 var (
+	// errKeyIDsEmpty is returned when either the old or new key ID is empty
+	// during key rotation.
 	errKeyIDsEmpty = errors.New("both oldKeyID and newKeyID must be non-empty")
 
+	// errKeyIDsSame is returned when the old and new key IDs are identical
+	// during key rotation.
 	errKeyIDsSame = errors.New("old and new key IDs cannot be the same")
 )
 

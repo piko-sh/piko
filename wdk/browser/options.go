@@ -37,12 +37,16 @@ const (
 )
 
 var (
+	// flagHeaded holds the -headed command-line flag for running the browser visibly.
 	flagHeaded = flag.Bool("headed", false, "Run browser in headed mode (show browser window)")
 
+	// flagInteractive holds the -interactive command-line flag for TUI step-through mode.
 	flagInteractive = flag.Bool("interactive", false, "Enable interactive step-through mode with TUI")
 
+	// flagInteractiveSimple holds the -interactive-simple command-line flag for basic ANSI mode.
 	flagInteractiveSimple = flag.Bool("interactive-simple", false, "Use basic ANSI mode instead of TUI")
 
+	// flagUpdateGolden holds the -update-goldens command-line flag for refreshing golden files.
 	flagUpdateGolden = flag.Bool("update-goldens", false, "Update golden files instead of comparing")
 )
 

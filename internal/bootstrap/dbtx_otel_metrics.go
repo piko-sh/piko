@@ -24,12 +24,16 @@ import (
 )
 
 var (
+	// dbMeter holds the OpenTelemetry meter for database operation instrumentation.
 	dbMeter = otel.Meter("piko/bootstrap/db")
 
+	// dbOperationDuration records the duration of each database client operation.
 	dbOperationDuration metric.Float64Histogram
 
+	// dbOperationCount tracks the total number of database client operations.
 	dbOperationCount metric.Int64Counter
 
+	// dbOperationErrorCount tracks the total number of failed database client operations.
 	dbOperationErrorCount metric.Int64Counter
 )
 

@@ -33,6 +33,8 @@ const (
 	copyBufferSize = 32 * 1024
 )
 
+// bufferPool reuses byte-slice buffers to reduce allocation pressure during
+// stream processing.
 var bufferPool = sync.Pool{
 	New: func() any {
 		return new(make([]byte, copyBufferSize))

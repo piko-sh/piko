@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the email_provider_mailchimp_transactional package.
 	log = logger.GetLogger("piko/email/email_provider_mailchimp_transactional")
 
 	// Meter is the package-level meter for Mailchimp Transactional provider metrics.

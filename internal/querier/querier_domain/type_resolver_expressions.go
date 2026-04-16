@@ -26,6 +26,7 @@ import (
 	"piko.sh/piko/internal/querier/querier_dto"
 )
 
+// booleanNotNull is the pre-built SQL type descriptor for a non-nullable boolean column.
 var booleanNotNull = querier_dto.SQLType{
 	Category:   querier_dto.TypeCategoryBoolean,
 	EngineName: querier_dto.CanonicalBoolean,

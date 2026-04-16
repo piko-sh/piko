@@ -18,8 +18,6 @@
 
 package generator_dto
 
-// Runtime diagnostic codes (R-series). Codes are stable, arbitrary, and
-// append-only - never reuse a retired number.
 const (
 	// CodeRenderError indicates the component's Render function returned an
 	// error at runtime.

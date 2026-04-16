@@ -31,7 +31,7 @@ const (
 	// PhoneticC represents the CH sound in the phonetic alphabet.
 	PhoneticC = "C"
 
-	// PhoneticNJ represents the Ñ sound (a palatalized N).
+	// PhoneticNJ represents the N-tilde sound (a palatalised N).
 	PhoneticNJ = "NJ"
 
 	// PhoneticB is the letter for the B/V sound, which are the same in Spanish.

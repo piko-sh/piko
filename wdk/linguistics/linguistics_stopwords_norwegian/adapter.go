@@ -26,7 +26,7 @@ import (
 const Language = "norwegian"
 
 // stopWords contains common Norwegian stop words (stoppord).
-// Covers both Bokmål and Nynorsk variants.
+// Covers both Bokmal and Nynorsk variants.
 var stopWords = map[string]bool{
 	"en": true, "ei": true, "et": true, "den": true, "det": true, "de": true,
 	"jeg": true, "du": true, "han": true, "hun": true, "vi": true, "dere": true,

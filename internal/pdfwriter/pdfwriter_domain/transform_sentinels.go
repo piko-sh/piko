@@ -21,10 +21,15 @@ package pdfwriter_domain
 import "errors"
 
 var (
+	// errTransformerNil is returned when a nil transformer is provided during
+	// registration.
 	errTransformerNil = errors.New("transformer cannot be nil")
 
+	// errTransformerNameEmpty is returned when a transformer is registered
+	// with an empty name.
 	errTransformerNameEmpty = errors.New("transformer name cannot be empty")
 
+	// errRegistryNil is returned when a nil transformer registry is supplied.
 	errRegistryNil = errors.New("transformer registry cannot be nil")
 
 	// ErrTooManyEncryptors is returned when more than one encryption

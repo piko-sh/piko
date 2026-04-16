@@ -50,6 +50,8 @@ type keyWithValue[K comparable] struct {
 	value any
 }
 
+// keyWithValuePool reuses keyWithValue slices to reduce allocation pressure
+// during search result sorting.
 var keyWithValuePool = sync.Pool{
 	New: func() any {
 		return new(make([]keyWithValue[any], 0, 128))

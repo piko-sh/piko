@@ -229,6 +229,8 @@ func (s *collectionService) ValidateConfiguration(
 //
 // Returns error when one or more sandbox closes fail. The first error is
 // returned, but all sandboxes are attempted.
+//
+// Concurrency: acquires sandboxMutex to drain the external sandboxes list.
 func (s *collectionService) Close() error {
 	s.sandboxMutex.Lock()
 	sandboxes := s.externalSandboxes
@@ -581,6 +583,8 @@ func WithResolver(resolver resolver_domain.ResolverPort) CollectionServiceOption
 //
 // This is used by code paths that don't have a directive (e.g.
 // GetAllCollectionItems calls in Go code) where the content is always local.
+//
+// Returns collection_dto.ContentSource which provides local sandbox access.
 func (s *collectionService) defaultContentSource() collection_dto.ContentSource {
 	return collection_dto.ContentSource{
 		Sandbox:    s.defaultSandbox,
@@ -589,6 +593,10 @@ func (s *collectionService) defaultContentSource() collection_dto.ContentSource 
 }
 
 // trackExternalSandbox records a sandbox for later cleanup by Close.
+//
+// Takes sandbox (safedisk.Sandbox) which is the sandbox to track.
+//
+// Concurrency: acquires sandboxMutex to append to the externalSandboxes slice.
 func (s *collectionService) trackExternalSandbox(sandbox safedisk.Sandbox) {
 	s.sandboxMutex.Lock()
 	s.externalSandboxes = append(s.externalSandboxes, sandbox)

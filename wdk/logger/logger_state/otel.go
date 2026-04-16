@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the logger_state package.
 	log = logger_domain.GetLogger("piko/logger/logger_state")
 
 	// Meter is the OpenTelemetry meter for logger_state instrumentation.

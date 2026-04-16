@@ -44,9 +44,8 @@ type Session struct {
 	serverURL string
 }
 
-// Navigate loads a path on the server. The path is appended to the server URL
-// configured on the harness. A responsiveness pre-flight check is performed
-// before navigation.
+// Navigate loads a path on the server by appending it to the configured server
+// URL after a responsiveness pre-flight check.
 //
 // Takes path (string) which is appended to the server URL.
 //

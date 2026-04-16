@@ -67,18 +67,25 @@ const (
 )
 
 var (
+	// flagTCP holds the --tcp flag that switches from stdio to TCP transport.
 	flagTCP = flag.Bool("tcp", false, "Use TCP mode instead of stdio")
 
+	// flagPort holds the --port flag for the TCP listening port.
 	flagPort = flag.Int("port", defaultTCPPort, "TCP port to listen on (used with --tcp)")
 
+	// flagHost holds the --host flag for the TCP bind address.
 	flagHost = flag.String("host", defaultTCPHost, "TCP host to bind to (used with --tcp)")
 
+	// flagPprof holds the --pprof flag that enables the profiling HTTP server.
 	flagPprof = flag.Bool("pprof", false, "Enable pprof profiling server")
 
+	// flagPprofPort holds the --pprof-port flag for the profiling server port.
 	flagPprofPort = flag.Int("pprof-port", defaultPprofPort, "Port for the pprof HTTP server (used with --pprof)")
 
+	// flagFormatting holds the --formatting flag that enables document formatting.
 	flagFormatting = flag.Bool("formatting", false, "Enable document formatting capabilities")
 
+	// flagFileLogging holds the --file-logging flag that enables logging to a file.
 	flagFileLogging = flag.Bool("file-logging", false, "Enable file logging to /tmp/piko-lsp-<pid>.log")
 )
 

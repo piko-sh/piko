@@ -44,7 +44,6 @@ const (
 	ClipShapePolygon
 )
 
-// Clip path numeric constants.
 const (
 	// clipDefaultCentre is the default centre position as a fraction.
 	clipDefaultCentre = 0.5

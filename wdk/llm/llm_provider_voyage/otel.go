@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the llm_provider_voyage package.
 	log = logger.GetLogger("piko/llm/llm_provider_voyage")
 
 	// meter is the OpenTelemetry meter for the Voyage provider.

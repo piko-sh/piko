@@ -23,5 +23,6 @@ import (
 )
 
 var (
+	// log is the package-level logger for the safedisk package.
 	log = logger.GetLogger("piko/safedisk")
 )

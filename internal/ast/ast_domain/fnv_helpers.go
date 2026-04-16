@@ -71,6 +71,8 @@ var (
 		},
 	}
 
+	// fnvHexBufPool reuses fixed-size byte buffers to reduce allocation pressure
+	// during FNV hex encoding.
 	fnvHexBufPool = sync.Pool{
 		New: func() any {
 			return new(make([]byte, fnvHexBufSize))

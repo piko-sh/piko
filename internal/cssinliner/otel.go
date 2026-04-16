@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	// log is the package-level logger for the cssinliner package.
 	log = logger_domain.GetLogger("piko/internal/cssinliner/cssinliner_domain")
 
 	// Meter is the OpenTelemetry meter for the CSS inliner package.

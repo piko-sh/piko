@@ -24,7 +24,6 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// _ is a compile-time check that SimpleRenderer implements ItemRenderer.
 var _ ItemRenderer[any] = (*SimpleRenderer[any])(nil)
 
 // ItemRenderer defines how to render items of a specific type.

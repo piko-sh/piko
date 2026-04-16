@@ -33,8 +33,10 @@ var (
 	//go:embed *.js *.js.tmpl
 	scriptsFS embed.FS
 
+	// templateCache holds parsed JavaScript templates keyed by filename.
 	templateCache = make(map[string]*template.Template)
 
+	// templateCacheMu guards concurrent access to templateCache.
 	templateCacheMu sync.RWMutex
 
 	// templateFuncs provides functions available in JS templates.
