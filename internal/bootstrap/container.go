@@ -498,9 +498,10 @@ type Container struct {
 	dbProvider *persistence.Provider
 
 	// registryCacheOverride is an optional cache provider for the registry
-	// DAL. When set, the registry uses this provider instead of the default
-	// otter in-memory backend. This enables serverless deployments where the
-	// registry is backed by DynamoDB, Firestore, or another cache provider.
+	// DAL, used instead of the default otter in-memory backend when set.
+	//
+	// This enables serverless deployments where the registry is backed by
+	// DynamoDB, Firestore, or another cache provider.
 	registryCacheOverride cache_domain.ProviderPort[string, *registry_dto.ArtefactMeta]
 
 	// orchestratorCacheOverride is an optional cache provider for the

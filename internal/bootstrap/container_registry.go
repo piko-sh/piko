@@ -158,6 +158,9 @@ func (c *Container) createProviderRegistryDAL() (registry_domain.MetadataStore, 
 
 // createRegistryDALInstance returns the registry DAL from either the cache
 // override or the default otter backend.
+//
+// Returns any which is the DAL instance (expected to implement RegistryDALWithTx).
+// Returns error when the DAL cannot be created.
 func (c *Container) createRegistryDALInstance() (any, error) {
 	if c.registryCacheOverride != nil {
 		return registry_otter.NewOtterDAL(

@@ -440,6 +440,9 @@ func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskSto
 
 // createOrchestratorDALInstance returns the orchestrator DAL from either the
 // cache override or the default otter backend.
+//
+// Returns any which is the DAL instance (expected to implement TaskStore).
+// Returns error when the DAL cannot be created.
 func (c *Container) createOrchestratorDALInstance() (any, error) {
 	if c.orchestratorCacheOverride != nil {
 		return orchestrator_otter.NewOtterDAL(
