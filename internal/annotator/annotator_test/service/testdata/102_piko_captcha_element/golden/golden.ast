@@ -1,0 +1,12 @@
+/*
+--- BEGIN AST DUMP ---
+
+<form method="post" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+  <piko:captcha provider="test" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk] />
+  <button type="submit" [ANNOTATIONS: OriginPackage: main_aaf9a2e0 OriginPath: main.pk]>
+    "Submit"
+  </button>
+</form>
+
+--- END AST DUMP ---
+*/

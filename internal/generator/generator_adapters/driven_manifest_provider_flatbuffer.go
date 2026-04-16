@@ -249,6 +249,7 @@ func unpackPageEntry(fb *gen_fb.ManifestPageEntryFB) generator_dto.ManifestPageE
 		LocalTranslations:        unpackLocaleTranslations(fb.LocalTranslationsLength(), fb.LocalTranslations),
 		IsE2EOnly:                fb.IsE2eOnly(),
 		HasPreview:               fb.HasPreview(),
+		UsesCaptcha:              fb.UsesCaptcha(),
 	}
 }
 

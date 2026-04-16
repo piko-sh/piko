@@ -419,7 +419,6 @@ async function performNavigation(
 
         const scrollOptions = buildScrollOptions(ctx, options, windowOps);
 
-
         await onPageLoad(parsedDocument, targetUrl, scrollOptions);
         focusMainContent(domOps);
         emitNavigationSuccess(deps, ctx, parsedDocument.title || document.title);

@@ -56,6 +56,10 @@ func DecodeRawEntries(data []byte) ([]wal_domain.RawEntry, error) {
 		length := binary.BigEndian.Uint32(data[offset:])
 		offset += lengthSize
 
+		if length == 0 {
+			break
+		}
+
 		if length > maxEntrySize || length < uint32(crcSize+minPayloadSize) {
 			return nil, fmt.Errorf("entry %d: invalid length %d at byte offset %d", index, length, entryStart)
 		}

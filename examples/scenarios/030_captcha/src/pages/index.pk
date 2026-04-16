@@ -1,0 +1,43 @@
+<template>
+  <div id="app">
+    <h1>Captcha Examples</h1>
+    <nav>
+      <ul>
+        <li><piko:a href="/hmac">HMAC Challenge (built-in, always passes)</piko:a></li>
+        <li><piko:a href="/turnstile-pass">Cloudflare Turnstile (always passes)</piko:a></li>
+        <li><piko:a href="/turnstile-fail">Cloudflare Turnstile (always fails)</piko:a></li>
+        <li><piko:a href="/recaptcha-pass">Google reCAPTCHA v3 (always passes)</piko:a></li>
+        <li><piko:a href="/hcaptcha-pass">hCaptcha (always passes)</piko:a></li>
+        <li><piko:a href="/hcaptcha-fail">hCaptcha (always fails)</piko:a></li>
+      </ul>
+    </nav>
+  </div>
+</template>
+
+<script type="application/x-go">
+package main
+
+import "piko.sh/piko"
+
+type Response struct{}
+
+func Render(r *piko.RequestData, props piko.NoProps) (Response, piko.Metadata, error) {
+    return Response{}, piko.Metadata{
+        Title: "Captcha Examples - Piko",
+    }, nil
+}
+</script>
+
+<style>
+  #app {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  h1 { color: #2563eb; margin-bottom: 1rem; }
+  ul { list-style: none; padding: 0; }
+  li { margin: 0.75rem 0; }
+  a { color: #2563eb; text-decoration: none; font-size: 1.1rem; }
+  a:hover { text-decoration: underline; }
+</style>

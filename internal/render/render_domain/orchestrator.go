@@ -40,6 +40,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/render/render_dto"
 	"piko.sh/piko/internal/render/render_templates"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
 	"piko.sh/piko/internal/templater/templater_dto"
@@ -318,6 +319,10 @@ type renderContext struct {
 	// rendering.
 	collectedCustomComponents map[string]struct{}
 
+	// collectedCaptchaScripts tracks which captcha provider init scripts are
+	// needed on this page, populated by renderPikoCaptcha during rendering.
+	collectedCaptchaScripts map[string]*captchaScriptInfo
+
 	// probeData holds pre-fetched data from the probe phase. When non-nil,
 	// putRenderContext releases it back to the pool.
 	probeData *render_dto.ProbeData
@@ -387,6 +392,10 @@ type RenderOrchestrator struct {
 
 	// csrfService creates and validates CSRF tokens.
 	csrfService security_domain.CSRFTokenService
+
+	// captchaService provides captcha verification and rendering requirements
+	// for piko:captcha elements. Nil when captcha is disabled.
+	captchaService captcha_domain.CaptchaServicePort
 
 	// dynamicAssetCache stores artefact metadata across requests, keyed by
 	// asset path. Profiles are deterministic from static template attributes,
@@ -477,10 +486,13 @@ func (ro *RenderOrchestrator) RenderAST(
 
 	customTags := appendDevWidgetTag(opts.Metadata.CustomTags)
 	populateTagMap(renderCtx.customTags, customTags)
-	if opts.ProbeData != nil && opts.ProbeData.ComponentMetadata != nil {
-		renderCtx.componentMetadata = opts.ProbeData.ComponentMetadata
+	if opts.ProbeData != nil {
 		renderCtx.probeData = opts.ProbeData
-	} else {
+		if opts.ProbeData.ComponentMetadata != nil {
+			renderCtx.componentMetadata = opts.ProbeData.ComponentMetadata
+		}
+	}
+	if renderCtx.componentMetadata == nil {
 		ro.ensureComponentMetadata(ctx, customTags, renderCtx)
 	}
 	preloadHTML, scriptHTML := ro.buildPreloadLogic(
@@ -643,6 +655,8 @@ func (ro *RenderOrchestrator) renderFragment(
 	if err := ro.renderASTToWriter(opts.Template, qw, rctx); err != nil {
 		return fmt.Errorf("streaming AST for fragment %s: %w", opts.PageID, err)
 	}
+	writeCaptchaScriptTags(qw, rctx)
+	data.WidgetScripts = collectCaptchaWidgetScriptURLs(rctx)
 	data.SvgSpriteSheet = ro.buildSvgSpriteSheetIfNeeded(ctx, rctx)
 	render_templates.StreamFragmentPageFooter(qw, data)
 	return nil
@@ -716,6 +730,8 @@ func (ro *RenderOrchestrator) renderFullPage(
 	if err := ro.renderASTToWriter(opts.Template, qw, rctx); err != nil {
 		return fmt.Errorf("streaming AST for page %s: %w", opts.PageID, err)
 	}
+	writeCaptchaScriptTags(qw, rctx)
+	data.WidgetScripts = collectCaptchaWidgetScriptURLs(rctx)
 	data.SvgSpriteSheet = ro.buildSvgSpriteSheetIfNeeded(ctx, rctx)
 	render_templates.StreamBasePageFooter(qw, data)
 	return nil
@@ -938,6 +954,8 @@ func (ro *RenderOrchestrator) renderElement(
 		return renderPikoVideo(ro, node, qw, rctx)
 	case tagPikoPicture:
 		return renderPikoPicture(ro, node, qw, rctx)
+	case tagPikoCaptcha:
+		return renderPikoCaptcha(ro, node, qw, rctx)
 	}
 
 	if _, ok := rctx.customTags[node.TagName]; ok {
@@ -1255,6 +1273,8 @@ func (ro *RenderOrchestrator) renderHeadlessFullPage(
 	if err := ro.renderASTToWriter(opts.Template, qw, rctx); err != nil {
 		return fmt.Errorf("rendering AST content: %w", err)
 	}
+
+	writeCaptchaScriptTags(qw, rctx)
 
 	qw.N().S("\n</body>\n</html>")
 

@@ -36,6 +36,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/component/component_domain"
 	"piko.sh/piko/internal/component/component_dto"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/goroutine"
@@ -75,11 +76,13 @@ const (
 // management. It implements LifecycleService, handling file watching, build
 // notifications, asset pipeline orchestration, and router hot-reload.
 type lifecycleService struct {
-	// assetPipeline processes asset manifests from build results.
-	assetPipeline AssetPipelinePort
+	// gcTimer holds the post-startup GC timer so it can be stopped during
+	// shutdown.
+	gcTimer clock.Timer
 
-	// registryService handles storage and retrieval of artefacts.
-	registryService registry_domain.RegistryService
+	// componentRegistry holds the PKC component registry for deterministic tag
+	// lookup.
+	componentRegistry component_domain.ComponentRegistry
 
 	// templaterService swaps the template runner for interpreted mode.
 	templaterService TemplaterRunnerSwapper
@@ -104,27 +107,25 @@ type lifecycleService struct {
 	// clock provides time functions; replaced during testing.
 	clock clock.Clock
 
-	// componentRegistry holds the PKC component registry for deterministic tag
-	// lookup.
-	componentRegistry component_domain.ComponentRegistry
+	// routerManager notifies the router to reload routes after manifest changes.
+	routerManager RouterReloadNotifier
 
-	// externalComponents holds component definitions from WithComponents() that
-	// need module resolution at build time.
-	externalComponents []component_dto.ComponentDefinition
+	// captchaService provides access to captcha providers for seeding init
+	// scripts. Nil when captcha is not configured.
+	captchaService captcha_domain.CaptchaServicePort
 
 	// interpretedOrchestrator manages builds and runner lifecycle in interpreted
 	// mode.
 	interpretedOrchestrator InterpretedBuildOrchestrator
 
-	// gcTimer holds the post-startup GC timer so it can be stopped during
-	// shutdown.
-	gcTimer clock.Timer
+	// registryService handles storage and retrieval of artefacts.
+	registryService registry_domain.RegistryService
 
 	// watcherAdapter monitors file system changes; nil disables watching.
 	watcherAdapter FileSystemWatcher
 
-	// routerManager notifies the router to reload routes after manifest changes.
-	routerManager RouterReloadNotifier
+	// assetPipeline processes asset manifests from build results.
+	assetPipeline AssetPipelinePort
 
 	// buildCacheInvalidator clears the JIT build cache when core source files
 	// change; nil means cache clearing is disabled.
@@ -149,6 +150,10 @@ type lifecycleService struct {
 	// entryPoints holds the discovered package entry points; protected by mu.
 	entryPoints []annotator_dto.EntryPoint
 
+	// externalComponents holds component definitions from WithComponents() that
+	// need module resolution at build time.
+	externalComponents []component_dto.ComponentDefinition
+
 	// configProvider holds the server and website settings.
 	configProvider config.Provider
 
@@ -162,17 +167,17 @@ type lifecycleService struct {
 // LifecycleServiceDeps contains all dependencies needed to create a
 // LifecycleService.
 type LifecycleServiceDeps struct {
-	// InterpretedOrchestrator manages the build process for interpreted assets.
-	InterpretedOrchestrator InterpretedBuildOrchestrator
+	// WatcherAdapter watches the file system for changes.
+	WatcherAdapter FileSystemWatcher
 
-	// AssetPipeline handles asset processing and bundling.
-	AssetPipeline AssetPipelinePort
+	// Renderer provides document rendering services.
+	Renderer render_domain.RenderService
 
 	// RegistryService provides access to the service registry.
 	RegistryService registry_domain.RegistryService
 
-	// CoordinatorService manages the ordering and timing of lifecycle operations.
-	CoordinatorService coordinator_domain.CoordinatorService
+	// Clock provides time functions; nil uses the real system clock.
+	Clock clock.Clock
 
 	// Resolver provides module path and directory resolution for
 	// lifecycle operations.
@@ -187,14 +192,14 @@ type LifecycleServiceDeps struct {
 	// TemplaterService runs templates and allows them to be swapped at runtime.
 	TemplaterService TemplaterRunnerSwapper
 
-	// WatcherAdapter watches the file system for changes.
-	WatcherAdapter FileSystemWatcher
+	// AssetPipeline handles asset processing and bundling.
+	AssetPipeline AssetPipelinePort
 
-	// Clock provides time functions; nil uses the real system clock.
-	Clock clock.Clock
+	// InterpretedOrchestrator manages the build process for interpreted assets.
+	InterpretedOrchestrator InterpretedBuildOrchestrator
 
-	// Renderer provides document rendering services.
-	Renderer render_domain.RenderService
+	// CoordinatorService manages the ordering and timing of lifecycle operations.
+	CoordinatorService coordinator_domain.CoordinatorService
 
 	// BuildCacheInvalidator clears stored build files when content changes.
 	BuildCacheInvalidator BuildCacheInvalidator
@@ -210,15 +215,19 @@ type LifecycleServiceDeps struct {
 	// If nil, component auto-discovery is disabled.
 	ComponentRegistry component_domain.ComponentRegistry
 
-	// ExternalComponents holds component definitions from WithComponents() that
-	// require module resolution. The lifecycle service resolves their ModulePath
-	// to disk directories and discovers .pkc files there.
-	ExternalComponents []component_dto.ComponentDefinition
+	// CaptchaService provides access to captcha providers for seeding init
+	// scripts into the registry. Nil when captcha is not configured.
+	CaptchaService captcha_domain.CaptchaServicePort
 
 	// PathsConfig holds the resolved source directory paths. All fields are
 	// value types; the bootstrap layer converts pointer config fields before
 	// passing this in.
 	PathsConfig LifecyclePathsConfig
+
+	// ExternalComponents holds component definitions from WithComponents() that
+	// require module resolution. The lifecycle service resolves their ModulePath
+	// to disk directories and discovers .pkc files there.
+	ExternalComponents []component_dto.ComponentDefinition
 
 	// ConfigProvider supplies configuration settings for the lifecycle service.
 	ConfigProvider config.Provider
@@ -331,6 +340,12 @@ func (ls *lifecycleService) RunInitialTasks(ctx context.Context) error {
 	wg.Go(func() {
 		if err := ls.seedThemeArtefact(ctx); err != nil {
 			errChan <- fmt.Errorf("failed to seed theme artefact: %w", err)
+		}
+	})
+
+	wg.Go(func() {
+		if err := ls.seedCaptchaInitScripts(ctx); err != nil {
+			errChan <- fmt.Errorf("failed to seed captcha init scripts: %w", err)
 		}
 	})
 
@@ -593,7 +608,72 @@ func (ls *lifecycleService) seedThemeArtefact(ctx context.Context) error {
 	}
 
 	l.Internal("Successfully seeded theme.css artefact. Orchestrator will process it.")
-	span.SetStatus(codes.Ok, "Theme artefact seeded")
+
+	return nil
+}
+
+// seedCaptchaInitScripts registers captcha provider init scripts as artefacts
+// in the registry. Each cloud provider's init script is a static JavaScript
+// file that uses data-attribute selectors to find and initialise captcha
+// widgets on the page.
+//
+// Returns error when an init script cannot be registered.
+func (ls *lifecycleService) seedCaptchaInitScripts(ctx context.Context) error {
+	ctx, span, l := log.Span(ctx, "seedCaptchaInitScripts")
+	defer span.End()
+
+	if ls.captchaService == nil || !ls.captchaService.IsEnabled() {
+		l.Internal("Captcha service not configured, skipping init script seeding")
+		return nil
+	}
+
+	providers := ls.captchaService.ListProviders(ctx)
+	l.Internal("Seeding captcha init scripts", logger_domain.Int("provider_count", len(providers)))
+
+	for _, providerInfo := range providers {
+		provider, err := ls.captchaService.GetProviderByName(ctx, providerInfo.Name)
+		if err != nil {
+			l.Warn("Failed to resolve captcha provider for init script seeding",
+				logger_domain.String("provider", providerInfo.Name),
+				logger_domain.Error(err))
+			continue
+		}
+
+		requirements := provider.RenderRequirements()
+		if requirements.InitScript == nil || requirements.ServerSideToken {
+			continue
+		}
+
+		scriptContent, err := requirements.InitScript()
+		if err != nil {
+			l.Warn("Failed to get captcha init script content",
+				logger_domain.String("provider", providerInfo.Name),
+				logger_domain.Error(err))
+			continue
+		}
+
+		artefactID := fmt.Sprintf("captcha/init-%s.js", providerInfo.Name)
+		desiredProfiles := GetProfilesForFile(artefactID, nil)
+
+		_, err = ls.registryService.UpsertArtefact(
+			ctx,
+			artefactID,
+			artefactID,
+			bytes.NewReader([]byte(scriptContent)),
+			"local_disk_cache",
+			desiredProfiles,
+		)
+		if err != nil {
+			span.RecordError(err)
+			return fmt.Errorf("seeding captcha init script %q: %w", artefactID, err)
+		}
+
+		l.Internal("Seeded captcha init script",
+			logger_domain.String("artefact_id", artefactID),
+			logger_domain.Int("size_bytes", len(scriptContent)))
+	}
+
+	span.SetStatus(codes.Ok, "Captcha init scripts seeded")
 	return nil
 }
 
@@ -901,6 +981,7 @@ func NewLifecycleService(deps *LifecycleServiceDeps) LifecycleService {
 		devEventNotifier:        deps.DevEventNotifier,
 		componentRegistry:       deps.ComponentRegistry,
 		externalComponents:      deps.ExternalComponents,
+		captchaService:          deps.CaptchaService,
 		stopChan:                make(chan struct{}),
 		unsubscribe:             nil,
 		entryPoints:             nil,

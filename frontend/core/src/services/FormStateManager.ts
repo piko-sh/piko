@@ -102,30 +102,61 @@ const ACTION_SUFFIX_LENGTH = 20;
 const DEFERRED_SNAPSHOT_TIMEOUT_MS = 5000;
 
 /**
- * Serialises form state into a comparable string, including checkbox and radio states.
+ * Checks whether a form field is inside a pk-no-track container. Fields nested
+ * inside an element with the pk-no-track attribute are excluded from dirty
+ * tracking. This allows captcha widgets, CSRF tokens, and other programmatic
+ * fields to opt out without affecting the rest of the form.
+ * @param el - The form field element to check.
+ * @returns True if the field should be excluded from tracking.
+ */
+function isInsideNoTrackContainer(el: Element): boolean {
+    return el.closest(`[${NO_TRACK_ATTR}]`) !== null;
+}
+
+/**
+ * Serialises form state into a comparable string, including checkbox and radio
+ * states. Fields inside pk-no-track containers are excluded from the snapshot.
  * Entries are sorted for consistent comparison.
  * @param form - The form element to snapshot.
  * @returns A JSON string representing the form's current state.
  */
 function getFormSnapshot(form: HTMLFormElement): string {
+    const excludedNames = collectNoTrackFieldNames(form);
     const data = new FormData(form);
     const entries: [string, string][] = [];
 
     for (const [key, value] of data.entries()) {
-        if (typeof value === 'string') {
+        if (typeof value === 'string' && !excludedNames.has(key)) {
             entries.push([key, value]);
         }
     }
 
     const checkboxes = form.querySelectorAll<HTMLInputElement>('input[type="checkbox"], input[type="radio"]');
     for (const checkbox of checkboxes) {
-        if (checkbox.name) {
+        if (checkbox.name && !excludedNames.has(checkbox.name)) {
             entries.push([`__checked_${checkbox.name}_${checkbox.value}`, String(checkbox.checked)]);
         }
     }
 
     entries.sort((a, b) => a[0].localeCompare(b[0]));
     return JSON.stringify(entries);
+}
+
+/**
+ * Collects the names of form fields that are inside pk-no-track containers.
+ * @param form - The form element to scan.
+ * @returns A set of field names to exclude from the snapshot.
+ */
+function collectNoTrackFieldNames(form: HTMLFormElement): Set<string> {
+    const excluded = new Set<string>();
+    const elements = form.elements;
+    for (let i = 0; i < elements.length; i++) {
+        const el = elements[i] as HTMLElement & { name?: string };
+        if (el.name && isInsideNoTrackContainer(el)) {
+            excluded.add(el.name);
+        }
+    }
+    return excluded;
 }
 
 /**

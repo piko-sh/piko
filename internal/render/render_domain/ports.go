@@ -96,6 +96,15 @@ type RegistryPort interface {
 	// Returns error when the batch retrieval fails.
 	BulkGetAssetRawSVG(ctx context.Context, assetIDs []string) (map[string]*ParsedSvgData, error)
 
+	// GetArtefactServePath returns the URL path to serve a specific artefact,
+	// including the content hash for cache busting. Returns empty string if the
+	// artefact is not found.
+	//
+	// Takes artefactID (string) which identifies the artefact.
+	//
+	// Returns string which is the serve path, or empty if not found.
+	GetArtefactServePath(ctx context.Context, artefactID string) string
+
 	// GetStats returns the current statistics for this registry adapter.
 	//
 	// Returns RegistryAdapterStats which contains the adapter metrics.

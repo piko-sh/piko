@@ -395,38 +395,48 @@ func StreamBasePageFooter(qw422016 *qt422016.Writer, p *BasePageData) {
 //line base.qtpl:53
 	}
 //line base.qtpl:54
-	if p.DevWidgetHTML != "" {
+	for _, url := range p.WidgetScripts {
 //line base.qtpl:54
-		qw422016.N().S(p.DevWidgetHTML)
+		qw422016.N().S(`<meta name="pk-widget-script" content="`)
+//line base.qtpl:54
+		qw422016.N().S(url)
+//line base.qtpl:54
+		qw422016.N().S(`">`)
 //line base.qtpl:54
 	}
-//line base.qtpl:54
+//line base.qtpl:55
+	if p.DevWidgetHTML != "" {
+//line base.qtpl:55
+		qw422016.N().S(p.DevWidgetHTML)
+//line base.qtpl:55
+	}
+//line base.qtpl:55
 	qw422016.N().S(`</body></html>`)
-//line base.qtpl:58
+//line base.qtpl:59
 }
 
-//line base.qtpl:58
+//line base.qtpl:59
 func WriteBasePageFooter(qq422016 qtio422016.Writer, p *BasePageData) {
-//line base.qtpl:58
+//line base.qtpl:59
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line base.qtpl:58
+//line base.qtpl:59
 	StreamBasePageFooter(qw422016, p)
-//line base.qtpl:58
+//line base.qtpl:59
 	qt422016.ReleaseWriter(qw422016)
-//line base.qtpl:58
+//line base.qtpl:59
 }
 
-//line base.qtpl:58
+//line base.qtpl:59
 func BasePageFooter(p *BasePageData) string {
-//line base.qtpl:58
+//line base.qtpl:59
 	qb422016 := qt422016.AcquireByteBuffer()
-//line base.qtpl:58
+//line base.qtpl:59
 	WriteBasePageFooter(qb422016, p)
-//line base.qtpl:58
+//line base.qtpl:59
 	qs422016 := string(qb422016.B)
-//line base.qtpl:58
+//line base.qtpl:59
 	qt422016.ReleaseByteBuffer(qb422016)
-//line base.qtpl:58
+//line base.qtpl:59
 	return qs422016
-//line base.qtpl:58
+//line base.qtpl:59
 }

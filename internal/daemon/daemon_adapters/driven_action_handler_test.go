@@ -34,9 +34,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"piko.sh/piko/internal/cache/cache_adapters/provider_otter"
 	"piko.sh/piko/internal/cache/cache_dto"
+	"piko.sh/piko/internal/captcha/captcha_domain"
+	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/healthprobe/healthprobe_dto"
+	"piko.sh/piko/internal/provider/provider_domain"
 	"piko.sh/piko/internal/ratelimiter/ratelimiter_dto"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
@@ -73,7 +76,7 @@ var _ security_domain.CSRFTokenService = (*configurableCSRFService)(nil)
 
 func TestNewActionHandler(t *testing.T) {
 	t.Run("creates handler with empty registry", func(t *testing.T) {
-		handler := NewActionHandler(nil, 10*1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 10*1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		require.NotNil(t, handler)
 		assert.Empty(t, handler.registry)
@@ -81,7 +84,7 @@ func TestNewActionHandler(t *testing.T) {
 	})
 
 	t.Run("creates handler with custom max body bytes", func(t *testing.T) {
-		handler := NewActionHandler(nil, 5*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 5*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		assert.Equal(t, int64(5*1024), handler.maxBodyBytes)
 	})
@@ -89,7 +92,7 @@ func TestNewActionHandler(t *testing.T) {
 
 func TestActionHandler_Register(t *testing.T) {
 	t.Run("adds action to registry", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		entry := ActionHandlerEntry{
 			Name:   "user.create",
@@ -105,7 +108,7 @@ func TestActionHandler_Register(t *testing.T) {
 	})
 
 	t.Run("overwrites existing entry with same name", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		entry1 := ActionHandlerEntry{
 			Name:   "test.action",
@@ -125,7 +128,7 @@ func TestActionHandler_Register(t *testing.T) {
 
 func TestActionHandler_RegisterAll(t *testing.T) {
 	t.Run("registers multiple actions", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		entries := map[string]ActionHandlerEntry{
 			"action.one": {Method: http.MethodGet},
@@ -140,7 +143,7 @@ func TestActionHandler_RegisterAll(t *testing.T) {
 	})
 
 	t.Run("sets name from map key", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		entries := map[string]ActionHandlerEntry{
 			"correct.name": {Name: "wrong.name", Method: http.MethodGet},
@@ -152,7 +155,7 @@ func TestActionHandler_RegisterAll(t *testing.T) {
 	})
 
 	t.Run("handles empty map", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		handler.RegisterAll(map[string]ActionHandlerEntry{})
 
@@ -162,7 +165,7 @@ func TestActionHandler_RegisterAll(t *testing.T) {
 
 func TestActionHandler_Mount(t *testing.T) {
 	t.Run("registers routes for all actions", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		handler.Register(ActionHandlerEntry{
 			Name:   "test.action",
 			Method: http.MethodPost,
@@ -185,7 +188,7 @@ func TestActionHandler_Mount(t *testing.T) {
 	})
 
 	t.Run("registers batch endpoint", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		r := chi.NewRouter()
 		handler.Mount(r, "/_piko/actions")
@@ -201,7 +204,7 @@ func TestActionHandler_Mount(t *testing.T) {
 }
 
 func TestActionHandler_ShouldUseSSE(t *testing.T) {
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	testCases := []struct {
 		name     string
@@ -248,7 +251,7 @@ func TestActionHandler_ShouldUseSSE(t *testing.T) {
 }
 
 func TestActionHandler_ParseRequestBody(t *testing.T) {
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("returns empty map for GET request", func(t *testing.T) {
 		request := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -294,7 +297,7 @@ func TestActionHandler_ParseRequestBody(t *testing.T) {
 }
 
 func TestActionHandler_ParseMultipartBody(t *testing.T) {
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("parses form values", func(t *testing.T) {
 		body := &bytes.Buffer{}
@@ -350,7 +353,7 @@ func TestActionHandler_ParseMultipartBody(t *testing.T) {
 }
 
 func TestActionHandler_ParseRawBody(t *testing.T) {
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("reads entire body as raw bytes", func(t *testing.T) {
 		content := "raw binary content here"
@@ -371,7 +374,7 @@ func TestActionHandler_ParseRawBody(t *testing.T) {
 }
 
 func TestActionHandler_BuildFullResponse(t *testing.T) {
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("returns raw result when no helpers", func(t *testing.T) {
 		result := map[string]string{"key": "value"}
@@ -398,7 +401,7 @@ func TestActionHandler_BuildFullResponse(t *testing.T) {
 }
 
 func TestActionHandler_BuildBatchErrorResult(t *testing.T) {
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("builds result from ActionError", func(t *testing.T) {
 		err := &daemon_dto.ValidationError{
@@ -426,7 +429,7 @@ func TestActionHandler_BuildBatchErrorResult(t *testing.T) {
 }
 
 func TestActionHandler_WriteJSON(t *testing.T) {
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("writes JSON with correct content type", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
@@ -457,7 +460,7 @@ func TestActionHandler_WriteJSON(t *testing.T) {
 }
 
 func TestActionHandler_WriteError(t *testing.T) {
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("writes error response", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
@@ -472,7 +475,7 @@ func TestActionHandler_WriteError(t *testing.T) {
 }
 
 func TestActionHandler_MountRegistersGETForSSE(t *testing.T) {
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "stream.Events",
 		Method: "POST",
@@ -492,7 +495,7 @@ func TestActionHandler_MountRegistersGETForSSE(t *testing.T) {
 
 func TestActionHandler_HandleBatch(t *testing.T) {
 	t.Run("returns empty results for empty batch", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		r := chi.NewRouter()
 		handler.Mount(r, "/_piko/actions")
 
@@ -509,7 +512,7 @@ func TestActionHandler_HandleBatch(t *testing.T) {
 	})
 
 	t.Run("executes multiple actions", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		handler.Register(ActionHandlerEntry{
 			Name:   "test.add",
 			Method: http.MethodPost,
@@ -534,7 +537,7 @@ func TestActionHandler_HandleBatch(t *testing.T) {
 	})
 
 	t.Run("reports not found for unknown action", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		r := chi.NewRouter()
 		handler.Mount(r, "/_piko/actions")
 
@@ -551,7 +554,7 @@ func TestActionHandler_HandleBatch(t *testing.T) {
 	})
 
 	t.Run("returns error for invalid JSON", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		r := chi.NewRouter()
 		handler.Mount(r, "/_piko/actions")
 
@@ -567,7 +570,7 @@ func TestActionHandler_HandleBatch(t *testing.T) {
 }
 
 func TestActionHandler_HandleActionError(t *testing.T) {
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("writes ValidationError with field errors", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
@@ -619,7 +622,7 @@ func TestActionHandler_HandleActionError(t *testing.T) {
 
 func TestActionHandler_CreateHandler(t *testing.T) {
 	t.Run("returns handler that processes requests", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		entry := ActionHandlerEntry{
 			Name:   "test.action",
 			Method: http.MethodPost,
@@ -666,7 +669,7 @@ func (m *mockActionWithResponse) SetResponse(response *daemon_dto.ResponseWriter
 
 func TestActionHandler_ValidateCSRF(t *testing.T) {
 	t.Run("skips validation when csrfService is nil", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{
 			"_csrf_ephemeral_token": "some-token",
 			"name":                  "test",
@@ -684,7 +687,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 
 	t.Run("skips validation when both tokens are empty", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{"name": "test"}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 
@@ -695,7 +698,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 
 	t.Run("validates when tokens are present and valid", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{
 			"_csrf_ephemeral_token": "ephemeral-123",
 			"data":                  "value",
@@ -714,7 +717,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 			validateResult: false,
 			validateErr:    &security_domain.CSRFValidationError{Code: "csrf_expired", Message: "token expired"},
 		}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{"_csrf_ephemeral_token": "ephemeral"}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 		request.Header.Set("X-CSRF-Action-Token", "action-token")
@@ -732,7 +735,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 			validateResult: false,
 			validateErr:    &security_domain.CSRFValidationError{Code: "csrf_invalid", Message: "bad token"},
 		}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{"_csrf_ephemeral_token": "ephemeral"}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 		request.Header.Set("X-CSRF-Action-Token", "action-token")
@@ -747,7 +750,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 
 	t.Run("reads ephemeral token from query param for GET requests", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{}
 		request := httptest.NewRequest(http.MethodGet, "/?_csrf_ephemeral_token=from-query", nil)
 		request.Header.Set("X-CSRF-Action-Token", "action-token")
@@ -762,7 +765,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 			validateResult: false,
 			validateErr:    &security_domain.CSRFValidationError{Code: "csrf_invalid", Message: "bad"},
 		}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{
 			"_csrf_ephemeral_token": "ephemeral",
 			"name":                  "test",
@@ -781,7 +784,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 			validateResult: false,
 			validateErr:    &security_domain.CSRFValidationError{Code: "csrf_invalid", Message: "empty"},
 		}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 		request.Header.Set("X-CSRF-Action-Token", "action-token")
@@ -795,7 +798,7 @@ func TestActionHandler_ValidateCSRF(t *testing.T) {
 func TestActionHandler_SecFetchSiteEnforcement(t *testing.T) {
 	t.Run("rejects browser request when enforcement enabled and tokens empty", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, true, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, true, nil, nil)
 		arguments := map[string]any{}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 		request.Header.Set("Sec-Fetch-Site", "same-origin")
@@ -810,7 +813,7 @@ func TestActionHandler_SecFetchSiteEnforcement(t *testing.T) {
 
 	t.Run("allows server-to-server request when enforcement enabled and tokens empty", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, true, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, true, nil, nil)
 		arguments := map[string]any{}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 
@@ -821,7 +824,7 @@ func TestActionHandler_SecFetchSiteEnforcement(t *testing.T) {
 
 	t.Run("allows browser request when enforcement enabled and tokens provided", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, true, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, true, nil, nil)
 		arguments := map[string]any{"_csrf_ephemeral_token": "ephemeral-123"}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 		request.Header.Set("Sec-Fetch-Site", "same-origin")
@@ -834,7 +837,7 @@ func TestActionHandler_SecFetchSiteEnforcement(t *testing.T) {
 
 	t.Run("allows browser request without tokens when enforcement disabled", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		arguments := map[string]any{}
 		request := httptest.NewRequest(http.MethodPost, "/", nil)
 		request.Header.Set("Sec-Fetch-Site", "cross-site")
@@ -846,7 +849,7 @@ func TestActionHandler_SecFetchSiteEnforcement(t *testing.T) {
 }
 
 func TestActionHandler_WriteCSRFError(t *testing.T) {
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	t.Run("writes csrf_expired error response", func(t *testing.T) {
 		recorder := httptest.NewRecorder()
@@ -886,7 +889,7 @@ func TestActionHandler_WriteCSRFError(t *testing.T) {
 func TestActionHandler_HandleHTTP_CSRF(t *testing.T) {
 	t.Run("action proceeds when CSRF validation passes", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		handler.Register(ActionHandlerEntry{
 			Name:   "test.action",
 			Method: http.MethodPost,
@@ -916,7 +919,7 @@ func TestActionHandler_HandleHTTP_CSRF(t *testing.T) {
 			validateResult: false,
 			validateErr:    &security_domain.CSRFValidationError{Code: "csrf_expired", Message: "expired"},
 		}
-		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		handler.Register(ActionHandlerEntry{
 			Name:   "test.action",
 			Method: http.MethodPost,
@@ -944,7 +947,7 @@ func TestActionHandler_HandleHTTP_CSRF(t *testing.T) {
 
 	t.Run("strips ephemeral token from arguments before invoking action", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		var capturedArgs map[string]any
 		handler.Register(ActionHandlerEntry{
@@ -974,7 +977,7 @@ func TestActionHandler_HandleHTTP_CSRF(t *testing.T) {
 	})
 
 	t.Run("existing tests still pass with nil csrfService", func(t *testing.T) {
-		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		handler.Register(ActionHandlerEntry{
 			Name:   "test.action",
 			Method: http.MethodPost,
@@ -1001,7 +1004,7 @@ func TestActionHandler_HandleHTTP_CSRF(t *testing.T) {
 func TestActionHandler_HandleBatch_CSRF(t *testing.T) {
 	t.Run("batch proceeds when CSRF validation passes", func(t *testing.T) {
 		csrf := &configurableCSRFService{validateResult: true}
-		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 		handler.Register(ActionHandlerEntry{
 			Name:   "test.action",
 			Method: http.MethodPost,
@@ -1031,7 +1034,7 @@ func TestActionHandler_HandleBatch_CSRF(t *testing.T) {
 			validateResult: false,
 			validateErr:    &security_domain.CSRFValidationError{Code: "csrf_invalid", Message: "invalid"},
 		}
-		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+		handler := NewActionHandler(csrf, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 		r := chi.NewRouter()
 		handler.Mount(r, "/_piko/actions")
@@ -1052,7 +1055,7 @@ func TestActionHandler_HandleBatch_CSRF(t *testing.T) {
 func TestBuildCacheKey_BasicKey(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/action", nil)
 	arguments := map[string]any{"name": "test"}
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
@@ -1066,7 +1069,7 @@ func TestBuildCacheKey_BasicKey(t *testing.T) {
 func TestBuildCacheKey_EmptyArgs(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/action", nil)
 	arguments := map[string]any{}
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
@@ -1079,7 +1082,7 @@ func TestBuildCacheKey_EmptyArgs(t *testing.T) {
 func TestBuildCacheKey_WithVaryHeaders(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/action", nil)
 	request.Header.Set("Accept-Language", "en-US")
 	request.Header.Set("Accept", "application/json")
@@ -1099,7 +1102,7 @@ func TestBuildCacheKey_WithVaryHeaders(t *testing.T) {
 func TestBuildCacheKey_VaryHeader_EmptyValue(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/action", nil)
 
 	arguments := map[string]any{}
@@ -1116,7 +1119,7 @@ func TestBuildCacheKey_VaryHeader_EmptyValue(t *testing.T) {
 func TestBuildCacheKey_DifferentActions_DifferentKeys(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/action", nil)
 	arguments := map[string]any{"id": 1}
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
@@ -1130,7 +1133,7 @@ func TestBuildCacheKey_DifferentActions_DifferentKeys(t *testing.T) {
 func TestBuildCacheKey_DifferentArgs_DifferentKeys(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/action", nil)
 	cc := &daemon_domain.CacheConfig{TTL: time.Minute}
 
@@ -1143,7 +1146,7 @@ func TestBuildCacheKey_DifferentArgs_DifferentKeys(t *testing.T) {
 func TestRecordSlowAction_ZeroThreshold_NoWarning(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	handler.recordSlowAction(context.Background(), "test.action", time.Now().Add(-time.Hour), 0)
 }
@@ -1151,7 +1154,7 @@ func TestRecordSlowAction_ZeroThreshold_NoWarning(t *testing.T) {
 func TestRecordSlowAction_NegativeThreshold_NoWarning(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	handler.recordSlowAction(context.Background(), "test.action", time.Now().Add(-time.Hour), -time.Second)
 }
@@ -1159,7 +1162,7 @@ func TestRecordSlowAction_NegativeThreshold_NoWarning(t *testing.T) {
 func TestRecordSlowAction_UnderThreshold_NoWarning(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	handler.recordSlowAction(context.Background(), "test.action", time.Now(), 5*time.Second)
 }
@@ -1167,7 +1170,7 @@ func TestRecordSlowAction_UnderThreshold_NoWarning(t *testing.T) {
 func TestRecordSlowAction_OverThreshold_Warning(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 
 	handler.recordSlowAction(context.Background(), "test.action", time.Now().Add(-10*time.Second), time.Millisecond)
 }
@@ -1175,7 +1178,7 @@ func TestRecordSlowAction_OverThreshold_Warning(t *testing.T) {
 func TestCheckRateLimit_NilMiddleware_ReturnsTrue(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
@@ -1191,7 +1194,7 @@ func TestCheckRateLimit_ActionNotRateLimitable_ReturnsTrue(t *testing.T) {
 		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: true}, nil
 		},
-	}, security_dto.RateLimitValues{Enabled: true}, false, nil)
+	}, security_dto.RateLimitValues{Enabled: true}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
@@ -1207,7 +1210,7 @@ func TestCheckRateLimit_NilRateLimit_ReturnsTrue(t *testing.T) {
 		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: true}, nil
 		},
-	}, security_dto.RateLimitValues{Enabled: true}, false, nil)
+	}, security_dto.RateLimitValues{Enabled: true}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
@@ -1242,7 +1245,7 @@ func (m *mockMetadataInjector) SetResponse(response *daemon_dto.ResponseWriter) 
 func TestInjectMetadata_SetsRequestMetadata(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	action := &mockMetadataInjector{}
 	request := httptest.NewRequest(http.MethodPost, "/test/path?q=1", nil)
 	request.Header.Set("X-Custom", "value")
@@ -1259,7 +1262,7 @@ func TestInjectMetadata_SetsRequestMetadata(t *testing.T) {
 func TestInjectMetadata_SetsResponseWriter(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	action := &mockMetadataInjector{}
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
@@ -1271,7 +1274,7 @@ func TestInjectMetadata_SetsResponseWriter(t *testing.T) {
 func TestInjectMetadata_NonInjectable_NoOp(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	action := struct{}{}
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
@@ -1291,7 +1294,7 @@ func (m *mockResponseGetterAction) Response() *daemon_dto.ResponseWriter {
 func TestApplyResponseMetadata_SetsCookies(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 
 	response := daemon_dto.NewResponseWriter()
@@ -1309,7 +1312,7 @@ func TestApplyResponseMetadata_SetsCookies(t *testing.T) {
 func TestApplyResponseMetadata_SetsHeaders(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 
 	response := daemon_dto.NewResponseWriter()
@@ -1324,7 +1327,7 @@ func TestApplyResponseMetadata_SetsHeaders(t *testing.T) {
 func TestApplyResponseMetadata_NilResponse_NoOp(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 
 	action := &mockResponseGetterAction{response: nil}
@@ -1336,7 +1339,7 @@ func TestApplyResponseMetadata_NilResponse_NoOp(t *testing.T) {
 func TestApplyResponseMetadata_NonResponseGetter_NoOp(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	recorder := httptest.NewRecorder()
 
 	action := struct{}{}
@@ -1348,7 +1351,7 @@ func TestApplyResponseMetadata_NonResponseGetter_NoOp(t *testing.T) {
 func TestExecuteBatchActions_AllSuccess(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "test.action",
 		Method: http.MethodPost,
@@ -1374,7 +1377,7 @@ func TestExecuteBatchActions_AllSuccess(t *testing.T) {
 func TestExecuteBatchActions_UnknownAction_NotFound(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 	actions := []daemon_dto.BatchActionItem{
 		{Name: "nonexistent.action"},
@@ -1391,7 +1394,7 @@ func TestExecuteBatchActions_UnknownAction_NotFound(t *testing.T) {
 func TestExecuteBatchActions_MixedResults(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "success.action",
 		Method: http.MethodPost,
@@ -1424,7 +1427,7 @@ func TestExecuteBatchActions_MixedResults(t *testing.T) {
 func TestExecuteSingleAction_NotFound(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
 
 	result := handler.executeSingleAction(context.Background(), request, daemon_dto.BatchActionItem{Name: "missing"})
@@ -1437,7 +1440,7 @@ func TestExecuteSingleAction_NotFound(t *testing.T) {
 func TestExecuteSingleAction_Success(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "test.action",
 		Method: http.MethodPost,
@@ -1460,7 +1463,7 @@ func TestExecuteSingleAction_NilArgs_DefaultsToEmptyMap(t *testing.T) {
 	t.Parallel()
 
 	var receivedArgs map[string]any
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "test.action",
 		Method: http.MethodPost,
@@ -1484,7 +1487,7 @@ func TestExecuteSingleAction_NilArgs_DefaultsToEmptyMap(t *testing.T) {
 func TestExecuteSingleAction_InvokeError_ReturnsErrorResult(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "test.action",
 		Method: http.MethodPost,
@@ -1506,7 +1509,7 @@ func TestExecuteSingleAction_InvokeError_ReturnsErrorResult(t *testing.T) {
 func TestTrackBatchMetrics_DoesNotPanic(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	request := httptest.NewRequest(http.MethodPost, "/_piko/actions/_batch", nil)
 
 	assert.NotPanics(t, func() {
@@ -1517,7 +1520,7 @@ func TestTrackBatchMetrics_DoesNotPanic(t *testing.T) {
 func TestHandleBatch_EmptyActions_ReturnsSuccess(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	r := chi.NewRouter()
 	handler.Mount(r, "/_piko/actions")
 
@@ -1535,7 +1538,7 @@ func TestHandleBatch_EmptyActions_ReturnsSuccess(t *testing.T) {
 func TestHandleBatch_InvalidJSON_ReturnsBadRequest(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	r := chi.NewRouter()
 	handler.Mount(r, "/_piko/actions")
 
@@ -1552,7 +1555,7 @@ func TestHandleBatch_InvalidJSON_ReturnsBadRequest(t *testing.T) {
 func TestHandleBatch_WithActions_ReturnsResults(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "test.action",
 		Method: http.MethodPost,
@@ -1580,7 +1583,7 @@ func TestHandleBatch_WithActions_ReturnsResults(t *testing.T) {
 func TestHandleHTTP_SimpleAction_ReturnsJSON(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "test.action",
 		Method: http.MethodPost,
@@ -1607,7 +1610,7 @@ func TestHandleHTTP_SimpleAction_ReturnsJSON(t *testing.T) {
 func TestHandleHTTP_InvokeError_ReturnsError(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024*1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "failing.action",
 		Method: http.MethodPost,
@@ -1633,7 +1636,7 @@ func TestHandleHTTP_InvokeError_ReturnsError(t *testing.T) {
 func TestBuildFullResponse_NoHelpers_ReturnsRawResult(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	action := &mockResponseGetterAction{response: daemon_dto.NewResponseWriter()}
 
 	result := handler.buildFullResponse(action, "raw-data")
@@ -1644,7 +1647,7 @@ func TestBuildFullResponse_NoHelpers_ReturnsRawResult(t *testing.T) {
 func TestBuildFullResponse_WithHelpers_WrapsResult(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	response := daemon_dto.NewResponseWriter()
 	response.AddHelper("toast", map[string]any{"message": "saved"})
 	action := &mockResponseGetterAction{response: response}
@@ -1660,7 +1663,7 @@ func TestBuildFullResponse_WithHelpers_WrapsResult(t *testing.T) {
 func TestBuildFullResponse_NonResponseGetter_ReturnsRaw(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	action := struct{}{}
 
 	result := handler.buildFullResponse(action, "data")
@@ -1671,7 +1674,7 @@ func TestBuildFullResponse_NonResponseGetter_ReturnsRaw(t *testing.T) {
 func TestCreateHandler_ReturnsHandler(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	entry := ActionHandlerEntry{
 		Name:   "test.action",
 		Method: http.MethodPost,
@@ -1690,7 +1693,7 @@ func TestNewActionHandler_WithRateLimit_CreatesMiddleware(t *testing.T) {
 		CheckLimitFunc: func(_ string, _ int, _ time.Duration) (ratelimiter_dto.Result, error) {
 			return ratelimiter_dto.Result{Allowed: true}, nil
 		},
-	}, security_dto.RateLimitValues{Enabled: true}, false, nil)
+	}, security_dto.RateLimitValues{Enabled: true}, false, nil, nil)
 
 	assert.NotNil(t, handler)
 }
@@ -1698,14 +1701,14 @@ func TestNewActionHandler_WithRateLimit_CreatesMiddleware(t *testing.T) {
 func TestNewActionHandler_WithoutRateLimit_NilMiddleware(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{Enabled: false}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{Enabled: false}, false, nil, nil)
 	assert.Nil(t, handler.rateLimitMw)
 }
 
 func TestNewActionHandler_ResponseCacheNilWhenNotProvided(t *testing.T) {
 	t.Parallel()
 
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	assert.Nil(t, handler.responseCache)
 }
 
@@ -1720,7 +1723,7 @@ func TestHandleCachedAction_StoresAndRetrievesFromCache(t *testing.T) {
 	defer func() { _ = responseCache.Close(context.Background()) }()
 
 	invocations := 0
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, responseCache)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, responseCache, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "cached.action",
 		Method: http.MethodPost,
@@ -1753,7 +1756,7 @@ func TestHandleCachedAction_NilCache_SkipsCaching(t *testing.T) {
 	t.Parallel()
 
 	invocations := 0
-	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil)
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
 	handler.Register(ActionHandlerEntry{
 		Name:   "cached.action",
 		Method: http.MethodPost,
@@ -1782,4 +1785,180 @@ type cacheableAction struct{}
 
 func (*cacheableAction) CacheConfig() *daemon_domain.CacheConfig {
 	return &daemon_domain.CacheConfig{TTL: time.Minute}
+}
+
+type mockCaptchaService struct {
+	verifyErr error
+	enabled   bool
+}
+
+func (m *mockCaptchaService) Verify(_ context.Context, _, _, _ string) error {
+	return m.verifyErr
+}
+
+func (m *mockCaptchaService) VerifyWithScore(_ context.Context, _, _, _ string, _ float64) (*captcha_dto.VerifyResponse, error) {
+	return nil, m.verifyErr
+}
+
+func (m *mockCaptchaService) VerifyWithProvider(_ context.Context, _, _, _, _ string, _ float64) (*captcha_dto.VerifyResponse, error) {
+	return nil, m.verifyErr
+}
+
+func (m *mockCaptchaService) IsEnabled() bool {
+	return m.enabled
+}
+
+func (*mockCaptchaService) SiteKey() string   { return "" }
+func (*mockCaptchaService) ScriptURL() string { return "" }
+
+func (*mockCaptchaService) GetDefaultProvider(_ context.Context) (captcha_domain.CaptchaProvider, error) {
+	return nil, captcha_dto.ErrCaptchaDisabled
+}
+
+func (*mockCaptchaService) GetProviderByName(_ context.Context, _ string) (captcha_domain.CaptchaProvider, error) {
+	return nil, captcha_dto.ErrCaptchaDisabled
+}
+
+func (*mockCaptchaService) RegisterProvider(_ context.Context, _ string, _ captcha_domain.CaptchaProvider) error {
+	return nil
+}
+
+func (*mockCaptchaService) SetDefaultProvider(_ string) error { return nil }
+
+func (*mockCaptchaService) GetProviders(_ context.Context) []string { return nil }
+
+func (*mockCaptchaService) HasProvider(_ string) bool { return false }
+
+func (*mockCaptchaService) ListProviders(_ context.Context) []provider_domain.ProviderInfo {
+	return nil
+}
+
+func (*mockCaptchaService) HealthCheck(_ context.Context) error { return nil }
+
+func (*mockCaptchaService) Close(_ context.Context) error { return nil }
+
+var _ captcha_domain.CaptchaServicePort = (*mockCaptchaService)(nil)
+
+type mockCaptchaAction struct{}
+
+func (mockCaptchaAction) CaptchaConfig() *daemon_domain.CaptchaConfig {
+	return &daemon_domain.CaptchaConfig{}
+}
+
+type mockNilCaptchaConfigAction struct{}
+
+func (mockNilCaptchaConfigAction) CaptchaConfig() *daemon_domain.CaptchaConfig {
+	return nil
+}
+
+func TestValidateCaptcha_NoInterface(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	arguments := map[string]any{
+		"_captcha_token": "some-token",
+		"name":           "test",
+	}
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	err := handler.validateCaptcha(t.Context(), request, struct{}{}, arguments, "test.action")
+
+	assert.NoError(t, err)
+	assert.NotContains(t, arguments, "_captcha_token")
+	assert.Contains(t, arguments, "name")
+}
+
+func TestValidateCaptcha_NilConfig(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	arguments := map[string]any{
+		"_captcha_token": "some-token",
+	}
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	err := handler.validateCaptcha(t.Context(), request, mockNilCaptchaConfigAction{}, arguments, "test.action")
+
+	assert.NoError(t, err)
+	assert.NotContains(t, arguments, "_captcha_token")
+}
+
+func TestValidateCaptcha_ServiceUnavailable(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+	arguments := map[string]any{
+		"_captcha_token": "some-token",
+	}
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	err := handler.validateCaptcha(t.Context(), request, mockCaptchaAction{}, arguments, "test.action")
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, captcha_dto.ErrCaptchaDisabled)
+}
+
+func TestValidateCaptcha_ServiceDisabled(t *testing.T) {
+	t.Parallel()
+
+	captchaSvc := &mockCaptchaService{enabled: false}
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
+	arguments := map[string]any{
+		"_captcha_token": "some-token",
+	}
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	err := handler.validateCaptcha(t.Context(), request, mockCaptchaAction{}, arguments, "test.action")
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, captcha_dto.ErrCaptchaDisabled)
+}
+
+func TestValidateCaptcha_ValidToken(t *testing.T) {
+	t.Parallel()
+
+	captchaSvc := &mockCaptchaService{enabled: true, verifyErr: nil}
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
+	arguments := map[string]any{
+		"_captcha_token": "valid-token",
+		"name":           "test",
+	}
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	err := handler.validateCaptcha(t.Context(), request, mockCaptchaAction{}, arguments, "test.action")
+
+	assert.NoError(t, err)
+	assert.NotContains(t, arguments, "_captcha_token")
+	assert.Contains(t, arguments, "name")
+}
+
+func TestValidateCaptcha_InvalidToken(t *testing.T) {
+	t.Parallel()
+
+	captchaSvc := &mockCaptchaService{enabled: true, verifyErr: errors.New("captcha verification failed")}
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, captchaSvc)
+	arguments := map[string]any{
+		"_captcha_token": "bad-token",
+	}
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+
+	err := handler.validateCaptcha(t.Context(), request, mockCaptchaAction{}, arguments, "test.action")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "captcha verification failed")
+}
+
+func TestActionHandler_WriteCaptchaError(t *testing.T) {
+	t.Parallel()
+
+	handler := NewActionHandler(nil, 1024, nil, security_dto.RateLimitValues{}, false, nil, nil)
+
+	recorder := httptest.NewRecorder()
+
+	handler.writeCaptchaError(recorder)
+
+	assert.Equal(t, http.StatusForbidden, recorder.Code)
+	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
+	body := recorder.Body.String()
+	assert.Contains(t, body, "CAPTCHA_FAILED")
 }

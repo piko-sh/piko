@@ -460,14 +460,19 @@ func buildReturnStatement(result *annotator_dto.AnnotationResult, customTagsVarN
 		}
 	}
 
+	metadataFields := []goast.Expr{
+		&goast.KeyValueExpr{Key: cachedIdent("Metadata"), Value: cachedIdent(PageMetaVarName)},
+		&goast.KeyValueExpr{Key: cachedIdent("CachePolicy"), Value: cachedIdent(MainCachePolicyVarName)},
+		&goast.KeyValueExpr{Key: cachedIdent("AssetRefs"), Value: assetRefsValue},
+		&goast.KeyValueExpr{Key: cachedIdent("CustomTags"), Value: cachedIdent(customTagsVarName)},
+	}
+	if result.UsesCaptcha {
+		metadataFields = append(metadataFields,
+			&goast.KeyValueExpr{Key: cachedIdent("UsesCaptcha"), Value: cachedIdent("true")})
+	}
 	internalMetaLit := &goast.CompositeLit{
 		Type: &goast.SelectorExpr{X: cachedIdent(runtimePackageName), Sel: cachedIdent(identInternalMetadata)},
-		Elts: []goast.Expr{
-			&goast.KeyValueExpr{Key: cachedIdent("Metadata"), Value: cachedIdent(PageMetaVarName)},
-			&goast.KeyValueExpr{Key: cachedIdent("CachePolicy"), Value: cachedIdent(MainCachePolicyVarName)},
-			&goast.KeyValueExpr{Key: cachedIdent("AssetRefs"), Value: assetRefsValue},
-			&goast.KeyValueExpr{Key: cachedIdent("CustomTags"), Value: cachedIdent(customTagsVarName)},
-		},
+		Elts: metadataFields,
 	}
 
 	return []goast.Stmt{

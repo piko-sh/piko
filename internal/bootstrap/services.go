@@ -27,6 +27,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/crypto/crypto_domain"
 	"piko.sh/piko/internal/email/email_domain"
@@ -125,6 +126,21 @@ func GetCryptoService() (crypto_domain.CryptoServicePort, error) {
 		return nil, fmt.Errorf("get crypto service: %w", err)
 	}
 	return container.GetCryptoService()
+}
+
+// GetCaptchaService returns the global captcha service instance.
+// It is safe to call from multiple goroutines.
+//
+// Returns captcha_domain.CaptchaServicePort which is the configured captcha
+// service.
+// Returns error when the framework is not initialised or the service
+// cannot be created.
+func GetCaptchaService() (captcha_domain.CaptchaServicePort, error) {
+	container, err := getContainer()
+	if err != nil {
+		return nil, fmt.Errorf("get captcha service: %w", err)
+	}
+	return container.GetCaptchaService()
 }
 
 // GetLLMService returns the global LLM service instance.

@@ -96,6 +96,14 @@ func (*NoopRenderRegistry) ClearComponentCache(_ context.Context, _ string) {}
 // ClearSvgCache is a no-op as there's no cache to clear.
 func (*NoopRenderRegistry) ClearSvgCache(_ context.Context, _ string) {}
 
+// GetArtefactServePath returns an empty string as the noop registry has no
+// artefacts to serve.
+//
+// Returns string which is always empty for this implementation.
+func (*NoopRenderRegistry) GetArtefactServePath(_ context.Context, _ string) string {
+	return ""
+}
+
 // UpsertArtefact returns nil metadata as the noop registry cannot store
 // artefacts.
 //

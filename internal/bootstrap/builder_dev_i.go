@@ -34,6 +34,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_adapters"
 	"piko.sh/piko/internal/annotator/annotator_domain"
 	"piko.sh/piko/internal/annotator/annotator_dto"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
@@ -87,6 +88,9 @@ type interpretedDaemonBuilder struct {
 
 	// csrfService creates and checks CSRF tokens for forms.
 	csrfService security_domain.CSRFTokenService
+
+	// captchaService verifies captcha tokens; nil when captcha is disabled.
+	captchaService captcha_domain.CaptchaServicePort
 
 	// generatorService provides content generation capabilities.
 	generatorService generator_domain.GeneratorService
@@ -304,6 +308,13 @@ func (b *interpretedDaemonBuilder) resolveRenderingServices() {
 	b.renderer = b.c.GetRenderer()
 	b.renderRegistry = b.c.GetRenderRegistry()
 	b.csrfService = b.c.GetCSRFService()
+	captchaService, captchaErr := b.c.GetCaptchaService()
+	if captchaErr != nil {
+		_, l := logger_domain.From(context.Background(), log)
+		l.Warn("Captcha service unavailable; captcha-protected actions will be rejected with 403",
+			logger_domain.Error(captchaErr))
+	}
+	b.captchaService = captchaService
 }
 
 // resolveResolverService sets up the resolver service for the daemon builder.
@@ -558,6 +569,7 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 		RouteProviders:   nil,
 		AppRouter:        b.deps.AppRouter,
 		AuthGuardConfig:  b.c.authGuardConfig,
+		CaptchaService:   b.captchaService,
 	})
 
 	if closer, ok := b.routerManager.(interface{ Close() }); ok {

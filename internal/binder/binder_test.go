@@ -299,7 +299,7 @@ func TestASTCache(t *testing.T) {
 			"Items[invalid": {"Bad"},
 		}
 		err := binder.Bind(context.Background(), &form, src)
-		require.Error(t, err)
+		require.NoError(t, err, "Unparseable paths should be silently skipped")
 
 		_, ok1 := binder.astCache.Load("Items[0].Name")
 		assert.True(t, ok1, "Valid path should be cached")
@@ -1241,7 +1241,7 @@ func TestComplexScenarios(t *testing.T) {
 		assert.Equal(t, "some-value", form.Data)
 	})
 
-	t.Run("Scenario 18: Map with Struct Keys (Should Fail Gracefully)", func(t *testing.T) {
+	t.Run("Scenario 18: Map with Struct Keys (Unparseable path is skipped)", func(t *testing.T) {
 		type Key struct{ ID int }
 		type StructKeyMapForm struct {
 			Data map[Key]string
@@ -1253,12 +1253,8 @@ func TestComplexScenarios(t *testing.T) {
 
 		var form StructKeyMapForm
 		err := binder.Bind(context.Background(), &form, src)
-		require.Error(t, err, "Binding to map with struct keys should fail")
-
-		multiErr, ok := errors.AsType[MultiError](err)
-		require.True(t, ok, "Error should be a MultiError")
-
-		assert.Contains(t, multiErr[`Data[invalid]`].Error(), "path cannot contain operators, literals, or function calls")
+		require.NoError(t, err, "Unparseable paths should be silently skipped")
+		assert.Nil(t, form.Data, "Map should remain nil when path is skipped")
 	})
 
 	t.Run("Scenario 19: Unexported fields (Should be Ignored)", func(t *testing.T) {
@@ -2159,7 +2155,7 @@ func TestNumericOverflowUnderflow(t *testing.T) {
 func TestMalformedInput(t *testing.T) {
 	binder := NewASTBinder()
 
-	t.Run("malformed paths - incomplete brackets", func(t *testing.T) {
+	t.Run("malformed paths - incomplete brackets are skipped", func(t *testing.T) {
 		type SimpleForm struct {
 			Items []string
 		}
@@ -2181,12 +2177,13 @@ func TestMalformedInput(t *testing.T) {
 
 				var form SimpleForm
 				err := binder.Bind(context.Background(), &form, src)
-				require.Error(t, err, "Should error on malformed path: "+tc.path)
+				require.NoError(t, err, "Malformed paths should be silently skipped: "+tc.path)
+				assert.Empty(t, form.Items, "Items should remain empty when path is skipped")
 			})
 		}
 	})
 
-	t.Run("malformed paths - special characters", func(t *testing.T) {
+	t.Run("malformed paths - special characters are skipped", func(t *testing.T) {
 		type SimpleForm struct {
 			Name string
 		}
@@ -2208,7 +2205,8 @@ func TestMalformedInput(t *testing.T) {
 
 				var form SimpleForm
 				err := binder.Bind(context.Background(), &form, src)
-				require.Error(t, err, "Should error on malformed path: "+tc.path)
+				require.NoError(t, err, "Malformed paths should be silently skipped: "+tc.path)
+				assert.Equal(t, "", form.Name, "Name should remain empty when path is skipped")
 			})
 		}
 	})
@@ -2315,7 +2313,7 @@ func TestMalformedInput(t *testing.T) {
 		assert.Equal(t, "\x00\x01\x02", form.Name)
 	})
 
-	t.Run("operators in path should error", func(t *testing.T) {
+	t.Run("operators in path are silently skipped", func(t *testing.T) {
 		type Form struct {
 			Value int
 		}
@@ -2335,7 +2333,8 @@ func TestMalformedInput(t *testing.T) {
 
 				var form Form
 				err := binder.Bind(context.Background(), &form, src)
-				require.Error(t, err, "Should error on path with operators: "+path)
+				require.NoError(t, err, "Unparseable paths should be silently skipped: "+path)
+				assert.Equal(t, 0, form.Value, "Value should remain at zero when path is skipped")
 			})
 		}
 	})

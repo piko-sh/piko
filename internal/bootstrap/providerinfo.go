@@ -34,6 +34,7 @@ var resourceDescriptorSources = []probeRegistration{
 	{name: "CollectionService", getter: func(c *Container) (any, error) { return c.GetCollectionService() }},
 	{name: "DatabaseService", getter: func(c *Container) (any, error) { return c.GetDatabaseService() }},
 	{name: "LLMService", getter: func(c *Container) (any, error) { return c.GetLLMService() }},
+	{name: "CaptchaService", getter: func(c *Container) (any, error) { return c.GetCaptchaService() }},
 }
 
 // createProviderInfoAggregator discovers all services implementing

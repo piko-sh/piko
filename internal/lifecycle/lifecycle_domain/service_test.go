@@ -719,6 +719,9 @@ func (m *mockRenderRegistryPort) BulkGetComponentMetadata(_ context.Context, _ [
 func (m *mockRenderRegistryPort) GetStats() render_domain.RegistryAdapterStats {
 	return render_domain.RegistryAdapterStats{}
 }
+func (m *mockRenderRegistryPort) GetArtefactServePath(_ context.Context, _ string) string {
+	return ""
+}
 func (m *mockRenderRegistryPort) UpsertArtefact(_ context.Context, _ string, _ string, _ io.Reader, _ string, _ []registry_dto.NamedProfile) (*registry_dto.ArtefactMeta, error) {
 	return nil, nil
 }

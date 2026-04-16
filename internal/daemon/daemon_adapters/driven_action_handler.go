@@ -27,15 +27,17 @@ import (
 	"strings"
 	"time"
 
-	"piko.sh/piko/internal/cache/cache_domain"
-	"piko.sh/piko/internal/json"
 	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/captcha/captcha_domain"
+	"piko.sh/piko/internal/captcha/captcha_dto"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/json"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/mem"
 	"piko.sh/piko/internal/safeerror"
@@ -54,6 +56,10 @@ const (
 	// csrfEphemeralTokenKey is the key used for the ephemeral CSRF token in
 	// request arguments (POST body) or query parameters (GET).
 	csrfEphemeralTokenKey = "_csrf_ephemeral_token"
+
+	// captchaTokenKey is the key used for the captcha token in request
+	// arguments. The token is extracted and deleted before argument binding.
+	captchaTokenKey = "_captcha_token"
 
 	// headerCSRFActionToken is the HTTP header for the signed CSRF action token.
 	headerCSRFActionToken = "X-CSRF-Action-Token"
@@ -77,16 +83,19 @@ type ActionHandler struct {
 	// csrfService validates CSRF tokens.
 	csrfService security_domain.CSRFTokenService
 
+	// responseCache stores cached action responses keyed by action name and
+	// request characteristics. Nil when the cache hexagon is unavailable.
+	responseCache cache_domain.Cache[string, []byte]
+
+	// captchaService verifies captcha tokens. Nil when captcha is disabled.
+	captchaService captcha_domain.CaptchaServicePort
+
 	// registry maps action names to their handler entries.
 	registry map[string]ActionHandlerEntry
 
 	// rateLimitMw applies per-action rate limiting. Nil when rate limiting
 	// is disabled globally.
 	rateLimitMw *rateLimitMiddleware
-
-	// responseCache stores cached action responses keyed by action name and
-	// request characteristics. Nil when the cache hexagon is unavailable.
-	responseCache cache_domain.Cache[string, []byte]
 
 	// maxBodyBytes is the maximum request body size in bytes.
 	maxBodyBytes int64
@@ -136,6 +145,8 @@ type ActionHandlerEntry struct {
 // identified by the Sec-Fetch-Site header.
 // Takes responseCache (cache_domain.Cache[string, []byte]) which stores cached
 // action responses; may be nil to disable action response caching.
+// Takes captchaService (captcha_domain.CaptchaServicePort) for captcha
+// verification; may be nil when captcha is disabled.
 //
 // Returns *ActionHandler ready to register actions.
 func NewActionHandler(
@@ -145,6 +156,7 @@ func NewActionHandler(
 	rateLimitConfig security_dto.RateLimitValues,
 	enforceSecFetchSite bool,
 	responseCache cache_domain.Cache[string, []byte],
+	captchaService captcha_domain.CaptchaServicePort,
 ) *ActionHandler {
 	var rlMw *rateLimitMiddleware
 	if rateLimitConfig.Enabled && rateLimitService != nil {
@@ -157,6 +169,7 @@ func NewActionHandler(
 		maxBodyBytes:        maxBodyBytes,
 		rateLimitMw:         rlMw,
 		responseCache:       responseCache,
+		captchaService:      captchaService,
 		enforceSecFetchSite: enforceSecFetchSite,
 	}
 }
@@ -266,7 +279,6 @@ func (*ActionHandler) shouldUseSSE(request *http.Request, entry ActionHandlerEnt
 
 // handleHTTP processes a standard HTTP action request.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which receives the response output.
 // Takes request (*http.Request) which contains the incoming request data.
 // Takes entry (ActionHandlerEntry) which defines the action to invoke.
@@ -299,16 +311,7 @@ func (h *ActionHandler) handleHTTP(
 		return
 	}
 
-	if csrfErr := h.validateCSRF(request, arguments); csrfErr != nil {
-		l.Warn("CSRF validation failed",
-			logger_domain.String(attributeKeyAction, entry.Name),
-			logger_domain.Error(csrfErr),
-		)
-		h.writeCSRFError(w, csrfErr)
-		return
-	}
-
-	if !h.checkRateLimit(ctx, w, request, action, entry) {
+	if !h.runSecurityValidation(ctx, w, request, action, arguments, entry) {
 		return
 	}
 
@@ -338,10 +341,60 @@ func (h *ActionHandler) handleHTTP(
 	h.recordSlowAction(ctx, entry.Name, startTime, slowThreshold)
 }
 
+// runSecurityValidation performs CSRF, rate limit, and captcha checks for an
+// incoming action request. Returns true when all checks pass; returns false
+// when a check fails, in which case an error response has already been written.
+//
+// Takes w (http.ResponseWriter) which receives any error responses.
+// Takes request (*http.Request) which contains headers for validation.
+// Takes action (any) which may carry rate limit or captcha configuration.
+// Takes arguments (map[string]any) which holds parsed request arguments.
+// Takes entry (ActionHandlerEntry) which identifies the action for logging.
+//
+// Returns bool which is true when all security checks pass, or false when a
+// check fails and an error response has already been written.
+func (h *ActionHandler) runSecurityValidation(
+	ctx context.Context,
+	w http.ResponseWriter,
+	request *http.Request,
+	action any,
+	arguments map[string]any,
+	entry ActionHandlerEntry,
+) bool {
+	_, l := logger_domain.From(ctx, log)
+
+	if csrfErr := h.validateCSRF(request, arguments); csrfErr != nil {
+		l.Warn("CSRF validation failed",
+			logger_domain.String(attributeKeyAction, entry.Name),
+			logger_domain.Error(csrfErr),
+		)
+		h.writeCSRFError(w, csrfErr)
+		return false
+	}
+
+	if !h.checkRateLimit(ctx, w, request, action, entry) {
+		return false
+	}
+
+	if captchaErr := h.validateCaptcha(ctx, request, action, arguments, entry.Name); captchaErr != nil {
+		l.Warn("Captcha validation failed",
+			logger_domain.String(attributeKeyAction, entry.Name),
+			logger_domain.Error(captchaErr),
+		)
+		if errors.Is(captchaErr, captcha_dto.ErrRateLimited) {
+			h.writeCaptchaRateLimitError(w)
+		} else {
+			h.writeCaptchaError(w)
+		}
+		return false
+	}
+
+	return true
+}
+
 // applyResourceLimits reads resource limits from the action and returns the
 // adjusted context, cancel function, body limit, and slow threshold.
 //
-// Takes ctx (context.Context) which is the request context.
 // Takes action (any) which may implement daemon_domain.ResourceLimitable.
 //
 // Returns context.Context which may have a timeout applied.
@@ -400,7 +453,6 @@ type cachedActionParams struct {
 // Returns true when the response has been written (cache hit or miss with
 // successful invocation).
 //
-// Takes ctx (context.Context) which carries the request context.
 // Takes w (http.ResponseWriter) which receives the response output.
 // Takes request (*http.Request) which provides headers for cache key computation.
 // Takes p (cachedActionParams) which groups the action, entry, arguments, span,
@@ -466,7 +518,6 @@ func (h *ActionHandler) handleCachedAction(
 
 // handleSSE processes an SSE action request.
 //
-// Takes ctx (context.Context) which carries the logger and trace context.
 // Takes w (http.ResponseWriter) which writes the SSE response stream.
 // Takes request (*http.Request) which provides the incoming request data.
 // Takes entry (ActionHandlerEntry) which creates the action instance.
@@ -522,7 +573,6 @@ func (*ActionHandler) writeSSEHeaders(w http.ResponseWriter) {
 // handler specifies a maximum SSE duration. The caller must defer the returned
 // cancel function when it is non-nil.
 //
-// Takes ctx (context.Context) which is the current request context.
 // Takes request (*http.Request) which provides the request to update.
 // Takes action (any) which may implement daemon_domain.ResourceLimitable.
 //
@@ -550,7 +600,6 @@ func (h *ActionHandler) applySSEDurationLimit(ctx context.Context, request *http
 
 // executeSSEStream runs the SSE stream on the given action.
 //
-// Takes ctx (context.Context) which carries the request context.
 // Takes w (http.ResponseWriter) which receives the SSE events.
 // Takes request (*http.Request) which provides the client context.
 // Takes action (any) which must implement daemon_domain.SSECapable.
@@ -764,6 +813,130 @@ func (h *ActionHandler) writeCSRFError(w http.ResponseWriter, err error) {
 	})
 }
 
+// validateCaptcha checks captcha verification for actions that implement
+// CaptchaProtected. The captcha token is extracted from arguments and deleted
+// before binding, following the same pattern as CSRF token handling.
+//
+// If the action does not implement CaptchaProtected or returns a nil config,
+// the token is cleaned up and the request is allowed through.
+//
+// If no captcha service is configured but the action requires captcha, the
+// request is rejected with ErrCaptchaDisabled (fail-closed).
+//
+// Takes ctx (context.Context) which carries tracing and cancellation.
+// Takes request (*http.Request) which provides the client IP.
+// Takes action (any) which may implement daemon_domain.CaptchaProtected.
+// Takes arguments (map[string]any) which contains the parsed request body;
+// the captcha token key is deleted as a side effect.
+// Takes actionName (string) which identifies the action for provider analytics.
+//
+// Returns error when captcha validation fails, nil on success or when skipped.
+func (h *ActionHandler) validateCaptcha(ctx context.Context, request *http.Request, action any, arguments map[string]any, actionName string) error {
+	captchaAction, ok := action.(daemon_domain.CaptchaProtected)
+	if !ok {
+		delete(arguments, captchaTokenKey)
+		return nil
+	}
+
+	captchaConfig := captchaAction.CaptchaConfig()
+	if captchaConfig == nil {
+		delete(arguments, captchaTokenKey)
+		return nil
+	}
+
+	var token string
+	if rawToken, ok := arguments[captchaTokenKey].(string); ok {
+		token = rawToken
+	}
+	delete(arguments, captchaTokenKey)
+
+	if token == "" {
+		return captcha_dto.ErrTokenMissing
+	}
+
+	if h.captchaService == nil || !h.captchaService.IsEnabled() {
+		return fmt.Errorf("captcha required but service unavailable: %w", captcha_dto.ErrCaptchaDisabled)
+	}
+
+	providerAction := actionName
+	if captchaConfig.Action != "" {
+		providerAction = captchaConfig.Action
+	}
+
+	remoteIP := security_dto.ClientIPFromRequest(request)
+	if remoteIP == "" {
+		remoteIP = request.RemoteAddr
+	}
+
+	var response *captcha_dto.VerifyResponse
+	var err error
+	if captchaConfig.Provider != "" {
+		response, err = h.captchaService.VerifyWithProvider(ctx, captchaConfig.Provider, token, remoteIP, providerAction, captchaConfig.ScoreThreshold)
+	} else {
+		response, err = h.captchaService.VerifyWithScore(ctx, token, remoteIP, providerAction, captchaConfig.ScoreThreshold)
+	}
+	if err != nil {
+		return err
+	}
+
+	recordCaptchaScore(action, response)
+
+	return nil
+}
+
+// recordCaptchaScore stores the captcha score on the action's request metadata
+// when both the response contains a score and the action exposes request
+// metadata.
+//
+// Takes action (any) which is the action whose request metadata receives the
+// score.
+// Takes response (*captcha_dto.VerifyResponse) which contains the optional
+// score returned by the captcha provider.
+func recordCaptchaScore(action any, response *captcha_dto.VerifyResponse) {
+	if response == nil || response.Score == nil {
+		return
+	}
+
+	type requestProvider interface {
+		Request() *daemon_dto.RequestMetadata
+	}
+
+	provider, ok := action.(requestProvider)
+	if !ok {
+		return
+	}
+
+	if requestMeta := provider.Request(); requestMeta != nil {
+		score := *response.Score
+		requestMeta.CaptchaScore = &score
+	}
+}
+
+// writeCaptchaError writes a captcha validation error response. The error
+// details are logged server-side but not exposed to the client to avoid
+// leaking internal information.
+//
+// Takes w (http.ResponseWriter) which receives the JSON error response.
+func (h *ActionHandler) writeCaptchaError(w http.ResponseWriter) {
+	h.writeJSON(w, http.StatusForbidden, map[string]any{
+		"status":  http.StatusForbidden,
+		"code":    "CAPTCHA_FAILED",
+		"message": "Captcha verification failed",
+	})
+}
+
+// writeCaptchaRateLimitError writes a 429 response when captcha verification
+// is rate limited.
+//
+// Takes w (http.ResponseWriter) which receives the JSON error response.
+func (h *ActionHandler) writeCaptchaRateLimitError(w http.ResponseWriter) {
+	h.writeJSON(w, http.StatusTooManyRequests, map[string]any{
+		"status":  http.StatusTooManyRequests,
+		"code":    "RATE_LIMITED",
+		"message": "Too many captcha attempts",
+	})
+}
+
 // parseRequestBody parses the request body into a map of arguments.
 // It detects the content type and uses the appropriate parser.
 //
@@ -969,6 +1142,15 @@ func (h *ActionHandler) executeSingleAction(
 		arguments = make(map[string]any)
 	}
 
+	if captchaErr := h.validateCaptcha(ctx, request, action, arguments, item.Name); captchaErr != nil {
+		return daemon_dto.BatchActionResult{
+			Name:   item.Name,
+			Status: http.StatusForbidden,
+			Error:  "Captcha validation failed",
+			Code:   "CAPTCHA_FAILED",
+		}
+	}
+
 	result, err := entry.Invoke(ctx, action, arguments)
 	if err != nil {
 		return h.buildBatchErrorResult(item.Name, err, isDevelopmentModeFromContext(request.Context()))
@@ -1027,12 +1209,13 @@ func (*ActionHandler) writeJSON(w http.ResponseWriter, status int, data any) {
 // Takes w (http.ResponseWriter) which receives the JSON error response.
 // Takes status (int) which specifies the HTTP status code.
 // Takes message (string) which provides the error message for clients.
-// Takes err (error) which contains the underlying error details.
+// Takes err (error) which contains the underlying error details, or nil.
 func (h *ActionHandler) writeError(w http.ResponseWriter, status int, message string, err error) {
-	h.writeJSON(w, status, map[string]any{
-		"error":   message,
-		"details": err.Error(),
-	})
+	response := map[string]any{"error": message}
+	if err != nil {
+		response["details"] = err.Error()
+	}
+	h.writeJSON(w, status, response)
 }
 
 // handleActionError processes an action error and writes the appropriate
@@ -1230,7 +1413,6 @@ func (*ActionHandler) buildCacheKey(
 // recordSlowAction logs a warning and increments the slow action metric when
 // the action execution exceeds the configured slow threshold.
 //
-// Takes ctx (context.Context) which carries the logger context.
 // Takes actionName (string) which identifies the action.
 // Takes startTime (time.Time) which marks when execution began.
 // Takes threshold (time.Duration) which is the slow threshold; zero disables.

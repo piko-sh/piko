@@ -258,6 +258,87 @@ func TestDecodeRawEntries_MatchesCodec(t *testing.T) {
 	}
 }
 
+func TestDecodeRawEntries_AlignmentPaddingAfterEntries(t *testing.T) {
+	t.Parallel()
+
+	entry := buildRawTestEntry("key", "value", wal_domain.OpSet, 1000000000000000000, 0, nil)
+
+	padSize := alignment - (len(entry) % alignment)
+	data := make([]byte, len(entry)+padSize)
+	copy(data, entry)
+
+	entries, err := DecodeRawEntries(data)
+	if err != nil {
+		t.Fatalf("DecodeRawEntries with alignment padding: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("entry count = %d, want 1", len(entries))
+	}
+	if string(entries[0].Key) != "key" {
+		t.Errorf("key = %q, want %q", entries[0].Key, "key")
+	}
+}
+
+func TestDecodeRawEntries_AllZeros(t *testing.T) {
+	t.Parallel()
+
+	data := make([]byte, alignment)
+
+	entries, err := DecodeRawEntries(data)
+	if err != nil {
+		t.Fatalf("DecodeRawEntries with all-zero data: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("entry count = %d, want 0", len(entries))
+	}
+}
+
+func TestDecodeRawEntries_MultipleEntriesWithPadding(t *testing.T) {
+	t.Parallel()
+
+	entry1 := buildRawTestEntry("key1", "value1", wal_domain.OpSet, 1000000000000000000, 0, nil)
+	entry2 := buildRawTestEntry("key2", "value2", wal_domain.OpDelete, 1000000000000000000, 0, nil)
+
+	entryData := make([]byte, 0, len(entry1)+len(entry2))
+	entryData = append(entryData, entry1...)
+	entryData = append(entryData, entry2...)
+
+	padSize := (alignment - (len(entryData) % alignment)) % alignment
+	data := make([]byte, len(entryData)+padSize+alignment)
+	copy(data, entryData)
+
+	entries, err := DecodeRawEntries(data)
+	if err != nil {
+		t.Fatalf("DecodeRawEntries: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("entry count = %d, want 2", len(entries))
+	}
+	if string(entries[0].Key) != "key1" {
+		t.Errorf("entry 0 key = %q, want %q", entries[0].Key, "key1")
+	}
+	if string(entries[1].Key) != "key2" {
+		t.Errorf("entry 1 key = %q, want %q", entries[1].Key, "key2")
+	}
+}
+
+func TestDecodeRawEntries_ZeroPaddingShorterThanLengthPrefix(t *testing.T) {
+	t.Parallel()
+
+	entry := buildRawTestEntry("k", "v", wal_domain.OpSet, 1000000000000000000, 0, nil)
+
+	data := make([]byte, len(entry)+3)
+	copy(data, entry)
+
+	entries, err := DecodeRawEntries(data)
+	if err != nil {
+		t.Fatalf("DecodeRawEntries with trailing short padding: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("entry count = %d, want 1", len(entries))
+	}
+}
+
 func buildRawTestEntry(key, value string, op wal_domain.Operation, timestamp, expiresAt int64, tags []string) []byte {
 	return buildRawTestEntryBytes([]byte(key), []byte(value), op, timestamp, expiresAt, tags)
 }

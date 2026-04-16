@@ -221,4 +221,8 @@ type InternalMetadata struct {
 	// Metadata is the embedded struct containing SEO and page-level information.
 	// The fields will be flattened into this object during JSON serialisation.
 	Metadata
+
+	// UsesCaptcha indicates this page or partial contains a piko:captcha element
+	// and needs captcha provider scripts loaded.
+	UsesCaptcha bool `json:"usesCaptcha,omitempty"`
 }

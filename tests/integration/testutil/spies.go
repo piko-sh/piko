@@ -251,6 +251,19 @@ func (s *SpyRegistryPort) ClearSvgCache(ctx context.Context, svgID string) {
 	}
 }
 
+// GetArtefactServePath implements render_domain.RegistryPort.
+//
+// Takes artefactID (string) which identifies the artefact to look up.
+//
+// Returns string which is the serve path from the delegate, or empty if no
+// delegate is set.
+func (s *SpyRegistryPort) GetArtefactServePath(ctx context.Context, artefactID string) string {
+	if s.delegate != nil {
+		return s.delegate.GetArtefactServePath(ctx, artefactID)
+	}
+	return ""
+}
+
 // UpsertArtefact implements render_domain.RegistryPort.
 //
 // Takes artefactID (string) which identifies the artefact to create or update.

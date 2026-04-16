@@ -246,33 +246,43 @@ func StreamFragmentPageFooter(qw422016 *qt422016.Writer, p *FragmentPageData) {
 		qw422016.N().S(`>`)
 //line fragment.qtpl:31
 	}
-//line fragment.qtpl:31
+//line fragment.qtpl:32
+	for _, url := range p.WidgetScripts {
+//line fragment.qtpl:32
+		qw422016.N().S(`<meta name="pk-widget-script" content="`)
+//line fragment.qtpl:32
+		qw422016.N().S(url)
+//line fragment.qtpl:32
+		qw422016.N().S(`">`)
+//line fragment.qtpl:32
+	}
+//line fragment.qtpl:32
 	qw422016.N().S(`</body>`)
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 }
 
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 func WriteFragmentPageFooter(qq422016 qtio422016.Writer, p *FragmentPageData) {
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	qw422016 := qt422016.AcquireWriter(qq422016)
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	StreamFragmentPageFooter(qw422016, p)
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	qt422016.ReleaseWriter(qw422016)
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 }
 
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 func FragmentPageFooter(p *FragmentPageData) string {
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	qb422016 := qt422016.AcquireByteBuffer()
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	WriteFragmentPageFooter(qb422016, p)
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	qs422016 := string(qb422016.B)
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	qt422016.ReleaseByteBuffer(qb422016)
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 	return qs422016
-//line fragment.qtpl:34
+//line fragment.qtpl:35
 }

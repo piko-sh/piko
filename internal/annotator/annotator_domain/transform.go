@@ -586,6 +586,7 @@ func (ac *assetCollectionContext) addDiagnostic(node *ast_domain.TemplateNode, m
 // Returns []*annotator_dto.StaticAssetDependency which contains the expanded
 // static asset dependencies.
 // Returns []string which contains the custom tags found in the template.
+// Returns bool which indicates whether the template uses a captcha element.
 // Returns []*ast_domain.Diagnostic which contains any diagnostics collected
 // during transformation.
 func performFinalTransformations(
@@ -596,14 +597,14 @@ func performFinalTransformations(
 	assetsConfig *config.AssetsConfig,
 	fsReader FSReaderPort,
 	componentRegistry ComponentRegistryPort,
-) ([]*annotator_dto.StaticAssetDependency, []string, []*ast_domain.Diagnostic) {
+) ([]*annotator_dto.StaticAssetDependency, []string, bool, []*ast_domain.Diagnostic) {
 	ctx, l := logger_domain.From(ctx, log)
 	ctx, span, l := l.Span(ctx, "performFinalTransformations")
 	defer span.End()
 
 	if templateAst == nil {
 		l.Trace("Template AST is nil, nothing to transform")
-		return nil, nil, nil
+		return nil, nil, false, nil
 	}
 
 	l.Internal("Starting Static Analysis pass...")
@@ -624,7 +625,36 @@ func performFinalTransformations(
 		logger_domain.Int("original_count", len(dependencies)),
 		logger_domain.Int("expanded_count", len(expandedDeps)))
 
-	return expandedDeps, customTags, diagnostics
+	usesCaptcha := detectCaptchaUsage(templateAst)
+
+	return expandedDeps, customTags, usesCaptcha, diagnostics
+}
+
+// detectCaptchaUsage walks the AST to check if any element has the
+// piko:captcha tag name.
+//
+// Takes templateAST (*ast_domain.TemplateAST) which is the AST to search for
+// captcha elements.
+//
+// Returns bool which is true if any node in the tree uses piko:captcha.
+func detectCaptchaUsage(templateAST *ast_domain.TemplateAST) bool {
+	if templateAST == nil || len(templateAST.RootNodes) == 0 {
+		return false
+	}
+	return slices.ContainsFunc(templateAST.RootNodes, nodeHasCaptcha)
+}
+
+// nodeHasCaptcha recursively checks a node and its children for piko:captcha.
+//
+// Takes node (*ast_domain.TemplateNode) which is the node to check, including
+// its children.
+//
+// Returns bool which is true if the node or any descendant is piko:captcha.
+func nodeHasCaptcha(node *ast_domain.TemplateNode) bool {
+	if node.TagName == "piko:captcha" {
+		return true
+	}
+	return slices.ContainsFunc(node.Children, nodeHasCaptcha)
 }
 
 // performStaticAnalysis walks the AST in post-order to mark which nodes are

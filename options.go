@@ -24,6 +24,7 @@ import (
 	"piko.sh/piko/internal/bootstrap"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/crypto/crypto_domain"
 	"piko.sh/piko/internal/daemon/daemon_frontend"
@@ -694,6 +695,50 @@ func WithCryptoProvider(name string, provider crypto_domain.EncryptionProvider) 
 func WithDefaultCryptoProvider(name string) Option {
 	return func(c *bootstrap.Container) {
 		c.SetCryptoDefaultProvider(name)
+	}
+}
+
+// WithCaptchaProvider registers a named captcha provider instance with the
+// default captcha service.
+//
+// Multiple providers can be registered. Use WithDefaultCaptchaProvider to
+// specify which provider is active.
+//
+// Takes name (string) which identifies the provider for later reference.
+// Takes provider (captcha_domain.CaptchaProvider) which handles captcha
+// verification.
+//
+// Returns Option which configures the container with the captcha provider.
+//
+// Example:
+//
+//	import "piko.sh/piko/wdk/captcha/captcha_provider_turnstile"
+//
+//	provider, _ := captcha_provider_turnstile.NewProvider(config)
+//	server := piko.New(
+//	    piko.WithCaptchaProvider("turnstile", provider),
+//	    piko.WithDefaultCaptchaProvider("turnstile"),
+//	)
+func WithCaptchaProvider(name string, provider captcha_domain.CaptchaProvider) Option {
+	return func(c *bootstrap.Container) {
+		if name == "" || provider == nil {
+			return
+		}
+		c.AddCaptchaProvider(name, provider)
+	}
+}
+
+// WithDefaultCaptchaProvider sets the name of the provider to use for captcha
+// verification. A provider with this name must be registered via
+// WithCaptchaProvider.
+//
+// Takes name (string) which specifies the provider name to use as default.
+//
+// Returns Option which configures the container with the default captcha
+// provider.
+func WithDefaultCaptchaProvider(name string) Option {
+	return func(c *bootstrap.Container) {
+		c.SetCaptchaDefaultProvider(name)
 	}
 }
 

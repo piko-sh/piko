@@ -312,6 +312,13 @@ func (c *Container) createDefaultRenderer() {
 		renderOpts = append(renderOpts, render_domain.WithCSSResetCSS(c.cssResetCSS))
 	}
 
+	if captchaService, captchaErr := c.GetCaptchaService(); captchaErr == nil {
+		renderOpts = append(renderOpts, render_domain.WithCaptchaService(captchaService))
+	} else {
+		_, l := logger_domain.From(c.GetAppContext(), log)
+		l.Internal("Captcha service not available for renderer", logger_domain.Error(captchaErr))
+	}
+
 	c.renderer = render_domain.NewRenderOrchestrator(
 		c.GetPMLTransformer(),
 		[]render_domain.TransformationPort{},

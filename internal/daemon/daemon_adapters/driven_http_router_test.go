@@ -698,7 +698,11 @@ func TestMountActionRoutes_EmptyActions_NoError(t *testing.T) {
 
 	assert.NotPanics(t, func() {
 		r := chi.NewRouter()
-		mountActionRoutes(r, nil, RouteSettings{}, map[string]ActionHandlerEntry{}, nil, security_dto.RateLimitValues{}, nil)
+		mountActionRoutes(&MountRoutesConfig{
+			Router:          r,
+			Actions:         map[string]ActionHandlerEntry{},
+			RateLimitConfig: security_dto.RateLimitValues{},
+		})
 	})
 }
 
@@ -715,7 +719,11 @@ func TestMountActionRoutes_WithActions_RegistersRoutes(t *testing.T) {
 		},
 	}
 
-	mountActionRoutes(r, nil, RouteSettings{}, actions, nil, security_dto.RateLimitValues{}, nil)
+	mountActionRoutes(&MountRoutesConfig{
+		Router:          r,
+		Actions:         actions,
+		RateLimitConfig: security_dto.RateLimitValues{},
+	})
 
 	request := httptest.NewRequest(http.MethodPost, "/_piko/actions/test.action", nil)
 	recorder := httptest.NewRecorder()
@@ -739,7 +747,12 @@ func TestMountActionRoutes_CustomBasePath(t *testing.T) {
 		},
 	}
 
-	mountActionRoutes(r, nil, routeSettings, actions, nil, security_dto.RateLimitValues{}, nil)
+	mountActionRoutes(&MountRoutesConfig{
+		Router:          r,
+		RouteSettings:   routeSettings,
+		Actions:         actions,
+		RateLimitConfig: security_dto.RateLimitValues{},
+	})
 
 	request := httptest.NewRequest(http.MethodPost, "/api/actions/test.action", nil)
 	recorder := httptest.NewRecorder()
@@ -754,14 +767,19 @@ func TestMountActionRoutes_CustomMaxBodyBytes(t *testing.T) {
 	r := chi.NewRouter()
 	routeSettings := RouteSettings{ActionMaxBodyBytes: 5 * 1024}
 
-	mountActionRoutes(r, nil, routeSettings, map[string]ActionHandlerEntry{
-		"test": {
-			Name:   "test",
-			Method: http.MethodPost,
-			Create: func() any { return struct{}{} },
-			Invoke: func(_ context.Context, _ any, _ map[string]any) (any, error) { return nil, nil },
+	mountActionRoutes(&MountRoutesConfig{
+		Router:        r,
+		RouteSettings: routeSettings,
+		Actions: map[string]ActionHandlerEntry{
+			"test": {
+				Name:   "test",
+				Method: http.MethodPost,
+				Create: func() any { return struct{}{} },
+				Invoke: func(_ context.Context, _ any, _ map[string]any) (any, error) { return nil, nil },
+			},
 		},
-	}, nil, security_dto.RateLimitValues{}, nil)
+		RateLimitConfig: security_dto.RateLimitValues{},
+	})
 
 	request := httptest.NewRequest(http.MethodPost, "/_piko/actions/test", nil)
 	recorder := httptest.NewRecorder()

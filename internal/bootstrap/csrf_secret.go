@@ -161,18 +161,7 @@ func doResolveCSRFSecret(configSecret string) []byte {
 // Returns safedisk.Sandbox which provides safe access to the temp folder.
 // Returns error when the sandbox factory cannot be created or started.
 func createTempSandbox() (safedisk.Sandbox, error) {
-	tempDir := os.TempDir()
-
-	factory, err := safedisk.NewFactory(safedisk.FactoryConfig{
-		CWD:          tempDir,
-		AllowedPaths: []string{tempDir},
-		Enabled:      true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating CSRF sandbox factory: %w", err)
-	}
-
-	return factory.Create("csrf-secret", tempDir, safedisk.ModeReadWrite)
+	return createSystemTempSandbox("csrf-secret")
 }
 
 // getCSRFSecretPath returns the path to the CSRF secret file.
@@ -218,8 +207,7 @@ func readCSRFSecretFromSandbox(sandbox safedisk.Sandbox) ([]byte, error) {
 //
 // Returns error when the file cannot be written.
 func writeCSRFSecretToSandbox(sandbox safedisk.Sandbox, secret []byte) error {
-	encoded := make([]byte, hex.EncodedLen(len(secret)))
-	hex.Encode(encoded, secret)
+	encoded := hex.AppendEncode(nil, secret)
 
 	return sandbox.WriteFile(csrfSecretFileName, encoded, csrfSecretFilePermissions)
 }

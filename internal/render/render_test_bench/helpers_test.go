@@ -143,6 +143,8 @@ func (r *BenchmarkRegistry) ClearComponentCache(_ context.Context, _ string) {}
 
 func (r *BenchmarkRegistry) ClearSvgCache(_ context.Context, _ string) {}
 
+func (r *BenchmarkRegistry) GetArtefactServePath(_ context.Context, _ string) string { return "" }
+
 func (r *BenchmarkRegistry) UpsertArtefact(_ context.Context, artefactID string, _ string, _ io.Reader, _ string, desiredProfiles []registry_dto.NamedProfile) (*registry_dto.ArtefactMeta, error) {
 	return &registry_dto.ArtefactMeta{
 		ID:              artefactID,

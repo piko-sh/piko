@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"piko.sh/piko/internal/cache/cache_domain"
+	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
@@ -42,6 +43,9 @@ import (
 type RouterManagerConfig struct {
 	// CSRFService creates and validates CSRF tokens.
 	CSRFService security_domain.CSRFTokenService
+
+	// CaptchaService verifies captcha tokens. Nil when captcha is disabled.
+	CaptchaService captcha_domain.CaptchaServicePort
 
 	// RegistryService provides access to the service registry.
 	RegistryService registry_domain.RegistryService
@@ -131,8 +135,8 @@ type RouterManager struct {
 	// resources (e.g. metadata cache) can be closed on the next reload.
 	currentBuilder daemon_domain.RouterBuilder
 
-	// deps holds shared dependencies used when setting up HTTP routes.
-	deps *daemon_domain.HTTPHandlerDependencies
+	// captchaService verifies captcha tokens. Nil when captcha is disabled.
+	captchaService captcha_domain.CaptchaServicePort
 
 	// siteSettings holds the website settings that route handlers use.
 	siteSettings *config.WebsiteConfig
@@ -152,6 +156,9 @@ type RouterManager struct {
 
 	// actions maps action names to handlers for route processing.
 	actions map[string]ActionHandlerEntry
+
+	// deps holds shared dependencies used when setting up HTTP routes.
+	deps *daemon_domain.HTTPHandlerDependencies
 
 	// routeProviders holds the providers that add routes when the router reloads.
 	routeProviders []daemon_domain.RouteProvider
@@ -193,6 +200,7 @@ func NewRouterManager(routerManagerConfig *RouterManagerConfig) *RouterManager {
 		rateLimitService:       routerManagerConfig.RateLimitService,
 		authGuardConfig:        routerManagerConfig.AuthGuardConfig,
 		artefactCache:          routerManagerConfig.ArtefactCache,
+		captchaService:         routerManagerConfig.CaptchaService,
 		mu:                     sync.RWMutex{},
 	}
 }
@@ -245,6 +253,7 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 		Actions:         rm.actions,
 		CacheMiddleware: rm.cacheMiddleware,
 		AuthGuardConfig: rm.authGuardConfig,
+		CaptchaService:  rm.captchaService,
 	})
 
 	for _, provider := range rm.routeProviders {

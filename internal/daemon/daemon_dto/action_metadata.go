@@ -162,6 +162,11 @@ type RequestMetadata struct {
 	// Path is the request URL path.
 	Path string
 
+	// CaptchaScore is the normalised captcha confidence score, where 0.0 means
+	// likely bot and 1.0 means likely human. Nil when captcha is not configured
+	// or the provider does not support scoring.
+	CaptchaScore *float64
+
 	// RemoteAddr is the client's remote address.
 	RemoteAddr string
 }

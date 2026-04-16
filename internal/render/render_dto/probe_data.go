@@ -28,12 +28,34 @@ type ProbeData struct {
 	// ComponentMetadata maps component tag names to their metadata. Populated
 	// by BulkGetComponentMetadata during the probe phase.
 	ComponentMetadata map[string]*ComponentMetadata
+
+	// CaptchaScripts maps provider names to their pre-resolved script paths.
+	// Populated during the probe phase when the page uses piko:captcha
+	// elements, so the render phase can emit correct serve URLs without
+	// repeating registry lookups.
+	CaptchaScripts map[string]*CaptchaScriptProbeData
+}
+
+// CaptchaScriptProbeData holds the pre-resolved paths for a captcha
+// provider's scripts, collected during the probe phase.
+type CaptchaScriptProbeData struct {
+	// InitScriptServePath is the resolved URL path for the init script,
+	// including the content hash for cache busting (e.g.
+	// "/_piko/captcha/init-turnstile_pass_a1b2c3.min.js"), or empty when the
+	// artefact has not been registered yet.
+	InitScriptServePath string
+
+	// SDKScriptURLs lists external provider SDK script URLs
+	// (e.g. "https://challenges.cloudflare.com/turnstile/v0/api.js").
+	SDKScriptURLs []string
 }
 
 // Reset clears all fields so the struct can be returned to the pool.
 func (p *ProbeData) Reset() {
 	clear(p.ComponentMetadata)
 	p.ComponentMetadata = nil
+	clear(p.CaptchaScripts)
+	p.CaptchaScripts = nil
 }
 
 // probeDataPool reuses ProbeData instances to reduce allocation pressure

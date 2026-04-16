@@ -62,6 +62,7 @@ type TopLevelTestSpec struct {
 	AssertNodes                 []NodeAssertion   `json:"assertNodes,omitempty"`
 	ExpectedDiagnostics         int               `json:"expectedDiagnostics"`
 	ShouldError                 bool              `json:"shouldError,omitempty"`
+	ExpectUsesCaptcha           *bool             `json:"expectUsesCaptcha,omitempty"`
 }
 
 type DiagnosticCheck struct {
@@ -218,6 +219,11 @@ func runTestCase(t *testing.T, tc testCase) {
 		t.Run(nodeAssert.Description, func(t *testing.T) {
 			assertNode(t, annotationResult.AnnotatedAST, nodeAssert, absSrcDir)
 		})
+	}
+
+	if spec.ExpectUsesCaptcha != nil {
+		assert.Equal(t, *spec.ExpectUsesCaptcha, annotationResult.UsesCaptcha,
+			"UsesCaptcha mismatch: expected %v", *spec.ExpectUsesCaptcha)
 	}
 
 	generateAndCheckGoldenFiles(t, tc, annotationResult)
