@@ -383,6 +383,14 @@ func (wc *WebhookCollector) Close(_ context.Context) error {
 	return wc.batcher.Close()
 }
 
+// HealthCheck verifies that the webhook batcher is running and its
+// circuit breaker is not open.
+//
+// Returns error when the collector is unhealthy.
+func (wc *WebhookCollector) HealthCheck(_ context.Context) error {
+	return wc.batcher.HealthCheck()
+}
+
 // Name returns the collector name.
 //
 // Returns string which identifies this collector.

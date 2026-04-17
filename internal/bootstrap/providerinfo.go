@@ -28,6 +28,7 @@ import (
 // provider_domain.ResourceDescriptor. This table-driven approach follows the
 // same pattern as healthprobe.go serviceProbes.
 var resourceDescriptorSources = []probeRegistration{
+	{name: "AnalyticsService", getter: func(c *Container) (any, error) { return c.GetAnalyticsService() }},
 	{name: "EmailService", getter: func(c *Container) (any, error) { return c.GetEmailService() }},
 	{name: "StorageService", getter: func(c *Container) (any, error) { return c.GetStorageService() }},
 	{name: "CacheService", getter: func(c *Container) (any, error) { return c.GetCacheService() }},

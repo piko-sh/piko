@@ -81,6 +81,12 @@ func (*Collector) Flush(_ context.Context) error { return nil }
 // Returns error which is always nil.
 func (*Collector) Close(_ context.Context) error { return nil }
 
+// HealthCheck always returns nil because the stdout collector has no
+// external dependencies.
+//
+// Returns error which is always nil.
+func (*Collector) HealthCheck(_ context.Context) error { return nil }
+
 // Name returns the collector name.
 //
 // Returns string which identifies this collector.

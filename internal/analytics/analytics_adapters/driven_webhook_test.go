@@ -66,7 +66,7 @@ func TestWebhookCollector_BatchFlush(t *testing.T) {
 	}
 	wc.Start(context.Background())
 
-	for i := range 3 {
+	for range 3 {
 		ev := &analytics_dto.Event{
 			Path:       "/page",
 			Method:     http.MethodGet,
@@ -74,7 +74,6 @@ func TestWebhookCollector_BatchFlush(t *testing.T) {
 			Type:       analytics_dto.EventPageView,
 			Timestamp:  time.Now(),
 		}
-		_ = i
 		if err := wc.Collect(context.Background(), ev); err != nil {
 			t.Fatalf("Collect returned error: %v", err)
 		}

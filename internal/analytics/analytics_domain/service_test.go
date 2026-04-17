@@ -46,9 +46,10 @@ func (m *mockCollector) Collect(_ context.Context, ev *analytics_dto.Event) erro
 	return nil
 }
 
-func (m *mockCollector) Start(_ context.Context)       {}
-func (m *mockCollector) Flush(_ context.Context) error { return nil }
-func (m *mockCollector) Close(_ context.Context) error { return nil }
+func (m *mockCollector) Start(_ context.Context)            {}
+func (m *mockCollector) Flush(_ context.Context) error      { return nil }
+func (m *mockCollector) Close(_ context.Context) error      { return nil }
+func (m *mockCollector) HealthCheck(_ context.Context) error { return nil }
 func (m *mockCollector) Name() string                  { return m.name }
 
 func (m *mockCollector) collected() []analytics_dto.Event {

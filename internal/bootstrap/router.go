@@ -261,6 +261,12 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 	}
 
 	builder := daemon_adapters.NewHTTPRouterBuilder(artefactMetaCache)
+	analyticsService, analyticsError := op.container.GetAnalyticsService()
+	if analyticsError != nil {
+		l.Internal("Analytics service not available for router",
+			logger_domain.Error(analyticsError))
+	}
+
 	finalRouter, err := builder.BuildRouter(
 		op.buildRouterConfig(ctx),
 		daemon_domain.RouterDependencies{
@@ -274,7 +280,7 @@ func (op *routerOperation) buildFinalRouter(ctx context.Context) (http.Handler, 
 			RateLimitService:       op.rateLimitService,
 			AuthProvider:           op.container.authProvider,
 			AuthGuardConfig:        op.container.authGuardConfig,
-			AnalyticsService:       op.container.GetAnalyticsService(),
+			AnalyticsService:       analyticsService,
 		},
 	)
 	if err != nil {

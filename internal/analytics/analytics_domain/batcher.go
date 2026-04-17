@@ -113,28 +113,31 @@ type CircuitBreakerConfig struct {
 //
 // Safe for concurrent use from multiple goroutines.
 type Batcher[T any] struct {
-	// sendFunc is called with the accumulated batch on each flush.
-	sendFunc BatchSendFunc[T]
-
-	// circuitBreaker protects the send path. Nil when circuit
-	// breaking is disabled.
-	circuitBreaker *gobreaker.CircuitBreaker[any]
-
-	// retryConfig holds exponential backoff settings. Nil when retry
-	// is disabled.
-	retryConfig *retry.Config
-
-	// circuitBreakerConfig is stored during construction and used
-	// in Start to create the circuit breaker with the detached ctx.
-	circuitBreakerConfig *CircuitBreakerConfig
+	// batchPool recycles batch slices to avoid allocating on every
+	// flush cycle under high throughput.
+	batchPool sync.Pool
 
 	// clock provides time operations (tickers, timers). Injected
 	// via BatcherConfig for testability; defaults to RealClock.
 	clock clock.Clock
 
-	// batchPool recycles batch slices to avoid allocating on every
-	// flush cycle under high throughput.
-	batchPool sync.Pool
+	// flushCh is a non-blocking signal that tells the flush
+	// goroutine to flush immediately because the buffer reached
+	// batchSize.
+	flushCh chan struct{}
+
+	// lastSendError holds the result of the most recent batch send.
+	// Read by HealthCheck to report backend reachability without
+	// requiring a circuit breaker.
+	lastSendError atomic.Pointer[error]
+
+	// retryConfig holds exponential backoff settings. Nil when retry
+	// is disabled.
+	retryConfig *retry.Config
+
+	// circuitBreaker protects the send path. Nil when circuit
+	// breaking is disabled.
+	circuitBreaker *gobreaker.CircuitBreaker[any]
 
 	// stopCh signals the flush goroutine to exit.
 	stopCh chan struct{}
@@ -142,10 +145,12 @@ type Batcher[T any] struct {
 	// doneCh is closed when the flush goroutine exits.
 	doneCh chan struct{}
 
-	// flushCh is a non-blocking signal that tells the flush
-	// goroutine to flush immediately because the buffer reached
-	// batchSize.
-	flushCh chan struct{}
+	// sendFunc is called with the accumulated batch on each flush.
+	sendFunc BatchSendFunc[T]
+
+	// circuitBreakerConfig is stored during construction and used
+	// in Start to create the circuit breaker with the detached ctx.
+	circuitBreakerConfig *CircuitBreakerConfig
 
 	// name identifies this batcher in logs and metrics.
 	name string
@@ -293,6 +298,27 @@ func (b *Batcher[T]) Close() error {
 	return nil
 }
 
+// HealthCheck reports whether the batcher is running, its most
+// recent send succeeded, and its circuit breaker (if configured) is
+// not open.
+//
+// Returns error when the batcher is unhealthy.
+func (b *Batcher[T]) HealthCheck() error {
+	if !b.started.Load() {
+		return errors.New("batcher not started")
+	}
+	if b.stopped.Load() {
+		return errors.New("batcher stopped")
+	}
+	if b.circuitBreaker != nil && b.circuitBreaker.State() == gobreaker.StateOpen {
+		return errors.New("circuit breaker open")
+	}
+	if lastError := b.lastSendError.Load(); lastError != nil && *lastError != nil {
+		return fmt.Errorf("last send failed: %w", *lastError)
+	}
+	return nil
+}
+
 // flushLoop runs a periodic timer that flushes buffered items.
 //
 // It also listens for immediate flush signals when the buffer reaches
@@ -368,6 +394,18 @@ func (b *Batcher[T]) releaseBatch(batch *[]T) {
 //
 // Returns error when the send fails after all resilience attempts.
 func (b *Batcher[T]) sendWithResilience(ctx context.Context, batch []T) error {
+	result := b.doSend(ctx, batch)
+	b.lastSendError.Store(&result)
+	return result
+}
+
+// doSend executes the send function with optional circuit breaker
+// and retry wrapping.
+//
+// Takes batch ([]T) which holds the items to send.
+//
+// Returns error when the send fails after all retries.
+func (b *Batcher[T]) doSend(ctx context.Context, batch []T) error {
 	operation := func() error {
 		return b.sendFunc(ctx, batch)
 	}

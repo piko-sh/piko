@@ -508,6 +508,14 @@ func (c *Collector) Close(_ context.Context) error {
 	return c.batcher.Close()
 }
 
+// HealthCheck verifies that the GA4 batcher is running and its
+// circuit breaker is not open.
+//
+// Returns error when the collector is unhealthy.
+func (c *Collector) HealthCheck(_ context.Context) error {
+	return c.batcher.HealthCheck()
+}
+
 // Name returns the collector name.
 //
 // Returns string which identifies this collector.

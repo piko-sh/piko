@@ -54,6 +54,12 @@ type Collector interface {
 	// Returns error when cleanup fails.
 	Close(ctx context.Context) error
 
+	// HealthCheck verifies that the collector can reach its backend.
+	// Returns nil when the collector is healthy.
+	//
+	// Returns error when the backend is unreachable or degraded.
+	HealthCheck(ctx context.Context) error
+
 	// Name returns a human-readable identifier for logging and metrics.
 	//
 	// Returns string which identifies this collector.

@@ -143,11 +143,13 @@ type Option func(*Collector)
 // Takes url (string) which is the base URL (without /api/event).
 //
 // Returns Option which configures the endpoint.
-func WithEndpoint(url string) Option {
+func WithEndpoint(endpointURL string) Option {
 	return func(c *Collector) {
-		if url != "" {
-			c.endpoint = strings.TrimRight(url, "/")
+		if endpointURL == "" {
+			log.Warn("WithEndpoint ignored empty URL")
+			return
 		}
+		c.endpoint = strings.TrimRight(endpointURL, "/")
 	}
 }
 
@@ -410,6 +412,14 @@ func (c *Collector) Close(_ context.Context) error {
 // Returns string which identifies this collector.
 func (*Collector) Name() string {
 	return collectorName
+}
+
+// HealthCheck verifies that the Plausible batcher is running and its
+// circuit breaker is not open.
+//
+// Returns error when the collector is unhealthy.
+func (c *Collector) HealthCheck(_ context.Context) error {
+	return c.batcher.HealthCheck()
 }
 
 // resolveDomain returns the event's hostname if set, falling back

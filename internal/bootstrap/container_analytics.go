@@ -20,6 +20,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"piko.sh/piko/internal/analytics/analytics_domain"
@@ -57,8 +58,9 @@ func (c *Container) AddAnalyticsCollector(collector analytics_domain.Collector) 
 // which causes the analytics middleware to not be installed.
 //
 // Returns *analytics_domain.Service which distributes events to
-// collectors, or nil when analytics is not enabled.
-func (c *Container) GetAnalyticsService() *analytics_domain.Service {
+// collectors.
+// Returns error when no collectors are registered.
+func (c *Container) GetAnalyticsService() (*analytics_domain.Service, error) {
 	analyticsServiceOnce.Do(func() {
 		if len(c.analyticsCollectors) == 0 {
 			return
@@ -76,7 +78,10 @@ func (c *Container) GetAnalyticsService() *analytics_domain.Service {
 		l.Internal("Backend analytics service initialised",
 			logger_domain.Int("collector_count", len(c.analyticsCollectors)))
 	})
-	return analyticsService
+	if analyticsService == nil {
+		return nil, errors.New("analytics service not initialised: no collectors registered")
+	}
+	return analyticsService, nil
 }
 
 // GetGlobalAnalyticsService returns the analytics service singleton

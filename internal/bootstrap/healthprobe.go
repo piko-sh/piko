@@ -144,6 +144,13 @@ func registerDirectProbes(c *Container, registry healthprobe_domain.Registry) {
 		registry.Register(probe)
 		l.Internal("Registered CSRFService health probe")
 	}
+
+	if analyticsService, err := c.GetAnalyticsService(); err == nil {
+		if probe, ok := any(analyticsService).(healthprobe_domain.Probe); ok {
+			registry.Register(probe)
+			l.Internal("Registered AnalyticsService health probe")
+		}
+	}
 }
 
 // registerCustomProbes adds custom health probes from the container to the

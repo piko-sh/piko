@@ -126,6 +126,10 @@ type Service struct {
 	// workerCount is the number of drain goroutines per collector.
 	workerCount int
 
+	// channelBufferSize is the capacity of each collector's event
+	// channel, stored for health reporting.
+	channelBufferSize int
+
 	// closeOnce ensures Close is idempotent and safe for concurrent
 	// callers.
 	closeOnce sync.Once
@@ -159,8 +163,9 @@ func NewService(collectors []Collector, opts ...ServiceOption) *Service {
 	}
 
 	return &Service{
-		workers:     workers,
-		workerCount: cfg.workerCount,
+		workers:           workers,
+		workerCount:       cfg.workerCount,
+		channelBufferSize: cfg.channelBufferSize,
 	}
 }
 
