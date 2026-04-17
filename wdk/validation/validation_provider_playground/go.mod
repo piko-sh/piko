@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/stretchr/testify v1.11.1
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.14
 )
 
 require (

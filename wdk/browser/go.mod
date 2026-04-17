@@ -27,7 +27,7 @@ require (
 	github.com/chromedp/chromedp v0.15.1
 	github.com/go-json-experiment/json v0.0.0-20260214004413-d219187c3433
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.14
 )
 
 require (
