@@ -37,6 +37,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/goroutine"
@@ -110,6 +111,9 @@ type ActionHandler struct {
 	// captchaService verifies captcha tokens. Nil when captcha is disabled.
 	captchaService captcha_domain.CaptchaServicePort
 
+	// spamdetectService analyses form content for spam. Nil when disabled.
+	spamdetectService spamdetect_domain.SpamDetectServicePort
+
 	// registry maps action names to their handler entries.
 	registry map[string]ActionHandlerEntry
 
@@ -168,7 +172,7 @@ type ActionHandlerEntry struct {
 // Takes captchaService (captcha_domain.CaptchaServicePort) for captcha
 // verification; may be nil when captcha is disabled.
 //
-// Returns *ActionHandler ready to register actions.
+// Returns *ActionHandler which is ready to register actions.
 func NewActionHandler(
 	csrfService security_domain.CSRFTokenService,
 	maxBodyBytes int64,
@@ -406,6 +410,15 @@ func (h *ActionHandler) runSecurityValidation(
 		} else {
 			h.writeCaptchaError(w)
 		}
+		return false
+	}
+
+	if spamErr := h.validateSpamDetect(ctx, request, action, arguments, entry.Name); spamErr != nil {
+		l.Warn("Spam detection rejected submission",
+			logger_domain.String(attributeKeyAction, entry.Name),
+			logger_domain.Error(spamErr),
+		)
+		h.writeSpamDetectError(ctx, w, spamErr)
 		return false
 	}
 
@@ -1312,6 +1325,15 @@ func (h *ActionHandler) executeSingleAction(
 
 	if captchaErr := h.validateCaptcha(ctx, request, action, arguments, item.Name); captchaErr != nil {
 		return buildBatchCaptchaResult(l, item.Name, captchaErr)
+	}
+
+	if spamErr := h.validateSpamDetect(ctx, request, action, arguments, item.Name); spamErr != nil {
+		return daemon_dto.BatchActionResult{
+			Name:   item.Name,
+			Status: http.StatusForbidden,
+			Error:  "Submission flagged by spam filter",
+			Code:   "SPAM_DETECTED",
+		}
 	}
 
 	result, err := entry.Invoke(ctx, action, arguments)

@@ -36,11 +36,11 @@ import (
 )
 
 const (
-	// hybridCacheMaxBytes caps the weight-based bound on the
+	// defaultHybridCacheMaxBytes caps the weight-based bound on the
 	// hybrid-collections cache.
 	defaultHybridCacheMaxBytes uint64 = 1 << 30
 
-	// hybridCacheWriteExpiration is the safety-net write expiration on
+	// defaultHybridCacheWriteExpiration is the safety-net write expiration on
 	// the hybrid-collections cache.
 	defaultHybridCacheWriteExpiration = 1 * time.Hour
 )

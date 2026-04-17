@@ -166,11 +166,11 @@ func TestSanitiseSuggestedFilename(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantMatch func(string) bool
 		name      string
 		input     string
-		wantSafe  bool
 		wantBase  string
-		wantMatch func(string) bool
+		wantSafe  bool
 	}{
 		{
 			name:     "plain filename passes through",

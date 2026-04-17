@@ -681,8 +681,10 @@ type PartialReloadOptions struct {
 	// Mode is the reconciliation strategy: "merge" (default), "replace",
 	// "children-only", or "attrs-only".
 	Mode string
+
 	// OwnedAttrs restricts which root attributes the server is allowed to set.
 	OwnedAttrs []string
+
 	// PreserveAttrs lists root attributes that must never be touched.
 	PreserveAttrs []string
 }
@@ -721,10 +723,10 @@ func TriggerPartialReload(ctx *ActionContext, partialName string, data map[strin
 			return fmt.Errorf("marshalling preserveAttrs: %w", err)
 		}
 		jsCall = scripts.MustExecute("partial_reload_with_options.js.tmpl", map[string]any{
-			"PartialName":      partialName,
-			"DataJSON":         dataJSON,
-			"ModeJSON":         string(modeJSON),
-			"OwnedAttrsJSON":   string(ownedJSON),
+			"PartialName":       partialName,
+			"DataJSON":          dataJSON,
+			"ModeJSON":          string(modeJSON),
+			"OwnedAttrsJSON":    string(ownedJSON),
 			"PreserveAttrsJSON": string(preserveJSON),
 		})
 	} else {

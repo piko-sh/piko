@@ -188,6 +188,7 @@ func TestServiceProbesTable(t *testing.T) {
 		"LLMService",
 		"DatabaseService",
 		"CaptchaService",
+		"SpamDetectService",
 	}
 
 	serviceNames := make(map[string]bool)

@@ -106,12 +106,11 @@ type BrowserStep struct {
 	// Data holds query parameters for partial reload.
 	Data map[string]any `json:"data,omitempty"`
 
-	// Attribute is an alias for Name, used by the checkAttribute action.
-	Attribute string `json:"attribute,omitempty"`
+	// PartialName is the partial name for the triggerPartialReload action.
+	PartialName string `json:"partialName,omitempty"`
 
-	// Level is the console log level for
-	// checkConsoleMessage (e.g., "error", "warn", "log").
-	Level string `json:"level,omitempty"`
+	// EventName is the event name for dispatchEvent or triggerBusEvent actions.
+	EventName string `json:"eventName,omitempty"`
 
 	// Action specifies the type of browser action to perform.
 	Action string `json:"action"`
@@ -129,8 +128,9 @@ type BrowserStep struct {
 	// GoldenFile is the name of the golden file for the captureDOM action.
 	GoldenFile string `json:"goldenFile,omitempty"`
 
-	// EventName is the event name for dispatchEvent or triggerBusEvent actions.
-	EventName string `json:"eventName,omitempty"`
+	// ReloadMode selects the partial reload reconciliation strategy: "merge"
+	// (default), "replace", "children-only", or "attrs-only".
+	ReloadMode string `json:"reloadMode,omitempty"`
 
 	// Name is the attribute or property name for
 	// checkAttribute or checkStyle actions.
@@ -143,30 +143,30 @@ type BrowserStep struct {
 	// Contains specifies a substring to match in checkAttribute actions.
 	Contains string `json:"contains,omitempty"`
 
-	// PartialName is the partial name for the triggerPartialReload action.
-	PartialName string `json:"partialName,omitempty"`
+	// Attribute is an alias for Name, used by the checkAttribute action.
+	Attribute string `json:"attribute,omitempty"`
+
+	// Level is the console log level for
+	// checkConsoleMessage (e.g., "error", "warn", "log").
+	Level string `json:"level,omitempty"`
 
 	// Files is a list of file paths for setFiles action, relative to the test
 	// source directory.
 	Files []string `json:"files,omitempty"`
+
+	// ReloadPreserveAttrs lists root attributes that must never be touched
+	// during the reload.
+	ReloadPreserveAttrs []string `json:"reloadPreserveAttrs,omitempty"`
+
+	// ReloadOwnedAttrs restricts which root attributes the server may set on
+	// the partial root.
+	ReloadOwnedAttrs []string `json:"reloadOwnedAttrs,omitempty"`
 
 	// Stage is the step number for the applyStage action.
 	Stage int `json:"stage,omitempty"`
 
 	// Timeout is the wait time in milliseconds; 0 means no timeout.
 	Timeout int `json:"timeout,omitempty"`
-
-	// ReloadMode selects the partial reload reconciliation strategy: "merge"
-	// (default), "replace", "children-only", or "attrs-only".
-	ReloadMode string `json:"reloadMode,omitempty"`
-
-	// ReloadOwnedAttrs restricts which root attributes the server may set on
-	// the partial root.
-	ReloadOwnedAttrs []string `json:"reloadOwnedAttrs,omitempty"`
-
-	// ReloadPreserveAttrs lists root attributes that must never be touched
-	// during the reload.
-	ReloadPreserveAttrs []string `json:"reloadPreserveAttrs,omitempty"`
 
 	// Offset is the character position for the setCursor action.
 	Offset int `json:"offset,omitempty"`

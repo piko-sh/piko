@@ -21,6 +21,8 @@ package daemon_domain
 import (
 	"time"
 
+	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
+
 	"piko.sh/piko/internal/daemon/daemon_dto"
 )
 
@@ -180,6 +182,31 @@ type CaptchaConfig struct {
 
 	// ScoreThreshold overrides the default score threshold for score-based
 	// providers. A value of 0 uses the service default.
+	ScoreThreshold float64
+}
+
+// SpamProtected is an interface that actions can implement to enable
+// schema-based spam detection before execution. The returned schema
+// declares which form fields to analyse and what detection signals
+// apply to each field.
+type SpamProtected interface {
+	// SpamSchema returns the spam detection schema for this action. The
+	// schema defines which form argument keys to extract and which
+	// detectors should analyse each field.
+	SpamSchema() *spamdetect_dto.Schema
+}
+
+// SpamConfigurable is optionally implemented alongside SpamProtected
+// to override service-level spam detection settings per action.
+type SpamConfigurable interface {
+	// SpamConfig returns the per-action spam detection configuration.
+	SpamConfig() *SpamConfig
+}
+
+// SpamConfig defines per-action spam detection behaviour.
+type SpamConfig struct {
+	// ScoreThreshold overrides the schema and service default threshold
+	// for this action. A value of 0 uses the schema or service default.
 	ScoreThreshold float64
 }
 

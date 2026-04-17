@@ -28,6 +28,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -46,6 +47,9 @@ type RouterManagerConfig struct {
 
 	// CaptchaService verifies captcha tokens. Nil when captcha is disabled.
 	CaptchaService captcha_domain.CaptchaServicePort
+
+	// SpamDetectService analyses form content for spam. Nil when disabled.
+	SpamDetectService spamdetect_domain.SpamDetectServicePort
 
 	// RegistryService provides access to the service registry.
 	RegistryService registry_domain.RegistryService
@@ -138,6 +142,9 @@ type RouterManager struct {
 	// captchaService verifies captcha tokens. Nil when captcha is disabled.
 	captchaService captcha_domain.CaptchaServicePort
 
+	// spamdetectService analyses form content for spam. Nil when disabled.
+	spamdetectService spamdetect_domain.SpamDetectServicePort
+
 	// siteSettings holds the website settings that route handlers use.
 	siteSettings *config.WebsiteConfig
 
@@ -201,6 +208,7 @@ func NewRouterManager(routerManagerConfig *RouterManagerConfig) *RouterManager {
 		authGuardConfig:        routerManagerConfig.AuthGuardConfig,
 		artefactCache:          routerManagerConfig.ArtefactCache,
 		captchaService:         routerManagerConfig.CaptchaService,
+		spamdetectService:      routerManagerConfig.SpamDetectService,
 		mu:                     sync.RWMutex{},
 	}
 }
@@ -244,16 +252,17 @@ func (rm *RouterManager) ReloadRoutes(ctx context.Context, store templater_domai
 	newAppRouter.Use(rm.appRouter.Middlewares()...)
 
 	MountRoutesFromManifest(ctx, &MountRoutesConfig{
-		Router:          newAppRouter,
-		Deps:            rm.deps,
-		Store:           store,
-		CSRFService:     rm.csrfService,
-		RouteSettings:   rm.routeSettings,
-		SiteSettings:    rm.siteSettings,
-		Actions:         rm.actions,
-		CacheMiddleware: rm.cacheMiddleware,
-		AuthGuardConfig: rm.authGuardConfig,
-		CaptchaService:  rm.captchaService,
+		Router:            newAppRouter,
+		Deps:              rm.deps,
+		Store:             store,
+		CSRFService:       rm.csrfService,
+		RouteSettings:     rm.routeSettings,
+		SiteSettings:      rm.siteSettings,
+		Actions:           rm.actions,
+		CacheMiddleware:   rm.cacheMiddleware,
+		AuthGuardConfig:   rm.authGuardConfig,
+		CaptchaService:    rm.captchaService,
+		SpamDetectService: rm.spamdetectService,
 	})
 
 	for _, provider := range rm.routeProviders {

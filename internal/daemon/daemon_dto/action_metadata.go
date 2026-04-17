@@ -155,19 +155,33 @@ type RequestMetadata struct {
 	// CSRFToken is the ephemeral CSRF token if provided.
 	CSRFToken *string
 
+	// CaptchaScore is the normalised captcha confidence score, where 0.0 means
+	// likely bot and 1.0 means likely human. Nil when captcha is not configured
+	// or the provider does not support scoring.
+	CaptchaScore *float64
+
+	// SpamScore is the composite spam score (0.0 = clean, 1.0 = definite
+	// spam). Nil when spam detection is not configured or the action does
+	// not implement SpamProtected.
+	SpamScore *float64
+
+	// SpamFieldScores maps form field keys to their individual spam scores.
+	// Nil when spam detection is not configured or all fields scored zero.
+	SpamFieldScores map[string]float64
+
 	// Method is the HTTP method (GET, POST, etc.).
 	Method string
 
 	// Path is the request URL path.
 	Path string
 
-	// CaptchaScore is the normalised captcha confidence score, where 0.0 means
-	// likely bot and 1.0 means likely human. Nil when captcha is not configured
-	// or the provider does not support scoring.
-	CaptchaScore *float64
-
 	// RemoteAddr is the client's remote address.
 	RemoteAddr string
+
+	// SpamReasons lists human-readable reasons from detectors that flagged
+	// the submission. Nil when spam detection is not configured or no
+	// reasons were generated.
+	SpamReasons []string
 }
 
 // Session contains session data for the current request.
