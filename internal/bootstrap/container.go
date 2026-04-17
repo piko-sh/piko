@@ -45,6 +45,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/capabilities"
 	"piko.sh/piko/internal/captcha/captcha_domain"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/component/component_adapters"
 	"piko.sh/piko/internal/component/component_domain"
@@ -186,6 +187,9 @@ type Container struct {
 	// captchaErr holds any error from creating the captcha service.
 	captchaErr error
 
+	// spamdetectErr holds any error from creating the spam detection service.
+	spamdetectErr error
+
 	// cacheErr holds any error that occurred when setting up the cache service.
 	cacheErr error
 
@@ -270,6 +274,9 @@ type Container struct {
 
 	// captchaService handles captcha verification; nil means not yet created.
 	captchaService captcha_domain.CaptchaServicePort
+
+	// spamdetectService handles spam detection; nil means not yet created.
+	spamdetectService spamdetect_domain.SpamDetectServicePort
 
 	// collectionService handles collection operations.
 	collectionService collection_domain.CollectionService
@@ -569,6 +576,13 @@ type Container struct {
 	// captchaProviders maps provider names to their captcha handlers.
 	captchaProviders map[string]captcha_domain.CaptchaProvider
 
+	// spamdetectFeedbackStore holds a deferred feedback store applied when
+	// the spam detection service is lazily created.
+	spamdetectFeedbackStore spamdetect_domain.FeedbackStore
+
+	// spamdetectDetectors maps detector names to their spam detection handlers.
+	spamdetectDetectors map[string]spamdetect_domain.Detector
+
 	// notificationProviders maps provider names to their notification handlers.
 	notificationProviders map[string]notification_domain.NotificationProviderPort
 
@@ -835,6 +849,9 @@ type Container struct {
 
 	// captchaOnce guards single initialisation of the captcha service.
 	captchaOnce sync.Once
+
+	// spamdetectOnce guards single initialisation of the spam detection service.
+	spamdetectOnce sync.Once
 
 	// validatorOnce guards single initialisation of the validator.
 	validatorOnce sync.Once

@@ -39,6 +39,7 @@ import (
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/config"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
 	"piko.sh/piko/internal/logger/logger_domain"
@@ -100,6 +101,9 @@ type MountRoutesConfig struct {
 
 	// CaptchaService verifies captcha tokens. Nil when captcha is disabled.
 	CaptchaService captcha_domain.CaptchaServicePort
+
+	// SpamDetectService analyses form content for spam. Nil when disabled.
+	SpamDetectService spamdetect_domain.SpamDetectServicePort
 
 	// SiteSettings holds the website settings used by route handlers.
 	SiteSettings *config.WebsiteConfig
@@ -1236,7 +1240,12 @@ func mountActionRoutes(cfg *MountRoutesConfig) {
 		maxBodyBytes = cfg.RouteSettings.ActionMaxBodyBytes
 	}
 
-	handler := NewActionHandler(cfg.CSRFService, maxBodyBytes, cfg.RateLimitService, cfg.RateLimitConfig, cfg.RouteSettings.CSRFSecFetchSiteEnforcement, cfg.ActionResponseCache, cfg.CaptchaService)
+	handler := NewActionHandler(
+		cfg.CSRFService, maxBodyBytes, cfg.RateLimitService,
+		cfg.RateLimitConfig, cfg.RouteSettings.CSRFSecFetchSiteEnforcement,
+		cfg.ActionResponseCache, cfg.CaptchaService,
+	)
+	handler.spamdetectService = cfg.SpamDetectService
 	if cfg.RouteSettings.DefaultMaxSSEDurationSeconds > 0 {
 		handler.defaultMaxSSEDuration = time.Duration(cfg.RouteSettings.DefaultMaxSSEDurationSeconds) * time.Second
 	}

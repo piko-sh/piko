@@ -36,6 +36,7 @@ import (
 	"piko.sh/piko/internal/annotator/annotator_dto"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_adapters"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/coordinator/coordinator_domain"
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
@@ -91,6 +92,9 @@ type interpretedDaemonBuilder struct {
 
 	// captchaService verifies captcha tokens; nil when captcha is disabled.
 	captchaService captcha_domain.CaptchaServicePort
+
+	// spamdetectService analyses form content for spam; nil when disabled.
+	spamdetectService spamdetect_domain.SpamDetectServicePort
 
 	// generatorService provides content generation capabilities.
 	generatorService generator_domain.GeneratorService
@@ -316,6 +320,13 @@ func (b *interpretedDaemonBuilder) resolveRenderingServices() {
 			logger_domain.Error(captchaErr))
 	}
 	b.captchaService = captchaService
+	spamdetectService, spamdetectErr := b.c.GetSpamDetectService()
+	if spamdetectErr != nil {
+		_, sdl := logger_domain.From(b.c.GetAppContext(), log)
+		sdl.Warn("Spam detection service unavailable; spam-protected actions will skip detection",
+			logger_domain.Error(spamdetectErr))
+	}
+	b.spamdetectService = spamdetectService
 }
 
 // resolveResolverService sets up the resolver service for the daemon builder.
@@ -561,16 +572,17 @@ func (b *interpretedDaemonBuilder) buildRouter(ctx context.Context) {
 			Templater: b.templaterService,
 			Validator: b.c.GetValidator(),
 		},
-		CSRFService:      b.csrfService,
-		SiteSettings:     &b.deps.ConfigProvider.WebsiteConfig,
-		Actions:          b.c.GetActionRegistry(),
-		CacheMiddleware:  nil,
-		RegistryService:  b.registryService,
-		VariantGenerator: b.variantGenerator,
-		RouteProviders:   nil,
-		AppRouter:        b.deps.AppRouter,
-		AuthGuardConfig:  b.c.authGuardConfig,
-		CaptchaService:   b.captchaService,
+		CSRFService:       b.csrfService,
+		SiteSettings:      &b.deps.ConfigProvider.WebsiteConfig,
+		Actions:           b.c.GetActionRegistry(),
+		CacheMiddleware:   nil,
+		RegistryService:   b.registryService,
+		VariantGenerator:  b.variantGenerator,
+		RouteProviders:    nil,
+		AppRouter:         b.deps.AppRouter,
+		AuthGuardConfig:   b.c.authGuardConfig,
+		CaptchaService:    b.captchaService,
+		SpamDetectService: b.spamdetectService,
 	})
 
 	if closer, ok := b.routerManager.(interface{ Close() }); ok {

@@ -22,6 +22,7 @@ import (
 	"piko.sh/piko/internal/daemon/daemon_adapters"
 	"piko.sh/piko/internal/daemon/daemon_domain"
 	"piko.sh/piko/internal/daemon/daemon_dto"
+	"piko.sh/piko/internal/spamdetect/spamdetect_dto"
 	"piko.sh/piko/internal/templater/templater_dto"
 )
 
@@ -180,6 +181,24 @@ type CaptchaProtected = daemon_domain.CaptchaProtected
 
 // CaptchaConfig defines captcha verification configuration.
 type CaptchaConfig = daemon_domain.CaptchaConfig
+
+// SpamProtected is an interface for requiring spam detection before action
+// execution. Actions implement SpamSchema() to declare which fields should
+// be checked and with which signals.
+type SpamProtected = daemon_domain.SpamProtected
+
+// SpamConfigurable is optionally implemented alongside SpamProtected to
+// override per-action spam detection settings.
+type SpamConfigurable = daemon_domain.SpamConfigurable
+
+// SpamConfig defines per-action spam detection behaviour.
+type SpamConfig = daemon_domain.SpamConfig
+
+// SpamSchema describes the spam-checkable fields of a form.
+type SpamSchema = spamdetect_dto.Schema
+
+// SpamSignal identifies a category of spam detection.
+type SpamSignal = spamdetect_dto.Signal
 
 // RateLimitable is an interface for configuring rate limiting.
 type RateLimitable = daemon_domain.RateLimitable

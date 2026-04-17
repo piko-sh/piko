@@ -69,6 +69,7 @@ var serviceProbes = []probeRegistration{
 	{name: "LLMService", getter: func(c *Container) (any, error) { return c.GetLLMService() }},
 	{name: "DatabaseService", getter: func(c *Container) (any, error) { return c.GetDatabaseService() }},
 	{name: "CaptchaService", getter: func(c *Container) (any, error) { return c.GetCaptchaService() }},
+	{name: "SpamDetectService", getter: func(c *Container) (any, error) { return c.GetSpamDetectService() }},
 }
 
 // createHealthProbeService creates and sets up the health probe service with

@@ -44,6 +44,7 @@ import (
 	"piko.sh/piko/internal/registry/registry_dto"
 	"piko.sh/piko/internal/captcha/captcha_domain"
 	"piko.sh/piko/internal/captcha/captcha_dto"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/security/security_domain"
 	"piko.sh/piko/internal/security/security_dto"
@@ -137,6 +138,9 @@ type routerOperation struct {
 	// captchaService verifies captcha tokens; nil when captcha is disabled.
 	captchaService captcha_domain.CaptchaServicePort
 
+	// spamdetectService analyses form content for spam; nil when disabled.
+	spamdetectService spamdetect_domain.SpamDetectServicePort
+
 	// rateLimitService controls request rate limits for router middleware.
 	rateLimitService security_domain.RateLimitService
 
@@ -223,6 +227,13 @@ func (op *routerOperation) resolveServices(ctx context.Context) error {
 			logger_domain.Error(captchaErr))
 	}
 	op.captchaService = captchaService
+
+	spamdetectService, spamdetectErr := op.container.GetSpamDetectService()
+	if spamdetectErr != nil {
+		l.Warn("Spam detection service unavailable; spam-protected actions will skip detection",
+			logger_domain.Error(spamdetectErr))
+	}
+	op.spamdetectService = spamdetectService
 
 	op.rateLimitService, err = op.container.GetRateLimitService()
 	if err != nil {
@@ -343,6 +354,7 @@ func (op *routerOperation) mountApplicationRoutes(ctx context.Context, cacheMidd
 		AuthGuardConfig:     op.container.authGuardConfig,
 		ActionResponseCache: actionResponseCache,
 		CaptchaService:      op.captchaService,
+		SpamDetectService:   op.spamdetectService,
 	})
 	l.Internal("All dynamic application routes from manifest have been mounted.")
 }

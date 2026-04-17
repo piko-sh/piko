@@ -167,6 +167,20 @@ type RequestMetadata struct {
 	// or the provider does not support scoring.
 	CaptchaScore *float64
 
+	// SpamScore is the composite spam score (0.0 = clean, 1.0 = definite
+	// spam). Nil when spam detection is not configured or the action does
+	// not implement SpamProtected.
+	SpamScore *float64
+
+	// SpamReasons lists human-readable reasons from detectors that flagged
+	// the submission. Nil when spam detection is not configured or no
+	// reasons were generated.
+	SpamReasons []string
+
+	// SpamFieldScores maps form field keys to their individual spam scores.
+	// Nil when spam detection is not configured or all fields scored zero.
+	SpamFieldScores map[string]float64
+
 	// RemoteAddr is the client's remote address.
 	RemoteAddr string
 }

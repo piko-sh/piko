@@ -329,6 +329,19 @@ type SecurityConfig struct {
 	// providers like reCAPTCHA v3. Default 0.5.
 	CaptchaScoreThreshold *float64 `json:"captchaScoreThreshold" yaml:"captchaScoreThreshold" default:"0.5" env:"PIKO_CAPTCHA_SCORE_THRESHOLD" flag:"captchaScoreThreshold" usage:"Minimum captcha score threshold (0.0-1.0)." validate:"omitempty,gte=0,lte=1"`
 
+	// SpamDetectEnabled enables the built-in spam detection rules engine.
+	// When true and no providers are registered via options, the built-in
+	// rules engine is automatically configured.
+	SpamDetectEnabled *bool `json:"spamDetectEnabled" yaml:"spamDetectEnabled" default:"false" env:"PIKO_SPAM_DETECT_ENABLED" flag:"spamDetectEnabled" usage:"Enable built-in spam detection."`
+
+	// SpamDetectScoreThreshold is the composite score above which
+	// submissions are rejected. Default 0.7.
+	SpamDetectScoreThreshold *float64 `json:"spamDetectScoreThreshold" yaml:"spamDetectScoreThreshold" default:"0.7" env:"PIKO_SPAM_DETECT_SCORE_THRESHOLD" flag:"spamDetectScoreThreshold" usage:"Spam detection score threshold (0.0-1.0)." validate:"omitempty,gte=0,lte=1"`
+
+	// SpamDetectBlocklistPatterns is a list of regex patterns for the
+	// built-in blocklist rule.
+	SpamDetectBlocklistPatterns []string `json:"spamDetectBlocklistPatterns" yaml:"spamDetectBlocklistPatterns" env:"PIKO_SPAM_DETECT_BLOCKLIST"`
+
 	// RateLimit sets up request rate limiting with trusted proxy support. Disabled
 	// by default to stop users from rate-limiting their own reverse proxy.
 	RateLimit RateLimitConfig `json:"rateLimit" yaml:"rateLimit"`

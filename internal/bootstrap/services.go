@@ -28,6 +28,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/captcha/captcha_domain"
+	"piko.sh/piko/internal/spamdetect/spamdetect_domain"
 	"piko.sh/piko/internal/collection/collection_domain"
 	"piko.sh/piko/internal/crypto/crypto_domain"
 	"piko.sh/piko/internal/email/email_domain"
@@ -141,6 +142,21 @@ func GetCaptchaService() (captcha_domain.CaptchaServicePort, error) {
 		return nil, fmt.Errorf("get captcha service: %w", err)
 	}
 	return container.GetCaptchaService()
+}
+
+// GetSpamDetectService returns the global spam detection service instance.
+// It is safe to call from multiple goroutines.
+//
+// Returns spamdetect_domain.SpamDetectServicePort which is the configured
+// spam detection service.
+// Returns error when the framework is not initialised or the service
+// cannot be created.
+func GetSpamDetectService() (spamdetect_domain.SpamDetectServicePort, error) {
+	container, err := getContainer()
+	if err != nil {
+		return nil, fmt.Errorf("get spam detect service: %w", err)
+	}
+	return container.GetSpamDetectService()
 }
 
 // GetLLMService returns the global LLM service instance.
