@@ -9,6 +9,7 @@ import (
 {{- end }}
 	"piko.sh/piko/wdk/logger"
 	imaging "piko.sh/piko/wdk/media/image_provider_imaging"
+	automemlimit "piko.sh/piko/wdk/system/system_memlimit_automemlimit"
 {{- if .EnableValidator }}
 	playground "piko.sh/piko/wdk/validation/validation_provider_playground"
 {{- end }}
@@ -36,6 +37,7 @@ func main() {
 		piko.WithJSONProvider(sonicjson.New()),
 {{- end }}
 		piko.WithCSSReset(piko.WithCSSResetComplete()),
+		piko.WithAutoMemoryLimit(automemlimit.Provider()),
 		piko.WithImageProvider("imaging", imaging.NewProvider(imaging.Config{})),
 		piko.WithDevWidget(),
 		piko.WithDevHotreload(),

@@ -744,6 +744,25 @@ func WithProfilingRollingTraceMaxBytes(maxBytes uint64) ProfilingOption {
 	}
 }
 
+// WithAutoMemoryLimit configures the Go runtime to set GOMEMLIMIT based on
+// the container's cgroup memory limit. 
+//
+// This prevents OOM kills in containerised deployments by making the 
+// garbage collector aware of the memory ceiling.
+//
+// The provider function is called during bootstrap and should return the
+// limit that was applied (in bytes), or an error if detection failed.
+//
+// Takes provider (func() (int64, error)) which detects and applies the
+// memory limit.
+//
+// Returns Option which configures automatic memory limit detection.
+func WithAutoMemoryLimit(provider func() (int64, error)) Option {
+	return func(c *Container) {
+		c.autoMemoryLimitFunc = provider
+	}
+}
+
 // WithProfiling enables the pprof HTTP debug server. The server exposes
 // profiling endpoints at /_piko/debug/pprof/ on a dedicated port (default 6060).
 //

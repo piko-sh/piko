@@ -641,6 +641,10 @@ type Container struct {
 	// files. nil means use the constant default (true).
 	compilerDebugLogsEnabled *bool
 
+	// autoMemoryLimitFunc is called during bootstrap to configure GOMEMLIMIT
+	// based on the container's cgroup memory limit. Nil means disabled.
+	autoMemoryLimitFunc func() (int64, error)
+
 	// authGuardConfig controls route-level authentication enforcement.
 	// Nil means no route protection middleware is installed.
 	authGuardConfig *daemon_dto.AuthGuardConfig
@@ -1311,6 +1315,27 @@ func (c *Container) StartMonitoringService() {
 		"Monitoring gRPC service started",
 		logger_domain.String("address", monitoringService.Address()),
 	)
+}
+
+// applyAutoMemoryLimit calls the configured auto memory limit function to
+// set GOMEMLIMIT based on the container's cgroup memory limit.
+//
+// This is a no-op when no auto memory limit provider is configured.
+func (c *Container) applyAutoMemoryLimit(ctx context.Context) {
+	if c.autoMemoryLimitFunc == nil {
+		return
+	}
+
+	_, l := logger_domain.From(ctx, log)
+
+	limit, err := c.autoMemoryLimitFunc()
+	if err != nil {
+		l.Warn("Auto memory limit detection skipped", logger_domain.Error(err))
+		return
+	}
+
+	l.Info("Auto memory limit applied",
+		logger_domain.String("GOMEMLIMIT", fmt.Sprintf("%d MiB", limit/(1024*1024))))
 }
 
 // StartProfilingServer starts the pprof HTTP server if profiling was enabled

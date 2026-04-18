@@ -135,6 +135,7 @@ use (
 	./wdk/storage/storage_provider_s3
 	./wdk/storage/storage_transformer_gzip
 	./wdk/storage/storage_transformer_zstd
+	./wdk/system/system_memlimit_automemlimit
 	./wdk/validation/validation_provider_playground
 )
 
@@ -273,5 +274,6 @@ replace (
 	piko.sh/piko/wdk/storage/storage_provider_s3 v0.0.0 => ./wdk/storage/storage_provider_s3
 	piko.sh/piko/wdk/storage/storage_transformer_gzip v0.0.0 => ./wdk/storage/storage_transformer_gzip
 	piko.sh/piko/wdk/storage/storage_transformer_zstd v0.0.0 => ./wdk/storage/storage_transformer_zstd
+	piko.sh/piko/wdk/system/system_memlimit_automemlimit v0.0.0 => ./wdk/system/system_memlimit_automemlimit
 	piko.sh/piko/wdk/validation/validation_provider_playground v0.0.0 => ./wdk/validation/validation_provider_playground
 )

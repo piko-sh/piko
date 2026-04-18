@@ -97,6 +97,8 @@ func ConfigAndContainer(ctx context.Context, deps *Dependencies, opts ...Option)
 
 	container := NewContainer(deps.ConfigProvider, opts...)
 
+	container.applyAutoMemoryLimit(ctx)
+
 	l.Internal("Validating provider configuration...")
 	if err := container.ValidateProviderConfiguration(); err != nil {
 		l.Error("Provider configuration validation failed", logger_domain.Error(err))
