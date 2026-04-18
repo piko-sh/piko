@@ -7,7 +7,7 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.15
 )
 
 require (

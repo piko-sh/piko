@@ -7,7 +7,7 @@ require (
 	github.com/getsentry/sentry-go/otel v0.44.1
 	github.com/getsentry/sentry-go/slog v0.44.1
 	go.opentelemetry.io/otel v1.42.0
-	piko.sh/piko v0.0.0
+	piko.sh/piko v0.0.0-alpha.15
 )
 
 require (
