@@ -570,6 +570,11 @@ func WithMonitoring(opts ...MonitoringOption) Option {
 
 		c.SetMonitoringService(service)
 
+		if monitoringConfig.ProfilingEnabled {
+			controller := profiler.NewController()
+			service.SetProfilingController(controller)
+		}
+
 		_, l := logger_domain.From(c.GetAppContext(), log)
 		l.Internal("Monitoring service enabled",
 			logger_domain.String("address", monitoringConfig.BindAddress+monitoringConfig.Address))
@@ -614,6 +619,18 @@ func WithMonitoringTransport(factory monitoring_domain.TransportFactory) Monitor
 func WithMonitoringOtelFactories(factories monitoring_domain.ServiceFactories) MonitoringOption {
 	return func(c *monitoring_domain.ServiceConfig) {
 		c.Factories = &factories
+	}
+}
+
+// WithMonitoringProfiling enables the remote profiling gRPC service, allowing
+// operators to toggle pprof on and off at runtime via the monitoring endpoint.
+// Without this option, the ProfilingService is not registered and profiling
+// cannot be controlled remotely.
+//
+// Returns MonitoringOption which enables the profiling service.
+func WithMonitoringProfiling() MonitoringOption {
+	return func(c *monitoring_domain.ServiceConfig) {
+		c.ProfilingEnabled = true
 	}
 }
 
@@ -724,6 +741,25 @@ func WithProfilingRollingTraceMaxBytes(maxBytes uint64) ProfilingOption {
 	return func(c *profiler.Config) {
 		c.EnableRollingTrace = true
 		c.RollingTraceMaxBytes = maxBytes
+	}
+}
+
+// WithAutoMemoryLimit configures the Go runtime to set GOMEMLIMIT based on
+// the container's cgroup memory limit. 
+//
+// This prevents OOM kills in containerised deployments by making the 
+// garbage collector aware of the memory ceiling.
+//
+// The provider function is called during bootstrap and should return the
+// limit that was applied (in bytes), or an error if detection failed.
+//
+// Takes provider (func() (int64, error)) which detects and applies the
+// memory limit.
+//
+// Returns Option which configures automatic memory limit detection.
+func WithAutoMemoryLimit(provider func() (int64, error)) Option {
+	return func(c *Container) {
+		c.autoMemoryLimitFunc = provider
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"piko.sh/piko"
 	"piko.sh/piko/wdk/logger"
+	automemlimit "piko.sh/piko/wdk/system/system_memlimit_automemlimit"
 )
 
 func main() {
@@ -18,6 +19,7 @@ func main() {
 
 	ssr := piko.New(
 		piko.WithCSSReset(piko.WithCSSResetComplete()),
+		piko.WithAutoMemoryLimit(automemlimit.Provider()),
 	)
 
 	if err := ssr.Generate(context.Background(), command); err != nil {

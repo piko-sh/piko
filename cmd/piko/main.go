@@ -54,7 +54,7 @@ func main() {
 			os.Exit(cli.RunBytecode(os.Args[2:]))
 		case "profile":
 			os.Exit(cli.RunProfile(os.Args[2:]))
-		case "get", "describe", "info", "watch", "diagnostics", "tui":
+		case "get", "describe", "info", "watch", "diagnostics", "tui", "profiling":
 			os.Exit(cli.RunCommand(subcommand, os.Args[2:]))
 		case "version", "--version":
 			fmt.Printf("piko %s\n", Version)
@@ -92,6 +92,7 @@ Monitoring Commands:
   describe      Show detailed information (health, trace, task, workflow, artefact, dlq, resources, ratelimiter)
   info          Display system information (system, build, runtime, memory, gc, process)
   watch         Stream resource updates in real time
+  profiling     Control on-demand runtime profiling (enable, disable, status, capture)
   diagnostics   Test connectivity to the monitoring server
   tui           Launch the interactive terminal UI
 
@@ -133,6 +134,7 @@ Monitoring Commands:
   describe      Show detailed information (health, trace, task, workflow, artefact, dlq, resources, ratelimiter)
   info          Display system information (system, build, runtime, memory, gc, process) (CPU, memory, goroutines, GC)
   watch         Stream resource updates in real time
+  profiling     Control on-demand runtime profiling (enable, disable, status, capture)
   diagnostics   Test connectivity to the monitoring server
   tui           Launch the interactive terminal UI
 
@@ -187,6 +189,12 @@ func printUsageExamples() {
 
   piko profile http://localhost:8080/      # Profile a live server under load
   piko profile http://localhost:8080/ --focus "render"  # Focus on render functions
+
+  piko profiling enable 30m               # Enable on-demand profiling for 30 minutes
+  piko profiling status                   # Check profiling status
+  piko profiling capture heap             # Capture a heap profile
+  piko profiling capture cpu 30s          # Capture CPU profile for 30 seconds
+  piko profiling disable                  # Disable profiling
 
 For subcommand-specific help:
   piko fmt -h

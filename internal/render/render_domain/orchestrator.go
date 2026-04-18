@@ -27,6 +27,7 @@ import (
 	"io"
 	"net/http"
 	"sync"
+	"syscall"
 	"time"
 
 	"piko.sh/piko/internal/json"
@@ -502,7 +503,11 @@ func (ro *RenderOrchestrator) RenderAST(
 	defer releaseBufferedWriter(bufWriter)
 	defer func() {
 		if flushErr := bufWriter.Flush(); flushErr != nil {
-			l.Warn("flushing buffered writer during render", logger_domain.Error(flushErr))
+			if isClientDisconnectError(flushErr) || ctx.Err() != nil {
+				l.Trace("flushing buffered writer during render (client disconnected)", logger_domain.Error(flushErr))
+			} else {
+				l.Warn("flushing buffered writer during render", logger_domain.Error(flushErr))
+			}
 		}
 	}()
 	qw := qt.AcquireWriter(bufWriter)
@@ -1422,6 +1427,21 @@ func generateCSRFOnce(rctx *renderContext, errMessage string) {
 
 		rctx.csrfPair = &pair
 	})
+}
+
+// isClientDisconnectError reports whether an error was caused by the client
+// disconnecting before the response was fully written. These errors are
+// expected during normal operation and do not indicate a server fault.
+//
+// Takes err (error) which is the error to check.
+//
+// Returns bool which is true if the error wraps EPIPE or ECONNRESET.
+func isClientDisconnectError(err error) bool {
+	var errno syscall.Errno
+	if errors.As(err, &errno) {
+		return errno == syscall.EPIPE || errno == syscall.ECONNRESET
+	}
+	return false
 }
 
 // filterValidJSON returns only the entries from input that are syntactically

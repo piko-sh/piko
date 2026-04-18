@@ -72,6 +72,11 @@ type ServiceConfig struct {
 	// AutoNextPort enables automatic port selection when the configured port
 	// is already in use.
 	AutoNextPort bool
+
+	// ProfilingEnabled enables the remote profiling gRPC service. When false
+	// (the default), the ProfilingService is not registered and profiling
+	// cannot be controlled remotely.
+	ProfilingEnabled bool
 }
 
 // DefaultMetricsCollectionInterval is the default interval for collecting metrics.
@@ -115,6 +120,10 @@ type Service struct {
 
 	// renderCacheStats provides render cache statistics; nil when not available.
 	renderCacheStats RenderCacheStatsProvider
+
+	// profilingController manages on-demand pprof profiling; nil when
+	// remote profiling is not enabled.
+	profilingController ProfilingController
 
 	// store provides telemetry data for the server dashboard.
 	store *TelemetryStore
@@ -250,6 +259,19 @@ func (s *Service) SetRenderCacheStatsProvider(provider RenderCacheStatsProvider)
 	s.renderCacheStats = provider
 }
 
+// SetProfilingController sets the profiling controller for remote on-demand
+// profiling. Must be called before Start() for the profiling gRPC service
+// to be available.
+//
+// Takes controller (ProfilingController) which may be nil.
+//
+// Safe for concurrent use.
+func (s *Service) SetProfilingController(controller ProfilingController) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.profilingController = controller
+}
+
 // Start begins background collection and, when a transport factory is
 // configured, the transport server. This method blocks until the context is
 // cancelled or an error occurs.
@@ -279,6 +301,7 @@ func (s *Service) Start(ctx context.Context) error {
 		HealthProbeService:       s.healthProbeService,
 		ProviderInfoInspector:    s.providerInfoInspector,
 		RenderCacheStatsProvider: s.renderCacheStats,
+		ProfilingController:      s.profilingController,
 	}
 	s.mu.RUnlock()
 
@@ -319,10 +342,17 @@ func (s *Service) Stop(ctx context.Context) {
 
 	s.mu.RLock()
 	transport := s.transport
+	profilingController := s.profilingController
 	s.mu.RUnlock()
 
 	if transport != nil {
 		transport.Stop(ctx)
+	}
+
+	if profilingController != nil {
+		if err := profilingController.Close(ctx); err != nil {
+			l.Error("Failed to close profiling controller", logger_domain.Error(err))
+		}
 	}
 	s.systemCollector.Stop()
 	s.resourceCollector.Stop()

@@ -44,7 +44,7 @@ type rateLimitServiceAdapter struct {
 type clientIPExtractorFunc func(*http.Request) string
 
 var (
-	_ captcha_domain.RateLimiter       = rateLimitServiceAdapter{}
+	_ captcha_domain.RateLimiter = rateLimitServiceAdapter{}
 
 	_ captcha_domain.ClientIPExtractor = clientIPExtractorFunc(nil)
 )

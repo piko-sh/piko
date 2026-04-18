@@ -1453,3 +1453,223 @@ var ProviderInfoService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "monitoring.proto",
 }
+
+const (
+	ProfilingService_EnableProfiling_FullMethodName    = "/piko.monitoring.v1.ProfilingService/EnableProfiling"
+	ProfilingService_DisableProfiling_FullMethodName   = "/piko.monitoring.v1.ProfilingService/DisableProfiling"
+	ProfilingService_GetProfilingStatus_FullMethodName = "/piko.monitoring.v1.ProfilingService/GetProfilingStatus"
+	ProfilingService_CaptureProfile_FullMethodName     = "/piko.monitoring.v1.ProfilingService/CaptureProfile"
+)
+
+// ProfilingServiceClient is the client API for ProfilingService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ProfilingServiceClient interface {
+	EnableProfiling(ctx context.Context, in *EnableProfilingRequest, opts ...grpc.CallOption) (*EnableProfilingResponse, error)
+	DisableProfiling(ctx context.Context, in *DisableProfilingRequest, opts ...grpc.CallOption) (*DisableProfilingResponse, error)
+	GetProfilingStatus(ctx context.Context, in *GetProfilingStatusRequest, opts ...grpc.CallOption) (*GetProfilingStatusResponse, error)
+	CaptureProfile(ctx context.Context, in *CaptureProfileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CaptureProfileChunk], error)
+}
+
+type profilingServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewProfilingServiceClient(cc grpc.ClientConnInterface) ProfilingServiceClient {
+	return &profilingServiceClient{cc}
+}
+
+func (c *profilingServiceClient) EnableProfiling(ctx context.Context, in *EnableProfilingRequest, opts ...grpc.CallOption) (*EnableProfilingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnableProfilingResponse)
+	err := c.cc.Invoke(ctx, ProfilingService_EnableProfiling_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *profilingServiceClient) DisableProfiling(ctx context.Context, in *DisableProfilingRequest, opts ...grpc.CallOption) (*DisableProfilingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DisableProfilingResponse)
+	err := c.cc.Invoke(ctx, ProfilingService_DisableProfiling_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *profilingServiceClient) GetProfilingStatus(ctx context.Context, in *GetProfilingStatusRequest, opts ...grpc.CallOption) (*GetProfilingStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetProfilingStatusResponse)
+	err := c.cc.Invoke(ctx, ProfilingService_GetProfilingStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *profilingServiceClient) CaptureProfile(ctx context.Context, in *CaptureProfileRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CaptureProfileChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ProfilingService_ServiceDesc.Streams[0], ProfilingService_CaptureProfile_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[CaptureProfileRequest, CaptureProfileChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ProfilingService_CaptureProfileClient = grpc.ServerStreamingClient[CaptureProfileChunk]
+
+// ProfilingServiceServer is the server API for ProfilingService service.
+// All implementations must embed UnimplementedProfilingServiceServer
+// for forward compatibility.
+type ProfilingServiceServer interface {
+	EnableProfiling(context.Context, *EnableProfilingRequest) (*EnableProfilingResponse, error)
+	DisableProfiling(context.Context, *DisableProfilingRequest) (*DisableProfilingResponse, error)
+	GetProfilingStatus(context.Context, *GetProfilingStatusRequest) (*GetProfilingStatusResponse, error)
+	CaptureProfile(*CaptureProfileRequest, grpc.ServerStreamingServer[CaptureProfileChunk]) error
+	mustEmbedUnimplementedProfilingServiceServer()
+}
+
+// UnimplementedProfilingServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedProfilingServiceServer struct{}
+
+func (UnimplementedProfilingServiceServer) EnableProfiling(context.Context, *EnableProfilingRequest) (*EnableProfilingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EnableProfiling not implemented")
+}
+func (UnimplementedProfilingServiceServer) DisableProfiling(context.Context, *DisableProfilingRequest) (*DisableProfilingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DisableProfiling not implemented")
+}
+func (UnimplementedProfilingServiceServer) GetProfilingStatus(context.Context, *GetProfilingStatusRequest) (*GetProfilingStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProfilingStatus not implemented")
+}
+func (UnimplementedProfilingServiceServer) CaptureProfile(*CaptureProfileRequest, grpc.ServerStreamingServer[CaptureProfileChunk]) error {
+	return status.Error(codes.Unimplemented, "method CaptureProfile not implemented")
+}
+func (UnimplementedProfilingServiceServer) mustEmbedUnimplementedProfilingServiceServer() {}
+func (UnimplementedProfilingServiceServer) testEmbeddedByValue()                          {}
+
+// UnsafeProfilingServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ProfilingServiceServer will
+// result in compilation errors.
+type UnsafeProfilingServiceServer interface {
+	mustEmbedUnimplementedProfilingServiceServer()
+}
+
+func RegisterProfilingServiceServer(s grpc.ServiceRegistrar, srv ProfilingServiceServer) {
+	// If the following call panics, it indicates UnimplementedProfilingServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ProfilingService_ServiceDesc, srv)
+}
+
+func _ProfilingService_EnableProfiling_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnableProfilingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfilingServiceServer).EnableProfiling(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfilingService_EnableProfiling_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfilingServiceServer).EnableProfiling(ctx, req.(*EnableProfilingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProfilingService_DisableProfiling_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DisableProfilingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfilingServiceServer).DisableProfiling(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfilingService_DisableProfiling_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfilingServiceServer).DisableProfiling(ctx, req.(*DisableProfilingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProfilingService_GetProfilingStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProfilingStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProfilingServiceServer).GetProfilingStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProfilingService_GetProfilingStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProfilingServiceServer).GetProfilingStatus(ctx, req.(*GetProfilingStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProfilingService_CaptureProfile_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(CaptureProfileRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ProfilingServiceServer).CaptureProfile(m, &grpc.GenericServerStream[CaptureProfileRequest, CaptureProfileChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ProfilingService_CaptureProfileServer = grpc.ServerStreamingServer[CaptureProfileChunk]
+
+// ProfilingService_ServiceDesc is the grpc.ServiceDesc for ProfilingService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ProfilingService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "piko.monitoring.v1.ProfilingService",
+	HandlerType: (*ProfilingServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "EnableProfiling",
+			Handler:    _ProfilingService_EnableProfiling_Handler,
+		},
+		{
+			MethodName: "DisableProfiling",
+			Handler:    _ProfilingService_DisableProfiling_Handler,
+		},
+		{
+			MethodName: "GetProfilingStatus",
+			Handler:    _ProfilingService_GetProfilingStatus_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "CaptureProfile",
+			Handler:       _ProfilingService_CaptureProfile_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "monitoring.proto",
+}

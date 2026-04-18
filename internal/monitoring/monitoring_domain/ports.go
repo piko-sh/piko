@@ -20,6 +20,7 @@ package monitoring_domain
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"time"
 
@@ -222,6 +223,10 @@ type MonitoringDeps struct {
 	// RenderCacheStatsProvider provides render cache statistics.
 	// May be nil if the render registry is not available.
 	RenderCacheStatsProvider RenderCacheStatsProvider
+
+	// ProfilingController manages on-demand pprof profiling.
+	// May be nil if remote profiling is not enabled.
+	ProfilingController ProfilingController
 }
 
 // HealthProbeService provides health check methods for liveness and readiness.
@@ -393,3 +398,105 @@ type SpanProcessorFactory func(store *TelemetryStore) SpanProcessor
 // the given store, letting adapters provide their own metrics collector
 // implementation.
 type MetricsCollectorFactory func(store *TelemetryStore, interval time.Duration) MetricsCollectorAdapter
+
+// ProfilingController manages on-demand pprof profiling for production
+// diagnostics. It controls the lifecycle of the pprof HTTP server and
+// Go runtime profiling rates, with mandatory auto-disable after a
+// configured duration.
+type ProfilingController interface {
+	// Enable starts the pprof HTTP server and sets Go runtime profiling
+	// rates. If already enabled, it extends the expiry deadline without
+	// restarting the server.
+	//
+	// Takes opts (ProfilingEnableOpts) which configures the profiling
+	// session duration, port, and sampling rates.
+	//
+	// Returns *ProfilingStatus with the current state after enabling.
+	// The AlreadyEnabled field is set when profiling was already active.
+	// Returns error when the server fails to start or the duration
+	// exceeds the maximum allowed.
+	Enable(ctx context.Context, opts ProfilingEnableOpts) (*ProfilingStatus, error)
+
+	// Disable stops the pprof HTTP server and resets Go runtime profiling
+	// rates to their pre-enable values.
+	//
+	// Returns bool which is true if profiling was previously enabled.
+	// Returns error when the server fails to shut down cleanly.
+	Disable(ctx context.Context) (bool, error)
+
+	// Close cancels any pending auto-disable timer and disables profiling.
+	// It is safe for use as a shutdown hook.
+	//
+	// Returns error when the shutdown fails.
+	Close(ctx context.Context) error
+
+	// Status returns the current profiling state including whether it is
+	// enabled, the port, time remaining, and available profile types.
+	//
+	// Returns *ProfilingStatus with the current state.
+	Status(ctx context.Context) *ProfilingStatus
+
+	// CaptureProfile captures a Go runtime profile and writes the raw
+	// pprof data to the provided writer. For duration-based profiles
+	// (cpu, trace), this blocks for the requested duration.
+	//
+	// Takes profileType (string) which identifies the profile to capture
+	// (heap, goroutine, allocs, cpu, trace, block, mutex).
+	// Takes durationSeconds (int) which sets the capture window for
+	// duration-based profiles; ignored for snapshot profiles.
+	// Takes w (io.Writer) which receives the raw profile data.
+	//
+	// Returns string which contains any warning message (e.g. when
+	// runtime rates are not configured for the requested profile type).
+	// Returns error when the profile type is unknown or capture fails.
+	CaptureProfile(ctx context.Context, profileType string, durationSeconds int, w io.Writer) (string, error)
+}
+
+// ProfilingEnableOpts configures a profiling session.
+type ProfilingEnableOpts struct {
+	// Duration is how long profiling remains enabled before auto-disabling.
+	Duration time.Duration
+
+	// Port is the pprof HTTP server port. Zero uses the default (6060).
+	Port int
+
+	// BlockProfileRate sets the Go runtime block profile rate. Zero uses
+	// the default production-safe rate.
+	BlockProfileRate int
+
+	// MutexProfileFraction sets the Go runtime mutex profile fraction.
+	// Zero uses the default production-safe fraction.
+	MutexProfileFraction int
+}
+
+// ProfilingStatus describes the current state of on-demand profiling.
+type ProfilingStatus struct {
+	// ExpiresAt is when profiling will auto-disable.
+	ExpiresAt time.Time
+
+	// PprofBaseURL is the full URL prefix for pprof endpoints.
+	PprofBaseURL string
+
+	// AvailableProfiles lists the profile types that can be captured.
+	AvailableProfiles []string
+
+	// Port is the port the pprof HTTP server listens on.
+	Port int
+
+	// BlockProfileRate is the current Go runtime block profile rate.
+	BlockProfileRate int
+
+	// MutexProfileFraction is the current Go runtime mutex profile fraction.
+	MutexProfileFraction int
+
+	// MemProfileRate is the current Go runtime memory profile rate.
+	MemProfileRate int
+
+	// Enabled is true when the pprof HTTP server is running.
+	Enabled bool
+
+	// AlreadyEnabled is true when profiling was already active before the
+	// current Enable call. This allows the transport layer to inform the
+	// caller that the session was extended rather than freshly started.
+	AlreadyEnabled bool
+}
