@@ -74,6 +74,11 @@ type monitoringConnection interface {
 	// Returns pb.ProviderInfoServiceClient which provides access to provider info.
 	ProviderInfoClient() pb.ProviderInfoServiceClient
 
+	// ProfilingClient returns the client for controlling remote profiling.
+	//
+	// Returns pb.ProfilingServiceClient which provides access to profiling operations.
+	ProfilingClient() pb.ProfilingServiceClient
+
 	// Close releases any resources held by the source.
 	//
 	// Returns error when the source cannot be closed cleanly.
@@ -129,6 +134,7 @@ var commands = map[string]*command{
 	"watch":       {name: "watch", usage: "piko watch <resource> [flags]", description: "Stream resource updates", needsConnection: true, longRunning: true, run: runWatch},
 	"diagnostics": {name: "diagnostics", usage: "piko diagnostics [flags]", description: "Test connectivity to monitoring server", needsConnection: false, run: runDiagnosticsCmd},
 	"tui":         {name: "tui", usage: "piko tui [flags]", description: "Launch the interactive terminal UI", needsConnection: false, longRunning: true, run: runTUICmd},
+	"profiling":   {name: "profiling", usage: "piko profiling <subcommand> [flags]", description: "Control runtime profiling", needsConnection: true, run: runProfiling},
 }
 
 // RunCommand dispatches a CLI subcommand using os.Stdout and os.Stderr.
@@ -235,6 +241,7 @@ Monitoring Commands:
   describe      Show detailed information (%s)
   info          Display system information (system, build, runtime, memory, gc, process)
   watch         Stream resource updates (%s)
+  profiling     Control on-demand runtime profiling (enable, disable, status, capture)
   diagnostics   Test connectivity to the monitoring server
   tui           Launch the interactive terminal UI
 

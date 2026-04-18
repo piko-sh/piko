@@ -61,5 +61,9 @@ func defaultServiceRegistrar() serviceRegistrar {
 		if deps.ProviderInfoInspector != nil {
 			pb.RegisterProviderInfoServiceServer(server, NewProviderInfoService(deps.ProviderInfoInspector))
 		}
+
+		if deps.ProfilingController != nil {
+			pb.RegisterProfilingServiceServer(server, NewProfilingService(deps.ProfilingController))
+		}
 	}
 }

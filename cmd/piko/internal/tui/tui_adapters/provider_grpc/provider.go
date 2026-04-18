@@ -90,6 +90,10 @@ type Connection struct {
 	// providerInfoClient provides access to the provider info service for
 	// querying registered providers across hexagons.
 	providerInfoClient pb.ProviderInfoServiceClient
+
+	// profilingClient provides access to the profiling service for
+	// controlling on-demand runtime profiling.
+	profilingClient pb.ProfilingServiceClient
 }
 
 // NewConnection creates a new gRPC connection to the monitoring server.
@@ -143,6 +147,7 @@ func NewConnection(address string, opts ...Option) (*Connection, error) {
 	dispatcherClient := pb.NewDispatcherInspectorServiceClient(conn)
 	rateLimiterClient := pb.NewRateLimiterInspectorServiceClient(conn)
 	providerInfoClient := pb.NewProviderInfoServiceClient(conn)
+	profilingClient := pb.NewProfilingServiceClient(conn)
 
 	if _, err := healthClient.GetHealth(ctx, &pb.GetHealthRequest{}); err != nil {
 		_ = conn.Close()
@@ -158,6 +163,7 @@ func NewConnection(address string, opts ...Option) (*Connection, error) {
 		dispatcherClient:   dispatcherClient,
 		rateLimiterClient:  rateLimiterClient,
 		providerInfoClient: providerInfoClient,
+		profilingClient:    profilingClient,
 	}, nil
 }
 
@@ -207,6 +213,14 @@ func (c *Connection) RateLimiterClient() pb.RateLimiterInspectorServiceClient {
 // provider info inspection API.
 func (c *Connection) ProviderInfoClient() pb.ProviderInfoServiceClient {
 	return c.providerInfoClient
+}
+
+// ProfilingClient returns the gRPC profiling service client.
+//
+// Returns pb.ProfilingServiceClient which provides access to the
+// profiling control API.
+func (c *Connection) ProfilingClient() pb.ProfilingServiceClient {
+	return c.profilingClient
 }
 
 // Close closes the gRPC connection.

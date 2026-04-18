@@ -25,8 +25,10 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	grpcstatus "google.golang.org/grpc/status"
 	"piko.sh/piko/cmd/piko/internal/tui/tui_dto"
 	pb "piko.sh/piko/wdk/monitoring/monitoring_api/gen"
 )
@@ -44,8 +46,15 @@ const (
 	// serviceRegistry is the name of the registry inspection service.
 	serviceRegistry = "RegistryInspectorService"
 
+	// serviceProfiling is the name of the profiling service.
+	serviceProfiling = "ProfilingService"
+
 	// resultFailed is the status text shown when a diagnostic check fails.
 	resultFailed = "failed"
+
+	// resultSkipped is the status text shown when an opt-in service is not
+	// registered on the server.
+	resultSkipped = "not registered (opt-in)"
 
 	// diagnosticsTimeout is the time allowed for diagnostics checks to complete.
 	diagnosticsTimeout = 15 * time.Second
@@ -72,6 +81,10 @@ type DiagnosticsResult struct {
 	// Failed is the count of tests that did not pass.
 	Failed int
 
+	// Skipped is the number of tests skipped because the service is not
+	// registered (opt-in services).
+	Skipped int
+
 	// Connected indicates whether a connection to the server was established.
 	Connected bool
 }
@@ -92,6 +105,10 @@ type ServiceResult struct {
 
 	// OK indicates whether the service check passed.
 	OK bool
+
+	// IsSkipped indicates the check was skipped because the service is not
+	// registered on the server (opt-in services).
+	IsSkipped bool
 }
 
 // AllPassed returns true if all tests passed.
@@ -145,6 +162,7 @@ func (r *DiagnosticsResult) printServiceResults(w io.Writer) {
 		serviceMetrics,
 		serviceOrchestrator,
 		serviceRegistry,
+		serviceProfiling,
 	}
 
 	for _, service := range serviceOrder {
@@ -155,9 +173,12 @@ func (r *DiagnosticsResult) printServiceResults(w io.Writer) {
 
 		_, _ = fmt.Fprintf(w, "--- %s ---\n", service)
 		for _, sr := range results {
-			if sr.OK {
+			switch {
+			case sr.IsSkipped:
+				_, _ = fmt.Fprintf(w, "  %s: SKIPPED - %s\n", sr.Method, sr.Details)
+			case sr.OK:
 				_, _ = fmt.Fprintf(w, "  %s: OK - %s\n", sr.Method, sr.Details)
-			} else {
+			default:
 				_, _ = fmt.Fprintf(w, "  %s: FAILED - %v\n", sr.Method, sr.Error)
 			}
 		}
@@ -170,7 +191,11 @@ func (r *DiagnosticsResult) printServiceResults(w io.Writer) {
 // Takes w (io.Writer) which receives the summary output.
 func (r *DiagnosticsResult) printSummary(w io.Writer) {
 	_, _ = fmt.Fprint(w, "=== Summary ===\n")
-	_, _ = fmt.Fprintf(w, "Tests: %d passed, %d failed\n", r.Passed, r.Failed)
+	if r.Skipped > 0 {
+		_, _ = fmt.Fprintf(w, "Tests: %d passed, %d failed, %d skipped\n", r.Passed, r.Failed, r.Skipped)
+	} else {
+		_, _ = fmt.Fprintf(w, "Tests: %d passed, %d failed\n", r.Passed, r.Failed)
+	}
 
 	if r.Failed > 0 {
 		_, _ = fmt.Fprint(w, "\nSome services failed. This may indicate:\n")
@@ -190,11 +215,12 @@ func (r *DiagnosticsResult) printSummary(w io.Writer) {
 // tests.
 func (r *DiagnosticsResult) addResult(service, method string, err error, details string) {
 	sr := ServiceResult{
-		Error:   err,
-		Name:    service,
-		Method:  method,
-		Details: "",
-		OK:      err == nil,
+		Error:     err,
+		Name:      service,
+		Method:    method,
+		Details:   "",
+		OK:        err == nil,
+		IsSkipped: false,
 	}
 	if err == nil {
 		sr.Details = details
@@ -203,6 +229,24 @@ func (r *DiagnosticsResult) addResult(service, method string, err error, details
 		r.Failed++
 	}
 	r.Services = append(r.Services, sr)
+}
+
+// addSkippedResult records a service check as skipped. This is used for
+// opt-in services that are not registered on the server, to avoid false
+// failure alarms.
+//
+// Takes service (string) which identifies the service being tested.
+// Takes method (string) which specifies the test method name.
+// Takes details (string) which provides additional information about why the
+// check was skipped.
+func (r *DiagnosticsResult) addSkippedResult(service, method, details string) {
+	r.Services = append(r.Services, ServiceResult{
+		Name:      service,
+		Method:    method,
+		Details:   details,
+		IsSkipped: true,
+	})
+	r.Skipped++
 }
 
 // RunDiagnostics tests connectivity to a gRPC monitoring endpoint and runs
@@ -286,6 +330,7 @@ func runServiceTests(ctx context.Context, conn *grpc.ClientConn, result *Diagnos
 	testMetricsService(ctx, pb.NewMetricsServiceClient(conn), result)
 	testOrchestratorService(ctx, pb.NewOrchestratorInspectorServiceClient(conn), result)
 	testRegistryService(ctx, pb.NewRegistryInspectorServiceClient(conn), result)
+	testProfilingService(ctx, pb.NewProfilingServiceClient(conn), result)
 }
 
 // testHealthService checks the health service endpoints and records the
@@ -407,4 +452,27 @@ func testRegistryService(ctx context.Context, client pb.RegistryInspectorService
 		result.addResult(serviceRegistry, "GetVariantSummary", nil,
 			fmt.Sprintf("%d status groups", len(variantSummaryResp.GetSummaries())))
 	}
+}
+
+// testProfilingService tests the profiling service endpoint.
+//
+// Takes client (pb.ProfilingServiceClient) which provides access to the
+// profiling service API.
+// Takes result (*DiagnosticsResult) which collects the test results.
+func testProfilingService(ctx context.Context, client pb.ProfilingServiceClient, result *DiagnosticsResult) {
+	statusResp, err := client.GetProfilingStatus(ctx, &pb.GetProfilingStatusRequest{})
+	if err != nil {
+		if s, ok := grpcstatus.FromError(err); ok && s.Code() == codes.Unimplemented {
+			result.addSkippedResult(serviceProfiling, "GetProfilingStatus", resultSkipped)
+			return
+		}
+		result.addResult(serviceProfiling, "GetProfilingStatus", err, resultFailed)
+		return
+	}
+
+	status := "disabled"
+	if statusResp.GetEnabled() {
+		status = "enabled"
+	}
+	result.addResult(serviceProfiling, "GetProfilingStatus", nil, fmt.Sprintf("status=%s", status))
 }

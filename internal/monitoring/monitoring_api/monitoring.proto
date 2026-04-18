@@ -537,3 +537,61 @@ message ListSubResourcesResponse {
 message DescribeResourceTypeRequest {
   string resource_type = 1;
 }
+
+service ProfilingService {
+  rpc EnableProfiling(EnableProfilingRequest) returns (EnableProfilingResponse);
+
+  rpc DisableProfiling(DisableProfilingRequest) returns (DisableProfilingResponse);
+
+  rpc GetProfilingStatus(GetProfilingStatusRequest) returns (GetProfilingStatusResponse);
+
+  rpc CaptureProfile(CaptureProfileRequest) returns (stream CaptureProfileChunk);
+}
+
+message EnableProfilingRequest {
+  int64 duration_ms = 1;
+  int32 port = 2;
+  int32 block_profile_rate = 3;
+  int32 mutex_profile_fraction = 4;
+}
+
+message EnableProfilingResponse {
+  bool already_enabled = 1;
+  int64 expires_at_ms = 2;
+  int32 port = 3;
+  string pprof_base_url = 4;
+  int32 block_profile_rate = 5;
+  int32 mutex_profile_fraction = 6;
+  int32 mem_profile_rate = 7;
+}
+
+message DisableProfilingRequest {}
+
+message DisableProfilingResponse {
+  bool was_enabled = 1;
+}
+
+message GetProfilingStatusRequest {}
+
+message GetProfilingStatusResponse {
+  bool enabled = 1;
+  int32 port = 2;
+  int64 expires_at_ms = 3;
+  int64 remaining_ms = 4;
+  string pprof_base_url = 5;
+  int32 block_profile_rate = 6;
+  int32 mutex_profile_fraction = 7;
+  int32 mem_profile_rate = 8;
+  repeated string available_profiles = 9;
+}
+
+message CaptureProfileRequest {
+  string profile_type = 1;
+  int32 duration_seconds = 2;
+}
+
+message CaptureProfileChunk {
+  bytes data = 1;
+  bool is_last = 2;
+  string warning = 3;
+}

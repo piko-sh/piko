@@ -31,6 +31,12 @@ source "$(dirname "$0")/../lib/init.sh"
 # Path to the protoc binary.
 PROTOC="${PIKO_ROOT}/.tools/protoc"
 
+# Pinned protoc-gen-go version for reproducible code generation.
+PROTOC_GEN_GO_VERSION="v1.36.6"
+
+# Pinned protoc-gen-go-grpc version for reproducible code generation.
+PROTOC_GEN_GO_GRPC_VERSION="v1.6.0"
+
 # Array of Protocol Buffers file paths.
 PROTO_FILES=(
     "internal/monitoring/monitoring_api/monitoring.proto"
@@ -44,16 +50,25 @@ ensure_protoc() {
     fi
 }
 
-# ensure_protoc_go_plugin checks protoc-gen-go is installed.
+# ensure_protoc_go_plugin checks protoc-gen-go and protoc-gen-go-grpc are
+# installed at the pinned versions. Reinstalls if the version does not match.
 ensure_protoc_go_plugin() {
-    if ! command -v protoc-gen-go &>/dev/null; then
-        piko::log::info "Installing protoc-gen-go..."
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+    local current_go_version
+    current_go_version=$(protoc-gen-go --version 2>/dev/null | awk '{print $2}')
+    if [[ "$current_go_version" != "$PROTOC_GEN_GO_VERSION" ]]; then
+        piko::log::info "Installing protoc-gen-go@${PROTOC_GEN_GO_VERSION} (current: ${current_go_version:-not found})..."
+        if ! go install "google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOC_GEN_GO_VERSION}"; then
+            piko::log::fatal "Failed to install protoc-gen-go@${PROTOC_GEN_GO_VERSION}"
+        fi
     fi
 
-    if ! command -v protoc-gen-go-grpc &>/dev/null; then
-        piko::log::info "Installing protoc-gen-go-grpc..."
-        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    local current_grpc_version
+    current_grpc_version=$(protoc-gen-go-grpc --version 2>/dev/null | awk '{print $2}')
+    if [[ "$current_grpc_version" != "$PROTOC_GEN_GO_GRPC_VERSION" ]]; then
+        piko::log::info "Installing protoc-gen-go-grpc@${PROTOC_GEN_GO_GRPC_VERSION} (current: ${current_grpc_version:-not found})..."
+        if ! go install "google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRPC_VERSION}"; then
+            piko::log::fatal "Failed to install protoc-gen-go-grpc@${PROTOC_GEN_GO_GRPC_VERSION}"
+        fi
     fi
 }
 

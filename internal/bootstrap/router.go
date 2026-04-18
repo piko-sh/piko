@@ -576,14 +576,16 @@ func mergeCaptchaCSPDomains(ctx context.Context, c *Container, builder *security
 // script, frame, and connect domains the provider needs.
 func mergeProviderCSPDomains(builder *security_domain.CSPBuilder, requirements *captcha_dto.RenderRequirements) {
 	if len(requirements.CSPScriptDomains) > 0 {
-		scriptSources := []security_domain.Source{security_domain.Self}
+		scriptSources := make([]security_domain.Source, 0, 1+len(requirements.CSPScriptDomains))
+		scriptSources = append(scriptSources, security_domain.Self)
 		for _, domain := range requirements.CSPScriptDomains {
 			scriptSources = append(scriptSources, security_domain.Source(domain))
 		}
 		builder.ScriptSrc(scriptSources...)
 	}
 	if len(requirements.CSPFrameDomains) > 0 {
-		frameSources := []security_domain.Source{security_domain.Self}
+		frameSources := make([]security_domain.Source, 0, 1+len(requirements.CSPFrameDomains))
+		frameSources = append(frameSources, security_domain.Self)
 		for _, domain := range requirements.CSPFrameDomains {
 			frameSources = append(frameSources, security_domain.Source(domain))
 		}

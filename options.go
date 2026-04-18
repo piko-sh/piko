@@ -1536,6 +1536,29 @@ func WithMonitoringOtelFactories(factories monitoring_domain.ServiceFactories) M
 	return bootstrap.WithMonitoringOtelFactories(factories)
 }
 
+// WithMonitoringProfiling enables the remote profiling gRPC service, allowing
+// operators to toggle pprof on and off at runtime via the monitoring endpoint.
+// Without this option, the ProfilingService is not registered and profiling
+// cannot be controlled remotely.
+//
+// Usage:
+//
+//	piko.WithMonitoring(
+//	    piko.WithMonitoringTransport(monitoring_transport_grpc.Transport()),
+//	    piko.WithMonitoringProfiling(),
+//	)
+//
+// Once enabled, operators can use the CLI to control profiling:
+//
+//	piko profiling enable 30m     # Start profiling for 30 minutes
+//	piko profiling capture heap   # Capture a heap profile
+//	piko profiling disable        # Stop profiling early
+//
+// Returns MonitoringOption which enables the profiling service.
+func WithMonitoringProfiling() MonitoringOption {
+	return bootstrap.WithMonitoringProfiling()
+}
+
 // WithProfilingPort sets the port for the pprof HTTP server.
 //
 // Takes port (int) which specifies the port number to listen on.
