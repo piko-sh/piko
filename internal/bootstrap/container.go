@@ -475,10 +475,6 @@ type Container struct {
 	// Nil means no auth middleware is installed.
 	authProvider daemon_dto.AuthProvider
 
-	// analyticsCollectors holds user-registered backend analytics
-	// collectors. Empty means no analytics middleware is installed.
-	analyticsCollectors []analytics_domain.Collector
-
 	// sandboxFactoryInstance is the lazily-created, cached safedisk.Factory
 	// built from the server config. All production sandbox creation goes
 	// through this single factory so that path validation, the Enabled flag,
@@ -490,6 +486,11 @@ type Container struct {
 
 	// markdownParser holds the user-provided markdown parser implementation.
 	markdownParser markdown_domain.MarkdownParserPort
+
+	// embeddedPikoFS holds the embedded .piko filesystem. When set, the
+	// container serves runtime data from this filesystem instead of disk,
+	// enabling single-binary deployments for static sites.
+	embeddedPikoFS fs.FS
 
 	// dbProvider stores the otter persistence provider for the default
 	// in-memory backend. Only used when no SQL database is registered via
@@ -722,6 +723,10 @@ type Container struct {
 	// cssResetCSS holds the resolved CSS reset content for PK files. When
 	// empty, no CSS reset is included in the generated theme CSS.
 	cssResetCSS string
+
+	// analyticsCollectors holds user-registered backend analytics
+	// collectors. Empty means no analytics middleware is installed.
+	analyticsCollectors []analytics_domain.Collector
 
 	// reportingEndpoints holds the configured reporting endpoints for the
 	// Reporting-Endpoints header.
@@ -980,6 +985,13 @@ func (c *Container) IsDevWidgetEnabled() bool { return c.devWidgetEnabled }
 // Returns bool which is true when automatic page refresh should be active in
 // dev mode.
 func (c *Container) IsDevHotreloadEnabled() bool { return c.devHotreloadEnabled }
+
+// IsEmbeddedMode reports whether the container is configured with an
+// embedded .piko folder for single-binary deployments.
+//
+// Returns bool which is true when the container serves data from an embedded
+// filesystem.
+func (c *Container) IsEmbeddedMode() bool { return c.embeddedPikoFS != nil }
 
 // SetOnServerBound stores a callback to invoke when the main HTTP server
 // binds to a port.

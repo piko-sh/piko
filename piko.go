@@ -1082,8 +1082,10 @@ func performGlobalSetup(ctx context.Context, configProvider *config.Provider, co
 	if configProvider.ServerConfig.Paths.BaseDir != nil {
 		baseDir = *configProvider.ServerConfig.Paths.BaseDir
 	}
-	if err := ensurePikoInternalDir(baseDir, config.PikoInternalPath); err != nil {
-		return fmt.Errorf("ensuring piko internal directory: %w", err)
+	if container == nil || !container.IsEmbeddedMode() {
+		if err := ensurePikoInternalDir(baseDir, config.PikoInternalPath); err != nil {
+			return fmt.Errorf("ensuring piko internal directory: %w", err)
+		}
 	}
 
 	if err := daemon_frontend.InitAssetStore(ctx); err != nil {

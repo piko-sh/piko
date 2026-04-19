@@ -24,13 +24,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 
 	"piko.sh/piko/internal/cache/cache_domain"
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
+	"piko.sh/piko/internal/persistence"
 	"piko.sh/piko/internal/registry/registry_adapters"
 	"piko.sh/piko/internal/registry/registry_dal"
+	registry_otter "piko.sh/piko/internal/registry/registry_dal/otter"
 	registry_querier_adapter "piko.sh/piko/internal/registry/registry_dal/querier_adapter"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/registry/registry_dto"
@@ -38,10 +41,17 @@ import (
 	"piko.sh/piko/internal/render/render_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_disk"
+	"piko.sh/piko/internal/storage/storage_adapters/provider_fs"
 	"piko.sh/piko/internal/storage/storage_adapters/registry_blob_adapter"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
 	"piko.sh/piko/wdk/safedisk"
+)
+
+const (
+	// defaultRegistryCapacity is the default maximum number of registry
+	// artefacts to store in the embedded cache.
+	defaultRegistryCapacity = 100_000
 )
 
 // GetRegistryService returns the template registry service, creating it if
@@ -138,6 +148,10 @@ func (c *Container) createQuerierRegistryDAL() (registry_domain.MetadataStore, e
 // Returns error when the otter DAL cannot be created or does not implement
 // RegistryDALWithTx.
 func (c *Container) createProviderRegistryDAL() (registry_domain.MetadataStore, error) {
+	if c.embeddedPikoFS != nil {
+		return c.loadEmbeddedRegistryDAL()
+	}
+
 	dalAny, err := c.createOtterRegistryDAL()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create otter registry DAL: %w", err)
@@ -153,6 +167,39 @@ func (c *Container) createProviderRegistryDAL() (registry_domain.MetadataStore, 
 	}
 
 	return dal, nil
+}
+
+// loadEmbeddedRegistryDAL loads registry metadata from the embedded .piko
+// filesystem and creates an otter-backed DAL.
+func (c *Container) loadEmbeddedRegistryDAL() (registry_domain.MetadataStore, error) {
+	_, l := logger_domain.From(c.GetAppContext(), log)
+	l.Internal("Creating registry DAL from embedded .piko filesystem")
+
+	registryCache, err := persistence.LoadRegistryCacheFromFS(
+		c.GetAppContext(), c.embeddedPikoFS, defaultRegistryCapacity)
+	if err != nil {
+		return nil, fmt.Errorf("loading registry cache from embedded fs: %w", err)
+	}
+
+	dal, dalErr := registry_otter.NewOtterDAL(
+		registry_otter.Config{},
+		registry_otter.WithCache(registryCache),
+	)
+	if dalErr != nil {
+		return nil, fmt.Errorf("creating embedded registry DAL: %w", dalErr)
+	}
+
+	c.captureRegistryInspector(dal)
+	return dal, nil
+}
+
+// captureRegistryInspector extracts the RegistryInspector from a DAL if
+// the underlying type implements it.
+func (c *Container) captureRegistryInspector(dal registry_dal.RegistryDALWithTx) {
+	var dalAny any = dal
+	if inspector, ok := dalAny.(registry_domain.RegistryInspector); ok {
+		c.registryInspector = inspector
+	}
 }
 
 // createRegistryBlobStores creates the blob stores for the registry service.
@@ -258,6 +305,19 @@ func (c *Container) getRegistryBlobProvider() (storage_domain.StorageProviderPor
 	if p, ok := c.storageProviders[storage_dto.StorageProviderDefault]; ok {
 		l.Internal("Using 'default' storage provider for registry blobs (no 'system' configured)")
 		return p, nil
+	}
+
+	if c.embeddedPikoFS != nil {
+		l.Internal("Using embedded fs.FS for registry blobs")
+		blobSubFS, err := fs.Sub(c.embeddedPikoFS, "blobs")
+		if err != nil {
+			return nil, fmt.Errorf("failed to create blob sub-fs: %w", err)
+		}
+		fsProvider, providerErr := provider_fs.NewFSProvider(blobSubFS)
+		if providerErr != nil {
+			return nil, fmt.Errorf("failed to create embedded fs blob provider: %w", providerErr)
+		}
+		return fsProvider, nil
 	}
 
 	l.Internal("Using built-in disk provider for registry blobs (no providers configured)")

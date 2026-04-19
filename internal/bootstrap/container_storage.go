@@ -22,13 +22,16 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 
 	"piko.sh/piko/internal/config"
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/storage/storage_adapters/provider_disk"
+	"piko.sh/piko/internal/storage/storage_adapters/provider_fs"
 	"piko.sh/piko/internal/storage/storage_adapters/transformer_crypto"
 	"piko.sh/piko/internal/storage/storage_domain"
 	"piko.sh/piko/internal/storage/storage_dto"
@@ -174,12 +177,14 @@ func (c *Container) buildStorageServiceOpts() []storage_domain.ServiceOption {
 	_, l := logger_domain.From(c.GetAppContext(), log)
 	var opts []storage_domain.ServiceOption
 
-	tempSandbox, err := c.createSandbox("storage-temp", filepath.Join(deref(c.config.ServerConfig.Paths.BaseDir, "."), ".piko", "tmp"), safedisk.ModeReadWrite)
-	if err != nil {
-		l.Warn("Failed to create storage temp sandbox, using fallback",
-			logger_domain.Error(err))
-	} else {
-		opts = append(opts, storage_domain.WithTempSandbox(tempSandbox))
+	if c.embeddedPikoFS == nil {
+		tempSandbox, err := c.createSandbox("storage-temp", filepath.Join(deref(c.config.ServerConfig.Paths.BaseDir, "."), ".piko", "tmp"), safedisk.ModeReadWrite)
+		if err != nil {
+			l.Warn("Failed to create storage temp sandbox, using fallback",
+				logger_domain.Error(err))
+		} else {
+			opts = append(opts, storage_domain.WithTempSandbox(tempSandbox))
+		}
 	}
 
 	presignBaseURL := c.storagePresignBaseURL
@@ -235,42 +240,68 @@ func (*Container) startStorageDispatcher(ctx context.Context, s storage_domain.S
 // storage provider.
 // Returns error when the configured provider is not registered or the
 // default disk provider fails to initialise.
-func (c *Container) selectStorageBaseProvider() (baseName string, baseProvider storage_domain.StorageProviderPort, err error) {
+func (c *Container) selectStorageBaseProvider() (string, storage_domain.StorageProviderPort, error) {
 	if len(c.storageProviders) > 0 {
-		if c.storageDefaultProvider != "" {
-			baseName = c.storageDefaultProvider
-			baseProvider = c.storageProviders[baseName]
-			if baseProvider == nil {
-				return "", nil, fmt.Errorf("storage default provider %q not registered", baseName)
-			}
-		} else if p, ok := c.storageProviders[storage_dto.StorageProviderDefault]; ok {
-			baseName = storage_dto.StorageProviderDefault
-			baseProvider = p
-		} else {
-			for n, p := range c.storageProviders {
-				baseName, baseProvider = n, p
-				break
-			}
-		}
-	} else {
-		baseName = storage_dto.StorageProviderDefault
-		storageDir := filepath.Join(deref(c.config.ServerConfig.Paths.BaseDir, "."), config.PikoInternalPath, "storage")
-		storageSandbox, sandboxErr := c.createSandbox("storage-disk-provider", storageDir, safedisk.ModeReadWrite)
-		if sandboxErr != nil {
-			return "", nil, fmt.Errorf("failed to create storage sandbox: %w", sandboxErr)
-		}
-		baseProvider, err = provider_disk.NewDiskProvider(provider_disk.Config{
-			BaseDirectory: storageDir,
-			Sandbox:       storageSandbox,
-		})
-		if err != nil {
-			return "", nil, fmt.Errorf("failed to initialise default disk storage provider: %w", err)
-		}
-		_, l := logger_domain.From(c.GetAppContext(), log)
-		l.Internal("Using default disk storage provider (no custom providers registered)",
-			logger_domain.String("storage_dir", storageDir))
+		return c.selectExplicitStorageProvider()
 	}
-	return baseName, baseProvider, nil
+	if c.embeddedPikoFS != nil {
+		return c.selectEmbeddedStorageProvider()
+	}
+	return c.selectDiskStorageProvider()
+}
+
+// selectExplicitStorageProvider picks a user-registered storage provider.
+func (c *Container) selectExplicitStorageProvider() (string, storage_domain.StorageProviderPort, error) {
+	if c.storageDefaultProvider != "" {
+		provider := c.storageProviders[c.storageDefaultProvider]
+		if provider == nil {
+			return "", nil, fmt.Errorf("storage default provider %q not registered", c.storageDefaultProvider)
+		}
+		return c.storageDefaultProvider, provider, nil
+	}
+	if provider, ok := c.storageProviders[storage_dto.StorageProviderDefault]; ok {
+		return storage_dto.StorageProviderDefault, provider, nil
+	}
+	for name, provider := range c.storageProviders {
+		return name, provider, nil
+	}
+	return "", nil, errors.New("no storage providers registered")
+}
+
+// selectEmbeddedStorageProvider creates a read-only provider from the
+// embedded .piko filesystem.
+func (c *Container) selectEmbeddedStorageProvider() (string, storage_domain.StorageProviderPort, error) {
+	storageSubFS, subErr := fs.Sub(c.embeddedPikoFS, "storage")
+	if subErr != nil {
+		return "", nil, fmt.Errorf("failed to create storage sub-fs: %w", subErr)
+	}
+	provider, err := provider_fs.NewFSProvider(storageSubFS)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create embedded fs storage provider: %w", err)
+	}
+	_, l := logger_domain.From(c.GetAppContext(), log)
+	l.Internal("Using embedded fs.FS storage provider (embedded mode)")
+	return storage_dto.StorageProviderDefault, provider, nil
+}
+
+// selectDiskStorageProvider creates the default disk-backed storage provider.
+func (c *Container) selectDiskStorageProvider() (string, storage_domain.StorageProviderPort, error) {
+	storageDir := filepath.Join(deref(c.config.ServerConfig.Paths.BaseDir, "."), config.PikoInternalPath, "storage")
+	storageSandbox, sandboxErr := c.createSandbox("storage-disk-provider", storageDir, safedisk.ModeReadWrite)
+	if sandboxErr != nil {
+		return "", nil, fmt.Errorf("failed to create storage sandbox: %w", sandboxErr)
+	}
+	provider, err := provider_disk.NewDiskProvider(provider_disk.Config{
+		BaseDirectory: storageDir,
+		Sandbox:       storageSandbox,
+	})
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to initialise default disk storage provider: %w", err)
+	}
+	_, l := logger_domain.From(c.GetAppContext(), log)
+	l.Internal("Using default disk storage provider (no custom providers registered)",
+		logger_domain.String("storage_dir", storageDir))
+	return storage_dto.StorageProviderDefault, provider, nil
 }
 
 // createStorageDispatcher creates a storage dispatcher if one is set up.

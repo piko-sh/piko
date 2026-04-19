@@ -40,13 +40,21 @@ import (
 	"piko.sh/piko/internal/logger/logger_domain"
 	"piko.sh/piko/internal/orchestrator"
 	"piko.sh/piko/internal/orchestrator/orchestrator_adapters"
+	orchestrator_otter "piko.sh/piko/internal/orchestrator/orchestrator_dal/otter"
 	orchestrator_querier_adapter "piko.sh/piko/internal/orchestrator/orchestrator_dal/querier_adapter"
 	"piko.sh/piko/internal/orchestrator/orchestrator_domain"
+	"piko.sh/piko/internal/persistence"
 	"piko.sh/piko/internal/registry/registry_domain"
 	"piko.sh/piko/internal/resolver/resolver_domain"
 	"piko.sh/piko/internal/shutdown"
 	"piko.sh/piko/internal/video/video_domain"
 	"piko.sh/piko/wdk/safedisk"
+)
+
+const (
+	// defaultOrchestratorCapacity is the default maximum number of orchestrator
+	// tasks to store in the embedded cache.
+	defaultOrchestratorCapacity = 100_000
 )
 
 // GetCapabilityService returns the capability detection service, creating it
@@ -419,6 +427,10 @@ func (c *Container) createQuerierOrchestratorDAL() (orchestrator_domain.TaskStor
 // Returns error when the otter DAL cannot be created or does not implement
 // TaskStore.
 func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskStore, error) {
+	if c.embeddedPikoFS != nil {
+		return c.loadEmbeddedOrchestratorDAL()
+	}
+
 	dalAny, err := c.createOtterOrchestratorDAL()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create otter orchestrator DAL: %w", err)
@@ -434,4 +446,31 @@ func (c *Container) createProviderOrchestratorDAL() (orchestrator_domain.TaskSto
 	}
 
 	return dal, nil
+}
+
+// loadEmbeddedOrchestratorDAL loads orchestrator task state from the embedded
+// .piko filesystem and creates an otter-backed DAL.
+func (c *Container) loadEmbeddedOrchestratorDAL() (orchestrator_domain.TaskStore, error) {
+	_, l := logger_domain.From(c.GetAppContext(), log)
+	l.Internal("Creating orchestrator DAL from embedded .piko filesystem")
+
+	taskCache, loadErr := persistence.LoadOrchestratorCacheFromFS(
+		c.GetAppContext(), c.embeddedPikoFS, defaultOrchestratorCapacity)
+	if loadErr != nil {
+		return nil, fmt.Errorf("loading orchestrator cache from embedded fs: %w", loadErr)
+	}
+
+	embeddedDAL, otterErr := orchestrator_otter.NewOtterDAL(
+		orchestrator_otter.Config{},
+		orchestrator_otter.WithCache(taskCache),
+	)
+	if otterErr != nil {
+		return nil, fmt.Errorf("creating embedded orchestrator DAL: %w", otterErr)
+	}
+
+	if inspector, isInspector := embeddedDAL.(orchestrator_domain.OrchestratorInspector); isInspector {
+		c.orchestratorInspector = inspector
+	}
+
+	return embeddedDAL, nil
 }

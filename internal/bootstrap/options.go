@@ -20,6 +20,7 @@ package bootstrap
 
 import (
 	"path/filepath"
+	"io/fs"
 	"strconv"
 	"time"
 
@@ -1676,5 +1677,41 @@ func WithBackendAnalytics(collectors ...analytics_domain.Collector) Option {
 func WithAuthGuard(authGuardConfig daemon_dto.AuthGuardConfig) Option {
 	return func(c *Container) {
 		c.authGuardConfig = &authGuardConfig
+	}
+}
+
+// WithEmbeddedPikoFolder configures the container to serve all runtime data
+// from the given embedded filesystem, enabling single-binary deployments for
+// static sites.
+//
+// The fsys parameter should contain the contents of the .piko directory.
+// Callers should use fs.Sub to strip the ".piko" prefix:
+//
+//	//go:embed all:.piko
+//	var pikoFS embed.FS
+//
+//	subFS, _ := fs.Sub(pikoFS, ".piko")
+//	app := piko.New(piko.WithEmbeddedPikoFolder(subFS))
+//
+// This option automatically:
+//   - Registers a read-only storage provider for assets and blobs
+//   - Loads the registry snapshot to populate artefact metadata
+//   - Loads the orchestrator snapshot to populate task state
+//   - Skips .piko directory creation (read-only mode)
+//
+// Explicitly registered providers (via AddStorageProvider) take precedence
+// over the embedded defaults.
+//
+// Takes fsys (fs.FS) which contains the .piko directory contents.
+//
+// Returns Option which configures the container for embedded operation.
+func WithEmbeddedPikoFolder(fsys fs.FS) Option {
+	return func(c *Container) {
+		if fsys == nil {
+			_, l := logger_domain.From(c.GetAppContext(), log)
+			l.Error("WithEmbeddedPikoFolder called with nil filesystem, embedded mode will not be active")
+			return
+		}
+		c.embeddedPikoFS = fsys
 	}
 }
